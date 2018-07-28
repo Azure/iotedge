@@ -19,7 +19,7 @@ PROJECT_ROOT=${BUILD_REPOSITORY_LOCALPATH}/edgelet
 ###############################################################################
 # Print usage information pertaining to this script and exit
 ###############################################################################
-usage()
+function usage()
 {
     echo "$SCRIPT_NAME [options]"
     echo ""
@@ -31,9 +31,35 @@ usage()
 }
 
 ###############################################################################
+# Install rust toolchain
+#
+#   @param[1] - toolchain; Rust toolchain to install; Required;
+#   @param[2] - set_default_toolchain; Boolean to set the toolchain as the
+#               default toolchain duing its installation; Required;
+###############################################################################
+function install_toolchain()
+{
+    toolchain="$1"
+    set_default_toolchain="$2"
+
+    if [[ $set_default_toolchain == "true" ]]; then
+        cmd_default_toolchain="--default-toolchain"
+    else
+        cmd_default_toolchain=""
+    fi
+
+    echo "Installing rust toolchain $toolchain"
+    if command -v "$RUSTUP" >/dev/null; then
+        $RUSTUP install $toolchain
+    else
+        curl https://sh.rustup.rs -sSf | sh -s -- -y $cmd_default_toolchain $toolchain
+    fi
+}
+
+###############################################################################
 # Obtain and validate the options supported by this script
 ###############################################################################
-process_args()
+function process_args()
 {
     save_next_arg=0
     for arg in "$@"
@@ -54,11 +80,17 @@ process_args()
 
 process_args "$@"
 
-if command -v "$RUSTUP" >/dev/null; then
-    $RUSTUP install "$TOOLCHAIN"
-else
-    curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain "$TOOLCHAIN"
+# install specified toolchain
+install_toolchain $TOOLCHAIN true
+
+# install the nightly toolchain as well since clippy still only works with the nightly toolchain
+if [[ "$TOOLCHAIN" != "nightly" ]]; then
+    install_toolchain "nightly" false
 fi
+
+#install clippy
+echo "Installing clippy..."
+rustup component add clippy-preview --toolchain=nightly
 
 # Add trusty repo to get older version of libc6-armhf-cross
 add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ trusty main universe"
@@ -97,9 +129,9 @@ if [[ -n "$ARM_PACKAGE" ]]; then
         gcc-arm-linux-gnueabihf=4:4.8.2-1
 
     # For future reference:
-    # ubuntu systems (host) sets openssl library version to 1.0.0, 
-    # Debian (Jessie) systems (target) expects library version to be 1.0.0.  
+    # ubuntu systems (host) sets openssl library version to 1.0.0,
+    # Debian (Jessie) systems (target) expects library version to be 1.0.0.
     # Debian (Stretch and later) systems (target) expects 1.0 library version to be 1.0.2.
-    
+
     ${PROJECT_ROOT}/build/linux/copy-arm-libs.sh
 fi

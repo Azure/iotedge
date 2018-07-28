@@ -20,7 +20,7 @@ IMAGE="azureiotedge/cargo-clippy:nightly"
 ###############################################################################
 # Print usage information pertaining to this script and exit
 ###############################################################################
-usage()
+function usage()
 {
     echo "$SCRIPT_NAME [options]"
     echo ""
@@ -30,12 +30,21 @@ usage()
     exit 1;
 }
 
-print_help_and_exit()
+function print_help_and_exit()
 {
     echo "Run $SCRIPT_NAME --help for more information."
     exit 1
 }
 
+function run_clippy()
+{
+    cargo +nightly clippy --all
+}
+
+function run_clippy_via_docker()
+{
+    docker run --user "$(id -u)":"$(id -g)" --rm -v "$PROJECT_ROOT:/volume" "$IMAGE"
+}
 ###############################################################################
 # Obtain and validate the options supported by this script
 ###############################################################################
@@ -59,5 +68,5 @@ process_args()
 
 process_args "$@"
 
-echo "Running cargo clippy"
-docker run --user "$(id -u)":"$(id -g)" --rm -v "$PROJECT_ROOT:/volume" "$IMAGE"
+echo "Running clippy"
+run_clippy
