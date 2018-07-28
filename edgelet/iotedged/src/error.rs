@@ -30,7 +30,7 @@ pub struct Error {
     inner: Context<ErrorKind>,
 }
 
-#[derive(Debug, Fail)]
+#[derive(Debug, Fail, PartialEq)]
 pub enum ErrorKind {
     #[fail(display = "Invalid configuration file")]
     Settings,
@@ -57,15 +57,15 @@ pub enum ErrorKind {
     #[cfg(target_os = "windows")]
     #[fail(
         display = "Edge device information is required.\n\
-        Please edit your config.yaml and provide information to connection the Edge to the IoT Hub.\n\
-        See https://aka.ms/iot-edge-configure-windows"
+                   Please update the config.yaml and provide the IoTHub connection information.\n\
+                   See https://aka.ms/iot-edge-configure-windows for more details."
     )]
     Unconfigured,
     #[cfg(not(target_os = "windows"))]
     #[fail(
         display = "Edge device information is required.\n\
-        Please edit your config.yaml and provide information to connection the Edge to the IoT Hub.\n\
-        See https://aka.ms/iot-edge-configure-linux"
+                   Please update the config.yaml and provide the IoTHub connection information.\n\
+                   See https://aka.ms/iot-edge-configure-linux for more details"
     )]
     Unconfigured,
     #[fail(display = "A provisioning error occurred.")]
@@ -79,6 +79,12 @@ pub enum ErrorKind {
     #[cfg(target_os = "windows")]
     #[fail(display = "Windows service error")]
     WindowsService,
+}
+
+impl Error {
+    pub fn kind(&self) -> &ErrorKind {
+        self.inner.get_context()
+    }
 }
 
 impl Fail for Error {

@@ -16,13 +16,13 @@ use url::Url;
 use url_serde;
 
 use edgelet_core::ModuleSpec;
-use error::{Error, ErrorKind};
+use error::Error;
 
 /// This is the name of the network created by the iotedged
 const DEFAULT_NETWORKID: &str = "azure-iot-edge";
 
 /// This is the default connection string
-const DEFAULT_CONNECTION_STRING: &str = "<ADD DEVICE CONNECTION STRING HERE>";
+pub const DEFAULT_CONNECTION_STRING: &str = "<ADD DEVICE CONNECTION STRING HERE>";
 
 #[cfg(unix)]
 static DEFAULTS: &str = include_str!("config/unix/default.yaml");
@@ -178,12 +178,6 @@ where
 
         let settings: Self = config.try_into()?;
 
-        if let Provisioning::Manual(manual) = settings.provisioning() {
-            if manual.device_connection_string() == DEFAULT_CONNECTION_STRING {
-                Err(ErrorKind::Unconfigured)?;
-            }
-        }
-
         Ok(settings)
     }
 
@@ -297,15 +291,6 @@ mod tests {
             }
             _ => assert!(false),
         }
-    }
-
-    #[test]
-    #[should_panic(
-        expected = "Edge device information is required.\n\
-        Please edit your config.yaml and provide information to connection the Edge to the IoT Hub."
-    )]
-    fn warn_user_on_default() {
-        let _settings = Settings::<DockerConfig>::new(None).unwrap();
     }
 
     #[test]
