@@ -1,4 +1,4 @@
-New-Module -name IoTEdge -scriptblock {
+New-Module -Name IotEdgeSecurityDaemon -ScriptBlock {
 
 [Console]::OutputEncoding = New-Object -typename System.Text.ASCIIEncoding
 
@@ -42,13 +42,13 @@ function Install-SecurityDaemon {
     }
 
     if ((Test-EdgeAlreadyInstalled)) {
-        Write-Host ("`nIoT Edge appears to be already installed, exiting.") `
+        Write-Host ("`nIoT Edge is already installed. To reinstall, run 'Uninstall-SecurityDaemon' first.") `
             -ForegroundColor "Red"
         return
     }
 
     Get-SecurityDaemon
-    Set-Path
+    Set-SystemPath
     Get-VcRuntime
     Add-FirewallExceptions
     Add-IotEdgeRegistryKey
@@ -57,7 +57,7 @@ function Install-SecurityDaemon {
     Set-Hostname
     Set-GatewayAddress
     Set-MobyNetwork
-    Initialize-IotEdgeService
+    Install-IotEdgeService
 
     Write-Host ("`nThis device is now provisioned with the IoT Edge runtime.`n" +
         "Check the status of the IoT Edge service with `"Get-Service iotedge`"`n" +
@@ -65,33 +65,58 @@ function Install-SecurityDaemon {
         "Display logs from the last five minutes in chronological order with`n" +
         "    Get-WinEvent -ea SilentlyContinue -FilterHashtable @{ProviderName=`"iotedged`";LogName=`"application`";StartTime=[datetime]::Now.AddMinutes(-5)} |`n" +
         "    Select TimeCreated, Message |`n" +
-        "    Sort-Object @{Expression=`"TimeCreated`";Descending=`$false}") `
+        "    Sort-Object @{Expression=`"TimeCreated`";Descending=`$false} |`n" +
+        "    Format-Table -AutoSize -Wrap") `
         -ForegroundColor "Green"
+}
+
+function Uninstall-SecurityDaemon {
+    [CmdletBinding()]
+    param (
+        [Switch] $Force
+    )
+
+    if (-not $Force -and -not (Test-EdgeAlreadyInstalled)) {
+        Write-Host ("`nIoT Edge is not installed. Use '-Force' to uninstall anyway.") `
+            -ForegroundColor "Red"
+        return
+    }
+
+    Write-Host "Uninstalling..."
+
+    $UseWindowsContainers = Test-UsingWindowsContainers
+
+    Uninstall-IotEdgeService
+    Stop-IotEdgeContainers
+    $success = Remove-SecurityDaemonResources
+    Reset-SystemPath
+    Remove-FirewallExceptions
+
+    if ($success) {
+        Write-Host "Successfully uninstalled IoT Edge." -ForegroundColor "Green"
+    }
 }
 
 function Test-IsDockerRunning {
     $DockerCliExe = "$env:ProgramFiles\Docker\Docker\DockerCli.exe"
-    if ((Get-Service "Docker").Status -eq "Running") {
+    if ((Get-Service "*docker*").Status -eq "Running") {
         Write-Host "Docker is running." -ForegroundColor "Green"
-        $os = Invoke-Native "docker version --format {{.Server.Os}}" -Passthru
-        if (($UseWindowsContainers) -and -not ($os -match "\s*windows\s*$")) {
+        if (($UseWindowsContainers) -and -not (Test-UsingWindowsContainers)) {
             if (-not (Test-Path -Path $DockerCliExe)) {
                 throw "Unable to switch to Windows containers."
             }
             Write-Host "Switching Docker to use Windows containers" -ForegroundColor "Green"
             Invoke-Native "`"$DockerCliExe`" -SwitchDaemon"
-            $os = Invoke-Native "docker version --format {{.Server.Os}}" -Passthru
-            if (-not ($os -match "\s*windows\s*$")) {
+            if (-not (Test-UsingWindowsContainers)) {
                 throw "Unable to switch to Windows containers."
             }
-        } elseif (-not ($UseWindowsContainers) -and ($os -match "\s*windows\s*$")) {
+        } elseif (-not ($UseWindowsContainers) -and (Test-UsingWindowsContainers)) {
             if (-not (Test-Path -Path $DockerCliExe)) {
-                throw "Unable to switch to Windows containers."
+                throw "Unable to switch to Linux containers."
             }
             Write-Host "Switching Docker to use Linux containers" -ForegroundColor "Green"
             Invoke-Native "`"$DockerCliExe`" -SwitchDaemon"
-            $os = Invoke-Native "docker version --format {{.Server.Os}}" -Passthru
-            if (($os -match "\s*windows\s*$")) {
+            if (Test-UsingWindowsContainers) {
                 throw "Unable to switch to Linux containers."
             }
         }
@@ -110,7 +135,11 @@ function Test-IsDockerRunning {
         return $false
     }
     return $true
- }
+}
+
+function Test-UsingWindowsContainers {
+    (Invoke-Native "docker version --format {{.Server.Os}}" -Passthru) -match "\s*windows\s*$"
+}
 
 function Test-IsKernelValid {
     $MinBuildForLinuxContainers = 14393
@@ -150,17 +179,59 @@ function Get-SecurityDaemon {
     }
 }
 
-function Set-Path {
-    $SystemEnvironment = "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
+function Remove-SecurityDaemonResources {
+    $success = $true
+
+    $LogKey = "HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\Application\iotedged"
+    Remove-Item $LogKey -ErrorAction SilentlyContinue -ErrorVariable CmdErr
+    Write-Verbose "$(if ($?) { "Deleted registry key '$LogKey'" } else { $CmdErr })"
+
     $EdgePath = "C:\ProgramData\iotedge"
-    $SystemPath = (Get-ItemProperty -Path $SystemEnvironment -Name Path).Path
-    if ($SystemPath -notlike "*$EdgePath*") {
-        Set-ItemProperty -Path $SystemEnvironment -Name Path -Value "$SystemPath;$EdgePath"
+    Remove-Item -Recurse $EdgePath -ErrorAction SilentlyContinue -ErrorVariable CmdErr
+    if ($?) {
+        Write-Verbose "Deleted install directory '$EdgePath'"
+    }
+    else {
+        Write-Verbose "$CmdErr"
+        if ($CmdErr.FullyQualifiedErrorId -ne "PathNotFound,Microsoft.PowerShell.Commands.RemoveItemCommand") {
+            Write-Host ("Could not delete install directory '$EdgePath'. Please reboot " +
+                "your device and run Uninstall-SecurityDaemon again with '-Force'.") `
+                -ForegroundColor "Red"
+            $success = $false
+        }
+    }
+
+    $success
+}
+
+function Get-SystemPathKey {
+    "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
+}
+
+function Get-SystemPath {
+    (Get-ItemProperty -Path (Get-SystemPathKey) -Name Path).Path -split ";" | Where-Object {$_.Length -gt 0}
+}
+
+function Set-SystemPath {
+    $EdgePath = "C:\ProgramData\iotedge"
+    $SystemPath = Get-SystemPath
+    if ($SystemPath -notcontains $EdgePath) {
+        Set-ItemProperty -Path (Get-SystemPathKey) -Name Path -Value (($SystemPath + $EdgePath) -join ";")
         $env:Path += ";$EdgePath"
         Write-Host "Updated system PATH." -ForegroundColor "Green"
     }
     else {
         Write-Host "System PATH does not require an update." -ForegroundColor "Green"
+    }
+}
+
+function Reset-SystemPath {
+    $EdgePath = "C:\ProgramData\iotedge"
+    $SystemPath = Get-SystemPath
+    if ($SystemPath -contains $EdgePath) {
+        $NewPath = $SystemPath | Where-Object { $_ -ne "C:\ProgramData\iotedge" }
+        Set-ItemProperty -Path (Get-SystemPathKey) -Name Path -Value ($NewPath -join ";")
+        Write-Verbose "Removed IoT Edge directory from system PATH"
     }
 }
 
@@ -192,10 +263,25 @@ function Get-VcRuntime {
     }
 }
 
-function Initialize-IotEdgeService {
+function Install-IotEdgeService {
     New-Service -Name "iotedge" -BinaryPathName "C:\ProgramData\iotedge\iotedged.exe -c C:\ProgramData\iotedge\config.yaml" | Out-Null
     Start-Service iotedge
     Write-Host "Initialized the IoT Edge service." -ForegroundColor "Green"
+}
+
+function Uninstall-IotEdgeService {
+    Stop-Service -NoWait -ErrorAction SilentlyContinue -ErrorVariable CmdErr iotedge
+    if ($?) {
+        Start-Sleep -Seconds 7
+        Write-Verbose "Stopped the IoT Edge service"
+    }
+    else {
+        Write-Verbose "$CmdErr"
+    }
+
+    if (Invoke-Native "sc.exe delete iotedge" -ErrorAction SilentlyContinue) {
+        Write-Verbose "Removed service subkey from the registry"
+    }
 }
 
 function Add-FirewallExceptions {
@@ -208,6 +294,11 @@ function Add-FirewallExceptions {
         -Program "C:\programdata\iotedge\iotedged.exe" `
         -InterfaceType "Any" | Out-Null
     Write-Host "Added firewall exceptions for ports used by the IoT Edge service." -ForegroundColor "Green"
+}
+
+function Remove-FirewallExceptions {
+    Remove-NetFirewallRule -DisplayName "iotedged allow inbound 15580,15581" -ErrorAction SilentlyContinue -ErrorVariable CmdErr
+    Write-Verbose "$(if ($?) { "Removed firewall exceptions" } else { $CmdErr })"
 }
 
 function Add-IotEdgeRegistryKey {
@@ -325,6 +416,48 @@ function Set-MobyNetwork {
     }
 }
 
+function Stop-IotEdgeContainers {
+    if (Test-IsDockerRunning 6> $null) {
+        Get-RunningContainerNames | `
+        Get-ContainersWithLabel -Key "net.azure-devices.edge.owner" -Value "Microsoft.Azure.Devices.Edge.Agent" | `
+        Stop-Containers
+    }
+}
+
+function Get-RunningContainerNames {
+    $Names = Invoke-Native "docker ps --format='{{.Names}}'" -Passthru
+    return $Names -split {$_ -eq "`r" -or $_ -eq "`n" -or $_ -eq "'"} | where {$_.Length -gt 0}
+}
+
+function Get-ContainersWithLabel {
+    param(
+        [parameter(ValueFromPipeline)]
+        $ContainerNames,
+        $Key,
+        $Value
+    )
+
+    process {
+        $ContainerNames | Where-Object {
+            (Invoke-Native "docker inspect --format=""{{index (.Config.Labels) \""$Key\""}}"" $_" -Passthru).Trim() -eq $Value
+        }
+    }
+}
+
+function Stop-Containers {
+    param(
+        [parameter(ValueFromPipeline)]
+        $Containers
+    )
+
+    process {
+        $Containers | ForEach-Object {
+            Invoke-Native "docker stop $_"
+            Write-Verbose "Stopped container $_"
+        }
+    }
+}
+
 function Test-EdgeAlreadyInstalled {
     $ServiceName = "iotedge"
     $IoTEdgePath = "C:\ProgramData\iotedge"
@@ -359,5 +492,5 @@ function Invoke-Native {
     }
 }
 
-Export-ModuleMember -function 'Install-SecurityDaemon'
+Export-ModuleMember -Function Install-SecurityDaemon, Uninstall-SecurityDaemon
 }
