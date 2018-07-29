@@ -10,12 +10,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
-    public interface ISecurityScopeStore
+    public interface ISecurityScopeStore : IDisposable
     {
         Task<Option<ServiceIdentity>> GetServiceIdentity(string id);
     }
 
-    public class SecurityScopeStore : ISecurityScopeStore
+    public sealed class SecurityScopeStore : ISecurityScopeStore
     {
         readonly IServiceProxy serviceProxy;
         readonly IEncryptedStore<string, string> encryptedStore;
@@ -97,6 +97,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
                 return Task.FromResult(Option.Some(serviceIdentity));
             }
             return Task.FromResult(Option.None<ServiceIdentity>());
+        }
+
+        public void Dispose()
+        {
+            this.encryptedStore?.Dispose();
+            this.refreshCacheTimer?.Dispose();
+            this.refreshCacheTask?.Dispose();
         }
     }
 }

@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
     {
         readonly string initializationVector;
         readonly WorkloadClient workloadClient;
-        static readonly AsyncLock asyncLock = new AsyncLock();
+        static readonly AsyncLock AsyncLock = new AsyncLock();
 
         EncryptionProvider(Uri workloadUri, string apiVersion, string moduleId, string moduleGenerationid, string initializationVector)
         {
@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
         {
             string ivFile = $"{storagePath}/{initializationVectorFileName}";
             string iv;
-            using (await asyncLock.LockAsync())
+            using (await AsyncLock.LockAsync())
             {
                 if (!File.Exists(ivFile))
                 {

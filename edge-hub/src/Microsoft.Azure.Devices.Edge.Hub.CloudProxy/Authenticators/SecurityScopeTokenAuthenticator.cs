@@ -14,11 +14,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         readonly ISecurityScopeStore securityScopeStore;
         readonly string iothubHostName;
+        readonly string edgeHubHostName;
 
-        public SecurityScopeTokenAuthenticator(ISecurityScopeStore securityScopeStore, string iothubHostName)
+        public SecurityScopeTokenAuthenticator(ISecurityScopeStore securityScopeStore, string iothubHostName, string edgeHubHostName)
         {
             this.securityScopeStore = securityScopeStore;
             this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
+            this.edgeHubHostName = Preconditions.CheckNonWhiteSpace(edgeHubHostName, nameof(edgeHubHostName));
         }
 
         public async Task<bool> AuthenticateAsync(IClientCredentials clientCredentials)
