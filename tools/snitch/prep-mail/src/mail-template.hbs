@@ -1,0 +1,63 @@
+<h1>Run - {{id}}</h1>
+
+<h2>Edge Hub Message Analysis</h2>
+
+{{#each this.messageAnalysis}}
+<h3 style="text-decoration: underline">Module <strong>{{moduleId}}</strong></h3>
+<table>
+    <tr>
+        <td>Status Message</td>
+        <td>:</td>
+        <td>{{statusMessage}}</td>
+    </tr>
+    <tr>
+        <td>Messages Received</td>
+        <td>:</td>
+        <td>{{receivedMessagesCount}}</td>
+    </tr>
+    <tr>
+        <td>Last Message Received At</td>
+        <td>:</td>
+        <td>{{lastMessageReceivedAt}}</td>
+    </tr>
+</table>
+{{#if missedMessages}}
+<table>
+    <thead>
+        <tr>
+            <th>Missed Messages</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{#each missedMessages}}
+        <tr>
+            <td>{{missedMessagesCount}}</td>
+            <td>{{startDateTime}}</td>
+            <td>{{startDateTime}}</td>
+        </tr>
+        {{/each}}
+    </tbody>
+</table>
+{{/if}}
+<hr />
+{{/each}}
+
+{{!-- TODO: Render metrics output here --}}
+
+{{!-- Render attachments --}}
+{{#if attachments}}
+<h2>Attachments:</h2>
+<ul>
+    {{#each attachments}}<li><a href="{{this}}">{{@key}}</a></li>{{/each}}
+</ul>
+{{/if}}
+
+{{!-- Render notes --}}
+{{#if notes}}
+<h2>Notes:</h2>
+<ul>
+    {{#each notes}}<li>{{this}}</li>{{/each}}
+</ul>
+{{/if}}

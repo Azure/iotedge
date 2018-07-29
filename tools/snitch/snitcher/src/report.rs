@@ -12,7 +12,7 @@ use tar::{Builder as TarBuilder, Header as TarHeader};
 use error::Result;
 use influx::QueryResults;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Interval {
     missed_messages_count: u64,
@@ -20,7 +20,7 @@ pub struct Interval {
     end_date_time: DateTime<Utc>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MessageAnalysis {
     module_id: String,
@@ -31,7 +31,8 @@ pub struct MessageAnalysis {
     missed_messages: Vec<Interval>,
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Report {
     id: String,
     #[serde(skip)]
@@ -39,6 +40,7 @@ pub struct Report {
     metrics: HashMap<String, QueryResults>,
     notes: Vec<String>,
     message_analysis: Option<Vec<MessageAnalysis>>,
+    attachments: HashMap<String, String>,
 }
 
 impl Report {
@@ -49,6 +51,7 @@ impl Report {
             metrics: HashMap::new(),
             notes: vec![],
             message_analysis: None,
+            attachments: HashMap::new(),
         }
     }
 
@@ -73,6 +76,10 @@ impl Report {
     pub fn add_notes(&mut self, notes: String) -> &Self {
         self.notes.push(notes);
         self
+    }
+
+    pub fn add_attachment(&mut self, name: &str, value: &str) {
+        self.attachments.insert(name.to_owned(), value.to_owned());
     }
 
     pub fn write_files<W: Write>(&self, writer: W) -> Result<W> {

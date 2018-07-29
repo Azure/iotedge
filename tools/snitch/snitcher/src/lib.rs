@@ -22,14 +22,14 @@ extern crate tokio_uds;
 extern crate url;
 extern crate url_serde;
 
-mod client;
-mod connect;
-mod docker;
-mod error;
-mod influx;
-mod report;
-mod settings;
-mod uds;
+pub mod client;
+pub mod connect;
+pub mod docker;
+pub mod error;
+pub mod influx;
+pub mod report;
+pub mod settings;
+pub mod uds;
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -49,7 +49,7 @@ use tokio::timer::{Delay, Interval};
 
 use connect::HyperClientService;
 use docker::{Container, DockerClient};
-use error::{Error, Result};
+use error::Error;
 use influx::QueryResults;
 use report::{MessageAnalysis, Report};
 use settings::Settings;
@@ -57,18 +57,7 @@ use uds::{UnixConnector, Uri};
 
 const LOGS_FILE_NAME: &str = "logs.tar.gz";
 
-fn main() -> Result<()> {
-    let settings = Settings::default().merge_env()?;
-
-    // schedule execution of the test reporter
-    let reports = schedule_reports(&settings).map_err(|err| eprintln!("Report error: {:?}", err));
-
-    tokio::run(reports.map(|_| println!("All done.")));
-
-    Ok(())
-}
-
-fn schedule_reports(settings: &Settings) -> impl Future<Item = (), Error = Error> + Send {
+pub fn schedule_reports(settings: &Settings) -> impl Future<Item = (), Error = Error> + Send {
     // we schedule one report at the end of the test run
     let settings_copy = settings.clone();
     let last_report = Delay::new(Instant::now() + *settings.test_duration())
@@ -92,7 +81,7 @@ fn schedule_reports(settings: &Settings) -> impl Future<Item = (), Error = Error
     last_report.join(periodic_report).map(|_| ())
 }
 
-fn do_report(settings: Settings) -> impl Future<Item = (), Error = Error> + Send {
+pub fn do_report(settings: Settings) -> impl Future<Item = (), Error = Error> + Send {
     let report = Arc::new(Mutex::new(Report::new(format!(
         "{}_{}",
         settings.build_id(),
@@ -156,6 +145,17 @@ fn do_report(settings: Settings) -> impl Future<Item = (), Error = Error> + Send
     let report_copy = report.clone();
     future::join_all(all_futures).and_then(move |_| {
         let report = &mut *report_copy.lock().unwrap();
+        let report_id = report.id().to_string();
+        report.add_attachment(
+            LOGS_FILE_NAME,
+            &format!(
+                "https://{}.blob.core.windows.net/{}_{}/{}",
+                settings.blob_storage_account(),
+                settings.blob_container_name(),
+                report_id,
+                LOGS_FILE_NAME
+            ),
+        );
         report.add_notes(format!(
             "Test report generated at: {}",
             Utc::now().to_rfc3339()
@@ -167,7 +167,7 @@ fn do_report(settings: Settings) -> impl Future<Item = (), Error = Error> + Send
     })
 }
 
-fn upload_file(
+pub fn upload_file(
     report_id: &str,
     settings: &Settings,
     name: &str,
@@ -211,7 +211,7 @@ fn upload_file(
         .unwrap_or_else(|err| Either::B(future::err(err)))
 }
 
-fn get_metrics(
+pub fn get_metrics(
     settings: &Settings,
 ) -> impl Future<Item = HashMap<String, QueryResults>, Error = Error> + Send {
     let influx_client = client::Client::new(
@@ -235,7 +235,7 @@ fn get_metrics(
     })
 }
 
-fn get_module_logs(
+pub fn get_module_logs(
     settings: &Settings,
 ) -> impl Future<Item = Vec<(Container, String)>, Error = Error> + Send {
     Uri::from_url(settings.docker_url())
@@ -266,7 +266,7 @@ fn get_module_logs(
         .unwrap_or_else(|err| Either::B(future::err(err)))
 }
 
-fn fetch_message_analysis(
+pub fn fetch_message_analysis(
     settings: &Settings,
 ) -> impl Future<Item = Option<Vec<MessageAnalysis>>, Error = Error> + Send {
     client::Client::new(
@@ -281,7 +281,7 @@ fn fetch_message_analysis(
     )
 }
 
-fn raise_alert(
+pub fn raise_alert(
     settings: &Settings,
     report_json: JsonValue,
 ) -> impl Future<Item = (), Error = Error> + Send {
