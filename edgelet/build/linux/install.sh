@@ -55,6 +55,7 @@ function install_toolchain()
         $RUSTUP install $toolchain
     else
         curl https://sh.rustup.rs -sSf | sh -s -- -y $cmd_default_toolchain $toolchain
+        source $HOME/.cargo/env
     fi
 }
 
@@ -87,7 +88,8 @@ process_args "$@"
 install_toolchain $TOOLCHAIN true
 
 # install the nightly toolchain as well since clippy still only works with the nightly toolchain
-if [[ $INSTALL_CLIPPY -eq 1 ]]; then
+# currently clippy does not have support for ARM so do not install
+if [[ $ARM_PACKAGE -eq 0 ]] && [[ $INSTALL_CLIPPY -eq 1 ]]; then
     if [[ "$TOOLCHAIN" != "nightly" ]]; then
         install_toolchain "nightly" false
     fi
