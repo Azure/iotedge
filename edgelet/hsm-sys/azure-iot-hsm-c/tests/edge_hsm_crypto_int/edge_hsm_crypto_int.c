@@ -10,6 +10,7 @@
 #include "azure_c_shared_utility/gballoc.h"
 #include "azure_c_shared_utility/crt_abstractions.h"
 #include "azure_c_shared_utility/strings.h"
+#include "azure_c_shared_utility/threadapi.h"
 #include "hsm_client_store.h"
 #include "hsm_key.h"
 #include "hsm_utils.h"
@@ -253,23 +254,14 @@ static void test_helper_prepare_transparent_gateway_certs(void)
                                          int_pk_2_path,
                                          int_ca_2_path);
 
-    const char *trusted_files[NUM_TRUSTED_CERTS] = { NULL, NULL, NULL };
+    const char *trusted_files[1] = { NULL };
     trusted_files[0] = int_ca_2_path;
-    trusted_files[1] = int_ca_1_path;
-    trusted_files[2] = root_ca_path;
-    char* trusted_ca_certs = concat_files_to_cstring(trusted_files, NUM_TRUSTED_CERTS);
+    char* trusted_ca_certs = concat_files_to_cstring(trusted_files, sizeof(trusted_files)/sizeof(trusted_files[0]));
     ASSERT_IS_NOT_NULL_WITH_MSG(trusted_ca_certs, "Line:" TOSTRING(__LINE__));
     status = write_cstring_to_file(trusted_ca_path, trusted_ca_certs);
     ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
 
-    const char *chained_device_files[2] = { device_ca_path, trusted_ca_path };
-    char* chained_device_ca_cert = concat_files_to_cstring(chained_device_files, 2);
-    ASSERT_IS_NOT_NULL_WITH_MSG(chained_device_ca_cert, "Line:" TOSTRING(__LINE__));
-    status = write_cstring_to_file(device_ca_path, chained_device_ca_cert);
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-
     // cleanup
-    free(chained_device_ca_cert);
     free(trusted_ca_certs);
     cert_properties_destroy(device_ca_handle);
     cert_properties_destroy(int_ca_2_root_handle);
@@ -941,7 +933,30 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         test_helper_unsetenv(ENV_DEVICE_CA_PATH);
         test_helper_unsetenv(ENV_DEVICE_PK_PATH);
         test_helper_unsetenv(ENV_TRUSTED_CA_CERTS_PATH);
+    }
 
+    TEST_FUNCTION(hsm_client_transparent_gateway_ca_cert_create_expiration_smoke)
+    {
+        // arrange
+        HSM_CLIENT_HANDLE hsm_handle = test_helper_crypto_init();
+        const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
+        CERT_PROPS_HANDLE ca_certificate_props = test_helper_create_ca_cert_properties();
+        set_validity_seconds(ca_certificate_props, 1);
+        CERT_INFO_HANDLE result = interface->hsm_client_create_certificate(hsm_handle, ca_certificate_props);
+        ASSERT_IS_NOT_NULL_WITH_MSG(result, "Line:" TOSTRING(__LINE__));
+
+        // act
+        ThreadAPI_Sleep(2000);
+        CERT_INFO_HANDLE temp_info_handle = interface->hsm_client_create_certificate(hsm_handle, ca_certificate_props);
+
+        // assert
+        ASSERT_IS_NULL_WITH_MSG(temp_info_handle, "Line:" TOSTRING(__LINE__));
+
+        // cleanup
+        interface->hsm_client_destroy_certificate(hsm_handle, TEST_CA_ALIAS);
+        certificate_info_destroy(result);
+        cert_properties_destroy(ca_certificate_props);
+        test_helper_crypto_deinit(hsm_handle);
     }
 
     TEST_FUNCTION(hsm_client_transparent_gateway_server_cert_create_smoke)
