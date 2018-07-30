@@ -15,6 +15,7 @@ TOOLCHAIN="stable"
 ARM_PACKAGE=
 BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}
 PROJECT_ROOT=${BUILD_REPOSITORY_LOCALPATH}/edgelet
+INSTALL_CLIPPY=1
 
 ###############################################################################
 # Print usage information pertaining to this script and exit
@@ -24,9 +25,10 @@ function usage()
     echo "$SCRIPT_NAME [options]"
     echo ""
     echo "options"
-    echo " -h, --help          Print this help and exit."
-    echo " -t, --toolchain     Toolchain (default: stable)"
-    echo " -p, --arm-package   Add additional dependencies for armhf packaging"
+    echo " -h,  --help                   Print this help and exit."
+    echo " -t,  --toolchain              Toolchain (default: stable)"
+    echo " -p,  --arm-package            Add additional dependencies for armhf packaging"
+    echo " -dc, --disable_clippy_install Disable rust nightly toolchain and clippy installation; Default is always install;"
     exit 1;
 }
 
@@ -50,9 +52,9 @@ function install_toolchain()
 
     echo "Installing rust toolchain $toolchain"
     if command -v "$RUSTUP" >/dev/null; then
-        $RUSTUP install $toolchain
+        echo "$RUSTUP install $toolchain"
     else
-        curl https://sh.rustup.rs -sSf | sh -s -- -y $cmd_default_toolchain $toolchain
+        echo "curl https://sh.rustup.rs -sSf | sh -s -- -y $cmd_default_toolchain $toolchain"
     fi
 }
 
@@ -72,6 +74,7 @@ function process_args()
                 "-h" | "--help" ) usage;;
                 "-t" | "--toolchain" ) save_next_arg=1;;
                 "-p" | "--package-arm" ) ARM_PACKAGE=1;;
+                "-dc" | "--disable_clippy_install" ) INSTALL_CLIPPY=0;;
                 * ) usage;;
             esac
         fi
@@ -84,13 +87,15 @@ process_args "$@"
 install_toolchain $TOOLCHAIN true
 
 # install the nightly toolchain as well since clippy still only works with the nightly toolchain
-if [[ "$TOOLCHAIN" != "nightly" ]]; then
-    install_toolchain "nightly" false
+if [[ $INSTALL_CLIPPY -eq 1 ]]; then
+    if [[ "$TOOLCHAIN" != "nightly" ]]; then
+        install_toolchain "nightly" false
+    fi
+    echo "Installing clippy..."
+    echo "rustup component add clippy-preview --toolchain=nightly"
 fi
 
-#install clippy
-echo "Installing clippy..."
-rustup component add clippy-preview --toolchain=nightly
+exit 0
 
 # Add trusty repo to get older version of libc6-armhf-cross
 add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ trusty main universe"
