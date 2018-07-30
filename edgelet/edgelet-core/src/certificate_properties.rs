@@ -9,6 +9,13 @@ pub enum CertificateType {
     Ca,
 }
 
+/// Enumerator for CERTIFICATE_ISSUER
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum CertificateIssuer {
+    DefaultCa,
+    DeviceCa,
+}
+
 /// Globally supported properties of certificates in the Edge.
 #[derive(Debug, Clone)]
 pub struct CertificateProperties {
@@ -16,6 +23,7 @@ pub struct CertificateProperties {
     common_name: String,
     certificate_type: CertificateType,
     alias: String,
+    issuer: CertificateIssuer,
 }
 
 impl CertificateProperties {
@@ -30,6 +38,7 @@ impl CertificateProperties {
             common_name,
             certificate_type,
             alias,
+            issuer: CertificateIssuer::DefaultCa,
         }
     }
 
@@ -71,6 +80,15 @@ impl CertificateProperties {
         self.alias = alias;
         self
     }
+
+    pub fn issuer(&self) -> &CertificateIssuer {
+        &self.issuer
+    }
+
+    pub fn with_issuer(mut self, issuer: CertificateIssuer) -> CertificateProperties {
+        self.issuer = issuer;
+        self
+    }
 }
 
 #[cfg(test)]
@@ -90,6 +108,7 @@ mod tests {
         assert_eq!("common_name", c.common_name());
         assert_eq!(&CertificateType::Client, c.certificate_type());
         assert_eq!("alias", c.alias());
+        assert_eq!(&CertificateIssuer::DefaultCa, c.issuer());
     }
 
     #[test]
@@ -102,11 +121,12 @@ mod tests {
         ).with_certificate_type(CertificateType::Ca)
             .with_common_name("bafflegab".to_string())
             .with_validity_in_secs(240)
-            .with_alias("Andrew Johnson".to_string());
-
+            .with_alias("Andrew Johnson".to_string())
+            .with_issuer(CertificateIssuer::DeviceCa);
         assert_eq!(&240, c.validity_in_secs());
         assert_eq!("bafflegab", c.common_name());
         assert_eq!(&CertificateType::Ca, c.certificate_type());
         assert_eq!("Andrew Johnson", c.alias());
+        assert_eq!(&CertificateIssuer::DeviceCa, c.issuer());
     }
 }
