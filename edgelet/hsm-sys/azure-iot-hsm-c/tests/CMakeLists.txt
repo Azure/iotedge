@@ -17,6 +17,7 @@ add_subdirectory(edge_hsm_crypto_int)
 # todo modify condition to check for openssl feature
 #add_subdirectory(edge_openssl_common_ut)
 add_subdirectory(edge_openssl_int)
+add_subdirectory(edge_openssl_pki_ut)
 add_subdirectory(edge_hsm_store_int)
 add_subdirectory(hsm_client_tpm_ut)
 add_subdirectory(edge_openssl_enc_ut)
