@@ -1,6 +1,6 @@
 provisioning:
   source: "manual"
-  device_connection_string: "HostName=something.some.com;DeviceId=some;SharedAccessKey=some"
+  device_connection_string: "<ADD DEVICE CONNECTION STRING HERE>"
 
 agent:
   name: "edgeAgent"
@@ -20,7 +20,7 @@ listen:
   management_uri: "unix:///var/run/iotedge/mgmt.sock"
   workload_uri: "unix:///var/run/iotedge/workload.sock"
 
-homedir: "/tmp/iotedge"
+homedir: "/var/lib/iotedge"
 
 moby_runtime:
   uri: "unix:///var/run/docker.sock"
