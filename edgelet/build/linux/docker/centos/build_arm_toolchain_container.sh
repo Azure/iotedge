@@ -6,8 +6,9 @@ set -ex
 main() {
     local version=7.3.1-2018.05
     local build_tools=gcc-linaro-${version}-x86_64_arm-linux-gnueabihf
+    local target_triple=$1
 
-    if [[ ! -f Dockerfile ]]
+    if [[ ! -f Dockerfile_${target_triple} ]]
     then
         echo "Expected Dockerfile in current directory."
         return 1
@@ -21,7 +22,7 @@ main() {
     rm ${build_tools}.tar.xz
 
     # Once toolchain is downloaded and extracted, build docker image with toolchain
-    docker build --build-arg TOOLCHAIN=${build_tools} --tag ${build_tools}:0.2 .
+    docker build -f Dockerfile_${target_triple} --build-arg TOOLCHAIN=${build_tools} --tag ${build_tools}:0.1 .
 
     # cleanup
     rm -fr gcc-linaro-${version}-x86_64_arm-linux-gnueabihf
