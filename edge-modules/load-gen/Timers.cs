@@ -19,7 +19,7 @@ namespace LoadGen
             {
                 if (disposing)
                 {
-                    foreach (var task in this.timerTasks)
+                    foreach (TimerTask task in this.timerTasks)
                     {
                         task.Timer.Dispose();
                     }
@@ -44,7 +44,7 @@ namespace LoadGen
 
         public void Start()
         {
-            foreach (var task in this.timerTasks)
+            foreach (TimerTask task in this.timerTasks)
             {
                 task.Timer.Start();
             }
@@ -52,7 +52,7 @@ namespace LoadGen
 
         public void Stop()
         {
-            foreach (var task in this.timerTasks)
+            foreach (TimerTask task in this.timerTasks)
             {
                 task.Timer.Stop();
                 task.Quit = true;

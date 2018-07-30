@@ -39,11 +39,11 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         [Unit]
         public async Task WhenAllTuple()
         {
-            var (val1, val2) = await TaskEx.WhenAll(Task.FromResult(12), Task.FromResult("hello"));
+            (int val1, string val2) = await TaskEx.WhenAll(Task.FromResult(12), Task.FromResult("hello"));
             Assert.Equal(12, val1);
             Assert.Equal("hello", val2);
 
-            var (a1, a2, a3, a4, a5, a6, a7, a8) = await TaskEx.WhenAll(
+            (int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8) = await TaskEx.WhenAll(
                 Task.FromResult(1),
                 Task.FromResult(2),
                 Task.FromResult(3),

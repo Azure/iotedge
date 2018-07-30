@@ -1,4 +1,4 @@
-ARG base_tag=2.1.0-runtime-alpine3.7
+ARG base_tag=2.1.2-runtime-alpine3.7
 FROM microsoft/dotnet:${base_tag}
 
 ARG EXE_DIR=.

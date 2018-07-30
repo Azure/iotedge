@@ -41,13 +41,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
         public async Task<string> ReadLineAsync(CancellationToken cancellationToken)
         {
             int position = 0;
-            byte[] buffer = new byte[1];
+            var buffer = new byte[1];
             bool crFound = false;
             var builder = new StringBuilder();
             while (true)
             {
               
-                var length = await this.innerStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)
+                int length = await this.innerStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)
                     .ConfigureAwait(false);
 
                 if (length == 0)

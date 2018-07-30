@@ -21,6 +21,7 @@ set(${theseTestsName}_test_files
 
     # the following files are needed when running tests using BUILD_SHARED=ON
     ../../src/certificate_info.c
+    ../../src/edge_openssl_common.c
     ../../src/edge_pki_openssl.c
     ../../src/hsm_utils.c
     ../../src/hsm_log.c

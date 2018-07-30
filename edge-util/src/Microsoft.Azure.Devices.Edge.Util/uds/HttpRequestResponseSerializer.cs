@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
 
             PreProcessRequest(request);
 
-            StringBuilder builder = new StringBuilder();
+            var builder = new StringBuilder();
             // request-line   = method SP request-target SP HTTP-version CRLF
             builder.Append(request.Method);
             builder.Append(SP);
@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
 
             if (request.Content != null)
             {
-                var contentLength = request.Content.Headers.ContentLength;
+                long? contentLength = request.Content.Headers.ContentLength;
                 if (contentLength.HasValue)
                 {
                     request.Content.Headers.ContentLength = contentLength.Value;
@@ -81,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
             }
 
             httpResponse.Content = new StreamContent(bufferedStream);
-            foreach (var header in headers)
+            foreach (string header in headers)
             {
                 if (string.IsNullOrWhiteSpace(header))
                 {

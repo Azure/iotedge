@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
                 bool skippedModules = false;
                 foreach (ICommand command in plan.Commands)
                 {
-                    var (shouldRun, runCount, coolOffPeriod, elapsedTime) = this.ShouldRunCommand(command);
+                    (bool shouldRun, int runCount, TimeSpan coolOffPeriod, TimeSpan elapsedTime) = this.ShouldRunCommand(command);
                     try
                     {
                         if (token.IsCancellationRequested)
