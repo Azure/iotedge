@@ -52,9 +52,9 @@ function install_toolchain()
 
     echo "Installing rust toolchain $toolchain"
     if command -v "$RUSTUP" >/dev/null; then
-        echo "$RUSTUP install $toolchain"
+        $RUSTUP install $toolchain
     else
-        echo "curl https://sh.rustup.rs -sSf | sh -s -- -y $cmd_default_toolchain $toolchain"
+        curl https://sh.rustup.rs -sSf | sh -s -- -y $cmd_default_toolchain $toolchain
     fi
 }
 
@@ -92,10 +92,8 @@ if [[ $INSTALL_CLIPPY -eq 1 ]]; then
         install_toolchain "nightly" false
     fi
     echo "Installing clippy..."
-    echo "rustup component add clippy-preview --toolchain=nightly"
+    rustup component add clippy-preview --toolchain=nightly
 fi
-
-exit 0
 
 # Add trusty repo to get older version of libc6-armhf-cross
 add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ trusty main universe"
