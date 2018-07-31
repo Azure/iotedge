@@ -13,11 +13,14 @@ main() {
         automake
         bzip2
         curl
+        git
         gcc-c++
         glib2-devel
+        libfdt-devel
         libtool
         make
         patch
+        pixman-devel
         pkgconfig
         zlib-devel
     )
@@ -29,6 +32,8 @@ main() {
             purge_list+=( $dep )
         fi
     done
+
+    td=$(mktemp -d)
 
     pushd $td
 
@@ -110,7 +115,6 @@ EOF
         --disable-kvm \
         --disable-vnc \
         --enable-user \
-        --static \
         --target-list=$arch-linux-user
     nice make -j$(nproc)
     make install

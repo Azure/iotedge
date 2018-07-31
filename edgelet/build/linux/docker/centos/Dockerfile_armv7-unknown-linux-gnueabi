@@ -2,14 +2,8 @@
 FROM centos:centos7
 ARG TOOLCHAIN="stable"
 
-RUN yum install -y redhat-rpm-config \
-        gcc \
-        libtool patchutils \
-        rpm-build \
-        elfutils \
-        gcc-c++ \
-        make \
-        rpm-sign \
+RUN yum group install -y "Development Tools" && \
+    yum install -y redhat-rpm-config \
         git \
         openssl-devel \
         libcurl-devel
@@ -19,9 +13,9 @@ RUN bash /cmake.sh 3.11.4
 
 ARG TOOLCHAIN=gcc-linaro-7.3.1-2018.05-x86_64_arm-linux-gnueabihf
 ARG TRIPLE=arm-linux-gnueabihf
-COPY $TOOLCHAIN /
-ENV PATH="${PATH}:/${TRIPLE}/bin" \
-    SYSROOT=/${TRIPLE}/libc
+COPY $TOOLCHAIN /toolchain/
+ENV PATH="${PATH}:/toolchain/bin:/toolchain/${TRIPLE}/bin" \
+    SYSROOT=/toolchain/${TRIPLE}/libc
 
 COPY openssl.sh qemu.sh /                                             
 RUN bash /openssl.sh linux-armv4 ${TRIPLE}- ${SYSROOT} && \            

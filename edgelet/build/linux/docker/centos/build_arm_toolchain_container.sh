@@ -22,7 +22,7 @@ main() {
     rm ${build_tools}.tar.xz
 
     # Once toolchain is downloaded and extracted, build docker image with toolchain
-    docker build -f Dockerfile_${target_triple} --build-arg TOOLCHAIN=${build_tools} --tag ${build_tools}:0.1 .
+    docker build -f Dockerfile_${target_triple} --build-arg TOOLCHAIN=${build_tools} --tag ${build_tools}:centos_0.1 .
 
     # cleanup
     rm -fr gcc-linaro-${version}-x86_64_arm-linux-gnueabihf
