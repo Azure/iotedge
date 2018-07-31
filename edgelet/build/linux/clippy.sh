@@ -1,8 +1,8 @@
 #!/bin/bash
 
 ###############################################################################
-# This script runs cargo clippy on your project. This script assumes that the
-# nightly toolchain is installed.
+# This script runs cargo clippy on your project. This script installs the
+# nightly toolchain as it is a dependency of clippy.
 ###############################################################################
 
 set -e
@@ -41,11 +41,13 @@ function print_help_and_exit()
 
 function run_clippy()
 {
+    echo "Running clippy..."
     cargo +nightly clippy --all
 }
 
 function run_clippy_via_docker()
 {
+    echo "Running clippy docker image..."
     docker run --user "$(id -u)":"$(id -g)" --rm -v "$PROJECT_ROOT:/volume" "$IMAGE"
 }
 ###############################################################################
@@ -73,10 +75,11 @@ function process_args()
 
 process_args "$@"
 
-echo "Running clippy"
 if [[ $USE_DOCKER -eq 1 ]]; then
     run_clippy_via_docker
 else
+    echo "Installing nightly toolchain"
+    rustup install nightly
     echo "Installing clippy..."
     rustup component add clippy-preview --toolchain=nightly
     run_clippy
