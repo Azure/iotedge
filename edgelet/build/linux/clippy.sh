@@ -2,7 +2,7 @@
 
 ###############################################################################
 # This script runs cargo clippy on your project. This script assumes that the
-# nigtly toolchain is installed.
+# nightly toolchain is installed.
 ###############################################################################
 
 set -e
