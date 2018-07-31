@@ -1,0 +1,12 @@
+{
+  "DeviceId": "device1",
+  "ExcludeModules": {
+    "Ids": [
+      "$edgeAgent",
+      "$edgeHub"
+    ]
+  },
+  "WebhostPort": "15000",
+  "ToleranceInMilliseconds": 10000,
+  "EventHubConnectionString": ""
+}
