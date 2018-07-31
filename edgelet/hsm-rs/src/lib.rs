@@ -57,6 +57,8 @@ pub trait CreateCertificate {
         &self,
         properties: &CertificateProperties,
     ) -> Result<HsmCertificate, Error>;
+
+    fn destroy_certificate(&self, alias: String) -> Result<(), Error>;
 }
 
 pub trait Encrypt {

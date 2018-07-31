@@ -10,14 +10,12 @@ use edgelet_core::{
     MasterEncryptionKey as CoreMasterEncryptionKey, PrivateKey as CorePrivateKey,
 };
 
-use super::{IOTEDGED_CA, IOTEDGED_COMMONNAME, IOTEDGED_VALIDITY};
 pub use error::{Error, ErrorKind};
 pub use hsm::{
     Buffer, Decrypt, Encrypt, GetTrustBundle, HsmCertificate, KeyBytes as HsmKeyBytes,
     PrivateKey as HsmPrivateKey,
 };
 use hsm::{
-    CertificateProperties as HsmCertificateProperties, CertificateType as HsmCertificateType,
     CreateCertificate as HsmCreateCertificate,
     CreateMasterEncryptionKey as HsmCreateMasterEncryptionKey, Crypto as HsmCrypto,
     DestroyMasterEncryptionKey as HsmDestroyMasterEncryptionKey,
@@ -37,16 +35,6 @@ impl Crypto {
     }
 
     pub fn from_hsm(crypto: HsmCrypto) -> Result<Crypto, Error> {
-        let edgelet_ca_props = HsmCertificateProperties::new(
-            IOTEDGED_VALIDITY,
-            IOTEDGED_COMMONNAME.to_string(),
-            HsmCertificateType::Ca,
-            crypto.get_device_ca_alias(),
-            IOTEDGED_CA.to_string(),
-        );
-        let _root_cert = crypto
-            .create_certificate(&edgelet_ca_props)
-            .map_err(Error::from)?;
         Ok(Crypto {
             crypto: Arc::new(RwLock::new(crypto)),
         })
@@ -80,13 +68,25 @@ impl CoreCreateCertificate for Crypto {
         &self,
         properties: &CoreCertificateProperties,
     ) -> Result<Self::Certificate, CoreError> {
-        let cert = self.crypto
+        let crypto = self.crypto
             .read()
-            .expect("Shared read lock on crypto structure failed")
-            .create_certificate(&convert_properties(properties))
+            .expect("Shared read lock on crypto structure failed");
+        let device_ca_alias = crypto.get_device_ca_alias();
+        let cert = crypto
+            .create_certificate(&convert_properties(properties, &device_ca_alias))
             .map_err(Error::from)
             .map_err(CoreError::from)?;
         Ok(Certificate(cert))
+    }
+
+    fn destroy_certificate(&self, alias: String) -> Result<(), CoreError> {
+        self.crypto
+            .read()
+            .expect("Shared read lock on crypto structure failed")
+            .destroy_certificate(alias)
+            .map_err(Error::from)
+            .map_err(CoreError::from)?;
+        Ok(())
     }
 }
 

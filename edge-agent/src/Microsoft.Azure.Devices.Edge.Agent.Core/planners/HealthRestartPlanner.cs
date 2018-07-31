@@ -178,7 +178,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             Events.LogDesired(desired);
             Events.LogCurrent(current);
             // extract list of modules that need attention
-            var (added, updateDeployed, updateStateChanged, removed, runningGreat) = this.ProcessDiff(desired, current);
+            (IList<IModule> added, IList<IModule> updateDeployed, IList<IRuntimeModule> updateStateChanged, IList<IRuntimeModule> removed, IList<IRuntimeModule> runningGreat) = this.ProcessDiff(desired, current);
 
             var updateRuntimeCommands = new List<ICommand>();
             IModule edgeAgentModule = updateDeployed.FirstOrDefault(m => m.Name.Equals(Constants.EdgeAgentModuleName, StringComparison.OrdinalIgnoreCase));

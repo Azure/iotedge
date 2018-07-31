@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
         {
             var cts = new CancellationTokenSource();
             var completed = new ManualResetEventSlim();
-            var handler = Option.None<object>();
+            Option<object> handler = Option.None<object>();
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 WindowsShutdownHandler.HandlerRoutine hr = WindowsShutdownHandler.Init(cts, completed, shutdownWaitPeriod, logger);

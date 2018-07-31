@@ -47,6 +47,34 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         }
 
         [Fact]
+        public async Task ConnectivityTestFailedTest()
+        {
+            // Arrange / act
+            var deviceConnectivityManager = new DeviceConnectivityManager(TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(3));
+
+            var client = new Mock<IClient>();
+            client.SetupSequence(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
+                .Returns(Task.CompletedTask)
+                .Throws<TimeoutException>()                
+                .Returns(Task.CompletedTask)
+                .Throws<TimeoutException>()
+                .Returns(Task.CompletedTask);
+            IClient connectivityAwareClient = new ConnectivityAwareClient(client.Object, deviceConnectivityManager);
+            var cloudProxy = new CloudProxy(connectivityAwareClient, Mock.Of<IMessageConverterProvider>(), "d1/m1", null);
+            deviceConnectivityManager.SetTestCloudProxy(cloudProxy);
+
+            int connected = 0;
+            int disconnected = 0;
+            deviceConnectivityManager.DeviceConnected += (_, __) => Interlocked.Increment(ref connected);
+            deviceConnectivityManager.DeviceDisconnected += (_, __) => Interlocked.Increment(ref disconnected);
+
+            // Assert
+            await Task.Delay(TimeSpan.FromSeconds(15));
+            Assert.Equal(1, connected);
+            Assert.Equal(0, disconnected);
+        }
+
+        [Fact]
         public async Task WithDownstreamEventsTest()
         {
             // Arrange / act

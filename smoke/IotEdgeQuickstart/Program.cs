@@ -49,6 +49,7 @@ Defaults:
                             switch form uses local IP address as hostname
   --username                anonymous, or Key Vault if --registry is specified
   --no-deployment           deploy Edge Hub and temperature sensor modules
+  --deployment              deployment json file
 "
         )]
     [HelpOption]
@@ -95,6 +96,9 @@ Defaults:
 
         [Option("--no-deployment", CommandOptionType.NoValue, Description = "Don't deploy Edge Hub and temperature sensor modules")]
         public bool NoDeployment { get; } = false;
+
+        [Option("-l|--deployment <filename>", Description = "Deployment json file")]
+        public string DeploymentFileName { get; } = Environment.GetEnvironmentVariable("deployment");
 
         // ReSharper disable once UnusedMember.Local
         async Task<int> OnExecuteAsync()
@@ -146,6 +150,8 @@ Defaults:
                 string endpoint = this.EventHubCompatibleEndpointWithEntityPath ??
                     await SecretsHelper.GetSecretFromConfigKey("eventHubConnStrKey");
 
+                Option<string> deployment = this.DeploymentFileName != null ? Option.Some(this.DeploymentFileName) : Option.None<string>();
+
                 string tag = this.ImageTag ?? "1.0";
 
                 var test = new Quickstart(
@@ -157,7 +163,8 @@ Defaults:
                     this.DeviceId,
                     this.EdgeHostname,
                     this.LeaveRunning,
-                    this.NoDeployment);
+                    this.NoDeployment,
+                    deployment);
                 await test.RunAsync();
             }
             catch (Exception ex)

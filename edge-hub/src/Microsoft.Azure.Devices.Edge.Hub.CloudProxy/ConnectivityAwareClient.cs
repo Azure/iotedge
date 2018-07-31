@@ -26,15 +26,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.underlyingClient = Preconditions.CheckNotNull(client, nameof(client));
             this.deviceConnectivityManager = Preconditions.CheckNotNull(deviceConnectivityManager, nameof(deviceConnectivityManager));
 
-            this.deviceConnectivityManager.DeviceConnected += (_, __) =>
-                this.connectionStatusChangedHandler?.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
-            this.deviceConnectivityManager.DeviceDisconnected += (_, __) =>
-                this.connectionStatusChangedHandler?.Invoke(ConnectionStatus.Disconnected, ConnectionStatusChangeReason.No_Network);
+            this.deviceConnectivityManager.DeviceConnected += this.HandleDeviceConnectedEvent;
+            this.deviceConnectivityManager.DeviceDisconnected += this.HandleDeviceDisconnectedEvent;
         }
 
+        void HandleDeviceConnectedEvent(object sender, EventArgs eventArgs) =>
+            this.connectionStatusChangedHandler?.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
+
+        void HandleDeviceDisconnectedEvent(object sender, EventArgs eventArgs) =>
+            this.connectionStatusChangedHandler?.Invoke(ConnectionStatus.Disconnected, ConnectionStatusChangeReason.No_Network);
+
         public bool IsActive => this.underlyingClient.IsActive;
-        
-        public Task CloseAsync() => this.underlyingClient.CloseAsync();
+
+        public async Task CloseAsync()
+        {
+            await this.underlyingClient.CloseAsync();
+            this.deviceConnectivityManager.DeviceConnected -= this.HandleDeviceConnectedEvent;
+            this.deviceConnectivityManager.DeviceDisconnected -= this.HandleDeviceDisconnectedEvent;
+        }
 
         // This method could throw and is not a reliable candidate to check connectivity status
         public Task RejectAsync(string messageId) => this.underlyingClient.RejectAsync(messageId);

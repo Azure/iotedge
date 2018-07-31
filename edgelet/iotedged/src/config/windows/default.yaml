@@ -1,6 +1,6 @@
 provisioning:
   source: "manual"
-  device_connection_string: "HostName=something.some.com;DeviceId=some;SharedAccessKey=some"
+  device_connection_string: "<ADD DEVICE CONNECTION STRING HERE>"
 
 agent:
   name: "edgeAgent"
@@ -20,7 +20,7 @@ listen:
   management_uri: "http://0.0.0.0:15580"
   workload_uri: "http://0.0.0.0:15581"
 
-homedir: "C:\\Temp\\iotedge"
+homedir: "C:\\ProgramData\\iotedge"
 
 moby_runtime:
   uri: "npipe://./pipe/docker_engine"
