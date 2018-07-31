@@ -55,7 +55,6 @@ function install_toolchain()
         $RUSTUP install $toolchain
     else
         curl https://sh.rustup.rs -sSf | sh -s -- -y $cmd_default_toolchain $toolchain
-        source $HOME/.cargo/env
     fi
 }
 
@@ -93,8 +92,6 @@ if [[ $ARM_PACKAGE -eq 0 ]] && [[ $INSTALL_CLIPPY -eq 1 ]]; then
     if [[ "$TOOLCHAIN" != "nightly" ]]; then
         install_toolchain "nightly" false
     fi
-    echo "Installing clippy..."
-    rustup component add clippy-preview --toolchain=nightly
 fi
 
 # Add trusty repo to get older version of libc6-armhf-cross

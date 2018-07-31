@@ -1,7 +1,8 @@
 #!/bin/bash
 
 ###############################################################################
-# This script runs cargo clippy on your project
+# This script runs cargo clippy on your project. This script assumes that the
+# nigtly toolchain is installed.
 ###############################################################################
 
 set -e
@@ -76,5 +77,7 @@ echo "Running clippy"
 if [[ $USE_DOCKER -eq 1 ]]; then
     run_clippy_via_docker
 else
+    echo "Installing clippy..."
+    rustup component add clippy-preview --toolchain=nightly
     run_clippy
 fi
