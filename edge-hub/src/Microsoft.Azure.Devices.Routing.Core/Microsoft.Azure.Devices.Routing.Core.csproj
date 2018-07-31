@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
@@ -58,6 +58,9 @@
       <Visitor>False</Visitor>
       <Listener>False</Listener>
     </Antlr4>
+    <Compile Remove="grammar\generated\**" />
+    <EmbeddedResource Remove="grammar\generated\**" />
+    <None Remove="grammar\generated\**" />
   </ItemGroup>
 
   <ItemGroup>
