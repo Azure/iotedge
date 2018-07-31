@@ -100,10 +100,7 @@ pub fn run() -> Result<(), Error> {
         Ok(())
     } else {
         // kick-off the Windows service dance
-        service_dispatcher::start(
-            IOTEDGED_SERVICE_NAME,
-            ffi_service_main,
-        )?;
+        service_dispatcher::start(IOTEDGED_SERVICE_NAME, ffi_service_main)?;
         Ok(())
     }
 }
