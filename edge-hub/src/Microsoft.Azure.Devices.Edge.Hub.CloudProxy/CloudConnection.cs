@@ -32,6 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly AsyncLock identityUpdateLock = new AsyncLock();
         readonly AsyncLock tokenUpdateLock = new AsyncLock();
         readonly IClientProvider clientProvider;
+        readonly IAuthenticationMethod edgeHubAuthenticationMethod;
 
         bool callbacksEnabled = true;
         Option<TaskCompletionSource<string>> tokenGetter;
@@ -41,13 +42,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public CloudConnection(Action<string, CloudConnectionStatus> connectionStatusChangedHandler,
             ITransportSettings[] transportSettings,
             IMessageConverterProvider messageConverterProvider,
-            IClientProvider clientProvider)
+            IClientProvider clientProvider,
+            IAuthenticationMethod edgeHubAuthenticationMethod)
         {
             this.connectionStatusChangedHandler = connectionStatusChangedHandler;
             this.transportSettingsList = Preconditions.CheckNotNull(transportSettings, nameof(transportSettings));
             this.messageConverterProvider = Preconditions.CheckNotNull(messageConverterProvider, nameof(messageConverterProvider));
             this.tokenGetter = Option.None<TaskCompletionSource<string>>();
             this.clientProvider = Preconditions.CheckNotNull(clientProvider, nameof(clientProvider));
+            this.edgeHubAuthenticationMethod = edgeHubAuthenticationMethod;
         }
 
         public Option<ICloudProxy> CloudProxy => this.cloudProxy.Filter(cp => cp.IsActive);
@@ -204,17 +207,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         IAuthenticationMethod GetAuthenticationMethod(IIdentity newIdentity, string token)
         {
-            if (newIdentity is IModuleIdentity moduleIdentity)
-            {
-                var tokenRefresher = new ModuleTokenRefresher(moduleIdentity.DeviceId, moduleIdentity.ModuleId, token, this, newIdentity);
-                return tokenRefresher;
-            }
-            else if (newIdentity is IDeviceIdentity deviceIdentity)
-            {
-                var tokenRefresher = new DeviceTokenRefresher(deviceIdentity.DeviceId, token, this, newIdentity);
-                return tokenRefresher;
-            }
-            throw new InvalidOperationException($"Invalid client identity type {newIdentity.GetType()}");
+            //var tokenRefresher = new EdgeHubAuthentication();
+            return this.edgeHubAuthenticationMethod;
+            //if (newIdentity is IModuleIdentity moduleIdentity)
+            //{
+            //    var tokenRefresher = new ModuleTokenRefresher(moduleIdentity.DeviceId, moduleIdentity.ModuleId, token, this, newIdentity);
+            //    return tokenRefresher;
+            //}
+            //else if (newIdentity is IDeviceIdentity deviceIdentity)
+            //{
+            //    var tokenRefresher = new DeviceTokenRefresher(deviceIdentity.DeviceId, token, this, newIdentity);
+            //    return tokenRefresher;
+            //}
+            //throw new InvalidOperationException($"Invalid client identity type {newIdentity.GetType()}");
         }
 
         void InternalConnectionStatusChangesHandler(ConnectionStatus status, ConnectionStatusChangeReason reason)

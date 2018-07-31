@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.sasKey = Preconditions.CheckNonWhiteSpace(sasKey, nameof(sasKey));
         }
 
-        public Task<string> SignAsync(string moduleId, string generationId, string data)
+        public Task<string> SignAsync(string data)
         {
             string token = Sign(data, this.sasKey);
             return Task.FromResult(token);

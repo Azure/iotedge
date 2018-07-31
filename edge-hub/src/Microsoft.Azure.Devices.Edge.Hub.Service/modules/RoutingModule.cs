@@ -26,6 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Extensions.Logging;
     using IRoutingMessage = Routing.Core.IMessage;
     using Message = Client.Message;
+    using IAuthenticationMethod = Microsoft.Azure.Devices.Client.IAuthenticationMethod;
 
     public class RoutingModule : Module
     {
@@ -176,8 +177,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<IClientProvider>()
                 .SingleInstance();
 
+            // ISignature
+            builder.Register(
+                    c =>
+                    {
+                        ISignatureProvider signatureProvider = this.connectionString.Map(
+                                cs =>
+                                {
+                                    IotHubConnectionStringBuilder csBuilder = IotHubConnectionStringBuilder.Create(cs);
+                                    return new SharedAccessKeySignatureProvider(csBuilder.SharedAccessKey) as ISignatureProvider;
+                                })
+                            .GetOrElse(
+                                () =>
+                                {
+                                    string edgeHubGenerationId = this.edgeModuleGenerationId.Expect(() => new Exception("Generation ID missing"));
+                                    return new HttpHsmSignatureProvider(this.edgeModuleId, edgeHubGenerationId, "", "") as ISignatureProvider;
+                                });
+                        return signatureProvider;
+                    })
+                .As<ISignatureProvider>()
+                .SingleInstance();
+
             // ICloudConnectionProvider
-            builder.Register(c => new CloudConnectionProvider(c.Resolve<Core.IMessageConverterProvider>(), this.connectionPoolSize, c.Resolve<IClientProvider>(), this.upstreamProtocol))
+            builder.Register(c =>
+                {
+                    IAuthenticationMethod edgeHubAuthenticationMethod = new EdgeHubAuthentication(c.Resolve<ISignatureProvider>(), this.edgeDeviceId);
+                    return new CloudConnectionProvider(c.Resolve<Core.IMessageConverterProvider>(), this.connectionPoolSize, c.Resolve<IClientProvider>(), this.upstreamProtocol, edgeHubAuthenticationMethod);
+                })
                 .As<ICloudConnectionProvider>()
                 .SingleInstance();
 

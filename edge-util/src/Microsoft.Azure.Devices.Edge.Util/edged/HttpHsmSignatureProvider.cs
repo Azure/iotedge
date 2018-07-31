@@ -16,12 +16,14 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
         const string DefaultKeyId = "primary";
         readonly string apiVersion;
         readonly Uri providerUri;
+        readonly string moduleId;
+        readonly string generationId;
 
         static readonly ITransientErrorDetectionStrategy TransientErrorDetectionStrategy = new ErrorDetectionStrategy();
         static readonly RetryStrategy TransientRetryStrategy =
             new TransientFaultHandling.ExponentialBackoff(retryCount: 3, minBackoff: TimeSpan.FromSeconds(2), maxBackoff: TimeSpan.FromSeconds(30), deltaBackoff: TimeSpan.FromSeconds(3));
 
-        public HttpHsmSignatureProvider(string providerUri, string apiVersion)
+        public HttpHsmSignatureProvider(string moduleId, string generationId, string providerUri, string apiVersion)
         {
             if (string.IsNullOrEmpty(providerUri))
             {
@@ -34,20 +36,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
 
             this.providerUri = new Uri(providerUri);
             this.apiVersion = apiVersion;
+            this.moduleId = moduleId;
+            this.generationId = generationId;
         }
 
-        public async Task<string> SignAsync(string moduleId, string generationId, string data)
+        public async Task<string> SignAsync(string data)
         {
-            if (string.IsNullOrEmpty(moduleId))
-            {
-                throw new ArgumentNullException(nameof(moduleId));
-            }
-            if (string.IsNullOrEmpty(generationId))
-            {
-                throw new ArgumentNullException(nameof(generationId));
-            }
-
-            var signRequest = new SignRequest()
+            var signRequest = new SignRequest
             {
                 KeyId = DefaultKeyId,
                 Algo = DefaultSignRequestAlgo,
@@ -62,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
                     BaseUrl = HttpClientHelper.GetBaseUrl(this.providerUri)
                 };
 
-                SignResponse response = await this.SignAsyncWithRetry(hsmHttpClient, moduleId, generationId, signRequest);
+                SignResponse response = await this.SignAsyncWithRetry(hsmHttpClient, signRequest);
 
                 return Convert.ToBase64String(response.Digest);
             }
@@ -88,10 +83,10 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
             }
         }
 
-        async Task<SignResponse> SignAsyncWithRetry(HttpHsmClient hsmHttpClient, string moduleId, string generationId, SignRequest signRequest)
+        async Task<SignResponse> SignAsyncWithRetry(HttpHsmClient hsmHttpClient, SignRequest signRequest)
         {
             var transientRetryPolicy = new RetryPolicy(TransientErrorDetectionStrategy, TransientRetryStrategy);
-            SignResponse response = await transientRetryPolicy.ExecuteAsync(() => hsmHttpClient.SignAsync(this.apiVersion, moduleId, generationId, signRequest));
+            SignResponse response = await transientRetryPolicy.ExecuteAsync(() => hsmHttpClient.SignAsync(this.apiVersion, this.moduleId, this.generationId, signRequest));
             return response;
         }
 

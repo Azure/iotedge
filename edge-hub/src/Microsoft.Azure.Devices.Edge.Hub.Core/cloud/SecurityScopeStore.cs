@@ -4,10 +4,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
     using System;
     using System.Collections;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Newtonsoft.Json;
 
     public interface ISecurityScopeStore : IDisposable
@@ -19,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
     {
         readonly IServiceProxy serviceProxy;
         readonly IEncryptedStore<string, string> encryptedStore;
-
+        readonly AsyncLock asyncLock = new AsyncLock();
         IDictionary<string, ServiceIdentity> serviceIdentityCache;
         readonly Timer refreshCacheTimer;
         Task refreshCacheTask;
@@ -36,45 +38,45 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
         {
             if (this.refreshCacheTask == null || this.refreshCacheTask.IsCompleted)
             {
-                this.refreshCacheTask = this.RefreshCache();                
+                this.refreshCacheTask = this.RefreshCache();
             }
         }
 
         async Task RefreshCache()
         {
-            IDictionary<string, ServiceIdentity> cache = new Dictionary<string, ServiceIdentity>();
-            try
+            using (await this.asyncLock.LockAsync())
             {
-                IEnumerable<string> deviceIds = await this.serviceProxy.GetDevicesInScope();
-                foreach (string deviceId in deviceIds)
+                IDictionary<string, ServiceIdentity> cache = await this.ReadCacheFromStore();
+                try
                 {
-                    ServiceIdentity serviceIdentity = await this.serviceProxy.GetDevice(deviceId);
-                    cache.Add(deviceId, serviceIdentity);
-                    if (serviceIdentity.IsEdgeDevice)
+                    ISecurityScopeIdentitiesIterator iterator = this.serviceProxy.GetSecurityScopeIdentitiesIterator();
+                    while (true)
                     {
-                        IEnumerable<ServiceIdentity> serviceIdentities = await this.serviceProxy.GetModulesOnDevice(deviceId);
-                        foreach (ServiceIdentity moduleIdentity in serviceIdentities)
+                        IEnumerable<ServiceIdentity> batch = await iterator.GetNext();
+                        if (!batch.Any())
                         {
-                            cache.Add($"{moduleIdentity.DeviceId}/{moduleIdentity.ModuleId}", moduleIdentity);
+                            break;
+                        }
+
+                        foreach (ServiceIdentity serviceIdentity in batch)
+                        {
+                            string id = serviceIdentity.ModuleId != null ? $"{serviceIdentity.DeviceId}/{serviceIdentity.ModuleId}" : serviceIdentity.DeviceId;
+                            cache.Add(id, serviceIdentity);
+                            await this.SaveServiceIdentityToStore(id, serviceIdentity);
                         }
                     }
                 }
-                await this.SaveCacheToStore(cache);
+                catch (Exception)
+                {
+                }
+                this.serviceIdentityCache = cache;
             }
-            catch (Exception)
-            {
-                cache = await this.ReadCacheFromStore();
-            }
-            this.serviceIdentityCache = cache;
         }
 
-        async Task SaveCacheToStore(IDictionary<string, ServiceIdentity> cache)
+        async Task SaveServiceIdentityToStore(string id, ServiceIdentity serviceIdentity)
         {
-            foreach (KeyValuePair<string, ServiceIdentity> serviceIdentity in cache)
-            {
-                string cacheString = JsonConvert.SerializeObject(cache);
-                await this.encryptedStore.Put(serviceIdentity.Key, cacheString);
-            }
+            string serviceIdentityString = JsonConvert.SerializeObject(serviceIdentity);
+            await this.encryptedStore.Put(id, serviceIdentityString);
         }
 
         async Task<IDictionary<string, ServiceIdentity>> ReadCacheFromStore()

@@ -10,6 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
     /// </summary>
     public interface ISignatureProvider
     {
-        Task<string> SignAsync(string moduleId, string generationId, string data);
+        Task<string> SignAsync(string data);
     }
 }

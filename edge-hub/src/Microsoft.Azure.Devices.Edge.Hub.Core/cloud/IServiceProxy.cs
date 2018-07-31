@@ -8,11 +8,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 
     public interface IServiceProxy
     {
-        Task<IEnumerable<string>> GetDevicesInScope();
+        //Task<IEnumerable<string>> GetDevicesInScope();
 
-        Task<ServiceIdentity> GetDevice(string deviceId);
+        //Task<ServiceIdentity> GetDevice(string deviceId);
 
-        Task<IEnumerable<ServiceIdentity>> GetModulesOnDevice(string deviceId);
+        //Task<IEnumerable<ServiceIdentity>> GetModulesOnDevice(string deviceId);
+
+        ISecurityScopeIdentitiesIterator GetSecurityScopeIdentitiesIterator();
+    }
+
+    public interface ISecurityScopeIdentitiesIterator
+    {
+        Task<IEnumerable<ServiceIdentity>> GetNext();
     }
 
     public class ServiceIdentity
