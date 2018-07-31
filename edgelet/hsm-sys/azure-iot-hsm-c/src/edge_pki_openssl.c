@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <time.h>
 
@@ -27,6 +28,7 @@
 
 #include "hsm_key.h"
 #include "hsm_log.h"
+#include "hsm_utils.h"
 
 //#################################################################################################
 // Data type definations
@@ -82,12 +84,14 @@ static void destroy_evp_key(EVP_PKEY *evp_key);
 //#################################################################################################
 // Utilities
 //#################################################################################################
-#if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
-    #define OPEN_HELPER(fname) _open((fname), _O_CREAT|_O_WRONLY|_O_TRUNC, _S_IREAD|_S_IWRITE)
-    #define CLOSE_HELPER(fd) _close(fd)
-#else
-    #define OPEN_HELPER(fname) open((fname), O_CREAT|O_WRONLY|O_TRUNC, S_IRUSR|S_IWUSR)
-    #define CLOSE_HELPER(fd) close(fd)
+#if !defined(OPEN_HELPER) && !defined(CLOSE_HELPER)
+    #if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
+        #define OPEN_HELPER(fname) _open((fname), _O_CREAT|_O_WRONLY|_O_TRUNC, _S_IREAD|_S_IWRITE)
+        #define CLOSE_HELPER(fd) _close(fd)
+    #else
+        #define OPEN_HELPER(fname) open((fname), O_CREAT|O_WRONLY|O_TRUNC, S_IRUSR|S_IWUSR)
+        #define CLOSE_HELPER(fd) close(fd)
+    #endif
 #endif
 
 extern time_t get_utc_time_from_asn_string(const unsigned char *time_value, size_t length);
@@ -396,7 +400,54 @@ static X509* load_certificate_file(const char* cert_file_name)
     return x509_cert;
 }
 
-static int write_certificate_file(X509* x509_cert, const char* cert_file_name)
+static int bio_chain_cert_helper(BIO *cert_file, const char *issuer_cert_file_name)
+{
+    int result;
+    size_t issuer_buf_size = 0;
+
+    void *issuer_cert = read_file_into_buffer(issuer_cert_file_name, &issuer_buf_size);
+    if (issuer_cert == NULL)
+    {
+        LOG_ERROR("Could not read issuer certificate file %s", issuer_cert_file_name);
+        result = __FAILURE__;
+    }
+    else
+    {
+        if (issuer_buf_size == 0)
+        {
+            LOG_ERROR("Read zero bytes from issuer certificate file %s", issuer_cert_file_name);
+            result = __FAILURE__;
+        }
+        else if (issuer_buf_size > INT_MAX)
+        {
+            LOG_ERROR("Issuer certificate file too large %s", issuer_cert_file_name);
+            result = __FAILURE__;
+        }
+        else
+        {
+            int len = BIO_write(cert_file, issuer_cert, (int)issuer_buf_size);
+            if (len != (int)issuer_buf_size)
+            {
+                LOG_ERROR("BIO_write returned %d expected %zu", len, issuer_buf_size);
+                result = __FAILURE__;
+            }
+            else
+            {
+                result = 0;
+            }
+        }
+        free(issuer_cert);
+    }
+
+    return result;
+}
+
+static int write_certificate_file
+(
+    X509 *x509_cert,
+    const char *cert_file_name,
+    const char *issuer_certificate_file
+)
 {
     int result;
 
@@ -412,6 +463,11 @@ static int write_certificate_file(X509* x509_cert, const char* cert_file_name)
         if (!PEM_write_bio_X509(cert_file, x509_cert))
         {
             LOG_ERROR("Unable to write certificate to file %s", cert_file_name);
+            result = __FAILURE__;
+        }
+        else if ((issuer_certificate_file != NULL) &&
+                 (bio_chain_cert_helper(cert_file, issuer_certificate_file) != 0))
+        {
             result = __FAILURE__;
         }
         else
@@ -440,6 +496,11 @@ static int write_certificate_file(X509* x509_cert, const char* cert_file_name)
             if (!PEM_write_bio_X509(cert_file, x509_cert))
             {
                 LOG_ERROR("Unable to write certificate to file %s", cert_file_name);
+                result = __FAILURE__;
+            }
+            else if ((issuer_certificate_file != NULL) &&
+                     (bio_chain_cert_helper(cert_file, issuer_certificate_file) != 0))
+            {
                 result = __FAILURE__;
             }
             else
@@ -570,22 +631,49 @@ static int cert_set_core_properties
     return result;
 }
 
+static int validate_certificate_expiration(X509* x509_cert, double *exp_seconds_left)
+{
+    int result;
+    time_t exp_time;
+    double seconds_left = 0;
+
+    time_t now = time(NULL);
+    ASN1_TIME *exp_asn1 = X509_get_notAfter(x509_cert);
+    if ((exp_asn1->type != ASN1_TIME_STRING_UTC_FORMAT) &&
+        (exp_asn1->length != ASN1_TIME_STRING_UTC_LEN))
+    {
+        LOG_ERROR("Unsupported time format in certificate");
+        result = __FAILURE__;
+    }
+    else if ((exp_time = get_utc_time_from_asn_string(exp_asn1->data, exp_asn1->length)) == 0)
+    {
+        LOG_ERROR("Could not parse expiration date from certificate");
+        result = __FAILURE__;
+    }
+    else if ((seconds_left = difftime(exp_time, now)) <= 0)
+    {
+        LOG_ERROR("Certificate has expired");
+        result = __FAILURE__;
+    }
+    else
+    {
+        result = 0;
+    }
+
+    *exp_seconds_left = seconds_left;
+    return result;
+}
+
 static int cert_set_expiration
 (
     X509* x509_cert,
-    X509* issuer_cert,
-    CERT_PROPS_HANDLE cert_props_handle
+    uint64_t requested_validity,
+    X509* issuer_cert
 )
 {
-    int result = 0;
-    uint64_t requested_validity = get_validity_seconds(cert_props_handle);
+    int result;
 
-    if (requested_validity > LONG_MAX)
-    {
-        LOG_ERROR("Number of seconds too large %lu", requested_validity);
-        result = __FAILURE__;
-    }
-    else if (!X509_gmtime_adj(X509_get_notBefore(x509_cert), 0))
+    if (!X509_gmtime_adj(X509_get_notBefore(x509_cert), 0))
     {
         LOG_ERROR("Failure setting not before time");
         result = __FAILURE__;
@@ -598,31 +686,15 @@ static int cert_set_expiration
         if (issuer_cert != NULL)
         {
             // determine max validity in seconds of issuer
-            time_t now = time(NULL);
-            time_t exp_time;
-            double exp_seconds_left;
-
-            ASN1_TIME *issuer_exp_asn1 = X509_get_notAfter(issuer_cert);
-            if ((issuer_exp_asn1->type != ASN1_TIME_STRING_UTC_FORMAT) &&
-                (issuer_exp_asn1->length != ASN1_TIME_STRING_UTC_LEN))
+            double exp_seconds_left_from_now = 0;
+            if (validate_certificate_expiration(issuer_cert, &exp_seconds_left_from_now) != 0)
             {
-                LOG_ERROR("Unsupported time format in issuer certificate");
-                result = __FAILURE__;
-            }
-            else if ((exp_time = get_utc_time_from_asn_string(issuer_exp_asn1->data,
-                                                              issuer_exp_asn1->length)) == 0)
-            {
-                LOG_ERROR("Could not parse expiration date from issuer certificate");
-                result = __FAILURE__;
-            }
-            else if ((exp_seconds_left = difftime(exp_time, now)) <= 0)
-            {
-                LOG_ERROR("Issuer certificate has expired");
+                LOG_ERROR("Issuer certificate expiration failure");
                 result = __FAILURE__;
             }
             else
             {
-                uint64_t number_seconds_left = (uint64_t)exp_seconds_left;
+                uint64_t number_seconds_left = (uint64_t)exp_seconds_left_from_now;
                 LOG_DEBUG("Num issuer expiration seconds left: %lu, Request validity:%lu",
                           number_seconds_left, requested_validity);
                 requested_validity = (requested_validity == 0) ?
@@ -630,7 +702,12 @@ static int cert_set_expiration
                                         ((requested_validity < number_seconds_left) ?
                                             requested_validity :
                                             number_seconds_left);
+                result = 0;
             }
+        }
+        else
+        {
+            result = 0;
         }
 
         if (result == 0)
@@ -651,7 +728,7 @@ static int cert_set_expiration
     return result;
 }
 
-static int set_basic_constraints(X509 *x509_cert, CERTIFICATE_TYPE type, int ca_path_len)
+static int set_basic_constraints(X509 *x509_cert, CERTIFICATE_TYPE cert_type, int ca_path_len)
 {
     int result;
     BASIC_CONSTRAINTS *bc;
@@ -663,16 +740,40 @@ static int set_basic_constraints(X509 *x509_cert, CERTIFICATE_TYPE type, int ca_
     }
     else
     {
+        bool is_pathlen_failure;
         int is_critical = 0;
         bc->ca = 0;
-        if (type == CERTIFICATE_TYPE_CA)
+        if (cert_type == CERTIFICATE_TYPE_CA)
         {
+            is_critical = 1;
             bc->ca = 1;
             bc->pathlen = ASN1_INTEGER_new();
-            ASN1_INTEGER_set(bc->pathlen, ca_path_len);
-            is_critical = 1;
+            if (bc->pathlen == NULL)
+            {
+                LOG_ERROR("Could not path length integer");
+                is_pathlen_failure = true;
+            }
+            else if (ASN1_INTEGER_set(bc->pathlen, ca_path_len) != 1)
+            {
+                LOG_ERROR("Setting path len failed");
+                is_pathlen_failure = true;
+            }
+            else
+            {
+                is_pathlen_failure = false;
+            }
         }
-        if (X509_add1_ext_i2d(x509_cert, NID_basic_constraints, bc, is_critical, X509V3_ADD_DEFAULT) != 1)
+        else
+        {
+            is_pathlen_failure = false;
+        }
+
+
+        if (is_pathlen_failure)
+        {
+            result = __FAILURE__;
+        }
+        else if (X509_add1_ext_i2d(x509_cert, NID_basic_constraints, bc, is_critical, X509V3_ADD_DEFAULT) != 1)
         {
             LOG_ERROR("Could not add basic constraint extension to certificate");
             result = __FAILURE__;
@@ -690,15 +791,13 @@ static int set_basic_constraints(X509 *x509_cert, CERTIFICATE_TYPE type, int ca_
 static int cert_set_extensions
 (
     X509 *x509_cert,
+    CERTIFICATE_TYPE cert_type,
     X509* issuer_cert,
-    CERT_PROPS_HANDLE cert_props_handle,
     int ca_path_len
 )
 {
     (void)issuer_cert;
-    CERTIFICATE_TYPE type;
-    type = get_certificate_type(cert_props_handle);
-    return set_basic_constraints(x509_cert, type, ca_path_len);
+    return set_basic_constraints(x509_cert, cert_type, ca_path_len);
 }
 
 static int cert_set_subject_field
@@ -717,36 +816,40 @@ static int cert_set_subject_field
     {
         value_to_set = value;
     }
-    else if (issuer_name != NULL)
+    else
     {
-        size_t index, found = 0;
-        for (index = 0; index < sizeof(subj_offsets)/sizeof(subj_offsets[0]); index++)
+        if (issuer_name != NULL)
         {
-            if (strcmp(field, subj_offsets[index].field) == 0)
+            size_t index, found = 0;
+            for (index = 0; index < sizeof(subj_offsets)/sizeof(subj_offsets[0]); index++)
             {
-                found = 1;
-                break;
+                if (strcmp(field, subj_offsets[index].field) == 0)
+                {
+                    found = 1;
+                    break;
+                }
             }
-        }
-        if (found == 1)
-        {
-            int status;
-            memset(issuer_name_field, 0 , sizeof(issuer_name_field));
-            status = X509_NAME_get_text_by_NID(issuer_name,
-                                               subj_offsets[index].offset,
-                                               issuer_name_field,
-                                               sizeof(issuer_name_field));
-            if (status == -1)
+            if (found == 1)
             {
-                LOG_DEBUG("Failure X509_NAME_get_text_by_NID for field: %s", field);
-            }
-            else
-            {
-                value_to_set = issuer_name_field;
-                LOG_DEBUG("From issuer cert for field: %s got value: %s", field, value_to_set);
+                int status;
+                memset(issuer_name_field, 0 , sizeof(issuer_name_field));
+                status = X509_NAME_get_text_by_NID(issuer_name,
+                                                   subj_offsets[index].offset,
+                                                   issuer_name_field,
+                                                   sizeof(issuer_name_field));
+                if (status == -1)
+                {
+                    LOG_DEBUG("Failure X509_NAME_get_text_by_NID for field: %s", field);
+                }
+                else
+                {
+                    value_to_set = issuer_name_field;
+                    LOG_DEBUG("From issuer cert for field: %s got value: %s", field, value_to_set);
+                }
             }
         }
     }
+
     if (value_to_set != NULL)
     {
         if (X509_NAME_add_entry_by_txt(name, field, MBSTRING_ASC, (unsigned char *)value_to_set, -1, -1, 0) != 1)
@@ -762,6 +865,7 @@ static int cert_set_subject_field
 static int cert_set_subject_fields_and_issuer
 (
     X509* x509_cert,
+    const char *common_name,
     X509* issuer_certificate,
     CERT_PROPS_HANDLE cert_props_handle
 )
@@ -810,9 +914,8 @@ static int cert_set_subject_fields_and_issuer
             }
             if (result == 0)
             {
-                value = get_common_name(cert_props_handle);
                 //always use value provided in cert_props_handle
-                result = cert_set_subject_field(name, NULL, "CN", value);
+                result = cert_set_subject_field(name, NULL, "CN", common_name);
             }
             if (result == 0)
             {
@@ -835,7 +938,7 @@ static int cert_set_subject_fields_and_issuer
 
 static int generate_cert_key
 (
-    CERTIFICATE_TYPE type,
+    CERTIFICATE_TYPE cert_type,
     X509* issuer_certificate,
     const char *key_file_name,
     EVP_PKEY **result_evp_key,
@@ -845,16 +948,10 @@ static int generate_cert_key
     int result;
     EVP_PKEY* evp_key;
     *result_evp_key = NULL;
-    if ((type != CERTIFICATE_TYPE_CLIENT) &&
-        (type != CERTIFICATE_TYPE_SERVER) &&
-        (type != CERTIFICATE_TYPE_CA))
+
+    if ((evp_key = generate_evp_key(cert_type, issuer_certificate, key_props)) == NULL)
     {
-        LOG_ERROR("Error invalid certificate type %d", type);
-        result = __FAILURE__;
-    }
-    else if ((evp_key = generate_evp_key(type, issuer_certificate, key_props)) == NULL)
-    {
-        LOG_ERROR("Error opening \"%s\" for writing.", key_file_name);
+        LOG_ERROR("Error generating EVP key in %s", key_file_name);
         result = __FAILURE__;
     }
     else if (write_private_key_file(evp_key, key_file_name) != 0)
@@ -876,12 +973,16 @@ static int generate_cert_key
 static int generate_evp_certificate
 (
     EVP_PKEY* evp_key,
+    CERTIFICATE_TYPE cert_type,
+    const char *common_name,
+    uint64_t requested_validity,
     EVP_PKEY* issuer_evp_key,
     X509* issuer_certificate,
+    const char *issuer_certificate_file,
     CERT_PROPS_HANDLE cert_props_handle,
     int serial_num,
     int ca_path_len,
-    const char* cert_file_name,
+    const char *cert_file_name,
     X509** result_cert
 )
 {
@@ -901,20 +1002,21 @@ static int generate_evp_certificate
             LOG_ERROR("Failure setting core certificate properties");
             result = __FAILURE__;
         }
-        else if (cert_set_expiration(x509_cert, issuer_certificate, cert_props_handle) != 0)
+        else if (cert_set_expiration(x509_cert, requested_validity, issuer_certificate) != 0)
         {
             LOG_ERROR("Failure setting certificate validity period");
             result = __FAILURE__;
         }
         else if (cert_set_extensions(x509_cert,
+                                     cert_type,
                                      issuer_certificate,
-                                     cert_props_handle,
                                      ca_path_len) != 0)
         {
             LOG_ERROR("Failure setting certificate extensions");
             result = __FAILURE__;
         }
         else if (cert_set_subject_fields_and_issuer(x509_cert,
+                                                    common_name,
                                                     issuer_certificate,
                                                     cert_props_handle) != 0)
         {
@@ -929,7 +1031,7 @@ static int generate_evp_certificate
                 LOG_ERROR("Failure signing x509");
                 result = __FAILURE__;
             }
-            else if (write_certificate_file(x509_cert, cert_file_name) != 0)
+            else if (write_certificate_file(x509_cert, cert_file_name, issuer_certificate_file) != 0)
             {
                 LOG_ERROR("Failure saving x509 certificate");
                 result = __FAILURE__;
@@ -962,10 +1064,9 @@ static int generate_pki_cert_and_key_helper
 {
     int result;
     uint64_t requested_validity;
-    const char* prop_value;
+    const char* common_name_prop_value;
     X509* issuer_certificate = NULL;
     EVP_PKEY* issuer_evp_key = NULL;
-    static bool is_openssl_initialized = false;
 
     initialize_openssl();
     if (cert_props_handle == NULL)
@@ -973,19 +1074,14 @@ static int generate_pki_cert_and_key_helper
         LOG_ERROR("Failure saving x509 certificate");
         result = __FAILURE__;
     }
-    else if ((requested_validity = get_validity_seconds(cert_props_handle)) == 0)
+    else if (key_file_name == NULL)
     {
-        LOG_ERROR("Validity in seconds cannot be 0");
+        LOG_ERROR("Invalid key file path");
         result = __FAILURE__;
     }
-    else if ((prop_value = get_common_name(cert_props_handle)) == NULL)
+    else if (cert_file_name == NULL)
     {
-        LOG_ERROR("Common name value cannot be NULL");
-        result = __FAILURE__;
-    }
-    else if (strlen(prop_value) == 0)
-    {
-        LOG_ERROR("Common name value cannot be empty");
+        LOG_ERROR("Invalid key file path");
         result = __FAILURE__;
     }
     else if (((issuer_certificate_file == NULL) && (issuer_key_file != NULL)) ||
@@ -999,52 +1095,100 @@ static int generate_pki_cert_and_key_helper
         LOG_ERROR("Invalid CA path len %d", ca_path_len);
         result = __FAILURE__;
     }
+    else if ((requested_validity = get_validity_seconds(cert_props_handle)) == 0)
+    {
+        LOG_ERROR("Validity in seconds cannot be 0");
+        result = __FAILURE__;
+    }
+    else if (requested_validity > LONG_MAX)
+    {
+        LOG_ERROR("Number of seconds too large %lu", requested_validity);
+        result = __FAILURE__;
+    }
+    else if ((common_name_prop_value = get_common_name(cert_props_handle)) == NULL)
+    {
+        LOG_ERROR("Common name value cannot be NULL");
+        result = __FAILURE__;
+    }
+    else if (strlen(common_name_prop_value) == 0)
+    {
+        LOG_ERROR("Common name value cannot be empty");
+        result = __FAILURE__;
+    }
     else
     {
-        result = 0;
-        if (issuer_certificate_file)
+        CERTIFICATE_TYPE cert_type = get_certificate_type(cert_props_handle);
+        if ((cert_type != CERTIFICATE_TYPE_CLIENT) &&
+            (cert_type != CERTIFICATE_TYPE_SERVER) &&
+            (cert_type != CERTIFICATE_TYPE_CA))
         {
-            if ((issuer_certificate = load_certificate_file(issuer_certificate_file)) == NULL)
-            {
-                LOG_ERROR("Could not load issuer certificate file");
-                result = __FAILURE__;
-            }
-            else if ((issuer_evp_key = load_private_key_file(issuer_key_file)) == NULL)
-            {
-                LOG_ERROR("Could not load issuer private key file");
-                result = __FAILURE__;
-            }
+            LOG_ERROR("Error invalid certificate type %d", cert_type);
+            result = __FAILURE__;
         }
-        if (result == 0)
+        else if ((cert_type != CERTIFICATE_TYPE_CA) && (ca_path_len != 0))
         {
-            X509* x509_cert = NULL;
-            EVP_PKEY* evp_key = NULL;
-            CERTIFICATE_TYPE type = get_certificate_type(cert_props_handle);
-            if ((type != CERTIFICATE_TYPE_CA) && (ca_path_len != 0))
+            LOG_ERROR("Invalid path len argument provided for a non CA certificate request");
+            result = __FAILURE__;
+        }
+        else
+        {
+            bool perform_cert_gen;
+            if (issuer_certificate_file)
             {
-                LOG_ERROR("Invalid path len argument provided for a non CA certificate request");
-                result = __FAILURE__;
+                if ((issuer_certificate = load_certificate_file(issuer_certificate_file)) == NULL)
+                {
+                    LOG_ERROR("Could not load issuer certificate file");
+                    perform_cert_gen = false;
+                }
+                else if ((issuer_evp_key = load_private_key_file(issuer_key_file)) == NULL)
+                {
+                    LOG_ERROR("Could not load issuer private key file");
+                    perform_cert_gen = false;
+                }
+                else
+                {
+                    perform_cert_gen = true;
+                }
             }
-            else if (generate_cert_key(type, issuer_certificate, key_file_name, &evp_key, key_props) != 0)
+            else
             {
-                LOG_ERROR("Could not generate private key for certificate create request");
-                result = __FAILURE__;
-            }
-            else if (generate_evp_certificate(evp_key, issuer_evp_key, issuer_certificate,
-                                              cert_props_handle, serial_number, ca_path_len,
-                                              cert_file_name, &x509_cert) != 0)
-            {
-                LOG_ERROR("Could not generate certificate create request");
-                result = __FAILURE__;
+                perform_cert_gen = true;
             }
 
-            if (x509_cert != NULL)
+            if (!perform_cert_gen)
             {
-                X509_free(x509_cert);
+                result = __FAILURE__;
             }
-            if (evp_key != NULL)
+            else
             {
-                destroy_evp_key(evp_key);
+                X509* x509_cert = NULL;
+                EVP_PKEY* evp_key = NULL;
+                if (generate_cert_key(cert_type, issuer_certificate, key_file_name, &evp_key, key_props) != 0)
+                {
+                    LOG_ERROR("Could not generate private key for certificate create request");
+                    result = __FAILURE__;
+                }
+                else if (generate_evp_certificate(evp_key, cert_type, common_name_prop_value, requested_validity,
+                                                  issuer_evp_key, issuer_certificate, issuer_certificate_file,
+                                                  cert_props_handle, serial_number, ca_path_len,
+                                                  cert_file_name, &x509_cert) != 0)
+                {
+                    LOG_ERROR("Could not generate certificate create request");
+                    result = __FAILURE__;
+                }
+                else
+                {
+                    result = 0;
+                }
+
+                if (x509_cert != NULL)
+                {
+                    X509_free(x509_cert);
+                }
+                if (evp_key != NULL)
+                {
+                    destroy_evp_key(evp_key);
+                }
             }
         }
     }
@@ -1073,9 +1217,9 @@ int generate_pki_cert_and_key_with_props
 {
     int result;
 
-    if ((key_props != NULL) &&
-        (key_props->key_type != HSM_PKI_KEY_EC) &&
-        (key_props->key_type != HSM_PKI_KEY_RSA))
+    if ((key_props == NULL) ||
+        ((key_props->key_type != HSM_PKI_KEY_EC) &&
+         (key_props->key_type != HSM_PKI_KEY_RSA)))
     {
         LOG_ERROR("Invalid PKI key properties");
         result = __FAILURE__;
@@ -1148,5 +1292,222 @@ KEY_HANDLE create_cert_key(const char* key_file_name)
         cert_key->evp_key = evp_key;
         result = (KEY_HANDLE)cert_key;
     }
+    return result;
+}
+
+static int validate_cert_chain
+(
+    const char *cert_file,
+    const char *issuer_cert_file,
+    bool *verify_status
+)
+{
+    int result;
+    char *cert_data = NULL;
+    char *issuer_data = NULL;
+
+    *verify_status = false;
+    if ((cert_data = read_file_into_cstring(cert_file, NULL)) == NULL)
+    {
+        LOG_ERROR("Could not read certificate %s", cert_file);
+        result = __FAILURE__;
+    }
+    else if ((issuer_data = read_file_into_cstring(issuer_cert_file, NULL)) == NULL)
+    {
+        LOG_ERROR("Could not read issuer certificate %s", issuer_cert_file);
+        result = __FAILURE__;
+    }
+    else
+    {
+        if (strstr(cert_data, issuer_data) == NULL)
+        {
+            LOG_ERROR("Did not find issuer certificate in certificate %s", cert_file);
+        }
+        else
+        {
+            *verify_status = true;
+        }
+        result = 0;
+    }
+
+    if (cert_data != NULL)
+    {
+        free(cert_data);
+    }
+
+    if (issuer_data != NULL)
+    {
+        free(issuer_data);
+    }
+
+    return result;
+}
+
+static int check_certificates
+(
+    X509_STORE *store,
+    const char *cert_file,
+    const char *issuer_cert_file,
+    bool *verify_status
+)
+{
+    int result;
+    X509_STORE_CTX *store_ctxt = NULL;
+    X509* x509_cert = NULL;
+    double exp_seconds = 0;
+
+    if ((x509_cert = load_certificate_file(cert_file)) == NULL)
+    {
+        LOG_ERROR("Could not create X509 to verify certificate %s", cert_file);
+        result = __FAILURE__;
+    }
+    else if (validate_certificate_expiration(x509_cert, &exp_seconds) != 0)
+    {
+        LOG_ERROR("Certificate file has expired %s", cert_file);
+        X509_free(x509_cert);
+        result = __FAILURE__;
+    }
+    else if ((store_ctxt = X509_STORE_CTX_new()) == NULL)
+    {
+        LOG_ERROR("Could not create X509 store context");
+        X509_free(x509_cert);
+        result = __FAILURE__;
+    }
+    else
+    {
+        X509_STORE_set_flags(store, X509_V_FLAG_X509_STRICT |
+                                    X509_V_FLAG_CHECK_SS_SIGNATURE |
+                                    X509_V_FLAG_POLICY_CHECK);
+        if(!X509_STORE_CTX_init(store_ctxt, store, x509_cert, 0))
+        {
+            LOG_ERROR("Could not initialize X509 store context");
+            result = __FAILURE__;
+        }
+        else
+        {
+            int status;
+            if ((status = X509_verify_cert(store_ctxt)) <= 0)
+            {
+                const char *msg;
+                int err_code = X509_STORE_CTX_get_error(store_ctxt);
+                msg = X509_verify_cert_error_string(err_code);
+                if (msg == NULL)
+                {
+                    msg = "";
+                }
+                LOG_ERROR("Could not verify certificate %s using issuer certificate %s.",
+                        cert_file, issuer_cert_file);
+                LOG_ERROR("Verification status: %d, Error: %d, Msg: '%s'", status, err_code, msg);
+            }
+            else
+            {
+                LOG_DEBUG("Certificate validated %s", cert_file);
+                *verify_status = true;
+            }
+            result = 0;
+        }
+        X509_STORE_CTX_free(store_ctxt);
+        X509_free(x509_cert);
+    }
+
+    return result;
+}
+
+static int verify_certificate_internal
+(
+    const char *certificate,
+    const char *issuer_certificate,
+    bool *verify_status
+)
+{
+    int result;
+    X509_LOOKUP *lookup = NULL;
+    X509_STORE *store = NULL;
+    bool check_chain = false;
+
+    initialize_openssl();
+
+    if (validate_cert_chain(certificate, issuer_certificate, &check_chain) != 0)
+    {
+        LOG_ERROR("Failed verifying if issuer is contained in certificate file %s", certificate);
+        result = __FAILURE__;
+    }
+    else if (!check_chain)
+    {
+        LOG_ERROR("Certificate file does not contain issuer certificate %s", certificate);
+        result = 0;
+    }
+    else if ((store = X509_STORE_new()) == NULL)
+    {
+        LOG_ERROR("API X509_STORE_new failed");
+        result = __FAILURE__;
+    }
+    else if ((lookup = X509_STORE_add_lookup(store, X509_LOOKUP_file())) == NULL)
+    {
+        LOG_ERROR("X509 add lookup failed");
+        result = __FAILURE__;
+    }
+    else if (!X509_LOOKUP_load_file(lookup, issuer_certificate, X509_FILETYPE_PEM))
+    {
+        LOG_ERROR("Loading issuer certificate failed");
+        result = __FAILURE__;
+    }
+    else if ((lookup = X509_STORE_add_lookup(store, X509_LOOKUP_hash_dir())) == NULL)
+    {
+        LOG_ERROR("Setting up store lookup failed");
+        result = __FAILURE__;
+    }
+    else if (!X509_LOOKUP_add_dir(lookup, NULL, X509_FILETYPE_DEFAULT))
+    {
+        LOG_ERROR("Setting up store lookup failed");
+        result = __FAILURE__;
+    }
+    else
+    {
+        LOG_DEBUG("Verifying %s using %s", certificate, issuer_certificate);
+        result = check_certificates(store, certificate, issuer_certificate, verify_status);
+    }
+
+    if (store != NULL)
+    {
+        X509_STORE_free(store);
+    }
+
+    return result;
+}
+
+int verify_certificate
+(
+    const char *certificate_file_path,
+    const char *key_file_path,
+    const char *issuer_certificate_file_path,
+    bool *verify_status
+)
+{
+    int result;
+
+    if (verify_status == NULL)
+    {
+        LOG_ERROR("Invalid verify_status parameter");
+        result = __FAILURE__;
+    }
+    else
+    {
+        *verify_status = false;
+        if ((certificate_file_path == NULL) ||
+            (key_file_path == NULL) ||
+            (issuer_certificate_file_path == NULL))
+        {
+            LOG_ERROR("Invalid parameters");
+            result = __FAILURE__;
+        }
+        else
+        {
+            result = verify_certificate_internal(certificate_file_path,
+                                                 issuer_certificate_file_path,
+                                                 verify_status);
+        }
+    }
+
     return result;
 }

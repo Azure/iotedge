@@ -21,6 +21,11 @@
 #define OWNER_CA_PATHLEN  3
 #define DEVICE_CA_PATHLEN (OWNER_CA_PATHLEN - 1)
 
+#define LOAD_SUCCESS 0
+#define LOAD_ERR_NOT_FOUND 1
+#define LOAD_ERR_VERIFICATION_FAILED 2
+#define LOAD_ERR_FAILED 3
+
 // local normalized file storage defines
 #define NUM_NORMALIZED_ALIAS_CHARS  32
 
@@ -77,9 +82,12 @@ typedef enum HSM_STATE_TAG_T
     static const char *SLASH = "/";
 #endif
 
-static const char *CERTS_DIR = "certs";
-static const char *CERT_KEYS_DIR = "cert_keys";
-static const char *ENC_KEYS_DIR = "enc_keys";
+static const char *CERTS_DIR        = "certs";
+static const char *CERT_KEYS_DIR    = "cert_keys";
+static const char *ENC_KEYS_DIR     = "enc_keys";
+static const char *CERT_FILE_EXT    = ".cert.pem";
+static const char *PK_FILE_EXT      = ".key.pem";
+static const char *ENC_KEY_FILE_EXT = ".enc.key";
 
 static HSM_STATE_T g_hsm_state = HSM_STATE_UNPROVISIONED;
 
@@ -110,6 +118,16 @@ static int edge_hsm_client_store_insert_pki_trusted_cert
     HSM_CLIENT_STORE_HANDLE handle,
     const char* alias,
     const char* cert_file_name
+);
+
+static int verify_certificate_helper
+(
+    HSM_CLIENT_STORE_HANDLE handle,
+    const char *alias,
+    const char *issuer_alias,
+    const char *cert_file_path,
+    const char *key_file_path,
+    bool *verification_status
 );
 
 static const char* get_base_dir(void);
@@ -662,8 +680,6 @@ static STRING_HANDLE normalize_alias_file_path(const char *alias)
 
 static int build_cert_file_paths(const char *alias, STRING_HANDLE cert_file, STRING_HANDLE pk_file)
 {
-    static const char *CERT_FILE_EXT = ".cert.pem";
-    static const char *PK_FILE_EXT = ".key.pem";
     int result;
     const char *base_dir_path = get_base_dir();
     STRING_HANDLE normalized_alias;
@@ -685,12 +701,13 @@ static int build_cert_file_paths(const char *alias, STRING_HANDLE cert_file, STR
             LOG_ERROR("Could not construct path to certificate for %s", alias);
             result = __FAILURE__;
         }
-        else if ((STRING_concat(pk_file, base_dir_path) != 0) ||
-                 (STRING_concat(pk_file, SLASH)  != 0) ||
-                 (STRING_concat(pk_file, CERT_KEYS_DIR)  != 0) ||
-                 (STRING_concat(pk_file, SLASH)  != 0) ||
-                 (STRING_concat_with_STRING(pk_file, normalized_alias) != 0) ||
-                 (STRING_concat(pk_file, PK_FILE_EXT) != 0))
+        else if ((pk_file != NULL) &&
+                 ((STRING_concat(pk_file, base_dir_path) != 0) ||
+                  (STRING_concat(pk_file, SLASH)  != 0) ||
+                  (STRING_concat(pk_file, CERT_KEYS_DIR)  != 0) ||
+                  (STRING_concat(pk_file, SLASH)  != 0) ||
+                  (STRING_concat_with_STRING(pk_file, normalized_alias) != 0) ||
+                  (STRING_concat(pk_file, PK_FILE_EXT) != 0)))
         {
             LOG_ERROR("Could not construct path to private key for %s", alias);
             result = __FAILURE__;
@@ -707,7 +724,6 @@ static int build_cert_file_paths(const char *alias, STRING_HANDLE cert_file, STR
 
 static int build_enc_key_file_path(const char *key_name, STRING_HANDLE key_file)
 {
-    static const char *ENC_KEY_FILE_EXT = ".enc.key";
     int result;
     const char *base_dir_path = get_base_dir();
     STRING_HANDLE normalized_alias;
@@ -867,6 +883,7 @@ static CERT_INFO_HANDLE prepare_cert_info_handle
     STORE_ENTRY_PKI_CERT *cert_entry
 )
 {
+    (void)store;
     CERT_INFO_HANDLE result;
     char *cert_contents = NULL, *private_key_contents = NULL;
     size_t private_key_size = 0;
@@ -895,75 +912,11 @@ static CERT_INFO_HANDLE prepare_cert_info_handle
     }
     else
     {
-        STRING_HANDLE full_cert;
-
-        if ((full_cert = STRING_construct(cert_contents)) == NULL)
-        {
-            LOG_ERROR("Could not construct string handle to hold the certificate");
-            result = NULL;
-        }
-        else
-        {
-            bool is_loop_error = false;
-            char *temp_cert_buffer = NULL;
-            const char *temp_file_path;
-            STORE_ENTRY_PKI_CERT *temp_cert_entry = cert_entry;
-            while (STRING_compare(temp_cert_entry->id, temp_cert_entry->issuer_id) != 0)
-            {
-                const char *issuer_alias;
-                if ((issuer_alias = STRING_c_str(temp_cert_entry->issuer_id)) == NULL)
-                {
-                    LOG_ERROR("Issuer found to be NULL");
-                    is_loop_error = true;
-                    break;
-                }
-                else if ((temp_cert_entry = get_pki_cert(store, issuer_alias)) == NULL)
-                {
-                    LOG_ERROR("Could not find certificate for issuer %s", issuer_alias);
-                    is_loop_error = true;
-                    break;
-                }
-                else if ((temp_file_path = STRING_c_str(temp_cert_entry->cert_file)) == NULL)
-                {
-                    LOG_ERROR("Certificate file path NULL");
-                    is_loop_error = true;
-                    break;
-                }
-                else if ((temp_cert_buffer = read_file_into_cstring(temp_file_path, NULL)) == NULL)
-                {
-                    LOG_ERROR("Could not read certificate into buffer %s", temp_file_path);
-                    is_loop_error = true;
-                    break;
-                }
-                else if (STRING_concat(full_cert, temp_cert_buffer) != 0)
-                {
-                    LOG_ERROR("Could not concatenate issuer certificate %s", temp_file_path);
-                    free(temp_cert_buffer);
-                    temp_cert_buffer = NULL;
-                    is_loop_error = true;
-                    break;
-                }
-                else
-                {
-                    LOG_DEBUG("Chaining issuer certificate %s", issuer_alias);
-                    free(temp_cert_buffer);
-                    temp_cert_buffer = NULL;
-                }
-            }
-            if (!is_loop_error)
-            {
-                result = certificate_info_create(STRING_c_str(full_cert),
-                                                 private_key_contents,
-                                                 private_key_size,
-                                                 (private_key_size != 0) ? PRIVATE_KEY_PAYLOAD :
-                                                                           PRIVATE_KEY_UNKNOWN);
-            }
-            else
-            {
-                result = NULL;
-            }
-            STRING_delete(full_cert);
-        }
+        result = certificate_info_create(cert_contents,
+                                         private_key_contents,
+                                         private_key_size,
+                                         (private_key_size != 0) ? PRIVATE_KEY_PAYLOAD :
+                                                                   PRIVATE_KEY_UNKNOWN);
     }
 
     if (cert_contents != NULL)
@@ -1545,44 +1498,45 @@ static int load_if_cert_and_key_exist_by_alias
 (
     HSM_CLIENT_STORE_HANDLE handle,
     const char *alias,
-    const char *issuer_alias,
-    bool *both_loaded
+    const char *issuer_alias
 )
 {
     int result;
-    STORE_ENTRY_PKI_CERT *cert_entry;
-    CRYPTO_STORE *store = (CRYPTO_STORE*)handle;
 
-    // @todo make this more reliable by checking for expired certificates
-    *both_loaded = false;
-    if ((cert_entry = get_pki_cert(store, alias)) != NULL)
+    STRING_HANDLE alias_cert_handle = NULL;
+    STRING_HANDLE alias_pk_handle = NULL;
+
+    if (((alias_cert_handle = STRING_new()) == NULL) ||
+        ((alias_pk_handle = STRING_new()) == NULL))
     {
-        LOG_DEBUG("Certificate already loaded in store for alias %s", alias);
-        *both_loaded = true;
-        result = 0;
+        LOG_ERROR("Could not allocate string handles for storing certificate and key paths");
+        result = LOAD_ERR_FAILED;
+    }
+    else if (build_cert_file_paths(alias, alias_cert_handle, alias_pk_handle) != 0)
+    {
+        LOG_ERROR("Could not create file paths to the certificate and private key for alias %s", alias);
+        result = LOAD_ERR_FAILED;
     }
     else
     {
-        STRING_HANDLE alias_cert_handle = NULL;
-        STRING_HANDLE alias_pk_handle = NULL;
-
-        if (((alias_cert_handle = STRING_new()) == NULL) ||
-            ((alias_pk_handle = STRING_new()) == NULL))
+        const char *cert_file_path = STRING_c_str(alias_cert_handle);
+        const char *key_file_path = STRING_c_str(alias_pk_handle);
+        bool verify_status = false;
+        if (is_file_valid(cert_file_path) && is_file_valid(key_file_path))
         {
-            LOG_ERROR("Could not allocate string handles for storing certificate and key paths");
-            result = __FAILURE__;
-        }
-        else if (build_cert_file_paths(alias, alias_cert_handle, alias_pk_handle) != 0)
-        {
-            LOG_ERROR("Could not create file paths to the certificate and private key for alias %s", alias);
-            result = __FAILURE__;
-        }
-        else
-        {
-            const char *cert_file_path = STRING_c_str(alias_cert_handle);
-            const char *key_file_path = STRING_c_str(alias_pk_handle);
-
-            if (is_file_valid(cert_file_path) && is_file_valid(key_file_path))
+            if (verify_certificate_helper(handle, alias, issuer_alias,
+                                          cert_file_path, key_file_path,
+                                          &verify_status) != 0)
+            {
+                LOG_ERROR("Failure when verifying certificate for alias %s", alias);
+                result = LOAD_ERR_FAILED;
+            }
+            else if (!verify_status)
+            {
+                LOG_ERROR("Certificate for alias is invalid %s", alias);
+                result = LOAD_ERR_VERIFICATION_FAILED;
+            }
+            else
             {
                 if (edge_hsm_client_store_insert_pki_cert(handle,
                                                           alias,
@@ -1591,28 +1545,27 @@ static int load_if_cert_and_key_exist_by_alias
                                                           key_file_path) != 0)
                 {
                     LOG_ERROR("Could not load certificates into store for alias %s", alias);
-                    result = __FAILURE__;
+                    result = LOAD_ERR_FAILED;
                 }
                 else
                 {
                     LOG_DEBUG("Successfully loaded pre-existing certificates for alias %s", alias);
-                    *both_loaded = true;
-                    result = 0;
+                    result = LOAD_SUCCESS;
                 }
             }
-            else
-            {
-                result = 0;
-            }
         }
-        if (alias_cert_handle != NULL)
+        else
         {
-            STRING_delete(alias_cert_handle);
+            result = LOAD_ERR_NOT_FOUND;
         }
-        if (alias_pk_handle != NULL)
-        {
-            STRING_delete(alias_pk_handle);
-        }
+    }
+    if (alias_cert_handle != NULL)
+    {
+        STRING_delete(alias_cert_handle);
+    }
+    if (alias_pk_handle != NULL)
+    {
+        STRING_delete(alias_pk_handle);
     }
 
     return result;
@@ -1667,28 +1620,57 @@ static int create_device_ca_cert(void)
     return result;
 }
 
+/**
+ * Generate the Owner CA and Device CA certificate in order to enable the quick start scenario.
+ * Validate each certificate since it might have expired or the issuer certificate has been
+ * modified.
+ */
 static int generate_edge_hsm_certificates_if_needed(void)
 {
-    int result = 0;
-    bool both_loaded = false;
+    int result;
 
-    if ((load_if_cert_and_key_exist_by_alias(g_crypto_store,
-                                             OWNER_CA_ALIAS,
-                                             OWNER_CA_ALIAS,
-                                             &both_loaded)) != 0)
+    int load_status = load_if_cert_and_key_exist_by_alias(g_crypto_store,
+                                                          OWNER_CA_ALIAS,
+                                                          OWNER_CA_ALIAS);
+
+    if (load_status == LOAD_ERR_FAILED)
     {
         LOG_ERROR("Could not check and load owner CA certificate and key");
         result = __FAILURE__;
     }
+    else if ((load_status == LOAD_ERR_VERIFICATION_FAILED) ||
+             (load_status == LOAD_ERR_NOT_FOUND))
+    {
+        LOG_DEBUG("Load status %d. Generating owner and device CA certs and keys", load_status);
+        if (create_owner_ca_cert() != 0)
+        {
+            result = __FAILURE__;
+        }
+        else if (create_device_ca_cert() != 0)
+        {
+            result = __FAILURE__;
+        }
+        else
+        {
+            result = 0;
+        }
+    }
     else
     {
-        if (!both_loaded)
+        // owner ca was successfully created, now load/create the device CA cert
+        load_status = load_if_cert_and_key_exist_by_alias(g_crypto_store,
+                                                          hsm_get_device_ca_alias(),
+                                                          OWNER_CA_ALIAS);
+        if (load_status == LOAD_ERR_FAILED)
         {
-            if (create_owner_ca_cert() != 0)
-            {
-                result = __FAILURE__;
-            }
-            else if (create_device_ca_cert() != 0)
+            LOG_ERROR("Could not check and load device CA certificate and key");
+            result = __FAILURE__;
+        }
+        else if ((load_status == LOAD_ERR_VERIFICATION_FAILED) ||
+                 (load_status == LOAD_ERR_NOT_FOUND))
+        {
+            LOG_DEBUG("Load status %d. Generating device CA cert and key", load_status);
+            if (create_device_ca_cert() != 0)
             {
                 result = __FAILURE__;
             }
@@ -1699,23 +1681,7 @@ static int generate_edge_hsm_certificates_if_needed(void)
         }
         else
         {
-            both_loaded = false;
-            if ((load_if_cert_and_key_exist_by_alias(g_crypto_store,
-                                                     hsm_get_device_ca_alias(),
-                                                     OWNER_CA_ALIAS,
-                                                     &both_loaded)) != 0)
-            {
-                LOG_ERROR("Could not check and load device CA certificate and key");
-                result = __FAILURE__;
-            }
-            else if ((!both_loaded) && (create_device_ca_cert() != 0))
-            {
-                result = __FAILURE__;
-            }
-            else
-            {
-                result = 0;
-            }
+            result = 0;
         }
     }
 
@@ -2292,7 +2258,7 @@ static int remove_cert_by_alias(HSM_CLIENT_STORE_HANDLE handle, const char* alia
         LOG_ERROR("Invalid handle value");
         result = __FAILURE__;
     }
-    else if (alias == NULL)
+    else if ((alias == NULL) || (strlen(alias) == 0))
     {
         LOG_ERROR("Invalid alias value");
         result = __FAILURE__;
@@ -2329,6 +2295,75 @@ static CERT_INFO_HANDLE edge_hsm_client_store_get_pki_cert
 static int edge_hsm_client_store_remove_pki_cert(HSM_CLIENT_STORE_HANDLE handle, const char* alias)
 {
     return remove_cert_by_alias(handle, alias);
+}
+
+static int verify_certificate_helper
+(
+    HSM_CLIENT_STORE_HANDLE handle,
+    const char *alias,
+    const char *issuer_alias,
+    const char *cert_file_path,
+    const char *key_file_path,
+    bool *cert_verified
+)
+{
+    int result;
+    int cmp = strcmp(alias, issuer_alias);
+
+    if (cmp == 0)
+    {
+        result = verify_certificate(cert_file_path, key_file_path, cert_file_path, cert_verified);
+    }
+    else
+    {
+        STRING_HANDLE issuer_cert_path_handle = NULL;
+        CRYPTO_STORE *store = (CRYPTO_STORE*)handle;
+        STORE_ENTRY_PKI_CERT *cert_entry;
+
+        const char *issuer_cert_path = NULL;
+        if ((cert_entry = get_pki_cert(store, issuer_alias)) != NULL)
+        {
+            LOG_DEBUG("Certificate already loaded in store for alias %s", issuer_alias);
+            issuer_cert_path = STRING_c_str(cert_entry->cert_file);
+        }
+        else
+        {
+            if ((issuer_cert_path_handle = STRING_new()) == NULL)
+            {
+                LOG_ERROR("Could not construct string handle to hold the certificate");
+            }
+            else if (build_cert_file_paths(issuer_alias, issuer_cert_path_handle, NULL) != 0)
+            {
+                LOG_ERROR("Could not create file paths to issuer certificate alias %s", issuer_alias);
+            }
+            else
+            {
+                issuer_cert_path = STRING_c_str(issuer_cert_path_handle);
+            }
+        }
+
+        if ((issuer_cert_path == NULL) || !is_file_valid(issuer_cert_path))
+        {
+            LOG_ERROR("Could not find issuer certificate file %s", issuer_cert_path);
+            result = __FAILURE__;
+        }
+        else if (verify_certificate(cert_file_path, key_file_path, issuer_cert_path, cert_verified) != 0)
+        {
+            LOG_ERROR("Error trying to verify certificate %s for alias %s", cert_file_path, alias);
+            result = __FAILURE__;
+        }
+        else
+        {
+            result = 0;
+        }
+
+        if (issuer_cert_path_handle != NULL)
+        {
+            STRING_delete(issuer_cert_path_handle);
+        }
+    }
+
+    return result;
 }
 
 static int edge_hsm_client_store_insert_pki_cert
@@ -2490,16 +2525,21 @@ static int edge_hsm_client_store_create_pki_cert
     }
     else
     {
-        bool both_loaded = false;
-        if (load_if_cert_and_key_exist_by_alias(handle, alias, issuer_alias, &both_loaded) != 0)
+        int load_status = load_if_cert_and_key_exist_by_alias(handle, alias, issuer_alias);
+        if (load_status == LOAD_ERR_FAILED)
         {
             LOG_ERROR("Could not check and load certificate and key for alias %s", alias);
             result = __FAILURE__;
         }
-        else
+        else if (load_status == LOAD_ERR_VERIFICATION_FAILED)
         {
-            if ((!both_loaded) &&
-                (edge_hsm_client_store_create_pki_cert_internal(handle, cert_props_handle, 0)))
+            LOG_ERROR("Failed certificate validation for alias %s", alias);
+            result = __FAILURE__;
+        }
+        else if (load_status == LOAD_ERR_NOT_FOUND)
+        {
+            LOG_ERROR("Generating certificate and key for alias %s", alias);
+            if (edge_hsm_client_store_create_pki_cert_internal(handle, cert_props_handle, 0) != 0)
             {
                 LOG_ERROR("Could not create certificate and key for alias %s", alias);
                 result = __FAILURE__;
@@ -2508,6 +2548,10 @@ static int edge_hsm_client_store_create_pki_cert
             {
                 result = 0;
             }
+        }
+        else
+        {
+            result = 0;
         }
     }
 
