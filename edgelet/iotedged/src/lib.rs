@@ -99,7 +99,7 @@ use sha2::{Digest, Sha256};
 use tokio_core::reactor::{Core, Handle};
 use url::Url;
 
-use settings::{Dps, Manual, Provisioning, Settings};
+use settings::{Dps, Manual, Provisioning, Settings, DEFAULT_CONNECTION_STRING};
 
 pub use self::error::{Error, ErrorKind};
 
@@ -202,6 +202,12 @@ impl Main {
             settings,
             reactor: mut core,
         } = self;
+
+        if let Provisioning::Manual(ref manual) = settings.provisioning() {
+            if manual.device_connection_string() == DEFAULT_CONNECTION_STRING {
+                Err(ErrorKind::Unconfigured)?;
+            }
+        }
 
         let handle: Handle = core.handle().clone();
         let hyper_client = HyperClient::configure()
@@ -793,6 +799,16 @@ mod tests {
         fn destroy_certificate(&self, _alias: String) -> Result<(), edgelet_core::Error> {
             Ok(())
         }
+    }
+
+    #[test]
+    fn default_settings_raise_unconfigured_error() {
+        let settings = Settings::<DockerConfig>::new(None).unwrap();
+        let main = Main::new(settings).unwrap();
+        let shutdown_signal = signal::shutdown(&main.handle());
+        let result = main.run_until(shutdown_signal);
+
+        assert_eq!(ErrorKind::Unconfigured, *result.unwrap_err().kind());
     }
 
     #[test]
