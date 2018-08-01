@@ -44,7 +44,7 @@ function print_help_and_exit()
 function run_clippy()
 {
     echo "Running clippy..."
-    $CARGO +nightly clippy --all
+    (cd $PROJECT_ROOT && $CARGO +nightly clippy --all)
 }
 
 function run_clippy_via_docker()
