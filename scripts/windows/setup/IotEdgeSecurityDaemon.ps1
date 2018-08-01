@@ -21,9 +21,6 @@ function Install-SecurityDaemon {
         [Parameter(ParameterSetName = "DPS")]
         [Switch] $Dps,
 
-        [Parameter(Mandatory = $false)]
-        [Switch] $UseWindowsContainers = $false,
-
         [Parameter(Mandatory = $true, ParameterSetName = "Manual")]
         [String] $DeviceConnectionString,
 
@@ -31,18 +28,37 @@ function Install-SecurityDaemon {
         [String] $ScopeId,
 
         [Parameter(Mandatory = $true, ParameterSetName = "DPS")]
-        [String] $RegistrationId
+        [String] $RegistrationId,
+
+        [ValidateSet("Linux", "Windows")]
+        [String] $ContainerOs = "Linux",
+
+        # Local path to iotedged zip file
+        [String] $ArchivePath,
+
+        # IoT Edge Agent image to pull
+        [String] $AgentImage,
+
+        # Username to pull IoT Edge Agent image
+        [String] $Username,
+
+        # Password to pull IoT Edge Agent image
+        [SecureString] $Password
     )
 
-    if (-not (Test-IsDockerRunning) -or -not (Test-IsKernelValid)) {
-        Write-Host ("`nThe prerequisites for installation of the IoT Edge Security daemon are not met. " +
-            "Please fix all known issues before rerunning this script.") `
+    if (Test-EdgeAlreadyInstalled) {
+        Write-Host ("`nIoT Edge is already installed. To reinstall, run 'Uninstall-SecurityDaemon' first.") `
             -ForegroundColor "Red"
         return
     }
 
-    if ((Test-EdgeAlreadyInstalled)) {
-        Write-Host ("`nIoT Edge is already installed. To reinstall, run 'Uninstall-SecurityDaemon' first.") `
+    if (-not (Test-AgentRegistryArgs)) {
+        return
+    }
+
+    if (-not (Test-IsDockerRunning) -or -not (Test-IsKernelValid)) {
+        Write-Host ("`nThe prerequisites for installation of the IoT Edge Security daemon are not met. " +
+            "Please fix all known issues before rerunning this script.") `
             -ForegroundColor "Red"
         return
     }
@@ -54,6 +70,7 @@ function Install-SecurityDaemon {
     Add-IotEdgeRegistryKey
 
     Set-ProvisioningMode
+    Set-AgentImage
     Set-Hostname
     Set-GatewayAddress
     Set-MobyNetwork
@@ -84,7 +101,7 @@ function Uninstall-SecurityDaemon {
 
     Write-Host "Uninstalling..."
 
-    $UseWindowsContainers = Test-UsingWindowsContainers
+    $ContainerOs = Get-ContainerOs
 
     Uninstall-IotEdgeService
     Stop-IotEdgeContainers
@@ -101,22 +118,22 @@ function Test-IsDockerRunning {
     $DockerCliExe = "$env:ProgramFiles\Docker\Docker\DockerCli.exe"
     if ((Get-Service "*docker*").Status -eq "Running") {
         Write-Host "Docker is running." -ForegroundColor "Green"
-        if (($UseWindowsContainers) -and -not (Test-UsingWindowsContainers)) {
+        if ($ContainerOs -eq "Windows" -and (Get-ContainerOs) -ne "Windows") {
             if (-not (Test-Path -Path $DockerCliExe)) {
                 throw "Unable to switch to Windows containers."
             }
             Write-Host "Switching Docker to use Windows containers" -ForegroundColor "Green"
             Invoke-Native "`"$DockerCliExe`" -SwitchDaemon"
-            if (-not (Test-UsingWindowsContainers)) {
+            if ((Get-ContainerOs) -ne "Windows") {
                 throw "Unable to switch to Windows containers."
             }
-        } elseif (-not ($UseWindowsContainers) -and (Test-UsingWindowsContainers)) {
+        } elseif ($ContainerOs -eq "Linux" -and (Get-ContainerOs) -ne "Linux") {
             if (-not (Test-Path -Path $DockerCliExe)) {
                 throw "Unable to switch to Linux containers."
             }
             Write-Host "Switching Docker to use Linux containers" -ForegroundColor "Green"
             Invoke-Native "`"$DockerCliExe`" -SwitchDaemon"
-            if (Test-UsingWindowsContainers) {
+            if ((Get-ContainerOs) -ne "Linux") {
                 throw "Unable to switch to Linux containers."
             }
         }
@@ -137,18 +154,14 @@ function Test-IsDockerRunning {
     return $true
 }
 
-function Test-UsingWindowsContainers {
-    (Invoke-Native "docker version --format {{.Server.Os}}" -Passthru) -match "\s*windows\s*$"
-}
-
 function Test-IsKernelValid {
     $MinBuildForLinuxContainers = 14393
     $SupportedBuildsForWindowsContainers = @(17134)
     $CurrentBuild = (Get-Item "HKLM:\Software\Microsoft\Windows NT\CurrentVersion").GetValue("CurrentBuild")
 
     # If using Linux containers, any Windows 10 version >14393 will suffice.
-    if ((-not ($UseWindowsContainers) -and ($CurrentBuild -ge $MinBuildForLinuxContainers)) -or `
-        (($UseWindowsContainers) -and ($SupportedBuildsForWindowsContainers -contains $CurrentBuild))) {
+    if (($ContainerOs -eq "Linux" -and $CurrentBuild -ge $MinBuildForLinuxContainers) -or `
+        ($ContainerOs -eq "Windows" -and $SupportedBuildsForWindowsContainers -contains $CurrentBuild)) {
         Write-Host "The container host is on supported build version $CurrentBuild." -ForegroundColor "Green"
         return $true
     } else {
@@ -162,20 +175,69 @@ function Test-IsKernelValid {
     }
 }
 
+function Test-EdgeAlreadyInstalled {
+    $ServiceName = "iotedge"
+    $IotEdgePath = "C:\ProgramData\iotedge"
+
+    if ((Get-Service $ServiceName -ErrorAction SilentlyContinue) -or (Test-Path -Path $IotEdgePath)) {
+        return $true
+    }
+    return $false
+}
+
+function Test-AgentRegistryArgs {
+    $NoImageNoCreds = (-not ($AgentImage -or $Username -or $Password))
+    $ImageNoCreds = ($AgentImage -and -not ($Username -or $Password))
+    $ImageFullCreds = ($AgentImage -and $Username -and $Password)
+
+    $Valid = ($NoImageNoCreds -or $ImageNoCreds -or $ImageFullCreds)
+    if (-not $Valid) {
+        $Message =
+            if (-not $AgentImage) {
+                "Parameter 'AgentImage' is required when parameters 'Username' and 'Password' are specified."
+            }
+            else {
+                "Parameters 'Username' and 'Password' must be used together. Please specify both (or neither for anonymous access)."
+            }
+        Write-Host $Message -ForegroundColor Red
+    }
+    return $Valid
+}
+
+function Get-ContainerOs {
+    if ((Invoke-Native "docker version --format {{.Server.Os}}" -Passthru) -match "\s*windows\s*$") {
+        return "Windows"
+    }
+    else {
+        return "Linux"
+    }
+}
+
 function Get-SecurityDaemon {
     try {
-        Write-Host "Downloading the latest version of IoT Edge security daemon." -ForegroundColor "Green"
-        Invoke-WebRequest `
-            -Uri "https://aka.ms/iotedged-windows-latest" `
-            -OutFile "$env:TEMP\iotedged-windows.zip" `
-            -UseBasicParsing
-        Expand-Archive "$env:TEMP\iotedged-windows.zip" "C:\ProgramData\iotedge" -Force
-        Copy-Item "C:\ProgramData\iotedge\iotedged-windows\*" "C:\ProgramData\iotedge" -Force
-        Write-Host "Downloaded security daemon." -ForegroundColor "Green"
+        if (-not $ArchivePath) {
+            $ArchivePath = "$env:TEMP\iotedged-windows.zip"
+            $DeleteArchive = $true
+            Write-Host "Downloading the latest version of IoT Edge security daemon." -ForegroundColor "Green"
+            Invoke-WebRequest `
+                -Uri "https://aka.ms/iotedged-windows-latest" `
+                -OutFile $ArchivePath `
+                -UseBasicParsing
+            Write-Host "Downloaded security daemon." -ForegroundColor "Green"
+        }
+        if ((Get-Item $ArchivePath).PSIsContainer) {
+            Copy-Item "$ArchivePath\*" "C:\ProgramData\iotedge" -Force
+        }
+        else {
+            Expand-Archive $ArchivePath "C:\ProgramData\iotedge" -Force
+            Copy-Item "C:\ProgramData\iotedge\iotedged-windows\*" "C:\ProgramData\iotedge" -Force
+        }
     }
     finally {
         Remove-Item "C:\ProgramData\iotedge\iotedged-windows" -Recurse -Force -ErrorAction "SilentlyContinue"
-        Remove-Item "$env:TEMP\iotedged-windows.zip" -Force -ErrorAction "SilentlyContinue"
+        if ($DeleteArchive) {
+            Remove-Item $ArchivePath -Recurse -Force -ErrorAction "SilentlyContinue"
+        }
     }
 }
 
@@ -356,6 +418,28 @@ function Set-ProvisioningMode {
     }
 }
 
+function Set-AgentImage {
+    if ($AgentImage) {
+        $YamlPath = "C:\ProgramData\iotedge\config.yaml"
+        $ConfigurationYaml = Get-Content $YamlPath -Raw
+        $SelectionRegex = "image:\s*`".*`""
+        $ReplacementContent = "image: `"$AgentImage`""
+        if ($Username -and $Password) {
+            $ConfigurationYaml = $ConfigurationYaml -replace $SelectionRegex, ($ReplacementContent -join "`n")
+            $SelectionRegex = "auth:\s*\{\s*\}"
+            $AgentRegistry = Get-AgentRegistry
+            $Cred = New-Object System.Management.Automation.PSCredential ($Username, $Password)
+            $ReplacementContent = @(
+                "auth:",
+                "      serveraddress: $AgentRegistry",
+                "      username: $Username",
+                "      password: $($Cred.GetNetworkCredential().Password)")
+        }
+        ($ConfigurationYaml -replace $SelectionRegex, ($ReplacementContent -join "`n")) | Set-Content $YamlPath -Force
+        Write-Host "Configured device with agent image `"$AgentImage`"." -ForegroundColor "Green"
+    }
+}
+
 function Set-Hostname {
     $ConfigurationYaml = Get-Content "C:\ProgramData\iotedge\config.yaml" -Raw
     $Hostname = (Invoke-Native "hostname" -Passthru).Trim()
@@ -367,7 +451,7 @@ function Set-Hostname {
 
 function Set-GatewayAddress {
     $ConfigurationYaml = Get-Content "C:\ProgramData\iotedge\config.yaml" -Raw
-    if (($UseWindowsContainers)) {
+    if ($ContainerOs -eq "Windows") {
         $GatewayAddress = (Get-NetIpAddress |
                 Where-Object {$_.InterfaceAlias -like "*vEthernet (nat)*" -and $_.AddressFamily -like "IPv4"}).IPAddress
     } else {
@@ -407,13 +491,21 @@ function Set-MobyNetwork {
         "moby_runtime:",
         "  docker_uri: `"npipe://./pipe/docker_engine`"",
         "  network: `"azure-iot-edge`"")
-    if (($UseWindowsContainers)) {
+    if ($ContainerOs -eq "Windows") {
         ($ConfigurationYaml -replace $SelectionRegex, ($ReplacementContentWindows -join "`n")) | Set-Content "C:\ProgramData\iotedge\config.yaml" -Force
         Write-Host "Set the Moby runtime network to nat." -ForegroundColor "Green"
     } else {
         ($ConfigurationYaml -replace $SelectionRegex, ($ReplacementContentLinux -join "`n")) | Set-Content "C:\ProgramData\iotedge\config.yaml" -Force
         Write-Host "Set the Moby runtime network to azure-iot-edge." -ForegroundColor "Green"
     }
+}
+
+function Get-AgentRegistry {
+    $Parts = $AgentImage -split "/"
+    if (($Parts.Length -gt 1) -and ($Parts[0] -match "\.")) {
+        return $Parts[0]
+    }
+    return "index.docker.io"
 }
 
 function Stop-IotEdgeContainers {
@@ -456,16 +548,6 @@ function Stop-Containers {
             Write-Verbose "Stopped container $_"
         }
     }
-}
-
-function Test-EdgeAlreadyInstalled {
-    $ServiceName = "iotedge"
-    $IoTEdgePath = "C:\ProgramData\iotedge"
-
-    if ((Get-Service $ServiceName -ErrorAction SilentlyContinue) -or (Test-Path -Path $IoTEdgePath)) {
-        return $true
-    }
-    return $false
 }
 
 function Invoke-Native {
