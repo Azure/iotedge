@@ -18,6 +18,8 @@ PROJECT_ROOT=${BUILD_REPOSITORY_LOCALPATH}/edgelet
 SCRIPT_NAME=$(basename "$0")
 IMAGE="azureiotedge/cargo-clippy:nightly"
 USE_DOCKER=0
+RUSTUP="$HOME/.cargo/bin/rustup"
+CARGO="$HOME/.cargo/bin/cargo"
 
 ###############################################################################
 # Print usage information pertaining to this script and exit
@@ -42,7 +44,7 @@ function print_help_and_exit()
 function run_clippy()
 {
     echo "Running clippy..."
-    cargo +nightly clippy --all
+    $CARGO +nightly clippy --all
 }
 
 function run_clippy_via_docker()
@@ -79,8 +81,8 @@ if [[ $USE_DOCKER -eq 1 ]]; then
     run_clippy_via_docker
 else
     echo "Installing nightly toolchain"
-    rustup install nightly
+    $RUSTUP install nightly
     echo "Installing clippy..."
-    rustup component add clippy-preview --toolchain=nightly
+    $RUSTUP component add clippy-preview --toolchain=nightly
     run_clippy
 fi

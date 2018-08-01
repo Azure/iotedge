@@ -85,9 +85,6 @@ phases:
       name: Hosted Linux Preview
     steps:
       - script: |
-          echo "##vso[task.setvariable variable=RUSTUP_HOME;]$VSTS_WORK/rustup"
-          echo "##vso[task.setvariable variable=CARGO_HOME;]$VSTS_WORK/cargo"
-          echo "##vso[task.setvariable variable=PATH;]$VSTS_WORK/cargo/bin:$PATH"
           echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
         displayName: Set env variables
       - task: Bash@3
