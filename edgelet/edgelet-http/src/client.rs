@@ -397,7 +397,8 @@ mod tests {
         let response = r#""response""#.to_string();
 
         let handler = move |req: Request| {
-            let sas_header = &req.headers()
+            let sas_header = &req
+                .headers()
                 .get::<Authorization<String>>()
                 .unwrap()
                 .to_string();

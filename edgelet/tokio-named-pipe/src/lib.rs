@@ -43,7 +43,8 @@ impl PipeStream {
         let timeout = timeout
             .map(|t| (t.as_secs() as u32) + t.subsec_millis())
             .unwrap_or(PIPE_WAIT_TIMEOUT_MS);
-        let pipe_path: Vec<u16> = path.as_ref()
+        let pipe_path: Vec<u16> = path
+            .as_ref()
             .as_os_str()
             .encode_wide()
             .chain(once(0))
