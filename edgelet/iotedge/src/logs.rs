@@ -36,7 +36,8 @@ where
 
     fn execute(&mut self) -> Self::Future {
         let id = self.id.clone();
-        let result = self.runtime
+        let result = self
+            .runtime
             .logs(&id, &self.options)
             .map_err(|_| Error::from(ErrorKind::ModuleRuntime))
             .and_then(move |logs| {
@@ -214,8 +215,7 @@ impl<S, C> AsyncRead for Chunked<S, C>
 where
     C: AsRef<[u8]>,
     S: Stream<Item = C, Error = io::Error>,
-{
-}
+{}
 
 #[cfg(test)]
 mod tests {

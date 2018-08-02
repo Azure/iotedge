@@ -62,5 +62,5 @@ echo "$RUSTUP component add rustfmt-preview"
 $RUSTUP component add rustfmt-preview
 
 echo "Running cargo fmt"
-echo "cd $PROJECT_ROOT && $CARGO fmt --all -- --write-mode=check"
-cd $PROJECT_ROOT && $CARGO fmt --all -- --write-mode=check
+echo "cd $PROJECT_ROOT && $CARGO fmt --all -- --check"
+cd $PROJECT_ROOT && $CARGO fmt --all --  --check
