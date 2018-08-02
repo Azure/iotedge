@@ -27,6 +27,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
     {
         static readonly IDictionary<string, EnvVal> EnvVars = new Dictionary<string, EnvVal>();
 
+        readonly TimeSpan defaultTimeout = TimeSpan.FromSeconds(30);
+
         [Fact]
         [Integration]
         public async Task SmokeTest()
@@ -38,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 
             try
             {
-                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15)))
+                using (var cts = new CancellationTokenSource(this.defaultTimeout))
                 {
                     await DockerHelper.Client.CleanupContainerAsync(Name, Image);
 
@@ -52,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     // Logging options will be derived from these default logging options
                     var loggingConfig = new DockerLoggingConfig("json-file", dockerLoggingOptions);
                     var config = new DockerConfig(Image, @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""8080/tcp"": [{""HostPort"": ""80""}]}}}");
-                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy, config, null, EnvVars);
+                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy, config, null, EnvVars);
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
                         new Dictionary<string, string>
@@ -78,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 
                     // verify container is created and has correct settings
                     ContainerInspectResponse container = await DockerHelper.Client.Containers.InspectContainerAsync(Name);
-                    Assert.Equal(Name, container.Name.Substring(1));  // for whatever reason the container name is returned with a starting "/"
+                    Assert.Equal(Name, container.Name.Substring(1)); // for whatever reason the container name is returned with a starting "/"
                     Assert.Equal("1.0", container.Config.Labels.GetOrElse(Constants.Labels.Version, "missing"));
                     // port mapping
                     Assert.Equal("8080/tcp", container.HostConfig.PortBindings.First().Key);
@@ -114,7 +116,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 
             try
             {
-                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15)))
+                using (var cts = new CancellationTokenSource(this.defaultTimeout))
                 {
                     await DockerHelper.Client.CleanupContainerAsync(Name, Image);
 
@@ -123,12 +125,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 
                     var loggingConfig = new DockerLoggingConfig("json-file");
                     var config = new DockerConfig(Image, @"{""HostConfig"": {""PortBindings"": {""42/udp"": [{""HostPort"": ""42""}]}}}");
-                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy, config, null, EnvVars);
+                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy, config, null, EnvVars);
 
-                    IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
-                    {
-                        { "EdgeHubConnectionString", fakeConnectionString }
-                    }).Build();
+                    IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
+                        new Dictionary<string, string>
+                        {
+                            { "EdgeHubConnectionString", fakeConnectionString }
+                        }).Build();
 
                     // Logging options will be derived from application level configuration
                     var modules = new Dictionary<string, IModule> { [Name] = module };
@@ -149,7 +152,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 
                     // verify container is created with correct settings.
                     ContainerInspectResponse container = await DockerHelper.Client.Containers.InspectContainerAsync(Name);
-                    Assert.Equal(Name, container.Name.Substring(1));  // for whatever reason the container name is returned with a starting "/"
+                    Assert.Equal(Name, container.Name.Substring(1)); // for whatever reason the container name is returned with a starting "/"
                     Assert.Equal("1.0", container.Config.Labels.GetOrElse(Constants.Labels.Version, "missing"));
                     // port bindings
                     Assert.Equal(1, container.HostConfig.PortBindings.Count);
@@ -178,13 +181,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 
             try
             {
-                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15)))
+                using (var cts = new CancellationTokenSource(this.defaultTimeout))
                 {
                     var mountMap = new Dictionary<string, string>()
                     {
-                        {Constants.EdgeModuleCaCertificateFileKey, "/module.ca.cert"},
-                        {Constants.EdgeModuleHubServerCaChainCertificateFileKey, "/module.ca.chain.cert"},
-                        {Constants.EdgeModuleHubServerCertificateFileKey, "/module.server.cert"}
+                        { Constants.EdgeModuleCaCertificateFileKey, "/module.ca.cert" },
+                        { Constants.EdgeModuleHubServerCaChainCertificateFileKey, "/module.ca.chain.cert" },
+                        { Constants.EdgeModuleHubServerCertificateFileKey, "/module.server.cert" }
                     };
                     await DockerHelper.Client.CleanupContainerAsync(Name, Image);
 
@@ -199,16 +202,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     // Logging options will be derived from module options.
                     var config = new DockerConfig(Image, @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""LogConfig"": {""Type"":""none""}, ""PortBindings"": {""8080/tcp"": [{""HostPort"": ""80""}],""443/tcp"": [{""HostPort"": ""11443""}]}}}");
                     var configurationInfo = new ConfigurationInfo();
-                    var module = new EdgeHubDockerModule("docker", ModuleStatus.Running, Core.RestartPolicy.Always, config, configurationInfo, EnvVars);
+                    var module = new EdgeHubDockerModule("docker", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, config, configurationInfo, EnvVars);
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
                         new Dictionary<string, string>
                         {
                             { "EdgeHubConnectionString", fakeConnectionString },
-                            {Constants.NetworkIdKey, "testnetwork" },
-                            {Constants.EdgeDeviceHostNameKey, "testdevice" },
-                            {Constants.EdgeModuleHubServerCaChainCertificateFileKey,mountMap[Constants.EdgeModuleHubServerCaChainCertificateFileKey] },
-                            {Constants.EdgeModuleHubServerCertificateFileKey, mountMap[Constants.EdgeModuleHubServerCertificateFileKey] },
+                            { Constants.NetworkIdKey, "testnetwork" },
+                            { Constants.EdgeDeviceHostNameKey, "testdevice" },
+                            { Constants.EdgeModuleHubServerCaChainCertificateFileKey, mountMap[Constants.EdgeModuleHubServerCaChainCertificateFileKey] },
+                            { Constants.EdgeModuleHubServerCertificateFileKey, mountMap[Constants.EdgeModuleHubServerCertificateFileKey] },
                         }).Build();
                     var modules = new Dictionary<string, IModule> { [Name] = module };
                     var systemModules = new SystemModules(null, null);
@@ -227,7 +230,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 
                     // verify container is created with correct settings
                     ContainerInspectResponse container = await DockerHelper.Client.Containers.InspectContainerAsync(Name);
-                    Assert.Equal(Name, container.Name.Substring(1));  // for whatever reason the container name is returned with a starting "/"
+                    Assert.Equal(Name, container.Name.Substring(1)); // for whatever reason the container name is returned with a starting "/"
                     // edgeHub doesn't have a version
                     Assert.Equal("missing", container.Config.Labels.GetOrElse(Constants.Labels.Version, "missing"));
                     // port bindings - added default bindings for edgeHub
@@ -272,7 +275,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 
             try
             {
-                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15)))
+                using (var cts = new CancellationTokenSource(this.defaultTimeout))
                 {
                     await DockerHelper.Client.CleanupContainerAsync(Name, Image);
 
@@ -286,7 +289,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     var loggingConfig = new DockerLoggingConfig("json-file", dockerLoggingOptions);
                     var config = new DockerConfig(Image, @"{""Env"": [""k1=v1"", ""k2=v2""]}");
                     var configurationInfo = new ConfigurationInfo("43");
-                    var module = new EdgeHubDockerModule("docker", ModuleStatus.Running, Core.RestartPolicy.Always, config, configurationInfo, EnvVars);
+                    var module = new EdgeHubDockerModule("docker", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, config, configurationInfo, EnvVars);
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
                         new Dictionary<string, string>
@@ -310,7 +313,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 
                     // verify container is created with correct settings
                     ContainerInspectResponse container = await DockerHelper.Client.Containers.InspectContainerAsync(Name);
-                    Assert.Equal(Name, container.Name.Substring(1));  // for whatever reason the container name is returned with a starting "/"
+                    Assert.Equal(Name, container.Name.Substring(1)); // for whatever reason the container name is returned with a starting "/"
                     // labels - edgeHub doesn's have a version
                     Assert.Equal("missing", container.Config.Labels.GetOrElse(Constants.Labels.Version, "missing"));
                     Assert.Equal("43", container.Config.Labels.GetOrElse(Constants.Labels.ConfigurationId, "missing"));
@@ -340,14 +343,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
         }
 
         IEdgeAgentModule CreateMockEdgeAgentModule() => new TestAgentModule(
-            Constants.EdgeAgentModuleName, "docker",
-            new TestConfig("EdgeAgentImage"), new Core.ConfigurationInfo(), EnvVars
+            Constants.EdgeAgentModuleName,
+            "docker",
+            new TestConfig("EdgeAgentImage"),
+            new ConfigurationInfo(),
+            EnvVars
         );
 
         IEdgeHubModule CreateMockEdgeHubModule() => new TestHubModule(
-            Constants.EdgeHubModuleName, "docker", ModuleStatus.Running,
-            new TestConfig("EdgeAgentImage"), Core.RestartPolicy.Always,
-            new Core.ConfigurationInfo(), EnvVars
+            Constants.EdgeHubModuleName,
+            "docker",
+            ModuleStatus.Running,
+            new TestConfig("EdgeAgentImage"),
+            global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always,
+            new ConfigurationInfo(),
+            EnvVars
         );
 
         [Fact]
@@ -391,7 +401,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 
             var configSource = new Mock<IConfigSource>();
             var deploymentConfig = new DeploymentConfig(
-                "1.0", runtimeInfo.Object, systemModules,
+                "1.0",
+                runtimeInfo.Object,
+                systemModules,
                 ImmutableDictionary<string, IModule>.Empty
             );
             var deploymentConfigInfo = new DeploymentConfigInfo(10, deploymentConfig);
@@ -404,8 +416,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
             ICommand createCommand = await CreateCommand.BuildAsync(
                 dockerClient.Object,
                 new DockerModule(
-                    "mod1", "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy,
-                    new DockerConfig("image1"), new ConfigurationInfo("1234"), EnvVars
+                    "mod1",
+                    "1.0",
+                    ModuleStatus.Running,
+                    global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy,
+                    new DockerConfig("image1"),
+                    new ConfigurationInfo("1234"),
+                    EnvVars
                 ),
                 moduleIdentity.Object,
                 new DockerLoggingConfig("json"),
@@ -459,7 +476,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 
             var configSource = new Mock<IConfigSource>();
             var deploymentConfig = new DeploymentConfig(
-                "1.0", runtimeInfo.Object, systemModules,
+                "1.0",
+                runtimeInfo.Object,
+                systemModules,
                 ImmutableDictionary<string, IModule>.Empty
             );
             var deploymentConfigInfo = new DeploymentConfigInfo(10, deploymentConfig);
@@ -472,8 +491,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
             ICommand createCommand = await CreateCommand.BuildAsync(
                 dockerClient.Object,
                 new DockerModule(
-                    "mod1", "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy,
-                    new DockerConfig("image1"), new ConfigurationInfo("1234"), EnvVars
+                    "mod1",
+                    "1.0",
+                    ModuleStatus.Running,
+                    global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy,
+                    new DockerConfig("image1"),
+                    new ConfigurationInfo("1234"),
+                    EnvVars
                 ),
                 moduleIdentity.Object,
                 new DockerLoggingConfig("json"),
@@ -527,16 +551,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     PortBindings = new Dictionary<string, IList<PortBinding>>
                     {
                         {
-                            "8883/tcp", new List<PortBinding>{new PortBinding
+                            "8883/tcp", new List<PortBinding>
                             {
-                                HostPort = "8883"
-                            }}
+                                new PortBinding
+                                {
+                                    HostPort = "8883"
+                                }
+                            }
                         },
                         {
-                            "443/tcp", new List<PortBinding>{new PortBinding
+                            "443/tcp", new List<PortBinding>
                             {
-                                HostPort = "443"
-                            }}
+                                new PortBinding
+                                {
+                                    HostPort = "443"
+                                }
+                            }
                         }
                     }
                 }
@@ -566,17 +596,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     PortBindings = new Dictionary<string, IList<PortBinding>>
                     {
                         {
-                            "8883/tcp", new List<PortBinding>{new PortBinding
+                            "8883/tcp", new List<PortBinding>
                             {
-                                HostPort = "8883",
-                                HostIP = "1.2.3.4"
-                            }}
+                                new PortBinding
+                                {
+                                    HostPort = "8883",
+                                    HostIP = "1.2.3.4"
+                                }
+                            }
                         },
                         {
-                            "443/tcp", new List<PortBinding>{new PortBinding
+                            "443/tcp", new List<PortBinding>
                             {
-                                HostPort = "443"
-                            }}
+                                new PortBinding
+                                {
+                                    HostPort = "443"
+                                }
+                            }
                         }
                     }
                 }
@@ -597,7 +633,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
             Assert.Equal(createContainerParameters.HostConfig.PortBindings["443/tcp"].First().HostPort, "443");
             Assert.Equal(createContainerParameters.HostConfig.PortBindings["443/tcp"].First().HostIP, null);
 
-
             // If EdgeHub port mappings are already in the create options, then they are not injected twice
             // Arrange
             createContainerParameters = new CreateContainerParameters
@@ -607,10 +642,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     PortBindings = new Dictionary<string, IList<PortBinding>>
                     {
                         {
-                            "1234/tcp", new List<PortBinding>{new PortBinding
+                            "1234/tcp", new List<PortBinding>
                             {
-                                HostPort = "1234"
-                            }}
+                                new PortBinding
+                                {
+                                    HostPort = "1234"
+                                }
+                            }
                         }
                     }
                 }
@@ -646,7 +684,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 
             try
             {
-                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15)))
+                using (var cts = new CancellationTokenSource(this.defaultTimeout))
                 {
                     // Arrange
                     await DockerHelper.Client.CleanupContainerAsync(Name, Image);
@@ -661,7 +699,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     // Logging options will be derived from these default logging options
                     var loggingConfig = new DockerLoggingConfig("json-file", dockerLoggingOptions);
                     var config = new DockerConfig(Image, @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""8080/tcp"": [{""HostPort"": ""80""}]}}}");
-                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy, config, null, EnvVars);
+                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy, config, null, EnvVars);
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
                         new Dictionary<string, string>
@@ -690,7 +728,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     // Assert
                     // verify container is created and has correct settings
                     ContainerInspectResponse container = await DockerHelper.Client.Containers.InspectContainerAsync(Name);
-                    Assert.Equal(Name, container.Name.Substring(1));  // for whatever reason the container name is returned with a starting "/"
+                    Assert.Equal(Name, container.Name.Substring(1)); // for whatever reason the container name is returned with a starting "/"
                     Assert.Equal("1.0", container.Config.Labels.GetOrElse(Constants.Labels.Version, "missing"));
                     // port mapping
                     Assert.Equal("8080/tcp", container.HostConfig.PortBindings.First().Key);

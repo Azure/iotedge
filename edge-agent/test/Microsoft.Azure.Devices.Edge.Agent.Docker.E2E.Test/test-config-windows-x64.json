@@ -3,11 +3,11 @@
         "name": "dotnet",
         "version": "1.0",
         "image": "microsoft/dotnet:2.0.6-sdk-2.1.101-nanoserver-1709",
-        "validator": {
-            "$type": "RunCommandValidator",
-            "command": "docker",
-            "args": "run --rm --link dotnet:dotnet microsoft/dotnet:2.0.6-sdk-2.1.101-nanoserver-1709 dotnet --version",
-            "outputEquals": "2.1.101"
-        }
+      "validator": {
+        "$type": "RunCommandValidator",
+        "command": "docker",
+        "args": "run --rm --link dotnet:dotnet microsoft/dotnet:2.1.302-sdk-nanoserver-1709 dotnet --version",
+        "outputEquals": "2.1.302"
+      }
     }
 ]
