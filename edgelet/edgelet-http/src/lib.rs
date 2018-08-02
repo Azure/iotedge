@@ -217,9 +217,11 @@ impl<B: AsRef<[u8]> + 'static> HyperExt<B> for Http<B> {
             }
             #[cfg(unix)]
             FD_SCHEME => {
-                let host = url.host_str()
+                let host = url
+                    .host_str()
                     .ok_or_else(|| Error::from(ErrorKind::InvalidUri(url.to_string())))?;
-                let socket = host.parse::<usize>()
+                let socket = host
+                    .parse::<usize>()
                     .map_err(Error::from)
                     .and_then(|num| systemd::listener(num).map_err(Error::from))
                     .or_else(|_| systemd::listener_name(host))?;

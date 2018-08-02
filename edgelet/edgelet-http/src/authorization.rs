@@ -56,7 +56,8 @@ where
         );
         let inner = self.inner.clone();
 
-        let response = self.auth
+        let response = self
+            .auth
             .authorize(name, pid)
             .map_err(Error::from)
             .and_then(move |authorized| {

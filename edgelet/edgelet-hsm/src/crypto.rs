@@ -68,7 +68,8 @@ impl CoreCreateCertificate for Crypto {
         &self,
         properties: &CoreCertificateProperties,
     ) -> Result<Self::Certificate, CoreError> {
-        let crypto = self.crypto
+        let crypto = self
+            .crypto
             .read()
             .expect("Shared read lock on crypto structure failed");
         let device_ca_alias = crypto.get_device_ca_alias();
@@ -130,7 +131,8 @@ impl CoreGetTrustBundle for Crypto {
     type Certificate = Certificate;
 
     fn get_trust_bundle(&self) -> Result<Self::Certificate, CoreError> {
-        let cert = self.crypto
+        let cert = self
+            .crypto
             .read()
             .expect("Shared lock on crypto structure failed")
             .get_trust_bundle()
