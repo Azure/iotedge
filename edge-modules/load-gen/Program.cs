@@ -1,21 +1,20 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace LoadGen
 {
     using System;
+    using System.Text;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
-    using ExponentialBackoff = Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling.ExponentialBackoff;
-    using Serilog;
-    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
-    using System.Threading;
-    using System.Text;
-    using Newtonsoft.Json;
-    using System.Security.Cryptography;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json;
+    using Serilog;
+    using ExponentialBackoff = Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling.ExponentialBackoff;
 
     class Program
     {
@@ -52,14 +51,14 @@ namespace LoadGen
                 using (var timers = new Timers())
                 {
                     var random = new Random();
-                    SHA256 sha = SHA256Managed.Create();
+                    Guid batchId = Guid.NewGuid();
                     var bufferPool = new BufferPool();
 
                     // setup the message timer
                     timers.Add(
                         Settings.Current.MessageFrequency,
                         Settings.Current.JitterFactor,
-                        () => GenMessage(client, random, sha, bufferPool));
+                        () => GenMessage(client, random, batchId, bufferPool));
 
                     // setup the twin update timer
                     timers.Add(
@@ -96,7 +95,7 @@ namespace LoadGen
         static async void GenMessage(
             ModuleClient client,
             Random random,
-            SHA256 sha,
+            Guid batchId,
             BufferPool bufferPool)
         {
             using (Buffer data = bufferPool.AllocBuffer(Settings.Current.MessageSizeInBytes))
@@ -104,18 +103,15 @@ namespace LoadGen
                 // generate some bytes
                 random.NextBytes(data.Data);
 
-                // compute an SHA256 hash for this data
-                byte[] hash = sha.ComputeHash(data.Data);
-
                 // build message
                 var messageBody = new
                 {
-                    sequenceNumber = Interlocked.Increment(ref MessageIdCounter),
                     data = data.Data,
-                    hash = hash
                 };
 
                 var message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageBody)));
+                message.Properties.Add("sequenceNumber", Interlocked.Increment(ref MessageIdCounter).ToString());
+                message.Properties.Add("batchId", batchId.ToString());
                 await client.SendEventAsync(Settings.Current.OutputName, message).ConfigureAwait(false);
             }
         }
