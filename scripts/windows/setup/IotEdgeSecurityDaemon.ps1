@@ -215,6 +215,7 @@ function Get-ContainerOs {
 
 function Get-SecurityDaemon {
     try {
+        $DeleteArchive = $false
         if (-not $ArchivePath) {
             $ArchivePath = "$env:TEMP\iotedged-windows.zip"
             $DeleteArchive = $true
