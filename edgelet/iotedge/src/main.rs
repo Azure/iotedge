@@ -119,7 +119,8 @@ fn run() -> Result<(), Error> {
         ("logs", Some(args)) => {
             let id = args.value_of("MODULE").unwrap().to_string();
             let follow = args.is_present("follow");
-            let tail = args.value_of("tail")
+            let tail = args
+                .value_of("tail")
                 .and_then(|a| a.parse::<LogTail>().ok())
                 .unwrap_or_default();
             let options = LogOptions::new().with_follow(follow).with_tail(tail);
