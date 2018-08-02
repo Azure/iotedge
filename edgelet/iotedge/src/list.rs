@@ -45,7 +45,8 @@ where
 
     fn execute(&mut self) -> Self::Future {
         let write = self.output.clone();
-        let result = self.runtime
+        let result = self
+            .runtime
             .list()
             .map_err(|e| e.into())
             .and_then(move |list| {

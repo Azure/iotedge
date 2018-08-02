@@ -127,7 +127,8 @@ fn match_route(re: &Regex, path: &str) -> Option<Parameters> {
         let mut captures = Vec::with_capacity(cap.len());
 
         for (i, name) in re.capture_names().enumerate() {
-            let val = name.map(|n| cap.name(n).expect("missing name"))
+            let val = name
+                .map(|n| cap.name(n).expect("missing name"))
                 .and_then(|v| percent_decode(v.as_str().as_bytes()).decode_utf8().ok())
                 .map(|v| v.to_string())
                 .unwrap_or_else(|| cap.get(i).expect("missing capture").as_str().to_owned());

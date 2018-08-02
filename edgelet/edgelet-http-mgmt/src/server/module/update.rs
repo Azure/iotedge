@@ -48,7 +48,8 @@ where
         _params: Parameters,
     ) -> BoxFuture<Response<Body>, HyperError> {
         let runtime = self.runtime.clone();
-        let start: bool = req.uri()
+        let start: bool = req
+            .uri()
             .query()
             .and_then(|query| {
                 parse_query(query.as_bytes())
@@ -58,7 +59,8 @@ where
             })
             .unwrap_or_else(|| false);
 
-        let response = req.into_body()
+        let response = req
+            .into_body()
             .concat2()
             .and_then(move |b| {
                 serde_json::from_slice::<ModuleSpec>(&b)

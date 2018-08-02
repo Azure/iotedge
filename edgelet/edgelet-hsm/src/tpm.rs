@@ -115,13 +115,15 @@ impl Sign for TpmKey {
         data: &[u8],
     ) -> Result<Self::Signature, CoreError> {
         match self.identity {
-            KeyIdentity::Device => self.tpm
+            KeyIdentity::Device => self
+                .tpm
                 .read()
                 .expect("Read lock failed")
                 .sign_with_identity(data)
                 .map_err(Error::from)
                 .map_err(CoreError::from),
-            KeyIdentity::Module(ref _m) => self.tpm
+            KeyIdentity::Module(ref _m) => self
+                .tpm
                 .read()
                 .expect("Read lock failed")
                 .derive_and_sign_with_identity(

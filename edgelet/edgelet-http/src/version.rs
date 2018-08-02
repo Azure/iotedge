@@ -41,7 +41,8 @@ where
     type Future = Box<Future<Item = Self::Response, Error = Self::Error>>;
 
     fn call(&self, req: Self::Request) -> Self::Future {
-        let response = req.uri()
+        let response = req
+            .uri()
             .query()
             .map(|query| query.to_owned())
             .and_then(|query| {
