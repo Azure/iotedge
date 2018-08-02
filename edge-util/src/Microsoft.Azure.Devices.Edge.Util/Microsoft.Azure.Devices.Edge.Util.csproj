@@ -18,11 +18,6 @@
     <OutputPath>bin\CodeCoverage</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
-  <ItemGroup>
-    <Compile Remove="certificate\**" />
-    <EmbeddedResource Remove="certificate\**" />
-    <None Remove="certificate\**" />
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="App.Metrics" Version="3.0.0-alpha-0780" />
