@@ -59,7 +59,7 @@ impl PipeStream {
             .write(true)
             .custom_flags(FILE_FLAG_OVERLAPPED);
 
-        match options.open(path.as_ref().clone()) {
+        match options.open(path.as_ref()) {
             Err(err) => {
                 if let Some(code) = err.raw_os_error() {
                     if code == ERROR_PIPE_BUSY {
@@ -69,7 +69,7 @@ impl PipeStream {
                         return PipeStream::connect(
                             path,
                             handle,
-                            Some(Duration::from_millis(timeout as u64)),
+                            Some(Duration::from_millis(u64::from(timeout))),
                         );
                     }
                 }

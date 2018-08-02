@@ -35,9 +35,10 @@ fn main() {
         let errmsg = "Error writing to stderr";
 
         let mut fail: &Fail = error;
-        writeln!(stderr, "{}", error.to_string()).expect(errmsg);
+        writeln!(stderr, "{}", error.to_string()).unwrap_or_else(|_| panic!(errmsg));
         while let Some(cause) = fail.cause() {
-            writeln!(stderr, "\tcaused by: {}", cause.to_string()).expect(errmsg);
+            writeln!(stderr, "\tcaused by: {}", cause.to_string())
+                .unwrap_or_else(|_| panic!(errmsg));
             fail = cause;
         }
         process::exit(1);
