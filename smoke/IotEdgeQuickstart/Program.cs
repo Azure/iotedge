@@ -103,13 +103,6 @@ Defaults:
         // ReSharper disable once UnusedMember.Local
         async Task<int> OnExecuteAsync()
         {
-            if (this.BootstrapperType == BootstrapperType.Iotedged &&
-                RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                Console.WriteLine("IotEdgeQuickstart parameter '--bootstrapper' does not yet support 'iotedged' on Windows. Please specify 'iotedgectl' instead.");
-                return 1;
-            }
-
             try
             {
                 string address = this.RegistryAddress;
@@ -130,11 +123,18 @@ Defaults:
                 {
                     case BootstrapperType.Iotedged:
                         {
-                            (bool useHttp, string hostname) = this.UseHttp;
-                            Option<HttpUris> uris = useHttp
-                                ? Option.Some(string.IsNullOrEmpty(hostname) ? new HttpUris() : new HttpUris(hostname))
-                                : Option.None<HttpUris>();
-                            bootstrapper = new IotedgedLinux(this.BootstrapperArchivePath, credentials, uris);
+                            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                            {
+                                bootstrapper = new IotedgedWindows(this.BootstrapperArchivePath, credentials);
+                            }
+                            else
+                            {
+                                (bool useHttp, string hostname) = this.UseHttp;
+                                Option<HttpUris> uris = useHttp
+                                    ? Option.Some(string.IsNullOrEmpty(hostname) ? new HttpUris() : new HttpUris(hostname))
+                                    : Option.None<HttpUris>();
+                                bootstrapper = new IotedgedLinux(this.BootstrapperArchivePath, credentials, uris);
+                            }
                         }
                         break;
                     case BootstrapperType.Iotedgectl:
