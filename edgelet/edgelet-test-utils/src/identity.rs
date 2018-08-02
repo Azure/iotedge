@@ -136,7 +136,8 @@ impl IdentityManager for TestIdentityManager {
     fn update(&mut self, id: IdentitySpec) -> Self::UpdateFuture {
         if let Some(generation_id) = id.generation_id() {
             // find the existing module
-            let index = self.identities
+            let index = self
+                .identities
                 .iter()
                 .position(|m| m.module_id() == id.module_id())
                 .unwrap();
@@ -174,7 +175,8 @@ impl IdentityManager for TestIdentityManager {
         if self.fail_get {
             future::err(Error::General)
         } else {
-            match self.identities
+            match self
+                .identities
                 .iter()
                 .find(|m| m.module_id() == id.module_id())
             {

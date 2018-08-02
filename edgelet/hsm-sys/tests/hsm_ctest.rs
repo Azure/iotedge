@@ -11,7 +11,7 @@ fn run_ctest() {
     // Run iot-hsm-c tests
     println!("Start Running ctest for HSM library");
     let build_dir = Path::new(
-        &env::var("OUT_DIR").expect("Did not find OUT_DIR in build environment")
+        &env::var("OUT_DIR").expect("Did not find OUT_DIR in build environment"),
     ).join("build");
     let test_output = Command::new("ctest")
         .arg("-C")

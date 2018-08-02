@@ -55,11 +55,13 @@ impl Alert {
 impl From<Url> for Alert {
     fn from(url: Url) -> Alert {
         Alert {
-            host: url.host_str()
+            host: url
+                .host_str()
                 .expect("Alert URL does not have a host component")
                 .to_owned(),
             path: url.path().to_owned(),
-            query: url.query_pairs()
+            query: url
+                .query_pairs()
                 .map(|(k, v)| (k.into_owned(), v.into_owned()))
                 .collect(),
         }
