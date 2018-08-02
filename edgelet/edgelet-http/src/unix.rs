@@ -17,7 +17,11 @@ pub fn listener<P: AsRef<Path>>(path: P, handle: &Handle) -> Result<Incoming, Er
     let listener = if path.as_ref().exists() {
         // get the previous file's metadata
         let metadata = fs::metadata(&path)?;
-        debug!("read metadata {:?} for {}", metadata, path.as_ref().display());
+        debug!(
+            "read metadata {:?} for {}",
+            metadata,
+            path.as_ref().display()
+        );
 
         debug!("unlinking {}...", path.as_ref().display());
         fs::remove_file(&path)?;
@@ -27,7 +31,11 @@ pub fn listener<P: AsRef<Path>>(path: P, handle: &Handle) -> Result<Incoming, Er
         let mut mask = Mode::all();
         mask.toggle(mode);
 
-        debug!("settings permissions {:#o} for {}...", mode, path.as_ref().display());
+        debug!(
+            "settings permissions {:#o} for {}...",
+            mode,
+            path.as_ref().display()
+        );
         let prev = umask(mask);
         defer! {{ umask(prev); }}
 
@@ -73,12 +81,10 @@ mod tests {
         drop(file);
 
         let listener = listener(&path, &core.handle()).unwrap();
-        let _srv = listener.for_each(move |(_socket, _addr)| {
-            Ok(())
-        });
+        let _srv = listener.for_each(move |(_socket, _addr)| Ok(()));
 
         let file_stat = stat(&path).unwrap();
-        assert_eq!(0o600, file_stat.st_mode  & 0o777);
+        assert_eq!(0o600, file_stat.st_mode & 0o777);
 
         dir.close().unwrap();
     }

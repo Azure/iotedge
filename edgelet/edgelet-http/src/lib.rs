@@ -75,8 +75,8 @@ pub mod error;
 pub mod logging;
 mod pid;
 pub mod route;
-mod util;
 mod unix;
+mod util;
 mod version;
 
 pub use self::error::{Error, ErrorKind};
