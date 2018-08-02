@@ -254,10 +254,10 @@ mod tests {
         let _l = lock_env();
         set_current_pid();
         env::set_var(ENV_FDS, "1");
-        create_fd(3, AddressFamily::Unix, SockType::Stream);
-        let fds = listen_fds(true, 3).unwrap();
+        create_fd(4, AddressFamily::Unix, SockType::Stream);
+        let fds = listen_fds(true, 4).unwrap();
         assert_eq!(1, fds.len());
-        assert_eq!(vec![Socket::Unix(3)], fds);
+        assert_eq!(vec![Socket::Unix(4)], fds);
         close_fds(fds.iter());
     }
 
@@ -267,15 +267,15 @@ mod tests {
         set_current_pid();
         env::set_var(ENV_FDS, "2");
         env::set_var(ENV_NAMES, "a:b");
-        create_fd(3, AddressFamily::Inet, SockType::Stream);
-        create_fd(4, AddressFamily::Unix, SockType::Stream);
-        let fds = listen_fds_with_names(true, 3).unwrap();
+        create_fd(4, AddressFamily::Inet, SockType::Stream);
+        create_fd(5, AddressFamily::Unix, SockType::Stream);
+        let fds = listen_fds_with_names(true, 4).unwrap();
         assert_eq!(2, fds.len());
-        if let Socket::Inet(3, _) = fds["a"][0] {
+        if let Socket::Inet(4, _) = fds["a"][0] {
         } else {
             panic!("Didn't parse Inet socket");
         }
-        assert_eq!(vec![Socket::Unix(4)], fds["b"]);
+        assert_eq!(vec![Socket::Unix(5)], fds["b"]);
 
         for socks in fds.values() {
             close_fds(socks.iter());

@@ -52,36 +52,33 @@ mod tests {
     use std::os::unix::fs::OpenOptionsExt;
 
     use futures::Stream;
+    use nix::sys::stat::stat;
     use tempfile::tempdir;
     use tokio_core::reactor::Core;
 
     #[test]
     fn test_unlink() {
-        let mut core = Core::new().unwrap();
+        let core = Core::new().unwrap();
         let dir = tempdir().unwrap();
         let path = dir.path().join("unlink.sock");
         let file = OpenOptions::new()
             .read(true)
             .write(true)
             .create_new(true)
-            .mode(0o400)
+            .mode(0o600)
             .open(path.clone())
             .unwrap();
 
-        assert_eq!(0o400, file.metadata().unwrap().mode() & 0o7777);
+        assert_eq!(0o600, file.metadata().unwrap().mode() & 0o7777);
+        drop(file);
 
         let listener = listener(&path, &core.handle()).unwrap();
-        let srv = listener.for_each(move |(_socket, _addr)| {
+        let _srv = listener.for_each(move |(_socket, _addr)| {
             Ok(())
         });
 
-        core.run(srv).unwrap();
-
-        let new_file = OpenOptions::new()
-            .read(true)
-            .open(path.clone())
-            .unwrap();
-        assert_eq!(0o400, new_file.metadata().unwrap().mode() & 0o7777);
+        let file_stat = stat(&path).unwrap();
+        assert_eq!(0o600, file_stat.st_mode  & 0o777);
 
         dir.close().unwrap();
     }
