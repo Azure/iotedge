@@ -18,6 +18,11 @@
     <OutputPath>bin\CodeCoverage</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="certificate\**" />
+    <EmbeddedResource Remove="certificate\**" />
+    <None Remove="certificate\**" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="App.Metrics" Version="3.0.0-alpha-0780" />
@@ -30,10 +35,6 @@
     <PackageReference Include="Serilog.Sinks.Console" Version="2.1.0" />
     <PackageReference Include="System.Runtime.Loader" Version="4.3.0" />
     <PackageReference Include="System.ValueTuple" Version="4.4.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="certificate\" />
   </ItemGroup>
 
 </Project>
