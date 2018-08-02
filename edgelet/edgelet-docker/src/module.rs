@@ -101,10 +101,9 @@ impl<C: Connect> Module for DockerModule<C> {
                                         }),
                                 )
                                 .with_image_id(resp.id().cloned())
-                                .with_pid(&state
-                                    .pid()
-                                    .map(|val| Pid::Value(*val))
-                                    .unwrap_or(Pid::None))
+                                .with_pid(
+                                    &state.pid().map(|val| Pid::Value(*val)).unwrap_or(Pid::None),
+                                )
                         })
                         .unwrap_or_else(ModuleRuntimeState::default)
                 })

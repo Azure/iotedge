@@ -78,7 +78,8 @@ impl GetCerts for X509 {
 
     /// Retrieves the common name from the x509 certificate.
     fn get_common_name(&self) -> Result<String, Error> {
-        let key_fn = self.interface
+        let key_fn = self
+            .interface
             .hsm_client_get_common_name
             .ok_or(ErrorKind::NoneFn)?;
         let result = unsafe {
@@ -105,7 +106,8 @@ pub struct X509Data {
 
 impl Drop for X509Data {
     fn drop(&mut self) {
-        let free_fn = self.interface
+        let free_fn = self
+            .interface
             .hsm_client_free_buffer
             .expect("Unknown Free function for X509 buffer");
         unsafe { free_fn(self.data as *mut c_void) };

@@ -57,9 +57,11 @@ fn tpm_active_key_sign() {
         test_helper_compute_hmac(decoded_key_str.as_bytes(), data_to_be_signed2);
 
     // act
-    let digest1 = key1.sign(SignatureAlgorithm::HMACSHA256, data_to_be_signed1)
+    let digest1 = key1
+        .sign(SignatureAlgorithm::HMACSHA256, data_to_be_signed1)
         .unwrap();
-    let digest2 = key1.sign(SignatureAlgorithm::HMACSHA256, data_to_be_signed2)
+    let digest2 = key1
+        .sign(SignatureAlgorithm::HMACSHA256, data_to_be_signed2)
         .unwrap();
 
     // assert

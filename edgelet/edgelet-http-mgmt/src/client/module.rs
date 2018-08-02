@@ -171,7 +171,8 @@ impl ModuleRuntime for ModuleClient {
     }
 
     fn start(&self, id: &str) -> Self::StartFuture {
-        let start = self.client
+        let start = self
+            .client
             .module_api()
             .start_module(API_VERSION, id)
             .map_err(Error::from)
@@ -186,7 +187,8 @@ impl ModuleRuntime for ModuleClient {
     }
 
     fn stop(&self, id: &str, _wait_before_kill: Option<Duration>) -> Self::StopFuture {
-        let stop = self.client
+        let stop = self
+            .client
             .module_api()
             .stop_module(API_VERSION, id)
             .map_err(Error::from)
@@ -201,7 +203,8 @@ impl ModuleRuntime for ModuleClient {
     }
 
     fn restart(&self, id: &str) -> Self::RestartFuture {
-        let restart = self.client
+        let restart = self
+            .client
             .module_api()
             .restart_module(API_VERSION, id)
             .map_err(Error::from)
@@ -220,7 +223,8 @@ impl ModuleRuntime for ModuleClient {
     }
 
     fn list(&self) -> Self::ListFuture {
-        let modules = self.client
+        let modules = self
+            .client
             .module_api()
             .list_modules(API_VERSION)
             .map(|list| {
@@ -240,7 +244,8 @@ impl ModuleRuntime for ModuleClient {
 
     fn logs(&self, id: &str, options: &LogOptions) -> Self::LogsFuture {
         let tail = &options.tail().to_string();
-        let result = self.client
+        let result = self
+            .client
             .module_api()
             .module_logs(API_VERSION, id, options.follow(), tail)
             .map(Logs)
@@ -255,7 +260,8 @@ impl ModuleRuntime for ModuleClient {
     fn remove_all(&self) -> Self::RemoveAllFuture {
         let self_for_remove = self.clone();
         Box::new(self.list().and_then(move |list| {
-            let n = list.into_iter()
+            let n = list
+                .into_iter()
                 .map(move |c| <Self as ModuleRuntime>::remove(&self_for_remove, c.name()));
             future::join_all(n).map(|_| ())
         }))
