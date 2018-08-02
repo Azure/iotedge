@@ -29,6 +29,11 @@
             "type": "docker",
             "status": "running",
             "restartPolicy": "always",
+            "env": {
+              "CollectMetrics": {
+                "value": true
+              }
+            },
             "settings": {
               "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-hub:<Build.BuildNumber>-linux-amd64",
               "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"8883/tcp\":[{\"HostPort\":\"8883\"}],\"443/tcp\":[{\"HostPort\":\"443\"}]}}}"
@@ -41,9 +46,86 @@
             "type": "docker",
             "status": "running",
             "restartPolicy": "always",
+            "env": {
+              "messageFrequency": {
+                "value": "<LoadGen.MessageFrequency>"
+              }
+            },
             "settings": {
               "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-amd64",
               "createOptions": ""
+            }
+          },
+          "snitcher": {
+            "version": "2.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "BUILD_ID": {
+                "value": "<Build.BuildNumber>"
+              },
+              "TEST_DURATION_IN_SECS": {
+                "value": "<Snitch.TestDurationInSecs>"
+              },
+              "REPORTING_INTERVAL_IN_SECS": {
+                "value": "<Snitch.ReportingIntervalInSecs>"
+              },
+              "ALERT_URL": {
+                "value": "<Snitch.AlertUrl>"
+              },
+              "INFLUX_URL": {
+                "value": "http://influxdb:8086"
+              },
+              "INFLUX_DB_NAME": {
+                "value": "_internal"
+              },
+              "INFLUX_QUERY_all": {
+                "value": "select * from /.*/"
+              },
+              "ANALYZER_URL": {
+                "value": "http://analyzer:15000/api/report"
+              },
+              "BLOB_STORAGE_ACCOUNT": {
+                "value": "snitchstore"
+              },
+              "BLOB_STORAGE_MASTER_KEY": {
+                "value": "<Snitch.StorageMasterKey>"
+              },
+              "BLOB_CONTAINER_NAME": {
+                "value": "loadtest1"
+              }
+            },
+            "settings": {
+              "image": "edgebuilds.azurecr.io/microsoft/snitcher:<Snitch.BuildNumber>",
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"/var/run/docker.sock:/var/run/docker.sock\"]}}"
+            }
+          },
+          "analyzer": {
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "never",
+            "env": {
+              "EventHubConnectionString": {
+                "value": "<Analyzer.EventHubConnectionString>"
+              },
+              "DeviceId": {
+                "value": "<Analyzer.DeviceID>"
+              }
+            },
+            "settings": {
+              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-analyzer:<Build.BuildNumber>-linux-amd64",
+              "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"15000/tcp\":[{\"HostPort\":\"15000\"}]}}}"
+            }
+          },
+          "influxdb": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "on-unhealthy",
+            "settings": {
+              "image": "influxdb:latest",
+              "createOptions": "{\"ExposedPorts\":{\"8086/tcp\":{}},\"HostConfig\":{\"PortBindings\":{\"8086/tcp\":[{\"HostPort\":\"8086\"}]}}}"
             }
           }
         }
@@ -53,7 +135,7 @@
       "properties.desired": {
         "schemaVersion": "1.0",
         "routes": {
-          "upstream": "FROM * INTO $upstream"
+          "upstream": "FROM /messages/modules/loadGen/outputs/output1 INTO $upstream"
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 7200

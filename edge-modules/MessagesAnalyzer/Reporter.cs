@@ -5,9 +5,13 @@ namespace MessagesAnalyzer
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
 
     class Reporter
     {
+        static readonly ILogger Log = Logger.Factory.CreateLogger<Reporter>();
+
         public static DeviceReport GetReceivedMessagesReport(double toleranceInMilliseconds)
         {
             DateTime enDateTime = DateTime.UtcNow;
@@ -24,6 +28,8 @@ namespace MessagesAnalyzer
 
         static ModuleReport GetReceivedMessagesReport(string moduleId, double toleranceInMilliseconds, IList<SortedSet<MessageDetails>> batchesSnapshot, DateTime endDateTime)
         {
+            Log.LogInformation($"Report for {moduleId}");
+
             long missingCounter = 0;
             long totalMessagesCounter = 0;
             IList<MissedMessagesDetails> missingIntervals = new List<MissedMessagesDetails>();
@@ -44,10 +50,14 @@ namespace MessagesAnalyzer
                 {
                     // ignore messages enqued after endTime
                     if (DateTime.Compare(endDateTime, msg.EnquedDateTime) < 0)
+                    {
+                        Log.LogDebug($"Ignore message for {moduleId} enqued at {msg.EnquedDateTime} because is after {endDateTime}");
                         break;
+                    }
 
                     if (msg.SequenceNumber - 1 != prevSequenceNumber)
                     {
+                        Log.LogInformation($"Missing messages for {moduleId} from {prevSequenceNumber} to {msg.SequenceNumber}");
                         missingCounter += msg.SequenceNumber - prevSequenceNumber;
                         missingIntervals.Add(new MissedMessagesDetails(msg.SequenceNumber - prevSequenceNumber, prevEnquedDateTime, msg.EnquedDateTime));
                     }
