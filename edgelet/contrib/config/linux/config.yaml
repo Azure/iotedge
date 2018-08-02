@@ -79,8 +79,13 @@ agent:
 ###############################################################################
 #
 # Configures the environment variable 'IOTEDGE_GATEWAYHOSTNAME' injected into
-# modules.
+# modules. Regardless of case the hostname is specified below, a lower case
+# value is used to configure the Edge Hub server hostname as well as the
+# environment variable specified above.
 #
+# It is important to note that when connecting downstream devices to the
+# Edge Hub that the lower case value of this hostname be used in the
+# 'GatewayHostName' field of the device's connection string URI.
 ###############################################################################
 
 hostname: "<ADD HOSTNAME HERE>"
