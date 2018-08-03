@@ -12,6 +12,8 @@ use http::{Response, StatusCode};
 use hyper::{Body, Error as HyperError, StatusCode as HyperStatusCode};
 #[cfg(windows)]
 use hyper_named_pipe::Error as PipeError;
+#[cfg(unix)]
+use nix::Error as NixError;
 use serde_json::Error as SerdeError;
 use systemd::Error as SystemdError;
 use url::ParseError;
@@ -56,6 +58,9 @@ pub enum ErrorKind {
     Systemd,
     #[fail(display = "Module not found")]
     NotFound,
+    #[cfg(unix)]
+    #[fail(display = "Syscall for socket failed.")]
+    Nix,
 }
 
 impl Fail for Error {
@@ -222,6 +227,15 @@ impl From<ParseIntError> for Error {
     fn from(error: ParseIntError) -> Error {
         Error {
             inner: error.context(ErrorKind::Parse),
+        }
+    }
+}
+
+#[cfg(unix)]
+impl From<NixError> for Error {
+    fn from(error: NixError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Nix),
         }
     }
 }
