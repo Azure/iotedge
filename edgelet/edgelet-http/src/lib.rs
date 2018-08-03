@@ -24,11 +24,13 @@ extern crate lazy_static;
 extern crate libc;
 #[macro_use]
 extern crate log;
-#[cfg(target_os = "linux")]
-#[cfg(test)]
+#[cfg(unix)]
 extern crate nix;
 extern crate percent_encoding;
 extern crate regex;
+#[cfg(unix)]
+#[macro_use]
+extern crate scopeguard;
 extern crate serde;
 #[macro_use]
 extern crate serde_json;
@@ -47,16 +49,12 @@ extern crate url;
 #[macro_use]
 extern crate edgelet_utils;
 
-#[cfg(unix)]
-use std::fs;
 use std::io;
 #[cfg(unix)]
 use std::net;
 use std::net::ToSocketAddrs;
 #[cfg(unix)]
 use std::os::unix::io::FromRawFd;
-#[cfg(unix)]
-use std::path::Path;
 
 use futures::{future, Future, Poll, Stream};
 use http::{Request, Response};
@@ -77,6 +75,7 @@ pub mod error;
 pub mod logging;
 mod pid;
 pub mod route;
+mod unix;
 mod util;
 mod version;
 
@@ -214,11 +213,7 @@ impl<B: AsRef<[u8]> + 'static> HyperExt<B> for Http<B> {
             #[cfg(unix)]
             UNIX_SCHEME => {
                 let path = url.path();
-                if Path::new(path).exists() {
-                    fs::remove_file(path)?;
-                }
-                let listener = UnixListener::bind(path, &handle)?;
-                Incoming::Unix(listener)
+                unix::listener(path, &handle)?
             }
             #[cfg(unix)]
             FD_SCHEME => {
