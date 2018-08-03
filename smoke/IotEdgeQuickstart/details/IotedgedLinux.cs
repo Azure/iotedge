@@ -59,13 +59,13 @@ namespace IotEdgeQuickstart.Details
         }
     }
 
-    class Iotedged : IBootstrapper
+    class IotedgedLinux : IBootstrapper
     {
         readonly string archivePath;
         readonly Option<RegistryCredentials> credentials;
         readonly Option<HttpUris> httpUris;
 
-        public Iotedged(string archivePath, Option<RegistryCredentials> credentials, Option<HttpUris> httpUris)
+        public IotedgedLinux(string archivePath, Option<RegistryCredentials> credentials, Option<HttpUris> httpUris)
         {
             this.archivePath = archivePath;
             this.credentials = credentials;
@@ -77,7 +77,7 @@ namespace IotEdgeQuickstart.Details
             string[] result = await Process.RunAsync("bash", "-c \"systemctl --no-pager show iotedge | grep ActiveState=\"");
             if (result.First().Split("=").Last() == "active")
             {
-                throw new Exception("IoT Edge Security Daemon is already active. If you want this test to overwrite the active configuration, please run `systemctl stop iotedged` first.");
+                throw new Exception("IoT Edge Security Daemon is already active. If you want this test to overwrite the active configuration, please run `systemctl stop iotedge` first.");
             }
         }
 
