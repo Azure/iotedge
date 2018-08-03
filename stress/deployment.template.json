@@ -117,7 +117,7 @@
                 "value": "http://analyzer:15000/api/report"
               },
               "BLOB_STORAGE_ACCOUNT": {
-                "value": "snitchstore"
+                "value": "<Snitch.StorageAccount>"
               },
               "BLOB_STORAGE_MASTER_KEY": {
                 "value": "<Snitch.StorageMasterKey>"
@@ -154,7 +154,7 @@
             "status": "running",
             "restartPolicy": "on-unhealthy",
             "settings": {
-              "image": "influxdb:latest",
+              "image": "influxdb:1.5",
               "createOptions": "{\"ExposedPorts\":{\"8086/tcp\":{}},\"HostConfig\":{\"PortBindings\":{\"8086/tcp\":[{\"HostPort\":\"8086\"}]}}}"
             }
           }
