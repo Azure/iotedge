@@ -32,6 +32,27 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         }
 
         [Fact]
+        public async Task GetIndexDuringUpdateTest()
+        {
+            int totalCount = 10000;
+            var inMemoryStorePartition = new InMemoryDbStore();
+            for (int i = 0; i <= totalCount; i++)
+            {
+                await inMemoryStorePartition.Put($"key{i}".ToBytes(), $"val{i}".ToBytes());
+            }
+
+            Task getIndexTask = Task.Run(() => inMemoryStorePartition.GetIndex($"key{totalCount}".ToBytes()));
+
+            Task removeTask = Task.Run(async () => await inMemoryStorePartition.Remove("key0".ToBytes()));
+            Task putTask = Task.Run(async () => await inMemoryStorePartition.Put("key1".ToBytes(), "newvalue".ToBytes()));
+
+            await Task.WhenAll(removeTask, putTask, getIndexTask);            
+            Assert.True(getIndexTask.IsCompletedSuccessfully);
+            Assert.True(removeTask.IsCompletedSuccessfully);
+            Assert.True(putTask.IsCompletedSuccessfully);
+        }
+
+        [Fact]
         public async Task GetFirstLastValueTest()
         {
             var inMemoryStorePartition = new InMemoryDbStore();
