@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Storage
 {
@@ -98,14 +98,15 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         internal int GetIndex(byte[] key)
         {
-            int index = 0;
-            foreach ((byte[] key, byte[] value) kv in new List<(byte[], byte[])>(this.keyValues))
+            // Not locking here, to get similar behavior as the RocksDb based implementation.
+            // The application code should to ensure that locking is not required.
+            for (int i = 0; i < this.keyValues.Count; i++)
             {
+                (byte[] key, byte[] value) kv = this.keyValues[i];
                 if (key.SequenceEqual(kv.key))
                 {
-                    return index;
+                    return i;
                 }
-                index++;
             }
             return -1;
         }
