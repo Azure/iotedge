@@ -117,7 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                 await agent.ReconcileAsync(CancellationToken.None);
 
                 // Sometimes the container is still not ready by the time we run the validator.
-                // So we attempt validation multiple times and fail only if all of them fail.
+                // So we attempt validation multiple times and bail only if all of them fail.
                 bool validated = false;
                 int attempts = 0;
                 const int MaxAttempts = 5;
