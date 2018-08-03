@@ -41,7 +41,37 @@
           }
         },
         "modules": {
-          "loadGen": {
+          "loadGen1": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "messageFrequency": {
+                "value": "<LoadGen.MessageFrequency>"
+              }
+            },
+            "settings": {
+              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-amd64",
+              "createOptions": ""
+            }
+          },
+          "loadGen2": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "messageFrequency": {
+                "value": "<LoadGen.MessageFrequency>"
+              }
+            },
+            "settings": {
+              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-amd64",
+              "createOptions": ""
+            }
+          },
+          "loadGen3": {
             "version": "1.0",
             "type": "docker",
             "status": "running",
@@ -135,7 +165,9 @@
       "properties.desired": {
         "schemaVersion": "1.0",
         "routes": {
-          "upstream": "FROM /messages/modules/loadGen/outputs/output1 INTO $upstream"
+          "upstreamLoadGen1": "FROM /messages/modules/loadGen1/outputs/output1 INTO $upstream",
+          "upstreamLoadGen2": "FROM /messages/modules/loadGen2/outputs/output1 INTO $upstream",
+          "upstreamLoadGen3": "FROM /messages/modules/loadGen3/outputs/output1 INTO $upstream"
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 7200
