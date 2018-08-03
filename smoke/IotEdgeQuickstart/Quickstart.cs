@@ -54,7 +54,7 @@ namespace IotEdgeQuickstart
                     if (!this.noDeployment)
                     {
                         await DeployToEdgeDevice();
-                        if (!this.deploymentFileName.HasValue)
+                        if (!this.DeploymentFileName.HasValue)
                         {
                             await VerifyTempSensorIsRunning();
                             await VerifyTempSensorIsSendingDataToIotHub();
