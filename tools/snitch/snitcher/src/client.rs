@@ -55,11 +55,15 @@ where
             })
             .finish();
 
+        let url_copy = self.host_name.clone();
+        let path_copy = path.to_owned();
         self.host_name
             // build the full url
             .join(&format!("{}?{}", path, query))
             .map_err(Error::from)
             .and_then(|url| {
+                debug!("Making HTTP request with URL: {}", url);
+
                 // NOTE: 'expect' here should be OK, because this is a type
                 // conversion from url::Url to hyper::Uri and not really a URL
                 // parse operation. At this point the URL has already been parsed
@@ -88,27 +92,33 @@ where
             .map(move |req| {
                 let res = self.service.lock().unwrap()
                     .call(req)
-                    .map_err(Error::from)
+                    .map_err(|err| {
+                        error!("HTTP request failed with {:?}", err);
+                        Error::from(err)
+                    })
                     .and_then(|resp| {
                         let status = resp.status();
+                        debug!("HTTP request succeeded with status {}", status);
+
                         let (_, body) = resp.into_parts();
                         body
                             .concat2()
                             .and_then(move |body| Ok((status, body)))
-                            .map_err(Error::from)
+                            .map_err(|err| {
+                                error!("Reading response body failed with {:?}", err);
+                                Error::from(err)
+                            })
                     })
-                    .and_then(|(status, body)| {
+                    .and_then(move |(status, body)| {
                         if status.is_success() {
-                            Ok(body)
+                            if body.len() == 0 {
+                                Ok(None)
+                            } else {
+                                Ok(Some(body.into_bytes()))
+                            }
                         } else {
+                            error!("HTTP request error: {}{}", url_copy, path_copy);
                             Err(Error::from((status, &*body)))
-                        }
-                    })
-                    .and_then(|body| {
-                        if body.len() == 0 {
-                            Ok(None)
-                        } else {
-                            Ok(Some(body.into_bytes()))
                         }
                     });
 

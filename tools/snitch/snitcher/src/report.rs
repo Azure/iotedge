@@ -5,7 +5,6 @@ use std::io::Write;
 
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
-use libflate::finish::AutoFinish;
 use libflate::gzip::Encoder as GzipEncoder;
 use tar::{Builder as TarBuilder, Header as TarHeader};
 
@@ -27,7 +26,7 @@ pub struct MessageAnalysis {
     status_code: u16,
     status_message: String,
     received_messages_count: u64,
-    last_message_received_at: DateTime<Utc>,
+    last_message_received_at: String,
     missed_messages: Vec<Interval>,
 }
 
@@ -84,7 +83,7 @@ impl Report {
 
     pub fn write_files<W: Write>(&self, writer: W) -> Result<W> {
         // make a gzip from the tar
-        let encoder = AutoFinish::new(GzipEncoder::new(writer)?);
+        let encoder = GzipEncoder::new(writer)?;
 
         // build a tar with all the file data
         let mut builder = TarBuilder::new(encoder);
@@ -92,12 +91,14 @@ impl Report {
             let mut header = TarHeader::new_gnu();
             header.set_path(name.as_str())?;
             header.set_size(bytes.len() as u64);
+            header.set_cksum();
 
             builder.append(&header, bytes.as_ref())?;
         }
+        builder.finish()?;
 
         // this is basically a series of unwraps to get at W:
-        //  TarBuilder -> AutoFinish -> Encoder<W> -> W
-        Ok(builder.into_inner()?.into_inner().into_inner())
+        //  TarBuilder -> GzipEncoder<W> -> W
+        Ok(builder.into_inner()?.finish().into_result()?)
     }
 }
