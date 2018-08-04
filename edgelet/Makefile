@@ -19,6 +19,7 @@ mandir?=$(datarootdir)/man
 man1=$(mandir)/man1
 man8=$(mandir)/man8
 srcdir?=.
+unitdir?=/lib/systemd/system
 
 rpmbuilddir?=$(HOME)/rpmbuild
 
@@ -66,6 +67,9 @@ dist:
 prepare-deb: release
 	$(INSTALL_PROGRAM) -D $(TARGET)/iotedged $(TARGET)/$(PACKAGE)/iotedged
 	$(INSTALL_PROGRAM) -D $(TARGET)/iotedge $(TARGET)/$(PACKAGE)/iotedge
+	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/iotedge.service $(TARGET)/$(PACKAGE)/iotedge.service
+	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/iotedge.socket $(TARGET)/$(PACKAGE)/iotedge.socket
+	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/iotedge.mgmt.socket $(TARGET)/$(PACKAGE)/iotedge.mgmt.socket
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man1/iotedge.1 $(TARGET)/$(PACKAGE)/man/iotedge.1
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man8/iotedged.8 $(TARGET)/$(PACKAGE)/man/iotedged.8
 	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/config.yaml $(TARGET)/$(PACKAGE)/etc/iotedge/config.yaml
@@ -85,9 +89,13 @@ rpm: dist
 	rpmbuild -bb --clean $(rpmbuilddir)/SPECS/iotedge.spec
 
 install:
-	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/logrotate $(DESTDIR)/$(sysconfdir)/logrotate.d/iotedge
+	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/logrotate $(DESTDIR)$(sysconfdir)/logrotate.d/iotedge
+	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/iotedge.service $(DESTDIR)$(unitdir)/iotedge.service
+	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/iotedge.socket $(DESTDIR)$(unitdir)/iotedge.socket
+	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/iotedge.mgmt.socket $(DESTDIR)$(unitdir)/iotedge.mgmt.socket
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(localstatedir)/lib/iotedge
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(localstatedir)/log/iotedge
+
 #	$(INSTALL_PROGRAM) -D $(TARGET)/iotedged $(DESTDIR)$(bindir)/iotedged
 #	$(INSTALL_PROGRAM) -D $(TARGET)/iotedge $(DESTDIR)$(bindir)/iotedge
 

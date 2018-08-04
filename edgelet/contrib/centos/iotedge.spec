@@ -13,6 +13,7 @@ Summary:        Blah
 License:        Blah
 URL:            https://github.com/azure/iotedge
 
+BuildRequires:  systemd
 Requires(pre):  shadow-utils
 Source0:        iotedge-%{version}.tar.gz
 
@@ -26,7 +27,7 @@ This is the description
 
 %install
 rm -rf $RPM_BUILD_ROOT
-make install-centos7 DESTDIR=$RPM_BUILD_ROOT
+make install-centos7 DESTDIR=$RPM_BUILD_ROOT unitdir=%{_unitdir}
 %{__install} -p -d -m 0755 %{buildroot}%{iotedge_home}
 
 %clean
@@ -41,8 +42,17 @@ exit 0
 
 %files
 %defattr(-, root, root, -)
+
+# config
 %attr(400, %{iotedge_user}, %{iotedge_group}) %config(noreplace) %{iotedge_confdir}/config.yaml
 %config(noreplace) %{_sysconfdir}/logrotate.d/%{name}
+
+# systemd
+%attr(644, -, -) %{_unitdir}/%{name}.service
+%attr(644, -, -) %{_unitdir}/%{name}.socket
+%attr(644, -, -) %{_unitdir}/%{name}.mgmt.socket
+
+# dirs
 %attr(-, %{iotedge_user}, %{iotedge_group}) %dir %{iotedge_home}
 %attr(-, %{iotedge_user}, %{iotedge_group}) %dir %{iotedge_logdir}
 
