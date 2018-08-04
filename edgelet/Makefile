@@ -64,7 +64,7 @@ dist:
 	gzip -f $(TARGET)/$(PACKAGE).tar
 	rm -f $(TARGET)/$(PACKAGE).tar
 
-prepare-deb: release
+deb: release
 	$(INSTALL_PROGRAM) -D $(TARGET)/iotedged $(TARGET)/$(PACKAGE)/iotedged
 	$(INSTALL_PROGRAM) -D $(TARGET)/iotedge $(TARGET)/$(PACKAGE)/iotedge
 	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/iotedge.service $(TARGET)/$(PACKAGE)/iotedge.service
@@ -72,13 +72,11 @@ prepare-deb: release
 	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/iotedge.mgmt.socket $(TARGET)/$(PACKAGE)/iotedge.mgmt.socket
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man1/iotedge.1 $(TARGET)/$(PACKAGE)/man/iotedge.1
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man8/iotedged.8 $(TARGET)/$(PACKAGE)/man/iotedged.8
-	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/config.yaml $(TARGET)/$(PACKAGE)/etc/iotedge/config.yaml
+	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/debian/config.yaml $(TARGET)/$(PACKAGE)/etc/iotedge/config.yaml
 	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/logrotate $(TARGET)/$(PACKAGE)/etc/logrotate.d/iotedge
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/LICENSE $(TARGET)/$(PACKAGE)$(docdir)/LICENSE
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/ThirdPartyNotices $(TARGET)/$(PACKAGE)$(docdir)/ThirdPartyNotices
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/trademark $(TARGET)/$(PACKAGE)$(docdir)/trademark
-
-deb: prepare-deb
 	cp -R $(srcdir)/contrib/debian $(TARGET)/$(PACKAGE)
 	$(SED) "s/@version@/${VERSION}/g; s/@revision@/${REVISION}/g;" $(srcdir)/contrib/debian/changelog > $(TARGET)/$(PACKAGE)/debian/changelog
 	cd $(TARGET)/$(PACKAGE) && dpkg-buildpackage $(DPKGFLAGS)
@@ -102,12 +100,11 @@ install:
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(runstatedir)/iotedge
 	$(INSTALL) -m 0660 /dev/null $(DESTDIR)$(runstatedir)/iotedge/mgmt.sock
 	$(INSTALL) -m 0666 /dev/null $(DESTDIR)$(runstatedir)/iotedge/workload.sock
-
 #	$(INSTALL_PROGRAM) -D $(TARGET)/iotedged $(DESTDIR)$(bindir)/iotedged
 #	$(INSTALL_PROGRAM) -D $(TARGET)/iotedge $(DESTDIR)$(bindir)/iotedge
 
 install-centos7: install
-	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/config.yaml $(DESTDIR)$(sysconfdir)/iotedge/config.yaml
+	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/centos/config.yaml $(DESTDIR)$(sysconfdir)/iotedge/config.yaml
 
 uninstall:
 	rm -f $(DESTDIR)$(bindir)/iotedged
@@ -123,4 +120,4 @@ uninstall:
 clean:
 	rm -rf $(TARGET)
 
-.PHONY: all clean deb dist install-centos7 prepare-deb rpm uninstall
+.PHONY: all clean deb dist install-centos7 rpm uninstall
