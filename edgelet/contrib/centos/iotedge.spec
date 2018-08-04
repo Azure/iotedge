@@ -50,6 +50,10 @@ exit 0
 %files
 %defattr(-, root, root, -)
 
+# bins
+%{_bindir}/iotedge
+%{_bindir}/iotedged
+
 # config
 %attr(400, %{iotedge_user}, %{iotedge_group}) %config(noreplace) %{iotedge_confdir}/config.yaml
 %config(noreplace) %{_sysconfdir}/logrotate.d/%{name}

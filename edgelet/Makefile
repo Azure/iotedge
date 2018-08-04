@@ -86,7 +86,9 @@ rpm: dist
 	$(SED) "s/@version@/${VERSION}/g; s/@revision@/${REVISION}/g;" $(srcdir)/contrib/centos/iotedge.spec > $(rpmbuilddir)/SPECS/iotedge.spec
 	rpmbuild -bb --clean $(rpmbuilddir)/SPECS/iotedge.spec
 
-install:
+install: release
+	$(INSTALL_PROGRAM) -D $(TARGET)/iotedged $(DESTDIR)$(bindir)/iotedged
+	$(INSTALL_PROGRAM) -D $(TARGET)/iotedge $(DESTDIR)$(bindir)/iotedge
 	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/logrotate $(DESTDIR)$(sysconfdir)/logrotate.d/iotedge
 	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/iotedge.service $(DESTDIR)$(unitdir)/iotedge.service
 	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/iotedge.socket $(DESTDIR)$(unitdir)/iotedge.socket
@@ -105,9 +107,6 @@ install:
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/trademark $(DESTDIR)$(docdir)/trademark
 	$(GZIP) $(DESTDIR)$(docdir)/LICENSE
 	$(GZIP) $(DESTDIR)$(docdir)/ThirdPartyNotices
-
-#	$(INSTALL_PROGRAM) -D $(TARGET)/iotedged $(DESTDIR)$(bindir)/iotedged
-#	$(INSTALL_PROGRAM) -D $(TARGET)/iotedge $(DESTDIR)$(bindir)/iotedge
 
 install-centos7: install
 	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/centos/config.yaml $(DESTDIR)$(sysconfdir)/iotedge/config.yaml
