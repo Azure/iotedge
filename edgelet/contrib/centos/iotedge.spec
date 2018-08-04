@@ -72,6 +72,8 @@ exit 0
 %attr(-, %{iotedge_user}, %{iotedge_group}) %dir %{iotedge_logdir}
 %attr(-, %{iotedge_user}, %{iotedge_group}) %dir %{iotedge_rundir}
 
-%doc
+%doc %{_docdir}/%{name}/LICENSE.gz
+%doc %{_docdir}/%{name}/ThirdPartyNotices.gz
+%doc %{_docdir}/%{name}/trademark
 
 %changelog
