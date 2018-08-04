@@ -8,9 +8,9 @@
 Name:           iotedge
 Version:        @version@
 Release:        1%{?dist}
-Summary:        Blah
 
-License:        Blah
+License:        Proprietary
+Summary:        Azure IoT Edge Security Daemon
 URL:            https://github.com/azure/iotedge
 
 BuildRequires:  systemd
@@ -18,7 +18,13 @@ Requires(pre):  shadow-utils
 Source0:        iotedge-%{version}.tar.gz
 
 %description
-This is the description
+Azure IoT Edge Security Daemon
+Azure IoT Edge is a fully managed service that delivers cloud intelligence
+locally by deploying and running artificial intelligence (AI), Azure services,
+and custom logic directly on cross-platform IoT devices. Run your IoT solution
+securely and at scale—whether in the cloud or offline.
+
+This package contains the IoT Edge daemon and CLI tool.
 
 %prep
 %setup -q
