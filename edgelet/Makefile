@@ -10,6 +10,8 @@ exec_prefix?=$(prefix)
 bindir?=$(exec_prefix)/bin
 libdir?=$(exec_prefix)/lib
 sysconfdir?=/etc
+localstatedir?=/var
+runstatedir?=$(localstatedir)/run
 datarootdir?=$(prefix)/share
 datadir?=$(datarootdir)
 docdir?=$(datarootdir)/doc/$(PACKAGE_NAME)
@@ -84,6 +86,8 @@ rpm: dist
 
 install:
 	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/logrotate $(DESTDIR)/$(sysconfdir)/logrotate.d/iotedge
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(localstatedir)/lib/iotedge
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(localstatedir)/log/iotedge
 #	$(INSTALL_PROGRAM) -D $(TARGET)/iotedged $(DESTDIR)$(bindir)/iotedged
 #	$(INSTALL_PROGRAM) -D $(TARGET)/iotedge $(DESTDIR)$(bindir)/iotedge
 
