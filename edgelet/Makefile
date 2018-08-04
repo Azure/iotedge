@@ -99,6 +99,9 @@ install:
 	$(GZIP) $(DESTDIR)$(man8)/iotedged.8
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(localstatedir)/lib/iotedge
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(localstatedir)/log/iotedge
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(runstatedir)/iotedge
+	$(INSTALL) -m 0660 /dev/null $(DESTDIR)$(runstatedir)/iotedge/mgmt.sock
+	$(INSTALL) -m 0666 /dev/null $(DESTDIR)$(runstatedir)/iotedge/workload.sock
 
 #	$(INSTALL_PROGRAM) -D $(TARGET)/iotedged $(DESTDIR)$(bindir)/iotedged
 #	$(INSTALL_PROGRAM) -D $(TARGET)/iotedge $(DESTDIR)$(bindir)/iotedge
