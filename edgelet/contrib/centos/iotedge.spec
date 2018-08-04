@@ -47,10 +47,14 @@ exit 0
 %attr(400, %{iotedge_user}, %{iotedge_group}) %config(noreplace) %{iotedge_confdir}/config.yaml
 %config(noreplace) %{_sysconfdir}/logrotate.d/%{name}
 
+# man
+%{_mandir}/man1/iotedge.1.gz
+%{_mandir}/man8/iotedged.8.gz
+
 # systemd
-%attr(644, -, -) %{_unitdir}/%{name}.service
-%attr(644, -, -) %{_unitdir}/%{name}.socket
-%attr(644, -, -) %{_unitdir}/%{name}.mgmt.socket
+%{_unitdir}/%{name}.service
+%{_unitdir}/%{name}.socket
+%{_unitdir}/%{name}.mgmt.socket
 
 # dirs
 %attr(-, %{iotedge_user}, %{iotedge_group}) %dir %{iotedge_home}

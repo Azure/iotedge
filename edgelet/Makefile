@@ -93,6 +93,10 @@ install:
 	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/iotedge.service $(DESTDIR)$(unitdir)/iotedge.service
 	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/iotedge.socket $(DESTDIR)$(unitdir)/iotedge.socket
 	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/iotedge.mgmt.socket $(DESTDIR)$(unitdir)/iotedge.mgmt.socket
+	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man1/iotedge.1 $(DESTDIR)$(man1)/iotedge.1
+	$(GZIP) $(DESTDIR)$(man1)/iotedge.1
+	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man8/iotedged.8 $(DESTDIR)$(man8)/iotedged.8
+	$(GZIP) $(DESTDIR)$(man8)/iotedged.8
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(localstatedir)/lib/iotedge
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(localstatedir)/log/iotedge
 
