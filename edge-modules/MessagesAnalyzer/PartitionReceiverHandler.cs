@@ -5,11 +5,13 @@ namespace MessagesAnalyzer
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.EventHubs;
-    using Serilog;
+    using Microsoft.Extensions.Logging;
 
     class PartitionReceiveHandler : IPartitionReceiveHandler
     {
+        static readonly ILogger Log = Logger.Factory.CreateLogger<PartitionReceiveHandler>();
         const string DeviceIdPropertyName = "iothub-connection-device-id";
         const string ModuleIdPropertyName = "iothub-connection-module-id";
         const string SequenceNumberPropertyName = "sequenceNumber";
@@ -54,8 +56,7 @@ namespace MessagesAnalyzer
                         }
                         else
                         {
-                            Log.Debug($"Message for moduleId: {modId} doesn't contain required properties");
-
+                            Log.LogDebug($"Message for moduleId: {modId} doesn't contain required properties");
                         }
                     }
                 }
@@ -66,7 +67,7 @@ namespace MessagesAnalyzer
 
         public Task ProcessErrorAsync(Exception error)
         {
-            Log.Error(error.StackTrace);
+            Log.LogError(error.StackTrace);
             return Task.CompletedTask;
         }
 
