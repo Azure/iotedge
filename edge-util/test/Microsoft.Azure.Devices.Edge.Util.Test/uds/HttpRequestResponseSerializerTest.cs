@@ -7,9 +7,11 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Uds
     using System.Net.Http;
     using System.Text;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util.Uds;
     using Xunit;
 
+    [Unit]
     public class HttpRequestResponseSerializerTest
     {
         [Fact]

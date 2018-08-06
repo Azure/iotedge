@@ -90,6 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 
         [Theory]
         [MemberData(nameof(GetUsernames))]
+        [Unit]
         public void ParseUsernameTest(string username, string expectedDeviceId, string expectedModuleId, string expectedDeviceClientType)
         {
             (string deviceId, string moduleId, string deviceClientType) = DeviceIdentityProvider.ParseUserName(username);
@@ -111,6 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         [InlineData("iotHub1?api-version=2010-01-01&DeviceClientType=customDeviceClient1")]
         [InlineData("iotHub1/device1/module1/?version=2010-01-01&DeviceClientType=customDeviceClient1")]
         [InlineData("iotHub1//?api-version=2010-01-01&DeviceClientType=customDeviceClient1")]
+        [Unit]
         public void ParseUserNameErrorTest(string username)
         {
             Assert.Throws<EdgeHubConnectionException>(() => DeviceIdentityProvider.ParseUserName(username));
