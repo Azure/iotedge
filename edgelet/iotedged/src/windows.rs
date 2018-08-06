@@ -70,7 +70,7 @@ fn run_as_service(_: Vec<OsString>) -> Result<(), Error> {
         .map_err(|_| ());
 
     // tell Windows we're all set
-    update_service_state(&status_handle, ServiceState::Running)?;
+    update_service_state(status_handle, ServiceState::Running)?;
 
     // start running
     info!("Starting {} service.", IOTEDGED_SERVICE_NAME);
@@ -78,7 +78,7 @@ fn run_as_service(_: Vec<OsString>) -> Result<(), Error> {
 
     // let Windows know that we stopped
     info!("Stopped {} service.", IOTEDGED_SERVICE_NAME);
-    update_service_state(&status_handle, ServiceState::Stopped)?;
+    update_service_state(status_handle, ServiceState::Stopped)?;
 
     result
 }
@@ -95,19 +95,18 @@ pub fn run_as_console() -> Result<(), Error> {
 pub fn run() -> Result<(), Error> {
     // start app as a console app if an environment variable called
     // IOTEDGE_RUN_AS_CONSOLE exists
-    if let Ok(_) = env::var(RUN_AS_CONSOLE_KEY) {
-        Ok(run_as_console()?)
+    if env::var(RUN_AS_CONSOLE_KEY).is_ok() {
+        run_as_console()?;
+        Ok(())
     } else {
         // kick-off the Windows service dance
-        Ok(service_dispatcher::start(
-            IOTEDGED_SERVICE_NAME,
-            ffi_service_main,
-        )?)
+        service_dispatcher::start(IOTEDGED_SERVICE_NAME, ffi_service_main)?;
+        Ok(())
     }
 }
 
 fn update_service_state(
-    status_handle: &ServiceStatusHandle,
+    status_handle: ServiceStatusHandle,
     current_state: ServiceState,
 ) -> Result<(), Error> {
     status_handle.set_service_status(ServiceStatus {

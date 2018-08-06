@@ -62,7 +62,8 @@ impl Tpm {
 impl ManageTpmKeys for Tpm {
     /// Imports key that has been previously encrypted with the endorsement key and storage root key into the TPM key storage.
     fn activate_identity_key(&self, key: &[u8]) -> Result<(), Error> {
-        let key_fn = self.interface
+        let key_fn = self
+            .interface
             .hsm_client_activate_identity_key
             .ok_or(ErrorKind::NoneFn)?;
 
@@ -106,7 +107,8 @@ impl SignWithTpm for Tpm {
         let mut key_ln: usize = 0;
         let mut ptr = ptr::null_mut();
 
-        let key_fn = self.interface
+        let key_fn = self
+            .interface
             .hsm_client_sign_with_identity
             .ok_or(ErrorKind::NoneFn)?;
         let result = unsafe {
@@ -131,7 +133,8 @@ impl SignWithTpm for Tpm {
     ) -> Result<TpmDigest, Error> {
         let mut key_ln: usize = 0;
         let mut ptr = ptr::null_mut();
-        let key_fn = self.interface
+        let key_fn = self
+            .interface
             .hsm_client_derive_and_sign_with_identity
             .ok_or(ErrorKind::NoneFn)?;
         let result = unsafe {
@@ -164,7 +167,8 @@ pub struct TpmBuffer {
 
 impl Drop for TpmBuffer {
     fn drop(&mut self) {
-        let free_fn = self.interface
+        let free_fn = self
+            .interface
             .hsm_client_free_buffer
             .expect("Unknown Free function for TpmBuffer");
         unsafe { free_fn(self.key as *mut c_void) };

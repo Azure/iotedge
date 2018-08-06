@@ -46,7 +46,8 @@ where
             .get(CONTENT_LENGTH)
             .and_then(|l| l.to_str().ok().map(|l| l.to_string()))
             .unwrap_or_else(|| "-".to_string());
-        let pid = self.pid
+        let pid = self
+            .pid
             .as_ref()
             .map(|p| p.to_string())
             .unwrap_or_else(|| "-".to_string());
@@ -75,12 +76,14 @@ where
     type Future = ResponseFuture<T::Future>;
 
     fn call(&self, req: Self::Request) -> Self::Future {
-        let uri = req.uri()
+        let uri = req
+            .uri()
             .query()
             .map(|q| format!("{}?{}", req.uri().path(), q))
             .unwrap_or_else(|| req.uri().path().to_string());
         let request = format!("{} {} {:?}", req.method(), uri, req.version());
-        let user_agent = req.headers()
+        let user_agent = req
+            .headers()
             .get(USER_AGENT)
             .and_then(|ua| ua.to_str().ok())
             .unwrap_or_else(|| "-")

@@ -9,9 +9,6 @@ New-Module -Name IotEdgeSecurityDaemon -ScriptBlock {
 #requires -Version 5
 #requires -RunAsAdministrator
 
-$ErrorActionPreference = "Stop"
-Set-StrictMode -Version 5
-
 function Install-SecurityDaemon {
     [CmdletBinding()]
     param (
@@ -45,6 +42,9 @@ function Install-SecurityDaemon {
         # Password to pull IoT Edge Agent image
         [SecureString] $Password
     )
+
+    $ErrorActionPreference = "Stop"
+    Set-StrictMode -Version 5
 
     if (Test-EdgeAlreadyInstalled) {
         Write-Host ("`nIoT Edge is already installed. To reinstall, run 'Uninstall-SecurityDaemon' first.") `
@@ -93,6 +93,9 @@ function Uninstall-SecurityDaemon {
         [Switch] $Force
     )
 
+    $ErrorActionPreference = "Stop"
+    Set-StrictMode -Version 5
+
     if (-not $Force -and -not (Test-EdgeAlreadyInstalled)) {
         Write-Host ("`nIoT Edge is not installed. Use '-Force' to uninstall anyway.") `
             -ForegroundColor "Red"
@@ -115,9 +118,10 @@ function Uninstall-SecurityDaemon {
 }
 
 function Test-IsDockerRunning {
-    $DockerCliExe = "$env:ProgramFiles\Docker\Docker\DockerCli.exe"
-    if ((Get-Service "*docker*").Status -eq "Running") {
+    $DockerService = Get-Service "*docker*"
+    if ($DockerService -and $DockerService.Status -eq "Running") {
         Write-Host "Docker is running." -ForegroundColor "Green"
+        $DockerCliExe = "$env:ProgramFiles\Docker\Docker\DockerCli.exe"
         if ($ContainerOs -eq "Windows" -and (Get-ContainerOs) -ne "Windows") {
             if (-not (Test-Path -Path $DockerCliExe)) {
                 throw "Unable to switch to Windows containers."
@@ -215,6 +219,7 @@ function Get-ContainerOs {
 
 function Get-SecurityDaemon {
     try {
+        $DeleteArchive = $false
         if (-not $ArchivePath) {
             $ArchivePath = "$env:TEMP\iotedged-windows.zip"
             $DeleteArchive = $true

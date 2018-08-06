@@ -1,6 +1,6 @@
 FROM rustlang/rust:nightly
 
-RUN cargo +nightly install clippy
+RUN rustup component add clippy-preview --toolchain=nightly
 
 RUN set -ex; \
     apt-get update; \
@@ -9,7 +9,7 @@ RUN set -ex; \
     cmake \
     uuid-dev \
     curl \
-    libcurl4-openssl-dev\
+    libcurl4-openssl-dev \
     ; \
     rm -rf /var/lib/apt/lists/*
 
