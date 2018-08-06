@@ -10,16 +10,17 @@ namespace MessagesAnalyzer
     using Microsoft.AspNetCore;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.Azure.Devices.Common;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.EventHubs;
     using Microsoft.Extensions.Logging;
-    using Serilog;
 
     class Program
     {
+        static readonly ILogger Log = Logger.Factory.CreateLogger<Program>();
+
         static async Task Main(string[] args)
         {
-            InitLogger().CreateLogger("analyzer");
-            Log.Information($"Starting analyzer for deviceId: {Settings.Current.DeviceId}, exclude-modules: {string.Join(", ", Settings.Current.ExcludedModuleIds.ToArray())}");
+            Log.LogInformation($"Starting analyzer for deviceId: {Settings.Current.DeviceId}, exclude-modules: {string.Join(", ", Settings.Current.ExcludedModuleIds.ToArray())}");
 
             await ReceiveMessages();
 
@@ -40,7 +41,7 @@ namespace MessagesAnalyzer
         static async Task ReceiveMessages()
         {
             var builder = new EventHubsConnectionStringBuilder(Settings.Current.EventHubConnectionString);
-            Log.Information($"Receiving events from device '{Settings.Current.DeviceId}' on Event Hub '{builder.EntityPath}'");
+            Log.LogInformation($"Receiving events from device '{Settings.Current.DeviceId}' on Event Hub '{builder.EntityPath}'");
 
             EventHubClient eventHubClient =
                 EventHubClient.CreateFromConnectionString(builder.ToString());
@@ -51,16 +52,6 @@ namespace MessagesAnalyzer
                 EventPosition.FromEnqueuedTime(DateTime.UtcNow));
 
             eventHubReceiver.SetReceiveHandler(new PartitionReceiveHandler(Settings.Current.DeviceId, Settings.Current.ExcludedModuleIds));
-        }
-
-        static ILoggerFactory InitLogger()
-        {
-            Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Debug()
-                .WriteTo.Console(outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff} {Level:u3}] {Message:lj}{NewLine}{Exception}")
-                .CreateLogger();
-
-            return new LoggerFactory().AddSerilog();
         }
     }
 }
