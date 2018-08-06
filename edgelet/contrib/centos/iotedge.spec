@@ -31,11 +31,11 @@ This package contains the IoT Edge daemon and CLI tool.
 %setup -q
 
 %build
+make release
 
 %install
 rm -rf $RPM_BUILD_ROOT
 make install-centos7 DESTDIR=$RPM_BUILD_ROOT unitdir=%{_unitdir}
-%{__install} -p -d -m 0755 %{buildroot}%{iotedge_home}
 
 %clean
 rm -rf $RPM_BUILD_ROOT

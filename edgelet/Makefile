@@ -84,7 +84,7 @@ deb: release
 rpm: dist
 	cp $(TARGET)/$(PACKAGE).tar.gz $(rpmbuilddir)/SOURCES/
 	$(SED) "s/@version@/${VERSION}/g; s/@revision@/${REVISION}/g;" $(srcdir)/contrib/centos/iotedge.spec > $(rpmbuilddir)/SPECS/iotedge.spec
-	rpmbuild -bb --clean $(rpmbuilddir)/SPECS/iotedge.spec
+	rpmbuild -v -bb --clean $(rpmbuilddir)/SPECS/iotedge.spec
 
 install: release
 	$(INSTALL_PROGRAM) -D $(TARGET)/iotedged $(DESTDIR)$(bindir)/iotedged
