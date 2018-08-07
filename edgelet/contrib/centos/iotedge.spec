@@ -8,7 +8,7 @@
 
 Name:           iotedge
 Version:        @version@
-Release:        1%{?dist}
+Release:        @revision@%{?dist}
 
 License:        Proprietary
 Summary:        Azure IoT Edge Security Daemon
