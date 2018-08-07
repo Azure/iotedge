@@ -41,11 +41,54 @@ make install DESTDIR=$RPM_BUILD_ROOT unitdir=%{_unitdir}
 rm -rf $RPM_BUILD_ROOT
 
 %pre
+# Check for container runtime
+if ! /usr/bin/getent group docker >/dev/null; then
+    echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+    echo ""
+    echo " ERROR: No container runtime detected."
+    echo ""
+    echo " Please install a container runtime and run this install again."
+    echo ""
+    echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+
+    exit 1
+fi
+
+# Create iotedge group
 /usr/bin/getent group %{iotedge_group} || %{_sbindir}/groupadd -r %{iotedge_group}
+
+# Create iotedge user
 /usr/bin/getent passwd %{iotedge_user} || \
     %{_sbindir}/useradd -r -g %{iotedge_group} -c "iotedge user" \
     -s /bin/nologin -d %{iotedge_home} %{iotedge_user}
+
+/usr/bin/getent group docker || %{_sbindir}/usermod -a -G docker %{iotedge_user}
 exit 0
+
+%post
+sed -i "s/hostname: \"<ADD HOSTNAME HERE>\"/hostname: \"$(hostname)\"/g" /etc/iotedge/config.yaml
+echo "==============================================================================="
+echo ""
+echo "                              Azure IoT Edge"
+echo ""
+echo "  IMPORTANT: Please update the configuration file located at:"
+echo ""
+echo "    /etc/iotedge/config.yaml"
+echo ""
+echo "  with your device's provisioning information. You will need to restart the"
+echo "  'iotedge' service for these changes to take effect."
+echo ""
+echo "  To restart the 'iotedge' service, use:"
+echo ""
+echo "    'systemctl restart iotedge'"
+echo ""
+echo "    - OR -"
+echo ""
+echo "    /etc/init.d/iotedge restart"
+echo ""
+echo "  These commands may need to be run with sudo depending on your environment."
+echo ""
+echo "==============================================================================="
 
 %files
 %defattr(-, root, root, -)
