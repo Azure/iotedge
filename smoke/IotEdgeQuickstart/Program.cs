@@ -49,6 +49,7 @@ Defaults:
                             switch form uses local IP address as hostname
   --username                anonymous, or Key Vault if --registry is specified
   --no-deployment           deploy Edge Hub and temperature sensor modules
+  --no-verify               verify scenarios is true by defaul and will check temperature sensor sent data to cloud.
   --deployment              deployment json file
 "
         )]
@@ -96,6 +97,9 @@ Defaults:
 
         [Option("--no-deployment", CommandOptionType.NoValue, Description = "Don't deploy Edge Hub and temperature sensor modules")]
         public bool NoDeployment { get; } = false;
+
+        [Option("--no-verify-scenarios", CommandOptionType.NoValue, Description = "Don't verify scenarios. E.g: verify is temperature sensor sent data")]
+        public bool NoVerifyScenarios { get; } = false;
 
         [Option("-l|--deployment <filename>", Description = "Deployment json file")]
         public string DeploymentFileName { get; } = Environment.GetEnvironmentVariable("deployment");
@@ -164,6 +168,7 @@ Defaults:
                     this.EdgeHostname,
                     this.LeaveRunning,
                     this.NoDeployment,
+                    this.NoVerifyScenarios,
                     deployment);
                 await test.RunAsync();
             }
