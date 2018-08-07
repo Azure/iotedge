@@ -4,8 +4,11 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Uds
 {
     using System;
     using System.IO;
+    using System.Net;
     using System.Net.Http;
     using System.Text;
+    using System.Text.RegularExpressions;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util.Uds;
@@ -17,13 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Uds
         [Fact]
         public void TestSerializeRequest_MethodMissing_ShouldSerializeRequest()
         {
-            string expected = @"GET /modules/testModule/sign?api-version=2018-06-28 HTTP/1.1
-Host: localhost:8081
-Connection: close
-Content-Type: application/json
-Content-Length: 100
-
-";
+            string expected = "GET /modules/testModule/sign?api-version=2018-06-28 HTTP/1.1\r\nHost: localhost:8081\r\nConnection: close\r\nContent-Type: application/json\r\nContent-Length: 100\r\n\r\n";
             var request = new HttpRequestMessage();
             request.RequestUri = new Uri("http://localhost:8081/modules/testModule/sign?api-version=2018-06-28", UriKind.Absolute);
             request.Version = Version.Parse("1.1");
@@ -39,13 +36,7 @@ Content-Length: 100
         [Fact]
         public void TestSerializeRequest_VersionMissing_ShouldSerializeRequest()
         {
-            string expected = @"POST /modules/testModule/sign?api-version=2018-06-28 HTTP/1.1
-Host: localhost:8081
-Connection: close
-Content-Type: application/json
-Content-Length: 100
-
-";
+            string expected = "POST /modules/testModule/sign?api-version=2018-06-28 HTTP/1.1\r\nHost: localhost:8081\r\nConnection: close\r\nContent-Type: application/json\r\nContent-Length: 100\r\n\r\n";
             var request = new HttpRequestMessage();
             request.RequestUri = new Uri("http://localhost:8081/modules/testModule/sign?api-version=2018-06-28", UriKind.Absolute);
             request.Method = HttpMethod.Post;
@@ -61,13 +52,7 @@ Content-Length: 100
         [Fact]
         public void TestSerializeRequest_ContentLengthMissing_ShouldSerializeRequest()
         {
-            string expected = @"POST /modules/testModule/sign?api-version=2018-06-28 HTTP/1.1
-Host: localhost:8081
-Connection: close
-Content-Type: application/json
-Content-Length: 4
-
-";
+            string expected = "POST /modules/testModule/sign?api-version=2018-06-28 HTTP/1.1\r\nHost: localhost:8081\r\nConnection: close\r\nContent-Type: application/json\r\nContent-Length: 4\r\n\r\n";
             var request = new HttpRequestMessage();
             request.RequestUri = new Uri("http://localhost:8081/modules/testModule/sign?api-version=2018-06-28", UriKind.Absolute);
             request.Method = HttpMethod.Post;
@@ -82,11 +67,7 @@ Content-Length: 4
         [Fact]
         public void TestSerializeRequest_ContentIsNull_ShouldSerializeRequest()
         {
-            string expected = @"GET /modules/testModule/sign?api-version=2018-06-28 HTTP/1.1
-Host: localhost:8081
-Connection: close
-
-";
+            string expected = "GET /modules/testModule/sign?api-version=2018-06-28 HTTP/1.1\r\nHost: localhost:8081\r\nConnection: close\r\n\r\n";
             var request = new HttpRequestMessage();
             request.RequestUri = new Uri("http://localhost:8081/modules/testModule/sign?api-version=2018-06-28", UriKind.Absolute);
             request.Method = HttpMethod.Get;
@@ -116,13 +97,7 @@ Connection: close
         [Fact]
         public void TestSerializeRequest_ShouldSerializeRequest()
         {
-            string expected = @"POST /modules/testModule/sign?api-version=2018-06-28 HTTP/1.1
-Connection: close
-Host: localhost:8081
-Content-Type: application/json
-Content-Length: 100
-
-";
+            string expected = "POST /modules/testModule/sign?api-version=2018-06-28 HTTP/1.1\r\nConnection: close\r\nHost: localhost:8081\r\nContent-Type: application/json\r\nContent-Length: 100";
             var request = new HttpRequestMessage();
             request.Method = HttpMethod.Post;
             request.RequestUri = new Uri("http://localhost:8081/modules/testModule/sign?api-version=2018-06-28", UriKind.Absolute);
@@ -134,9 +109,10 @@ Content-Length: 100
 
             byte[] httpRequestData = new HttpRequestResponseSerializer().SerializeRequest(request);
             string actual = Encoding.ASCII.GetString(httpRequestData);
-            Assert.Equal(expected.ToLower(), actual.ToLower());
-        }
 
+            AssertNormalizedValues(expected, actual);
+        }
+        
         [Fact]
         public void TestDeserializeResponse_InvalidEndOfStream_ShouldThrow()
         {
@@ -144,7 +120,7 @@ Content-Length: 100
             var memory = new MemoryStream(expected, true);
             var stream = new HttpBufferedStream(memory);
 
-            System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken);
+            CancellationToken cancellationToken = default(CancellationToken);
             Assert.ThrowsAsync<HttpRequestException>(() => new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken));
         }
 
@@ -155,7 +131,7 @@ Content-Length: 100
             var memory = new MemoryStream(expected, true);
             var stream = new HttpBufferedStream(memory);
 
-            System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken);
+            CancellationToken cancellationToken = default(CancellationToken);
             Assert.ThrowsAsync<HttpRequestException>(() => new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken));
         }
 
@@ -166,7 +142,7 @@ Content-Length: 100
             var memory = new MemoryStream(expected, true);
             var stream = new HttpBufferedStream(memory);
 
-            System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken);
+            CancellationToken cancellationToken = default(CancellationToken);
             Assert.ThrowsAsync<HttpRequestException>(() => new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken));
         }
 
@@ -177,7 +153,7 @@ Content-Length: 100
             var memory = new MemoryStream(expected, true);
             var stream = new HttpBufferedStream(memory);
 
-            System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken);
+            CancellationToken cancellationToken = default(CancellationToken);
             Assert.ThrowsAsync<HttpRequestException>(() => new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken));
         }
 
@@ -188,7 +164,7 @@ Content-Length: 100
             var memory = new MemoryStream(expected, true);
             var stream = new HttpBufferedStream(memory);
 
-            System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken);
+            CancellationToken cancellationToken = default(CancellationToken);
             Assert.ThrowsAsync<HttpRequestException>(() => new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken));
         }
 
@@ -199,7 +175,7 @@ Content-Length: 100
             var memory = new MemoryStream(expected, true);
             var stream = new HttpBufferedStream(memory);
 
-            System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken);
+            CancellationToken cancellationToken = default(CancellationToken);
             Assert.ThrowsAsync<HttpRequestException>(() => new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken));
         }
 
@@ -210,7 +186,7 @@ Content-Length: 100
             var memory = new MemoryStream(expected, true);
             var stream = new HttpBufferedStream(memory);
 
-            System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken);
+            CancellationToken cancellationToken = default(CancellationToken);
             Assert.ThrowsAsync<HttpRequestException>(() => new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken));
         }
 
@@ -221,11 +197,11 @@ Content-Length: 100
             var memory = new MemoryStream(expected, true);
             var stream = new HttpBufferedStream(memory);
 
-            System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken);
+            CancellationToken cancellationToken = default(CancellationToken);
             HttpResponseMessage response = await new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken);
 
             Assert.Equal(response.Version, Version.Parse("1.1"));
-            Assert.Equal(response.StatusCode, System.Net.HttpStatusCode.OK);
+            Assert.Equal(response.StatusCode, HttpStatusCode.OK);
             Assert.Equal(response.ReasonPhrase, "OK");
         }
 
@@ -236,7 +212,7 @@ Content-Length: 100
             var memory = new MemoryStream(expected, true);
             var stream = new HttpBufferedStream(memory);
 
-            System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken);
+            CancellationToken cancellationToken = default(CancellationToken);
             Assert.ThrowsAsync<HttpRequestException>(() => new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken));
         }
 
@@ -247,7 +223,7 @@ Content-Length: 100
             var memory = new MemoryStream(expected, true);
             var stream = new HttpBufferedStream(memory);
 
-            System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken);
+            CancellationToken cancellationToken = default(CancellationToken);
             Assert.ThrowsAsync<HttpRequestException>(() => new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken));
         }
 
@@ -258,7 +234,7 @@ Content-Length: 100
             var memory = new MemoryStream(expected, true);
             var stream = new HttpBufferedStream(memory);
 
-            System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken);
+            CancellationToken cancellationToken = default(CancellationToken);
             Assert.ThrowsAsync<HttpRequestException>(() => new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken));
         }
 
@@ -269,11 +245,11 @@ Content-Length: 100
             var memory = new MemoryStream(expected, true);
             var stream = new HttpBufferedStream(memory);
 
-            System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken);
+            CancellationToken cancellationToken = default(CancellationToken);
             HttpResponseMessage response = await new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken);
 
             Assert.Equal(response.Version, Version.Parse("1.1"));
-            Assert.Equal(response.StatusCode, System.Net.HttpStatusCode.OK);
+            Assert.Equal(response.StatusCode, HttpStatusCode.OK);
             Assert.Equal(response.ReasonPhrase, "OK");
             Assert.Equal(response.Content.Headers.ContentLength, 4);
             Assert.Equal(await response.Content.ReadAsStringAsync(), "Test");
@@ -286,14 +262,22 @@ Content-Length: 100
             var memory = new MemoryStream(expected, true);
             var stream = new HttpBufferedStream(memory);
 
-            System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken);
+            CancellationToken cancellationToken = default(CancellationToken);
             HttpResponseMessage response = await new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken);
 
             Assert.Equal(response.Version, Version.Parse("1.1"));
-            Assert.Equal(response.StatusCode, System.Net.HttpStatusCode.OK);
+            Assert.Equal(response.StatusCode, HttpStatusCode.OK);
             Assert.Equal(response.ReasonPhrase, "OK");
             Assert.Equal(response.Content.Headers.ContentLength, 4);
             Assert.Equal(await response.Content.ReadAsStringAsync(), "Test");
+        }
+
+        static void AssertNormalizedValues(string expected, string actual)
+        {
+            // Remove metacharacters before assertion to allow to run on both Windows and Linux; which Linux will return additional carriage return character.
+            string normalizedExpected = Regex.Replace(expected, @"\s", "").ToLower();
+            string normalizedActual = Regex.Replace(actual, @"\s", "").ToLower();
+            Assert.Equal(normalizedExpected, normalizedActual);
         }
     }
 }

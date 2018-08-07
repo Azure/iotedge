@@ -16,14 +16,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.uds
         [Fact]
         public async Task TestReadLines_ShouldReturnResponse()
         {
-            string expected = @"GET /modules/testModule/sign?api-version=2018-06-28 HTTP/1.1
-Host: localhost:8081
-Connection: close
-Content-Type: application/json
-Content-Length: 100
-
-";
-
+            string expected = "GET /modules/testModule/sign?api-version=2018-06-28 HTTP/1.1\r\nHost: localhost:8081\r\nConnection: close\r\nContent-Type: application/json\r\nContent-Length: 100\r\n\r\n";
+            
             byte[] expectedBytes = Encoding.UTF8.GetBytes(expected);
             var memory = new MemoryStream(expectedBytes, true);
 
