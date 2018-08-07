@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.ObjectModel;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -14,28 +15,24 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     /// </summary>
     class InMemoryDbStore : IDbStore
     {
-        // Using a list instead of a dictionary becaues the dictionary is not ordered
-        readonly List<(byte[], byte[])> keyValues;
+        readonly ItemKeyedCollection keyValues;
         readonly ReaderWriterLockSlim listLock = new ReaderWriterLockSlim();
 
         public InMemoryDbStore()
         {
-            this.keyValues = new List<(byte[], byte[])>();
+            this.keyValues = new ItemKeyedCollection(new ByteArrayComparer());
         }
 
-        public async Task<bool> Contains(byte[] key)
-        {
-            Option<byte[]> value = await this.Get(key);
-            return value.HasValue;
-        }
+        public Task<bool> Contains(byte[] key) => Task.FromResult(this.keyValues.Contains(key));
 
         public Task<Option<byte[]>> Get(byte[] key)
         {
             this.listLock.EnterReadLock();
             try
             {
-                int index = this.GetIndex(key);
-                Option<byte[]> value = index >= 0 ? Option.Some(this.keyValues[index].Item2) : Option.None<byte[]>();
+                Option<byte[]> value = this.keyValues.Contains(key)
+                    ? Option.Some(this.keyValues[key].Value)
+                    : Option.None<byte[]>();
                 return Task.FromResult(value);
             }
             finally
@@ -54,8 +51,16 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         public Task IterateBatch(byte[] startKey, int batchSize, Func<byte[], byte[], Task> callback)
         {
             List<(byte[] key, byte[] value)> snapshot = this.GetSnapshot();
-            int index = GetIndex(snapshot, startKey);
-            return this.IterateBatch(snapshot, index, batchSize, callback);
+            int i = 0;
+            for (; i < snapshot.Count; i++)
+            {
+                byte[] key = snapshot[i].key;
+                if (key.SequenceEqual(startKey))
+                {
+                    break;
+                }
+            }
+            return this.IterateBatch(snapshot, i, batchSize, callback);
         }
 
         async Task IterateBatch(List<(byte[] key, byte[] value)> snapshot, int index, int batchSize, Func<byte[], byte[], Task> callback)
@@ -76,7 +81,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             this.listLock.EnterReadLock();
             try
             {
-                Option<(byte[], byte[])> firstEntry = this.keyValues.Count > 0 ? Option.Some(this.keyValues[0]) : Option.None<(byte[], byte[])>();
+                Option<(byte[], byte[])> firstEntry = this.keyValues.Count > 0
+                    ? Option.Some((this.keyValues[0].Key, this.keyValues[0].Value))
+                    : Option.None<(byte[], byte[])>();
                 return Task.FromResult(firstEntry);
             }
             finally
@@ -90,7 +97,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             this.listLock.EnterReadLock();
             try
             {
-                Option<(byte[], byte[])> lastEntry = (this.keyValues.Count > 0) ? Option.Some(this.keyValues[this.keyValues.Count - 1]) : Option.None<(byte[], byte[])>();
+                Option<(byte[], byte[])> lastEntry = (this.keyValues.Count > 0)
+                    ? Option.Some((this.keyValues[this.keyValues.Count - 1].Key, this.keyValues[this.keyValues.Count - 1].Value))
+                    : Option.None<(byte[], byte[])>();
                 return Task.FromResult(lastEntry);
             }
             finally
@@ -104,14 +113,13 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             this.listLock.EnterWriteLock();
             try
             {
-                int index = this.GetIndex(key);
-                if (index < 0)
+                if (!this.keyValues.Contains(key))
                 {
-                    this.keyValues.Add((key, value));
+                    this.keyValues.Add(new Item(key, value));
                 }
                 else
                 {
-                    this.keyValues[index] = (key, value);
+                    this.keyValues[key].Value = value;
                 }
                 return Task.CompletedTask;
             }
@@ -126,11 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             this.listLock.EnterWriteLock();
             try
             {
-                int index = this.GetIndex(key);
-                if (index >= 0)
-                {
-                    this.keyValues.RemoveAt(index);
-                }
+                this.keyValues.Remove(key);
                 return Task.CompletedTask;
             }
             finally
@@ -139,27 +143,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             }
         }
 
-        internal int GetIndex(byte[] key) => GetIndex(this.keyValues, key);
-
-        static int GetIndex(List<(byte[] key, byte[] value)> list, byte[] key)
-        {
-            for (int i = 0; i < list.Count; i++)
-            {
-                (byte[] key, byte[] value) kv = list[i];
-                if (key.SequenceEqual(kv.key))
-                {
-                    return i;
-                }
-            }
-            return -1;
-        }
-
         List<(byte[], byte[])> GetSnapshot()
         {
             this.listLock.EnterReadLock();
             try
             {
-                return new List<(byte[], byte[])>(this.keyValues);
+                return new List<(byte[], byte[])>(this.keyValues.ItemList);
             }
             finally
             {
@@ -170,6 +159,48 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         public void Dispose()
         {
             // No-op
+        }
+
+        class ItemKeyedCollection : KeyedCollection<byte[], Item>
+        {
+            public ItemKeyedCollection(IEqualityComparer<byte[]> keyEqualityComparer)
+                : base(keyEqualityComparer)
+            {
+            }
+
+            protected override byte[] GetKeyForItem(Item item) => item.Key;
+
+            public IList<(byte[], byte[])> ItemList => this.Items
+                .Select(i => (i.Key, i.Value))
+                .ToList();
+        }
+
+        class Item
+        {
+            public Item(byte[] key, byte[] value)
+            {
+                this.Key = Preconditions.CheckNotNull(key, nameof(key));
+                this.Value = Preconditions.CheckNotNull(value, nameof(value));
+            }
+
+            public byte[] Key { get; }
+
+            public byte[] Value { get; set; }
+        }
+
+        class ByteArrayComparer : IEqualityComparer<byte[]>
+        {
+            public bool Equals(byte[] x, byte[] y) => (x == null && y == null) || x.SequenceEqual(y);
+
+            public int GetHashCode(byte[] obj)
+            {
+                int hashCode = 1291371069;
+                foreach (byte b in obj)
+                {
+                    hashCode = hashCode * -1521134295 + b.GetHashCode();
+                }
+                return hashCode;
+            }
         }
     }
 }
