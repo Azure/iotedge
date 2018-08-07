@@ -12,7 +12,7 @@ namespace IotEdgeQuickstart
     {
         readonly LeaveRunning leaveRunning;
         readonly bool noDeployment;
-        readonly bool noVerifyScenarios;
+        readonly bool noVerify;
 
         public Quickstart(
             IBootstrapper bootstrapper,
@@ -30,7 +30,7 @@ namespace IotEdgeQuickstart
         {
             this.leaveRunning = leaveRunning;
             this.noDeployment = noDeployment;
-            this.noVerifyScenarios = noVerify;
+            this.noVerify = noVerify;
         }
 
         public async Task RunAsync()
@@ -57,7 +57,7 @@ namespace IotEdgeQuickstart
                     if (!this.noDeployment)
                     {
                         await DeployToEdgeDevice();
-                        if (!this.noVerifyScenarios)
+                        if (!this.noVerify)
                         {
                             await VerifyTempSensorIsRunning();
                             await VerifyTempSensorIsSendingDataToIotHub();
