@@ -10,30 +10,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
 
     [Unit]
     public class InMemoryStorePartitionTest
-    {
+    {       
         [Fact]
-        public async Task GetIndexTest()
-        {
-            var inMemoryStorePartition = new InMemoryDbStore();
-            await inMemoryStorePartition.Put("key1".ToBytes(), "val1".ToBytes());
-            await inMemoryStorePartition.Put("key2".ToBytes(), "val2".ToBytes());
-            await inMemoryStorePartition.Put("key3".ToBytes(), "val3".ToBytes());
-
-            Assert.Equal(0, inMemoryStorePartition.GetIndex("key1".ToBytes()));
-            Assert.Equal(1, inMemoryStorePartition.GetIndex("key2".ToBytes()));
-            Assert.Equal(2, inMemoryStorePartition.GetIndex("key3".ToBytes()));
-
-            await inMemoryStorePartition.Remove("key2".ToBytes());
-            Assert.Equal(0, inMemoryStorePartition.GetIndex("key1".ToBytes()));
-            Assert.Equal(-1, inMemoryStorePartition.GetIndex("key2".ToBytes()));
-            Assert.Equal(1, inMemoryStorePartition.GetIndex("key3".ToBytes()));
-
-            await inMemoryStorePartition.Put("key3".ToBytes(), "newVal3".ToBytes());
-            Assert.Equal(1, inMemoryStorePartition.GetIndex("key3".ToBytes()));            
-        }
-
-        [Fact]
-        public async Task GetIndexDuringUpdateTest()
+        public async Task GetMultipleOperationsTest()
         {
             int totalCount = 10000;
             var inMemoryStorePartition = new InMemoryDbStore();
@@ -42,13 +21,13 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
                 await inMemoryStorePartition.Put($"key{i}".ToBytes(), $"val{i}".ToBytes());
             }
 
-            Task getIndexTask = Task.Run(() => inMemoryStorePartition.GetIndex($"key{totalCount}".ToBytes()));
+            Task getTask = Task.Run(() => inMemoryStorePartition.Get($"key{totalCount}".ToBytes()));
 
             Task removeTask = Task.Run(async () => await inMemoryStorePartition.Remove("key0".ToBytes()));
             Task putTask = Task.Run(async () => await inMemoryStorePartition.Put("key1".ToBytes(), "newvalue".ToBytes()));
 
-            await Task.WhenAll(removeTask, putTask, getIndexTask);            
-            Assert.True(getIndexTask.IsCompletedSuccessfully);
+            await Task.WhenAll(removeTask, putTask, getTask);            
+            Assert.True(getTask.IsCompletedSuccessfully);
             Assert.True(removeTask.IsCompletedSuccessfully);
             Assert.True(putTask.IsCompletedSuccessfully);
         }
