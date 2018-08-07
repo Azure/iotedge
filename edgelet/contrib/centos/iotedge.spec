@@ -35,7 +35,7 @@ make release
 
 %install
 rm -rf $RPM_BUILD_ROOT
-make install-centos7 DESTDIR=$RPM_BUILD_ROOT unitdir=%{_unitdir}
+make install DESTDIR=$RPM_BUILD_ROOT unitdir=%{_unitdir}
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -64,8 +64,6 @@ exit 0
 
 # systemd
 %{_unitdir}/%{name}.service
-%{_unitdir}/%{name}.socket
-%{_unitdir}/%{name}.mgmt.socket
 
 # sockets
 %attr(660, %{iotedge_user}, %{iotedge_group}) %{iotedge_rundir}/mgmt.sock

@@ -67,9 +67,9 @@ dist:
 deb: release
 	$(INSTALL_PROGRAM) -D $(TARGET)/iotedged $(TARGET)/$(PACKAGE)/iotedged
 	$(INSTALL_PROGRAM) -D $(TARGET)/iotedge $(TARGET)/$(PACKAGE)/iotedge
-	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/iotedge.service $(TARGET)/$(PACKAGE)/iotedge.service
-	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/iotedge.socket $(TARGET)/$(PACKAGE)/iotedge.socket
-	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/iotedge.mgmt.socket $(TARGET)/$(PACKAGE)/iotedge.mgmt.socket
+	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/debian/iotedge.service $(TARGET)/$(PACKAGE)/iotedge.service
+	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/debian/iotedge.socket $(TARGET)/$(PACKAGE)/iotedge.socket
+	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/debian/iotedge.mgmt.socket $(TARGET)/$(PACKAGE)/iotedge.mgmt.socket
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man1/iotedge.1 $(TARGET)/$(PACKAGE)/man/iotedge.1
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man8/iotedged.8 $(TARGET)/$(PACKAGE)/man/iotedged.8
 	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/debian/config.yaml $(TARGET)/$(PACKAGE)/etc/iotedge/config.yaml
@@ -89,10 +89,9 @@ rpm: dist
 install: release
 	$(INSTALL_PROGRAM) -D $(TARGET)/iotedged $(DESTDIR)$(bindir)/iotedged
 	$(INSTALL_PROGRAM) -D $(TARGET)/iotedge $(DESTDIR)$(bindir)/iotedge
+	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/config.yaml $(DESTDIR)$(sysconfdir)/iotedge/config.yaml
 	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/logrotate $(DESTDIR)$(sysconfdir)/logrotate.d/iotedge
 	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/iotedge.service $(DESTDIR)$(unitdir)/iotedge.service
-	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/iotedge.socket $(DESTDIR)$(unitdir)/iotedge.socket
-	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/iotedge.mgmt.socket $(DESTDIR)$(unitdir)/iotedge.mgmt.socket
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man1/iotedge.1 $(DESTDIR)$(man1)/iotedge.1
 	$(GZIP) $(DESTDIR)$(man1)/iotedge.1
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man8/iotedged.8 $(DESTDIR)$(man8)/iotedged.8
@@ -108,9 +107,6 @@ install: release
 	$(GZIP) $(DESTDIR)$(docdir)/LICENSE
 	$(GZIP) $(DESTDIR)$(docdir)/ThirdPartyNotices
 
-install-centos7: install
-	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/centos/config.yaml $(DESTDIR)$(sysconfdir)/iotedge/config.yaml
-
 uninstall:
 	rm -f $(DESTDIR)$(bindir)/iotedged
 	rm -f $(DESTDIR)$(bindir)/iotedge
@@ -125,4 +121,4 @@ uninstall:
 clean:
 	rm -rf $(TARGET)
 
-.PHONY: all clean deb dist install-centos7 rpm uninstall
+.PHONY: all clean deb dist install rpm uninstall
