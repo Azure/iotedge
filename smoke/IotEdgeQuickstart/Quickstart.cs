@@ -12,7 +12,7 @@ namespace IotEdgeQuickstart
     {
         readonly LeaveRunning leaveRunning;
         readonly bool noDeployment;
-        private readonly bool noVerifyScenarios;
+        readonly bool noVerifyScenarios;
 
         public Quickstart(
             IBootstrapper bootstrapper,

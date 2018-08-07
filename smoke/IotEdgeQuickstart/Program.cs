@@ -49,7 +49,7 @@ Defaults:
                             switch form uses local IP address as hostname
   --username                anonymous, or Key Vault if --registry is specified
   --no-deployment           deploy Edge Hub and temperature sensor modules
-  --no-verify               verify scenarios is true by defaul and will check temperature sensor sent data to cloud.
+  --no-verify               false
   --deployment              deployment json file
 "
         )]
