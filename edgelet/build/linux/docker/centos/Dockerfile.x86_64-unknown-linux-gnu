@@ -1,4 +1,4 @@
-FROM centos:centos7
+FROM centos:centos7.5.1804
 ARG TOOLCHAIN="stable"
 
 RUN yum install -y redhat-rpm-config \
@@ -11,9 +11,8 @@ RUN yum install -y redhat-rpm-config \
         rpm-sign \
         git \
         openssl-devel \
-        libcurl-devel
+        libcurl-devel \
+        libuuid-devel
 
-COPY cmake.sh /                                                       
+COPY cmake.sh /
 RUN bash /cmake.sh 3.11.4
-
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain "$TOOLCHAIN"
