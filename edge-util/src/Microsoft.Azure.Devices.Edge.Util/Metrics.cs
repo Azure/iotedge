@@ -93,7 +93,6 @@ namespace Microsoft.Azure.Devices.Edge.Util
             MetricsCollector.ForEach(mroot =>
             {
                 mroot.Measure.Counter.Increment(options, tags);
-                mroot.Provider.Counter.Instance(options).Reset();
             });
         }
 

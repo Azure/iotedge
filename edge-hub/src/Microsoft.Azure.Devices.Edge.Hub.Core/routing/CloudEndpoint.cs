@@ -191,7 +191,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             static readonly CounterOptions EdgeHubToCloudMessageCountOptions = new CounterOptions
             {
                 Name = "EdgeHubToCloudMessageSentCount",
-                MeasurementUnit = Unit.Events
+                MeasurementUnit = Unit.Events,
+                ResetOnReporting = true,
             };
             static readonly TimerOptions EdgeHubToCloudMessageLatencyOptions = new TimerOptions
             {
