@@ -4,6 +4,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 {
     using System;
     using System.Threading.Tasks;
+    using App.Metrics;
+    using App.Metrics.Timer;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using RocksDbSharp;
@@ -23,8 +25,13 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         public Task<Option<byte[]>> Get(byte[] key)
         {
             Preconditions.CheckNotNull(key, nameof(key));
-            byte[] value = this.db.Get(key, this.Handle);
-            Option<byte[]> returnValue = value != null ? Option.Some(value) : Option.None<byte[]>();
+
+            Option<byte[]> returnValue;
+            using (Metrics.DbGetLatency("all"))
+            {
+                byte[] value = this.db.Get(key, this.Handle);
+                returnValue = value != null ? Option.Some(value) : Option.None<byte[]>();
+            }
             return Task.FromResult(returnValue);
         }
 
@@ -33,7 +40,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             Preconditions.CheckNotNull(key, nameof(key));
             Preconditions.CheckNotNull(value, nameof(value));
 
-            this.db.Put(key, value, this.Handle);
+            using (Metrics.DbPutLatency("all"))
+            {
+                this.db.Put(key, value, this.Handle);
+            }
             return Task.CompletedTask;
         }
 
@@ -120,6 +130,34 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
                     await callback(key, value);
                 } 
             }
+        }
+
+        static class Metrics
+        {
+            static readonly TimerOptions DbPutLatencyOptions = new TimerOptions
+            {
+                Name = "DbPutLatencyMs",
+                MeasurementUnit = Unit.None,
+                DurationUnit = TimeUnit.Milliseconds,
+                RateUnit = TimeUnit.Seconds
+            };
+
+            static readonly TimerOptions DbGetLatencyOptions = new TimerOptions
+            {
+                Name = "DbGetLatencyMs",
+                MeasurementUnit = Unit.None,
+                DurationUnit = TimeUnit.Milliseconds,
+                RateUnit = TimeUnit.Seconds
+            };
+
+            internal static MetricTags GetTags(string id)
+            {
+                return new MetricTags("EndpointId", id);
+            }
+
+            public static IDisposable DbPutLatency(string identity) => Edge.Util.Metrics.Latency(GetTags(identity), DbPutLatencyOptions);
+
+            public static IDisposable DbGetLatency(string identity) => Edge.Util.Metrics.Latency(GetTags(identity), DbGetLatencyOptions);
         }
 
         protected virtual void Dispose(bool disposing)
