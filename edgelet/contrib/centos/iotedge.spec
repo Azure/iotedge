@@ -56,14 +56,18 @@ if ! /usr/bin/getent group docker >/dev/null; then
 fi
 
 # Create iotedge group
-/usr/bin/getent group %{iotedge_group} || %{_sbindir}/groupadd -r %{iotedge_group}
+if ! /usr/bin/getent group iotedge >/dev/null; then
+    %{_sbindir}/groupadd -r %{iotedge_group}
+fi
 
 # Create iotedge user
-/usr/bin/getent passwd %{iotedge_user} || \
-    %{_sbindir}/useradd -r -g %{iotedge_group} -c "iotedge user" \
-    -s /bin/nologin -d %{iotedge_home} %{iotedge_user}
+if ! /usr/bin/getent passwd iotedge >/dev/null; then
+    %{_sbindir}/useradd -r -g %{iotedge_group} -c "iotedge user" -s /bin/nologin -d %{iotedge_home} %{iotedge_user}
+fi
 
-/usr/bin/getent group docker || %{_sbindir}/usermod -a -G docker %{iotedge_user}
+if /usr/bin/getent group docker >/dev/null; then
+    %{_sbindir}/usermod -a -G docker %{iotedge_user}
+fi
 exit 0
 
 %post
