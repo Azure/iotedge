@@ -159,7 +159,8 @@ where
             percent_encode(audience.to_lowercase().as_bytes(), IOTHUB_ENCODE_SET).to_string();
         let sig_data = format!("{}\n{}", &resource_uri, expiry);
 
-        let signature = self.key
+        let signature = self
+            .key
             .sign(SignatureAlgorithm::HMACSHA256, sig_data.as_bytes())
             .map(|s| base64::encode(s.as_bytes()))
             .context(ErrorKind::TokenSource)
@@ -588,10 +589,11 @@ mod tests {
                         .with_status(StatusCode::Ok)
                         .with_header(ContentType::json())
                         .with_body(
-                            serde_json::to_string(&module
-                                .with_generation_id("g1".to_string())
-                                .with_managed_by("iotedge".to_string()))
-                                .unwrap()
+                            serde_json::to_string(
+                                &module
+                                    .with_generation_id("g1".to_string())
+                                    .with_managed_by("iotedge".to_string()),
+                            ).unwrap()
                                 .into_bytes(),
                         ))
                 })
@@ -697,16 +699,17 @@ mod tests {
                 .with_status(StatusCode::Ok)
                 .with_header(ContentType::json())
                 .with_body(
-                    serde_json::to_string(&response_modules
-                        .iter()
-                        .map(|module| {
-                            module
-                                .clone()
-                                .with_generation_id("g1".to_string())
-                                .with_managed_by("iotedge".to_string())
-                        })
-                        .collect::<Vec<Module>>())
-                        .unwrap()
+                    serde_json::to_string(
+                        &response_modules
+                            .iter()
+                            .map(|module| {
+                                module
+                                    .clone()
+                                    .with_generation_id("g1".to_string())
+                                    .with_managed_by("iotedge".to_string())
+                            })
+                            .collect::<Vec<Module>>(),
+                    ).unwrap()
                         .into_bytes(),
                 ))
         };
@@ -783,11 +786,12 @@ mod tests {
                 .with_status(StatusCode::Ok)
                 .with_header(ContentType::json())
                 .with_body(
-                    serde_json::to_string(&response_module
-                        .clone()
-                        .with_generation_id("g1".to_string())
-                        .with_managed_by("iotedge".to_string()))
-                        .unwrap()
+                    serde_json::to_string(
+                        &response_module
+                            .clone()
+                            .with_generation_id("g1".to_string())
+                            .with_managed_by("iotedge".to_string()),
+                    ).unwrap()
                         .into_bytes(),
                 ))
         };

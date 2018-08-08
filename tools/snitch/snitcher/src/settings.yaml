@@ -1,0 +1,22 @@
+build_id: 239492391
+test_duration:
+  secs: 28800
+  nanos: 0
+alert:
+  host: http://localhost/
+  path: /workflows/id/triggers/manual/paths/invoke
+  query:
+    api-version: 2016-10-01
+    sp: /triggers/manual/run
+    sv: 1.0
+    sig: password
+influx_url: http://influxdb:8086
+influx_db_name: metricsdatabase
+influx_queries:
+  all: select * from stats
+analyzer_url: http://analyzer/
+blob_storage_account: ""
+blob_storage_master_key: ""
+blob_container_name: ""
+reporting_interval: null
+docker_url: unix:///var/run/docker.sock

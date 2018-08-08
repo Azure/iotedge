@@ -68,9 +68,11 @@ fn tpm_basic_test() {
         test_helper_compute_hmac(test_expected_primary_key_buf.as_slice(), data_to_be_signed2);
 
     // act
-    let digest1 = key1.sign(SignatureAlgorithm::HMACSHA256, data_to_be_signed1)
+    let digest1 = key1
+        .sign(SignatureAlgorithm::HMACSHA256, data_to_be_signed1)
         .unwrap();
-    let digest2 = key1.sign(SignatureAlgorithm::HMACSHA256, data_to_be_signed2)
+    let digest2 = key1
+        .sign(SignatureAlgorithm::HMACSHA256, data_to_be_signed2)
         .unwrap();
 
     // assert

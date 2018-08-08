@@ -40,6 +40,7 @@ MOCKABLE_FUNCTION(, int, generate_pki_cert_and_key_with_props, CERT_PROPS_HANDLE
                     const char*, key_file_name, const char*, cert_file_name,
                     const PKI_KEY_PROPS*, key_props);
 MOCKABLE_FUNCTION(, int, generate_encryption_key, unsigned char**, key, size_t*, key_size);
+MOCKABLE_FUNCTION(, int, verify_certificate, const char*, certificate, const char*, certificate_key, const char*, issuer_certificate, bool*, verify_status);
 
 #ifdef __cplusplus
 }

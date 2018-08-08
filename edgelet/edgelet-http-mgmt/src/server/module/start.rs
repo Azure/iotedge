@@ -41,7 +41,8 @@ where
             .name("name")
             .ok_or_else(|| Error::from(ErrorKind::BadParam))
             .map(|name| {
-                let result = self.runtime
+                let result = self
+                    .runtime
                     .start(name)
                     .map(|_| {
                         Response::builder()

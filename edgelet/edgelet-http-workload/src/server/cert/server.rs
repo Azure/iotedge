@@ -51,7 +51,8 @@ where
             })
             .map(|(module_id, genid)| {
                 let alias = format!("{}{}", module_id.to_string(), genid.to_string());
-                let result = req.into_body()
+                let result = req
+                    .into_body()
                     .concat2()
                     .map(move |body| {
                         serde_json::from_slice::<ServerCertificateRequest>(&body)

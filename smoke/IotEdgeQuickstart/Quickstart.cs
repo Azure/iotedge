@@ -12,6 +12,7 @@ namespace IotEdgeQuickstart
     {
         readonly LeaveRunning leaveRunning;
         readonly bool noDeployment;
+        readonly bool noVerify;
 
         public Quickstart(
             IBootstrapper bootstrapper,
@@ -22,11 +23,14 @@ namespace IotEdgeQuickstart
             string deviceId,
             string hostname,
             LeaveRunning leaveRunning,
-            bool noDeployment) :
-            base(bootstrapper, credentials, iothubConnectionString, eventhubCompatibleEndpointWithEntityPath, imageTag, deviceId, hostname)
+            bool noDeployment,
+            bool noVerify,
+            Option<string> deploymentFileName) :
+            base(bootstrapper, credentials, iothubConnectionString, eventhubCompatibleEndpointWithEntityPath, imageTag, deviceId, hostname, deploymentFileName)
         {
             this.leaveRunning = leaveRunning;
             this.noDeployment = noDeployment;
+            this.noVerify = noVerify;
         }
 
         public async Task RunAsync()
@@ -52,9 +56,12 @@ namespace IotEdgeQuickstart
                     await VerifyEdgeAgentIsConnectedToIotHub();
                     if (!this.noDeployment)
                     {
-                        await DeployTempSensorToEdgeDevice();
-                        await VerifyTempSensorIsRunning();
-                        await VerifyTempSensorIsSendingDataToIotHub();
+                        await DeployToEdgeDevice();
+                        if (!this.noVerify)
+                        {
+                            await VerifyTempSensorIsRunning();
+                            await VerifyTempSensorIsSendingDataToIotHub();
+                        }
 
                         if (this.leaveRunning == LeaveRunning.Core)
                         {

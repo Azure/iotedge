@@ -45,7 +45,7 @@ impl Uri {
             uri.host()
                 .map(|h| h.trim())
                 .and_then(|h| if h.is_empty() { None } else { Some(h) })
-                .ok_or(Error::from(ErrorKind::MissingUrlHost))
+                .ok_or_else(|| Error::from(ErrorKind::MissingUrlHost))
                 .and_then(|h| decode(h).map_err(Error::from))
                 .and_then(|bytes| {
                     str::from_utf8(bytes.as_slice())

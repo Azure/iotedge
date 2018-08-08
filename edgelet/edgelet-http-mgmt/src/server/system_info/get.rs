@@ -46,7 +46,8 @@ where
         _params: Parameters,
     ) -> BoxFuture<Response<Body>, HyperError> {
         debug!("Get System Information");
-        let response = self.runtime
+        let response = self
+            .runtime
             .system_info()
             .and_then(|systeminfo| {
                 let body = SystemInfo::new(

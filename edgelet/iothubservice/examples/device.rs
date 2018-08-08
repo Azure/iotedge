@@ -113,7 +113,8 @@ where
     T: 'static + TokenSource + Clone,
     T::Error: Into<HttpError>,
 {
-    let response = core.run(device_client.create_module(module_id, None, None))
+    let response = core
+        .run(device_client.create_module(module_id, None, None))
         .unwrap();
     println!("{}", serde_json::to_string_pretty(&response).unwrap());
 }

@@ -15,6 +15,9 @@ use sha2::Sha256;
 use certificate_properties::CertificateProperties;
 use error::{Error, ErrorKind};
 
+/// This is the issuer alias used when CertificateIssuer::DefaultCa is provided by the caller
+pub const IOTEDGED_CA_ALIAS: &str = "iotedged-workload-ca";
+
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum KeyIdentity {
     Device,
@@ -528,10 +531,11 @@ mod tests {
         let key = key_store
             .get(&KeyIdentity::Module("key2".to_string()), "primary")
             .unwrap();
-        let digest = key.sign(
-            SignatureAlgorithm::HMACSHA256,
-            b"The quick brown fox jumps over the lazy dog",
-        ).unwrap();
+        let digest =
+            key.sign(
+                SignatureAlgorithm::HMACSHA256,
+                b"The quick brown fox jumps over the lazy dog",
+            ).unwrap();
         assert_eq!(
             "wBXO109hMjTfjUtQGtTmeqiqoqboLl8F5b7tR0of5yE=",
             base64::encode(digest.as_bytes())

@@ -37,7 +37,8 @@ where
     fn execute(&mut self) -> Self::Future {
         let id = self.id.clone();
         let write = self.output.clone();
-        let result = self.runtime
+        let result = self
+            .runtime
             .restart(&id)
             .map_err(|e| e.into())
             .and_then(move |_| {

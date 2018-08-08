@@ -6,22 +6,18 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.uds
     using System.IO;
     using System.Text;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util.Uds;
     using Xunit;
 
+    [Unit]
     public class HttpBufferedStreamTest
     {
         [Fact]
         public async Task TestReadLines_ShouldReturnResponse()
         {
-            string expected = @"GET /modules/testModule/sign?api-version=2018-06-28 HTTP/1.1
-Host: localhost:8081
-Connection: close
-Content-Type: application/json
-Content-Length: 100
-
-";
-
+            string expected = "GET /modules/testModule/sign?api-version=2018-06-28 HTTP/1.1\r\nHost: localhost:8081\r\nConnection: close\r\nContent-Type: application/json\r\nContent-Length: 100\r\n\r\n";
+            
             byte[] expectedBytes = Encoding.UTF8.GetBytes(expected);
             var memory = new MemoryStream(expectedBytes, true);
 

@@ -396,7 +396,8 @@ mod tests {
                 future::err(Error::General)
             } else {
                 // find the existing module
-                let index = self.state
+                let index = self
+                    .state
                     .borrow()
                     .identities
                     .iter()
@@ -427,7 +428,8 @@ mod tests {
             if self.state.borrow().fail_get {
                 future::err(Error::General)
             } else {
-                match self.state
+                match self
+                    .state
                     .borrow()
                     .identities
                     .iter()

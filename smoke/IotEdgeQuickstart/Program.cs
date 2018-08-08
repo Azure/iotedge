@@ -49,6 +49,8 @@ Defaults:
                             switch form uses local IP address as hostname
   --username                anonymous, or Key Vault if --registry is specified
   --no-deployment           deploy Edge Hub and temperature sensor modules
+  --no-verify               false
+  --deployment              deployment json file
 "
         )]
     [HelpOption]
@@ -96,16 +98,15 @@ Defaults:
         [Option("--no-deployment", CommandOptionType.NoValue, Description = "Don't deploy Edge Hub and temperature sensor modules")]
         public bool NoDeployment { get; } = false;
 
+        [Option("--no-verify", CommandOptionType.NoValue, Description = "Don't verify the behavior of the deployment (e.g.: temp sensor)")]
+        public bool NoVerify { get; } = false;
+
+        [Option("-l|--deployment <filename>", Description = "Deployment json file")]
+        public string DeploymentFileName { get; } = Environment.GetEnvironmentVariable("deployment");
+
         // ReSharper disable once UnusedMember.Local
         async Task<int> OnExecuteAsync()
         {
-            if (this.BootstrapperType == BootstrapperType.Iotedged &&
-                RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                Console.WriteLine("IotEdgeQuickstart parameter '--bootstrapper' does not yet support 'iotedged' on Windows. Please specify 'iotedgectl' instead.");
-                return 1;
-            }
-
             try
             {
                 string address = this.RegistryAddress;
@@ -126,11 +127,18 @@ Defaults:
                 {
                     case BootstrapperType.Iotedged:
                         {
-                            (bool useHttp, string hostname) = this.UseHttp;
-                            Option<HttpUris> uris = useHttp
-                                ? Option.Some(string.IsNullOrEmpty(hostname) ? new HttpUris() : new HttpUris(hostname))
-                                : Option.None<HttpUris>();
-                            bootstrapper = new Iotedged(this.BootstrapperArchivePath, credentials, uris);
+                            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                            {
+                                bootstrapper = new IotedgedWindows(this.BootstrapperArchivePath, credentials);
+                            }
+                            else
+                            {
+                                (bool useHttp, string hostname) = this.UseHttp;
+                                Option<HttpUris> uris = useHttp
+                                    ? Option.Some(string.IsNullOrEmpty(hostname) ? new HttpUris() : new HttpUris(hostname))
+                                    : Option.None<HttpUris>();
+                                bootstrapper = new IotedgedLinux(this.BootstrapperArchivePath, credentials, uris);
+                            }
                         }
                         break;
                     case BootstrapperType.Iotedgectl:
@@ -146,6 +154,8 @@ Defaults:
                 string endpoint = this.EventHubCompatibleEndpointWithEntityPath ??
                     await SecretsHelper.GetSecretFromConfigKey("eventHubConnStrKey");
 
+                Option<string> deployment = this.DeploymentFileName != null ? Option.Some(this.DeploymentFileName) : Option.None<string>();
+
                 string tag = this.ImageTag ?? "1.0";
 
                 var test = new Quickstart(
@@ -157,7 +167,9 @@ Defaults:
                     this.DeviceId,
                     this.EdgeHostname,
                     this.LeaveRunning,
-                    this.NoDeployment);
+                    this.NoDeployment,
+                    this.NoVerify,
+                    deployment);
                 await test.RunAsync();
             }
             catch (Exception ex)

@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
     public class RuntimeInfoProviderTest
     {
-        static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
+        static readonly TimeSpan Timeout = TimeSpan.FromSeconds(45);
         static readonly IDockerClient Client = DockerHelper.Client;
         static readonly IEntityStore<string, ModuleState> RestartStateStore = new Mock<IEntityStore<string, ModuleState>>().Object;
         static readonly IRestartPolicyManager RestartManager = new Mock<IRestartPolicyManager>().Object;

@@ -84,7 +84,8 @@ phases:
     queue:
       name: Hosted Linux Preview
     steps:
-      - script: echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
+      - script: |
+          echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
         displayName: Set env variables
       - task: Bash@3
         displayName: Install Rust

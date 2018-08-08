@@ -83,7 +83,8 @@ impl Crypto {
 
 impl MakeRandom for Crypto {
     fn get_random_bytes(&self, rand_buffer: &mut [u8]) -> Result<(), Error> {
-        let if_fn = self.interface
+        let if_fn = self
+            .interface
             .hsm_client_get_random_bytes
             .ok_or(ErrorKind::NoneFn)?;
         let result = unsafe {
@@ -102,7 +103,8 @@ impl MakeRandom for Crypto {
 
 impl CreateMasterEncryptionKey for Crypto {
     fn create_master_encryption_key(&self) -> Result<(), Error> {
-        let if_fn = self.interface
+        let if_fn = self
+            .interface
             .hsm_client_create_master_encryption_key
             .ok_or(ErrorKind::NoneFn)?;
         let result = unsafe { if_fn(self.handle) };
@@ -115,7 +117,8 @@ impl CreateMasterEncryptionKey for Crypto {
 
 impl DestroyMasterEncryptionKey for Crypto {
     fn destroy_master_encryption_key(&self) -> Result<(), Error> {
-        let if_fn = self.interface
+        let if_fn = self
+            .interface
             .hsm_client_destroy_master_encryption_key
             .ok_or(ErrorKind::NoneFn)?;
         let result = unsafe { if_fn(self.handle) };
@@ -200,7 +203,8 @@ impl CreateCertificate for Crypto {
         properties: &CertificateProperties,
     ) -> Result<HsmCertificate, Error> {
         let property_handle = make_certification_props(properties)?;
-        let if_fn = self.interface
+        let if_fn = self
+            .interface
             .hsm_client_create_certificate
             .ok_or(ErrorKind::NoneFn)?;
         let cert_info_handle = unsafe { if_fn(self.handle, property_handle) };
@@ -214,7 +218,8 @@ impl CreateCertificate for Crypto {
     }
 
     fn destroy_certificate(&self, alias: String) -> Result<(), Error> {
-        let if_fn = self.interface
+        let if_fn = self
+            .interface
             .hsm_client_destroy_certificate
             .ok_or(ErrorKind::NoneFn)?;
 
@@ -231,7 +236,8 @@ impl CreateCertificate for Crypto {
 
 impl GetTrustBundle for Crypto {
     fn get_trust_bundle(&self) -> Result<HsmCertificate, Error> {
-        let if_fn = self.interface
+        let if_fn = self
+            .interface
             .hsm_client_get_trust_bundle
             .ok_or(ErrorKind::NoneFn)?;
         let cert_info_handle = unsafe { if_fn(self.handle) };
@@ -250,7 +256,8 @@ impl Encrypt for Crypto {
         plaintext: &[u8],
         initialization_vector: &[u8],
     ) -> Result<Buffer, Error> {
-        let if_fn = self.interface
+        let if_fn = self
+            .interface
             .hsm_client_encrypt_data
             .ok_or(ErrorKind::NoneFn)?;
 
@@ -293,7 +300,8 @@ impl Decrypt for Crypto {
         ciphertext: &[u8],
         initialization_vector: &[u8],
     ) -> Result<Buffer, Error> {
-        let if_fn = self.interface
+        let if_fn = self
+            .interface
             .hsm_client_decrypt_data
             .ok_or(ErrorKind::NoneFn)?;
 
@@ -545,7 +553,8 @@ impl Buffer {
 
 impl Drop for Buffer {
     fn drop(&mut self) {
-        let free_fn = self.interface
+        let free_fn = self
+            .interface
             .hsm_client_free_buffer
             .expect("Unknown Free function for Buffer");
         unsafe { free_fn(self.data.buffer as *mut c_void) };
