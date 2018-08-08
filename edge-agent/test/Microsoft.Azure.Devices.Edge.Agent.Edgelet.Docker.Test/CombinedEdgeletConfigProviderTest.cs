@@ -5,10 +5,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Extensions.Configuration;
     using Moq;
     using Xunit;
 
+    [Unit]
     public class CombinedEdgeletConfigProviderTest
     {
         [Fact]

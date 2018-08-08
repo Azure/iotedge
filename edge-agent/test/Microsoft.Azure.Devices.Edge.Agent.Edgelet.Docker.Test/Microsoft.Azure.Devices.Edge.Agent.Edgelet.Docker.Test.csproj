@@ -11,6 +11,7 @@
     <PackageReference Include="Microsoft.CodeCoverage" Version="1.0.3" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\edge-util\test\Microsoft.Azure.Devices.Edge.Util.Test.Common\Microsoft.Azure.Devices.Edge.Util.Test.Common.csproj" />
     <ProjectReference Include="..\..\src\Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker\Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.csproj" />
   </ItemGroup>
 </Project>
