@@ -1,9 +1,21 @@
 SHELL=/bin/sh
 TARGET=target/release
-VERSION?=$(shell cat version.txt)
+
+_version:=$(shell cat version.txt)
+VERSION?=${_version}
 REVISION?=1
+
+DEB_VERSION?=$(VERSION)
+DEB_REVISION?=$(REVISION)
+
+# Converts debian versioning to rpm version
+# deb 1.0.1~dev100 ~> rpm 1.0.1-0.1.dev100
+RPM_VERSION?=$(word 1,$(subst ~, , $(VERSION)))
+_release=$(or $(and $(word 2,$(subst ~, ,$1)),0.${REVISION}.$(word 2,$(subst ~, ,$1))),${REVISION})
+RPM_RELEASE?=$(call _release, ${VERSION})
+
 PACKAGE_NAME=iotedge
-PACKAGE="$(PACKAGE_NAME)-$(VERSION)"
+PACKAGE="$(PACKAGE_NAME)-$(RPM_VERSION)"
 
 prefix?=/usr
 exec_prefix?=$(prefix)
@@ -39,15 +51,10 @@ MKDIR_P=mkdir -p
 SED=sed
 
 all:
-	$(CARGO) build $(CARGOFLAGS)
+	VERSION=${VERSION} $(CARGO) build $(CARGOFLAGS)
 
-release: $(TARGET)/iotedged $(TARGET)/iotedge
-
-$(TARGET)/iotedged:
-	$(CARGO) build $(CARGOFLAGS) --release
-
-$(TARGET)/iotedge:
-	$(CARGO) build $(CARGOFLAGS) --release
+release:
+	VERSION=${VERSION} $(CARGO) build $(CARGOFLAGS) --release
 
 dist:
 	@echo Running git archive...
@@ -78,12 +85,12 @@ deb: release
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/ThirdPartyNotices $(TARGET)/$(PACKAGE)$(docdir)/ThirdPartyNotices
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/trademark $(TARGET)/$(PACKAGE)$(docdir)/trademark
 	cp -R $(srcdir)/contrib/debian $(TARGET)/$(PACKAGE)
-	$(SED) "s/@version@/${VERSION}/g; s/@revision@/${REVISION}/g;" $(srcdir)/contrib/debian/changelog > $(TARGET)/$(PACKAGE)/debian/changelog
+	$(SED) "s/@version@/${DEB_VERSION}/g; s/@revision@/${DEB_REVISION}/g;" $(srcdir)/contrib/debian/changelog > $(TARGET)/$(PACKAGE)/debian/changelog
 	cd $(TARGET)/$(PACKAGE) && dpkg-buildpackage $(DPKGFLAGS)
 
 rpm: dist
 	cp $(TARGET)/$(PACKAGE).tar.gz $(rpmbuilddir)/SOURCES/
-	$(SED) "s/@version@/${VERSION}/g; s/@revision@/${REVISION}/g;" $(srcdir)/contrib/centos/iotedge.spec > $(rpmbuilddir)/SPECS/iotedge.spec
+	$(SED) "s/@version@/${RPM_VERSION}/g; s/@release@/${RPM_RELEASE}/g;" $(srcdir)/contrib/centos/iotedge.spec > $(rpmbuilddir)/SPECS/iotedge.spec
 	rpmbuild -v -bb --clean $(rpmbuilddir)/SPECS/iotedge.spec
 
 install: release
@@ -121,4 +128,10 @@ uninstall:
 clean:
 	rm -rf $(TARGET)
 
-.PHONY: all clean deb dist install rpm uninstall
+version:
+	@echo "deb version:  ${DEB_VERSION}"
+	@echo "deb revision: ${DEB_REVISION}"
+	@echo "rpm version:  ${RPM_VERSION}"
+	@echo "rpm release:  ${RPM_RELEASE}"
+
+.PHONY: all clean deb dist install rpm uninstall version
