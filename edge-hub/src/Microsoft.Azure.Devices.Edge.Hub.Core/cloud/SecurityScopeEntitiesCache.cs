@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 {
     using System;
-    using System.Collections;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
@@ -10,14 +9,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
-    using Newtonsoft.Json;
+    using Newtonsoft.Json;   
 
-    public interface ISecurityScopeStore : IDisposable
-    {
-        Task<Option<ServiceIdentity>> GetServiceIdentity(string id);
-    }
-
-    public sealed class SecurityScopeStore : ISecurityScopeStore
+    public sealed class SecurityScopeEntitiesCache : ISecurityScopeEntitiesCache
     {
         readonly IServiceProxy serviceProxy;
         readonly IEncryptedStore<string, string> encryptedStore;
@@ -26,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
         readonly Timer refreshCacheTimer;
         Task refreshCacheTask;
 
-        public SecurityScopeStore(IServiceProxy serviceProxy, IEncryptedStore<string, string> encryptedStorage)
+        public SecurityScopeEntitiesCache(IServiceProxy serviceProxy, IEncryptedStore<string, string> encryptedStorage)
         {
             this.serviceProxy = serviceProxy;
             this.encryptedStore = encryptedStorage;
@@ -68,6 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
                 }
                 catch (Exception)
                 {
+                    // Log
                 }
                 this.serviceIdentityCache = cache;
             }
