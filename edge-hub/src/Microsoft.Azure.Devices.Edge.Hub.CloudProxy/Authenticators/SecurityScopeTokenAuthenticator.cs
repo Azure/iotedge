@@ -12,13 +12,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
     public class SecurityScopeTokenAuthenticator : IAuthenticator
     {
-        readonly ISecurityScopeStore securityScopeStore;
+        readonly ISecurityScopeEntitiesCache securityScopeEntitiesCache;
         readonly string iothubHostName;
         readonly string edgeHubHostName;
 
-        public SecurityScopeTokenAuthenticator(ISecurityScopeStore securityScopeStore, string iothubHostName, string edgeHubHostName)
+        public SecurityScopeTokenAuthenticator(ISecurityScopeEntitiesCache securityScopeEntitiesCache, string iothubHostName, string edgeHubHostName)
         {
-            this.securityScopeStore = securityScopeStore;
+            this.securityScopeEntitiesCache = securityScopeEntitiesCache;
             this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
             this.edgeHubHostName = Preconditions.CheckNonWhiteSpace(edgeHubHostName, nameof(edgeHubHostName));
         }
@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async Task<bool> ValidateToken(SharedAccessSignature sharedAccessSignature, string id)
         {
-            Option<ServiceIdentity> serviceIdentity = await this.securityScopeStore.GetServiceIdentity(id);
+            Option<ServiceIdentity> serviceIdentity = await this.securityScopeEntitiesCache.GetServiceIdentity(id);
 
             return serviceIdentity.Map(
                     s =>

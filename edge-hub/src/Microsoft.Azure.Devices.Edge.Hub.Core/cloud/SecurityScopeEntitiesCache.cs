@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
-    using Newtonsoft.Json;   
+    using Newtonsoft.Json;
 
     public sealed class SecurityScopeEntitiesCache : ISecurityScopeEntitiesCache
     {
@@ -44,19 +44,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
                 try
                 {
                     ISecurityScopeIdentitiesIterator iterator = this.serviceProxy.GetSecurityScopeIdentitiesIterator();
-                    while (true)
+                    while (iterator.HasNext)
                     {
                         IEnumerable<ServiceIdentity> batch = await iterator.GetNext();
-                        if (!batch.Any())
-                        {
-                            break;
-                        }
-
                         foreach (ServiceIdentity serviceIdentity in batch)
                         {
-                            string id = serviceIdentity.ModuleId != null ? $"{serviceIdentity.DeviceId}/{serviceIdentity.ModuleId}" : serviceIdentity.DeviceId;
-                            cache.Add(id, serviceIdentity);
-                            await this.SaveServiceIdentityToStore(id, serviceIdentity);
+                            cache.Add(serviceIdentity.Id, serviceIdentity);
+                            await this.SaveServiceIdentityToStore(serviceIdentity.Id, serviceIdentity);
                         }
                     }
                 }
@@ -64,6 +58,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
                 {
                     // Log
                 }
+
+                // Diff and update
+
                 this.serviceIdentityCache = cache;
             }
         }

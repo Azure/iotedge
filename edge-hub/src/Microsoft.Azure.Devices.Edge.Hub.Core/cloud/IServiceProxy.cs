@@ -29,6 +29,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
     public interface ISecurityScopeIdentitiesIterator
     {
         Task<IEnumerable<ServiceIdentity>> GetNext();
+
+        bool HasNext { get; }
     }
 
     public class ServiceIdentity
@@ -39,7 +41,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
             this.ModuleId = moduleId;
             this.IsEdgeDevice = isEdgeDevice;
             this.Authentication = serviceAuthentication;
+            this.Id = string.IsNullOrWhiteSpace(moduleId) ? deviceId : $"{deviceId}/{moduleId}";
         }
+
+        [JsonIgnore]
+        public string Id { get; }
 
         public string DeviceId { get; }
 

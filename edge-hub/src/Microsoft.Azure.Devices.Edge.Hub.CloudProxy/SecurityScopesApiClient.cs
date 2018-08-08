@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     {
         Task<ScopeResult> GetIdentitiesInScope();
 
-        Task<ScopeResult> GetIdentitiesInScope(Uri uri);
+        Task<ScopeResult> GetNext(string continuationToken);
 
         Task<ScopeResult> GetIdentity(string deviceId, string moduleId);
     }
@@ -45,7 +45,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             return this.GetIdentitiesInScope(uri);
         }
 
-        public async Task<ScopeResult> GetIdentitiesInScope(Uri uri)
+        public Task<ScopeResult> GetNext(string continuationToken)
+        {
+            var uri = new Uri(Preconditions.CheckNonWhiteSpace(continuationToken, nameof(continuationToken)));
+            return this.GetIdentitiesInScope(uri);
+        }
+
+        async Task<ScopeResult> GetIdentitiesInScope(Uri uri)
         {
             var client = new HttpClient();
             using (var msg = new HttpRequestMessage(HttpMethod.Get, uri))

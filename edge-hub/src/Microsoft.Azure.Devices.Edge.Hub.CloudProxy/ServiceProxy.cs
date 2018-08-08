@@ -25,28 +25,36 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         class SecurityScopeIdentitiesIterator : ISecurityScopeIdentitiesIterator
         {
             readonly ISecurityScopesApiClient securityScopesApiClient;
-            Option<Uri> continuationUri = Option.None<Uri>();
+            Option<string> continuationLink = Option.None<string>();
 
             public SecurityScopeIdentitiesIterator(ISecurityScopesApiClient securityScopesApiClient)
             {
                 this.securityScopesApiClient = Preconditions.CheckNotNull(securityScopesApiClient, nameof(securityScopesApiClient));
+                this.HasNext = true;
             }
 
             public async Task<IEnumerable<ServiceIdentity>> GetNext()
             {
                 var serviceIdentities = new List<ServiceIdentity>();
-                ScopeResult scopeResult = await this.continuationUri.Map(c => this.securityScopesApiClient.GetIdentitiesInScope(c))
+                ScopeResult scopeResult = await this.continuationLink.Map(c => this.securityScopesApiClient.GetNext(c))
                     .GetOrElse(() => this.securityScopesApiClient.GetIdentitiesInScope());
                 serviceIdentities.AddRange(scopeResult.Devices.Select(d => DeviceToServiceIdentity(d)));
                 serviceIdentities.AddRange(scopeResult.Modules.Select(m => ModuleToServiceIdentity(m)));
 
                 if (!string.IsNullOrWhiteSpace(scopeResult.ContinuationLink))
                 {
-                    this.continuationUri = Option.Some(new Uri(scopeResult.ContinuationLink));
+                    this.continuationLink = Option.Some(scopeResult.ContinuationLink);
+                    this.HasNext = true;
+                }
+                else
+                {
+                    this.HasNext = false;
                 }
 
                 return serviceIdentities;
             }
+
+            public bool HasNext { get; private set; }
 
             static ServiceIdentity DeviceToServiceIdentity(Device device)
             {
