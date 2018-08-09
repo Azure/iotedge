@@ -56,7 +56,7 @@ all:
 release:
 	VERSION=${VERSION} $(CARGO) build $(CARGOFLAGS) --release
 
-dist:
+$(TARGET)/$(PACKAGE).tar.gz:
 	@echo Running git archive...
 	@$(GIT) archive --prefix=$(PACKAGE)/ -o $(TARGET)/$(PACKAGE).tar $(VERSION) 2> /dev/null || (echo 'Warning: $(VERSION) does not exist.' && $(GIT) archive --prefix=$(PACKAGE)/ -o $(TARGET)/$(PACKAGE).tar HEAD)
 	@echo Running git archive submodules...
@@ -70,6 +70,8 @@ dist:
 	done
 	gzip -f $(TARGET)/$(PACKAGE).tar
 	rm -f $(TARGET)/$(PACKAGE).tar
+
+dist: $(TARGET)/$(PACKAGE).tar.gz
 
 deb: release
 	$(INSTALL_PROGRAM) -D $(TARGET)/iotedged $(TARGET)/$(PACKAGE)/iotedged
@@ -88,7 +90,7 @@ deb: release
 	$(SED) "s/@version@/${DEB_VERSION}/g; s/@revision@/${DEB_REVISION}/g;" $(srcdir)/contrib/debian/changelog > $(TARGET)/$(PACKAGE)/debian/changelog
 	cd $(TARGET)/$(PACKAGE) && dpkg-buildpackage $(DPKGFLAGS)
 
-rpm: dist
+rpm:
 	cp $(TARGET)/$(PACKAGE).tar.gz $(rpmbuilddir)/SOURCES/
 	$(SED) "s/@version@/${RPM_VERSION}/g; s/@release@/${RPM_RELEASE}/g;" $(srcdir)/contrib/centos/iotedge.spec > $(rpmbuilddir)/SPECS/iotedge.spec
 	rpmbuild -v -bb --clean $(rpmbuilddir)/SPECS/iotedge.spec
