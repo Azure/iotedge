@@ -58,8 +58,9 @@ namespace MessagesAnalyzer
                     if (msg.SequenceNumber - 1 != prevSequenceNumber)
                     {
                         Log.LogInformation($"Missing messages for {moduleId} from {prevSequenceNumber} to {msg.SequenceNumber}");
-                        missingCounter += msg.SequenceNumber - prevSequenceNumber;
-                        missingIntervals.Add(new MissedMessagesDetails(msg.SequenceNumber - prevSequenceNumber, prevEnquedDateTime, msg.EnquedDateTime));
+                        long currentMissing = msg.SequenceNumber - prevSequenceNumber - 1;
+                        missingCounter += currentMissing;
+                        missingIntervals.Add(new MissedMessagesDetails(currentMissing, prevEnquedDateTime, msg.EnquedDateTime));
                     }
                     else
                     {
@@ -74,7 +75,7 @@ namespace MessagesAnalyzer
 
             //check if last message is older
             if (DateTime.Compare(lastMessageDateTime.AddMilliseconds(toleranceInMilliseconds), endDateTime) < 0)
-                return new ModuleReport(moduleId, StatusCode.OldMessages, totalMessagesCounter, $"No messages received for the past {toleranceInMilliseconds} milliseconds", lastMessageDateTime);
+                return new ModuleReport(moduleId, StatusCode.OldMessages, totalMessagesCounter, $"No messages received for the past {toleranceInMilliseconds} milliseconds", lastMessageDateTime, missingIntervals);
 
             return missingCounter > 0 ? new ModuleReport(moduleId, StatusCode.SkippedMessages, totalMessagesCounter, $"Missing messages: {missingCounter}", lastMessageDateTime, missingIntervals)
                 : new ModuleReport(moduleId, StatusCode.AllMessages, totalMessagesCounter, $"All messages received", lastMessageDateTime);
