@@ -4,7 +4,6 @@ use std::collections::HashMap;
 use std::io::Write;
 
 use bytes::Bytes;
-use chrono::{DateTime, Utc};
 use libflate::gzip::Encoder as GzipEncoder;
 use tar::{Builder as TarBuilder, Header as TarHeader};
 
@@ -15,8 +14,8 @@ use influx::QueryResults;
 #[serde(rename_all = "camelCase")]
 pub struct Interval {
     missed_messages_count: u64,
-    start_date_time: DateTime<Utc>,
-    end_date_time: DateTime<Utc>,
+    start_date_time: String,
+    end_date_time: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
