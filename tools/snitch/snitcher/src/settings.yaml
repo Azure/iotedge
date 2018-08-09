@@ -1,9 +1,10 @@
-build_id: 239492391
+build_id: 42
 test_duration:
-  secs: 28800
+  secs: 28800 # 8 hours
   nanos: 0
 alert:
-  host: http://localhost/
+  scheme: http
+  host: localhost
   path: /workflows/id/triggers/manual/paths/invoke
   query:
     api-version: 2016-10-01
@@ -12,9 +13,9 @@ alert:
     sig: password
 influx_url: http://influxdb:8086
 influx_db_name: metricsdatabase
-influx_queries:
-  all: select * from stats
-analyzer_url: http://analyzer/
+# influx_queries:
+#   all: select * from /.*/
+analyzer_url: http://analyzer:15000/api/report
 blob_storage_account: ""
 blob_storage_master_key: ""
 blob_container_name: ""
