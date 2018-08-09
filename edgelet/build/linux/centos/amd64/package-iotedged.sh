@@ -49,5 +49,6 @@ make rpm rpmbuilddir=/${BUILD_DIR_REL}/rpmbuild \
          TARGET=/${BUILD_DIR_REL} \
          VERSION=${VERSION} \
          REVISION=${REVISION} \
+         CARGOFLAGS=\"--manifest-path=/project/edgelet/Cargo.toml --all\" \
          RPMBUILDFLAGS='-v -bb --clean --define \"_topdir /${BUILD_DIR_REL}/rpmbuild\"'"
 run_command "$COMMAND"
