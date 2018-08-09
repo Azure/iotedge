@@ -66,9 +66,6 @@
         "routes": {
           "TempFilterToCloud": "FROM /messages/modules/tempFilter/outputs/* INTO $upstream",
           "TempSensorToTempFilter": "FROM /messages/modules/tempSensor/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/tempFilter/inputs/input1\")"
-
-          "upstreamLoadGen1": "FROM /messages/modules/loadGen1/outputs/output1 INTO $upstream",
-          "upstreamLoadGen2": "FROM /messages/modules/loadGen2/outputs/output1 INTO $upstream"
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 7200
