@@ -121,7 +121,7 @@ namespace IotEdgeQuickstart.Details
 
         protected async Task VerifyEdgeAgentIsConnectedToIotHub()
         {
-            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60)))
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(300)))
             {
                 Exception savedException = null;
 
@@ -132,7 +132,7 @@ namespace IotEdgeQuickstart.Details
 
                     while (true)
                     {
-                        await Task.Delay(TimeSpan.FromSeconds(3), cts.Token);
+                        await Task.Delay(TimeSpan.FromSeconds(10), cts.Token);
 
                         try
                         {

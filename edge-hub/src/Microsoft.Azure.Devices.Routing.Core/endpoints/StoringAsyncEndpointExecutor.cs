@@ -174,7 +174,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             static readonly CounterOptions EndpointMessageCountOptions = new CounterOptions
             {
                 Name = "EndpointMessageStoredCount",
-                MeasurementUnit = Unit.Events
+                MeasurementUnit = Unit.Events,
+                ResetOnReporting = true,
             };
             static readonly TimerOptions EndpointMessageLatencyOptions = new TimerOptions
             {
