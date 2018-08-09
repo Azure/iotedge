@@ -25,7 +25,6 @@ run_command()
     echo "$1"
     docker \
       run \
-      -it \
       --rm \
       -e "USER=root" \
       -e "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/toolchain/arm-linux-gnueabihf/bin:/toolchain/bin:/cargo/bin" \
