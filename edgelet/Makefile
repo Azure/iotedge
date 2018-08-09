@@ -75,7 +75,6 @@ $(TARGET)/$(PACKAGE).tar.gz:
 dist: $(TARGET)/$(PACKAGE).tar.gz
 
 deb: release
-	cp -R $(srcdir)/contrib/debian $(TARGET)/$(PACKAGE)
 	$(INSTALL_PROGRAM) -D $(TARGET)/iotedged $(TARGET)/$(PACKAGE)/iotedged
 	$(INSTALL_PROGRAM) -D $(TARGET)/iotedge $(TARGET)/$(PACKAGE)/iotedge
 	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/debian/iotedge.service $(TARGET)/$(PACKAGE)/debian/iotedge.service
@@ -88,6 +87,7 @@ deb: release
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/LICENSE $(TARGET)/$(PACKAGE)$(docdir)/LICENSE
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/ThirdPartyNotices $(TARGET)/$(PACKAGE)$(docdir)/ThirdPartyNotices
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/trademark $(TARGET)/$(PACKAGE)$(docdir)/trademark
+	cp -R $(srcdir)/contrib/debian $(TARGET)/$(PACKAGE)
 	$(SED) "s/@version@/${DEB_VERSION}/g; s/@revision@/${DEB_REVISION}/g;" $(srcdir)/contrib/debian/changelog > $(TARGET)/$(PACKAGE)/debian/changelog
 	cd $(TARGET)/$(PACKAGE) && dpkg-buildpackage $(DPKGFLAGS)
 
