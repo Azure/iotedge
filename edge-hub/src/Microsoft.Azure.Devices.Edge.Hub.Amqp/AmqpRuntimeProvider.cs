@@ -18,7 +18,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     public class AmqpRuntimeProvider : IRuntimeProvider
     {
         static readonly AmqpSymbol LinkHandlerPropertyKey = new AmqpSymbol("AmqpProtocolHead.LinkHandler");
-        readonly bool requireSecureTransport;
         readonly ILinkHandlerProvider linkHandlerProvider;
         readonly IClientCredentialsFactory clientCredentialsFactory;
         readonly IAuthenticator authenticator;
@@ -26,12 +25,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         readonly string iotHubHostName;
         readonly ICredentialsStore credentialsStore;
 
-        public AmqpRuntimeProvider(ILinkHandlerProvider linkHandlerProvider, bool requireSecureTransport,
+        public AmqpRuntimeProvider(ILinkHandlerProvider linkHandlerProvider,
             IClientCredentialsFactory clientCredentialsFactory, IAuthenticator authenticator,
             string iotHubHostName, IConnectionProvider connectionProvider, ICredentialsStore credentialsStore)
         {
             this.linkHandlerProvider = Preconditions.CheckNotNull(linkHandlerProvider, nameof(linkHandlerProvider));
-            this.requireSecureTransport = Preconditions.CheckNotNull(requireSecureTransport, nameof(requireSecureTransport));
             this.clientCredentialsFactory = Preconditions.CheckNotNull(clientCredentialsFactory, nameof(clientCredentialsFactory));
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostName, nameof(iotHubHostName));
             this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
@@ -46,11 +44,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             AmqpSettings settings,
             AmqpConnectionSettings connectionSettings)
         {
-            if (this.requireSecureTransport && !transport.IsSecure)
-            {
-                throw new AmqpException(AmqpErrorCode.NotAllowed, "AMQP transport is not secure");
-            }
-
             var connection = new AmqpConnection(transport, protocolHeader, false, settings, connectionSettings)
             {
                 SessionFactory = this

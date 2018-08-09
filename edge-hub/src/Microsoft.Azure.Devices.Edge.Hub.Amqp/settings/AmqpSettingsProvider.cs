@@ -19,7 +19,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Settings
             IClientCredentialsFactory identityFactory,
             ILinkHandlerProvider linkHandlerProvider,
             IConnectionProvider connectionProvider,
-            ICredentialsStore credentialsStore)
+            ICredentialsStore credentialsStore,
+            bool tlsUpgrade)
         {
             Preconditions.CheckNotNull(authenticator, nameof(authenticator));
             Preconditions.CheckNotNull(identityFactory, nameof(identityFactory));
@@ -30,8 +31,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Settings
             var settings = new AmqpSettings
             {
                 AllowAnonymousConnection = true,
-                RequireSecureTransport = true,
-                RuntimeProvider = new AmqpRuntimeProvider(linkHandlerProvider, true, identityFactory, authenticator, iotHubHostName, connectionProvider, credentialsStore)
+                RequireSecureTransport = tlsUpgrade,
+                RuntimeProvider = new AmqpRuntimeProvider(linkHandlerProvider, identityFactory, authenticator, iotHubHostName, connectionProvider, credentialsStore)
             };
 
             // Add all transport providers we want to support.

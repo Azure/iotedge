@@ -146,7 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 );
                 builder.RegisterModule(new HttpModule());
                 builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, certificate, false, false, string.Empty, false));
-                builder.RegisterModule(new AmqpModule("amqps", 5671, certificate, iotHubConnectionStringBuilder.HostName));
+                builder.RegisterModule(new AmqpModule("amqps", 5671, certificate, iotHubConnectionStringBuilder.HostName, true));
                 this.container = builder.Build();
 
                 // CloudConnectionProvider and RoutingEdgeHub have a circular dependency. So set the
