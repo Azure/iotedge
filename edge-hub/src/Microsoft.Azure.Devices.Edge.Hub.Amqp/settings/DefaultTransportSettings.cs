@@ -39,7 +39,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Settings
                 Certificate = Preconditions.CheckNotNull(tlsCertificate, nameof(tlsCertificate)),
                 // NOTE: The following property doesn't appear to be used by the AMQP library.
                 //       Not sure that setting this to true/false makes any difference!
-                CheckCertificateRevocation = false
+                CheckCertificateRevocation = false,
+                Protocols = System.Security.Authentication.SslProtocols.None
             };
 
             // NOTE: We don't support X509 client cert auth yet. When we do the following
