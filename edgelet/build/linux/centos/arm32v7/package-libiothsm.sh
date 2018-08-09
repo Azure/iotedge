@@ -18,10 +18,7 @@ VERSION="${VERSION:-$DEFAULT_VERSION}"
 
 # Converts debian versioning to rpm version
 # deb 1.0.1~dev100 ~> rpm 1.0.1-0.1.dev100
-# RPM_VERSION?=$(word 1,$(subst ~, , $(VERSION)))
-# _release=$(or $(and $(word 2,$(subst ~, ,$1)),0.${REVISION}.$(word 2,$(subst ~, ,$1))),${REVISION})
-# RPM_RELEASE?=$(call _release, ${VERSION})
-#
+
 RPM_VERSION=`echo "$VERSION" | cut -d"~" -f1`
 RPM_TAG=`echo "$VERSION" | cut -s -d"~" -f2`
 if [[ ! -z ${RPM_TAG} ]]; then
