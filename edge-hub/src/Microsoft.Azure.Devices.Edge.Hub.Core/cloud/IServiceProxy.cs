@@ -7,7 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
     using Newtonsoft.Json.Converters;
 
     [JsonConverter(typeof(StringEnumConverter))]
-    public enum AuthenticationType
+    public enum ServiceAuthenticationType
     {
         SasKey,
         CertificateThumbprint,
@@ -60,14 +60,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 
     public class ServiceAuthentication
     {
-        public ServiceAuthentication(AuthenticationType type, SymmetricKey symmetricKey, X509Thumbprint x509Thumbprint)
+        public ServiceAuthentication(ServiceAuthenticationType type, SymmetricKey symmetricKey, X509Thumbprint x509Thumbprint)
         {
             this.Type = type;
             this.SymmetricKey = symmetricKey;
             this.X509Thumbprint = x509Thumbprint;
         }
 
-        public AuthenticationType Type { get; }
+        public ServiceAuthenticationType Type { get; }
 
         public SymmetricKey SymmetricKey { get; }
 

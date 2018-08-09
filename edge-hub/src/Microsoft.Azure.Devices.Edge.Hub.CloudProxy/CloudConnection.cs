@@ -32,7 +32,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly AsyncLock identityUpdateLock = new AsyncLock();
         readonly AsyncLock tokenUpdateLock = new AsyncLock();
         readonly IClientProvider clientProvider;
-        readonly IAuthenticationMethod edgeHubAuthenticationMethod;
+        readonly ITokenProvider edgeHubTokenProvider;
+        readonly ISecurityScopeEntitiesCache securityScopeEntitiesCache;
 
         bool callbacksEnabled = true;
         Option<TaskCompletionSource<string>> tokenGetter;
@@ -43,14 +44,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             ITransportSettings[] transportSettings,
             IMessageConverterProvider messageConverterProvider,
             IClientProvider clientProvider,
-            IAuthenticationMethod edgeHubAuthenticationMethod)
+            ITokenProvider edgeHubTokenProvider,
+            ISecurityScopeEntitiesCache securityScopeEntitiesCache)
         {
             this.connectionStatusChangedHandler = connectionStatusChangedHandler;
             this.transportSettingsList = Preconditions.CheckNotNull(transportSettings, nameof(transportSettings));
             this.messageConverterProvider = Preconditions.CheckNotNull(messageConverterProvider, nameof(messageConverterProvider));
             this.tokenGetter = Option.None<TaskCompletionSource<string>>();
             this.clientProvider = Preconditions.CheckNotNull(clientProvider, nameof(clientProvider));
-            this.edgeHubAuthenticationMethod = edgeHubAuthenticationMethod;
+            this.edgeHubTokenProvider = Preconditions.CheckNotNull(edgeHubTokenProvider, nameof(edgeHubTokenProvider));
+            this.securityScopeEntitiesCache = Preconditions.CheckNotNull(securityScopeEntitiesCache, nameof(securityScopeEntitiesCache));
         }
 
         public Option<ICloudProxy> CloudProxy => this.cloudProxy.Filter(cp => cp.IsActive);
@@ -173,7 +176,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             return client;
         }
 
-        Task<IClient> CreateDeviceClient(IClientCredentials newCredentials, ITransportSettings[] settings)
+        async Task<IClient> CreateDeviceClient(IClientCredentials newCredentials, ITransportSettings[] settings)
         {
             switch (newCredentials.AuthenticationType)
             {
@@ -182,44 +185,48 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     {
                         throw new ArgumentException($"Sas key credential should be of type {nameof(ISharedKeyCredentials)}");
                     }
-                    return Task.FromResult(this.clientProvider.Create(newCredentials.Identity, sharedKeyAuthentication.ConnectionString, settings));
+                    return this.clientProvider.Create(newCredentials.Identity, sharedKeyAuthentication.ConnectionString, settings);
 
                 case AuthenticationType.Token:
                     if (!(newCredentials is ITokenCredentials tokenAuthentication))
                     {
                         throw new ArgumentException($"Token credential should be of type {nameof(ITokenCredentials)}");
                     }
-                    IAuthenticationMethod authenticationMethod = this.GetAuthenticationMethod(tokenAuthentication.Identity, tokenAuthentication.Token);
-                    return Task.FromResult(this.clientProvider.Create(newCredentials.Identity, authenticationMethod, settings));
+                    IAuthenticationMethod authenticationMethod = await this.GetAuthenticationMethod(tokenAuthentication.Identity, tokenAuthentication.Token);
+                    return this.clientProvider.Create(newCredentials.Identity, authenticationMethod, settings);
 
                 case AuthenticationType.IoTEdged:
                     if (!(newCredentials is IotEdgedCredentials))
                     {
                         throw new ArgumentException($"IoTEdged credential should be of type {nameof(IotEdgedCredentials)}");
                     }
-
-                    return this.clientProvider.CreateAsync(newCredentials.Identity, settings);
+                    return await this.clientProvider.CreateAsync(newCredentials.Identity, settings);
 
                 default:
                     throw new InvalidOperationException($"Unsupported authentication type {newCredentials.AuthenticationType}");
             }
         }
 
-        IAuthenticationMethod GetAuthenticationMethod(IIdentity newIdentity, string token)
+        async Task<IAuthenticationMethod> GetAuthenticationMethod(IIdentity newIdentity, string token)
         {
             //var tokenRefresher = new EdgeHubAuthentication();
-            return this.edgeHubAuthenticationMethod;
-            //if (newIdentity is IModuleIdentity moduleIdentity)
-            //{
-            //    var tokenRefresher = new ModuleTokenRefresher(moduleIdentity.DeviceId, moduleIdentity.ModuleId, token, this, newIdentity);
-            //    return tokenRefresher;
-            //}
-            //else if (newIdentity is IDeviceIdentity deviceIdentity)
-            //{
-            //    var tokenRefresher = new DeviceTokenRefresher(deviceIdentity.DeviceId, token, this, newIdentity);
-            //    return tokenRefresher;
-            //}
-            //throw new InvalidOperationException($"Invalid client identity type {newIdentity.GetType()}");
+            //return this.edgeHubAuthenticationMethod;
+            Option<ServiceIdentity> serviceIdentity = await this.securityScopeEntitiesCache.GetServiceIdentity(newIdentity.Id);
+            if (newIdentity is IModuleIdentity moduleIdentity)
+            {
+                IAuthenticationMethod tokenRefresher = serviceIdentity
+                    .Map(s => new OnBehalfOfModuleAuthentication(this.edgeHubTokenProvider, moduleIdentity.DeviceId, moduleIdentity.ModuleId) as IAuthenticationMethod)
+                    .GetOrElse(() => new ModuleTokenRefresher(moduleIdentity.DeviceId, moduleIdentity.ModuleId, token, this, newIdentity));
+                return tokenRefresher;
+            }
+            else if (newIdentity is IDeviceIdentity deviceIdentity)
+            {
+                IAuthenticationMethod tokenRefresher = serviceIdentity
+                    .Map(s => new OnBehalfOfDeviceAuthentication(this.edgeHubTokenProvider, deviceIdentity.DeviceId) as IAuthenticationMethod)
+                    .GetOrElse(() => new DeviceTokenRefresher(deviceIdentity.DeviceId, token, this, newIdentity));
+                return tokenRefresher;
+            }
+            throw new InvalidOperationException($"Invalid client identity type {newIdentity.GetType()}");
         }
 
         void InternalConnectionStatusChangesHandler(ConnectionStatus status, ConnectionStatusChangeReason reason)

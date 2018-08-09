@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
-    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
@@ -79,17 +78,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 switch (authenticationMechanism.Type)
                 {
                     case Devices.AuthenticationType.CertificateAuthority:
-                        return new ServiceAuthentication(AuthenticationType.CertificateAuthority, null, null);
+                        return new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority, null, null);
 
                     case Devices.AuthenticationType.SelfSigned:
-                        return new ServiceAuthentication(AuthenticationType.CertificateThumbprint, null,
+                        return new ServiceAuthentication(ServiceAuthenticationType.CertificateThumbprint, null,
                             new X509Thumbprint(authenticationMechanism.X509Thumbprint.PrimaryThumbprint, authenticationMechanism.X509Thumbprint.SecondaryThumbprint));
 
                     case Devices.AuthenticationType.Sas:
-                        return new ServiceAuthentication(AuthenticationType.SasKey, new SymmetricKey(authenticationMechanism.SymmetricKey.PrimaryKey, authenticationMechanism.SymmetricKey.SecondaryKey), null);
+                        return new ServiceAuthentication(ServiceAuthenticationType.SasKey, new SymmetricKey(authenticationMechanism.SymmetricKey.PrimaryKey, authenticationMechanism.SymmetricKey.SecondaryKey), null);
 
                     default:
-                        return new ServiceAuthentication(AuthenticationType.None, null, null);
+                        return new ServiceAuthentication(ServiceAuthenticationType.None, null, null);
                 }
             }
         }

@@ -6,7 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
     using System.Threading.Tasks;
 
     /// <summary>
-    /// HSM signature provider.
+    /// Signature provider.
     /// </summary>
     public interface ISignatureProvider
     {

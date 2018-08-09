@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Net;
     using System.Threading.Tasks;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
@@ -177,7 +178,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<IClientProvider>()
                 .SingleInstance();
 
-            // ISignature
+            // ISignatureProvider
             builder.Register(
                     c =>
                     {
@@ -191,84 +192,131 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                                 () =>
                                 {
                                     string edgeHubGenerationId = this.edgeModuleGenerationId.Expect(() => new Exception("Generation ID missing"));
-                                    return new HttpHsmSignatureProvider(this.edgeModuleId, edgeHubGenerationId, "", "") as ISignatureProvider;
+                                    return new HttpHsmSignatureProvider(this.edgeModuleId, edgeHubGenerationId, string.Empty, string.Empty) as ISignatureProvider;
                                 });
                         return signatureProvider;
                     })
                 .As<ISignatureProvider>()
                 .SingleInstance();
 
-            // ICloudConnectionProvider
+
+            // Detect system environment
+            builder.Register(c => new SystemEnvironment())
+                .As<ISystemEnvironment>()
+                .SingleInstance();
+
+            // DataBase options
+            builder.Register(c => new Storage.RocksDb.RocksDbOptionsProvider(c.Resolve<ISystemEnvironment>(), this.optimizeForPerformance))
+                .As<Storage.RocksDb.IRocksDbOptionsProvider>()
+                .SingleInstance();
+
+            // IDbStoreProvider
+            builder.Register(
+                c =>
+                {
+                    var loggerFactory = c.Resolve<ILoggerFactory>();
+                    ILogger logger = loggerFactory.CreateLogger(typeof(RoutingModule));
+
+                    if (this.usePersistentStorage)
+                    {
+                            // Create partitions for messages and twins
+                            var partitionsList = new List<string> { Core.Constants.MessageStorePartitionKey, Core.Constants.TwinStorePartitionKey, Core.Constants.CheckpointStorePartitionKey };
+                        try
+                        {
+                            IDbStoreProvider dbStoreprovider = Storage.RocksDb.DbStoreProvider.Create(c.Resolve<Storage.RocksDb.IRocksDbOptionsProvider>(),
+                                this.storagePath, partitionsList);
+                            logger.LogInformation($"Created persistent store at {this.storagePath}");
+                            return dbStoreprovider;
+                        }
+                        catch (Exception ex) when (!ExceptionEx.IsFatal(ex))
+                        {
+                            logger.LogError(ex, "Error creating RocksDB store. Falling back to in-memory store.");
+                            return new InMemoryDbStoreProvider();
+                        }
+                    }
+                    else
+                    {
+                        logger.LogInformation($"Using in-memory store");
+                        return new InMemoryDbStoreProvider();
+                    }
+                })
+                .As<IDbStoreProvider>()
+                .SingleInstance();
+
+            // Task<IEncryptionProvider>
+            builder.Register(
+                    async c =>
+                    {
+                        IEncryptionProvider encryptionProvider = await this.workloadUri.Map(
+                                async uri => await EncryptionProvider.CreateAsync(
+                                    this.storagePath,
+                                    new Uri(uri),
+                                    Service.Constants.WorkloadApiVersion,
+                                    this.edgeModuleId,
+                                    this.edgeModuleGenerationId.Expect(() => new InvalidOperationException("Missing generation ID")),
+                                    Service.Constants.InitializationVectorFileName) as IEncryptionProvider)
+                            .GetOrElse(() => Task.FromResult<IEncryptionProvider>(NullEncryptionProvider.Instance));
+                        return encryptionProvider;
+                    })
+                .As<Task<IEncryptionProvider>>()
+                .SingleInstance();
+
+            // IStoreProvider
+            builder.Register(c => new StoreProvider(c.Resolve<IDbStoreProvider>()))
+                .As<IStoreProvider>()
+                .SingleInstance();
+
+            // ITokenProvider
+            builder.Register(c => new EdgeHubTokenProvider(c.Resolve<ISignatureProvider>(), this.iotHubName, this.edgeDeviceId, this.edgeModuleId, TimeSpan.FromHours(1)))
+                .Named<ITokenProvider>("EdgeHubClientAuthTokenProvider")
+                .SingleInstance();
+
+            // ITokenProvider
             builder.Register(c =>
                 {
-                    IAuthenticationMethod edgeHubAuthenticationMethod = new EdgeHubAuthentication(c.Resolve<ISignatureProvider>(), this.edgeDeviceId);
-                    return new CloudConnectionProvider(c.Resolve<Core.IMessageConverterProvider>(), this.connectionPoolSize, c.Resolve<IClientProvider>(), this.upstreamProtocol, edgeHubAuthenticationMethod);
+                    string deviceId = WebUtility.UrlEncode(this.edgeDeviceId);
+                    string moduleId = WebUtility.UrlEncode(this.edgeModuleId);
+                    return new EdgeHubTokenProvider(c.Resolve<ISignatureProvider>(), this.iotHubName, deviceId, moduleId, TimeSpan.FromHours(1));
+                })
+                .Named<ITokenProvider>("EdgeHubServiceAuthTokenProvider")
+                .SingleInstance();
+
+            // Task<ISecurityScopeEntitiesCache>
+            builder.Register(
+                    async c =>
+                    {
+                        var edgeHubTokenProvider = c.ResolveNamed<ITokenProvider>("EdgeHubServiceAuthTokenProvider");
+                        ISecurityScopesApiClient securityScopesApiClient = new SecurityScopesApiClient(this.iotHubName, this.edgeDeviceId, this.edgeModuleId, 10, edgeHubTokenProvider);
+                        IServiceProxy serviceProxy = new ServiceProxy(securityScopesApiClient);
+
+                        var storeProvider = c.Resolve<IStoreProvider>();
+                        IEncryptionProvider encryptionProvider = await c.Resolve<Task<IEncryptionProvider>>();
+                        IEntityStore<string, string> entityStore = storeProvider.GetEntityStore<string, string>("SecurityScopeCache");
+                        IEncryptedStore<string, string> encryptedStore = new EncryptedStore<string, string>(entityStore, encryptionProvider);
+                        ISecurityScopeEntitiesCache securityScopeEntitiesCache = new SecurityScopeEntitiesCache(serviceProxy, encryptedStore);
+                        return securityScopeEntitiesCache;
+                    })
+                .As<Task<ISecurityScopeEntitiesCache>>()
+                .SingleInstance();
+
+            // ICloudConnectionProvider
+            builder.Register(async c =>
+                {                    
+                    var edgeHubTokenProvider = c.ResolveNamed<ITokenProvider>("EdgeHubClientAuthTokenProvider");
+                    ISecurityScopeEntitiesCache securityScopeEntitiesCache = await c.Resolve<Task<ISecurityScopeEntitiesCache>>();
+                    return new CloudConnectionProvider(c.Resolve<Core.IMessageConverterProvider>(), this.connectionPoolSize, c.Resolve<IClientProvider>(),
+                        this.upstreamProtocol, edgeHubTokenProvider, securityScopeEntitiesCache);
                 })
                 .As<ICloudConnectionProvider>()
                 .SingleInstance();
-
-            if (this.isStoreAndForwardEnabled || this.cacheTokens)
-            {
-                // Detect system environment
-                builder.Register(c => new SystemEnvironment())
-                    .As<ISystemEnvironment>()
-                    .SingleInstance();
-
-                // DataBase options
-                builder.Register(c => new Storage.RocksDb.RocksDbOptionsProvider(c.Resolve<ISystemEnvironment>(), this.optimizeForPerformance))
-                    .As<Storage.RocksDb.IRocksDbOptionsProvider>()
-                    .SingleInstance();
-
-                // IDbStore
-                builder.Register(
-                    c =>
-                    {
-                        var loggerFactory = c.Resolve<ILoggerFactory>();
-                        ILogger logger = loggerFactory.CreateLogger(typeof(RoutingModule));
-
-                        if (this.usePersistentStorage)
-                        {
-                            // Create partitions for messages and twins
-                            var partitionsList = new List<string> { Core.Constants.MessageStorePartitionKey, Core.Constants.TwinStorePartitionKey, Core.Constants.CheckpointStorePartitionKey };
-                            try
-                            {
-                                IDbStoreProvider dbStoreprovider = Storage.RocksDb.DbStoreProvider.Create(c.Resolve<Storage.RocksDb.IRocksDbOptionsProvider>(),
-                                    this.storagePath, partitionsList);
-                                logger.LogInformation($"Created persistent store at {this.storagePath}");
-                                return dbStoreprovider;
-                            }
-                            catch (Exception ex) when (!ExceptionEx.IsFatal(ex))
-                            {
-                                logger.LogError(ex, "Error creating RocksDB store. Falling back to in-memory store.");
-                                return new InMemoryDbStoreProvider();
-                            }
-                        }
-                        else
-                        {
-                            logger.LogInformation($"Using in-memory store");
-                            return new InMemoryDbStoreProvider();
-                        }
-                    })
-                    .As<IDbStoreProvider>()
-                    .SingleInstance();
-            }
 
             // Task<ICredentialsStore>
             builder.Register(async c =>
                 {
                     if (this.cacheTokens)
                     {
-                        var dbStoreProvider = c.Resolve<IDbStoreProvider>();
-                        IEncryptionProvider encryptionProvider = await this.workloadUri.Map(
-                            async uri => await EncryptionProvider.CreateAsync(
-                                this.storagePath,
-                                new Uri(uri),
-                                Service.Constants.WorkloadApiVersion,
-                                this.edgeModuleId,
-                                this.edgeModuleGenerationId.Expect(() => new InvalidOperationException("Missing generation ID")),
-                                Service.Constants.InitializationVectorFileName) as IEncryptionProvider)
-                            .GetOrElse(() => Task.FromResult<IEncryptionProvider>(NullEncryptionProvider.Instance));
-                        IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
+                        var storeProvider = c.Resolve<IStoreProvider>();
+                        IEncryptionProvider encryptionProvider = await c.Resolve<Task<IEncryptionProvider>>();
                         IEntityStore<string, string> tokenCredentialsEntityStore = storeProvider.GetEntityStore<string, string>("tokenCredentials");
                         return new TokenCredentialsStore(tokenCredentialsEntityStore, encryptionProvider);
                     }
@@ -373,8 +421,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                    c =>
                    {
                        var checkpointStore = c.Resolve<ICheckpointStore>();
-                       var dbStoreProvider = c.Resolve<IDbStoreProvider>();
-                       IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
+                       var storeProvider = c.Resolve<IStoreProvider>();
                        IMessageStore messageStore = new MessageStore(storeProvider, checkpointStore, TimeSpan.MaxValue);
                        return messageStore;
                    })
