@@ -75,11 +75,12 @@ $(TARGET)/$(PACKAGE).tar.gz:
 dist: $(TARGET)/$(PACKAGE).tar.gz
 
 deb: release
+	cp -R $(srcdir)/contrib/debian $(TARGET)/$(PACKAGE)
 	$(INSTALL_PROGRAM) -D $(TARGET)/iotedged $(TARGET)/$(PACKAGE)/iotedged
 	$(INSTALL_PROGRAM) -D $(TARGET)/iotedge $(TARGET)/$(PACKAGE)/iotedge
-	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/debian/iotedge.service $(TARGET)/$(PACKAGE)/iotedge.service
-	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/debian/iotedge.socket $(TARGET)/$(PACKAGE)/iotedge.socket
-	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/debian/iotedge.mgmt.socket $(TARGET)/$(PACKAGE)/iotedge.mgmt.socket
+	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/debian/iotedge.service $(TARGET)/$(PACKAGE)/debian/iotedge.service
+	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/debian/iotedge.socket $(TARGET)/$(PACKAGE)/debian/iotedge.socket
+	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/debian/iotedge.mgmt.socket $(TARGET)/$(PACKAGE)/debian/iotedge.mgmt.socket
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man1/iotedge.1 $(TARGET)/$(PACKAGE)/man/iotedge.1
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man8/iotedged.8 $(TARGET)/$(PACKAGE)/man/iotedged.8
 	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/debian/config.yaml $(TARGET)/$(PACKAGE)/etc/iotedge/config.yaml
@@ -87,7 +88,6 @@ deb: release
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/LICENSE $(TARGET)/$(PACKAGE)$(docdir)/LICENSE
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/ThirdPartyNotices $(TARGET)/$(PACKAGE)$(docdir)/ThirdPartyNotices
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/trademark $(TARGET)/$(PACKAGE)$(docdir)/trademark
-	cp -R $(srcdir)/contrib/debian $(TARGET)/$(PACKAGE)
 	$(SED) "s/@version@/${DEB_VERSION}/g; s/@revision@/${DEB_REVISION}/g;" $(srcdir)/contrib/debian/changelog > $(TARGET)/$(PACKAGE)/debian/changelog
 	cd $(TARGET)/$(PACKAGE) && dpkg-buildpackage $(DPKGFLAGS)
 
