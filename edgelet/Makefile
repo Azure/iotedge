@@ -37,6 +37,7 @@ rpmbuilddir?=$(HOME)/rpmbuild
 
 CARGOFLAGS=--manifest-path=$(srcdir)/Cargo.toml
 DPKGFLAGS=-b -rfakeroot -us -uc -i
+RPMBUILDFLAGS=-v -bb --clean
 
 CARGO=cargo
 GIT=git
@@ -93,7 +94,7 @@ deb: release
 rpm:
 	cp $(TARGET)/$(PACKAGE).tar.gz $(rpmbuilddir)/SOURCES/
 	$(SED) "s/@version@/${RPM_VERSION}/g; s/@release@/${RPM_RELEASE}/g;" $(srcdir)/contrib/centos/iotedge.spec > $(rpmbuilddir)/SPECS/iotedge.spec
-	rpmbuild -v -bb --clean $(rpmbuilddir)/SPECS/iotedge.spec
+	rpmbuild $(RPMBUILDFLAGS) $(rpmbuilddir)/SPECS/iotedge.spec
 
 install: release
 	$(INSTALL_PROGRAM) -D $(TARGET)/iotedged $(DESTDIR)$(bindir)/iotedged
