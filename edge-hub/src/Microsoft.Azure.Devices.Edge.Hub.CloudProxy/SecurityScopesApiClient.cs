@@ -29,6 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly string moduleId;
         readonly int batchSize;
         readonly ITokenProvider edgeHubTokenProvider;
+        const string ApiVersion = "preview";
 
         public SecurityScopesApiClient(string iotHubHostName, string deviceId, string moduleId, int batchSize, ITokenProvider edgeHubTokenProvider)
         {
@@ -42,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public Task<ScopeResult> GetIdentitiesInScope()
         {
-            string relativeUri = InScopeIdentitiesUriTemplate.FormatInvariant(this.deviceId, this.moduleId, this.batchSize, null);
+            string relativeUri = InScopeIdentitiesUriTemplate.FormatInvariant(this.deviceId, this.moduleId, this.batchSize, null, ApiVersion);
             var uri = new Uri(this.iotHubBaseHttpUri, relativeUri);
             return this.GetIdentitiesInScope(uri);
         }
@@ -80,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public Task<ScopeResult> GetIdentity(string targetDeviceId, string targetModuleId)
         {
             Preconditions.CheckNonWhiteSpace(targetDeviceId, nameof(targetDeviceId));
-            string relativeUri = InScopeTargetIdentityUriFormat.FormatInvariant(this.deviceId, this.moduleId, targetDeviceId, targetModuleId);
+            string relativeUri = InScopeTargetIdentityUriFormat.FormatInvariant(this.deviceId, this.moduleId, targetDeviceId, targetModuleId, ApiVersion);
             var uri = new Uri(this.iotHubBaseHttpUri, relativeUri);
             return this.GetIdentitiesInScope(uri);
         }

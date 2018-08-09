@@ -49,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
                         IEnumerable<ServiceIdentity> batch = await iterator.GetNext();
                         foreach (ServiceIdentity serviceIdentity in batch)
                         {
-                            cache.Add(serviceIdentity.Id, serviceIdentity);
+                            cache[serviceIdentity.Id] = serviceIdentity;
                             await this.SaveServiceIdentityToStore(serviceIdentity.Id, serviceIdentity);
                         }
                     }
