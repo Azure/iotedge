@@ -5,7 +5,7 @@ set -e
 # Get directory of running script
 DIR=$(cd "$(dirname "$0")" && pwd)
 
-BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}
+BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../../../..}
 PROJECT_ROOT=${BUILD_REPOSITORY_LOCALPATH}/edgelet
 
 BUILD_DIR=$PROJECT_ROOT/target/hsm/build

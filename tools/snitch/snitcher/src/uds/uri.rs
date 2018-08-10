@@ -6,7 +6,7 @@ use std::str;
 use hex::{decode, encode};
 use url::Url;
 
-use error::{Error, Result};
+use error::{Error, ErrorKind, Result};
 
 #[derive(Clone, Debug)]
 pub struct Uri {
@@ -16,9 +16,9 @@ pub struct Uri {
 impl Uri {
     pub fn from_url(url: &Url) -> Result<Uri> {
         if url.scheme() != "unix" {
-            Err(Error::InvalidUrlScheme)
+            Err(Error::new(ErrorKind::InvalidUrlScheme))
         } else if url.path().trim() == "" {
-            Err(Error::MissingPath)
+            Err(Error::new(ErrorKind::MissingPath))
         } else {
             Ok(Uri {
                 url: Url::parse(&format!("unix://{}", encode(url.path().as_bytes())))?,

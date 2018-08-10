@@ -132,8 +132,8 @@ connect:
 ###############################################################################
 
 listen:
-  management_uri: "fd://iotedge.mgmt.socket"
-  workload_uri: "fd://iotedge.socket"
+  management_uri: "unix:///var/run/iotedge/mgmt.sock"
+  workload_uri: "unix:///var/run/iotedge/workload.sock"
 
 ###############################################################################
 # Home Directory

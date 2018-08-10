@@ -4,7 +4,7 @@ set -ex
 
 
 main() {
-    local version=7.2.1-2017.11
+    local version=7.3.1-2018.05
     local build_tools=gcc-linaro-${version}-x86_64_arm-linux-gnueabihf
 
     if [[ ! -f Dockerfile ]]
