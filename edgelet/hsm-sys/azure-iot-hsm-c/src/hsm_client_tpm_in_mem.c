@@ -18,7 +18,7 @@ typedef struct EDGE_TPM_TAG EDGE_TPM;
 
 static const HSM_CLIENT_STORE_INTERFACE* g_hsm_store_if = NULL;
 static const HSM_CLIENT_KEY_INTERFACE* g_hsm_key_if = NULL;
-static bool g_is_tpm_initialized = false;
+static volatile bool g_is_tpm_initialized = false;
 
 int hsm_client_tpm_store_init(void)
 {

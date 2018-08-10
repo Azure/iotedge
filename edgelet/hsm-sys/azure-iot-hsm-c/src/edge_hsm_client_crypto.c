@@ -18,7 +18,7 @@ typedef struct EDGE_CRYPTO_TAG EDGE_CRYPTO;
 
 static const HSM_CLIENT_STORE_INTERFACE* g_hsm_store_if = NULL;
 static const HSM_CLIENT_KEY_INTERFACE* g_hsm_key_if = NULL;
-static bool g_is_crypto_initialized = false;
+static volatile bool g_is_crypto_initialized = false;
 
 int hsm_client_crypto_init(void)
 {
