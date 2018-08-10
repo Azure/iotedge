@@ -50,7 +50,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public Task<ScopeResult> GetNext(string continuationToken)
         {
-            var uri = new Uri(Preconditions.CheckNonWhiteSpace(continuationToken, nameof(continuationToken)));
+            string relativeUri = Preconditions.CheckNonWhiteSpace(continuationToken, nameof(continuationToken));
+            var uri = new Uri(this.iotHubBaseHttpUri, relativeUri);
             return this.GetIdentitiesInScope(uri);
         }
 

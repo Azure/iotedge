@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
 
@@ -27,10 +28,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             // Task<IAuthenticator>
             builder.Register(async c =>
                 {
-                    var connectionManager = c.Resolve<IConnectionManager>();
-                    ICredentialsStore credentialsStore = await c.Resolve<Task<ICredentialsStore>>();
-                    var tokenCredentialsAuthenticator = new TokenCacheAuthenticator(connectionManager, credentialsStore, this.iothubHostName);
-                    return new Authenticator(tokenCredentialsAuthenticator, this.deviceId) as IAuthenticator;
+                    //IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
+                    //ICredentialsStore credentialsStore = await c.Resolve<Task<ICredentialsStore>>();
+                    //var tokenCredentialsAuthenticator = new TokenCacheAuthenticator(connectionManager, credentialsStore, this.iothubHostName);
+                    var securityScopeCache = await c.Resolve<Task<ISecurityScopeEntitiesCache>>();
+                    var securityScopeAuthenticator = new SecurityScopeTokenAuthenticator(securityScopeCache, this.iothubHostName, "EdgeHubHostName");
+                    return new Authenticator(securityScopeAuthenticator, this.deviceId) as IAuthenticator;
                 })
                 .As<Task<IAuthenticator>>()
                 .SingleInstance();
