@@ -11,6 +11,8 @@ namespace IotEdgeQuickstart
     public class Quickstart : Details.Details
     {
         readonly LeaveRunning leaveRunning;
+        readonly bool noDeployment;
+        readonly bool noVerify;
 
         public Quickstart(
             IBootstrapper bootstrapper,
@@ -20,10 +22,15 @@ namespace IotEdgeQuickstart
             string imageTag,
             string deviceId,
             string hostname,
-            LeaveRunning leaveRunning) :
-            base(bootstrapper, credentials, iothubConnectionString, eventhubCompatibleEndpointWithEntityPath, imageTag, deviceId, hostname)
+            LeaveRunning leaveRunning,
+            bool noDeployment,
+            bool noVerify,
+            Option<string> deploymentFileName) :
+            base(bootstrapper, credentials, iothubConnectionString, eventhubCompatibleEndpointWithEntityPath, imageTag, deviceId, hostname, deploymentFileName)
         {
             this.leaveRunning = leaveRunning;
+            this.noDeployment = noDeployment;
+            this.noVerify = noVerify;
         }
 
         public async Task RunAsync()
@@ -47,13 +54,19 @@ namespace IotEdgeQuickstart
                     await StartBootstrapper();
                     await VerifyEdgeAgentIsRunning();
                     await VerifyEdgeAgentIsConnectedToIotHub();
-                    await DeployTempSensorToEdgeDevice();
-                    await VerifyTempSensorIsRunning();
-                    await VerifyTempSensorIsSendingDataToIotHub();
-
-                    if (this.leaveRunning == LeaveRunning.Core)
+                    if (!this.noDeployment)
                     {
-                        await RemoveTempSensorFromEdgeDevice();
+                        await DeployToEdgeDevice();
+                        if (!this.noVerify)
+                        {
+                            await VerifyTempSensorIsRunning();
+                            await VerifyTempSensorIsSendingDataToIotHub();
+                        }
+
+                        if (this.leaveRunning == LeaveRunning.Core)
+                        {
+                            await RemoveTempSensorFromEdgeDevice();
+                        }
                     }
                 }
                 catch(Exception)

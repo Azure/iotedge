@@ -43,21 +43,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "doc", "doc", "{A9F6AF55-719
 		README.md = README.md
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "scripts", "scripts", "{372C8639-B8B6-4063-80A1-3064A452372B}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "linux", "linux", "{FA2C8688-A8E2-433A-A28D-64836F677EDB}"
-	ProjectSection(SolutionItems) = preProject
-		scripts\linux\buildBranch.sh = scripts\linux\buildBranch.sh
-		scripts\linux\buildImage.sh = scripts\linux\buildImage.sh
-		scripts\linux\buildManifest.sh = scripts\linux\buildManifest.sh
-		scripts\linux\downloadAndInstallCert.sh = scripts\linux\downloadAndInstallCert.sh
-		scripts\linux\InstallCert.ps1 = scripts\linux\InstallCert.ps1
-		scripts\linux\installKvPrereqs_Ubuntu.sh = scripts\linux\installKvPrereqs_Ubuntu.sh
-		scripts\linux\installPrereqs.sh = scripts\linux\installPrereqs.sh
-		scripts\linux\runDeployTests.sh = scripts\linux\runDeployTests.sh
-		scripts\linux\runTests.sh = scripts\linux\runTests.sh
-	EndProjectSection
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.Service", "edge-agent\src\Microsoft.Azure.Devices.Edge.Agent.Service\Microsoft.Azure.Devices.Edge.Agent.Service.csproj", "{37129265-046F-4A46-A1BD-C067E6C06264}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.CloudProxy", "edge-hub\src\Microsoft.Azure.Devices.Edge.Hub.CloudProxy\Microsoft.Azure.Devices.Edge.Hub.CloudProxy.csproj", "{F3F1EFBD-CCD0-4579-99EE-C91A1B6D5C5D}"
@@ -83,16 +68,6 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.E2E.Test", "edge-hub\test\Microsoft.Azure.Devices.Edge.Hub.E2E.Test\Microsoft.Azure.Devices.Edge.Hub.E2E.Test.csproj", "{7F52F459-7B00-452B-96AD-D85BA05C3DDC}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test\Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test.csproj", "{A03ECC50-84E7-49FE-9190-840F8DD64A1B}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "windows", "windows", "{DB969106-709B-428B-A6E5-B86E44ADFED2}"
-	ProjectSection(SolutionItems) = preProject
-		scripts\windows\buildBranch.bat = scripts\windows\buildBranch.bat
-		scripts\windows\buildDockerImage.ps1 = scripts\windows\buildDockerImage.ps1
-		scripts\windows\DownloadAndInstallCertificate.ps1 = scripts\windows\DownloadAndInstallCertificate.ps1
-		scripts\windows\installPrereqs.ps1 = scripts\windows\installPrereqs.ps1
-		scripts\windows\runTests.bat = scripts\windows\runTests.bat
-		scripts\windows\runTests.ps1 = scripts\windows\runTests.ps1
-	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Routing.Core", "edge-hub\src\Microsoft.Azure.Devices.Routing.Core\Microsoft.Azure.Devices.Routing.Core.csproj", "{9479C3D7-F565-4135-97C9-1B5D1199C259}"
 EndProject
@@ -185,7 +160,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edg
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker", "edge-agent\src\Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker\Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.csproj", "{F8253E40-6EE0-4FFA-BF39-D133A504175E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test\Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test.csproj", "{79E573DB-A6A8-4F6F-B5A0-DA2258EB82E6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test\Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test.csproj", "{79E573DB-A6A8-4F6F-B5A0-DA2258EB82E6}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "load-gen", "edge-modules\load-gen\load-gen.csproj", "{54771470-860C-4853-9318-6DB4EA76B595}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MessagesAnalyzer", "edge-modules\MessagesAnalyzer\MessagesAnalyzer.csproj", "{047DC795-A159-4BFF-AC0F-4DCE51A79C2C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -416,6 +395,18 @@ Global
 		{79E573DB-A6A8-4F6F-B5A0-DA2258EB82E6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{79E573DB-A6A8-4F6F-B5A0-DA2258EB82E6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{79E573DB-A6A8-4F6F-B5A0-DA2258EB82E6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{54771470-860C-4853-9318-6DB4EA76B595}.CodeCoverage|Any CPU.ActiveCfg = Debug|Any CPU
+		{54771470-860C-4853-9318-6DB4EA76B595}.CodeCoverage|Any CPU.Build.0 = Debug|Any CPU
+		{54771470-860C-4853-9318-6DB4EA76B595}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{54771470-860C-4853-9318-6DB4EA76B595}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{54771470-860C-4853-9318-6DB4EA76B595}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{54771470-860C-4853-9318-6DB4EA76B595}.Release|Any CPU.Build.0 = Release|Any CPU
+		{047DC795-A159-4BFF-AC0F-4DCE51A79C2C}.CodeCoverage|Any CPU.ActiveCfg = Debug|Any CPU
+		{047DC795-A159-4BFF-AC0F-4DCE51A79C2C}.CodeCoverage|Any CPU.Build.0 = Debug|Any CPU
+		{047DC795-A159-4BFF-AC0F-4DCE51A79C2C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{047DC795-A159-4BFF-AC0F-4DCE51A79C2C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{047DC795-A159-4BFF-AC0F-4DCE51A79C2C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{047DC795-A159-4BFF-AC0F-4DCE51A79C2C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -431,7 +422,6 @@ Global
 		{48F30397-9D10-4305-8E9D-35F7AE4ACE7C} = {373FFF5E-E84C-4789-B768-676FFF51E7A6}
 		{84B77973-0092-4DC9-87E3-F16FC2F4E9AE} = {54351E51-19CB-4DE3-8302-99846AB216CF}
 		{2C5EE730-8AAC-4927-8C68-E470D0AF5649} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
-		{FA2C8688-A8E2-433A-A28D-64836F677EDB} = {372C8639-B8B6-4063-80A1-3064A452372B}
 		{37129265-046F-4A46-A1BD-C067E6C06264} = {54351E51-19CB-4DE3-8302-99846AB216CF}
 		{F3F1EFBD-CCD0-4579-99EE-C91A1B6D5C5D} = {AB4285D8-CF1D-4B20-95F6-CB80892C8321}
 		{6157F348-7C98-469F-A32F-46002E79F155} = {AB4285D8-CF1D-4B20-95F6-CB80892C8321}
@@ -445,7 +435,6 @@ Global
 		{6EDCED3D-F7E4-4830-872B-E4D1C24EC591} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
 		{7F52F459-7B00-452B-96AD-D85BA05C3DDC} = {63969606-14B2-4D9D-AB72-A5D60D22037C}
 		{A03ECC50-84E7-49FE-9190-840F8DD64A1B} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
-		{DB969106-709B-428B-A6E5-B86E44ADFED2} = {372C8639-B8B6-4063-80A1-3064A452372B}
 		{9479C3D7-F565-4135-97C9-1B5D1199C259} = {AB4285D8-CF1D-4B20-95F6-CB80892C8321}
 		{5CCA3701-7090-47C7-A7FC-BD73C46F2F64} = {63969606-14B2-4D9D-AB72-A5D60D22037C}
 		{09391D32-FC84-4532-A658-F2952AFD26AF} = {54351E51-19CB-4DE3-8302-99846AB216CF}
@@ -478,6 +467,8 @@ Global
 		{77CF0F04-0DE0-4D81-93DE-56006D7BE213} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
 		{F8253E40-6EE0-4FFA-BF39-D133A504175E} = {54351E51-19CB-4DE3-8302-99846AB216CF}
 		{79E573DB-A6A8-4F6F-B5A0-DA2258EB82E6} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
+		{54771470-860C-4853-9318-6DB4EA76B595} = {578D5330-2F72-44C6-9DB5-C93B3F42C473}
+		{047DC795-A159-4BFF-AC0F-4DCE51A79C2C} = {578D5330-2F72-44C6-9DB5-C93B3F42C473}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D71830F5-3AF5-46B4-8A9E-1DCE4F2253AC}

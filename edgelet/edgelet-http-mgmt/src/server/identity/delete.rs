@@ -45,7 +45,8 @@ where
             .name("name")
             .ok_or_else(|| Error::from(ErrorKind::BadParam))
             .map(|name| {
-                let result = self.id_manager
+                let result = self
+                    .id_manager
                     .borrow_mut()
                     .delete(IdentitySpec::new(name))
                     .map(|_| {

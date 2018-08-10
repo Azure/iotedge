@@ -76,7 +76,8 @@ where
                 module = module.with_managed_by(managed_by.to_string());
             }
 
-            let res = self.client
+            let res = self
+                .client
                 .request::<Module, Module>(
                     Method::Put,
                     &format!("/devices/{}/modules/{}", &self.device_id, module_id),
@@ -95,7 +96,8 @@ where
         if module_id.trim().is_empty() {
             Either::B(future::err(Error::from(ErrorKind::EmptyModuleId)))
         } else {
-            let res = self.client
+            let res = self
+                .client
                 .request::<(), Module>(
                     Method::Get,
                     &format!("/devices/{}/modules/{}", &self.device_id, module_id),
@@ -135,7 +137,8 @@ where
         if module_id.trim().is_empty() {
             Either::B(future::err(Error::from(ErrorKind::EmptyModuleId)))
         } else {
-            let res = self.client
+            let res = self
+                .client
                 .request::<(), ()>(
                     Method::Delete,
                     &format!("/devices/{}/modules/{}", self.device_id, module_id),

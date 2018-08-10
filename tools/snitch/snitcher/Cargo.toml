@@ -1,0 +1,31 @@
+[package]
+name = "snitcher"
+version = "0.1.0"
+authors = ["Azure IoT Edge Devs"]
+publish = false
+
+[dependencies]
+azure_sdk_for_rust = "0.9"
+backtrace = "0.3"
+bytes = "0.4"
+byteorder = "1.2"
+chrono = { version = "0.4", features = ["serde"] }
+env_logger = "0.5"
+futures = "0.1"
+hex = "0.3"
+http = "0.1"
+humantime = "1.1.1"
+hyper = "0.12"
+hyper-tls = "0.3.0"
+libflate = "0.1"
+log = "0.4"
+openssl-probe = "0.1"
+serde = "1.0"
+serde_derive = "1.0"
+serde_json = "1.0"
+serde_yaml = "0.7"
+tar = "0.4"
+tokio = "0.1"
+tokio-uds = "0.2"
+url = "1.7"
+url_serde = "0.2"

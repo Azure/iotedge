@@ -72,7 +72,8 @@ where
             percent_encode(audience.to_lowercase().as_bytes(), IOTHUB_ENCODE_SET).to_string();
         let sig_data = format!("{}\n{}", &resource_uri, expiry);
 
-        let signature = self.key
+        let signature = self
+            .key
             .sign(SignatureAlgorithm::HMACSHA256, sig_data.as_bytes())
             .map(|s| base64::encode(s.as_bytes()))
             .map_err(Error::from)?;
@@ -607,11 +608,11 @@ mod tests {
                 .into_bytes(),
         );
         let reg_op_status_final = Response::new().with_status(StatusCode::Ok).with_body(
-            serde_json::to_string(&RegistrationOperationStatus::new("operation".to_string())
-                .with_registration_state(DeviceRegistrationResult::new(
-                    "reg".to_string(),
-                    "doesn't matter".to_string(),
-                ))).unwrap()
+            serde_json::to_string(
+                &RegistrationOperationStatus::new("operation".to_string()).with_registration_state(
+                    DeviceRegistrationResult::new("reg".to_string(), "doesn't matter".to_string()),
+                ),
+            ).unwrap()
                 .into_bytes(),
         );
         let stream = RefCell::new(stream::iter_result(vec![
@@ -785,12 +786,11 @@ mod tests {
     #[test]
     fn get_device_info_success() {
         assert_eq!(
-            get_device_info(&DeviceRegistrationResult::new(
-                "reg".to_string(),
-                "assigned".to_string()
-            ).with_device_id("device".to_string())
-                .with_assigned_hub("hub".to_string()))
-                .unwrap(),
+            get_device_info(
+                &DeviceRegistrationResult::new("reg".to_string(), "assigned".to_string())
+                    .with_device_id("device".to_string())
+                    .with_assigned_hub("hub".to_string())
+            ).unwrap(),
             ("device".to_string(), "hub".to_string())
         )
     }

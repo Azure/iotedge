@@ -9,6 +9,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using App.Metrics;
+    using App.Metrics.Counter;
+    using App.Metrics.Timer;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
@@ -53,10 +56,14 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                 {
                     throw new InvalidOperationException($"Endpoint executor for endpoint {this.Endpoint} is closed.");
                 }
-                long offset = await this.messageStore.Add(this.Endpoint.Id, message);
-                this.checkpointer.Propose(message);
-                Events.AddMessageSuccess(this, offset);
+                using (Metrics.StoreLatency(this.Endpoint.Id))
+                {
+                    long offset = await this.messageStore.Add(this.Endpoint.Id, message);
+                    this.checkpointer.Propose(message);
+                    Events.AddMessageSuccess(this, offset);
+                }
                 this.hasMessagesInQueue.Set();
+                Metrics.StoredCount(this.Endpoint.Id);
             }
             catch (Exception ex)
             {
@@ -160,6 +167,32 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                 Events.SetEndpointFailure(this, ex);
                 throw;
             }
+        }
+
+        static class Metrics
+        {
+            static readonly CounterOptions EndpointMessageCountOptions = new CounterOptions
+            {
+                Name = "EndpointMessageStoredCount",
+                MeasurementUnit = Unit.Events,
+                ResetOnReporting = true,
+            };
+            static readonly TimerOptions EndpointMessageLatencyOptions = new TimerOptions
+            {
+                Name = "EndpointMessageStoredLatencyMs",
+                MeasurementUnit = Unit.None,
+                DurationUnit = TimeUnit.Milliseconds,
+                RateUnit = TimeUnit.Seconds
+            };
+
+            internal static MetricTags GetTags(string id)
+            {
+                return new MetricTags("EndpointId", id);
+            }
+
+            public static void StoredCount(string identity) => Edge.Util.Metrics.Count(GetTags(identity), EndpointMessageCountOptions);
+
+            public static IDisposable StoreLatency(string identity) => Edge.Util.Metrics.Latency(GetTags(identity), EndpointMessageLatencyOptions);
         }
 
         static class Events

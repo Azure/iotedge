@@ -41,9 +41,11 @@ fn tpm_identity_affects_digest() {
     let data_to_be_signed = b"I am the very model of a modern major general";
 
     // act
-    let digest1 = key1.sign(SignatureAlgorithm::HMACSHA256, data_to_be_signed)
+    let digest1 = key1
+        .sign(SignatureAlgorithm::HMACSHA256, data_to_be_signed)
         .unwrap();
-    let digest2 = key2.sign(SignatureAlgorithm::HMACSHA256, data_to_be_signed)
+    let digest2 = key2
+        .sign(SignatureAlgorithm::HMACSHA256, data_to_be_signed)
         .unwrap();
 
     // assert

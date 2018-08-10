@@ -3,8 +3,8 @@ extern crate edgelet_core;
 extern crate edgelet_hsm;
 
 use edgelet_core::{
-    Certificate, CertificateProperties, CertificateType, CreateCertificate, KeyBytes, PrivateKey,
-    Signature,
+    Certificate, CertificateIssuer, CertificateProperties, CertificateType, CreateCertificate,
+    KeyBytes, PrivateKey, Signature, IOTEDGED_CA_ALIAS,
 };
 use edgelet_hsm::Crypto;
 
@@ -12,6 +12,21 @@ use edgelet_hsm::Crypto;
 fn crypto_create_cert_success() {
     // arrange
     let crypto = Crypto::new().unwrap();
+
+    // create the default issuing CA cert properties
+    let edgelet_ca_props = CertificateProperties::new(
+        3600,
+        "test-iotedge-cn".to_string(),
+        CertificateType::Ca,
+        IOTEDGED_CA_ALIAS.to_string(),
+    ).with_issuer(CertificateIssuer::DeviceCa);
+
+    // act create the default issuing CA cert
+    let workload_ca_cert = crypto.create_certificate(&edgelet_ca_props).unwrap();
+
+    // assert (CA cert)
+    let buffer = workload_ca_cert.pem().unwrap();
+    assert!(buffer.as_bytes().len() > 0);
 
     // act
     let props = CertificateProperties::new(
@@ -36,4 +51,10 @@ fn crypto_create_cert_success() {
         PrivateKey::Ref(_) => panic!("did not expect reference private key"),
         PrivateKey::Key(KeyBytes::Pem(k)) => assert!(k.as_bytes().len() > 0),
     }
+
+    // cleanup
+    crypto.destroy_certificate("Alias".to_string()).unwrap();
+    crypto
+        .destroy_certificate(IOTEDGED_CA_ALIAS.to_string())
+        .unwrap();
 }

@@ -47,7 +47,8 @@ where
         _params: Parameters,
     ) -> BoxFuture<Response<Body>, HyperError> {
         let runtime = self.runtime.clone();
-        let response = req.into_body()
+        let response = req
+            .into_body()
             .concat2()
             .and_then(move |b| {
                 serde_json::from_slice::<ModuleSpec>(&b)

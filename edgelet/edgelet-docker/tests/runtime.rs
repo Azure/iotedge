@@ -118,7 +118,8 @@ fn image_pull_with_creds_handler(req: Request) -> Box<Future<Item = Response, Er
     assert_eq!(query_map.get("fromImage"), Some(&IMAGE_NAME.to_string()));
 
     // verify registry creds
-    let auth_str = req.headers()
+    let auth_str = req
+        .headers()
         .get_raw("X-Registry-Auth")
         .unwrap()
         .iter()
@@ -326,9 +327,13 @@ fn container_create_succeeds() {
         "80/tcp".to_string(),
         vec![HostConfigPortBindings::new().with_host_port("8080".to_string())],
     );
-
+    let memory: i64 = 3221225472;
     let create_options = ContainerCreateBody::new()
-        .with_host_config(HostConfig::new().with_port_bindings(port_bindings))
+        .with_host_config(
+            HostConfig::new()
+                .with_port_bindings(port_bindings)
+                .with_memory(memory),
+        )
         .with_cmd(vec![
             "/do/the/custom/command".to_string(),
             "with these args".to_string(),
@@ -491,9 +496,11 @@ fn container_list_handler(req: Request) -> Box<Future<Item = Response, Error = H
     assert!(query_map.contains_key("filters"));
     assert_eq!(
         query_map.get("filters"),
-        Some(&json!({
-            "label": vec!["net.azure-devices.edge.owner=Microsoft.Azure.Devices.Edge.Agent"]
-        }).to_string())
+        Some(
+            &json!({
+                "label": vec!["net.azure-devices.edge.owner=Microsoft.Azure.Devices.Edge.Agent"]
+            }).to_string()
+        )
     );
 
     let mut labels = HashMap::new();

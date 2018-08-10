@@ -72,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             }
         }
 
-        static IList<AmqpMessage> ExpandBatchedMessage(AmqpMessage message)
+        internal static IList<AmqpMessage> ExpandBatchedMessage(AmqpMessage message)
         {
             var outputMessages = new List<AmqpMessage>();
 
@@ -80,7 +80,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             {
                 foreach (Data data in message.DataBody)
                 {
-                    AmqpMessage debatchedMessage = AmqpMessage.Create(data);
+                    var payload = (ArraySegment<byte>)data.Value;
+                    AmqpMessage debatchedMessage = AmqpMessage.CreateAmqpStreamMessage(new BufferListStream(new List<ArraySegment<byte>>()
+                    {
+                        payload
+                    }));
                     outputMessages.Add(debatchedMessage);
                 }
             }

@@ -60,7 +60,7 @@ where
 
     // handle the request and respond
     let response = handler(&req, body);
-    server.write(response.as_bytes()).unwrap();
+    server.write_all(response.as_bytes()).unwrap();
 }
 
 fn wait_readable(poll: &Poll, events: &mut Events) {

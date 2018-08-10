@@ -20,6 +20,7 @@ set(${theseTestsName}_test_files
 
     # the following files are needed when running tests using BUILD_SHARED=ON
     ../../src/edge_sas_perform_sign_with_key.c
+    ../../src/edge_openssl_common.c
     ../../src/edge_enc_openssl_key.c
     ../../src/edge_sas_key.c
     ../../src/edge_hsm_key_interface.c

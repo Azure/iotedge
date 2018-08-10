@@ -1,4 +1,4 @@
-ARG base_tag=2.1.0-runtime-alpine3.7
+ARG base_tag=2.1.2-runtime-alpine3.7
 FROM azureiotedge/azureiotedge-runtime-base:1.0.0-preview001-linux-amd64 as builder
 
 FROM microsoft/dotnet:${base_tag}

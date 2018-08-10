@@ -4,6 +4,7 @@ namespace IotEdgeQuickstart.Details
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
@@ -24,6 +25,7 @@ namespace IotEdgeQuickstart.Details
         readonly string imageTag;
         readonly string deviceId;
         readonly string hostname;
+        public readonly Option<string> DeploymentFileName;
 
         DeviceContext context;
 
@@ -34,7 +36,8 @@ namespace IotEdgeQuickstart.Details
             string eventhubCompatibleEndpointWithEntityPath,
             string imageTag,
             string deviceId,
-            string hostname
+            string hostname,
+            Option<string> deploymentFileName
             )
         {
             this.bootstrapper = bootstrapper;
@@ -44,6 +47,7 @@ namespace IotEdgeQuickstart.Details
             this.imageTag = imageTag;
             this.deviceId = deviceId;
             this.hostname = hostname;
+            this.DeploymentFileName = deploymentFileName;
         }
 
         protected Task VerifyEdgeIsNotAlreadyActive() => this.bootstrapper.VerifyNotActive();
@@ -117,7 +121,7 @@ namespace IotEdgeQuickstart.Details
 
         protected async Task VerifyEdgeAgentIsConnectedToIotHub()
         {
-            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30)))
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(300)))
             {
                 Exception savedException = null;
 
@@ -128,7 +132,7 @@ namespace IotEdgeQuickstart.Details
 
                     while (true)
                     {
-                        await Task.Delay(TimeSpan.FromSeconds(3), cts.Token);
+                        await Task.Delay(TimeSpan.FromSeconds(10), cts.Token);
 
                         try
                         {
@@ -156,7 +160,7 @@ namespace IotEdgeQuickstart.Details
             }
         }
 
-        protected Task DeployTempSensorToEdgeDevice()
+        protected Task DeployToEdgeDevice()
         {
             (string deployJson, string[] modules) = this.DeploymentJson();
 
@@ -295,23 +299,28 @@ namespace IotEdgeQuickstart.Details
             string edgeAgentImage = this.EdgeAgentImage();
             string edgeHubImage = this.EdgeHubImage();
             string tempSensorImage = this.TempSensorImage();
-            string deployJsonRegistry = this.credentials.Match(
-                c =>
-                {
-                    string json = DeployJsonRegistry;
-                    json = Regex.Replace(json, "<registry-address>", c.Address);
-                    json = Regex.Replace(json, "<registry-username>", c.User);
-                    json = Regex.Replace(json, "<registry-password>", c.Password);
-                    return json;
-                },
-                () => string.Empty
-            );
+            string deployJson = this.DeploymentFileName.Match(
+                f => JObject.Parse(File.ReadAllText(f)).ToString(),
+                () => {
+                    string deployJsonRegistry = this.credentials.Match(
+                    c =>
+                        {
+                            string jsonRegistry = DeployJsonRegistry;
+                            jsonRegistry = Regex.Replace(jsonRegistry, "<registry-address>", c.Address);
+                            jsonRegistry = Regex.Replace(jsonRegistry, "<registry-username>", c.User);
+                            jsonRegistry = Regex.Replace(jsonRegistry, "<registry-password>", c.Password);
+                            return jsonRegistry;
+                        },
+                        () => string.Empty
+                    );
 
-            string deployJson = DeployJson;
-            deployJson = Regex.Replace(deployJson, "<image-edge-agent>", edgeAgentImage);
-            deployJson = Regex.Replace(deployJson, "<image-edge-hub>", edgeHubImage);
-            deployJson = Regex.Replace(deployJson, "<image-temp-sensor>", tempSensorImage);
-            deployJson = Regex.Replace(deployJson, "<registry-info>", deployJsonRegistry);
+                    string json = DeployJson;
+                    json = Regex.Replace(json, "<image-edge-agent>", edgeAgentImage);
+                    json = Regex.Replace(json, "<image-edge-hub>", edgeHubImage);
+                    json = Regex.Replace(json, "<image-temp-sensor>", tempSensorImage);
+                    json = Regex.Replace(json, "<registry-info>", deployJsonRegistry);
+                    return json;
+                });
 
             return (deployJson, new [] { edgeAgentImage, edgeHubImage, tempSensorImage });
         }

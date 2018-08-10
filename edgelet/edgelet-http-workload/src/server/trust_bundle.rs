@@ -39,7 +39,8 @@ where
         _req: Request<Body>,
         _params: Parameters,
     ) -> BoxFuture<Response<Body>, HyperError> {
-        let response = self.hsm
+        let response = self
+            .hsm
             .get_trust_bundle()
             .and_then(|cert| cert.pem())
             .map_err(Error::from)

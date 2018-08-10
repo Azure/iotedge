@@ -131,7 +131,8 @@ where
 {
     let name = spec.name();
     let type_ = spec.type_();
-    let env = spec.config()
+    let env = spec
+        .config()
         .env()
         .map(|vars| {
             vars.into_iter()

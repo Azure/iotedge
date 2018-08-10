@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string token = TokenHelper.CreateSasToken("azure.devices.net");
             TimeSpan timeRemaining = CloudConnection.GetTokenExpiryTimeRemaining("foo.azuredevices.net", token);
             Assert.True(timeRemaining > TimeSpan.Zero);
-        }
+        }        
 
         [Unit]
         [Fact]
@@ -385,6 +385,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             // Assert
             Assert.Equal(DateTime.MinValue, actualExpiryTime);
+        }
+
+        [Unit]
+        [Fact]
+        public void GetIsTokenExpiredTest()
+        {
+            // Arrange
+            DateTime tokenExpiry = DateTime.UtcNow.AddYears(1);
+            string token = TokenHelper.CreateSasToken("azure.devices.net", tokenExpiry);
+
+            // Act
+            TimeSpan expiryTimeRemaining = CloudConnection.GetTokenExpiryTimeRemaining("azure.devices.net", token);
+
+            // Assert
+            Assert.True(expiryTimeRemaining - (tokenExpiry - DateTime.UtcNow) < TimeSpan.FromSeconds(1));
         }
     }
 }

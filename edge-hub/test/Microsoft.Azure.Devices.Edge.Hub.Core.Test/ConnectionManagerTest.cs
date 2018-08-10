@@ -336,6 +336,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var deviceProxy = new Mock<IDeviceProxy>(MockBehavior.Strict);
             deviceProxy.Setup(d => d.GetUpdatedIdentity()).ReturnsAsync(Option.Some(updatedDeviceCredentials));
+            deviceProxy.SetupGet(d => d.IsActive).Returns(true);
 
             var connectionManager = new ConnectionManager(cloudProxyProviderMock.Object);
             await connectionManager.AddDeviceConnection(deviceCredentials.Identity, deviceProxy.Object);

@@ -51,7 +51,8 @@ where
             })
             .map(|(module_id, genid)| {
                 let alias = format!("{}{}", module_id.to_string(), genid.to_string());
-                let result = req.into_body()
+                let result = req
+                    .into_body()
                     .concat2()
                     .map(move |body| {
                         serde_json::from_slice::<ServerCertificateRequest>(&body)
@@ -62,6 +63,7 @@ where
                                     .map(|expiration| (cert_req, expiration))
                             })
                             .and_then(move |(cert_req, expiration)| {
+                                hsm.destroy_certificate(alias.clone()).map_err(Error::from)?;
                                 let props = CertificateProperties::new(
                                     ensure_range!(expiration, 0, i64::max_value()) as u64,
                                     ensure_not_empty!(cert_req.common_name().to_string()),
@@ -163,6 +165,10 @@ mod tests {
         ) -> StdResult<TestCert, CoreError> {
             let callback = self.on_create.as_ref().unwrap();
             callback(properties)
+        }
+
+        fn destroy_certificate(&self, _alias: String) -> StdResult<(), CoreError> {
+            Ok(())
         }
     }
 

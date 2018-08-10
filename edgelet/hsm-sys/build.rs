@@ -119,11 +119,17 @@ fn main() {
     // crate)
     // Always make the Release version because Rust links to the Release CRT.
     // (This is especially important for Windows)
+
+    let rut = if env::var("FORCE_NO_UNITTEST").is_ok() {
+        "OFF"
+    } else {
+        "ON"
+    };
     println!("#Start building HSM dev-mode library");
     let iothsm = Config::new("azure-iot-hsm-c")
         .define(SSL_OPTION, "ON")
         .define("CMAKE_BUILD_TYPE", "Release")
-        .define("run_unittests", "ON")
+        .define("run_unittests", rut)
         .define("use_default_uuid", "ON")
         .define("skip_samples", "ON")
         .set_platform_defines()
@@ -141,6 +147,7 @@ fn main() {
     println!("cargo:rustc-link-search=native={}", iothsm.display());
     // For libraries (ie. C Shared) which will install in $target/lib
     println!("cargo:rustc-link-search=native={}/lib", iothsm.display());
+    println!("cargo:rustc-link-search=native={}/lib64", iothsm.display());
     println!("cargo:rustc-link-lib=iothsm");
 
     // we need to explicitly link with c shared util only when we build the C

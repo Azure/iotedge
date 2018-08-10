@@ -241,7 +241,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                                 this.edgeModuleId,
                                 this.edgeModuleGenerationId.Expect(() => new InvalidOperationException("Missing generation ID")),
                                 Service.Constants.InitializationVectorFileName) as IEncryptionProvider)
-                            .GetOrElse(() => Task.FromResult<IEncryptionProvider>(NullEncryptionProvider.Instance));                        
+                            .GetOrElse(() => Task.FromResult<IEncryptionProvider>(NullEncryptionProvider.Instance));
                         IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
                         IEntityStore<string, string> tokenCredentialsEntityStore = storeProvider.GetEntityStore<string, string>("tokenCredentials");
                         return new TokenCredentialsStore(tokenCredentialsEntityStore, encryptionProvider);
@@ -415,12 +415,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .Named<Task<ICloudProxy>>("EdgeHubCloudProxy")
                 .SingleInstance();
 
+            // IInvokeMethodHandler
+            builder.Register(c => new InvokeMethodHandler(c.Resolve<IConnectionManager>()))
+                .As<IInvokeMethodHandler>()
+                .SingleInstance();
+
             // Task<IEdgeHub>
             builder.Register(
                 async c =>
                 {
                     Router router = await c.Resolve<Task<Router>>();
-                    IEdgeHub hub = new RoutingEdgeHub(router, c.Resolve<Core.IMessageConverter<IRoutingMessage>>(), c.Resolve<IConnectionManager>(), c.Resolve<ITwinManager>(), this.edgeDeviceId);
+                    IEdgeHub hub = new RoutingEdgeHub(router, c.Resolve<Core.IMessageConverter<IRoutingMessage>>(), c.Resolve<IConnectionManager>(),
+                        c.Resolve<ITwinManager>(), this.edgeDeviceId, c.Resolve<IInvokeMethodHandler>());
                     return hub;
                 })
                 .As<Task<IEdgeHub>>()

@@ -25,7 +25,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         IDeviceProxy underlyingProxy;
 
         // IoTHub error codes
-        const int GatewayTimeoutErrorCode = 504101;
         const int GenericBadRequest = 400000;
 
         public DeviceMessageHandler(IIdentity identity, IEdgeHub edgeHub, IConnectionManager connectionManager)
@@ -208,7 +207,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             if (completedTask != taskCompletion.Task)
             {
                 Events.MethodResponseTimedout(this.Identity, request.Id, request.CorrelationId);
-                taskCompletion.TrySetResult(new DirectMethodResponse(null, null, GatewayTimeoutErrorCode));
+                taskCompletion.TrySetResult(new DirectMethodResponse(new EdgeHubTimeoutException($"Timed out waiting for device to respond to method request {request.CorrelationId}"), HttpStatusCode.GatewayTimeout));
                 this.methodCallTaskCompletionSources.TryRemove(request.CorrelationId.ToLowerInvariant(), out taskCompletion);
             }
 

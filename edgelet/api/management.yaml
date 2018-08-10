@@ -369,7 +369,7 @@ paths:
           required: true
           type: string
       responses:
-        '200':
+        '204':
           description: Ok
         '404':
           description: Not Found
@@ -530,7 +530,6 @@ definitions:
     required:
       - osType
       - architecture
-      - version
     example:
       osType: "linux/windows"
       architecture: "arm/amd64/x86"

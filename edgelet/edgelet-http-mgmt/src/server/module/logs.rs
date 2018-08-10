@@ -43,7 +43,8 @@ where
             .name("name")
             .ok_or_else(|| Error::from(ErrorKind::BadParam))
             .and_then(|name| {
-                let options = req.uri()
+                let options = req
+                    .uri()
                     .query()
                     .map(parse_options)
                     .unwrap_or_else(|| Ok(LogOptions::default()))

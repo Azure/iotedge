@@ -6,6 +6,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
+    using App.Metrics;
+    using App.Metrics.Counter;
+    using App.Metrics.Timer;
     using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -83,8 +86,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     {
                         try
                         {
-                            await cp.SendMessageAsync(message);
+                            string id = this.GetIdentity(routingMessage).Expect(() => new InvalidOperationException("Could not retrieve identity of message"));
+                            using (Metrics.CloudLatency(id))
+                            {
+                                await cp.SendMessageAsync(message);
+                            }
                             succeeded.Add(routingMessage);
+                            Metrics.MessageCount(id);
                         }
                         catch (Exception ex)
                         {
@@ -150,25 +158,58 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             bool IsTransientException(Exception ex) => ex is EdgeHubIOException || ex is EdgeHubConnectionException;
 
-            Util.Option<ICloudProxy> GetCloudProxy(IRoutingMessage routingMessage)
+            Util.Option<string> GetIdentity(IRoutingMessage routingMessage)
             {
                 if (routingMessage.SystemProperties.TryGetValue(SystemProperties.ConnectionDeviceId, out string deviceId))
                 {
-                    string id = routingMessage.SystemProperties.TryGetValue(SystemProperties.ConnectionModuleId, out string moduleId)
+                    return Option.Some(routingMessage.SystemProperties.TryGetValue(SystemProperties.ConnectionModuleId, out string moduleId)
                         ? $"{deviceId}/{moduleId}"
-                        : deviceId;
-                    Util.Option<ICloudProxy> cloudProxy = this.cloudEndpoint.cloudProxyGetterFunc(id);                        
-                    if(!cloudProxy.HasValue)
+                        : deviceId);
+                }
+                Events.DeviceIdNotFound(routingMessage);
+                return Option.None<string>();
+            }
+
+            Util.Option<ICloudProxy> GetCloudProxy(IRoutingMessage routingMessage)
+            {
+                return this.GetIdentity(routingMessage).Match(id =>
+                {
+                    Util.Option<ICloudProxy> cloudProxy = this.cloudEndpoint.cloudProxyGetterFunc(id);
+                    if (!cloudProxy.HasValue)
                     {
                         Events.IoTHubNotConnected(id);
                     }
                     return cloudProxy;
-                }
-                Events.DeviceIdNotFound(routingMessage);
-                return Option.None<ICloudProxy>();
+                }, () => Option.None<ICloudProxy>());
             }
 
             static bool IsRetryable(Exception ex) => ex != null && RetryableExceptions.Contains(ex.GetType());
+        }
+
+        static class Metrics
+        {
+            static readonly CounterOptions EdgeHubToCloudMessageCountOptions = new CounterOptions
+            {
+                Name = "EdgeHubToCloudMessageSentCount",
+                MeasurementUnit = Unit.Events,
+                ResetOnReporting = true,
+            };
+            static readonly TimerOptions EdgeHubToCloudMessageLatencyOptions = new TimerOptions
+            {
+                Name = "EdgeHubToCloudMessageLatencyMs",
+                MeasurementUnit = Unit.None,
+                DurationUnit = TimeUnit.Milliseconds,
+                RateUnit = TimeUnit.Seconds
+            };
+
+            internal static MetricTags GetTags(string id)
+            {
+                return new MetricTags("DeviceId", id);
+            }
+
+            public static void MessageCount(string identity) => Util.Metrics.Count(GetTags(identity), EdgeHubToCloudMessageCountOptions);
+
+            public static IDisposable CloudLatency(string identity) => Util.Metrics.Latency(GetTags(identity), EdgeHubToCloudMessageLatencyOptions);
         }
 
         static class Events

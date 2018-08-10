@@ -87,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             {
                 if (SystemProperties.OutgoingSystemPropertiesMap.TryGetValue(systemProperty.Key, out string onWirePropertyName))
                 {
-                    properties.Add(onWirePropertyName, systemProperty.Value);
+                    properties[onWirePropertyName] = systemProperty.Value;
                 }
             }
 
