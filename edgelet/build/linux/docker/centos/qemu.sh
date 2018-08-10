@@ -13,25 +13,28 @@ main() {
         automake
         bzip2
         curl
-        g++
-        libglib2.0-dev
+        git
+        gcc-c++
+        glib2-devel
+        libfdt-devel
         libtool
         make
         patch
-        pkg-config
-        zlib1g-dev
+        pixman-devel
+        pkgconfig
+        zlib-devel
     )
 
-    apt-get update
     local purge_list=()
     for dep in ${dependencies[@]}; do
-        if ! dpkg -L $dep; then
-            apt-get install --no-install-recommends -y $dep
+        if ! yum list -q installed $dep; then
+            yum install -y $dep
             purge_list+=( $dep )
         fi
     done
 
     td=$(mktemp -d)
+
     pushd $td
 
     curl -L http://wiki.qemu-project.org/download/qemu-$version.tar.bz2 | \
@@ -112,7 +115,6 @@ EOF
         --disable-kvm \
         --disable-vnc \
         --enable-user \
-        --static \
         --target-list=$arch-linux-user
     nice make -j$(nproc)
     make install
@@ -122,7 +124,10 @@ EOF
     ln -s /usr/local/bin/qemu-$arch /usr/bin/qemu-$arch-static
 
     # Clean up
-    apt-get purge --auto-remove -y ${purge_list[@]}
+    
+    if [ ${#purge_list[@]} -ne 0 ]; then
+        yum remove -y ${purge_list[@]}
+    fi
 
     popd
 

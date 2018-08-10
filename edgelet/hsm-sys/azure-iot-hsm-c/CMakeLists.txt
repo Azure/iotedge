@@ -74,8 +74,16 @@ else()
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -fPIC -std=c99 -Werror ")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fPIC -Werror ")
     else()
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -fPIC -Wall -Werror -Wextra -Wformat=2 -Wformat-security -std=c99 ")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fPIC -Wall -Werror -Wextra -Wformat=2 -Wformat-security ")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -fPIC -std=c99 -Werror ")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fPIC -Werror ")
+
+        # Disabling these more restrictive compiler flags because utpm doesn't build with them.
+        # All of the current builds set run_unittests=On. However this mode produces a bunch
+        # of test artifacts that get included as part of the package/install target.
+
+        # set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -fPIC -Wall -Werror -Wextra -Wformat=2 -Wformat-security -std=c99 ")
+        # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fPIC -Wall -Werror -Wextra -Wformat=2 -Wformat-security ")
+
         # todo remove this when utpm fixes are mainlined
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-missing-field-initializers -Wno-sign-compare ")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-field-initializers -Wno-sign-compare ")
@@ -143,7 +151,7 @@ if (${run_unittests})
     add_subdirectory(tests)
 endif()
 
-install(TARGETS iothsm DESTINATION lib)
+install(TARGETS iothsm DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 # CPack
 include (InstallRequiredSystemLibraries)
@@ -157,8 +165,20 @@ endif()
 set (CPACK_PACKAGE_NAME "libiothsm-std")
 set (CPACK_PACKAGE_DESCRIPTION_SUMMARY "Azure IoT standard mode HSM lib")
 
-set (CPACK_GENERATOR "DEB")
+if (NOT CPACK_GENERATOR)
+    set (CPACK_GENERATOR "DEB")
+endif()
+
 set (CPACK_DEBIAN_PACKAGE_PROVIDES "libiothsm")
 set (CPACK_DEBIAN_PACKAGE_MAINTAINER "Azure IoT Edge Devs")
 set (CPACK_DEBIAN_FILE_NAME "DEB-DEFAULT")
+
+set (CPACK_RPM_FILE_NAME RPM-DEFAULT)
+set (CPACK_RPM_PACKAGE_RELEASE_DIST On)
+set (CPACK_RPM_PACKAGE_URL "http://github.com/azure/iotedge")
+set (CPACK_RPM_PACKAGE_VENDOR "Microsoft Corporation")
+set (CPACK_RPM_PACKAGE_DESCRIPTION "Azure IoT standard mode HSM lib")
+set (CPACK_RPM_PACKAGE_LICENSE "Proprietary")
+
 include (CPack)
+
