@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-// #![deny(warnings)]
+#![deny(warnings)]
 extern crate azure_sdk_for_rust;
 extern crate backtrace;
 extern crate byteorder;
@@ -433,7 +433,6 @@ where
     let iter = i.into_iter();
     loop_fn((vec![], iter), |(mut output, mut iter)| {
         let fut = if let Some(next) = iter.next() {
-            debug!("Running next future. Output len: {}", output.len());
             Either::A(next.into_future().map(|v| Some(v)))
         } else {
             Either::B(future::ok(None))
@@ -444,7 +443,6 @@ where
                 output.push(val);
                 Ok(Loop::Continue((output, iter)))
             } else {
-                debug!("All futures in iter complete. Output len: {}", output.len());
                 Ok(Loop::Break(output))
             }
         })
