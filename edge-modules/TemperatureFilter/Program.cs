@@ -6,6 +6,7 @@ namespace TemperatureFilter
     using System.Collections.Generic;
     using System.Globalization;
     using System.IO;
+    using System.Runtime.Loader;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -58,11 +59,22 @@ namespace TemperatureFilter
             ModuleClient userContext = moduleClient;
             await moduleClient.SetInputMessageHandlerAsync("input1", PrintAndFilterMessages, userContext).ConfigureAwait(false);
 
-            (CancellationTokenSource _, ManualResetEventSlim completed, Option<object> handler)
-                = ShutdownHandler.Init(TimeSpan.FromSeconds(5), null);
-            completed.Set();
-            handler.ForEach(h => GC.KeepAlive(h));
+            // Wait until the app unloads or is cancelled
+            var cts = new CancellationTokenSource();
+            AssemblyLoadContext.Default.Unloading += (ctx) => cts.Cancel();
+            Console.CancelKeyPress += (sender, cpe) => cts.Cancel();
+            WhenCancelled(cts.Token).Wait();
             return 0;
+        }
+
+        /// <summary>
+        /// Handles cleanup operations when app is cancelled or unloads
+        /// </summary>
+        public static Task WhenCancelled(CancellationToken cancellationToken)
+        {
+            var tcs = new TaskCompletionSource<bool>();
+            cancellationToken.Register(s => ((TaskCompletionSource<bool>)s).SetResult(true), tcs);
+            return tcs.Task;
         }
 
         static async Task<ModuleClient> InitModuleClient(TransportType transportType)
