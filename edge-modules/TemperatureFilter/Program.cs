@@ -6,7 +6,6 @@ namespace TemperatureFilter
     using System.Collections.Generic;
     using System.Globalization;
     using System.IO;
-    using System.Runtime.Loader;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -30,7 +29,9 @@ namespace TemperatureFilter
         const int DefaultTemperatureThreshold = 25;
         static int counter;
 
-        static void Main()
+        public static int Main() => MainAsync().Result;
+
+        static async Task<int> MainAsync()
         {
             Console.WriteLine($"[{DateTime.UtcNow.ToString("MM/dd/yyyy hh:mm:ss.fff tt", CultureInfo.InvariantCulture)}] Main()");
 
@@ -40,46 +41,46 @@ namespace TemperatureFilter
                 .AddEnvironmentVariables()
                 .Build();
 
-            TransportType transportType = configuration.GetValue("ClientTransportType", TransportType.Mqtt_Tcp_Only);
-            
+            TransportType transportType = configuration.GetValue("ClientTransportType", TransportType.Amqp_Tcp_Only);
             Console.WriteLine($"Using transport {transportType.ToString()}");
 
             var retryPolicy = new RetryPolicy(TimeoutErrorDetectionStrategy, TransientRetryStrategy);
             retryPolicy.Retrying += (_, args) =>
             {
-                Console.WriteLine($"Init failed with exception {args.LastException}");
+                Console.WriteLine($"Creating ModuleClient failed with exception {args.LastException}");
                 if (args.CurrentRetryCount < RetryCount)
                 {
                     Console.WriteLine("Retrying...");
                 }
             };
-            retryPolicy.ExecuteAsync(() => Init(transportType)).Wait();
+            ModuleClient moduleClient = await retryPolicy.ExecuteAsync(() => InitModuleClient(transportType));
 
-            // Wait until the app unloads or is cancelled
-            var cts = new CancellationTokenSource();
-            AssemblyLoadContext.Default.Unloading += (ctx) => cts.Cancel();
-            Console.CancelKeyPress += (sender, cpe) => cts.Cancel();
-            WhenCancelled(cts.Token).Wait();
+            ModuleClient userContext = moduleClient;
+            await moduleClient.SetInputMessageHandlerAsync("input1", PrintAndFilterMessages, userContext).ConfigureAwait(false);
+
+            (CancellationTokenSource _, ManualResetEventSlim completed, Option<object> handler)
+                = ShutdownHandler.Init(TimeSpan.FromSeconds(5), null);
+            completed.Set();
+            handler.ForEach(h => GC.KeepAlive(h));
+            return 0;
         }
 
-        public static Task WhenCancelled(CancellationToken cancellationToken)
+        static async Task<ModuleClient> InitModuleClient(TransportType transportType)
         {
-            var tcs = new TaskCompletionSource<bool>();
-            cancellationToken.Register(s => ((TaskCompletionSource<bool>)s).SetResult(true), tcs);
-            return tcs.Task;
-        }
+            ITransportSettings[] GetTransportSettings()
+            {
+                switch (transportType)
+                {
+                    case TransportType.Mqtt:
+                    case TransportType.Mqtt_Tcp_Only:
+                    case TransportType.Mqtt_WebSocket_Only:
+                        return new ITransportSettings[] { new MqttTransportSettings(transportType) };
+                    default:
+                        return new ITransportSettings[] { new AmqpTransportSettings(transportType) };
+                }
+            }
+            ITransportSettings[] settings = GetTransportSettings();
 
-        /// <summary>
-        /// Initializes the ModuleClient and sets up the callback to receive
-        /// messages containing temperature information
-        /// </summary>
-        static async Task Init(TransportType transportType)
-        {
-            var mqttSetting = new MqttTransportSettings(transportType);
-
-            ITransportSettings[] settings = { mqttSetting };
-
-            // Open a connection to the Edge runtime
             ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings).ConfigureAwait(false);
             await moduleClient.OpenAsync().ConfigureAwait(false);
             Console.WriteLine("TemperatureFilter - Opened module client connection");
@@ -87,13 +88,8 @@ namespace TemperatureFilter
             ModuleConfig moduleConfig = await GetConfiguration(moduleClient).ConfigureAwait(false);
             Console.WriteLine($"Using TemperatureThreshold value of {moduleConfig.TemperatureThreshold}");
 
-            var userContext = new Tuple<ModuleClient, ModuleConfig>(moduleClient, moduleConfig);
-
-            // Register callback to be called when a message is sent to "input1"
-            await moduleClient.SetInputMessageHandlerAsync(
-                "input1",
-                PrintAndFilterMessages,
-                userContext).ConfigureAwait(false);
+            Console.WriteLine("Successfully initialized module client.");
+            return moduleClient;
         }
 
         /// <summary>
