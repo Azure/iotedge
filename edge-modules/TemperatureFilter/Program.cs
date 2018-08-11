@@ -54,10 +54,13 @@ namespace TemperatureFilter
                     Console.WriteLine("Retrying...");
                 }
             };
-            ModuleClient moduleClient = await retryPolicy.ExecuteAsync(() => InitModuleClient(transportType));
+            Tuple<ModuleClient, ModuleConfig> moduleclientAndConfig = await retryPolicy.ExecuteAsync(() => InitModuleClient(transportType));
 
-            ModuleClient userContext = moduleClient;
-            await moduleClient.SetInputMessageHandlerAsync("input1", PrintAndFilterMessages, userContext).ConfigureAwait(false);
+            Tuple<ModuleClient, ModuleConfig> userContext = moduleclientAndConfig;
+
+
+
+            await moduleclientAndConfig.Item1.SetInputMessageHandlerAsync("input1", PrintAndFilterMessages, userContext).ConfigureAwait(false);
 
             // Wait until the app unloads or is cancelled
             var cts = new CancellationTokenSource();
@@ -77,7 +80,7 @@ namespace TemperatureFilter
             return tcs.Task;
         }
 
-        static async Task<ModuleClient> InitModuleClient(TransportType transportType)
+        static async Task<Tuple<ModuleClient, ModuleConfig>> InitModuleClient(TransportType transportType)
         {
             ITransportSettings[] GetTransportSettings()
             {
@@ -101,7 +104,7 @@ namespace TemperatureFilter
             Console.WriteLine($"Using TemperatureThreshold value of {moduleConfig.TemperatureThreshold}");
 
             Console.WriteLine("Successfully initialized module client.");
-            return moduleClient;
+            return new Tuple<ModuleClient, ModuleConfig>(moduleClient, moduleConfig);
         }
 
         /// <summary>
