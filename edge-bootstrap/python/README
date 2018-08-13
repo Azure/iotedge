@@ -6,8 +6,8 @@ Deprecation Notice
 The azure-iot-edge-runtime-ctl (iotedgectl) tool has now been deprecated!
 The Azure IoT Edge runtime (Edge Agent and Edge Hub)
 will continue to work when launched using this utility. However since the official release of the
-Edge security daemon, using in this utility to launch the Edge runtime is discouraged.
-To learn more about the officially supported Azure Edge please visit:
+Edge security daemon, using this utility to launch the IoT Edge runtime is discouraged.
+To learn more about the officially supported Azure IoT Edge please visit:
 <https://docs.microsoft.com/en-us/azure/iot-edge/>`__.
 
 Introduction
