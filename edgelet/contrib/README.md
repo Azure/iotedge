@@ -30,7 +30,7 @@ make deb
 All of the accompanying files in the debian package can be found in the `contrib` directory in the repo: https://github.com/Azure/iotedge/tree/master/edgelet/contrib
 
 #### Config files
-[config.yaml](https://github.com/Azure/iotedge/blob/master/edgelet/contrib/config/linux/config.yaml) installed as `/etc/iotedge/config.yaml` with mode/user `400 iotedge:iotedge`
+[config.yaml](https://github.com/Azure/iotedge/blob/master/edgelet/contrib/config/linux/debian/config.yaml) installed as `/etc/iotedge/config.yaml` with mode/user `400 iotedge:iotedge`
 
 [logrotate](https://github.com/Azure/iotedge/blob/master/edgelet/contrib/config/linux/logrotate) installed as `/etc/logrotate.d/iotedge` with mode/user `644 root:root`
 
@@ -54,11 +54,11 @@ All of the accompanying files in the debian package can be found in the `contrib
 
 #### Systemd
 
-[iotedge.service](https://github.com/Azure/iotedge/blob/master/edgelet/contrib/debian/iotedge.service) installed as `/lib/systemd/system/iotedge.service` with mode/user `644 root:root`
+[iotedge.service](https://github.com/Azure/iotedge/blob/master/edgelet/contrib/systemd/debian/iotedge.service) installed as `/lib/systemd/system/iotedge.service` with mode/user `644 root:root`
 
-[iotedge.socket](https://github.com/Azure/iotedge/blob/master/edgelet/contrib/debian/iotedge.socket) installed as `/lib/systemd/system/iotedge.socket` with mode/user `644 root:root`
+[iotedge.socket](https://github.com/Azure/iotedge/blob/master/edgelet/contrib/systemd/debian/iotedge.socket) installed as `/lib/systemd/system/iotedge.socket` with mode/user `644 root:root`
 
-[iotedge.mgmt.service](https://github.com/Azure/iotedge/blob/master/edgelet/contrib/debian/iotedge.mgmt.socket) installed as `/lib/systemd/system/iotedge.mgmt.socket` with mode/user `644 root:root`
+[iotedge.mgmt.service](https://github.com/Azure/iotedge/blob/master/edgelet/contrib/systemd/debian/iotedge.mgmt.socket) installed as `/lib/systemd/system/iotedge.mgmt.socket` with mode/user `644 root:root`
 
 #### SysV Init
 
@@ -72,7 +72,7 @@ The `/var/lib/iotedge` and `/var/log/iotedge` directories are both created with 
 
 ### Pre-install script
 The pre-install script is [here](https://github.com/Azure/iotedge/blob/master/edgelet/contrib/debian/preinst).
-It creates the `iotedge` user and group, adds the `iotedge` user to the 
+It creates the `iotedge` user and group, adds the `iotedge` user to the
 `docker` group (so that iotedged can be run unprivileged), and adds all sudoers
 to the `iotedge` group (so that the `iotedge` tool can be used without sudo).
 It also verifies that a container runtime is installed before installing.

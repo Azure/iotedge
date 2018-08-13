@@ -104,6 +104,10 @@ impl Container {
             .map(|s| s.as_str())
             .unwrap_or_else(|| self.id.as_str())
     }
+
+    pub fn state(&self) -> Option<&String> {
+        self.state.as_ref()
+    }
 }
 
 /// Logs parser
