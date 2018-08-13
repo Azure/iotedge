@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
     using static System.FormattableString;
 
@@ -22,6 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         readonly IEdgeHub edgeHub;
         readonly IConnectionManager connectionManager;
+        readonly AsyncLock serializeMessagesLock = new AsyncLock();
         IDeviceProxy underlyingProxy;
 
         // IoTHub error codes
@@ -84,12 +86,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             }
         }
 
-        public Task ProcessMessageFeedbackAsync(string messageId, FeedbackStatus feedbackStatus)
+        public async Task ProcessMessageFeedbackAsync(string messageId, FeedbackStatus feedbackStatus)
         {
             if (string.IsNullOrWhiteSpace(messageId))
             {
                 Events.MessageFeedbackWithNoMessageId(this.Identity);
-                return Task.CompletedTask;
+                return;
             }
 
             Events.MessageFeedbackReceived(this.Identity, messageId, feedbackStatus);
@@ -97,17 +99,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             {
                 if (feedbackStatus == FeedbackStatus.Complete)
                 {
+                    // TaskCompletionSource.SetResult causes the continuation of the underlying task
+                    // to happen on the same task. So calling Task.Yield to let go of the current thread
+                    // That way the underlying task will be scheduled to complete asynchronously on a different thread
+                    await Task.Yield();
                     taskCompletionSource.SetResult(true);
                 }
                 else
                 {
                     taskCompletionSource.SetException(new EdgeHubIOException($"Message not completed by client {this.Identity.Id}"));
                 }
-                return Task.CompletedTask;
             }
             else
             {
-                return this.connectionManager.GetCloudConnection(this.Identity.Id).ForEachAsync(cp => cp.SendFeedbackMessageAsync(messageId, feedbackStatus));
+                await this.connectionManager.GetCloudConnection(this.Identity.Id).ForEachAsync(cp => cp.SendFeedbackMessageAsync(messageId, feedbackStatus));
             }
         }
 
@@ -170,24 +175,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         /// </summary>
         public async Task SendMessageAsync(IMessage message, string input)
         {
-            string lockToken = Guid.NewGuid().ToString();
-            message.SystemProperties[SystemProperties.LockToken] = lockToken;
-
-            var taskCompletionSource = new TaskCompletionSource<bool>();
-            this.messageTaskCompletionSources.TryAdd(lockToken, taskCompletionSource);
-
-            Events.SendingMessage(this.Identity, lockToken);
-            await this.underlyingProxy.SendMessageAsync(message, input);
-
-            Task completedTask = await Task.WhenAny(taskCompletionSource.Task, Task.Delay(MessageResponseTimeout));
-            if (completedTask != taskCompletionSource.Task)
+            // Locking here since multiple queues could be sending to the same module
+            // The messages need to be processed in order.
+            using (await this.serializeMessagesLock.LockAsync())
             {
-                Events.MessageFeedbackTimedout(this.Identity, lockToken);
-                taskCompletionSource.SetException(new TimeoutException("Message completion response not received"));
-                this.messageTaskCompletionSources.TryRemove(lockToken, out taskCompletionSource);
-            }
+                string lockToken = Guid.NewGuid().ToString();
+                message.SystemProperties[SystemProperties.LockToken] = lockToken;
 
-            await taskCompletionSource.Task;
+                var taskCompletionSource = new TaskCompletionSource<bool>();
+                this.messageTaskCompletionSources.TryAdd(lockToken, taskCompletionSource);
+
+                Events.SendingMessage(this.Identity, lockToken);
+                await this.underlyingProxy.SendMessageAsync(message, input);
+
+                Task completedTask = await Task.WhenAny(taskCompletionSource.Task, Task.Delay(MessageResponseTimeout));
+                if (completedTask != taskCompletionSource.Task)
+                {
+                    Events.MessageFeedbackTimedout(this.Identity, lockToken);
+                    taskCompletionSource.SetException(new TimeoutException("Message completion response not received"));
+                    this.messageTaskCompletionSources.TryRemove(lockToken, out taskCompletionSource);
+                }
+
+                await taskCompletionSource.Task;
+            }
         }
 
         /// <summary>
