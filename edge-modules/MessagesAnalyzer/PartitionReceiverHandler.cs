@@ -43,10 +43,13 @@ namespace MessagesAnalyzer
 
                         if (sequence != null && batchId != null)
                         { 
-                            DateTime enqueuedtime = DateTime.MinValue;
+                            DateTime enqueuedtime = DateTime.MinValue.ToUniversalTime();
                             if (eventData.SystemProperties.TryGetValue(EnqueuedTimePropertyName, out object enqueued))
                             {
-                                DateTime.TryParse(enqueued.ToString(), out enqueuedtime);
+                                if (DateTime.TryParse(enqueued.ToString(), out enqueuedtime))
+                                {
+                                    enqueuedtime = DateTime.SpecifyKind(enqueuedtime, DateTimeKind.Utc);
+                                }
                             }
 
                             if (long.TryParse(sequence.ToString(), out long sequenceNumber))
