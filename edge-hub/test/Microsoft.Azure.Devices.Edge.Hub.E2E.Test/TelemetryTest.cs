@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
         async Task SendTelemetryMultipleInputsTest(ITransportSettings[] transportSettings)
         {
-            int messagesCount = 10;
+            int messagesCount = 100;
             TestModule sender = null;
             TestModule receiver = null;
 
