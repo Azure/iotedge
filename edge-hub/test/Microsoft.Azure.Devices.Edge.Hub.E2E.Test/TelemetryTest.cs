@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
         async Task SendTelemetryMultipleInputsTest(ITransportSettings[] transportSettings)
         {
-            int messagesCount = 100;
+            int messagesCount = 30;
             TestModule sender = null;
             TestModule receiver = null;
 
@@ -81,8 +81,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 await receiver.SetupReceiveMessageHandler("input1");
                 await receiver.SetupReceiveMessageHandler("input2");
 
-                Task<int> task1 = sender.SendMessagesByCountAsync("output1", 0, messagesCount, TimeSpan.FromMinutes(2));
-                Task<int> task2 = sender.SendMessagesByCountAsync("output2", 0, messagesCount, TimeSpan.FromMinutes(2));
+                Task<int> task1 = sender.SendMessagesByCountAsync("output1", 0, messagesCount, TimeSpan.FromMinutes(2), TimeSpan.FromSeconds(2));
+                Task<int> task2 = sender.SendMessagesByCountAsync("output2", 0, messagesCount, TimeSpan.FromMinutes(2), TimeSpan.FromSeconds(3));
 
                 int[] sentMessagesCounts = await Task.WhenAll(task1, task2);
                 int sendMessagesCount = sentMessagesCounts[0] + sentMessagesCounts[1];

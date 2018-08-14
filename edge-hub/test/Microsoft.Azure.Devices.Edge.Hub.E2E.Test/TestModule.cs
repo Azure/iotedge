@@ -13,8 +13,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     public class TestModule
     {
         readonly ModuleClient moduleClient;
-        IDictionary<string, ISet<int>> receivedForInput;
-            IList<MethodRequest> receivedMethodRequests;
+        readonly IDictionary<string, ISet<int>> receivedForInput;
+        IList<MethodRequest> receivedMethodRequests;
 
         TestModule(ModuleClient moduleClient)
         {
@@ -59,9 +59,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         public ISet<int> GetReceivedMessageIndices(string input) => this.receivedForInput[input];
 
-        public async Task<int> SendMessagesByCountAsync(string output, int startIndex, int count, TimeSpan timeout)
+        public Task<int> SendMessagesByCountAsync(string output, int startIndex, int count, TimeSpan timeout) =>
+            this.SendMessagesByCountAsync(output, startIndex, count, timeout, TimeSpan.Zero);
+
+        public async Task<int> SendMessagesByCountAsync(string output, int startIndex, int count, TimeSpan timeout, TimeSpan sleepTime)
         {
-            int sentMessagesCount = await this.SendMessagesAsync(output, startIndex, count, timeout);
+            int sentMessagesCount = await this.SendMessagesAsync(output, startIndex, count, timeout, sleepTime);
             if (sentMessagesCount < count)
             {
                 throw new TimeoutException($"Attempted to send {count} messages in {timeout.TotalSeconds} seconds, but was able to send only {sentMessagesCount}");
@@ -69,9 +72,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             return sentMessagesCount;
         }
 
-        public Task<int> SendMessagesForDurationAsync(string output, TimeSpan duration) => this.SendMessagesAsync(output, 0, int.MaxValue, duration);
+        public Task<int> SendMessagesForDurationAsync(string output, TimeSpan duration) => this.SendMessagesAsync(output, 0, int.MaxValue, duration, TimeSpan.Zero);
 
-        async Task<int> SendMessagesAsync(string output, int startIndex, int count, TimeSpan duration)
+        async Task<int> SendMessagesAsync(string output, int startIndex, int count, TimeSpan duration, TimeSpan sleepTime)
         {
             var s = new Stopwatch();
             s.Start();
@@ -79,6 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             for (; i < startIndex + count && s.Elapsed < duration; i++)
             {
                 await this.moduleClient.SendEventAsync(output, this.GetMessage(i.ToString()));
+                await Task.Delay(sleepTime);
             }
 
             s.Stop();
