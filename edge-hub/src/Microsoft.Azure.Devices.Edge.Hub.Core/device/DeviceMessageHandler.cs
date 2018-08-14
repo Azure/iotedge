@@ -100,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                 if (feedbackStatus == FeedbackStatus.Complete)
                 {
                     // TaskCompletionSource.SetResult causes the continuation of the underlying task
-                    // to happen on the same task. So calling Task.Yield to let go of the current thread
+                    // to happen on the same thread. So calling Task.Yield to let go of the current thread
                     // That way the underlying task will be scheduled to complete asynchronously on a different thread
                     await Task.Yield();
                     taskCompletionSource.SetResult(true);

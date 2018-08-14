@@ -85,7 +85,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 Task<int> task2 = sender.SendMessagesByCountAsync("output2", 0, messagesCount, TimeSpan.FromMinutes(2), TimeSpan.FromSeconds(3));
 
                 int[] sentMessagesCounts = await Task.WhenAll(task1, task2);
-                int sendMessagesCount = sentMessagesCounts[0] + sentMessagesCounts[1];
                 Assert.Equal(messagesCount, sentMessagesCounts[0]);
                 Assert.Equal(messagesCount, sentMessagesCounts[1]);
 
