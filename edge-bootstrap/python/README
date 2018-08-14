@@ -1,6 +1,15 @@
 Azure IoT Edge Runtime Control
 ==============================
 
+Deprecation Notice
+------------------
+The azure-iot-edge-runtime-ctl (iotedgectl) tool has now been deprecated!
+The Azure IoT Edge runtime (Edge Agent and Edge Hub)
+will continue to work when launched using this utility. However since the official release of the
+Edge security daemon, using this utility to launch the IoT Edge runtime is discouraged.
+To learn more about the officially supported Azure IoT Edge please visit:
+<https://docs.microsoft.com/en-us/azure/iot-edge/>`__.
+
 Introduction
 ------------
 
@@ -361,8 +370,8 @@ appropriate input data would have to provided.
       "logLevel": "info",
 
       // Upstream protocol to be used by the Edge runtime (and possibly other module)
-      // when connecting to IoTHub. The permitted values are Amqp and AmqpWs. 
-      // This is an optional setting. 
+      // when connecting to IoTHub. The permitted values are Amqp and AmqpWs.
+      // This is an optional setting.
       "upstreamProtocol": "Amqp",
 
       // Configuration settings for the IoT Edge Runtime
