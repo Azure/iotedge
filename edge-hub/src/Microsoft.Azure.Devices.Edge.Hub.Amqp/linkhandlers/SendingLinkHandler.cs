@@ -17,15 +17,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
     /// </summary>
     public abstract class SendingLinkHandler : LinkHandler, ISendingLinkHandler
     {
-        readonly ActionBlock<Delivery> deliveryMessageProcessor;
-
         protected SendingLinkHandler(ISendingAmqpLink link, Uri requestUri,
             IDictionary<string, string> boundVariables, IMessageConverter<AmqpMessage> messageConverter)
             : base(link, requestUri, boundVariables, messageConverter)
         {
             Preconditions.CheckArgument(!link.IsReceiver, $"Link {requestUri} cannot send");
             this.SendingAmqpLink = link;
-            this.deliveryMessageProcessor = new ActionBlock<Delivery>(this.DisposeMessageAsync);
         }
 
         protected ISendingAmqpLink SendingAmqpLink { get; }
@@ -93,15 +90,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             return Task.CompletedTask;
         }
 
-        internal void DispositionListener(Delivery delivery) => this.deliveryMessageProcessor.Post(delivery);
+        internal void DispositionListener(Delivery delivery) => this.DisposeMessageAsync(delivery);
 
-        async Task DisposeMessageAsync(Delivery delivery)
+        async void DisposeMessageAsync(Delivery delivery)
         {
             try
             {
                 Preconditions.CheckNotNull(delivery, nameof(delivery));
                 Preconditions.CheckArgument(delivery.State != null, "Delivery.State should not be null");
-
+                Preconditions.CheckArgument(delivery.DeliveryTag.Array != null, "DeliveryTag.Array should not be null");
                 string lockToken = new Guid(delivery.DeliveryTag.Array).ToString();
                 FeedbackStatus feedbackStatus = GetFeedbackStatus(delivery);
                 await this.DeviceListener.ProcessMessageFeedbackAsync(lockToken, feedbackStatus);
