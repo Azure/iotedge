@@ -234,7 +234,7 @@ function Get-SecurityDaemon {
             Copy-Item "$ArchivePath\*" "C:\ProgramData\iotedge" -Force
         }
         else {
-            mkdir C:\ProgramData\iotedge
+            Invoke-Native "mkdir C:\ProgramData\iotedge"
             Expand-Archive $ArchivePath "C:\ProgramData\iotedge" -Force
             Copy-Item "C:\ProgramData\iotedge\iotedged-windows\*" "C:\ProgramData\iotedge" -Force
         }
