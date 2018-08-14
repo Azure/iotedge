@@ -114,9 +114,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             using (IProtocolHead protocolHead = new EdgeHubProtocolHead(
                 new IProtocolHead[]
                 {
-                    new HttpProtocolHead(hosting.WebHost),
-                    await container.Resolve<Task<MqttProtocolHead>>(),
-                    await container.Resolve<Task<AmqpProtocolHead>>()
+                    //new HttpProtocolHead(hosting.WebHost),
+                    await container.Resolve<Task<MqttProtocolHead>>()
+                    //await container.Resolve<Task<AmqpProtocolHead>>()
                 }, logger))
             {
                 await protocolHead.StartAsync();
