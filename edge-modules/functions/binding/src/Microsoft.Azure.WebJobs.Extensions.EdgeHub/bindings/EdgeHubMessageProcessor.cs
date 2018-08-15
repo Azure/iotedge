@@ -1,6 +1,6 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Functions.Binding.Bindings
+namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
 {
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;

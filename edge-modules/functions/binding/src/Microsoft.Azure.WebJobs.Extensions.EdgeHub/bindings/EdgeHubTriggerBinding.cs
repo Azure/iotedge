@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Functions.Binding.Bindings
+namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
 {
     using System;
     using System.Collections.Generic;
@@ -8,13 +8,12 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding.Bindings
     using System.Reflection;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.WebJobs.Extensions.Bindings;
-    using Microsoft.Azure.WebJobs.Host.Bindings;
-    using Microsoft.Azure.WebJobs.Host.Executors;
-    using Microsoft.Azure.WebJobs.Host.Listeners;
-    using Microsoft.Azure.WebJobs.Host.Protocols;
-    using Microsoft.Azure.WebJobs.Host.Triggers;
+    using Devices.Client;
+    using Host.Bindings;
+    using Host.Executors;
+    using Host.Listeners;
+    using Host.Protocols;
+    using Host.Triggers;
 
     /// <summary>
     /// Implements a trigger binding for EdgeHub which triggers a function
@@ -46,8 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding.Bindings
                 throw new NotSupportedException("Message is required.");
             }
 
-            IValueBinder valueBinder = new EdgeHubValueBinder(this.parameter, triggerValue);
-            return Task.FromResult<ITriggerData>(new TriggerData(valueBinder, this.GetBindingData(triggerValue)));
+            return Task.FromResult<ITriggerData>(new TriggerData(null, this.GetBindingData(triggerValue)));
         }
 
         public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
@@ -72,7 +70,9 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding.Bindings
         IReadOnlyDictionary<string, object> GetBindingData(Message value)
         {
             var bindingData = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
-            bindingData.Add("EdgeHubTrigger", value);
+            bindingData.Add("EnqueuedTimeUtc", value.CreationTimeUtc);
+            bindingData.Add("SequenceNumber", value.SequenceNumber);
+            bindingData.Add("Properties", value.Properties);
 
             return bindingData;
         }
@@ -80,7 +80,9 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding.Bindings
         IReadOnlyDictionary<string, Type> CreateBindingDataContract()
         {
             var contract = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
-            contract.Add("EdgeHubTrigger", typeof(Message));
+            contract.Add("EnqueuedTimeUtc", typeof(DateTime));
+            contract.Add("SequenceNumber", typeof(ulong));
+            contract.Add("Properties", typeof(IDictionary<string, string>));
 
             return contract;
         }
@@ -90,27 +92,6 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding.Bindings
             public override string GetTriggerReason(IDictionary<string, string> arguments)
             {
                 return string.Format(CultureInfo.InvariantCulture, "EdgeHub trigger fired at {0}", DateTime.Now.ToString("o", CultureInfo.InvariantCulture));
-            }
-        }
-
-        class EdgeHubValueBinder : ValueBinder
-        {
-            readonly object value;
-
-            public EdgeHubValueBinder(ParameterInfo parameter, Message value)
-                : base(parameter.ParameterType)
-            {
-                this.value = value;
-            }
-
-            public override Task<object> GetValueAsync()
-            {
-                return Task.FromResult(this.value);
-            }
-
-            public override string ToInvokeString()
-            {
-                return "Message";
             }
         }
 
