@@ -1,40 +1,39 @@
-
-FROM ubuntu:12.04
+FROM debian:9.5-slim
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     git \
+    software-properties-common \
     build-essential \
     ca-certificates \
-    cmake \
     uuid-dev \
     curl \
     openssl \
     libssl-dev \
     libcurl4-openssl-dev \
+    python \
+    debhelper \
+    dh-systemd \
     pkg-config
 
-COPY xargo.sh /                                                       
-RUN bash /xargo.sh                                                    
-
-COPY cmake.sh /                                                       
+COPY apt/cmake.sh /                                                       
 RUN apt-get purge --auto-remove -y cmake && \                         
-    bash /cmake.sh 3.0.2
+    bash /cmake.sh 3.11.4
 
 ARG TOOLCHAIN=gcc-linaro-7.2.1-2017.11-x86_64_arm-linux-gnueabihf
 ARG TRIPLE=arm-linux-gnueabihf
-COPY $TOOLCHAIN /
-ENV PATH="${PATH}:/${TRIPLE}/bin" \
-    SYSROOT=/${TRIPLE}/libc
+COPY $TOOLCHAIN /toolchain/
+ENV PATH="${PATH}:/toolchain/bin:/toolchain/${TRIPLE}/bin" \
+    SYSROOT=/toolchain/${TRIPLE}/libc
 
-COPY openssl.sh qemu.sh /                                             
+COPY debian9/openssl.sh apt/qemu.sh /                                             
 RUN bash /openssl.sh linux-armv4 ${TRIPLE}- ${SYSROOT} && \            
     bash /qemu.sh arm                                                 
       
-COPY zlib.sh /                                                       
+COPY apt/zlib.sh /                                                       
 RUN bash /zlib.sh 1.2.11 ${TRIPLE} ${SYSROOT}
 
-COPY curl.sh /                                                       
+COPY apt/curl.sh /                                                       
 RUN bash /curl.sh 7.59.0 ${TRIPLE} ${SYSROOT}
 
 ENV CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_LINKER=${TRIPLE}-gcc \
