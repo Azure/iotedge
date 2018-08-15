@@ -23,6 +23,7 @@ extern crate failure;
 extern crate futures;
 extern crate hsm;
 extern crate hyper;
+extern crate hyper_proxy;
 extern crate hyper_tls;
 extern crate iothubservice;
 #[macro_use]
@@ -87,9 +88,10 @@ use futures::sync::oneshot::{self, Receiver};
 use futures::Future;
 use hsm::tpm::Tpm;
 use hsm::ManageTpmKeys;
-use hyper::client::Service;
+use hyper::client::{FutureResponse, HttpConnector, Service};
 use hyper::server::Http;
-use hyper::{Client as HyperClient, Error as HyperError, Request, Response};
+use hyper::{Client as HyperClient, Error as HyperError, Request, Response, Uri};
+use hyper_proxy::{Proxy, ProxyConnector, Intercept};
 use hyper_tls::HttpsConnector;
 use iothubservice::DeviceClient;
 use provisioning::provisioning::{
@@ -183,6 +185,42 @@ pub struct Main {
     reactor: Core,
 }
 
+#[derive(Clone)]
+pub enum MaybeProxyClient {
+    NoProxy(HyperClient<HttpsConnector<HttpConnector>>),
+    Proxy(HyperClient<ProxyConnector<HttpsConnector<HttpConnector>>>),
+}
+
+impl MaybeProxyClient {
+    pub fn new(handle: &Handle, proxy_uri: Option<Uri>) -> Result<MaybeProxyClient, Error> {
+        let https = HttpsConnector::new(DNS_WORKER_THREADS, &handle.clone())?;
+        match proxy_uri {
+            None => {
+                Ok(MaybeProxyClient::NoProxy(HyperClient::configure().connector(https).build(&handle)))
+            },
+            Some(uri) => {
+                let proxy = Proxy::new(Intercept::All, uri);
+                let connector = ProxyConnector::from_proxy(https, proxy)?;
+                Ok(MaybeProxyClient::Proxy(HyperClient::configure().connector(connector).build(&handle)))
+            }
+        }
+    }
+}
+
+impl Service for MaybeProxyClient {
+    type Request = Request;
+    type Response = Response;
+    type Error = HyperError;
+    type Future = FutureResponse;
+
+    fn call(&self, req: Self::Request) -> Self::Future {
+        match *self {
+            MaybeProxyClient::NoProxy(ref client) => client.call(req) as Self::Future,
+            MaybeProxyClient::Proxy(ref client) => client.call(req) as Self::Future,
+        }
+    }
+}
+
 impl Main {
     pub fn new(settings: Settings<DockerConfig>) -> Result<Self, Error> {
         let reactor = Core::new()?;
@@ -209,10 +247,21 @@ impl Main {
             }
         }
 
+        let proxy_uri = env::var("HTTPS_PROXY")
+            .or_else(|_| env::var("https_proxy"))
+            .ok();
+        let proxy_uri = match proxy_uri {
+            None => None,
+            Some(s) => {
+                let proxy = s.parse::<Uri>()?;
+                info!("Detected HTTPS proxy server {}", proxy.to_string());
+                Some(proxy)
+            },
+        };
+
+
         let handle: Handle = core.handle().clone();
-        let hyper_client = HyperClient::configure()
-            .connector(HttpsConnector::new(DNS_WORKER_THREADS, &handle)?)
-            .build(&handle);
+        let hyper_client = MaybeProxyClient::new(&handle, proxy_uri)?;
 
         info!(
             "Using runtime network id {}",
