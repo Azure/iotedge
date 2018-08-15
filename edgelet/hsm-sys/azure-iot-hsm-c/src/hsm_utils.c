@@ -468,8 +468,10 @@ char* concat_files_to_cstring(const char **file_names, int num_files)
                 }
                 else
                 {
+                    bool concat_error = false;
                     result[0] = 0;
-                    for (index = 0; index < num_files; index++)
+                    index = 0;
+                    while ((index < num_files) && (!concat_error))
                     {
                         char *temp_result = read_file_into_cstring(file_names[index], NULL);
                         if (temp_result != NULL)
@@ -480,10 +482,11 @@ char* concat_files_to_cstring(const char **file_names, int num_files)
                                 LOG_ERROR("Error observed during concatenation");
                                 free(result);
                                 result = NULL;
-                                break;
+                                concat_error = true;
                             }
                             free(temp_result);
                         }
+                        index++;
                     }
                 }
             }
