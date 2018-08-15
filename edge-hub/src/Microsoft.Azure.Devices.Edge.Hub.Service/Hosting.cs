@@ -9,20 +9,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
     public class Hosting
     {
-        const int SslPortNumber = 443;
-
         Hosting(IWebHost webHost, IContainer container)
         {
             this.WebHost = webHost;
             this.Container = container;
         }
 
-        public static Hosting Initialize()
+        public static Hosting Initialize(int port)
         {
             IWebHostBuilder webHostBuilder = new WebHostBuilder()
                 .UseKestrel(options =>
                 {
-                    options.Listen(!Socket.OSSupportsIPv6 ? IPAddress.Any : IPAddress.IPv6Any, SslPortNumber, listenOptions =>
+                    options.Listen(!Socket.OSSupportsIPv6 ? IPAddress.Any : IPAddress.IPv6Any, port, listenOptions =>
                     {
                         listenOptions.UseHttps(ServerCertificateCache.X509Certificate);
                     });
