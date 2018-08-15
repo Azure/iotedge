@@ -4,11 +4,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "azure_c_shared_utility/crt_abstractions.h"
 #include "azure_c_shared_utility/xlogging.h"
 
 #include "hsm_certificate_props.h"
 
 #define MAX_COUNTRY_LEN 2
+#define MAX_COUNTRY_SIZE MAX_COUNTRY_LEN + 1
 #define MAX_STATE_LEN 128
 #define MAX_LOCALITY_LEN 128
 #define MAX_ORGANIZATION_LEN 64
@@ -25,7 +27,7 @@ typedef struct HSM_CERT_PROPS_TAG
     char* locality;
     char* org_name;
     char* org_unit;
-    char country_name[3];
+    char country_name[MAX_COUNTRY_SIZE];
     uint64_t validity;
 } HSM_CERT_PROPS;
 
@@ -172,7 +174,7 @@ int set_country_name(CERT_PROPS_HANDLE handle, const char* country_name)
         }
         else
         {
-            strcpy(handle->country_name, country_name);
+            strcpy_s(handle->country_name, MAX_COUNTRY_SIZE, country_name);
             result = 0;
         }
     }
