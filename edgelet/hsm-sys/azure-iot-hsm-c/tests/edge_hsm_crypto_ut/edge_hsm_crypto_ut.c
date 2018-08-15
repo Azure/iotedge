@@ -944,6 +944,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
             const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
             HSM_CLIENT_DESTROY_MASTER_ENCRYPTION_KEY hsm_client_destroy_master_encryption_key;
             hsm_client_destroy_master_encryption_key = interface->hsm_client_destroy_master_encryption_key;
+            hsm_client_crypto_deinit();
 
             umock_c_reset_all_calls();
 
