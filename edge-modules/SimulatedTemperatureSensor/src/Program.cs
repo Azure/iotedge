@@ -103,7 +103,7 @@ namespace SimulatedTemperatureSensor
             return moduleClient;
         }
 
-        //Control Message expected to be:
+        // Control Message expected to be:
         // {
         //     "command" : "reset"
         // }
@@ -117,6 +117,7 @@ namespace SimulatedTemperatureSensor
             try
             {
                 var messages = JsonConvert.DeserializeObject<ControlCommand[]>(messageString);
+
                 foreach (ControlCommand messageBody in messages)
                 {
                     if (messageBody.Command == ControlCommandEnum.Reset)
@@ -126,8 +127,22 @@ namespace SimulatedTemperatureSensor
                     }
                     else
                     {
-                        //NoOp
+                        // NoOp
                     }
+                }
+            }
+            catch (JsonSerializationException)
+            {
+                var messageBody = JsonConvert.DeserializeObject<ControlCommand>(messageString);
+
+                if (messageBody.Command == ControlCommandEnum.Reset)
+                {
+                    Console.WriteLine("Resetting temperature sensor..");
+                    Reset.Set(true);
+                }
+                else
+                {
+                    // NoOp
                 }
             }
             catch (Exception ex)
