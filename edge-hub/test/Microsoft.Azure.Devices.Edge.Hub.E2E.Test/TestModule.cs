@@ -13,12 +13,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     public class TestModule
     {
         readonly ModuleClient moduleClient;
-        ISet<int> received;
+        readonly IDictionary<string, ISet<int>> receivedForInput;
         IList<MethodRequest> receivedMethodRequests;
 
         TestModule(ModuleClient moduleClient)
         {
             this.moduleClient = moduleClient;
+            this.receivedForInput = new Dictionary<string, ISet<int>>();
         }
 
         public static async Task<TestModule> CreateAndConnect(string connectionString, ITransportSettings[] settings)
@@ -36,22 +37,34 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         public Task SetupReceiveMessageHandler()
         {
-            this.received = new HashSet<int>();
-            return this.moduleClient.SetMessageHandlerAsync(this.MessageHandler, null);
+            this.receivedForInput["_"] = new HashSet<int>();
+            return this.moduleClient.SetMessageHandlerAsync(this.MessageHandler, this.receivedForInput["_"]);
+        }
+
+        public Task SetupReceiveMessageHandler(string input)
+        {
+            this.receivedForInput[input] = new HashSet<int>();
+            return this.moduleClient.SetInputMessageHandlerAsync(input, this.MessageHandler, this.receivedForInput[input]);
         }
 
         Task<MessageResponse> MessageHandler(Message message, object userContext)
         {
             int messageIndex = int.Parse(message.Properties["testId"]);
-            this.received.Add(messageIndex);
+            var received = userContext as ISet<int>;
+            received?.Add(messageIndex);
             return Task.FromResult(MessageResponse.Completed);
         }
 
-        public ISet<int> GetReceivedMessageIndices() => this.received;
+        public ISet<int> GetReceivedMessageIndices() => this.receivedForInput["_"];
 
-        public async Task<int> SendMessagesByCountAsync(string output, int startIndex, int count, TimeSpan timeout)
+        public ISet<int> GetReceivedMessageIndices(string input) => this.receivedForInput[input];
+
+        public Task<int> SendMessagesByCountAsync(string output, int startIndex, int count, TimeSpan timeout) =>
+            this.SendMessagesByCountAsync(output, startIndex, count, timeout, TimeSpan.Zero);
+
+        public async Task<int> SendMessagesByCountAsync(string output, int startIndex, int count, TimeSpan timeout, TimeSpan sleepTime)
         {
-            int sentMessagesCount = await this.SendMessagesAsync(output, startIndex, count, timeout);
+            int sentMessagesCount = await this.SendMessagesAsync(output, startIndex, count, timeout, sleepTime);
             if (sentMessagesCount < count)
             {
                 throw new TimeoutException($"Attempted to send {count} messages in {timeout.TotalSeconds} seconds, but was able to send only {sentMessagesCount}");
@@ -59,9 +72,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             return sentMessagesCount;
         }
 
-        public Task<int> SendMessagesForDurationAsync(string output, TimeSpan duration) => this.SendMessagesAsync(output, 0, int.MaxValue, duration);
+        public Task<int> SendMessagesForDurationAsync(string output, TimeSpan duration) => this.SendMessagesAsync(output, 0, int.MaxValue, duration, TimeSpan.Zero);
 
-        async Task<int> SendMessagesAsync(string output, int startIndex, int count, TimeSpan duration)
+        async Task<int> SendMessagesAsync(string output, int startIndex, int count, TimeSpan duration, TimeSpan sleepTime)
         {
             var s = new Stopwatch();
             s.Start();
@@ -69,6 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             for (; i < startIndex + count && s.Elapsed < duration; i++)
             {
                 await this.moduleClient.SendEventAsync(output, this.GetMessage(i.ToString()));
+                await Task.Delay(sleepTime);
             }
 
             s.Stop();

@@ -51,6 +51,11 @@
             "type": "docker",
             "status": "running",
             "restartPolicy": "always",
+            "env": {
+              "TemperatureThreshold": {
+                "value": "19"
+              }
+            },
             "settings": {
               "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-temperature-filter:<Build.BuildNumber>-linux-amd64",
               "createOptions": ""
