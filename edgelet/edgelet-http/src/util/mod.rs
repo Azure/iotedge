@@ -21,6 +21,7 @@ use pid::UnixStreamExt;
 
 pub mod connector;
 pub mod incoming;
+pub mod proxy;
 
 pub use self::connector::UrlConnector;
 pub use self::incoming::Incoming;
