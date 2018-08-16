@@ -117,7 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         [Theory]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
-        async Task SendTelemetryHandleExceptionTest(ITransportSettings[] transportSettings)
+        async Task SendLargeMessageHandleExceptionTest(ITransportSettings[] transportSettings)
         {
             TestModule sender = null;
             
@@ -129,20 +129,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             {
                 sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1", transportSettings);
 
-                // create a large message
-                var message = new Message(new byte[400]);
-                await Assert.ThrowsAsync<IotHubException>(() => sender.SendMessageAsync("output1", message));
+                Exception ex = null;
+                try
+                {
+                    // create a large message
+                    var message = new Message(new byte[400 * 1000]);
+                    await sender.SendMessageAsync("output1", message);
+                }
+                catch (Exception e)
+                {
+                    ex = e;
+                }
+
+                Assert.NotNull(ex);
             }
             finally
             {
                 if (rm != null)
                 {
                     await rm.CloseAsync();
-                }
-                if (sender != null)
-                {
-                    await sender.Disconnect();
-                }
+                }                
             }
             // wait for the connection to be closed on the Edge side
             await Task.Delay(TimeSpan.FromSeconds(10));
