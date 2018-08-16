@@ -1,7 +1,5 @@
 FROM mcr.microsoft.com/azureiotedge-functions-binding:1.0.0-linux-amd64
 
-WORKDIR /app
+ENV AzureWebJobsScriptRoot=/app
 
-COPY samples/ samples/
-
-ENV AzureWebJobsScriptRoot=samples
+COPY samples/. /app
