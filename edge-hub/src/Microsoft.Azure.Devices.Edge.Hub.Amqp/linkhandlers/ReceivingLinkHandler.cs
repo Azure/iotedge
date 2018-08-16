@@ -33,9 +33,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
         {
             // TODO: Check if these can be set to null to use defaults and avoid bytes on the wire
             // The Receiver will spontaneously settle all incoming transfers.
-            this.ReceivingLink.Settings.RcvSettleMode = (byte)ReceiverSettleMode.First;
-            // The Sender will send all deliveries settled to the receiver.
-            this.ReceivingLink.Settings.SndSettleMode = (byte)SenderSettleMode.Settled;
+            this.ReceivingLink.Settings.RcvSettleMode = null;// Default ReceiverSettleMode.First;
+            // The Sender will send all deliveries unsettled to the receiver.
+            this.ReceivingLink.Settings.SndSettleMode = null; // Default SenderSettleMode.Unettled;
 
             this.ReceivingLink.RegisterMessageListener(m => this.sendMessageProcessor.Post(m));
             this.ReceivingLink.SafeAddClosed((s, e) => this.OnReceiveLinkClosed()

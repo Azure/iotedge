@@ -74,6 +74,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         public Task<int> SendMessagesForDurationAsync(string output, TimeSpan duration) => this.SendMessagesAsync(output, 0, int.MaxValue, duration, TimeSpan.Zero);
 
+        public Task SendMessageAsync(string output, Message message)
+        {
+            return this.moduleClient.SendEventAsync(output, message);
+        }
+
         async Task<int> SendMessagesAsync(string output, int startIndex, int count, TimeSpan duration, TimeSpan sleepTime)
         {
             var s = new Stopwatch();
