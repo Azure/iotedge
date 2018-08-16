@@ -203,7 +203,7 @@ publish_files $SRC_SCRIPTS_DIR $PUBLISH_FOLDER
 publish_files $SRC_BIN_DIR $PUBLISH_FOLDER
 publish_files $SRC_STRESS_DIR $PUBLISH_FOLDER
 publish_files $SRC_E2E_TEMPLATES_DIR $PUBLISH_FOLDER
-publish_files $FUNCTIONS_SAMPLE_DIR $PUBLISH_FOLDER/FunctionsSample
+publish_files $FUNCTIONS_SAMPLE_DIR $PUBLISH_FOLDER
 
 if [ $PUBLISH_TESTS -eq 1 ]; then
     while read proj; do
