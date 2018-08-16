@@ -14,6 +14,7 @@ License:        Proprietary
 Summary:        Azure IoT Edge Security Daemon
 URL:            https://github.com/azure/iotedge
 
+%{?systemd_requires}
 BuildRequires:  systemd
 Requires(pre):  shadow-utils
 Requires:       libiothsm-std
@@ -94,6 +95,13 @@ echo ""
 echo "  These commands may need to be run with sudo depending on your environment."
 echo ""
 echo "==============================================================================="
+%systemd_post iotedge.service
+
+%preun
+%systemd_preun iotedge.service
+
+%postun
+%systemd_postun_with_restart iotedge.service
 
 %files
 %defattr(-, root, root, -)
