@@ -11,6 +11,9 @@ RUN apt-get update && \
     openssl \
     libssl-dev \
     libcurl4-openssl-dev \
+    python \
+    debhelper \
+    dh-systemd \
     pkg-config
 
 COPY cmake.sh /                                                       

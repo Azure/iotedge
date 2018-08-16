@@ -12,13 +12,13 @@ BUILD_DIR="$PROJECT_ROOT/$BUILD_DIR_REL"
 
 CARGO_HOME=${CARGO_HOME:-"$HOME/.cargo/"}
 RUSTUP_HOME=${RUSTUP_HOME:-"$HOME/.rustup"}
-IMAGE="edgebuilds.azurecr.io/debian-build:9.5"
+IMAGE="edgebuilds.azurecr.io/debian-build:9.5-1"
 
 REVISION=${REVISION:-1}
 DEFAULT_VERSION=$(cat $PROJECT_ROOT/version.txt)
 VERSION="${VERSION:-$DEFAULT_VERSION}"
 
-docker pull "$IMAGE"
+#docker pull "$IMAGE"
 
 run_command()
 {
@@ -39,7 +39,6 @@ run_command()
 
 mkdir -p $BUILD_DIR
 
-COMMAND="
-cd $PROJECT_ROOT && make deb DPKGFLAGS="-b -us -uc -i"
+COMMAND="cd /project/edgelet && make deb DPKGFLAGS=\"-b -us -uc -i\""
 
 run_command "$COMMAND"

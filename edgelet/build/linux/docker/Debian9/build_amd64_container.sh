@@ -10,7 +10,7 @@ main() {
         return 1
     fi
 
-    docker build -f Dockerfile.x86_64-unknown-linux-gnu --tag edgebuilds.azurecr.io/debian-build:9.5 .
+    docker build -f Dockerfile.x86_64-unknown-linux-gnu --tag edgebuilds.azurecr.io/debian-build:9.5-1 .
 }
 
 main "${@}"

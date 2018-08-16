@@ -8,9 +8,10 @@ RUN apt-get update && \
     ca-certificates \
     uuid-dev \
     curl \
-    openssl \
-    libssl-dev \
+    libssl1.0-dev \
     libcurl4-openssl-dev \
+    debhelper \
+    dh-systemd \
     pkg-config
 
 COPY cmake.sh /                                                       

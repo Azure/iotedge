@@ -12,13 +12,13 @@ BUILD_DIR="$PROJECT_ROOT/$BUILD_DIR_REL"
 
 CARGO_HOME=${CARGO_HOME:-"$HOME/.cargo/"}
 RUSTUP_HOME=${RUSTUP_HOME:-"$HOME/.rustup"}
-IMAGE="edgebuilds.azurecr.io/gcc-linaro-7.3.1-2018.05-x86_64_arm-linux-gnueabihf:centos_7.5-1"
+IMAGE="edgebuilds.azurecr.io/gcc-linaro-7.3.1-2018.05-x86_64_arm-linux-gnueabihf:debian_9.5-1"
 
 REVISION=${REVISION:-1}
 DEFAULT_VERSION=$(cat $PROJECT_ROOT/version.txt)
 VERSION="${VERSION:-$DEFAULT_VERSION}"
 
-docker pull "$IMAGE"
+#docker pull "$IMAGE"
 
 run_command()
 {
@@ -42,17 +42,6 @@ rustup target add armv7-unknown-linux-gnueabihf
 rustup component add rust-src
 
 mkdir -p $BUILD_DIR
-cd $PROJECT_ROOT && make dist TARGET=$BUILD_DIR_REL VERSION=${VERSION} REVISION=${REVISION}
+COMMAND="cd /project/edgelet && make deb CARGOFLAGS=\"--target armv7-unknown-linux-gnueabihf\" TARGET=target/armv7-unknown-linux-gnueabihf/release DPKGFLAGS=\"-b -us -uc -i --host-arch armhf\""
 
-COMMAND="
-mkdir -p /${BUILD_DIR_REL}/rpmbuild && \
-cd /${BUILD_DIR_REL}/rpmbuild && \
-mkdir -p RPMS SOURCES SPECS SRPMS BUILD && \
-cd /project/edgelet && \
-make rpm rpmbuilddir=/${BUILD_DIR_REL}/rpmbuild \
-         TARGET=/${BUILD_DIR_REL} \
-         VERSION=${VERSION} \
-         REVISION=${REVISION} \
-         CARGOFLAGS=\"--manifest-path=/project/edgelet/Cargo.toml --target armv7-unknown-linux-gnueabihf --all\" \
-         RPMBUILDFLAGS='-v -bb --clean --target armv7hl --define \"_topdir /${BUILD_DIR_REL}/rpmbuild\"'"
 run_command "$COMMAND"

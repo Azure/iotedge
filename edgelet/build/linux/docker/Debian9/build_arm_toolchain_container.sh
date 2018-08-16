@@ -22,7 +22,7 @@ main() {
     rm ${build_tools}.tar.xz
 
     # Once toolchain is downloaded and extracted, build docker image with toolchain
-    docker build -f Dockerfile.${target_triple} --build-arg TOOLCHAIN=${build_tools} --tag ${build_tools}:debian_9.5 .
+    docker build -f Dockerfile.${target_triple} --build-arg TOOLCHAIN=${build_tools} --tag edgebuilds.azurecr.io/${build_tools}:debian_9.5-1 .
 
     # cleanup
     rm -fr gcc-linaro-${version}-x86_64_arm-linux-gnueabihf
