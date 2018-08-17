@@ -1221,7 +1221,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         [Fact]
         public void ValidateTwinPropertiesSuccess()
         {
-            string tooLong = Enumerable.Repeat("A", 520).Aggregate((sum, next) => sum + next);
+            string tooLong = Enumerable.Repeat("A", 5000).Aggregate((sum, next) => sum + next);
             var reported = new Dictionary<string, string>
             {
                 [tooLong] = "wrong"
