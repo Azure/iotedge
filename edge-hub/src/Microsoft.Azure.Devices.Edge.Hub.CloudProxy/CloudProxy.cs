@@ -42,8 +42,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             try
             {
-                await (this.cloudReceiver?.CloseAsync() ?? Task.CompletedTask);
                 await this.client.CloseAsync();
+                await (this.cloudReceiver?.CloseAsync() ?? Task.CompletedTask);
                 Events.Closed(this);
                 return true;
             }
@@ -202,8 +202,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             // IotHub has max timeout set to 5 minutes, add 30 seconds to make sure it doesn't timeout before IotHub
             static readonly TimeSpan DeviceMethodMaxResponseTimeout = TimeSpan.FromSeconds(5 * 60 + 30);
             // Timeout for receive message because the default timeout is too long (4 minutes) for the case when the connection is closed
-            static readonly TimeSpan ReceiveC2DMessageTimeout = TimeSpan.FromSeconds(60);
-            static readonly TimeSpan ReceiveC2DMessageDelayTimeout = TimeSpan.FromSeconds(30);
+            static readonly TimeSpan ReceiveC2DMessageTimeout = TimeSpan.FromSeconds(20);
 
             public CloudReceiver(CloudProxy cloudProxy, ICloudListener cloudListener)
             {
@@ -256,7 +255,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                             }
 
                             // Wait for some time before trying again.
-                            await Task.Delay(ReceiveC2DMessageDelayTimeout);
+                            await Task.Delay(ReceiveC2DMessageTimeout);
                             Events.ErrorReceivingMessage(this.cloudProxy, e);
                         }
                     }
