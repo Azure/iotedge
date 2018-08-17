@@ -148,19 +148,42 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                     reportedPropertiesMessage.SystemProperties[SystemProperties.ConnectionDeviceId] = deviceIdentity.DeviceId;
                     break;
             }
-            await this.edgeHub.UpdateReportedPropertiesAsync(this.Identity, reportedPropertiesMessage);
 
-            if (!string.IsNullOrWhiteSpace(correlationId))
+            try
             {
-                IMessage responseMessage = new EdgeMessage.Builder(new byte[0])
-                    .SetSystemProperties(new Dictionary<string, string>
-                    {
-                        [SystemProperties.CorrelationId] = correlationId,
-                        [SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString("o"),
-                        [SystemProperties.StatusCode] = ((int)HttpStatusCode.NoContent).ToString()
-                    })
-                    .Build();
-                await this.SendTwinUpdate(responseMessage);
+                await this.edgeHub.UpdateReportedPropertiesAsync(this.Identity, reportedPropertiesMessage);
+
+                if (!string.IsNullOrWhiteSpace(correlationId))
+                {
+                    IMessage responseMessage = new EdgeMessage.Builder(new byte[0])
+                        .SetSystemProperties(new Dictionary<string, string>
+                        {
+                            [SystemProperties.CorrelationId] = correlationId,
+                            [SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString("o"),
+                            [SystemProperties.StatusCode] = ((int)HttpStatusCode.NoContent).ToString()
+                        })
+                        .Build();
+                    await this.SendTwinUpdate(responseMessage);
+                }
+            }
+            catch (Exception e)
+            {
+                if (!string.IsNullOrWhiteSpace(correlationId))
+                {
+                    int statusCode = e is InvalidOperationException || e is ArgumentException
+                        ? (int)HttpStatusCode.BadRequest
+                        : (int)HttpStatusCode.InternalServerError;
+
+                    IMessage responseMessage = new EdgeMessage.Builder(new byte[0])
+                        .SetSystemProperties(new Dictionary<string, string>
+                        {
+                            [SystemProperties.CorrelationId] = correlationId,
+                            [SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString("o"),
+                            [SystemProperties.StatusCode] = statusCode.ToString()
+                        })
+                        .Build();
+                    await this.SendTwinUpdate(responseMessage);
+                }
             }
         }
 
