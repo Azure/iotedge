@@ -18,7 +18,7 @@ DEFAULT_VERSION=$(cat $PROJECT_ROOT/version.txt)
 VERSION="${VERSION:-$DEFAULT_VERSION}"
 
 
-# docker pull "$IMAGE"
+docker pull "$IMAGE"
 
 run_command()
 {
