@@ -12,6 +12,7 @@ set(${theseTestsName}_test_files
 
 set(${theseTestsName}_c_files
     ../../src/hsm_certificate_props.c
+    ${SHARED_UTIL_SRC_FOLDER}/crt_abstractions.c
     ${SHARED_UTIL_SRC_FOLDER}/xlogging.c
     ${SHARED_UTIL_SRC_FOLDER}/consolelogger.c
 )
