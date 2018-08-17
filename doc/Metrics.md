@@ -5,13 +5,15 @@ EdgeHub is intrumented to collect the following metrics:
 | MetricName        | Description           | Unit  |
 | ------------- |:-------------:|:-----:|
 | EdgeHubToCloudMessageLatencyMs | Time taken by EdgeHub to send a message to the cloud | Milliseconds |
-| EdgeHubToCloudMessageSentCount | Number of messages sent by EdgeHub to the cloud | Count per 20s |
+| EdgeHubToCloudMessageSentCount | Number of messages sent by EdgeHub to the cloud | Count per reporting interval* |
 | EndpointMessageStoredLatencyMs | Time taken by EdgeHub to acknowledge receipt of a message | Milliseconds |
-| EndpointMessageStoredCount | Number of messages stored by EdgeHub | Count per 20s | 
+| EndpointMessageStoredCount | Number of messages stored by EdgeHub | Count per reporting interval* | 
 | MessageEntityStorePutOrUpdateLatencyMs | Time taken by EdgeHub to record a message in an internal reference counting db store | Milliseconds |
 | SequentialStoreAppendLatencyMs | Time taken by EdgeHub to store a message in an append log | Milliseconds | 
 | DbGetLatencyMs | Time taken by EdgeHub to get a message from the store-and-forward db | Milliseconds | 
 | DbPutLatencyMs | Time taken by EdgeHub to write a message to the store-and-forward db | Milliseconds | 
+
+\* EdgeHub reports metrics to InfluxDb every 20s. Counters are reset after each reporting interval so that if the time series is summed up over a large interval, it returns the true sum as opposed to a sum of sums.
 
 ## Configuring EdgeHub to record metrics
 
@@ -65,3 +67,7 @@ After the modules are deployed, Chronograf can be reached at localhost:8888.
 ## Example InfluxDb queries
 
 For example InfluxDb queries, please look at https://github.com/Azure/iotedge/pull/141/files#diff-9fc75ceaff4ae01d42e1bafad8037848
+
+## Collecting CPU and memory stats from EdgeHub and other containers
+
+A telegraf container can be added to the deployment to collect stats about all containers in the deployment. Please refer to https://hub.docker.com/_/telegraf/ for steps to configure it.  
