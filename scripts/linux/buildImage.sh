@@ -261,7 +261,7 @@ docker_build_and_tag_and_push \
     "$ARCH" \
     "$DOCKERFILE" \
     "$PUBLISH_DIR/$PROJECT" \
-    "${build_args[@]/#/--build-arg buildno=$BUILD_BUILDNUMBER}"
+    "${build_args[@]/#/--build-arg buildno=$BUILD_BUILDNUMBER }"
 [ $? -eq 0 ] || exit $?
 
 echo "Done building and pushing Docker image $DOCKER_IMAGENAME for $PROJECT"
