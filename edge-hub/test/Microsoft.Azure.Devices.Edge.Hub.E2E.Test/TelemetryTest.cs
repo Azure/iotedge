@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
@@ -109,6 +110,45 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 {
                     await receiver.Disconnect();
                 }
+            }
+            // wait for the connection to be closed on the Edge side
+            await Task.Delay(TimeSpan.FromSeconds(10));
+        }
+
+        [Theory]
+        [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
+        async Task SendLargeMessageHandleExceptionTest(ITransportSettings[] transportSettings)
+        {
+            TestModule sender = null;
+            
+            string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
+            IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
+            RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
+
+            try
+            {
+                sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1", transportSettings);
+
+                Exception ex = null;
+                try
+                {
+                    // create a large message
+                    var message = new Message(new byte[400 * 1000]);
+                    await sender.SendMessageAsync("output1", message);
+                }
+                catch (Exception e)
+                {
+                    ex = e;
+                }
+
+                Assert.NotNull(ex);
+            }
+            finally
+            {
+                if (rm != null)
+                {
+                    await rm.CloseAsync();
+                }                
             }
             // wait for the connection to be closed on the Edge side
             await Task.Delay(TimeSpan.FromSeconds(10));
