@@ -122,10 +122,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         public async Task SendGetTwinRequest(string correlationId)
         {
-            IMessage twin = await this.edgeHub.GetTwinAsync(this.Identity.Id);
-            twin.SystemProperties[SystemProperties.CorrelationId] = correlationId;
-            twin.SystemProperties[SystemProperties.StatusCode] = ((int)HttpStatusCode.OK).ToString();
-            await this.SendTwinUpdate(twin);
+            try
+            {
+                IMessage twin = await this.edgeHub.GetTwinAsync(this.Identity.Id);
+                twin.SystemProperties[SystemProperties.CorrelationId] = correlationId;
+                twin.SystemProperties[SystemProperties.StatusCode] = ((int)HttpStatusCode.OK).ToString();
+                await this.SendTwinUpdate(twin);
+            }
+            catch (Exception e)
+            {
+                Events.ErrorGettingTwin(this.Identity, e);
+                await this.HandleTwinOperationException(correlationId, e);
+            }
         }
 
         public Task ProcessDeviceMessageAsync(IMessage message) => this.edgeHub.ProcessDeviceMessage(this.Identity, message);
@@ -148,16 +156,45 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                     reportedPropertiesMessage.SystemProperties[SystemProperties.ConnectionDeviceId] = deviceIdentity.DeviceId;
                     break;
             }
-            await this.edgeHub.UpdateReportedPropertiesAsync(this.Identity, reportedPropertiesMessage);
 
+            try
+            {
+                await this.edgeHub.UpdateReportedPropertiesAsync(this.Identity, reportedPropertiesMessage);
+
+                if (!string.IsNullOrWhiteSpace(correlationId))
+                {
+                    IMessage responseMessage = new EdgeMessage.Builder(new byte[0])
+                        .SetSystemProperties(new Dictionary<string, string>
+                        {
+                            [SystemProperties.CorrelationId] = correlationId,
+                            [SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString("o"),
+                            [SystemProperties.StatusCode] = ((int)HttpStatusCode.NoContent).ToString()
+                        })
+                        .Build();
+                    await this.SendTwinUpdate(responseMessage);
+                }
+            }
+            catch (Exception e)
+            {
+                Events.ErrorUpdatingReportedPropertiesTwin(this.Identity, e);
+                await this.HandleTwinOperationException(correlationId, e);
+            }
+        }
+
+        async Task HandleTwinOperationException(string correlationId, Exception e)
+        {
             if (!string.IsNullOrWhiteSpace(correlationId))
             {
+                int statusCode = e is InvalidOperationException || e is ArgumentException
+                    ? (int)HttpStatusCode.BadRequest
+                    : (int)HttpStatusCode.InternalServerError;
+
                 IMessage responseMessage = new EdgeMessage.Builder(new byte[0])
                     .SetSystemProperties(new Dictionary<string, string>
                     {
                         [SystemProperties.CorrelationId] = correlationId,
                         [SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString("o"),
-                        [SystemProperties.StatusCode] = ((int)HttpStatusCode.NoContent).ToString()
+                        [SystemProperties.StatusCode] = statusCode.ToString()
                     })
                     .Build();
                 await this.SendTwinUpdate(responseMessage);
@@ -255,7 +292,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                 MessageFeedbackTimedout,
                 MessageFeedbackReceived,
                 MessageFeedbackWithNoMessageId,
-                MessageSentToClient
+                MessageSentToClient,
+                ErrorGettingTwin,
+                ErrorUpdatingReportedProperties
             }
 
             public static void BindDeviceProxy(IIdentity identity)
@@ -311,6 +350,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             public static void SendingMessage(IIdentity identity, string lockToken)
             {
                 Log.LogDebug((int)EventIds.MessageSentToClient, Invariant($"Sent message with correlation ID {lockToken} to {identity.Id}"));
+            }
+
+            public static void ErrorGettingTwin(IIdentity identity, Exception ex)
+            {
+                Log.LogWarning((int)EventIds.ErrorGettingTwin, ex, Invariant($"Error getting twin for {identity.Id}"));
+            }
+
+            public static void ErrorUpdatingReportedPropertiesTwin(IIdentity identity, Exception ex)
+            {
+                Log.LogWarning((int)EventIds.ErrorUpdatingReportedProperties, ex, Invariant($"Error updating reported properties for {identity.Id}"));
             }
         }
     }
