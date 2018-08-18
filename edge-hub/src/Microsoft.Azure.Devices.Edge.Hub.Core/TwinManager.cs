@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     public class TwinManager : ITwinManager
     {
         const int TwinPropertyMaxDepth = 5; // taken from IoTHub
-        const int TwinPropertyNameMaxLength = 512; // bytes. taken from IoTHub
+        const int TwinPropertyValueMaxLength = 4096; // bytes. taken from IoTHub
         const long TwinPropertyMaxSafeValue = 4503599627370495; // (2^52) - 1. taken from IoTHub
         const long TwinPropertyMinSafeValue = -4503599627370496; // -2^52. taken from IoTHub
         const int TwinPropertyDocMaxLength = 8 * 1024; // 8K bytes. taken from IoTHub
@@ -501,10 +501,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         static void ValidatePropertyNameAndLength(string name)
         {
-            if (name != null && Encoding.UTF8.GetByteCount(name) > TwinPropertyNameMaxLength)
+            if (name != null && Encoding.UTF8.GetByteCount(name) > TwinPropertyValueMaxLength)
             {
                 string truncated = name.Substring(0, 10);
-                throw new InvalidOperationException($"Length of property name {truncated}.. exceeds maximum length of {TwinPropertyNameMaxLength}");
+                throw new InvalidOperationException($"Length of property name {truncated}.. exceeds maximum length of {TwinPropertyValueMaxLength}");
             }
 
             // Disabling Possible Null Referece, since name is being tested above.
@@ -524,9 +524,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         static void ValidatePropertyValueLength(string name, string value)
         {
-            if (value != null && Encoding.UTF8.GetByteCount(value) > TwinPropertyNameMaxLength)
+            if (value != null && Encoding.UTF8.GetByteCount(value) > TwinPropertyValueMaxLength)
             {
-                throw new InvalidOperationException($"Value associated with property name {name} exceeds maximum length of {TwinPropertyNameMaxLength}");
+                throw new InvalidOperationException($"Value associated with property name {name} exceeds maximum length of {TwinPropertyValueMaxLength}");
             }
         }
 

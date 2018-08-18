@@ -20,6 +20,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             {
                 amqpMessage.Properties.CorrelationId = correlationId;
             }
+
+            if (message.SystemProperties.TryGetNonEmptyValue(SystemProperties.StatusCode, out string statusCode)
+                && int.TryParse(statusCode, out int status))
+            {
+                amqpMessage.MessageAnnotations.Map["status"] = status;
+            }
             return amqpMessage;
         }
 
