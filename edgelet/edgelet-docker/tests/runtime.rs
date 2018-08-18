@@ -118,8 +118,7 @@ fn image_pull_with_creds_handler(req: Request) -> Box<Future<Item = Response, Er
     assert_eq!(query_map.get("fromImage"), Some(&IMAGE_NAME.to_string()));
 
     // verify registry creds
-    let auth_str = req
-        .headers()
+    let auth_str = req.headers()
         .get_raw("X-Registry-Auth")
         .unwrap()
         .iter()
@@ -237,6 +236,8 @@ fn container_create_handler(req: Request) -> Box<Future<Item = Response, Error =
                 let create_options: ContainerCreateBody =
                     serde_json::from_slice(body.as_ref()).unwrap();
 
+                println!("Create options {:?}", create_options.clone());
+
                 assert_eq!("nginx:latest", create_options.image().unwrap());
 
                 for v in vec!["/do/the/custom/command", "with these args"].iter() {
@@ -288,6 +289,10 @@ fn container_create_handler(req: Request) -> Box<Future<Item = Response, Error =
                         .unwrap()
                 );
 
+                let volumes = create_options.volumes().unwrap();
+                println!("Volumes: {:?}", volumes);
+                assert_eq!(*volumes, json!({"/test1": {}, "/test2": {}}));
+
                 Ok(())
             })
             .map(|_| {
@@ -328,11 +333,13 @@ fn container_create_succeeds() {
         vec![HostConfigPortBindings::new().with_host_port("8080".to_string())],
     );
     let memory: i64 = 3221225472;
+    let volumes = json!({"/test1": {}, "/test2": {}});
     let create_options = ContainerCreateBody::new()
         .with_host_config(
             HostConfig::new()
                 .with_port_bindings(port_bindings)
-                .with_memory(memory),
+                .with_memory(memory)
+                .with_binds(vec!["/a:/a".to_string()]),
         )
         .with_cmd(vec![
             "/do/the/custom/command".to_string(),
@@ -342,7 +349,8 @@ fn container_create_succeeds() {
             "/also/do/the/entrypoint".to_string(),
             "and this".to_string(),
         ])
-        .with_env(vec!["k4=v4".to_string(), "k5=v5".to_string()]);
+        .with_env(vec!["k4=v4".to_string(), "k5=v5".to_string()])
+        .with_volumes(volumes);
 
     let module_config = ModuleSpec::new(
         "m1",
@@ -496,11 +504,9 @@ fn container_list_handler(req: Request) -> Box<Future<Item = Response, Error = H
     assert!(query_map.contains_key("filters"));
     assert_eq!(
         query_map.get("filters"),
-        Some(
-            &json!({
-                "label": vec!["net.azure-devices.edge.owner=Microsoft.Azure.Devices.Edge.Agent"]
-            }).to_string()
-        )
+        Some(&json!({
+            "label": vec!["net.azure-devices.edge.owner=Microsoft.Azure.Devices.Edge.Agent"]
+        }).to_string())
     );
 
     let mut labels = HashMap::new();
