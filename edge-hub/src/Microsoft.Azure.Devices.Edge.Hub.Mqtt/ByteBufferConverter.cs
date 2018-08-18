@@ -26,14 +26,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             int readableBytes = byteBuffer.ReadableBytes;
             using (var stream = new ReadOnlyByteBufferStream(byteBuffer, false))
             {
-                using (var memoryStream = new MemoryStream())
-                {
-                    var buffer = new byte[readableBytes + 1];
-                    int read = stream.Read(buffer, 0, buffer.Length);
-                    memoryStream.Write(buffer, 0, read);
-                    byte[] bytes = memoryStream.ToArray();
-                    return bytes;
-                }
+                var bytes = new byte[readableBytes];
+                stream.Read(bytes, 0, readableBytes);
+                return bytes;
             }
         }
 
