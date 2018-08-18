@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 using (var memoryStream = new MemoryStream())
                 {
                     var buffer = new byte[readableBytes + 1];
-                    int read = read = stream.Read(buffer, 0, buffer.Length);
+                    int read = stream.Read(buffer, 0, buffer.Length);
                     memoryStream.Write(buffer, 0, read);
                     byte[] bytes = memoryStream.ToArray();
                     return bytes;
