@@ -55,8 +55,7 @@
               "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-functions-filter:<Build.BuildNumber>-linux-amd64",
               "createOptions": ""
             }
-          },
-          
+          },          
         }
       }
     },

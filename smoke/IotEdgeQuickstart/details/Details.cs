@@ -78,15 +78,6 @@ namespace IotEdgeQuickstart.Details
             {
                 await this.CreateEdgeDeviceIdentity(rm);
             }
-
-            //Adding a GetDeviceAsync again so it flushes the cash.
-            Device checkingDevice = await rm.GetDeviceAsync(this.deviceId);
-
-            if (checkingDevice == null)
-            {
-                throw new Exception($"Error getting device identity after created and called GetDeviceAsync to force cache to be filled.");
-            }
-
         }
 
         async Task CreateEdgeDeviceIdentity(RegistryManager rm)
