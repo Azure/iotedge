@@ -83,6 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             try
             {
                 await this.OnMessageReceived(amqpMessage);
+                ((IReceivingAmqpLink)this.Link).DisposeMessage(amqpMessage, AmqpConstants.AcceptedOutcome, true, true);
             }
             catch (Exception e) when (!e.IsFatal())
             {
