@@ -3,10 +3,8 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 {
     using System;
-    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Net;
     using System.Threading.Tasks;
     using App.Metrics;
     using App.Metrics.Counter;
@@ -105,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             long messageSize = messageToBeValidated.Size();
             if (messageSize > MaxMessageSize)
             {
-                throw new InvalidOperationException($"Message size exceeds maximum allowed size: got {messageSize}, limit {MaxMessageSize}");
+                throw new EdgeHubMessageTooLargeException($"Message size is {messageSize} bytes which is greater than the max size {MaxMessageSize} bytes allowed");
             }
         }
 
@@ -302,10 +300,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 ErrorRemovingSubscription,
                 ErrorAddingSubscription,
                 AddingSubscription,
-                RemovingSubscription,
-                InvokingMethod,
-                NoSubscription,
-                ClientNotFound
+                RemovingSubscription
             }
 
             public static void MethodCallReceived(string fromId, string toId, string correlationId)
@@ -361,21 +356,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             public static void RemovingSubscription(string id, DeviceSubscription subscription)
             {
                 Log.LogDebug((int)EventIds.RemovingSubscription, Invariant($"Removing subscription {subscription} for client {id}."));
-            }
-
-            public static void InvokingMethod(DirectMethodRequest methodRequest)
-            {
-                Log.LogDebug((int)EventIds.InvokingMethod, Invariant($"Invoking method {methodRequest.Name} on client {methodRequest.Id}."));
-            }
-
-            public static void NoSubscriptionForMethodInvocation(DirectMethodRequest methodRequest)
-            {
-                Log.LogWarning((int)EventIds.NoSubscription, Invariant($"Unable to invoke method {methodRequest.Name} on client {methodRequest.Id} because no subscription for methods for found."));
-            }
-
-            public static void NoDeviceProxyForMethodInvocation(DirectMethodRequest methodRequest)
-            {
-                Log.LogWarning((int)EventIds.ClientNotFound, Invariant($"Unable to invoke method {methodRequest.Name} as client {methodRequest.Id} is not connected."));
             }
         }
     }

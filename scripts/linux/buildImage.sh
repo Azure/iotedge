@@ -214,7 +214,7 @@ docker_build_and_tag_and_push()
         docker_build_cmd+=" --file $dockerfile"
     fi
     docker_build_cmd+=" $build_args $context_path"
-
+    
     echo "Running... $docker_build_cmd"
 
     $docker_build_cmd
@@ -261,7 +261,7 @@ docker_build_and_tag_and_push \
     "$ARCH" \
     "$DOCKERFILE" \
     "$PUBLISH_DIR/$PROJECT" \
-    "${build_args[@]/#/--build-arg }"
+    "${build_args[@]/#/--build-arg buildno=$BUILD_BUILDNUMBER --build-arg }"
 [ $? -eq 0 ] || exit $?
 
 echo "Done building and pushing Docker image $DOCKER_IMAGENAME for $PROJECT"
