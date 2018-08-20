@@ -289,7 +289,6 @@ fn container_create_handler(req: Request) -> Box<Future<Item = Response, Error =
                 );
 
                 let volumes = create_options.volumes().unwrap();
-                println!("Volumes: {:?}", volumes);
                 assert_eq!(*volumes, json!({"/test1": {}, "/test2": {}}));
 
                 Ok(())

@@ -220,6 +220,12 @@ impl ModuleRuntime for DockerModuleRuntime {
                     .unwrap_or_else(HashMap::new);
                 labels.insert(LABEL_KEY.to_string(), LABEL_VALUE.to_string());
 
+                debug!(
+                    "Creating container {} with image {}",
+                    module.name(),
+                    module.config().image()
+                );
+
                 let create_options = create_options
                     .with_image(module.config().image().to_string())
                     .with_env(merged_env)
