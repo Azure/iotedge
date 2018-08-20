@@ -118,7 +118,8 @@ impl ModuleRegistry for DockerModuleRuntime {
             .unwrap_or_else(|| Ok("".to_string()))
             .map(|creds: String| {
                 debug!("Pulling {}", config.image());
-                let ok = self.client
+                let ok = self
+                    .client
                     .image_api()
                     .image_create(config.image(), "", "", "", "", &creds, "")
                     .map_err(|err| {
@@ -168,13 +169,15 @@ impl ModuleRuntime for DockerModuleRuntime {
     type RemoveAllFuture = Box<Future<Item = (), Error = Self::Error>>;
 
     fn init(&self) -> Self::InitFuture {
-        let created = self.network_id
+        let created = self
+            .network_id
             .as_ref()
             .map(|id| {
                 let id = id.clone();
                 let filter = format!(r#"{{"name":{{"{}":true}}}}"#, id);
                 let client_copy = self.client.clone();
-                let fut = self.client
+                let fut = self
+                    .client
                     .network_api()
                     .network_list(&filter)
                     .and_then(move |existing_networks| {
@@ -225,7 +228,8 @@ impl ModuleRuntime for DockerModuleRuntime {
                 // Here we don't add the container to the iot edge docker network as the edge-agent is expected to do that.
                 // It contains the logic to add a container to the iot edge network only if a network is not already specified.
 
-                Ok(self.client
+                Ok(self
+                    .client
                     .container_api()
                     .container_create(create_options, module.name())
                     .map_err(Error::from)
@@ -344,7 +348,8 @@ impl ModuleRuntime for DockerModuleRuntime {
 
         let result = serde_json::to_string(&filters)
             .and_then(|filters| {
-                Ok(self.client
+                Ok(self
+                    .client
                     .container_api()
                     .container_list(true, 0, true, &filters)
                     .map(move |containers| {
@@ -392,7 +397,8 @@ impl ModuleRuntime for DockerModuleRuntime {
 
     fn logs(&self, id: &str, options: &LogOptions) -> Self::LogsFuture {
         let tail = &options.tail().to_string();
-        let result = self.client
+        let result = self
+            .client
             .container_api()
             .container_logs(id, options.follow(), true, true, 0, false, tail)
             .map(Logs)
