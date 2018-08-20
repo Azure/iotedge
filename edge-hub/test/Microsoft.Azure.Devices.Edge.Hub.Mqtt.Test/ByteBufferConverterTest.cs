@@ -22,7 +22,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         static IEnumerable<object[]> GetTestByteArrays()
         {
             var rand = new Random();
+
             var bytes = new byte[100];
+            rand.NextBytes(bytes);
+            yield return new object[] { bytes };
+
+            bytes = new byte[200];
+            rand.NextBytes(bytes);
+            yield return new object[] { bytes };
+
+            bytes = new byte[20];
+            rand.NextBytes(bytes);
+            yield return new object[] { bytes };
+
+            bytes = new byte[64];
             rand.NextBytes(bytes);
             yield return new object[] { bytes };
         }
