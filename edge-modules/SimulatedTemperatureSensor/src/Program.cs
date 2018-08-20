@@ -54,7 +54,7 @@ namespace SimulatedTemperatureSensor
                 HumidityPercent = configuration.GetValue("ambientHumidity", 25)
             };
 
-            TransportType transportType = configuration.GetValue("ClientTransportType", TransportType.Mqtt_Tcp_Only);
+            TransportType transportType = configuration.GetValue("ClientTransportType", TransportType.Amqp_Tcp_Only);
             Console.WriteLine($"Using transport {transportType.ToString()}");
 
             var retryPolicy = new RetryPolicy(TimeoutErrorDetectionStrategy, TransientRetryStrategy);
