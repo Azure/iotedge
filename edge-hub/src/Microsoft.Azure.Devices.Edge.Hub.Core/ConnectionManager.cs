@@ -98,16 +98,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 return Option.None<ICloudProxy>();
             }
 
-            Option<ICloudProxy> result = await device.DeviceConnection.Map(
-                async dc =>
+            Try<ICloudConnection> cloudConnectionTry = await device.GetOrCreateCloudConnection(
+                async c =>
                 {
-                    Try<ICloudConnection> cloudConnectionTry = await device.GetOrCreateCloudConnection(c => this.CreateOrUpdateCloudConnection(c, dc.ClientCredentials));
-                    Events.GetCloudConnection(device.Identity, cloudConnectionTry);
-                    Try<ICloudProxy> cloudProxyTry = GetCloudProxyFromCloudConnection(cloudConnectionTry, device.Identity);
-                    return Option.Maybe(cloudProxyTry.Value);
-                })
-                .GetOrElse(Task.FromResult(Option.None<ICloudProxy>()));
-            return result;
+                    return await device.DeviceConnection
+                        .Map(dc => this.CreateOrUpdateCloudConnection(c, dc.ClientCredentials))
+                        .GetOrElse(Task.FromResult(Try<ICloudConnection>.Failure(new EdgeHubConnectionException($"Could not get credentials for client {id} to connect to IoTHub"))));
+                });
+
+            Events.GetCloudConnection(device.Identity, cloudConnectionTry);
+            Try<ICloudProxy> cloudProxyTry = GetCloudProxyFromCloudConnection(cloudConnectionTry, device.Identity);
+            return Option.Maybe(cloudProxyTry.Value);
         }
 
         public void AddSubscription(string id, DeviceSubscription deviceSubscription)
