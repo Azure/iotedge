@@ -224,8 +224,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             
             // DeviceListener
             var identity = Mock.Of<IModuleIdentity>(m => m.DeviceId == "device1" && m.ModuleId == "module1" && m.Id == "device1/module1");
-            var cloudProxy = new Mock<ICloudProxy>();
-            cloudProxy.Setup(c => c.BindCloudListener(It.IsAny<ICloudListener>()));
+            var cloudProxy = new Mock<ICloudProxy>();            
             var underlyingDeviceProxy = new Mock<IDeviceProxy>();
             underlyingDeviceProxy.Setup(d => d.InvokeMethodAsync(It.IsAny<DirectMethodRequest>())).ReturnsAsync(default(DirectMethodResponse));
             underlyingDeviceProxy.SetupGet(d => d.IsActive).Returns(true);
@@ -300,7 +299,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             // DeviceListener
             var identity = Mock.Of<IModuleIdentity>(m => m.DeviceId == "device1" && m.ModuleId == "module1" && m.Id == "device1/module1");
             var cloudProxy = new Mock<ICloudProxy>();
-            cloudProxy.Setup(c => c.BindCloudListener(It.IsAny<ICloudListener>()));
             var underlyingDeviceProxy = new Mock<IDeviceProxy>();
             underlyingDeviceProxy.Setup(d => d.InvokeMethodAsync(It.IsAny<DirectMethodRequest>())).ReturnsAsync(new DirectMethodResponse(methodRequest.CorrelationId, null, 200));
             underlyingDeviceProxy.SetupGet(d => d.IsActive).Returns(true);
@@ -371,7 +369,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             // DeviceListener
             var identity = Mock.Of<IModuleIdentity>(m => m.DeviceId == "device1" && m.ModuleId == "module1" && m.Id == "device1/module1");
             var cloudProxy = new Mock<ICloudProxy>();
-            cloudProxy.Setup(c => c.BindCloudListener(It.IsAny<ICloudListener>()));
 
             // ICloudConnectionProvider
             var cloudConnection = Mock.Of<ICloudConnection>(c => c.IsActive && c.CloudProxy == Option.Some(cloudProxy.Object));
@@ -582,7 +579,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(c => c.AddSubscription(deviceId, DeviceSubscription.Methods));
-            connectionManager.Setup(c => c.GetCloudConnection(deviceId)).Returns(Option.Some(cloudProxy.Object));
+            connectionManager.Setup(c => c.GetCloudConnection(deviceId)).Returns(Task.FromResult(Option.Some(cloudProxy.Object)));
             IEdgeHub edgeHub = await GetTestEdgeHub(connectionManager.Object);
             
             // Act
@@ -604,7 +601,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(c => c.AddSubscription(deviceId, DeviceSubscription.Methods));
-            connectionManager.Setup(c => c.GetCloudConnection(deviceId)).Returns(Option.Some(cloudProxy.Object));
+            connectionManager.Setup(c => c.GetCloudConnection(deviceId)).Returns(Task.FromResult(Option.Some(cloudProxy.Object)));
             IEdgeHub edgeHub = await GetTestEdgeHub(connectionManager.Object);
 
             // Act
@@ -626,7 +623,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(c => c.AddSubscription(deviceId, DeviceSubscription.Methods));
-            connectionManager.Setup(c => c.GetCloudConnection(deviceId)).Returns(Option.Some(cloudProxy.Object));
+            connectionManager.Setup(c => c.GetCloudConnection(deviceId)).Returns(Task.FromResult(Option.Some(cloudProxy.Object)));
             IEdgeHub edgeHub = await GetTestEdgeHub(connectionManager.Object);
 
             // Act
@@ -649,7 +646,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(c => c.AddSubscription(deviceId, DeviceSubscription.Methods));
-            connectionManager.Setup(c => c.GetCloudConnection(deviceId)).Returns(Option.Some(cloudProxy.Object));
+            connectionManager.Setup(c => c.GetCloudConnection(deviceId)).Returns(Task.FromResult(Option.Some(cloudProxy.Object)));
             IEdgeHub edgeHub = await GetTestEdgeHub(connectionManager.Object);
 
             // Act
@@ -671,7 +668,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(c => c.AddSubscription(deviceId, DeviceSubscription.Methods));
-            connectionManager.Setup(c => c.GetCloudConnection(deviceId)).Returns(Option.Some(cloudProxy.Object));
+            connectionManager.Setup(c => c.GetCloudConnection(deviceId)).Returns(Task.FromResult(Option.Some(cloudProxy.Object)));
             IEdgeHub edgeHub = await GetTestEdgeHub(connectionManager.Object);
 
             // Act
@@ -693,7 +690,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(c => c.AddSubscription(deviceId, DeviceSubscription.Methods));
-            connectionManager.Setup(c => c.GetCloudConnection(deviceId)).Returns(Option.Some(cloudProxy.Object));
+            connectionManager.Setup(c => c.GetCloudConnection(deviceId)).Returns(Task.FromResult(Option.Some(cloudProxy.Object)));
             IEdgeHub edgeHub = await GetTestEdgeHub(connectionManager.Object);
 
             // Act
