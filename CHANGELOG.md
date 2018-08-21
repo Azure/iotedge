@@ -1,11 +1,11 @@
 # 1.0.1 (2018-08-21)
 
-* Updates to license (allow redistribution) and third party notices - 9ca60553735a27954b1f0345c37b39cbb18554ea
+* Updates to license (allow redistribution) and third party notices (9ca60553735a27954b1f0345c37b39cbb18554ea)
 
 ## Edge Agent
 ### Features
-* Update to .NET Core 2.1.2
-* Update to C# SDK 1.18.0
+* Update to .NET Core 2.1.2 (54297170077285f06753dd8f590a46925e57d6de)
+* Update to C# SDK 1.18.0 (dfc72b5e41cfac066595654be59dfef301cac078)
 
 ### Bug Fixes
 * Ignore version property when comparing module definitions (2fd4bf1d9b8e08344a9ec266cd33a9509373822c)
@@ -15,7 +15,7 @@
 ## Edge Hub
 
 ### Features
-* Update to .NET Core 2.1.2
+* Update to .NET Core 2.1.2 (54297170077285f06753dd8f590a46925e57d6de)
 * Add option to turn off protocol heads (7a6419a5474020eaa5258ac9f34930ca9930d5c6)
 
 ### Bug Fixes
@@ -43,15 +43,16 @@
 ## Functions Binding
 
 ### Features
-* Update to .NET Core 2.1.2
+* Update to .NET Core 2.1.2 (54297170077285f06753dd8f590a46925e57d6de)
 * Update to latest Azure Functions runtime on armhf (31ad5be5eddff8917c0866509bc72d8e1c07c1f1)
-* Update to C# SDK 1.18.0
+* Update to C# SDK 1.18.0 (dfc72b5e41cfac066595654be59dfef301cac078)
 * Binding uses MQTT protocol by default (f0ce4a52139e583711fd72505327b593af605490)
 
 ## Temperature Sensor
 
 ## Features
-* Update to C# SDK 1.18.0
+* Update to .NET Core 2.1.2 (54297170077285f06753dd8f590a46925e57d6de)
+* Update to C# SDK 1.18.0 (dfc72b5e41cfac066595654be59dfef301cac078)
 
 ### Bug Fixes
 * Allow reset command to be an array of messages (bf5f374130931be4a0a164325147de9c171a85ca)
