@@ -1,6 +1,6 @@
 # 1.0.1 (2018-08-21)
 
-* Updates to license (allow redistribution) and third party notices (9ca60553735a27954b1f0345c37b39cbb18554ea)
+* Updates to license (allow redistribution) and third party notices - 9ca60553735a27954b1f0345c37b39cbb18554ea
 
 ## Edge Agent
 ### Features
