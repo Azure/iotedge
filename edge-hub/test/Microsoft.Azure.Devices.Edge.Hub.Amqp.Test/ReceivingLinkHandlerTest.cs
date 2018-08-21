@@ -57,6 +57,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
         public override LinkType Type => LinkType.Events;
 
+        protected override QualityOfService QualityOfService => QualityOfService.AtLeastOnce;
+
         public IList<AmqpMessage> ReceivedMessages { get; } = new List<AmqpMessage>();
 
         protected override Task OnMessageReceived(AmqpMessage amqpMessage)

@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use error::Error;
+use error::{Error, ErrorKind};
 use futures::prelude::*;
 use hyper::client::connect::{Connect, Connected, Destination};
 use std::path::PathBuf;
@@ -19,7 +19,7 @@ impl Connect for UnixConnector {
 
     fn connect(&self, dst: Destination) -> Self::Future {
         let state = if dst.scheme() != "unix" {
-            ConnectState::Error(Error::InvalidUrlScheme)
+            ConnectState::Error(Error::new(ErrorKind::InvalidUrlScheme))
         } else {
             Uri::get_uds_path(dst.host())
                 .map(ConnectState::Initialized)
@@ -48,11 +48,14 @@ pub struct ConnectFuture {
 impl ConnectFuture {
     pub fn new(state: ConnectState) -> ConnectFuture {
         match state {
-            ConnectState::Initialized(path) => ConnectFuture {
-                state: ConnectState::Connecting(Box::new(
-                    UnixStream::connect(path).map_err(Error::from),
-                )),
-            },
+            ConnectState::Initialized(path) => {
+                debug!("Connecting to {:?}", path);
+                ConnectFuture {
+                    state: ConnectState::Connecting(Box::new(
+                        UnixStream::connect(path).map_err(Error::from),
+                    )),
+                }
+            }
             _ => ConnectFuture { state },
         }
     }
@@ -64,11 +67,19 @@ impl Future for ConnectFuture {
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
         match self.state {
-            ConnectState::Initialized(_) => Err(Error::InvalidConnectState),
-            ConnectState::Error(ref err) => Err(Error::Connect(format!("{:?}", err))),
+            ConnectState::Initialized(_) => Err(Error::new(ErrorKind::InvalidConnectState)),
+            ConnectState::Error(ref err) => {
+                Err(Error::new(ErrorKind::Connect(format!("{:?}", err))))
+            }
             ConnectState::Connecting(ref mut inner) => match inner.poll()? {
-                Async::Ready(stream) => Ok(Async::Ready((stream, Connected::new()))),
-                Async::NotReady => Ok(Async::NotReady),
+                Async::Ready(stream) => {
+                    debug!("Connected");
+                    Ok(Async::Ready((stream, Connected::new())))
+                }
+                Async::NotReady => {
+                    debug!("Connection not ready yet");
+                    Ok(Async::NotReady)
+                }
             },
         }
     }

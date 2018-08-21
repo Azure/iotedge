@@ -47,6 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                                 options.InfluxDb.BaseUri = new Uri(influxDbUrl);
                                 options.InfluxDb.Database = metricsDbName;
                                 options.InfluxDb.CreateDataBaseIfNotExists = true;
+                                options.FlushInterval = TimeSpan.FromSeconds(10);
                             }
                         ).Build();
                     MetricsCollector = Option.Some(metricsCollector);

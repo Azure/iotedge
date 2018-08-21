@@ -98,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             var routes = this.Configuration.GetSection("routes").Get<Dictionary<string, string>>();
             (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward = this.GetStoreAndForwardConfiguration();
 
-            IConfiguration mqttSettingsConfiguration = this.Configuration.GetSection("appSettings");
+            IConfiguration mqttSettingsConfiguration = this.Configuration.GetSection("mqttSettings");
             Option<UpstreamProtocol> upstreamProtocolOption = Enum.TryParse(this.Configuration.GetValue("UpstreamProtocol", string.Empty), false, out UpstreamProtocol upstreamProtocol)
                 ? Option.Some(upstreamProtocol)
                 : Option.None<UpstreamProtocol>();
@@ -116,7 +116,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             // n Clients + 1 Edgehub
             int maxConnectedClients = this.Configuration.GetValue("MaxConnectedClients", 100) + 1;
 
-            IConfiguration amqpSettings = this.Configuration.GetSection("amqp");
+            IConfiguration amqpSettings = this.Configuration.GetSection("amqpSettings");
 
             var builder = new ContainerBuilder();
             builder.Populate(services);

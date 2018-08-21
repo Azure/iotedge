@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
     using static System.FormattableString;
 
@@ -22,6 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         readonly IEdgeHub edgeHub;
         readonly IConnectionManager connectionManager;
+        readonly AsyncLock serializeMessagesLock = new AsyncLock();
         IDeviceProxy underlyingProxy;
 
         // IoTHub error codes
@@ -84,12 +86,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             }
         }
 
-        public Task ProcessMessageFeedbackAsync(string messageId, FeedbackStatus feedbackStatus)
+        public async Task ProcessMessageFeedbackAsync(string messageId, FeedbackStatus feedbackStatus)
         {
             if (string.IsNullOrWhiteSpace(messageId))
             {
                 Events.MessageFeedbackWithNoMessageId(this.Identity);
-                return Task.CompletedTask;
+                return;
             }
 
             Events.MessageFeedbackReceived(this.Identity, messageId, feedbackStatus);
@@ -97,17 +99,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             {
                 if (feedbackStatus == FeedbackStatus.Complete)
                 {
+                    // TaskCompletionSource.SetResult causes the continuation of the underlying task
+                    // to happen on the same thread. So calling Task.Yield to let go of the current thread
+                    // That way the underlying task will be scheduled to complete asynchronously on a different thread
+                    await Task.Yield();
                     taskCompletionSource.SetResult(true);
                 }
                 else
                 {
                     taskCompletionSource.SetException(new EdgeHubIOException($"Message not completed by client {this.Identity.Id}"));
                 }
-                return Task.CompletedTask;
             }
             else
             {
-                return this.connectionManager.GetCloudConnection(this.Identity.Id).ForEachAsync(cp => cp.SendFeedbackMessageAsync(messageId, feedbackStatus));
+                await this.connectionManager.GetCloudConnection(this.Identity.Id).ForEachAsync(cp => cp.SendFeedbackMessageAsync(messageId, feedbackStatus));
             }
         }
 
@@ -117,10 +122,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         public async Task SendGetTwinRequest(string correlationId)
         {
-            IMessage twin = await this.edgeHub.GetTwinAsync(this.Identity.Id);
-            twin.SystemProperties[SystemProperties.CorrelationId] = correlationId;
-            twin.SystemProperties[SystemProperties.StatusCode] = ((int)HttpStatusCode.OK).ToString();
-            await this.SendTwinUpdate(twin);
+            try
+            {
+                IMessage twin = await this.edgeHub.GetTwinAsync(this.Identity.Id);
+                twin.SystemProperties[SystemProperties.CorrelationId] = correlationId;
+                twin.SystemProperties[SystemProperties.StatusCode] = ((int)HttpStatusCode.OK).ToString();
+                await this.SendTwinUpdate(twin);
+            }
+            catch (Exception e)
+            {
+                Events.ErrorGettingTwin(this.Identity, e);
+                await this.HandleTwinOperationException(correlationId, e);
+            }
         }
 
         public Task ProcessDeviceMessageAsync(IMessage message) => this.edgeHub.ProcessDeviceMessage(this.Identity, message);
@@ -143,16 +156,45 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                     reportedPropertiesMessage.SystemProperties[SystemProperties.ConnectionDeviceId] = deviceIdentity.DeviceId;
                     break;
             }
-            await this.edgeHub.UpdateReportedPropertiesAsync(this.Identity, reportedPropertiesMessage);
 
+            try
+            {
+                await this.edgeHub.UpdateReportedPropertiesAsync(this.Identity, reportedPropertiesMessage);
+
+                if (!string.IsNullOrWhiteSpace(correlationId))
+                {
+                    IMessage responseMessage = new EdgeMessage.Builder(new byte[0])
+                        .SetSystemProperties(new Dictionary<string, string>
+                        {
+                            [SystemProperties.CorrelationId] = correlationId,
+                            [SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString("o"),
+                            [SystemProperties.StatusCode] = ((int)HttpStatusCode.NoContent).ToString()
+                        })
+                        .Build();
+                    await this.SendTwinUpdate(responseMessage);
+                }
+            }
+            catch (Exception e)
+            {
+                Events.ErrorUpdatingReportedPropertiesTwin(this.Identity, e);
+                await this.HandleTwinOperationException(correlationId, e);
+            }
+        }
+
+        async Task HandleTwinOperationException(string correlationId, Exception e)
+        {
             if (!string.IsNullOrWhiteSpace(correlationId))
             {
+                int statusCode = e is InvalidOperationException || e is ArgumentException
+                    ? (int)HttpStatusCode.BadRequest
+                    : (int)HttpStatusCode.InternalServerError;
+
                 IMessage responseMessage = new EdgeMessage.Builder(new byte[0])
                     .SetSystemProperties(new Dictionary<string, string>
                     {
                         [SystemProperties.CorrelationId] = correlationId,
                         [SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString("o"),
-                        [SystemProperties.StatusCode] = ((int)HttpStatusCode.NoContent).ToString()
+                        [SystemProperties.StatusCode] = statusCode.ToString()
                     })
                     .Build();
                 await this.SendTwinUpdate(responseMessage);
@@ -170,24 +212,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         /// </summary>
         public async Task SendMessageAsync(IMessage message, string input)
         {
-            string lockToken = Guid.NewGuid().ToString();
-            message.SystemProperties[SystemProperties.LockToken] = lockToken;
-
-            var taskCompletionSource = new TaskCompletionSource<bool>();
-            this.messageTaskCompletionSources.TryAdd(lockToken, taskCompletionSource);
-
-            Events.SendingMessage(this.Identity, lockToken);
-            await this.underlyingProxy.SendMessageAsync(message, input);
-
-            Task completedTask = await Task.WhenAny(taskCompletionSource.Task, Task.Delay(MessageResponseTimeout));
-            if (completedTask != taskCompletionSource.Task)
+            // Locking here since multiple queues could be sending to the same module
+            // The messages need to be processed in order.
+            using (await this.serializeMessagesLock.LockAsync())
             {
-                Events.MessageFeedbackTimedout(this.Identity, lockToken);
-                taskCompletionSource.SetException(new TimeoutException("Message completion response not received"));
-                this.messageTaskCompletionSources.TryRemove(lockToken, out taskCompletionSource);
-            }
+                string lockToken = Guid.NewGuid().ToString();
+                message.SystemProperties[SystemProperties.LockToken] = lockToken;
 
-            await taskCompletionSource.Task;
+                var taskCompletionSource = new TaskCompletionSource<bool>();
+                this.messageTaskCompletionSources.TryAdd(lockToken, taskCompletionSource);
+
+                Events.SendingMessage(this.Identity, lockToken);
+                await this.underlyingProxy.SendMessageAsync(message, input);
+
+                Task completedTask = await Task.WhenAny(taskCompletionSource.Task, Task.Delay(MessageResponseTimeout));
+                if (completedTask != taskCompletionSource.Task)
+                {
+                    Events.MessageFeedbackTimedout(this.Identity, lockToken);
+                    taskCompletionSource.SetException(new TimeoutException("Message completion response not received"));
+                    this.messageTaskCompletionSources.TryRemove(lockToken, out taskCompletionSource);
+                }
+
+                await taskCompletionSource.Task;
+            }
         }
 
         /// <summary>
@@ -245,7 +292,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                 MessageFeedbackTimedout,
                 MessageFeedbackReceived,
                 MessageFeedbackWithNoMessageId,
-                MessageSentToClient
+                MessageSentToClient,
+                ErrorGettingTwin,
+                ErrorUpdatingReportedProperties
             }
 
             public static void BindDeviceProxy(IIdentity identity)
@@ -301,6 +350,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             public static void SendingMessage(IIdentity identity, string lockToken)
             {
                 Log.LogDebug((int)EventIds.MessageSentToClient, Invariant($"Sent message with correlation ID {lockToken} to {identity.Id}"));
+            }
+
+            public static void ErrorGettingTwin(IIdentity identity, Exception ex)
+            {
+                Log.LogWarning((int)EventIds.ErrorGettingTwin, ex, Invariant($"Error getting twin for {identity.Id}"));
+            }
+
+            public static void ErrorUpdatingReportedPropertiesTwin(IIdentity identity, Exception ex)
+            {
+                Log.LogWarning((int)EventIds.ErrorUpdatingReportedProperties, ex, Invariant($"Error updating reported properties for {identity.Id}"));
             }
         }
     }

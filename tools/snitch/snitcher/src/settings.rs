@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use error::{Error, Result};
+use error::{Error, ErrorKind, Result};
 use std::collections::HashMap;
 use std::default::Default;
 use std::env;
@@ -29,12 +29,17 @@ static DEFAULT_SETTINGS: &str = include_str!("settings.yaml");
 
 #[derive(Clone, Deserialize)]
 pub struct Alert {
+    scheme: String,
     host: String,
     path: String,
     query: HashMap<String, String>,
 }
 
 impl Alert {
+    pub fn scheme(&self) -> &str {
+        &self.scheme
+    }
+
     pub fn host(&self) -> &str {
         &self.host
     }
@@ -48,13 +53,14 @@ impl Alert {
     }
 
     pub fn to_url(&self) -> Result<Url> {
-        Ok(Url::parse(self.host())?)
+        Ok(Url::parse(&format!("{}://{}", self.scheme(), self.host()))?)
     }
 }
 
 impl From<Url> for Alert {
     fn from(url: Url) -> Alert {
         Alert {
+            scheme: url.scheme().to_owned(),
             host: url
                 .host_str()
                 .expect("Alert URL does not have a host component")
@@ -76,7 +82,7 @@ pub struct Settings {
     #[serde(with = "url_serde")]
     influx_url: Url,
     influx_db_name: String,
-    influx_queries: HashMap<String, String>,
+    influx_queries: Option<HashMap<String, String>>,
     #[serde(with = "url_serde")]
     analyzer_url: Url,
     blob_storage_account: String,
@@ -94,7 +100,7 @@ impl Default for Settings {
 }
 
 fn get_env(key: &str) -> Result<String> {
-    env::var(key).map_err(|_| Error::Env(key.to_string()))
+    env::var(key).map_err(|_| Error::new(ErrorKind::Env(key.to_string())))
 }
 
 impl Settings {
@@ -136,11 +142,19 @@ impl Settings {
         //
         // We iterate through the environment variables available looking for the
         // INFLUX_QUERY_ prefix and add them all.
+        let mut query_map = if self.influx_queries.is_none() {
+            HashMap::new()
+        } else {
+            self.influx_queries.take().unwrap()
+        };
+
         for (key, val) in env::vars().filter(|(key, _)| key.starts_with(INFLUX_QUERY_BASE_KEY)) {
             // parse the query name by stripping off prefix
             let name = &key[INFLUX_QUERY_BASE_KEY.len()..];
-            self.influx_queries.insert(name.to_owned(), val);
+            query_map.insert(name.to_owned(), val);
         }
+
+        self.influx_queries = Some(query_map);
     }
 
     pub fn build_id(&self) -> &str {
@@ -163,8 +177,8 @@ impl Settings {
         &self.influx_db_name
     }
 
-    pub fn influx_queries(&self) -> &HashMap<String, String> {
-        &self.influx_queries
+    pub fn influx_queries(&self) -> Option<&HashMap<String, String>> {
+        self.influx_queries.as_ref()
     }
 
     pub fn analyzer_url(&self) -> &Url {

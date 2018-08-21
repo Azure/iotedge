@@ -157,7 +157,8 @@ class EdgeCLI(object):
     def _process_cli_args(self):
         parser = argparse.ArgumentParser(prog=EdgeCLI._prog(),
                                          formatter_class=argparse.RawTextHelpFormatter,
-                                         description='Azure IoT Edge Runtime Control Interface',
+                                         description='Azure IoT Edge Runtime Control Interface (DEPRECATED).\n' +
+                                                     'For more information visit: https://docs.microsoft.com/en-us/azure/iot-edge/',
                                          epilog='''''')
         parser.add_argument('--version',
                             action='version',

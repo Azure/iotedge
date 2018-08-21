@@ -626,6 +626,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
             //arrange
             const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
             HSM_CLIENT_CREATE hsm_client_crypto_create = interface->hsm_client_crypto_create;
+            hsm_client_crypto_deinit();
             umock_c_reset_all_calls();
 
             // act
@@ -715,6 +716,8 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
             //arrange
             const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
             HSM_CLIENT_DESTROY hsm_client_crypto_destroy = interface->hsm_client_crypto_destroy;
+            hsm_client_crypto_deinit();
+            umock_c_reset_all_calls();
 
             // act
             hsm_client_crypto_destroy(NULL);
@@ -732,6 +735,8 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
             //arrange
             const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
             HSM_CLIENT_DESTROY hsm_client_crypto_destroy = interface->hsm_client_crypto_destroy;
+            hsm_client_crypto_deinit();
+            umock_c_reset_all_calls();
 
             // act
             hsm_client_crypto_destroy(TEST_HSM_CLIENT_HANDLE);
@@ -782,6 +787,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
             HSM_CLIENT_GET_RANDOM_BYTES hsm_client_get_random_bytes = interface->hsm_client_get_random_bytes;
             unsigned char test_input[] = {'r', 'a', 'n' , 'd'};
             unsigned char test_output[] = {'r', 'a', 'n' , 'd'};
+            hsm_client_crypto_deinit();
             umock_c_reset_all_calls();
 
             // act
@@ -877,6 +883,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
             const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
             HSM_CLIENT_CREATE_MASTER_ENCRYPTION_KEY hsm_client_create_master_encryption_key;
             hsm_client_create_master_encryption_key = interface->hsm_client_create_master_encryption_key;
+            hsm_client_crypto_deinit();
             umock_c_reset_all_calls();
 
             // act
@@ -944,6 +951,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
             const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
             HSM_CLIENT_DESTROY_MASTER_ENCRYPTION_KEY hsm_client_destroy_master_encryption_key;
             hsm_client_destroy_master_encryption_key = interface->hsm_client_destroy_master_encryption_key;
+            hsm_client_crypto_deinit();
 
             umock_c_reset_all_calls();
 
@@ -1011,6 +1019,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
             const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
             HSM_CLIENT_CREATE_CERTIFICATE hsm_client_create_certificate = interface->hsm_client_create_certificate;
             CERT_INFO_HANDLE cert_info_handle;
+            hsm_client_crypto_deinit();
             umock_c_reset_all_calls();
 
             // act
@@ -1137,6 +1146,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
             const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
             HSM_CLIENT_GET_TRUST_BUNDLE hsm_client_get_trust_bundle = interface->hsm_client_get_trust_bundle;
             CERT_INFO_HANDLE cert_info_handle;
+            hsm_client_crypto_deinit();
             umock_c_reset_all_calls();
 
             // act
@@ -1252,6 +1262,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
             //arrange
             const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
             HSM_CLIENT_DESTROY_CERTIFICATE hsm_client_destroy_certificate = interface->hsm_client_destroy_certificate;
+            hsm_client_crypto_deinit();
             umock_c_reset_all_calls();
 
             // act

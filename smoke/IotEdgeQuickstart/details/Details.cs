@@ -121,7 +121,7 @@ namespace IotEdgeQuickstart.Details
 
         protected async Task VerifyEdgeAgentIsConnectedToIotHub()
         {
-            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60)))
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(300)))
             {
                 Exception savedException = null;
 
@@ -132,7 +132,7 @@ namespace IotEdgeQuickstart.Details
 
                     while (true)
                     {
-                        await Task.Delay(TimeSpan.FromSeconds(3), cts.Token);
+                        await Task.Delay(TimeSpan.FromSeconds(10), cts.Token);
 
                         try
                         {
@@ -176,7 +176,7 @@ namespace IotEdgeQuickstart.Details
 
         protected Task VerifyTempSensorIsRunning() => this.bootstrapper.VerifyModuleIsRunning("tempSensor");
 
-        protected async Task VerifyTempSensorIsSendingDataToIotHub()
+        protected async Task VerifyDataOnIoTHub(string moduleId)
         {
             var builder = new EventHubsConnectionStringBuilder(this.eventhubCompatibleEndpointWithEntityPath);
 
@@ -202,8 +202,8 @@ namespace IotEdgeQuickstart.Details
                         eventData.Properties.TryGetValue("iothub-connection-device-id", out object devId);
                         eventData.Properties.TryGetValue("iothub-connection-module-id", out object modId);
 
-                        if (devId != null && devId.ToString() == this.context.Device.Id &&
-                            modId != null && modId.ToString() == "tempSensor")
+                        if (devId != null && devId.ToString().Equals(this.context.Device.Id) &&
+                            modId != null && modId.ToString().Equals(moduleId))
                         {
                             result.TrySetResult(true);
                             return true;

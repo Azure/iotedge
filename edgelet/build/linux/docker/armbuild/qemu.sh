@@ -31,6 +31,7 @@ main() {
         fi
     done
 
+    td=$(mktemp -d)
     pushd $td
 
     curl -L http://wiki.qemu-project.org/download/qemu-$version.tar.bz2 | \

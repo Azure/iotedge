@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::env;
 use std::error::Error as StdError;
 use std::fmt;
 use std::io::Error as IoError;
@@ -7,6 +8,7 @@ use std::num::ParseIntError;
 use std::str::{self, Utf8Error};
 
 use azure_sdk_for_rust::core::errors::AzureError;
+use backtrace::Backtrace;
 use hex::FromHexError;
 use http::Error as HttpError;
 use hyper::{Error as HyperError, StatusCode as HyperStatusCode};
@@ -17,8 +19,25 @@ use url::ParseError as ParseUrlError;
 
 pub type Result<T> = ::std::result::Result<T, Error>;
 
+pub struct Error {
+    kind: ErrorKind,
+    stack: Option<Backtrace>,
+}
+
+impl Error {
+    pub fn new(kind: ErrorKind) -> Error {
+        let stack = if env::var("RUST_BACKTRACE").unwrap_or_else(|_| "0".to_string()) == "1" {
+            Some(Backtrace::new())
+        } else {
+            None
+        };
+
+        Error { kind, stack }
+    }
+}
+
 #[derive(Debug)]
-pub enum Error {
+pub enum ErrorKind {
     Io(IoError),
     Env(String),
     ParseInt(ParseIntError),
@@ -46,80 +65,91 @@ impl fmt::Display for Error {
     }
 }
 
+impl fmt::Debug for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // if RUST_BACTRACE=1 then include backtrace
+        if let Some(ref stack) = self.stack {
+            write!(f, "{:?}\n{:?}", self.kind, stack)
+        } else {
+            write!(f, "{:?}", self.kind)
+        }
+    }
+}
+
 impl From<ParseIntError> for Error {
     fn from(err: ParseIntError) -> Error {
-        Error::ParseInt(err)
+        Error::new(ErrorKind::ParseInt(err))
     }
 }
 
 impl From<ParseUrlError> for Error {
     fn from(err: ParseUrlError) -> Error {
-        Error::ParseUrl(err)
+        Error::new(ErrorKind::ParseUrl(err))
     }
 }
 
 impl From<SerdeJsonError> for Error {
     fn from(err: SerdeJsonError) -> Error {
-        Error::SerdeJson(err)
+        Error::new(ErrorKind::SerdeJson(err))
     }
 }
 
 impl From<HyperError> for Error {
     fn from(err: HyperError) -> Error {
-        Error::Hyper(err)
+        Error::new(ErrorKind::Hyper(err))
     }
 }
 
 impl From<HyperTlsError> for Error {
     fn from(err: HyperTlsError) -> Error {
-        Error::HyperTls(err)
+        Error::new(ErrorKind::HyperTls(err))
     }
 }
 
 impl From<HttpError> for Error {
     fn from(err: HttpError) -> Error {
-        Error::Http(err)
+        Error::new(ErrorKind::Http(err))
     }
 }
 
 impl From<TimerError> for Error {
     fn from(err: TimerError) -> Error {
-        Error::Timer(err)
+        Error::new(ErrorKind::Timer(err))
     }
 }
 
 impl From<IoError> for Error {
     fn from(err: IoError) -> Error {
-        Error::Io(err)
+        Error::new(ErrorKind::Io(err))
     }
 }
 
 impl From<AzureError> for Error {
     fn from(err: AzureError) -> Error {
-        Error::Azure(err)
+        Error::new(ErrorKind::Azure(err))
     }
 }
 
 impl<'a> From<(HyperStatusCode, &'a [u8])> for Error {
     fn from(err: (HyperStatusCode, &'a [u8])) -> Self {
         let (status_code, msg) = err;
-        Error::Service(
+        Error::new(ErrorKind::Service(
             status_code,
             str::from_utf8(msg)
                 .unwrap_or_else(|_| "Could not decode error message")
                 .to_string(),
-        )
+        ))
     }
 }
 
 impl From<FromHexError> for Error {
     fn from(err: FromHexError) -> Error {
-        Error::Hex(err)
+        Error::new(ErrorKind::Hex(err))
     }
 }
 
 impl From<Utf8Error> for Error {
     fn from(err: Utf8Error) -> Error {
-        Error::Utf8(err)
+        Error::new(ErrorKind::Utf8(err))
     }
 }
