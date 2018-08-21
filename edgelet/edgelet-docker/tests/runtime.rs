@@ -289,13 +289,9 @@ fn container_create_handler(req: Request) -> Box<Future<Item = Response, Error =
                 );
 
                 let volumes = create_options.volumes().unwrap();
-                println!("{:?}", volumes);
                 let mut expected = ::std::collections::HashMap::new();
                 expected.insert("test1".to_string(), json!({}));
                 assert_eq!(*volumes, expected);
-                //::std::collections::HashMap
-                //assert_eq!(*volumes, 
-                //assert_eq!(*volumes, json!({"/test1": {}, "/test2": {}}));
 
                 Ok(())
             })
@@ -337,15 +333,13 @@ fn container_create_succeeds() {
         vec![HostConfigPortBindings::new().with_host_port("8080".to_string())],
     );
     let memory: i64 = 3221225472;
-    //let volumes = json!({"/test1": {}, "/test2": {}});
     let mut volumes = ::std::collections::HashMap::new();
-    volumes.insert("test1".to_string(), json!({})); 
+    volumes.insert("test1".to_string(), json!({}));
     let create_options = ContainerCreateBody::new()
         .with_host_config(
             HostConfig::new()
                 .with_port_bindings(port_bindings)
-                .with_memory(memory)
-                .with_binds(vec!["/a:/a".to_string()]),
+                .with_memory(memory),
         )
         .with_cmd(vec![
             "/do/the/custom/command".to_string(),

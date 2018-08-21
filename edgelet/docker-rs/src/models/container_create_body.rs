@@ -386,13 +386,11 @@ impl ContainerCreateBody {
         self.image = None;
     }
 
-    //pub fn set_volumes(&mut self, volumes: Value) {
     pub fn set_volumes(&mut self, volumes: ::std::collections::HashMap<String, Value>) {
         self.volumes = Some(volumes);
     }
 
     pub fn with_volumes(mut self, volumes: ::std::collections::HashMap<String, Value>) -> ContainerCreateBody {
-    //pub fn with_volumes(mut self, volumes: Value) -> ContainerCreateBody {
         self.volumes = Some(volumes);
         self
     }
