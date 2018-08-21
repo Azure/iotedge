@@ -192,9 +192,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             switch (connectionStatus)
             {
                 case CloudConnectionStatus.TokenNearExpiry:
-                    Option<IClientCredentials> token = await device.DeviceConnection
+                    Option<IClientCredentials> token = await device.DeviceConnection.Filter(d => d.IsActive)
                         .FlatMap(dc => dc.DeviceProxy.Map(d => d.GetUpdatedIdentity()))
-                        .GetOrElse(Task.FromResult(Option.None<IClientCredentials>()));
+                        .GetOrElse(async () =>
+                        {
+                            await device.CloudConnection.Map(c => c.CloseAsync()).GetOrElse(Task.FromResult(true));
+                            return Option.None<IClientCredentials>();
+                        });
+
                     if (token.HasValue)
                     {
                         await token.ForEachAsync(async t =>

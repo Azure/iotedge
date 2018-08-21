@@ -164,6 +164,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
+        // This API is to be used for Tests only.
+        internal CloudReceiver GetCloudReceiver() => this.cloudReceiver;
+
         bool EnsureCloudReceiver(string operation)
         {
             if (this.cloudReceiver == null)
