@@ -24,13 +24,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly Action<string, CloudConnectionStatus> connectionStatusChangedHandler;
         readonly string clientId;
         readonly Guid id = Guid.NewGuid();
-        CloudReceiver cloudReceiver;
+        readonly CloudReceiver cloudReceiver;
 
-        public CloudProxy(IClient client, IMessageConverterProvider messageConverterProvider, string clientId, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
+        public CloudProxy(IClient client,
+            IMessageConverterProvider messageConverterProvider,
+            string clientId,
+            Action<string, CloudConnectionStatus> connectionStatusChangedHandler,
+            ICloudListener cloudListener)
         {
             this.client = Preconditions.CheckNotNull(client, nameof(client));
             this.messageConverterProvider = Preconditions.CheckNotNull(messageConverterProvider, nameof(messageConverterProvider));
             this.clientId = Preconditions.CheckNonWhiteSpace(clientId, nameof(clientId));
+            this.cloudReceiver = new CloudReceiver(this, Preconditions.CheckNotNull(cloudListener, nameof(cloudListener)));
+
             if (connectionStatusChangedHandler != null)
             {
                 this.connectionStatusChangedHandler = connectionStatusChangedHandler;
@@ -119,12 +125,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             var reported = JsonConvert.DeserializeObject<TwinCollection>(reportedPropertiesString);
             await this.client.UpdateReportedPropertiesAsync(reported);
             Events.UpdateReportedProperties(this);
-        }
-
-        public void BindCloudListener(ICloudListener cloudListener)
-        {
-            this.cloudReceiver = new CloudReceiver(this, cloudListener);
-            Events.BindCloudListener(this);
         }
 
         public Task SendFeedbackMessageAsync(string messageId, FeedbackStatus feedbackStatus)

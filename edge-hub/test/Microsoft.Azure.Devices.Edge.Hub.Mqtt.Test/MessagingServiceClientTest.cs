@@ -374,10 +374,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 {
                     Assert.Equal(FeedbackStatus.Complete, status);
                 });
-            cloudProxy.Setup(d => d.BindCloudListener(It.IsAny<ICloudListener>()));
             var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(c => c.GetCloudConnection(It.IsAny<string>()))
-                .Returns(Option.Some(cloudProxy.Object));
+                .Returns(Task.FromResult(Option.Some(cloudProxy.Object)));
 
             var deviceListner = new DeviceMessageHandler(MockIdentity, EdgeHub.Object, connectionManager.Object);
             var messagingServiceClient = new Mqtt.MessagingServiceClient(deviceListner, messageConverter, ByteBufferConverter);
@@ -410,10 +409,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 {
                     Assert.Equal(FeedbackStatus.Reject, status);
                 });
-            cloudProxy.Setup(d => d.BindCloudListener(It.IsAny<ICloudListener>()));
             var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(c => c.GetCloudConnection(It.IsAny<string>()))
-                .Returns(Option.Some(cloudProxy.Object));
+                .Returns(Task.FromResult(Option.Some(cloudProxy.Object)));
             var deviceListner = new DeviceMessageHandler(MockIdentity, EdgeHub.Object, connectionManager.Object);
             var messagingServiceClient = new Mqtt.MessagingServiceClient(deviceListner, messageConverter, ByteBufferConverter);
 
@@ -445,10 +443,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 {
                     Assert.Equal(FeedbackStatus.Abandon, status);
                 });
-            cloudProxy.Setup(d => d.BindCloudListener(It.IsAny<ICloudListener>()));
             var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(c => c.GetCloudConnection(It.IsAny<string>()))
-                .Returns(Option.Some(cloudProxy.Object));
+                .Returns(Task.FromResult(Option.Some(cloudProxy.Object)));
             var deviceListner = new DeviceMessageHandler(MockIdentity, EdgeHub.Object, connectionManager.Object);
             var messagingServiceClient = new Mqtt.MessagingServiceClient(deviceListner, messageConverter, ByteBufferConverter);
 
@@ -480,10 +477,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 {
 
                 });
-            cloudProxy.Setup(d => d.BindCloudListener(It.IsAny<ICloudListener>()));
             var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(c => c.GetCloudConnection(It.IsAny<string>()))
-                .Returns(Option.Some(cloudProxy.Object));
+                .Returns(Task.FromResult(Option.Some(cloudProxy.Object)));
             var deviceListner = new DeviceMessageHandler(MockIdentity, EdgeHub.Object, connectionManager.Object);
             var messagingServiceClient = new Mqtt.MessagingServiceClient(deviceListner, messageConverter, ByteBufferConverter);
 
