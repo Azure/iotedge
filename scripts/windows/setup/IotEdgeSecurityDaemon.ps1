@@ -143,7 +143,7 @@ function Test-IsDockerRunning {
         }
     } else {
         Write-Host "Docker is not running." -ForegroundColor "Red"
-        if ((Get-Item "HKLM:\Software\Microsoft\Windows NT\CurrentVersion").GetValue("EditionID") -eq "IoTUAP") {
+        if ((Get-WindowsEdition) -eq "IoTUAP") {
             Write-Host ("Please visit https://docs.microsoft.com/en-us/azure/iot-edge/how-to-install-iot-core " +
                 "for assistance with installing Docker on IoT Core.") `
                 -ForegroundColor "Red"
@@ -224,6 +224,9 @@ function Get-SecurityDaemon {
             $ArchivePath = "$env:TEMP\iotedged-windows.zip"
             $DeleteArchive = $true
             Write-Host "Downloading the latest version of IoT Edge security daemon." -ForegroundColor "Green"
+	    if ((Get-WindowsEdition) -ne "IoTUAP") {
+	        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+	    }
             Invoke-WebRequest `
                 -Uri "https://aka.ms/iotedged-windows-latest" `
                 -OutFile $ArchivePath `
@@ -304,13 +307,15 @@ function Reset-SystemPath {
 }
 
 function Get-VcRuntime {
-    if ((Get-Item "HKLM:\Software\Microsoft\Windows NT\CurrentVersion").GetValue("EditionID") -eq "IoTUAP") {
+    if ((Get-WindowsEdition) -eq "IoTUAP") {
         Write-Host "Skipped vcruntime download on IoT Core." -ForegroundColor "Green"
         return
     }
-
     try {
         Write-Host "Downloading vcruntime." -ForegroundColor "Green"
+        if ((Get-WindowsEdition) -ne "IoTUAP") {
+	    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+	}
         Invoke-WebRequest `
             -Uri "https://download.microsoft.com/download/0/6/4/064F84EA-D1DB-4EAA-9A5C-CC2F0FF6A638/vc_redist.x64.exe" `
             -OutFile "$env:TEMP\vc_redist.exe" `
@@ -578,6 +583,10 @@ function Invoke-Native {
             $out
         }
     }
+}
+
+function Get-WindowsEdition {
+    (Get-Item "HKLM:\Software\Microsoft\Windows NT\CurrentVersion").GetValue("EditionID")
 }
 
 Export-ModuleMember -Function Install-SecurityDaemon, Uninstall-SecurityDaemon
