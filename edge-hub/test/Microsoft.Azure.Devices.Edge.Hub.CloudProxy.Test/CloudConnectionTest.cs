@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Shared;
     using Moq;
     using Xunit;
 
@@ -54,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             var transportSettings = new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
 
-            var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter>());
+            var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter> { [typeof(TwinCollection)] = Mock.Of<IMessageConverter>() });
 
             var cloudConnection = new CloudConnection((_, __) => { }, transportSettings, messageConverterProvider, deviceClientProvider.Object, Mock.Of<ICloudListener>());
 
@@ -90,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             var receivedStatus = CloudConnectionStatus.ConnectionEstablished;
             void ConnectionStatusHandler(string id, CloudConnectionStatus status) => receivedStatus = status;
-            var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter>());
+            var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter> { [typeof(TwinCollection)] = Mock.Of<IMessageConverter>() });
 
             var cloudConnection = new CloudConnection(ConnectionStatusHandler, transportSettings, messageConverterProvider, clientProvider, Mock.Of<ICloudListener>());
 
@@ -169,7 +170,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 }
             }
 
-            var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter>());
+            var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter> { [typeof(TwinCollection)] = Mock.Of<IMessageConverter>() });
 
             var cloudConnection = new CloudConnection(ConnectionStatusHandler, transportSettings, messageConverterProvider, deviceClientProvider.Object, Mock.Of<ICloudListener>());
 
@@ -252,6 +253,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var messageConverterProvider = Mock.Of<IMessageConverterProvider>();
 
             ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, deviceClientProvider.Object, Option.None<UpstreamProtocol>());
+            cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider);
 
             IClientCredentials clientCredentials1 = GetClientCredentials();
@@ -306,7 +308,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         static async Task GetCloudConnectionTest(Func<IClientCredentials> credentialsGenerator, IClientProvider clientProvider)
         {
             var transportSettings = new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
-            var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter>());
+            var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter> { [typeof(TwinCollection)] = Mock.Of<IMessageConverter>() });
 
             var cloudConnection = new CloudConnection((_, __) => { }, transportSettings, messageConverterProvider, clientProvider, Mock.Of<ICloudListener>());
 
