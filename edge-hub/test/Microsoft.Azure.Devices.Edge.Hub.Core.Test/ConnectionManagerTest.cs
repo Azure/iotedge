@@ -600,6 +600,52 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.Equal(true, subscriptions[DeviceSubscription.ModuleMessages]);
         }
 
+        [Unit]
+        [Fact]
+        public async Task GetClientCredentialsTest()
+        {
+            // Arrange
+            var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
+            var clientCredentials1 = Mock.Of<ITokenCredentials>(c => c.Identity == identity && c.Token == Guid.NewGuid().ToString());
+            var clientCredentials2 = Mock.Of<ITokenCredentials>(c => c.Identity == identity && c.Token == Guid.NewGuid().ToString());
+            var deviceProxy1 = Mock.Of<IDeviceProxy>(d => d.IsActive);
+            var deviceProxy2 = Mock.Of<IDeviceProxy>(d => d.IsActive);
+            Mock.Get(deviceProxy2).Setup(d => d.CloseAsync(It.IsAny<Exception>()))
+                .Callback(() => Mock.Get(deviceProxy2).SetupGet(d2 => d2.IsActive).Returns(false))
+                .Returns(Task.CompletedTask);
+            var connectionManager = new ConnectionManager(Mock.Of<ICloudConnectionProvider>());
+
+            // Act
+            await connectionManager.AddDeviceConnection(clientCredentials1);
+            connectionManager.BindDeviceProxy(identity, deviceProxy1);
+            Option<IClientCredentials> d1ClientCredentials = connectionManager.GetClientCredentials("d1");
+            Option<IClientCredentials> absentClientCredentials = connectionManager.GetClientCredentials("d2");
+
+            // Assert
+            Assert.True(d1ClientCredentials.HasValue);
+            Assert.IsAssignableFrom<ITokenCredentials>(d1ClientCredentials.OrDefault());
+            Assert.Equal(clientCredentials1.Token, (d1ClientCredentials.OrDefault() as ITokenCredentials)?.Token);
+
+            Assert.False(absentClientCredentials.HasValue);
+
+            // Act
+            await connectionManager.AddDeviceConnection(clientCredentials2);
+            connectionManager.BindDeviceProxy(identity, deviceProxy2);
+            d1ClientCredentials = connectionManager.GetClientCredentials("d1");
+
+            // Assert
+            Assert.True(d1ClientCredentials.HasValue);
+            Assert.IsAssignableFrom<ITokenCredentials>(d1ClientCredentials.OrDefault());
+            Assert.Equal(clientCredentials2.Token, (d1ClientCredentials.OrDefault() as ITokenCredentials)?.Token);
+
+            // Act
+            await connectionManager.RemoveDeviceConnection("d1");
+            d1ClientCredentials = connectionManager.GetClientCredentials("d1");
+
+            // Assert
+            Assert.False(d1ClientCredentials.HasValue);
+        }
+
         static ICloudConnection GetCloudConnectionMock()
         {
             ICloudProxy cloudProxyMock = GetCloudProxyMock();
