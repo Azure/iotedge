@@ -4,6 +4,7 @@
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
     <NoWarn>3021</NoWarn>
     <Configurations>Debug;Release;CodeCoverage</Configurations>
+    <HighEntropyVA>true</HighEntropyVA>
   </PropertyGroup>
 
   <!--
@@ -76,8 +77,8 @@
     <Exec Command="java -version" EchoOff="true" />
     <MakeDir Directories="grammar\generated" />
     <Exec Command="java -jar $(FullAntlr4ToolLocation) %(Antlr4Inputs.Identity) -package Microsoft.Azure.Devices.Routing.Core -Dlanguage=CSharp_v4_5 -visitor -listener -o grammar/generated" />
-    <CreateProperty Value="true">  
-      <Output TaskParameter="ValueSetByTask" PropertyName="Antlr4CodeGenRan" />  
+    <CreateProperty Value="true">
+      <Output TaskParameter="ValueSetByTask" PropertyName="Antlr4CodeGenRan" />
     </CreateProperty>
   </Target>
 
