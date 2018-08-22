@@ -109,10 +109,20 @@ namespace LoadGen
                     data = data.Data,
                 };
 
-                var message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageBody)));
-                message.Properties.Add("sequenceNumber", Interlocked.Increment(ref MessageIdCounter).ToString());
-                message.Properties.Add("batchId", batchId.ToString());
-                await client.SendEventAsync(Settings.Current.OutputName, message).ConfigureAwait(false);
+                long sequenceNumber = -1;
+                try
+                {
+                    var message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageBody)));
+                    sequenceNumber = Interlocked.Increment(ref MessageIdCounter);
+                    message.Properties.Add("sequenceNumber", sequenceNumber.ToString());
+                    message.Properties.Add("batchId", batchId.ToString());
+                    await client.SendEventAsync(Settings.Current.OutputName, message).ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    Log.Error($"Sequence number {sequenceNumber}, BatchId: {batchId.ToString()} {e}");
+                }
+
             }
         }
 
