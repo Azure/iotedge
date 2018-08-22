@@ -423,11 +423,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                 async c =>
                 {
-                    var cloudConnectionProvider = c.Resolve<ICloudConnectionProvider>();
                     Router router = await c.Resolve<Task<Router>>();
                     IEdgeHub hub = new RoutingEdgeHub(router, c.Resolve<Core.IMessageConverter<IRoutingMessage>>(), c.Resolve<IConnectionManager>(),
-                        c.Resolve<ITwinManager>(), this.edgeDeviceId, c.Resolve<IInvokeMethodHandler>());
-                    cloudConnectionProvider.BindEdgeHub(hub);
+                        c.Resolve<ITwinManager>(), this.edgeDeviceId, c.Resolve<IInvokeMethodHandler>());                   
                     return hub;
                 })
                 .As<Task<IEdgeHub>>()
