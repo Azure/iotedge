@@ -1,12 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
+namespace Microsoft.Azure.Devices.Edge.Util
 {
     using System;
     using System.Security.Cryptography;
     using System.Text;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Util;
 
     public class SharedAccessKeySignatureProvider : ISignatureProvider
     {
