@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-namespace Microsoft.Azure.Devices.Edge.Util.Edged
+namespace Microsoft.Azure.Devices.Edge.Util
 {
     using System;
     using System.Globalization;
@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
     using System.Text;
     using static System.FormattableString;
 
-    public static class SasTokenBuilder
+    public static class SasTokenHelper
     {
         const string SharedAccessSignature = "SharedAccessSignature";
         const string AudienceFieldName = "sr";

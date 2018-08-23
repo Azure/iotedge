@@ -28,12 +28,12 @@ namespace Microsoft.Azure.Devices.Edge.Util
         public async Task<string> GetTokenAsync(Option<TimeSpan> ttl)
         {
             DateTime startTime = DateTime.UtcNow;
-            string audience = SasTokenBuilder.BuildAudience(this.iotHubHostName, this.deviceId, this.moduleId);
-            string expiresOn = SasTokenBuilder.BuildExpiresOn(startTime, ttl.GetOrElse(this.defaultTtl));
+            string audience = SasTokenHelper.BuildAudience(this.iotHubHostName, this.deviceId, this.moduleId);
+            string expiresOn = SasTokenHelper.BuildExpiresOn(startTime, ttl.GetOrElse(this.defaultTtl));
             string data = string.Join("\n", new List<string> { audience, expiresOn });
             string signature = await this.signatureProvider.SignAsync(data).ConfigureAwait(false);
 
-            return SasTokenBuilder.BuildSasToken(audience, signature, expiresOn);
+            return SasTokenHelper.BuildSasToken(audience, signature, expiresOn);
         }
     }
 }
