@@ -4,6 +4,7 @@
     <TargetFramework>netcoreapp2.1</TargetFramework>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
     <Configurations>Debug;Release;CodeCoverage</Configurations>
+    <HighEntropyVA>true</HighEntropyVA>
   </PropertyGroup>
   <!--
     Normally, the 'Debug' configuration would work for code coverage, but Microsoft.CodeCoverage currently requires '<DebugType>full</DebugType>' for .NET Core.

@@ -5,6 +5,7 @@
     <AssemblyName>Microsoft.Azure.Devices.Edge.Functions.BindingExtension</AssemblyName>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
     <Configurations>Debug;Release;CodeCoverage</Configurations>
+    <HighEntropyVA>true</HighEntropyVA>
   </PropertyGroup>
 
   <!--

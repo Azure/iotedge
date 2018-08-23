@@ -55,6 +55,9 @@
             "env": {
               "messageFrequency": {
                 "value": "<LoadGen.MessageFrequency>"
+              },
+              "transportType": {
+                "value": "<LoadGen.TransportType>"
               }
             },
             "settings": {
@@ -70,6 +73,9 @@
             "env": {
               "messageFrequency": {
                 "value": "<LoadGen.MessageFrequency>"
+              },
+              "transportType": {
+                "value": "<LoadGen.TransportType>"
               }
             },
             "settings": {
@@ -85,6 +91,9 @@
             "env": {
               "messageFrequency": {
                 "value": "<LoadGen.MessageFrequency>"
+              },
+              "transportType": {
+                "value": "<LoadGen.TransportType>"
               }
             },
             "settings": {
@@ -115,9 +124,6 @@
               },
               "INFLUX_DB_NAME": {
                 "value": "_internal"
-              },
-              "INFLUX_QUERY_all": {
-                "value": "select * from /.*/"
               },
               "ANALYZER_URL": {
                 "value": "http://analyzer:15000/api/report"
