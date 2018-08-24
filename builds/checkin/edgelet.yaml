@@ -27,33 +27,27 @@ phases:
           filePath: edgelet/build/linux/test.sh
 
 ################################################################################
-  - phase: linux_arm32v7
+  - phase: style_check
 ################################################################################
-    displayName: Linux arm32v7
+    displayName: Style Check
     queue:
       name: Hosted Linux Preview
     steps:
       - script: |
-          echo "##vso[task.setvariable variable=RUSTUP_HOME;]$VSTS_WORK/rustup"
-          echo "##vso[task.setvariable variable=CARGO_HOME;]$VSTS_WORK/cargo"
-          echo "##vso[task.setvariable variable=PATH;]$VSTS_WORK/cargo/bin:$PATH"
-        displayName: Modify path
+          echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
+        displayName: Set env variables
       - task: Bash@3
         displayName: Install Rust
         inputs:
           filePath: edgelet/build/linux/install.sh
-      - script: cargo install --git https://github.com/myagley/cross.git --branch set-path
-        displayName: Install cross (fork with docker fix)
       - task: Bash@3
-        displayName: armv7-unknown-linux-gnueabihf build
+        displayName: Format Code
         inputs:
-          filePath: edgelet/build/linux/cross.sh
-          arguments: --toolchain armv7-unknown-linux-gnueabihf
+          filePath: edgelet/build/linux/format.sh
       - task: Bash@3
-        displayName: armv7-unknown-linux-gnueabihf test
+        displayName: Clippy
         inputs:
-          filePath: edgelet/build/linux/cross-test.sh
-          arguments: --toolchain armv7-unknown-linux-gnueabihf
+          filePath: edgelet/build/linux/clippy.sh
 
 ################################################################################
   - phase: windows_amd64
@@ -78,24 +72,31 @@ phases:
           filePath: edgelet/build/windows/test.ps1
 
 ################################################################################
-  - phase: style_check
+#  - phase: linux_arm32v7
 ################################################################################
-    displayName: Style Check
-    queue:
-      name: Hosted Linux Preview
-    steps:
-      - script: |
-          echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
-        displayName: Set env variables
-      - task: Bash@3
-        displayName: Install Rust
-        inputs:
-          filePath: edgelet/build/linux/install.sh
-      - task: Bash@3
-        displayName: Format Code
-        inputs:
-          filePath: edgelet/build/linux/format.sh
-      - task: Bash@3
-        displayName: Clippy
-        inputs:
-          filePath: edgelet/build/linux/clippy.sh
+#    displayName: Linux arm32v7
+#    queue:
+#      name: Hosted Linux Preview
+#    steps:
+#      - script: |
+#          echo "##vso[task.setvariable variable=RUSTUP_HOME;]$VSTS_WORK/rustup"
+#          echo "##vso[task.setvariable variable=CARGO_HOME;]$VSTS_WORK/cargo"
+#          echo "##vso[task.setvariable variable=PATH;]$VSTS_WORK/cargo/bin:$PATH"
+#        displayName: Modify path
+#      - task: Bash@3
+#        displayName: Install Rust
+#        inputs:
+#          filePath: edgelet/build/linux/install.sh
+#      - script: cargo install --git https://github.com/myagley/cross.git --branch set-path
+#        displayName: Install cross (fork with docker fix)
+#      - task: Bash@3
+#        displayName: armv7-unknown-linux-gnueabihf build
+#        inputs:
+#          filePath: edgelet/build/linux/cross.sh
+#          arguments: --toolchain armv7-unknown-linux-gnueabihf
+#      - task: Bash@3
+#        displayName: armv7-unknown-linux-gnueabihf test
+#        inputs:
+#          filePath: edgelet/build/linux/cross-test.sh
+#          arguments: --toolchain armv7-unknown-linux-gnueabihf
+#
