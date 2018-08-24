@@ -27,6 +27,51 @@ phases:
           filePath: edgelet/build/linux/test.sh
 
 ################################################################################
+  - phase: style_check
+################################################################################
+    displayName: Style Check
+    queue:
+      name: Hosted Linux Preview
+    steps:
+      - script: |
+          echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
+        displayName: Set env variables
+      - task: Bash@3
+        displayName: Install Rust
+        inputs:
+          filePath: edgelet/build/linux/install.sh
+      - task: Bash@3
+        displayName: Format Code
+        inputs:
+          filePath: edgelet/build/linux/format.sh
+      - task: Bash@3
+        displayName: Clippy
+        inputs:
+          filePath: edgelet/build/linux/clippy.sh
+
+################################################################################
+  - phase: windows_amd64
+################################################################################
+    displayName: Windows amd64
+    queue:
+      name: Hosted VS2017
+    steps:
+      - powershell: Write-Host ("##vso[task.setvariable variable=NO_VALGRIND;]true")
+        displayName: Set env variables
+      - task: PowerShell@2
+        displayName: Install Rust
+        inputs:
+          filePath: edgelet/build/windows/install.ps1
+      - task: PowerShell@2
+        displayName: Build
+        inputs:
+          filePath: edgelet/build/windows/build.ps1
+      - task: PowerShell@2
+        displayName: Test
+        inputs:
+          filePath: edgelet/build/windows/test.ps1
+
+################################################################################
 #  - phase: linux_arm32v7
 ################################################################################
 #    displayName: Linux arm32v7
@@ -55,47 +100,3 @@ phases:
 #          filePath: edgelet/build/linux/cross-test.sh
 #          arguments: --toolchain armv7-unknown-linux-gnueabihf
 #
-################################################################################
-  - phase: windows_amd64
-################################################################################
-    displayName: Windows amd64
-    queue:
-      name: Hosted VS2017
-    steps:
-      - powershell: Write-Host ("##vso[task.setvariable variable=NO_VALGRIND;]true")
-        displayName: Set env variables
-      - task: PowerShell@2
-        displayName: Install Rust
-        inputs:
-          filePath: edgelet/build/windows/install.ps1
-      - task: PowerShell@2
-        displayName: Build
-        inputs:
-          filePath: edgelet/build/windows/build.ps1
-      - task: PowerShell@2
-        displayName: Test
-        inputs:
-          filePath: edgelet/build/windows/test.ps1
-
-################################################################################
-  - phase: style_check
-################################################################################
-    displayName: Style Check
-    queue:
-      name: Hosted Linux Preview
-    steps:
-      - script: |
-          echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
-        displayName: Set env variables
-      - task: Bash@3
-        displayName: Install Rust
-        inputs:
-          filePath: edgelet/build/linux/install.sh
-      - task: Bash@3
-        displayName: Format Code
-        inputs:
-          filePath: edgelet/build/linux/format.sh
-      - task: Bash@3
-        displayName: Clippy
-        inputs:
-          filePath: edgelet/build/linux/clippy.sh
