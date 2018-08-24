@@ -49,7 +49,9 @@ namespace LeafDevice.Details
 
         protected async Task ConnectToEdgeAndSendData()
         {
-            string leafDeviceConnectionString = this.iothubConnectionString + $";DeviceId={this.deviceId};gatewayHostName={this.edgeHostName}";
+            Microsoft.Azure.Devices.IotHubConnectionStringBuilder builder = Microsoft.Azure.Devices.IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
+            string leafDeviceConnectionString = $"HostName={builder.HostName};DeviceId={this.deviceId};SharedAccessKey={this.context.Device.Authentication.SymmetricKey.PrimaryKey};gatewayHostName={this.edgeHostName}";
+
             DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(leafDeviceConnectionString, Microsoft.Azure.Devices.Client.TransportType.Amqp);
 
             var message = new Microsoft.Azure.Devices.Client.Message(Encoding.ASCII.GetBytes($"Message from Leaf Device. MsgGUID: {this.context.MessageGuid}"));
@@ -62,6 +64,7 @@ namespace LeafDevice.Details
             RegistryManager rm = RegistryManager.CreateFromConnectionString(builder.ToString());
 
             Device device = await rm.GetDeviceAsync(this.deviceId);
+
             if (device != null)
             {
                 Console.WriteLine($"Device '{device.Id}' already registered on IoT hub '{builder.HostName}'");
