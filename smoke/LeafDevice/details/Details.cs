@@ -50,9 +50,9 @@ namespace LeafDevice.Details
         protected async Task ConnectToEdgeAndSendData()
         {
             string leafDeviceConnectionString = this.iothubConnectionString + $";DeviceId={this.deviceId};gatewayHostName={this.edgeHostName}";
-            DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(leafDeviceConnectionString, Microsoft.Azure.Devices.Client.TransportType.Mqtt);
-            var message = new Microsoft.Azure.Devices.Client.Message(Encoding.ASCII.GetBytes("Message from Leaf Device."));
+            DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(leafDeviceConnectionString, Microsoft.Azure.Devices.Client.TransportType.Amqp);
 
+            var message = new Microsoft.Azure.Devices.Client.Message(Encoding.ASCII.GetBytes($"Message from Leaf Device. MsgGUID: {this.context.MessageGuid}"));
             await deviceClient.SendEventAsync(message);
         }
 
@@ -71,7 +71,8 @@ namespace LeafDevice.Details
                     Device = device,
                     IotHubConnectionString = this.iothubConnectionString,
                     RegistryManager = rm,
-                    RemoveDevice = false
+                    RemoveDevice = false,
+                    MessageGuid = Guid.NewGuid().ToString()
                 };
             }
             else
@@ -98,7 +99,8 @@ namespace LeafDevice.Details
                 Device = device,
                 IotHubConnectionString = this.iothubConnectionString,
                 RegistryManager = rm,
-                RemoveDevice = true
+                RemoveDevice = true,
+                MessageGuid = Guid.NewGuid().ToString()
             };
         }
 
@@ -116,7 +118,7 @@ namespace LeafDevice.Details
                 EventHubPartitionKeyResolver.ResolveToPartition(
                     this.context.Device.Id,
                     (await eventHubClient.GetRuntimeInformationAsync()).PartitionCount),
-                DateTime.Now);
+                DateTime.Now.AddMinutes(-5));
 
             var result = new TaskCompletionSource<bool>();
             using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3)))
@@ -129,7 +131,8 @@ namespace LeafDevice.Details
                             {
                                 eventData.Properties.TryGetValue("iothub-connection-device-id", out object devId);
 
-                                if (devId != null && devId.ToString().Equals(this.context.Device.Id))
+                                if (devId != null && devId.ToString().Equals(this.context.Device.Id)
+                                    && Encoding.UTF8.GetString(eventData.Body).Contains(this.context.MessageGuid))
                                 {
                                     result.TrySetResult(true);
                                     return true;
@@ -178,5 +181,6 @@ namespace LeafDevice.Details
         public string IotHubConnectionString;
         public RegistryManager RegistryManager;
         public bool RemoveDevice;
+        public string MessageGuid; //used to identify exactly which message got sent. 
     }
 }
