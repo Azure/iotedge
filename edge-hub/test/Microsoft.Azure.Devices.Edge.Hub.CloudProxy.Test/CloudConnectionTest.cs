@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string token = TokenHelper.CreateSasToken("azure.devices.net");
             TimeSpan timeRemaining = CloudConnection.GetTokenExpiryTimeRemaining("foo.azuredevices.net", token);
             Assert.True(timeRemaining > TimeSpan.Zero);
-        }        
+        }
 
         [Unit]
         [Fact]
@@ -78,7 +78,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             IClientCredentials GetClientCredentialsWithExpiringToken()
             {
-                string token = TokenHelper.CreateSasToken(iothubHostName, DateTime.UtcNow.AddSeconds(10));
+                string token = TokenHelper.CreateSasToken(iothubHostName, DateTime.UtcNow.AddMinutes(3));
+                var identity = new DeviceIdentity(iothubHostName, deviceId);
+                return new TokenCredentials(identity, token, string.Empty);
+            }
+
+            IClientCredentials GetClientCredentialsWithNonExpiringToken()
+            {
+                string token = TokenHelper.CreateSasToken(iothubHostName, DateTime.UtcNow.AddMinutes(10));
                 var identity = new DeviceIdentity(iothubHostName, deviceId);
                 return new TokenCredentials(identity, token, string.Empty);
             }
@@ -103,26 +110,103 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var deviceAuthenticationWithTokenRefresh = authenticationMethod as DeviceAuthenticationWithTokenRefresh;
             Assert.NotNull(deviceAuthenticationWithTokenRefresh);
 
-            // Wait for the token to expire
-            await Task.Delay(TimeSpan.FromSeconds(10));
-
             Task<string> getTokenTask = deviceAuthenticationWithTokenRefresh.GetTokenAsync(iothubHostName);
             Assert.False(getTokenTask.IsCompleted);
 
             Assert.Equal(receivedStatus, CloudConnectionStatus.TokenNearExpiry);
 
-            IClientCredentials clientCredentialsWithExpiringToken2 = GetClientCredentialsWithExpiringToken();
+            IClientCredentials clientCredentialsWithExpiringToken2 = GetClientCredentialsWithNonExpiringToken();
             ICloudProxy cloudProxy2 = await cloudConnection.CreateOrUpdateAsync(clientCredentialsWithExpiringToken2);
 
             // Wait for the task to complete
             await Task.Delay(TimeSpan.FromSeconds(10));
 
+            Assert.True(getTokenTask.IsCompletedSuccessfully);
             Assert.Equal(cloudProxy2, cloudConnection.CloudProxy.OrDefault());
             Assert.True(cloudProxy2.IsActive);
             Assert.True(cloudProxy1.IsActive);
             Assert.Equal(cloudProxy1, cloudProxy2);
-            Assert.True(getTokenTask.IsCompletedSuccessfully);
             Assert.Equal(getTokenTask.Result, (clientCredentialsWithExpiringToken2 as ITokenCredentials)?.Token);
+        }
+
+        [Fact]
+        [Unit]
+        public async Task RefreshTokenWithRetryTest()
+        {
+            string iothubHostName = "test.azure-devices.net";
+            string deviceId = "device1";
+
+            IClientCredentials GetClientCredentialsWithExpiringToken()
+            {
+                string token = TokenHelper.CreateSasToken(iothubHostName, DateTime.UtcNow.AddMinutes(3));
+                var identity = new DeviceIdentity(iothubHostName, deviceId);
+                return new TokenCredentials(identity, token, string.Empty);
+            }
+
+            IClientCredentials GetClientCredentialsWithNonExpiringToken()
+            {
+                string token = TokenHelper.CreateSasToken(iothubHostName, DateTime.UtcNow.AddMinutes(10));
+                var identity = new DeviceIdentity(iothubHostName, deviceId);
+                return new TokenCredentials(identity, token, string.Empty);
+            }
+
+            IAuthenticationMethod authenticationMethod = null;
+            IClientProvider clientProvider = GetMockDeviceClientProviderWithToken((s, a, t) => authenticationMethod = a);
+
+            var transportSettings = new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
+
+            var receivedStatuses = new List<CloudConnectionStatus>();
+            void ConnectionStatusHandler(string id, CloudConnectionStatus status) => receivedStatuses.Add(status);
+            var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter>());
+
+            var cloudConnection = new CloudConnection(ConnectionStatusHandler, transportSettings, messageConverterProvider, clientProvider);
+
+            IClientCredentials clientCredentialsWithExpiringToken1 = GetClientCredentialsWithExpiringToken();
+            ICloudProxy cloudProxy1 = await cloudConnection.CreateOrUpdateAsync(clientCredentialsWithExpiringToken1);
+            Assert.True(cloudProxy1.IsActive);
+            Assert.Equal(cloudProxy1, cloudConnection.CloudProxy.OrDefault());
+
+            Assert.NotNull(authenticationMethod);
+            var deviceAuthenticationWithTokenRefresh = authenticationMethod as DeviceAuthenticationWithTokenRefresh;
+            Assert.NotNull(deviceAuthenticationWithTokenRefresh);
+
+            // Try to refresh token but get an expiring token
+            Task<string> getTokenTask = deviceAuthenticationWithTokenRefresh.GetTokenAsync(iothubHostName);
+            Assert.False(getTokenTask.IsCompleted);
+
+            Assert.Equal(2, receivedStatuses.Count);
+            Assert.Equal(receivedStatuses[1], CloudConnectionStatus.TokenNearExpiry);
+
+            ICloudProxy cloudProxy2 = await cloudConnection.CreateOrUpdateAsync(clientCredentialsWithExpiringToken1);
+
+            // Wait for the task to process
+            await Task.Delay(TimeSpan.FromSeconds(5));
+
+            Assert.False(getTokenTask.IsCompletedSuccessfully);
+            Assert.Equal(cloudProxy2, cloudConnection.CloudProxy.OrDefault());
+            Assert.True(cloudProxy2.IsActive);
+            Assert.True(cloudProxy1.IsActive);
+            Assert.Equal(cloudProxy1, cloudProxy2);
+
+            // Wait for 20 secs for retry to happen
+            await Task.Delay(TimeSpan.FromSeconds(20));
+
+            // Check if retry happened
+            Assert.Equal(3, receivedStatuses.Count);
+            Assert.Equal(receivedStatuses[2], CloudConnectionStatus.TokenNearExpiry);
+
+            IClientCredentials clientCredentialsWithNonExpiringToken = GetClientCredentialsWithNonExpiringToken();
+            ICloudProxy cloudProxy3 = await cloudConnection.CreateOrUpdateAsync(clientCredentialsWithNonExpiringToken);
+
+            // Wait for the task to complete
+            await Task.Delay(TimeSpan.FromSeconds(5));
+
+            Assert.True(getTokenTask.IsCompletedSuccessfully);
+            Assert.Equal(cloudProxy3, cloudConnection.CloudProxy.OrDefault());
+            Assert.True(cloudProxy3.IsActive);
+            Assert.True(cloudProxy1.IsActive);
+            Assert.Equal(cloudProxy1, cloudProxy3);
+            Assert.Equal(getTokenTask.Result, (clientCredentialsWithNonExpiringToken as ITokenCredentials)?.Token);
         }
 
         [Fact]

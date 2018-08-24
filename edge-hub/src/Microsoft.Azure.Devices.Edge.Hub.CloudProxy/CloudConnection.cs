@@ -91,14 +91,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                             if (newCredentials is ITokenCredentials tokenAuth && this.tokenGetter.HasValue)
                             {
                                 if (IsTokenExpired(tokenAuth.Identity.IotHubHostName, tokenAuth.Token))
-                                {                                    
+                                {
                                     throw new InvalidOperationException($"Token for client {tokenAuth.Identity.Id} is expired");
                                 }
 
                                 this.tokenGetter.ForEach(tg =>
                                  {
-                                     tg.SetResult(tokenAuth.Token);
+                                     // First reset the token getter and then set the result.
                                      this.tokenGetter = Option.None<TaskCompletionSource<string>>();
+                                     tg.SetResult(tokenAuth.Token);
                                  });
                                 return (cp, false);
                             }
@@ -170,7 +171,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 client.SetProductInfo(newCredentials.ProductInfo);
             }
-            
+
             Events.CreateDeviceClientSuccess(transportSettings.GetTransportType(), OperationTimeoutMilliseconds, newCredentials.Identity);
             return client;
         }
@@ -256,20 +257,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         async Task<string> GetNewToken(string iotHub, string id, string currentToken, IIdentity currentIdentity)
         {
             Events.GetNewToken(id);
-            // We have to catch UnauthorizedAccessException, because on IsTokenUsable, we call parse from
-            // Device Client and it throws if the token is expired.
-            if (IsTokenUsable(iotHub, currentToken))
-            {
-                Events.UsingExistingToken(id);
-                return currentToken;
-            }
-            else
-            {
-                Events.TokenExpired(id, currentToken);
-            }
-
+            bool retrying = false;
+            string token = currentToken;
             while (true)
             {
+                // We have to catch UnauthorizedAccessException, because on IsTokenUsable, we call parse from
+                // Device Client and it throws if the token is expired.
+                if (IsTokenUsable(iotHub, token))
+                {
+                    if (retrying)
+                    {
+                        Events.NewTokenObtained(iotHub, id, token);
+                    }
+                    else
+                    {
+                        Events.UsingExistingToken(id);
+                    }
+                    return token;
+                }
+                else
+                {
+                    Events.TokenNotUsable(iotHub, id, token);
+                    if (retrying)
+                    {
+                        await Task.Delay(TokenRetryWaitTime);
+                    }
+                }
+
                 // No need to lock here as the lock is being held by the refresher.
                 TaskCompletionSource<string> tcs = this.tokenGetter
                     .GetOrElse(
@@ -281,18 +295,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                             this.connectionStatusChangedHandler(currentIdentity.Id, CloudConnectionStatus.TokenNearExpiry);
                             return taskCompletionSource;
                         });
-                string newToken = await tcs.Task;
-                if (IsTokenUsable(iotHub, newToken))
-                {
-                    Events.NewTokenObtained(iotHub, id, newToken);
-                    return newToken;
-                }
-                else
-                {
-                    Events.TokenNotUsable(iotHub, id, newToken);
-                    await Task.Delay(TokenRetryWaitTime);
-                }
-            }            
+                retrying = true;
+                token = await tcs.Task;
+            }
         }
 
         internal static DateTime GetTokenExpiry(string hostName, string token)
@@ -416,7 +421,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 CreateNewToken,
                 UpdatedCloudConnection,
                 ObtainedNewToken,
-                TokenExpired,
                 ErrorRenewingToken,
                 ErrorCheckingTokenUsability
             }
@@ -475,11 +479,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Log.LogInformation((int)EventIds.ObtainedNewToken, Invariant($"Obtained new token for client {id} that expires in {timeRemaining}"));
             }
 
-            internal static void TokenExpired(string id, string currentToken)
-            {
-                Log.LogDebug((int)EventIds.TokenExpired, Invariant($"Token Expired. Id:{id}, CurrentToken: {currentToken}."));
-            }
-
             internal static void ErrorRenewingToken(Exception ex)
             {
                 Log.LogDebug((int)EventIds.ErrorRenewingToken, ex, "Critical Error trying to renew Token.");
@@ -493,7 +492,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             public static void TokenNotUsable(string hostname, string id, string newToken)
             {
                 TimeSpan timeRemaining = GetTokenExpiryTimeRemaining(hostname, newToken);
-                Log.LogDebug((int)EventIds.ObtainedNewToken, Invariant($"Obtained new token for client {id} that expires in {timeRemaining}, and so is not usable. Retrying to get a fresh token..."));
+                Log.LogDebug((int)EventIds.ObtainedNewToken, Invariant($"Token received for client {id} expires in {timeRemaining}, and so is not usable. Getting a fresh token..."));
             }
         }
     }
