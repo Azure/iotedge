@@ -25,6 +25,8 @@ phases:
         displayName: Test
         inputs:
           filePath: edgelet/build/linux/test.sh
+      - script: cd edgelet && $HOME/.cargo/bin/cargo clean 
+
 
 ################################################################################
   - phase: linux_arm32v7
@@ -54,6 +56,7 @@ phases:
         inputs:
           filePath: edgelet/build/linux/cross-test.sh
           arguments: --toolchain armv7-unknown-linux-gnueabihf
+      - script: cd edgelet && $HOME/.cargo/bin/cargo clean 
 
 ################################################################################
   - phase: windows_amd64
@@ -76,6 +79,11 @@ phases:
         displayName: Test
         inputs:
           filePath: edgelet/build/windows/test.ps1
+      - task: Bash@3
+        displayName: Clean
+        inputs:
+          targetType: inline
+          script: 'cd edgelet && $HOME/.cargo/bin/cargo clean'
 
 ################################################################################
   - phase: style_check
@@ -99,3 +107,5 @@ phases:
         displayName: Clippy
         inputs:
           filePath: edgelet/build/linux/clippy.sh
+      - script: cd edgelet && $HOME/.cargo/bin/cargo clean 
+
