@@ -3,37 +3,33 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System;
-    using System.Linq;
+    using System.Collections.Generic;
     using System.Net;
     using System.Net.Http;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Common;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
+    using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
-
-    public interface ITokenProvider
-    {
-        Task<string> GetTokenAsync(Option<TimeSpan> ttl);
-    }
 
     public class DeviceScopeApiClient : IDeviceScopeApiClient
     {
         const int RetryCount = 3;
-        static readonly ITransientErrorDetectionStrategy TimeoutErrorDetectionStrategy = new DelegateErrorDetectionStrategy(ex => ex.HasTimeoutException());
+        static readonly ITransientErrorDetectionStrategy TransientErrorDetectionStrategy = new ErrorDetectionStrategy();
         static readonly RetryStrategy TransientRetryStrategy =
             new ExponentialBackoff(RetryCount, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
 
-
-        const string InScopeIdentitiesUriTemplate = "/devices/{0}/modules/{1}/devicesAndModulesInSecurityScope?deviceCount={2}&continuationToken={3}&api-version={4}";
-        const string InScopeTargetIdentityUriFormat = "/devices/{0}/modules/{1}/deviceAndModuleInSecurityScope?targetDeviceId={2}&targetModuleId={3}&api-version={4}";
+        const string InScopeIdentitiesUriTemplate = "/devices/{0}/modules/{1}/devicesAndModulesInDeviceScope?deviceCount={2}&continuationToken={3}&api-version={4}";
+        const string InScopeTargetIdentityUriFormat = "/devices/{0}/modules/{1}/deviceAndModuleInDeviceScope?targetDeviceId={2}&targetModuleId={3}&api-version={4}";
 
         readonly Uri iotHubBaseHttpUri;
         readonly string deviceId;
         readonly string moduleId;
         readonly int batchSize;
         readonly ITokenProvider edgeHubTokenProvider;
-        const string ApiVersion = "preview";
+        const string ApiVersion = "2018-08-30-preview";
 
         public DeviceScopeApiClient(string iotHubHostName, string deviceId, string moduleId, int batchSize, ITokenProvider edgeHubTokenProvider)
         {
@@ -46,15 +42,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         }
 
         public Task<ScopeResult> GetIdentitiesInScope() =>
-            this.GetIdentitiesInScope(this.GetServiceUri(Option.None<string>()));
+            this.GetIdentitiesInScopeWithRetry(this.GetServiceUri(Option.None<string>()));
 
         public Task<ScopeResult> GetNext(string continuationToken) =>
-            this.GetIdentitiesInScope(this.GetServiceUri(Option.Some(continuationToken)));
+            this.GetIdentitiesInScopeWithRetry(this.GetServiceUri(Option.Some(continuationToken)));
 
         public Task<ScopeResult> GetIdentity(string targetDeviceId, string targetModuleId)
         {
             Preconditions.CheckNonWhiteSpace(targetDeviceId, nameof(targetDeviceId));            
-            return this.GetIdentitiesInScope(this.GetServiceUri(targetDeviceId, targetModuleId));
+            return this.GetIdentitiesInScopeWithRetry(this.GetServiceUri(targetDeviceId, targetModuleId));
         }
 
         internal Uri GetServiceUri(Option<string> continuationToken) =>
@@ -75,6 +71,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             return uri;
         }
 
+        async Task<ScopeResult> GetIdentitiesInScopeWithRetry(Uri uri)
+        {
+            try
+            {
+                return await ExecuteWithRetry(
+                    () => this.GetIdentitiesInScope(uri),
+                    Events.RetryingGetIdentities);
+            }
+            catch (Exception e)
+            {
+                Events.ErrorInScopeResult(e);
+                throw;
+            }
+        }
+
         async Task<ScopeResult> GetIdentitiesInScope(Uri uri)
         {
             var client = new HttpClient();
@@ -88,8 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 if (response.IsSuccessStatusCode)
                 {
                     var scopeResult = JsonConvert.DeserializeObject<ScopeResult>(content);
-                    Console.WriteLine(
-                        $"Got result with {scopeResult.Devices.Count()} devices and {scopeResult.Modules.Count()} modules and CT {scopeResult.ContinuationLink}");
+                    Events.GotValidResult();
                     return scopeResult;
                 }
                 else
@@ -97,6 +107,52 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     throw new Exception($"Error getting Scope result from IoTHub. Status code - {response.StatusCode}, Message - {content}");
                 }
             }
-        }        
+        }
+
+        static Task<T> ExecuteWithRetry<T>(Func<Task<T>> func, Action<RetryingEventArgs> onRetry)
+        {
+            var transientRetryPolicy = new RetryPolicy(TransientErrorDetectionStrategy, TransientRetryStrategy);
+            transientRetryPolicy.Retrying += (_, args) => onRetry(args);
+            return transientRetryPolicy.ExecuteAsync(func);
+        }
+
+        class ErrorDetectionStrategy : ITransientErrorDetectionStrategy
+        {
+            static readonly ISet<Type> NonTransientExceptions = new HashSet<Type>
+            {
+                typeof(ArgumentException),
+                typeof(UnauthorizedException)
+            };
+
+            public bool IsTransient(Exception ex) => !(NonTransientExceptions.Contains(ex.GetType()));
+        }
+
+        static class Events
+        {
+            static readonly ILogger Log = Logger.Factory.CreateLogger<DeviceScopeApiClient>();
+            const int IdStart = CloudProxyEventIds.DeviceScopeApiClient;
+
+            enum EventIds
+            {
+                Retrying = IdStart,
+                ScopeResultReceived,
+                ErrorInScopeResult
+            }
+
+            public static void RetryingGetIdentities(RetryingEventArgs retryingEventArgs)
+            {
+                Log.LogDebug((int)EventIds.Retrying, $"Retrying device scope api call because {retryingEventArgs.CurrentRetryCount} times because of error - {retryingEventArgs.LastException}");
+            }
+
+            public static void GotValidResult()
+            {
+                Log.LogDebug((int)EventIds.ScopeResultReceived, "Got valid device scope result");
+            }
+
+            public static void ErrorInScopeResult(Exception ex)
+            {
+                Log.LogDebug((int)EventIds.ErrorInScopeResult, ex, "Error getting device scope result from the cloud");
+            }
+        }
     }
 }
