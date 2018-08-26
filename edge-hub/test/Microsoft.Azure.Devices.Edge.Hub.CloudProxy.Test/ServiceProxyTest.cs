@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
+    using Newtonsoft.Json;
     using Xunit;
 
     [Unit]
@@ -136,23 +137,68 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             return true;
         }
 
-        static Device GetDevice(string id) => new Device(id)
+        static Device GetDevice(string id)
         {
-            Authentication = new AuthenticationMechanism
-            {
-                Type = AuthenticationType.Sas,
-                SymmetricKey = new SymmetricKey { PrimaryKey = GetKey(), SecondaryKey = GetKey() }
-            }
-        };
+            string deviceJson = @"{
+                      ""deviceId"": """ + id + @""",
+                      ""generationId"": ""12345"",
+                      ""etag"": ""0000"",
+                      ""connectionState"": ""Disconnected"",
+                      ""status"": ""enabled"",
+                      ""statusReason"": null,
+                      ""connectionStateUpdatedTime"": ""0001-01-01T00:00:00"",
+                      ""statusUpdatedTime"": ""0001-01-01T00:00:00"",
+                      ""lastActivityTime"": ""0001-01-01T00:00:00"",
+                      ""cloudToDeviceMessageCount"": 0,
+                      ""authentication"": {
+                        ""symmetricKey"": {
+                          ""primaryKey"": """ + GetKey() + @""",
+                          ""secondaryKey"": """ + GetKey() + @"""
+                        },
+                        ""x509Thumbprint"": {
+                          ""primaryThumbprint"": null,
+                          ""secondaryThumbprint"": null
+                        },
+                        ""type"": ""sas""
+                      },
+                      ""capabilities"": {
+                        ""iotEdge"": true
+                      },
+                      ""deviceScope"": ""ms-azure-iot-edge://d301-12345""
+                }";
+            var device = JsonConvert.DeserializeObject<Device>(deviceJson);
+            return device;
+        }
 
-        static Module GetModule(string deviceId, string moduleId) => new Module(deviceId, moduleId)
+        static Module GetModule(string deviceId, string moduleId)
         {
-            Authentication = new AuthenticationMechanism
-            {
-                Type = AuthenticationType.Sas,
-                SymmetricKey = new SymmetricKey { PrimaryKey = GetKey(), SecondaryKey = GetKey() }
-            }
-        };
+            string moduleJson = @"{                        
+                      ""deviceId"": """ + deviceId + @""",
+                      ""moduleId"": """ + moduleId + @""",
+                      ""managedBy"": ""iotEdge"",
+                      ""generationId"": ""636704968692034950"",
+                      ""etag"": ""NzM0NTkyNTc="",
+                      ""connectionState"": ""Disconnected"",
+                      ""statusReason"": null,
+                      ""connectionStateUpdatedTime"": ""0001-01-01T00:00:00"",
+                      ""statusUpdatedTime"": ""0001-01-01T00:00:00"",
+                      ""lastActivityTime"": ""0001-01-01T00:00:00"",
+                      ""cloudToDeviceMessageCount"": 0,
+                      ""authentication"": {
+                        ""symmetricKey"": {
+                          ""primaryKey"": """ + GetKey() + @""",
+                          ""secondaryKey"": """ + GetKey() + @"""
+                        },
+                        ""x509Thumbprint"": {
+                          ""primaryThumbprint"": null,
+                          ""secondaryThumbprint"": null
+                        },
+                        ""type"": ""sas""
+                      }
+                }";
+            var module = JsonConvert.DeserializeObject<Module>(moduleJson);
+            return module;
+        }
 
         static string GetKey() => Convert.ToBase64String(Encoding.UTF8.GetBytes(Guid.NewGuid().ToString()));
     }
