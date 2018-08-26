@@ -15,7 +15,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public const string SessionStorePartitionKey = "sessions";
 
         public const string InternalOriginInterface = "internal";
-        public const string DownstreamOriginInterface = "downstream";        
+        public const string DownstreamOriginInterface = "downstream";
+
+        public const string IotEdgeIdentityCapability = "iotEdge";
 
         public static readonly Version ConfigSchemaVersion = new Version("1.0");
     }

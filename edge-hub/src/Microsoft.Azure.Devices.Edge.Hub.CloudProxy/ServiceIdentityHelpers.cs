@@ -2,35 +2,42 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
+    using System.Collections.Generic;
+    using System.Linq;
+    using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Shared;
 
     public static class ServiceIdentityHelpers
     {
         public static ServiceIdentity ToServiceIdentity(this Device device)
         {
             Preconditions.CheckNotNull(device, nameof(device));
-            Preconditions.CheckNotNull(device.Authentication, nameof(device.Authentication));
             return new ServiceIdentity(
                 device.Id,
                 null,
-                device.Capabilities?.IotEdge ?? false,
-                device.Authentication.ToServiceAuthentication());
+                device.GenerationId,
+                device.Capabilities.ToServiceCapabilities(),
+                device.Authentication.ToServiceAuthentication(),
+                device.Status.ToServiceIdentityStatus());
         }
 
         public static ServiceIdentity ToServiceIdentity(this Module module)
         {
             Preconditions.CheckNotNull(module, nameof(module));
-            Preconditions.CheckNotNull(module.Authentication, nameof(module.Authentication));
             return new ServiceIdentity(
                 module.DeviceId,
                 module.Id,
-                false,
-                module.Authentication.ToServiceAuthentication());
+                module.GenerationId,
+                Enumerable.Empty<string>(),
+                module.Authentication.ToServiceAuthentication(),
+                ServiceIdentityStatus.Enabled);
         }
 
         public static ServiceAuthentication ToServiceAuthentication(this AuthenticationMechanism authenticationMechanism)
         {
+            Preconditions.CheckNotNull(authenticationMechanism, nameof(authenticationMechanism));
             switch (authenticationMechanism.Type)
             {
                 case AuthenticationType.CertificateAuthority:
@@ -47,6 +54,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 default:
                     return new ServiceAuthentication(ServiceAuthenticationType.None);
             }
+        }
+
+        public static ServiceIdentityStatus ToServiceIdentityStatus(this DeviceStatus status)
+        {
+            switch (status)
+            {
+                case DeviceStatus.Enabled:
+                    return ServiceIdentityStatus.Enabled;
+                default:
+                    return ServiceIdentityStatus.Disabled;
+            }
+        }
+
+        public static IEnumerable<string> ToServiceCapabilities(this DeviceCapabilities capabilities)
+        {
+            Preconditions.CheckNotNull(capabilities, nameof(capabilities));
+            var serviceCapabilities = new List<string>();
+            if (capabilities.IotEdge)
+            {
+                serviceCapabilities.Add(Constants.IotEdgeIdentityCapability);
+            }
+            return serviceCapabilities;
         }
     }
 }
