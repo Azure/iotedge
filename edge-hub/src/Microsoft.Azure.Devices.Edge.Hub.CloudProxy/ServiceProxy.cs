@@ -96,6 +96,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public async Task<IEnumerable<ServiceIdentity>> GetNext()
             {
+                if (!this.HasNext)
+                {
+                    return Enumerable.Empty<ServiceIdentity>();
+                }
+
                 var serviceIdentities = new List<ServiceIdentity>();
                 ScopeResult scopeResult = await this.continuationLink.Map(c => this.securityScopesApiClient.GetNext(c))
                     .GetOrElse(() => this.securityScopesApiClient.GetIdentitiesInScope());

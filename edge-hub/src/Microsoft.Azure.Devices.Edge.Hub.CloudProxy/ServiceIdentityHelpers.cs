@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public static ServiceIdentity ToServiceIdentity(this Device device)
         {
             Preconditions.CheckNotNull(device, nameof(device));
+            Preconditions.CheckNotNull(device.Authentication, nameof(device.Authentication));
             return new ServiceIdentity(
                 device.Id,
                 null,
@@ -20,9 +21,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public static ServiceIdentity ToServiceIdentity(this Module module)
         {
             Preconditions.CheckNotNull(module, nameof(module));
+            Preconditions.CheckNotNull(module.Authentication, nameof(module.Authentication));
             return new ServiceIdentity(
+                module.DeviceId,
                 module.Id,
-                null,
                 false,
                 module.Authentication.ToServiceAuthentication());
         }
