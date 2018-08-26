@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                         ""iotEdge"": true
                       },
                       ""deviceScope"": ""ms-azure-iot-edge://d301-636704968692034950""
-                }",            
+                }",
             };
 
             yield return new object[]
@@ -142,6 +142,121 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             };
         }
 
+        static IEnumerable<object[]> GetModuleJson()
+        {
+            yield return new object[]
+            {
+                @"{                        
+                      ""deviceId"": ""d301"",
+                      ""moduleId"": ""m1"",
+                      ""managedBy"": ""iotEdge"",
+                      ""generationId"": ""636704968692034950"",
+                      ""etag"": ""NzM0NTkyNTc="",
+                      ""connectionState"": ""Disconnected"",
+                      ""statusReason"": null,
+                      ""connectionStateUpdatedTime"": ""0001-01-01T00:00:00"",
+                      ""statusUpdatedTime"": ""0001-01-01T00:00:00"",
+                      ""lastActivityTime"": ""0001-01-01T00:00:00"",
+                      ""cloudToDeviceMessageCount"": 0,
+                      ""authentication"": {
+                        ""symmetricKey"": {
+                          ""primaryKey"": """ + GetKey() + @""",
+                          ""secondaryKey"": """ + GetKey() + @"""
+                        },
+                        ""x509Thumbprint"": {
+                          ""primaryThumbprint"": null,
+                          ""secondaryThumbprint"": null
+                        },
+                        ""type"": ""sas""
+                      }
+                }"
+            };
+
+            yield return new object[]
+            {
+                @"{
+                      ""moduleId"": ""$edgeAgent"",
+                      ""managedBy"": ""iotEdge"",
+                      ""deviceId"": ""d302"",
+                      ""generationId"": ""636704968692034950"",
+                      ""etag"": ""NzM0NTkyNTc="",
+                      ""connectionState"": ""Disconnected"",
+                      ""statusReason"": null,
+                      ""connectionStateUpdatedTime"": ""0001-01-01T00:00:00"",
+                      ""statusUpdatedTime"": ""0001-01-01T00:00:00"",
+                      ""lastActivityTime"": ""0001-01-01T00:00:00"",
+                      ""cloudToDeviceMessageCount"": 0,
+                      ""authentication"": {
+                        ""symmetricKey"": {
+                          ""primaryKey"": null,
+                          ""secondaryKey"": null
+                        },
+                        ""x509Thumbprint"": {
+                          ""primaryThumbprint"": """ + GetKey() + @""",
+                          ""secondaryThumbprint"": """ + GetKey() + @"""
+                        },
+                        ""type"": ""selfSigned""
+                      }
+                }"
+            };
+
+            yield return new object[]
+            {
+                @"{
+                      ""moduleId"": ""m3"",
+                      ""managedBy"": ""someone"",
+                      ""deviceId"": ""d303"",
+                      ""generationId"": ""636704968692034950"",
+                      ""etag"": ""NzM0NTkyNTc="",
+                      ""connectionState"": ""Disconnected"",
+                      ""statusReason"": null,
+                      ""connectionStateUpdatedTime"": ""0001-01-01T00:00:00"",
+                      ""statusUpdatedTime"": ""0001-01-01T00:00:00"",
+                      ""lastActivityTime"": ""0001-01-01T00:00:00"",
+                      ""cloudToDeviceMessageCount"": 0,
+                      ""authentication"": {
+                        ""symmetricKey"": {
+                          ""primaryKey"": null,
+                          ""secondaryKey"": null
+                        },
+                        ""x509Thumbprint"": {
+                          ""primaryThumbprint"": null,
+                          ""secondaryThumbprint"": null
+                        },
+                        ""type"": ""none""
+                      }
+                }"
+            };
+
+            yield return new object[]
+            {
+                @"{
+                      ""moduleId"": ""m6"",
+                      ""managedBy"": """",
+                      ""deviceId"": ""d304"",
+                      ""generationId"": ""636704968692034950"",
+                      ""etag"": ""NzM0NTkyNTc="",
+                      ""connectionState"": ""Disconnected"",
+                      ""statusReason"": null,
+                      ""connectionStateUpdatedTime"": ""0001-01-01T00:00:00"",
+                      ""statusUpdatedTime"": ""0001-01-01T00:00:00"",
+                      ""lastActivityTime"": ""0001-01-01T00:00:00"",
+                      ""cloudToDeviceMessageCount"": 0,
+                      ""authentication"": {
+                        ""symmetricKey"": {
+                          ""primaryKey"": null,
+                          ""secondaryKey"": null
+                        },
+                        ""x509Thumbprint"": {
+                          ""primaryThumbprint"": null,
+                          ""secondaryThumbprint"": null
+                        },
+                        ""type"": ""certificateAuthority""
+                      }
+                }"
+            };
+        }
+
         [Theory]
         [MemberData(nameof(GetDeviceJson))]
         public void DeviceToServiceIdentityTest(string deviceJson)
@@ -170,6 +285,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.Equal(device.Status == DeviceStatus.Enabled ? ServiceIdentityStatus.Enabled : ServiceIdentityStatus.Disabled, serviceIdentity.Status);
 
             ValidateAuthentication(device.Authentication, serviceIdentity.Authentication);
+        }
+
+        [Theory]
+        [MemberData(nameof(GetModuleJson))]
+        public void ModuleToServiceIdentityTest(string moduleJson)
+        {
+            // Arrange
+            var module = JsonConvert.DeserializeObject<Module>(moduleJson);
+
+            // Act
+            ServiceIdentity serviceIdentity = module.ToServiceIdentity();
+
+            // Assert
+            Assert.NotNull(serviceIdentity);
+            Assert.Equal(module.DeviceId, serviceIdentity.DeviceId);
+            Assert.Equal(module.Id, serviceIdentity.ModuleId.OrDefault());
+            Assert.True(serviceIdentity.IsModule);
+            Assert.Equal(module.GenerationId, serviceIdentity.GenerationId);
+            Assert.False(serviceIdentity.Capabilities.Any());
+            Assert.Equal(ServiceIdentityStatus.Enabled, serviceIdentity.Status);
+            ValidateAuthentication(module.Authentication, serviceIdentity.Authentication);
         }
 
         static void ValidateAuthentication(AuthenticationMechanism authenticationMechanism, ServiceAuthentication serviceIdentityAuthentication)
