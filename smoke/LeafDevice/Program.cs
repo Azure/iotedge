@@ -8,7 +8,7 @@ namespace LeafDevice
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
 
     [Command(
-        Name = "LeadDevice",
+        Name = "LeafDevice",
         Description = "An app which installs a certificate into cert store, creates a device and sends message and check if the message was received. This is to be used on a transparent Gateway setup for testing.",
         ExtendedHelpText = @"
 Environment Variables:
