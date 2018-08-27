@@ -86,32 +86,38 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         /// of the <paramref name="message"/> argument - which here is an MQTT topic name - and
         /// extracts features from it that it then uses to populate the <see cref="ProtocolGateway.Messaging.IMessage.Properties"/>
         /// property.
+        /// Note: In case of multiple matches, this method uses the first topic. So the order in which the topics are defined matters.
         /// </summary>
         public bool TryParseProtocolMessagePropsFromAddress(IProtocolGatewayMessage message)
         {
-            var uri = new Uri(message.Address, UriKind.Relative);
+            string address = message.Address;
+            var uri = new Uri(address, UriKind.Relative);
             IList<IList<KeyValuePair<string, string>>> matches = this.inboundTable
                 .Select(template => template.Match(uri))
                 .Where(match => match.Count > 0)
                 .ToList();
 
-            if (matches.Count > 1)
-            {
-                this.logger.LogWarning($"Message address {message.Address} matches more than one topic. Picking first matching topic.");
-            }
-            else if (matches.Count == 0)
+            if (matches.Count == 0)
             {
                 this.logger.LogWarning($"Message address {message.Address} does not match any topic.");
             }
             else
             {
+                if (matches.Count > 1)
+                {
+                    this.logger.LogDebug($"Message address {message.Address} matches more than one topic. Picking first matching topic.");
+                }
+
                 foreach (KeyValuePair<string, string> match in matches[0])
                 {
                     // If the template has a key called "params" then it contains all the properties set by the user on 
                     // the sent message in query string format. So get the value and parse it. 
                     if (match.Key == "params")
                     {
-                        UrlEncodedDictionarySerializer.Deserialize(match.Value, 0, message.Properties);
+                        if (!string.IsNullOrWhiteSpace(match.Value))
+                        {
+                            UrlEncodedDictionarySerializer.Deserialize(match.Value, 0, message.Properties);
+                        }
                     }
                     else
                     {
