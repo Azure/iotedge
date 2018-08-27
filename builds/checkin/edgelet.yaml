@@ -48,12 +48,12 @@ phases:
         displayName: armv7-unknown-linux-gnueabihf build
         inputs:
           filePath: edgelet/build/linux/cross.sh
-          arguments: --toolchain armv7-unknown-linux-gnueabihf
+          arguments: --toolchain armv7-unknown-linux-gnueabihf --release
       - task: Bash@3
         displayName: armv7-unknown-linux-gnueabihf test
         inputs:
           filePath: edgelet/build/linux/cross-test.sh
-          arguments: --toolchain armv7-unknown-linux-gnueabihf
+          arguments: --toolchain armv7-unknown-linux-gnueabihf --release
 
 ################################################################################
   - phase: windows_amd64
