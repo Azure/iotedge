@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
             // Arrange
             IEncryptionProvider encryptionProvider = new TestEncryptionProvider();
             IEntityStore<string, string> entityStore = GetEntityStore<string, string>("smokeTest");
-            IEncryptedStore<string, TestDevice> encryptedStore = new EncryptedStore<string, TestDevice>(entityStore, encryptionProvider);
+            IKeyValueStore<string, TestDevice> encryptedStore = new EncryptedStore<string, TestDevice>(entityStore, encryptionProvider);
             string key = "device1";
             var device = new TestDevice(Guid.NewGuid().ToString(), new KeyAuth(Guid.NewGuid().ToString()));
 
@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
             // Arrange
             IEncryptionProvider encryptionProvider = new TestEncryptionProvider();
             IEntityStore<string, string> entityStore = GetEntityStore<string, string>("smokeTest");
-            IEncryptedStore<string, TestDevice> encryptedStore = new EncryptedStore<string, TestDevice>(entityStore, encryptionProvider);
+            IKeyValueStore<string, TestDevice> encryptedStore = new EncryptedStore<string, TestDevice>(entityStore, encryptionProvider);
             IDictionary<string, TestDevice> devices = new Dictionary<string, TestDevice>();
             for (int i = 0; i < 10; i++)
             {

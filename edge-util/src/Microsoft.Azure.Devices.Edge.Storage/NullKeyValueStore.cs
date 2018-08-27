@@ -5,7 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public class NullEncryptedStore<TK, TV> : IEncryptedStore<TK, TV>
+    public class NullKeyValueStore<TK, TV> : IKeyValueStore<TK, TV>
     {
         public void Dispose()
         {

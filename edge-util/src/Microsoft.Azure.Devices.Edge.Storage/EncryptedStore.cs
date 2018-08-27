@@ -5,7 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public class EncryptedStore<TK, TV> : IEncryptedStore<TK, TV>
+    public class EncryptedStore<TK, TV> : IKeyValueStore<TK, TV>
     {
         readonly IKeyValueStore<TK, string> entityStore;
         readonly IEncryptionProvider encryptionProvider;
@@ -35,15 +35,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 .GetOrElse(() => Task.FromResult(Option.None<TV>()));
         }
 
-        public async Task Remove(TK key)
-        {
-            await this.entityStore.Remove(key);
-        }
+        public Task Remove(TK key) => this.entityStore.Remove(key);
 
-        public async Task<bool> Contains(TK key)
-        {
-            return await this.entityStore.Contains(key);
-        }
+        public Task<bool> Contains(TK key) => this.entityStore.Contains(key);
 
         public async Task<Option<(TK key, TV value)>> GetFirstEntry()
         {
@@ -69,9 +63,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 .GetOrElse(() => Task.FromResult(Option.None<(TK key, TV value)>()));
         }
 
-        public async Task IterateBatch(int batchSize, Func<TK, TV, Task> perEntityCallback)
+        public Task IterateBatch(int batchSize, Func<TK, TV, Task> perEntityCallback)
         {
-            await this.entityStore.IterateBatch(
+            return this.entityStore.IterateBatch(
                 batchSize,
                 async (key, stringValue) =>
                 {
@@ -81,9 +75,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 });
         }
 
-        public async Task IterateBatch(TK startKey, int batchSize, Func<TK, TV, Task> perEntityCallback)
+        public Task IterateBatch(TK startKey, int batchSize, Func<TK, TV, Task> perEntityCallback)
         {
-            await this.entityStore.IterateBatch(
+            return this.entityStore.IterateBatch(
                 startKey,
                 batchSize,
                 async (key, stringValue) =>
