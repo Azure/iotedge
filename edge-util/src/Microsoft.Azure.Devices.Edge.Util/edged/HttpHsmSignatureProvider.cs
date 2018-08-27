@@ -70,11 +70,11 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
                 switch (ex)
                 {
                     case IoTEdgedException<ErrorResponse> errorResponseException:
-                        throw new HttpHsmComunicationException(
+                        throw new HttpHsmCommunicationException(
                             $"Error calling SignAsync: {errorResponseException.Result?.Message ?? string.Empty}",
                             errorResponseException.StatusCode);
                     case IoTEdgedException ioTEdgedException:
-                        throw new HttpHsmComunicationException(
+                        throw new HttpHsmCommunicationException(
                             $"Error calling SignAsync: {ioTEdgedException.Response ?? string.Empty}",
                             ioTEdgedException.StatusCode);
                     default:

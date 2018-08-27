@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
 {
     using System;
     using System.Collections.Generic;
+    using System.Security.Cryptography;
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -20,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             string expiresOn = SasTokenHelper.BuildExpiresOn(new DateTime(2018, 01, 01), TimeSpan.FromHours(1));
             string data = string.Join("\n", new List<string> { audience, expiresOn });
             string key = Convert.ToBase64String(Encoding.UTF8.GetBytes("DummyKey123"));
-            string expectedToken = @"9UXsBnt0FJhHROPWl4CJq0h9JZZv4QFZeH1xG8YmLKM=";
+            string expectedToken = Convert.ToBase64String(new HMACSHA256(Convert.FromBase64String(key)).ComputeHash(Encoding.UTF8.GetBytes(data)));
             var signatureProvider = new SharedAccessKeySignatureProvider(key);
 
             // Act
