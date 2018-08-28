@@ -33,6 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly AsyncLock identityUpdateLock = new AsyncLock();
         readonly AsyncLock tokenUpdateLock = new AsyncLock();
         readonly IClientProvider clientProvider;
+        readonly ICloudListener cloudListener;
 
         bool callbacksEnabled = true;
         Option<TaskCompletionSource<string>> tokenGetter;
@@ -42,13 +43,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public CloudConnection(Action<string, CloudConnectionStatus> connectionStatusChangedHandler,
             ITransportSettings[] transportSettings,
             IMessageConverterProvider messageConverterProvider,
-            IClientProvider clientProvider)
+            IClientProvider clientProvider,
+            ICloudListener cloudListener)
         {
             this.connectionStatusChangedHandler = connectionStatusChangedHandler;
             this.transportSettingsList = Preconditions.CheckNotNull(transportSettings, nameof(transportSettings));
             this.messageConverterProvider = Preconditions.CheckNotNull(messageConverterProvider, nameof(messageConverterProvider));
             this.tokenGetter = Option.None<TaskCompletionSource<string>>();
             this.clientProvider = Preconditions.CheckNotNull(clientProvider, nameof(clientProvider));
+            this.cloudListener = Preconditions.CheckNotNull(cloudListener, nameof(cloudListener));
         }
 
         public Option<ICloudProxy> CloudProxy => this.cloudProxy.Filter(cp => cp.IsActive);
@@ -145,7 +148,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         async Task<ICloudProxy> GetCloudProxyAsync(IClientCredentials newCredentials)
         {
             IClient client = await this.ConnectToIoTHub(newCredentials);
-            ICloudProxy proxy = new CloudProxy(client, this.messageConverterProvider, newCredentials.Identity.Id, this.connectionStatusChangedHandler);
+            ICloudProxy proxy = new CloudProxy(client,
+                this.messageConverterProvider,
+                newCredentials.Identity.Id,
+                this.connectionStatusChangedHandler,
+                this.cloudListener);
             return proxy;
         }
 

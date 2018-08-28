@@ -15,24 +15,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         readonly string edgeDeviceId;
         readonly IAuthenticator tokenAuthenticator;
+        readonly IConnectionManager connectionManager;
 
-        public Authenticator(IAuthenticator tokenAuthenticator, string edgeDeviceId)
+        public Authenticator(IAuthenticator tokenAuthenticator, string edgeDeviceId, IConnectionManager connectionManager)
         {
+            this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
             this.tokenAuthenticator = Preconditions.CheckNotNull(tokenAuthenticator, nameof(tokenAuthenticator));
         }
 
-        public Task<bool> AuthenticateAsync(IClientCredentials clientCredentials)
+        /// <summary>
+        /// Authenticates the client credentials and adds it to connection manager if authenticated.
+        /// </summary>
+        public async Task<bool> AuthenticateAsync(IClientCredentials clientCredentials)
         {
             Preconditions.CheckNotNull(clientCredentials);
 
+            bool isAuthenticated = false;
             // If 'identity' represents an Edge module then its device id MUST match the authenticator's
             // 'edgeDeviceId'. In other words the authenticator for one edge device cannot authenticate
             // modules belonging to a different edge device.
             if (clientCredentials.Identity is IModuleIdentity moduleIdentity && !moduleIdentity.DeviceId.Equals(this.edgeDeviceId, StringComparison.OrdinalIgnoreCase))
             {
                 Events.InvalidDeviceId(moduleIdentity, this.edgeDeviceId);
-                return Task.FromResult(false);
+                isAuthenticated =false;
             }
 
             if (clientCredentials.AuthenticationType == AuthenticationType.X509Cert)
@@ -41,12 +47,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 // DeviceIdentityProvider.cs::RemoteCertificateValidationCallback. In the future, we could
                 // do authentication based on the CN. However, EdgeHub does not have enough information
                 // currently to do CN validation.
-                return Task.FromResult(true);
+                isAuthenticated = true;
             }
             else
             {
-                return this.tokenAuthenticator.AuthenticateAsync(clientCredentials);
+                isAuthenticated = await this.tokenAuthenticator.AuthenticateAsync(clientCredentials);
             }
+
+            if (isAuthenticated)
+            {
+                await this.connectionManager.AddDeviceConnection(clientCredentials);
+            }
+
+            return isAuthenticated;
         }
 
         static class Events

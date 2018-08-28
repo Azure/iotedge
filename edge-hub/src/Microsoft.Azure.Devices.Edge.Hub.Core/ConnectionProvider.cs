@@ -18,12 +18,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.edgeHub = Preconditions.CheckNotNull(edgeHub, nameof(edgeHub));
         }
 
-        public async Task<IDeviceListener> GetDeviceListenerAsync(IClientCredentials clientCredentials)
+        public Task<IDeviceListener> GetDeviceListenerAsync(IClientCredentials clientCredentials)
         {
             Preconditions.CheckNotNull(clientCredentials, nameof(clientCredentials));
-            await this.connectionManager.GetOrCreateCloudConnectionAsync(clientCredentials);
             IDeviceListener deviceListener = new DeviceMessageHandler(clientCredentials.Identity, this.edgeHub, this.connectionManager);
-            return deviceListener;
+            return Task.FromResult(deviceListener);
         }
 
         protected virtual void Dispose(bool disposing)
