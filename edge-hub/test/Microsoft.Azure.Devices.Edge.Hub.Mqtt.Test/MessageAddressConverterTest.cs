@@ -528,5 +528,50 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.Equal("bee", message2.Properties["b"]);
             Assert.Equal("dee", message2.Properties["d"]);
         }
+
+        [Fact]
+        public void TestTryParseAddressWithTailingSlashOptionalWithMultipleMatches()
+        {
+            IList<string> input = new List<string>
+            {
+                "a/{b}/c/{d}/{e}/",
+                "a/{b}/c/{d}/",
+                "a/{b}/c/",
+                "a/{b}/c/{d}/{e}",
+                "a/{b}/c/{d}",
+                "a/{b}/c"
+            };
+            var config = new MessageAddressConversionConfiguration(
+                input,
+                DontCareOutput
+            );
+            var converter = new MessageAddressConverter(config);
+
+            string address = "a/bee/c/";
+            ProtocolGatewayMessage message = new ProtocolGatewayMessage.Builder(Payload, address)
+                .Build();
+            bool status = converter.TryParseProtocolMessagePropsFromAddress(message);
+            Assert.True(status);
+            Assert.Equal(1, message.Properties.Count);
+            Assert.Equal("bee", message.Properties["b"]);
+
+            string address2 = "a/bee/c/dee/";
+            ProtocolGatewayMessage message2 = new ProtocolGatewayMessage.Builder(Payload, address2)
+                .Build();
+            bool status2 = converter.TryParseProtocolMessagePropsFromAddress(message2);
+            Assert.True(status2);
+            Assert.Equal(2, message2.Properties.Count);
+            Assert.Equal("bee", message2.Properties["b"]);
+            Assert.Equal("dee", message2.Properties["d"]);
+
+            string address3 = "a/bee/c/dee";
+            ProtocolGatewayMessage message3 = new ProtocolGatewayMessage.Builder(Payload, address3)
+                .Build();
+            bool status3 = converter.TryParseProtocolMessagePropsFromAddress(message3);
+            Assert.True(status2);
+            Assert.Equal(2, message2.Properties.Count);
+            Assert.Equal("bee", message2.Properties["b"]);
+            Assert.Equal("dee", message2.Properties["d"]);
+        }
     }
 }
