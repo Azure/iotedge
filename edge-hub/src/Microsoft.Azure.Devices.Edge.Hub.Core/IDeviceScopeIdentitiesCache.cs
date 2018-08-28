@@ -12,11 +12,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         Task<Option<ServiceIdentity>> GetServiceIdentity(string id);
 
-        Task RefreshCache(IEnumerable<string> deviceIds);
+        Task<Option<ServiceIdentity>> GetServiceIdentity(string deviceId, string moduleId);
 
-        Task RefreshCache(string deviceId);
+        Task RefreshServiceIdentities(IEnumerable<string> deviceIds);
 
-        Task RefreshCache(string deviceId, string moduleId);
+        Task RefreshServiceIdentity(string deviceId);
+
+        Task RefreshServiceIdentity(string deviceId, string moduleId);
 
         event EventHandler<ServiceIdentity> ServiceIdentityUpdated;
 
