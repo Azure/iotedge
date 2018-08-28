@@ -1,4 +1,4 @@
-# Adapted from https://github.com/japaric/cross
+# adapted from https://github.com/japaric/cross
 set -ex
 
 main() {
@@ -9,7 +9,6 @@ main() {
     local dependencies=(
         curl
         make
-	zlib1g-dev
     )
 
     # NOTE cross toolchain must be already installed
@@ -24,9 +23,9 @@ main() {
 
     pushd $td
     
-    curl https://www.zlib.net/zlib-$version.tar.gz  | \
+    curl -L https://github.com/curl/curl/releases/download/curl-7_59_0/curl-$version.tar.gz | \
         tar --strip-components=1 -xz
-    AR=${triple}-ar CC=${triple}-gcc ./configure --prefix ${sysroot}/usr
+    AR=${triple}-ar AS=${triple}-as LD=${triple}-ld RANLIB=${triple}-ranlib CC=${triple}-gcc NM=${triple}-nm LDFLAGS=" -L${sysroot}/lib -L${sysroot}/usr/lib" ./configure --host x86_64-unknown-linux-gnueabi --build $triple --with-sysroot $sysroot --prefix ${sysroot}/usr
     make -j$(nproc)
     make install
 
