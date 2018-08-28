@@ -277,13 +277,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 }
                 else
                 {
-                    Events.TokenNotUsable(iotHub, id, token);
-                    if (retrying)
-                    {
-                        await Task.Delay(TokenRetryWaitTime);
-                    }
+                    Events.TokenNotUsable(iotHub, id, token);                    
                 }
 
+                bool newTokenGetterCreated = false;
                 // No need to lock here as the lock is being held by the refresher.
                 TaskCompletionSource<string> tcs = this.tokenGetter
                     .GetOrElse(
@@ -292,9 +289,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                             Events.SafeCreateNewToken(id);
                             var taskCompletionSource = new TaskCompletionSource<string>();
                             this.tokenGetter = Option.Some(taskCompletionSource);
-                            this.connectionStatusChangedHandler(currentIdentity.Id, CloudConnectionStatus.TokenNearExpiry);
+                            newTokenGetterCreated = true;                            
                             return taskCompletionSource;
                         });
+
+                if (newTokenGetterCreated)
+                {
+                    if (retrying)
+                    {
+                        await Task.Delay(TokenRetryWaitTime);
+                    }
+                    this.connectionStatusChangedHandler(currentIdentity.Id, CloudConnectionStatus.TokenNearExpiry);
+                }
+
                 retrying = true;
                 token = await tcs.Task;
             }
