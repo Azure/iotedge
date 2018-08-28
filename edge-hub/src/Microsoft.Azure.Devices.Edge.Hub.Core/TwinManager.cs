@@ -85,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 }
 
                 // Refresh local copy of the twin
-                Option<ICloudProxy> cloudProxy = this.connectionManager.GetCloudConnection(identity.Id);
+                Option<ICloudProxy> cloudProxy = await this.connectionManager.GetCloudConnection(identity.Id);
                 await cloudProxy.ForEachAsync(
                     async cp =>
                     {
@@ -121,7 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 async () =>
                 {
                     // pass through to cloud proxy
-                    Option<ICloudProxy> cloudProxy = this.connectionManager.GetCloudConnection(id);
+                    Option<ICloudProxy> cloudProxy = await this.connectionManager.GetCloudConnection(id);
                     return await cloudProxy.Match(async (cp) => await cp.GetTwinAsync(), () => throw new InvalidOperationException($"Cloud proxy unavailable for device {id}"));
                 });
         }
@@ -130,7 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             try
             {
-                Option<ICloudProxy> cloudProxy = this.connectionManager.GetCloudConnection(id);
+                Option<ICloudProxy> cloudProxy = await this.connectionManager.GetCloudConnection(id);
                 return await cloudProxy.Map(
                         cp => this.GetTwinInfoWhenCloudOnlineAsync(id, cp, false)
                     ).GetOrElse(() => this.GetTwinInfoWhenCloudOfflineAsync(id, new InvalidOperationException($"Error accessing cloud proxy for device {id}")));
@@ -224,7 +224,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             // Refresh local copy of the twin since we received an out-of-order patch
             if (getTwin)
             {
-                Option<ICloudProxy> cloudProxy = this.connectionManager.GetCloudConnection(id);
+                Option<ICloudProxy> cloudProxy = await this.connectionManager.GetCloudConnection(id);
                 await cloudProxy.ForEachAsync(cp => this.GetTwinInfoWhenCloudOnlineAsync(id, cp, true /* send update to device */));
             }
             else
@@ -292,7 +292,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                                                     cloudTwin.Properties.Desired.Version);
                                                 diff = new TwinCollection(JsonEx.Diff(t.Twin.Properties.Desired, cloudTwin.Properties.Desired));
                                             }
-                                        });                                    
+                                        });
                                 }
                             }
                         }
@@ -489,14 +489,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        Task SendReportedPropertiesToCloudProxy(string id, IMessage reported)
+        async Task SendReportedPropertiesToCloudProxy(string id, IMessage reported)
         {
-            Option<ICloudProxy> cloudProxy = this.connectionManager.GetCloudConnection(id);
+            Option<ICloudProxy> cloudProxy = await this.connectionManager.GetCloudConnection(id);
             if (!cloudProxy.HasValue)
             {
                 throw new InvalidOperationException($"Cloud proxy unavailable for device {id}");
             }
-            return cloudProxy.ForEachAsync(cp => cp.UpdateReportedPropertiesAsync(reported));
+            await cloudProxy.ForEachAsync(cp => cp.UpdateReportedPropertiesAsync(reported));
         }
 
         static void ValidatePropertyNameAndLength(string name)
@@ -524,9 +524,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         static void ValidatePropertyValueLength(string name, string value)
         {
-            if (value != null && Encoding.UTF8.GetByteCount(value) > TwinPropertyValueMaxLength)
+            int valueByteCount = value != null ? Encoding.UTF8.GetByteCount(value) : 0;
+            if (valueByteCount > TwinPropertyValueMaxLength)
             {
-                throw new InvalidOperationException($"Value associated with property name {name} exceeds maximum length of {TwinPropertyValueMaxLength}");
+                throw new InvalidOperationException($"Value associated with property name {name} has length {valueByteCount} that exceeds maximum length of {TwinPropertyValueMaxLength}");
             }
         }
 
@@ -556,10 +557,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        internal static void ValidateTwinProperties(JToken properties)
-        {
-            ValidateTwinProperties(properties, 1);
-        }
+        internal static void ValidateTwinProperties(JToken properties) => ValidateTwinProperties(properties, 1);
 
         static void ValidateTwinProperties(JToken properties, int currentDepth)
         {
@@ -570,10 +568,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 ValidateValueType(kvp.Name, kvp.Value);
 
                 string s = kvp.Value.ToString();
-                if (s != null)
-                {
-                    ValidatePropertyValueLength(kvp.Name, s);
-                }
+                ValidatePropertyValueLength(kvp.Name, s);
 
                 if ((kvp.Value is JValue) && (kvp.Value.Type is JTokenType.Integer))
                 {
