@@ -94,9 +94,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             serviceProxy.SetupSequence(s => s.GetServiceIdentitiesIterator())
                 .Returns(iterator1.Object)
                 .Returns(iterator2.Object);
+            var updatedIdentities = new List<ServiceIdentity>();
+            var removedIdentities = new List<string>();
 
             // Act
             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceProxy.Object, store, TimeSpan.FromSeconds(8));
+            deviceScopeIdentitiesCache.ServiceIdentityUpdated += (sender, identity) => updatedIdentities.Add(identity);
+            deviceScopeIdentitiesCache.ServiceIdentityRemoved += (sender, s) => removedIdentities.Add(s);
 
             // Wait for refresh to complete
             await Task.Delay(TimeSpan.FromSeconds(3));
@@ -111,6 +115,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             CompareServiceIdentities(si3, receivedServiceIdentity3);
             CompareServiceIdentities(si4, receivedServiceIdentity4);
 
+            Assert.Equal(0, updatedIdentities.Count);
+            Assert.Equal(0, removedIdentities.Count);
+
             // Wait for another refresh cycle to complete
             await Task.Delay(TimeSpan.FromSeconds(8));
 
@@ -124,6 +131,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             CompareServiceIdentities(si2, receivedServiceIdentity2);
             CompareServiceIdentities(si3, receivedServiceIdentity3);
             Assert.False(receivedServiceIdentity4.HasValue);
+
+            Assert.Equal(0, updatedIdentities.Count);
+            Assert.Equal(1, removedIdentities.Count);
+            Assert.True(removedIdentities.Contains("d2/m4"));
         }
 
         [Fact]
@@ -156,8 +167,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d1"))).ReturnsAsync(Option.Some(si1_updated));
             serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d2"))).ReturnsAsync(Option.None<ServiceIdentity>());
 
+            var updatedIdentities = new List<ServiceIdentity>();
+            var removedIdentities = new List<string>();
+
             // Act
             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceProxy.Object, store, TimeSpan.FromHours(1));
+            deviceScopeIdentitiesCache.ServiceIdentityUpdated += (sender, identity) => updatedIdentities.Add(identity);
+            deviceScopeIdentitiesCache.ServiceIdentityRemoved += (sender, s) => removedIdentities.Add(s);
 
             // Wait for refresh to complete
             await Task.Delay(TimeSpan.FromSeconds(3));
@@ -178,6 +194,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Assert
             CompareServiceIdentities(si1_updated, receivedServiceIdentity1);
             Assert.False(receivedServiceIdentity2.HasValue);
+            Assert.Equal(1, removedIdentities.Count);
+            Assert.Equal("d2", removedIdentities[0]);
+            Assert.Equal(1, updatedIdentities.Count);
+            Assert.Equal("d1", updatedIdentities[0].Id);
         }
 
         [Fact]
@@ -210,8 +230,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d1"))).ReturnsAsync(Option.Some(si1_updated));
             serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d2"))).ReturnsAsync(Option.None<ServiceIdentity>());
 
+            var updatedIdentities = new List<ServiceIdentity>();
+            var removedIdentities = new List<string>();
+
             // Act
             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceProxy.Object, store, TimeSpan.FromHours(1));
+            deviceScopeIdentitiesCache.ServiceIdentityUpdated += (sender, identity) => updatedIdentities.Add(identity);
+            deviceScopeIdentitiesCache.ServiceIdentityRemoved += (sender, s) => removedIdentities.Add(s);
 
             // Wait for refresh to complete
             await Task.Delay(TimeSpan.FromSeconds(3));
@@ -231,6 +256,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Assert
             CompareServiceIdentities(si1_updated, receivedServiceIdentity1);
             Assert.False(receivedServiceIdentity2.HasValue);
+            Assert.Equal(1, removedIdentities.Count);
+            Assert.Equal("d2", removedIdentities[0]);
+            Assert.Equal(1, updatedIdentities.Count);
+            Assert.Equal("d1", updatedIdentities[0].Id);
         }
 
         [Fact]
@@ -263,8 +292,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d1"), It.Is<string>(id => id == "m1"))).ReturnsAsync(Option.Some(si1_updated));
             serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d2"), It.Is<string>(id => id == "m2"))).ReturnsAsync(Option.None<ServiceIdentity>());
 
+            var updatedIdentities = new List<ServiceIdentity>();
+            var removedIdentities = new List<string>();
+
             // Act
             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceProxy.Object, store, TimeSpan.FromHours(1));
+            deviceScopeIdentitiesCache.ServiceIdentityUpdated += (sender, identity) => updatedIdentities.Add(identity);
+            deviceScopeIdentitiesCache.ServiceIdentityRemoved += (sender, s) => removedIdentities.Add(s);
 
             // Wait for refresh to complete
             await Task.Delay(TimeSpan.FromSeconds(3));
@@ -285,6 +319,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Assert
             CompareServiceIdentities(si1_updated, receivedServiceIdentity1);
             Assert.False(receivedServiceIdentity2.HasValue);
+            Assert.Equal(1, removedIdentities.Count);
+            Assert.Equal("d2/m2", removedIdentities[0]);
+            Assert.Equal(1, updatedIdentities.Count);
+            Assert.Equal("d1/m1", updatedIdentities[0].Id);
         }
 
         static void CompareServiceIdentities(ServiceIdentity si1, Option<ServiceIdentity> si2Option)
