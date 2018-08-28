@@ -1,0 +1,27 @@
+#!/usr/bin/make -f
+# You must remove unused comment lines for the released package.
+#export DH_VERBOSE = 1
+#export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+#export DEB_CFLAGS_MAINT_APPEND  = -Wall -pedantic
+#export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
+
+%:
+	dh $@ --with systemd
+
+override_dh_installinit:
+	dh_systemd_enable
+	dh_installinit
+
+override_dh_systemd_start:
+	echo "Not running dh_systemd_start"
+
+override_dh_shlibdeps:
+ifeq ($(CARGO), cross)
+	dh_shlibdeps -l /usr/arm-linux-gnueabihf/lib/ -- --ignore-missing-info
+else
+ifndef SYSROOT
+	dh_shlibdeps
+else
+	dh_shlibdeps -l $(SYSROOT)/lib/:$(SYSROOT)/usr/lib -- --ignore-missing-info
+endif
+endif
