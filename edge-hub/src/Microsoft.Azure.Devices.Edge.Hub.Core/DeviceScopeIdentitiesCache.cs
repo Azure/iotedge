@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Azure.Devices.Edge.Util.Json;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
@@ -46,7 +47,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             Preconditions.CheckNotNull(serviceProxy, nameof(serviceProxy));
             Preconditions.CheckNotNull(encryptedStorage, nameof(encryptedStorage));
-            Preconditions.CheckArgument(refreshRate < TimeSpan.FromMinutes(5), "Refresh rate should be greater than once every 5 mins.");
             IDictionary<string, StoredServiceIdentity> cache = await ReadCacheFromStore(encryptedStorage);
             var deviceScopeIdentitiesCache = new DeviceScopeIdentitiesCache(serviceProxy, encryptedStorage, cache, refreshRate);
             Events.Created();
@@ -72,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 try
                 {
                     Events.StartingRefreshCycle();
-                    IEnumerable<string> currentCacheIds = new List<string>(this.serviceIdentityCache.Keys);
+                    var currentCacheIds = new List<string>();
                     IServiceIdentitiesIterator iterator = this.serviceProxy.GetServiceIdentitiesIterator();
                     while (iterator.HasNext)
                     {
@@ -80,11 +80,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                         foreach (ServiceIdentity serviceIdentity in batch)
                         {
                             await this.HandleNewServiceIdentity(serviceIdentity);
+                            currentCacheIds.Add(serviceIdentity.Id);
                         }
                     }
 
                     // Diff and update
-                    IEnumerable<string> removedIds = currentCacheIds.Except(this.serviceIdentityCache.Keys);
+                    List<string> removedIds = this.serviceIdentityCache.Keys.Except(currentCacheIds).ToList();
                     await Task.WhenAll(removedIds.Select(id => this.HandleNoServiceIdentity(id)));
                 }
                 catch (Exception e)
@@ -97,14 +98,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        public async Task RefreshCache(string deviceId)
+        public async Task RefreshServiceIdentity(string deviceId)
         {
             try
             {
                 Option<ServiceIdentity> serviceIdentity = await this.serviceProxy.GetServiceIdentity(deviceId);
                 await serviceIdentity
-                    .Map(this.HandleNewServiceIdentity)
-                    .GetOrElse(this.HandleNoServiceIdentity(deviceId));
+                    .Map(s => this.HandleNewServiceIdentity(s))
+                    .GetOrElse(() => this.HandleNoServiceIdentity(deviceId));
             }
             catch (Exception e)
             {
@@ -112,14 +113,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        public async Task RefreshCache(string deviceId, string moduleId)
+        public async Task RefreshServiceIdentity(string deviceId, string moduleId)
         {
             try
             {
                 Option<ServiceIdentity> serviceIdentity = await this.serviceProxy.GetServiceIdentity(deviceId, moduleId);
                 await serviceIdentity
-                    .Map(this.HandleNewServiceIdentity)
-                    .GetOrElse(this.HandleNoServiceIdentity($"{deviceId}/{moduleId}"));
+                    .Map(s => this.HandleNewServiceIdentity(s))
+                    .GetOrElse(() => this.HandleNoServiceIdentity($"{deviceId}/{moduleId}"));
             }
             catch (Exception e)
             {
@@ -127,25 +128,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        public async Task RefreshCache(IEnumerable<string> deviceIds)
+        public async Task RefreshServiceIdentities(IEnumerable<string> deviceIds)
         {
             List<string> deviceIdsList = Preconditions.CheckNotNull(deviceIds, nameof(deviceIds)).ToList();
             foreach (string deviceId in deviceIdsList)
             {
-                await this.RefreshCache(deviceId);
+                await this.RefreshServiceIdentity(deviceId);
             }
+        }
+
+        public Task<Option<ServiceIdentity>> GetServiceIdentity(string deviceId, string moduleId)
+        {
+            Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
+            Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
+            return this.GetServiceIdentity($"{deviceId}/{moduleId}");
         }
 
         public async Task<Option<ServiceIdentity>> GetServiceIdentity(string id)
         {
+            Preconditions.CheckNonWhiteSpace(id, nameof(id));
             using (await this.cacheLock.LockAsync())
             {
-                if (this.serviceIdentityCache.TryGetValue(id, out StoredServiceIdentity storedServiceIdentity))
-                {
-                    return storedServiceIdentity.ServiceIdentity;
-                }
-
-                return Option.None<ServiceIdentity>();
+                return this.serviceIdentityCache.TryGetValue(id, out StoredServiceIdentity storedServiceIdentity)
+                    ? storedServiceIdentity.ServiceIdentity
+                    : Option.None<ServiceIdentity>();
             }
         }
 
@@ -166,7 +172,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             using (await this.cacheLock.LockAsync())
             {
-                bool hasUpdated = !await this.CompareWithCacheValue(serviceIdentity);
+                bool hasUpdated = this.serviceIdentityCache.TryGetValue(serviceIdentity.Id, out StoredServiceIdentity currentStoredServiceIdentity)
+                    && currentStoredServiceIdentity.ServiceIdentity
+                        .Map(s => !s.Equals(serviceIdentity))
+                        .GetOrElse(false);
                 var storedServiceIdentity = new StoredServiceIdentity(serviceIdentity);
                 this.serviceIdentityCache[serviceIdentity.Id] = storedServiceIdentity;
                 await this.SaveServiceIdentityToStore(serviceIdentity.Id, storedServiceIdentity);
@@ -176,21 +185,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     this.ServiceIdentityUpdated?.Invoke(this, serviceIdentity);
                 }
             }
-        }
-
-        async Task<bool> CompareWithCacheValue(ServiceIdentity serviceIdentity)
-        {
-            using (await this.cacheLock.LockAsync())
-            {
-                if (this.serviceIdentityCache.TryGetValue(serviceIdentity.Id, out StoredServiceIdentity currentStoredServiceIdentity))
-                {
-                    return currentStoredServiceIdentity.ServiceIdentity
-                        .Map(s => s.Equals(serviceIdentity))
-                        .GetOrElse(false);
-                }
-            }
-
-            return false;
         }
 
         async Task SaveServiceIdentityToStore(string id, StoredServiceIdentity storedServiceIdentity)
@@ -219,7 +213,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.refreshCacheTask?.Dispose();
         }
 
-        class StoredServiceIdentity
+        internal class StoredServiceIdentity
         {
             public StoredServiceIdentity(ServiceIdentity serviceIdentity)
                 : this(Preconditions.CheckNotNull(serviceIdentity, nameof(serviceIdentity)).Id, serviceIdentity, DateTime.UtcNow)
@@ -231,17 +225,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             { }
 
             [JsonConstructor]
-            public StoredServiceIdentity(string id, ServiceIdentity serviceIdentity, DateTime timestamp)
+            StoredServiceIdentity(string id, ServiceIdentity serviceIdentity, DateTime timestamp)
             {
                 this.ServiceIdentity = Option.Maybe(serviceIdentity);
                 this.Id = Preconditions.CheckNotNull(id);
                 this.Timestamp = timestamp;
             }
 
+            [JsonProperty("serviceIdentity")]
+            [JsonConverter(typeof(OptionConverter<ServiceIdentity>))]
             public Option<ServiceIdentity> ServiceIdentity { get; }
 
+            [JsonProperty("id")]
             public string Id { get; }
 
+            [JsonProperty("timestamp")]
             public DateTime Timestamp { get; }
         }
 
