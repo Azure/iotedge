@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client.Exceptions;
+    using Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -11,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using Moq;
     using Xunit;
 
-    public class TokenCredentialsAuthenticatorTest
+    public class TokenCacheAuthenticatorTest
     {
         [Unit]
         [Fact]
@@ -35,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
             var credentials = new TokenCredentials(identity, sasToken, callerProductInfo);
 
-            var tokenCredentialsAuthenticator = new TokenCredentialsAuthenticator(connectionManager, credentialsStore.Object, iothubHostName);
+            var tokenCredentialsAuthenticator = new TokenCacheAuthenticator(new CloudTokenAuthenticator(connectionManager), credentialsStore.Object, iothubHostName);
 
             // Act
             bool isAuthenticated = await tokenCredentialsAuthenticator.AuthenticateAsync(credentials);
@@ -70,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             credentialsStore.Setup(c => c.Add(It.IsAny<IClientCredentials>()))
                 .Returns(Task.CompletedTask);
 
-            var tokenCredentialsAuthenticator = new TokenCredentialsAuthenticator(connectionManager, credentialsStore.Object, iothubHostName);
+            var tokenCredentialsAuthenticator = new TokenCacheAuthenticator(new CloudTokenAuthenticator(connectionManager), credentialsStore.Object, iothubHostName);
 
             // Act
             bool isAuthenticated = await tokenCredentialsAuthenticator.AuthenticateAsync(credentials);
@@ -108,7 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             credentialsStore.Setup(c => c.Add(It.IsAny<IClientCredentials>()))
                 .Returns(Task.CompletedTask);
 
-            var tokenCredentialsAuthenticator = new TokenCredentialsAuthenticator(connectionManager, credentialsStore.Object, iothubHostName);
+            var tokenCredentialsAuthenticator = new TokenCacheAuthenticator(new CloudTokenAuthenticator(connectionManager), credentialsStore.Object, iothubHostName);
 
             // Act
             bool isAuthenticated = await tokenCredentialsAuthenticator.AuthenticateAsync(credentials);
@@ -145,7 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             credentialsStore.Setup(c => c.Add(It.IsAny<IClientCredentials>()))
                 .Returns(Task.CompletedTask);
 
-            var tokenCredentialsAuthenticator = new TokenCredentialsAuthenticator(connectionManager, credentialsStore.Object, iothubHostName);
+            var tokenCredentialsAuthenticator = new TokenCacheAuthenticator(new CloudTokenAuthenticator(connectionManager), credentialsStore.Object, iothubHostName);
 
             // Act
             bool isAuthenticated = await tokenCredentialsAuthenticator.AuthenticateAsync(credentials);
