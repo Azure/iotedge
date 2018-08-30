@@ -416,13 +416,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                 async c =>
                 {
-                    var routeFactory = c.Resolve<RouteFactory>();
+                    RouteFactory routeFactory = await c.Resolve<Task<RouteFactory>>();
                     if (this.useTwinConfig)
                     {                        
                         var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
                         var twinCollectionMessageConverter = c.Resolve<Core.IMessageConverter<TwinCollection>>();
                         var twinMessageConverter = c.Resolve<Core.IMessageConverter<Twin>>();
-                        var twinManager = c.Resolve<ITwinManager>();
+                        ITwinManager twinManager = await c.Resolve<Task<ITwinManager>>();
                         ICloudProxy cloudProxy = await c.ResolveNamed<Task<ICloudProxy>>("EdgeHubCloudProxy");
                         IEdgeHub edgeHub = await c.Resolve<Task<IEdgeHub>>();
                         IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
