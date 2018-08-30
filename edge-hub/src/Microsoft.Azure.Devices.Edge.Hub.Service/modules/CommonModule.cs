@@ -53,13 +53,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
             this.edgeHubModuleId = Preconditions.CheckNonWhiteSpace(edgeHubModuleId, nameof(edgeHubModuleId));
-            this.edgeDeviceHostName = Preconditions.CheckNonWhiteSpace(edgeDeviceHostName, nameof(edgeDeviceHostName));
+            this.edgeDeviceHostName = Preconditions.CheckNotNull(edgeDeviceHostName, nameof(edgeDeviceHostName));
             this.edgeHubGenerationId = edgeHubGenerationId;
             this.authenticationMode = authenticationMode;
             this.edgeHubConnectionString = edgeHubConnectionString;
             this.optimizeForPerformance = optimizeForPerformance;
             this.usePersistentStorage = usePersistentStorage;
-            this.storagePath = Preconditions.CheckNonWhiteSpace(storagePath, nameof(storagePath));
+            this.storagePath = storagePath;
             this.scopeCacheRefreshRate = scopeCacheRefreshRate;
             this.workloadUri = workloadUri;
             this.cacheTokens = cacheTokens;
@@ -200,7 +200,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             // Task<IAuthenticator>
             builder.Register(async c =>
                 {
-                    IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();                    
+                    IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
                     IAuthenticator tokenAuthenticator;
                     IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
                     switch (this.authenticationMode)
@@ -215,11 +215,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             else
                             {
                                 tokenAuthenticator = new CloudTokenAuthenticator(connectionManager);
-                            }                            
+                            }
                             break;
 
                         case AuthenticationMode.Scope:
-                            deviceScopeIdentitiesCache = await c.Resolve < Task<IDeviceScopeIdentitiesCache>>();
+                            deviceScopeIdentitiesCache = await c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
                             tokenAuthenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, this.iothubHostName, this.edgeDeviceHostName, new NullAuthenticator(), connectionManager);
                             break;
 
