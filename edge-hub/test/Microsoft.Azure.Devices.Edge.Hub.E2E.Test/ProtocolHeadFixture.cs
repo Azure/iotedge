@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Microsoft.Azure.Devices.Edge.Hub.Amqp;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Hub.Service;
@@ -95,10 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             ~InternalProtocolHeadFixture()
             {
-                if (this.protocolHead != null)
-                {
-                    this.protocolHead.Dispose();
-                }
+                this.protocolHead?.Dispose();
             }
 
             async Task StartProtocolHead()
@@ -150,6 +148,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, certificate, false, false, string.Empty, false));
                 builder.RegisterModule(new AmqpModule("amqps", 5671, certificate, iotHubConnectionStringBuilder.HostName));
                 this.container = builder.Build();
+
+                // CloudConnectionProvider and RoutingEdgeHub have a circular dependency. So set the
+                // EdgeHub on the CloudConnectionProvider before any other operation
+                var cloudConnectionProvider = this.container.Resolve<ICloudConnectionProvider>();
+                IEdgeHub edgeHub = await this.container.Resolve<Task<IEdgeHub>>();
+                cloudConnectionProvider.BindEdgeHub(edgeHub);
 
                 IConfigSource configSource = await this.container.Resolve<Task<IConfigSource>>();
                 ConfigUpdater configUpdater = await this.container.Resolve<Task<ConfigUpdater>>();

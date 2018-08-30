@@ -14,5 +14,5 @@ RUN yum install -y redhat-rpm-config \
         libcurl-devel \
         libuuid-devel
 
-COPY cmake.sh /
+COPY yum/cmake.sh /
 RUN bash /cmake.sh 3.11.4

@@ -14,6 +14,7 @@ case "$1" in
             chmod 755 /var/lib/iotedge
             chmod 755 /var/log/iotedge
             chmod 400 /etc/iotedge/config.yaml
+
         fi
 
         # Set the hostname

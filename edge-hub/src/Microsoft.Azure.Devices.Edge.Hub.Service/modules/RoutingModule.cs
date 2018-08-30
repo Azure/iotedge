@@ -11,7 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Routing;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Storage;
@@ -426,7 +425,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 {
                     Router router = await c.Resolve<Task<Router>>();
                     IEdgeHub hub = new RoutingEdgeHub(router, c.Resolve<Core.IMessageConverter<IRoutingMessage>>(), c.Resolve<IConnectionManager>(),
-                        c.Resolve<ITwinManager>(), this.edgeDeviceId, c.Resolve<IInvokeMethodHandler>());
+                        c.Resolve<ITwinManager>(), this.edgeDeviceId, c.Resolve<IInvokeMethodHandler>());                   
                     return hub;
                 })
                 .As<Task<IEdgeHub>>()
@@ -460,7 +459,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         ICloudProxy cloudProxy = await c.ResolveNamed<Task<ICloudProxy>>("EdgeHubCloudProxy");
                         IEdgeHub edgeHub = await c.Resolve<Task<IEdgeHub>>();
                         IConfigSource edgeHubConnection = await EdgeHubConnection.Create(
-                            edgeHubCredentials.Identity as IModuleIdentity,
+                            edgeHubCredentials,
                             edgeHub,
                             twinManager,
                             connectionManager,
