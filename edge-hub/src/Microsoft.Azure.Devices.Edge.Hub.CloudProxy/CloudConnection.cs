@@ -259,6 +259,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         /// If the existing identity has a usable token, then use it.
         /// Else, generate a notification of token being near expiry and return a task that
         /// can be completed later.
+        /// Keep retrying till we get a usable token.
         /// Note - Don't use this.Identity in this method, as it may not have been set yet!
         /// </summary>
         async Task<string> GetNewToken(string iotHub, string id, string currentToken, IIdentity currentIdentity)
@@ -300,8 +301,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                             return taskCompletionSource;
                         });
 
+                // If a new tokenGetter was created, then invoke the connection status changed handler
                 if (newTokenGetterCreated)
                 {
+                    // If retrying, wait for some time.
                     if (retrying)
                     {
                         await Task.Delay(TokenRetryWaitTime);
@@ -310,6 +313,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 }
 
                 retrying = true;
+                // this.tokenGetter will be reset when this task returns.
                 token = await tcs.Task;
             }
         }
