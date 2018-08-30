@@ -151,7 +151,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             this.connectionManager.AddSubscription(id, deviceSubscription);
             try
             {
-                Option<ICloudProxy> cloudProxy = await this.connectionManager.GetCloudConnection(id);
+                Option<ICloudProxy> cloudProxy = this.connectionManager.GetCloudConnection(id);
                 await this.ProcessSubscription(id, cloudProxy, deviceSubscription, true);
             }
             catch (Exception e)
@@ -170,7 +170,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             this.connectionManager.RemoveSubscription(id, deviceSubscription);
             try
             {
-                Option<ICloudProxy> cloudProxy = await this.connectionManager.GetCloudConnection(id);
+                Option<ICloudProxy> cloudProxy = this.connectionManager.GetCloudConnection(id);
                 await this.ProcessSubscription(id, cloudProxy, deviceSubscription, false);
             }
             catch (Exception e)
@@ -230,11 +230,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             }
         }
 
-        async Task ProcessSubscriptions(string id)
+        Task ProcessSubscriptions(string id)
         {
-            Option<ICloudProxy> cloudProxy = await this.connectionManager.GetCloudConnection(id);
+            Option<ICloudProxy> cloudProxy = this.connectionManager.GetCloudConnection(id);
             Option<IReadOnlyDictionary<DeviceSubscription, bool>> subscriptions = this.connectionManager.GetSubscriptions(id);
-            await subscriptions.ForEachAsync(
+            return subscriptions.ForEachAsync(
                 async s =>
                 {
                     foreach (KeyValuePair<DeviceSubscription, bool> subscription in s)

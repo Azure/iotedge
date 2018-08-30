@@ -27,10 +27,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
     public class CloudEndpoint : Endpoint
     {
-        readonly Func<string, Task<Util.Option<ICloudProxy>>> cloudProxyGetterFunc;
+        readonly Func<string, Util.Option<ICloudProxy>> cloudProxyGetterFunc;
         readonly Core.IMessageConverter<IRoutingMessage> messageConverter;
 
-        public CloudEndpoint(string id, Func<string, Task<Util.Option<ICloudProxy>>> cloudProxyGetterFunc, Core.IMessageConverter<IRoutingMessage> messageConverter)
+        public CloudEndpoint(string id, Func<string, Util.Option<ICloudProxy>> cloudProxyGetterFunc, Core.IMessageConverter<IRoutingMessage> messageConverter)
             : base(id)
         {
             this.cloudProxyGetterFunc = Preconditions.CheckNotNull(cloudProxyGetterFunc);
@@ -72,8 +72,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 SendFailureDetails sendFailureDetails = null;
 
                 IMessage message = this.cloudEndpoint.messageConverter.ToMessage(routingMessage);
-
-                Util.Option<ICloudProxy> cloudProxy = await this.GetCloudProxy(routingMessage);
+                
+                Util.Option<ICloudProxy> cloudProxy = this.GetCloudProxy(routingMessage);
                 if (!cloudProxy.HasValue)
                 {
                     sendFailureDetails = new SendFailureDetails(FailureKind.None, new EdgeHubConnectionException("IoT Hub is not connected"));
@@ -170,19 +170,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 return Option.None<string>();
             }
 
-            Task<Util.Option<ICloudProxy>> GetCloudProxy(IRoutingMessage routingMessage)
+            Util.Option<ICloudProxy> GetCloudProxy(IRoutingMessage routingMessage)
             {
-                return this.GetIdentity(routingMessage).Map(
-                    async id =>
+                return this.GetIdentity(routingMessage).Match(id =>
+                {
+                    Util.Option<ICloudProxy> cloudProxy = this.cloudEndpoint.cloudProxyGetterFunc(id);
+                    if (!cloudProxy.HasValue)
                     {
-                        Util.Option<ICloudProxy> cloudProxy = await this.cloudEndpoint.cloudProxyGetterFunc(id);
-                        if (!cloudProxy.HasValue)
-                        {
-                            Events.IoTHubNotConnected(id);
-                        }
-                        return cloudProxy;
-                    })
-                    .GetOrElse(() => Task.FromResult(Option.None<ICloudProxy>()));
+                        Events.IoTHubNotConnected(id);
+                    }
+                    return cloudProxy;
+                }, () => Option.None<ICloudProxy>());
             }
 
             static bool IsRetryable(Exception ex) => ex != null && RetryableExceptions.Contains(ex.GetType());
