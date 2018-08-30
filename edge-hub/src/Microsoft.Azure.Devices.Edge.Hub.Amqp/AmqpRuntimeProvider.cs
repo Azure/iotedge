@@ -44,6 +44,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             AmqpSettings settings,
             AmqpConnectionSettings connectionSettings)
         {
+            if (!transport.IsSecure)
+            {
+                throw new AmqpException(AmqpErrorCode.NotAllowed, "AMQP transport is not secure");
+            }
+
             var connection = new AmqpConnection(transport, protocolHeader, false, settings, connectionSettings)
             {
                 SessionFactory = this
