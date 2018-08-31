@@ -33,6 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly AsyncLock tokenUpdateLock = new AsyncLock();
         readonly IClientProvider clientProvider;
         readonly ICloudListener cloudListener;
+        readonly TimeSpan idleTimeout;
 
         bool callbacksEnabled = true;
         Option<TaskCompletionSource<string>> tokenGetter;
@@ -43,7 +44,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             ITransportSettings[] transportSettings,
             IMessageConverterProvider messageConverterProvider,
             IClientProvider clientProvider,
-            ICloudListener cloudListener)
+            ICloudListener cloudListener,
+            TimeSpan idleTimeout)
         {
             this.connectionStatusChangedHandler = connectionStatusChangedHandler;
             this.transportSettingsList = Preconditions.CheckNotNull(transportSettings, nameof(transportSettings));
@@ -51,6 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.tokenGetter = Option.None<TaskCompletionSource<string>>();
             this.clientProvider = Preconditions.CheckNotNull(clientProvider, nameof(clientProvider));
             this.cloudListener = Preconditions.CheckNotNull(cloudListener, nameof(cloudListener));
+            this.idleTimeout = idleTimeout;
         }
 
         public Option<ICloudProxy> CloudProxy => this.cloudProxy.Filter(cp => cp.IsActive);
@@ -151,7 +154,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 this.messageConverterProvider,
                 newCredentials.Identity.Id,
                 this.connectionStatusChangedHandler,
-                this.cloudListener);
+                this.cloudListener,
+                this.idleTimeout);
             return proxy;
         }
 

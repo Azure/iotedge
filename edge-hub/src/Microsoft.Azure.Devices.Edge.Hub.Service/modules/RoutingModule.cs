@@ -176,7 +176,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             // ICloudConnectionProvider
-            builder.Register(c => new CloudConnectionProvider(c.Resolve<Core.IMessageConverterProvider>(), this.connectionPoolSize, c.Resolve<IClientProvider>(), this.upstreamProtocol))
+            builder.Register(c => new CloudConnectionProvider(c.Resolve<Core.IMessageConverterProvider>(), this.connectionPoolSize, c.Resolve<IClientProvider>(), this.upstreamProtocol, TimeSpan.FromMinutes(60)))
                 .As<ICloudConnectionProvider>()
                 .SingleInstance();
 

@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         [Integration]
         public async Task ConnectTest()
         {
-            ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(MessageConverterProvider, ConnectionPoolSize, new ClientProvider(), Option.None<UpstreamProtocol>());
+            ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(MessageConverterProvider, ConnectionPoolSize, new ClientProvider(), Option.None<UpstreamProtocol>(), TimeSpan.FromMinutes(60));
             string deviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("device1ConnStrKey");
             var deviceIdentity = Mock.Of<IDeviceIdentity>(m => m.Id == ConnectionStringHelper.GetDeviceId(deviceConnectionString));
             var clientCredentials = new SharedKeyCredentials(deviceIdentity, deviceConnectionString, null);
@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         [Integration]
         public async Task ConnectWithInvalidConnectionStringTest()
         {
-            ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(MessageConverterProvider, ConnectionPoolSize, new ClientProvider(), Option.None<UpstreamProtocol>());
+            ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(MessageConverterProvider, ConnectionPoolSize, new ClientProvider(), Option.None<UpstreamProtocol>(), TimeSpan.FromMinutes(60));
 
             var deviceIdentity1 = Mock.Of<IIdentity>(m => m.Id == "device1");
             var clientCredentials1 = new SharedKeyCredentials(deviceIdentity1, "dummyConnStr", null);
