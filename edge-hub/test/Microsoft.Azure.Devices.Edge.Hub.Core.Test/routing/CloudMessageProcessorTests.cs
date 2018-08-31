@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var cloudProxyMock = new Mock<ICloudProxy>();
             string cloudEndpointId = Guid.NewGuid().ToString();
 
-            Task<Option<ICloudProxy>> GetCloudProxy(string id) => Task.FromResult(Option.Some(cloudProxyMock.Object));
+            Option<ICloudProxy> GetCloudProxy(string id) => Option.Some(cloudProxyMock.Object);
 
             var cloudEndpoint = new CloudEndpoint(cloudEndpointId, GetCloudProxy, routingMessageConverter);
             IProcessor cloudMessageProcessor = cloudEndpoint.CreateProcessor();
@@ -72,11 +72,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var message1 = new RoutingMessage(TelemetryMessageSource.Instance, messageBody, properties, device1SystemProperties);
             var message2 = new RoutingMessage(TelemetryMessageSource.Instance, messageBody, properties, device2SystemProperties);
 
-            Task<Option<ICloudProxy>> GetCloudProxy(string id)
+            Option<ICloudProxy> GetCloudProxy(string id)
             {
-                return Task.FromResult(id.Equals(device1Id)
+                return id.Equals(device1Id)
                     ? Option.Some(cloudProxyMock.Object)
-                    : Option.None<ICloudProxy>());
+                    : Option.None<ICloudProxy>();
             }
 
             var cloudEndpoint = new CloudEndpoint(cloudEndpointId, GetCloudProxy, routingMessageConverter);

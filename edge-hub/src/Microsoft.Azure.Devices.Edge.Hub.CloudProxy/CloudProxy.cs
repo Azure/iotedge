@@ -24,19 +24,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly Action<string, CloudConnectionStatus> connectionStatusChangedHandler;
         readonly string clientId;
         readonly Guid id = Guid.NewGuid();
-        readonly CloudReceiver cloudReceiver;
+        CloudReceiver cloudReceiver;
 
-        public CloudProxy(IClient client,
-            IMessageConverterProvider messageConverterProvider,
-            string clientId,
-            Action<string, CloudConnectionStatus> connectionStatusChangedHandler,
-            ICloudListener cloudListener)
+        public CloudProxy(IClient client, IMessageConverterProvider messageConverterProvider, string clientId, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
         {
             this.client = Preconditions.CheckNotNull(client, nameof(client));
             this.messageConverterProvider = Preconditions.CheckNotNull(messageConverterProvider, nameof(messageConverterProvider));
             this.clientId = Preconditions.CheckNonWhiteSpace(clientId, nameof(clientId));
-            this.cloudReceiver = new CloudReceiver(this, Preconditions.CheckNotNull(cloudListener, nameof(cloudListener)));
-
             if (connectionStatusChangedHandler != null)
             {
                 this.connectionStatusChangedHandler = connectionStatusChangedHandler;
@@ -127,6 +121,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             Events.UpdateReportedProperties(this);
         }
 
+        public void BindCloudListener(ICloudListener cloudListener)
+        {
+            this.cloudReceiver = new CloudReceiver(this, cloudListener);
+            Events.BindCloudListener(this);
+        }
+
         public Task SendFeedbackMessageAsync(string messageId, FeedbackStatus feedbackStatus)
         {
             Preconditions.CheckNonWhiteSpace(messageId, nameof(messageId));
@@ -163,9 +163,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 this.cloudReceiver.StartListening();
             }
         }
-
-        // This API is to be used for Tests only.
-        internal CloudReceiver GetCloudReceiver() => this.cloudReceiver;
 
         bool EnsureCloudReceiver(string operation)
         {

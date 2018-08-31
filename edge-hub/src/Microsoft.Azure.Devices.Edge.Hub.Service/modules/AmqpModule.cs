@@ -25,17 +25,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly int port;
         readonly X509Certificate2 tlsCertificate;
         readonly string iotHubHostName;
+        readonly bool tlsUpgrade;
 
         public AmqpModule(
             string scheme,
             int port,
             X509Certificate2 tlsCertificate,
-            string iotHubHostName)
+            string iotHubHostName,
+            bool tlsUpgrade)
         {
             this.scheme = Preconditions.CheckNonWhiteSpace(scheme, nameof(scheme));
             this.port = Preconditions.CheckRange(port, 0, ushort.MaxValue, nameof(port));
             this.tlsCertificate = Preconditions.CheckNotNull(tlsCertificate, nameof(tlsCertificate));
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostName, nameof(iotHubHostName));
+            this.tlsUpgrade = Preconditions.CheckNotNull(tlsUpgrade, nameof(tlsUpgrade));
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -80,7 +83,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         identityFactory,
                         linkHandlerProvider,
                         connectionProvider,
-                        credentialsStore);
+                        credentialsStore,
+                        tlsUpgrade);
                     return new AmqpProtocolHead(
                         transportSettings,
                         amqpSettings,

@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         }
 
         public static async Task<EdgeHubConnection> Create(
-            IClientCredentials edgeHubCredentials,
+            IModuleIdentity edgeHubIdentity,
             IEdgeHub edgeHub,
             ITwinManager twinManager,
             IConnectionManager connectionManager,
@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             VersionInfo versionInfo
         )
         {
-            Preconditions.CheckNotNull(edgeHubCredentials, nameof(edgeHubCredentials));
+            Preconditions.CheckNotNull(edgeHubIdentity, nameof(edgeHubIdentity));
             Preconditions.CheckNotNull(edgeHub, nameof(edgeHub));
             Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
             Preconditions.CheckNotNull(cloudProxy, nameof(cloudProxy));
@@ -68,23 +68,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Preconditions.CheckNotNull(routeFactory, nameof(routeFactory));
 
             var edgeHubConnection = new EdgeHubConnection(
-                edgeHubCredentials.Identity as IModuleIdentity, twinManager, routeFactory,
+                edgeHubIdentity, twinManager, routeFactory,
                 twinCollectionMessageConverter, twinMessageConverter,
                 versionInfo ?? VersionInfo.Empty
             );
+            cloudProxy.BindCloudListener(new CloudListener(edgeHubConnection));
 
             IDeviceProxy deviceProxy = new EdgeHubDeviceProxy(edgeHubConnection);
-            await connectionManager.AddDeviceConnection(edgeHubCredentials);
-            connectionManager.BindDeviceProxy(edgeHubCredentials.Identity, deviceProxy);
+            await connectionManager.AddDeviceConnection(edgeHubIdentity, deviceProxy);
 
-            await edgeHub.AddSubscription(edgeHubCredentials.Identity.Id, DeviceSubscription.DesiredPropertyUpdates);
+            await edgeHub.AddSubscription(edgeHubIdentity.Id, DeviceSubscription.DesiredPropertyUpdates);
 
             // Clear out all the reported devices.
             await edgeHubConnection.ClearDeviceConnectionStatuses();
 
             connectionManager.DeviceConnected += edgeHubConnection.DeviceConnected;
             connectionManager.DeviceDisconnected += edgeHubConnection.DeviceDisconnected;
-            Events.Initialized(edgeHubCredentials.Identity);
+            Events.Initialized(edgeHubIdentity);
             return edgeHubConnection;
         }
 

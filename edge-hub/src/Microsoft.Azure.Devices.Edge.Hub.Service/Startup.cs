@@ -166,7 +166,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     moduleGenerationId));
 
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, ServerCertificateCache.X509Certificate, storeAndForward.isEnabled, clientCertAuthEnabled, caChainPath, optimizeForPerformance));
-            builder.RegisterModule(new AmqpModule(amqpSettings["scheme"], amqpSettings.GetValue<ushort>("port"), ServerCertificateCache.X509Certificate, this.iotHubHostname));
+            builder.RegisterModule(new AmqpModule(amqpSettings["scheme"], amqpSettings.GetValue<ushort>("port"), ServerCertificateCache.X509Certificate, this.iotHubHostname, amqpSettings.GetValue("tlsUpgrade", true)));
             builder.RegisterModule(new HttpModule());
             builder.RegisterInstance<IStartup>(this);
 

@@ -32,6 +32,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 
         Task<IMessage> GetTwinAsync();
 
+        void BindCloudListener(ICloudListener cloudListener);
+
         Task SendFeedbackMessageAsync(string messageId, FeedbackStatus feedbackStatus);
 
         Task SetupCallMethodAsync();

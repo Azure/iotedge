@@ -68,7 +68,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         public void BindDeviceProxy(IDeviceProxy deviceProxy)
         {
             this.underlyingProxy = Preconditions.CheckNotNull(deviceProxy);
-            this.connectionManager.BindDeviceProxy(this.Identity, this);
+            Option<ICloudProxy> cloudProxy = this.connectionManager.GetCloudConnection(this.Identity.Id);
+            cloudProxy.ForEach(c => c.BindCloudListener(new CloudListener(this.edgeHub, this.Identity.Id)));
+            // This operation is async, but we cannot await in this sync method.
+            // It is fine because the await part of the operation is cleanup and best effort. 
+            this.connectionManager.AddDeviceConnection(this.Identity, this);
             Events.BindDeviceProxy(this.Identity);
         }
 
@@ -108,8 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             }
             else
             {
-                Option<ICloudProxy> cloudProxy = await this.connectionManager.GetCloudConnection(this.Identity.Id);
-                await cloudProxy.ForEachAsync(cp => cp.SendFeedbackMessageAsync(messageId, feedbackStatus));
+                await this.connectionManager.GetCloudConnection(this.Identity.Id).ForEachAsync(cp => cp.SendFeedbackMessageAsync(messageId, feedbackStatus));
             }
         }
 
