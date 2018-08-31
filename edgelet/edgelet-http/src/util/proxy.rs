@@ -13,26 +13,29 @@ pub struct MaybeProxyClient {
 
 impl MaybeProxyClient {
     pub fn new(handle: &Handle, proxy_uri: Option<Uri>) -> Result<MaybeProxyClient, Error> {
+        MaybeProxyClient::create(Some(handle), proxy_uri)
+    }
+
+    fn create(handle: Option<&Handle>, proxy_uri: Option<Uri>) -> Result<MaybeProxyClient, Error> {
+        let mut config = Client::configure();
+        if let Some(h) = handle {
+            config.handle(h);
+        } else {
+            config.null();
+        }
+        if let Some(uri) = proxy_uri {
+            config.proxy(uri);
+        }
         Ok(
             MaybeProxyClient {
-                client: match proxy_uri {
-                    None => Client::new(handle)?,
-                    Some(uri) => Client::new_with_proxy(handle, uri)?,
-                },
+                client: config.build()?
             }
         )
     }
 
     #[cfg(test)]
     pub fn new_null(proxy_uri: Option<Uri>) -> Result<MaybeProxyClient, Error> {
-        Ok(
-            MaybeProxyClient {
-                client: match proxy_uri {
-                    None => Client::new_null()?,
-                    Some(_) => Client::new_null_with_proxy()?,
-                },
-            }
-        )
+        MaybeProxyClient::create(None, proxy_uri)
     }
 
     #[cfg(test)]

@@ -11,40 +11,68 @@ use tokio_core::reactor::Handle;
 const DNS_WORKER_THREADS: usize = 4;
 
 #[derive(Clone, Debug)]
+pub struct Config {
+    handle: Option<Handle>,
+    proxy_uri: Option<Uri>,
+    null: bool,
+}
+
+impl Config {
+    pub fn handle<'a>(&'a mut self, handle: &Handle) -> &'a mut Config {
+        self.handle = Some(handle.clone());
+        self
+    }
+
+    pub fn proxy<'a>(&'a mut self, uri: Uri) -> &'a mut Config {
+        self.proxy_uri = Some(uri);
+        self
+    }
+
+    pub fn null<'a>(&'a mut self) -> &'a mut Config {
+        self.null = true;
+        self
+    }
+
+    pub fn build(&self)  -> Result<Client, Error> {
+        match self.null {
+            true => match self.proxy_uri {
+                None => Ok(Client::NullNoProxy),
+                Some(_) => Ok(Client::NullProxy),
+            },
+            false => {
+                let config = self.clone();
+                let h = &config.handle.expect("tokio_core::reactor::Handle expected!");
+                let https = HttpsConnector::new(DNS_WORKER_THREADS, &h)?;
+                match config.proxy_uri {
+                    None => {
+                        Ok(Client::NoProxy(HyperClient::configure().connector(https).build(h)))
+                    },
+                    Some(uri) => {
+                        let proxy = Proxy::new(Intercept::All, uri);
+                        let conn = ProxyConnector::from_proxy(https, proxy)?;
+                        Ok(Client::Proxy(HyperClient::configure().connector(conn).build(h)))
+                    },
+                }
+            },
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
 pub enum Client {
     NoProxy(HyperClient<HttpsConnector<HttpConnector>>),
     Proxy(HyperClient<ProxyConnector<HttpsConnector<HttpConnector>>>),
-    #[cfg(test)]
     NullNoProxy,
-    #[cfg(test)]
     NullProxy,
 }
 
 impl Client {
-    pub fn new(handle: &Handle) -> Result<Client, Error> {
-        let https = HttpsConnector::new(DNS_WORKER_THREADS, &handle.clone())?;
-        Ok(Client::NoProxy(
-            HyperClient::configure().connector(https).build(&handle),
-        ))
-    }
-
-    pub fn new_with_proxy(handle: &Handle, uri: Uri) -> Result<Client, Error> {
-        let https = HttpsConnector::new(DNS_WORKER_THREADS, &handle.clone())?;
-        let proxy = Proxy::new(Intercept::All, uri);
-        let connector = ProxyConnector::from_proxy(https, proxy)?;
-        Ok(Client::Proxy(
-            HyperClient::configure().connector(connector).build(&handle),
-        ))
-    }
-
-    #[cfg(test)]
-    pub fn new_null() -> Result<Client, Error> {
-        Ok(Client::NullNoProxy)
-    }
-
-    #[cfg(test)]
-    pub fn new_null_with_proxy() -> Result<Client, Error> {
-        Ok(Client::NullProxy)
+    pub fn configure() -> Config {
+        Config {
+            handle: None,
+            proxy_uri: None,
+            null: false,
+        }
     }
 
     #[cfg(test)]
@@ -76,9 +104,7 @@ impl Service for Client {
         match *self {
             Client::NoProxy(ref client) => Box::new(client.call(req)) as Self::Future,
             Client::Proxy(ref client) => Box::new(client.call(req)) as Self::Future,
-            #[cfg(test)]
             Client::NullNoProxy => Box::new(future::ok(Response::new())),
-            #[cfg(test)]
             Client::NullProxy => Box::new(future::ok(Response::new())),
         }
     }
@@ -90,37 +116,38 @@ mod tests {
     use hyper::Uri;
     use tokio_core::reactor::Core;
 
-    // test that the factory functions are wired up correctly to their
-    // corresponding enum variants
+    // test that the client builder (Config) is wired up correctly to create the
+    // right enum variants
 
     #[test]
     fn can_create_client() {
-        let handle = Core::new().unwrap().handle();
-        let client = Client::new(&handle).unwrap();
+        let h = Core::new().unwrap().handle();
+        let client = Client::configure().handle(&h).build().unwrap();
         assert!(!client.has_proxy() && !client.is_null());
     }
 
     #[test]
     fn can_create_client_with_proxy() {
-        let handle = Core::new().unwrap().handle();
+        let h = Core::new().unwrap().handle();
         let uri = "irrelevant".parse::<Uri>().unwrap();
-        let client = Client::new_with_proxy(&handle, uri).unwrap();
+        let client = Client::configure().handle(&h).proxy(uri).build().unwrap();
         assert!(client.has_proxy());
     }
 
     #[test]
     fn can_create_null_client() {
-        let client = Client::new_null().unwrap();
+        let client = Client::configure().null().build().unwrap();
         assert!(client.is_null() && !client.has_proxy());
     }
 
     #[test]
     fn can_create_null_client_with_proxy() {
-        let client = Client::new_null_with_proxy().unwrap();
+        let uri = "irrelevant".parse::<Uri>().unwrap();
+        let client = Client::configure().null().proxy(uri).build().unwrap();
         assert!(client.is_null() && client.has_proxy());
     }
 
     // TODO:
     // test that Client::Proxy and Client::NoProxy can actually be used to make
-    // HTTPS requests with or without a proxy
+    // HTTPS requests with or without a proxy (respectively)
 }
