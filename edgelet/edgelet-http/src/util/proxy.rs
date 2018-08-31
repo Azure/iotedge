@@ -62,7 +62,10 @@ impl Service for MaybeProxyClient {
 
 #[cfg(test)]
 mod tests {
-    use hyper::Uri;
+    use futures::Future;
+    use http::Request;
+    use hyper::{StatusCode, Uri};
+    use hyper::client::Service;
     use super::MaybeProxyClient;
     use tokio_core::reactor::Core;
 
@@ -92,5 +95,12 @@ mod tests {
         let uri = "irrelevant".parse::<Uri>().unwrap();
         let client = MaybeProxyClient::new_null(Some(uri)).unwrap();
         assert!(client.is_null() && client.has_proxy());
+    }
+
+    #[test]
+    fn client_calls_underlying_service() {
+        let client = MaybeProxyClient::new_null(None).unwrap();
+        let response = client.call(Request::default().into()).wait().unwrap();
+        assert_eq!(response.status(), StatusCode::Ok);
     }
 }
