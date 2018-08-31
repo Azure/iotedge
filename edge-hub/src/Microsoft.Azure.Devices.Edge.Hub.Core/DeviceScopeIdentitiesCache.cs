@@ -16,6 +16,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
     public sealed class DeviceScopeIdentitiesCache : IDeviceScopeIdentitiesCache
     {
+        static DeviceScopeIdentitiesCache instance;
+        static AsyncLock createLock = new AsyncLock();
+
         readonly IServiceProxy serviceProxy;
         readonly IKeyValueStore<string, string> encryptedStore;
         readonly AsyncLock cacheLock = new AsyncLock();
@@ -40,17 +43,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.refreshCacheTimer = new Timer(this.RefreshCache, null, TimeSpan.Zero, refreshRate);
         }
 
-        public static async Task<DeviceScopeIdentitiesCache> Create(
+        public static async Task<DeviceScopeIdentitiesCache> GetInstance(
             IServiceProxy serviceProxy,
             IKeyValueStore<string, string> encryptedStorage,
             TimeSpan refreshRate)
         {
-            Preconditions.CheckNotNull(serviceProxy, nameof(serviceProxy));
-            Preconditions.CheckNotNull(encryptedStorage, nameof(encryptedStorage));
-            IDictionary<string, StoredServiceIdentity> cache = await ReadCacheFromStore(encryptedStorage);
-            var deviceScopeIdentitiesCache = new DeviceScopeIdentitiesCache(serviceProxy, encryptedStorage, cache, refreshRate);
-            Events.Created();
-            return deviceScopeIdentitiesCache;
+            if (instance == null)
+            {
+                using (await createLock.LockAsync())
+                {
+                    if (instance == null)
+                    {
+                        Preconditions.CheckNotNull(serviceProxy, nameof(serviceProxy));
+                        Preconditions.CheckNotNull(encryptedStorage, nameof(encryptedStorage));
+                        IDictionary<string, StoredServiceIdentity> cache = await ReadCacheFromStore(encryptedStorage);
+                        instance = new DeviceScopeIdentitiesCache(serviceProxy, encryptedStorage, cache, refreshRate);
+                        Events.Created();
+                    }
+                }
+            }
+
+            return instance;
         }
 
         void RefreshCache(object state)
