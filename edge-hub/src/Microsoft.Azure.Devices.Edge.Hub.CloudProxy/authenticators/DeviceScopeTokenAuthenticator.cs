@@ -98,7 +98,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
 
         async Task<bool> AuthenticateInternalAsync(ITokenCredentials tokenCredentials, ServiceIdentity serviceIdentity)
         {
-            SharedAccessSignature sharedAccessSignature = SharedAccessSignature.Parse(this.iothubHostName, tokenCredentials.Token);
+            if (!this.TryGetSharedAccessSignature(tokenCredentials.Token, tokenCredentials.Identity, out SharedAccessSignature sharedAccessSignature))
+            {
+                return false;
+            }
+
             bool result = this.ValidateCredentials(sharedAccessSignature, serviceIdentity, tokenCredentials.Identity);
             if (!result && tokenCredentials.Identity is IModuleIdentity moduleIdentity && serviceIdentity.IsModule)
             {
@@ -110,9 +114,36 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             return result;
         }
 
+        bool TryGetSharedAccessSignature(string token, IIdentity identity, out SharedAccessSignature sharedAccessSignature)
+        {
+            try
+            {
+                sharedAccessSignature = SharedAccessSignature.Parse(this.iothubHostName, token);
+                return true;
+            }
+            catch (Exception e)
+            {
+                Events.ErrorParsingToken(identity, e);
+                sharedAccessSignature = null;
+                return false;
+            }
+        }
+
         bool ValidateCredentials(SharedAccessSignature sharedAccessSignature, ServiceIdentity serviceIdentity, IIdentity identity) =>
             this.ValidateTokenWithSecurityIdentity(sharedAccessSignature, serviceIdentity) &&
-            this.ValidateAudience(sharedAccessSignature.Audience, identity);
+            this.ValidateAudience(sharedAccessSignature.Audience, identity) &&
+            this.ValidateExpiry(sharedAccessSignature, identity);
+
+        bool ValidateExpiry(SharedAccessSignature sharedAccessSignature, IIdentity identity)
+        {
+            if (sharedAccessSignature.IsExpired())
+            {
+                Events.TokenExpired(identity);
+                return false;
+            }
+
+            return true;
+        }
 
         bool ValidateTokenWithSecurityIdentity(SharedAccessSignature sharedAccessSignature, ServiceIdentity serviceIdentity)
         {
@@ -230,7 +261,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
                 ServiceIdentityUpdatedRemoving,
                 ServiceIdentityUpdatedValidated,
                 ServiceIdentityRemoved,
-                ServiceIdentityNotEnabled
+                ServiceIdentityNotEnabled,
+                TokenExpired,
+                ErrorParsingToken
             }
 
             public static void ErrorReauthenticating(Exception exception, ServiceIdentity serviceIdentity)
@@ -296,6 +329,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             public static void ServiceIdentityNotEnabled(ServiceIdentity serviceIdentity)
             {
                 Log.LogWarning((int)EventIds.ServiceIdentityNotEnabled, $"Error authenticating token for {serviceIdentity.Id} because the service identity is not enabled");
+            }
+
+            public static void TokenExpired(IIdentity identity)
+            {
+                Log.LogWarning((int)EventIds.TokenExpired, $"Error authenticating token for {identity.Id} because the token has expired.");
+            }
+
+            public static void ErrorParsingToken(IIdentity identity, Exception exception)
+            {
+                Log.LogWarning((int)EventIds.ErrorParsingToken, exception, $"Error authenticating token for {identity.Id} because the token could not be parsed");
             }
         }
     }

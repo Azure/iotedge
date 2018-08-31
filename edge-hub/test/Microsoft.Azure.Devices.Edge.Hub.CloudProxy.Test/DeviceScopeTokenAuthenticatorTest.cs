@@ -173,6 +173,35 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         }
 
         [Fact]
+        public async Task AuthenticateTest_Device_TokenExpired()
+        {
+            // Arrange
+            string iothubHostName = "testiothub.azure-devices.net";
+            string edgehubHostName = "edgehub1";
+            string deviceId = "d1";
+            var connectionManager = Mock.Of<IConnectionManager>();
+            var underlyingAuthenticator = Mock.Of<IAuthenticator>();
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
+            string key = GetKey();
+            var serviceIdentity = new ServiceIdentity(deviceId, "1234", new string[0], new ServiceAuthentication(new SymmetricKeyAuthentication(key, GetKey())), ServiceIdentityStatus.Enabled);
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId)))
+                .ReturnsAsync(Option.Some(serviceIdentity));
+
+            IAuthenticator authenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, edgehubHostName, underlyingAuthenticator, connectionManager);
+
+            var identity = Mock.Of<IDeviceIdentity>(d => d.DeviceId == deviceId && d.Id == deviceId);
+            string token = GetDeviceToken(iothubHostName, deviceId, key, TimeSpan.FromHours(-1));
+            var tokenCredentials = Mock.Of<ITokenCredentials>(t => t.Identity == identity && t.Token == token);
+
+            // Act
+            bool isAuthenticated = await authenticator.AuthenticateAsync(tokenCredentials);
+
+            // Assert
+            Assert.False(isAuthenticated);
+            Mock.Get(underlyingAuthenticator).VerifyAll();
+        }
+
+        [Fact]
         public void ValidateAudienceTest()
         {
             // Arrange
@@ -331,15 +360,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Mock.Get(underlyingAuthenticator).VerifyAll();
         }
 
-        static string GetDeviceToken(string iothubHostName, string deviceId, string key)
+        static string GetDeviceToken(string iothubHostName, string deviceId, string key, TimeSpan timeToLive)
         {
             DateTime startTime = DateTime.UtcNow;
             string audience = WebUtility.UrlEncode($"{iothubHostName}/devices/{deviceId}");
-            string expiresOn = SasTokenHelper.BuildExpiresOn(startTime, TimeSpan.FromHours(1));
+            string expiresOn = SasTokenHelper.BuildExpiresOn(startTime, timeToLive);
             string data = string.Join("\n", new List<string> { audience, expiresOn });
             string signature = Sign(data, key);
             return SasTokenHelper.BuildSasToken(audience, signature, expiresOn);
         }
+
+        static string GetDeviceToken(string iothubHostName, string deviceId, string key)
+            => GetDeviceToken(iothubHostName, deviceId, key, TimeSpan.FromHours(1));         
 
         static string GetDeviceToken(string iothubHostName, string deviceId, string moduleId, string key)
         {
