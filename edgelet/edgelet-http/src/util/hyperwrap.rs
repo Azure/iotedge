@@ -15,7 +15,9 @@ pub enum Client {
     NoProxy(HyperClient<HttpsConnector<HttpConnector>>),
     Proxy(HyperClient<ProxyConnector<HttpsConnector<HttpConnector>>>),
     #[cfg(test)]
-    Null,
+    NullNoProxy,
+    #[cfg(test)]
+    NullProxy,
 }
 
 impl Client {
@@ -37,13 +39,19 @@ impl Client {
 
     #[cfg(test)]
     pub fn new_null() -> Result<Client, Error> {
-        Ok(Client::Null)
+        Ok(Client::NullNoProxy)
+    }
+
+    #[cfg(test)]
+    pub fn new_null_with_proxy() -> Result<Client, Error> {
+        Ok(Client::NullProxy)
     }
 
     #[cfg(test)]
     pub fn is_null(&self) -> bool {
         match *self {
-            Client::Null => true,
+            Client::NullNoProxy => true,
+            Client::NullProxy => true,
             _ => false,
         }
     }
@@ -52,6 +60,7 @@ impl Client {
     pub fn has_proxy(&self) -> bool {
         match *self {
             Client::Proxy(_) => true,
+            Client::NullProxy => true,
             _ => false,
         }
     }
@@ -68,7 +77,9 @@ impl Service for Client {
             Client::NoProxy(ref client) => Box::new(client.call(req)) as Self::Future,
             Client::Proxy(ref client) => Box::new(client.call(req)) as Self::Future,
             #[cfg(test)]
-            Client::Null => Box::new(future::ok(Response::new())),
+            Client::NullNoProxy => Box::new(future::ok(Response::new())),
+            #[cfg(test)]
+            Client::NullProxy => Box::new(future::ok(Response::new())),
         }
     }
 }
@@ -100,7 +111,13 @@ mod tests {
     #[test]
     fn can_create_null_client() {
         let client = Client::new_null().unwrap();
-        assert!(client.is_null());
+        assert!(client.is_null() && !client.has_proxy());
+    }
+
+    #[test]
+    fn can_create_null_client_with_proxy() {
+        let client = Client::new_null_with_proxy().unwrap();
+        assert!(client.is_null() && client.has_proxy());
     }
 
     // TODO:
