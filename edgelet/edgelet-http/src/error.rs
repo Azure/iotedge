@@ -9,8 +9,8 @@ use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind};
 use failure::{Backtrace, Context, Fail};
 use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use http::{Response, StatusCode};
-use hyper::{Body, Error as HyperError, StatusCode as HyperStatusCode};
 use hyper::error::UriError;
+use hyper::{Body, Error as HyperError, StatusCode as HyperStatusCode};
 #[cfg(windows)]
 use hyper_named_pipe::Error as PipeError;
 use hyper_tls::Error as HyperTlsError;

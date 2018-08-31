@@ -20,6 +20,7 @@ use tokio_uds::UnixStream;
 use pid::UnixStreamExt;
 
 pub mod connector;
+mod hyperwrap;
 pub mod incoming;
 pub mod proxy;
 

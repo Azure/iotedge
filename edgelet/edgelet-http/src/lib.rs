@@ -82,8 +82,8 @@ mod util;
 mod version;
 
 pub use self::error::{Error, ErrorKind};
-pub use self::util::UrlConnector;
 pub use self::util::proxy::MaybeProxyClient;
+pub use self::util::UrlConnector;
 pub use self::version::{ApiVersionService, API_VERSION};
 
 use self::pid::PidService;
