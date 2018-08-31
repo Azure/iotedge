@@ -9,16 +9,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Edge.Util.Json;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
     public sealed class DeviceScopeIdentitiesCache : IDeviceScopeIdentitiesCache
     {
-        static DeviceScopeIdentitiesCache instance;
-        static AsyncLock createLock = new AsyncLock();
-
         readonly IServiceProxy serviceProxy;
         readonly IKeyValueStore<string, string> encryptedStore;
         readonly AsyncLockProvider<string> cacheLockProvider;
@@ -45,27 +41,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.cacheLockProvider = new AsyncLockProvider<string>(keyShards);
         }
 
-        public static async Task<DeviceScopeIdentitiesCache> GetInstance(
+        public static async Task<DeviceScopeIdentitiesCache> Create(
             IServiceProxy serviceProxy,
             IKeyValueStore<string, string> encryptedStorage,
             TimeSpan refreshRate)
         {
-            if (instance == null)
-            {
-                using (await createLock.LockAsync())
-                {
-                    if (instance == null)
-                    {
-                        Preconditions.CheckNotNull(serviceProxy, nameof(serviceProxy));
-                        Preconditions.CheckNotNull(encryptedStorage, nameof(encryptedStorage));
-                        IDictionary<string, StoredServiceIdentity> cache = await ReadCacheFromStore(encryptedStorage);
-                        instance = new DeviceScopeIdentitiesCache(serviceProxy, encryptedStorage, cache, refreshRate);
-                        Events.Created();
-                    }
-                }
-            }
-
-            return instance;
+            Preconditions.CheckNotNull(serviceProxy, nameof(serviceProxy));
+            Preconditions.CheckNotNull(encryptedStorage, nameof(encryptedStorage));
+            IDictionary<string, StoredServiceIdentity> cache = await ReadCacheFromStore(encryptedStorage);
+            var deviceScopeIdentitiesCache = new DeviceScopeIdentitiesCache(serviceProxy, encryptedStorage, cache, refreshRate);
+            Events.Created();
+            return deviceScopeIdentitiesCache;
         }
 
         void RefreshCache(object state)

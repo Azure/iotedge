@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             await store.Put(si2.Id, storedSi2.ToJson());
 
             // Act
-            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.GetInstance(serviceProxy.Object, store, TimeSpan.FromHours(1));
+            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceProxy.Object, store, TimeSpan.FromHours(1));
             Option<ServiceIdentity> receivedServiceIdentity1 = await deviceScopeIdentitiesCache.GetServiceIdentity("d1");
             Option<ServiceIdentity> receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2", "m1");
 
@@ -98,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var removedIdentities = new List<string>();
 
             // Act
-            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.GetInstance(serviceProxy.Object, store, TimeSpan.FromSeconds(8));
+            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceProxy.Object, store, TimeSpan.FromSeconds(8));
             deviceScopeIdentitiesCache.ServiceIdentityUpdated += (sender, identity) => updatedIdentities.Add(identity);
             deviceScopeIdentitiesCache.ServiceIdentityRemoved += (sender, s) => removedIdentities.Add(s);
 
@@ -171,7 +171,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var removedIdentities = new List<string>();
 
             // Act
-            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.GetInstance(serviceProxy.Object, store, TimeSpan.FromHours(1));
+            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceProxy.Object, store, TimeSpan.FromHours(1));
             deviceScopeIdentitiesCache.ServiceIdentityUpdated += (sender, identity) => updatedIdentities.Add(identity);
             deviceScopeIdentitiesCache.ServiceIdentityRemoved += (sender, s) => removedIdentities.Add(s);
 
@@ -234,7 +234,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var removedIdentities = new List<string>();
 
             // Act
-            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.GetInstance(serviceProxy.Object, store, TimeSpan.FromHours(1));
+            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceProxy.Object, store, TimeSpan.FromHours(1));
             deviceScopeIdentitiesCache.ServiceIdentityUpdated += (sender, identity) => updatedIdentities.Add(identity);
             deviceScopeIdentitiesCache.ServiceIdentityRemoved += (sender, s) => removedIdentities.Add(s);
 
@@ -296,7 +296,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var removedIdentities = new List<string>();
 
             // Act
-            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.GetInstance(serviceProxy.Object, store, TimeSpan.FromHours(1));
+            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceProxy.Object, store, TimeSpan.FromHours(1));
             deviceScopeIdentitiesCache.ServiceIdentityUpdated += (sender, identity) => updatedIdentities.Add(identity);
             deviceScopeIdentitiesCache.ServiceIdentityRemoved += (sender, s) => removedIdentities.Add(s);
 
@@ -323,24 +323,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.Equal("d2/m2", removedIdentities[0]);
             Assert.Equal(1, updatedIdentities.Count);
             Assert.Equal("d1/m1", updatedIdentities[0].Id);
-        }
-
-        [Fact]
-        public async Task SingletonTest()
-        {
-            // Arrange
-            var serviceProxy = Mock.Of<IServiceProxy>();
-            var encryptedStore = Mock.Of<IKeyValueStore<string, string>>();
-            TimeSpan refreshRate = TimeSpan.FromHours(1);
-
-            // Act
-            Task<DeviceScopeIdentitiesCache> instance1Task = DeviceScopeIdentitiesCache.GetInstance(serviceProxy, encryptedStore, refreshRate);
-            Task<DeviceScopeIdentitiesCache> instance2Task = DeviceScopeIdentitiesCache.GetInstance(serviceProxy, encryptedStore, refreshRate);
-
-            DeviceScopeIdentitiesCache[] instances = await Task.WhenAll(instance1Task, instance2Task);
-
-            // Assert
-            Assert.Equal(instances[0], instances[1]);
         }
 
         static void CompareServiceIdentities(ServiceIdentity si1, Option<ServiceIdentity> si2Option)
