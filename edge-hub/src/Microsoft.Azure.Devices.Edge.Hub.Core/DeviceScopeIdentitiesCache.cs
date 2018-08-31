@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         readonly IServiceProxy serviceProxy;
         readonly IKeyValueStore<string, string> encryptedStore;
-        readonly AsyncLock cacheLock = new AsyncLock();
+        readonly AsyncLockProvider<string> cacheLockProvider;
         readonly IDictionary<string, StoredServiceIdentity> serviceIdentityCache;
         readonly Timer refreshCacheTimer;
         readonly TimeSpan refreshRate;
@@ -34,13 +34,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         DeviceScopeIdentitiesCache(IServiceProxy serviceProxy,
             IKeyValueStore<string, string> encryptedStorage,
             IDictionary<string, StoredServiceIdentity> initialCache,
-            TimeSpan refreshRate)
+            TimeSpan refreshRate,
+            int keyShards = 12)
         {
             this.serviceProxy = serviceProxy;
             this.encryptedStore = encryptedStorage;
             this.serviceIdentityCache = initialCache;
             this.refreshRate = refreshRate;
             this.refreshCacheTimer = new Timer(this.RefreshCache, null, TimeSpan.Zero, refreshRate);
+            this.cacheLockProvider = new AsyncLockProvider<string>(keyShards);
         }
 
         public static async Task<DeviceScopeIdentitiesCache> GetInstance(
@@ -167,7 +169,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public async Task<Option<ServiceIdentity>> GetServiceIdentity(string id)
         {
             Preconditions.CheckNonWhiteSpace(id, nameof(id));
-            using (await this.cacheLock.LockAsync())
+            using (await this.cacheLockProvider.GetLock(id).LockAsync())
             {
                 return this.serviceIdentityCache.TryGetValue(id, out StoredServiceIdentity storedServiceIdentity)
                     ? storedServiceIdentity.ServiceIdentity
@@ -177,7 +179,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async Task HandleNoServiceIdentity(string id)
         {
-            using (await this.cacheLock.LockAsync())
+            using (await this.cacheLockProvider.GetLock(id).LockAsync())
             {
                 var storedServiceIdentity = new StoredServiceIdentity(id);
                 this.serviceIdentityCache[id] = storedServiceIdentity;
@@ -190,7 +192,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async Task HandleNewServiceIdentity(ServiceIdentity serviceIdentity)
         {
-            using (await this.cacheLock.LockAsync())
+            using (await this.cacheLockProvider.GetLock(serviceIdentity.Id).LockAsync())
             {
                 bool hasUpdated = this.serviceIdentityCache.TryGetValue(serviceIdentity.Id, out StoredServiceIdentity currentStoredServiceIdentity)
                     && currentStoredServiceIdentity.ServiceIdentity
