@@ -35,11 +35,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.maxClients = Preconditions.CheckRange(maxClients, 1, nameof(maxClients));
         }
 
-        public async Task AddDeviceConnection(IClientCredentials clientCredentials)
+        public async Task AddDeviceConnection(IIdentity identity, IDeviceProxy deviceProxy)
         {
-            IIdentity identity = Preconditions.CheckNotNull(clientCredentials, nameof(clientCredentials)).Identity;
+            Preconditions.CheckNotNull(identity, nameof(identity));
+            Preconditions.CheckNotNull(deviceProxy, nameof(deviceProxy));
             ConnectedDevice device = this.GetOrCreateConnectedDevice(identity);
-            Option<DeviceConnection> currentDeviceConnection = device.AddDeviceConnection(clientCredentials);
+            Option<DeviceConnection> currentDeviceConnection = device.AddDeviceConnection(deviceProxy);
             Events.NewDeviceConnection(identity);
 
             await currentDeviceConnection
@@ -289,30 +290,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             // ReSharper disable once MemberHidesStaticFromOuterClass
             public Option<DeviceConnection> DeviceConnection { get; private set; }
 
-            public Option<DeviceConnection> AddDeviceConnection(IClientCredentials clientCredentials)
+            public Option<DeviceConnection> AddDeviceConnection(IDeviceProxy deviceProxy)
             {
-                Preconditions.CheckNotNull(clientCredentials, nameof(clientCredentials));
+                Preconditions.CheckNotNull(deviceProxy, nameof(deviceProxy));
                 lock (this.deviceProxyLock)
                 {
                     Option<DeviceConnection> currentValue = this.DeviceConnection;
                     IDictionary<DeviceSubscription, bool> subscriptions = this.DeviceConnection.Map(d => d.Subscriptions)
                         .GetOrElse(new ConcurrentDictionary<DeviceSubscription, bool>());
-                    this.DeviceConnection = Option.Some(new DeviceConnection(clientCredentials, subscriptions));
+                    this.DeviceConnection = Option.Some(new DeviceConnection(deviceProxy, subscriptions));
                     return currentValue;
-                }
-            }
-
-            public void UpdateDeviceProxy(IDeviceProxy deviceProxy)
-            {
-                Preconditions.CheckNotNull(deviceProxy, nameof(deviceProxy));
-                lock (this.deviceProxyLock)
-                {
-                    if (!this.DeviceConnection.HasValue)
-                    {
-                        throw new InvalidOperationException("DeviceConnection not yet created");
-                    }
-
-                    this.DeviceConnection.ForEach(d => d.SetDeviceProxy(deviceProxy));
                 }
             }
 
@@ -356,35 +343,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         class DeviceConnection
         {
-            public DeviceConnection(IClientCredentials clientCredentials, IDictionary<DeviceSubscription, bool> subscriptions)
+            public DeviceConnection(IDeviceProxy deviceProxy, IDictionary<DeviceSubscription, bool> subscriptions)
             {
-                this.ClientCredentials = clientCredentials;
                 this.Subscriptions = subscriptions;
-                this.DeviceProxy = Option.None<IDeviceProxy>();
-            }
-
-            public void SetDeviceProxy(IDeviceProxy deviceProxy)
-            {
-                if (this.DeviceProxy.HasValue)
-                {
-                    throw new InvalidOperationException("DeviceProxy has already been set");
-                }
-
-                this.DeviceProxy = Option.Some(deviceProxy);
+                this.DeviceProxy = deviceProxy;
             }
 
             public IClientCredentials ClientCredentials { get; }
 
-            public Option<IDeviceProxy> DeviceProxy { get; private set; }
+            public IDeviceProxy DeviceProxy { get; }
 
             public IDictionary<DeviceSubscription, bool> Subscriptions { get; }
 
-            public bool IsActive => this.DeviceProxy.Map(d => d.IsActive).GetOrElse(() => false);
+            public bool IsActive => this.DeviceProxy.IsActive;
 
-            public Task CloseAsync(Exception ex) => this.DeviceProxy
-                .Filter(d => d.IsActive)
-                .Map(d => d.CloseAsync(ex))
-                .GetOrElse(Task.CompletedTask);
+            public Task CloseAsync(Exception ex) => this.DeviceProxy.CloseAsync(ex);
         }
 
         static class Events
