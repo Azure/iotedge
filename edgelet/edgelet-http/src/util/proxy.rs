@@ -34,8 +34,8 @@ impl MaybeProxyClient {
     }
 
     #[cfg(test)]
-    pub fn new_null(proxy_uri: Option<Uri>) -> Result<MaybeProxyClient, Error> {
-        MaybeProxyClient::create(None, proxy_uri)
+    pub fn new_null() -> Result<MaybeProxyClient, Error> {
+        MaybeProxyClient::create(None, None)
     }
 
     #[cfg(test)]
@@ -86,20 +86,13 @@ mod tests {
 
     #[test]
     fn can_create_null_client() {
-        let client = MaybeProxyClient::new_null(None).unwrap();
+        let client = MaybeProxyClient::new_null().unwrap();
         assert!(client.is_null() && !client.has_proxy());
     }
 
     #[test]
-    fn can_create_null_client_with_proxy() {
-        let uri = "irrelevant".parse::<Uri>().unwrap();
-        let client = MaybeProxyClient::new_null(Some(uri)).unwrap();
-        assert!(client.is_null() && client.has_proxy());
-    }
-
-    #[test]
     fn client_calls_underlying_service() {
-        let client = MaybeProxyClient::new_null(None).unwrap();
+        let client = MaybeProxyClient::new_null().unwrap();
         let response = client.call(Request::default().into()).wait().unwrap();
         assert_eq!(response.status(), StatusCode::Ok);
     }
