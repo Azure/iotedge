@@ -85,12 +85,6 @@ mod tests {
     }
 
     #[test]
-    fn can_create_null_client() {
-        let client = MaybeProxyClient::new_null().unwrap();
-        assert!(client.is_null() && !client.has_proxy());
-    }
-
-    #[test]
     fn client_calls_underlying_service() {
         let client = MaybeProxyClient::new_null().unwrap();
         let response = client.call(Request::default().into()).wait().unwrap();
