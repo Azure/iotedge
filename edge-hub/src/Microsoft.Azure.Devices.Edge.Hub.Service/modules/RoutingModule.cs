@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly Option<UpstreamProtocol> upstreamProtocol;
         readonly TimeSpan connectivityCheckFrequency;
         readonly int maxConnectedClients;
-        readonly bool cacheTokens;
+        readonly bool persistTokens;
 
         public RoutingModule(string iotHubName,
             string edgeDeviceId,
@@ -54,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             Option<UpstreamProtocol> upstreamProtocol,
             TimeSpan connectivityCheckFrequency,
             int maxConnectedClients,
-            bool cacheTokens)
+            bool persistTokens)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.upstreamProtocol = upstreamProtocol;
             this.connectivityCheckFrequency = connectivityCheckFrequency;
             this.maxConnectedClients = Preconditions.CheckRange(maxConnectedClients, 1);
-            this.cacheTokens = cacheTokens;
+            this.persistTokens = persistTokens;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -181,15 +181,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
            // Task<ICredentialsStore>
             builder.Register(async c =>
                 {
-                    if (this.cacheTokens)
+                    ICredentialsStore underlyingCredentialsStore;
+                    if (this.persistTokens)
                     {
                         IKeyValueStore<string, string> encryptedStore = await c.ResolveNamed<Task<IKeyValueStore<string, string>>>("EncryptedStore");
                         return new TokenCredentialsStore(encryptedStore);
                     }
                     else
                     {
-                        return new NullCredentialsStore() as ICredentialsStore;
+                        underlyingCredentialsStore = new NullCredentialsStore();
                     }
+                    ICredentialsStore credentialsStore = new CredentialsManager(underlyingCredentialsStore);
+                    return credentialsStore;
                 })
                 .As<Task<ICredentialsStore>>()
                 .SingleInstance();

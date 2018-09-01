@@ -208,9 +208,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         case AuthenticationMode.Cloud:
                             if (this.cacheTokens)
                             {
-                                ICredentialsStore credentialsStore = await c.Resolve<Task<ICredentialsStore>>();
-                                IAuthenticator authenticator = new CloudTokenAuthenticator(connectionManager);
-                                tokenAuthenticator = new TokenCacheAuthenticator(authenticator, credentialsStore, this.iothubHostName);
+                                ICredentialsCache credentialsCache = await c.Resolve<Task<ICredentialsCache>>();
+                                IAuthenticator authenticator = new CloudTokenAuthenticator(connectionManager, this.iothubHostName);
+                                tokenAuthenticator = new TokenCacheAuthenticator(authenticator, credentialsCache, this.iothubHostName);
                             }
                             else
                             {
