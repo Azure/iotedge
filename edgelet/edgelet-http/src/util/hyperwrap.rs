@@ -3,7 +3,7 @@
 use error::Error;
 use futures::future;
 use hyper::client::{HttpConnector, Service};
-use hyper::{Client as HyperClient, Error as HyperError, Request, Response, Uri};
+use hyper::{Client as HyperClient, Error as HyperError, Request, Response, StatusCode, Uri};
 use hyper_proxy::{Intercept, Proxy, ProxyConnector};
 use hyper_tls::HttpsConnector;
 use tokio_core::reactor::Handle;
@@ -98,7 +98,7 @@ impl Service for Client {
         match *self {
             Client::NoProxy(ref client) => Box::new(client.call(req)) as Self::Future,
             Client::Proxy(ref client) => Box::new(client.call(req)) as Self::Future,
-            Client::Null => Box::new(future::ok(Response::new())),
+            Client::Null => Box::new(future::ok(Response::new().with_status(StatusCode::Unregistered(234)))),
         }
     }
 }

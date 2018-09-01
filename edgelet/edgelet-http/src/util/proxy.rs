@@ -81,13 +81,13 @@ mod tests {
         let handle = Core::new().unwrap().handle();
         let uri = "irrelevant".parse::<Uri>().unwrap();
         let client = MaybeProxyClient::new(&handle, Some(uri)).unwrap();
-        assert!(client.has_proxy());
+        assert!(client.has_proxy() && !client.is_null());
     }
 
     #[test]
     fn client_calls_underlying_service() {
         let client = MaybeProxyClient::new_null().unwrap();
         let response = client.call(Request::default().into()).wait().unwrap();
-        assert_eq!(response.status(), StatusCode::Ok);
+        assert_eq!(response.status(), StatusCode::Unregistered(234));
     }
 }
