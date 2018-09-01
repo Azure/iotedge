@@ -25,7 +25,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task DeviceConnectionTest()
         {
             var cloudProviderMock = new Mock<ICloudConnectionProvider>();
-            IConnectionManager connectionManager = new ConnectionManager(cloudProviderMock.Object);
+            var credentialsManager = Mock.Of<ICredentialsStore>();
+            IConnectionManager connectionManager = new ConnectionManager(cloudProviderMock.Object, credentialsManager);
 
             var deviceProxyMock1 = new Mock<IDeviceProxy>();
             deviceProxyMock1.SetupGet(dp => dp.IsActive).Returns(true);
@@ -47,16 +48,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Option<IDeviceProxy> returnedDeviceProxy = connectionManager.GetDeviceConnection(deviceIdentityMock.Object.Id);
             Assert.False(returnedDeviceProxy.HasValue);
 
-            await connectionManager.AddDeviceConnection(deviceCredentials1);
-            connectionManager.BindDeviceProxy(deviceIdentityMock.Object, deviceProxyMock1.Object);
+            await connectionManager.AddDeviceConnection(deviceIdentityMock.Object, deviceProxyMock1.Object);
             Assert.True(deviceProxyMock1.Object.IsActive);
 
             returnedDeviceProxy = connectionManager.GetDeviceConnection(deviceIdentityMock.Object.Id);
             Assert.True(returnedDeviceProxy.HasValue);
             Assert.Equal(deviceProxyMock1.Object, returnedDeviceProxy.OrDefault());
 
-            await connectionManager.AddDeviceConnection(deviceCredentials2);
-            connectionManager.BindDeviceProxy(deviceIdentityMock.Object, deviceProxyMock2.Object);
+            await connectionManager.AddDeviceConnection(deviceIdentityMock.Object, deviceProxyMock2.Object);
             Assert.True(deviceProxyMock2.Object.IsActive);
             Assert.False(deviceProxyMock1.Object.IsActive);
 
@@ -81,7 +80,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // ReSharper disable once PossibleUnintendedReferenceComparison
             var deviceCredentials = Mock.Of<IClientCredentials>(c => c.Identity == Mock.Of<IIdentity>(d => d.Id == "Device1"));
 
-            IConnectionManager connectionManager = new ConnectionManager(cloudProviderMock.Object);
+            var credentialsManager = Mock.Of<ICredentialsStore>();
+            IConnectionManager connectionManager = new ConnectionManager(cloudProviderMock.Object, credentialsManager);
 
             Option<ICloudProxy> returnedValue = await connectionManager.GetCloudConnection(deviceCredentials.Identity.Id);
             Assert.False(returnedValue.HasValue);
@@ -121,7 +121,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Setup(c => c.Connect(It.IsAny<IClientCredentials>(), It.IsAny<Action<string, CloudConnectionStatus>>()))
                 .ReturnsAsync(() => Try.Success(GetCloudConnectionMock()));
 
-            var connectionManager = new ConnectionManager(cloudConnectionProvider);
+            var credentialsManager = Mock.Of<ICredentialsStore>();
+
+            var connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsManager);
             Try<ICloudProxy> module1CloudProxy = await connectionManager.CreateCloudConnectionAsync(module1Credentials);
             Assert.True(module1CloudProxy.Success);
             Assert.NotNull(module1CloudProxy.Value);
@@ -169,9 +171,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             deviceClientProvider.Setup(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<string>(), It.IsAny<Client.ITransportSettings[]>()))
                 .Returns(client);
 
+            var credentialsManager = Mock.Of<ICredentialsStore>();
+
             var cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, deviceClientProvider.Object, Option.None<UpstreamProtocol>());
             cloudConnectionProvider.BindEdgeHub(edgeHub.Object);
-            IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider);
+            IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsManager);
             Try<ICloudProxy> cloudProxyTry = await connectionManager.CreateCloudConnectionAsync(deviceCredentials);
             Assert.True(cloudProxyTry.Success);
             var deviceListener = new DeviceMessageHandler(deviceCredentials.Identity, edgeHub.Object, connectionManager);
@@ -180,7 +184,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(cloudProxy.HasValue);
             Assert.True(cloudProxy.OrDefault().IsActive);
 
-            await connectionManager.AddDeviceConnection(deviceCredentials);
             deviceListener.BindDeviceProxy(deviceProxyMock1.Object);
 
             Option<IDeviceProxy> deviceProxy = connectionManager.GetDeviceConnection(deviceId);
@@ -225,7 +228,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             cloudProxyProviderMock.Setup(c => c.Connect(It.Is<IClientCredentials>(i => i.Identity.Id == "edgeDevice/module2"), It.IsAny<Action<string, CloudConnectionStatus>>()))
                 .ReturnsAsync(() => Try.Success(cloudConnectionMock2));
 
-            var connectionManager = new ConnectionManager(cloudProxyProviderMock.Object);
+            var credentialsCache = Mock.Of<ICredentialsStore>();
+            var connectionManager = new ConnectionManager(cloudProxyProviderMock.Object, credentialsCache);
 
             Task<Try<ICloudProxy>> getCloudProxyTask1 = connectionManager.GetOrCreateCloudConnectionAsync(module1Credentials);
             Task<Try<ICloudProxy>> getCloudProxyTask2 = connectionManager.GetOrCreateCloudConnectionAsync(module2Credentials);
@@ -262,7 +266,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, deviceClientProvider.Object, Option.None<UpstreamProtocol>());
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
-            IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider);
+            var credentialsCache = Mock.Of<ICredentialsStore>();
+            IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache);
 
             Task<Try<ICloudProxy>> getCloudProxyTask1 = connectionManager.CreateCloudConnectionAsync(module1Credentials);
             Task<Try<ICloudProxy>> getCloudProxyTask2 = connectionManager.CreateCloudConnectionAsync(module1Credentials);
@@ -308,9 +313,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             deviceProxy.Setup(d => d.CloseAsync(It.Is<Exception>(e => e is EdgeHubConnectionException))).Returns(Task.CompletedTask);
             deviceProxy.SetupGet(d => d.IsActive).Returns(true);
 
-            var connectionManager = new ConnectionManager(cloudProxyProviderMock.Object);
-            await connectionManager.AddDeviceConnection(deviceCredentials);
-            connectionManager.BindDeviceProxy(deviceCredentials.Identity, deviceProxy.Object);
+            var credentialsCache = Mock.Of<ICredentialsStore>();
+            var connectionManager = new ConnectionManager(cloudProxyProviderMock.Object, credentialsCache);
+            await connectionManager.AddDeviceConnection(deviceCredentials.Identity, deviceProxy.Object);
             Try<ICloudProxy> cloudProxyTry = await connectionManager.GetOrCreateCloudConnectionAsync(deviceCredentials);
 
             Assert.True(cloudProxyTry.Success);
@@ -346,9 +351,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             deviceProxy.Setup(d => d.GetUpdatedIdentity()).ReturnsAsync(Option.Some(updatedDeviceCredentials));
             deviceProxy.SetupGet(d => d.IsActive).Returns(true);
 
-            var connectionManager = new ConnectionManager(cloudProxyProviderMock.Object);
-            await connectionManager.AddDeviceConnection(deviceCredentials);
-            connectionManager.BindDeviceProxy(deviceCredentials.Identity, deviceProxy.Object);
+            var credentialsCache = Mock.Of<ICredentialsStore>();
+            var connectionManager = new ConnectionManager(cloudProxyProviderMock.Object, credentialsCache);
+            await connectionManager.AddDeviceConnection(deviceCredentials.Identity, deviceProxy.Object);
             Try<ICloudProxy> cloudProxyTry = await connectionManager.GetOrCreateCloudConnectionAsync(deviceCredentials);
 
             Assert.True(cloudProxyTry.Success);
@@ -372,15 +377,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, deviceClientProvider.Object, Option.None<UpstreamProtocol>());
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
-            IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider);
+            var credentialsCache = Mock.Of<ICredentialsStore>();
+            IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache);
 
             string deviceConnStr1 = "connstr1";
             var deviceCredentials = new SharedKeyCredentials(new DeviceIdentity("iotHub", "Device1"), deviceConnStr1, DummyProductInfo);
             var deviceProxy = Mock.Of<IDeviceProxy>(d => d.IsActive);
 
             Try<ICloudProxy> receivedCloudProxy1 = await connectionManager.CreateCloudConnectionAsync(deviceCredentials);
-            await connectionManager.AddDeviceConnection(deviceCredentials);
-            connectionManager.BindDeviceProxy(deviceCredentials.Identity, deviceProxy);
+            await connectionManager.AddDeviceConnection(deviceCredentials.Identity, deviceProxy);
+
             Assert.True(receivedCloudProxy1.Success);
             Assert.NotNull(receivedCloudProxy1.Value);
             Assert.True(receivedCloudProxy1.Value.IsActive);
@@ -412,15 +418,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, deviceClientProvider.Object, Option.None<UpstreamProtocol>());
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
-            IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider);
+            var credentialsCache = Mock.Of<ICredentialsStore>();
+            IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache);
 
             string deviceConnStr1 = "connstr1";
             var deviceCredentials = new SharedKeyCredentials(new DeviceIdentity("iotHub", "Device1"), deviceConnStr1, DummyProductInfo);
             var deviceProxy = Mock.Of<IDeviceProxy>(d => d.IsActive);
 
             Try<ICloudProxy> receivedCloudProxy1 = await connectionManager.CreateCloudConnectionAsync(deviceCredentials);
-            await connectionManager.AddDeviceConnection(deviceCredentials);
-            connectionManager.BindDeviceProxy(deviceCredentials.Identity, deviceProxy);
+            await connectionManager.AddDeviceConnection(deviceCredentials.Identity, deviceProxy);
             Assert.True(receivedCloudProxy1.Success);
             Assert.NotNull(receivedCloudProxy1.Value);
             Assert.True(receivedCloudProxy1.Value.IsActive);
@@ -452,20 +458,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var deviceIdentity2 = Mock.Of<IDeviceIdentity>(d => d.Id == "Device2");
             var deviceIdentity3 = Mock.Of<IDeviceIdentity>(d => d.Id == "Device3");
 
-            var deviceCredentials1 = Mock.Of<IClientCredentials>(c => c.Identity == deviceIdentity1);
-            var deviceCredentials2 = Mock.Of<IClientCredentials>(c => c.Identity == deviceIdentity2);
-            var deviceCredentials3 = Mock.Of<IClientCredentials>(c => c.Identity == deviceIdentity3);
-
             var deviceProxy1 = Mock.Of<IDeviceProxy>(d => d.IsActive);
             var deviceProxy2 = Mock.Of<IDeviceProxy>(d => d.IsActive);
+            var deviceProxy3 = Mock.Of<IDeviceProxy>(d => d.IsActive);
 
-            var connectionManager = new ConnectionManager(cloudProviderMock.Object, 2);
+            var credentialsCache = Mock.Of<ICredentialsStore>();
+            var connectionManager = new ConnectionManager(cloudProviderMock.Object, credentialsCache, 2);
 
-            await connectionManager.AddDeviceConnection(deviceCredentials1);
-            connectionManager.BindDeviceProxy(deviceIdentity1, deviceProxy1);
-            await connectionManager.AddDeviceConnection(deviceCredentials2);
-            connectionManager.BindDeviceProxy(deviceIdentity2, deviceProxy2);
-            await Assert.ThrowsAsync<EdgeHubConnectionException>(async () => await connectionManager.AddDeviceConnection(deviceCredentials3));
+            await connectionManager.AddDeviceConnection(deviceIdentity1, deviceProxy1);
+            await connectionManager.AddDeviceConnection(deviceIdentity2, deviceProxy2);
+            await Assert.ThrowsAsync<EdgeHubConnectionException>(async () => await connectionManager.AddDeviceConnection(deviceIdentity3, deviceProxy3));
         }
 
         [Fact]
@@ -475,14 +477,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Arrange
             string deviceId = "d1";
             var cloudConnectionProvider = Mock.Of<ICloudConnectionProvider>();
-            var connectionManager = new ConnectionManager(cloudConnectionProvider);
+            var credentialsCache = Mock.Of<ICredentialsStore>();
+            var connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache);
             var identity = Mock.Of<IIdentity>(i => i.Id == deviceId);
             // ReSharper disable once PossibleUnintendedReferenceComparison
             var deviceCredentials = Mock.Of<IClientCredentials>(c => c.Identity == identity);
 
             // Act
-            await connectionManager.AddDeviceConnection(deviceCredentials);
-            connectionManager.BindDeviceProxy(identity, Mock.Of<IDeviceProxy>(d => d.IsActive));
+            await connectionManager.AddDeviceConnection(identity, Mock.Of<IDeviceProxy>(d => d.IsActive));
             Option<IReadOnlyDictionary<DeviceSubscription, bool>> subscriptionsOption = connectionManager.GetSubscriptions(deviceId);
 
             // Assert
@@ -523,7 +525,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Arrange
             string deviceId = "d1";
             var cloudConnectionProvider = Mock.Of<ICloudConnectionProvider>();
-            var connectionManager = new ConnectionManager(cloudConnectionProvider);
+            var credentialsCache = Mock.Of<ICredentialsStore>();
+            var connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache);
             var identity = Mock.Of<IIdentity>(i => i.Id == deviceId);
             var credentials1 = Mock.Of<IClientCredentials>(c => c.Identity == identity);
             var credentials2 = Mock.Of<IClientCredentials>(c => c.Identity == identity);
@@ -545,8 +548,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.False(subscriptionsOption.HasValue);
 
             // Act
-            await connectionManager.AddDeviceConnection(credentials1);
-            connectionManager.BindDeviceProxy(identity, deviceProxy);
+            await connectionManager.AddDeviceConnection(identity, deviceProxy);
             subscriptionsOption = connectionManager.GetSubscriptions(deviceId);
 
             // Assert
@@ -574,8 +576,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.False(subscriptionsOption.HasValue);
 
             // Act
-            await connectionManager.AddDeviceConnection(credentials2);
-            connectionManager.BindDeviceProxy(identity, deviceProxy2);
+            await connectionManager.AddDeviceConnection(identity, deviceProxy2);
             subscriptionsOption = connectionManager.GetSubscriptions(deviceId);
 
             // Assert
@@ -598,52 +599,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.Equal(true, subscriptions[DeviceSubscription.C2D]);
             Assert.Equal(true, subscriptions[DeviceSubscription.DesiredPropertyUpdates]);
             Assert.Equal(true, subscriptions[DeviceSubscription.ModuleMessages]);
-        }
-
-        [Unit]
-        [Fact]
-        public async Task GetClientCredentialsTest()
-        {
-            // Arrange
-            var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
-            var clientCredentials1 = Mock.Of<ITokenCredentials>(c => c.Identity == identity && c.Token == Guid.NewGuid().ToString());
-            var clientCredentials2 = Mock.Of<ITokenCredentials>(c => c.Identity == identity && c.Token == Guid.NewGuid().ToString());
-            var deviceProxy1 = Mock.Of<IDeviceProxy>(d => d.IsActive);
-            var deviceProxy2 = Mock.Of<IDeviceProxy>(d => d.IsActive);
-            Mock.Get(deviceProxy2).Setup(d => d.CloseAsync(It.IsAny<Exception>()))
-                .Callback(() => Mock.Get(deviceProxy2).SetupGet(d2 => d2.IsActive).Returns(false))
-                .Returns(Task.CompletedTask);
-            var connectionManager = new ConnectionManager(Mock.Of<ICloudConnectionProvider>());
-
-            // Act
-            await connectionManager.AddDeviceConnection(clientCredentials1);
-            connectionManager.BindDeviceProxy(identity, deviceProxy1);
-            Option<IClientCredentials> d1ClientCredentials = connectionManager.GetClientCredentials("d1");
-            Option<IClientCredentials> absentClientCredentials = connectionManager.GetClientCredentials("d2");
-
-            // Assert
-            Assert.True(d1ClientCredentials.HasValue);
-            Assert.IsAssignableFrom<ITokenCredentials>(d1ClientCredentials.OrDefault());
-            Assert.Equal(clientCredentials1.Token, (d1ClientCredentials.OrDefault() as ITokenCredentials)?.Token);
-
-            Assert.False(absentClientCredentials.HasValue);
-
-            // Act
-            await connectionManager.AddDeviceConnection(clientCredentials2);
-            connectionManager.BindDeviceProxy(identity, deviceProxy2);
-            d1ClientCredentials = connectionManager.GetClientCredentials("d1");
-
-            // Assert
-            Assert.True(d1ClientCredentials.HasValue);
-            Assert.IsAssignableFrom<ITokenCredentials>(d1ClientCredentials.OrDefault());
-            Assert.Equal(clientCredentials2.Token, (d1ClientCredentials.OrDefault() as ITokenCredentials)?.Token);
-
-            // Act
-            await connectionManager.RemoveDeviceConnection("d1");
-            d1ClientCredentials = connectionManager.GetClientCredentials("d1");
-
-            // Assert
-            Assert.False(d1ClientCredentials.HasValue);
         }
 
         static ICloudConnection GetCloudConnectionMock()

@@ -235,7 +235,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var cloudConnectionProvider = new Mock<ICloudConnectionProvider>();
             cloudConnectionProvider.Setup(c => c.Connect(It.IsAny<IClientCredentials>(), It.IsAny<Action<string, CloudConnectionStatus>>()))
                 .ReturnsAsync(Try.Success(cloudConnection));
-            var connectionManager = new ConnectionManager(cloudConnectionProvider.Object);
+            var credentialsCache = Mock.Of<ICredentialsStore>();
+            var connectionManager = new ConnectionManager(cloudConnectionProvider.Object, credentialsCache);
 
             IInvokeMethodHandler invokeMethodHandler = new InvokeMethodHandler(connectionManager);
 
@@ -246,7 +247,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var methodRequest = new DirectMethodRequest("device1/module1", "shutdown", null, TimeSpan.FromSeconds(2), TimeSpan.FromMilliseconds(10));
 
             // Act
-            await connectionManager.AddDeviceConnection(credentialsProvider);
             deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object);
             await deviceMessageHandler.AddSubscription(DeviceSubscription.Methods);
             Task<DirectMethodResponse> responseTask = routingEdgeHub.InvokeMethodAsync(identity.Id, methodRequest);                        
@@ -311,7 +311,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var cloudConnectionProvider = new Mock<ICloudConnectionProvider>();
             cloudConnectionProvider.Setup(c => c.Connect(It.IsAny<IClientCredentials>(), It.IsAny<Action<string, CloudConnectionStatus>>()))
                 .ReturnsAsync(Try.Success(cloudConnection));
-            var connectionManager = new ConnectionManager(cloudConnectionProvider.Object);
+            var credentialsCache = Mock.Of<ICredentialsStore>();
+            var connectionManager = new ConnectionManager(cloudConnectionProvider.Object, credentialsCache);
 
             IInvokeMethodHandler invokeMethodHandler = new InvokeMethodHandler(connectionManager);
 
@@ -321,7 +322,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var deviceMessageHandler = new DeviceMessageHandler(identity, routingEdgeHub, connectionManager);
 
             // Act
-            await connectionManager.AddDeviceConnection(credentialsProvider);
             deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object);            
             Task<DirectMethodResponse> responseTask = routingEdgeHub.InvokeMethodAsync(identity.Id, methodRequest);
 
@@ -380,7 +380,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var cloudConnectionProvider = new Mock<ICloudConnectionProvider>();
             cloudConnectionProvider.Setup(c => c.Connect(It.IsAny<IClientCredentials>(), It.IsAny<Action<string, CloudConnectionStatus>>()))
                 .ReturnsAsync(Try.Success(cloudConnection));
-            var connectionManager = new ConnectionManager(cloudConnectionProvider.Object);
+            var credentialsCache = Mock.Of<ICredentialsStore>();
+            var connectionManager = new ConnectionManager(cloudConnectionProvider.Object, credentialsCache);
 
             IInvokeMethodHandler invokeMethodHandler = new InvokeMethodHandler(connectionManager);
 
@@ -400,9 +401,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 .ReturnsAsync(default(DirectMethodResponse));
             underlyingDeviceProxy.SetupGet(d => d.IsActive).Returns(true);
 
-
             // Act
-            await connectionManager.AddDeviceConnection(credentialsProvider);
             deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object);
             Task<DirectMethodResponse> responseTask = routingEdgeHub.InvokeMethodAsync(identity.Id, methodRequest);
 
