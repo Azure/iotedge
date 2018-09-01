@@ -207,21 +207,8 @@ impl Main {
             }
         }
 
-        let proxy_uri = env::var("HTTPS_PROXY")
-            .or_else(|_| env::var("https_proxy"))
-            .ok();
-        let proxy_uri = match proxy_uri {
-            None => None,
-            Some(s) => {
-                let proxy = s.parse::<Uri>()?;
-                info!("Detected HTTPS proxy server {}", proxy.to_string());
-                Some(proxy)
-            },
-        };
-
-
         let handle: Handle = core.handle().clone();
-        let hyper_client = MaybeProxyClient::new(&handle, proxy_uri)?;
+        let hyper_client = MaybeProxyClient::new(&handle, get_proxy_uri()?)?;
 
         info!(
             "Using runtime network id {}",
@@ -315,6 +302,21 @@ impl Main {
         info!("Shutdown complete.");
         Ok(())
     }
+}
+
+pub fn get_proxy_uri() -> Result<Option<Uri>, Error> {
+    let proxy_uri = env::var("HTTPS_PROXY")
+        .or_else(|_| env::var("https_proxy"))
+        .ok();
+    let proxy_uri = match proxy_uri {
+        None => None,
+        Some(s) => {
+            let proxy = s.parse::<Uri>()?;
+            info!("Detected HTTPS proxy server {}", proxy.to_string());
+            Some(proxy)
+        },
+    };
+    Ok(proxy_uri)
 }
 
 fn prepare_workload_ca<C>(crypto: &C) -> Result<(), Error>
@@ -905,5 +907,30 @@ mod tests {
 
         assert_eq!(expected_base64, written1);
         assert_ne!(written1, written);
+    }
+
+    #[test]
+    fn get_proxy_uri_recognizes_https_proxy() {
+        // ensure "https_proxy" env var is set
+        let proxy_val = env::var("https_proxy")
+            .or_else(|_| {
+                env::set_var("https_proxy", "abc");
+                env::var("https_proxy")
+            })
+            .unwrap();
+        // ensure "HTTPS_PROXY" is NOT set
+        let other_val = env::var("HTTPS_PROXY")
+            .and_then(|var| {
+                env::remove_var("HTTPS_PROXY");
+                Ok(var)
+            })
+            .ok();
+
+        assert_eq!(get_proxy_uri().unwrap().unwrap().to_string(), proxy_val);
+
+        // restore value of HTTPS_PROXY if necessary
+        if let Some(val) = other_val {
+            env::set_var("HTTPS_PROXY", val);
+        }
     }
 }
