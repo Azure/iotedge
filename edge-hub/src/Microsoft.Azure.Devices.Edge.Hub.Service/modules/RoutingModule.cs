@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly bool optimizeForPerformance;
         readonly TimeSpan connectivityCheckFrequency;
         readonly int maxConnectedClients;
-        readonly bool cacheTokens;
+        readonly bool persistTokens;
         readonly Option<string> workloadUri;
         readonly Option<string> edgeModuleGenerationId;
 
@@ -64,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             bool optimizeForPerformance,
             TimeSpan connectivityCheckFrequency,
             int maxConnectedClients,
-            bool cacheTokens,
+            bool persistTokens,
             Option<string> workloadUri,
             Option<string> edgeModuleGenerationId)
         {
@@ -84,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.optimizeForPerformance = optimizeForPerformance;
             this.connectivityCheckFrequency = connectivityCheckFrequency;
             this.maxConnectedClients = Preconditions.CheckRange(maxConnectedClients, 1);
-            this.cacheTokens = cacheTokens;
+            this.persistTokens = persistTokens;
             this.workloadUri = workloadUri;
             this.edgeModuleGenerationId = edgeModuleGenerationId;
         }
@@ -180,7 +180,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<ICloudConnectionProvider>()
                 .SingleInstance();
 
-            if (this.isStoreAndForwardEnabled || this.cacheTokens)
+            if (this.isStoreAndForwardEnabled || this.persistTokens)
             {
                 // Detect system environment
                 builder.Register(c => new SystemEnvironment())
@@ -229,7 +229,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             // Task<ICredentialsStore>
             builder.Register(async c =>
                 {
-                    if (this.cacheTokens)
+                    ICredentialsStore underlyingCredentialsStore;
+                    if (this.persistTokens)
                     {
                         var dbStoreProvider = c.Resolve<IDbStoreProvider>();
                         IEncryptionProvider encryptionProvider = await this.workloadUri.Map(
@@ -243,18 +244,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             .GetOrElse(() => Task.FromResult<IEncryptionProvider>(NullEncryptionProvider.Instance));
                         IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
                         IEntityStore<string, string> tokenCredentialsEntityStore = storeProvider.GetEntityStore<string, string>("tokenCredentials");
-                        return new TokenCredentialsStore(tokenCredentialsEntityStore, encryptionProvider);
+                        underlyingCredentialsStore = new TokenCredentialsStore(tokenCredentialsEntityStore, encryptionProvider);
                     }
                     else
                     {
-                        return new NullCredentialsStore() as ICredentialsStore;
+                        underlyingCredentialsStore = new NullCredentialsStore();
                     }
+                    ICredentialsStore credentialsStore = new CredentialsManager(underlyingCredentialsStore);
+                    return credentialsStore;
                 })
                 .As<Task<ICredentialsStore>>()
                 .SingleInstance();
 
             // IConnectionManager
-            builder.Register(c => new ConnectionManager(c.Resolve<ICloudConnectionProvider>(), this.maxConnectedClients))
+            builder.Register(c => new ConnectionManager(c.Resolve<ICloudConnectionProvider>(), c.Resolve<ICredentialsStore>(), this.maxConnectedClients))
                 .As<IConnectionManager>()
                 .SingleInstance();
 

@@ -23,14 +23,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public void AuthenticatorConstructorTest()
         {
             var connectionManager = Mock.Of<IConnectionManager>();
-            Assert.NotNull(new Authenticator(new TokenCacheAuthenticator(new CloudTokenAuthenticator(connectionManager), new NullCredentialsStore(), TestIotHub), "your-device", connectionManager));
+            var credentialsCache = Mock.Of<ICredentialsStore>();
+            Assert.NotNull(new Authenticator(new TokenCacheAuthenticator(new CloudTokenAuthenticator(connectionManager), new NullCredentialsStore(), TestIotHub), "your-device", credentialsCache));
         }
 
         [Fact]
         [Unit]
         public void AuthenticatorConstructor_NullConnectionManagerTest()
         {
-            Assert.Throws<ArgumentNullException>(() => new Authenticator(null, "your-device", Mock.Of<IConnectionManager>()));
+            Assert.Throws<ArgumentNullException>(() => new Authenticator(null, "your-device", Mock.Of<ICredentialsStore>()));
         }
 
         [Fact]
@@ -38,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public void AuthenticatorConstructor_NullDeviceIdTest()
         {
             var connectionManager = Mock.Of<IConnectionManager>();
-            Assert.Throws<ArgumentException>(() => new Authenticator(new TokenCacheAuthenticator(new CloudTokenAuthenticator(connectionManager), new NullCredentialsStore(), TestIotHub), null, Mock.Of<IConnectionManager>()));
+            Assert.Throws<ArgumentException>(() => new Authenticator(new TokenCacheAuthenticator(new CloudTokenAuthenticator(connectionManager), new NullCredentialsStore(), TestIotHub), null, Mock.Of<ICredentialsStore>()));
         }
 
         [Fact]
@@ -46,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public void AuthenticatorConstructor_EmptyDeviceIdTest()
         {
             var connectionManager = Mock.Of<IConnectionManager>();
-            Assert.Throws<ArgumentException>(() => new Authenticator(new TokenCacheAuthenticator(new CloudTokenAuthenticator(connectionManager), new NullCredentialsStore(), TestIotHub), string.Empty, Mock.Of<IConnectionManager>()));
+            Assert.Throws<ArgumentException>(() => new Authenticator(new TokenCacheAuthenticator(new CloudTokenAuthenticator(connectionManager), new NullCredentialsStore(), TestIotHub), string.Empty, Mock.Of<ICredentialsStore>()));
         }
 
         [Fact]
@@ -55,13 +56,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         {
             var cloudProxy = Mock.Of<ICloudProxy>();
             var connectionManager = Mock.Of<IConnectionManager>();
+            var credentialsCache = Mock.Of<ICredentialsStore>();
             var clientCredentials = Mock.Of<ITokenCredentials>(c => c.Identity == Mock.Of<IIdentity>());
 
             Mock.Get(connectionManager).Setup(cm => cm.CreateCloudConnectionAsync(clientCredentials)).ReturnsAsync(Try.Success(cloudProxy));
-            Mock.Get(connectionManager).Setup(cm => cm.AddDeviceConnection(It.IsAny<IClientCredentials>())).Returns(Task.CompletedTask);
+            Mock.Get(connectionManager).Setup(cm => cm.AddDeviceConnection(It.IsAny<IIdentity>(), It.IsAny<IDeviceProxy>())).Returns(Task.CompletedTask);
             Mock.Get(cloudProxy).Setup(cp => cp.IsActive).Returns(true);
 
-            var authenticator = new Authenticator(new TokenCacheAuthenticator(new CloudTokenAuthenticator(connectionManager), new NullCredentialsStore(), TestIotHub), "your-device", connectionManager);
+            var authenticator = new Authenticator(new TokenCacheAuthenticator(new CloudTokenAuthenticator(connectionManager), new NullCredentialsStore(), TestIotHub), "your-device", credentialsCache);
             Assert.Equal(true, await authenticator.AuthenticateAsync(clientCredentials));
             Mock.Get(connectionManager).Verify();
         }
@@ -72,15 +74,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         {
             var cloudProxy = Mock.Of<ICloudProxy>();
             var connectionManager = Mock.Of<IConnectionManager>();
+            var credentialsCache = Mock.Of<ICredentialsStore>();
             var clientCredentials = Mock.Of<IClientCredentials>(c => c.Identity == Mock.Of<IIdentity>());
 
             Mock.Get(connectionManager).Setup(cm => cm.CreateCloudConnectionAsync(clientCredentials)).ReturnsAsync(Try.Success(cloudProxy));
-            Mock.Get(connectionManager).Setup(cm => cm.AddDeviceConnection(It.IsAny<IClientCredentials>())).Returns(Task.CompletedTask);
+            Mock.Get(connectionManager).Setup(cm => cm.AddDeviceConnection(It.IsAny<IIdentity>(), It.IsAny<IDeviceProxy>())).Returns(Task.CompletedTask);
             Mock.Get(cloudProxy).Setup(cp => cp.IsActive).Returns(false);
 
-            var authenticator = new Authenticator(new TokenCacheAuthenticator(new CloudTokenAuthenticator(connectionManager), new NullCredentialsStore(), TestIotHub), "your-device", connectionManager);
+            var authenticator = new Authenticator(new TokenCacheAuthenticator(new CloudTokenAuthenticator(connectionManager), new NullCredentialsStore(), TestIotHub), "your-device", credentialsCache);
             Assert.Equal(false, await authenticator.AuthenticateAsync(clientCredentials));
-            Mock.Get(connectionManager).Verify(c => c.AddDeviceConnection(It.IsAny<IClientCredentials>()), Times.Never);
+            Mock.Get(connectionManager).Verify(c => c.AddDeviceConnection(It.IsAny<IIdentity>(), It.IsAny<IDeviceProxy>()), Times.Never);
         }
 
         [Fact]
@@ -89,15 +92,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         {
             var cloudProxy = Mock.Of<ICloudProxy>();
             var connectionManager = Mock.Of<IConnectionManager>();
+            var credentialsCache = Mock.Of<ICredentialsStore>();
             var clientCredentials = Mock.Of<IClientCredentials>(c => c.Identity == Mock.Of<IIdentity>());
 
             Mock.Get(connectionManager).Setup(cm => cm.CreateCloudConnectionAsync(clientCredentials)).ReturnsAsync(Try<ICloudProxy>.Failure(new ArgumentException()));
-            Mock.Get(connectionManager).Setup(cm => cm.AddDeviceConnection(It.IsAny<IClientCredentials>())).Returns(Task.CompletedTask);
+            Mock.Get(connectionManager).Setup(cm => cm.AddDeviceConnection(It.IsAny<IIdentity>(), It.IsAny<IDeviceProxy>())).Returns(Task.CompletedTask);
             Mock.Get(cloudProxy).Setup(cp => cp.IsActive).Returns(true);
 
-            var authenticator = new Authenticator(new TokenCacheAuthenticator(new CloudTokenAuthenticator(connectionManager), new NullCredentialsStore(), TestIotHub), "your-device", connectionManager);
+            var authenticator = new Authenticator(new TokenCacheAuthenticator(new CloudTokenAuthenticator(connectionManager), new NullCredentialsStore(), TestIotHub), "your-device", credentialsCache);
             Assert.Equal(false, await authenticator.AuthenticateAsync(clientCredentials));
-            Mock.Get(connectionManager).Verify(c => c.AddDeviceConnection(It.IsAny<IClientCredentials>()), Times.Never);
+            Mock.Get(connectionManager).Verify(c => c.AddDeviceConnection(It.IsAny<IIdentity>(), It.IsAny<IDeviceProxy>()), Times.Never);
         }
 
         [Fact]
@@ -105,9 +109,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task Authenticate_NonNullIdentityTest()
         {
             var connectionManager = Mock.Of<IConnectionManager>();
+            var credentialsCache = Mock.Of<ICredentialsStore>();
             var clientCredentials = Mock.Of<IClientCredentials>(c => c.Identity == Mock.Of<IModuleIdentity>(i => i.DeviceId == "my-device"));
 
-            var authenticator = new Authenticator(new TokenCacheAuthenticator(new CloudTokenAuthenticator(connectionManager), new NullCredentialsStore(), TestIotHub), "your-device", connectionManager);
+            var authenticator = new Authenticator(new TokenCacheAuthenticator(new CloudTokenAuthenticator(connectionManager), new NullCredentialsStore(), TestIotHub), "your-device", credentialsCache);
             Assert.Equal(false, await authenticator.AuthenticateAsync(clientCredentials));
         }
 
@@ -116,8 +121,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task Authenticate_NullIdentityTest()
         {
             var connectionManager = Mock.Of<IConnectionManager>();
-
-            var authenticator = new Authenticator(new TokenCacheAuthenticator(new CloudTokenAuthenticator(connectionManager), new NullCredentialsStore(), TestIotHub), "your-device", connectionManager);
+            var credentialsCache = Mock.Of<ICredentialsStore>();
+            var authenticator = new Authenticator(new TokenCacheAuthenticator(new CloudTokenAuthenticator(connectionManager), new NullCredentialsStore(), TestIotHub), "your-device", credentialsCache);
             await Assert.ThrowsAsync<ArgumentNullException>(() => authenticator.AuthenticateAsync(null));
         }
 
@@ -126,11 +131,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task Authenticate_X509Identity()
         {
             var connectionManager = Mock.Of<IConnectionManager>();
+            var credentialsCache = Mock.Of<ICredentialsStore>();
             var clientCredentials = Mock.Of<IClientCredentials>(c =>
                 c.Identity == Mock.Of<IModuleIdentity>(i => i.DeviceId == "my-device")
                 && c.AuthenticationType == AuthenticationType.X509Cert);
 
-            var authenticator = new Authenticator(new TokenCacheAuthenticator(new CloudTokenAuthenticator(connectionManager), new NullCredentialsStore(), TestIotHub), "my-device", connectionManager);
+            var authenticator = new Authenticator(new TokenCacheAuthenticator(new CloudTokenAuthenticator(connectionManager), new NullCredentialsStore(), TestIotHub), "my-device", credentialsCache);
             Assert.Equal(true, await authenticator.AuthenticateAsync(clientCredentials));
         }
     }

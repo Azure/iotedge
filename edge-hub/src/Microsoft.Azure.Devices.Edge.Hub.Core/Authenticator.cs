@@ -15,11 +15,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         readonly string edgeDeviceId;
         readonly IAuthenticator tokenAuthenticator;
-        readonly IConnectionManager connectionManager;
+        readonly ICredentialsStore credentialsCache;
 
-        public Authenticator(IAuthenticator tokenAuthenticator, string edgeDeviceId, IConnectionManager connectionManager)
+        public Authenticator(IAuthenticator tokenAuthenticator, string edgeDeviceId, ICredentialsStore credentialsCache)
         {
-            this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
+            this.credentialsCache = Preconditions.CheckNotNull(credentialsCache, nameof(credentialsCache));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
             this.tokenAuthenticator = Preconditions.CheckNotNull(tokenAuthenticator, nameof(tokenAuthenticator));
         }
@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             if (isAuthenticated)
             {
-                await this.connectionManager.AddDeviceConnection(clientCredentials);
+                await this.credentialsCache.Add(clientCredentials);
             }
 
             return isAuthenticated;

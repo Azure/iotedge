@@ -32,49 +32,49 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
             this.edgeHubHostName = Preconditions.CheckNonWhiteSpace(edgeHubHostName, nameof(edgeHubHostName));
             this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
-            this.deviceScopeIdentitiesCache.ServiceIdentityUpdated += this.HandleServiceIdentityUpdate;
-            this.deviceScopeIdentitiesCache.ServiceIdentityRemoved += this.HandleServiceIdentityRemove;
+            //this.deviceScopeIdentitiesCache.ServiceIdentityUpdated += this.HandleServiceIdentityUpdate;
+            //this.deviceScopeIdentitiesCache.ServiceIdentityRemoved += this.HandleServiceIdentityRemove;
         }
 
-        async void HandleServiceIdentityUpdate(object sender, ServiceIdentity serviceIdentity)
-        {
-            try
-            {
-                Events.ServiceIdentityUpdated(serviceIdentity.Id);
-                Option<IClientCredentials> clientCredentials = this.connectionManager.GetClientCredentials(serviceIdentity.Id);
-                await clientCredentials.ForEachAsync(
-                    async c =>
-                    {
-                        if (!(c is ITokenCredentials tokenCredentials) ||
-                            !await this.AuthenticateInternalAsync(tokenCredentials, serviceIdentity))
-                        {
-                            Events.ServiceIdentityUpdatedRemoving(serviceIdentity.Id);
-                            await this.connectionManager.RemoveDeviceConnection(c.Identity.Id);
-                        }
-                        else
-                        {
-                            Events.ServiceIdentityUpdatedValidated(serviceIdentity.Id);
-                        }
-                    });
-            }
-            catch (Exception ex)
-            {
-                Events.ErrorReauthenticating(ex, serviceIdentity);
-            }
-        }
+        //async void HandleServiceIdentityUpdate(object sender, ServiceIdentity serviceIdentity)
+        //{
+        //    try
+        //    {
+        //        Events.ServiceIdentityUpdated(serviceIdentity.Id);
+        //        Option<IClientCredentials> clientCredentials = this.connectionManager.GetClientCredentials(serviceIdentity.Id);
+        //        await clientCredentials.ForEachAsync(
+        //            async c =>
+        //            {
+        //                if (!(c is ITokenCredentials tokenCredentials) ||
+        //                    !await this.AuthenticateInternalAsync(tokenCredentials, serviceIdentity))
+        //                {
+        //                    Events.ServiceIdentityUpdatedRemoving(serviceIdentity.Id);
+        //                    await this.connectionManager.RemoveDeviceConnection(c.Identity.Id);
+        //                }
+        //                else
+        //                {
+        //                    Events.ServiceIdentityUpdatedValidated(serviceIdentity.Id);
+        //                }
+        //            });
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Events.ErrorReauthenticating(ex, serviceIdentity);
+        //    }
+        //}
 
-        async void HandleServiceIdentityRemove(object sender, string id)
-        {
-            try
-            {
-                Events.ServiceIdentityRemoved(id);
-                await this.connectionManager.RemoveDeviceConnection(id);
-            }
-            catch (Exception ex)
-            {
-                Events.ErrorRemovingConnection(ex, id);
-            }
-        }
+        //async void HandleServiceIdentityRemove(object sender, string id)
+        //{
+        //    try
+        //    {
+        //        Events.ServiceIdentityRemoved(id);
+        //        await this.connectionManager.RemoveDeviceConnection(id);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Events.ErrorRemovingConnection(ex, id);
+        //    }
+        //}
 
         public async Task<bool> AuthenticateAsync(IClientCredentials clientCredentials)
         {
