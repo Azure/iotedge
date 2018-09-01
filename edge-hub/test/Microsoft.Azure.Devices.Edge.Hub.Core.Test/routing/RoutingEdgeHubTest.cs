@@ -224,7 +224,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             
             // DeviceListener
             var identity = Mock.Of<IModuleIdentity>(m => m.DeviceId == "device1" && m.ModuleId == "module1" && m.Id == "device1/module1");
-            var credentialsProvider = Mock.Of<IClientCredentials>(c => c.Identity == identity);
+            var clientCredentials = Mock.Of<IClientCredentials>(c => c.Identity == identity);
             var cloudProxy = new Mock<ICloudProxy>();            
             var underlyingDeviceProxy = new Mock<IDeviceProxy>();
             underlyingDeviceProxy.Setup(d => d.InvokeMethodAsync(It.IsAny<DirectMethodRequest>())).ReturnsAsync(default(DirectMethodResponse));
@@ -235,7 +235,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var cloudConnectionProvider = new Mock<ICloudConnectionProvider>();
             cloudConnectionProvider.Setup(c => c.Connect(It.IsAny<IClientCredentials>(), It.IsAny<Action<string, CloudConnectionStatus>>()))
                 .ReturnsAsync(Try.Success(cloudConnection));
-            var credentialsCache = Mock.Of<ICredentialsStore>();
+            var credentialsCache = Mock.Of<ICredentialsStore>(c => c.Get(identity) == Task.FromResult(Option.Some(clientCredentials)));
             var connectionManager = new ConnectionManager(cloudConnectionProvider.Object, credentialsCache);
 
             IInvokeMethodHandler invokeMethodHandler = new InvokeMethodHandler(connectionManager);
@@ -300,7 +300,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             // DeviceListener
             var identity = Mock.Of<IModuleIdentity>(m => m.DeviceId == "device1" && m.ModuleId == "module1" && m.Id == "device1/module1");
-            var credentialsProvider = Mock.Of<IClientCredentials>(c => c.Identity == identity);
+            var clientCredentials = Mock.Of<IClientCredentials>(c => c.Identity == identity);
             var cloudProxy = new Mock<ICloudProxy>();
             var underlyingDeviceProxy = new Mock<IDeviceProxy>();
             underlyingDeviceProxy.Setup(d => d.InvokeMethodAsync(It.IsAny<DirectMethodRequest>())).ReturnsAsync(new DirectMethodResponse(methodRequest.CorrelationId, null, 200));
@@ -311,7 +311,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var cloudConnectionProvider = new Mock<ICloudConnectionProvider>();
             cloudConnectionProvider.Setup(c => c.Connect(It.IsAny<IClientCredentials>(), It.IsAny<Action<string, CloudConnectionStatus>>()))
                 .ReturnsAsync(Try.Success(cloudConnection));
-            var credentialsCache = Mock.Of<ICredentialsStore>();
+            var credentialsCache = Mock.Of<ICredentialsStore>(c => c.Get(identity) == Task.FromResult(Option.Some(clientCredentials)));
             var connectionManager = new ConnectionManager(cloudConnectionProvider.Object, credentialsCache);
 
             IInvokeMethodHandler invokeMethodHandler = new InvokeMethodHandler(connectionManager);
@@ -372,7 +372,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             // DeviceListener
             var identity = Mock.Of<IModuleIdentity>(m => m.DeviceId == "device1" && m.ModuleId == "module1" && m.Id == "device1/module1");
-            var credentialsProvider = Mock.Of<IClientCredentials>(c => c.Identity == identity);
+            var clientCredentials = Mock.Of<IClientCredentials>(c => c.Identity == identity);
             var cloudProxy = new Mock<ICloudProxy>();
 
             // ICloudConnectionProvider
@@ -380,7 +380,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var cloudConnectionProvider = new Mock<ICloudConnectionProvider>();
             cloudConnectionProvider.Setup(c => c.Connect(It.IsAny<IClientCredentials>(), It.IsAny<Action<string, CloudConnectionStatus>>()))
                 .ReturnsAsync(Try.Success(cloudConnection));
-            var credentialsCache = Mock.Of<ICredentialsStore>();
+            var credentialsCache = Mock.Of<ICredentialsStore>(c => c.Get(identity) == Task.FromResult(Option.Some(clientCredentials)));
             var connectionManager = new ConnectionManager(cloudConnectionProvider.Object, credentialsCache);
 
             IInvokeMethodHandler invokeMethodHandler = new InvokeMethodHandler(connectionManager);

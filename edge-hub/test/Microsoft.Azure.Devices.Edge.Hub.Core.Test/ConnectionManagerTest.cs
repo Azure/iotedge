@@ -42,8 +42,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var deviceIdentityMock = new Mock<IIdentity>();
             deviceIdentityMock.SetupGet(di => di.Id).Returns("Device1");
-            var deviceCredentials1 = Mock.Of<IClientCredentials>(c => c.Identity == deviceIdentityMock.Object);
-            var deviceCredentials2 = Mock.Of<IClientCredentials>(c => c.Identity == deviceIdentityMock.Object);
 
             Option<IDeviceProxy> returnedDeviceProxy = connectionManager.GetDeviceConnection(deviceIdentityMock.Object.Id);
             Assert.False(returnedDeviceProxy.HasValue);
