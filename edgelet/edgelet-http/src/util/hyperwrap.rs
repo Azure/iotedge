@@ -35,10 +35,7 @@ impl Config {
 
     pub fn build(&self)  -> Result<Client, Error> {
         match self.null {
-            true => match self.proxy_uri {
-                None => Ok(Client::NullNoProxy),
-                Some(_) => Ok(Client::NullProxy),
-            },
+            true => Ok(Client::Null),
             false => {
                 let config = self.clone();
                 let h = &config.handle.expect("tokio_core::reactor::Handle expected!");
@@ -62,8 +59,7 @@ impl Config {
 pub enum Client {
     NoProxy(HyperClient<HttpsConnector<HttpConnector>>),
     Proxy(HyperClient<ProxyConnector<HttpsConnector<HttpConnector>>>),
-    NullNoProxy,
-    NullProxy,
+    Null,
 }
 
 impl Client {
@@ -78,8 +74,7 @@ impl Client {
     #[cfg(test)]
     pub fn is_null(&self) -> bool {
         match *self {
-            Client::NullNoProxy => true,
-            Client::NullProxy => true,
+            Client::Null => true,
             _ => false,
         }
     }
@@ -88,7 +83,6 @@ impl Client {
     pub fn has_proxy(&self) -> bool {
         match *self {
             Client::Proxy(_) => true,
-            Client::NullProxy => true,
             _ => false,
         }
     }
@@ -104,8 +98,7 @@ impl Service for Client {
         match *self {
             Client::NoProxy(ref client) => Box::new(client.call(req)) as Self::Future,
             Client::Proxy(ref client) => Box::new(client.call(req)) as Self::Future,
-            Client::NullNoProxy => Box::new(future::ok(Response::new())),
-            Client::NullProxy => Box::new(future::ok(Response::new())),
+            Client::Null => Box::new(future::ok(Response::new())),
         }
     }
 }
@@ -120,6 +113,40 @@ mod tests {
     // right enum variants
 
     #[test]
+    fn can_create_null_client() {
+        let client = Client::configure().null().build().unwrap();
+        assert!(client.is_null());
+    }
+
+    #[test]
+    fn can_create_null_client_with_handle() {
+        let h = Core::new().unwrap().handle();
+        let client = Client::configure().null().handle(&h).build().unwrap();
+        assert!(client.is_null());
+    }
+
+    #[test]
+    fn can_create_null_client_with_proxy() {
+        let uri = "irrelevant".parse::<Uri>().unwrap();
+        let client = Client::configure().null().proxy(uri).build().unwrap();
+        assert!(client.is_null());
+    }
+
+    #[test]
+    fn can_create_null_client_with_everything() {
+        let h = Core::new().unwrap().handle();
+        let uri = "irrelevant".parse::<Uri>().unwrap();
+        let client = Client::configure().null().handle(&h).proxy(uri).build().unwrap();
+        assert!(client.is_null());
+    }
+
+    #[test]
+    #[should_panic(expected = "tokio_core::reactor::Handle expected!")]
+    fn cannot_create_client_without_handle() {
+        Client::configure().build().unwrap();
+    }
+
+    #[test]
     fn can_create_client() {
         let h = Core::new().unwrap().handle();
         let client = Client::configure().handle(&h).build().unwrap();
@@ -132,19 +159,6 @@ mod tests {
         let uri = "irrelevant".parse::<Uri>().unwrap();
         let client = Client::configure().handle(&h).proxy(uri).build().unwrap();
         assert!(client.has_proxy());
-    }
-
-    #[test]
-    fn can_create_null_client() {
-        let client = Client::configure().null().build().unwrap();
-        assert!(client.is_null() && !client.has_proxy());
-    }
-
-    #[test]
-    fn can_create_null_client_with_proxy() {
-        let uri = "irrelevant".parse::<Uri>().unwrap();
-        let client = Client::configure().null().proxy(uri).build().unwrap();
-        assert!(client.is_null() && client.has_proxy());
     }
 
     // TODO:
