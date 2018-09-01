@@ -171,6 +171,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             deviceClientProvider.Setup(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<string>(), It.IsAny<Client.ITransportSettings[]>()))
                 .Returns(client);
 
+            var credentialsManager = Mock.Of<ICredentialsStore>();
             var cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, deviceClientProvider.Object, Option.None<UpstreamProtocol>(), Mock.Of<ITokenProvider>(), Mock.Of<IDeviceScopeIdentitiesCache>());
 
             cloudConnectionProvider.BindEdgeHub(edgeHub.Object);
