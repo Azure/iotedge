@@ -9,6 +9,7 @@ We use VSTS to build and release.
 More information about VSTS is available [here](https://docs.microsoft.com/en-us/vsts/build-release/overview).
 
 Our builds fall into these categories:
+
 | Type                                      | Goal                                                                                                          | Trigger                                        | Target                      |
 |-------------------------------------------|---------------------------------------------------------------------------------------------------------------|------------------------------------------------|-----------------------------|
 | Checkin                                   | Ensures that the master branch builds clean and passes basic tests.                                           | When commits are pushed to a Pull Request (PR) | Linux - x64                 |

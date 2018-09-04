@@ -24,6 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         const string InScopeIdentitiesUriTemplate = "/devices/{0}/modules/{1}/devicesAndModulesInDeviceScope?deviceCount={2}&continuationToken={3}&api-version={4}";
         const string InScopeTargetIdentityUriFormat = "/devices/{0}/modules/{1}/deviceAndModuleInDeviceScope?targetDeviceId={2}&targetModuleId={3}&api-version={4}";
 
+        readonly RetryStrategy retryStrategy;
         readonly Uri iotHubBaseHttpUri;
         readonly string deviceId;
         readonly string moduleId;
@@ -31,7 +32,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly ITokenProvider edgeHubTokenProvider;
         const string ApiVersion = "2018-08-30-preview";
 
-        public DeviceScopeApiClient(string iotHubHostName, string deviceId, string moduleId, int batchSize, ITokenProvider edgeHubTokenProvider)
+        public DeviceScopeApiClient(
+            string iotHubHostName,
+            string deviceId,
+            string moduleId,
+            int batchSize,
+            ITokenProvider edgeHubTokenProvider,
+            RetryStrategy retryStrategy = null)
         {
             Preconditions.CheckNonWhiteSpace(iotHubHostName, nameof(iotHubHostName));
             this.iotHubBaseHttpUri = new UriBuilder(Uri.UriSchemeHttps, iotHubHostName).Uri;
@@ -39,6 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.moduleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.batchSize = Preconditions.CheckRange(batchSize, 0, 1000, nameof(batchSize));
             this.edgeHubTokenProvider = Preconditions.CheckNotNull(edgeHubTokenProvider, nameof(edgeHubTokenProvider));
+            this.retryStrategy = retryStrategy ?? TransientRetryStrategy;
         }
 
         public Task<ScopeResult> GetIdentitiesInScope() =>
@@ -77,7 +85,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 return await ExecuteWithRetry(
                     () => this.GetIdentitiesInScope(uri),
-                    Events.RetryingGetIdentities);
+                    Events.RetryingGetIdentities,
+                    this.retryStrategy);
             }
             catch (Exception e)
             {
@@ -104,14 +113,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 }
                 else
                 {
-                    throw new Exception($"Error getting Scope result from IoTHub. Status code - {response.StatusCode}, Message - {content}");
+                    throw new DeviceScopeApiException("Error getting device scope result from IoTHub", response.StatusCode, content);
                 }
             }
         }
 
-        static Task<T> ExecuteWithRetry<T>(Func<Task<T>> func, Action<RetryingEventArgs> onRetry)
+        static Task<T> ExecuteWithRetry<T>(Func<Task<T>> func, Action<RetryingEventArgs> onRetry, RetryStrategy retryStrategy)
         {
-            var transientRetryPolicy = new RetryPolicy(TransientErrorDetectionStrategy, TransientRetryStrategy);
+            var transientRetryPolicy = new RetryPolicy(TransientErrorDetectionStrategy, retryStrategy);
             transientRetryPolicy.Retrying += (_, args) => onRetry(args);
             return transientRetryPolicy.ExecuteAsync(func);
         }
