@@ -19,62 +19,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
         readonly string iothubHostName;
         readonly string edgeHubHostName;
         readonly IAuthenticator underlyingAuthenticator;
-        readonly IConnectionManager connectionManager;
 
-        public DeviceScopeTokenAuthenticator(IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache,
+        public DeviceScopeTokenAuthenticator(
+            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache,
             string iothubHostName,
             string edgeHubHostName,
-            IAuthenticator underlyingAuthenticator,
-            IConnectionManager connectionManager)
+            IAuthenticator underlyingAuthenticator)
         {
             this.underlyingAuthenticator = Preconditions.CheckNotNull(underlyingAuthenticator, nameof(underlyingAuthenticator));
             this.deviceScopeIdentitiesCache = Preconditions.CheckNotNull(deviceScopeIdentitiesCache, nameof(deviceScopeIdentitiesCache));
             this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
             this.edgeHubHostName = Preconditions.CheckNotNull(edgeHubHostName, nameof(edgeHubHostName));
-            this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
-            //this.deviceScopeIdentitiesCache.ServiceIdentityUpdated += this.HandleServiceIdentityUpdate;
-            //this.deviceScopeIdentitiesCache.ServiceIdentityRemoved += this.HandleServiceIdentityRemove;
-        }
-
-        //async void HandleServiceIdentityUpdate(object sender, ServiceIdentity serviceIdentity)
-        //{
-        //    try
-        //    {
-        //        Events.ServiceIdentityUpdated(serviceIdentity.Id);
-        //        Option<IClientCredentials> clientCredentials = this.connectionManager.GetClientCredentials(serviceIdentity.Id);
-        //        await clientCredentials.ForEachAsync(
-        //            async c =>
-        //            {
-        //                if (!(c is ITokenCredentials tokenCredentials) ||
-        //                    !await this.AuthenticateInternalAsync(tokenCredentials, serviceIdentity))
-        //                {
-        //                    Events.ServiceIdentityUpdatedRemoving(serviceIdentity.Id);
-        //                    await this.connectionManager.RemoveDeviceConnection(c.Identity.Id);
-        //                }
-        //                else
-        //                {
-        //                    Events.ServiceIdentityUpdatedValidated(serviceIdentity.Id);
-        //                }
-        //            });
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Events.ErrorReauthenticating(ex, serviceIdentity);
-        //    }
-        //}
-
-        //async void HandleServiceIdentityRemove(object sender, string id)
-        //{
-        //    try
-        //    {
-        //        Events.ServiceIdentityRemoved(id);
-        //        await this.connectionManager.RemoveDeviceConnection(id);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Events.ErrorRemovingConnection(ex, id);
-        //    }
-        //}
+        }              
 
         public async Task<bool> AuthenticateAsync(IClientCredentials clientCredentials)
         {
@@ -93,6 +49,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             {
                 Events.ErrorAuthenticating(e, clientCredentials);
                 return await this.underlyingAuthenticator.AuthenticateAsync(clientCredentials);
+            }
+        }
+
+        public async Task<bool> ReauthenticateAsync(IClientCredentials clientCredentials)
+        {
+            if (!(clientCredentials is ITokenCredentials tokenCredentials))
+            {
+                return false;
+            }
+
+            try
+            {
+                Option<ServiceIdentity> serviceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(clientCredentials.Identity.Id);
+                return await serviceIdentity.Map(s => this.AuthenticateInternalAsync(tokenCredentials, s))
+                    .GetOrElse(() => this.underlyingAuthenticator.ReauthenticateAsync(clientCredentials));
+            }
+            catch (Exception e)
+            {
+                Events.ErrorAuthenticating(e, clientCredentials);
+                return await this.underlyingAuthenticator.ReauthenticateAsync(clientCredentials);
             }
         }
 
@@ -257,11 +233,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
                 KeysMismatch,
                 InvalidServiceIdentityType,
                 ErrorAuthenticating,
-                ErrorRemovingConnection,
-                ServiceIdentityUpdated,
-                ServiceIdentityUpdatedRemoving,
-                ServiceIdentityUpdatedValidated,
-                ServiceIdentityRemoved,
                 ServiceIdentityNotEnabled,
                 TokenExpired,
                 ErrorParsingToken
@@ -300,31 +271,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             public static void ErrorAuthenticating(Exception exception, IClientCredentials credentials)
             {
                 Log.LogWarning((int)EventIds.ErrorAuthenticating, exception, $"Error authenticating credentials for {credentials.Identity.Id}");
-            }
-
-            public static void ErrorRemovingConnection(Exception exception, string id)
-            {
-                Log.LogWarning((int)EventIds.ErrorRemovingConnection, exception, $"Error removing connection for {id} after service identity was removed from device scope.");
-            }
-
-            public static void ServiceIdentityUpdated(string serviceIdentityId)
-            {
-                Log.LogDebug((int)EventIds.ServiceIdentityUpdated, $"Service identity for {serviceIdentityId} in device scope was updated.");
-            }
-
-            public static void ServiceIdentityUpdatedRemoving(string serviceIdentityId)
-            {
-                Log.LogDebug((int)EventIds.ServiceIdentityUpdatedRemoving, $"Service identity for {serviceIdentityId} in device scope was updated, dropping client connection.");
-            }
-
-            public static void ServiceIdentityUpdatedValidated(string serviceIdentityId)
-            {
-                Log.LogDebug((int)EventIds.ServiceIdentityUpdatedValidated, $"Service identity for {serviceIdentityId} in device scope was updated, client connection was re-validated.");
-            }
-
-            public static void ServiceIdentityRemoved(string id)
-            {
-                Log.LogDebug((int)EventIds.ServiceIdentityRemoved, $"Service identity for {id} in device scope was removed, dropping client connection.");
             }
 
             public static void ServiceIdentityNotEnabled(ServiceIdentity serviceIdentity)

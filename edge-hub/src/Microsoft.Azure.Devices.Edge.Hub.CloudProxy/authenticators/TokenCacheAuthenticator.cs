@@ -22,7 +22,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostName, nameof(iotHubHostName));
         }
 
-        public async Task<bool> AuthenticateAsync(IClientCredentials clientCredentials)
+        public Task<bool> AuthenticateAsync(IClientCredentials clientCredentials)
+            => this.AuthenticateAsync(clientCredentials, false);
+
+        public Task<bool> ReauthenticateAsync(IClientCredentials clientCredentials)
+            => this.AuthenticateAsync(clientCredentials, true);
+
+        async Task<bool> AuthenticateAsync(IClientCredentials clientCredentials, bool reauthenticating)
         {
             if (!(clientCredentials is ITokenCredentials tokenCredentials))
             {
@@ -31,9 +37,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
 
             Option<IClientCredentials> validatedCredentials = await this.credentialsStore.Get(tokenCredentials.Identity);
             bool isAuthenticated = await validatedCredentials.Map(
-                v => Task.FromResult(v is ITokenCredentials validatedTokenCredentials &&
-                    this.IsValid(clientCredentials, validatedTokenCredentials.Token) &&
-                    validatedTokenCredentials.Token.Equals(tokenCredentials.Token)))
+                    v => Task.FromResult(v is ITokenCredentials validatedTokenCredentials &&
+                        this.IsValid(clientCredentials, validatedTokenCredentials.Token) &&
+                        validatedTokenCredentials.Token.Equals(tokenCredentials.Token)))
                 .GetOrElse(Task.FromResult(false));
 
             if (isAuthenticated)
@@ -42,7 +48,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             }
             else
             {
-                isAuthenticated = await this.cloudAuthenticator.AuthenticateAsync(clientCredentials);
+                isAuthenticated = await (reauthenticating
+                    ? this.cloudAuthenticator.ReauthenticateAsync(clientCredentials)
+                    : this.cloudAuthenticator.AuthenticateAsync(clientCredentials));
+
+                if (isAuthenticated)
+                {
+                    await this.credentialsStore.Add(clientCredentials);
+                }
             }
 
             return isAuthenticated;
@@ -60,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             {
                 Events.ErrorValidatingCachedToken(clientCredentials.Identity, e);
                 return false;
-            }            
+            }
         }
 
         static class Events

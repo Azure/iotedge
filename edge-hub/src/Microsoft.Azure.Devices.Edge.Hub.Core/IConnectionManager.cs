@@ -38,6 +38,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         Option<IReadOnlyDictionary<DeviceSubscription, bool>> GetSubscriptions(string id);
 
+        IEnumerable<IIdentity> GetConnectedClients();
+
         event EventHandler<IIdentity> CloudConnectionLost;
 
         event EventHandler<IIdentity> CloudConnectionEstablished;
