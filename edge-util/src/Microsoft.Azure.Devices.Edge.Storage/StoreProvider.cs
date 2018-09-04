@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Storage
 {
@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         public IEntityStore<TK, TV> GetEntityStore<TK, TV>(string entityName)
         {
             IDbStore entityDbStore = this.dbStoreProvider.GetDbStore(Preconditions.CheckNonWhiteSpace(entityName, nameof(entityName)));
-            IEntityStore<TK, TV> entityStore = new EntityStore<TK, TV>(entityDbStore, entityName);
+            IEntityStore<TK, TV> entityStore = new EntityStore<TK, TV>(entityDbStore, entityName, 12);
             return entityStore;
         }
 

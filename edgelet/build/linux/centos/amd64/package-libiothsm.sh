@@ -45,6 +45,6 @@ run_command()
 }
 
 mkdir -p $BUILD_DIR
-run_command "cd /$BUILD_DIR_REL && cmake -DCPACK_PACKAGE_VERSION=\"$RPM_VERSION\" -DCPACK_RPM_PACKAGE_RELEASE=\"$RPM_RELEASE\" -DBUILD_SHARED=On -Drun_unittests=Off -Duse_emulator=Off -DCMAKE_BUILD_TYPE=Release -Duse_default_uuid=On -DCPACK_GENERATOR=RPM /project/hsm-sys/azure-iot-hsm-c/"
+run_command "cd /$BUILD_DIR_REL && cmake -DCPACK_PACKAGE_VERSION=\"$RPM_VERSION\" -DCPACK_RPM_PACKAGE_RELEASE=\"$RPM_RELEASE\" -DBUILD_SHARED=On -Drun_unittests=Off -Duse_emulator=Off -DCMAKE_BUILD_TYPE=Release -Duse_default_uuid=On -Duse_http=Off -DCPACK_GENERATOR=RPM /project/hsm-sys/azure-iot-hsm-c/"
 
 run_command "cd /$BUILD_DIR_REL && make package"

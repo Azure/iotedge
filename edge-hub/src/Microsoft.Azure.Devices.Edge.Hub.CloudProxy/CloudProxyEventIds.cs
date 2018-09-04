@@ -11,5 +11,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public const int DeviceConnectivityManager = EventIdStart + 400;
         public const int TokenCredentialsAuthenticator = EventIdStart + 500;
         public const int ConnectivityAwareClient = EventIdStart + 600;
+        public const int ServiceProxy = EventIdStart + 700;
+        public const int DeviceScopeApiClient = EventIdStart + 800;
+        public const int CloudTokenAuthenticator = EventIdStart + 900;
     }
 }

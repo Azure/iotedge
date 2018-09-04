@@ -28,6 +28,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 
         public override LinkType Type => LinkType.TwinReceiving;
 
+        protected override QualityOfService QualityOfService => QualityOfService.AtMostOnce;
+
         public override string CorrelationId =>
             AmqpConnectionUtils.GetCorrelationId(this.Link);
 

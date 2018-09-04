@@ -15,11 +15,11 @@ phases:
         displayName: Setup
         inputs:
           cwd: edgelet/hsm-sys/azure-iot-hsm-c/build
-          cmakeArgs: -Drun_valgrind=ON -DBUILD_SHARED=ON -Drun_unittests=ON -Duse_emulator=OFF -DCMAKE_BUILD_TYPE=Release -DCPACK_DEBIAN_PACKAGE_RELEASE=$(Build.BuildNumber) ..
+          cmakeArgs: -Drun_valgrind=ON -DBUILD_SHARED=ON -Drun_unittests=ON -Duse_emulator=OFF -Duse_http=OFF -DCMAKE_BUILD_TYPE=Release -DCPACK_DEBIAN_PACKAGE_RELEASE=$(Build.BuildNumber) ..
       - script: make package
         displayName: Build
         workingDirectory: edgelet/hsm-sys/azure-iot-hsm-c/build
-      - script: ctest -C debug -V
+      - script: ctest -C debug -V -E '_(drd|helgrind)$'
         displayName: Test
         workingDirectory: edgelet/hsm-sys/azure-iot-hsm-c/build
 

@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Storage.Test
 {
+    using System;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -9,26 +10,26 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
 
     [Unit]
     public class InMemoryStorePartitionTest
-    {
+    {       
         [Fact]
-        public async Task GetIndexTest()
+        public async Task GetMultipleOperationsTest()
         {
+            int totalCount = 10000;
             var inMemoryStorePartition = new InMemoryDbStore();
-            await inMemoryStorePartition.Put("key1".ToBytes(), "val1".ToBytes());
-            await inMemoryStorePartition.Put("key2".ToBytes(), "val2".ToBytes());
-            await inMemoryStorePartition.Put("key3".ToBytes(), "val3".ToBytes());
+            for (int i = 0; i <= totalCount; i++)
+            {
+                await inMemoryStorePartition.Put($"key{i}".ToBytes(), $"val{i}".ToBytes());
+            }
 
-            Assert.Equal(0, inMemoryStorePartition.GetIndex("key1".ToBytes()));
-            Assert.Equal(1, inMemoryStorePartition.GetIndex("key2".ToBytes()));
-            Assert.Equal(2, inMemoryStorePartition.GetIndex("key3".ToBytes()));
+            Task getTask = Task.Run(() => inMemoryStorePartition.Get($"key{totalCount}".ToBytes()));
 
-            await inMemoryStorePartition.Remove("key2".ToBytes());
-            Assert.Equal(0, inMemoryStorePartition.GetIndex("key1".ToBytes()));
-            Assert.Equal(-1, inMemoryStorePartition.GetIndex("key2".ToBytes()));
-            Assert.Equal(1, inMemoryStorePartition.GetIndex("key3".ToBytes()));
+            Task removeTask = Task.Run(async () => await inMemoryStorePartition.Remove("key0".ToBytes()));
+            Task putTask = Task.Run(async () => await inMemoryStorePartition.Put("key1".ToBytes(), "newvalue".ToBytes()));
 
-            await inMemoryStorePartition.Put("key3".ToBytes(), "newVal3".ToBytes());
-            Assert.Equal(1, inMemoryStorePartition.GetIndex("key3".ToBytes()));            
+            await Task.WhenAll(removeTask, putTask, getTask);            
+            Assert.True(getTask.IsCompletedSuccessfully);
+            Assert.True(removeTask.IsCompletedSuccessfully);
+            Assert.True(putTask.IsCompletedSuccessfully);
         }
 
         [Fact]
@@ -78,6 +79,55 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
                 counter[0]++;
                 return Task.CompletedTask;
             });
+        }
+
+        [Fact]
+        public async Task IterateEmptyBatchTest()
+        {
+            var inMemoryStorePartition = new InMemoryDbStore();
+            bool callbackCalled = false;
+            await inMemoryStorePartition.IterateBatch(20, (key, value) =>
+            {
+                callbackCalled = true;
+                return Task.CompletedTask;
+            });
+
+            Assert.False(callbackCalled);
+        }
+
+        [Fact]
+        public async Task UpdateDuringIterateTest()
+        {
+            int totalCount = 100;
+            var inMemoryStorePartition = new InMemoryDbStore();
+            for (int i = 0; i <= totalCount; i++)
+            {
+                await inMemoryStorePartition.Put($"key{i}".ToBytes(), $"val{i}".ToBytes());
+            }
+
+            Task iterateBatch = Task.Run(async () =>
+            {
+                await inMemoryStorePartition.IterateBatch(
+                    10,
+                    async (key, value) =>
+                    {
+                        await Task.Delay(TimeSpan.FromMilliseconds(500));
+                    });                
+            });
+
+            Task updateTask = Task.Run(async () =>
+            {
+                await inMemoryStorePartition.Remove("key0".ToBytes());
+                await Task.Delay(TimeSpan.FromMilliseconds(500));
+                await inMemoryStorePartition.Put("key20".ToBytes(), "newValue".ToBytes());
+                await Task.Delay(TimeSpan.FromMilliseconds(500));
+                await inMemoryStorePartition.Remove("key8".ToBytes());
+            });
+
+            await Task.WhenAll(updateTask, iterateBatch);
+
+            Assert.True(iterateBatch.IsCompletedSuccessfully);
+            Assert.True(updateTask.IsCompletedSuccessfully);
         }
     }
 }
