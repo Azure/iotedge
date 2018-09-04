@@ -26,11 +26,9 @@ impl MaybeProxyClient {
         if let Some(uri) = proxy_uri {
             config.proxy(uri);
         }
-        Ok(
-            MaybeProxyClient {
-                client: config.build()?
-            }
-        )
+        Ok(MaybeProxyClient {
+            client: config.build()?,
+        })
     }
 
     #[cfg(test)]
@@ -62,11 +60,11 @@ impl Service for MaybeProxyClient {
 
 #[cfg(test)]
 mod tests {
+    use super::MaybeProxyClient;
     use futures::Future;
     use http::Request;
-    use hyper::{StatusCode, Uri};
     use hyper::client::Service;
-    use super::MaybeProxyClient;
+    use hyper::{StatusCode, Uri};
     use tokio_core::reactor::Core;
 
     #[test]

@@ -33,24 +33,28 @@ impl Config {
         self
     }
 
-    pub fn build(&self)  -> Result<Client, Error> {
+    pub fn build(&self) -> Result<Client, Error> {
         match self.null {
             true => Ok(Client::Null),
             false => {
                 let config = self.clone();
-                let h = &config.handle.expect("tokio_core::reactor::Handle expected!");
+                let h = &config
+                    .handle
+                    .expect("tokio_core::reactor::Handle expected!");
                 let https = HttpsConnector::new(DNS_WORKER_THREADS, &h)?;
                 match config.proxy_uri {
-                    None => {
-                        Ok(Client::NoProxy(HyperClient::configure().connector(https).build(h)))
-                    },
+                    None => Ok(Client::NoProxy(
+                        HyperClient::configure().connector(https).build(h),
+                    )),
                     Some(uri) => {
                         let proxy = Proxy::new(Intercept::All, uri);
                         let conn = ProxyConnector::from_proxy(https, proxy)?;
-                        Ok(Client::Proxy(HyperClient::configure().connector(conn).build(h)))
-                    },
+                        Ok(Client::Proxy(
+                            HyperClient::configure().connector(conn).build(h),
+                        ))
+                    }
                 }
-            },
+            }
         }
     }
 }
@@ -98,7 +102,9 @@ impl Service for Client {
         match *self {
             Client::NoProxy(ref client) => Box::new(client.call(req)) as Self::Future,
             Client::Proxy(ref client) => Box::new(client.call(req)) as Self::Future,
-            Client::Null => Box::new(future::ok(Response::new().with_status(StatusCode::Unregistered(234)))),
+            Client::Null => Box::new(future::ok(
+                Response::new().with_status(StatusCode::Unregistered(234)),
+            )),
         }
     }
 }
@@ -136,7 +142,12 @@ mod tests {
     fn can_create_null_client_with_everything() {
         let h = Core::new().unwrap().handle();
         let uri = "irrelevant".parse::<Uri>().unwrap();
-        let client = Client::configure().null().handle(&h).proxy(uri).build().unwrap();
+        let client = Client::configure()
+            .null()
+            .handle(&h)
+            .proxy(uri)
+            .build()
+            .unwrap();
         assert!(client.is_null());
     }
 
