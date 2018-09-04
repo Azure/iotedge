@@ -911,6 +911,13 @@ mod tests {
 
     #[test]
     fn get_proxy_uri_recognizes_https_proxy() {
+        // TODO:
+        // `cargo test` runs tests in parallel threads by default, so invoking
+        // tests which read/write a per-process resource like environment
+        // variables will cause problems when there's more than one such test.
+        // To more fully test get_proxy_uri(), we'll need to create a nullable
+        // infrastructure for environment variables.
+
         // ensure "https_proxy" env var is set
         let proxy_val = env::var("https_proxy")
             .or_else(|_| {
