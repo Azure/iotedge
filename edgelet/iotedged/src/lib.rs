@@ -314,7 +314,7 @@ pub fn get_proxy_uri() -> Result<Option<Uri>, Error> {
             let proxy = s.parse::<Uri>()?;
             info!("Detected HTTPS proxy server {}", proxy.to_string());
             Some(proxy)
-        },
+        }
     };
     Ok(proxy_uri)
 }
