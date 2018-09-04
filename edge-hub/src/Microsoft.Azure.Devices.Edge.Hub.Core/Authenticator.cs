@@ -4,7 +4,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -15,19 +14,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         readonly string edgeDeviceId;
         readonly IAuthenticator tokenAuthenticator;
-        readonly ICredentialsStore credentialsCache;
+        readonly ICredentialsStore credentialsStore;
 
-        public Authenticator(IAuthenticator tokenAuthenticator, string edgeDeviceId, ICredentialsStore credentialsCache)
+        public Authenticator(IAuthenticator tokenAuthenticator, string edgeDeviceId, ICredentialsStore credentialsStore)
         {
-            this.credentialsCache = Preconditions.CheckNotNull(credentialsCache, nameof(credentialsCache));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
             this.tokenAuthenticator = Preconditions.CheckNotNull(tokenAuthenticator, nameof(tokenAuthenticator));
+            this.credentialsStore = Preconditions.CheckNotNull(credentialsStore, nameof(ICredentialsStore));
         }
 
         /// <summary>
-        /// Authenticates the client credentials and adds it to connection manager if authenticated.
+        /// Authenticates the client credentials
         /// </summary>
-        public async Task<bool> AuthenticateAsync(IClientCredentials clientCredentials)
+        public Task<bool> AuthenticateAsync(IClientCredentials clientCredentials)
+            => this.AuthenticateAsync(clientCredentials, false);
+
+        /// <summary>
+        /// Reauthenticates the client credentials
+        /// </summary>
+        public Task<bool> ReauthenticateAsync(IClientCredentials clientCredentials)
+            => this.AuthenticateAsync(clientCredentials, true);
+
+        async Task<bool> AuthenticateAsync(IClientCredentials clientCredentials, bool reAuthenticating)
         {
             Preconditions.CheckNotNull(clientCredentials);
 
@@ -38,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             if (clientCredentials.Identity is IModuleIdentity moduleIdentity && !moduleIdentity.DeviceId.Equals(this.edgeDeviceId, StringComparison.OrdinalIgnoreCase))
             {
                 Events.InvalidDeviceId(moduleIdentity, this.edgeDeviceId);
-                isAuthenticated =false;
+                isAuthenticated = false;
             }
 
             if (clientCredentials.AuthenticationType == AuthenticationType.X509Cert)
@@ -51,14 +59,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
             else
             {
-                isAuthenticated = await this.tokenAuthenticator.AuthenticateAsync(clientCredentials);
+                isAuthenticated = await (reAuthenticating
+                    ? this.tokenAuthenticator.ReauthenticateAsync(clientCredentials)
+                    : this.tokenAuthenticator.AuthenticateAsync(clientCredentials));
             }
 
             if (isAuthenticated)
             {
-                await this.credentialsCache.Add(clientCredentials);
+                await this.credentialsStore.Add(clientCredentials);
             }
 
+            Events.AuthResult(clientCredentials, reAuthenticating, isAuthenticated);
             return isAuthenticated;
         }
 
@@ -69,8 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             enum EventIds
             {
-                AuthSuccess = IdStart,
-                AuthError,
+                AuthResult = IdStart,
                 InvalidDeviceError
             }
 
@@ -79,22 +89,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 Log.LogError((int)EventIds.InvalidDeviceError, Invariant($"Device Id {moduleIdentity.DeviceId} of module {moduleIdentity.ModuleId} is different from the edge device Id {edgeDeviceId}"));
             }
 
-            public static void AuthResult(Try<ICloudProxy> cloudProxyTry, string id)
+            public static void AuthResult(IClientCredentials clientCredentials, bool reAuthenticating, bool result)
             {
-                if (cloudProxyTry.Success)
+                string operation = reAuthenticating ? "re-authenticated" : "authenticated";
+                if (result)
                 {
-                    if (cloudProxyTry.Value.IsActive)
-                    {
-                        Log.LogInformation((int)EventIds.AuthSuccess, Invariant($"Successfully authenticated device {id}"));
-                    }
-                    else
-                    {
-                        Log.LogInformation((int)EventIds.AuthError, Invariant($"Unable to authenticate device {id}"));
-                    }
+                    Log.LogDebug((int)EventIds.AuthResult, Invariant($"Client {clientCredentials.Identity.Id} {operation} successfully"));
                 }
                 else
                 {
-                    Log.LogError((int)EventIds.AuthError, cloudProxyTry.Exception, Invariant($"Unable to authenticate device {id}"));
+                    Log.LogDebug((int)EventIds.AuthResult, Invariant($"Unable to {operation} client {clientCredentials.Identity.Id}"));
                 }
             }
         }

@@ -37,6 +37,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.credentialsStore = Preconditions.CheckNotNull(credentialsStore, nameof(credentialsStore));
         }
 
+        public IEnumerable<IIdentity> GetConnectedClients() =>
+            this.devices.Values
+                .Where(d => d.DeviceConnection.Map(dc => dc.IsActive).GetOrElse(false))
+                .Select(d => d.Identity);
+
         public async Task AddDeviceConnection(IIdentity identity, IDeviceProxy deviceProxy)
         {
             Preconditions.CheckNotNull(identity, nameof(identity));
@@ -183,14 +188,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             switch (connectionStatus)
             {
                 case CloudConnectionStatus.TokenNearExpiry:
-                    Option<IClientCredentials> token = await device.DeviceConnection.Filter(d => d.IsActive)
-                        .Map(dc => dc.DeviceProxy.GetUpdatedIdentity())
-                        .GetOrElse(async () =>
-                        {
-                            await device.CloudConnection.Map(c => c.CloseAsync()).GetOrElse(Task.FromResult(true));
-                            return Option.None<IClientCredentials>();
-                        });
-
+                    Option<IClientCredentials> token = await this.credentialsStore.Get(device.Identity);
                     if (token.HasValue)
                     {
                         await token.ForEachAsync(async t =>
@@ -359,8 +357,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 RemoveDeviceConnection,
                 CreateNewCloudConnectionError,
                 ObtainedCloudConnection,
-                ObtainCloudConnectionError,
-                BindDeviceProxy
+                ObtainCloudConnectionError
             }
 
             public static void NewCloudConnection(IIdentity identity, Try<ICloudConnection> cloudConnection)
@@ -395,12 +392,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 {
                     Log.LogInformation((int)EventIds.ObtainCloudConnectionError, cloudConnection.Exception, Invariant($"Error getting cloud connection for device {identity.Id}"));
                 }
-            }
-
-            public static void BindDeviceProxy(IIdentity identity)
-            {
-                Log.LogDebug((int)EventIds.BindDeviceProxy, Invariant($"Bound device proxy for {identity.Id}"));
-            }
+            }            
         }
     }
 }
