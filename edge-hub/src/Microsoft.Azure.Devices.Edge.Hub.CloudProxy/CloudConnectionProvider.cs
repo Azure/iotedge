@@ -26,18 +26,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly ITransportSettings[] transportSettings;
         readonly IMessageConverterProvider messageConverterProvider;
         readonly IClientProvider clientProvider;
+        readonly ITokenProvider edgeHubTokenProvider;
+        readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
         Option<IEdgeHub> edgeHub;
 
         public CloudConnectionProvider(IMessageConverterProvider messageConverterProvider,
             int connectionPoolSize,
             IClientProvider clientProvider,
-            Option<UpstreamProtocol> upstreamProtocol)
+            Option<UpstreamProtocol> upstreamProtocol,
+            ITokenProvider edgeHubTokenProvider,
+            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache)
         {
             Preconditions.CheckRange(connectionPoolSize, 1, nameof(connectionPoolSize));
             this.messageConverterProvider = Preconditions.CheckNotNull(messageConverterProvider, nameof(messageConverterProvider));
             this.clientProvider = Preconditions.CheckNotNull(clientProvider, nameof(clientProvider));
             this.transportSettings = GetTransportSettings(upstreamProtocol, connectionPoolSize);
             this.edgeHub = Option.None<IEdgeHub>();
+            this.edgeHubTokenProvider = Preconditions.CheckNotNull(edgeHubTokenProvider, nameof(edgeHubTokenProvider));
+            this.deviceScopeIdentitiesCache = Preconditions.CheckNotNull(deviceScopeIdentitiesCache, nameof(deviceScopeIdentitiesCache));
         }
 
         public void BindEdgeHub(IEdgeHub edgeHubInstance)
@@ -107,7 +113,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             try
             {
                 var cloudListener = new CloudListener(this.edgeHub.Expect(() => new InvalidOperationException("EdgeHub reference should not be null")), identity.Identity.Id);
-                var cloudConnection = new CloudConnection(connectionStatusChangedHandler, this.transportSettings, this.messageConverterProvider, this.clientProvider, cloudListener);
+                var cloudConnection = new CloudConnection(
+                    connectionStatusChangedHandler,
+                    this.transportSettings,
+                    this.messageConverterProvider,
+                    this.clientProvider,
+                    cloudListener,
+                    this.edgeHubTokenProvider,
+                    this.deviceScopeIdentitiesCache);
                 await cloudConnection.CreateOrUpdateAsync(identity);
                 Events.SuccessCreatingCloudConnection(identity.Identity);
                 return Try.Success<ICloudConnection>(cloudConnection);
