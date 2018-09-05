@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Functions.Binding
+namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
 {
     using System;
     using System.Collections.Generic;

@@ -1,11 +1,25 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <AssemblyName>Microsoft.Azure.Devices.Edge.Functions.BindingExtension</AssemblyName>
+    <AssemblyName>Microsoft.Azure.WebJobs.Extensions.EdgeHub</AssemblyName>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
     <Configurations>Debug;Release;CodeCoverage</Configurations>
     <HighEntropyVA>true</HighEntropyVA>
+    <Version>1.0.0-beta-004</Version>
+  </PropertyGroup>
+  
+  <PropertyGroup>
+    <Version>1.0.0-beta-004</Version>
+    <Title>Microsoft Azure Edge Function extension</Title>
+    <Authors>Microsoft</Authors>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <PackageLicenseUrl>https://github.com/Azure/iotedge/blob/master/LICENSE</PackageLicenseUrl>
+    <Description>This package contains binding extensions for IoTEdge.</Description>
+    <PackageIconUrl>http://go.microsoft.com/fwlink/?LinkID=288890</PackageIconUrl>
+    <PackageProjectUrl>https://github.com/Azure/iotedge</PackageProjectUrl>
+    <Copyright>© Microsoft Corporation. All rights reserved.</Copyright>
+    <PackageTags>IoT Microsoft Azure IoTEdge Functions</PackageTags>
   </PropertyGroup>
 
   <!--
@@ -23,24 +37,6 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.18.0" />
-    <PackageReference Include="Microsoft.Azure.WebJobs.Extensions" Version="3.0.0-beta3" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="../../docker*/**/*.*">
-      <Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="../../scripts/**/*.*">
-      <Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj" />
+    <PackageReference Include="Microsoft.Azure.WebJobs" Version="3.0.0-beta7-11412" />
   </ItemGroup>
 </Project>

@@ -31,6 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         readonly string iotHubHostname;
         readonly string edgeDeviceId;
         readonly string edgeModuleId;
+        readonly string edgeDeviceHostName;
         readonly Option<string> connectionString;
 
         // ReSharper disable once UnusedParameter.Local
@@ -48,6 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 this.iotHubHostname = iotHubConnectionStringBuilder.HostName;
                 this.edgeDeviceId = iotHubConnectionStringBuilder.DeviceId;
                 this.edgeModuleId = iotHubConnectionStringBuilder.ModuleId;
+                this.edgeDeviceHostName = string.Empty;
                 this.connectionString = Option.Some(edgeHubConnectionString);
             }
             else
@@ -55,6 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 this.iotHubHostname = this.Configuration.GetValue<string>(Constants.IotHubHostnameVariableName);
                 this.edgeDeviceId = this.Configuration.GetValue<string>(Constants.DeviceIdVariableName);
                 this.edgeModuleId = this.Configuration.GetValue<string>(Constants.ModuleIdVariableName);
+                this.edgeDeviceHostName = this.Configuration.GetValue<string>(Constants.EdgeDeviceHostNameKey);
                 this.connectionString = Option.None<string>();
             }
 
@@ -117,6 +120,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             int maxConnectedClients = this.Configuration.GetValue("MaxConnectedClients", 100) + 1;
 
             IConfiguration amqpSettings = this.Configuration.GetSection("amqpSettings");
+            if (!Enum.TryParse(this.Configuration.GetValue("AuthenticationMode", string.Empty), true, out AuthenticationMode authenticationMode))
+            {
+                authenticationMode = AuthenticationMode.CloudAndScope;
+            }
+
+            int scopeCacheRefreshRateSecs = this.Configuration.GetValue("DeviceScopeCacheRefreshRateSecs", 3600);
+            TimeSpan scopeCacheRefreshRate = TimeSpan.FromSeconds(scopeCacheRefreshRateSecs);
 
             var builder = new ContainerBuilder();
             builder.Populate(services);
@@ -142,7 +152,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 new CommonModule(
                     productInfo,
                     this.iotHubHostname,
-                    this.edgeDeviceId));
+                    this.edgeDeviceId,
+                    this.edgeModuleId,
+                    this.edgeDeviceHostName,
+                    moduleGenerationId,
+                    authenticationMode,
+                    this.connectionString,
+                    optimizeForPerformance,
+                    storeAndForward.usePersistentStorage,
+                    storeAndForward.storagePath,
+                    workloadUri,
+                    scopeCacheRefreshRate,
+                    cacheTokens));
+
             builder.RegisterModule(
                 new RoutingModule(
                     this.iotHubHostname,
@@ -151,19 +173,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     this.connectionString,
                     routes,
                     storeAndForward.isEnabled,
-                    storeAndForward.usePersistentStorage,
                     storeAndForward.config,
-                    storeAndForward.storagePath,
                     connectionPoolSize,
                     useTwinConfig,
                     this.VersionInfo,
                     upstreamProtocolOption,
-                    optimizeForPerformance,
                     connectivityCheckFrequency,
                     maxConnectedClients,
-                    cacheTokens,
-                    workloadUri,
-                    moduleGenerationId));
+                    cacheTokens));
 
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, ServerCertificateCache.X509Certificate, storeAndForward.isEnabled, clientCertAuthEnabled, caChainPath, optimizeForPerformance));
             builder.RegisterModule(new AmqpModule(amqpSettings["scheme"], amqpSettings.GetValue<ushort>("port"), ServerCertificateCache.X509Certificate, this.iotHubHostname));

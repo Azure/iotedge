@@ -1,4 +1,5 @@
 {
+  "configurationSource": "attributes",
   "bindings": [
     {
       "type": "edgeHubTrigger",
@@ -13,5 +14,8 @@
       "batchSize": 10,
       "direction": "inout"
     }
-  ]
+  ],
+  "disabled": true,
+  "scriptFile": "bin/EdgeHubTriggerCSharp.dll",
+  "entryPoint": "Functions.Samples.EdgeHubSamples.FilterMessageAndSendMessage"
 }
