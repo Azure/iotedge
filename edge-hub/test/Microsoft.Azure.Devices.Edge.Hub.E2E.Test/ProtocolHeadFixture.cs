@@ -134,16 +134,40 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
                 var versionInfo = new VersionInfo("v1", "b1", "c1");
                 var storeAndForwardConfiguration = new StoreAndForwardConfiguration(-1);
-                builder.RegisterModule(new CommonModule(string.Empty, iotHubConnectionStringBuilder.HostName, iotHubConnectionStringBuilder.DeviceId));
+                builder.RegisterModule(
+                    new CommonModule(
+                        string.Empty,
+                        iotHubConnectionStringBuilder.HostName,
+                        iotHubConnectionStringBuilder.DeviceId,
+                        iotHubConnectionStringBuilder.ModuleId,
+                        string.Empty,
+                        Option.None<string>(),
+                        AuthenticationMode.CloudAndScope,
+                        Option.Some(edgeDeviceConnectionString),
+                        false,
+                        false,
+                        string.Empty,
+                        Option.None<string>(),
+                        TimeSpan.FromHours(1),
+                        false));
+
                 builder.RegisterModule(
                     new RoutingModule(
                         iotHubConnectionStringBuilder.HostName,
-                        iotHubConnectionStringBuilder.DeviceId, iotHubConnectionStringBuilder.ModuleId,
+                        iotHubConnectionStringBuilder.DeviceId,
+                        iotHubConnectionStringBuilder.ModuleId,
                         Option.Some(edgeHubConnectionString),
-                        this.routes, false, false, storeAndForwardConfiguration,
-                        string.Empty, ConnectionPoolSize, false, versionInfo, Option.Some(UpstreamProtocol.Amqp),
-                        true, TimeSpan.FromSeconds(5), 101, false, Option.None<string>(), Option.None<string>())
-                );
+                        this.routes,
+                        false,
+                        storeAndForwardConfiguration,
+                        ConnectionPoolSize,
+                        false,
+                        versionInfo,
+                        Option.Some(UpstreamProtocol.Amqp),
+                        TimeSpan.FromSeconds(5),
+                        101,
+                        false));
+
                 builder.RegisterModule(new HttpModule());
                 builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, certificate, false, false, string.Empty, false));
                 builder.RegisterModule(new AmqpModule("amqps", 5671, certificate, iotHubConnectionStringBuilder.HostName));
