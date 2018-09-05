@@ -158,9 +158,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             var receivedStatuses = new List<CloudConnectionStatus>();
             void ConnectionStatusHandler(string id, CloudConnectionStatus status) => receivedStatuses.Add(status);
-            var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter>());
+            var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter> { [typeof(TwinCollection)] = Mock.Of<IMessageConverter>() });
 
-            var cloudConnection = new CloudConnection(ConnectionStatusHandler, transportSettings, messageConverterProvider, clientProvider);
+            var cloudConnection = new CloudConnection(ConnectionStatusHandler, transportSettings, messageConverterProvider, clientProvider, Mock.Of<ICloudListener>());
 
             IClientCredentials clientCredentialsWithExpiringToken1 = GetClientCredentialsWithExpiringToken();
             ICloudProxy cloudProxy1 = await cloudConnection.CreateOrUpdateAsync(clientCredentialsWithExpiringToken1);
