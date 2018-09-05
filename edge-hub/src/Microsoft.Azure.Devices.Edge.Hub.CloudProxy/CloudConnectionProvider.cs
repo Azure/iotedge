@@ -110,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             try
             {
                 var cloudListener = new CloudListener(this.edgeHub.Expect(() => new InvalidOperationException("EdgeHub reference should not be null")), identity.Identity.Id);
-                var cloudConnection = new CloudConnection(connectionStatusChangedHandler, this.transportSettings, this.messageConverterProvider, this.clientProvider, cloudListener, TimeSpan.FromHours(1));
+                var cloudConnection = new CloudConnection(connectionStatusChangedHandler, this.transportSettings, this.messageConverterProvider, this.clientProvider, cloudListener, this.idleTimeout);
                 await cloudConnection.CreateOrUpdateAsync(identity);
                 Events.SuccessCreatingCloudConnection(identity.Identity);
                 return Try.Success<ICloudConnection>(cloudConnection);
