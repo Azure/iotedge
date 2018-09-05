@@ -12,13 +12,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
     public class TokenCacheAuthenticator : IAuthenticator
     {
         readonly IAuthenticator cloudAuthenticator;
-        readonly ICredentialsStore credentialsStore;
+        readonly ICredentialsCache credentialsCache;
         readonly string iotHubHostName;
 
-        public TokenCacheAuthenticator(IAuthenticator cloudAuthenticator, ICredentialsStore credentialsStore, string iotHubHostName)
+        public TokenCacheAuthenticator(IAuthenticator cloudAuthenticator, ICredentialsCache credentialsCache, string iotHubHostName)
         {
             this.cloudAuthenticator = Preconditions.CheckNotNull(cloudAuthenticator, nameof(cloudAuthenticator));
-            this.credentialsStore = Preconditions.CheckNotNull(credentialsStore, nameof(credentialsStore));
+            this.credentialsCache = Preconditions.CheckNotNull(credentialsCache, nameof(credentialsCache));
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostName, nameof(iotHubHostName));
         }
 
@@ -35,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
                 return false;
             }
 
-            Option<IClientCredentials> validatedCredentials = await this.credentialsStore.Get(tokenCredentials.Identity);
+            Option<IClientCredentials> validatedCredentials = await this.credentialsCache.Get(tokenCredentials.Identity);
             bool isAuthenticated = await validatedCredentials.Map(
                     v => Task.FromResult(v is ITokenCredentials validatedTokenCredentials &&
                         this.IsValid(clientCredentials, validatedTokenCredentials.Token) &&
@@ -54,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
 
                 if (isAuthenticated)
                 {
-                    await this.credentialsStore.Add(clientCredentials);
+                    await this.credentialsCache.Add(clientCredentials);
                 }
             }
 

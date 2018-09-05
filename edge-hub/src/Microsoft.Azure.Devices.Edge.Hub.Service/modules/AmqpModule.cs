@@ -71,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     var transportSettings = c.Resolve<ITransportSettings>();
                     var transportListenerProvider = c.Resolve<ITransportListenerProvider>();
                     var linkHandlerProvider = c.Resolve<ILinkHandlerProvider>();
-                    ICredentialsStore credentialsStore = await c.Resolve<Task<ICredentialsStore>>();
+                    ICredentialsCache credentialsCache = await c.Resolve<Task<ICredentialsCache>>();
                     IAuthenticator authenticator = await c.Resolve<Task<IAuthenticator>>();
                     IConnectionProvider connectionProvider = await c.Resolve<Task<IConnectionProvider>>();
                     AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(
@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         identityFactory,
                         linkHandlerProvider,
                         connectionProvider,
-                        credentialsStore);
+                        credentialsCache);
                     return new AmqpProtocolHead(
                         transportSettings,
                         amqpSettings,

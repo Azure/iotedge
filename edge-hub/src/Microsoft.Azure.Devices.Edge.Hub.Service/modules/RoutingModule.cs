@@ -181,7 +181,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
            // Task<ICredentialsStore>
             builder.Register(async c =>
                 {
-                    ICredentialsStore underlyingCredentialsStore;
+                    ICredentialsCache underlyingCredentialsCache;
                     if (this.persistTokens)
                     {
                         IKeyValueStore<string, string> encryptedStore = await c.ResolveNamed<Task<IKeyValueStore<string, string>>>("EncryptedStore");
@@ -189,12 +189,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     }
                     else
                     {
-                        underlyingCredentialsStore = new NullCredentialsStore();
+                        underlyingCredentialsCache = new NullCredentialsCache();
                     }
-                    ICredentialsStore credentialsStore = new CredentialsManager(underlyingCredentialsStore);
-                    return credentialsStore;
+                    ICredentialsCache credentialsCache = new CredentialsCache(underlyingCredentialsCache);
+                    return credentialsCache;
                 })
-                .As<Task<ICredentialsStore>>()
+                .As<Task<ICredentialsCache>>()
                 .SingleInstance();
 
             // Task<IConnectionManager>

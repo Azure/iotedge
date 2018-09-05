@@ -23,18 +23,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly ConcurrentDictionary<string, ConnectedDevice> devices = new ConcurrentDictionary<string, ConnectedDevice>();
         readonly ICloudConnectionProvider cloudConnectionProvider;
         readonly int maxClients;
-        readonly ICredentialsStore credentialsStore;
+        readonly ICredentialsCache credentialsCache;
 
         public event EventHandler<IIdentity> CloudConnectionLost;
         public event EventHandler<IIdentity> CloudConnectionEstablished;
         public event EventHandler<IIdentity> DeviceConnected;
         public event EventHandler<IIdentity> DeviceDisconnected;
 
-        public ConnectionManager(ICloudConnectionProvider cloudConnectionProvider, ICredentialsStore credentialsStore, int maxClients = DefaultMaxClients)
+        public ConnectionManager(ICloudConnectionProvider cloudConnectionProvider, ICredentialsCache credentialsCache, int maxClients = DefaultMaxClients)
         {
             this.cloudConnectionProvider = Preconditions.CheckNotNull(cloudConnectionProvider, nameof(cloudConnectionProvider));
             this.maxClients = Preconditions.CheckRange(maxClients, 1, nameof(maxClients));
-            this.credentialsStore = Preconditions.CheckNotNull(credentialsStore, nameof(credentialsStore));
+            this.credentialsCache = Preconditions.CheckNotNull(credentialsCache, nameof(credentialsCache));
         }
 
         public IEnumerable<IIdentity> GetConnectedClients() =>
@@ -95,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Try<ICloudConnection> cloudConnectionTry = await device.GetOrCreateCloudConnection(
                 async c =>
                 {
-                    Option<IClientCredentials> clientCredentials = await this.credentialsStore.Get(device.Identity);
+                    Option<IClientCredentials> clientCredentials = await this.credentialsCache.Get(device.Identity);
                     return await clientCredentials
                         .Map(dc => this.CreateOrUpdateCloudConnection(c, dc))
                         .GetOrElse(Task.FromResult(Try<ICloudConnection>.Failure(new EdgeHubConnectionException($"Could not get credentials for client {id} to connect to IoTHub"))));
@@ -188,7 +188,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             switch (connectionStatus)
             {
                 case CloudConnectionStatus.TokenNearExpiry:
-                    Option<IClientCredentials> token = await this.credentialsStore.Get(device.Identity);
+                    Option<IClientCredentials> token = await this.credentialsCache.Get(device.Identity);
                     if (token.HasValue)
                     {
                         await token.ForEachAsync(async t =>

@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public class TokenCredentialsStore : ICredentialsStore
+    public class TokenCredentialsCache : ICredentialsCache
     {
         readonly IKeyValueStore<string, string> encryptedStore;
 
@@ -54,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<TokenCredentialsStore>();
+            static readonly ILogger Log = Logger.Factory.CreateLogger<TokenCredentialsCache>();
             const int IdStart = HubCoreEventIds.TokenCredentialsStore;
 
             enum EventIds
