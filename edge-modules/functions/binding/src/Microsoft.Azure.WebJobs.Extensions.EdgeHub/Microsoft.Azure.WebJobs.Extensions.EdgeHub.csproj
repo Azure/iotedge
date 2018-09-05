@@ -6,11 +6,9 @@
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
     <Configurations>Debug;Release;CodeCoverage</Configurations>
     <HighEntropyVA>true</HighEntropyVA>
-    <Version>1.0.0-beta-004</Version>
   </PropertyGroup>
   
   <PropertyGroup>
-    <Version>1.0.0-beta-004</Version>
     <Title>Microsoft Azure Edge Function extension</Title>
     <Authors>Microsoft</Authors>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
