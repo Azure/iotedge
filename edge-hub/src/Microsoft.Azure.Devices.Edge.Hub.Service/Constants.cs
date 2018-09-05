@@ -16,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         public const string ModuleIdVariableName = "IOTEDGE_MODULEID";
         public const string ModuleGenerationIdVariableName = "IOTEDGE_MODULEGENERATIONID";
         public const string WorkloadUriVariableName = "IOTEDGE_WORKLOADURI";
+        public const string EdgeDeviceHostNameKey = "EDGEDEVICEHOSTNAME";
         public const string EdgeDeviceHostnameVariableName = "EdgeDeviceHostName";
         public const string WorkloadApiVersion = "2018-06-28";
         public const int CertificateValidityDays = 90;
