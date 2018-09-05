@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     { typeof(Twin), twinMessageConverter },
                     { typeof(TwinCollection), twinCollectionMessageConverter }
                 });
-            var cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, new ClientProvider(), Option.None<UpstreamProtocol>(), TimeSpan.FromMinutes(60));
+            var cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, new ClientProvider(), Option.None<UpstreamProtocol>(), Mock.Of<ITokenProvider>(), Mock.Of<IDeviceScopeIdentitiesCache>(), TimeSpan.FromMinutes(60));
             var connectionManager = new ConnectionManager(cloudConnectionProvider);
 
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
