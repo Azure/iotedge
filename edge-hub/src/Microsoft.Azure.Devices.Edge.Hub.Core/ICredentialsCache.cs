@@ -5,7 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public interface ICredentialsStore
+    public interface ICredentialsCache
     {
         Task Add(IClientCredentials clientCredentials);
 

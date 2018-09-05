@@ -19,19 +19,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         readonly IConnectionManager connectionManager;
         readonly IAuthenticator authenticator;
-        readonly ICredentialsStore credentialsStore;
+        readonly ICredentialsCache credentialsCache;
         readonly Timer timer;
 
         public ConnectionReauthenticator(
             IConnectionManager connectionManager,
             IAuthenticator authenticator,
-            ICredentialsStore credentialsStore,
+            ICredentialsCache credentialsCache,
             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache,
             TimeSpan reauthenticateFrequency)
         {
             this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
             this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
-            this.credentialsStore = Preconditions.CheckNotNull(credentialsStore, nameof(credentialsStore));
+            this.credentialsCache = Preconditions.CheckNotNull(credentialsCache, nameof(credentialsCache));
             this.timer = new Timer(reauthenticateFrequency.TotalMilliseconds);
             this.timer.Elapsed += this.ReauthenticateConnections;
             deviceScopeIdentitiesCache.ServiceIdentityUpdated += this.HandleServiceIdentityUpdate;
@@ -53,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 {
                     try
                     {
-                        Option<IClientCredentials> clientCredentials = await this.credentialsStore.Get(identity);
+                        Option<IClientCredentials> clientCredentials = await this.credentialsCache.Get(identity);
                         bool result = await clientCredentials
                             .Map(
                                 async c =>
@@ -97,12 +97,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     await deviceProxy.ForEachAsync(
                         async dp =>
                         {
-                            Option<IClientCredentials> clientCredentials = await this.credentialsStore.Get(dp.Identity);
+                            Option<IClientCredentials> clientCredentials = await this.credentialsCache.Get(dp.Identity);
                             await clientCredentials.ForEachAsync(
                                 async c =>
                                 {
-                                    if (!(c is ITokenCredentials tokenCredentials) ||
-                                        !await this.authenticator.ReauthenticateAsync(tokenCredentials))
+                                    if (!await this.authenticator.ReauthenticateAsync(c))
                                     {
                                         Events.ServiceIdentityUpdatedRemoving(serviceIdentity.Id);
                                         await this.connectionManager.RemoveDeviceConnection(c.Identity.Id);

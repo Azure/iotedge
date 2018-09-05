@@ -226,10 +226,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     .SingleInstance();
             }
 
-            // Task<ICredentialsStore>
+            // Task<ICredentialsCache>
             builder.Register(async c =>
                 {
-                    ICredentialsStore underlyingCredentialsStore;
+                    ICredentialsCache underlyingCredentialsCache;
                     if (this.persistTokens)
                     {
                         var dbStoreProvider = c.Resolve<IDbStoreProvider>();
@@ -244,20 +244,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             .GetOrElse(() => Task.FromResult<IEncryptionProvider>(NullEncryptionProvider.Instance));
                         IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
                         IEntityStore<string, string> tokenCredentialsEntityStore = storeProvider.GetEntityStore<string, string>("tokenCredentials");
-                        underlyingCredentialsStore = new TokenCredentialsStore(tokenCredentialsEntityStore, encryptionProvider);
+                        underlyingCredentialsCache = new TokenCredentialsCache(tokenCredentialsEntityStore, encryptionProvider);
                     }
                     else
                     {
-                        underlyingCredentialsStore = new NullCredentialsStore();
+                        underlyingCredentialsCache = new NullCredentialsCache();
                     }
-                    ICredentialsStore credentialsStore = new CredentialsManager(underlyingCredentialsStore);
-                    return credentialsStore;
+                    ICredentialsCache credentialsCache = new CredentialsCache(underlyingCredentialsCache);
+                    return credentialsCache;
                 })
-                .As<Task<ICredentialsStore>>()
+                .As<Task<ICredentialsCache>>()
                 .SingleInstance();
 
             // IConnectionManager
-            builder.Register(c => new ConnectionManager(c.Resolve<ICloudConnectionProvider>(), c.Resolve<ICredentialsStore>(), this.maxConnectedClients))
+            builder.Register(c => new ConnectionManager(c.Resolve<ICloudConnectionProvider>(), c.Resolve<ICredentialsCache>(), this.maxConnectedClients))
                 .As<IConnectionManager>()
                 .SingleInstance();
 

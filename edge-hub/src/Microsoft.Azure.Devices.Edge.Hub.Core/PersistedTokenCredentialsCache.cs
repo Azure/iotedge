@@ -8,12 +8,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public class TokenCredentialsStore : ICredentialsStore
+    public class TokenCredentialsCache : ICredentialsCache
     {
         readonly IEntityStore<string, string> tokenStore;
         readonly IEncryptionProvider encryptionProvider;
 
-        public TokenCredentialsStore(IEntityStore<string, string> tokenStore, IEncryptionProvider encryptionProvider)
+        public TokenCredentialsCache(IEntityStore<string, string> tokenStore, IEncryptionProvider encryptionProvider)
         {
             this.tokenStore = Preconditions.CheckNotNull(tokenStore, nameof(tokenStore));
             this.encryptionProvider = Preconditions.CheckNotNull(encryptionProvider, nameof(encryptionProvider));
@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<TokenCredentialsStore>();
+            static readonly ILogger Log = Logger.Factory.CreateLogger<TokenCredentialsCache>();
             const int IdStart = HubCoreEventIds.TokenCredentialsStore;
 
             enum EventIds

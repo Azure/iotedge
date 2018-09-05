@@ -28,9 +28,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(async c =>
                 {
                     var connectionManager = c.Resolve<IConnectionManager>();
-                    ICredentialsStore credentialsStore = await c.Resolve<Task<ICredentialsStore>>();
-                    var tokenCredentialsAuthenticator = new TokenCacheAuthenticator(new CloudTokenAuthenticator(connectionManager, this.iothubHostName), credentialsStore, this.iothubHostName);
-                    return new Authenticator(tokenCredentialsAuthenticator, this.deviceId, credentialsStore) as IAuthenticator;
+                    ICredentialsCache credentialsCache = await c.Resolve<Task<ICredentialsCache>>();
+                    var tokenCredentialsAuthenticator = new TokenCacheAuthenticator(new CloudTokenAuthenticator(connectionManager, this.iothubHostName), credentialsCache, this.iothubHostName);
+                    return new Authenticator(tokenCredentialsAuthenticator, this.deviceId, credentialsCache) as IAuthenticator;
                 })
                 .As<Task<IAuthenticator>>()
                 .SingleInstance();
