@@ -223,8 +223,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         async Task<IAuthenticationMethod> GetAuthenticationMethod(IIdentity newIdentity, string token)
         {
-            //var tokenRefresher = new EdgeHubAuthentication();
-            //return this.edgeHubAuthenticationMethod;
             Option<ServiceIdentity> serviceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(newIdentity.Id);
             if (newIdentity is IModuleIdentity moduleIdentity)
             {
@@ -303,7 +301,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             string newToken = await tcs.Task;
             return newToken;
         }
-
 
         internal static DateTime GetTokenExpiry(string hostName, string token)
         {

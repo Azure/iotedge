@@ -234,7 +234,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             }
 
             if (string.IsNullOrWhiteSpace(hostName) ||
-                !(this.iothubHostName.Equals(hostName) || (!string.IsNullOrWhiteSpace(this.edgeHubHostName) && this.edgeHubHostName.Equals(hostName))))
+                !(this.iothubHostName.Equals(hostName) || this.edgeHubHostName.Equals(hostName)))
             {
                 Events.InvalidHostName(identity.Id, hostName, this.iothubHostName, this.edgeHubHostName);
                 return false;
