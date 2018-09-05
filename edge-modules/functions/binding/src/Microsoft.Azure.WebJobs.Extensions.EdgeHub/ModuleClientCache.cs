@@ -1,21 +1,19 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Functions.Binding
+namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
 {
     using System;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
-    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
-    using ExponentialBackoff = Util.TransientFaultHandling.ExponentialBackoff;
 
     class ModuleClientCache
     {
         const int RetryCount = 5;
         static readonly ITransientErrorDetectionStrategy TimeoutErrorDetectionStrategy = new DelegateErrorDetectionStrategy(ex => ex.HasTimeoutException());
+
         static readonly RetryStrategy TransientRetryStrategy =
             new ExponentialBackoff(RetryCount, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
+
         readonly AsyncLock asyncLock = new AsyncLock();
         ModuleClient client;
 

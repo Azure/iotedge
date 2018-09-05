@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Functions.Binding
+namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
 {
     using System;
     using System.Collections.Concurrent;
@@ -8,7 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
     using System.Reflection;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Edge.Functions.Binding.Bindings;
     using Microsoft.Azure.WebJobs.Host.Triggers;
 
     /// <summary>
@@ -33,11 +32,6 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
             if (attribute == null)
             {
                 return null;
-            }
-
-            if (parameter.ParameterType != typeof(Message) && parameter.ParameterType != typeof(string))
-            {
-                throw new InvalidOperationException($"Can't bind EdgeHubTriggerAttribute to type '{parameter.ParameterType}'.");
             }
 
             await this.TrySetEventDefaultHandlerAsync().ConfigureAwait(false);
