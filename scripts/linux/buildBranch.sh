@@ -182,14 +182,6 @@ publish_quickstart()
         .
 }
 
-publish_functions_sample()
-{
-    echo "Publishing Functions sample"
-    publish_files $FUNCTIONS_SAMPLE_DIR $PUBLISH_FOLDER
-
-    publish_project library "EdgeHubTriggerCSharp" netstandard2.0 $CONFIGURATION "$PUBLISH_FOLDER/samples/EdgeHubTrigger-Csharp/bin" $MSBUILD_OPTIONS
-}
-
 process_args "$@"
 
 rm -fr $PUBLISH_FOLDER
@@ -204,6 +196,7 @@ publish_app "load-gen"
 publish_app "MessagesAnalyzer"
 
 publish_lib "Microsoft.Azure.WebJobs.Extensions.EdgeHub"
+publish_lib "EdgeHubTriggerCSharp"
 
 publish_files $SRC_DOCKER_DIR $PUBLISH_FOLDER
 publish_files $SRC_SCRIPTS_DIR $PUBLISH_FOLDER
@@ -222,6 +215,5 @@ fi
 
 publish_quickstart linux-arm
 publish_quickstart linux-x64
-publish_functions_sample
 
 exit $RES

@@ -1,9 +1,0 @@
-{
-    "extensions": [
-        {
-            "Name": "EdgeHubTrigger",
-            "TypeName": "Microsoft.Azure.WebJobs.Extensions.EdgeHub.EdgeHubWebJobsStartup, Microsoft.Azure.WebJobs.Extensions.EdgeHub, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
-            "HintPath": "/app/EdgeHubTrigger-Csharp/bin/Microsoft.Azure.WebJobs.Extensions.EdgeHub.dll"
-        }
-    ]
-}
