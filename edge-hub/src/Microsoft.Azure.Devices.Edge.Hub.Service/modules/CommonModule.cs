@@ -80,8 +80,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             .GetOrElse(
                                 () =>
                                 {
-                                    string edgeHubGenerationId = this.edgeHubGenerationId.Expect(() => new Exception("Generation ID missing"));
-                                    return new HttpHsmSignatureProvider(this.edgeHubModuleId, edgeHubGenerationId, string.Empty, string.Empty) as ISignatureProvider;
+                                    string edgeHubGenerationId = this.edgeHubGenerationId.Expect(() => new InvalidOperationException("Generation ID missing"));
+                                    string workloadUri = this.workloadUri.Expect(() => new InvalidOperationException("workloadUri is missing"));
+                                    return new HttpHsmSignatureProvider(this.edgeHubModuleId, edgeHubGenerationId, workloadUri, Service.Constants.WorkloadApiVersion) as ISignatureProvider;
                                 });
                         return signatureProvider;
                     })
