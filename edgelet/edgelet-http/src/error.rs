@@ -9,9 +9,11 @@ use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind};
 use failure::{Backtrace, Context, Fail};
 use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use http::{Response, StatusCode};
+use hyper::error::UriError;
 use hyper::{Body, Error as HyperError, StatusCode as HyperStatusCode};
 #[cfg(windows)]
 use hyper_named_pipe::Error as PipeError;
+use hyper_tls::Error as HyperTlsError;
 #[cfg(unix)]
 use nix::Error as NixError;
 use serde_json::Error as SerdeError;
@@ -54,6 +56,8 @@ pub enum ErrorKind {
     #[cfg(windows)]
     #[fail(display = "Named pipe error")]
     HyperPipe,
+    #[fail(display = "A TLS error occurred.")]
+    HyperTls,
     #[fail(display = "Systemd error")]
     Systemd,
     #[fail(display = "Module not found")]
@@ -236,6 +240,22 @@ impl From<NixError> for Error {
     fn from(error: NixError) -> Error {
         Error {
             inner: error.context(ErrorKind::Nix),
+        }
+    }
+}
+
+impl From<HyperTlsError> for Error {
+    fn from(error: HyperTlsError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::HyperTls),
+        }
+    }
+}
+
+impl From<UriError> for Error {
+    fn from(error: UriError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Parse),
         }
     }
 }
