@@ -26,6 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly ITransportSettings[] transportSettings;
         readonly IMessageConverterProvider messageConverterProvider;
         readonly IClientProvider clientProvider;
+        readonly TimeSpan idleTimeout;
         readonly ITokenProvider edgeHubTokenProvider;
         readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
         Option<IEdgeHub> edgeHub;
@@ -35,13 +36,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             IClientProvider clientProvider,
             Option<UpstreamProtocol> upstreamProtocol,
             ITokenProvider edgeHubTokenProvider,
-            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache)
+            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache,
+            TimeSpan idleTimeout)
         {
             Preconditions.CheckRange(connectionPoolSize, 1, nameof(connectionPoolSize));
             this.messageConverterProvider = Preconditions.CheckNotNull(messageConverterProvider, nameof(messageConverterProvider));
             this.clientProvider = Preconditions.CheckNotNull(clientProvider, nameof(clientProvider));
             this.transportSettings = GetTransportSettings(upstreamProtocol, connectionPoolSize);
             this.edgeHub = Option.None<IEdgeHub>();
+            this.idleTimeout = idleTimeout;
             this.edgeHubTokenProvider = Preconditions.CheckNotNull(edgeHubTokenProvider, nameof(edgeHubTokenProvider));
             this.deviceScopeIdentitiesCache = Preconditions.CheckNotNull(deviceScopeIdentitiesCache, nameof(deviceScopeIdentitiesCache));
         }
@@ -120,7 +123,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     this.clientProvider,
                     cloudListener,
                     this.edgeHubTokenProvider,
-                    this.deviceScopeIdentitiesCache);
+                    this.deviceScopeIdentitiesCache,
+                    this.idleTimeout);
+
                 await cloudConnection.CreateOrUpdateAsync(identity);
                 Events.SuccessCreatingCloudConnection(identity.Identity);
                 return Try.Success<ICloudConnection>(cloudConnection);
