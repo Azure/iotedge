@@ -74,19 +74,12 @@ else()
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -fPIC -std=c99 -Werror ")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fPIC -Werror ")
     else()
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -fPIC -std=c99 -Werror ")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fPIC -Werror ")
-
-        # Disabling these more restrictive compiler flags because utpm doesn't build with them.
         # All of the current builds set run_unittests=On. However this mode produces a bunch
         # of test artifacts that get included as part of the package/install target.
 
-        # set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -fPIC -Wall -Werror -Wextra -Wformat=2 -Wformat-security -std=c99 ")
-        # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fPIC -Wall -Werror -Wextra -Wformat=2 -Wformat-security ")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -fPIC -Wall -Werror -Wextra -Wformat=2 -Wformat-security -std=c99 ")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fPIC -Wall -Werror -Wextra -Wformat=2 -Wformat-security ")
 
-        # todo remove this when utpm fixes are mainlined
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-missing-field-initializers -Wno-sign-compare ")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-field-initializers -Wno-sign-compare ")
         if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
             set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wtrampolines -fstack-protector-all -Wstack-protector --param ssp-buffer-size=4 ")
             set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wtrampolines -fstack-protector-all -Wstack-protector --param ssp-buffer-size=4 ")
