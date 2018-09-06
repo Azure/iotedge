@@ -182,7 +182,7 @@
           "upstreamLoadGen3": "FROM /messages/modules/loadGen3/outputs/output1 INTO $upstream"
         },
         "storeAndForwardConfiguration": {
-          "timeToLiveSecs": 7200
+          "timeToLiveSecs": 86400
         }
       }
     }
