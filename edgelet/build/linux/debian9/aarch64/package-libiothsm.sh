@@ -18,7 +18,7 @@ REVISION=${REVISION:-1}
 DEFAULT_VERSION=$(cat $PROJECT_ROOT/version.txt)
 VERSION="${VERSION:-$DEFAULT_VERSION}-$REVISION"
 
-#docker pull "$IMAGE"
+docker pull "$IMAGE"
 
 run_command()
 {
