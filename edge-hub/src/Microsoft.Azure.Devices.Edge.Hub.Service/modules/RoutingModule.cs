@@ -172,7 +172,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         clientProvider,
                         this.upstreamProtocol,
                         tokenProvider,
-                        deviceScopeIdentitiesCache);
+                        deviceScopeIdentitiesCache,
+                        TimeSpan.FromMinutes(60));
                     return cloudConnectionProvider;
                 })
                 .As<Task<ICloudConnectionProvider>>()

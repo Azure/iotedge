@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 .Throws<TimeoutException>()
                 .Returns(Task.CompletedTask);
             IClient connectivityAwareClient = new ConnectivityAwareClient(client.Object, deviceConnectivityManager);
-            var cloudProxy = new CloudProxy(connectivityAwareClient, Mock.Of<IMessageConverterProvider>(), "d1/m1", null, Mock.Of<ICloudListener>());
+            var cloudProxy = new CloudProxy(connectivityAwareClient, Mock.Of<IMessageConverterProvider>(), "d1/m1", null, Mock.Of<ICloudListener>(), TimeSpan.FromHours(1));
             deviceConnectivityManager.SetTestCloudProxy(cloudProxy);
 
             bool connected = false;
@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 .Throws<TimeoutException>()
                 .Returns(Task.CompletedTask);
             IClient connectivityAwareClient = new ConnectivityAwareClient(client.Object, deviceConnectivityManager);
-            var cloudProxy = new CloudProxy(connectivityAwareClient, Mock.Of<IMessageConverterProvider>(), "d1/m1", null, Mock.Of<ICloudListener>());
+            var cloudProxy = new CloudProxy(connectivityAwareClient, Mock.Of<IMessageConverterProvider>(), "d1/m1", null, Mock.Of<ICloudListener>(), TimeSpan.FromHours(1));
             deviceConnectivityManager.SetTestCloudProxy(cloudProxy);
 
             int connected = 0;
@@ -111,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 .Throws<TimeoutException>();
             IClient edgeHubClient = new ConnectivityAwareClient(edgeHubUnderlyingClient.Object, deviceConnectivityManager);
             edgeHubClient.SetConnectionStatusChangedHandler(ConnectionStatusChangedHandler);
-            var edgeHubCloudProxy = new CloudProxy(edgeHubClient, Mock.Of<IMessageConverterProvider>(), "d1/m1", null, Mock.Of<ICloudListener>());
+            var edgeHubCloudProxy = new CloudProxy(edgeHubClient, Mock.Of<IMessageConverterProvider>(), "d1/m1", null, Mock.Of<ICloudListener>(), TimeSpan.FromHours(1));
             deviceConnectivityManager.SetTestCloudProxy(edgeHubCloudProxy);
 
             bool connected = false;
