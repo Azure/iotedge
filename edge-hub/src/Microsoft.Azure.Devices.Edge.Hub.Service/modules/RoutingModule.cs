@@ -178,7 +178,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<Task<ICloudConnectionProvider>>()
                 .SingleInstance();
 
-           // Task<ICredentialsStore>
+           // Task<ICredentialsCache>
             builder.Register(async c =>
                 {
                     ICredentialsCache underlyingCredentialsCache;
