@@ -92,7 +92,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     routeFactory,
                     twinCollectionMessageConverter,
                     twinMessageConverter,
-                    versionInfo
+                    versionInfo,
+                    new NullDeviceScopeIdentitiesCache()
                 );
                 await Task.Delay(TimeSpan.FromMinutes(1));
 
@@ -253,7 +254,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 Assert.Equal(versionInfo, reportedProperties.VersionInfo);
 
                 // If the edge hub restarts, clear out the connected devices in the reported properties.
-                await EdgeHubConnection.Create(edgeHubCredentials, edgeHub, twinManager, connectionManager, edgeHubCloudProxy.Value, routeFactory, twinCollectionMessageConverter, twinMessageConverter, versionInfo);
+                await EdgeHubConnection.Create(edgeHubCredentials, edgeHub, twinManager, connectionManager, edgeHubCloudProxy.Value, routeFactory, twinCollectionMessageConverter, twinMessageConverter, versionInfo,
+                    new NullDeviceScopeIdentitiesCache());
                 await Task.Delay(TimeSpan.FromMinutes(1));
                 reportedProperties = await this.GetReportedProperties(registryManager, edgeDeviceId);
                 Assert.Null(reportedProperties.Clients);

@@ -427,6 +427,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         ICloudProxy cloudProxy = await c.ResolveNamed<Task<ICloudProxy>>("EdgeHubCloudProxy");
                         IEdgeHub edgeHub = await c.Resolve<Task<IEdgeHub>>();
                         IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
+                        IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
                         IConfigSource edgeHubConnection = await EdgeHubConnection.Create(
                             edgeHubCredentials,
                             edgeHub,
@@ -436,7 +437,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             routeFactory,
                             twinCollectionMessageConverter,
                             twinMessageConverter,
-                            this.versionInfo
+                            this.versionInfo,
+                            deviceScopeIdentitiesCache
                         );
                         return edgeHubConnection;
                     }
