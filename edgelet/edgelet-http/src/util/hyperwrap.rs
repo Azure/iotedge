@@ -18,41 +18,40 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn handle<'a>(&'a mut self, handle: &Handle) -> &'a mut Config {
+    pub fn handle(&mut self, handle: &Handle) -> &mut Config {
         self.handle = Some(handle.clone());
         self
     }
 
-    pub fn proxy<'a>(&'a mut self, uri: Uri) -> &'a mut Config {
+    pub fn proxy(&mut self, uri: Uri) -> &mut Config {
         self.proxy_uri = Some(uri);
         self
     }
 
-    pub fn null<'a>(&'a mut self) -> &'a mut Config {
+    pub fn null(&mut self) -> &mut Config {
         self.null = true;
         self
     }
 
     pub fn build(&self) -> Result<Client, Error> {
-        match self.null {
-            true => Ok(Client::Null),
-            false => {
-                let config = self.clone();
-                let h = &config
-                    .handle
-                    .expect("tokio_core::reactor::Handle expected!");
-                let https = HttpsConnector::new(DNS_WORKER_THREADS, &h)?;
-                match config.proxy_uri {
-                    None => Ok(Client::NoProxy(
-                        HyperClient::configure().connector(https).build(h),
-                    )),
-                    Some(uri) => {
-                        let proxy = Proxy::new(Intercept::All, uri);
-                        let conn = ProxyConnector::from_proxy(https, proxy)?;
-                        Ok(Client::Proxy(
-                            HyperClient::configure().connector(conn).build(h),
-                        ))
-                    }
+        if self.null {
+            Ok(Client::Null)
+        } else {
+            let config = self.clone();
+            let h = &config
+                .handle
+                .expect("tokio_core::reactor::Handle expected!");
+            let https = HttpsConnector::new(DNS_WORKER_THREADS, &h)?;
+            match config.proxy_uri {
+                None => Ok(Client::NoProxy(
+                    HyperClient::configure().connector(https).build(h),
+                )),
+                Some(uri) => {
+                    let proxy = Proxy::new(Intercept::All, uri);
+                    let conn = ProxyConnector::from_proxy(https, proxy)?;
+                    Ok(Client::Proxy(
+                        HyperClient::configure().connector(conn).build(h),
+                    ))
                 }
             }
         }
