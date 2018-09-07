@@ -14,6 +14,8 @@ extern crate http;
 extern crate hyper;
 #[cfg(windows)]
 extern crate hyper_named_pipe;
+extern crate hyper_proxy;
+extern crate hyper_tls;
 #[cfg(unix)]
 extern crate hyperlocal;
 #[cfg(target_os = "linux")]
@@ -80,6 +82,7 @@ mod util;
 mod version;
 
 pub use self::error::{Error, ErrorKind};
+pub use self::util::proxy::MaybeProxyClient;
 pub use self::util::UrlConnector;
 pub use self::version::{ApiVersionService, API_VERSION};
 

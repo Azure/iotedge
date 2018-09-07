@@ -220,29 +220,29 @@ function Get-ContainerOs {
 function Get-SecurityDaemon {
     try {
         $DeleteArchive = $false
-        if (-not $ArchivePath) {
+        if (-not "$ArchivePath") {
             $ArchivePath = "$env:TEMP\iotedged-windows.zip"
             $DeleteArchive = $true
             Write-Host "Downloading the latest version of IoT Edge security daemon." -ForegroundColor "Green"
             Invoke-WebRequest `
                 -Uri "https://aka.ms/iotedged-windows-latest" `
-                -OutFile $ArchivePath `
+                -OutFile "$ArchivePath" `
                 -UseBasicParsing
             Write-Host "Downloaded security daemon." -ForegroundColor "Green"
         }
-        if ((Get-Item $ArchivePath).PSIsContainer) {
+        if ((Get-Item "$ArchivePath").PSIsContainer) {
             Copy-Item "$ArchivePath\*" "C:\ProgramData\iotedge" -Force
         }
         else {
             Invoke-Native "mkdir C:\ProgramData\iotedge"
-            Expand-Archive $ArchivePath "C:\ProgramData\iotedge" -Force
+            Expand-Archive "$ArchivePath" "C:\ProgramData\iotedge" -Force
             Copy-Item "C:\ProgramData\iotedge\iotedged-windows\*" "C:\ProgramData\iotedge" -Force
         }
     }
     finally {
         Remove-Item "C:\ProgramData\iotedge\iotedged-windows" -Recurse -Force -ErrorAction "SilentlyContinue"
         if ($DeleteArchive) {
-            Remove-Item $ArchivePath -Recurse -Force -ErrorAction "SilentlyContinue"
+            Remove-Item "$ArchivePath" -Recurse -Force -ErrorAction "SilentlyContinue"
         }
     }
 }
