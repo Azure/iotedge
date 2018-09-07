@@ -196,7 +196,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             IServiceProxy serviceProxy = new ServiceProxy(securityScopesApiClient);
                             IKeyValueStore<string, string> encryptedStore = await c.ResolveNamed<Task<IKeyValueStore<string, string>>>("EncryptedStore");
                             deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceProxy, encryptedStore, this.scopeCacheRefreshRate);
-                            Console.WriteLine("Registering DeviceScopeIdentitiesCache - deviceScopeIdentitiesCache instance created");
                         }
                         else
                         {
@@ -241,7 +240,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             break;
                     }
 
-                    Console.WriteLine("Registering Autehnticator... obtained all types");
                     return new Authenticator(tokenAuthenticator, this.edgeDeviceId, connectionManager) as IAuthenticator;
                 })
                 .As<Task<IAuthenticator>>()
