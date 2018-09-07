@@ -1,0 +1,101 @@
+phases:
+
+################################################################################
+  - phase: linux_amd64
+################################################################################
+    displayName: Linux amd64
+    queue:
+      name: Hosted Linux Preview
+    steps:
+      - script: echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
+        displayName: Set env variables
+      - task: Bash@3
+        displayName: Install Rust
+        inputs:
+          filePath: edgelet/build/linux/install.sh
+      - task: Bash@3
+        displayName: Check submodules
+        inputs:
+          filePath: edgelet/build/linux/check-submodules.sh
+      - task: Bash@3
+        displayName: Build
+        inputs:
+          filePath: edgelet/build/linux/build.sh
+      - task: Bash@3
+        displayName: Test
+        inputs:
+          filePath: edgelet/build/linux/test.sh
+
+################################################################################
+ - phase: linux_arm32v7
+################################################################################
+    displayName: Linux arm32v7
+    queue:
+      name: Hosted Linux Preview
+    steps:
+      - script: |
+          echo "##vso[task.setvariable variable=RUSTUP_HOME;]$VSTS_WORK/rustup"
+          echo "##vso[task.setvariable variable=CARGO_HOME;]$VSTS_WORK/cargo"
+          echo "##vso[task.setvariable variable=PATH;]$VSTS_WORK/cargo/bin:$PATH"
+        displayName: Modify path
+      - task: Bash@3
+        displayName: Install Rust
+        inputs:
+          filePath: edgelet/build/linux/install.sh
+      - script: cargo install --git https://github.com/myagley/cross.git --branch set-path
+        displayName: Install cross (fork with docker fix)
+      - task: Bash@3
+        displayName: armv7-unknown-linux-gnueabihf build
+        inputs:
+          filePath: edgelet/build/linux/cross.sh
+          arguments: --toolchain armv7-unknown-linux-gnueabihf --release true
+      - task: Bash@3
+        displayName: armv7-unknown-linux-gnueabihf test
+        inputs:
+          filePath: edgelet/build/linux/cross-test.sh
+          arguments: --toolchain armv7-unknown-linux-gnueabihf --release true
+
+################################################################################
+  - phase: windows_amd64
+################################################################################
+    displayName: Windows amd64
+    queue:
+      name: Hosted VS2017
+    steps:
+      - powershell: Write-Host ("##vso[task.setvariable variable=NO_VALGRIND;]true")
+        displayName: Set env variables
+      - task: PowerShell@2
+        displayName: Install Rust
+        inputs:
+          filePath: edgelet/build/windows/install.ps1
+      - task: PowerShell@2
+        displayName: Build
+        inputs:
+          filePath: edgelet/build/windows/build.ps1
+      - task: PowerShell@2
+        displayName: Test
+        inputs:
+          filePath: edgelet/build/windows/test.ps1
+
+################################################################################
+  - phase: style_check
+################################################################################
+    displayName: Style Check
+    queue:
+      name: Hosted Linux Preview
+    steps:
+      - script: |
+          echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
+        displayName: Set env variables
+      - task: Bash@3
+        displayName: Install Rust
+        inputs:
+          filePath: edgelet/build/linux/install.sh
+      - task: Bash@3
+        displayName: Format Code
+        inputs:
+          filePath: edgelet/build/linux/format.sh
+      - task: Bash@3
+        displayName: Clippy
+        inputs:
+          filePath: edgelet/build/linux/clippy.sh
