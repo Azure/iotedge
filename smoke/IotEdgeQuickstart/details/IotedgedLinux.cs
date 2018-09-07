@@ -154,7 +154,7 @@ namespace IotEdgeQuickstart.Details
                 300); // 5 min timeout because install can be slow on raspberry pi
         }
 
-        public async Task Configure(string connectionString, string image, string hostname)
+        public async Task Configure(string connectionString, string image, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts)
         {
             Console.WriteLine($"Setting up iotedged with agent image '{image}'");
 
@@ -190,6 +190,11 @@ namespace IotEdgeQuickstart.Details
             }
 
             string result = doc.ToString();
+
+            if (!string.IsNullOrEmpty(deviceCaCert) && !string.IsNullOrEmpty(deviceCaPk) && !string.IsNullOrEmpty(deviceCaCerts))
+            {
+                result += $"certificates:\r\n  device_ca_cert: \"{deviceCaCert}\"\r\n  device_ca_pk: \"{deviceCaPk}\"  trusted_ca_certs: \"{deviceCaCerts}\"";
+            }
 
             FileAttributes attr = 0;
             if (File.Exists(YamlPath))
