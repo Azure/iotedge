@@ -36,7 +36,7 @@ pub enum ErrorKind {
     #[fail(display = "Error activating key")]
     Activate,
     #[fail(
-        display = "Edge runtime module has not been created in IoT Hub. Please make sure this device is an IoT Edge capable device"
+        display = "Edge runtime module has not been created in IoT Hub. Please make sure this device is an IoT Edge capable device."
     )]
     EdgeRuntimeIdentityNotFound,
     #[fail(display = "Watchdog error")]
