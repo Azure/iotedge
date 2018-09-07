@@ -925,7 +925,9 @@ mod tests {
                 env::var("https_proxy")
             })
             .unwrap();
-        // ensure "HTTPS_PROXY" is NOT set
+        // ensure "HTTPS_PROXY" is NOT set (except on Windows, where env vars
+        // are case-insensitive)
+        #[cfg(unix)]
         let other_val = env::var("HTTPS_PROXY")
             .and_then(|var| {
                 env::remove_var("HTTPS_PROXY");
@@ -936,8 +938,10 @@ mod tests {
         assert_eq!(get_proxy_uri().unwrap().unwrap().to_string(), proxy_val);
 
         // restore value of HTTPS_PROXY if necessary
-        if let Some(val) = other_val {
-            env::set_var("HTTPS_PROXY", val);
+        #[cfg(unix)]
+        match other_val {
+            Some(val) => env::set_var("HTTPS_PROXY", val),
+            None => (),
         }
     }
 }
