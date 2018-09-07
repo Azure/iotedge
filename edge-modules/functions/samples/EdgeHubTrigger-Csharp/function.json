@@ -1,0 +1,21 @@
+{
+  "configurationSource": "attributes",
+  "bindings": [
+    {
+      "type": "edgeHubTrigger",
+      "name": "messageReceived",
+      "InputName": "input1",
+      "direction": "in"
+    },
+    {
+      "type": "edgeHub",
+      "name": "output",
+      "outputName": "alertOutput",
+      "batchSize": 10,
+      "direction": "inout"
+    }
+  ],
+  "disabled": true,
+  "scriptFile": "bin/EdgeHubTriggerCSharp.dll",
+  "entryPoint": "Functions.Samples.EdgeHubSamples.FilterMessageAndSendMessage"
+}
