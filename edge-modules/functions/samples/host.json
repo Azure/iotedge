@@ -1,4 +1,8 @@
 {
+  "version": "2.0",
+  "logger": {
+    "fileLoggingMode": "always"
+  },
   "watchDirectories": [ "Shared" ],
   "functionTimeout": "00:05:00",
   "functions": [ "EdgeHubTrigger-Csharp" ]

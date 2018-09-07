@@ -168,7 +168,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             await cloudProxy.SetupDesiredPropertyUpdatesAsync();
             await cloudProxy.RemoveDesiredPropertyUpdatesAsync();
             cloudProxy.StartListening();
-        }
+        }        
 
         async Task<ICloudProxy> GetCloudProxyWithConnectionStringKey(string connectionStringConfigKey)
         {
@@ -180,7 +180,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 { typeof(Twin), new TwinMessageConverter() },
                 { typeof(TwinCollection), new TwinCollectionMessageConverter() }
             });
-            ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(converters, ConnectionPoolSize, new ClientProvider(), Option.None<UpstreamProtocol>());
+
+            ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(converters, ConnectionPoolSize, new ClientProvider(), Option.None<UpstreamProtocol>(), Mock.Of<ITokenProvider>(), Mock.Of<IDeviceScopeIdentitiesCache>(), TimeSpan.FromMinutes(60));
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
             var deviceIdentity = Mock.Of<IDeviceIdentity>(m => m.Id == ConnectionStringHelper.GetDeviceId(deviceConnectionString));
             var clientCredentials = new SharedKeyCredentials(deviceIdentity, deviceConnectionString, string.Empty);

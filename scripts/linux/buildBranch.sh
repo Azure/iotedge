@@ -182,6 +182,13 @@ publish_quickstart()
         .
 }
 
+publish_functions_sample()
+{
+    echo "Publishing Functions sample"
+    publish_files $FUNCTIONS_SAMPLE_DIR $PUBLISH_FOLDER
+
+    publish_project library "EdgeHubTriggerCSharp" netstandard2.0 $CONFIGURATION "$PUBLISH_FOLDER/samples/EdgeHubTrigger-Csharp/bin" $MSBUILD_OPTIONS
+}
 
 process_args "$@"
 
@@ -196,14 +203,13 @@ publish_app "TemperatureFilter"
 publish_app "load-gen"
 publish_app "MessagesAnalyzer"
 
-publish_lib "Microsoft.Azure.Devices.Edge.Functions.Binding"
+publish_lib "Microsoft.Azure.WebJobs.Extensions.EdgeHub"
 
 publish_files $SRC_DOCKER_DIR $PUBLISH_FOLDER
 publish_files $SRC_SCRIPTS_DIR $PUBLISH_FOLDER
 publish_files $SRC_BIN_DIR $PUBLISH_FOLDER
 publish_files $SRC_STRESS_DIR $PUBLISH_FOLDER
 publish_files $SRC_E2E_TEMPLATES_DIR $PUBLISH_FOLDER
-publish_files $FUNCTIONS_SAMPLE_DIR $PUBLISH_FOLDER
 
 if [ $PUBLISH_TESTS -eq 1 ]; then
     while read proj; do
@@ -216,5 +222,6 @@ fi
 
 publish_quickstart linux-arm
 publish_quickstart linux-x64
+publish_functions_sample
 
 exit $RES

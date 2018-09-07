@@ -10,13 +10,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
     public class TokenCredentialsStore : ICredentialsStore
     {
-        readonly IEntityStore<string, string> tokenStore;
-        readonly IEncryptionProvider encryptionProvider;
+        readonly IKeyValueStore<string, string> encryptedStore;
 
-        public TokenCredentialsStore(IEntityStore<string, string> tokenStore, IEncryptionProvider encryptionProvider)
+        public TokenCredentialsStore(IKeyValueStore<string, string> encryptedStore)
         {
-            this.tokenStore = Preconditions.CheckNotNull(tokenStore, nameof(tokenStore));
-            this.encryptionProvider = Preconditions.CheckNotNull(encryptionProvider, nameof(encryptionProvider));
+            this.encryptedStore = Preconditions.CheckNotNull(encryptedStore, nameof(encryptedStore));
         }
 
         public async Task Add(IClientCredentials clientCredentials)
@@ -25,8 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 try
                 {
-                    string encryptedToken = await this.encryptionProvider.EncryptAsync(tokenCredentials.Token);
-                    await this.tokenStore.Put(tokenCredentials.Identity.Id, encryptedToken);
+                    await this.encryptedStore.Put(tokenCredentials.Identity.Id, tokenCredentials.Token);
                     Events.Stored(clientCredentials.Identity.Id);
                 }
                 catch (Exception e)
@@ -38,12 +35,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public async Task<Option<IClientCredentials>> Get(IIdentity identity)
         {
-            Option<string> tokenOption = await this.tokenStore.Get(identity.Id);
-            return await tokenOption.Map(async encryptedToken =>
+            Option<string> tokenOption = await this.encryptedStore.Get(identity.Id);
+            return tokenOption.Map(token =>
             {
                 try
                 {
-                    string token = await this.encryptionProvider.DecryptAsync(encryptedToken);
                     Events.Retrieved(identity.Id);
                     return Option.Some(new TokenCredentials(identity, token, string.Empty) as IClientCredentials);
                 }
@@ -53,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     return Option.None<IClientCredentials>();
                 }                
             })
-            .GetOrElse(Task.FromResult(Option.None<IClientCredentials>()));
+            .GetOrElse(Option.None<IClientCredentials>());
         }
 
         static class Events

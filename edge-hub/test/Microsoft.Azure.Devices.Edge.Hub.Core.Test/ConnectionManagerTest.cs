@@ -169,7 +169,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             deviceClientProvider.Setup(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<string>(), It.IsAny<Client.ITransportSettings[]>()))
                 .Returns(client);
 
-            var cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, deviceClientProvider.Object, Option.None<UpstreamProtocol>());
+            var cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, deviceClientProvider.Object, Option.None<UpstreamProtocol>(), Mock.Of<ITokenProvider>(), Mock.Of<IDeviceScopeIdentitiesCache>(), TimeSpan.FromMinutes(60));
             cloudConnectionProvider.BindEdgeHub(edgeHub.Object);
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider);
             Try<ICloudProxy> cloudProxyTry = await connectionManager.CreateCloudConnectionAsync(deviceCredentials);
@@ -260,7 +260,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(client1)
                 .Returns(client2);
 
-            var cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, deviceClientProvider.Object, Option.None<UpstreamProtocol>());
+            var cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, deviceClientProvider.Object, Option.None<UpstreamProtocol>(), Mock.Of<ITokenProvider>(), Mock.Of<IDeviceScopeIdentitiesCache>(), TimeSpan.FromMinutes(60));
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider);
 
@@ -370,7 +370,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Callback<IIdentity, string, Client.ITransportSettings[]>((i, s, t) => receivedConnStr = s)
                 .Returns(() => GetDeviceClient());
 
-            var cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, deviceClientProvider.Object, Option.None<UpstreamProtocol>());
+            var cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, deviceClientProvider.Object, Option.None<UpstreamProtocol>(), Mock.Of<ITokenProvider>(), Mock.Of<IDeviceScopeIdentitiesCache>(), TimeSpan.FromMinutes(60));
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider);
 
@@ -410,7 +410,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Throws(new UnauthorizedException("connstr2 is invalid!"))
                 .Throws(new UnauthorizedException("connstr2 is invalid!"));
 
-            var cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, deviceClientProvider.Object, Option.None<UpstreamProtocol>());
+            var cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, deviceClientProvider.Object, Option.None<UpstreamProtocol>(), Mock.Of<ITokenProvider>(), Mock.Of<IDeviceScopeIdentitiesCache>(), TimeSpan.FromMinutes(60));
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider);
 
