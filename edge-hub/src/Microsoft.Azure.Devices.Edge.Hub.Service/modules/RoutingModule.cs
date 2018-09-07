@@ -135,7 +135,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     { typeof(Twin), c.Resolve<Core.IMessageConverter<Twin>>() },
                     { typeof(TwinCollection), c.Resolve<Core.IMessageConverter<TwinCollection>>() }
                 }))
-                .As<Core.IMessageConverterProvider>()
+                .As<IMessageConverterProvider>()
                 .SingleInstance();
 
             // IDeviceConnectivityManager
@@ -165,7 +165,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
                     var clientProvider = c.Resolve<IClientProvider>();
                     var tokenProvider = c.ResolveNamed<ITokenProvider>("EdgeHubClientAuthTokenProvider");
+                    Console.WriteLine($"REgistering ICloudConectionProvider - getting IDeviceScopeIdentityCache");
                     IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
+                    Console.WriteLine($"REgistering ICloudConectionProvider - obtained IDeviceScopeIdentityCache");
                     ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(
                         messageConverterProvider,
                         this.connectionPoolSize,
@@ -339,9 +341,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 // Task<ITwinManager>
                 builder.Register(async c =>
                     {
-                        IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
+                        var dbStoreProvider = c.Resolve<IDbStoreProvider>();
                         var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
-                        return TwinManager.CreateTwinManager(connectionManager, messageConverterProvider, Option.Some<IStoreProvider>(new StoreProvider(c.Resolve<IDbStoreProvider>())));
+                        Console.WriteLine($"Registering ITwinManager - Got messageConverterProvider. Trying to get Task<IConnectionManager>");
+                        IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
+                        Console.WriteLine($"Registering ITwinManager - Got connection manager");                        
+                        return TwinManager.CreateTwinManager(connectionManager, messageConverterProvider, Option.Some<IStoreProvider>(new StoreProvider(dbStoreProvider)));
                     })
                     .As<Task<ITwinManager>>()
                     .SingleInstance();
@@ -390,11 +395,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                     async c =>
                     {
-                        Router router = await c.Resolve<Task<Router>>();
-                        ITwinManager twinManager = await c.Resolve<Task<ITwinManager>>();
-                        IInvokeMethodHandler invokeMethodHandler = await c.Resolve<Task<IInvokeMethodHandler>>();
-                        IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
-                        IEdgeHub hub = new RoutingEdgeHub(router, c.Resolve<Core.IMessageConverter<IRoutingMessage>>(),
+                        var routingMessageConverter = c.Resolve<Core.IMessageConverter<IRoutingMessage>>();
+                        Console.WriteLine("Registering IEdgeHub - Resolving router");
+                        var routerTask = c.Resolve<Task<Router>>();
+                        Console.WriteLine("Registering IEdgeHub - Resolved router... getting twinManager");
+                        var twinManagerTask = c.Resolve<Task<ITwinManager>>();
+                        Console.WriteLine("Registering IEdgeHub - Resolving twinManager... gettingInvokeMethodHandler.");
+                        var invokeMethodHandlerTask = c.Resolve<Task<IInvokeMethodHandler>>();
+                        Console.WriteLine("Registering IEdgeHub - Resolving InvokeMethodHandler... getting ICOnnectionManager.");
+                        var connectionManagerTask = c.Resolve<Task<IConnectionManager>>();
+                        Router router = await routerTask;
+                        ITwinManager twinManager = await twinManagerTask;
+                        IConnectionManager connectionManager = await connectionManagerTask;
+                        IInvokeMethodHandler invokeMethodHandler = await invokeMethodHandlerTask;
+                        Console.WriteLine("Registering IEdgeHub - got all objects.");
+                        IEdgeHub hub = new RoutingEdgeHub(router, routingMessageConverter,
                             connectionManager, twinManager, this.edgeDeviceId, invokeMethodHandler);
                         return hub;
                     })
