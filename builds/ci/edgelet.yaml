@@ -27,7 +27,7 @@ phases:
           filePath: edgelet/build/linux/test.sh
 
 ################################################################################
- - phase: linux_arm32v7
+  - phase: linux_arm32v7
 ################################################################################
     displayName: Linux arm32v7
     queue:
