@@ -339,8 +339,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 // Task<ITwinManager>
                 builder.Register(async c =>
                     {
-                        IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
                         var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
+                        IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
                         return TwinManager.CreateTwinManager(connectionManager, messageConverterProvider, Option.Some<IStoreProvider>(new StoreProvider(c.Resolve<IDbStoreProvider>())));
                     })
                     .As<Task<ITwinManager>>()
