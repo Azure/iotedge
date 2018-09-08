@@ -186,7 +186,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     if (this.persistTokens)
                     {
                         IKeyValueStore<string, string> encryptedStore = await c.ResolveNamed<Task<IKeyValueStore<string, string>>>("EncryptedStore");
-                        return new TokenCredentialsStore(encryptedStore);
+                        return new TokenCredentialsCache(encryptedStore);
                     }
                     else
                     {

@@ -224,23 +224,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             }
                             else
                             {
-                                tokenAuthenticator = new CloudTokenAuthenticator(connectionManager);
+                                tokenAuthenticator = new CloudTokenAuthenticator(connectionManager, this.iothubHostName);
                             }
                             break;
 
                         case AuthenticationMode.Scope:
                             deviceScopeIdentitiesCache = await c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
-                            tokenAuthenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, this.iothubHostName, this.edgeDeviceHostName, new NullAuthenticator(), connectionManager);
+                            tokenAuthenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, this.iothubHostName, this.edgeDeviceHostName, new NullAuthenticator());
                             break;
 
                         default:
                             deviceScopeIdentitiesCache = await c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
-                            IAuthenticator cloudAuthenticator = new CloudTokenAuthenticator(connectionManager);
-                            tokenAuthenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, this.iothubHostName, this.edgeDeviceHostName, cloudAuthenticator, connectionManager);
+                            IAuthenticator cloudAuthenticator = new CloudTokenAuthenticator(connectionManager, this.iothubHostName);
+                            tokenAuthenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, this.iothubHostName, this.edgeDeviceHostName, cloudAuthenticator);
                             break;
                     }
 
-                    return new Authenticator(tokenAuthenticator, this.edgeDeviceId, connectionManager) as IAuthenticator;
+                    return new Authenticator(tokenAuthenticator, this.edgeDeviceId) as IAuthenticator;
                 })
                 .As<Task<IAuthenticator>>()
                 .SingleInstance();
