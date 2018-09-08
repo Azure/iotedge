@@ -135,7 +135,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     { typeof(Twin), c.Resolve<Core.IMessageConverter<Twin>>() },
                     { typeof(TwinCollection), c.Resolve<Core.IMessageConverter<TwinCollection>>() }
                 }))
-                .As<Core.IMessageConverterProvider>()
+                .As<IMessageConverterProvider>()
                 .SingleInstance();
 
             // IDeviceConnectivityManager
@@ -172,7 +172,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         clientProvider,
                         this.upstreamProtocol,
                         tokenProvider,
-                        deviceScopeIdentitiesCache);
+                        deviceScopeIdentitiesCache,
+                        TimeSpan.FromMinutes(60));
                     return cloudConnectionProvider;
                 })
                 .As<Task<ICloudConnectionProvider>>()
@@ -341,9 +342,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 // Task<ITwinManager>
                 builder.Register(async c =>
                     {
-                        IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
+                        var dbStoreProvider = c.Resolve<IDbStoreProvider>();
                         var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
-                        return TwinManager.CreateTwinManager(connectionManager, messageConverterProvider, Option.Some<IStoreProvider>(new StoreProvider(c.Resolve<IDbStoreProvider>())));
+                        IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
+                        return TwinManager.CreateTwinManager(connectionManager, messageConverterProvider, Option.Some<IStoreProvider>(new StoreProvider(dbStoreProvider)));
                     })
                     .As<Task<ITwinManager>>()
                     .SingleInstance();
@@ -392,11 +394,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                     async c =>
                     {
-                        Router router = await c.Resolve<Task<Router>>();
-                        ITwinManager twinManager = await c.Resolve<Task<ITwinManager>>();
-                        IInvokeMethodHandler invokeMethodHandler = await c.Resolve<Task<IInvokeMethodHandler>>();
-                        IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
-                        IEdgeHub hub = new RoutingEdgeHub(router, c.Resolve<Core.IMessageConverter<IRoutingMessage>>(),
+                        var routingMessageConverter = c.Resolve<Core.IMessageConverter<IRoutingMessage>>();
+                        var routerTask = c.Resolve<Task<Router>>();
+                        var twinManagerTask = c.Resolve<Task<ITwinManager>>();
+                        var invokeMethodHandlerTask = c.Resolve<Task<IInvokeMethodHandler>>();
+                        var connectionManagerTask = c.Resolve<Task<IConnectionManager>>();
+                        Router router = await routerTask;
+                        ITwinManager twinManager = await twinManagerTask;
+                        IConnectionManager connectionManager = await connectionManagerTask;
+                        IInvokeMethodHandler invokeMethodHandler = await invokeMethodHandlerTask;
+                        IEdgeHub hub = new RoutingEdgeHub(router, routingMessageConverter,
                             connectionManager, twinManager, this.edgeDeviceId, invokeMethodHandler);
                         return hub;
                     })
