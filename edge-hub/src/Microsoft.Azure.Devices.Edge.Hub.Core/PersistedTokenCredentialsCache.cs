@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         readonly IKeyValueStore<string, string> encryptedStore;
 
-        public TokenCredentialsStore(IKeyValueStore<string, string> encryptedStore)
+        public TokenCredentialsCache(IKeyValueStore<string, string> encryptedStore)
         {
             this.encryptedStore = Preconditions.CheckNotNull(encryptedStore, nameof(encryptedStore));
         }
