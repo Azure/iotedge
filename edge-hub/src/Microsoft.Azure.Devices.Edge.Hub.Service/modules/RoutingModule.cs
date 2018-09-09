@@ -184,7 +184,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     var credentialsCacheTask = c.Resolve<Task<ICredentialsCache>>();
                     ICloudConnectionProvider cloudConnectionProvider = await cloudConnectionProviderTask;
                     ICredentialsCache credentialsCache = await credentialsCacheTask;
-                    IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, this.maxConnectedClients);
+                    IConnectionManager connectionManager = new ConnectionManager(
+                        cloudConnectionProvider,
+                        credentialsCache,
+                        this.edgeDeviceId,
+                        this.edgeModuleId,
+                        this.maxConnectedClients);
                     return connectionManager;
                 })
                 .As<Task<IConnectionManager>>()

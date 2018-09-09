@@ -24,22 +24,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly ICloudConnectionProvider cloudConnectionProvider;
         readonly int maxClients;
         readonly ICredentialsCache credentialsCache;
+        readonly string edgeDeviceId;
+        readonly string edgeModuleId;
 
         public event EventHandler<IIdentity> CloudConnectionLost;
         public event EventHandler<IIdentity> CloudConnectionEstablished;
         public event EventHandler<IIdentity> DeviceConnected;
         public event EventHandler<IIdentity> DeviceDisconnected;
 
-        public ConnectionManager(ICloudConnectionProvider cloudConnectionProvider, ICredentialsCache credentialsCache, int maxClients = DefaultMaxClients)
+        public ConnectionManager(
+            ICloudConnectionProvider cloudConnectionProvider,
+            ICredentialsCache credentialsCache,
+            string edgeDeviceId,
+            string edgeModuleId,
+            int maxClients = DefaultMaxClients)
         {
             this.cloudConnectionProvider = Preconditions.CheckNotNull(cloudConnectionProvider, nameof(cloudConnectionProvider));
             this.maxClients = Preconditions.CheckRange(maxClients, 1, nameof(maxClients));
             this.credentialsCache = Preconditions.CheckNotNull(credentialsCache, nameof(credentialsCache));
+            this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
+            this.edgeModuleId = Preconditions.CheckNonWhiteSpace(edgeModuleId, nameof(edgeModuleId));
         }
 
         public IEnumerable<IIdentity> GetConnectedClients() =>
             this.devices.Values
-                .Where(d => d.DeviceConnection.Map(dc => dc.IsActive).GetOrElse(false))
+                .Where(d => d.DeviceConnection.Map(dc => dc.IsActive).GetOrElse(false) && !d.Identity.Id.Equals($"{this.edgeDeviceId}/{this.edgeModuleId}"))
                 .Select(d => d.Identity);
 
         public async Task AddDeviceConnection(IIdentity identity, IDeviceProxy deviceProxy)

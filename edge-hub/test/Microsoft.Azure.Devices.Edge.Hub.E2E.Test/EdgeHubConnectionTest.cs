@@ -33,6 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         [Fact]
         public async Task TestEdgeHubConnection()
         {
+            const string EdgeDeviceId = "testHubEdgeDevice1";
             var twinMessageConverter = new TwinMessageConverter();
             var twinCollectionMessageConverter = new TwinCollectionMessageConverter();
             var messageConverterProvider = new MessageConverterProvider(
@@ -44,14 +45,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 });
             var cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, new ClientProvider(), Option.None<UpstreamProtocol>(), Mock.Of<ITokenProvider>(), Mock.Of<IDeviceScopeIdentitiesCache>(), TimeSpan.FromMinutes(60));
             var credentialsCache = Mock.Of<ICredentialsCache>();
-            var connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache);
+            var connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, EdgeDeviceId, EdgeHubModuleId);
 
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
             Devices.IotHubConnectionStringBuilder iotHubConnectionStringBuilder = Devices.IotHubConnectionStringBuilder.Create(iotHubConnectionString);
             RegistryManager registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
             await registryManager.OpenAsync();
 
-            (string edgeDeviceId, string deviceConnStr) = await RegistryManagerHelper.CreateDevice("testHubEdgeDevice1", iotHubConnectionString, registryManager, true, false);
+            (string edgeDeviceId, string deviceConnStr) = await RegistryManagerHelper.CreateDevice(EdgeDeviceId, iotHubConnectionString, registryManager, true, false);
 
             try
             {

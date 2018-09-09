@@ -236,7 +236,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             cloudConnectionProvider.Setup(c => c.Connect(It.IsAny<IClientCredentials>(), It.IsAny<Action<string, CloudConnectionStatus>>()))
                 .ReturnsAsync(Try.Success(cloudConnection));
             var credentialsCache = Mock.Of<ICredentialsCache>(c => c.Get(identity) == Task.FromResult(Option.Some(clientCredentials)));
-            var connectionManager = new ConnectionManager(cloudConnectionProvider.Object, credentialsCache);
+            var connectionManager = new ConnectionManager(cloudConnectionProvider.Object, credentialsCache, "testEdgeDevice", "$edgeHub");
 
             IInvokeMethodHandler invokeMethodHandler = new InvokeMethodHandler(connectionManager);
 
@@ -312,7 +312,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             cloudConnectionProvider.Setup(c => c.Connect(It.IsAny<IClientCredentials>(), It.IsAny<Action<string, CloudConnectionStatus>>()))
                 .ReturnsAsync(Try.Success(cloudConnection));
             var credentialsCache = Mock.Of<ICredentialsCache>(c => c.Get(identity) == Task.FromResult(Option.Some(clientCredentials)));
-            var connectionManager = new ConnectionManager(cloudConnectionProvider.Object, credentialsCache);
+            var connectionManager = new ConnectionManager(cloudConnectionProvider.Object, credentialsCache, "testEdgeDevice", "$edgeHub");
 
             IInvokeMethodHandler invokeMethodHandler = new InvokeMethodHandler(connectionManager);
 
@@ -381,7 +381,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             cloudConnectionProvider.Setup(c => c.Connect(It.IsAny<IClientCredentials>(), It.IsAny<Action<string, CloudConnectionStatus>>()))
                 .ReturnsAsync(Try.Success(cloudConnection));
             var credentialsCache = Mock.Of<ICredentialsCache>(c => c.Get(identity) == Task.FromResult(Option.Some(clientCredentials)));
-            var connectionManager = new ConnectionManager(cloudConnectionProvider.Object, credentialsCache);
+            var connectionManager = new ConnectionManager(cloudConnectionProvider.Object, credentialsCache, "testEdgeDevice", "$edgeHub");
 
             IInvokeMethodHandler invokeMethodHandler = new InvokeMethodHandler(connectionManager);
 
