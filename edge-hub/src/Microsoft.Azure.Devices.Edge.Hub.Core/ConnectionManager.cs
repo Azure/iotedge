@@ -193,7 +193,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     {
                         await token.ForEachAsync(async t =>
                         {
-                            await device.CreateOrUpdateCloudConnection((c) => this.CreateOrUpdateCloudConnection(c, t));
+                            await device.CreateOrUpdateCloudConnection(c => this.CreateOrUpdateCloudConnection(c, t));
                         });
                     }
                     else

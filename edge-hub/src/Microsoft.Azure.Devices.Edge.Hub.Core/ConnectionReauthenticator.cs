@@ -5,8 +5,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using Timer = System.Timers.Timer;
-    using System.Threading;
     using System.Threading.Tasks;
     using System.Timers;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
@@ -14,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+    using Timer = System.Timers.Timer;
 
     public sealed class ConnectionReauthenticator : IDisposable
     {
