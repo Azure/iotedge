@@ -162,7 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             void ConnectionStatusHandler(string id, CloudConnectionStatus status) => receivedStatuses.Add(status);
             var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter> { [typeof(TwinCollection)] = Mock.Of<IMessageConverter>() });
 
-            var cloudConnection = new CloudConnection(ConnectionStatusHandler, transportSettings, messageConverterProvider, clientProvider, Mock.Of<ICloudListener>());
+            var cloudConnection = new CloudConnection(ConnectionStatusHandler, transportSettings, messageConverterProvider, clientProvider, Mock.Of<ICloudListener>(), TokenProvider, DeviceScopeIdentitiesCache, TimeSpan.FromMinutes(60));
 
             IClientCredentials clientCredentialsWithExpiringToken1 = GetClientCredentialsWithExpiringToken();
             ICloudProxy cloudProxy1 = await cloudConnection.CreateOrUpdateAsync(clientCredentialsWithExpiringToken1);
