@@ -32,7 +32,7 @@ phases:
     displayName: Linux arm32v7
     queue:
       name: Hosted Linux Preview
-	variables:
+    variables:
       VSTS_WORK: /home/vsts/work	  
     steps:
       - script: |
