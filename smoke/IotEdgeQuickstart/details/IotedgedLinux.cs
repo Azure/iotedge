@@ -193,7 +193,7 @@ namespace IotEdgeQuickstart.Details
 
             if (!string.IsNullOrEmpty(deviceCaCert) && !string.IsNullOrEmpty(deviceCaPk) && !string.IsNullOrEmpty(deviceCaCerts))
             {
-                result += $"certificates:\r\n  device_ca_cert: \"{deviceCaCert}\"\r\n  device_ca_pk: \"{deviceCaPk}\"  trusted_ca_certs: \"{deviceCaCerts}\"";
+                result += $"certificates:\r\n  device_ca_cert: \"{deviceCaCert}\"\r\n  device_ca_pk: \"{deviceCaPk}\"\r\n  trusted_ca_certs: \"{deviceCaCerts}\"";
             }
 
             FileAttributes attr = 0;
