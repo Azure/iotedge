@@ -70,7 +70,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             // TODO: set certificate for Startup without the cache
             ServerCertificateCache.X509Certificate = cert;
-            Hosting hosting = Hosting.Initialize();
+
+            int port = configuration.GetValue("httpSettings:port", 443);
+            Hosting hosting = Hosting.Initialize(port);
 
             IContainer container = hosting.Container;
 
@@ -97,6 +99,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 logger.LogWarning("Unable to find intermediate certificates.");
             }
 
+            // EdgeHub and CloudConnectionProvider have a circular dependency. So need to Bind the EdgeHub to the CloudConnectionProvider.
+            IEdgeHub edgeHub = await container.Resolve<Task<IEdgeHub>>();
+            ICloudConnectionProvider cloudConnectionProvider = await container.Resolve<Task<ICloudConnectionProvider>>();
+            cloudConnectionProvider.BindEdgeHub(edgeHub);
+
+            // Resolve IDeviceScopeIdentitiesCache to start the pump
+            await container.Resolve<Task<IDeviceScopeIdentitiesCache>>();
+
             // EdgeHub cloud proxy and DeviceConnectivityManager have a circular dependency,
             // so the cloud proxy has to be set on the DeviceConnectivityManager after both have been initialized.
             var deviceConnectivityManager = container.Resolve<IDeviceConnectivityManager>();
@@ -111,13 +121,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler)
                 = ShutdownHandler.Init(ShutdownWaitPeriod, logger);
 
-            using (IProtocolHead protocolHead = new EdgeHubProtocolHead(
-                new IProtocolHead[]
-                {
-                    new HttpProtocolHead(hosting.WebHost),
-                    await container.Resolve<Task<MqttProtocolHead>>(),
-                    await container.Resolve<Task<AmqpProtocolHead>>()
-                }, logger))
+            var protocolHeads = new List<IProtocolHead>();
+            if (configuration.GetValue("mqttSettings:enabled", true))
+            {
+                protocolHeads.Add(await container.Resolve<Task<MqttProtocolHead>>());
+            }
+
+            if (configuration.GetValue("amqpSettings:enabled", true))
+            {
+                protocolHeads.Add(await container.Resolve<Task<AmqpProtocolHead>>());
+            }
+
+            if (configuration.GetValue("httpSettings:enabled", true))
+            {
+                protocolHeads.Add(new HttpProtocolHead(hosting.WebHost));
+            }
+
+            using (IProtocolHead protocolHead = new EdgeHubProtocolHead(protocolHeads, logger))
             {
                 await protocolHead.StartAsync();
                 await cts.Token.WhenCanceled();

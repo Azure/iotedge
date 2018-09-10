@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.27130.2027
+VisualStudioVersion = 15.0.27130.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "agent", "agent", "{EC8E6AC9-7AD8-4749-88F3-5D0CDD52D7B0}"
 	ProjectSection(SolutionItems) = preProject
@@ -93,17 +93,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{1ABF19EE-768
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "binding", "binding", "{B8B03013-8D6E-4D4E-9914-33D55074DEC8}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Functions.Binding", "edge-modules\functions\binding\src\Microsoft.Azure.Devices.Edge.Functions.Binding\Microsoft.Azure.Devices.Edge.Functions.Binding.csproj", "{63120FDB-92DD-4E02-B77A-E4B51999A0BB}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{33B7755E-D6F9-4F9B-86A8-5DFE9FEE674E}"
 	ProjectSection(SolutionItems) = preProject
 		edge-modules\functions\samples\host.json = edge-modules\functions\samples\host.json
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "EdgeHubTrigger-CSharp", "EdgeHubTrigger-CSharp", "{AFA4A92F-62AA-4EA9-9AE2-70E7EC5FCB12}"
-	ProjectSection(SolutionItems) = preProject
-		edge-modules\functions\samples\EdgeHubTrigger-CSharp\function.json = edge-modules\functions\samples\EdgeHubTrigger-CSharp\function.json
-		edge-modules\functions\samples\EdgeHubTrigger-CSharp\run.csx = edge-modules\functions\samples\EdgeHubTrigger-CSharp\run.csx
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Storage", "edge-util\src\Microsoft.Azure.Devices.Edge.Storage\Microsoft.Azure.Devices.Edge.Storage.csproj", "{DB92F6C3-A611-40C5-B464-8F11A3EE1AC3}"
@@ -119,11 +111,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docker", "docker", "{64E95D7B-8541-4A88-A291-8BE3445FB8FF}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "bin", "bin", "{80688705-AEFD-4297-907E-2B20DAFBB5D5}"
-	ProjectSection(SolutionItems) = preProject
-		edge-modules\functions\samples\bin\extensions.json = edge-modules\functions\samples\bin\extensions.json
-	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "linux", "linux", "{BCAA863C-8BC2-4FB1-9D9E-7BCADBCFC3A5}"
 EndProject
@@ -165,6 +152,19 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "load-gen", "edge-modules\load-gen\load-gen.csproj", "{54771470-860C-4853-9318-6DB4EA76B595}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MessagesAnalyzer", "edge-modules\MessagesAnalyzer\MessagesAnalyzer.csproj", "{047DC795-A159-4BFF-AC0F-4DCE51A79C2C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LeafDevice", "smoke\LeafDevice\LeafDevice.csproj", "{C5CBC493-96A4-4628-A952-8C7B9EEF1441}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.WebJobs.Extensions.EdgeHub", "edge-modules\functions\binding\src\Microsoft.Azure.WebJobs.Extensions.EdgeHub\Microsoft.Azure.WebJobs.Extensions.EdgeHub.csproj", "{0D5C5996-7414-47D2-AF0F-C68E0E3F3AA4}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "EdgeHubTrigger-CSharp", "EdgeHubTrigger-CSharp", "{C3BDC9FA-B7D8-44F3-970F-D24281335F46}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeHubTriggerCSharp", "edge-modules\functions\samples\EdgeHubTrigger-Csharp\EdgeHubTriggerCSharp.csproj", "{B8D5312A-B37B-4FA3-8B80-2D1A93077DDF}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "bin", "bin", "{3A879277-5A61-4A6A-BB27-5281FA83B1D3}"
+	ProjectSection(SolutionItems) = preProject
+		edge-modules\functions\samples\bin\extensions.json = edge-modules\functions\samples\bin\extensions.json
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -323,12 +323,6 @@ Global
 		{D67D382A-5F16-4AB2-8082-DBE62C33E5B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D67D382A-5F16-4AB2-8082-DBE62C33E5B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D67D382A-5F16-4AB2-8082-DBE62C33E5B1}.Release|Any CPU.Build.0 = Release|Any CPU
-		{63120FDB-92DD-4E02-B77A-E4B51999A0BB}.CodeCoverage|Any CPU.ActiveCfg = CodeCoverage|Any CPU
-		{63120FDB-92DD-4E02-B77A-E4B51999A0BB}.CodeCoverage|Any CPU.Build.0 = CodeCoverage|Any CPU
-		{63120FDB-92DD-4E02-B77A-E4B51999A0BB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{63120FDB-92DD-4E02-B77A-E4B51999A0BB}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{63120FDB-92DD-4E02-B77A-E4B51999A0BB}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{63120FDB-92DD-4E02-B77A-E4B51999A0BB}.Release|Any CPU.Build.0 = Release|Any CPU
 		{DB92F6C3-A611-40C5-B464-8F11A3EE1AC3}.CodeCoverage|Any CPU.ActiveCfg = CodeCoverage|Any CPU
 		{DB92F6C3-A611-40C5-B464-8F11A3EE1AC3}.CodeCoverage|Any CPU.Build.0 = CodeCoverage|Any CPU
 		{DB92F6C3-A611-40C5-B464-8F11A3EE1AC3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -407,6 +401,24 @@ Global
 		{047DC795-A159-4BFF-AC0F-4DCE51A79C2C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{047DC795-A159-4BFF-AC0F-4DCE51A79C2C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{047DC795-A159-4BFF-AC0F-4DCE51A79C2C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C5CBC493-96A4-4628-A952-8C7B9EEF1441}.CodeCoverage|Any CPU.ActiveCfg = CodeCoverage|Any CPU
+		{C5CBC493-96A4-4628-A952-8C7B9EEF1441}.CodeCoverage|Any CPU.Build.0 = CodeCoverage|Any CPU
+		{C5CBC493-96A4-4628-A952-8C7B9EEF1441}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C5CBC493-96A4-4628-A952-8C7B9EEF1441}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C5CBC493-96A4-4628-A952-8C7B9EEF1441}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C5CBC493-96A4-4628-A952-8C7B9EEF1441}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0D5C5996-7414-47D2-AF0F-C68E0E3F3AA4}.CodeCoverage|Any CPU.ActiveCfg = CodeCoverage|Any CPU
+		{0D5C5996-7414-47D2-AF0F-C68E0E3F3AA4}.CodeCoverage|Any CPU.Build.0 = CodeCoverage|Any CPU
+		{0D5C5996-7414-47D2-AF0F-C68E0E3F3AA4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0D5C5996-7414-47D2-AF0F-C68E0E3F3AA4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0D5C5996-7414-47D2-AF0F-C68E0E3F3AA4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0D5C5996-7414-47D2-AF0F-C68E0E3F3AA4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B8D5312A-B37B-4FA3-8B80-2D1A93077DDF}.CodeCoverage|Any CPU.ActiveCfg = Debug|Any CPU
+		{B8D5312A-B37B-4FA3-8B80-2D1A93077DDF}.CodeCoverage|Any CPU.Build.0 = Debug|Any CPU
+		{B8D5312A-B37B-4FA3-8B80-2D1A93077DDF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B8D5312A-B37B-4FA3-8B80-2D1A93077DDF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B8D5312A-B37B-4FA3-8B80-2D1A93077DDF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B8D5312A-B37B-4FA3-8B80-2D1A93077DDF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -446,14 +458,11 @@ Global
 		{C4502187-81D7-4299-85C3-64AE241503E0} = {578D5330-2F72-44C6-9DB5-C93B3F42C473}
 		{1ABF19EE-7689-4EE3-A099-16111A8F16F4} = {B8B03013-8D6E-4D4E-9914-33D55074DEC8}
 		{B8B03013-8D6E-4D4E-9914-33D55074DEC8} = {C4502187-81D7-4299-85C3-64AE241503E0}
-		{63120FDB-92DD-4E02-B77A-E4B51999A0BB} = {1ABF19EE-7689-4EE3-A099-16111A8F16F4}
 		{33B7755E-D6F9-4F9B-86A8-5DFE9FEE674E} = {C4502187-81D7-4299-85C3-64AE241503E0}
-		{AFA4A92F-62AA-4EA9-9AE2-70E7EC5FCB12} = {33B7755E-D6F9-4F9B-86A8-5DFE9FEE674E}
 		{DB92F6C3-A611-40C5-B464-8F11A3EE1AC3} = {66964A75-04AC-4FDE-8505-E6CB2EF90BE8}
 		{D6BFCE1F-0F53-43F1-8D2B-FC0FF8EEFA9C} = {66964A75-04AC-4FDE-8505-E6CB2EF90BE8}
 		{3EB5B58A-5820-44E7-9558-917C105B940D} = {373FFF5E-E84C-4789-B768-676FFF51E7A6}
 		{64E95D7B-8541-4A88-A291-8BE3445FB8FF} = {33B7755E-D6F9-4F9B-86A8-5DFE9FEE674E}
-		{80688705-AEFD-4297-907E-2B20DAFBB5D5} = {33B7755E-D6F9-4F9B-86A8-5DFE9FEE674E}
 		{BCAA863C-8BC2-4FB1-9D9E-7BCADBCFC3A5} = {64E95D7B-8541-4A88-A291-8BE3445FB8FF}
 		{B5BB5CDE-E6C7-4896-A66E-17D81BDB9A31} = {BCAA863C-8BC2-4FB1-9D9E-7BCADBCFC3A5}
 		{31B0F93F-3E58-4C66-9DCC-24236EA81F16} = {BCAA863C-8BC2-4FB1-9D9E-7BCADBCFC3A5}
@@ -469,6 +478,11 @@ Global
 		{79E573DB-A6A8-4F6F-B5A0-DA2258EB82E6} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
 		{54771470-860C-4853-9318-6DB4EA76B595} = {578D5330-2F72-44C6-9DB5-C93B3F42C473}
 		{047DC795-A159-4BFF-AC0F-4DCE51A79C2C} = {578D5330-2F72-44C6-9DB5-C93B3F42C473}
+		{C5CBC493-96A4-4628-A952-8C7B9EEF1441} = {871A0862-7480-49C3-ACEB-9A60E9CE5B61}
+		{0D5C5996-7414-47D2-AF0F-C68E0E3F3AA4} = {1ABF19EE-7689-4EE3-A099-16111A8F16F4}
+		{C3BDC9FA-B7D8-44F3-970F-D24281335F46} = {33B7755E-D6F9-4F9B-86A8-5DFE9FEE674E}
+		{B8D5312A-B37B-4FA3-8B80-2D1A93077DDF} = {C3BDC9FA-B7D8-44F3-970F-D24281335F46}
+		{3A879277-5A61-4A6A-BB27-5281FA83B1D3} = {33B7755E-D6F9-4F9B-86A8-5DFE9FEE674E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D71830F5-3AF5-46B4-8A9E-1DCE4F2253AC}

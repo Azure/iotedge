@@ -1,0 +1,18 @@
+FROM centos:centos7.5.1804
+ARG TOOLCHAIN="stable"
+
+RUN yum install -y redhat-rpm-config \
+        gcc \
+        libtool patchutils \
+        rpm-build \
+        elfutils \
+        gcc-c++ \
+        make \
+        rpm-sign \
+        git \
+        openssl-devel \
+        libcurl-devel \
+        libuuid-devel
+
+COPY yum/cmake.sh /
+RUN bash /cmake.sh 3.11.4

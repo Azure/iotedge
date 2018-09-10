@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Microsoft.Azure.Devices.Edge.Hub.Amqp;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Hub.Service;
@@ -79,7 +80,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 ["r10"] = "FROM /messages/modules/sender7 INTO BrokeredEndpoint(\"/modules/receiver7/inputs/input1\")",
                 ["r11"] = "FROM /messages/modules/sender8 INTO BrokeredEndpoint(\"/modules/receiver8/inputs/input1\")",
                 ["r12"] = "FROM /messages/modules/sender9 INTO BrokeredEndpoint(\"/modules/receiver9/inputs/input1\")",
-                ["r13"] = "FROM /messages/modules/sender10 INTO BrokeredEndpoint(\"/modules/receiver10/inputs/input1\")"
+                ["r13"] = "FROM /messages/modules/sender10 INTO BrokeredEndpoint(\"/modules/receiver10/inputs/input1\")",
+                ["r14"] = "FROM /messages/modules/sender11/outputs/output1 INTO BrokeredEndpoint(\"/modules/receiver11/inputs/input1\")",
+                ["r15"] = "FROM /messages/modules/sender11/outputs/output2 INTO BrokeredEndpoint(\"/modules/receiver11/inputs/input2\")",
             };
 
             private InternalProtocolHeadFixture()
@@ -93,10 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             ~InternalProtocolHeadFixture()
             {
-                if (this.protocolHead != null)
-                {
-                    this.protocolHead.Dispose();
-                }
+                this.protocolHead?.Dispose();
             }
 
             async Task StartProtocolHead()
@@ -134,20 +134,50 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
                 var versionInfo = new VersionInfo("v1", "b1", "c1");
                 var storeAndForwardConfiguration = new StoreAndForwardConfiguration(-1);
-                builder.RegisterModule(new CommonModule(string.Empty, iotHubConnectionStringBuilder.HostName, iotHubConnectionStringBuilder.DeviceId));
+                builder.RegisterModule(
+                    new CommonModule(
+                        string.Empty,
+                        iotHubConnectionStringBuilder.HostName,
+                        iotHubConnectionStringBuilder.DeviceId,
+                        iotHubConnectionStringBuilder.ModuleId,
+                        string.Empty,
+                        Option.None<string>(),
+                        AuthenticationMode.CloudAndScope,
+                        Option.Some(edgeDeviceConnectionString),
+                        false,
+                        false,
+                        string.Empty,
+                        Option.None<string>(),
+                        TimeSpan.FromHours(1),
+                        false));
+
                 builder.RegisterModule(
                     new RoutingModule(
                         iotHubConnectionStringBuilder.HostName,
-                        iotHubConnectionStringBuilder.DeviceId, iotHubConnectionStringBuilder.ModuleId,
+                        iotHubConnectionStringBuilder.DeviceId,
+                        iotHubConnectionStringBuilder.ModuleId,
                         Option.Some(edgeHubConnectionString),
-                        this.routes, false, false, storeAndForwardConfiguration,
-                        string.Empty, ConnectionPoolSize, false, versionInfo, Option.Some(UpstreamProtocol.Amqp),
-                        true, TimeSpan.FromSeconds(5), 101, false, Option.None<string>(), Option.None<string>())
-                );
+                        this.routes,
+                        false,
+                        storeAndForwardConfiguration,
+                        ConnectionPoolSize,
+                        false,
+                        versionInfo,
+                        Option.Some(UpstreamProtocol.Amqp),
+                        TimeSpan.FromSeconds(5),
+                        101,
+                        false));
+
                 builder.RegisterModule(new HttpModule());
                 builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, certificate, false, false, string.Empty, false));
                 builder.RegisterModule(new AmqpModule("amqps", 5671, certificate, iotHubConnectionStringBuilder.HostName));
                 this.container = builder.Build();
+
+                // CloudConnectionProvider and RoutingEdgeHub have a circular dependency. So set the
+                // EdgeHub on the CloudConnectionProvider before any other operation
+                var cloudConnectionProvider = this.container.Resolve<ICloudConnectionProvider>();
+                IEdgeHub edgeHub = await this.container.Resolve<Task<IEdgeHub>>();
+                cloudConnectionProvider.BindEdgeHub(edgeHub);
 
                 IConfigSource configSource = await this.container.Resolve<Task<IConfigSource>>();
                 ConfigUpdater configUpdater = await this.container.Resolve<Task<ConfigUpdater>>();

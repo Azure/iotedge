@@ -27,6 +27,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 
         public override LinkType Type => LinkType.Events;
 
+        protected override QualityOfService QualityOfService => QualityOfService.AtLeastOnce;
+
         protected override async Task OnMessageReceived(AmqpMessage amqpMessage)
         {
             IList<AmqpMessage> messages = null;

@@ -23,11 +23,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 return new byte[0];
             }
 
+            int readableBytes = byteBuffer.ReadableBytes;
             using (var stream = new ReadOnlyByteBufferStream(byteBuffer, false))
             {
-                var memoryStream = new MemoryStream();
-                stream.CopyTo(memoryStream);
-                byte[] bytes = memoryStream.ToArray();
+                var bytes = new byte[readableBytes];
+                stream.Read(bytes, 0, readableBytes);
                 return bytes;
             }
         }

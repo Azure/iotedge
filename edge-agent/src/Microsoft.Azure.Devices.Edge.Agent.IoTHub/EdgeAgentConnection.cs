@@ -60,7 +60,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             this.retryStrategy = Preconditions.CheckNotNull(retryStrategy, nameof(retryStrategy));
             this.refreshTimer = new Timer(refreshConfigFrequency.TotalMilliseconds);
             this.refreshTimer.Elapsed += (_, __) => this.RefreshTimerElapsed();
-            this.initTask = this.CreateAndInitDeviceClient(Preconditions.CheckNotNull(moduleClientProvider, nameof(moduleClientProvider)));            
+            this.initTask = this.CreateAndInitDeviceClient(Preconditions.CheckNotNull(moduleClientProvider, nameof(moduleClientProvider)));
+
+            Events.TwinRefreshInit(refreshConfigFrequency);
         }
 
         async void RefreshTimerElapsed() => await this.RefreshTwinAsync();
@@ -84,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                     });
                 this.deviceClient = Option.Some(dc);
 
-                await this.RefreshTwinAsync();                
+                await this.RefreshTwinAsync();
             }
         }
 
@@ -129,6 +131,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         {
             try
             {
+                Events.TwinRefreshStart();
+
                 // if GetTwinAsync fails its possible that it might be due to transient network errors or because
                 // we are getting throttled by IoT Hub; if we didn't attempt a retry then this object would be
                 // stuck in an "error" state till either the connection status on the underlying device connection
@@ -276,7 +280,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 ErrorHandlingConnectionChangeEvent,
                 EmptyDeploymentConfig,
                 RetryingGetTwin,
-                MismatchedSchemaVersion
+                MismatchedSchemaVersion,
+                TwinRefreshInit,
+                TwinRefreshStart
             }
 
             public static void DesiredPropertiesPatchFailed(Exception exception)
@@ -303,10 +309,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             {
                 Log.LogWarning((int)EventIds.ErrorHandlingConnectionChangeEvent, ex, "Edge agent connection error handing connection change callback.");
             }
+            internal static void TwinRefreshInit(TimeSpan interval)
+            {
+                Log.LogDebug((int)EventIds.TwinRefreshInit, "Initialize twin refresh with interval '{0:c}'", interval);
+            }
+
+            internal static void TwinRefreshStart()
+            {
+                Log.LogDebug((int)EventIds.TwinRefreshStart, "Begin refreshing twin from upstream...");
+            }
 
             internal static void TwinRefreshSuccess()
             {
-                Log.LogDebug((int)EventIds.TwinRefreshSuccess, "Updated edge agent configuration from twin.");
+                Log.LogDebug((int)EventIds.TwinRefreshSuccess, "Updated edge agent configuration from upstream twin.");
             }
 
             internal static void TwinRefreshError(Exception ex)
