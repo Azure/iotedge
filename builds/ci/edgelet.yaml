@@ -1,8 +1,5 @@
 phases:
 
-variables:
-  VSTS_WORK: /home/vsts/work
-
 ################################################################################
   - phase: linux_amd64
 ################################################################################
@@ -36,6 +33,8 @@ variables:
     queue:
       name: Hosted Linux Preview
     steps:
+	  - variables:
+        VSTS_WORK: /home/vsts/work
       - script: |
           echo "##vso[task.setvariable variable=RUSTUP_HOME;]$VSTS_WORK/rustup"
           echo "##vso[task.setvariable variable=CARGO_HOME;]$VSTS_WORK/cargo"
