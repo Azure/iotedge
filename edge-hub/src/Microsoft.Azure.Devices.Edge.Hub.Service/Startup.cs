@@ -120,6 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             int maxConnectedClients = this.Configuration.GetValue("MaxConnectedClients", 100) + 1;
 
             IConfiguration amqpSettings = this.Configuration.GetSection("amqpSettings");
+
             if (!Enum.TryParse(this.Configuration.GetValue("AuthenticationMode", string.Empty), true, out AuthenticationMode authenticationMode))
             {
                 authenticationMode = AuthenticationMode.CloudAndScope;
