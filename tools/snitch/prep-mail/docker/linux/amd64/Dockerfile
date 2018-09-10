@@ -3,7 +3,7 @@ FROM ekidd/rust-musl-builder AS builder
 ARG SRC_DIR=.
 
 # Add source code
-COPY $EXE_DIR/ ./
+COPY $SRC_DIR/ ./
 
 # Fix permissions on source code.
 RUN sudo chown -R rust:rust /home/rust

@@ -747,10 +747,15 @@ name = "prep-mail"
 version = "0.1.0"
 dependencies = [
  "env_logger 0.5.12 (registry+https://github.com/rust-lang/crates.io-index)",
+ "futures 0.1.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "handlebars 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.12.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper-tls 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.70 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.24 (registry+https://github.com/rust-lang/crates.io-index)",
  "snitcher 0.1.0",
+ "tokio 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 1.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
