@@ -102,7 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward = this.GetStoreAndForwardConfiguration();
 
             IConfiguration mqttSettingsConfiguration = this.Configuration.GetSection("mqttSettings");
-            Option<UpstreamProtocol> upstreamProtocolOption = Enum.TryParse(this.Configuration.GetValue("UpstreamProtocol", string.Empty), false, out UpstreamProtocol upstreamProtocol)
+            Option<UpstreamProtocol> upstreamProtocolOption = Enum.TryParse(this.Configuration.GetValue("UpstreamProtocol", string.Empty), true, out UpstreamProtocol upstreamProtocol)
                 ? Option.Some(upstreamProtocol)
                 : Option.None<UpstreamProtocol>();
             int connectivityCheckFrequencySecs = this.Configuration.GetValue("ConnectivityCheckFrequencySecs", 300);
