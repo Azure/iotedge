@@ -32,8 +32,6 @@ phases:
     displayName: Linux arm32v7
     queue:
       name: Hosted Linux Preview
-    variables:
-      VSTS_WORK: /home/vsts/work	  
     steps:
       - script: |
           echo "##vso[task.setvariable variable=RUSTUP_HOME;]$VSTS_WORK/rustup"
