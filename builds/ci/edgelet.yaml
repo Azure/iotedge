@@ -5,7 +5,7 @@ phases:
 ################################################################################
     displayName: Linux amd64
     queue:
-      name: Hosted Ubuntu 1604
+      name: Hosted Linux Preview
     steps:
       - script: echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
         displayName: Set env variables
@@ -31,7 +31,7 @@ phases:
 ################################################################################
     displayName: Linux arm32v7
     queue:
-      name: Hosted Ubuntu 1604
+      name: Hosted Linux Preview
     steps:
       - script: |
           echo "##vso[task.setvariable variable=RUSTUP_HOME;]$VSTS_WORK/rustup"
@@ -82,7 +82,7 @@ phases:
 ################################################################################
     displayName: Style Check
     queue:
-      name: Hosted Ubuntu 1604
+      name: Hosted Linux Preview
     steps:
       - script: |
           echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
