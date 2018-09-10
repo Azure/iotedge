@@ -80,8 +80,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             .GetOrElse(
                                 () =>
                                 {
-                                    string edgeHubGenerationId = this.edgeHubGenerationId.Expect(() => new Exception("Generation ID missing"));
-                                    return new HttpHsmSignatureProvider(this.edgeHubModuleId, edgeHubGenerationId, string.Empty, string.Empty) as ISignatureProvider;
+                                    string edgeHubGenerationId = this.edgeHubGenerationId.Expect(() => new InvalidOperationException("Generation ID missing"));
+                                    string workloadUri = this.workloadUri.Expect(() => new InvalidOperationException("workloadUri is missing"));
+                                    return new HttpHsmSignatureProvider(this.edgeHubModuleId, edgeHubGenerationId, workloadUri, Service.Constants.WorkloadApiVersion) as ISignatureProvider;
                                 });
                         return signatureProvider;
                     })
@@ -187,11 +188,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                     async c =>
                     {
-                        var edgeHubTokenProvider = c.ResolveNamed<ITokenProvider>("EdgeHubServiceAuthTokenProvider");
-                        IDeviceScopeApiClient securityScopesApiClient = new DeviceScopeApiClient(this.iothubHostName, this.edgeDeviceId, this.edgeHubModuleId, 10, edgeHubTokenProvider);
-                        IServiceProxy serviceProxy = new ServiceProxy(securityScopesApiClient);
-                        IKeyValueStore<string, string> encryptedStore = await c.ResolveNamed<Task<IKeyValueStore<string, string>>>("EncryptedStore");
-                        IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceProxy, encryptedStore, this.scopeCacheRefreshRate);
+                        IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
+                        if (this.authenticationMode == AuthenticationMode.CloudAndScope || this.authenticationMode == AuthenticationMode.Scope)
+                        {
+                            var edgeHubTokenProvider = c.ResolveNamed<ITokenProvider>("EdgeHubServiceAuthTokenProvider");
+                            IDeviceScopeApiClient securityScopesApiClient = new DeviceScopeApiClient(this.iothubHostName, this.edgeDeviceId, this.edgeHubModuleId, 10, edgeHubTokenProvider);
+                            IServiceProxy serviceProxy = new ServiceProxy(securityScopesApiClient);
+                            IKeyValueStore<string, string> encryptedStore = await c.ResolveNamed<Task<IKeyValueStore<string, string>>>("EncryptedStore");
+                            deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceProxy, encryptedStore, this.scopeCacheRefreshRate);
+                        }
+                        else
+                        {
+                            deviceScopeIdentitiesCache = new NullDeviceScopeIdentitiesCache();
+                        }
+
                         return deviceScopeIdentitiesCache;
                     })
                 .As<Task<IDeviceScopeIdentitiesCache>>()
