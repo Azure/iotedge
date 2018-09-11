@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             this.deviceScopeIdentitiesCache = Preconditions.CheckNotNull(deviceScopeIdentitiesCache, nameof(deviceScopeIdentitiesCache));
             this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
             this.edgeHubHostName = Preconditions.CheckNotNull(edgeHubHostName, nameof(edgeHubHostName));
-        }              
+        }
 
         public async Task<bool> AuthenticateAsync(IClientCredentials clientCredentials)
         {
@@ -39,15 +39,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
                 return false;
             }
 
-            try
+            Option<ServiceIdentity> serviceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(clientCredentials.Identity.Id);
+            if (serviceIdentity.HasValue)
             {
-                Option<ServiceIdentity> serviceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(clientCredentials.Identity.Id);
-                return await serviceIdentity.Map(s => this.AuthenticateInternalAsync(tokenCredentials, s))
-                    .GetOrElse(() => this.underlyingAuthenticator.AuthenticateAsync(clientCredentials));
+                try
+                {
+                    return await serviceIdentity.Map(s => this.AuthenticateInternalAsync(tokenCredentials, s)).GetOrElse(Task.FromResult(false));
+                }
+                catch (Exception e)
+                {
+                    Events.ErrorAuthenticating(e, clientCredentials);
+                    return await this.underlyingAuthenticator.AuthenticateAsync(clientCredentials);
+                }
             }
-            catch (Exception e)
+            else
             {
-                Events.ErrorAuthenticating(e, clientCredentials);
+                Events.ServiceIdentityNotFound(clientCredentials.Identity);
                 return await this.underlyingAuthenticator.AuthenticateAsync(clientCredentials);
             }
         }
@@ -59,15 +66,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
                 return false;
             }
 
-            try
+            Option<ServiceIdentity> serviceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(clientCredentials.Identity.Id);
+            if (serviceIdentity.HasValue)
             {
-                Option<ServiceIdentity> serviceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(clientCredentials.Identity.Id);
-                return await serviceIdentity.Map(s => this.AuthenticateInternalAsync(tokenCredentials, s))
-                    .GetOrElse(() => this.underlyingAuthenticator.ReauthenticateAsync(clientCredentials));
+                try
+                {
+                    return await serviceIdentity.Map(s => this.AuthenticateInternalAsync(tokenCredentials, s)).GetOrElse(Task.FromResult(false));
+                }
+                catch (Exception e)
+                {
+                    Events.ErrorAuthenticating(e, clientCredentials);
+                    return await this.underlyingAuthenticator.ReauthenticateAsync(clientCredentials);
+                }
             }
-            catch (Exception e)
+            else
             {
-                Events.ErrorAuthenticating(e, clientCredentials);
+                Events.ServiceIdentityNotFound(clientCredentials.Identity);
                 return await this.underlyingAuthenticator.ReauthenticateAsync(clientCredentials);
             }
         }
@@ -176,7 +190,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
                     Events.IdMismatch(audience, identity, deviceIdentity.DeviceId);
                     return false;
                 }
-                else if(identity is IModuleIdentity moduleIdentity && moduleIdentity.DeviceId != deviceId)
+                else if (identity is IModuleIdentity moduleIdentity && moduleIdentity.DeviceId != deviceId)
                 {
                     Events.IdMismatch(audience, identity, moduleIdentity.DeviceId);
                     return false;
@@ -235,7 +249,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
                 ErrorAuthenticating,
                 ServiceIdentityNotEnabled,
                 TokenExpired,
-                ErrorParsingToken
+                ErrorParsingToken,
+                ServiceIdentityNotFound
             }
 
             public static void ErrorReauthenticating(Exception exception, ServiceIdentity serviceIdentity)
@@ -286,6 +301,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             public static void ErrorParsingToken(IIdentity identity, Exception exception)
             {
                 Log.LogWarning((int)EventIds.ErrorParsingToken, exception, $"Error authenticating token for {identity.Id} because the token could not be parsed");
+            }
+
+            public static void ServiceIdentityNotFound(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.ServiceIdentityNotFound, $"Service identity for {identity.Id} not found. Using underlying authenticator to authenticate");
             }
         }
     }

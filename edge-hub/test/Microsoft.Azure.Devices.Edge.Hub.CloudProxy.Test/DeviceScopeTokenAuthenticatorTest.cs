@@ -350,6 +350,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Mock.Get(underlyingAuthenticator).VerifyAll();
         }
 
+        [Fact]
+        public async Task ValidateUnderlyingAuthenticatorErrorTest()
+        {
+            // Arrange
+            string iothubHostName = "testiothub.azure-devices.net";
+            string edgehubHostName = "edgehub1";
+            string deviceId = "d1";
+            var underlyingAuthenticator = Mock.Of<IAuthenticator>();
+            Mock.Get(underlyingAuthenticator).Setup(u => u.AuthenticateAsync(It.IsAny<IClientCredentials>())).ThrowsAsync(new TimeoutException());
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId)))
+                .ReturnsAsync(Option.None<ServiceIdentity>());
+
+            IAuthenticator authenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, edgehubHostName, underlyingAuthenticator);
+
+            var identity = Mock.Of<IDeviceIdentity>(d => d.DeviceId == deviceId && d.Id == deviceId);
+            string token = GetDeviceToken(iothubHostName, deviceId, GetKey());
+            var tokenCredentials = Mock.Of<ITokenCredentials>(t => t.Identity == identity && t.Token == token);
+
+            // Act
+            await Assert.ThrowsAsync<TimeoutException>(() => authenticator.AuthenticateAsync(tokenCredentials));
+
+            // Assert            
+            Mock.Get(underlyingAuthenticator).VerifyAll();
+            Mock.Get(underlyingAuthenticator).Verify(u => u.AuthenticateAsync(It.IsAny<IClientCredentials>()), Times.Once);
+        }
+
         static string GetDeviceToken(string iothubHostName, string deviceId, string key, TimeSpan timeToLive)
         {
             DateTime startTime = DateTime.UtcNow;
@@ -361,7 +388,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         }
 
         static string GetDeviceToken(string iothubHostName, string deviceId, string key)
-            => GetDeviceToken(iothubHostName, deviceId, key, TimeSpan.FromHours(1));         
+            => GetDeviceToken(iothubHostName, deviceId, key, TimeSpan.FromHours(1));
 
         static string GetDeviceToken(string iothubHostName, string deviceId, string moduleId, string key)
         {
