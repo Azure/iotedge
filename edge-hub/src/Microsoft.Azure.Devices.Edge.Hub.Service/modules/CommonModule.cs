@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly string storagePath;
         readonly TimeSpan scopeCacheRefreshRate;
         readonly Option<string> workloadUri;
-        readonly bool cacheTokens;
+        readonly bool persistTokens;
 
         public CommonModule(
             string productInfo,
@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             string storagePath,
             Option<string> workloadUri,
             TimeSpan scopeCacheRefreshRate,
-            bool cacheTokens)
+            bool persistTokens)
         {
             this.productInfo = productInfo;
             this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.storagePath = storagePath;
             this.scopeCacheRefreshRate = scopeCacheRefreshRate;
             this.workloadUri = workloadUri;
-            this.cacheTokens = cacheTokens;
+            this.persistTokens = persistTokens;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -132,22 +132,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<IDbStoreProvider>()
                 .SingleInstance();
 
-            // Task<IEncryptionProvider>
+            // Task<Option<IEncryptionProvider>>
             builder.Register(
                     async c =>
                     {
-                        IEncryptionProvider encryptionProvider = await this.workloadUri.Map(
-                                async uri => await EncryptionProvider.CreateAsync(
-                                    this.storagePath,
-                                    new Uri(uri),
-                                    Service.Constants.WorkloadApiVersion,
-                                    this.edgeHubModuleId,
-                                    this.edgeHubGenerationId.Expect(() => new InvalidOperationException("Missing generation ID")),
-                                    Service.Constants.InitializationVectorFileName) as IEncryptionProvider)
-                            .GetOrElse(() => Task.FromResult<IEncryptionProvider>(NullEncryptionProvider.Instance));
-                        return encryptionProvider;
+                        Option<IEncryptionProvider> encryptionProviderOption = await this.workloadUri
+                            .Map(
+                                async uri =>
+                                {
+                                    var encryptionProvider = await EncryptionProvider.CreateAsync(
+                                        this.storagePath,
+                                        new Uri(uri),
+                                        Service.Constants.WorkloadApiVersion,
+                                        this.edgeHubModuleId,
+                                        this.edgeHubGenerationId.Expect(() => new InvalidOperationException("Missing generation ID")),
+                                        Service.Constants.InitializationVectorFileName) as IEncryptionProvider;
+                                    return Option.Some(encryptionProvider);
+                                })
+                            .GetOrElse(() => Task.FromResult(Option.None<IEncryptionProvider>()));
+                        return encryptionProviderOption;
                     })
-                .As<Task<IEncryptionProvider>>()
+                .As<Task<Option<IEncryptionProvider>>>()
                 .SingleInstance();
 
             // IStoreProvider
@@ -170,20 +175,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .Named<ITokenProvider>("EdgeHubServiceAuthTokenProvider")
                 .SingleInstance();
 
-            // Task<IKeyValueStore<string, string>> - EncryptedStore
-            builder.Register(
-                    async c =>
-                    {
-                        var storeProvider = c.Resolve<IStoreProvider>();
-                        IEncryptionProvider encryptionProvider = await c.Resolve<Task<IEncryptionProvider>>();
-                        IEntityStore<string, string> entityStore = storeProvider.GetEntityStore<string, string>("SecurityScopeCache");
-                        IKeyValueStore<string, string> encryptedStore = new EncryptedStore<string, string>(entityStore, encryptionProvider);
-                        return encryptedStore;
-                    })
-                .Named<Task<IKeyValueStore<string, string>>>("EncryptedStore")
-                .SingleInstance();
-
-
             // Task<IDeviceScopeIdentitiesCache>
             builder.Register(
                     async c =>
@@ -194,7 +185,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             var edgeHubTokenProvider = c.ResolveNamed<ITokenProvider>("EdgeHubServiceAuthTokenProvider");
                             IDeviceScopeApiClient securityScopesApiClient = new DeviceScopeApiClient(this.iothubHostName, this.edgeDeviceId, this.edgeHubModuleId, 10, edgeHubTokenProvider);
                             IServiceProxy serviceProxy = new ServiceProxy(securityScopesApiClient);
-                            IKeyValueStore<string, string> encryptedStore = await c.ResolveNamed<Task<IKeyValueStore<string, string>>>("EncryptedStore");
+                            IKeyValueStore<string, string> encryptedStore = await GetEncryptedStore(c, "DeviceScopeCache");
                             deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceProxy, encryptedStore, this.scopeCacheRefreshRate);
                         }
                         else
@@ -211,9 +202,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(async c =>
                 {
                     ICredentialsCache underlyingCredentialsCache;
-                    if (this.cacheTokens)
+                    if (this.persistTokens)
                     {
-                        IKeyValueStore<string, string> encryptedStore = await c.ResolveNamed<Task<IKeyValueStore<string, string>>>("EncryptedStore");
+                        IKeyValueStore<string, string> encryptedStore = await GetEncryptedStore(c, "CredentialsCache");
                         return new TokenCredentialsCache(encryptedStore);
                     }
                     else
@@ -294,7 +285,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             var credentialsCacheTask = context.Resolve<Task<ICredentialsCache>>();
             IConnectionManager connectionManager = await connectionManagerTask;
             ICredentialsCache credentialsCache = await credentialsCacheTask;
-            if (this.cacheTokens)
+            if (this.persistTokens)
             {
                 IAuthenticator authenticator = new CloudTokenAuthenticator(connectionManager, this.iothubHostName);
                 tokenAuthenticator = new TokenCacheAuthenticator(authenticator, credentialsCache, this.iothubHostName);
@@ -305,6 +296,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             }
 
             return tokenAuthenticator;
+        }
+
+        static async Task<IKeyValueStore<string, string>> GetEncryptedStore(IComponentContext context, string entityName)
+        {
+            Option<IEncryptionProvider> encryptionProvider = await context.Resolve<Task<Option<IEncryptionProvider>>>();
+            var storeProvider = context.Resolve<IStoreProvider>();
+            IKeyValueStore<string, string> encryptedStore = encryptionProvider
+                .Map(
+                    e =>
+                    {
+                        IEntityStore<string, string> entityStore = storeProvider.GetEntityStore<string, string>(entityName);
+                        IKeyValueStore<string, string> es = new EncryptedStore<string, string>(entityStore, e);
+                        return es;
+                    })
+                .GetOrElse(() => new NullKeyValueStore<string, string>() as IKeyValueStore<string, string>);
+            return encryptedStore;
         }
     }
 }
