@@ -2,7 +2,6 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
-    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -11,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
     public class CredentialsCache : ICredentialsCache
     {
-        readonly IDictionary<string, IClientCredentials> cache = new ConcurrentDictionary<string, IClientCredentials>();
+        readonly IDictionary<string, IClientCredentials> cache = new Dictionary<string, IClientCredentials>();
         readonly ICredentialsCache underlyingCache;
         readonly AsyncLock cacheLock = new AsyncLock();
 
