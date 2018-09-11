@@ -42,8 +42,8 @@ phases:
         displayName: Install Rust
         inputs:
           filePath: edgelet/build/linux/install.sh
-      - script: cargo install cross
-        displayName: Install cross 
+      - script: cargo install --git https://github.com/myagley/cross.git --branch set-path
+        displayName: Install cross (fork with docker fix)
       - task: Bash@3
         displayName: armv7-unknown-linux-gnueabihf build
         inputs:
