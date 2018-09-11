@@ -4,14 +4,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using System;
     using System.Threading;
     using System.Threading.Tasks;
+    using DotNetty.Transport.Channels;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
 
+    [Unit]
     public class ConnectivityAwareClientTest
     {
-        [Unit]
         [Fact]
         public async Task DisableHandlingEventsOnCloseTest()
         {
@@ -43,16 +45,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.Equal(2, connectionStatusChangedHandlerCount);
         }
 
+        [Theory]
+        [InlineData(typeof(ConnectTimeoutException), typeof(TimeoutException))]
+        [InlineData(typeof(TimeoutException), typeof(TimeoutException))]
+        [InlineData(typeof(IotHubException), typeof(IotHubException))]
+        [InlineData(typeof(InvalidOperationException), typeof(InvalidOperationException))]
+        public async Task TestExceptionTest(Type thrownException, Type expectedException)
+        {
+            // Arrange
+            var client = new Mock<IClient>();
+            client.Setup(c => c.SendEventAsync(It.IsAny<Message>())).ThrowsAsync(Activator.CreateInstance(thrownException, "msg str") as Exception);
+            var deviceConnectivityManager = new DeviceConnectivityManager();
+            var connectivityAwareClient = new ConnectivityAwareClient(client.Object, deviceConnectivityManager);
+            var message = new Message();
+
+            // Act / Assert
+            await Assert.ThrowsAsync(expectedException, () => connectivityAwareClient.SendEventAsync(message));
+        }
+
         class DeviceConnectivityManager : IDeviceConnectivityManager
         {
-            public void CallSucceeded() 
+            public void CallSucceeded()
             {
-                throw new NotImplementedException();
             }
 
             public void CallTimedOut()
             {
-                throw new NotImplementedException();
             }
 
             public void InvokeDeviceConnected() => this.DeviceConnected?.Invoke(null, null);
