@@ -26,7 +26,7 @@ namespace IotEdgeQuickstart.Details
             {
                 if (!node.ContainsKey(key))
                 {
-                    node.Add(key, null);
+                    node.Add(key, new Dictionary<object, object>());
                 }
                 node = (Dictionary<object, object>)node[key];
             }
