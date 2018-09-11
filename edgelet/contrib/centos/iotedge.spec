@@ -122,8 +122,8 @@ echo "==========================================================================
 %{_unitdir}/%{name}.service
 
 # sockets
-%attr(660, %{iotedge_user}, %{iotedge_group}) %{iotedge_rundir}/mgmt.sock
-%attr(666, %{iotedge_user}, %{iotedge_group}) %{iotedge_rundir}/workload.sock
+%attr(660, %{iotedge_user}, %{iotedge_group}) %{iotedge_home}/mgmt.sock
+%attr(666, %{iotedge_user}, %{iotedge_group}) %{iotedge_home}/workload.sock
 
 # dirs
 %attr(-, %{iotedge_user}, %{iotedge_group}) %dir %{iotedge_home}
