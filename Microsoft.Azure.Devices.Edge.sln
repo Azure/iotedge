@@ -161,11 +161,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "EdgeHubTrigger-CSharp", "Ed
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeHubTriggerCSharp", "edge-modules\functions\samples\EdgeHubTrigger-Csharp\EdgeHubTriggerCSharp.csproj", "{B8D5312A-B37B-4FA3-8B80-2D1A93077DDF}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "bin", "bin", "{3A879277-5A61-4A6A-BB27-5281FA83B1D3}"
-	ProjectSection(SolutionItems) = preProject
-		edge-modules\functions\samples\bin\extensions.json = edge-modules\functions\samples\bin\extensions.json
-	EndProjectSection
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.Service.Test", "edge-hub\test\Microsoft.Azure.Devices.Edge.Hub.Service.Test\Microsoft.Azure.Devices.Edge.Hub.Service.Test.csproj", "{9BED8F14-63E9-4B4B-88F7-659D5E522CBD}"
 EndProject
 Global
@@ -490,7 +485,6 @@ Global
 		{0D5C5996-7414-47D2-AF0F-C68E0E3F3AA4} = {1ABF19EE-7689-4EE3-A099-16111A8F16F4}
 		{C3BDC9FA-B7D8-44F3-970F-D24281335F46} = {33B7755E-D6F9-4F9B-86A8-5DFE9FEE674E}
 		{B8D5312A-B37B-4FA3-8B80-2D1A93077DDF} = {C3BDC9FA-B7D8-44F3-970F-D24281335F46}
-		{3A879277-5A61-4A6A-BB27-5281FA83B1D3} = {33B7755E-D6F9-4F9B-86A8-5DFE9FEE674E}
 		{9BED8F14-63E9-4B4B-88F7-659D5E522CBD} = {63969606-14B2-4D9D-AB72-A5D60D22037C}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
