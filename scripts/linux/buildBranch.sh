@@ -182,6 +182,25 @@ publish_quickstart()
         .
 }
 
+publish_leafdevice()
+{
+    local rid="$1"
+    echo "Publishing LeafDevice for '$rid'"
+    $DOTNET_ROOT_PATH/dotnet publish \
+        -c $CONFIGURATION \
+        -f $DOTNET_RUNTIME \
+        -r $rid \
+        $ROOT_FOLDER/smoke/LeafDevice
+    if [ $? -gt 0 ]; then
+        RES=1
+    fi
+
+    tar \
+        -C "$ROOT_FOLDER/smoke/LeafDevice/bin/$CONFIGURATION/$DOTNET_RUNTIME/$rid/publish/" \
+        -czf "$PUBLISH_FOLDER/LeafDevice.$rid.tar.gz" \
+        .
+}
+
 process_args "$@"
 
 rm -fr $PUBLISH_FOLDER
@@ -215,5 +234,7 @@ fi
 
 publish_quickstart linux-arm
 publish_quickstart linux-x64
+publish_leafdevice linux-arm
+publish_leafdevice linux-x64
 
 exit $RES
