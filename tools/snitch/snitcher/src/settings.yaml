@@ -13,11 +13,46 @@ alert:
     sig: password
 influx_url: http://influxdb:8086
 influx_db_name: metricsdatabase
-# influx_queries:
-#   all: select * from /.*/
+influx_queries:
+  db: SELECT non_negative_derivative(sum("value"), 1s) AS "rate_stored"
+    FROM "metricsdatabase"."autogen"."application__endpointmessagestoredcount"
+    WHERE time > now() - 8h AND "EndpointId"='iothub'
+    GROUP BY time(1m) FILL(null)
+  cloud: SELECT non_negative_derivative(sum("value"), 1s) AS "sum_value"
+    FROM "metricsdatabase"."autogen"."application__edgehubtocloudmessagesentcount"
+    WHERE time > now() - 8h
+    GROUP BY time(1m) FILL(null)
+  dbstd: SELECT mean("stddev") AS "mean_stddev"
+    FROM "metricsdatabase"."autogen"."application__endpointmessagestoredlatencyms"
+    WHERE time > now() - 8h AND "EndpointId"='iothub'
+    GROUP BY time(1m) FILL(null)
+  cloudstd: SELECT mean("stddev") AS "mean_stddev"
+    FROM "metricsdatabase"."autogen"."application__edgehubtocloudmessagelatencyms"
+    WHERE time > now() - 8h
+    GROUP BY time(1m) FILL(null)
+  dbmean: SELECT mean("mean") AS "mean_mean"
+    FROM "metricsdatabase"."autogen"."application__endpointmessagestoredlatencyms"
+    WHERE time > now() - 8h AND "EndpointId"='iothub'
+    GROUP BY time(1m) FILL(null)
+  dbmeanentity: SELECT mean("mean") AS "mean_mean"
+    FROM "metricsdatabase"."autogen"."application__messageentitystoreputorupdatelatencyms"
+    WHERE time > now() - 8h AND "EndpointId"='iothub'
+    GROUP BY time(1m) FILL(null)
+  dbmeanseq: SELECT mean("mean") AS "mean_mean"
+    FROM "metricsdatabase"."autogen"."application__sequentialstoreappendlatencyms"
+    WHERE time > now() - 8h AND "EndpointId"='iothub'
+    GROUP BY time(1m) FILL(null)
+  dbgetstd: SELECT mean("stddev") AS "mean_stddev"
+    FROM "metricsdatabase"."autogen"."application__dbgetlatencyms"
+    WHERE time > now() - 8h AND "EndpointId"='all'
+    GROUP BY time(1m) FILL(null)
+  dbputstd: SELECT mean("stddev") AS "mean_stddev"
+    FROM "metricsdatabase"."autogen"."application__dbgetlatencyms"
+    WHERE time > now() - 8h AND "EndpointId"='all'
+    GROUP BY time(1m) FILL(null)
 analyzer_url: http://analyzer:15000/api/report
-blob_storage_account: ""
-blob_storage_master_key: ""
-blob_container_name: ""
+blob_storage_account: ''
+blob_storage_master_key: ''
+blob_container_name: ''
 reporting_interval: null
 docker_url: unix:///var/run/docker.sock
