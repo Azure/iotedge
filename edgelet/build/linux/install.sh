@@ -86,10 +86,6 @@ install_toolchain $TOOLCHAIN true
 # Add trusty repo to get older version of libc6-armhf-cross
 add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ trusty main universe"
 
-# Clean package list
-apt-get clean && \
-rm -r /var/lib/apt/lists/*
-
 # Install OpenSSL, curl and uuid and valgrind
 apt-get update && \
 apt-get install -y \

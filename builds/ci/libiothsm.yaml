@@ -8,6 +8,10 @@ phases:
       name: Hosted Linux Preview
     steps:
       - task: Bash@3
+        displayName: Clean package list
+        inputs:
+          script: apt-get clean && rm -r /var/lib/apt/lists/*
+      - task: Bash@3
         displayName: Install dependencies
         inputs:
           filePath: edgelet/build/linux/install.sh
