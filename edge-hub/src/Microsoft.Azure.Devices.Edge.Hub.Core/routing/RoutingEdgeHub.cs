@@ -156,11 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             }
             catch (Exception e)
             {
-                Events.ErrorAddingSubscription(e, id, deviceSubscription);
-                if (!e.HasTimeoutException())
-                {
-                    throw;
-                }
+                Events.ErrorAddingSubscription(e, id, deviceSubscription);                
             }
         }
 
