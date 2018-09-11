@@ -26,6 +26,9 @@ namespace IotEdgeQuickstart.Details
         readonly string deviceId;
         readonly string hostname;
         public readonly Option<string> DeploymentFileName;
+        readonly string deviceCaCert;
+        readonly string deviceCaPk;
+        readonly string deviceCaCerts;
 
         DeviceContext context;
 
@@ -37,7 +40,10 @@ namespace IotEdgeQuickstart.Details
             string imageTag,
             string deviceId,
             string hostname,
-            Option<string> deploymentFileName
+            Option<string> deploymentFileName,
+            string deviceCaCert,
+            string deviceCaPk,
+            string deviceCaCerts
             )
         {
             this.bootstrapper = bootstrapper;
@@ -48,6 +54,9 @@ namespace IotEdgeQuickstart.Details
             this.deviceId = deviceId;
             this.hostname = hostname;
             this.DeploymentFileName = deploymentFileName;
+            this.deviceCaCert = deviceCaCert;
+            this.deviceCaPk = deviceCaPk;
+            this.deviceCaCerts = deviceCaCerts;
         }
 
         protected Task VerifyEdgeIsNotAlreadyActive() => this.bootstrapper.VerifyNotActive();
@@ -112,7 +121,7 @@ namespace IotEdgeQuickstart.Details
                 $"DeviceId={this.context.Device.Id};" +
                 $"SharedAccessKey={this.context.Device.Authentication.SymmetricKey.PrimaryKey}";
 
-            return this.bootstrapper.Configure(connectionString, this.EdgeAgentImage(), this.hostname);
+            return this.bootstrapper.Configure(connectionString, this.EdgeAgentImage(), this.hostname, this.deviceCaCert, this.deviceCaPk, this.deviceCaCerts);
         }
 
         protected Task StartBootstrapper() => this.bootstrapper.Start();

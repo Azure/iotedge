@@ -86,7 +86,7 @@ namespace IotEdgeQuickstart.Details
         }
 
 
-        public async Task Configure(string connectionString, string image, string hostname)
+        public async Task Configure(string connectionString, string image, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts)
         {
             Console.WriteLine($"Installing iotedged from {this.archivePath ?? "default location"}");
             Console.WriteLine($"Setting up iotedged with agent image '{image}'");
