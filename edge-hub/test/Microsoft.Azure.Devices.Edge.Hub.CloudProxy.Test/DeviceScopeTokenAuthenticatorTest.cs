@@ -112,6 +112,39 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         }
 
         [Fact]
+        public async Task AuthenticateTest_ModuleWithDeviceKey()
+        {
+            // Arrange
+            string iothubHostName = "testiothub.azure-devices.net";
+            string edgehubHostName = "edgehub1";
+            string deviceId = "d1";
+            string moduleId = "m1";
+            var connectionManager = Mock.Of<IConnectionManager>();
+            var underlyingAuthenticator = Mock.Of<IAuthenticator>();
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
+            string key = GetKey();
+            var deviceServiceIdentity = new ServiceIdentity(deviceId, "1234", new string[0], new ServiceAuthentication(new SymmetricKeyAuthentication(key, GetKey())), ServiceIdentityStatus.Enabled);
+            var moduleServiceIdentity = new ServiceIdentity(deviceId, moduleId, "1234", new string[0], new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey())), ServiceIdentityStatus.Enabled);
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == $"{deviceId}/{moduleId}")))
+                .ReturnsAsync(Option.Some(moduleServiceIdentity));
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId)))
+                .ReturnsAsync(Option.Some(deviceServiceIdentity));
+
+            IAuthenticator authenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, edgehubHostName, underlyingAuthenticator, connectionManager);
+
+            var identity = Mock.Of<IModuleIdentity>(d => d.DeviceId == deviceId && d.ModuleId == moduleId && d.Id == $"{deviceId}/{moduleId}");
+            string token = GetDeviceToken(iothubHostName, deviceId, moduleId, key);
+            var tokenCredentials = Mock.Of<ITokenCredentials>(t => t.Identity == identity && t.Token == token);
+
+            // Act
+            bool isAuthenticated = await authenticator.AuthenticateAsync(tokenCredentials);
+
+            // Assert
+            Assert.True(isAuthenticated);
+            Mock.Get(underlyingAuthenticator).VerifyAll();
+        }
+
+        [Fact]
         public async Task AuthenticateTest_Device_ServiceIdentityNotEnabled()
         {
             // Arrange
