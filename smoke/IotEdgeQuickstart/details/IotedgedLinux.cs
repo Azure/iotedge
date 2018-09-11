@@ -154,7 +154,7 @@ namespace IotEdgeQuickstart.Details
                 300); // 5 min timeout because install can be slow on raspberry pi
         }
 
-        public async Task Configure(string connectionString, string image, string hostname)
+        public async Task Configure(string connectionString, string image, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts)
         {
             Console.WriteLine($"Setting up iotedged with agent image '{image}'");
 
@@ -162,34 +162,42 @@ namespace IotEdgeQuickstart.Details
             Task<string> text = File.ReadAllTextAsync(YamlPath);
 
             var doc = new YamlDocument(await text);
-            doc.Replace("provisioning.device_connection_string", connectionString);
-            doc.Replace("agent.config.image", image);
-            doc.Replace("hostname", hostname);
+            doc.ReplaceOrAdd("provisioning.device_connection_string", connectionString);
+            doc.ReplaceOrAdd("agent.config.image", image);
+            doc.ReplaceOrAdd("hostname", hostname);
 
             foreach (RegistryCredentials c in this.credentials)
             {
-                doc.Replace("agent.config.auth.serveraddress", c.Address);
-                doc.Replace("agent.config.auth.username", c.User);
-                doc.Replace("agent.config.auth.password", c.Password);
+                doc.ReplaceOrAdd("agent.config.auth.serveraddress", c.Address);
+                doc.ReplaceOrAdd("agent.config.auth.username", c.User);
+                doc.ReplaceOrAdd("agent.config.auth.password", c.Password);
             }
 
             if (this.httpUris.HasValue)
             {
                 HttpUris uris = this.httpUris.OrDefault();
-                doc.Replace("connect.management_uri", uris.ConnectManagement);
-                doc.Replace("connect.workload_uri", uris.ConnectWorkload);
-                doc.Replace("listen.management_uri", uris.ListenManagement);
-                doc.Replace("listen.workload_uri", uris.ListenWorkload);
+                doc.ReplaceOrAdd("connect.management_uri", uris.ConnectManagement);
+                doc.ReplaceOrAdd("connect.workload_uri", uris.ConnectWorkload);
+                doc.ReplaceOrAdd("listen.management_uri", uris.ListenManagement);
+                doc.ReplaceOrAdd("listen.workload_uri", uris.ListenWorkload);
             }
             else
             {
-                doc.Replace("connect.management_uri", "unix:///var/run/iotedge/mgmt.sock");
-                doc.Replace("connect.workload_uri", "unix:///var/run/iotedge/workload.sock");
-                doc.Replace("listen.management_uri", "fd://iotedge.mgmt.socket");
-                doc.Replace("listen.workload_uri", "fd://iotedge.socket");
+                doc.ReplaceOrAdd("connect.management_uri", "unix:///var/run/iotedge/mgmt.sock");
+                doc.ReplaceOrAdd("connect.workload_uri", "unix:///var/run/iotedge/workload.sock");
+                doc.ReplaceOrAdd("listen.management_uri", "fd://iotedge.mgmt.socket");
+                doc.ReplaceOrAdd("listen.workload_uri", "fd://iotedge.socket");
+            }
+
+            if (!string.IsNullOrEmpty(deviceCaCert) && !string.IsNullOrEmpty(deviceCaPk) && !string.IsNullOrEmpty(deviceCaCerts))
+            {
+                doc.ReplaceOrAdd("certificates.device_ca_cert", deviceCaCert);
+                doc.ReplaceOrAdd("certificates.device_ca_pk", deviceCaPk);
+                doc.ReplaceOrAdd("certificates.trusted_ca_certs", deviceCaCerts);
             }
 
             string result = doc.ToString();
+
 
             FileAttributes attr = 0;
             if (File.Exists(YamlPath))
