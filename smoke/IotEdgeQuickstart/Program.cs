@@ -108,6 +108,15 @@ Defaults:
         [Option("-l|--deployment <filename>", Description = "Deployment json file")]
         public string DeploymentFileName { get; } = Environment.GetEnvironmentVariable("deployment");
 
+        [Option("--device_ca_cert", Description = "path to the device ca certificate and its chain")]
+        public string DeviceCaCert { get; } = "";
+
+        [Option("--device_ca_pk", Description = "path to the device ca private key file")]
+        public string DeviceCaPk { get; } = "";
+
+        [Option("--trusted_ca_certs", Description = "path to a file containing all the trusted CA")]
+        public string DeviceCaCerts { get; } = "";
+
         // ReSharper disable once UnusedMember.Local
         async Task<int> OnExecuteAsync()
         {
@@ -174,7 +183,10 @@ Defaults:
                     this.NoDeployment,
                     this.NoVerify,
                     this.VerifyDataFromModule, 
-                    deployment);
+                    deployment,
+                    this.DeviceCaCert,
+                    this.DeviceCaPk,
+                    this.DeviceCaCerts);
                 await test.RunAsync();
             }
             catch (Exception ex)
