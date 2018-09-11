@@ -16,16 +16,14 @@ case "$1" in
             chmod 400 /etc/iotedge/config.yaml
 
             # Do this for debian systems which don't support FDNAMES
-            if [ ! -d  /var/run/iotedge/ ]; then
-                mkdir /var/run/iotedge/
-                touch /var/run/iotedge/mgmt.sock
-                touch /var/run/iotedge/workload.sock
-                chown ${USER}:${GROUP} /var/run/iotedge/
-                chown ${USER}:${GROUP} /var/run/iotedge/mgmt.sock
-                chown ${USER}:${GROUP} /var/run/iotedge/workload.sock
-                chmod 755 /var/run/iotedge/
-                chmod 660 /var/run/iotedge/mgmt.sock
-                chmod 666 /var/run/iotedge/workload.sock
+            if [ ! -d  /var/lib/iotedge/ ]; then
+                touch /var/lib/iotedge/mgmt.sock
+                touch /var/lib/iotedge/workload.sock
+                chown ${USER}:${GROUP} /var/lib/iotedge/
+                chown ${USER}:${GROUP} /var/lib/iotedge/mgmt.sock
+                chown ${USER}:${GROUP} /var/lib/iotedge/workload.sock
+                chmod 660 /var/lib/iotedge/mgmt.sock
+                chmod 666 /var/lib/iotedge/workload.sock
             fi
         fi
 
