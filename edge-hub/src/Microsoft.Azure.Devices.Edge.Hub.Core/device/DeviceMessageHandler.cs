@@ -125,6 +125,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                 twin.SystemProperties[SystemProperties.CorrelationId] = correlationId;
                 twin.SystemProperties[SystemProperties.StatusCode] = ((int)HttpStatusCode.OK).ToString();
                 await this.SendTwinUpdate(twin);
+                Events.ProcessedGetTwin(this.Identity.Id);
             }
             catch (Exception e)
             {
@@ -291,7 +292,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                 MessageFeedbackWithNoMessageId,
                 MessageSentToClient,
                 ErrorGettingTwin,
-                ErrorUpdatingReportedProperties
+                ErrorUpdatingReportedProperties,
+                ProcessedGetTwin
             }
 
             public static void BindDeviceProxy(IIdentity identity)
@@ -357,6 +359,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             public static void ErrorUpdatingReportedPropertiesTwin(IIdentity identity, Exception ex)
             {
                 Log.LogWarning((int)EventIds.ErrorUpdatingReportedProperties, ex, Invariant($"Error updating reported properties for {identity.Id}"));
+            }
+
+            public static void ProcessedGetTwin(string identityId)
+            {
+                Log.LogDebug((int)EventIds.ProcessedGetTwin, Invariant($"Processed GetTwin for {identityId}"));
             }
         }
     }
