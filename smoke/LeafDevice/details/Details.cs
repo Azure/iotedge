@@ -50,12 +50,16 @@ namespace LeafDevice.Details
         protected async Task ConnectToEdgeAndSendData()
         {
             Microsoft.Azure.Devices.IotHubConnectionStringBuilder builder = Microsoft.Azure.Devices.IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
-            string leafDeviceConnectionString = $"HostName={builder.HostName};DeviceId={this.deviceId};SharedAccessKey={this.context.Device.Authentication.SymmetricKey.PrimaryKey};gatewayHostName={this.edgeHostName}";
+            string leafDeviceConnectionString = $"HostName={builder.HostName};DeviceId={this.deviceId};SharedAccessKey={this.context.Device.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={this.edgeHostName}";
+            
+            DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(leafDeviceConnectionString, Microsoft.Azure.Devices.Client.TransportType.Mqtt);
+            Console.WriteLine("Leaf Device client created.");
 
-            DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(leafDeviceConnectionString, Microsoft.Azure.Devices.Client.TransportType.Amqp);
 
             var message = new Microsoft.Azure.Devices.Client.Message(Encoding.ASCII.GetBytes($"Message from Leaf Device. MsgGUID: {this.context.MessageGuid}"));
+            Console.WriteLine($"Trying to send the message to '{this.edgeHostName}'");
             await deviceClient.SendEventAsync(message);
+            Console.WriteLine($"Message Sent. ");
         }
 
         protected async Task GetOrCreateDeviceIdentity()

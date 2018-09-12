@@ -118,6 +118,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             ConfigUpdater configUpdater = await container.Resolve<Task<ConfigUpdater>>();
             await configUpdater.Init(configSource);
 
+            if (!Enum.TryParse(configuration.GetValue("AuthenticationMode", string.Empty), true, out AuthenticationMode authenticationMode)
+                || authenticationMode != AuthenticationMode.Cloud)
+            {
+                ConnectionReauthenticator connectionReauthenticator = await container.Resolve<Task<ConnectionReauthenticator>>();
+                connectionReauthenticator.Init();
+            }
+
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler)
                 = ShutdownHandler.Init(ShutdownWaitPeriod, logger);
 
