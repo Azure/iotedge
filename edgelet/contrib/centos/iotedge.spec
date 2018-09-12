@@ -16,7 +16,7 @@ URL:            https://github.com/azure/iotedge
 %{?systemd_requires}
 BuildRequires:  systemd
 Requires(pre):  shadow-utils
-Requires:       libiothsm-std
+Requires:       
 Source0:        iotedge-%{version}.tar.gz
 
 %description

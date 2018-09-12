@@ -67,7 +67,7 @@ impl SetPlatformDefines for Config {
 
     #[cfg(not(debug_assertions))]
     fn set_build_shared(&mut self) -> &mut Self {
-        self.define("BUILD_SHARED", "ON")
+        self.define("BUILD_SHARED", "OFF")
     }
 }
 
