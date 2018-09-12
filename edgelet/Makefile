@@ -125,9 +125,8 @@ install: release
 	$(GZIP) $(DESTDIR)$(man8)/iotedged.8
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(localstatedir)/lib/iotedge
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(localstatedir)/log/iotedge
-	$(INSTALL) -d -m 0755 $(DESTDIR)$(runstatedir)
-	$(INSTALL) -m 0660 /dev/null $(DESTDIR)$(runstatedir)/mgmt.sock
-	$(INSTALL) -m 0666 /dev/null $(DESTDIR)$(runstatedir)/workload.sock
+	$(INSTALL) -m 0660 /dev/null $(DESTDIR)$(localstatedir)/lib/iotedge/mgmt.sock
+	$(INSTALL) -m 0666 /dev/null $(DESTDIR)$(localstatedir)/lib/iotedge/workload.sock
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/LICENSE $(DESTDIR)$(docdir)/LICENSE
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/ThirdPartyNotices $(DESTDIR)$(docdir)/ThirdPartyNotices
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/trademark $(DESTDIR)$(docdir)/trademark
