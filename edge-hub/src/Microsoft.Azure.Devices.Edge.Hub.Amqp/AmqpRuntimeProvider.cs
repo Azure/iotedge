@@ -24,11 +24,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         readonly IAuthenticator authenticator;
         readonly IConnectionProvider connectionProvider;
         readonly string iotHubHostName;
-        readonly ICredentialsStore credentialsStore;
+        readonly ICredentialsCache credentialsCache;
 
         public AmqpRuntimeProvider(ILinkHandlerProvider linkHandlerProvider, bool requireSecureTransport,
             IClientCredentialsFactory clientCredentialsFactory, IAuthenticator authenticator,
-            string iotHubHostName, IConnectionProvider connectionProvider, ICredentialsStore credentialsStore)
+            string iotHubHostName, IConnectionProvider connectionProvider, ICredentialsCache credentialsCache)
         {
             this.linkHandlerProvider = Preconditions.CheckNotNull(linkHandlerProvider, nameof(linkHandlerProvider));
             this.requireSecureTransport = Preconditions.CheckNotNull(requireSecureTransport, nameof(requireSecureTransport));
@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostName, nameof(iotHubHostName));
             this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
             this.connectionProvider = Preconditions.CheckNotNull(connectionProvider, nameof(connectionProvider));
-            this.credentialsStore = Preconditions.CheckNotNull(credentialsStore, nameof(credentialsStore));
+            this.credentialsCache = Preconditions.CheckNotNull(credentialsCache, nameof(credentialsCache));
         }
 
         AmqpConnection IConnectionFactory.CreateConnection(
@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             // and add it to the Extensions
             if (!(amqpConnection.Principal is SaslPrincipal || amqpConnection.Principal is X509Principal))
             {
-                ICbsNode cbsNode = new CbsNode(this.clientCredentialsFactory, this.iotHubHostName, this.authenticator, this.credentialsStore);
+                ICbsNode cbsNode = new CbsNode(this.clientCredentialsFactory, this.iotHubHostName, this.authenticator, this.credentialsCache);
                 amqpConnection.Extensions.Add(cbsNode);
             }
 

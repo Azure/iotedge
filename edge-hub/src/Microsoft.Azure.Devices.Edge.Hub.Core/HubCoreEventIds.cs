@@ -17,5 +17,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 	    public const int TokenCredentialsStore = EventIdStart + 1000;
 	    public const int InvokeMethodHandler = EventIdStart + 1100;
 	    public const int DeviceScopeIdentitiesCache = EventIdStart + 1200;
-    }
+	    public const int PeriodicConnectionAuthenticator = EventIdStart + 1300;
+	}
 }

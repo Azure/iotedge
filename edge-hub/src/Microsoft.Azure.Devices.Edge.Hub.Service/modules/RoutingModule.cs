@@ -39,7 +39,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly Option<UpstreamProtocol> upstreamProtocol;
         readonly TimeSpan connectivityCheckFrequency;
         readonly int maxConnectedClients;
-        readonly bool cacheTokens;
 
         public RoutingModule(string iotHubName,
             string edgeDeviceId,
@@ -53,8 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             VersionInfo versionInfo,
             Option<UpstreamProtocol> upstreamProtocol,
             TimeSpan connectivityCheckFrequency,
-            int maxConnectedClients,
-            bool cacheTokens)
+            int maxConnectedClients)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
@@ -69,7 +67,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.upstreamProtocol = upstreamProtocol;
             this.connectivityCheckFrequency = connectivityCheckFrequency;
             this.maxConnectedClients = Preconditions.CheckRange(maxConnectedClients, 1);
-            this.cacheTokens = cacheTokens;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -179,28 +176,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<Task<ICloudConnectionProvider>>()
                 .SingleInstance();
 
-           // Task<ICredentialsStore>
-            builder.Register(async c =>
-                {
-                    if (this.cacheTokens)
-                    {
-                        IKeyValueStore<string, string> encryptedStore = await c.ResolveNamed<Task<IKeyValueStore<string, string>>>("EncryptedStore");
-                        return new TokenCredentialsStore(encryptedStore);
-                    }
-                    else
-                    {
-                        return new NullCredentialsStore() as ICredentialsStore;
-                    }
-                })
-                .As<Task<ICredentialsStore>>()
-                .SingleInstance();
-
             // Task<IConnectionManager>
             builder.Register(
                 async c =>
                 {
-                    ICloudConnectionProvider cloudConnectionProvider = await c.Resolve<Task<ICloudConnectionProvider>>();
-                    IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, this.maxConnectedClients);
+                    var cloudConnectionProviderTask = c.Resolve<Task<ICloudConnectionProvider>>();
+                    var credentialsCacheTask = c.Resolve<Task<ICredentialsCache>>();
+                    ICloudConnectionProvider cloudConnectionProvider = await cloudConnectionProviderTask;
+                    ICredentialsCache credentialsCache = await credentialsCacheTask;
+                    IConnectionManager connectionManager = new ConnectionManager(
+                        cloudConnectionProvider,
+                        credentialsCache,
+                        this.edgeDeviceId,
+                        this.edgeModuleId,
+                        this.maxConnectedClients);
                     return connectionManager;
                 })
                 .As<Task<IConnectionManager>>()
@@ -425,7 +414,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 {
                     RouteFactory routeFactory = await c.Resolve<Task<RouteFactory>>();
                     if (this.useTwinConfig)
-                    {                        
+                    {
                         var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
                         var twinCollectionMessageConverter = c.Resolve<Core.IMessageConverter<TwinCollection>>();
                         var twinMessageConverter = c.Resolve<Core.IMessageConverter<Twin>>();
