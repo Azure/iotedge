@@ -8,5 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     public class NullAuthenticator : IAuthenticator
     {
         public Task<bool> AuthenticateAsync(IClientCredentials identity) => Task.FromResult(false);
+
+        public Task<bool> ReauthenticateAsync(IClientCredentials identity) => Task.FromResult(false);
     }
 }

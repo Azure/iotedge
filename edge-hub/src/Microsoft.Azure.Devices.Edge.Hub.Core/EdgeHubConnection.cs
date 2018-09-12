@@ -82,8 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             );
 
             IDeviceProxy deviceProxy = new EdgeHubDeviceProxy(edgeHubConnection);
-            await connectionManager.AddDeviceConnection(edgeHubCredentials);
-            connectionManager.BindDeviceProxy(edgeHubCredentials.Identity, deviceProxy);
+            await connectionManager.AddDeviceConnection(edgeHubCredentials.Identity, deviceProxy);            
 
             await edgeHub.AddSubscription(edgeHubCredentials.Identity.Id, DeviceSubscription.DesiredPropertyUpdates);
             await edgeHub.AddSubscription(edgeHubCredentials.Identity.Id, DeviceSubscription.Methods);

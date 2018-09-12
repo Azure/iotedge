@@ -13,5 +13,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     public interface IAuthenticator
     {
         Task<bool> AuthenticateAsync(IClientCredentials identity);
+
+        /// <summary>
+        /// Reauthenticate does different things based on which method of authentication is being used
+        /// If the authentication is local, it will do the full authentication.
+        /// If authentication is cloud, then it will only check if the token is expired.
+        /// </summary>
+        Task<bool> ReauthenticateAsync(IClientCredentials identity);
     }
 }
