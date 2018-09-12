@@ -1,8 +1,7 @@
-%define iotedge_user iotedge
+%define iotedge_user root
 %define iotedge_group %{iotedge_user}
 %define iotedge_home %{_localstatedir}/lib/iotedge
 %define iotedge_logdir %{_localstatedir}/log/iotedge
-%define iotedge_rundir %{_localstatedir}/run/iotedge
 %define iotedge_confdir %{_sysconfdir}/iotedge
 %define iotedge_datadir %{_datadir}/iotedge
 
@@ -43,32 +42,6 @@ make install DESTDIR=$RPM_BUILD_ROOT unitdir=%{_unitdir}
 rm -rf $RPM_BUILD_ROOT
 
 %pre
-# Check for container runtime
-if ! /usr/bin/getent group docker >/dev/null; then
-    echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-    echo ""
-    echo " ERROR: No container runtime detected."
-    echo ""
-    echo " Please install a container runtime and run this install again."
-    echo ""
-    echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-
-    exit 1
-fi
-
-# Create iotedge group
-if ! /usr/bin/getent group iotedge >/dev/null; then
-    %{_sbindir}/groupadd -r %{iotedge_group}
-fi
-
-# Create iotedge user
-if ! /usr/bin/getent passwd iotedge >/dev/null; then
-    %{_sbindir}/useradd -r -g %{iotedge_group} -c "iotedge user" -s /bin/nologin -d %{iotedge_home} %{iotedge_user}
-fi
-
-if /usr/bin/getent group docker >/dev/null; then
-    %{_sbindir}/usermod -a -G docker %{iotedge_user}
-fi
 exit 0
 
 %post
@@ -122,13 +95,12 @@ echo "==========================================================================
 %{_unitdir}/%{name}.service
 
 # sockets
-%attr(660, %{iotedge_user}, %{iotedge_group}) %{iotedge_rundir}/mgmt.sock
-%attr(666, %{iotedge_user}, %{iotedge_group}) %{iotedge_rundir}/workload.sock
+%attr(660, %{iotedge_user}, %{iotedge_group}) %{iotedge_home}/mgmt.sock
+%attr(666, %{iotedge_user}, %{iotedge_group}) %{iotedge_home}/workload.sock
 
 # dirs
 %attr(-, %{iotedge_user}, %{iotedge_group}) %dir %{iotedge_home}
 %attr(-, %{iotedge_user}, %{iotedge_group}) %dir %{iotedge_logdir}
-%attr(-, %{iotedge_user}, %{iotedge_group}) %dir %{iotedge_rundir}
 
 %doc %{_docdir}/%{name}/LICENSE.gz
 %doc %{_docdir}/%{name}/ThirdPartyNotices.gz
