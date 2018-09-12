@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         readonly IClientCredentialsFactory clientCredentialsFactory;
         readonly IAuthenticator authenticator;
         readonly string iotHubHostName;
-        readonly ICredentialsStore credentialsStore;
+        readonly ICredentialsCache credentialsCache;
         bool disposed;
         AmqpAuthentication amqpAuthentication;
         Task<AmqpAuthentication> authenticationUpdateTask;
@@ -42,12 +42,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         IReceivingAmqpLink receivingLink;
         int deliveryCount;
 
-        public CbsNode(IClientCredentialsFactory identityFactory, string iotHubHostName, IAuthenticator authenticator, ICredentialsStore credentialsStore)
+        public CbsNode(IClientCredentialsFactory identityFactory, string iotHubHostName, IAuthenticator authenticator, ICredentialsCache credentialsCache)
         {
             this.clientCredentialsFactory = identityFactory;
             this.iotHubHostName = iotHubHostName;
             this.authenticator = authenticator;
-            this.credentialsStore = credentialsStore;
+            this.credentialsCache = credentialsCache;
             this.authenticationUpdateTask = Task.FromResult(AmqpAuthentication.Unauthenticated);
         }
 
@@ -122,7 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             else
             {
                 Events.CbsTokenUpdated(identity.Identity);
-                await this.credentialsStore.Add(identity);
+                await this.credentialsCache.Add(identity);
                 return (new AmqpAuthentication(true, Option.Some(identity)), AmqpResponseStatusCode.OK, AmqpResponseStatusCode.OK.ToString());
             }
         }

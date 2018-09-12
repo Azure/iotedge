@@ -255,15 +255,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, deviceClientProvider.Object, Option.None<UpstreamProtocol>(), TokenProvider, DeviceScopeIdentitiesCache, TimeSpan.FromMinutes(60));
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
-            IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider);
+            var credentialsCache = Mock.Of<ICredentialsCache>();
+            IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, deviceId, "$edgeHub");
 
             IClientCredentials clientCredentials1 = GetClientCredentials();
             Try<ICloudProxy> cloudProxyTry1 = await connectionManager.CreateCloudConnectionAsync(clientCredentials1);
             Assert.True(cloudProxyTry1.Success);
 
             IDeviceProxy deviceProxy1 = GetMockDeviceProxy();
-            await connectionManager.AddDeviceConnection(clientCredentials1);
-            connectionManager.BindDeviceProxy(clientCredentials1.Identity, deviceProxy1);
+            await connectionManager.AddDeviceConnection(clientCredentials1.Identity, deviceProxy1);
 
             await Task.Delay(TimeSpan.FromSeconds(10));
             Assert.NotNull(authenticationMethod);
@@ -277,8 +277,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.True(cloudProxyTry2.Success);
 
             IDeviceProxy deviceProxy2 = GetMockDeviceProxy();
-            await connectionManager.AddDeviceConnection(clientCredentials2);
-            connectionManager.BindDeviceProxy(clientCredentials2.Identity, deviceProxy2);
+            await connectionManager.AddDeviceConnection(clientCredentials2.Identity, deviceProxy2);
 
             await Task.Delay(TimeSpan.FromSeconds(3));
             Assert.True(tokenGetter.IsCompleted);
@@ -296,8 +295,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.True(cloudProxyTry3.Success);
 
             IDeviceProxy deviceProxy3 = GetMockDeviceProxy();
-            await connectionManager.AddDeviceConnection(clientCredentials3);
-            connectionManager.BindDeviceProxy(clientCredentials3.Identity, deviceProxy3);
+            await connectionManager.AddDeviceConnection(clientCredentials3.Identity, deviceProxy3);
 
             await Task.Delay(TimeSpan.FromSeconds(3));
             Assert.True(tokenGetter.IsCompleted);

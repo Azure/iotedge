@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var dbStoreProvider = new InMemoryDbStoreProvider();
             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
             var encryptedStore = new EncryptedStore<string, string>(storeProvider.GetEntityStore<string, string>("tokenCredentials"), new NullEncryptionProvider());
-            var tokenCredentialsStore = new TokenCredentialsStore(encryptedStore);
+            var tokenCredentialsStore = new TokenCredentialsCache(encryptedStore);
 
             // Act
             await tokenCredentialsStore.Add(credentials);
@@ -54,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var dbStoreProvider = new InMemoryDbStoreProvider();
             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
             var encryptedStore = new EncryptedStore<string, string>(storeProvider.GetEntityStore<string, string>("tokenCredentials"), new TestEncryptionProvider());
-            var tokenCredentialsStore = new TokenCredentialsStore(encryptedStore);
+            var tokenCredentialsStore = new TokenCredentialsCache(encryptedStore);
 
             // Act
             await tokenCredentialsStore.Add(credentials);
@@ -79,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var dbStoreProvider = new InMemoryDbStoreProvider();
             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
             var encryptedStore = new EncryptedStore<string, string>(storeProvider.GetEntityStore<string, string>("tokenCredentials"), new TestEncryptionProvider());
-            var tokenCredentialsStore = new TokenCredentialsStore(encryptedStore);
+            var tokenCredentialsStore = new TokenCredentialsCache(encryptedStore);
 
             // Act
             await tokenCredentialsStore.Add(credentials);
