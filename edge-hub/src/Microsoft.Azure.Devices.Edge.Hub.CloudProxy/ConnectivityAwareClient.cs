@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly IDeviceConnectivityManager deviceConnectivityManager;
         ConnectionStatusChangesHandler connectionStatusChangedHandler;
 
-        public ConnectivityAwareClient(IClient client, IDeviceConnectivityManager deviceConnectivityManager)            
+        public ConnectivityAwareClient(IClient client, IDeviceConnectivityManager deviceConnectivityManager)
         {
             this.underlyingClient = Preconditions.CheckNotNull(client, nameof(client));
             this.deviceConnectivityManager = Preconditions.CheckNotNull(deviceConnectivityManager, nameof(deviceConnectivityManager));
@@ -103,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             //    this.deviceConnectivityManager.CallTimedOut();
             //}
             //this.connectionStatusChangedHandler?.Invoke(status, reason);
-        }        
+        }
 
         async Task<T> InvokeFunc<T>(Func<Task<T>> func, string operation)
         {
@@ -115,14 +115,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 return result;
             }
             catch (Exception ex)
-            {                
-                if (ex.HasTimeoutException())
+            {
+                Exception mappedException = ex.GetEdgeException(operation);
+                if (mappedException.HasTimeoutException())
                 {
                     Events.OperationTimedOut(operation);
                     this.deviceConnectivityManager.CallTimedOut();
                 }
-                Events.OperationFailed(operation, ex);
-                throw;
+                Events.OperationFailed(operation, mappedException);
+                if (mappedException == ex)
+                {
+                    throw;
+                }
+                else
+                {
+                    throw mappedException;
+                }
             }
         }
 
@@ -146,7 +154,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 OperationFailed,
                 OperationSucceeded
             }
-            
+
             public static void ReceivedDeviceSdkCallback(ConnectionStatus status, ConnectionStatusChangeReason reason)
             {
                 Log.LogDebug((int)EventIds.ReceivedCallback, $"Received connection status changed callback with connection status {status} and reason {reason}");
