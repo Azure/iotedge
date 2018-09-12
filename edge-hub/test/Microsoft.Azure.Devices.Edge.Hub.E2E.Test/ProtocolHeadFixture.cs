@@ -165,8 +165,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                         versionInfo,
                         Option.Some(UpstreamProtocol.Amqp),
                         TimeSpan.FromSeconds(5),
-                        101,
-                        false));
+                        101));
 
                 builder.RegisterModule(new HttpModule());
                 builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, certificate, false, false, string.Empty, false));
@@ -175,7 +174,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
                 // CloudConnectionProvider and RoutingEdgeHub have a circular dependency. So set the
                 // EdgeHub on the CloudConnectionProvider before any other operation
-                var cloudConnectionProvider = this.container.Resolve<ICloudConnectionProvider>();
+                ICloudConnectionProvider cloudConnectionProvider = await this.container.Resolve<Task<ICloudConnectionProvider>>();
                 IEdgeHub edgeHub = await this.container.Resolve<Task<IEdgeHub>>();
                 cloudConnectionProvider.BindEdgeHub(edgeHub);
 

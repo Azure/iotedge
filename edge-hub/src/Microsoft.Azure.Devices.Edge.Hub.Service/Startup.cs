@@ -102,9 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward = this.GetStoreAndForwardConfiguration();
 
             IConfiguration mqttSettingsConfiguration = this.Configuration.GetSection("mqttSettings");
-            Option<UpstreamProtocol> upstreamProtocolOption = Enum.TryParse(this.Configuration.GetValue("UpstreamProtocol", string.Empty), false, out UpstreamProtocol upstreamProtocol)
-                ? Option.Some(upstreamProtocol)
-                : Option.None<UpstreamProtocol>();
+            Option<UpstreamProtocol> upstreamProtocolOption = GetUpstreamProtocol(this.Configuration);
             int connectivityCheckFrequencySecs = this.Configuration.GetValue("ConnectivityCheckFrequencySecs", 300);
             TimeSpan connectivityCheckFrequency = connectivityCheckFrequencySecs < 0 ? TimeSpan.MaxValue : TimeSpan.FromSeconds(connectivityCheckFrequencySecs);
 
@@ -120,6 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             int maxConnectedClients = this.Configuration.GetValue("MaxConnectedClients", 100) + 1;
 
             IConfiguration amqpSettings = this.Configuration.GetSection("amqpSettings");
+
             if (!Enum.TryParse(this.Configuration.GetValue("AuthenticationMode", string.Empty), true, out AuthenticationMode authenticationMode))
             {
                 authenticationMode = AuthenticationMode.CloudAndScope;
@@ -179,8 +178,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     this.VersionInfo,
                     upstreamProtocolOption,
                     connectivityCheckFrequency,
-                    maxConnectedClients,
-                    cacheTokens));
+                    maxConnectedClients));
 
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, ServerCertificateCache.X509Certificate, storeAndForward.isEnabled, clientCertAuthEnabled, caChainPath, optimizeForPerformance));
             builder.RegisterModule(new AmqpModule(amqpSettings["scheme"], amqpSettings.GetValue<ushort>("port"), ServerCertificateCache.X509Certificate, this.iotHubHostname));
@@ -190,6 +188,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             IContainer container = builder.Build();
             return container;
         }
+
+        internal static Option<UpstreamProtocol> GetUpstreamProtocol(IConfigurationRoot configuration) =>
+            Enum.TryParse(configuration.GetValue("UpstreamProtocol", string.Empty), true, out UpstreamProtocol upstreamProtocol)
+                ? Option.Some(upstreamProtocol)
+                : Option.None<UpstreamProtocol>();
 
         public void Configure(IApplicationBuilder app)
         {

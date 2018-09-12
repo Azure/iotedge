@@ -1,23 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <AssemblyName>Microsoft.Azure.WebJobs.Extensions.EdgeHub</AssemblyName>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
     <Configurations>Debug;Release;CodeCoverage</Configurations>
     <HighEntropyVA>true</HighEntropyVA>
-  </PropertyGroup>
-  
-  <PropertyGroup>
-    <Title>Microsoft Azure Edge Function extension</Title>
-    <Authors>Microsoft</Authors>
-    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <PackageLicenseUrl>https://github.com/Azure/iotedge/blob/master/LICENSE</PackageLicenseUrl>
-    <Description>This package contains binding extensions for IoTEdge.</Description>
-    <PackageIconUrl>http://go.microsoft.com/fwlink/?LinkID=288890</PackageIconUrl>
-    <PackageProjectUrl>https://github.com/Azure/iotedge</PackageProjectUrl>
-    <Copyright>© Microsoft Corporation. All rights reserved.</Copyright>
-    <PackageTags>IoT Microsoft Azure IoTEdge Functions</PackageTags>
   </PropertyGroup>
 
   <!--
@@ -34,7 +21,20 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.18.0" />
-    <PackageReference Include="Microsoft.Azure.WebJobs" Version="3.0.0-beta7-11412" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.5.0" />
+    <PackageReference Include="Moq" Version="4.8.2" />
+    <PackageReference Include="xunit" Version="2.2.0" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.2.0" />
+    <PackageReference Include="Microsoft.CodeCoverage" Version="1.0.3" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\edge-util\test\Microsoft.Azure.Devices.Edge.Util.Test.Common\Microsoft.Azure.Devices.Edge.Util.Test.Common.csproj" />
+    <ProjectReference Include="..\..\src\Microsoft.Azure.Devices.Edge.Hub.Service\Microsoft.Azure.Devices.Edge.Hub.Service.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Service Include="{82a7f48d-3b50-4b1e-b82e-3ada8210c358}" />
+  </ItemGroup>
+
 </Project>

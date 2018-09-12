@@ -18,16 +18,24 @@ namespace IotEdgeQuickstart.Details
             this.root = (Dictionary<object, object>)deserializer.Deserialize(reader);
         }
 
-        public void Replace(string dottedKey, string value)
+        public void ReplaceOrAdd(string dottedKey, string value)
         {
             Dictionary<object, object> node = this.root;
             string[] segments = dottedKey.Split('.');
             foreach (string key in segments.SkipLast(1))
             {
+                if (!node.ContainsKey(key))
+                {
+                    node.Add(key, new Dictionary<object, object>());
+                }
                 node = (Dictionary<object, object>)node[key];
             }
 
             string leaf = segments.Last();
+            if (!node.ContainsKey(leaf))
+            {
+                node.Add(leaf, value);
+            }
             node[leaf] = value;
         }
 

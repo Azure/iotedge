@@ -146,7 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
             string iotHubHostName = "edgehubtest1.azure-devices.net";
             var authenticator = new Mock<IAuthenticator>();
-            var cbsNode = new CbsNode(identityFactory.Object, iotHubHostName, authenticator.Object, new NullCredentialsStore());
+            var cbsNode = new CbsNode(identityFactory.Object, iotHubHostName, authenticator.Object, new NullCredentialsCache());
 
             // Act
             IClientCredentials receivedClientCredentials = cbsNode.GetClientCredentials(validAmqpMessage);
@@ -178,7 +178,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             string iotHubHostName = "edgehubtest1.azure-devices.net";
             var authenticator = new Mock<IAuthenticator>();
             authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(true);
-            var cbsNode = new CbsNode(clientCredentialsFactory.Object, iotHubHostName, authenticator.Object, new NullCredentialsStore());
+            var cbsNode = new CbsNode(clientCredentialsFactory.Object, iotHubHostName, authenticator.Object, new NullCredentialsCache());
 
             // Act
             (AmqpAuthentication amqpAuthentication, AmqpResponseStatusCode statusCode, string description) = await cbsNode.UpdateCbsToken(validAmqpMessage);
