@@ -174,7 +174,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
                 // CloudConnectionProvider and RoutingEdgeHub have a circular dependency. So set the
                 // EdgeHub on the CloudConnectionProvider before any other operation
-                var cloudConnectionProvider = this.container.Resolve<ICloudConnectionProvider>();
+                ICloudConnectionProvider cloudConnectionProvider = await this.container.Resolve<Task<ICloudConnectionProvider>>();
                 IEdgeHub edgeHub = await this.container.Resolve<Task<IEdgeHub>>();
                 cloudConnectionProvider.BindEdgeHub(edgeHub);
 
