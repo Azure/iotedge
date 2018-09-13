@@ -33,7 +33,6 @@ main() {
     AR=${triple}ar CC=${triple}gcc ./Configure \
       --prefix=${sysroot}/usr \
       --openssldir=${sysroot}/usr \
-      shared \
       no-asm \
       $os \
       -fPIC \
