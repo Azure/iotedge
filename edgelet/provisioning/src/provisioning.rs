@@ -73,7 +73,7 @@ pub struct ManualProvisioning {
 
 impl ManualProvisioning {
     pub fn new(conn_string: &str) -> Result<Self, Error> {
-        ensure_not_empty!(conn_string);
+        ensure_not_empty!(conn_string, "The Connection String is empty or invalid. Please update the config.yaml and provide the IoTHub connection information.");
         let hash_map = ManualProvisioning::parse_conn_string(conn_string)?;
 
         let key_str = hash_map
