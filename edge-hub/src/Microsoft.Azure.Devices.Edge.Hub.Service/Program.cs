@@ -84,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 logger.LogInformation($"Version - {versionInfo.ToString(true)}");
             }
             LogLogo(logger);
-            
+
             if (chain != null)
             {
                 logger.LogInformation("Installing intermediate certificates.");
@@ -99,31 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 logger.LogWarning("Unable to find intermediate certificates.");
             }
 
-            // EdgeHub and CloudConnectionProvider have a circular dependency. So need to Bind the EdgeHub to the CloudConnectionProvider.
-            IEdgeHub edgeHub = await container.Resolve<Task<IEdgeHub>>();
-            ICloudConnectionProvider cloudConnectionProvider = await container.Resolve<Task<ICloudConnectionProvider>>();
-            cloudConnectionProvider.BindEdgeHub(edgeHub);
-
-            // Resolve IDeviceScopeIdentitiesCache to start the pump
-            await container.Resolve<Task<IDeviceScopeIdentitiesCache>>();
-
-            // EdgeHub cloud proxy and DeviceConnectivityManager have a circular dependency,
-            // so the cloud proxy has to be set on the DeviceConnectivityManager after both have been initialized.
-            var deviceConnectivityManager = container.Resolve<IDeviceConnectivityManager>();
-            ICloudProxy cloudProxy = await container.ResolveNamed<Task<ICloudProxy>>("EdgeHubCloudProxy");
-            (deviceConnectivityManager as DeviceConnectivityManager)?.SetTestCloudProxy(cloudProxy);
-
-            logger.LogInformation("Initializing configuration");
-            IConfigSource configSource = await container.Resolve<Task<IConfigSource>>();
-            ConfigUpdater configUpdater = await container.Resolve<Task<ConfigUpdater>>();
-            await configUpdater.Init(configSource);
-
-            if (!Enum.TryParse(configuration.GetValue("AuthenticationMode", string.Empty), true, out AuthenticationMode authenticationMode)
-                || authenticationMode != AuthenticationMode.Cloud)
-            {
-                ConnectionReauthenticator connectionReauthenticator = await container.Resolve<Task<ConnectionReauthenticator>>();
-                connectionReauthenticator.Init();
-            }
+            Task initPumpsTask = InitPumps(container, configuration);
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler)
                 = ShutdownHandler.Init(ShutdownWaitPeriod, logger);
@@ -147,6 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             using (IProtocolHead protocolHead = new EdgeHubProtocolHead(protocolHeads, logger))
             {
                 await protocolHead.StartAsync();
+                await initPumpsTask;
                 await cts.Token.WhenCanceled();
                 await Task.WhenAny(protocolHead.CloseAsync(CancellationToken.None), Task.Delay(TimeSpan.FromSeconds(10), CancellationToken.None));
             }
@@ -154,7 +131,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
             return 0;
-        }        
+        }
+
+        static async Task InitPumps(IContainer container, IConfigurationRoot configuration)
+        {
+            // EdgeHub and CloudConnectionProvider have a circular dependency. So need to Bind the EdgeHub to the CloudConnectionProvider.
+            IEdgeHub edgeHub = await container.Resolve<Task<IEdgeHub>>();
+            ICloudConnectionProvider cloudConnectionProvider = await container.Resolve<Task<ICloudConnectionProvider>>();
+            cloudConnectionProvider.BindEdgeHub(edgeHub);
+
+            // EdgeHub cloud proxy and DeviceConnectivityManager have a circular dependency,
+            // so the cloud proxy has to be set on the DeviceConnectivityManager after both have been initialized.
+            var deviceConnectivityManager = container.Resolve<IDeviceConnectivityManager>();
+            ICloudProxy cloudProxy = await container.ResolveNamed<Task<ICloudProxy>>("EdgeHubCloudProxy");
+            (deviceConnectivityManager as DeviceConnectivityManager)?.SetTestCloudProxy(cloudProxy);
+
+            if (!Enum.TryParse(configuration.GetValue("AuthenticationMode", string.Empty), true, out AuthenticationMode authenticationMode)
+                || authenticationMode != AuthenticationMode.Cloud)
+            {
+                ConnectionReauthenticator connectionReauthenticator = await container.Resolve<Task<ConnectionReauthenticator>>();
+                connectionReauthenticator.Init();
+            }
+
+            IConfigSource configSource = await container.Resolve<Task<IConfigSource>>();
+            ConfigUpdater configUpdater = await container.Resolve<Task<ConfigUpdater>>();
+            await configUpdater.Init(configSource);
+        }
 
         static void LogLogo(ILogger logger)
         {
