@@ -21,7 +21,10 @@ pub enum ErrorKind {
     Io,
     #[fail(display = "A module runtime error occurred.")]
     ModuleRuntime,
-    #[fail(display = "Signing error occurred. Invalid key length: {}", _0)]
+    #[fail(
+        display = "Signing error occurred. Invalid key length: {}",
+        _0
+    )]
     Sign(usize),
     #[fail(display = "A error occurred retrieving a key from the key store.")]
     KeyStore,

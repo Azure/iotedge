@@ -13,15 +13,24 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ProcessConfig {
-    #[serde(rename = "privileged", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "privileged",
+        skip_serializing_if = "Option::is_none"
+    )]
     privileged: Option<bool>,
     #[serde(rename = "user", skip_serializing_if = "Option::is_none")]
     user: Option<String>,
     #[serde(rename = "tty", skip_serializing_if = "Option::is_none")]
     tty: Option<bool>,
-    #[serde(rename = "entrypoint", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "entrypoint",
+        skip_serializing_if = "Option::is_none"
+    )]
     entrypoint: Option<String>,
-    #[serde(rename = "arguments", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "arguments",
+        skip_serializing_if = "Option::is_none"
+    )]
     arguments: Option<Vec<String>>,
 }
 

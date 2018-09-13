@@ -80,8 +80,7 @@ impl<C: Connect> Module for DockerModule<C> {
                                     "exited" => status_from_exit_code(state.exit_code().cloned()),
                                     "running" => Some(ModuleStatus::Running),
                                     _ => Some(ModuleStatus::Unknown),
-                                })
-                                .unwrap_or_else(|| ModuleStatus::Unknown);
+                                }).unwrap_or_else(|| ModuleStatus::Unknown);
                             ModuleRuntimeState::default()
                                 .with_status(status)
                                 .with_exit_code(state.exit_code().cloned())
@@ -91,23 +90,19 @@ impl<C: Connect> Module for DockerModule<C> {
                                         .started_at()
                                         .and_then(|d| if d != MIN_DATE { Some(d) } else { None })
                                         .and_then(|started_at| DateTime::from_str(started_at).ok()),
-                                )
-                                .with_finished_at(
+                                ).with_finished_at(
                                     state
                                         .finished_at()
                                         .and_then(|d| if d != MIN_DATE { Some(d) } else { None })
                                         .and_then(|finished_at| {
                                             DateTime::from_str(finished_at).ok()
                                         }),
-                                )
-                                .with_image_id(resp.id().cloned())
+                                ).with_image_id(resp.id().cloned())
                                 .with_pid(
                                     &state.pid().map(|val| Pid::Value(*val)).unwrap_or(Pid::None),
                                 )
-                        })
-                        .unwrap_or_else(ModuleRuntimeState::default)
-                })
-                .map_err(Error::from),
+                        }).unwrap_or_else(ModuleRuntimeState::default)
+                }).map_err(Error::from),
         )
     }
 }
@@ -239,8 +234,7 @@ mod tests {
                             .with_started_at(started_at.clone())
                             .with_finished_at(finished_at.clone())
                             .with_pid(1234),
-                    )
-                    .with_id("mod1".to_string())
+                    ).with_id("mod1".to_string())
                     .with_exec_i_ds(vec!["id1".to_string(), "id2".to_string()]),
             ),
             "mod1",
@@ -274,8 +268,7 @@ mod tests {
                             .with_status("dead".to_string())
                             .with_started_at(started_at.clone())
                             .with_finished_at(finished_at.clone()),
-                    )
-                    .with_id("mod1".to_string()),
+                    ).with_id("mod1".to_string()),
             ),
             "mod1",
             DockerConfig::new("ubuntu", ContainerCreateBody::new(), None).unwrap(),
@@ -307,8 +300,7 @@ mod tests {
                             .with_status("running".to_string())
                             .with_started_at(started_at.clone())
                             .with_finished_at(finished_at.clone()),
-                    )
-                    .with_id("mod1".to_string()),
+                    ).with_id("mod1".to_string()),
             ),
             "mod1",
             DockerConfig::new("ubuntu", ContainerCreateBody::new(), None).unwrap(),
@@ -333,8 +325,7 @@ mod tests {
                             .with_status("running".to_string())
                             .with_started_at(started_at.clone())
                             .with_finished_at(finished_at.clone()),
-                    )
-                    .with_id("mod1".to_string()),
+                    ).with_id("mod1".to_string()),
             ),
             "mod1",
             DockerConfig::new("ubuntu", ContainerCreateBody::new(), None).unwrap(),
@@ -359,8 +350,7 @@ mod tests {
                             .with_status("stopped".to_string())
                             .with_started_at(started_at.clone())
                             .with_finished_at(finished_at.clone()),
-                    )
-                    .with_id("mod1".to_string()),
+                    ).with_id("mod1".to_string()),
             ),
             "mod1",
             DockerConfig::new("ubuntu", ContainerCreateBody::new(), None).unwrap(),

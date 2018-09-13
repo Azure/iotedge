@@ -96,8 +96,7 @@ fn listen_fds(unset_environment: bool, start_fd: Fd) -> Result<Vec<Socket>, Erro
             } else {
                 Socket::Unknown
             }
-        })
-        .collect();
+        }).collect();
 
     Ok(sockets)
 }

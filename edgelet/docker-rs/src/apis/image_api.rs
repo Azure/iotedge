@@ -179,15 +179,13 @@ impl<C: hyper::client::Connect> ImageApi for ImageApiClient<C> {
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                })
-                .and_then(|(status, body)| {
+                }).and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                })
-                .and_then(|body| {
+                }).and_then(|body| {
                     let parsed: Result<::models::InlineResponse2006, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
@@ -289,15 +287,13 @@ impl<C: hyper::client::Connect> ImageApi for ImageApiClient<C> {
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                })
-                .and_then(|(status, body)| {
+                }).and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                })
-                .and_then(|_| futures::future::ok(())),
+                }).and_then(|_| futures::future::ok(())),
         )
     }
 
@@ -357,15 +353,13 @@ impl<C: hyper::client::Connect> ImageApi for ImageApiClient<C> {
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                })
-                .and_then(|(status, body)| {
+                }).and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                })
-                .and_then(|body| {
+                }).and_then(|body| {
                     let parsed: Result<::models::IdResponse, _> = serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
@@ -430,15 +424,13 @@ impl<C: hyper::client::Connect> ImageApi for ImageApiClient<C> {
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                })
-                .and_then(|(status, body)| {
+                }).and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                })
-                .and_then(|_| futures::future::ok(())),
+                }).and_then(|_| futures::future::ok(())),
         )
     }
 
@@ -482,15 +474,13 @@ impl<C: hyper::client::Connect> ImageApi for ImageApiClient<C> {
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                })
-                .and_then(|(status, body)| {
+                }).and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                })
-                .and_then(|body| {
+                }).and_then(|body| {
                     let parsed: Result<
                         Vec<::models::ImageDeleteResponseItem>,
                         _,
@@ -534,15 +524,13 @@ impl<C: hyper::client::Connect> ImageApi for ImageApiClient<C> {
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                })
-                .and_then(|(status, body)| {
+                }).and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                })
-                .and_then(|body| {
+                }).and_then(|body| {
                     let parsed: Result<Vec<u8>, _> = serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
@@ -586,15 +574,13 @@ impl<C: hyper::client::Connect> ImageApi for ImageApiClient<C> {
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                })
-                .and_then(|(status, body)| {
+                }).and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                })
-                .and_then(|body| {
+                }).and_then(|body| {
                     let parsed: Result<Vec<u8>, _> = serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
@@ -636,15 +622,13 @@ impl<C: hyper::client::Connect> ImageApi for ImageApiClient<C> {
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                })
-                .and_then(|(status, body)| {
+                }).and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                })
-                .and_then(|body| {
+                }).and_then(|body| {
                     let parsed: Result<Vec<::models::InlineResponse2007>, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
@@ -686,15 +670,13 @@ impl<C: hyper::client::Connect> ImageApi for ImageApiClient<C> {
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                })
-                .and_then(|(status, body)| {
+                }).and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                })
-                .and_then(|body| {
+                }).and_then(|body| {
                     let parsed: Result<::models::Image, _> = serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
@@ -742,15 +724,13 @@ impl<C: hyper::client::Connect> ImageApi for ImageApiClient<C> {
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                })
-                .and_then(|(status, body)| {
+                }).and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                })
-                .and_then(|body| {
+                }).and_then(|body| {
                     let parsed: Result<Vec<::models::ImageSummary>, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
@@ -802,15 +782,13 @@ impl<C: hyper::client::Connect> ImageApi for ImageApiClient<C> {
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                })
-                .and_then(|(status, body)| {
+                }).and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                })
-                .and_then(|_| futures::future::ok(())),
+                }).and_then(|_| futures::future::ok(())),
         )
     }
 
@@ -851,15 +829,13 @@ impl<C: hyper::client::Connect> ImageApi for ImageApiClient<C> {
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                })
-                .and_then(|(status, body)| {
+                }).and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                })
-                .and_then(|body| {
+                }).and_then(|body| {
                     let parsed: Result<::models::InlineResponse2009, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
@@ -911,15 +887,13 @@ impl<C: hyper::client::Connect> ImageApi for ImageApiClient<C> {
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                })
-                .and_then(|(status, body)| {
+                }).and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                })
-                .and_then(|_| futures::future::ok(())),
+                }).and_then(|_| futures::future::ok(())),
         )
     }
 
@@ -965,15 +939,13 @@ impl<C: hyper::client::Connect> ImageApi for ImageApiClient<C> {
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                })
-                .and_then(|(status, body)| {
+                }).and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                })
-                .and_then(|body| {
+                }).and_then(|body| {
                     let parsed: Result<Vec<::models::InlineResponse2008>, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
@@ -1021,15 +993,13 @@ impl<C: hyper::client::Connect> ImageApi for ImageApiClient<C> {
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                })
-                .and_then(|(status, body)| {
+                }).and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                })
-                .and_then(|_| futures::future::ok(())),
+                }).and_then(|_| futures::future::ok(())),
         )
     }
 }

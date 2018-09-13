@@ -56,7 +56,10 @@ impl X509 {
 impl GetCerts for X509 {
     /// Retrieves the certificate to be used for x509 communication.
     fn get_cert(&self) -> Result<X509Data, Error> {
-        let key_fn = self.interface.hsm_client_get_cert.ok_or(ErrorKind::NoneFn)?;
+        let key_fn = self
+            .interface
+            .hsm_client_get_cert
+            .ok_or(ErrorKind::NoneFn)?;
         let result = unsafe { key_fn(self.handle) };
         if result.is_null() {
             Err(ErrorKind::NullResponse)?
@@ -138,7 +141,7 @@ mod tests {
     use std::slice;
 
     use super::super::GetCerts;
-    use super::{X509, X509Data};
+    use super::{X509Data, X509};
     use hsm_sys::*;
 
     extern "C" {
