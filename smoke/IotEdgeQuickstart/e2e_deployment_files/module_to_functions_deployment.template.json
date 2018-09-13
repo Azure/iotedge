@@ -31,6 +31,11 @@
               "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-hub:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"443/tcp\": [{\"HostPort\": \"443\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
             },
+		    "env": {
+				"OptimizeForPerformance": {
+					"value": "false"
+				}
+			},
             "status": "running",
             "restartPolicy": "always"
           }
