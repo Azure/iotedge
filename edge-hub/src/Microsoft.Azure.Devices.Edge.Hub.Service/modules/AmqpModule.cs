@@ -77,6 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     ICredentialsCache credentialsCache = await credentialsCacheTask;
                     IAuthenticator authenticator = await authenticatorTask;
                     IConnectionProvider connectionProvider = await connectionProviderTask;
+                    var webSocketListenerRegistry = c.Resolve<IWebSocketListenerRegistry>();
                     AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(
                         this.iotHubHostName,
                         authenticator,
@@ -88,7 +89,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     return new AmqpProtocolHead(
                         transportSettings,
                         amqpSettings,
-                        transportListenerProvider);
+                        transportListenerProvider,
+                        webSocketListenerRegistry);
                 })
                 .As<Task<AmqpProtocolHead>>()
                 .SingleInstance();
