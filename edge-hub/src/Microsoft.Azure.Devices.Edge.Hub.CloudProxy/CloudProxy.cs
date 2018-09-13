@@ -453,7 +453,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public static void ErrorReceivingMessage(CloudProxy cloudProxy, Exception ex)
             {
-                Log.LogError((int)EventIds.ReceiveError, ex, Invariant($"Error receiving message for device {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
+                Log.LogDebug((int)EventIds.ReceiveError, ex, Invariant($"Error receiving message for device {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
             }
 
             public static void ReceiverStopped(CloudProxy cloudProxy)
