@@ -29,6 +29,7 @@ namespace IotEdgeQuickstart.Details
         readonly string deviceCaCert;
         readonly string deviceCaPk;
         readonly string deviceCaCerts;
+        readonly bool optmizedForPerformance;
 
         DeviceContext context;
 
@@ -43,7 +44,8 @@ namespace IotEdgeQuickstart.Details
             Option<string> deploymentFileName,
             string deviceCaCert,
             string deviceCaPk,
-            string deviceCaCerts
+            string deviceCaCerts,
+            bool optmizedForPerformance
             )
         {
             this.bootstrapper = bootstrapper;
@@ -57,6 +59,7 @@ namespace IotEdgeQuickstart.Details
             this.deviceCaCert = deviceCaCert;
             this.deviceCaPk = deviceCaPk;
             this.deviceCaCerts = deviceCaCerts;
+            this.optmizedForPerformance = optmizedForPerformance;
         }
 
         protected Task VerifyEdgeIsNotAlreadyActive() => this.bootstrapper.VerifyNotActive();
@@ -328,6 +331,7 @@ namespace IotEdgeQuickstart.Details
                     json = Regex.Replace(json, "<image-edge-hub>", edgeHubImage);
                     json = Regex.Replace(json, "<image-temp-sensor>", tempSensorImage);
                     json = Regex.Replace(json, "<registry-info>", deployJsonRegistry);
+                    json = Regex.Replace(json, "<optimized-for-performance>", this.optmizedForPerformance.ToString());
                     return json;
                 });
 
@@ -368,7 +372,7 @@ namespace IotEdgeQuickstart.Details
             },
 		    ""env"": {
 				""OptimizeForPerformance"": {
-					""value"": ""false""
+					""value"": ""<optimized-for-performance>""
 				}
 			},
           }

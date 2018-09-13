@@ -30,8 +30,9 @@ namespace IotEdgeQuickstart
             Option<string> deploymentFileName,
             string deviceCaCert,
             string deviceCaPk,
-            string deviceCaCerts) :
-            base(bootstrapper, credentials, iothubConnectionString, eventhubCompatibleEndpointWithEntityPath, imageTag, deviceId, hostname, deploymentFileName, deviceCaCert, deviceCaPk, deviceCaCerts)
+            string deviceCaCerts,
+            bool optmizedForPerformance) :
+            base(bootstrapper, credentials, iothubConnectionString, eventhubCompatibleEndpointWithEntityPath, imageTag, deviceId, hostname, deploymentFileName, deviceCaCert, deviceCaPk, deviceCaCerts, optmizedForPerformance)
         {
             this.leaveRunning = leaveRunning;
             this.noDeployment = noDeployment;
