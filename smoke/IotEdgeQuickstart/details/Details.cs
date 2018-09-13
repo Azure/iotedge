@@ -365,7 +365,12 @@ namespace IotEdgeQuickstart.Details
             ""settings"": {
               ""image"": ""<image-edge-hub>"",
               ""createOptions"": ""{\""HostConfig\"":{\""PortBindings\"":{\""8883/tcp\"":[{\""HostPort\"":\""8883\""}],\""443/tcp\"":[{\""HostPort\"":\""443\""}]}},\""Env\"":[\""SSL_CERTIFICATE_PATH=/mnt/edgehub\"",\""SSL_CERTIFICATE_NAME=edge-hub-server.cert.pfx\""]}""
-            }
+            },
+		    ""env"": {
+				""OptimizeForPerformance"": {
+					""value"": ""false""
+				}
+			},
           }
         },
         ""modules"": {
