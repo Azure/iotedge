@@ -56,8 +56,7 @@ where
                     .find(|&(ref key, _)| key == "start")
                     .and_then(|(_, v)| if v != "false" { Some(()) } else { None })
                     .map(|_| true)
-            })
-            .unwrap_or_else(|| false);
+            }).unwrap_or_else(|| false);
 
         let response = req
             .into_body()
@@ -71,8 +70,7 @@ where
                             .context(ErrorKind::BadBody)
                             .map_err(Error::from)
                             .map(|core_spec| (core_spec, spec))
-                    })
-                    .map(move |(core_spec, spec)| {
+                    }).map(move |(core_spec, spec)| {
                         let name = core_spec.name().to_string();
 
                         if start {
@@ -112,28 +110,22 @@ where
                                                                 .header(
                                                                     CONTENT_TYPE,
                                                                     "application/json",
-                                                                )
-                                                                .header(
+                                                                ).header(
                                                                     CONTENT_LENGTH,
                                                                     b.len().to_string().as_str(),
-                                                                )
-                                                                .body(b.into())
+                                                                ).body(b.into())
                                                                 .unwrap_or_else(|e| {
                                                                     e.into_response()
                                                                 })
-                                                        })
-                                                        .unwrap_or_else(|e| e.into_response())
+                                                        }).unwrap_or_else(|e| e.into_response())
                                                 },
                                             )
                                         })
                                     })
-                            })
-                            .or_else(|e| future::ok(e.into_response()));
+                            }).or_else(|e| future::ok(e.into_response()));
                         future::Either::A(created)
-                    })
-                    .unwrap_or_else(|e| future::Either::B(future::ok(e.into_response())))
-            })
-            .or_else(|e| future::ok(e.into_response()));
+                    }).unwrap_or_else(|e| future::Either::B(future::ok(e.into_response())))
+            }).or_else(|e| future::ok(e.into_response()));
         Box::new(response)
     }
 }
@@ -198,8 +190,7 @@ mod tests {
 
                 assert_eq!(160, b.len());
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 
@@ -237,8 +228,7 @@ mod tests {
 
                 assert_eq!(160, b.len());
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 
@@ -263,8 +253,7 @@ mod tests {
                 let expected = "Bad body\n\tcaused by: expected value at line 1 column 1";
                 assert_eq!(expected, error_response.message());
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 
@@ -290,8 +279,7 @@ mod tests {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
                 assert_eq!("General error", error.message());
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 
@@ -320,8 +308,7 @@ mod tests {
                     error.message()
                 );
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 }

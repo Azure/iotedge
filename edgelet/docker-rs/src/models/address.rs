@@ -19,7 +19,10 @@ pub struct Address {
     #[serde(rename = "Addr", skip_serializing_if = "Option::is_none")]
     addr: Option<String>,
     /// Mask length of the IP address.
-    #[serde(rename = "PrefixLen", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "PrefixLen",
+        skip_serializing_if = "Option::is_none"
+    )]
     prefix_len: Option<i32>,
 }
 

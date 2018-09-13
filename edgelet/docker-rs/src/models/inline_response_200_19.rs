@@ -14,7 +14,10 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InlineResponse20019 {
     /// The swarm's unlock key.
-    #[serde(rename = "UnlockKey", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "UnlockKey",
+        skip_serializing_if = "Option::is_none"
+    )]
     unlock_key: Option<String>,
 }
 

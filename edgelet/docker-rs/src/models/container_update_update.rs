@@ -14,79 +14,142 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ContainerUpdateUpdate {
     /// An integer value representing this container's relative CPU weight versus other containers.
-    #[serde(rename = "CpuShares", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "CpuShares",
+        skip_serializing_if = "Option::is_none"
+    )]
     cpu_shares: Option<i32>,
     /// Memory limit in bytes.
     #[serde(rename = "Memory", skip_serializing_if = "Option::is_none")]
     memory: Option<i32>,
     /// Path to `cgroups` under which the container's `cgroup` is created. If the path is not absolute, the path is considered to be relative to the `cgroups` path of the init process. Cgroups are created if they do not already exist.
-    #[serde(rename = "CgroupParent", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "CgroupParent",
+        skip_serializing_if = "Option::is_none"
+    )]
     cgroup_parent: Option<String>,
     /// Block IO weight (relative weight).
-    #[serde(rename = "BlkioWeight", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "BlkioWeight",
+        skip_serializing_if = "Option::is_none"
+    )]
     blkio_weight: Option<i32>,
     /// Block IO weight (relative device weight) in the form `[{\"Path\": \"device_path\", \"Weight\": weight}]`.
-    #[serde(rename = "BlkioWeightDevice", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "BlkioWeightDevice",
+        skip_serializing_if = "Option::is_none"
+    )]
     blkio_weight_device: Option<Vec<::models::ResourcesBlkioWeightDevice>>,
     /// Limit read rate (bytes per second) from a device, in the form `[{\"Path\": \"device_path\", \"Rate\": rate}]`.
-    #[serde(rename = "BlkioDeviceReadBps", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "BlkioDeviceReadBps",
+        skip_serializing_if = "Option::is_none"
+    )]
     blkio_device_read_bps: Option<Vec<::models::ThrottleDevice>>,
     /// Limit write rate (bytes per second) to a device, in the form `[{\"Path\": \"device_path\", \"Rate\": rate}]`.
-    #[serde(rename = "BlkioDeviceWriteBps", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "BlkioDeviceWriteBps",
+        skip_serializing_if = "Option::is_none"
+    )]
     blkio_device_write_bps: Option<Vec<::models::ThrottleDevice>>,
     /// Limit read rate (IO per second) from a device, in the form `[{\"Path\": \"device_path\", \"Rate\": rate}]`.
-    #[serde(rename = "BlkioDeviceReadIOps", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "BlkioDeviceReadIOps",
+        skip_serializing_if = "Option::is_none"
+    )]
     blkio_device_read_i_ops: Option<Vec<::models::ThrottleDevice>>,
     /// Limit write rate (IO per second) to a device, in the form `[{\"Path\": \"device_path\", \"Rate\": rate}]`.
-    #[serde(rename = "BlkioDeviceWriteIOps", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "BlkioDeviceWriteIOps",
+        skip_serializing_if = "Option::is_none"
+    )]
     blkio_device_write_i_ops: Option<Vec<::models::ThrottleDevice>>,
     /// The length of a CPU period in microseconds.
-    #[serde(rename = "CpuPeriod", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "CpuPeriod",
+        skip_serializing_if = "Option::is_none"
+    )]
     cpu_period: Option<i64>,
     /// Microseconds of CPU time that the container can get in a CPU period.
     #[serde(rename = "CpuQuota", skip_serializing_if = "Option::is_none")]
     cpu_quota: Option<i64>,
     /// The length of a CPU real-time period in microseconds. Set to 0 to allocate no time allocated to real-time tasks.
-    #[serde(rename = "CpuRealtimePeriod", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "CpuRealtimePeriod",
+        skip_serializing_if = "Option::is_none"
+    )]
     cpu_realtime_period: Option<i64>,
     /// The length of a CPU real-time runtime in microseconds. Set to 0 to allocate no time allocated to real-time tasks.
-    #[serde(rename = "CpuRealtimeRuntime", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "CpuRealtimeRuntime",
+        skip_serializing_if = "Option::is_none"
+    )]
     cpu_realtime_runtime: Option<i64>,
     /// CPUs in which to allow execution (e.g., `0-3`, `0,1`)
-    #[serde(rename = "CpusetCpus", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "CpusetCpus",
+        skip_serializing_if = "Option::is_none"
+    )]
     cpuset_cpus: Option<String>,
     /// Memory nodes (MEMs) in which to allow execution (0-3, 0,1). Only effective on NUMA systems.
-    #[serde(rename = "CpusetMems", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "CpusetMems",
+        skip_serializing_if = "Option::is_none"
+    )]
     cpuset_mems: Option<String>,
     /// A list of devices to add to the container.
     #[serde(rename = "Devices", skip_serializing_if = "Option::is_none")]
     devices: Option<Vec<::models::DeviceMapping>>,
     /// a list of cgroup rules to apply to the container
-    #[serde(rename = "DeviceCgroupRules", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "DeviceCgroupRules",
+        skip_serializing_if = "Option::is_none"
+    )]
     device_cgroup_rules: Option<Vec<String>>,
     /// Disk limit (in bytes).
-    #[serde(rename = "DiskQuota", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "DiskQuota",
+        skip_serializing_if = "Option::is_none"
+    )]
     disk_quota: Option<i64>,
     /// Kernel memory limit in bytes.
-    #[serde(rename = "KernelMemory", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "KernelMemory",
+        skip_serializing_if = "Option::is_none"
+    )]
     kernel_memory: Option<i64>,
     /// Memory soft limit in bytes.
-    #[serde(rename = "MemoryReservation", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "MemoryReservation",
+        skip_serializing_if = "Option::is_none"
+    )]
     memory_reservation: Option<i64>,
     /// Total memory limit (memory + swap). Set as `-1` to enable unlimited swap.
-    #[serde(rename = "MemorySwap", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "MemorySwap",
+        skip_serializing_if = "Option::is_none"
+    )]
     memory_swap: Option<i64>,
     /// Tune a container's memory swappiness behavior. Accepts an integer between 0 and 100.
-    #[serde(rename = "MemorySwappiness", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "MemorySwappiness",
+        skip_serializing_if = "Option::is_none"
+    )]
     memory_swappiness: Option<i64>,
     /// CPU quota in units of 10<sup>-9</sup> CPUs.
     #[serde(rename = "NanoCPUs", skip_serializing_if = "Option::is_none")]
     nano_cp_us: Option<i64>,
     /// Disable OOM Killer for the container.
-    #[serde(rename = "OomKillDisable", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "OomKillDisable",
+        skip_serializing_if = "Option::is_none"
+    )]
     oom_kill_disable: Option<bool>,
     /// Tune a container's pids limit. Set -1 for unlimited.
-    #[serde(rename = "PidsLimit", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "PidsLimit",
+        skip_serializing_if = "Option::is_none"
+    )]
     pids_limit: Option<i64>,
     /// A list of resource limits to set in the container. For example: `{\"Name\": \"nofile\", \"Soft\": 1024, \"Hard\": 2048}`\"
     #[serde(rename = "Ulimits", skip_serializing_if = "Option::is_none")]
@@ -95,15 +158,27 @@ pub struct ContainerUpdateUpdate {
     #[serde(rename = "CpuCount", skip_serializing_if = "Option::is_none")]
     cpu_count: Option<i64>,
     /// The usable percentage of the available CPUs (Windows only).  On Windows Server containers, the processor resource controls are mutually exclusive. The order of precedence is `CPUCount` first, then `CPUShares`, and `CPUPercent` last.
-    #[serde(rename = "CpuPercent", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "CpuPercent",
+        skip_serializing_if = "Option::is_none"
+    )]
     cpu_percent: Option<i64>,
     /// Maximum IOps for the container system drive (Windows only)
-    #[serde(rename = "IOMaximumIOps", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "IOMaximumIOps",
+        skip_serializing_if = "Option::is_none"
+    )]
     io_maximum_i_ops: Option<i64>,
     /// Maximum IO in bytes per second for the container system drive (Windows only)
-    #[serde(rename = "IOMaximumBandwidth", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "IOMaximumBandwidth",
+        skip_serializing_if = "Option::is_none"
+    )]
     io_maximum_bandwidth: Option<i64>,
-    #[serde(rename = "RestartPolicy", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "RestartPolicy",
+        skip_serializing_if = "Option::is_none"
+    )]
     restart_policy: Option<::models::RestartPolicy>,
 }
 

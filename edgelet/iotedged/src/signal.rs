@@ -72,8 +72,7 @@ mod imp {
                     target: "iotedged::signal",
                     "Received Ctrl+C, starting shutdown",
                 );
-            })
-            .map_err(|_| unreachable!("ctrl_c never returns errors"));
+            }).map_err(|_| unreachable!("ctrl_c never returns errors"));
         Box::new(on_ctrl_c)
     }
 }

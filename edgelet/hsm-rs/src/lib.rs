@@ -15,7 +15,7 @@ pub use crypto::{
 };
 pub use error::{Error, ErrorKind};
 pub use tpm::{Tpm, TpmDigest, TpmKey};
-pub use x509::{X509, X509Data};
+pub use x509::{X509Data, X509};
 
 // Traits
 

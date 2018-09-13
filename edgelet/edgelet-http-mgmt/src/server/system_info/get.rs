@@ -64,11 +64,9 @@ where
                             .header(CONTENT_LENGTH, b.len().to_string().as_str())
                             .body(b.into())
                             .unwrap_or_else(|e| e.into_response())
-                    })
-                    .unwrap_or_else(|e| e.into_response());
+                    }).unwrap_or_else(|e| e.into_response());
                 future::ok(response)
-            })
-            .or_else(|e| future::ok(e.into_response()));
+            }).or_else(|e| future::ok(e.into_response()));
 
         Box::new(response)
     }
@@ -115,8 +113,7 @@ mod tests {
                 assert_eq!(edgelet_core::version(), system_info.version());
 
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 
@@ -140,8 +137,7 @@ mod tests {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
                 assert_eq!("General error", error.message());
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 }

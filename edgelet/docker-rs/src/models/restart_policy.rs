@@ -19,7 +19,10 @@ pub struct RestartPolicy {
     #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
     name: Option<String>,
     /// If `on-failure` is used, the number of times to retry before giving up
-    #[serde(rename = "MaximumRetryCount", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "MaximumRetryCount",
+        skip_serializing_if = "Option::is_none"
+    )]
     maximum_retry_count: Option<i32>,
 }
 

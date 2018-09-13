@@ -52,8 +52,7 @@ where
                             LogChunk::Unknown(b) => io::stdout().write(&b)?,
                         };
                         Ok(())
-                    })
-                    .map_err(|_| Error::from(ErrorKind::ModuleRuntime))
+                    }).map_err(|_| Error::from(ErrorKind::ModuleRuntime))
             });
         Box::new(result)
     }

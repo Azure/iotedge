@@ -162,8 +162,7 @@ where
                     Either::A(res)
                 })
                 .unwrap_or_else(|| Either::B(create_and_start(runtime, &id_mgr, spec, &module_id)))
-        })
-        .map(|_| ())
+        }).map(|_| ())
 }
 
 // Gets the edge runtime module, if it exists.
@@ -183,8 +182,7 @@ where
             m.into_iter()
                 .filter_map(move |m| if m.name() == name { Some(m) } else { None })
                 .nth(0)
-        })
-        .map_err(|e| e.into())
+        }).map_err(|e| e.into())
 }
 
 // Gets and updates the identity of the module.
@@ -208,11 +206,9 @@ where
                         .update(
                             IdentitySpec::new(module.module_id())
                                 .with_generation_id(module.generation_id().to_string()),
-                        )
-                        .map_err(|e| e.into());
+                        ).map_err(|e| e.into());
                     Either::A(res)
-                })
-                .unwrap_or_else(|| {
+                }).unwrap_or_else(|| {
                     Either::B(
                         future::err(Error::from(ErrorKind::EdgeRuntimeIdentityNotFound))
                             as FutureResult<I::Identity, Error>,

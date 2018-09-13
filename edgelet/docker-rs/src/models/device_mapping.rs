@@ -15,11 +15,20 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DeviceMapping {
-    #[serde(rename = "PathOnHost", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "PathOnHost",
+        skip_serializing_if = "Option::is_none"
+    )]
     path_on_host: Option<String>,
-    #[serde(rename = "PathInContainer", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "PathInContainer",
+        skip_serializing_if = "Option::is_none"
+    )]
     path_in_container: Option<String>,
-    #[serde(rename = "CgroupPermissions", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "CgroupPermissions",
+        skip_serializing_if = "Option::is_none"
+    )]
     cgroup_permissions: Option<String>,
 }
 
