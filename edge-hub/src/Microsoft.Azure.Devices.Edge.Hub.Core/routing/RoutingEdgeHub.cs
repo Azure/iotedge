@@ -339,17 +339,38 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             public static void ErrorProcessingSubscriptions(Exception ex, IIdentity identity)
             {
-                Log.LogWarning((int)EventIds.ErrorProcessingSubscriptions, ex, Invariant($"Error processing subscriptions for client {identity.Id}."));
+                if (ex.HasTimeoutException())
+                {
+                    Log.LogDebug((int)EventIds.ErrorProcessingSubscriptions, ex, Invariant($"Timed out while processing subscriptions for client {identity.Id}. Will try again when connected."));
+                }
+                else
+                {
+                    Log.LogWarning((int)EventIds.ErrorProcessingSubscriptions, ex, Invariant($"Error processing subscriptions for client {identity.Id}."));
+                }
             }
 
             public static void ErrorRemovingSubscription(Exception ex, string id, DeviceSubscription subscription)
             {
-                Log.LogDebug((int)EventIds.ErrorRemovingSubscription, ex, Invariant($"Error removing subscription {subscription} for client {id}."));
+                if (ex.HasTimeoutException())
+                {
+                    Log.LogDebug((int)EventIds.ErrorAddingSubscription, ex, Invariant($"Timed out while removing subscription {subscription} for client {id}. Will try again when connected."));
+                }
+                else
+                {
+                    Log.LogWarning((int)EventIds.ErrorRemovingSubscription, ex, Invariant($"Error removing subscription {subscription} for client {id}."));
+                }
             }
 
             public static void ErrorAddingSubscription(Exception ex, string id, DeviceSubscription subscription)
             {
-                Log.LogDebug((int)EventIds.ErrorAddingSubscription, ex, Invariant($"Error adding subscription {subscription} for client {id}."));
+                if (ex.HasTimeoutException())
+                {
+                    Log.LogDebug((int)EventIds.ErrorAddingSubscription, ex, Invariant($"Timed out while adding subscription {subscription} for client {id}. Will try again when connected."));
+                }
+                else
+                {
+                    Log.LogDebug((int)EventIds.ErrorAddingSubscription, ex, Invariant($"Error adding subscription {subscription} for client {id}."));
+                }
             }
 
             public static void AddingSubscription(string id, DeviceSubscription subscription)

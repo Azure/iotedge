@@ -270,8 +270,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             public static void Created() =>
                 Log.LogDebug((int)EventIds.Created, "Created device scope identities cache");
 
-            public static void ErrorInRefreshCycle(Exception exception) =>
+            public static void ErrorInRefreshCycle(Exception exception)
+            {
                 Log.LogWarning((int)EventIds.ErrorInRefresh, "Encountered an error while refreshing the device scope identities cache. Will retry the operation in some time...");
+                Log.LogDebug((int)EventIds.ErrorInRefresh, exception, "Error details while refreshing the device scope identities cache");
+            }
 
             public static void StartingRefreshCycle() =>
                 Log.LogDebug((int)EventIds.StartingCycle, "Starting refresh of device scope identities cache");
