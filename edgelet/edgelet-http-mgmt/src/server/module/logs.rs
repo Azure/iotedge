@@ -50,8 +50,7 @@ where
                     .unwrap_or_else(|| Ok(LogOptions::default()))
                     .context(ErrorKind::BadParam);
                 Ok((name, options?))
-            })
-            .map(|(name, options)| {
+            }).map(|(name, options)| {
                 let result = runtime
                     .logs(name, &options)
                     .map(|s| {
@@ -59,11 +58,9 @@ where
                             .status(StatusCode::OK)
                             .body(s.into())
                             .unwrap_or_else(|e| e.into_response())
-                    })
-                    .or_else(|e| future::ok(e.into_response()));
+                    }).or_else(|e| future::ok(e.into_response()));
                 future::Either::A(result)
-            })
-            .unwrap_or_else(|e| future::Either::B(future::ok(e.into_response())));
+            }).unwrap_or_else(|e| future::Either::B(future::ok(e.into_response())));
         Box::new(response)
     }
 }
@@ -159,8 +156,7 @@ mod tests {
             .and_then(|b| {
                 assert_eq!(0, b.len());
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 
@@ -186,8 +182,7 @@ mod tests {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
                 assert_eq!("General error", error.message());
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 
@@ -208,7 +203,7 @@ mod tests {
         let request = Request::get(
             "http://localhost/modules/mod1/logs?api-version=2018-06-28&follow=asfda&tail=asfafda",
         ).body(Body::default())
-            .unwrap();
+        .unwrap();
         let parameters =
             Parameters::with_captures(vec![(Some("name".to_string()), "mod1".to_string())]);
 

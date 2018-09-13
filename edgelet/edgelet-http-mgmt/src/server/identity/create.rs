@@ -53,33 +53,33 @@ where
         _params: Parameters,
     ) -> BoxFuture<Response<Body>, HyperError> {
         let id_mgr = self.id_manager.clone();
-        let response = read_request(req)
-            .and_then(move |spec| {
-                let mut rid = id_mgr.borrow_mut();
-                rid.create(spec)
-                    .map(|identity| {
-                        let identity = Identity::new(
-                            identity.module_id().to_string(),
-                            identity.managed_by().to_string(),
-                            identity.generation_id().to_string(),
-                            identity.auth_type().to_string(),
-                        );
+        let response =
+            read_request(req)
+                .and_then(move |spec| {
+                    let mut rid = id_mgr.borrow_mut();
+                    rid.create(spec)
+                        .map(|identity| {
+                            let identity = Identity::new(
+                                identity.module_id().to_string(),
+                                identity.managed_by().to_string(),
+                                identity.generation_id().to_string(),
+                                identity.auth_type().to_string(),
+                            );
 
-                        serde_json::to_string(&identity)
-                            .context(ErrorKind::Serde)
-                            .map(|b| {
-                                Response::builder()
-                                    .status(StatusCode::OK)
-                                    .header(CONTENT_TYPE, "application/json")
-                                    .header(CONTENT_LENGTH, b.len().to_string().as_str())
-                                    .body(b.into())
-                                    .unwrap_or_else(|e| e.into_response())
-                            })
-                            .unwrap_or_else(|e| e.into_response())
-                    })
-                    .or_else(|e| future::ok(e.into_response()))
-            })
-            .or_else(|e| future::ok(e.into_response()) as FutureResult<Response<Body>, HyperError>);
+                            serde_json::to_string(&identity)
+                                .context(ErrorKind::Serde)
+                                .map(|b| {
+                                    Response::builder()
+                                        .status(StatusCode::OK)
+                                        .header(CONTENT_TYPE, "application/json")
+                                        .header(CONTENT_LENGTH, b.len().to_string().as_str())
+                                        .body(b.into())
+                                        .unwrap_or_else(|e| e.into_response())
+                                }).unwrap_or_else(|e| e.into_response())
+                        }).or_else(|e| future::ok(e.into_response()))
+                }).or_else(|e| {
+                    future::ok(e.into_response()) as FutureResult<Response<Body>, HyperError>
+                });
 
         Box::new(response)
     }
@@ -93,8 +93,7 @@ fn read_request(req: Request<Body>) -> impl Future<Item = IdentitySpec, Error = 
             serde_json::from_slice::<CreateIdentitySpec>(&b)
                 .context(ErrorKind::BadBody)
                 .map_err(Error::from)
-        })
-        .map(move |create_req| {
+        }).map(move |create_req| {
             let mut spec = IdentitySpec::new(create_req.module_id());
             if let Some(m) = create_req.managed_by() {
                 spec = spec.with_managed_by(m.to_string());
@@ -147,8 +146,7 @@ mod tests {
                 assert_eq!(AuthType::Sas, identity.auth_type());
 
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 
@@ -186,8 +184,7 @@ mod tests {
                 assert_eq!(AuthType::Sas, identity.auth_type());
 
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 
@@ -212,8 +209,7 @@ mod tests {
                 let error: ErrorResponse = serde_json::from_slice(&body).unwrap();
                 assert_ne!(None, error.message().find("Bad body"));
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 
@@ -240,8 +236,7 @@ mod tests {
                 let error: ErrorResponse = serde_json::from_slice(&body).unwrap();
                 assert_eq!("General error", error.message());
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 }

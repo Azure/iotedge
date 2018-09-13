@@ -38,7 +38,10 @@ pub struct ContainerSummaryInner {
     #[serde(rename = "SizeRw", skip_serializing_if = "Option::is_none")]
     size_rw: Option<i64>,
     /// The total size of all the files in this container
-    #[serde(rename = "SizeRootFs", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "SizeRootFs",
+        skip_serializing_if = "Option::is_none"
+    )]
     size_root_fs: Option<i64>,
     /// User-defined key/value metadata.
     #[serde(rename = "Labels", skip_serializing_if = "Option::is_none")]
@@ -49,9 +52,15 @@ pub struct ContainerSummaryInner {
     /// Additional human-readable status of this container (e.g. `Exit 0`)
     #[serde(rename = "Status", skip_serializing_if = "Option::is_none")]
     status: Option<String>,
-    #[serde(rename = "HostConfig", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "HostConfig",
+        skip_serializing_if = "Option::is_none"
+    )]
     host_config: Option<::models::ContainerSummaryInnerHostConfig>,
-    #[serde(rename = "NetworkSettings", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "NetworkSettings",
+        skip_serializing_if = "Option::is_none"
+    )]
     network_settings: Option<::models::ContainerSummaryInnerNetworkSettings>,
     #[serde(rename = "Mounts", skip_serializing_if = "Option::is_none")]
     mounts: Option<Vec<::models::Mount>>,

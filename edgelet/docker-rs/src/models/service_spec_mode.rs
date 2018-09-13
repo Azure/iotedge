@@ -15,7 +15,10 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ServiceSpecMode {
-    #[serde(rename = "Replicated", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "Replicated",
+        skip_serializing_if = "Option::is_none"
+    )]
     replicated: Option<::models::ServiceSpecModeReplicated>,
     #[serde(rename = "Global", skip_serializing_if = "Option::is_none")]
     global: Option<Value>,

@@ -322,8 +322,7 @@ impl KeyStore for MemoryKeyStore {
             .get(&MemoryKeyIdentity::new(
                 identity.clone(),
                 key_name.to_string(),
-            ))
-            .cloned()
+            )).cloned()
             .ok_or_else(|| Error::from(ErrorKind::NotFound))
     }
 }
@@ -356,8 +355,7 @@ impl<K: Sign> KeyStore for DerivedKeyStore<K> {
                     },
                     key_name
                 ).as_bytes(),
-            )
-            .map(|d| MemoryKey::new(d.as_bytes()))
+            ).map(|d| MemoryKey::new(d.as_bytes()))
             .context(ErrorKind::KeyStore)
             .map_err(Error::from)
     }
@@ -531,8 +529,8 @@ mod tests {
         let key = key_store
             .get(&KeyIdentity::Module("key2".to_string()), "primary")
             .unwrap();
-        let digest =
-            key.sign(
+        let digest = key
+            .sign(
                 SignatureAlgorithm::HMACSHA256,
                 b"The quick brown fox jumps over the lazy dog",
             ).unwrap();

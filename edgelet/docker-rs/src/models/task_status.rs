@@ -13,7 +13,10 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TaskStatus {
-    #[serde(rename = "Timestamp", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "Timestamp",
+        skip_serializing_if = "Option::is_none"
+    )]
     timestamp: Option<String>,
     #[serde(rename = "State", skip_serializing_if = "Option::is_none")]
     state: Option<::models::TaskState>,
@@ -21,7 +24,10 @@ pub struct TaskStatus {
     message: Option<String>,
     #[serde(rename = "Err", skip_serializing_if = "Option::is_none")]
     err: Option<String>,
-    #[serde(rename = "ContainerStatus", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "ContainerStatus",
+        skip_serializing_if = "Option::is_none"
+    )]
     container_status: Option<::models::TaskStatusContainerStatus>,
 }
 

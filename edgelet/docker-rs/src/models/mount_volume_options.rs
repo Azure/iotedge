@@ -21,7 +21,10 @@ pub struct MountVolumeOptions {
     /// User-defined key/value metadata.
     #[serde(rename = "Labels", skip_serializing_if = "Option::is_none")]
     labels: Option<::std::collections::HashMap<String, String>>,
-    #[serde(rename = "DriverConfig", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "DriverConfig",
+        skip_serializing_if = "Option::is_none"
+    )]
     driver_config: Option<::models::MountVolumeOptionsDriverConfig>,
 }
 

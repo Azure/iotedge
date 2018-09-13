@@ -15,7 +15,10 @@ use serde_json::Value;
 pub struct UpdateIdentity {
     #[serde(rename = "generationId")]
     generation_id: String,
-    #[serde(rename = "managedBy", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "managedBy",
+        skip_serializing_if = "Option::is_none"
+    )]
     managed_by: Option<String>,
 }
 

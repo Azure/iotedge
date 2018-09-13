@@ -16,19 +16,34 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SwarmSpecRaft {
     /// The number of log entries between snapshots.
-    #[serde(rename = "SnapshotInterval", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "SnapshotInterval",
+        skip_serializing_if = "Option::is_none"
+    )]
     snapshot_interval: Option<i32>,
     /// The number of snapshots to keep beyond the current snapshot.
-    #[serde(rename = "KeepOldSnapshots", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "KeepOldSnapshots",
+        skip_serializing_if = "Option::is_none"
+    )]
     keep_old_snapshots: Option<i32>,
     /// The number of log entries to keep around to sync up slow followers after a snapshot is created.
-    #[serde(rename = "LogEntriesForSlowFollowers", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "LogEntriesForSlowFollowers",
+        skip_serializing_if = "Option::is_none"
+    )]
     log_entries_for_slow_followers: Option<i32>,
     /// The number of ticks that a follower will wait for a message from the leader before becoming a candidate and starting an election. `ElectionTick` must be greater than `HeartbeatTick`.  A tick currently defaults to one second, so these translate directly to seconds currently, but this is NOT guaranteed.
-    #[serde(rename = "ElectionTick", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "ElectionTick",
+        skip_serializing_if = "Option::is_none"
+    )]
     election_tick: Option<i32>,
     /// The number of ticks between heartbeats. Every HeartbeatTick ticks, the leader will send a heartbeat to the followers.  A tick currently defaults to one second, so these translate directly to seconds currently, but this is NOT guaranteed.
-    #[serde(rename = "HeartbeatTick", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "HeartbeatTick",
+        skip_serializing_if = "Option::is_none"
+    )]
     heartbeat_tick: Option<i32>,
 }
 

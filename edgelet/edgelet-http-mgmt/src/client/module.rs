@@ -235,10 +235,8 @@ impl ModuleRuntime for ModuleClient {
                         let type_ = m.type_().clone();
                         let config = m.config().clone();
                         ModuleDetails(m, ModuleConfig(type_, config))
-                    })
-                    .collect()
-            })
-            .map_err(From::from);
+                    }).collect()
+            }).map_err(From::from);
         Box::new(modules)
     }
 

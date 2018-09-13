@@ -126,15 +126,13 @@ impl<C: hyper::client::Connect> ModuleApi for ModuleApiClient<C> {
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(Error::from)
-                })
-                .and_then(|(status, body)| {
+                }).and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                })
-                .and_then(|body| {
+                }).and_then(|body| {
                     let parsed: Result<::models::ModuleDetails, _> = serde_json::from_slice(&body);
                     parsed.map_err(Error::from)
                 }),
@@ -179,15 +177,13 @@ impl<C: hyper::client::Connect> ModuleApi for ModuleApiClient<C> {
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(Error::from)
-                })
-                .and_then(|(status, body)| {
+                }).and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                })
-                .and_then(|_| futures::future::ok(())),
+                }).and_then(|_| futures::future::ok(())),
         )
     }
 
@@ -229,15 +225,13 @@ impl<C: hyper::client::Connect> ModuleApi for ModuleApiClient<C> {
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(Error::from)
-                })
-                .and_then(|(status, body)| {
+                }).and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                })
-                .and_then(|body| {
+                }).and_then(|body| {
                     let parsed: Result<::models::ModuleDetails, _> = serde_json::from_slice(&body);
                     parsed.map_err(Error::from)
                 }),
@@ -281,15 +275,13 @@ impl<C: hyper::client::Connect> ModuleApi for ModuleApiClient<C> {
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(Error::from)
-                })
-                .and_then(|(status, body)| {
+                }).and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                })
-                .and_then(|body| {
+                }).and_then(|body| {
                     let parsed: Result<::models::ModuleList, _> = serde_json::from_slice(&body);
                     parsed.map_err(Error::from)
                 }),
@@ -382,15 +374,13 @@ impl<C: hyper::client::Connect> ModuleApi for ModuleApiClient<C> {
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(Error::from)
-                })
-                .and_then(|(status, body)| {
+                }).and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                })
-                .and_then(|_| futures::future::ok(())),
+                }).and_then(|_| futures::future::ok(())),
         )
     }
 
@@ -432,15 +422,13 @@ impl<C: hyper::client::Connect> ModuleApi for ModuleApiClient<C> {
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(Error::from)
-                })
-                .and_then(|(status, body)| {
+                }).and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                })
-                .and_then(|_| futures::future::ok(())),
+                }).and_then(|_| futures::future::ok(())),
         )
     }
 
@@ -482,15 +470,13 @@ impl<C: hyper::client::Connect> ModuleApi for ModuleApiClient<C> {
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(Error::from)
-                })
-                .and_then(|(status, body)| {
+                }).and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                })
-                .and_then(|_| futures::future::ok(())),
+                }).and_then(|_| futures::future::ok(())),
         )
     }
 
@@ -539,15 +525,13 @@ impl<C: hyper::client::Connect> ModuleApi for ModuleApiClient<C> {
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(Error::from)
-                })
-                .and_then(|(status, body)| {
+                }).and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                })
-                .and_then(|body| {
+                }).and_then(|body| {
                     let parsed: Result<::models::ModuleDetails, _> = serde_json::from_slice(&body);
                     parsed.map_err(Error::from)
                 }),

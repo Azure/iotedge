@@ -25,10 +25,16 @@ pub struct InlineResponse200State {
     #[serde(rename = "Paused", skip_serializing_if = "Option::is_none")]
     paused: Option<bool>,
     /// Whether this container is restarting.
-    #[serde(rename = "Restarting", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "Restarting",
+        skip_serializing_if = "Option::is_none"
+    )]
     restarting: Option<bool>,
     /// Whether this container has been killed because it ran out of memory.
-    #[serde(rename = "OOMKilled", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "OOMKilled",
+        skip_serializing_if = "Option::is_none"
+    )]
     oom_killed: Option<bool>,
     #[serde(rename = "Dead", skip_serializing_if = "Option::is_none")]
     dead: Option<bool>,
@@ -41,10 +47,16 @@ pub struct InlineResponse200State {
     #[serde(rename = "Error", skip_serializing_if = "Option::is_none")]
     error: Option<String>,
     /// The time when this container was last started.
-    #[serde(rename = "StartedAt", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "StartedAt",
+        skip_serializing_if = "Option::is_none"
+    )]
     started_at: Option<String>,
     /// The time when this container last exited.
-    #[serde(rename = "FinishedAt", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "FinishedAt",
+        skip_serializing_if = "Option::is_none"
+    )]
     finished_at: Option<String>,
 }
 

@@ -49,11 +49,9 @@ where
                             .status(StatusCode::NO_CONTENT)
                             .body(Body::default())
                             .unwrap_or_else(|e| e.into_response())
-                    })
-                    .or_else(|e| future::ok(e.into_response()));
+                    }).or_else(|e| future::ok(e.into_response()));
                 future::Either::A(result)
-            })
-            .unwrap_or_else(|e| future::Either::B(future::ok(e.into_response())));
+            }).unwrap_or_else(|e| future::Either::B(future::ok(e.into_response())));
         Box::new(response)
     }
 }
