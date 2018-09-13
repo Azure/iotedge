@@ -15,7 +15,10 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SwarmSpecTaskDefaults {
-    #[serde(rename = "LogDriver", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "LogDriver",
+        skip_serializing_if = "Option::is_none"
+    )]
     log_driver: Option<::models::SwarmSpecTaskDefaultsLogDriver>,
 }
 

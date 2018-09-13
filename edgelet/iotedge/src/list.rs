@@ -85,8 +85,7 @@ fn humanize_state(state: &ModuleRuntimeState) -> String {
                     "Stopped {}",
                     time_string(&HumanTime::from(Utc::now() - *time), Tense::Past)
                 )
-            })
-            .unwrap_or_else(|| "Stopped".to_string()),
+            }).unwrap_or_else(|| "Stopped".to_string()),
         ModuleStatus::Failed => state
             .finished_at()
             .and_then(|time| {
@@ -97,8 +96,7 @@ fn humanize_state(state: &ModuleRuntimeState) -> String {
                         time_string(&HumanTime::from(Utc::now() - *time), Tense::Past)
                     )
                 })
-            })
-            .unwrap_or_else(|| "Failed".to_string()),
+            }).unwrap_or_else(|| "Failed".to_string()),
         ModuleStatus::Running => state
             .started_at()
             .map(|time| {
@@ -106,8 +104,7 @@ fn humanize_state(state: &ModuleRuntimeState) -> String {
                     "Up {}",
                     time_string(&HumanTime::from(Utc::now() - *time), Tense::Present)
                 )
-            })
-            .unwrap_or_else(|| "Up".to_string()),
+            }).unwrap_or_else(|| "Up".to_string()),
     }
 }
 

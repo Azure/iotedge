@@ -294,8 +294,7 @@ fn container_create_handler(req: Request) -> Box<Future<Item = Response, Error =
                 assert_eq!(*volumes, expected);
 
                 Ok(())
-            })
-            .map(|_| {
+            }).map(|_| {
                 Response::new()
                     .with_header(ContentLength(response.len() as u64))
                     .with_header(ContentType::json())
@@ -340,16 +339,13 @@ fn container_create_succeeds() {
             HostConfig::new()
                 .with_port_bindings(port_bindings)
                 .with_memory(memory),
-        )
-        .with_cmd(vec![
+        ).with_cmd(vec![
             "/do/the/custom/command".to_string(),
             "with these args".to_string(),
-        ])
-        .with_entrypoint(vec![
+        ]).with_entrypoint(vec![
             "/also/do/the/entrypoint".to_string(),
             "and this".to_string(),
-        ])
-        .with_env(vec!["k4=v4".to_string(), "k5=v5".to_string()])
+        ]).with_env(vec!["k4=v4".to_string(), "k5=v5".to_string()])
         .with_volumes(volumes);
 
     let module_config = ModuleSpec::new(
@@ -364,7 +360,7 @@ fn container_create_succeeds() {
         &Url::parse(&format!("http://localhost:{}/", port)).unwrap(),
         &core.handle(),
     ).unwrap()
-        .with_network_id("edge-network".to_string());
+    .with_network_id("edge-network".to_string());
 
     let task = mri.create(module_config);
     core.run(task).unwrap();
@@ -763,7 +759,7 @@ fn runtime_init_network_does_not_exist_create() {
         &Url::parse(&format!("http://localhost:{}/", port)).unwrap(),
         &core.handle(),
     ).unwrap()
-        .with_network_id("azure-iot-edge".to_string());
+    .with_network_id("azure-iot-edge".to_string());
 
     //act
     let task = mri.init();
@@ -867,7 +863,7 @@ fn runtime_init_network_exist_do_not_create() {
         &Url::parse(&format!("http://localhost:{}/", port)).unwrap(),
         &core.handle(),
     ).unwrap()
-        .with_network_id("azure-iot-edge".to_string());
+    .with_network_id("azure-iot-edge".to_string());
 
     //act
     let task = mri.init();

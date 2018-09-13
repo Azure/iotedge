@@ -128,8 +128,7 @@ impl ModuleRegistry for DockerModuleRuntime {
                         e
                     });
                 future::Either::A(ok)
-            })
-            .unwrap_or_else(|e| future::Either::B(future::err(Error::from(e))));
+            }).unwrap_or_else(|e| future::Either::B(future::err(Error::from(e))));
         Box::new(response)
     }
 
@@ -190,15 +189,13 @@ impl ModuleRuntime for DockerModuleRuntime {
                         } else {
                             future::Either::B(future::ok(()))
                         }
-                    })
-                    .map_err(|err| {
+                    }).map_err(|err| {
                         let e = Error::from(err);
                         log_failure(Level::Warn, &e);
                         e
                     });
                 future::Either::A(fut)
-            })
-            .unwrap_or_else(|| future::Either::B(future::ok(())));
+            }).unwrap_or_else(|| future::Either::B(future::ok(())));
 
         Box::new(created)
     }
@@ -261,8 +258,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                     let e = Error::from(err);
                     log_failure(Level::Warn, &e);
                     e
-                })
-                .map(|_| ()),
+                }).map(|_| ()),
         )
     }
 
@@ -276,13 +272,11 @@ impl ModuleRuntime for DockerModuleRuntime {
                     wait_before_kill
                         .map(|s| s.as_secs() as i32)
                         .unwrap_or(WAIT_BEFORE_KILL_SECONDS),
-                )
-                .map_err(|err| {
+                ).map_err(|err| {
                     let e = Error::from(err);
                     log_failure(Level::Warn, &e);
                     e
-                })
-                .map(|_| ()),
+                }).map(|_| ()),
         )
     }
 
@@ -302,8 +296,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                             .unwrap_or(&String::from("Unknown"))
                             .to_string(),
                     )
-                })
-                .map_err(|err| {
+                }).map_err(|err| {
                     let e = Error::from(err);
                     log_failure(Level::Warn, &e);
                     e
@@ -321,8 +314,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                     let e = Error::from(err);
                     log_failure(Level::Warn, &e);
                     e
-                })
-                .map(|_| ()),
+                }).map(|_| ()),
         )
     }
 
@@ -336,13 +328,11 @@ impl ModuleRuntime for DockerModuleRuntime {
                     /* remove volumes */ false,
                     /* force */ true,
                     /* remove link */ false,
-                )
-                .map_err(|err| {
+                ).map_err(|err| {
                     let e = Error::from(err);
                     log_failure(Level::Warn, &e);
                     e
-                })
-                .map(|_| ()),
+                }).map(|_| ()),
         )
     }
 
@@ -373,8 +363,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                                         config.with_image_id(container.image_id().clone()),
                                     )
                                 })
-                            })
-                            .flat_map(|(container, config)| {
+                            }).flat_map(|(container, config)| {
                                 DockerModule::new(
                                     client_copy.clone(),
                                     container
@@ -385,12 +374,9 @@ impl ModuleRuntime for DockerModuleRuntime {
                                         .unwrap_or("Unknown"),
                                     config,
                                 )
-                            })
-                            .collect()
-                    })
-                    .map_err(Error::from))
-            })
-            .map_err(Error::from);
+                            }).collect()
+                    }).map_err(Error::from))
+            }).map_err(Error::from);
 
         match result {
             Ok(f) => Box::new(f),

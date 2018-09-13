@@ -13,7 +13,10 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ContainerSummaryInnerHostConfig {
-    #[serde(rename = "NetworkMode", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "NetworkMode",
+        skip_serializing_if = "Option::is_none"
+    )]
     network_mode: Option<String>,
 }
 

@@ -139,10 +139,8 @@ where
                                 KeyIdentity::Device,
                                 "primary".to_string(),
                                 key_bytes,
-                            )
-                            .map_err(Error::from)
-                    })
-                    .and_then(|_| {
+                            ).map_err(Error::from)
+                    }).and_then(|_| {
                         key_store
                             .get(&KeyIdentity::Device, "primary")
                             .map_err(Error::from)
@@ -175,8 +173,7 @@ where
                 None,
                 Some(registration.clone()),
                 false,
-            )
-            .map_err(Error::from);
+            ).map_err(Error::from);
         Box::new(f)
     }
 
@@ -263,26 +260,25 @@ where
             Instant::now(),
             Duration::from_secs(DPS_ASSIGNMENT_RETRY_INTERVAL_SECS),
         ).take(retry_count)
-            .map_err(|_| Error::from(ErrorKind::TimerError))
-            .and_then(move |_instant: Instant| {
-                debug!("Ask DPS for registration status");
-                Self::get_operation_status(
-                    &client.clone(),
-                    &scope_id,
-                    &registration_id,
-                    &operation_id,
-                    key.clone(),
-                )
-            })
-            .skip_while(Self::is_skippable_result)
-            .take(1)
-            .fold(
-                None,
-                |_final_result: Option<DeviceRegistrationResult>,
-                 result_from_service: Option<DeviceRegistrationResult>| {
-                    future::ok::<Option<DeviceRegistrationResult>, Error>(result_from_service)
-                },
-            );
+        .map_err(|_| Error::from(ErrorKind::TimerError))
+        .and_then(move |_instant: Instant| {
+            debug!("Ask DPS for registration status");
+            Self::get_operation_status(
+                &client.clone(),
+                &scope_id,
+                &registration_id,
+                &operation_id,
+                key.clone(),
+            )
+        }).skip_while(Self::is_skippable_result)
+        .take(1)
+        .fold(
+            None,
+            |_final_result: Option<DeviceRegistrationResult>,
+             result_from_service: Option<DeviceRegistrationResult>| {
+                future::ok::<Option<DeviceRegistrationResult>, Error>(result_from_service)
+            },
+        );
         Box::new(chain)
     }
 
@@ -310,8 +306,7 @@ where
                 None,
                 Some(registration.clone()),
                 false,
-            )
-            .then(move |result| {
+            ).then(move |result| {
                 match result {
                     Ok(_) => Either::B(future::err(Error::from(ErrorKind::Unexpected))),
                     Err(err) => {
@@ -345,8 +340,7 @@ where
                                         &registration,
                                         key.clone(),
                                     ))
-                                })
-                                .unwrap_or_else(|err| Either::B(future::err(err)))
+                                }).unwrap_or_else(|err| Either::B(future::err(err)))
                         }).unwrap_or_else(|| Either::B(future::err(Error::from(err))))
                     }
                 }
@@ -393,41 +387,38 @@ where
                                     k.clone(),
                                     retry_count,
                                 ))
-                            })
-                            .unwrap_or_else(|| {
+                            }).unwrap_or_else(|| {
                                 Either::B(future::err(Error::from(ErrorKind::NotAssigned)))
                             })
-                    })
-                    .unwrap_or_else(|err| Either::B(future::err(Error::from(err))))
+                    }).unwrap_or_else(|err| Either::B(future::err(Error::from(err))))
             },
-        )
-            .and_then(move |operation_status: Option<DeviceRegistrationResult>| {
-                operation_status
-                    .ok_or_else(|| Error::from(ErrorKind::NotAssigned))
-                    .and_then(|s| -> Result<(String, String), Error> {
-                        let tpm_result_inner = s.clone();
-                        let tpm_result = s.tpm();
-                        tpm_result
-                            .ok_or_else(|| Error::from(ErrorKind::NotAssigned))
-                            .and_then(|r| -> Result<(), Error> {
-                                r.authentication_key()
-                                    .ok_or_else(|| Error::from(ErrorKind::NotAssigned))
-                                    .and_then(|ks| base64::decode(ks).map_err(Error::from))
-                                    .and_then(|kb| -> Result<(), Error> {
-                                        key_store_status
-                                            .activate_identity_key(
-                                                KeyIdentity::Device,
-                                                "primary".to_string(),
-                                                kb,
-                                            )
-                                            .map_err(Error::from)
-                                    })
-                            })
-                            .and_then(|_| -> Result<(String, String), Error> {
+        ).and_then(move |operation_status: Option<DeviceRegistrationResult>| {
+            operation_status
+                .ok_or_else(|| Error::from(ErrorKind::NotAssigned))
+                .and_then(|s| -> Result<(String, String), Error> {
+                    let tpm_result_inner = s.clone();
+                    let tpm_result = s.tpm();
+                    tpm_result
+                        .ok_or_else(|| Error::from(ErrorKind::NotAssigned))
+                        .and_then(|r| -> Result<(), Error> {
+                            r.authentication_key()
+                                .ok_or_else(|| Error::from(ErrorKind::NotAssigned))
+                                .and_then(|ks| base64::decode(ks).map_err(Error::from))
+                                .and_then(|kb| -> Result<(), Error> {
+                                    key_store_status
+                                        .activate_identity_key(
+                                            KeyIdentity::Device,
+                                            "primary".to_string(),
+                                            kb,
+                                        ).map_err(Error::from)
+                                })
+                        }).and_then(
+                            |_| -> Result<(String, String), Error> {
                                 get_device_info(&tpm_result_inner)
-                            })
-                    })
-            });
+                            },
+                        )
+                })
+        });
         Box::new(r)
     }
 }
@@ -613,7 +604,7 @@ mod tests {
                     DeviceRegistrationResult::new("reg".to_string(), "doesn't matter".to_string()),
                 ),
             ).unwrap()
-                .into_bytes(),
+            .into_bytes(),
         );
         let stream = RefCell::new(stream::iter_result(vec![
             Ok(reg_op_status_vanilla),
@@ -636,12 +627,11 @@ mod tests {
                 "2017-11-15",
                 Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
             ).unwrap()
-                .with_token_source(DpsTokenSource::new(
-                    "scope_id".to_string(),
-                    "reg".to_string(),
-                    key.clone(),
-                ))
-                .clone(),
+            .with_token_source(DpsTokenSource::new(
+                "scope_id".to_string(),
+                "reg".to_string(),
+                key.clone(),
+            )).clone(),
         ));
         let dps_operation = DpsClient::<_, _, MemoryKeyStore>::get_device_registration_result(
             client,
@@ -670,7 +660,7 @@ mod tests {
                     serde_json::to_string(&RegistrationOperationStatus::new(
                         "operation".to_string(),
                     )).unwrap()
-                        .into_bytes(),
+                    .into_bytes(),
                 ),
             )
         };
@@ -683,12 +673,11 @@ mod tests {
                 "2017-11-15",
                 Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
             ).unwrap()
-                .with_token_source(DpsTokenSource::new(
-                    "scope_id".to_string(),
-                    "reg".to_string(),
-                    key.clone(),
-                ))
-                .clone(),
+            .with_token_source(DpsTokenSource::new(
+                "scope_id".to_string(),
+                "reg".to_string(),
+                key.clone(),
+            )).clone(),
         ));
         let dps_operation = DpsClient::<_, _, MemoryKeyStore>::get_device_registration_result(
             client,

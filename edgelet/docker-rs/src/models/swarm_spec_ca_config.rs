@@ -16,19 +16,34 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SwarmSpecCaConfig {
     /// The duration node certificates are issued for.
-    #[serde(rename = "NodeCertExpiry", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "NodeCertExpiry",
+        skip_serializing_if = "Option::is_none"
+    )]
     node_cert_expiry: Option<i64>,
     /// Configuration for forwarding signing requests to an external certificate authority.
-    #[serde(rename = "ExternalCAs", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "ExternalCAs",
+        skip_serializing_if = "Option::is_none"
+    )]
     external_c_as: Option<Vec<::models::SwarmSpecCaConfigExternalCAs>>,
     /// The desired signing CA certificate for all swarm node TLS leaf certificates, in PEM format.
-    #[serde(rename = "SigningCACert", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "SigningCACert",
+        skip_serializing_if = "Option::is_none"
+    )]
     signing_ca_cert: Option<String>,
     /// The desired signing CA key for all swarm node TLS leaf certificates, in PEM format.
-    #[serde(rename = "SigningCAKey", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "SigningCAKey",
+        skip_serializing_if = "Option::is_none"
+    )]
     signing_ca_key: Option<String>,
     /// An integer whose purpose is to force swarm to generate a new signing CA certificate and key, if none have been specified in `SigningCACert` and `SigningCAKey`
-    #[serde(rename = "ForceRotate", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "ForceRotate",
+        skip_serializing_if = "Option::is_none"
+    )]
     force_rotate: Option<i32>,
 }
 

@@ -17,7 +17,10 @@ pub struct ImageRootFs {
     _type: String,
     #[serde(rename = "Layers", skip_serializing_if = "Option::is_none")]
     layers: Option<Vec<String>>,
-    #[serde(rename = "BaseLayer", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "BaseLayer",
+        skip_serializing_if = "Option::is_none"
+    )]
     base_layer: Option<String>,
 }
 

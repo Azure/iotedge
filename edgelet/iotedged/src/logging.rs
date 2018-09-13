@@ -47,8 +47,7 @@ pub fn init() {
                     record.args()
                 )
             }
-        })
-        .filter_level(LevelFilter::Info)
+        }).filter_level(LevelFilter::Info)
         .parse(&env::var(ENV_LOG).unwrap_or_default())
         .init();
 }

@@ -19,51 +19,93 @@ pub struct NetworkSettings {
     #[serde(rename = "Bridge", skip_serializing_if = "Option::is_none")]
     bridge: Option<String>,
     /// SandboxID uniquely represents a container's network stack.
-    #[serde(rename = "SandboxID", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "SandboxID",
+        skip_serializing_if = "Option::is_none"
+    )]
     sandbox_id: Option<String>,
     /// Indicates if hairpin NAT should be enabled on the virtual interface.
-    #[serde(rename = "HairpinMode", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "HairpinMode",
+        skip_serializing_if = "Option::is_none"
+    )]
     hairpin_mode: Option<bool>,
     /// IPv6 unicast address using the link-local prefix.
-    #[serde(rename = "LinkLocalIPv6Address", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "LinkLocalIPv6Address",
+        skip_serializing_if = "Option::is_none"
+    )]
     link_local_i_pv6_address: Option<String>,
     /// Prefix length of the IPv6 unicast address.
-    #[serde(rename = "LinkLocalIPv6PrefixLen", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "LinkLocalIPv6PrefixLen",
+        skip_serializing_if = "Option::is_none"
+    )]
     link_local_i_pv6_prefix_len: Option<i32>,
     #[serde(rename = "Ports", skip_serializing_if = "Option::is_none")]
     ports: Option<::models::PortMap>,
     /// SandboxKey identifies the sandbox
-    #[serde(rename = "SandboxKey", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "SandboxKey",
+        skip_serializing_if = "Option::is_none"
+    )]
     sandbox_key: Option<String>,
     ///
-    #[serde(rename = "SecondaryIPAddresses", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "SecondaryIPAddresses",
+        skip_serializing_if = "Option::is_none"
+    )]
     secondary_ip_addresses: Option<Vec<::models::Address>>,
     ///
-    #[serde(rename = "SecondaryIPv6Addresses", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "SecondaryIPv6Addresses",
+        skip_serializing_if = "Option::is_none"
+    )]
     secondary_i_pv6_addresses: Option<Vec<::models::Address>>,
     /// EndpointID uniquely represents a service endpoint in a Sandbox.  <p><br /></p>  > **Deprecated**: This field is only propagated when attached to the > default \"bridge\" network. Use the information from the \"bridge\" > network inside the `Networks` map instead, which contains the same > information. This field was deprecated in Docker 1.9 and is scheduled > to be removed in Docker 17.12.0
-    #[serde(rename = "EndpointID", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "EndpointID",
+        skip_serializing_if = "Option::is_none"
+    )]
     endpoint_id: Option<String>,
     /// Gateway address for the default \"bridge\" network.  <p><br /></p>  > **Deprecated**: This field is only propagated when attached to the > default \"bridge\" network. Use the information from the \"bridge\" > network inside the `Networks` map instead, which contains the same > information. This field was deprecated in Docker 1.9 and is scheduled > to be removed in Docker 17.12.0
     #[serde(rename = "Gateway", skip_serializing_if = "Option::is_none")]
     gateway: Option<String>,
     /// Global IPv6 address for the default \"bridge\" network.  <p><br /></p>  > **Deprecated**: This field is only propagated when attached to the > default \"bridge\" network. Use the information from the \"bridge\" > network inside the `Networks` map instead, which contains the same > information. This field was deprecated in Docker 1.9 and is scheduled > to be removed in Docker 17.12.0
-    #[serde(rename = "GlobalIPv6Address", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "GlobalIPv6Address",
+        skip_serializing_if = "Option::is_none"
+    )]
     global_i_pv6_address: Option<String>,
     /// Mask length of the global IPv6 address.  <p><br /></p>  > **Deprecated**: This field is only propagated when attached to the > default \"bridge\" network. Use the information from the \"bridge\" > network inside the `Networks` map instead, which contains the same > information. This field was deprecated in Docker 1.9 and is scheduled > to be removed in Docker 17.12.0
-    #[serde(rename = "GlobalIPv6PrefixLen", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "GlobalIPv6PrefixLen",
+        skip_serializing_if = "Option::is_none"
+    )]
     global_i_pv6_prefix_len: Option<i32>,
     /// IPv4 address for the default \"bridge\" network.  <p><br /></p>  > **Deprecated**: This field is only propagated when attached to the > default \"bridge\" network. Use the information from the \"bridge\" > network inside the `Networks` map instead, which contains the same > information. This field was deprecated in Docker 1.9 and is scheduled > to be removed in Docker 17.12.0
-    #[serde(rename = "IPAddress", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "IPAddress",
+        skip_serializing_if = "Option::is_none"
+    )]
     ip_address: Option<String>,
     /// Mask length of the IPv4 address.  <p><br /></p>  > **Deprecated**: This field is only propagated when attached to the > default \"bridge\" network. Use the information from the \"bridge\" > network inside the `Networks` map instead, which contains the same > information. This field was deprecated in Docker 1.9 and is scheduled > to be removed in Docker 17.12.0
-    #[serde(rename = "IPPrefixLen", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "IPPrefixLen",
+        skip_serializing_if = "Option::is_none"
+    )]
     ip_prefix_len: Option<i32>,
     /// IPv6 gateway address for this network.  <p><br /></p>  > **Deprecated**: This field is only propagated when attached to the > default \"bridge\" network. Use the information from the \"bridge\" > network inside the `Networks` map instead, which contains the same > information. This field was deprecated in Docker 1.9 and is scheduled > to be removed in Docker 17.12.0
-    #[serde(rename = "IPv6Gateway", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "IPv6Gateway",
+        skip_serializing_if = "Option::is_none"
+    )]
     i_pv6_gateway: Option<String>,
     /// MAC address for the container on the default \"bridge\" network.  <p><br /></p>  > **Deprecated**: This field is only propagated when attached to the > default \"bridge\" network. Use the information from the \"bridge\" > network inside the `Networks` map instead, which contains the same > information. This field was deprecated in Docker 1.9 and is scheduled > to be removed in Docker 17.12.0
-    #[serde(rename = "MacAddress", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "MacAddress",
+        skip_serializing_if = "Option::is_none"
+    )]
     mac_address: Option<String>,
     /// Information about all networks that the container is connected to.
     #[serde(rename = "Networks", skip_serializing_if = "Option::is_none")]

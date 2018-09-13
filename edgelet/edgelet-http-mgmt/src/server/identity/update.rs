@@ -63,14 +63,12 @@ where
                         rid.update(spec)
                             .map(|id| write_response(&id))
                             .or_else(|e| future::ok(e.into_response()))
-                    })
-                    .or_else(|e| {
+                    }).or_else(|e| {
                         future::ok(e.into_response()) as FutureResult<Response<Body>, HyperError>
                     });
 
                 Either::A(result)
-            })
-            .unwrap_or_else(|e| Either::B(future::ok(e.into_response())));
+            }).unwrap_or_else(|e| Either::B(future::ok(e.into_response())));
 
         Box::new(response)
     }
@@ -96,8 +94,7 @@ where
                 .header(CONTENT_LENGTH, b.len().to_string().as_str())
                 .body(b.into())
                 .unwrap_or_else(|e| e.into_response())
-        })
-        .unwrap_or_else(|e| e.into_response())
+        }).unwrap_or_else(|e| e.into_response())
 }
 
 fn read_request(name: &str, req: Request<Body>) -> impl Future<Item = IdentitySpec, Error = Error> {
@@ -109,8 +106,7 @@ fn read_request(name: &str, req: Request<Body>) -> impl Future<Item = IdentitySp
             serde_json::from_slice::<UpdateIdentityRequest>(&b)
                 .context(ErrorKind::BadBody)
                 .map_err(Error::from)
-        })
-        .map(move |update_req| {
+        }).map(move |update_req| {
             let mut spec =
                 IdentitySpec::new(&name).with_generation_id(update_req.generation_id().to_string());
             if let Some(m) = update_req.managed_by() {
@@ -176,8 +172,7 @@ mod tests {
                 assert_eq!(AuthType::Sas, identity.auth_type());
 
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 
@@ -206,8 +201,7 @@ mod tests {
                 let error: ErrorResponse = serde_json::from_slice(&body).unwrap();
                 assert_eq!("Bad parameter", error.message());
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 
@@ -237,8 +231,7 @@ mod tests {
                 let error: ErrorResponse = serde_json::from_slice(&body).unwrap();
                 assert_ne!(None, error.message().find("Bad body"));
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 }

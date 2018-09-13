@@ -48,8 +48,7 @@ where
                     .name("genid")
                     .ok_or_else(|| Error::from(ErrorKind::BadParam))
                     .map(|genid| (name, genid))
-            })
-            .map(|(module_id, genid)| {
+            }).map(|(module_id, genid)| {
                 let alias = format!("{}{}", module_id.to_string(), genid.to_string());
                 let result = req
                     .into_body()
@@ -61,9 +60,9 @@ where
                             .and_then(|cert_req| {
                                 compute_validity(ensure_not_empty!(cert_req.expiration()).as_str())
                                     .map(|expiration| (cert_req, expiration))
-                            })
-                            .and_then(move |(cert_req, expiration)| {
-                                hsm.destroy_certificate(alias.clone()).map_err(Error::from)?;
+                            }).and_then(move |(cert_req, expiration)| {
+                                hsm.destroy_certificate(alias.clone())
+                                    .map_err(Error::from)?;
                                 let props = CertificateProperties::new(
                                     ensure_range!(expiration, 0, i64::max_value()) as u64,
                                     ensure_not_empty!(cert_req.common_name().to_string()),
@@ -85,15 +84,12 @@ where
                                             .body(body.into())
                                             .map_err(From::from)
                                     })
-                            })
-                            .unwrap_or_else(|e| e.into_response())
-                    })
-                    .map_err(Error::from)
+                            }).unwrap_or_else(|e| e.into_response())
+                    }).map_err(Error::from)
                     .or_else(|e| future::ok(e.into_response()));
 
                 future::Either::A(result)
-            })
-            .unwrap_or_else(|e| future::Either::B(future::ok(e.into_response())));
+            }).unwrap_or_else(|e| future::Either::B(future::ok(e.into_response())));
 
         Box::new(response)
     }
@@ -123,8 +119,7 @@ fn compute_validity(expiration: &str) -> Result<i64> {
                 .with_timezone(&Utc)
                 .signed_duration_since(Utc::now())
                 .num_seconds()
-        })
-        .map_err(Error::from)
+        }).map_err(Error::from)
 }
 
 #[cfg(test)]
@@ -206,10 +201,10 @@ mod tests {
     #[test]
     fn empty_body() {
         let handler = ServerCertHandler::new(TestHsm::default());
-        let request = Request::get(
-            "http://localhost/modules/beeblebrox/genid/II/certificate/server",
-        ).body("".into())
-            .unwrap();
+        let request =
+            Request::get("http://localhost/modules/beeblebrox/genid/II/certificate/server")
+                .body("".into())
+                .unwrap();
 
         let params = Parameters::with_captures(vec![
             (Some("name".to_string()), "beeblebrox".to_string()),
@@ -226,10 +221,10 @@ mod tests {
     #[test]
     fn bad_body() {
         let handler = ServerCertHandler::new(TestHsm::default());
-        let request = Request::get(
-            "http://localhost/modules/beeblebrox/genid/III/certificate/server",
-        ).body("The answer is 42.".into())
-            .unwrap();
+        let request =
+            Request::get("http://localhost/modules/beeblebrox/genid/III/certificate/server")
+                .body("The answer is 42.".into())
+                .unwrap();
 
         let params = Parameters::with_captures(vec![
             (Some("name".to_string()), "beeblebrox".to_string()),
@@ -249,10 +244,10 @@ mod tests {
 
         let cert_req = ServerCertificateRequest::new("".to_string(), "".to_string());
 
-        let request = Request::get(
-            "http://localhost/modules/beeblebrox/genid/IV/certificate/server",
-        ).body(serde_json::to_string(&cert_req).unwrap().into())
-            .unwrap();
+        let request =
+            Request::get("http://localhost/modules/beeblebrox/genid/IV/certificate/server")
+                .body(serde_json::to_string(&cert_req).unwrap().into())
+                .unwrap();
 
         let params = Parameters::with_captures(vec![
             (Some("name".to_string()), "beeblebrox".to_string()),
@@ -274,10 +269,10 @@ mod tests {
 
         let cert_req = ServerCertificateRequest::new("".to_string(), "       ".to_string());
 
-        let request = Request::get(
-            "http://localhost/modules/beeblebrox/genid/I/certificate/server",
-        ).body(serde_json::to_string(&cert_req).unwrap().into())
-            .unwrap();
+        let request =
+            Request::get("http://localhost/modules/beeblebrox/genid/I/certificate/server")
+                .body(serde_json::to_string(&cert_req).unwrap().into())
+                .unwrap();
 
         let params = Parameters::with_captures(vec![
             (Some("name".to_string()), "beeblebrox".to_string()),
@@ -300,10 +295,10 @@ mod tests {
         let cert_req =
             ServerCertificateRequest::new("".to_string(), "Umm.. No.. Just no..".to_string());
 
-        let request = Request::get(
-            "http://localhost/modules/beeblebrox/genid/I/certificate/server",
-        ).body(serde_json::to_string(&cert_req).unwrap().into())
-            .unwrap();
+        let request =
+            Request::get("http://localhost/modules/beeblebrox/genid/I/certificate/server")
+                .body(serde_json::to_string(&cert_req).unwrap().into())
+                .unwrap();
 
         let params = Parameters::with_captures(vec![
             (Some("name".to_string()), "beeblebrox".to_string()),
@@ -326,10 +321,10 @@ mod tests {
         let cert_req =
             ServerCertificateRequest::new("".to_string(), "1999-06-28T16:39:57-08:00".to_string());
 
-        let request = Request::get(
-            "http://localhost/modules/beeblebrox/genid/I/certificate/server",
-        ).body(serde_json::to_string(&cert_req).unwrap().into())
-            .unwrap();
+        let request =
+            Request::get("http://localhost/modules/beeblebrox/genid/I/certificate/server")
+                .body(serde_json::to_string(&cert_req).unwrap().into())
+                .unwrap();
 
         let params = Parameters::with_captures(vec![
             (Some("name".to_string()), "beeblebrox".to_string()),
@@ -354,10 +349,10 @@ mod tests {
             (Utc::now() + Duration::hours(1)).to_rfc3339(),
         );
 
-        let request = Request::get(
-            "http://localhost/modules/beeblebrox/genid/I/certificate/server",
-        ).body(serde_json::to_string(&cert_req).unwrap().into())
-            .unwrap();
+        let request =
+            Request::get("http://localhost/modules/beeblebrox/genid/I/certificate/server")
+                .body(serde_json::to_string(&cert_req).unwrap().into())
+                .unwrap();
 
         let params = Parameters::with_captures(vec![
             (Some("name".to_string()), "beeblebrox".to_string()),
@@ -383,10 +378,10 @@ mod tests {
             (Utc::now() + Duration::hours(1)).to_rfc3339(),
         );
 
-        let request = Request::get(
-            "http://localhost/modules/beeblebrox/genid/I/certificate/server",
-        ).body(serde_json::to_string(&cert_req).unwrap().into())
-            .unwrap();
+        let request =
+            Request::get("http://localhost/modules/beeblebrox/genid/I/certificate/server")
+                .body(serde_json::to_string(&cert_req).unwrap().into())
+                .unwrap();
 
         let params = Parameters::with_captures(vec![
             (Some("name".to_string()), "beeblebrox".to_string()),
@@ -415,10 +410,10 @@ mod tests {
             (Utc::now() + Duration::hours(1)).to_rfc3339(),
         );
 
-        let request = Request::get(
-            "http://localhost/modules/beeblebrox/genid/I/certificate/server",
-        ).body(serde_json::to_string(&cert_req).unwrap().into())
-            .unwrap();
+        let request =
+            Request::get("http://localhost/modules/beeblebrox/genid/I/certificate/server")
+                .body(serde_json::to_string(&cert_req).unwrap().into())
+                .unwrap();
 
         let params = Parameters::with_captures(vec![
             (Some("name".to_string()), "beeblebrox".to_string()),
@@ -447,10 +442,10 @@ mod tests {
             (Utc::now() + Duration::hours(1)).to_rfc3339(),
         );
 
-        let request = Request::get(
-            "http://localhost/modules/beeblebrox/genid/I/certificate/server",
-        ).body(serde_json::to_string(&cert_req).unwrap().into())
-            .unwrap();
+        let request =
+            Request::get("http://localhost/modules/beeblebrox/genid/I/certificate/server")
+                .body(serde_json::to_string(&cert_req).unwrap().into())
+                .unwrap();
 
         let params = Parameters::with_captures(vec![
             (Some("name".to_string()), "beeblebrox".to_string()),
@@ -479,10 +474,10 @@ mod tests {
             (Utc::now() + Duration::hours(1)).to_rfc3339(),
         );
 
-        let request = Request::get(
-            "http://localhost/modules/beeblebrox/genid/I/certificate/server",
-        ).body(serde_json::to_string(&cert_req).unwrap().into())
-            .unwrap();
+        let request =
+            Request::get("http://localhost/modules/beeblebrox/genid/I/certificate/server")
+                .body(serde_json::to_string(&cert_req).unwrap().into())
+                .unwrap();
 
         let params = Parameters::with_captures(vec![
             (Some("name".to_string()), "beeblebrox".to_string()),
@@ -512,10 +507,10 @@ mod tests {
             (Utc::now() + Duration::hours(1)).to_rfc3339(),
         );
 
-        let request = Request::get(
-            "http://localhost/modules/beeblebrox/genid/I/certificate/server",
-        ).body(serde_json::to_string(&cert_req).unwrap().into())
-            .unwrap();
+        let request =
+            Request::get("http://localhost/modules/beeblebrox/genid/I/certificate/server")
+                .body(serde_json::to_string(&cert_req).unwrap().into())
+                .unwrap();
 
         let params = Parameters::with_captures(vec![
             (Some("name".to_string()), "beeblebrox".to_string()),
@@ -550,10 +545,10 @@ mod tests {
             (Utc::now() + Duration::hours(1)).to_rfc3339(),
         );
 
-        let request = Request::get(
-            "http://localhost/modules/beeblebrox/genid/I/certificate/server",
-        ).body(serde_json::to_string(&cert_req).unwrap().into())
-            .unwrap();
+        let request =
+            Request::get("http://localhost/modules/beeblebrox/genid/I/certificate/server")
+                .body(serde_json::to_string(&cert_req).unwrap().into())
+                .unwrap();
 
         let params = Parameters::with_captures(vec![
             (Some("name".to_string()), "beeblebrox".to_string()),
