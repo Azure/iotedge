@@ -119,10 +119,10 @@ mod tests {
             CertificateType::Client,
             "alias".to_string(),
         ).with_certificate_type(CertificateType::Ca)
-            .with_common_name("bafflegab".to_string())
-            .with_validity_in_secs(240)
-            .with_alias("Andrew Johnson".to_string())
-            .with_issuer(CertificateIssuer::DeviceCa);
+        .with_common_name("bafflegab".to_string())
+        .with_validity_in_secs(240)
+        .with_alias("Andrew Johnson".to_string())
+        .with_issuer(CertificateIssuer::DeviceCa);
         assert_eq!(&240, c.validity_in_secs());
         assert_eq!("bafflegab", c.common_name());
         assert_eq!(&CertificateType::Ca, c.certificate_type());

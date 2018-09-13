@@ -65,8 +65,7 @@ where
                     .name("genid")
                     .ok_or_else(|| Error::from(ErrorKind::BadParam))
                     .map(|genid| (name, genid))
-            })
-            .map(|(name, genid)| {
+            }).map(|(name, genid)| {
                 let id = name.to_string();
                 let genid = genid.to_string();
                 let key_store = self.key_store.clone();
@@ -77,25 +76,21 @@ where
                         .and_then(|request| {
                             let key_id = format!("{}{}", request.key_id(), genid);
                             sign(key_store, id, request.with_key_id(key_id))
-                        })
-                        .and_then(|r| {
+                        }).and_then(|r| {
                             serde_json::to_string(&r)
                                 .context(ErrorKind::Serde)
                                 .map_err(From::from)
-                        })
-                        .and_then(|b| {
+                        }).and_then(|b| {
                             Response::builder()
                                 .status(StatusCode::OK)
                                 .header(CONTENT_TYPE, "application/json")
                                 .header(CONTENT_LENGTH, b.len().to_string().as_str())
                                 .body(b.into())
                                 .map_err(From::from)
-                        })
-                        .unwrap_or_else(|e| e.into_response())
+                        }).unwrap_or_else(|e| e.into_response())
                 });
                 future::Either::A(ok)
-            })
-            .unwrap_or_else(|e| future::Either::B(future::ok(e.into_response())));
+            }).unwrap_or_else(|e| future::Either::B(future::ok(e.into_response())));
         Box::new(response)
     }
 }
@@ -207,8 +202,7 @@ mod tests {
                 let sign_response: SignResponse = serde_json::from_slice(&b).unwrap();
                 assert_eq!(expected, sign_response.digest());
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
         assert_eq!(&store.state.borrow().last_id, "test");
         assert_eq!(&store.state.borrow().last_key_name, "primaryg1");
@@ -250,8 +244,7 @@ mod tests {
                     error_response.message()
                 );
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 
@@ -343,8 +336,7 @@ mod tests {
                   "Invalid base64 string\n\tcaused by: Encoded text cannot have a 6-bit remainder.",
                   error_response.message());
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 
@@ -378,8 +370,7 @@ mod tests {
                 let expected = "Bad body\n\tcaused by: expected value at line 1 column 1";
                 assert_eq!(expected, error_response.message());
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 }

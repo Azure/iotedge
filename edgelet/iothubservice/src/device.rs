@@ -84,8 +84,7 @@ where
                     None,
                     Some(module),
                     add_if_match,
-                )
-                .map_err(Error::from)
+                ).map_err(Error::from)
                 .and_then(|module| module.ok_or_else(|| Error::from(ErrorKind::ModuleNotFound)));
 
             Either::A(res)
@@ -104,8 +103,7 @@ where
                     None,
                     None,
                     false,
-                )
-                .map_err(|err| {
+                ).map_err(|err| {
                     if let HttpErrorKind::ServiceError(code, _) = err.kind() {
                         if *code == StatusCode::NotFound {
                             return Error::from(ErrorKind::ModuleNotFound);
@@ -113,8 +111,7 @@ where
                     }
 
                     Error::from(err)
-                })
-                .and_then(|module| module.ok_or_else(|| Error::from(ErrorKind::ModuleNotFound)));
+                }).and_then(|module| module.ok_or_else(|| Error::from(ErrorKind::ModuleNotFound)));
 
             Either::A(res)
         }
@@ -128,8 +125,7 @@ where
                 None,
                 None,
                 false,
-            )
-            .map_err(Error::from)
+            ).map_err(Error::from)
             .and_then(|modules| modules.ok_or_else(|| Error::from(ErrorKind::EmptyResponse)))
     }
 
@@ -145,8 +141,7 @@ where
                     None,
                     None,
                     true,
-                )
-                .map_err(Error::from)
+                ).map_err(Error::from)
                 .and_then(|_| Ok(()));
 
             Either::A(res)

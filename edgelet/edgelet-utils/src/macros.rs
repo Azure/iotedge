@@ -509,12 +509,11 @@ mod tests {
     #[test]
     fn validate_ensure_range() {
         let validator: Box<Fn(&Error) -> bool> = Box::new(|err| {
-            mem::discriminant(err.kind())
-                == mem::discriminant(&ErrorKind::ArgumentOutOfRange(
-                    "".to_string(),
-                    "".to_string(),
-                    "".to_string(),
-                ))
+            mem::discriminant(err.kind()) == mem::discriminant(&ErrorKind::ArgumentOutOfRange(
+                "".to_string(),
+                "".to_string(),
+                "".to_string(),
+            ))
         });
 
         check_value(10, || Ok(ensure_range!(10, 5, 15)));
@@ -527,12 +526,11 @@ mod tests {
     #[test]
     fn validate_fensure_range() {
         let validator: Box<Fn(&Error) -> bool> = Box::new(|err| {
-            mem::discriminant(err.kind())
-                == mem::discriminant(&ErrorKind::ArgumentOutOfRange(
-                    "".to_string(),
-                    "".to_string(),
-                    "".to_string(),
-                ))
+            mem::discriminant(err.kind()) == mem::discriminant(&ErrorKind::ArgumentOutOfRange(
+                "".to_string(),
+                "".to_string(),
+                "".to_string(),
+            ))
         });
 
         check_fvalue(10, || Box::new(future::ok(fensure_range!(10, 5, 15))));

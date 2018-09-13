@@ -41,8 +41,7 @@ where
                     .name("genid")
                     .ok_or_else(|| Error::from(ErrorKind::BadParam))
                     .map(|genid| (name, genid))
-            })
-            .map(|(module_id, genid)| {
+            }).map(|(module_id, genid)| {
                 let id = format!("{}{}", module_id.to_string(), genid.to_string());
                 let ok = req.into_body().concat2().map(move |b| {
                     serde_json::from_slice::<EncryptRequest>(&b)
@@ -54,8 +53,7 @@ where
                                 base64::decode(request.initialization_vector())?;
                             hsm.encrypt(id.as_bytes(), &plaintext, &initialization_vector)
                                 .map_err(Error::from)
-                        })
-                        .and_then(|ciphertext| {
+                        }).and_then(|ciphertext| {
                             let encoded = base64::encode(&ciphertext);
                             let response = EncryptResponse::new(encoded);
                             let body = serde_json::to_string(&response)
@@ -67,12 +65,10 @@ where
                                 .header(CONTENT_LENGTH, body.len().to_string().as_str())
                                 .body(body.into())
                                 .expect("Generated an invalid http::Response object"))
-                        })
-                        .unwrap_or_else(|e| e.into_response())
+                        }).unwrap_or_else(|e| e.into_response())
                 });
                 future::Either::A(ok)
-            })
-            .unwrap_or_else(|e| future::Either::B(future::ok(e.into_response())));
+            }).unwrap_or_else(|e| future::Either::B(future::ok(e.into_response())));
         Box::new(response)
     }
 }
@@ -202,8 +198,7 @@ mod tests {
                 let error_response: ErrorResponse = serde_json::from_slice(&b).unwrap();
                 assert_eq!(expected, error_response.message());
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 
