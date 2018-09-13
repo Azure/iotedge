@@ -56,8 +56,7 @@ where
                                     identity.generation_id().to_string(),
                                     identity.auth_type().to_string(),
                                 )
-                            })
-                            .collect(),
+                            }).collect(),
                     );
                     let result = serde_json::to_string(&body)
                         .context(ErrorKind::Serde)
@@ -68,12 +67,10 @@ where
                                 .header(CONTENT_LENGTH, b.len().to_string().as_str())
                                 .body(b.into())
                                 .unwrap_or_else(|e| e.into_response())
-                        })
-                        .unwrap_or_else(|e| e.into_response());
+                        }).unwrap_or_else(|e| e.into_response());
 
                     future::ok(result)
-                })
-                .unwrap_or_else(|e| future::ok(e.into_response()))
+                }).unwrap_or_else(|e| future::ok(e.into_response()))
         });
 
         Box::new(response)
@@ -117,8 +114,7 @@ mod tests {
                 }
 
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 
@@ -141,8 +137,7 @@ mod tests {
                     error.message()
                 );
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 }

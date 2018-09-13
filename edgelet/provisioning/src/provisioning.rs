@@ -73,7 +73,7 @@ pub struct ManualProvisioning {
 
 impl ManualProvisioning {
     pub fn new(conn_string: &str) -> Result<Self, Error> {
-        ensure_not_empty!(conn_string);
+        ensure_not_empty!(conn_string, "The Connection String is empty or invalid. Please update the config.yaml and provide the IoTHub connection information.");
         let hash_map = ManualProvisioning::parse_conn_string(conn_string)?;
 
         let key_str = hash_map
@@ -142,8 +142,7 @@ impl Provision for ManualProvisioning {
                 device_id,
                 hub_name: hub,
                 reconfigure: false,
-            })
-            .map_err(Error::from);
+            }).map_err(Error::from);
         Box::new(future::result(result))
     }
 }
@@ -220,11 +219,9 @@ where
                             hub_name,
                             reconfigure: false,
                         }
-                    })
-                    .map_err(Error::from),
+                    }).map_err(Error::from),
             )
-        })
-            .unwrap_or_else(|err| Either::B(future::err(Error::from(err))));
+        }).unwrap_or_else(|err| Either::B(future::err(Error::from(err))));
 
         Box::new(d)
     }
@@ -264,8 +261,7 @@ where
             .map(|_| {
                 info!("Restoring device credentials from backup");
                 serde_json::from_str(&buffer).map_err(Error::from)
-            })
-            .map_err(|err| {
+            }).map_err(|err| {
                 log_failure(Level::Warn, &err);
                 err
             })?
@@ -292,8 +288,7 @@ where
                     Self::backup(&prov_result, path)
                         .map(|_| Either::A(future::ok(prov_result.clone())))
                         .unwrap_or_else(|err| Either::B(future::err(err)))
-                })
-                .or_else(move |err| {
+                }).or_else(move |err| {
                     log_failure(Level::Warn, &err);
                     Self::restore(path_on_err)
                         .map(|prov_result| Either::A(future::ok(prov_result)))
@@ -448,9 +443,9 @@ mod tests {
             .then(|result| {
                 match result {
                     Ok(_) => {
-                        let result = BackupProvisioning::<ManualProvisioning>::restore(
-                            file_path_clone,
-                        ).unwrap();
+                        let result =
+                            BackupProvisioning::<ManualProvisioning>::restore(file_path_clone)
+                                .unwrap();
                         assert_eq!(result.device_id(), "TestDevice");
                         assert_eq!(result.hub_name(), "TestHub");
                     }

@@ -24,7 +24,10 @@ pub enum ErrorKind {
     #[fail(display = "Argument {} should be greater than {}", _0, _1)]
     ArgumentTooLow(String, String),
 
-    #[fail(display = "Argument is empty or only has whitespace - [{}]", _0)]
+    #[fail(
+        display = "Argument is empty or only has whitespace - [{}]",
+        _0
+    )]
     ArgumentEmpty(String),
 
     #[fail(display = "Serde error")]

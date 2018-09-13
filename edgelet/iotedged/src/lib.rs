@@ -568,8 +568,7 @@ where
             } else {
                 Either::B(future::ok(prov_result))
             }
-        })
-        .and_then(move |prov_result| {
+        }).and_then(move |prov_result| {
             tpm_hsm
                 .get(&KeyIdentity::Device, "primary")
                 .map_err(Error::from)
@@ -923,8 +922,7 @@ mod tests {
             .or_else(|_| {
                 env::set_var("https_proxy", "abc");
                 env::var("https_proxy")
-            })
-            .unwrap();
+            }).unwrap();
         // ensure "HTTPS_PROXY" is NOT set (except on Windows, where env vars
         // are case-insensitive)
         #[cfg(unix)]
@@ -932,8 +930,7 @@ mod tests {
             .and_then(|var| {
                 env::remove_var("HTTPS_PROXY");
                 Ok(var)
-            })
-            .ok();
+            }).ok();
 
         assert_eq!(get_proxy_uri().unwrap().unwrap().to_string(), proxy_val);
 

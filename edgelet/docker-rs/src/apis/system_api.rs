@@ -97,15 +97,13 @@ impl<C: hyper::client::Connect> SystemApi for SystemApiClient<C> {
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                })
-                .and_then(|(status, body)| {
+                }).and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                })
-                .and_then(|body| {
+                }).and_then(|body| {
                     let parsed: Result<::models::InlineResponse20010, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
@@ -146,15 +144,13 @@ impl<C: hyper::client::Connect> SystemApi for SystemApiClient<C> {
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                })
-                .and_then(|(status, body)| {
+                }).and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                })
-                .and_then(|body| {
+                }).and_then(|body| {
                     let parsed: Result<::models::InlineResponse20013, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
@@ -203,15 +199,13 @@ impl<C: hyper::client::Connect> SystemApi for SystemApiClient<C> {
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                })
-                .and_then(|(status, body)| {
+                }).and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                })
-                .and_then(|body| {
+                }).and_then(|body| {
                     let parsed: Result<::models::InlineResponse20012, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
@@ -252,15 +246,13 @@ impl<C: hyper::client::Connect> SystemApi for SystemApiClient<C> {
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                })
-                .and_then(|(status, body)| {
+                }).and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                })
-                .and_then(|body| {
+                }).and_then(|body| {
                     let parsed: Result<::models::SystemInfo, _> = serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
@@ -298,15 +290,13 @@ impl<C: hyper::client::Connect> SystemApi for SystemApiClient<C> {
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                })
-                .and_then(|(status, body)| {
+                }).and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                })
-                .and_then(|body| {
+                }).and_then(|body| {
                     let parsed: Result<String, _> = serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
@@ -346,15 +336,13 @@ impl<C: hyper::client::Connect> SystemApi for SystemApiClient<C> {
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                })
-                .and_then(|(status, body)| {
+                }).and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                })
-                .and_then(|body| {
+                }).and_then(|body| {
                     let parsed: Result<::models::InlineResponse20011, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
