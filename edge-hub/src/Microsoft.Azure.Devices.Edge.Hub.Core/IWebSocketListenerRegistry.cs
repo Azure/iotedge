@@ -1,8 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Hub.Http
+
+namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
-    using System.Threading.Tasks;
-    using AspNetCore.Http;
+    using System.Collections.Generic;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public interface IWebSocketListenerRegistry
     {
@@ -10,6 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
 
         bool TryUnregister(string subProtocol, out IWebSocketListener webSocketListener);
 
-        Task<bool> InvokeAsync(HttpContext context, string correlationId);
+        Option<IWebSocketListener> GetListener(IList<string> subProtocols, string correlationId);
     }
 }

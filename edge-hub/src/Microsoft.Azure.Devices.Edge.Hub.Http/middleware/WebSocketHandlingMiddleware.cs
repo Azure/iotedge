@@ -2,9 +2,12 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
 {
     using System;
+    using System.Net;
+    using System.Net.WebSockets;
     using System.Threading.Tasks;
     using AspNetCore.Http;
     using Microsoft.AspNetCore.Builder;
+    using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using static System.FormattableString;
@@ -20,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
             this.webSocketListenerRegistry = Preconditions.CheckNotNull(webSocketListenerRegistry, nameof(webSocketListenerRegistry));
         }
 
-        public async Task Invoke(HttpContext context)
+        public Task Invoke(HttpContext context)
         {
             if (context.WebSockets.IsWebSocketRequest)
             {
@@ -28,13 +31,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
 
                 Events.WebSocketRequestReceived(context.TraceIdentifier, correlationId);
 
-                await this.webSocketListenerRegistry.InvokeAsync(context, correlationId);
+                Option<IWebSocketListener> listener = this.webSocketListenerRegistry.GetListener(context.WebSockets.WebSocketRequestedProtocols, correlationId);
+                return listener.Match(
+                    async l =>
+                    {
+                        WebSocket webSocket = await context.WebSockets.AcceptWebSocketAsync(l.SubProtocol);
+                        var localEndPoint = new IPEndPoint(context.Connection.LocalIpAddress, context.Connection.LocalPort);
+                        var remoteEndPoint = new IPEndPoint(context.Connection.RemoteIpAddress, context.Connection.RemotePort);
+                        await l.ProcessWebSocketRequestAsync(webSocket, localEndPoint, remoteEndPoint, correlationId);
 
-                Events.WebSocketRequestCompleted(context.TraceIdentifier, correlationId);
+                        Events.WebSocketRequestCompleted(context.TraceIdentifier, correlationId);
+                    },
+                    () =>
+                    {
+                        context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+                        Events.WebSocketRequestNoListener(context.TraceIdentifier, correlationId);
+
+                        return Task.CompletedTask;
+                    });
             }
             else
             {
-                await this.next(context);
+                return this.next(context);
             }
         }
 
@@ -46,7 +64,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
             enum EventIds
             {
                 RequestReceived = IdStart,
-                RequestCompleted
+                RequestCompleted,
+                BadRequest
             }
 
             public static void WebSocketRequestReceived(string traceId, string correlationId)
@@ -57,6 +76,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
             public static void WebSocketRequestCompleted(string traceId, string correlationId)
             {
                 Log.LogDebug((int)EventIds.RequestCompleted, Invariant($"Request {traceId} completed. CorrelationId {correlationId}"));
+            }
+
+            public static void WebSocketRequestNoListener(string traceId, string correlationId)
+            {
+                Log.LogDebug((int)EventIds.BadRequest, Invariant($"No listener found for request {traceId}. CorrelationId {correlationId}"));
             }
         }
     }

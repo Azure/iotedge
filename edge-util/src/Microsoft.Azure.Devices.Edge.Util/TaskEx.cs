@@ -153,6 +153,43 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return tcs.Task;
         }
 
+        public static IAsyncResult ToAsyncResult<TResult>(this Task<TResult> task, AsyncCallback callback, object state)
+        {
+            if (task.AsyncState == state)
+            {
+                if (callback != null)
+                {
+                    task.ContinueWith(t => callback(task), TaskContinuationOptions.ExecuteSynchronously);
+                }
+
+                return task;
+            }
+
+            var tcs = new TaskCompletionSource<TResult>(state);
+            task.ContinueWith(_ =>
+            {
+                if (task.IsFaulted)
+                {
+                    tcs.TrySetException(task.Exception.InnerExceptions);
+                }
+                else if (task.IsCanceled)
+                {
+                    tcs.TrySetCanceled();
+                }
+                else
+                {
+                    tcs.TrySetResult(task.Result);
+                }
+
+                if (callback != null)
+                {
+                    callback(tcs.Task);
+                }
+            }, TaskContinuationOptions.ExecuteSynchronously);
+
+            return tcs.Task;
+        }
+
         public static void EndAsyncResult(IAsyncResult asyncResult)
         {
             if (!(asyncResult is Task task))
