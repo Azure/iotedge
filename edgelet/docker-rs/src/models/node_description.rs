@@ -19,7 +19,10 @@ pub struct NodeDescription {
     hostname: Option<String>,
     #[serde(rename = "Platform", skip_serializing_if = "Option::is_none")]
     platform: Option<::models::Platform>,
-    #[serde(rename = "Resources", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "Resources",
+        skip_serializing_if = "Option::is_none"
+    )]
     resources: Option<::models::ResourceObject>,
     #[serde(rename = "Engine", skip_serializing_if = "Option::is_none")]
     engine: Option<::models::EngineDescription>,

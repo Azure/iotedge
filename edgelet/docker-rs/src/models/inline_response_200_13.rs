@@ -13,11 +13,17 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InlineResponse20013 {
-    #[serde(rename = "LayersSize", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "LayersSize",
+        skip_serializing_if = "Option::is_none"
+    )]
     layers_size: Option<i64>,
     #[serde(rename = "Images", skip_serializing_if = "Option::is_none")]
     images: Option<Vec<::models::ImageSummary>>,
-    #[serde(rename = "Containers", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "Containers",
+        skip_serializing_if = "Option::is_none"
+    )]
     containers: Option<Vec<::models::ContainerSummary>>,
     #[serde(rename = "Volumes", skip_serializing_if = "Option::is_none")]
     volumes: Option<Vec<::models::Volume>>,

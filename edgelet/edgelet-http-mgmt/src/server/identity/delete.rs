@@ -54,11 +54,9 @@ where
                             .status(StatusCode::NO_CONTENT)
                             .body(Body::default())
                             .unwrap_or_else(|e| e.into_response())
-                    })
-                    .or_else(|e| future::ok(e.into_response()));
+                    }).or_else(|e| future::ok(e.into_response()));
                 future::Either::A(result)
-            })
-            .unwrap_or_else(|e| future::Either::B(future::ok(e.into_response())));
+            }).unwrap_or_else(|e| future::Either::B(future::ok(e.into_response())));
 
         Box::new(response)
     }
@@ -117,8 +115,7 @@ mod tests {
                 let error: ErrorResponse = serde_json::from_slice(&body).unwrap();
                 assert_eq!("Bad parameter", error.message());
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 
@@ -140,8 +137,7 @@ mod tests {
                 let error: ErrorResponse = serde_json::from_slice(&body).unwrap();
                 assert_eq!("Module not found", error.message());
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 }

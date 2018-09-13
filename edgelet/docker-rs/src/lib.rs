@@ -1,4 +1,10 @@
-#![allow(unused_imports, non_snake_case, unused_mut, dead_code, unknown_lints)]
+#![allow(
+    unused_imports,
+    non_snake_case,
+    unused_mut,
+    dead_code,
+    unknown_lints
+)]
 #![allow(clippy, clippy_pedantic)]
 
 #[macro_use]

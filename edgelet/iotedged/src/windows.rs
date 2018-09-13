@@ -50,8 +50,7 @@ fn run_as_service(_: Vec<OsString>) -> Result<(), Error> {
                             "An error occurred while raising service shutdown signal: {:?}",
                             err
                         );
-                    })
-                    .unwrap_or(());
+                    }).unwrap_or(());
 
                 ServiceControlHandlerResult::NoError
             }
