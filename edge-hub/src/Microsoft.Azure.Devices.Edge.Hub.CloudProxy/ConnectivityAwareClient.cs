@@ -46,7 +46,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         }
 
         // This method could throw and is not a reliable candidate to check connectivity status
-        public Task RejectAsync(string messageId) => this.underlyingClient.RejectAsync(messageId);
+        public Task RejectAsync(string messageId) =>
+            this.InvokeFunc(() => this.underlyingClient.RejectAsync(messageId), nameof(this.RejectAsync), false);
 
         // This method could throw and is not a reliable candidate to check connectivity status
         public Task<Message> ReceiveAsync(TimeSpan receiveMessageTimeout) => this.underlyingClient.ReceiveAsync(receiveMessageTimeout);
@@ -73,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         // The SDK caches whether DesiredProperty Update callback has been set and returns directly in that case.
         // So this method is not a good candidate for checking connectivity status. 
         public Task SetDesiredPropertyUpdateCallbackAsync(DesiredPropertyUpdateCallback onDesiredPropertyUpdates, object userContext)
-            => this.underlyingClient.SetDesiredPropertyUpdateCallbackAsync(onDesiredPropertyUpdates, userContext);
+            => this.InvokeFunc(() => this.underlyingClient.SetDesiredPropertyUpdateCallbackAsync(onDesiredPropertyUpdates, userContext), nameof(this.SetDesiredPropertyUpdateCallbackAsync), false);
 
         public Task SetMethodDefaultHandlerAsync(MethodCallback methodHandler, object userContext)
             => this.InvokeFunc(() => this.underlyingClient.SetMethodDefaultHandlerAsync(methodHandler, userContext), nameof(this.SetMethodDefaultHandlerAsync));
@@ -105,12 +106,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             //this.connectionStatusChangedHandler?.Invoke(status, reason);
         }
 
-        async Task<T> InvokeFunc<T>(Func<Task<T>> func, string operation)
+        async Task<T> InvokeFunc<T>(Func<Task<T>> func, string operation, bool useForConnectivityCheck = true)
         {
             try
             {
                 T result = await func();
-                this.deviceConnectivityManager.CallSucceeded();
+                if (useForConnectivityCheck)
+                {
+                    this.deviceConnectivityManager.CallSucceeded();
+                }
+
                 Events.OperationSucceeded(operation);
                 return result;
             }
@@ -120,9 +125,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 if (mappedException.HasTimeoutException())
                 {
                     Events.OperationTimedOut(operation);
-                    this.deviceConnectivityManager.CallTimedOut();
+                    if (useForConnectivityCheck)
+                    {
+                        this.deviceConnectivityManager.CallTimedOut();
+                    }
                 }
-                Events.OperationFailed(operation, mappedException);
+                else
+                {
+                    Events.OperationFailed(operation, mappedException);
+                }
+
                 if (mappedException == ex)
                 {
                     throw;
@@ -134,13 +146,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        Task InvokeFunc(Func<Task> func, string operation) => this.InvokeFunc(
+        Task InvokeFunc(Func<Task> func, string operation, bool useForConnectivityCheck = true) => this.InvokeFunc(
             async () =>
             {
                 await func();
                 return true;
             },
-            operation);
+            operation,
+            useForConnectivityCheck);
 
         static class Events
         {
