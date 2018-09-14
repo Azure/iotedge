@@ -26,6 +26,10 @@ namespace IotEdgeQuickstart.Details
         readonly string deviceId;
         readonly string hostname;
         public readonly Option<string> DeploymentFileName;
+        readonly string deviceCaCert;
+        readonly string deviceCaPk;
+        readonly string deviceCaCerts;
+        readonly bool optimizedForPerformance;
 
         DeviceContext context;
 
@@ -37,7 +41,11 @@ namespace IotEdgeQuickstart.Details
             string imageTag,
             string deviceId,
             string hostname,
-            Option<string> deploymentFileName
+            Option<string> deploymentFileName,
+            string deviceCaCert,
+            string deviceCaPk,
+            string deviceCaCerts,
+            bool optimizedForPerformance
             )
         {
             this.bootstrapper = bootstrapper;
@@ -48,6 +56,10 @@ namespace IotEdgeQuickstart.Details
             this.deviceId = deviceId;
             this.hostname = hostname;
             this.DeploymentFileName = deploymentFileName;
+            this.deviceCaCert = deviceCaCert;
+            this.deviceCaPk = deviceCaPk;
+            this.deviceCaCerts = deviceCaCerts;
+            this.optimizedForPerformance = optimizedForPerformance;
         }
 
         protected Task VerifyEdgeIsNotAlreadyActive() => this.bootstrapper.VerifyNotActive();
@@ -112,7 +124,7 @@ namespace IotEdgeQuickstart.Details
                 $"DeviceId={this.context.Device.Id};" +
                 $"SharedAccessKey={this.context.Device.Authentication.SymmetricKey.PrimaryKey}";
 
-            return this.bootstrapper.Configure(connectionString, this.EdgeAgentImage(), this.hostname);
+            return this.bootstrapper.Configure(connectionString, this.EdgeAgentImage(), this.hostname, this.deviceCaCert, this.deviceCaPk, this.deviceCaCerts);
         }
 
         protected Task StartBootstrapper() => this.bootstrapper.Start();
@@ -319,6 +331,7 @@ namespace IotEdgeQuickstart.Details
                     json = Regex.Replace(json, "<image-edge-hub>", edgeHubImage);
                     json = Regex.Replace(json, "<image-temp-sensor>", tempSensorImage);
                     json = Regex.Replace(json, "<registry-info>", deployJsonRegistry);
+                    json = Regex.Replace(json, "<optimized-for-performance>", this.optimizedForPerformance.ToString());
                     return json;
                 });
 
@@ -356,7 +369,12 @@ namespace IotEdgeQuickstart.Details
             ""settings"": {
               ""image"": ""<image-edge-hub>"",
               ""createOptions"": ""{\""HostConfig\"":{\""PortBindings\"":{\""8883/tcp\"":[{\""HostPort\"":\""8883\""}],\""443/tcp\"":[{\""HostPort\"":\""443\""}]}},\""Env\"":[\""SSL_CERTIFICATE_PATH=/mnt/edgehub\"",\""SSL_CERTIFICATE_NAME=edge-hub-server.cert.pfx\""]}""
-            }
+            },
+		    ""env"": {
+				""OptimizeForPerformance"": {
+					""value"": ""<optimized-for-performance>""
+				}
+			},
           }
         },
         ""modules"": {

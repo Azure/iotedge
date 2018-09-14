@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::collections::HashMap;
+use std::str;
 use std::sync::{Arc, Mutex};
 
 use bytes::Bytes;
@@ -146,6 +147,30 @@ where
                         serde_json::from_slice::<ResponseT>(&bytes)
                             .map_err(Error::from)
                             .map(|resp| future::ok(Some(resp)))
+                            .unwrap_or_else(future::err)
+                    })
+                    .unwrap_or_else(|| future::ok(None))
+            })
+    }
+
+    pub fn request_str<BodyT>(
+        &self,
+        method: Method,
+        path: &str,
+        query: Option<HashMap<&str, &str>>,
+        body: Option<BodyT>,
+        add_if_match: bool,
+    ) -> impl Future<Item = Option<String>, Error = Error> + Send
+    where
+        BodyT: Serialize,
+    {
+        self.request_bytes(method, path, query, body, add_if_match)
+            .and_then(|bytes| {
+                bytes
+                    .map(|bytes| {
+                        str::from_utf8(&bytes)
+                            .map_err(Error::from)
+                            .map(|s| future::ok(Some(s.to_owned())))
                             .unwrap_or_else(future::err)
                     })
                     .unwrap_or_else(|| future::ok(None))

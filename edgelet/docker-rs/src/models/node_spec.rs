@@ -23,7 +23,10 @@ pub struct NodeSpec {
     #[serde(rename = "Role", skip_serializing_if = "Option::is_none")]
     role: Option<String>,
     /// Availability of the node.
-    #[serde(rename = "Availability", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "Availability",
+        skip_serializing_if = "Option::is_none"
+    )]
     availability: Option<String>,
 }
 

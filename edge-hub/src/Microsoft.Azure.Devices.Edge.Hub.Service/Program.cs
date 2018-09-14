@@ -99,6 +99,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 logger.LogWarning("Unable to find intermediate certificates.");
             }
 
+            // EdgeHub and CloudConnectionProvider have a circular dependency. So need to Bind the EdgeHub to the CloudConnectionProvider.
+            IEdgeHub edgeHub = await container.Resolve<Task<IEdgeHub>>();
+            ICloudConnectionProvider cloudConnectionProvider = await container.Resolve<Task<ICloudConnectionProvider>>();
+            cloudConnectionProvider.BindEdgeHub(edgeHub);
+
+            // Resolve IDeviceScopeIdentitiesCache to start the pump
+            await container.Resolve<Task<IDeviceScopeIdentitiesCache>>();
+
             // EdgeHub cloud proxy and DeviceConnectivityManager have a circular dependency,
             // so the cloud proxy has to be set on the DeviceConnectivityManager after both have been initialized.
             var deviceConnectivityManager = container.Resolve<IDeviceConnectivityManager>();
@@ -109,6 +117,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             IConfigSource configSource = await container.Resolve<Task<IConfigSource>>();
             ConfigUpdater configUpdater = await container.Resolve<Task<ConfigUpdater>>();
             await configUpdater.Init(configSource);
+
+            if (!Enum.TryParse(configuration.GetValue("AuthenticationMode", string.Empty), true, out AuthenticationMode authenticationMode)
+                || authenticationMode != AuthenticationMode.Cloud)
+            {
+                ConnectionReauthenticator connectionReauthenticator = await container.Resolve<Task<ConnectionReauthenticator>>();
+                connectionReauthenticator.Init();
+            }
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler)
                 = ShutdownHandler.Init(ShutdownWaitPeriod, logger);

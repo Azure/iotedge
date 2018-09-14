@@ -77,7 +77,7 @@ use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_hsm::Crypto;
 use edgelet_http::client::Client as HttpClient;
 use edgelet_http::logging::LoggingService;
-use edgelet_http::{ApiVersionService, HyperExt, API_VERSION};
+use edgelet_http::{ApiVersionService, HyperExt, MaybeProxyClient, API_VERSION};
 use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
 use edgelet_iothub::{HubIdentityManager, SasTokenSource};
@@ -89,8 +89,7 @@ use hsm::tpm::Tpm;
 use hsm::ManageTpmKeys;
 use hyper::client::Service;
 use hyper::server::Http;
-use hyper::{Client as HyperClient, Error as HyperError, Request, Response};
-use hyper_tls::HttpsConnector;
+use hyper::{Error as HyperError, Request, Response, Uri};
 use iothubservice::DeviceClient;
 use provisioning::provisioning::{
     BackupProvisioning, DpsProvisioning, ManualProvisioning, Provision, ProvisioningResult,
@@ -162,7 +161,6 @@ const EDGE_NETWORKID_KEY: &str = "NetworkId";
 const API_VERSION_KEY: &str = "IOTEDGE_APIVERSION";
 
 const IOTHUB_API_VERSION: &str = "2017-11-08-preview";
-const DNS_WORKER_THREADS: usize = 4;
 const UNIX_SCHEME: &str = "unix";
 
 /// This is the name of the provisioning backup file
@@ -210,9 +208,7 @@ impl Main {
         }
 
         let handle: Handle = core.handle().clone();
-        let hyper_client = HyperClient::configure()
-            .connector(HttpsConnector::new(DNS_WORKER_THREADS, &handle)?)
-            .build(&handle);
+        let hyper_client = MaybeProxyClient::new(&handle, get_proxy_uri()?)?;
 
         info!(
             "Using runtime network id {}",
@@ -306,6 +302,21 @@ impl Main {
         info!("Shutdown complete.");
         Ok(())
     }
+}
+
+pub fn get_proxy_uri() -> Result<Option<Uri>, Error> {
+    let proxy_uri = env::var("HTTPS_PROXY")
+        .or_else(|_| env::var("https_proxy"))
+        .ok();
+    let proxy_uri = match proxy_uri {
+        None => None,
+        Some(s) => {
+            let proxy = s.parse::<Uri>()?;
+            info!("Detected HTTPS proxy server {}", proxy.to_string());
+            Some(proxy)
+        }
+    };
+    Ok(proxy_uri)
 }
 
 fn prepare_workload_ca<C>(crypto: &C) -> Result<(), Error>
@@ -557,8 +568,7 @@ where
             } else {
                 Either::B(future::ok(prov_result))
             }
-        })
-        .and_then(move |prov_result| {
+        }).and_then(move |prov_result| {
             tpm_hsm
                 .get(&KeyIdentity::Device, "primary")
                 .map_err(Error::from)
@@ -896,5 +906,39 @@ mod tests {
 
         assert_eq!(expected_base64, written1);
         assert_ne!(written1, written);
+    }
+
+    #[test]
+    fn get_proxy_uri_recognizes_https_proxy() {
+        // TODO:
+        // `cargo test` runs tests in parallel threads by default, so invoking
+        // tests which read/write a per-process resource like environment
+        // variables will cause problems when there's more than one such test.
+        // To more fully test get_proxy_uri(), we'll need to create a nullable
+        // infrastructure for environment variables.
+
+        // ensure "https_proxy" env var is set
+        let proxy_val = env::var("https_proxy")
+            .or_else(|_| {
+                env::set_var("https_proxy", "abc");
+                env::var("https_proxy")
+            }).unwrap();
+        // ensure "HTTPS_PROXY" is NOT set (except on Windows, where env vars
+        // are case-insensitive)
+        #[cfg(unix)]
+        let other_val = env::var("HTTPS_PROXY")
+            .and_then(|var| {
+                env::remove_var("HTTPS_PROXY");
+                Ok(var)
+            }).ok();
+
+        assert_eq!(get_proxy_uri().unwrap().unwrap().to_string(), proxy_val);
+
+        // restore value of HTTPS_PROXY if necessary
+        #[cfg(unix)]
+        match other_val {
+            Some(val) => env::set_var("HTTPS_PROXY", val),
+            None => (),
+        }
     }
 }

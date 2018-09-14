@@ -80,8 +80,7 @@ fn tcp_get() {
         .and_then(|res| {
             assert_eq!(StatusCode::Ok, res.status());
             res.body().concat2()
-        })
-        .map(|body| {
+        }).map(|body| {
             assert_eq!(GET_RESPONSE, &String::from_utf8_lossy(body.as_ref()));
         });
 
@@ -121,8 +120,7 @@ fn uds_get() {
         .and_then(|res| {
             assert_eq!(StatusCode::Ok, res.status());
             res.body().concat2()
-        })
-        .map(|body| {
+        }).map(|body| {
             assert_eq!(GET_RESPONSE, &String::from_utf8_lossy(body.as_ref()));
         });
 
@@ -179,8 +177,7 @@ fn pipe_get() {
         .and_then(|res| {
             assert_eq!(StatusCode::Ok, res.status());
             res.body().concat2()
-        })
-        .map(|body| {
+        }).map(|body| {
             assert_eq!(GET_RESPONSE, &String::from_utf8_lossy(body.as_ref()));
         });
 
@@ -197,8 +194,7 @@ fn post_handler(req: Request) -> Box<Future<Item = Response, Error = HyperError>
             .and_then(|body| {
                 assert_eq!(POST_BODY, &String::from_utf8_lossy(body.as_ref()));
                 Ok(())
-            })
-            .map(|_| Response::new().with_status(StatusCode::Ok)),
+            }).map(|_| Response::new().with_status(StatusCode::Ok)),
     )
 }
 

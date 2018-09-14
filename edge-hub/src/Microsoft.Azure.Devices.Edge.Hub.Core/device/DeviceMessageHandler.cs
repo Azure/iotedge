@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         public void BindDeviceProxy(IDeviceProxy deviceProxy)
         {
             this.underlyingProxy = Preconditions.CheckNotNull(deviceProxy);
-            this.connectionManager.BindDeviceProxy(this.Identity, this);
+            this.connectionManager.AddDeviceConnection(this.Identity, this);
             Events.BindDeviceProxy(this.Identity);
         }
 

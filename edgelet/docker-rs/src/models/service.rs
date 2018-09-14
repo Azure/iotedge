@@ -17,15 +17,24 @@ pub struct Service {
     ID: Option<String>,
     #[serde(rename = "Version", skip_serializing_if = "Option::is_none")]
     version: Option<::models::ObjectVersion>,
-    #[serde(rename = "CreatedAt", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "CreatedAt",
+        skip_serializing_if = "Option::is_none"
+    )]
     created_at: Option<String>,
-    #[serde(rename = "UpdatedAt", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "UpdatedAt",
+        skip_serializing_if = "Option::is_none"
+    )]
     updated_at: Option<String>,
     #[serde(rename = "Spec", skip_serializing_if = "Option::is_none")]
     spec: Option<::models::ServiceSpec>,
     #[serde(rename = "Endpoint", skip_serializing_if = "Option::is_none")]
     endpoint: Option<::models::ServiceEndpoint>,
-    #[serde(rename = "UpdateStatus", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "UpdateStatus",
+        skip_serializing_if = "Option::is_none"
+    )]
     update_status: Option<::models::ServiceUpdateStatus>,
 }
 

@@ -27,8 +27,12 @@ namespace IotEdgeQuickstart
             bool noDeployment,
             bool noVerify,
             string verifyDataFromModule,
-            Option<string> deploymentFileName) :
-            base(bootstrapper, credentials, iothubConnectionString, eventhubCompatibleEndpointWithEntityPath, imageTag, deviceId, hostname, deploymentFileName)
+            Option<string> deploymentFileName,
+            string deviceCaCert,
+            string deviceCaPk,
+            string deviceCaCerts,
+            bool optimizedForPerformance) :
+            base(bootstrapper, credentials, iothubConnectionString, eventhubCompatibleEndpointWithEntityPath, imageTag, deviceId, hostname, deploymentFileName, deviceCaCert, deviceCaPk, deviceCaCerts, optimizedForPerformance)
         {
             this.leaveRunning = leaveRunning;
             this.noDeployment = noDeployment;

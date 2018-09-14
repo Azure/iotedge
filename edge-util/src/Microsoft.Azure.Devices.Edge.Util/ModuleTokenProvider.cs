@@ -5,7 +5,6 @@ namespace Microsoft.Azure.Devices.Edge.Util
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Util.Edged;
 
     public class ModuleTokenProvider : ITokenProvider
     {

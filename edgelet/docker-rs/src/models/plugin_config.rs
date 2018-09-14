@@ -16,7 +16,10 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PluginConfig {
     /// Docker Version used to create the plugin
-    #[serde(rename = "DockerVersion", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "DockerVersion",
+        skip_serializing_if = "Option::is_none"
+    )]
     docker_version: Option<String>,
     #[serde(rename = "Description")]
     description: String,

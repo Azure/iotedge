@@ -33,6 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         [Fact]
         public async Task TestEdgeHubConnection()
         {
+            const string EdgeDeviceId = "testHubEdgeDevice1";
             var twinMessageConverter = new TwinMessageConverter();
             var twinCollectionMessageConverter = new TwinCollectionMessageConverter();
             var messageConverterProvider = new MessageConverterProvider(
@@ -42,15 +43,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     { typeof(Twin), twinMessageConverter },
                     { typeof(TwinCollection), twinCollectionMessageConverter }
                 });
-            var cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, new ClientProvider(), Option.None<UpstreamProtocol>());
-            var connectionManager = new ConnectionManager(cloudConnectionProvider);
+            var cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, new ClientProvider(), Option.None<UpstreamProtocol>(), Mock.Of<ITokenProvider>(), Mock.Of<IDeviceScopeIdentitiesCache>(), TimeSpan.FromMinutes(60));
+            var credentialsCache = Mock.Of<ICredentialsCache>();
+            var connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, EdgeDeviceId, EdgeHubModuleId);
 
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
             Devices.IotHubConnectionStringBuilder iotHubConnectionStringBuilder = Devices.IotHubConnectionStringBuilder.Create(iotHubConnectionString);
             RegistryManager registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
             await registryManager.OpenAsync();
 
-            (string edgeDeviceId, string deviceConnStr) = await RegistryManagerHelper.CreateDevice("testHubEdgeDevice1", iotHubConnectionString, registryManager, true, false);
+            (string edgeDeviceId, string deviceConnStr) = await RegistryManagerHelper.CreateDevice(EdgeDeviceId, iotHubConnectionString, registryManager, true, false);
 
             try
             {
@@ -92,7 +94,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     routeFactory,
                     twinCollectionMessageConverter,
                     twinMessageConverter,
-                    versionInfo
+                    versionInfo,
+                    new NullDeviceScopeIdentitiesCache()
                 );
                 await Task.Delay(TimeSpan.FromMinutes(1));
 
@@ -161,10 +164,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 var downstreamDeviceProxy = Mock.Of<IDeviceProxy>(d => d.IsActive);
 
                 // Connect the module and downstream device and make sure the reported properties are updated as expected.
-                await connectionManager.AddDeviceConnection(moduleClientCredentials);
-                connectionManager.BindDeviceProxy(moduleClientCredentials.Identity, moduleProxy);
-                await connectionManager.AddDeviceConnection(downstreamDeviceCredentials);
-                connectionManager.BindDeviceProxy(downstreamDeviceCredentials.Identity, downstreamDeviceProxy);
+                await connectionManager.AddDeviceConnection(moduleClientCredentials.Identity, moduleProxy);
+                await connectionManager.AddDeviceConnection(downstreamDeviceCredentials.Identity, downstreamDeviceProxy);
                 string moduleIdKey = $"{edgeDeviceId}/{moduleId}";
                 await Task.Delay(TimeSpan.FromSeconds(10));
                 reportedProperties = await this.GetReportedProperties(registryManager, edgeDeviceId);
@@ -253,7 +254,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 Assert.Equal(versionInfo, reportedProperties.VersionInfo);
 
                 // If the edge hub restarts, clear out the connected devices in the reported properties.
-                await EdgeHubConnection.Create(edgeHubCredentials, edgeHub, twinManager, connectionManager, edgeHubCloudProxy.Value, routeFactory, twinCollectionMessageConverter, twinMessageConverter, versionInfo);
+                await EdgeHubConnection.Create(edgeHubCredentials, edgeHub, twinManager, connectionManager, edgeHubCloudProxy.Value, routeFactory, twinCollectionMessageConverter, twinMessageConverter, versionInfo,
+                    new NullDeviceScopeIdentitiesCache());
                 await Task.Delay(TimeSpan.FromMinutes(1));
                 reportedProperties = await this.GetReportedProperties(registryManager, edgeDeviceId);
                 Assert.Null(reportedProperties.Clients);

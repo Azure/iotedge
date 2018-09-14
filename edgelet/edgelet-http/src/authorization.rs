@@ -66,8 +66,7 @@ where
                 } else {
                     Either::B(future::err(Error::from(ErrorKind::NotFound)))
                 }
-            })
-            .or_else(|e| future::ok(e.into_response()));
+            }).or_else(|e| future::ok(e.into_response()));
 
         Box::new(response)
     }

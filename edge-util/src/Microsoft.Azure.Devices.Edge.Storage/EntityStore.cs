@@ -17,12 +17,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     public class EntityStore<TK, TV> : IEntityStore<TK, TV>
     {
         readonly IDbStore dbStore;
-        readonly KeyLockProvider keyLockProvider;
+        readonly AsyncLockProvider<TK> keyLockProvider;
 
         public EntityStore(IDbStore dbStore, string entityName, int keyShardCount = 1)
         {
             this.dbStore = Preconditions.CheckNotNull(dbStore, nameof(dbStore));
-            this.keyLockProvider = new KeyLockProvider(Preconditions.CheckRange(keyShardCount, 1, nameof(keyShardCount)));
+            this.keyLockProvider = new AsyncLockProvider<TK>(Preconditions.CheckRange(keyShardCount, 1, nameof(keyShardCount)));
             this.EntityName = Preconditions.CheckNonWhiteSpace(entityName, nameof(entityName));
         }
 
@@ -149,41 +149,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 () => this.dbStore.IterateBatch(batchSize, DeserializingCallback));
         }
 
-        public Task<bool> Contains(TK key) => this.dbStore.Contains(key.ToBytes());
-
-        /// <summary>
-        /// Provides locks for keys. Keys are divided into n shards and there is one lock per shard. 
-        /// This improves performance as keys from different shards are locked on separate locks
-        /// </summary>
-        class KeyLockProvider
-        {
-            readonly AsyncLock[] locks;
-            readonly int keyShardCount;
-
-            public KeyLockProvider(int keyShardCount)
-            {
-                if (keyShardCount <= 0)
-                {
-                    throw new ArgumentException("KeyShardCount should be > 0");
-                }
-                this.keyShardCount = keyShardCount;
-                this.locks = new AsyncLock[keyShardCount];
-                for (int i = 0; i < keyShardCount; i++)
-                {
-                    this.locks[i] = new AsyncLock();
-                }
-            }
-
-            public AsyncLock GetLock(TK key)
-            {
-                if (key == null)
-                {
-                    throw new ArgumentNullException(nameof(key));
-                }
-                int index = Math.Abs(key.GetHashCode() % this.keyShardCount);
-                return this.locks[index];
-            }
-        }
+        public Task<bool> Contains(TK key) => this.dbStore.Contains(key.ToBytes());        
 
         protected virtual void Dispose(bool disposing)
         {

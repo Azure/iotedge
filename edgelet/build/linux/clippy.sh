@@ -17,7 +17,7 @@ BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}
 PROJECT_ROOT=${BUILD_REPOSITORY_LOCALPATH}/edgelet
 SCRIPT_NAME=$(basename "$0")
 IMAGE="azureiotedge/cargo-clippy:nightly"
-USE_DOCKER=0
+USE_DOCKER=1
 RUSTUP="$HOME/.cargo/bin/rustup"
 CARGO="$HOME/.cargo/bin/cargo"
 

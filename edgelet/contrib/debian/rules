@@ -8,6 +8,10 @@
 %:
 	dh $@ --with systemd
 
+.PHONY: override_dh_strip
+override_dh_strip:
+	dh_strip --no-automatic-dbgsym
+
 override_dh_installinit:
 	dh_systemd_enable
 	dh_installinit
