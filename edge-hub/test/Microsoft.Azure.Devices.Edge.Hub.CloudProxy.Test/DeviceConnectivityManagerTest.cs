@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Xunit;
 
     [Unit]
@@ -27,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 .Throws<TimeoutException>()
                 .Throws<TimeoutException>()
                 .Returns(Task.CompletedTask);
-            IClient connectivityAwareClient = new ConnectivityAwareClient(client.Object, deviceConnectivityManager);
+            IClient connectivityAwareClient = new ConnectivityAwareClient(client.Object, deviceConnectivityManager, Mock.Of<IIdentity>(i => i.Id == "d1/m1"));
             var cloudProxy = new CloudProxy(connectivityAwareClient, Mock.Of<IMessageConverterProvider>(), "d1/m1", null, Mock.Of<ICloudListener>(), TimeSpan.FromHours(1));
             deviceConnectivityManager.SetTestCloudProxy(cloudProxy);
 
@@ -59,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 .Returns(Task.CompletedTask)
                 .Throws<TimeoutException>()
                 .Returns(Task.CompletedTask);
-            IClient connectivityAwareClient = new ConnectivityAwareClient(client.Object, deviceConnectivityManager);
+            IClient connectivityAwareClient = new ConnectivityAwareClient(client.Object, deviceConnectivityManager, Mock.Of<IIdentity>(i => i.Id == "d1/m1"));
             var cloudProxy = new CloudProxy(connectivityAwareClient, Mock.Of<IMessageConverterProvider>(), "d1/m1", null, Mock.Of<ICloudListener>(), TimeSpan.FromHours(1));
             deviceConnectivityManager.SetTestCloudProxy(cloudProxy);
 
@@ -97,19 +98,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var device1UnderlyingClient = new Mock<IClient>();
             device1UnderlyingClient.Setup(c => c.SendEventAsync(It.IsAny<Message>()))
                 .Returns(Task.CompletedTask);
-            var device1Client = new ConnectivityAwareClient(device1UnderlyingClient.Object, deviceConnectivityManager);
+            var device1Client = new ConnectivityAwareClient(device1UnderlyingClient.Object, deviceConnectivityManager, Mock.Of<IIdentity>(i => i.Id == "d1/m1"));
             device1Client.SetConnectionStatusChangedHandler(ConnectionStatusChangedHandler);
 
             var device2UnderlyingClient = new Mock<IClient>();
             device2UnderlyingClient.Setup(c => c.SendEventAsync(It.IsAny<Message>()))
                 .Throws<TimeoutException>();
-            var device2Client = new ConnectivityAwareClient(device2UnderlyingClient.Object, deviceConnectivityManager);
+            var device2Client = new ConnectivityAwareClient(device2UnderlyingClient.Object, deviceConnectivityManager, Mock.Of<IIdentity>(i => i.Id == "d1/m1"));
             device2Client.SetConnectionStatusChangedHandler(ConnectionStatusChangedHandler);
 
             var edgeHubUnderlyingClient = new Mock<IClient>();
             edgeHubUnderlyingClient.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
                 .Throws<TimeoutException>();
-            IClient edgeHubClient = new ConnectivityAwareClient(edgeHubUnderlyingClient.Object, deviceConnectivityManager);
+            IClient edgeHubClient = new ConnectivityAwareClient(edgeHubUnderlyingClient.Object, deviceConnectivityManager, Mock.Of<IIdentity>(i => i.Id == "d1/m1"));
             edgeHubClient.SetConnectionStatusChangedHandler(ConnectionStatusChangedHandler);
             var edgeHubCloudProxy = new CloudProxy(edgeHubClient, Mock.Of<IMessageConverterProvider>(), "d1/m1", null, Mock.Of<ICloudListener>(), TimeSpan.FromHours(1));
             deviceConnectivityManager.SetTestCloudProxy(edgeHubCloudProxy);
