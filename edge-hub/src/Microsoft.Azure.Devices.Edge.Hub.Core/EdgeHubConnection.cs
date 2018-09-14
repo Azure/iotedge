@@ -75,25 +75,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Preconditions.CheckNotNull(deviceScopeIdentitiesCache, nameof(deviceScopeIdentitiesCache));
 
             var edgeHubConnection = new EdgeHubConnection(
-                edgeHubCredentials.Identity as IModuleIdentity, twinManager, routeFactory,
-                twinCollectionMessageConverter, twinMessageConverter,
+                edgeHubCredentials.Identity as IModuleIdentity,
+                twinManager,
+                routeFactory,
+                twinCollectionMessageConverter,
+                twinMessageConverter,
                 versionInfo ?? VersionInfo.Empty,
                 deviceScopeIdentitiesCache
             );
 
-            IDeviceProxy deviceProxy = new EdgeHubDeviceProxy(edgeHubConnection);
-            await connectionManager.AddDeviceConnection(edgeHubCredentials.Identity, deviceProxy);            
-
-            await edgeHub.AddSubscription(edgeHubCredentials.Identity.Id, DeviceSubscription.DesiredPropertyUpdates);
-            await edgeHub.AddSubscription(edgeHubCredentials.Identity.Id, DeviceSubscription.Methods);
-
-            // Clear out all the reported devices.
-            await edgeHubConnection.ClearDeviceConnectionStatuses();
-
+            await InitEdgeHub(edgeHubConnection, connectionManager, edgeHubCredentials, edgeHub);
             connectionManager.DeviceConnected += edgeHubConnection.DeviceConnected;
             connectionManager.DeviceDisconnected += edgeHubConnection.DeviceDisconnected;
             Events.Initialized(edgeHubCredentials.Identity);
             return edgeHubConnection;
+        }
+
+        static Task InitEdgeHub(EdgeHubConnection edgeHubConnection, IConnectionManager connectionManager, IClientCredentials edgeHubCredentials, IEdgeHub edgeHub)
+        {
+            IDeviceProxy deviceProxy = new EdgeHubDeviceProxy(edgeHubConnection);
+            Task addDeviceConnectionTask = connectionManager.AddDeviceConnection(edgeHubCredentials.Identity, deviceProxy);
+            Task desiredPropertyUpdatesSubscriptionTask = edgeHub.AddSubscription(edgeHubCredentials.Identity.Id, DeviceSubscription.DesiredPropertyUpdates);
+            Task methodsSubscriptionTask = edgeHub.AddSubscription(edgeHubCredentials.Identity.Id, DeviceSubscription.Methods);
+            Task clearDeviceConnectionStatusesTask = edgeHubConnection.ClearDeviceConnectionStatuses();
+            return Task.WhenAll(addDeviceConnectionTask, desiredPropertyUpdatesSubscriptionTask, methodsSubscriptionTask, clearDeviceConnectionStatusesTask);
         }
 
         public async Task<Option<EdgeHubConfig>> GetConfig()
@@ -359,7 +364,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 {
                     Events.ErrorRefreshingServiceIdentities(e);
                     return new DirectMethodResponse(e, HttpStatusCode.InternalServerError);
-                }                                
+                }
             }
             else
             {
