@@ -82,8 +82,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                 async c =>
                 {
+                    var pgMessageConverter = c.Resolve<IMessageConverter<IProtocolGatewayMessage>>();
+                    var byteBufferConverter = c.Resolve<IByteBufferConverter>();
                     IConnectionProvider connectionProvider = await c.Resolve<Task<IConnectionProvider>>();
-                    IMqttConnectionProvider mqtt = new MqttConnectionProvider(connectionProvider, c.Resolve<IMessageConverter<IProtocolGatewayMessage>>(), c.Resolve<IByteBufferConverter>());
+                    IMqttConnectionProvider mqtt = new MqttConnectionProvider(connectionProvider, pgMessageConverter, byteBufferConverter);
                     return mqtt;
                 })
                 .As<Task<IMqttConnectionProvider>>()
@@ -119,16 +121,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 
             // MqttProtocolHead
             builder.Register(
-                    async c => new MqttProtocolHead(
-                        c.Resolve<ISettingsProvider>(),
-                        this.tlsCertificate,
-                        await c.Resolve<Task<IMqttConnectionProvider>>(),
-                        await c.Resolve<Task<IDeviceIdentityProvider>>(),
-                        await c.Resolve<Task<ISessionStatePersistenceProvider>>(),
-                        c.Resolve<IWebSocketListenerRegistry>(),
-                        c.Resolve<IByteBufferAllocator>(),
-                        this.clientCertAuthAllowed,
-                        this.caChainPath))
+                async c =>
+                {
+                    var settingsProvider = c.Resolve<ISettingsProvider>();
+                    var websocketListenerRegistry = c.Resolve<IWebSocketListenerRegistry>();
+                    var byteBufferAllocator = c.Resolve<IByteBufferAllocator>();
+                    var mqttConnectionProviderTask = c.Resolve<Task<IMqttConnectionProvider>>();
+                    var deviceIdentityProviderTask = c.Resolve<Task<IDeviceIdentityProvider>>();
+                    var sessionStatePersistenceProviderTask = c.Resolve<Task<ISessionStatePersistenceProvider>>();
+                    IMqttConnectionProvider mqttConnectionProvider = await mqttConnectionProviderTask;
+                    IDeviceIdentityProvider deviceIdentityProvider = await deviceIdentityProviderTask;
+                    ISessionStatePersistenceProvider sessionStatePersistenceProvider = await sessionStatePersistenceProviderTask;
+                    return new MqttProtocolHead(
+                        settingsProvider,
+                            this.tlsCertificate,
+                            mqttConnectionProvider,
+                            deviceIdentityProvider,
+                            sessionStatePersistenceProvider,
+                            websocketListenerRegistry,
+                            byteBufferAllocator,
+                            this.clientCertAuthAllowed,
+                            this.caChainPath);
+                })
                 .As<Task<MqttProtocolHead>>()
                 .SingleInstance();
 
