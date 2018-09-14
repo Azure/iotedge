@@ -177,6 +177,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
         internal async Task ProcessSubscription(string id, Option<ICloudProxy> cloudProxy, DeviceSubscription deviceSubscription, bool addSubscription)
         {
+            Events.ProcessingSubscription(id, deviceSubscription);
             switch (deviceSubscription)
             {
                 case DeviceSubscription.C2D:
@@ -214,6 +215,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         {
             try
             {
+                Events.ProcessingSubscriptions(identity);
                 await this.ProcessSubscriptions(identity.Id);
             }
             catch (Exception e)
@@ -292,7 +294,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 ErrorRemovingSubscription,
                 ErrorAddingSubscription,
                 AddingSubscription,
-                RemovingSubscription
+                RemovingSubscription,
+                ProcessingSubscriptions,
+                ProcessingSubscription
             }
 
             public static void MethodCallReceived(string fromId, string toId, string correlationId)
@@ -327,17 +331,38 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             public static void ErrorProcessingSubscriptions(Exception ex, IIdentity identity)
             {
-                Log.LogWarning((int)EventIds.ErrorProcessingSubscriptions, ex, Invariant($"Error processing subscriptions for client {identity.Id}."));
+                if (ex.HasTimeoutException())
+                {
+                    Log.LogDebug((int)EventIds.ErrorProcessingSubscriptions, ex, Invariant($"Timed out while processing subscriptions for client {identity.Id}. Will try again when connected."));
+                }
+                else
+                {
+                    Log.LogWarning((int)EventIds.ErrorProcessingSubscriptions, ex, Invariant($"Error processing subscriptions for client {identity.Id}."));
+                }
             }
 
             public static void ErrorRemovingSubscription(Exception ex, string id, DeviceSubscription subscription)
             {
-                Log.LogWarning((int)EventIds.ErrorRemovingSubscription, ex, Invariant($"Error removing subscription {subscription} for client {id}."));
+                if (ex.HasTimeoutException())
+                {
+                    Log.LogDebug((int)EventIds.ErrorAddingSubscription, ex, Invariant($"Timed out while removing subscription {subscription} for client {id}. Will try again when connected."));
+                }
+                else
+                {
+                    Log.LogWarning((int)EventIds.ErrorRemovingSubscription, ex, Invariant($"Error removing subscription {subscription} for client {id}."));
+                }
             }
 
             public static void ErrorAddingSubscription(Exception ex, string id, DeviceSubscription subscription)
             {
-                Log.LogWarning((int)EventIds.ErrorAddingSubscription, ex, Invariant($"Error adding subscription {subscription} for client {id}."));
+                if (ex.HasTimeoutException())
+                {
+                    Log.LogDebug((int)EventIds.ErrorAddingSubscription, ex, Invariant($"Timed out while adding subscription {subscription} for client {id}. Will try again when connected."));
+                }
+                else
+                {
+                    Log.LogDebug((int)EventIds.ErrorAddingSubscription, ex, Invariant($"Error adding subscription {subscription} for client {id}."));
+                }
             }
 
             public static void AddingSubscription(string id, DeviceSubscription subscription)
@@ -348,6 +373,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             public static void RemovingSubscription(string id, DeviceSubscription subscription)
             {
                 Log.LogDebug((int)EventIds.RemovingSubscription, Invariant($"Removing subscription {subscription} for client {id}."));
+            }
+
+            public static void ProcessingSubscriptions(IIdentity identity)
+            {
+                Log.LogInformation((int)EventIds.ProcessingSubscriptions, Invariant($"Processing subscriptions for client {identity.Id}."));
+            }
+
+            public static void ProcessingSubscription(string id, DeviceSubscription deviceSubscription)
+            {
+                Log.LogInformation((int)EventIds.ProcessingSubscription, Invariant($"Processing subscription {deviceSubscription} for client {id}."));
             }
         }
     }
