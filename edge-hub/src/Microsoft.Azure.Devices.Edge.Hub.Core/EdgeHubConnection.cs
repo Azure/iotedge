@@ -81,19 +81,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 deviceScopeIdentitiesCache
             );
 
-            await InitEdgeHub(edgeHubConnection, connectionManager, edgeHubCredentials, edgeHub);
+            await InitEdgeHub(edgeHubConnection, connectionManager, edgeHubIdentity, edgeHub);
             connectionManager.DeviceConnected += edgeHubConnection.DeviceConnected;
             connectionManager.DeviceDisconnected += edgeHubConnection.DeviceDisconnected;
             Events.Initialized(edgeHubIdentity);
             return edgeHubConnection;
         }
 
-        static Task InitEdgeHub(EdgeHubConnection edgeHubConnection, IConnectionManager connectionManager, IClientCredentials edgeHubCredentials, IEdgeHub edgeHub)
+        static Task InitEdgeHub(EdgeHubConnection edgeHubConnection, IConnectionManager connectionManager, IIdentity edgeHubIdentity, IEdgeHub edgeHub)
         {
             IDeviceProxy deviceProxy = new EdgeHubDeviceProxy(edgeHubConnection);
-            Task addDeviceConnectionTask = connectionManager.AddDeviceConnection(edgeHubCredentials.Identity, deviceProxy);
-            Task desiredPropertyUpdatesSubscriptionTask = edgeHub.AddSubscription(edgeHubCredentials.Identity.Id, DeviceSubscription.DesiredPropertyUpdates);
-            Task methodsSubscriptionTask = edgeHub.AddSubscription(edgeHubCredentials.Identity.Id, DeviceSubscription.Methods);
+            Task addDeviceConnectionTask = connectionManager.AddDeviceConnection(edgeHubIdentity, deviceProxy);
+            Task desiredPropertyUpdatesSubscriptionTask = edgeHub.AddSubscription(edgeHubIdentity.Id, DeviceSubscription.DesiredPropertyUpdates);
+            Task methodsSubscriptionTask = edgeHub.AddSubscription(edgeHubIdentity.Id, DeviceSubscription.Methods);
             Task clearDeviceConnectionStatusesTask = edgeHubConnection.ClearDeviceConnectionStatuses();
             return Task.WhenAll(addDeviceConnectionTask, desiredPropertyUpdatesSubscriptionTask, methodsSubscriptionTask, clearDeviceConnectionStatusesTask);
         }
