@@ -257,6 +257,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             // ConnectionReauthenticator
             builder.Register(async c =>
                 {
+                    var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
                     var connectionManagerTask = c.Resolve<Task<IConnectionManager>>();
                     var authenticatorTask = c.Resolve<Task<IAuthenticator>>();
                     var credentialsCacheTask = c.Resolve<Task<ICredentialsCache>>();
@@ -270,7 +271,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         authenticator,
                         credentialsCache,
                         deviceScopeIdentitiesCache,
-                        TimeSpan.FromMinutes(3)); 
+                        TimeSpan.FromMinutes(5),
+                        edgeHubCredentials.Identity); 
                     return connectionReauthenticator;
                 })
                 .As<Task<ConnectionReauthenticator>>()
