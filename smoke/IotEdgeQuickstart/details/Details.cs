@@ -30,6 +30,7 @@ namespace IotEdgeQuickstart.Details
         readonly string deviceCaPk;
         readonly string deviceCaCerts;
         readonly bool optimizedForPerformance;
+        readonly string runtimeLogLevel;
 
         DeviceContext context;
 
@@ -45,7 +46,8 @@ namespace IotEdgeQuickstart.Details
             string deviceCaCert,
             string deviceCaPk,
             string deviceCaCerts,
-            bool optimizedForPerformance
+            bool optimizedForPerformance,
+            string runtimeLogLevel
             )
         {
             this.bootstrapper = bootstrapper;
@@ -60,6 +62,7 @@ namespace IotEdgeQuickstart.Details
             this.deviceCaPk = deviceCaPk;
             this.deviceCaCerts = deviceCaCerts;
             this.optimizedForPerformance = optimizedForPerformance;
+            this.runtimeLogLevel = runtimeLogLevel;
         }
 
         protected Task VerifyEdgeIsNotAlreadyActive() => this.bootstrapper.VerifyNotActive();
@@ -124,7 +127,7 @@ namespace IotEdgeQuickstart.Details
                 $"DeviceId={this.context.Device.Id};" +
                 $"SharedAccessKey={this.context.Device.Authentication.SymmetricKey.PrimaryKey}";
 
-            return this.bootstrapper.Configure(connectionString, this.EdgeAgentImage(), this.hostname, this.deviceCaCert, this.deviceCaPk, this.deviceCaCerts);
+            return this.bootstrapper.Configure(connectionString, this.EdgeAgentImage(), this.hostname, this.deviceCaCert, this.deviceCaPk, this.deviceCaCerts, this.runtimeLogLevel);
         }
 
         protected Task StartBootstrapper() => this.bootstrapper.Start();
