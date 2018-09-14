@@ -206,7 +206,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
             public static void ProcessMessage(IIdentity identity)
             {
-                Log.LogDebug((int)EventIds.ProcessMessage, Invariant($"Sending message for device Id {identity.Id}"));
+                Log.LogDebug((int)EventIds.ProcessMessage, Invariant($"Processing message for device Id {identity.Id}"));
             }
 
             public static void Disposing(IIdentity identity, Exception cause)

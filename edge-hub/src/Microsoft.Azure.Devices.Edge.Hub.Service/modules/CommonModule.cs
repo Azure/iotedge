@@ -109,7 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     if (this.usePersistentStorage)
                     {
                         // Create partitions for messages and twins
-                        var partitionsList = new List<string> { Core.Constants.MessageStorePartitionKey, Core.Constants.TwinStorePartitionKey, Core.Constants.CheckpointStorePartitionKey };
+                        var partitionsList = new List<string> { Constants.MessageStorePartitionKey, Constants.TwinStorePartitionKey, Core.Constants.CheckpointStorePartitionKey };
                         try
                         {
                             IDbStoreProvider dbStoreprovider = Storage.RocksDb.DbStoreProvider.Create(c.Resolve<Storage.RocksDb.IRocksDbOptionsProvider>(),
@@ -196,6 +196,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         return deviceScopeIdentitiesCache;
                     })
                 .As<Task<IDeviceScopeIdentitiesCache>>()
+                .AutoActivate()
                 .SingleInstance();
 
             // Task<ICredentialsCache>
@@ -300,8 +301,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 
         static async Task<IKeyValueStore<string, string>> GetEncryptedStore(IComponentContext context, string entityName)
         {
-            Option<IEncryptionProvider> encryptionProvider = await context.Resolve<Task<Option<IEncryptionProvider>>>();
             var storeProvider = context.Resolve<IStoreProvider>();
+            Option<IEncryptionProvider> encryptionProvider = await context.Resolve<Task<Option<IEncryptionProvider>>>();
             IKeyValueStore<string, string> encryptedStore = encryptionProvider
                 .Map(
                     e =>
