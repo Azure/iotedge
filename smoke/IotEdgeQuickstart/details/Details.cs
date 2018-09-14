@@ -30,7 +30,7 @@ namespace IotEdgeQuickstart.Details
         readonly string deviceCaPk;
         readonly string deviceCaCerts;
         readonly bool optimizedForPerformance;
-        readonly string runtimeLogLevel;
+        readonly LogLevel runtimeLogLevel;
 
         DeviceContext context;
 
@@ -47,7 +47,7 @@ namespace IotEdgeQuickstart.Details
             string deviceCaPk,
             string deviceCaCerts,
             bool optimizedForPerformance,
-            string runtimeLogLevel
+            LogLevel runtimeLogLevel
             )
         {
             this.bootstrapper = bootstrapper;

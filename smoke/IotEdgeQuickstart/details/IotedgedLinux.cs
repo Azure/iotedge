@@ -154,7 +154,7 @@ namespace IotEdgeQuickstart.Details
                 300); // 5 min timeout because install can be slow on raspberry pi
         }
 
-        public async Task Configure(string connectionString, string image, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, string runtimeLogLevel)
+        public async Task Configure(string connectionString, string image, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel)
         {
             Console.WriteLine($"Setting up iotedged with agent image '{image}'");
 
@@ -173,7 +173,7 @@ namespace IotEdgeQuickstart.Details
                 doc.ReplaceOrAdd("agent.config.auth.password", c.Password);
             }
 
-            doc.ReplaceOrAdd("agent.env.RuntimeLogLevel", runtimeLogLevel);
+            doc.ReplaceOrAdd("agent.env.RuntimeLogLevel", runtimeLogLevel.ToString());
 
             if (this.httpUris.HasValue)
             {

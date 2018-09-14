@@ -111,7 +111,7 @@ Defaults:
         public string VerifyDataFromModule { get; } = "tempSensor";
 
         [Option("--runtime-log-level", Description = "Change Runtime log level for modules.")]
-        public string RuntimeLogLevel { get; } = "debug";
+        public LogLevel RuntimeLogLevel { get; } = LogLevel.Debug;
 
         [Option("-l|--deployment <filename>", Description = "Deployment json file")]
         public string DeploymentFileName { get; } = Environment.GetEnvironmentVariable("deployment");
@@ -234,5 +234,11 @@ Defaults:
         All,  // don't clean up anything
         Core, // remove modules/identities except Edge Agent & Hub
         None  // iotedgectl stop, uninstall, remove device identity
+    }
+
+    public enum LogLevel
+    {
+        Info,
+        Debug
     }
 }

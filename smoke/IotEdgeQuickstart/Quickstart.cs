@@ -32,7 +32,7 @@ namespace IotEdgeQuickstart
             string deviceCaPk,
             string deviceCaCerts,
             bool optimizedForPerformance,
-            string runtimeLogLevel) :
+            LogLevel runtimeLogLevel) :
             base(bootstrapper, credentials, iothubConnectionString, eventhubCompatibleEndpointWithEntityPath, imageTag, deviceId, hostname, deploymentFileName, deviceCaCert, deviceCaPk, deviceCaCerts, optimizedForPerformance, runtimeLogLevel)
         {
             this.leaveRunning = leaveRunning;
