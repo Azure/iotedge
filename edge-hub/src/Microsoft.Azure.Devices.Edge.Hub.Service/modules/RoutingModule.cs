@@ -418,9 +418,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
                         var twinCollectionMessageConverter = c.Resolve<Core.IMessageConverter<TwinCollection>>();
                         var twinMessageConverter = c.Resolve<Core.IMessageConverter<Twin>>();
-                        ITwinManager twinManager = await c.Resolve<Task<ITwinManager>>();
-                        ICloudProxy cloudProxy = await c.ResolveNamed<Task<ICloudProxy>>("EdgeHubCloudProxy");
-                        IEdgeHub edgeHub = await c.Resolve<Task<IEdgeHub>>();
+                        var twinManagerTask = c.Resolve<Task<ITwinManager>>();
+                        var cloudProxyTask = c.ResolveNamed<Task<ICloudProxy>>("EdgeHubCloudProxy");
+                        var edgeHubTask = c.Resolve<Task<IEdgeHub>>();
+                        ITwinManager twinManager = await twinManagerTask;
+                        ICloudProxy cloudProxy = await cloudProxyTask;
+                        IEdgeHub edgeHub = await edgeHubTask;
                         IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
                         IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
                         IConfigSource edgeHubConnection = await EdgeHubConnection.Create(
@@ -449,8 +452,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                 async c =>
                 {
-                    IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
-                    IEdgeHub edgeHub = await c.Resolve<Task<IEdgeHub>>();
+                    var connectionManagerTask = c.Resolve<Task<IConnectionManager>>();
+                    var edgeHubTask = c.Resolve<Task<IEdgeHub>>();
+                    IConnectionManager connectionManager = await connectionManagerTask;
+                    IEdgeHub edgeHub = await edgeHubTask;
                     IConnectionProvider connectionProvider = new ConnectionProvider(connectionManager, edgeHub);
                     return connectionProvider;
                 })
