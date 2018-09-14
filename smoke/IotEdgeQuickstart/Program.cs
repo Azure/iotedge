@@ -33,25 +33,26 @@ Defaults:
   its corresponding environment variable is not defined, then the default will
   be used.
 
-  Option                    Default value
-  --bootstrapper            'iotedged'
-  --bootstrapper-archive    no path (archive is installed from apt or pypi)
-  --connection-string       get the value from Key Vault
-  --device-id               an auto-generated unique identifier
-  --edge-hostname           'quickstart'
-  --eventhub-endpoint       get the value from Key Vault
-  --leave-running           none (or 'all' if given as a switch)
-  --password                anonymous, or Key Vault if --registry is specified
-  --registry                mcr.microsoft.com (anonymous)
-  --tag                     '1.0'
-  --use-http                if --bootstrapper=iotedged then use Unix Domain
-                            Sockets, otherwise N/A
-                            switch form uses local IP address as hostname
-  --username                anonymous, or Key Vault if --registry is specified
-  --no-deployment           deploy Edge Hub and temperature sensor modules
-  --no-verify               false
-  --verify-data-from-module tempSensor
-  --deployment              deployment json file
+  Option                     Default value
+  --bootstrapper             'iotedged'
+  --bootstrapper-archive     no path (archive is installed from apt or pypi)
+  --connection-string        get the value from Key Vault
+  --device-id                an auto-generated unique identifier
+  --edge-hostname            'quickstart'
+  --eventhub-endpoint        get the value from Key Vault
+  --leave-running            none (or 'all' if given as a switch)
+  --password                 anonymous, or Key Vault if --registry is specified
+  --registry                 mcr.microsoft.com (anonymous)
+  --tag                      '1.0'
+  --use-http                 if --bootstrapper=iotedged then use Unix Domain
+                             Sockets, otherwise N/A
+                             switch form uses local IP address as hostname
+  --username                 anonymous, or Key Vault if --registry is specified
+  --no-deployment            deploy Edge Hub and temperature sensor modules
+  --no-verify                false
+  --optimize_for_performance true
+  --verify-data-from-module  tempSensor
+  --deployment               deployment json file
 "
         )]
     [HelpOption]
@@ -101,6 +102,9 @@ Defaults:
 
         [Option("--no-verify", CommandOptionType.NoValue, Description = "Don't verify the behavior of the deployment (e.g.: temp sensor)")]
         public bool NoVerify { get; } = false;
+
+        [Option("--optimize_for_performance <true/false>", CommandOptionType.SingleValue, Description = "Add OptimizeForPerformance Flag on edgeHub. Only when no deployment is passed.")]
+        public bool OptimizeForPerformance { get; } = true;
 
         [Option("--verify-data-from-module", Description = "Verify if a given module sent data do IoTHub.")]
         public string VerifyDataFromModule { get; } = "tempSensor";
@@ -186,7 +190,8 @@ Defaults:
                     deployment,
                     this.DeviceCaCert,
                     this.DeviceCaPk,
-                    this.DeviceCaCerts);
+                    this.DeviceCaCerts,
+                    this.OptimizeForPerformance);
                 await test.RunAsync();
             }
             catch (Exception ex)

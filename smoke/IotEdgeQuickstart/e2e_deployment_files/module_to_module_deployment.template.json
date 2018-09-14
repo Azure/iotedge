@@ -33,7 +33,7 @@
             },
 		    "env": {
 				"OptimizeForPerformance": {
-					"value": "false"
+					"value": "<OptimizeForPerformance>"
 				}
 			},
             "status": "running",
