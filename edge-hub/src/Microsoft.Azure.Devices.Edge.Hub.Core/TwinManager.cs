@@ -54,7 +54,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     s => Option.Some(s.GetEntityStore<string, TwinInfo>(Constants.TwinStorePartitionKey)),
                     () => Option.None<IEntityStore<string, TwinInfo>>()));
             connectionManager.CloudConnectionEstablished += twinManager.ConnectionEstablishedCallback;
-            connectionManager.CloudConnectionLost += twinManager.ConnectionLostCallback;
             return twinManager;
         }
 
@@ -103,11 +102,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             Events.ConnectionEstablished(identity.Id);
             this.actionBlock.Post(identity);
-        }
-
-        void ConnectionLostCallback(object sender, IIdentity identity)
-        {
-            Events.ConnectionLost(identity.Id);
         }
 
         public async Task<IMessage> GetTwinAsync(string id)
@@ -607,7 +601,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 UpdateCachedTwin,
                 SendDesiredPropertyUpdateToSubscriber,
                 PreserveCachedTwin,
-                ConnectionLost,
                 ConnectionEstablished,
                 GetTwinOnEstablished,
                 SendDiffToDeviceProxy,
@@ -690,11 +683,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 Log.LogDebug((int)EventIds.PreserveCachedTwin, $"Local twin for {id} at higher or equal desired version " +
                     $"{cachedDesired} compared to cloud {cloudDesired} or reported version {cachedReported} compared to cloud" +
                     $" {cloudReported}");
-            }
-
-            public static void ConnectionLost(string id)
-            {
-                Log.LogDebug((int)EventIds.ConnectionLost, $"ConnectionLost for {id}");
             }
 
             public static void ConnectionEstablished(string id)

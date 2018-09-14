@@ -95,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 try
                 {
                     // First check if there is an existing cloud proxy
-                    (ICloudProxy proxy, bool newProxyCreated) = await this.cloudProxy.Map(
+                    ICloudProxy proxy = await this.cloudProxy.Map(
                         async cp =>
                         {
                             // If the identity has a token, and we have a tokenGetter, that means
@@ -114,7 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                                      this.tokenGetter = Option.None<TaskCompletionSource<string>>();
                                      tg.SetResult(tokenAuth.Token);
                                  });
-                                return (cp, false);
+                                return cp;
                             }
                             // Else this is a new connection for the same device Id. So open a new connection,
                             // and if that is successful, close the existing one.
@@ -122,11 +122,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                             {
                                 ICloudProxy newCloudProxy = await this.GetCloudProxyAsync(newCredentials);
                                 await cp.CloseAsync();
-                                return (newCloudProxy, true);
+                                return newCloudProxy;
                             }
                         })
                         // No existing cloud proxy, so just create a new one.
-                        .GetOrElse(async () => (await this.GetCloudProxyAsync(newCredentials), true));
+                        .GetOrElse(() => this.GetCloudProxyAsync(newCredentials));
 
                     // Set identity only after successfully opening cloud proxy
                     // That way, if a we have one existing connection for a deviceA,
@@ -134,12 +134,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     // the existing connection is not affected.
                     this.cloudProxy = Option.Some(proxy);
                     this.identity = Option.Some(newCredentials.Identity);
-                    // Callbacks are disabled when updating identities, so explicitly invoke the
-                    // connection status changed handler callback. 
-                    if (newProxyCreated)
-                    {
-                        this.connectionStatusChangedHandler?.Invoke(newCredentials.Identity.Id, CloudConnectionStatus.ConnectionEstablished);
-                    }
                     Events.UpdatedCloudConnection(newCredentials.Identity);
                     return proxy;
                 }
