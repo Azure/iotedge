@@ -138,6 +138,148 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
+        public async Task RefreshCacheWithRefreshRequestTest()
+        {
+            // Arrange            
+            var store = new EntityStore<string, string>(new InMemoryDbStore(), "cache");
+            var serviceAuthentication = new ServiceAuthentication(ServiceAuthenticationType.None);
+            var si1 = new ServiceIdentity("d1", "1234", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
+            var si2 = new ServiceIdentity("d2", "m1", "2345", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
+
+            var si3 = new ServiceIdentity("d3", "5678", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
+            var si4 = new ServiceIdentity("d2", "m4", "9898", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
+
+            var iterator1 = new Mock<IServiceIdentitiesIterator>();
+            iterator1.SetupSequence(i => i.HasNext)
+                .Returns(true)
+                .Returns(true)
+                .Returns(false);
+            iterator1.SetupSequence(i => i.GetNext())
+                .ReturnsAsync(
+                    new List<ServiceIdentity>
+                    {
+                        si1,
+                        si2
+                    })
+                .ReturnsAsync(
+                    new List<ServiceIdentity>
+                    {
+                        si3,
+                        si4
+                    });
+
+            var iterator2 = new Mock<IServiceIdentitiesIterator>();
+            iterator2.SetupSequence(i => i.HasNext)
+                .Returns(true)
+                .Returns(false);
+            iterator2.SetupSequence(i => i.GetNext())
+                .ReturnsAsync(
+                    new List<ServiceIdentity>
+                    {
+                        si1,
+                        si2,
+                        si3
+                    });
+
+            var iterator3 = new Mock<IServiceIdentitiesIterator>();
+            iterator3.SetupSequence(i => i.HasNext)
+                .Returns(true)
+                .Returns(false);
+            iterator3.SetupSequence(i => i.GetNext())
+                .ReturnsAsync(
+                    new List<ServiceIdentity>
+                    {
+                        si1,
+                        si2
+                    });
+
+            var iterator4 = new Mock<IServiceIdentitiesIterator>();
+            iterator4.SetupSequence(i => i.HasNext)
+                .Returns(true)
+                .Returns(false);
+            iterator4.SetupSequence(i => i.GetNext())
+                .ReturnsAsync(
+                    new List<ServiceIdentity>
+                    {
+                        si3,
+                        si4
+                    });
+
+            var serviceProxy = new Mock<IServiceProxy>();
+            serviceProxy.SetupSequence(s => s.GetServiceIdentitiesIterator())
+                .Returns(iterator1.Object)
+                .Returns(iterator2.Object)
+                .Returns(iterator3.Object)
+                .Returns(iterator4.Object);
+            var updatedIdentities = new List<ServiceIdentity>();
+            var removedIdentities = new List<string>();
+
+            // Act
+            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceProxy.Object, store, TimeSpan.FromSeconds(7));
+            deviceScopeIdentitiesCache.ServiceIdentityUpdated += (sender, identity) => updatedIdentities.Add(identity);
+            deviceScopeIdentitiesCache.ServiceIdentityRemoved += (sender, s) => removedIdentities.Add(s);
+            
+            // Wait for refresh to complete
+            await Task.Delay(TimeSpan.FromSeconds(3));
+            
+            Option<ServiceIdentity> receivedServiceIdentity1 = await deviceScopeIdentitiesCache.GetServiceIdentity("d1");
+            Option<ServiceIdentity> receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2", "m1");
+            Option<ServiceIdentity> receivedServiceIdentity3 = await deviceScopeIdentitiesCache.GetServiceIdentity("d3");
+            Option<ServiceIdentity> receivedServiceIdentity4 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2", "m4");
+
+            // Assert
+            CompareServiceIdentities(si1, receivedServiceIdentity1);
+            CompareServiceIdentities(si2, receivedServiceIdentity2);
+            CompareServiceIdentities(si3, receivedServiceIdentity3);
+            CompareServiceIdentities(si4, receivedServiceIdentity4);
+
+            Assert.Equal(0, updatedIdentities.Count);
+            Assert.Equal(0, removedIdentities.Count);
+
+            // Act - Signal refresh cache multiple times. It should get picked up twice.
+            deviceScopeIdentitiesCache.InitiateCacheRefresh();
+            deviceScopeIdentitiesCache.InitiateCacheRefresh();
+            deviceScopeIdentitiesCache.InitiateCacheRefresh();
+            deviceScopeIdentitiesCache.InitiateCacheRefresh();        
+
+            // Wait for the 2 refresh cycles to complete, this time because of the refresh request
+            await Task.Delay(TimeSpan.FromSeconds(2));
+            receivedServiceIdentity1 = await deviceScopeIdentitiesCache.GetServiceIdentity("d1");
+            receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2", "m1");
+            receivedServiceIdentity3 = await deviceScopeIdentitiesCache.GetServiceIdentity("d3");
+            receivedServiceIdentity4 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2", "m4");
+
+            // Assert
+            CompareServiceIdentities(si1, receivedServiceIdentity1);
+            CompareServiceIdentities(si2, receivedServiceIdentity2);
+            Assert.False(receivedServiceIdentity3.HasValue);
+            Assert.False(receivedServiceIdentity4.HasValue);
+
+            Assert.Equal(0, updatedIdentities.Count);
+            Assert.Equal(2, removedIdentities.Count);
+            Assert.True(removedIdentities.Contains("d2/m4"));
+            Assert.True(removedIdentities.Contains("d3"));
+
+            // Wait for another refresh cycle to complete, this time because timeout
+            await Task.Delay(TimeSpan.FromSeconds(8));
+            receivedServiceIdentity1 = await deviceScopeIdentitiesCache.GetServiceIdentity("d1");
+            receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2", "m1");
+            receivedServiceIdentity3 = await deviceScopeIdentitiesCache.GetServiceIdentity("d3");
+            receivedServiceIdentity4 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2", "m4");
+
+            // Assert
+            CompareServiceIdentities(si3, receivedServiceIdentity3);
+            CompareServiceIdentities(si4, receivedServiceIdentity4);
+            Assert.False(receivedServiceIdentity1.HasValue);
+            Assert.False(receivedServiceIdentity2.HasValue);
+
+            Assert.Equal(0, updatedIdentities.Count);
+            Assert.Equal(4, removedIdentities.Count);
+            Assert.True(removedIdentities.Contains("d2/m1"));
+            Assert.True(removedIdentities.Contains("d1"));
+        }
+
+        [Fact]
         public async Task RefreshServiceIdentityTest_Device()
         {
             // Arrange            
