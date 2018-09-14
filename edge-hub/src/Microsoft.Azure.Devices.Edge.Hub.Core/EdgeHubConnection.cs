@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using System.Net;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -26,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         Func<EdgeHubConfig, Task> configUpdateCallback;
         Option<TwinCollection> lastDesiredProperties = Option.None<TwinCollection>();
-        readonly IModuleIdentity edgeHubIdentity;
+        readonly IIdentity edgeHubIdentity;
         readonly ITwinManager twinManager;
         readonly IMessageConverter<TwinCollection> twinCollectionMessageConverter;
         readonly IMessageConverter<Twin> twinMessageConverter;
@@ -35,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly AsyncLock edgeHubConfigLock = new AsyncLock();
         readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
 
-        internal EdgeHubConnection(IModuleIdentity edgeHubIdentity,
+        internal EdgeHubConnection(IIdentity edgeHubIdentity,
             ITwinManager twinManager,
             RouteFactory routeFactory,
             IMessageConverter<TwinCollection> twinCollectionMessageConverter,
@@ -53,11 +52,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         }
 
         public static async Task<EdgeHubConnection> Create(
-            IClientCredentials edgeHubCredentials,
+            IIdentity edgeHubIdentity,
             IEdgeHub edgeHub,
             ITwinManager twinManager,
             IConnectionManager connectionManager,
-            ICloudProxy cloudProxy,
             RouteFactory routeFactory,
             IMessageConverter<TwinCollection> twinCollectionMessageConverter,
             IMessageConverter<Twin> twinMessageConverter,
@@ -65,17 +63,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache
         )
         {
-            Preconditions.CheckNotNull(edgeHubCredentials, nameof(edgeHubCredentials));
+            Preconditions.CheckNotNull(edgeHubIdentity, nameof(edgeHubIdentity));
             Preconditions.CheckNotNull(edgeHub, nameof(edgeHub));
             Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
-            Preconditions.CheckNotNull(cloudProxy, nameof(cloudProxy));
             Preconditions.CheckNotNull(twinCollectionMessageConverter, nameof(twinCollectionMessageConverter));
             Preconditions.CheckNotNull(twinMessageConverter, nameof(twinMessageConverter));
             Preconditions.CheckNotNull(routeFactory, nameof(routeFactory));
             Preconditions.CheckNotNull(deviceScopeIdentitiesCache, nameof(deviceScopeIdentitiesCache));
 
             var edgeHubConnection = new EdgeHubConnection(
-                edgeHubCredentials.Identity as IModuleIdentity,
+                edgeHubIdentity,
                 twinManager,
                 routeFactory,
                 twinCollectionMessageConverter,
@@ -87,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             await InitEdgeHub(edgeHubConnection, connectionManager, edgeHubCredentials, edgeHub);
             connectionManager.DeviceConnected += edgeHubConnection.DeviceConnected;
             connectionManager.DeviceDisconnected += edgeHubConnection.DeviceDisconnected;
-            Events.Initialized(edgeHubCredentials.Identity);
+            Events.Initialized(edgeHubIdentity);
             return edgeHubConnection;
         }
 

@@ -139,7 +139,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                 c =>
                 {
-                    IDeviceConnectivityManager deviceConnectivityManager = new DeviceConnectivityManager(this.connectivityCheckFrequency, TimeSpan.FromMinutes(2));
+                    var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
+                    IDeviceConnectivityManager deviceConnectivityManager = new DeviceConnectivityManager(this.connectivityCheckFrequency, TimeSpan.FromMinutes(2), edgeHubCredentials.Identity);
                     return deviceConnectivityManager;
                 })
                 .As<IDeviceConnectivityManager>()
@@ -349,24 +350,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .Named<IClientCredentials>("EdgeHubCredentials")
                 .SingleInstance();
 
-            // Task<ICloudProxy> "EdgeHubCloudProxy"
-            builder.Register(
-                    async c =>
-                    {
-                        var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
-                        IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
-                        Try<ICloudProxy> cloudProxyTry = await connectionManager.CreateCloudConnectionAsync(edgeHubCredentials);
-                        if (!cloudProxyTry.Success)
-                        {
-                            throw new EdgeHubConnectionException("Edge hub is unable to connect to IoT Hub", cloudProxyTry.Exception);
-                        }
-
-                        ICloudProxy cloudProxy = cloudProxyTry.Value;
-                        return cloudProxy;
-                    })
-                .Named<Task<ICloudProxy>>("EdgeHubCloudProxy")
-                .SingleInstance();
-
             // Task<IInvokeMethodHandler>
             builder.Register(async c =>
                 {
@@ -419,19 +402,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         var twinCollectionMessageConverter = c.Resolve<Core.IMessageConverter<TwinCollection>>();
                         var twinMessageConverter = c.Resolve<Core.IMessageConverter<Twin>>();
                         var twinManagerTask = c.Resolve<Task<ITwinManager>>();
-                        var cloudProxyTask = c.ResolveNamed<Task<ICloudProxy>>("EdgeHubCloudProxy");
                         var edgeHubTask = c.Resolve<Task<IEdgeHub>>();
                         ITwinManager twinManager = await twinManagerTask;
-                        ICloudProxy cloudProxy = await cloudProxyTask;
                         IEdgeHub edgeHub = await edgeHubTask;
                         IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
                         IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
                         IConfigSource edgeHubConnection = await EdgeHubConnection.Create(
-                            edgeHubCredentials,
+                            edgeHubCredentials.Identity,
                             edgeHub,
                             twinManager,
                             connectionManager,
-                            cloudProxy,
                             routeFactory,
                             twinCollectionMessageConverter,
                             twinMessageConverter,
