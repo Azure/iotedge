@@ -20,21 +20,35 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly IAuthenticator authenticator;
         readonly ICredentialsCache credentialsCache;
         readonly Timer timer;
+        readonly IIdentity edgeHubIdentity;
+        readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
 
         public ConnectionReauthenticator(
             IConnectionManager connectionManager,
             IAuthenticator authenticator,
             ICredentialsCache credentialsCache,
             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache,
-            TimeSpan reauthenticateFrequency)
+            TimeSpan reauthenticateFrequency,
+            IIdentity edgeHubIdentity)
         {
             this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
             this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
             this.credentialsCache = Preconditions.CheckNotNull(credentialsCache, nameof(credentialsCache));
+            this.edgeHubIdentity = Preconditions.CheckNotNull(edgeHubIdentity, nameof(edgeHubIdentity));
+            this.deviceScopeIdentitiesCache = Preconditions.CheckNotNull(deviceScopeIdentitiesCache, nameof(deviceScopeIdentitiesCache));
             this.timer = new Timer(reauthenticateFrequency.TotalMilliseconds);
             this.timer.Elapsed += this.ReauthenticateConnections;
-            deviceScopeIdentitiesCache.ServiceIdentityUpdated += this.HandleServiceIdentityUpdate;
-            deviceScopeIdentitiesCache.ServiceIdentityRemoved += this.HandleServiceIdentityRemove;
+            this.connectionManager.CloudConnectionEstablished += this.CloudConnectionEstablishedHandler;
+            this.deviceScopeIdentitiesCache.ServiceIdentityUpdated += this.HandleServiceIdentityUpdate;
+            this.deviceScopeIdentitiesCache.ServiceIdentityRemoved += this.HandleServiceIdentityRemove;
+        }
+
+        void CloudConnectionEstablishedHandler(object sender, IIdentity identity)
+        {
+            if (this.edgeHubIdentity.Id.Equals(identity.Id))
+            {
+                this.deviceScopeIdentitiesCache.InitiateCacheRefresh();
+            }
         }
 
         public void Init()
