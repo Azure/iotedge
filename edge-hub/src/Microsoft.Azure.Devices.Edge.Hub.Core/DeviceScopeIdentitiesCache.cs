@@ -9,10 +9,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Edge.Util.Json;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
+    using Nito.AsyncEx;
+    using AsyncLock = Microsoft.Azure.Devices.Edge.Util.Concurrency.AsyncLock;
 
     public sealed class DeviceScopeIdentitiesCache : IDeviceScopeIdentitiesCache
     {
@@ -22,6 +23,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly IDictionary<string, StoredServiceIdentity> serviceIdentityCache;
         readonly Timer refreshCacheTimer;
         readonly TimeSpan refreshRate;
+        readonly AsyncAutoResetEvent refreshCacheSignal = new AsyncAutoResetEvent();
+
         Task refreshCacheTask;
         readonly object refreshCacheLock = new object();
 
@@ -65,7 +68,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        public async Task RefreshCache()
+        public void InitiateCacheRefresh()
+        {
+            Events.ReceivedRequestToRefreshCache();
+            this.refreshCacheSignal.Set();
+        }
+
+        async Task RefreshCache()
         {
             while (true)
             {
@@ -92,7 +101,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     }
 
                     // Diff and update
-                    List<string> removedIds = this.serviceIdentityCache.Keys.Except(currentCacheIds).ToList();
+                    List<string> removedIds = this.serviceIdentityCache
+                        .Where(kvp => kvp.Value.ServiceIdentity.HasValue)
+                        .Select(kvp => kvp.Key)
+                        .Except(currentCacheIds).ToList();
                     await Task.WhenAll(removedIds.Select(id => this.HandleNoServiceIdentity(id)));
                 }
                 catch (Exception e)
@@ -101,7 +113,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 }
 
                 Events.DoneRefreshCycle(this.refreshRate);
-                await Task.Delay(this.refreshRate);
+                await this.IsReady();
+            }
+        }
+
+        async Task IsReady()
+        {
+            Task refreshCacheSignalTask = this.refreshCacheSignal.WaitAsync();
+            Task sleepTask = Task.Delay(this.refreshRate);
+            Task task = await Task.WhenAny(refreshCacheSignalTask, sleepTask);
+            if (task == refreshCacheSignalTask)
+            {
+                Events.RefreshSignalled();
+            }
+            else
+            {
+                Events.RefreshSleepCompleted();
             }
         }
 
@@ -261,7 +288,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 Created,
                 ErrorInRefresh,
                 StartingCycle,
-                DoneCycle
+                DoneCycle,
+                ReceivedRequestToRefreshCache,
+                RefreshSleepCompleted,
+                RefreshSignalled
             }
 
             internal static void InitializingRefreshTask(TimeSpan refreshRate) =>
@@ -292,6 +322,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 string id = serviceIdentity?.Id ?? "unknown";
                 Log.LogWarning((int)EventIds.ErrorInRefresh, exception, $"Error while processing the service identity for {id}");
             }
+
+            public static void ReceivedRequestToRefreshCache() =>
+                Log.LogDebug((int)EventIds.ReceivedRequestToRefreshCache, "Received request to refresh cache.");
+
+            public static void RefreshSignalled() =>
+                Log.LogDebug((int)EventIds.RefreshSignalled, "Device scope identities refresh is ready because a refresh was signalled.");
+
+            public static void RefreshSleepCompleted() =>
+                Log.LogDebug((int)EventIds.RefreshSleepCompleted, "Device scope identities refresh is ready because the wait period is over.");
         }
     }
 }

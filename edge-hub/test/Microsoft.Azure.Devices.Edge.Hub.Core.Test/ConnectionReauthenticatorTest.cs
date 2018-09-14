@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             authenticator.Setup(a => a.ReauthenticateAsync(moduleCredentials)).ReturnsAsync(true);
 
             // Act
-            var connectionReauthenticator = new ConnectionReauthenticator(connectionManager.Object, authenticator.Object, credentialsStore.Object, deviceScopeIdentitiesCache, reauthFrequency);
+            var connectionReauthenticator = new ConnectionReauthenticator(connectionManager.Object, authenticator.Object, credentialsStore.Object, deviceScopeIdentitiesCache, reauthFrequency, Mock.Of<IIdentity>());
             connectionReauthenticator.Init();
 
             // Assert            
@@ -90,7 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             authenticator.Setup(a => a.ReauthenticateAsync(moduleCredentials)).ReturnsAsync(false);
 
             // Act
-            var connectionReauthenticator = new ConnectionReauthenticator(connectionManager.Object, authenticator.Object, credentialsStore.Object, deviceScopeIdentitiesCache, reauthFrequency);
+            var connectionReauthenticator = new ConnectionReauthenticator(connectionManager.Object, authenticator.Object, credentialsStore.Object, deviceScopeIdentitiesCache, reauthFrequency, Mock.Of<IIdentity>());
             connectionReauthenticator.Init();
 
             // Assert            
@@ -137,7 +137,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .ReturnsAsync(true);
 
             // Act
-            var connectionReauthenticator = new ConnectionReauthenticator(connectionManager.Object, authenticator.Object, credentialsStore.Object, deviceScopeIdentitiesCache, reauthFrequency);
+            var connectionReauthenticator = new ConnectionReauthenticator(connectionManager.Object, authenticator.Object, credentialsStore.Object, deviceScopeIdentitiesCache, reauthFrequency, Mock.Of<IIdentity>());
             connectionReauthenticator.Init();
 
             // Assert            
@@ -165,7 +165,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             connectionManager.Setup(c => c.RemoveDeviceConnection("d1/m1")).Returns(Task.CompletedTask);
 
             // Act
-            var connectionReauthenticator = new ConnectionReauthenticator(connectionManager.Object, authenticator.Object, credentialsStore.Object, deviceScopeIdentitiesCache.Object, reauthFrequency);
+            var connectionReauthenticator = new ConnectionReauthenticator(connectionManager.Object, authenticator.Object, credentialsStore.Object, deviceScopeIdentitiesCache.Object, reauthFrequency, Mock.Of<IIdentity>());
             deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentityRemoved += null, null, "d1");
             deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentityRemoved += null, null, "d1/m1");
 
@@ -213,7 +213,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var moduleServiceIdentity = new ServiceIdentity("d1/m1", "1234", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
 
             // Act
-            var connectionReauthenticator = new ConnectionReauthenticator(connectionManager.Object, authenticator.Object, credentialsStore.Object, deviceScopeIdentitiesCache.Object, reauthFrequency);
+            var connectionReauthenticator = new ConnectionReauthenticator(connectionManager.Object, authenticator.Object, credentialsStore.Object, deviceScopeIdentitiesCache.Object, reauthFrequency, Mock.Of<IIdentity>());
             deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentityUpdated += null, null, deviceServiceIdentity);
             deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentityUpdated += null, null, moduleServiceIdentity);
 
@@ -261,7 +261,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var moduleServiceIdentity = new ServiceIdentity("d1/m1", "1234", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
 
             // Act
-            var connectionReauthenticator = new ConnectionReauthenticator(connectionManager.Object, authenticator.Object, credentialsStore.Object, deviceScopeIdentitiesCache.Object, reauthFrequency);
+            var connectionReauthenticator = new ConnectionReauthenticator(connectionManager.Object, authenticator.Object, credentialsStore.Object, deviceScopeIdentitiesCache.Object, reauthFrequency, Mock.Of<IIdentity>());
             deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentityUpdated += null, null, deviceServiceIdentity);
             deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentityUpdated += null, null, moduleServiceIdentity);
 
