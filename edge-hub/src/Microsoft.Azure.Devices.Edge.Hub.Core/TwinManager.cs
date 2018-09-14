@@ -736,9 +736,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             public static void ConnectionEstablishedCallbackException(string id, Exception e)
             {
-                Log.LogWarning(
-                    (int)EventIds.ConnectionEstablishedCallbackException,
-                    $"Error in connection established callback for client {id} - {e.GetType()} {e.Message}");
+                if (e.HasTimeoutException())
+                {
+                    Log.LogDebug(
+                        (int)EventIds.ConnectionEstablishedCallbackException,
+                        $"Timed out while processing connection established callback for client {id} - {e.GetType()} {e.Message}");
+                }
+                else
+                {
+                    Log.LogWarning(
+                        (int)EventIds.ConnectionEstablishedCallbackException, e,
+                        $"Error in connection established callback for client {id}");
+                }
             }
 
             public static void MissingTwinOnUpdateReported(string id, Exception e)
