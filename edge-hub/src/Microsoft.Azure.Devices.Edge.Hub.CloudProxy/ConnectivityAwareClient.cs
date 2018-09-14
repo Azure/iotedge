@@ -5,7 +5,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
 
@@ -19,10 +21,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     {
         readonly IClient underlyingClient;
         readonly IDeviceConnectivityManager deviceConnectivityManager;
+        readonly AtomicBoolean isConnected = new AtomicBoolean(false);
+        readonly IIdentity identity;
         ConnectionStatusChangesHandler connectionStatusChangedHandler;
 
-        public ConnectivityAwareClient(IClient client, IDeviceConnectivityManager deviceConnectivityManager)
+        public ConnectivityAwareClient(IIdentity identity, IClient client, IDeviceConnectivityManager deviceConnectivityManager)
         {
+            this.identity = Preconditions.CheckNotNull(identity, nameof(identity));
             this.underlyingClient = Preconditions.CheckNotNull(client, nameof(client));
             this.deviceConnectivityManager = Preconditions.CheckNotNull(deviceConnectivityManager, nameof(deviceConnectivityManager));
 
@@ -30,17 +35,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.deviceConnectivityManager.DeviceDisconnected += this.HandleDeviceDisconnectedEvent;
         }
 
-        void HandleDeviceConnectedEvent(object sender, EventArgs eventArgs) =>
-            this.connectionStatusChangedHandler?.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
+        void HandleDeviceConnectedEvent(object sender, EventArgs eventArgs)
+        {
+            if (!this.isConnected.GetAndSet(true))
+            {
+                Events.ChangingStatus(this.isConnected, this.identity);
+                this.connectionStatusChangedHandler?.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
+            }
+        }
 
-        void HandleDeviceDisconnectedEvent(object sender, EventArgs eventArgs) =>
-            this.connectionStatusChangedHandler?.Invoke(ConnectionStatus.Disconnected, ConnectionStatusChangeReason.No_Network);
+        void HandleDeviceDisconnectedEvent(object sender, EventArgs eventArgs)
+        {
+            if (this.isConnected.GetAndSet(false))
+            {
+                Events.ChangingStatus(this.isConnected, this.identity);
+                this.connectionStatusChangedHandler?.Invoke(ConnectionStatus.Disconnected, ConnectionStatusChangeReason.No_Network);
+            }
+        }
 
         public bool IsActive => this.underlyingClient.IsActive;
 
         public async Task CloseAsync()
         {
             await this.underlyingClient.CloseAsync();
+            this.isConnected.Set(false);
             this.deviceConnectivityManager.DeviceConnected -= this.HandleDeviceConnectedEvent;
             this.deviceConnectivityManager.DeviceDisconnected -= this.HandleDeviceDisconnectedEvent;
         }
@@ -116,6 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     this.deviceConnectivityManager.CallSucceeded();
                 }
 
+                this.HandleDeviceConnectedEvent(this, EventArgs.Empty);
                 Events.OperationSucceeded(operation);
                 return result;
             }
@@ -165,7 +184,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 ReceivedCallback = IdStart,
                 OperationTimedOut,
                 OperationFailed,
-                OperationSucceeded
+                OperationSucceeded,
+                ChangingStatus
             }
 
             public static void ReceivedDeviceSdkCallback(ConnectionStatus status, ConnectionStatusChangeReason reason)
@@ -186,6 +206,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             public static void OperationFailed(string operation, Exception ex)
             {
                 Log.LogDebug((int)EventIds.OperationFailed, ex, $"Operation {operation} failed");
+            }
+
+            public static void ChangingStatus(AtomicBoolean isConnected, IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.ChangingStatus, $"Cloud connection for {identity.Id} is {isConnected.Get()}");
             }
         }
     }

@@ -134,12 +134,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     // the existing connection is not affected.
                     this.cloudProxy = Option.Some(proxy);
                     this.identity = Option.Some(newCredentials.Identity);
-                    // Callbacks are disabled when updating identities, so explicitly invoke the
-                    // connection status changed handler callback. 
-                    if (newProxyCreated)
-                    {
-                        this.connectionStatusChangedHandler?.Invoke(newCredentials.Identity.Id, CloudConnectionStatus.ConnectionEstablished);
-                    }
                     Events.UpdatedCloudConnection(newCredentials.Identity);
                     return proxy;
                 }
