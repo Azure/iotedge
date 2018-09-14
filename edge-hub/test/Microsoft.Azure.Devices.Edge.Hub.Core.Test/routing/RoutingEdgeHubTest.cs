@@ -596,7 +596,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         }
 
         [Fact]
-        public async Task AddSubscriptionThrowsTest()
+        public async Task AddSubscriptionHandlesExceptionTest()
         {
             // Arrange
             string deviceId = "d1";
@@ -610,7 +610,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             IEdgeHub edgeHub = await GetTestEdgeHub(connectionManager.Object);
 
             // Act
-            await Assert.ThrowsAsync<InvalidOperationException>(() => edgeHub.AddSubscription(deviceId, DeviceSubscription.Methods));
+            await edgeHub.AddSubscription(deviceId, DeviceSubscription.Methods);
 
             // Assert
             cloudProxy.VerifyAll();
@@ -663,7 +663,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         }
 
         [Fact]
-        public async Task RemoveSubscriptionThrowsTest()
+        public async Task RemoveSubscriptionHandlesExceptionTest()
         {
             // Arrange
             string deviceId = "d1";
@@ -677,7 +677,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             IEdgeHub edgeHub = await GetTestEdgeHub(connectionManager.Object);
 
             // Act
-            await Assert.ThrowsAsync<InvalidOperationException>(() => edgeHub.AddSubscription(deviceId, DeviceSubscription.Methods));
+            await edgeHub.AddSubscription(deviceId, DeviceSubscription.Methods);
 
             // Assert
             cloudProxy.VerifyAll();
