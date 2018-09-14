@@ -53,6 +53,7 @@ Defaults:
   --optimize_for_performance true
   --verify-data-from-module  tempSensor
   --deployment               deployment json file
+  --runtime-log-level        debug
 "
         )]
     [HelpOption]
@@ -108,6 +109,9 @@ Defaults:
 
         [Option("--verify-data-from-module", Description = "Verify if a given module sent data do IoTHub.")]
         public string VerifyDataFromModule { get; } = "tempSensor";
+
+        [Option("--runtime-log-level", Description = "Change Runtime log level for modules.")]
+        public LogLevel RuntimeLogLevel { get; } = LogLevel.Debug;
 
         [Option("-l|--deployment <filename>", Description = "Deployment json file")]
         public string DeploymentFileName { get; } = Environment.GetEnvironmentVariable("deployment");
@@ -191,7 +195,8 @@ Defaults:
                     this.DeviceCaCert,
                     this.DeviceCaPk,
                     this.DeviceCaCerts,
-                    this.OptimizeForPerformance);
+                    this.OptimizeForPerformance,
+                    this.RuntimeLogLevel);
                 await test.RunAsync();
             }
             catch (Exception ex)
@@ -229,5 +234,11 @@ Defaults:
         All,  // don't clean up anything
         Core, // remove modules/identities except Edge Agent & Hub
         None  // iotedgectl stop, uninstall, remove device identity
+    }
+
+    public enum LogLevel
+    {
+        Info,
+        Debug
     }
 }
