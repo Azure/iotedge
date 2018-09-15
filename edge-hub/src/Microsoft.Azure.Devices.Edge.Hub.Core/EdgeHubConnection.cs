@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Net;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
