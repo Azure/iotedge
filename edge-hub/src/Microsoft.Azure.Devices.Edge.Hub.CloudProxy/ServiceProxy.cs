@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System.Collections.Generic;
     using System.Linq;
+    using System.Net;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
@@ -23,64 +24,97 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public async Task<Option<ServiceIdentity>> GetServiceIdentity(string deviceId)
         {
-            ScopeResult scopeResult = await this.securityScopesApiClient.GetIdentity(deviceId, null);
-            if (scopeResult != null)
+            Option<ScopeResult> scopeResult = Option.None<ScopeResult>();
+            try
             {
-                if (scopeResult.Devices != null)
-                {
-                    int count = scopeResult.Devices.Count();
-                    if (count == 1)
-                    {
-                        ServiceIdentity serviceIdentity = scopeResult.Devices.First().ToServiceIdentity();
-                        return Option.Some(serviceIdentity);
-                    }
-                    else
-                    {
-                        Events.UnexpectedResult(count, 1, "devices");
-                    }
-                }
-                else
-                {
-                    Events.NullDevicesResult();
-                }
+                ScopeResult res = await this.securityScopesApiClient.GetIdentity(deviceId, null);
+                scopeResult = Option.Maybe(res);
+                Events.IdentityScopeResultReceived(deviceId);
             }
-            else
+            catch (DeviceScopeApiException ex) when (ex.StatusCode == HttpStatusCode.BadRequest)
             {
-                Events.NullResult();
+                Events.BadRequestResult(deviceId, ex.StatusCode);
             }
 
-            return Option.None<ServiceIdentity>();
+            Option<ServiceIdentity> serviceIdentityResult =
+                scopeResult
+                    .Map(sc =>
+                    {
+                        if (sc.Devices != null)
+                        {
+                            int count = sc.Devices.Count();
+                            if (count == 1)
+                            {
+                                ServiceIdentity serviceIdentity = sc.Devices.First().ToServiceIdentity();
+                                return Option.Some(serviceIdentity);
+                            }
+                            else
+                            {
+                                Events.UnexpectedResult(count, 1, "devices", deviceId);
+                            }
+                        }
+                        else
+                        {
+                            Events.NullDevicesResult(deviceId);
+                        }
+                        return Option.None<ServiceIdentity>();
+                    })
+                    .GetOrElse(() =>
+                    {
+                        Events.NullResult(deviceId);
+                        return Option.None<ServiceIdentity>();
+                    });
+
+            return serviceIdentityResult;
         }
-
+        
         public async Task<Option<ServiceIdentity>> GetServiceIdentity(string deviceId, string moduleId)
         {
-            ScopeResult scopeResult = await this.securityScopesApiClient.GetIdentity(deviceId, moduleId);
-            if (scopeResult != null)
+            string id = $"{deviceId}/{moduleId}";
+            Option<ScopeResult> scopeResult = Option.None<ScopeResult>();
+            try
             {
-                if (scopeResult.Modules != null)
-                {
-                    int count = scopeResult.Modules.Count();
-                    if (count == 1)
-                    {
-                        ServiceIdentity serviceIdentity = scopeResult.Modules.First().ToServiceIdentity();
-                        return Option.Some(serviceIdentity);
-                    }
-                    else
-                    {
-                        Events.UnexpectedResult(count, 1, "devices");
-                    }
-                }
-                else
-                {
-                    Events.NullDevicesResult();
-                }
+                ScopeResult res = await this.securityScopesApiClient.GetIdentity(deviceId, moduleId);
+                scopeResult = Option.Maybe(res);
+                Events.IdentityScopeResultReceived(id);
             }
-            else
+            catch (DeviceScopeApiException ex) when (ex.StatusCode == HttpStatusCode.BadRequest)
             {
-                Events.NullResult();
+                Events.BadRequestResult(id, ex.StatusCode);
             }
 
-            return Option.None<ServiceIdentity>();
+            Option<ServiceIdentity> serviceIdentityResult =
+                scopeResult
+                    .Map(
+                        sc =>
+                        {
+                            if (sc.Modules != null)
+                            {
+                                int count = sc.Modules.Count();
+                                if (count == 1)
+                                {
+                                    ServiceIdentity serviceIdentity = sc.Modules.First().ToServiceIdentity();
+                                    return Option.Some(serviceIdentity);
+                                }
+                                else
+                                {
+                                    Events.UnexpectedResult(count, 1, "modules", id);
+                                }
+                            }
+                            else
+                            {
+                                Events.NullDevicesResult(id);
+                            }
+                            return Option.None<ServiceIdentity>();
+                        })
+                    .GetOrElse(
+                        () =>
+                        {
+                            Events.NullResult(id);
+                            return Option.None<ServiceIdentity>();
+                        });
+
+            return serviceIdentityResult;
         }
 
         class ServiceIdentitiesIterator : IServiceIdentitiesIterator
@@ -161,19 +195,34 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Log.LogDebug((int)EventIds.ScopeResultReceived, $"Received scope result with {scopeResult.Devices?.Count() ?? 0} devices, {scopeResult.Modules?.Count() ?? 0} modules and {continuationLinkExists} continuation link");
             }
 
-            public static void UnexpectedResult(int count, int expected, string entityName)
+            public static void IdentityScopeResultReceived(string id)
             {
-                Log.LogWarning((int)EventIds.UnexpectedResult, $"Expected to receive {expected} {entityName} but received {count} instead");
+                Log.LogDebug((int)EventIds.ScopeResultReceived, $"Received scope result for {id}");
             }
 
-            public static void NullDevicesResult()
+            public static void UnexpectedResult(int count, int expected, string entityName, string id)
             {
-                Log.LogWarning((int)EventIds.UnexpectedResult, "Received null devices in device scope result");
+                Log.LogWarning((int)EventIds.UnexpectedResult, $"Expected to receive {expected} {entityName} but received {count} instead, for {id}");
+            }
+
+            public static void NullDevicesResult(string id)
+            {
+                Log.LogWarning((int)EventIds.UnexpectedResult, $"Received null devices in device scope result for {id}");
             }
 
             public static void NullResult()
             {
                 Log.LogWarning((int)EventIds.UnexpectedResult, "Received null device scope result");
+            }
+
+            public static void NullResult(string id)
+            {
+                Log.LogWarning((int)EventIds.UnexpectedResult, $"Received null device scope result for {id}");
+            }
+
+            public static void BadRequestResult(string id, HttpStatusCode statusCode)
+            {
+                Log.LogDebug((int)EventIds.ScopeResultReceived, $"Received scope result for {id} with status code {statusCode} indicating that {id} has been removed from the scope");
             }
         }
     }
