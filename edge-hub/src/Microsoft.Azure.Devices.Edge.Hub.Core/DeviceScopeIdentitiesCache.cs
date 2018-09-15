@@ -298,7 +298,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 Log.LogDebug((int)EventIds.InitializingRefreshTask, $"Initializing device scope identities cache refresh task to run every {refreshRate.TotalMinutes} minutes.");
 
             public static void Created() =>
-                Log.LogDebug((int)EventIds.Created, "Created device scope identities cache");
+                Log.LogInformation((int)EventIds.Created, "Created device scope identities cache");
 
             public static void ErrorInRefreshCycle(Exception exception)
             {

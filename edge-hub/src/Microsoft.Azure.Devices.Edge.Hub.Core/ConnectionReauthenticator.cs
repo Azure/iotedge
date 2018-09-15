@@ -61,6 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             try
             {
+                Events.ReauthenticatingClients();
                 IList<IIdentity> identities = this.connectionManager.GetConnectedClients().ToList();
                 foreach (IIdentity identity in identities)
                 {
@@ -165,7 +166,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 ServiceIdentityRemoved,
                 ClientCredentialsResult,
                 DeviceNotConnected,
-                StartingReauthTimer
+                StartingReauthTimer,
+                ReauthenticatingClients
             }
 
             public static void ErrorReauthenticating(Exception ex)
@@ -228,6 +230,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             public static void StartingReauthTimer(Timer timer)
             {
                 Log.LogDebug((int)EventIds.StartingReauthTimer, $"Starting timer to authenticate connections with a period of {timer.Interval / 1000} seconds");
+            }
+
+            public static void ReauthenticatingClients()
+            {
+                Log.LogDebug((int)EventIds.ReauthenticatingClients, $"Reauthenticating connected clients");
             }
         }
 

@@ -342,8 +342,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         }
 
         internal async Task<DirectMethodResponse> HandleMethodInvocation(DirectMethodRequest request)
-        {
+        {            
             Preconditions.CheckNotNull(request, nameof(request));
+            Events.MethodRequestReceived(request.Name);
             if (request.Name.Equals(Constants.ServiceIdentityRefreshMethodName, StringComparison.OrdinalIgnoreCase))
             {
                 RefreshRequest refreshRequest;
@@ -359,6 +360,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
                 try
                 {
+                    Events.RefreshingServiceIdentities(refreshRequest.DeviceIds);
                     await this.deviceScopeIdentitiesCache.RefreshServiceIdentities(refreshRequest.DeviceIds);
                     Events.RefreshedServiceIdentities(refreshRequest.DeviceIds);
                     return new DirectMethodResponse(request.CorrelationId, null, (int)HttpStatusCode.OK);
@@ -536,7 +538,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 ErrorRefreshingServiceIdentities,
                 RefreshedServiceIdentities,
                 InvalidMethodRequest,
-                SkipUpdatingEdgeHubIdentity
+                SkipUpdatingEdgeHubIdentity,
+                MethodRequestReceived
             }
 
             internal static void Initialized(IIdentity edgeHubIdentity)
@@ -625,7 +628,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             public static void RefreshedServiceIdentities(IEnumerable<string> refreshRequestDeviceIds)
             {
-                Log.LogDebug((int)EventIds.RefreshedServiceIdentities, Invariant($"Refreshed {refreshRequestDeviceIds} device scope identities"));
+                Log.LogInformation((int)EventIds.RefreshedServiceIdentities, Invariant($"Refreshed {refreshRequestDeviceIds.Count()} device scope identities on demand"));
+            }
+
+            public static void RefreshingServiceIdentities(IEnumerable<string> refreshRequestDeviceIds)
+            {
+                Log.LogDebug((int)EventIds.RefreshedServiceIdentities, Invariant($"Refreshing {refreshRequestDeviceIds.Count()} device scope identities"));
+            }
+
+            public static void MethodRequestReceived(string methodName)
+            {
+                Log.LogDebug((int)EventIds.MethodRequestReceived, Invariant($"Received method request {methodName}"));
             }
 
             public static void InvalidMethodRequest(string requestName)
