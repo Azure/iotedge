@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -104,15 +105,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             ICloudConnectionProvider cloudConnectionProvider = await container.Resolve<Task<ICloudConnectionProvider>>();
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
-            // Resolve IDeviceScopeIdentitiesCache to start the pump
-            await container.Resolve<Task<IDeviceScopeIdentitiesCache>>();
+            // Register EdgeHub credentials
+            var edgeHubCredentials = container.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
+            ICredentialsCache credentialsCache = await container.Resolve<Task<ICredentialsCache>>();
+            await credentialsCache.Add(edgeHubCredentials);
 
             // EdgeHub cloud proxy and DeviceConnectivityManager have a circular dependency,
             // so the cloud proxy has to be set on the DeviceConnectivityManager after both have been initialized.
             var deviceConnectivityManager = container.Resolve<IDeviceConnectivityManager>();
-            ICloudProxy cloudProxy = await container.ResolveNamed<Task<ICloudProxy>>("EdgeHubCloudProxy");
-            (deviceConnectivityManager as DeviceConnectivityManager)?.SetTestCloudProxy(cloudProxy);
+            IConnectionManager connectionManager = await container.Resolve<Task<IConnectionManager>>();
+            (deviceConnectivityManager as DeviceConnectivityManager)?.SetConnectionManager(connectionManager);
 
+            // Initializing configuration
             logger.LogInformation("Initializing configuration");
             IConfigSource configSource = await container.Resolve<Task<IConfigSource>>();
             ConfigUpdater configUpdater = await container.Resolve<Task<ConfigUpdater>>();
