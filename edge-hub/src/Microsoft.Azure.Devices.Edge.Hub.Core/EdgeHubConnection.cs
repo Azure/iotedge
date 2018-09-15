@@ -257,7 +257,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        async void DeviceDisconnected(object sender, IIdentity device)
+        internal async void DeviceDisconnected(object sender, IIdentity device)
         {
             try
             {
@@ -269,7 +269,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        async void DeviceConnected(object sender, IIdentity device)
+        internal async void DeviceConnected(object sender, IIdentity device)
         {
             try
             {
@@ -285,6 +285,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             try
             {
+                if (client.Id.Equals(this.edgeHubIdentity.Id))
+                {
+                    Events.SkipUpdatingEdgeHubIdentity(client.Id, connectionStatus);
+                    return Task.CompletedTask;
+                }
+
                 Events.UpdatingDeviceConnectionStatus(client.Id, connectionStatus);
 
                 // If a downstream device disconnects, then remove the entry from Reported properties
@@ -529,7 +535,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 ErrorParsingMethodRequest,
                 ErrorRefreshingServiceIdentities,
                 RefreshedServiceIdentities,
-                InvalidMethodRequest
+                InvalidMethodRequest,
+                SkipUpdatingEdgeHubIdentity
             }
 
             internal static void Initialized(IIdentity edgeHubIdentity)
@@ -624,6 +631,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             public static void InvalidMethodRequest(string requestName)
             {
                 Log.LogWarning((int)EventIds.InvalidMethodRequest, Invariant($"Received request for unsupported method {requestName}"));
+            }
+
+            public static void SkipUpdatingEdgeHubIdentity(string id, ConnectionStatus connectionStatus)
+            {
+                Log.LogDebug((int)EventIds.SkipUpdatingEdgeHubIdentity, Invariant($"Skipped updating connection status change to {connectionStatus} for {id}"));
             }
         }
     }
