@@ -5,8 +5,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using System.Collections.Generic;
     using System.Net;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Routing;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -16,6 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using Moq;
     using Xunit;
     using Constants = Microsoft.Azure.Devices.Edge.Hub.Core.Constants;
+    using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
 
     [Unit]
     public class EdgeHubConnectionTest
@@ -174,6 +177,38 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Assert
             Assert.NotNull(directMethodResponse);
             Assert.Equal(HttpStatusCode.NotFound, directMethodResponse.HttpStatusCode);
+        }
+
+        [Fact]
+        public async Task HandleDeviceConnectedDisconnectedEvents()
+        {
+            // Arrange
+            var edgeHubIdentity = Mock.Of<IModuleIdentity>(i => i.Id == "edgeD1/$edgeHub");
+            var twinManager = Mock.Of<ITwinManager>();
+            var routeFactory = new EdgeRouteFactory(Mock.Of<IEndpointFactory>());
+            var twinCollectionMessageConverter = new TwinCollectionMessageConverter();
+            var twinMessageConverter = new TwinMessageConverter();
+            var versionInfo = new VersionInfo("1.0", "1", "123");
+            var deviceScopeIdentitiesCache = Mock.Of<IDeviceScopeIdentitiesCache>();
+            var edgeHubConnection = new EdgeHubConnection(edgeHubIdentity, twinManager, routeFactory, twinCollectionMessageConverter, twinMessageConverter, versionInfo, deviceScopeIdentitiesCache);
+
+            Mock.Get(twinManager).Setup(t => t.UpdateReportedPropertiesAsync(It.IsAny<string>(), It.IsAny<IMessage>())).Returns(Task.CompletedTask);
+
+            // Act
+            edgeHubConnection.DeviceConnected(this, Mock.Of<IIdentity>(i => i.Id == "d1"));
+            edgeHubConnection.DeviceConnected(this, Mock.Of<IIdentity>(i => i.Id == "edgeD1/$edgeHub"));
+
+            // Assert
+            await Task.Delay(TimeSpan.FromSeconds(2));
+            Mock.Get(twinManager).Verify(t => t.UpdateReportedPropertiesAsync(It.IsAny<string>(), It.IsAny<IMessage>()), Times.Once);
+
+            // Act
+            edgeHubConnection.DeviceDisconnected(this, Mock.Of<IIdentity>(i => i.Id == "d1"));
+            edgeHubConnection.DeviceDisconnected(this, Mock.Of<IIdentity>(i => i.Id == "edgeD1/$edgeHub"));
+
+            // Assert
+            await Task.Delay(TimeSpan.FromSeconds(2));
+            Mock.Get(twinManager).Verify(t => t.UpdateReportedPropertiesAsync(It.IsAny<string>(), It.IsAny<IMessage>()), Times.Exactly(2));
         }
     }
 }
