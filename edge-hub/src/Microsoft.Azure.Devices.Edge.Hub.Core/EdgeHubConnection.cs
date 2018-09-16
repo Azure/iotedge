@@ -343,7 +343,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         }
 
         internal async Task<DirectMethodResponse> HandleMethodInvocation(DirectMethodRequest request)
-        {            
+        {
             Preconditions.CheckNotNull(request, nameof(request));
             Events.MethodRequestReceived(request.Name);
             if (request.Name.Equals(Constants.ServiceIdentityRefreshMethodName, StringComparison.OrdinalIgnoreCase))

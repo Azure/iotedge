@@ -44,7 +44,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             {
                 try
                 {
-                    return await serviceIdentity.Map(s => this.AuthenticateInternalAsync(tokenCredentials, s)).GetOrElse(Task.FromResult(false));
+                    bool isAuthenticated = await serviceIdentity
+                        .Map(s => this.AuthenticateInternalAsync(tokenCredentials, s))
+                        .GetOrElse(Task.FromResult(false));
+                    Events.AuthenticatedInScope(clientCredentials.Identity, isAuthenticated);
+                    return isAuthenticated;
                 }
                 catch (Exception e)
                 {
@@ -71,7 +75,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             {
                 try
                 {
-                    return await serviceIdentity.Map(s => this.AuthenticateInternalAsync(tokenCredentials, s)).GetOrElse(Task.FromResult(false));
+                    bool isAuthenticated = await serviceIdentity.Map(s => this.AuthenticateInternalAsync(tokenCredentials, s)).GetOrElse(Task.FromResult(false));
+                    Events.ReauthenticatedInScope(clientCredentials.Identity, isAuthenticated);
+                    return isAuthenticated;
                 }
                 catch (Exception e)
                 {
@@ -250,7 +256,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
                 ServiceIdentityNotEnabled,
                 TokenExpired,
                 ErrorParsingToken,
-                ServiceIdentityNotFound
+                ServiceIdentityNotFound,
+                AuthenticatedInScope
             }
 
             public static void ErrorReauthenticating(Exception exception, ServiceIdentity serviceIdentity)
@@ -306,6 +313,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             public static void ServiceIdentityNotFound(IIdentity identity)
             {
                 Log.LogDebug((int)EventIds.ServiceIdentityNotFound, $"Service identity for {identity.Id} not found. Using underlying authenticator to authenticate");
+            }
+
+            public static void AuthenticatedInScope(IIdentity identity, bool isAuthenticated)
+            {
+                string authenticated = isAuthenticated ? "authenticated" : "not authenticated";
+                Log.LogInformation((int)EventIds.AuthenticatedInScope, $"Client {identity.Id} in device scope {authenticated} locally.");
+            }
+
+            public static void ReauthenticatedInScope(IIdentity identity, bool isAuthenticated)
+            {
+                string authenticated = isAuthenticated ? "reauthenticated" : "not reauthenticated";
+                Log.LogDebug((int)EventIds.AuthenticatedInScope, $"Client {identity.Id} in device scope {authenticated} locally.");
             }
         }
     }
