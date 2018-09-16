@@ -197,6 +197,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             switch (connectionStatus)
             {
                 case CloudConnectionStatus.TokenNearExpiry:
+                    Events.ProcessingTokenNearExpiryEvent(device.Identity);
                     Option<IClientCredentials> token = await this.credentialsCache.Get(device.Identity);
                     if (token.HasValue)
                     {
@@ -213,14 +214,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
                 case CloudConnectionStatus.DisconnectedTokenExpired:
                     await this.RemoveDeviceConnection(device, true);
+                    Events.InvokingCloudConnectionLostEvent(device.Identity);
                     this.CloudConnectionLost?.Invoke(this, device.Identity);
                     break;
 
                 case CloudConnectionStatus.Disconnected:
+                    Events.InvokingCloudConnectionLostEvent(device.Identity);
                     this.CloudConnectionLost?.Invoke(this, device.Identity);
                     break;
 
                 case CloudConnectionStatus.ConnectionEstablished:
+                    Events.InvokingCloudConnectionEstablishedEvent(device.Identity);
                     this.CloudConnectionEstablished?.Invoke(this, device.Identity);
                     break;
             }
@@ -366,7 +370,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 RemoveDeviceConnection,
                 CreateNewCloudConnectionError,
                 ObtainedCloudConnection,
-                ObtainCloudConnectionError
+                ObtainCloudConnectionError,
+                ProcessingTokenNearExpiryEvent,
+                InvokingCloudConnectionLostEvent,
+                InvokingCloudConnectionEstablishedEvent
             }
 
             public static void NewCloudConnection(IIdentity identity, Try<ICloudConnection> cloudConnection)
@@ -401,7 +408,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 {
                     Log.LogInformation((int)EventIds.ObtainCloudConnectionError, cloudConnection.Exception, Invariant($"Error getting cloud connection for device {identity.Id}"));
                 }
-            }            
+            }
+
+            public static void ProcessingTokenNearExpiryEvent(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.ProcessingTokenNearExpiryEvent, Invariant($"Processing token near expiry for {identity.Id}"));
+            }
+
+            public static void InvokingCloudConnectionLostEvent(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.InvokingCloudConnectionLostEvent, Invariant($"Invoking cloud connection lost event for {identity.Id}"));
+            }
+
+            public static void InvokingCloudConnectionEstablishedEvent(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.InvokingCloudConnectionEstablishedEvent, Invariant($"Invoking cloud connection established event for {identity.Id}"));
+            }
         }
     }
 }

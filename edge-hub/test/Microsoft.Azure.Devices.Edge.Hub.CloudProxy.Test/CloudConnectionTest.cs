@@ -177,8 +177,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Task<string> getTokenTask = deviceAuthenticationWithTokenRefresh.GetTokenAsync(iothubHostName);
             Assert.False(getTokenTask.IsCompleted);
 
-            Assert.Equal(2, receivedStatuses.Count);
-            Assert.Equal(receivedStatuses[1], CloudConnectionStatus.TokenNearExpiry);
+            Assert.Equal(1, receivedStatuses.Count);
+            Assert.Equal(receivedStatuses[0], CloudConnectionStatus.TokenNearExpiry);
 
             ICloudProxy cloudProxy2 = await cloudConnection.CreateOrUpdateAsync(clientCredentialsWithExpiringToken1);
 
@@ -195,8 +195,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             await Task.Delay(TimeSpan.FromSeconds(20));
 
             // Check if retry happened
-            Assert.Equal(3, receivedStatuses.Count);
-            Assert.Equal(receivedStatuses[2], CloudConnectionStatus.TokenNearExpiry);
+            Assert.Equal(2, receivedStatuses.Count);
+            Assert.Equal(receivedStatuses[1], CloudConnectionStatus.TokenNearExpiry);
 
             IClientCredentials clientCredentialsWithNonExpiringToken = GetClientCredentialsWithNonExpiringToken();
             ICloudProxy cloudProxy3 = await cloudConnection.CreateOrUpdateAsync(clientCredentialsWithNonExpiringToken);
@@ -264,20 +264,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             ICloudProxy cloudProxy1 = await cloudConnection.CreateOrUpdateAsync(clientCredentialsWithExpiringToken1);
             Assert.True(cloudProxy1.IsActive);
             Assert.Equal(cloudProxy1, cloudConnection.CloudProxy.OrDefault());
-            Assert.Equal(receivedConnectedStatusCount, 1);
+            Assert.Equal(receivedConnectedStatusCount, 0);
 
             Assert.NotNull(connectionStatusChangesHandler);
             connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
-            Assert.Equal(receivedConnectedStatusCount, 2);
+            Assert.Equal(receivedConnectedStatusCount, 1);
 
             IClientCredentials clientCredentialsWithExpiringToken2 = GetMockClientCredentialsWithToken();
             ICloudProxy cloudProxy2 = await cloudConnection.CreateOrUpdateAsync(clientCredentialsWithExpiringToken2);
             Assert.True(cloudProxy2.IsActive);
             Assert.Equal(cloudProxy2, cloudConnection.CloudProxy.OrDefault());
-            Assert.Equal(receivedConnectedStatusCount, 3);
+            Assert.Equal(receivedConnectedStatusCount, 1);
 
             connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
-            Assert.Equal(receivedConnectedStatusCount, 4);
+            Assert.Equal(receivedConnectedStatusCount, 2);
         }
 
         [Unit]
