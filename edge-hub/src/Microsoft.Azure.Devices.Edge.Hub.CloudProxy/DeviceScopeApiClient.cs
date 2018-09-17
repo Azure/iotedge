@@ -150,7 +150,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public static void RetryingGetIdentities(RetryingEventArgs retryingEventArgs)
             {
-                Log.LogDebug((int)EventIds.Retrying, $"Retrying device scope api call because {retryingEventArgs.CurrentRetryCount} times because of error - {retryingEventArgs.LastException}");
+                Log.LogDebug((int)EventIds.Retrying, $"Retrying device scope api call {retryingEventArgs.CurrentRetryCount} times because of error - {retryingEventArgs.LastException}");
             }
 
             public static void GotValidResult()

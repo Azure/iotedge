@@ -95,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
 
             public static void AuthenticatedWithIotHub(IIdentity identity)
             {
-                Log.LogDebug((int)EventIds.AuthenticatedWithCloud, $"Authenticated {identity.Id} with IotHub");
+                Log.LogInformation((int)EventIds.AuthenticatedWithCloud, $"Authenticated {identity.Id} with IotHub");
             }
 
             public static void ErrorValidatingTokenWithIoTHub(IIdentity identity, Exception ex)
