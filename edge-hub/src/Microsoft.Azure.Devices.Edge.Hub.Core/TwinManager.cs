@@ -110,7 +110,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 async (store) =>
                 {
                     TwinInfo twinInfo = await this.GetTwinInfoWithStoreSupportAsync(id);
-                    return this.twinConverter.ToMessage(twinInfo.Twin);
+                    return twinInfo.Twin != null
+                        ? this.twinConverter.ToMessage(twinInfo.Twin)
+                        : throw new InvalidOperationException($"Error getting twin for device {id}. Twin is null.");
                 },
                 async () =>
                 {
@@ -321,9 +323,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     return Task.CompletedTask;
                 },
                 () => throw new InvalidOperationException($"Error getting twin for device {id}", e));
-            return twinInfo.Twin != null
-                ? twinInfo
-                : throw new InvalidOperationException($"Error getting twin for device {id}", e);
+            return twinInfo;
         }
 
         async Task UpdateReportedPropertiesWhenTwinStoreHasTwinAsync(string id, TwinCollection reported, bool cloudVerified)
