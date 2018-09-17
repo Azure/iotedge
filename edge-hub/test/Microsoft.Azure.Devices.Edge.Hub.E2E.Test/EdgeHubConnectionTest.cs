@@ -59,6 +59,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 var identityFactory = new ClientCredentialsFactory(iothubHostName);
                 string edgeHubConnectionString = $"{deviceConnStr};ModuleId={EdgeHubModuleId}";
                 IClientCredentials edgeHubCredentials = identityFactory.GetWithConnectionString(edgeHubConnectionString);
+                Mock.Get(credentialsCache)
+                    .Setup(c => c.Get(edgeHubCredentials.Identity))
+                    .ReturnsAsync(Option.Some(edgeHubCredentials));
                 Assert.NotNull(edgeHubCredentials);
                 Assert.NotNull(edgeHubCredentials.Identity);
 
@@ -78,6 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 Router router = await Router.CreateAsync(Guid.NewGuid().ToString(), iothubHostName, routerConfig, endpointExecutorFactory);
                 IInvokeMethodHandler invokeMethodHandler = new InvokeMethodHandler(connectionManager);
                 IEdgeHub edgeHub = new RoutingEdgeHub(router, new RoutingMessageConverter(), connectionManager, twinManager, edgeDeviceId, invokeMethodHandler);
+                cloudConnectionProvider.BindEdgeHub(edgeHub);
 
                 var versionInfo = new VersionInfo("v1", "b1", "c1");
 

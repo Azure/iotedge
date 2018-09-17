@@ -317,14 +317,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 t =>
                 {
                     twinInfo = t;
-                    Events.GetTwinFromStoreWhenOffline(id,
-                        twinInfo.Twin.Properties.Desired.Version,
-                        twinInfo.Twin.Properties.Reported.Version,
-                        e);
+                    Events.GetTwinFromStoreWhenOffline(id, twinInfo, e);
                     return Task.CompletedTask;
                 },
                 () => throw new InvalidOperationException($"Error getting twin for device {id}", e));
-            return twinInfo;
+            return twinInfo.Twin != null
+                ? twinInfo
+                : throw new InvalidOperationException($"Error getting twin for device {id}", e);
         }
 
         async Task UpdateReportedPropertiesWhenTwinStoreHasTwinAsync(string id, TwinCollection reported, bool cloudVerified)
@@ -653,10 +652,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     $"at reported property version {reportedVersion} cloudVerified {cloudVerified}");
             }
 
-            public static void GetTwinFromStoreWhenOffline(string id, long desiredVersion, long reportedVersion, Exception e)
+            public static void GetTwinFromStoreWhenOffline(string id, TwinInfo twinInfo, Exception e)
             {
-                Log.LogDebug((int)EventIds.GetTwinFromStoreWhenOffline, $"Getting twin for {id} at desired version " +
-                    $"{desiredVersion} reported version {reportedVersion} from local store. Get from cloud threw {e.GetType()} {e.Message}");
+                if (twinInfo.Twin != null)
+                {
+                    Log.LogDebug((int)EventIds.GetTwinFromStoreWhenOffline, $"Getting twin for {id} at desired version " +
+                        $"{twinInfo.Twin.Properties.Desired.Version} reported version {twinInfo.Twin.Properties.Reported.Version} from local store. Get from cloud threw {e.GetType()} {e.Message}");
+                }
+                else
+                {
+                    Log.LogDebug((int)EventIds.GetTwinFromStoreWhenOffline, $"Getting twin info for {id}, but twin is null. Get from cloud threw {e.GetType()} {e.Message}");
+                }
             }
 
             public static void GotTwinFromCloudSuccess(string id, long desiredVersion, long reportedVersion)
