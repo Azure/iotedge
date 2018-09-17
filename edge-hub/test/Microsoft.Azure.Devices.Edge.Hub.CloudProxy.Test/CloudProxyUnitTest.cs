@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var cloudListener = new Mock<ICloudListener>();
             TimeSpan idleTimeout = TimeSpan.FromSeconds(5);
             var message = Mock.Of<IMessage>();
-            ICloudProxy cloudProxy = new CloudProxy(client.Object, messageConverterProvider.Object, "device1", null, cloudListener.Object, idleTimeout);
+            ICloudProxy cloudProxy = new CloudProxy(client.Object, messageConverterProvider.Object, "device1", null, cloudListener.Object, idleTimeout, true);
 
             // Act
             for (int i = 0; i < 5; i++)
@@ -66,6 +66,39 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         }
 
         [Fact]
+        public async Task TestCloseOnInactiveDisabled()
+        {
+            // Arrange
+            var client = new Mock<IClient>();
+            bool isClientActive = true;
+            client.Setup(c => c.CloseAsync())
+                .Callback(() => isClientActive = false)
+                .Returns(Task.CompletedTask);
+            client.SetupGet(c => c.IsActive).Returns(() => isClientActive);
+            client.Setup(c => c.SendEventAsync(It.IsAny<Client.Message>())).Returns(Task.CompletedTask);
+
+            var messageConverter = new Mock<IMessageConverter<Client.Message>>();
+            messageConverter.Setup(m => m.FromMessage(It.IsAny<IMessage>()))
+                .Returns(new Client.Message());
+
+            var messageConverterProvider = new Mock<IMessageConverterProvider>();
+            messageConverterProvider.Setup(m => m.Get<Client.Message>())
+                .Returns(messageConverter.Object);
+
+            var cloudListener = new Mock<ICloudListener>();
+            TimeSpan idleTimeout = TimeSpan.FromSeconds(5);
+            ICloudProxy cloudProxy = new CloudProxy(client.Object, messageConverterProvider.Object, "device1", null, cloudListener.Object, idleTimeout, false);
+            
+            // Act
+            await Task.Delay(TimeSpan.FromSeconds(6));
+
+            // Assert
+            Assert.True(cloudProxy.IsActive);
+            Assert.True(isClientActive);
+            client.Verify(c => c.CloseAsync(), Times.Never);
+        }
+
+        [Fact]
         public async Task TestDisableOnDesiredPropertiesSubscription()
         {
             // Arrange
@@ -88,7 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             var cloudListener = new Mock<ICloudListener>();
             TimeSpan idleTimeout = TimeSpan.FromSeconds(3);
-            ICloudProxy cloudProxy = new CloudProxy(client.Object, messageConverterProvider.Object, "device1", null, cloudListener.Object, idleTimeout);
+            ICloudProxy cloudProxy = new CloudProxy(client.Object, messageConverterProvider.Object, "device1", null, cloudListener.Object, idleTimeout, true);
 
             // Act
             await cloudProxy.SetupDesiredPropertyUpdatesAsync();
@@ -129,7 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             var cloudListener = new Mock<ICloudListener>();
             TimeSpan idleTimeout = TimeSpan.FromSeconds(3);
-            ICloudProxy cloudProxy = new CloudProxy(client.Object, messageConverterProvider.Object, "device1", null, cloudListener.Object, idleTimeout);
+            ICloudProxy cloudProxy = new CloudProxy(client.Object, messageConverterProvider.Object, "device1", null, cloudListener.Object, idleTimeout, true);
 
             // Act
             await cloudProxy.SetupCallMethodAsync();
@@ -172,7 +205,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var cloudListener = new Mock<ICloudListener>();
             cloudListener.Setup(c => c.ProcessMessageAsync(It.IsAny<IMessage>())).ThrowsAsync(new InvalidOperationException());
             TimeSpan idleTimeout = TimeSpan.FromSeconds(3);
-            ICloudProxy cloudProxy = new CloudProxy(client.Object, messageConverterProvider.Object, "device1", null, cloudListener.Object, idleTimeout);
+            ICloudProxy cloudProxy = new CloudProxy(client.Object, messageConverterProvider.Object, "device1", null, cloudListener.Object, idleTimeout, true);
 
             // Act
             cloudProxy.StartListening();

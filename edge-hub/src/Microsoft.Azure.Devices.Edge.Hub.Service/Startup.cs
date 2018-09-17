@@ -127,8 +127,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             int scopeCacheRefreshRateSecs = this.Configuration.GetValue("DeviceScopeCacheRefreshRateSecs", 3600);
             TimeSpan scopeCacheRefreshRate = TimeSpan.FromSeconds(scopeCacheRefreshRateSecs);
 
-            int cloudConnectionIdleTimeoutHours = this.Configuration.GetValue("CloudConnectionIdleTimeoutHours", 8760);
-            TimeSpan cloudConnectionIdleTimeout = TimeSpan.FromHours(cloudConnectionIdleTimeoutHours);
+            int cloudConnectionIdleTimeoutSecs = this.Configuration.GetValue("CloudConnectionIdleTimeoutSecs", 3600);
+            TimeSpan cloudConnectionIdleTimeout = TimeSpan.FromHours(cloudConnectionIdleTimeoutSecs);
+            bool closeCloudConnectionOnIdleTimeout = this.Configuration.GetValue("CloseCloudConnectionOnIdleTimeout", true);
 
             var builder = new ContainerBuilder();
             builder.Populate(services);
@@ -182,7 +183,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     upstreamProtocolOption,
                     connectivityCheckFrequency,
                     maxConnectedClients,
-                    cloudConnectionIdleTimeout));
+                    cloudConnectionIdleTimeout,
+                    closeCloudConnectionOnIdleTimeout));
 
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, ServerCertificateCache.X509Certificate, storeAndForward.isEnabled, clientCertAuthEnabled, caChainPath, optimizeForPerformance));
             builder.RegisterModule(new AmqpModule(amqpSettings["scheme"], amqpSettings.GetValue<ushort>("port"), ServerCertificateCache.X509Certificate, this.iotHubHostname));

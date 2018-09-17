@@ -26,13 +26,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly Guid id = Guid.NewGuid();
         readonly CloudReceiver cloudReceiver;
         readonly ResettableTimer timer;
+        readonly bool closeOnIdleTimeout;
 
         public CloudProxy(IClient client,
             IMessageConverterProvider messageConverterProvider,
             string clientId,
             Action<string, CloudConnectionStatus> connectionStatusChangedHandler,
             ICloudListener cloudListener,
-            TimeSpan idleTimeout)
+            TimeSpan idleTimeout,
+            bool closeOnIdleTimeout)
         {
             this.client = Preconditions.CheckNotNull(client, nameof(client));
             this.messageConverterProvider = Preconditions.CheckNotNull(messageConverterProvider, nameof(messageConverterProvider));
@@ -40,6 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.cloudReceiver = new CloudReceiver(this, Preconditions.CheckNotNull(cloudListener, nameof(cloudListener)));
             this.timer = new ResettableTimer(this.HandleIdleTimeout, idleTimeout, Events.Log, true);
             this.timer.Start();
+            this.closeOnIdleTimeout = closeOnIdleTimeout;
             if (connectionStatusChangedHandler != null)
             {
                 this.connectionStatusChangedHandler = connectionStatusChangedHandler;
@@ -48,8 +51,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         Task HandleIdleTimeout()
         {
-            Events.TimedOutClosing(this.clientId);
-            return this.CloseAsync();
+            if (this.closeOnIdleTimeout)
+            {
+                Events.TimedOutClosing(this.clientId);
+                return this.CloseAsync();
+            }
+
+            return Task.CompletedTask;
         }
 
         public bool IsActive => this.client.IsActive;

@@ -40,6 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly TimeSpan connectivityCheckFrequency;
         readonly int maxConnectedClients;
         readonly TimeSpan cloudConnectionIdleTimeout;
+        readonly bool closeCloudConnectionOnIdleTimeout;
 
         public RoutingModule(string iotHubName,
             string edgeDeviceId,
@@ -54,7 +55,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             Option<UpstreamProtocol> upstreamProtocol,
             TimeSpan connectivityCheckFrequency,
             int maxConnectedClients,
-            TimeSpan cloudConnectionIdleTimeout)
+            TimeSpan cloudConnectionIdleTimeout,
+            bool closeCloudConnectionOnIdleTimeout)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
@@ -70,6 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.connectivityCheckFrequency = connectivityCheckFrequency;
             this.maxConnectedClients = Preconditions.CheckRange(maxConnectedClients, 1);
             this.cloudConnectionIdleTimeout = cloudConnectionIdleTimeout;
+            this.closeCloudConnectionOnIdleTimeout = closeCloudConnectionOnIdleTimeout;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -174,7 +177,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         this.upstreamProtocol,
                         tokenProvider,
                         deviceScopeIdentitiesCache,
-                        this.cloudConnectionIdleTimeout);
+                        this.cloudConnectionIdleTimeout,
+                        this.closeCloudConnectionOnIdleTimeout);
                     return cloudConnectionProvider;
                 })
                 .As<Task<ICloudConnectionProvider>>()
