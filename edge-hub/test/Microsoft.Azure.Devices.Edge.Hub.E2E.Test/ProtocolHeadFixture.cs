@@ -165,7 +165,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                         versionInfo,
                         Option.Some(UpstreamProtocol.Amqp),
                         TimeSpan.FromSeconds(5),
-                        101));
+                        101,
+                        TimeSpan.FromHours(8760)));
 
                 builder.RegisterModule(new HttpModule());
                 builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, certificate, false, false, string.Empty, false));

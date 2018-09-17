@@ -67,9 +67,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             try
             {
-                await this.client.CloseAsync();
-                await (this.cloudReceiver?.CloseAsync() ?? Task.CompletedTask);
-                Events.Closed(this);
+                if (this.IsActive)
+                {
+                    await this.client.CloseAsync();
+                    await (this.cloudReceiver?.CloseAsync() ?? Task.CompletedTask);
+                    this.timer.Stop();
+                    Events.Closed(this);
+                }
+
                 return true;
             }
             catch (Exception ex)
