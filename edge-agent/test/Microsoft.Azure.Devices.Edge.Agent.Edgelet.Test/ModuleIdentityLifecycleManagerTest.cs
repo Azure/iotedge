@@ -42,6 +42,61 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         }
 
         [Fact]
+        public async Task TestGetModulesIdentity_IIdentityManagerException_ShouldReturnEmptyIdentities()
+        {
+            // Arrange
+            var identityManager = Mock.Of<IIdentityManager>();
+            Mock.Get(identityManager).Setup(m => m.GetIdentities()).ThrowsAsync(new InvalidOperationException());
+            var moduleIdentityLifecycleManager = new ModuleIdentityLifecycleManager(identityManager, ModuleIdentityProviderServiceBuilder, EdgeletUri);
+            var envVar = new Dictionary<string, EnvVal>();
+            const string Module1 = "module1";
+            var identity1 = new Identity
+            {
+                ModuleId = Module1,
+                ManagedBy = "IotEdge",
+                GenerationId = Guid.NewGuid().ToString()
+            };
+
+            const string Module2 = "module2";
+            var identity2 = new Identity
+            {
+                ModuleId = Module2,
+                ManagedBy = "Me",
+                GenerationId = Guid.NewGuid().ToString()
+            };
+
+            const string Module3 = "module3";
+            var identity3 = new Identity
+            {
+                ModuleId = Module3,
+                ManagedBy = Constants.ModuleIdentityEdgeManagedByValue,
+                GenerationId = Guid.NewGuid().ToString()
+            };
+
+            const string Module4 = "$edgeHub";
+            var identity4 = new Identity
+            {
+                ModuleId = Module4,
+                ManagedBy = Constants.ModuleIdentityEdgeManagedByValue,
+                GenerationId = Guid.NewGuid().ToString()
+            };
+
+            var module1 = new TestModule(Module1, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, envVar);
+            var module2 = new TestModule(Module2, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, envVar);
+            var module3 = new TestModule(Module3, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, envVar);
+            var module4 = new TestModule(Module4, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, envVar);
+            ModuleSet desired = ModuleSet.Create(module1, module4);
+            ModuleSet current = ModuleSet.Create(module2, module3, module4);
+
+            // Act
+            IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desired, current);
+
+            // Assert
+            Assert.True(!modulesIdentities.Any());
+            Mock.Get(identityManager).Verify();
+        }
+
+        [Fact]
         [Unit]
         public async Task TestGetModulesIdentity_WithNewModules_ShouldCreateIdentities()
         {
