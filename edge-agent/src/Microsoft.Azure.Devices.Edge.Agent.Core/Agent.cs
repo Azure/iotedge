@@ -166,6 +166,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                         // TODO - Update this logic to create identities only when needed, in the Command factory, instead of creating all the identities
                         // up front here. That will allow handling the case when only the state of the system has changed (say one module crashes), and
                         // no new identities need to be created. This will simplify the logic to allow EdgeAgent to work when offline.
+                        // But that required ModuleSet.Diff to be updated to include modules updated by deployment, and modules updated by state change. 
                         IImmutableDictionary<string, IModuleIdentity> identities = await this.moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desiredModuleSet, current);
                         Plan plan = await this.planner.PlanAsync(desiredModuleSet, current, deploymentConfig.Runtime, identities);
                         if (!plan.IsEmpty)
