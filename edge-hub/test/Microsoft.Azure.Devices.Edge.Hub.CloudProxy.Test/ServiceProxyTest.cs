@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Net;
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -142,6 +143,62 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             // Assert
             Assert.False(serviceIdentity.HasValue);
+        }
+
+        [Fact]
+        public async Task GetServiceIdentitiy_BadRequest_DeviceTest()
+        {
+            // Arrange
+            var deviceScopeApiClient = new Mock<IDeviceScopeApiClient>();
+            deviceScopeApiClient.Setup(d => d.GetIdentity("d1", null)).ThrowsAsync(new DeviceScopeApiException("bad request", HttpStatusCode.BadRequest, string.Empty));
+            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClient.Object);
+
+            // Act
+            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1");
+
+            // Assert
+            Assert.False(serviceIdentity.HasValue);            
+        }
+
+        [Fact]
+        public async Task GetServiceIdentitiy_Exception_DeviceTest()
+        {
+            // Arrange
+            var exception = new InvalidOperationException();
+            var deviceScopeApiClient = new Mock<IDeviceScopeApiClient>();
+            deviceScopeApiClient.Setup(d => d.GetIdentity("d1", null)).ThrowsAsync(exception);
+            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClient.Object);
+
+            // Act / Assert
+            await Assert.ThrowsAsync<InvalidOperationException>(() => serviceProxy.GetServiceIdentity("d1"));
+        }
+
+        [Fact]
+        public async Task GetServiceIdentitiy_BadRequest_ModuleTest()
+        {
+            // Arrange
+            var deviceScopeApiClient = new Mock<IDeviceScopeApiClient>();
+            deviceScopeApiClient.Setup(d => d.GetIdentity("d1", "m1")).ThrowsAsync(new DeviceScopeApiException("bad request", HttpStatusCode.BadRequest, string.Empty));
+            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClient.Object);
+
+            // Act
+            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "m1");
+
+            // Assert
+            Assert.False(serviceIdentity.HasValue);
+        }
+
+        [Fact]
+        public async Task GetServiceIdentitiy_Exception_ModuleTest()
+        {
+            // Arrange
+            var exception = new InvalidOperationException();
+            var deviceScopeApiClient = new Mock<IDeviceScopeApiClient>();
+            deviceScopeApiClient.Setup(d => d.GetIdentity("d1", "m1")).ThrowsAsync(exception);
+            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClient.Object);
+
+            // Act / Assert
+            await Assert.ThrowsAsync<InvalidOperationException>(() => serviceProxy.GetServiceIdentity("d1", "m1"));
         }
 
         [Fact]
