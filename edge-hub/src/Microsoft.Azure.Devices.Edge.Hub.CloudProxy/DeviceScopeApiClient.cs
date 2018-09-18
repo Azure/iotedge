@@ -133,12 +133,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 typeof(InvalidOperationException)
             };
 
+            static readonly ISet<HttpStatusCode> NonTransientHttpStatusCodes = new HashSet<HttpStatusCode>
+            {
+                HttpStatusCode.BadRequest,
+                HttpStatusCode.Unauthorized,
+                HttpStatusCode.Forbidden,
+                HttpStatusCode.NotFound,
+                HttpStatusCode.MethodNotAllowed,
+                HttpStatusCode.NotAcceptable
+            };
+
             public bool IsTransient(Exception ex)
             {
                 // Treat all responses with 4xx HttpStatusCode as non-transient
                 if (ex is DeviceScopeApiException deviceScopeApiException
-                    && deviceScopeApiException.StatusCode >= HttpStatusCode.BadRequest
-                    && (int)deviceScopeApiException.StatusCode <= 499)
+                    && NonTransientHttpStatusCodes.Contains(deviceScopeApiException.StatusCode))
                 {
                     return false;
                 }
