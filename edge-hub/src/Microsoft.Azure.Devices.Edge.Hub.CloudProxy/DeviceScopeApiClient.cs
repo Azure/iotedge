@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public Task<ScopeResult> GetIdentity(string targetDeviceId, string targetModuleId)
         {
-            Preconditions.CheckNonWhiteSpace(targetDeviceId, nameof(targetDeviceId));            
+            Preconditions.CheckNonWhiteSpace(targetDeviceId, nameof(targetDeviceId));
             return this.GetIdentitiesInScopeWithRetry(this.GetServiceUri(targetDeviceId, targetModuleId));
         }
 
@@ -125,15 +125,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             return transientRetryPolicy.ExecuteAsync(func);
         }
 
-        class ErrorDetectionStrategy : ITransientErrorDetectionStrategy
+        internal class ErrorDetectionStrategy : ITransientErrorDetectionStrategy
         {
             static readonly ISet<Type> NonTransientExceptions = new HashSet<Type>
             {
                 typeof(ArgumentException),
-                typeof(UnauthorizedException)
+                typeof(ArgumentNullException),
+                typeof(InvalidOperationException)
             };
 
-            public bool IsTransient(Exception ex) => !(NonTransientExceptions.Contains(ex.GetType()));
+            public bool IsTransient(Exception ex)
+            {
+                // Treat all responses with 4xx HttpStatusCode as non-transient
+                if (ex is DeviceScopeApiException deviceScopeApiException
+                    && deviceScopeApiException.StatusCode >= HttpStatusCode.BadRequest
+                    && (int)deviceScopeApiException.StatusCode <= 499)
+                {
+                    return false;
+                }
+                else if (NonTransientExceptions.Contains(ex.GetType()))
+                {
+                    return false;
+                }
+
+                return true;
+            }
         }
 
         static class Events
