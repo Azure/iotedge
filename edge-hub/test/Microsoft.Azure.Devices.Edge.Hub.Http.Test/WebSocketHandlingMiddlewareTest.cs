@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 {
     using System;
     using System.Collections.Generic;
-    using System.Linq;
     using System.Net;
     using System.Net.WebSockets;
     using System.Threading.Tasks;
@@ -119,7 +118,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
                 ctx.WebSockets == Mock.Of<WebSocketManager>(wsm =>
                     wsm.IsWebSocketRequest) &&
                 ctx.Response == Mock.Of<HttpResponse>() &&
-                ctx.Connection == Mock.Of<ConnectionInfo>());
+                ctx.Connection == Mock.Of<ConnectionInfo>(conn => conn.LocalIpAddress == new IPAddress(123) && conn.LocalPort == It.IsAny<int>()
+                    && conn.RemoteIpAddress == new IPAddress(123) && conn.RemotePort == It.IsAny<int>()));
         }
 
         HttpContext _NonWebSocketRequestContext()
@@ -150,7 +150,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var registry = new Mock<IWebSocketListenerRegistry>();
 
             registry
-                .Setup(wslr => wslr.GetListener(It.IsAny<IList<string>>(), It.IsAny<string>()))
+                .Setup(wslr => wslr.GetListener(It.IsAny<IList<string>>()))
                 .Throws(new Exception("IWebSocketListenerRegistry.InvokeAsync should not be called"));
 
             return registry.Object;
@@ -159,11 +159,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
         IWebSocketListenerRegistry _ObservingWebSocketListenerRegistry(List<string> correlationIds)
         {
             var registry = new Mock<IWebSocketListenerRegistry>();
+            var listener = new Mock<IWebSocketListener>();
 
+            listener.Setup(wsl => wsl.ProcessWebSocketRequestAsync(It.IsAny<WebSocket>(), It.IsAny<EndPoint>(), It.IsAny<EndPoint>(), It.IsAny<string>()))
+                .Returns(Task.CompletedTask)
+                .Callback<WebSocket, EndPoint, EndPoint, string>((ws, ep1, ep2, id) => correlationIds.Add(id));
             registry
-                .Setup(wslr => wslr.GetListener(It.IsAny<IList<string>>(), It.IsAny<string>()))
-                .Returns(Option.None<IWebSocketListener>())
-                .Callback<HttpContext, string>((ctx, id) => correlationIds.Add(id));
+                .Setup(wslr => wslr.GetListener(It.IsAny<IList<string>>()))
+                .Returns(Option.Some(listener.Object));
 
             return registry.Object;
         }

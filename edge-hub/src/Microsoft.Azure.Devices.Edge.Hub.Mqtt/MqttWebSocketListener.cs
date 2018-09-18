@@ -17,9 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using static System.FormattableString;
 
     class MqttWebSocketListener : IWebSocketListener
-    {
-        const string MqttWebSocketProtocol = "mqtt";
-
+    { 
         readonly Settings settings;
         readonly MessagingBridgeFactoryFunc messagingBridgeFactoryFunc;
         readonly IDeviceIdentityProvider identityProvider;
@@ -50,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             this.mqttDecoderMaxMessageSize = mqttDecoderMaxMessageSize;
         }
 
-        public string SubProtocol => MqttWebSocketProtocol;
+        public string SubProtocol => Constants.WebSocketSubProtocol;
 
         public async Task ProcessWebSocketRequestAsync(WebSocket webSocket, EndPoint localEndPoint, EndPoint remoteEndPoint, string correlationId)
         {

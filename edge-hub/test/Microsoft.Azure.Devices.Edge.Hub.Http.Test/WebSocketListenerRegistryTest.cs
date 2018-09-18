@@ -87,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             registry.TryRegister(this._SubprotocolListener("abc"));
             HttpContext httpContext = this._ContextWithRequestedSubprotocols("abc");
 
-            Option<IWebSocketListener> listener = registry.GetListener(httpContext.WebSockets.WebSocketRequestedProtocols, Guid.NewGuid().ToString());
+            Option<IWebSocketListener> listener = registry.GetListener(httpContext.WebSockets.WebSocketRequestedProtocols);
             Assert.True(listener.HasValue);
         }
 
@@ -103,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             HttpContext httpContext = this._ContextWithRequestedSubprotocols("xyz", "abc");
 
-            var listener = registry.GetListener(httpContext.WebSockets.WebSocketRequestedProtocols, Guid.NewGuid().ToString());
+            var listener = registry.GetListener(httpContext.WebSockets.WebSocketRequestedProtocols);
             
             Assert.True(listener.HasValue);
             listener.ForEach( l => Assert.Equal(l.SubProtocol, "xyz"));
@@ -116,7 +116,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var registry = new WebSocketListenerRegistry();
             HttpContext httpContext = this._ContextWithRequestedSubprotocols("abc");
 
-            Assert.False(registry.GetListener(httpContext.WebSockets.WebSocketRequestedProtocols, Guid.NewGuid().ToString()).HasValue);
+            Assert.False(registry.GetListener(httpContext.WebSockets.WebSocketRequestedProtocols).HasValue);
         }
 
         [Fact]
@@ -126,7 +126,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             registry.TryRegister(this._SubprotocolListener("abc"));
             HttpContext httpContext = this._ContextWithRequestedSubprotocols("xyz");
 
-            Assert.False(registry.GetListener(httpContext.WebSockets.WebSocketRequestedProtocols, Guid.NewGuid().ToString()).HasValue);
+            Assert.False(registry.GetListener(httpContext.WebSockets.WebSocketRequestedProtocols).HasValue);
         }
 
         IWebSocketListener _SubprotocolListener(string subprotocol)

@@ -11,6 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         bool TryUnregister(string subProtocol, out IWebSocketListener webSocketListener);
 
-        Option<IWebSocketListener> GetListener(IList<string> subProtocols, string correlationId);
+        Option<IWebSocketListener> GetListener(IEnumerable<string> subProtocols);
     }
 }

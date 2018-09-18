@@ -18,18 +18,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
             this.webSocketListeners = new ConcurrentDictionary<string, IWebSocketListener>(StringComparer.OrdinalIgnoreCase);
         }
 
-        public Option<IWebSocketListener> GetListener(IList<string> requestedProtocols, string correlationId)
+        public Option<IWebSocketListener> GetListener(IEnumerable<string> requestedProtocols)
         {
             foreach (string subProtocol in requestedProtocols)
             {
                 if (this.webSocketListeners.TryGetValue(subProtocol, out IWebSocketListener webSocketListener))
                 {
-                    Events.WebSocketSubProtocolSelected(subProtocol, correlationId);
                     return Option.Some(webSocketListener);
-                }
-                else
-                {
-                    Events.WebSocketSubProtocolNotSupported(subProtocol, correlationId);
                 }
             }
             

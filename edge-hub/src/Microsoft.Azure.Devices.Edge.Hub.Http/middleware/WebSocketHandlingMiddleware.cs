@@ -31,10 +31,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
 
                 Events.WebSocketRequestReceived(context.TraceIdentifier, correlationId);
 
-                Option<IWebSocketListener> listener = this.webSocketListenerRegistry.GetListener(context.WebSockets.WebSocketRequestedProtocols, correlationId);
+                Option<IWebSocketListener> listener = this.webSocketListenerRegistry.GetListener(context.WebSockets.WebSocketRequestedProtocols);
                 return listener.Match(
                     async l =>
                     {
+                        Events.WebSocketSubProtocolSelected(context.TraceIdentifier, l.SubProtocol, correlationId);
+
                         WebSocket webSocket = await context.WebSockets.AcceptWebSocketAsync(l.SubProtocol);
                         var localEndPoint = new IPEndPoint(context.Connection.LocalIpAddress, context.Connection.LocalPort);
                         var remoteEndPoint = new IPEndPoint(context.Connection.RemoteIpAddress, context.Connection.RemotePort);
@@ -65,12 +67,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
             {
                 RequestReceived = IdStart,
                 RequestCompleted,
-                BadRequest
+                BadRequest,
+                SubProtocolSelected
             }
 
             public static void WebSocketRequestReceived(string traceId, string correlationId)
             {
                 Log.LogDebug((int)EventIds.RequestReceived, Invariant($"Request {traceId} received. CorrelationId {correlationId}"));
+            }
+
+            public static void WebSocketSubProtocolSelected(string traceId, string subProtocol, string correlationId)
+            {
+                Log.LogDebug((int)EventIds.SubProtocolSelected, Invariant($"Request {traceId} SubProtocol: {subProtocol} CorrelationId: {correlationId}"));
             }
 
             public static void WebSocketRequestCompleted(string traceId, string correlationId)

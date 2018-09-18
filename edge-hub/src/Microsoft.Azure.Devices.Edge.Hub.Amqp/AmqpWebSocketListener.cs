@@ -13,12 +13,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
     class AmqpWebSocketListener : TransportListener, IWebSocketListener
     {
-        const string WebSocketSubProtocol = "AMQPWSB10";
-
-        public string SubProtocol => WebSocketSubProtocol;
+        public string SubProtocol => Constants.WebSocketSubProtocol;
 
         public AmqpWebSocketListener()
-            : base(WebSocketSubProtocol + "-listener")
+            : base(Constants.WebSocketListenerName)
         {
         }
 
