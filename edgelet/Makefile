@@ -23,7 +23,6 @@ bindir?=$(exec_prefix)/bin
 libdir?=$(exec_prefix)/lib
 sysconfdir?=/etc
 localstatedir?=/var
-runstatedir?=$(localstatedir)/run/$(PACKAGE_NAME)
 datarootdir?=$(prefix)/share
 datadir?=$(datarootdir)
 docdir?=$(datarootdir)/doc/$(PACKAGE_NAME)

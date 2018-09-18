@@ -16,15 +16,12 @@ case "$1" in
             chmod 400 /etc/iotedge/config.yaml
 
             # Do this for debian systems which don't support FDNAMES
-            if [ ! -d  /var/lib/iotedge/ ]; then
-                touch /var/lib/iotedge/mgmt.sock
-                touch /var/lib/iotedge/workload.sock
-                chown ${USER}:${GROUP} /var/lib/iotedge/
-                chown ${USER}:${GROUP} /var/lib/iotedge/mgmt.sock
-                chown ${USER}:${GROUP} /var/lib/iotedge/workload.sock
-                chmod 660 /var/lib/iotedge/mgmt.sock
-                chmod 666 /var/lib/iotedge/workload.sock
-            fi
+            touch /var/lib/iotedge/mgmt.sock
+            touch /var/lib/iotedge/workload.sock
+            chown ${USER}:${GROUP} /var/lib/iotedge/mgmt.sock
+            chown ${USER}:${GROUP} /var/lib/iotedge/workload.sock
+            chmod 660 /var/lib/iotedge/mgmt.sock
+            chmod 666 /var/lib/iotedge/workload.sock
         fi
 
         # Set the hostname
