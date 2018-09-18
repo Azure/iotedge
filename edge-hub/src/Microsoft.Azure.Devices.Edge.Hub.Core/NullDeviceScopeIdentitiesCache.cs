@@ -10,11 +10,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
     public class NullDeviceScopeIdentitiesCache : IDeviceScopeIdentitiesCache
     {
-        public Task<Option<ServiceIdentity>> GetServiceIdentity(string id, bool refreshCache = false)
-            => Task.FromResult(Option.None<ServiceIdentity>());
+        public Task<Option<ServiceIdentity>> GetServiceIdentity(string id) => Task.FromResult(Option.None<ServiceIdentity>());
 
-        public Task<Option<ServiceIdentity>> GetServiceIdentity(string deviceId, string moduleId, bool refreshCache = false)
-            => Task.FromResult(Option.None<ServiceIdentity>());
+        public Task<Option<ServiceIdentity>> GetServiceIdentity(string deviceId, string moduleId) => Task.FromResult(Option.None<ServiceIdentity>());
 
         public void InitiateCacheRefresh()
         {
