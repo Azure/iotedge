@@ -525,13 +525,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             receivedServiceIdentity3 = await deviceScopeIdentitiesCache.GetServiceIdentity("d3", true);
 
             // Assert
-            CompareServiceIdentities(si1_updated, receivedServiceIdentity1);
-            Assert.False(receivedServiceIdentity2.HasValue);
+            CompareServiceIdentities(si1_initial, receivedServiceIdentity1);
+            CompareServiceIdentities(si2, receivedServiceIdentity2);
             CompareServiceIdentities(si3, receivedServiceIdentity3);
-            Assert.Equal(1, removedIdentities.Count);
-            Assert.Equal("d2", removedIdentities[0]);
-            Assert.Equal(1, updatedIdentities.Count);
-            Assert.Equal("d1", updatedIdentities[0].Id);
+            Assert.Equal(0, removedIdentities.Count);
+            Assert.Equal(0, updatedIdentities.Count);
         }
 
         [Fact]
@@ -592,13 +590,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             receivedServiceIdentity3 = await deviceScopeIdentitiesCache.GetServiceIdentity("d3", "m3", true);
 
             // Assert
-            CompareServiceIdentities(si1_updated, receivedServiceIdentity1);
-            Assert.False(receivedServiceIdentity2.HasValue);
+            CompareServiceIdentities(si1_initial, receivedServiceIdentity1);
+            CompareServiceIdentities(si2, receivedServiceIdentity2);
             CompareServiceIdentities(si3, receivedServiceIdentity3);
-            Assert.Equal(1, removedIdentities.Count);
-            Assert.Equal("d2/m2", removedIdentities[0]);
-            Assert.Equal(1, updatedIdentities.Count);
-            Assert.Equal("d1/m1", updatedIdentities[0].Id);
+            Assert.Equal(0, removedIdentities.Count);
+            Assert.Equal(0, updatedIdentities.Count);
         }
 
         static void CompareServiceIdentities(ServiceIdentity si1, Option<ServiceIdentity> si2Option)

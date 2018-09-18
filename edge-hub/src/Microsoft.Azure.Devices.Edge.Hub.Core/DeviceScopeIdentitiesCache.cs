@@ -171,22 +171,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        public async Task<Option<ServiceIdentity>> GetServiceIdentity(string deviceId, string moduleId, bool refreshCache = false)
+        public async Task<Option<ServiceIdentity>> GetServiceIdentity(string deviceId, string moduleId, bool refreshIfNotExists = false)
         {
             Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
-            if (refreshCache)
+            string id = $"{deviceId}/{moduleId}";
+            if (refreshIfNotExists && !this.serviceIdentityCache.ContainsKey(id))
             {
                 await this.RefreshServiceIdentity(deviceId, moduleId);
             }
 
-            return await this.GetServiceIdentityInternal($"{deviceId}/{moduleId}");
+            return await this.GetServiceIdentityInternal(id);
         }
 
-        public async Task<Option<ServiceIdentity>> GetServiceIdentity(string deviceId, bool refreshCache = false)
+        public async Task<Option<ServiceIdentity>> GetServiceIdentity(string deviceId, bool refreshIfNotExists = false)
         {
             Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
-            if (refreshCache)
+            if (refreshIfNotExists && !this.serviceIdentityCache.ContainsKey(deviceId))
             {
                 await this.RefreshServiceIdentity(deviceId);
             }
