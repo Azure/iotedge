@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Serde
                 Converters = new List<JsonConverter>
                 {
                     new TypeSpecificJsonConverter(deserializerTypesMap)
-                },
+                }
             };
         }
 

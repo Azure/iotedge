@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
             string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);            
+            RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
             ModuleClient receiver = null;
 
             var request = new TestMethodRequest("Prop1", 10);
@@ -44,6 +44,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 receiver = ModuleClient.CreateFromConnectionString(receiverModuleConnectionString, transportSettings);
                 await receiver.OpenAsync();
                 await receiver.SetMethodHandlerAsync("poke", MethodHandler, null);
+
+                await Task.Delay(TimeSpan.FromSeconds(5));
 
                 // Act
                 CloudToDeviceMethodResult cloudToDeviceMethodResult = await sender.InvokeDeviceMethodAsync(
@@ -106,6 +108,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 await receiver.OpenAsync();
                 await receiver.SetMethodHandlerAsync("poke", MethodHandler, null);
 
+                await Task.Delay(TimeSpan.FromSeconds(5));
+
                 // Act
                 CloudToDeviceMethodResult cloudToDeviceMethodResult = await sender.InvokeDeviceMethodAsync(
                     deviceId,
@@ -136,7 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             }
             // wait for the connection to be closed on the Edge side
             await Task.Delay(TimeSpan.FromSeconds(10));
-        }        
+        }
 
         class TestMethodRequest
         {
