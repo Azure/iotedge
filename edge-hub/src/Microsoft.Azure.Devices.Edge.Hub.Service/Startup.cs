@@ -128,7 +128,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             TimeSpan scopeCacheRefreshRate = TimeSpan.FromSeconds(scopeCacheRefreshRateSecs);
 
             int cloudConnectionIdleTimeoutSecs = this.Configuration.GetValue("CloudConnectionIdleTimeoutSecs", 3600);
-            TimeSpan cloudConnectionIdleTimeout = TimeSpan.FromHours(cloudConnectionIdleTimeoutSecs);
+            TimeSpan cloudConnectionIdleTimeout = TimeSpan.FromSeconds(cloudConnectionIdleTimeoutSecs);
             bool closeCloudConnectionOnIdleTimeout = this.Configuration.GetValue("CloseCloudConnectionOnIdleTimeout", true);
 
             var builder = new ContainerBuilder();
