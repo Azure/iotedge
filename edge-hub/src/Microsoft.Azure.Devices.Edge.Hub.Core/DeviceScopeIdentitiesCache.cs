@@ -171,14 +171,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        public Task<Option<ServiceIdentity>> GetServiceIdentity(string deviceId, string moduleId)
+        public async Task<Option<ServiceIdentity>> GetServiceIdentity(string deviceId, string moduleId, bool refreshCache = false)
         {
             Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
-            return this.GetServiceIdentity($"{deviceId}/{moduleId}");
+            if (refreshCache)
+            {
+                await this.RefreshServiceIdentity(deviceId, moduleId);
+            }
+
+            return await this.GetServiceIdentityInternal($"{deviceId}/{moduleId}");
         }
 
-        public async Task<Option<ServiceIdentity>> GetServiceIdentity(string id)
+        public async Task<Option<ServiceIdentity>> GetServiceIdentity(string deviceId, bool refreshCache = false)
+        {
+            Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
+            if (refreshCache)
+            {
+                await this.RefreshServiceIdentity(deviceId);
+            }
+
+            return await this.GetServiceIdentityInternal(deviceId);
+        }
+
+        async Task<Option<ServiceIdentity>> GetServiceIdentityInternal(string id)
         {
             Preconditions.CheckNonWhiteSpace(id, nameof(id));
             using (await this.cacheLock.LockAsync())
@@ -199,7 +215,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
                 // Remove device if connected
                 this.ServiceIdentityRemoved?.Invoke(this, id);
-            }
+           }
         }
 
         async Task HandleNewServiceIdentity(ServiceIdentity serviceIdentity)

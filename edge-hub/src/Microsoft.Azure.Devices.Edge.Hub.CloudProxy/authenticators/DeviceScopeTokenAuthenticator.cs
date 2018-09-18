@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
                 return false;
             }
 
-            Option<ServiceIdentity> serviceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(clientCredentials.Identity.Id);
+            Option<ServiceIdentity> serviceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(clientCredentials.Identity.Id, true);
             if (serviceIdentity.HasValue)
             {
                 try
@@ -70,7 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
                 return false;
             }
 
-            Option<ServiceIdentity> serviceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(clientCredentials.Identity.Id);
+            Option<ServiceIdentity> serviceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(clientCredentials.Identity.Id, true);
             if (serviceIdentity.HasValue)
             {
                 try
@@ -103,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             if (!result && tokenCredentials.Identity is IModuleIdentity moduleIdentity && serviceIdentity.IsModule)
             {
                 // Module can use the Device key to authenticate
-                Option<ServiceIdentity> deviceServiceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(moduleIdentity.DeviceId);
+                Option<ServiceIdentity> deviceServiceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(moduleIdentity.DeviceId, true);
                 result = await deviceServiceIdentity.Map(d => this.AuthenticateInternalAsync(tokenCredentials, d))
                     .GetOrElse(Task.FromResult(false));
             }
