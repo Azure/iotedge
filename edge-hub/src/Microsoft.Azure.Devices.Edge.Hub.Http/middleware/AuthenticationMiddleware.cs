@@ -22,17 +22,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
         readonly Task<IAuthenticator> authenticatorTask;
         readonly IClientCredentialsFactory identityFactory;
         readonly string iotHubName;
+        readonly string edgeDeviceId;
 
         public AuthenticationMiddleware(
             RequestDelegate next,
             Task<IAuthenticator> authenticatorTask,
             IClientCredentialsFactory identityFactory,
-            string iotHubName)
+            string iotHubName,
+            string edgeDeviceId)
         {
             this.next = next;
             this.authenticatorTask = Preconditions.CheckNotNull(authenticatorTask, nameof(authenticatorTask));
             this.identityFactory = Preconditions.CheckNotNull(identityFactory, nameof(identityFactory));
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
+            this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
         }
 
         public async Task Invoke(HttpContext context)
@@ -113,6 +116,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
             IClientCredentials clientCredentials = this.identityFactory.GetWithSasToken(deviceId, moduleId, string.Empty, authHeader);
             IIdentity identity = clientCredentials.Identity;
             IAuthenticator authenticator = await this.authenticatorTask;
+
+            // A downstream module cannot invoke a method on a device by connecting to EdgeHub
+            if (deviceId != this.edgeDeviceId)
+            {
+                return LogAndReturnFailure($"Module {moduleId} on device {deviceId} cannot invoke methods. Only modules on IoT Edge device {this.edgeDeviceId} can invoke methods.");
+            }
+
             if (!await authenticator.AuthenticateAsync(clientCredentials))
             {
                 return LogAndReturnFailure($"Unable to authenticate device with Id {identity.Id}");
@@ -175,9 +185,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
 
     public static class AuthenticationMiddlewareExtensions
     {
-        public static IApplicationBuilder UseAuthenticationMiddleware(this IApplicationBuilder builder, string iotHubName)
+        public static IApplicationBuilder UseAuthenticationMiddleware(this IApplicationBuilder builder, string iotHubName, string edgeDeviceId)
         {
-            return builder.UseMiddleware<AuthenticationMiddleware>(iotHubName);
+            return builder.UseMiddleware<AuthenticationMiddleware>(iotHubName, edgeDeviceId);
         }
     }
 }
