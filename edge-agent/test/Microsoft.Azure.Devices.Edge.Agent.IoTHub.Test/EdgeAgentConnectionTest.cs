@@ -83,6 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
                 ISerde<DeploymentConfig> serde = new TypeSpecificSerDe<DeploymentConfig>(deserializerTypes);
                 IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider, serde);
+                await Task.Delay(TimeSpan.FromSeconds(10));
 
                 Option<DeploymentConfigInfo> deploymentConfigInfo = await edgeAgentConnection.GetDeploymentConfigInfoAsync();
 
@@ -514,7 +515,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                         ["properties.desired"] = GetTwinConfiguration("asa")
                     }
                 }
-            };            
+            };
         }
 
         static object GetEdgeAgentConfiguration()
@@ -1274,7 +1275,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 await Assert.ThrowsAsync<DeviceNotFoundException>(() => serviceClient.InvokeDeviceMethodAsync(edgeDeviceId, Constants.EdgeAgentModuleIdentityName, new CloudToDeviceMethod("ping")));
 
                 IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider, serde);
-                await Task.Delay(TimeSpan.FromSeconds(5));
+                await Task.Delay(TimeSpan.FromSeconds(10));
 
                 CloudToDeviceMethodResult methodResult = await serviceClient.InvokeDeviceMethodAsync(edgeDeviceId, Constants.EdgeAgentModuleIdentityName, new CloudToDeviceMethod("ping"));
                 Assert.NotNull(methodResult);

@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
 
     public class ModuleIdentityLifecycleManager : IModuleIdentityLifecycleManager
     {
@@ -54,6 +55,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 return ImmutableDictionary<string, IModuleIdentity>.Empty;
             }
 
+            try
+            {
+                IImmutableDictionary<string, IModuleIdentity> moduleIdentities = await this.GetModuleIdentitiesAsync(diff);
+                return moduleIdentities;
+            }
+            catch (Exception ex)
+            {
+                Events.ErrorGettingModuleIdentities(ex);
+                return ImmutableDictionary<string, IModuleIdentity>.Empty;
+            }
+        }
+
+        async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(Diff diff)
+        {
             // System modules have different module names and identity names. We need to convert module names to module identity names
             // and vice versa, to make sure the right values are being used.
             // TODO - This will fail if the user adds modules with the same module name as a system module - for example a module called
@@ -124,6 +139,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 .Aggregate((l1, l2) => l1.Concat(l2).ToArray());
 
             return identities;
+        }
+
+        static class Events
+        {
+            static readonly ILogger Log = Logger.Factory.CreateLogger<ModuleIdentityLifecycleManager>();
+            const int IdStart = AgentEventIds.ModuleIdentityLifecycleManager;
+
+            enum EventIds
+            {
+                ErrorGettingModuleIdentities = IdStart,
+            }
+
+            public static void ErrorGettingModuleIdentities(Exception ex)
+            {
+                Log.LogDebug((int)EventIds.ErrorGettingModuleIdentities, ex, "Error getting module identities.");
+            }
         }
     }
 }
