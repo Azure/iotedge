@@ -387,5 +387,33 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             Assert.NotNull(testModCreds);
             Assert.Equal("HostName=hostname;DeviceId=deviceId;ModuleId=filter;SharedAccessKey=cHJpbWFyeVN5bW1ldHJpY0tleQ==;GatewayHostName=localhost", testModCreds.ConnectionString);
         }
+
+        [Fact]
+        [Unit]
+        public async Task TestGetModuleIdentities_WhenOffline_ReturnsEmptyList()
+        {
+            const string Name = "test-filters";
+
+            var serviceClient = new Mock<IServiceClient>();
+            string hostname = "hostname";
+            string deviceId = "deviceId";
+            string moduleSharedAccessKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("primaryModuleAccessKey"));
+            string gatewayHostName = "localhost";
+
+            serviceClient.Setup(sc => sc.GetModules()).Returns(Task.FromResult(ImmutableList<Module>.Empty.AsEnumerable()));
+
+            // If we change to IList Mock doesn't recognize and making it a non Lambda would add a lot of complexity on this code.
+            // ReSharper disable PossibleMultipleEnumeration
+            serviceClient.Setup(sc => sc.CreateModules(It.Is<IEnumerable<string>>(m => m.Count() == 1 && m.First() == Name))).ThrowsAsync(new InvalidOperationException());
+            // ReSharper restore PossibleMultipleEnumeration
+
+            var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
+
+            IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, hostname, deviceId, gatewayHostName)
+                .GetModuleIdentitiesAsync(ModuleSet.Create(module), ModuleSet.Empty);
+      
+            serviceClient.VerifyAll();
+            Assert.False(modulesIdentities.Any());
+        }
     }
 }
