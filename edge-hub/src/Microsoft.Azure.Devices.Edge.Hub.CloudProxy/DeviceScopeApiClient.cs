@@ -7,7 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using System.Net;
     using System.Net.Http;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Common;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
@@ -16,10 +15,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
     public class DeviceScopeApiClient : IDeviceScopeApiClient
     {
-        const int RetryCount = 3;
+        const int RetryCount = 2;
         static readonly ITransientErrorDetectionStrategy TransientErrorDetectionStrategy = new ErrorDetectionStrategy();
         static readonly RetryStrategy TransientRetryStrategy =
-            new ExponentialBackoff(RetryCount, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
+            new ExponentialBackoff(RetryCount, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(4));
 
         const string InScopeIdentitiesUriTemplate = "/devices/{0}/modules/{1}/devicesAndModulesInDeviceScope?deviceCount={2}&continuationToken={3}&api-version={4}";
         const string InScopeTargetIdentityUriFormat = "/devices/{0}/modules/{1}/deviceAndModuleInDeviceScope?targetDeviceId={2}&targetModuleId={3}&api-version={4}";
@@ -57,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public Task<ScopeResult> GetIdentity(string targetDeviceId, string targetModuleId)
         {
-            Preconditions.CheckNonWhiteSpace(targetDeviceId, nameof(targetDeviceId));            
+            Preconditions.CheckNonWhiteSpace(targetDeviceId, nameof(targetDeviceId));
             return this.GetIdentitiesInScopeWithRetry(this.GetServiceUri(targetDeviceId, targetModuleId));
         }
 
@@ -125,15 +124,40 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             return transientRetryPolicy.ExecuteAsync(func);
         }
 
-        class ErrorDetectionStrategy : ITransientErrorDetectionStrategy
+        internal class ErrorDetectionStrategy : ITransientErrorDetectionStrategy
         {
             static readonly ISet<Type> NonTransientExceptions = new HashSet<Type>
             {
                 typeof(ArgumentException),
-                typeof(UnauthorizedException)
+                typeof(ArgumentNullException),
+                typeof(InvalidOperationException)
             };
 
-            public bool IsTransient(Exception ex) => !(NonTransientExceptions.Contains(ex.GetType()));
+            static readonly ISet<HttpStatusCode> NonTransientHttpStatusCodes = new HashSet<HttpStatusCode>
+            {
+                HttpStatusCode.BadRequest,
+                HttpStatusCode.Unauthorized,
+                HttpStatusCode.Forbidden,
+                HttpStatusCode.NotFound,
+                HttpStatusCode.MethodNotAllowed,
+                HttpStatusCode.NotAcceptable
+            };
+
+            public bool IsTransient(Exception ex)
+            {
+                // Treat all responses with 4xx HttpStatusCode as non-transient
+                if (ex is DeviceScopeApiException deviceScopeApiException
+                    && NonTransientHttpStatusCodes.Contains(deviceScopeApiException.StatusCode))
+                {
+                    return false;
+                }
+                else if (NonTransientExceptions.Contains(ex.GetType()))
+                {
+                    return false;
+                }
+
+                return true;
+            }
         }
 
         static class Events
