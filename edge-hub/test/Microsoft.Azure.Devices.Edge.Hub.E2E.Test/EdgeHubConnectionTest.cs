@@ -310,6 +310,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     {
                         ["properties.desired"] = desiredProperties
 
+                    },
+                    ["$edgeAgent"] = new Dictionary<string, object>
+                    {
+                        ["properties.desired"] = new object()
                     }
                 }
             };
@@ -343,6 +347,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     {
                         ["properties.desired"] = desiredProperties
 
+                    },
+                    ["$edgeAgent"] = new Dictionary<string, object>
+                    {
+                        ["properties.desired"] = new object()
                     }
                 }
             };
