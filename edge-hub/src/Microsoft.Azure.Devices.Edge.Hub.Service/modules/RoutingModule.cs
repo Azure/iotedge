@@ -39,6 +39,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly Option<UpstreamProtocol> upstreamProtocol;
         readonly TimeSpan connectivityCheckFrequency;
         readonly int maxConnectedClients;
+        readonly TimeSpan cloudConnectionIdleTimeout;
+        readonly bool closeCloudConnectionOnIdleTimeout;
 
         public RoutingModule(string iotHubName,
             string edgeDeviceId,
@@ -52,7 +54,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             VersionInfo versionInfo,
             Option<UpstreamProtocol> upstreamProtocol,
             TimeSpan connectivityCheckFrequency,
-            int maxConnectedClients)
+            int maxConnectedClients,
+            TimeSpan cloudConnectionIdleTimeout,
+            bool closeCloudConnectionOnIdleTimeout)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
@@ -67,6 +71,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.upstreamProtocol = upstreamProtocol;
             this.connectivityCheckFrequency = connectivityCheckFrequency;
             this.maxConnectedClients = Preconditions.CheckRange(maxConnectedClients, 1);
+            this.cloudConnectionIdleTimeout = cloudConnectionIdleTimeout;
+            this.closeCloudConnectionOnIdleTimeout = closeCloudConnectionOnIdleTimeout;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -171,7 +177,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         this.upstreamProtocol,
                         tokenProvider,
                         deviceScopeIdentitiesCache,
-                        TimeSpan.FromMinutes(60));
+                        this.cloudConnectionIdleTimeout,
+                        this.closeCloudConnectionOnIdleTimeout);
                     return cloudConnectionProvider;
                 })
                 .As<Task<ICloudConnectionProvider>>()

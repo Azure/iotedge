@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     { typeof(Twin), twinMessageConverter },
                     { typeof(TwinCollection), twinCollectionMessageConverter }
                 });
-            var cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, new ClientProvider(), Option.None<UpstreamProtocol>(), Mock.Of<ITokenProvider>(), Mock.Of<IDeviceScopeIdentitiesCache>(), TimeSpan.FromMinutes(60));
+            var cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, new ClientProvider(), Option.None<UpstreamProtocol>(), Mock.Of<ITokenProvider>(), Mock.Of<IDeviceScopeIdentitiesCache>(), TimeSpan.FromMinutes(60), true);
             var credentialsCache = Mock.Of<ICredentialsCache>();
             var connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, EdgeDeviceId, EdgeHubModuleId);
 
