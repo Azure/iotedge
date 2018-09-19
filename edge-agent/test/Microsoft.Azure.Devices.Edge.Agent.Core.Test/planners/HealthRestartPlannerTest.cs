@@ -863,6 +863,62 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
 
         [Fact]
         [Unit]
+        public async Task TestUpdateStateChanged_Offline_NoIdentities()
+        {
+            // Arrange
+            (TestCommandFactory factory, _, _, HealthRestartPlanner planner) = CreatePlanner();
+
+            // prepare list of modules whose configurations have been updated
+            (IRuntimeModule RunningModule, IModule UpdatedModule)[] updateDeployModules = GetUpdateDeployTestData();
+
+            // prepare list of removed modules
+            IEnumerable<IRuntimeModule> removedModules = GetRemoveTestData();
+
+            // prepare a list of existing modules whose runtime status may/may not have been updated
+            (IRuntimeModule RunningModule, bool Restart)[] updateStateChangedModules = GetUpdateStateChangeTestData();
+
+            // build "current" and "desired" module sets
+            ModuleSet currentModuleSet = ModuleSet.Create(updateDeployModules
+                .Select(d => d.RunningModule)
+                .Concat(removedModules)
+                .Concat(updateStateChangedModules.Select(m => m.RunningModule))
+                .ToArray<IModule>()
+            );
+            ModuleSet desiredModuleSet = ModuleSet.Create(updateDeployModules
+                .Select(d => d.UpdatedModule)
+                .Concat(updateStateChangedModules.Select(m => m.RunningModule))
+                .ToArray()
+            );
+            IImmutableDictionary<string, IModuleIdentity> moduleIdentities = ImmutableDictionary<string, IModuleIdentity>.Empty;
+
+            // build expected execution list
+            IEnumerable<TestRecordType> expectedExecutionList = removedModules
+                .SelectMany(m => new[]
+                {
+                    new TestRecordType(TestCommandType.TestStop, m),
+                    new TestRecordType(TestCommandType.TestRemove, m)
+                })
+                .Concat(
+                    updateStateChangedModules
+                        .Where(d => d.Restart)
+                        .SelectMany(d => new[]
+                        {
+                            new TestRecordType(TestCommandType.TestStop, d.RunningModule),
+                            new TestRecordType(TestCommandType.TestStart, d.RunningModule)
+                        })
+                );
+
+            // Act
+            Plan plan = await planner.PlanAsync(desiredModuleSet, currentModuleSet, RuntimeInfo, moduleIdentities);
+            var planRunner = new OrderedPlanRunner();
+            await planRunner.ExecuteAsync(1, plan, CancellationToken.None);
+
+            // Assert
+            factory.Recorder.ForEach(r => Assert.Equal(0, expectedExecutionList.Except(r.ExecutionList).Count()));
+        }
+
+        [Fact]
+        [Unit]
         public async Task TestResetStatsForHealthyModules()
         {
             // Arrange
