@@ -3,7 +3,7 @@
 # This script:
 # - builds the IoT Edge runtime components (Agent and Hub)
 # - builds sample modules (temperature sensor and filter)
-# - builds the tests
+# - builds the tests (and e2e test modules)
 # - packages the smoke tests as tarballs for amd64 and arm32v7
 # - publishes everything to {source_root}/target/
 
@@ -213,6 +213,8 @@ publish_app "SimulatedTemperatureSensor"
 publish_app "TemperatureFilter"
 publish_app "load-gen"
 publish_app "MessagesAnalyzer"
+publish_app "DMSender"
+publish_app "DMReceiver"
 
 publish_lib "Microsoft.Azure.WebJobs.Extensions.EdgeHub"
 publish_lib "EdgeHubTriggerCSharp"
