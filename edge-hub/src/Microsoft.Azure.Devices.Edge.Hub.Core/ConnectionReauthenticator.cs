@@ -159,7 +159,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 }
 
                 Events.ServiceIdentityRemoved(id);
-                await this.connectionManager.RemoveDeviceConnection(id);
+                if (!this.IsEdgeHubIdentity(id))
+                {
+                    await this.connectionManager.RemoveDeviceConnection(id);
+                }
             }
             catch (Exception ex)
             {
