@@ -29,6 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly TimeSpan idleTimeout;
         readonly ITokenProvider edgeHubTokenProvider;
         readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
+        readonly bool closeOnIdleTimeout;
         Option<IEdgeHub> edgeHub;
 
         public CloudConnectionProvider(IMessageConverterProvider messageConverterProvider,
@@ -37,7 +38,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             Option<UpstreamProtocol> upstreamProtocol,
             ITokenProvider edgeHubTokenProvider,
             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache,
-            TimeSpan idleTimeout)
+            TimeSpan idleTimeout,
+            bool closeOnIdleTimeout)
         {
             Preconditions.CheckRange(connectionPoolSize, 1, nameof(connectionPoolSize));
             this.messageConverterProvider = Preconditions.CheckNotNull(messageConverterProvider, nameof(messageConverterProvider));
@@ -45,6 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.transportSettings = GetTransportSettings(upstreamProtocol, connectionPoolSize);
             this.edgeHub = Option.None<IEdgeHub>();
             this.idleTimeout = idleTimeout;
+            this.closeOnIdleTimeout = closeOnIdleTimeout;
             this.edgeHubTokenProvider = Preconditions.CheckNotNull(edgeHubTokenProvider, nameof(edgeHubTokenProvider));
             this.deviceScopeIdentitiesCache = Preconditions.CheckNotNull(deviceScopeIdentitiesCache, nameof(deviceScopeIdentitiesCache));
         }
@@ -124,7 +127,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     cloudListener,
                     this.edgeHubTokenProvider,
                     this.deviceScopeIdentitiesCache,
-                    this.idleTimeout);
+                    this.idleTimeout,
+                    this.closeOnIdleTimeout);
 
                 await cloudConnection.CreateOrUpdateAsync(identity);
                 Events.SuccessCreatingCloudConnection(identity.Identity);
