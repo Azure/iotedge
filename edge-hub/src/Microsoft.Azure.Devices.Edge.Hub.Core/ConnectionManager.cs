@@ -8,6 +8,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using System.Collections.ObjectModel;
     using System.Linq;
     using System.Threading.Tasks;
+    using App.Metrics;
+    using App.Metrics.Counter;
+    using App.Metrics.Timer;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -58,6 +61,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             ConnectedDevice device = this.GetOrCreateConnectedDevice(identity);
             Option<DeviceConnection> currentDeviceConnection = device.AddDeviceConnection(deviceProxy);
             Events.NewDeviceConnection(identity);
+            Metrics.EdgeHubConnectedClientCountIncrement();
+            Metrics.ClientConnectionStateIncrement(identity.Id);
+            Metrics.ClientConnectionHistoryCountIncrement(identity.Id);
 
             await currentDeviceConnection
                 .Filter(dc => dc.IsActive)
@@ -67,6 +73,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public Task RemoveDeviceConnection(string id)
         {
+            Metrics.EdgeHubConnectedClientCountDecrement();
+            Metrics.ClientConnectionStateDecrement(id);
             return this.devices.TryGetValue(Preconditions.CheckNonWhiteSpace(id, nameof(id)), out ConnectedDevice device)
                 ? this.RemoveDeviceConnection(device, false)
                 : Task.CompletedTask;
@@ -371,6 +379,42 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             public bool IsActive => this.DeviceProxy.IsActive;
 
             public Task CloseAsync(Exception ex) => this.DeviceProxy.CloseAsync(ex);
+        }
+
+        static class Metrics
+        {
+            static readonly CounterOptions ConnectedClientCountOptions = new CounterOptions
+            {
+                Name = "EdgeHubConnectedClientCount",
+                MeasurementUnit = Unit.Events
+            };
+
+            static readonly CounterOptions ClientConnectionHistoryOptions = new CounterOptions
+            {
+                Name = "ClientConnectionHistory",
+                MeasurementUnit = Unit.Events
+            };
+
+            static readonly CounterOptions ClientConnectionStateOptions = new CounterOptions
+            {
+                Name = "ClientConnectionState",
+                MeasurementUnit = Unit.Events
+            };
+
+            internal static MetricTags GetTags(string id)
+            {
+                return new MetricTags("Id", id);
+            }
+
+            public static void EdgeHubConnectedClientCountIncrement() => Edge.Util.Metrics.CountIncrement(ConnectedClientCountOptions, 1);
+
+            public static void EdgeHubConnectedClientCountDecrement() => Edge.Util.Metrics.CountDecrement(ConnectedClientCountOptions, 1);
+
+            public static void ClientConnectionHistoryCountIncrement(string identity) => Edge.Util.Metrics.CountIncrement(GetTags(identity), ClientConnectionHistoryOptions, 1);
+
+            public static void ClientConnectionStateIncrement(string identity) => Edge.Util.Metrics.CountIncrement(GetTags(identity), ClientConnectionStateOptions, 1);
+
+            public static void ClientConnectionStateDecrement(string identity) => Edge.Util.Metrics.CountDecrement(GetTags(identity), ClientConnectionStateOptions, 1);
         }
 
         static class Events

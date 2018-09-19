@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 if (metricsStoreType == "influxdb")
                 {
                     string metricsDbName = metricsConfigurationSection.GetValue("MetricsDbName", "metricsdatabase");
-                    string influxDbUrl = metricsConfigurationSection.GetValue("InfluxDbUrl", "http://influxdb:8086");
+                    string influxDbUrl = metricsConfigurationSection.GetValue("InfluxDbUrl", "http://localhost:8086");
                     IMetricsRoot metricsCollector = new MetricsBuilder()
                         .Report.ToInfluxDb(
                             options =>
@@ -85,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             scheduler.Start();
         }
 
-        public static void Count(MetricTags tags, CounterOptions options)
+        public static void CountIncrement(MetricTags tags, CounterOptions options, long amount)
         {
             Preconditions.CheckNotNull(tags);
             Preconditions.CheckNotNull(options);
@@ -93,6 +93,37 @@ namespace Microsoft.Azure.Devices.Edge.Util
             MetricsCollector.ForEach(mroot =>
             {
                 mroot.Measure.Counter.Increment(options, tags);
+            });
+        }
+
+        public static void CountDecrement(MetricTags tags, CounterOptions options, long amount)
+        {
+            Preconditions.CheckNotNull(tags);
+            Preconditions.CheckNotNull(options);
+
+            MetricsCollector.ForEach(mroot =>
+            {
+                mroot.Measure.Counter.Decrement(options, tags, amount);
+            });
+        }
+
+        public static void CountIncrement(CounterOptions options, long amount)
+        {
+            Preconditions.CheckNotNull(options);
+
+            MetricsCollector.ForEach(mroot =>
+            {
+                mroot.Measure.Counter.Increment(options);
+            });
+        }
+
+        public static void CountDecrement(CounterOptions options, long amount)
+        {
+            Preconditions.CheckNotNull(options);
+
+            MetricsCollector.ForEach(mroot =>
+            {
+                mroot.Measure.Counter.Decrement(options, amount);
             });
         }
 

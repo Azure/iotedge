@@ -63,7 +63,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                     Events.AddMessageSuccess(this, offset);
                 }
                 this.hasMessagesInQueue.Set();
-                Metrics.StoredCount(this.Endpoint.Id);
+                Metrics.StoredCountIncrement(this.Endpoint.Id);
             }
             catch (Exception ex)
             {
@@ -86,6 +86,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                         IMessage[] messages = (await iterator.GetNext(this.options.BatchSize)).ToArray();
                         await this.ProcessMessages(messages);
                         Events.SendMessagesSuccess(this, messages);
+                        Metrics.StoredCountDecrement(this.Endpoint.Id, messages.Length);
 
                         // If store has no messages, then reset the hasMessagesInQueue flag. 
                         if (messages.Length == 0)
@@ -174,8 +175,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             static readonly CounterOptions EndpointMessageCountOptions = new CounterOptions
             {
                 Name = "EndpointMessageStoredCount",
-                MeasurementUnit = Unit.Events,
-                ResetOnReporting = true,
+                MeasurementUnit = Unit.Events
             };
             static readonly TimerOptions EndpointMessageLatencyOptions = new TimerOptions
             {
@@ -190,7 +190,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                 return new MetricTags("EndpointId", id);
             }
 
-            public static void StoredCount(string identity) => Edge.Util.Metrics.Count(GetTags(identity), EndpointMessageCountOptions);
+            public static void StoredCountIncrement(string identity) => Edge.Util.Metrics.CountIncrement(GetTags(identity), EndpointMessageCountOptions, 1);
+
+            public static void StoredCountDecrement(string identity, long amount) => Edge.Util.Metrics.CountDecrement(GetTags(identity), EndpointMessageCountOptions, amount);
 
             public static IDisposable StoreLatency(string identity) => Edge.Util.Metrics.Latency(GetTags(identity), EndpointMessageLatencyOptions);
         }
