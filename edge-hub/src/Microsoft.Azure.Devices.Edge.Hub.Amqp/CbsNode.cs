@@ -258,7 +258,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
             public static void NewTokenReceived()
             {
-                Log.LogDebug((int)EventIds.TokenReceived, "New token received on the Cbs link");
+                Log.LogInformation((int)EventIds.TokenReceived, "New token received on the Cbs link");
             }
 
             public static void ErrorUpdatingToken(Exception exception)
@@ -278,7 +278,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
             public static void CbsTokenUpdated(IIdentity identity)
             {
-                Log.LogDebug((int)EventIds.TokenUpdated, $"Token updated for {identity.Id}");
+                Log.LogInformation((int)EventIds.TokenUpdated, $"Token updated for {identity.Id}");
             }
 
             public static void ErrorSendingResponse(Exception exception)
