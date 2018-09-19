@@ -38,6 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly TimeSpan idleTimeout;
         readonly ITokenProvider edgeHubTokenProvider;
         readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
+        readonly bool closeOnIdleTimeout;
 
         bool callbacksEnabled = true;
         Option<TaskCompletionSource<string>> tokenGetter;
@@ -51,7 +52,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             ICloudListener cloudListener,
             ITokenProvider edgeHubTokenProvider,
             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache,
-            TimeSpan idleTimeout)
+            TimeSpan idleTimeout,
+            bool closeOnIdleTimeout)
         {
             this.connectionStatusChangedHandler = connectionStatusChangedHandler;
             this.transportSettingsList = Preconditions.CheckNotNull(transportSettings, nameof(transportSettings));
@@ -60,6 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.clientProvider = Preconditions.CheckNotNull(clientProvider, nameof(clientProvider));
             this.cloudListener = Preconditions.CheckNotNull(cloudListener, nameof(cloudListener));
             this.idleTimeout = idleTimeout;
+            this.closeOnIdleTimeout = closeOnIdleTimeout;
             this.edgeHubTokenProvider = Preconditions.CheckNotNull(edgeHubTokenProvider, nameof(edgeHubTokenProvider));
             this.deviceScopeIdentitiesCache = Preconditions.CheckNotNull(deviceScopeIdentitiesCache, nameof(deviceScopeIdentitiesCache));
         }
@@ -157,7 +160,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 newCredentials.Identity.Id,
                 this.connectionStatusChangedHandler,
                 this.cloudListener,
-                this.idleTimeout);
+                this.idleTimeout,
+                this.closeOnIdleTimeout);
             return proxy;
         }
 
