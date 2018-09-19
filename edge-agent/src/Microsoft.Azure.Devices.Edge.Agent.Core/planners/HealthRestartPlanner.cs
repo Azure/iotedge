@@ -79,22 +79,33 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
 
         async Task<IEnumerable<ICommand>> ProcessAddedUpdatedModules(
             IList<IModule> modules,
-            Func<IModule, Task<ICommand>> createUpdateCommandMaker
+            IImmutableDictionary<string, IModuleIdentity> moduleIdentities,
+            Func<IModuleWithIdentity, Task<ICommand>> createUpdateCommandMaker
         )
         {
             // new modules become a command group containing:
             //   create followed by a start command if the desired
             //   status is "running"
-            IEnumerable<Task<ICommand[]>> addedTasks = modules.Select(m =>
+            var addedTasks = new List<Task<ICommand[]>>();
+            foreach (IModule module in modules)
             {
-                var tasks = new List<Task<ICommand>>();
-                tasks.Add(createUpdateCommandMaker(m));
-                if (m.DesiredStatus == ModuleStatus.Running)
+                if(moduleIdentities.TryGetValue(module.Name, out IModuleIdentity moduleIdentity))
                 {
-                    tasks.Add(this.commandFactory.StartAsync(m));
+                    var tasks = new List<Task<ICommand>>();
+                    var moduleWithIdentity = new ModuleWithIdentity(module, moduleIdentity);
+                    tasks.Add(createUpdateCommandMaker(moduleWithIdentity));
+                    if (module.DesiredStatus == ModuleStatus.Running)
+                    {
+                        tasks.Add(this.commandFactory.StartAsync(module));
+                    }
+
+                    addedTasks.Add(Task.WhenAll(tasks));
                 }
-                return Task.WhenAll(tasks);
-            });
+                else
+                {
+                    Events.UnableToProcessModule(module);
+                }
+            }
 
             // build GroupCommands from each command set
             IEnumerable<Task<ICommand>> commands = (await Task.WhenAll(addedTasks))
@@ -172,7 +183,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             return (added, updateDeployed, updateStateChanged, removed, runningGreat);
         }
 
-        public async Task<Plan> PlanAsync(ModuleSet desired, ModuleSet current, IRuntimeInfo runtimeInfo,
+        public async Task<Plan> PlanAsync(ModuleSet desired,
+            ModuleSet current,
+            IRuntimeInfo runtimeInfo,
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities)
         {
             Events.LogDesired(desired);
@@ -180,14 +193,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             // extract list of modules that need attention
             (IList<IModule> added, IList<IModule> updateDeployed, IList<IRuntimeModule> updateStateChanged, IList<IRuntimeModule> removed, IList<IRuntimeModule> runningGreat) = this.ProcessDiff(desired, current);
 
-            var updateRuntimeCommands = new List<ICommand>();
-            IModule edgeAgentModule = updateDeployed.FirstOrDefault(m => m.Name.Equals(Constants.EdgeAgentModuleName, StringComparison.OrdinalIgnoreCase));
-            if (edgeAgentModule != null)
-            {
-                updateDeployed.Remove(edgeAgentModule);
-                ICommand updateEdgeAgentCommand = await this.commandFactory.UpdateEdgeAgentAsync(new ModuleWithIdentity(edgeAgentModule, moduleIdentities.GetValueOrDefault(edgeAgentModule.Name)), runtimeInfo);
-                updateRuntimeCommands.Add(updateEdgeAgentCommand);
-            }
+            List<ICommand> updateRuntimeCommands = await this.GetUpdateRuntimeCommands(updateDeployed, moduleIdentities, runtimeInfo);
 
             // create "stop" commands for modules that have been updated/removed
             IEnumerable<Task<ICommand>> stopTasks = updateDeployed
@@ -209,17 +215,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             // create pull, create, update and start commands for added/updated modules
             IEnumerable<ICommand> addedCommands = await this.ProcessAddedUpdatedModules(
                 added,
-                m => this.commandFactory.CreateAsync(new ModuleWithIdentity(m, moduleIdentities.GetValueOrDefault(m.Name)), runtimeInfo)
+                moduleIdentities,
+                m => this.commandFactory.CreateAsync(m, runtimeInfo)
             );
 
             IEnumerable<ICommand> updatedCommands = await this.ProcessAddedUpdatedModules(
                 updateDeployed,
+                moduleIdentities,
                 m =>
                 {
-                    current.TryGetModule(m.Name, out IModule currentModule);
+                    current.TryGetModule(m.Module.Name, out IModule currentModule);
                     return this.commandFactory.UpdateAsync(
                         currentModule,
-                        new ModuleWithIdentity(m, moduleIdentities.GetValueOrDefault(m.Name)),
+                        m,
                         runtimeInfo);
                 }
             );
@@ -246,6 +254,27 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             return new Plan(commands);
         }
 
+        async Task<List<ICommand>> GetUpdateRuntimeCommands(IList<IModule> updateDeployed, IImmutableDictionary<string, IModuleIdentity> moduleIdentities, IRuntimeInfo runtimeInfo)
+        {
+            var updateRuntimeCommands = new List<ICommand>();
+            IModule edgeAgentModule = updateDeployed.FirstOrDefault(m => m.Name.Equals(Constants.EdgeAgentModuleName, StringComparison.OrdinalIgnoreCase));
+            if (edgeAgentModule != null)
+            {
+                if (moduleIdentities.TryGetValue(edgeAgentModule.Name, out IModuleIdentity edgeAgentIdentity))
+                {
+                    updateDeployed.Remove(edgeAgentModule);
+                    ICommand updateEdgeAgentCommand = await this.commandFactory.UpdateEdgeAgentAsync(new ModuleWithIdentity(edgeAgentModule, edgeAgentIdentity), runtimeInfo);
+                    updateRuntimeCommands.Add(updateEdgeAgentCommand);
+                }
+                else
+                {
+                    Events.UnableToUpdateEdgeAgent();
+                }
+            }
+
+            return updateRuntimeCommands;
+        }
+
         public async Task<Plan> CreateShutdownPlanAsync(ModuleSet current)
         {
             IEnumerable<Task<ICommand>> stopTasks = current.Modules.Values
@@ -267,7 +296,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             PlanCreated = IdStart,
             ClearRestartStats,
             DesiredModules,
-            CurrentModules
+            CurrentModules,
+            UnableToUpdateEdgeAgent,
+            UnableToProcessModule
         }
 
         public static void PlanCreated(IList<ICommand> commands)
@@ -290,6 +321,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
         {
             IDictionary<string, IModule> modules = current.Modules.ToImmutableDictionary();
             Log.LogDebug((int)EventIds.CurrentModules, $"List of current modules is - {JsonConvert.SerializeObject(modules)}");
+        }
+
+        public static void UnableToUpdateEdgeAgent()
+        {
+            Log.LogInformation((int)EventIds.UnableToUpdateEdgeAgent, $"Unable to update EdgeAgent module as the EdgeAgent module identity could not be obtained");
+        }
+
+        public static void UnableToProcessModule(IModule module)
+        {
+            Log.LogInformation((int)EventIds.UnableToProcessModule, $"Unable to process module {module.Name} add or update as the module identity could not be obtained");
         }
     }
 }

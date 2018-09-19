@@ -42,6 +42,30 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         }
 
         [Fact]
+        public async Task TestGetModulesIdentity_IIdentityManagerException_ShouldReturnEmptyIdentities()
+        {
+            // Arrange
+            var identityManager = Mock.Of<IIdentityManager>();
+            Mock.Get(identityManager).Setup(m => m.GetIdentities()).ThrowsAsync(new InvalidOperationException());
+            var moduleIdentityLifecycleManager = new ModuleIdentityLifecycleManager(identityManager, ModuleIdentityProviderServiceBuilder, EdgeletUri);
+            var envVar = new Dictionary<string, EnvVal>();
+
+            var module1 = new TestModule("mod1", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, envVar);
+            var module2 = new TestModule("mod2", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, envVar);
+            var module3 = new TestModule("mod3", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, envVar);
+            var module4 = new TestModule("$edgeHub", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, envVar);
+            ModuleSet desired = ModuleSet.Create(module1, module4);
+            ModuleSet current = ModuleSet.Create(module2, module3, module4);
+
+            // Act
+            IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desired, current);
+
+            // Assert
+            Assert.False(modulesIdentities.Any());
+            Mock.Get(identityManager).Verify();
+        }
+
+        [Fact]
         [Unit]
         public async Task TestGetModulesIdentity_WithNewModules_ShouldCreateIdentities()
         {
