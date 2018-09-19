@@ -81,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
         {
             try
             {
-                await (this.callback?.Invoke() ?? Task.CompletedTask);
+                await this.callback.Invoke();
             }
             catch (Exception exception)
             {
