@@ -312,8 +312,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var deviceProxy = new Mock<IDeviceProxy>(MockBehavior.Strict);
             deviceProxy.Setup(d => d.CloseAsync(It.Is<Exception>(e => e is EdgeHubConnectionException))).Returns(Task.CompletedTask);
             deviceProxy.SetupGet(d => d.IsActive).Returns(true);
+            deviceProxy.Setup(d => d.GetUpdatedIdentity()).ReturnsAsync(Option.None<IClientCredentials>());
 
-            var credentialsCache = Mock.Of<ICredentialsCache>(c => c.Get(identity) == Task.FromResult(Option.None<IClientCredentials>()));
+            var credentialsCache = Mock.Of<ICredentialsCache>();
             var connectionManager = new ConnectionManager(cloudProxyProviderMock.Object, credentialsCache, EdgeDeviceId, EdgeModuleId);
             await connectionManager.AddDeviceConnection(deviceCredentials.Identity, deviceProxy.Object);
             Try<ICloudProxy> cloudProxyTry = await connectionManager.GetOrCreateCloudConnectionAsync(deviceCredentials);
@@ -349,6 +350,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .ReturnsAsync(Try.Success(cloudConnection));
 
             var deviceProxy = new Mock<IDeviceProxy>(MockBehavior.Strict);
+            deviceProxy.SetupGet(d => d.IsActive).Returns(true);
+            deviceProxy.Setup(d => d.GetUpdatedIdentity()).ReturnsAsync(Option.Some(updatedDeviceCredentials));
 
             var credentialsCache = Mock.Of<ICredentialsCache>(c => c.Get(deviceIdentity) == Task.FromResult(Option.Some(updatedDeviceCredentials)));
             var connectionManager = new ConnectionManager(cloudProxyProviderMock.Object, credentialsCache, EdgeDeviceId, EdgeModuleId);
@@ -359,6 +362,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.NotNull(callback);
 
             callback.Invoke(device, CloudConnectionStatus.TokenNearExpiry);
+
+            await Task.Delay(TimeSpan.FromSeconds(2));
             Mock.VerifyAll(deviceProxy);
             Assert.True(updatedCredentialsPassed);
         }
