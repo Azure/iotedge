@@ -3,7 +3,7 @@ FROM microsoft/dotnet:${base_tag}
 
 ARG EXE_DIR=.
 
-ENV MODULE_NAME "DMSender.dll"
+ENV MODULE_NAME "DirectMethodSender.dll"
 
 WORKDIR /app
 
@@ -14,4 +14,4 @@ RUN adduser -Ds /bin/sh moduleuser
 USER moduleuser
 
 CMD echo "$(date --utc +"[%Y-%m-%d %H:%M:%S %:z]"): Starting Module" && \
-    exec /usr/bin/dotnet DMSender.dll
+    exec /usr/bin/dotnet DirectMethodSender.dll

@@ -30,7 +30,7 @@ namespace DirectMethodSender
 
             TimeSpan dmDelay = configuration.GetValue("DMDelay", TimeSpan.FromSeconds(5));
 
-            string targetModuleId = configuration.GetValue("TargetModuleId", "DMReceiver");
+            string targetModuleId = configuration.GetValue("TargetModuleId", "DirectMethodReceiver");
 
             // Get deviced id of this device, exposed as a system variable by the iot edge runtime
             string targetDeviceId = configuration.GetValue<string>("IOTEDGE_DEVICEID");

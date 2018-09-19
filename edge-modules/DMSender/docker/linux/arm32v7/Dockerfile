@@ -3,7 +3,7 @@ FROM azureiotedge/azureiotedge-module-base:${base_tag}
 
 ARG EXE_DIR=.
 
-ENV MODULE_NAME "DMSender.dll"
+ENV MODULE_NAME "DirectMethodSender.dll"
 
 WORKDIR /app
 
@@ -12,4 +12,4 @@ COPY $EXE_DIR/ ./
 USER moduleuser
 
 CMD echo "$(date --utc +"[%Y-%m-%d %H:%M:%S %:z]"): Starting Module" && \
-    exec /usr/bin/dotnet DMSender.dll
+    exec /usr/bin/dotnet DirectMethodSender.dll
