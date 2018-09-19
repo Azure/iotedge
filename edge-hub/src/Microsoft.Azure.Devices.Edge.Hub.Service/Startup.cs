@@ -206,7 +206,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             app.UseWebSockets();
             app.UseWebSocketHandlingMiddleware(webSocketListenerRegistry);
-            app.UseAuthenticationMiddleware(this.iotHubHostname);
+            app.UseAuthenticationMiddleware(this.iotHubHostname, this.edgeDeviceId);
             app.UseMvc();
         }
 

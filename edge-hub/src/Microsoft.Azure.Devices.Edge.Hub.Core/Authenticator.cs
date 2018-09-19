@@ -39,16 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             Preconditions.CheckNotNull(clientCredentials);
 
-            bool isAuthenticated = false;
-            // If 'identity' represents an Edge module then its device id MUST match the authenticator's
-            // 'edgeDeviceId'. In other words the authenticator for one edge device cannot authenticate
-            // modules belonging to a different edge device.
-            if (clientCredentials.Identity is IModuleIdentity moduleIdentity && !moduleIdentity.DeviceId.Equals(this.edgeDeviceId, StringComparison.OrdinalIgnoreCase))
-            {
-                Events.InvalidDeviceId(moduleIdentity, this.edgeDeviceId);
-                isAuthenticated = false;
-            }
-
+            bool isAuthenticated;
             if (clientCredentials.AuthenticationType == AuthenticationType.X509Cert)
             {
                 // If we reach here, we have validated the client cert. Validation is done in
