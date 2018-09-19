@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
@@ -262,7 +263,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             try
             {
-                await this.UpdateDeviceConnectionStatus(device, ConnectionStatus.Disconnected);
+                bool isInScope = await this.IsInScope(device);
+                await this.UpdateDeviceConnectionStatus(device, ConnectionStatus.Disconnected, isInScope);
             }
             catch (Exception ex)
             {
@@ -274,7 +276,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             try
             {
-                await this.UpdateDeviceConnectionStatus(device, ConnectionStatus.Connected);
+                bool isInScope = await this.IsInScope(device);
+                await this.UpdateDeviceConnectionStatus(device, ConnectionStatus.Connected, isInScope);
             }
             catch (Exception ex)
             {
@@ -282,7 +285,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        Task UpdateDeviceConnectionStatus(IIdentity client, ConnectionStatus connectionStatus)
+        async Task<bool> IsInScope(IIdentity identity)
+        {
+            Option<ServiceIdentity> serviceIdentity = await (identity is IModuleIdentity moduleIdentity
+                ? this.deviceScopeIdentitiesCache.GetServiceIdentity(moduleIdentity.DeviceId, moduleIdentity.ModuleId)
+                : this.deviceScopeIdentitiesCache.GetServiceIdentity(identity.Id));
+
+            return serviceIdentity.HasValue;
+        }
+
+        Task UpdateDeviceConnectionStatus(IIdentity client, ConnectionStatus connectionStatus, bool isInScope)
         {
             try
             {
@@ -300,13 +312,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 {
                     if (connectionStatus == ConnectionStatus.Connected)
                     {
-                        return new DeviceConnectionStatus(connectionStatus, DateTime.UtcNow, null);
+                        return new DeviceConnectionStatus(connectionStatus, isInScope, DateTime.UtcNow, null);
                     }
                     else
                     {
                         return client is IDeviceIdentity
                             ? null
-                            : new DeviceConnectionStatus(connectionStatus, null, DateTime.UtcNow);
+                            : new DeviceConnectionStatus(connectionStatus, isInScope, null, DateTime.UtcNow);
                     }
                 }
 

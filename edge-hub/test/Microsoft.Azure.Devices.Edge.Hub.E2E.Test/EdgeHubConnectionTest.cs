@@ -170,12 +170,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 await Task.Delay(TimeSpan.FromSeconds(10));
                 reportedProperties = await this.GetReportedProperties(registryManager, edgeDeviceId);
                 Assert.Equal(2, reportedProperties.Clients.Count);
+
                 Assert.Equal(ConnectionStatus.Connected, reportedProperties.Clients[moduleIdKey].Status);
                 Assert.NotNull(reportedProperties.Clients[moduleIdKey].LastConnectedTimeUtc);
                 Assert.Null(reportedProperties.Clients[moduleIdKey].LastDisconnectTimeUtc);
+                Assert.Equal(false, reportedProperties.Clients[moduleIdKey].InDeviceScope);
+
                 Assert.Equal(ConnectionStatus.Connected, reportedProperties.Clients[downstreamDeviceId].Status);
                 Assert.NotNull(reportedProperties.Clients[downstreamDeviceId].LastConnectedTimeUtc);
                 Assert.Null(reportedProperties.Clients[downstreamDeviceId].LastDisconnectTimeUtc);
+                Assert.Equal(false, reportedProperties.Clients[moduleIdKey].InDeviceScope);
+
                 Assert.Equal(200, reportedProperties.LastDesiredStatus.Code);
                 Assert.Equal("1.0", reportedProperties.SchemaVersion);
                 Assert.Equal(versionInfo, reportedProperties.VersionInfo);
@@ -237,6 +242,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 Assert.Equal(2, reportedProperties.Clients.Count);
                 Assert.Equal("1.0", reportedProperties.SchemaVersion);
                 Assert.Equal(versionInfo, reportedProperties.VersionInfo);
+                Assert.Equal(ConnectionStatus.Connected, reportedProperties.Clients[moduleIdKey].Status);
+                Assert.NotNull(reportedProperties.Clients[moduleIdKey].LastConnectedTimeUtc);
+                Assert.Equal(false, reportedProperties.Clients[moduleIdKey].InDeviceScope);
+                Assert.Equal(ConnectionStatus.Connected, reportedProperties.Clients[downstreamDeviceId].Status);
+                Assert.NotNull(reportedProperties.Clients[downstreamDeviceId].LastConnectedTimeUtc);
+                Assert.Equal(false, reportedProperties.Clients[downstreamDeviceId].InDeviceScope);
 
                 // Disconnect the downstream device and make sure the reported properties are updated as expected.
                 await connectionManager.RemoveDeviceConnection(moduleIdKey);
@@ -249,6 +260,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 Assert.Equal(ConnectionStatus.Disconnected, reportedProperties.Clients[moduleIdKey].Status);
                 Assert.NotNull(reportedProperties.Clients[moduleIdKey].LastConnectedTimeUtc);
                 Assert.NotNull(reportedProperties.Clients[moduleIdKey].LastDisconnectTimeUtc);
+                Assert.Equal(false, reportedProperties.Clients[moduleIdKey].InDeviceScope);
                 Assert.Equal(200, reportedProperties.LastDesiredStatus.Code);
                 Assert.Equal("1.0", reportedProperties.SchemaVersion);
                 Assert.Equal(versionInfo, reportedProperties.VersionInfo);

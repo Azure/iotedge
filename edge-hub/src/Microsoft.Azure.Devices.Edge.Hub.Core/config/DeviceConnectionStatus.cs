@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 {
     using System;
@@ -6,18 +6,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     using Newtonsoft.Json;
     using Newtonsoft.Json.Converters;
 
-    internal class DeviceConnectionStatus
+    class DeviceConnectionStatus
     {
-        public DeviceConnectionStatus(ConnectionStatus status, DateTime? lastConnectedTimeUtc, DateTime? lastDisconnectedTimeUtc)
+        public DeviceConnectionStatus(ConnectionStatus status, bool inDeviceScope, DateTime? lastConnectedTimeUtc, DateTime? lastDisconnectedTimeUtc)
         {
             this.Status = status;
             this.LastConnectedTimeUtc = lastConnectedTimeUtc;
             this.LastDisconnectTimeUtc = lastDisconnectedTimeUtc;
+            this.InDeviceScope = inDeviceScope;
         }
 
         [JsonProperty(PropertyName = "status")]
         [JsonConverter(typeof(StringEnumConverter))]
         public ConnectionStatus Status { get; }
+
+        [JsonProperty(PropertyName = "inDeviceScope")]
+        public bool InDeviceScope { get; }
 
         [JsonProperty(PropertyName = "lastConnectedTimeUtc", NullValueHandling = NullValueHandling.Ignore)]
         public DateTime? LastConnectedTimeUtc { get; }
