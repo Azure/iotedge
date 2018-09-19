@@ -117,6 +117,38 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         public Task RemoveSubscription(DeviceSubscription subscription) => this.edgeHub.RemoveSubscription(this.Identity.Id, subscription);
 
+        public async Task AddDesiredPropertyUpdatesSubscription(string correlationId)
+        {
+            await this.edgeHub.AddSubscription(this.Identity.Id, DeviceSubscription.DesiredPropertyUpdates);
+            if (!string.IsNullOrWhiteSpace(correlationId))
+            {
+                IMessage responseMessage = new EdgeMessage.Builder(new byte[0])
+                    .SetSystemProperties(new Dictionary<string, string>
+                    {
+                        [SystemProperties.CorrelationId] = correlationId,
+                        [SystemProperties.StatusCode] = ((int)HttpStatusCode.OK).ToString()
+                    })
+                    .Build();
+                await this.SendTwinUpdate(responseMessage);
+            }
+        }
+
+        public async Task RemoveDesiredPropertyUpdatesSubscription(string correlationId)
+        {
+            await this.edgeHub.RemoveSubscription(this.Identity.Id, DeviceSubscription.DesiredPropertyUpdates);
+            if (!string.IsNullOrWhiteSpace(correlationId))
+            {
+                IMessage responseMessage = new EdgeMessage.Builder(new byte[0])
+                    .SetSystemProperties(new Dictionary<string, string>
+                    {
+                        [SystemProperties.CorrelationId] = correlationId,
+                        [SystemProperties.StatusCode] = ((int)HttpStatusCode.OK).ToString()
+                    })
+                    .Build();
+                await this.SendTwinUpdate(responseMessage);
+            }
+        }
+
         public async Task SendGetTwinRequest(string correlationId)
         {
             try
