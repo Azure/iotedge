@@ -198,17 +198,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 case CloudConnectionStatus.TokenNearExpiry:
                     Events.ProcessingTokenNearExpiryEvent(device.Identity);
-                    Option<IClientCredentials> token = await this.credentialsCache.Get(device.Identity);
-                    if (token.HasValue)
+                    Option<IDeviceProxy> deviceProxy = device.DeviceConnection.Map(d => d.DeviceProxy).Filter(d => d.IsActive);
+                    if (deviceProxy.HasValue)
                     {
-                        await token.ForEachAsync(async t =>
+                        Option<IClientCredentials> token = await deviceProxy.Map(d => d.GetUpdatedIdentity())
+                            .GetOrElse(Task.FromResult(Option.None<IClientCredentials>()));
+                        if (token.HasValue)
                         {
-                            await device.CreateOrUpdateCloudConnection(c => this.CreateOrUpdateCloudConnection(c, t));
-                        });
+                            await token.ForEachAsync(async t =>
+                            {
+                                Try<ICloudConnection> cloudConnectionTry = await device.CreateOrUpdateCloudConnection(c => this.CreateOrUpdateCloudConnection(c, t));
+                                if (!cloudConnectionTry.Success)
+                                {
+                                    await this.RemoveDeviceConnection(device, true);
+                                    this.CloudConnectionLost?.Invoke(this, device.Identity);
+                                }
+                            });
+                        }
+                        else
+                        {
+                            await this.RemoveDeviceConnection(device, false);
+                        }
                     }
                     else
                     {
-                        await this.RemoveDeviceConnection(device, false);
+                        await this.RemoveDeviceConnection(device, true);
+                        this.CloudConnectionLost?.Invoke(this, device.Identity);
                     }
                     break;
 

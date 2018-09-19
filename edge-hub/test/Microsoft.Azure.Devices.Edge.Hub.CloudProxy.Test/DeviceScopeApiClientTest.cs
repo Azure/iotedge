@@ -3,6 +3,10 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
     using System;
+    using System.Collections.Generic;
+    using System.Net;
+    using System.Net.Http;
+    using System.Net.Sockets;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
@@ -94,6 +98,38 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             // Assert
             Assert.NotNull(uri);
             Assert.Equal(expectedToken, uri.ToString());
+        }
+
+        static IEnumerable<object[]> GetErrorDetectionData()
+        {
+            yield return new object[] { new ArgumentException(), false };
+            yield return new object[] { new InvalidOperationException(), false };
+            yield return new object[] { new ArgumentNullException(), false };
+
+            yield return new object[] { new DeviceScopeApiException("foo", HttpStatusCode.BadRequest, "bar"), false };
+            yield return new object[] { new DeviceScopeApiException("foo", HttpStatusCode.Unauthorized, "bar"), false };
+
+            yield return new object[] { new SocketException(), true };
+            yield return new object[] { new HttpRequestException(), true };
+            yield return new object[] { new Exception(), true };
+
+            yield return new object[] { new DeviceScopeApiException("foo", HttpStatusCode.InternalServerError, "bar"), true };
+            yield return new object[] { new DeviceScopeApiException("foo", HttpStatusCode.ServiceUnavailable, "bar"), true };
+            yield return new object[] { new DeviceScopeApiException("foo", HttpStatusCode.NotImplemented, "bar"), true };
+        }
+
+        [Theory]
+        [MemberData(nameof(GetErrorDetectionData))]
+        public void ErrorDetectionStrategyTest(Exception ex, bool isTransient)
+        {
+            // Arrange
+            var errorDetectionStrategy = new DeviceScopeApiClient.ErrorDetectionStrategy();
+
+            // Act
+            bool isTransientResponse = errorDetectionStrategy.IsTransient(ex);
+
+            // Assert
+            Assert.Equal(isTransientResponse, isTransient);
         }
     }
 }
