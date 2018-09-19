@@ -1,13 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace DMReceiver
+namespace DirectMethodReceiver
 {
     using System;
     using System.Globalization;
     using System.IO;
     using System.Net;
     using System.Runtime.Loader;
-    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
@@ -37,7 +36,7 @@ namespace DMReceiver
             var cts = new CancellationTokenSource();
             AssemblyLoadContext.Default.Unloading += (ctx) => cts.Cancel();
             Console.CancelKeyPress += (sender, cpe) => cts.Cancel();
-            WhenCancelled(cts.Token).Wait();
+            await WhenCancelled(cts.Token);
             return 0;
         }
 
@@ -51,7 +50,7 @@ namespace DMReceiver
             return tcs.Task;
         }
 
-        static async Task<ModuleClient> InitModuleClient(TransportType transportType)
+        static async Task InitModuleClient(TransportType transportType)
         {
             ITransportSettings[] GetTransportSettings()
             {
@@ -69,22 +68,15 @@ namespace DMReceiver
 
             ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings).ConfigureAwait(false);
             await moduleClient.OpenAsync().ConfigureAwait(false);
-            await moduleClient.SetMethodHandlerAsync("HelloWorldMethod", HelloWorldMethod, moduleClient).ConfigureAwait(false);
+            await moduleClient.SetMethodHandlerAsync("HelloWorldMethod", HelloWorldMethod, null).ConfigureAwait(false);
 
             Console.WriteLine("Successfully initialized module client.");
-            return moduleClient;
         }
 
         static Task<MethodResponse> HelloWorldMethod(MethodRequest methodRequest, object userContext)
         {
-            var moduleClient = (ModuleClient)userContext;
-            Console.WriteLine("Received direct method call... Sending a message.");
-            var eventMessage = new Message(Encoding.UTF8.GetBytes("Received Method Call. Hello World Back."));
-
-            moduleClient.SendEventAsync("AnyOutput", eventMessage);
-
-            var response = new MethodResponse((int)HttpStatusCode.OK);
-            return Task.FromResult(response);
+            Console.WriteLine("Received direct method call...");
+            return Task.FromResult(new MethodResponse((int)HttpStatusCode.OK));
         }
     }
 }

@@ -1,10 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace DMSender
+namespace DirectMethodSender
 {
     using System;
     using System.Globalization;
     using System.IO;
+    using System.Net;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -32,7 +33,7 @@ namespace DMSender
             string targetModuleId = configuration.GetValue("TargetModuleId", "DMReceiver");
 
             // Get deviced id of this device, exposed as a system variable by the iot edge runtime
-            string targetDeviceId = System.Environment.GetEnvironmentVariable("IOTEDGE_DEVICEID");
+            string targetDeviceId = configuration.GetValue<string>("IOTEDGE_DEVICEID");
 
             TransportType transportType = configuration.GetValue("ClientTransportType", TransportType.Amqp_Tcp_Only);
             Console.WriteLine($"Using transport {transportType.ToString()}");
@@ -42,6 +43,7 @@ namespace DMSender
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler)
                 = ShutdownHandler.Init(TimeSpan.FromSeconds(5), null);
             await CallDirectMethod(moduleClient, dmDelay, targetDeviceId, targetModuleId, cts).ConfigureAwait(false);
+            await moduleClient.CloseAsync();
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
             return 0;
@@ -97,12 +99,16 @@ namespace DMSender
                 try
                 {
                     //Ignore Exception. Keep trying. 
-                    await moduleClient.InvokeMethodAsync(targetDeviceId, targetModuleId, request);
+                    MethodResponse response = await moduleClient.InvokeMethodAsync(targetDeviceId, targetModuleId, request);
+
+                    if (response.Status == (int)HttpStatusCode.OK)
+                    {
+                        await moduleClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes("Method Call succeeded.")));
+                    }
                 }
                 catch (Exception e)
                 {
                     Console.WriteLine(e);
-                    throw;
                 }
                 
 
