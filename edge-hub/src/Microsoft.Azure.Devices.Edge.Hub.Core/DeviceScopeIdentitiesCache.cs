@@ -132,67 +132,39 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        public async Task RefreshServiceIdentity(string deviceId)
+        public async Task RefreshServiceIdentity(string id)
         {
             try
             {
-                Option<ServiceIdentity> serviceIdentity = await this.serviceProxy.GetServiceIdentity(deviceId);
+                Option<ServiceIdentity> serviceIdentity = await this.GetServiceIdentityFromService(id);
                 await serviceIdentity
                     .Map(s => this.HandleNewServiceIdentity(s))
-                    .GetOrElse(() => this.HandleNoServiceIdentity(deviceId));
+                    .GetOrElse(() => this.HandleNoServiceIdentity(id));
             }
             catch (Exception e)
             {
-                Events.ErrorRefreshingCache(e, deviceId);
+                Events.ErrorRefreshingCache(e, id);
             }
         }
 
-        public async Task RefreshServiceIdentity(string deviceId, string moduleId)
+        public async Task RefreshServiceIdentities(IEnumerable<string> ids)
         {
-            try
+            List<string> idList = Preconditions.CheckNotNull(ids, nameof(ids)).ToList();
+            foreach (string id in idList)
             {
-                Option<ServiceIdentity> serviceIdentity = await this.serviceProxy.GetServiceIdentity(deviceId, moduleId);
-                await serviceIdentity
-                    .Map(s => this.HandleNewServiceIdentity(s))
-                    .GetOrElse(() => this.HandleNoServiceIdentity($"{deviceId}/{moduleId}"));
-            }
-            catch (Exception e)
-            {
-                Events.ErrorRefreshingCache(e, $"{deviceId}/{moduleId}");
+                await this.RefreshServiceIdentity(id);
             }
         }
 
-        public async Task RefreshServiceIdentities(IEnumerable<string> deviceIds)
+        public async Task<Option<ServiceIdentity>> GetServiceIdentity(string id, bool refreshIfNotExists = false)
         {
-            List<string> deviceIdsList = Preconditions.CheckNotNull(deviceIds, nameof(deviceIds)).ToList();
-            foreach (string deviceId in deviceIdsList)
-            {
-                await this.RefreshServiceIdentity(deviceId);
-            }
-        }
-
-        public async Task<Option<ServiceIdentity>> GetServiceIdentity(string deviceId, string moduleId, bool refreshIfNotExists = false)
-        {
-            Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
-            Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
-            string id = $"{deviceId}/{moduleId}";
+            Preconditions.CheckNonWhiteSpace(id, nameof(id));
             if (refreshIfNotExists && !this.serviceIdentityCache.ContainsKey(id))
             {
-                await this.RefreshServiceIdentity(deviceId, moduleId);
+                await this.RefreshServiceIdentity(id);
             }
 
             return await this.GetServiceIdentityInternal(id);
-        }
-
-        public async Task<Option<ServiceIdentity>> GetServiceIdentity(string deviceId, bool refreshIfNotExists = false)
-        {
-            Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
-            if (refreshIfNotExists && !this.serviceIdentityCache.ContainsKey(deviceId))
-            {
-                await this.RefreshServiceIdentity(deviceId);
-            }
-
-            return await this.GetServiceIdentityInternal(deviceId);
         }
 
         async Task<Option<ServiceIdentity>> GetServiceIdentityInternal(string id)
@@ -216,7 +188,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
                 // Remove device if connected
                 this.ServiceIdentityRemoved?.Invoke(this, id);
-           }
+            }
         }
 
         async Task HandleNewServiceIdentity(ServiceIdentity serviceIdentity)
@@ -255,6 +227,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     return Task.CompletedTask;
                 });
             return cache;
+        }
+
+        Task<Option<ServiceIdentity>> GetServiceIdentityFromService(string id)
+        {
+            // If it is a module id, it will have the format "deviceId/moduleId"
+            string[] parts = id.Split('/');
+            if (parts.Length == 2)
+            {
+                return this.serviceProxy.GetServiceIdentity(parts[0], parts[1]);
+            }
+            else
+            {
+                return this.serviceProxy.GetServiceIdentity(id);
+            }
         }
 
         public void Dispose()
