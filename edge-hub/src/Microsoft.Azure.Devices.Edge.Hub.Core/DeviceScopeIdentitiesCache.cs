@@ -275,20 +275,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        Task<Option<ServiceIdentity>> GetServiceIdentityFromService(string id)
-        {
-            // If it is a module id, it will have the format "deviceId/moduleId"
-            string[] parts = id.Split('/');
-            if (parts.Length == 2)
-            {
-                return this.serviceProxy.GetServiceIdentity(parts[0], parts[1]);
-            }
-            else
-            {
-                return this.serviceProxy.GetServiceIdentity(id);
-            }
-        }
-
         public void Dispose()
         {
             this.encryptedStore?.Dispose();
