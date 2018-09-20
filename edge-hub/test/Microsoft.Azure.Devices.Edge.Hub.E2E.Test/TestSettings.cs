@@ -4,9 +4,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
 
     public class TestSettings
     {
+        static TestSettings()
+        {
+            bool.TryParse(ConfigHelper.TestConfig["enableWebSocketsTests"], out bool enableWebSocketsTests);
+
+            TransportSettings = new List<object[]>
+            {
+                new object[] { AmqpTransportSettings },
+                new object[] { MqttTransportSettings },
+
+            };
+
+            if (enableWebSocketsTests)
+            {
+                TransportSettings.Add(new object[] { MqttWebSocketsTransportSettings });
+                TransportSettings.Add(new object[] { AmqpWebSocketsTransportSettings });
+            }
+        }
+
         public static readonly ITransportSettings[] MqttTransportSettings =
         {
             new MqttTransportSettings(Client.TransportType.Mqtt_Tcp_Only)
@@ -23,20 +42,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             }
         };
 
-        public static readonly ITransportSettings[] AmqpWebSocketsTransportSettings =
+        public static readonly ITransportSettings[] MqttWebSocketsTransportSettings =
         {
-            
-            new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only)
-            {
-                RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
-            }
+            new MqttTransportSettings(TransportType.Mqtt_WebSocket_Only)
         };
 
-        public static IEnumerable<object[]> TransportSettings => new List<object[]>
+        public static readonly ITransportSettings[] AmqpWebSocketsTransportSettings =
         {
-            //new object[] { AmqpWebSocketsTransportSettings }
-            new object[] { AmqpTransportSettings },
-            new object[] { MqttTransportSettings }
+            new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only)
         };
+
+        public static IList<object[]> TransportSettings { get; }
     }
 }
