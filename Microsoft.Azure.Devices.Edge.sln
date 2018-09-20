@@ -163,9 +163,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeHubTriggerCSharp", "edg
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.Service.Test", "edge-hub\test\Microsoft.Azure.Devices.Edge.Hub.Service.Test\Microsoft.Azure.Devices.Edge.Hub.Service.Test.csproj", "{9BED8F14-63E9-4B4B-88F7-659D5E522CBD}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DirectMethodSender", "edge-modules\DMSender\DirectMethodSender.csproj", "{029174D7-588D-4D29-BF3D-4A414B070C39}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DirectMethodSender", "edge-modules\DirectMethodSender\DirectMethodSender.csproj", "{029174D7-588D-4D29-BF3D-4A414B070C39}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DirectMethodReceiver", "edge-modules\DMReceiver\DirectMethodReceiver.csproj", "{013D53C7-3AB5-41A4-9A8D-0F2C47238773}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DirectMethodReceiver", "edge-modules\DirectMethodReceiver\DirectMethodReceiver.csproj", "{013D53C7-3AB5-41A4-9A8D-0F2C47238773}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
