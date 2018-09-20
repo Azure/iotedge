@@ -33,29 +33,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
 
                 Option<IWebSocketListener> listener = this.webSocketListenerRegistry.GetListener(context.WebSockets.WebSocketRequestedProtocols);
                 return listener.Match(
-                    async l =>
-                    {
-                        Events.WebSocketSubProtocolSelected(context.TraceIdentifier, l.SubProtocol, correlationId);
-
-                        WebSocket webSocket = await context.WebSockets.AcceptWebSocketAsync(l.SubProtocol);
-                        var localEndPoint = new IPEndPoint(context.Connection.LocalIpAddress, context.Connection.LocalPort);
-                        var remoteEndPoint = new IPEndPoint(context.Connection.RemoteIpAddress, context.Connection.RemotePort);
-                        await l.ProcessWebSocketRequestAsync(webSocket, localEndPoint, remoteEndPoint, correlationId);
-
-                        Events.WebSocketRequestCompleted(context.TraceIdentifier, correlationId);
-                    },
-                    () =>
-                    {
-                        context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                        Events.WebSocketRequestNoListener(context.TraceIdentifier, correlationId);
-
-                        return Task.CompletedTask;
-                    });
+                    async l => await this.ProcessRequestAsync(context, l, correlationId),
+                    () => this.ProcessBadRequest(context, correlationId));
             }
             else
             {
                 return this.next(context);
             }
+        }
+
+        Task ProcessBadRequest(HttpContext context, string correlationId)
+        {
+            context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+            Events.WebSocketRequestNoListener(context.TraceIdentifier, correlationId);
+
+            return Task.CompletedTask;
+        }
+
+        async Task ProcessRequestAsync(HttpContext context, IWebSocketListener listener, string correlationId)
+        {
+            Events.WebSocketSubProtocolSelected(context.TraceIdentifier, listener.SubProtocol, correlationId);
+
+            WebSocket webSocket = await context.WebSockets.AcceptWebSocketAsync(listener.SubProtocol);
+            var localEndPoint = new IPEndPoint(context.Connection.LocalIpAddress, context.Connection.LocalPort);
+            var remoteEndPoint = new IPEndPoint(context.Connection.RemoteIpAddress, context.Connection.RemotePort);
+            await listener.ProcessWebSocketRequestAsync(webSocket, localEndPoint, remoteEndPoint, correlationId);
+
+            Events.WebSocketRequestCompleted(context.TraceIdentifier, correlationId);
         }
 
         static class Events

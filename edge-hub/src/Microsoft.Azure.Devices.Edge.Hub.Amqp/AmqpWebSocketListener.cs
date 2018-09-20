@@ -29,11 +29,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 var transport = new ServerWebSocketTransport(webSocket, localEndPoint.ToString(), remoteEndPoint.ToString(), correlationId);
                 transport.Open();
 
-                Events.EstablishedConnection(correlationId);
-
                 var args = new TransportAsyncCallbackArgs { Transport = transport, CompletedSynchronously = false };
                 this.OnTransportAccepted(args);
-                
+
+                Events.EstablishedConnection(correlationId);
+
                 transport.Closed += (sender, eventArgs) =>
                 {
                     taskCompletion.SetResult(true);
