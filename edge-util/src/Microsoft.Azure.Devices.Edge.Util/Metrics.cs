@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 if (metricsStoreType == "influxdb")
                 {
                     string metricsDbName = metricsConfigurationSection.GetValue("MetricsDbName", "metricsdatabase");
-                    string influxDbUrl = metricsConfigurationSection.GetValue("InfluxDbUrl", "http://localhost:8086");
+                    string influxDbUrl = metricsConfigurationSection.GetValue("InfluxDbUrl", "http://influxdb:8086");
                     IMetricsRoot metricsCollector = new MetricsBuilder()
                         .Report.ToInfluxDb(
                             options =>
@@ -89,10 +89,11 @@ namespace Microsoft.Azure.Devices.Edge.Util
         {
             Preconditions.CheckNotNull(tags);
             Preconditions.CheckNotNull(options);
+            Preconditions.CheckNotNull(amount);
 
             MetricsCollector.ForEach(mroot =>
             {
-                mroot.Measure.Counter.Increment(options, tags);
+                mroot.Measure.Counter.Increment(options, tags, amount);
             });
         }
 
@@ -100,6 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
         {
             Preconditions.CheckNotNull(tags);
             Preconditions.CheckNotNull(options);
+            Preconditions.CheckNotNull(amount);
 
             MetricsCollector.ForEach(mroot =>
             {
@@ -110,16 +112,18 @@ namespace Microsoft.Azure.Devices.Edge.Util
         public static void CountIncrement(CounterOptions options, long amount)
         {
             Preconditions.CheckNotNull(options);
+            Preconditions.CheckNotNull(amount);
 
             MetricsCollector.ForEach(mroot =>
             {
-                mroot.Measure.Counter.Increment(options);
+                mroot.Measure.Counter.Increment(options, amount);
             });
         }
 
         public static void CountDecrement(CounterOptions options, long amount)
         {
             Preconditions.CheckNotNull(options);
+            Preconditions.CheckNotNull(amount);
 
             MetricsCollector.ForEach(mroot =>
             {

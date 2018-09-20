@@ -73,11 +73,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public Task RemoveDeviceConnection(string id)
         {
-            Metrics.EdgeHubConnectedClientCountDecrement();
-            Metrics.ClientConnectionStateDecrement(id);
-            return this.devices.TryGetValue(Preconditions.CheckNonWhiteSpace(id, nameof(id)), out ConnectedDevice device)
+            Task remove = this.devices.TryGetValue(Preconditions.CheckNonWhiteSpace(id, nameof(id)), out ConnectedDevice device)
                 ? this.RemoveDeviceConnection(device, false)
                 : Task.CompletedTask;
+            Metrics.EdgeHubConnectedClientCountDecrement();
+            Metrics.ClientConnectionStateDecrement(id);
+            return remove;
         }
 
         async Task RemoveDeviceConnection(ConnectedDevice device, bool removeCloudConnection)
