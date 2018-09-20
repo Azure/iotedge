@@ -47,6 +47,7 @@ fn main() {
 
 fn run() -> Result<(), Error> {
     let mut core = Core::new()?;
+    let default_uri = option_env!("IOTEDGE_HOST").unwrap_or(MGMT_URI);
 
     let matches = App::new(crate_name!())
         .version(edgelet_core::version())
@@ -61,7 +62,7 @@ fn run() -> Result<(), Error> {
                 .value_name("HOST")
                 .global(true)
                 .env("IOTEDGE_HOST")
-                .default_value(MGMT_URI),
+                .default_value(default_uri),
         ).subcommand(SubCommand::with_name("list").about("List modules"))
         .subcommand(
             SubCommand::with_name("restart")
