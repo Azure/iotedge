@@ -11,12 +11,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     public interface IDeviceScopeIdentitiesCache
     {
         Task<Option<ServiceIdentity>> GetServiceIdentity(string id, bool refreshIfNotExists = false);
-        
+
+        Task<Option<ServiceIdentity>> GetServiceIdentity(string deviceId, string moduleId, bool refreshIfNotExists = false);
+
         void InitiateCacheRefresh();
 
-        Task RefreshServiceIdentities(IEnumerable<string> ids);
+        Task RefreshServiceIdentities(IEnumerable<string> deviceIds);
 
-        Task RefreshServiceIdentity(string id);
+        Task RefreshServiceIdentity(string deviceId);
+
+        Task RefreshServiceIdentity(string deviceId, string moduleId);
 
         event EventHandler<ServiceIdentity> ServiceIdentityUpdated;
 
