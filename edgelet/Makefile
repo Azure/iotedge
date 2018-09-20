@@ -49,12 +49,13 @@ INSTALL_PROGRAM=$(INSTALL)
 MAKE=make
 MKDIR_P=mkdir -p
 SED=sed
+HOST_URI_OPTION=
 
 all:
 	VERSION=${VERSION} $(CARGO) build $(CARGOFLAGS)
 
 release:
-	VERSION=${VERSION} $(CARGO) build $(CARGOFLAGS) --release
+	$(HOST_URI_OPTION) VERSION=${VERSION} $(CARGO) build $(CARGOFLAGS) --release
 
 $(TARGET)/$(PACKAGE).tar.gz:
 	@echo Running git archive...
@@ -73,6 +74,7 @@ $(TARGET)/$(PACKAGE).tar.gz:
 
 dist: $(TARGET)/$(PACKAGE).tar.gz
 
+deb8: HOST_URI_OPTION=IOTEDGE_HOST=unix:///var/lib/iotedge/mgmt.sock
 deb8: release
 	$(INSTALL_PROGRAM) -D $(TARGET)/iotedged $(TARGET)/$(PACKAGE)/iotedged
 	$(INSTALL_PROGRAM) -D $(TARGET)/iotedge $(TARGET)/$(PACKAGE)/iotedge
@@ -107,10 +109,11 @@ deb: release
 	$(SED) "s/@version@/${DEB_VERSION}/g; s/@revision@/${DEB_REVISION}/g;" $(srcdir)/contrib/debian/changelog > $(TARGET)/$(PACKAGE)/debian/changelog
 	cd $(TARGET)/$(PACKAGE) && dpkg-buildpackage $(DPKGFLAGS)
 
+rpm: HOST_URI_OPTION=IOTEDGE_HOST=unix:///var/lib/iotedge/mgmt.sock
 rpm:
 	cp $(TARGET)/$(PACKAGE).tar.gz $(rpmbuilddir)/SOURCES/
 	$(SED) "s/@version@/${RPM_VERSION}/g; s/@release@/${RPM_RELEASE}/g;" $(srcdir)/contrib/centos/iotedge.spec > $(rpmbuilddir)/SPECS/iotedge.spec
-	rpmbuild $(RPMBUILDFLAGS) $(rpmbuilddir)/SPECS/iotedge.spec
+	$(HOST_URI_OPTION) rpmbuild $(RPMBUILDFLAGS) $(rpmbuilddir)/SPECS/iotedge.spec
 
 install: release
 	$(INSTALL_PROGRAM) -D $(TARGET)/iotedged $(DESTDIR)$(bindir)/iotedged
@@ -152,4 +155,4 @@ version:
 	@echo "rpm version:  ${RPM_VERSION}"
 	@echo "rpm release:  ${RPM_RELEASE}"
 
-.PHONY: all clean deb dist install rpm uninstall version
+.PHONY: all clean deb deb8 dist install rpm uninstall version
