@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Act
             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceProxy.Object, store, TimeSpan.FromHours(1));
             Option<ServiceIdentity> receivedServiceIdentity1 = await deviceScopeIdentitiesCache.GetServiceIdentity("d1");
-            Option<ServiceIdentity> receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2/m1");
+            Option<ServiceIdentity> receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2", "m1");
 
             // Assert
             Assert.True(si1.Equals(receivedServiceIdentity1.OrDefault()));
@@ -104,9 +104,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Wait for refresh to complete
             await Task.Delay(TimeSpan.FromSeconds(3));
             Option<ServiceIdentity> receivedServiceIdentity1 = await deviceScopeIdentitiesCache.GetServiceIdentity("d1");
-            Option<ServiceIdentity> receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2/m1");
+            Option<ServiceIdentity> receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2", "m1");
             Option<ServiceIdentity> receivedServiceIdentity3 = await deviceScopeIdentitiesCache.GetServiceIdentity("d3");
-            Option<ServiceIdentity> receivedServiceIdentity4 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2/m4");
+            Option<ServiceIdentity> receivedServiceIdentity4 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2", "m4");
 
             // Assert
             Assert.True(si1().Equals(receivedServiceIdentity1.OrDefault()));
@@ -121,9 +121,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             await Task.Delay(TimeSpan.FromSeconds(8));
 
             receivedServiceIdentity1 = await deviceScopeIdentitiesCache.GetServiceIdentity("d1");
-            receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2/m1");
+            receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2", "m1");
             receivedServiceIdentity3 = await deviceScopeIdentitiesCache.GetServiceIdentity("d3");
-            receivedServiceIdentity4 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2/m4");
+            receivedServiceIdentity4 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2", "m4");
 
             // Assert
             Assert.True(si1().Equals(receivedServiceIdentity1.OrDefault()));
@@ -221,9 +221,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             await Task.Delay(TimeSpan.FromSeconds(3));
 
             Option<ServiceIdentity> receivedServiceIdentity1 = await deviceScopeIdentitiesCache.GetServiceIdentity("d1");
-            Option<ServiceIdentity> receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2/m1");
+            Option<ServiceIdentity> receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2", "m1");
             Option<ServiceIdentity> receivedServiceIdentity3 = await deviceScopeIdentitiesCache.GetServiceIdentity("d3");
-            Option<ServiceIdentity> receivedServiceIdentity4 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2/m4");
+            Option<ServiceIdentity> receivedServiceIdentity4 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2", "m4");
 
             // Assert
             Assert.True(si1().Equals(receivedServiceIdentity1.OrDefault()));
@@ -243,9 +243,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Wait for the 2 refresh cycles to complete, this time because of the refresh request
             await Task.Delay(TimeSpan.FromSeconds(2));
             receivedServiceIdentity1 = await deviceScopeIdentitiesCache.GetServiceIdentity("d1");
-            receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2/m1");
+            receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2", "m1");
             receivedServiceIdentity3 = await deviceScopeIdentitiesCache.GetServiceIdentity("d3");
-            receivedServiceIdentity4 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2/m4");
+            receivedServiceIdentity4 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2", "m4");
 
             // Assert
             Assert.True(si1().Equals(receivedServiceIdentity1.OrDefault()));
@@ -261,9 +261,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Wait for another refresh cycle to complete, this time because timeout
             await Task.Delay(TimeSpan.FromSeconds(8));
             receivedServiceIdentity1 = await deviceScopeIdentitiesCache.GetServiceIdentity("d1");
-            receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2/m1");
+            receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2", "m1");
             receivedServiceIdentity3 = await deviceScopeIdentitiesCache.GetServiceIdentity("d3");
-            receivedServiceIdentity4 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2/m4");
+            receivedServiceIdentity4 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2", "m4");
 
             // Assert
             Assert.True(si3().Equals(receivedServiceIdentity3.OrDefault()));
@@ -442,19 +442,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             // Wait for refresh to complete
             await Task.Delay(TimeSpan.FromSeconds(3));
-            Option<ServiceIdentity> receivedServiceIdentity1 = await deviceScopeIdentitiesCache.GetServiceIdentity("d1/m1");
-            Option<ServiceIdentity> receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2/m2");
+            Option<ServiceIdentity> receivedServiceIdentity1 = await deviceScopeIdentitiesCache.GetServiceIdentity("d1", "m1");
+            Option<ServiceIdentity> receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2", "m2");
 
             // Assert
             Assert.True(si1_initial.Equals(receivedServiceIdentity1.OrDefault()));
             Assert.True(si2.Equals(receivedServiceIdentity2.OrDefault()));
 
             // Update the identities
-            await deviceScopeIdentitiesCache.RefreshServiceIdentity("d1/m1");
-            await deviceScopeIdentitiesCache.RefreshServiceIdentity("d2/m2");
+            await deviceScopeIdentitiesCache.RefreshServiceIdentity("d1", "m1");
+            await deviceScopeIdentitiesCache.RefreshServiceIdentity("d2", "m2");
 
-            receivedServiceIdentity1 = await deviceScopeIdentitiesCache.GetServiceIdentity("d1/m1");
-            receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2/m2");
+            receivedServiceIdentity1 = await deviceScopeIdentitiesCache.GetServiceIdentity("d1", "m1");
+            receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2", "m2");
 
             // Assert
             Assert.True(si1_updated.Equals(receivedServiceIdentity1.OrDefault()));
@@ -573,9 +573,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Wait for refresh to complete
             await Task.Delay(TimeSpan.FromSeconds(3));
 
-            Option<ServiceIdentity> receivedServiceIdentity1 = await deviceScopeIdentitiesCache.GetServiceIdentity("d1/m1");
-            Option<ServiceIdentity> receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2/m2");
-            Option<ServiceIdentity> receivedServiceIdentity3 = await deviceScopeIdentitiesCache.GetServiceIdentity("d3/m3");
+            Option<ServiceIdentity> receivedServiceIdentity1 = await deviceScopeIdentitiesCache.GetServiceIdentity("d1", "m1");
+            Option<ServiceIdentity> receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2", "m2");
+            Option<ServiceIdentity> receivedServiceIdentity3 = await deviceScopeIdentitiesCache.GetServiceIdentity("d3", "m3");
 
             // Assert
             Assert.True(si1_initial.Equals(receivedServiceIdentity1.OrDefault()));
@@ -583,9 +583,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.False(receivedServiceIdentity3.HasValue);
 
             // Get the identities with refresh
-            receivedServiceIdentity1 = await deviceScopeIdentitiesCache.GetServiceIdentity("d1/m1", true);
-            receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2/m2", true);
-            receivedServiceIdentity3 = await deviceScopeIdentitiesCache.GetServiceIdentity("d3/m3", true);
+            receivedServiceIdentity1 = await deviceScopeIdentitiesCache.GetServiceIdentity("d1", "m1", true);
+            receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2", "m2", true);
+            receivedServiceIdentity3 = await deviceScopeIdentitiesCache.GetServiceIdentity("d3", "m3", true);
 
             // Assert
             Assert.True(si1_initial.Equals(receivedServiceIdentity1.OrDefault()));
