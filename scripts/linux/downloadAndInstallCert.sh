@@ -8,13 +8,16 @@ usage()
     exit 1;
 }
 
-while getopts ":c:v:" o; do
+while getopts ":c:v:s:" o; do
     case "${o}" in
         c)
             CERT_NAME=${OPTARG}
             ;;
         v)
             KEYVAULT_NAME=${OPTARG}
+            ;;
+        s)
+            STORE_NAME=${OPTARG}
             ;;
         *)
             usage
@@ -27,6 +30,10 @@ if [ -z "${CERT_NAME}" ] || [ -z "${KEYVAULT_NAME}" ]; then
     usage
 fi
 
+if [[ -z ${STORE_NAME} ]]; then
+        STORE_NAME="My"
+fi
+
 BASEDIR=$(dirname "$0")
 
 # Download the Cert
@@ -37,7 +44,7 @@ echo Done downloading cert from KeyVault
 
 # Install the Cert
 echo Installing Cert
-pwsh -Command "$BASEDIR/InstallCert.ps1 -CertificateValue $keyVaultCert"
+pwsh -Command "$BASEDIR/InstallCert.ps1 -CertificateValue $keyVaultCert" -StoreName $STORE_NAME
 echo Done installing Cert.
 
 exit 0

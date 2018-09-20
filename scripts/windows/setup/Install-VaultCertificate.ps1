@@ -7,7 +7,10 @@ param (
 	[String]$VaultName,
 	
 	[Parameter(Mandatory=$true)]
-	[String]$CertificateName
+	[String]$CertificateName,
+
+	[ValidateNotNullOrEmpty()]
+	[String]$StoreName = 'My'
 )
 
 Set-StrictMode -Version "Latest"
@@ -24,8 +27,9 @@ $CertificateCollection.Import(
 	$null,
 	[System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::PersistKeySet)
 
+$storeNameEnumVal = [System.Security.Cryptography.X509Certificates.StoreName] $StoreName
 $CertificateStore = New-Object System.Security.Cryptography.X509Certificates.X509Store(
-	[System.Security.Cryptography.X509Certificates.StoreName]::My,
+	$storeNameEnumVal,
 	[System.Security.Cryptography.X509Certificates.StoreLocation]::CurrentUser)
 $CertificateStore.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite)
 
