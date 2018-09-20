@@ -229,7 +229,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             return cache;
         }
 
-        Task<Option<ServiceIdentity>> GetServiceIdentityFromService(string id)
+        internal Task<Option<ServiceIdentity>> GetServiceIdentityFromService(string id)
         {
             // If it is a module id, it will have the format "deviceId/moduleId"
             string[] parts = id.Split('/');
