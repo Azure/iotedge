@@ -23,8 +23,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             }
         };
 
+        public static readonly ITransportSettings[] AmqpWebSocketsTransportSettings =
+        {
+            
+            new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only)
+            {
+                RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
+            }
+        };
+
         public static IEnumerable<object[]> TransportSettings => new List<object[]>
         {
+            //new object[] { AmqpWebSocketsTransportSettings }
             new object[] { AmqpTransportSettings },
             new object[] { MqttTransportSettings }
         };
