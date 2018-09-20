@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     public interface IDeviceScopeIdentitiesCache
     {
         Task<Option<ServiceIdentity>> GetServiceIdentity(string id, bool refreshIfNotExists = false);
-
+        
         void InitiateCacheRefresh();
 
         Task RefreshServiceIdentities(IEnumerable<string> ids);
