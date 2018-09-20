@@ -30,9 +30,6 @@ function Install-SecurityDaemon {
         [ValidateSet("Linux", "Windows")]
         [String] $ContainerOs = "Linux",
 
-        # Proxy URL
-        [String] $Proxy,
-
         # Local path to iotedged zip file
         [String] $ArchivePath,
 
@@ -230,8 +227,7 @@ function Get-SecurityDaemon {
             Invoke-WebRequest `
                 -Uri "https://aka.ms/iotedged-windows-latest" `
                 -OutFile "$ArchivePath" `
-                -UseBasicParsing `
-                -Proxy $Proxy
+                -UseBasicParsing
             Write-Host "Downloaded security daemon." -ForegroundColor "Green"
         }
         if ((Get-Item "$ArchivePath").PSIsContainer) {
@@ -318,8 +314,7 @@ function Get-VcRuntime {
         Invoke-WebRequest `
             -Uri "https://download.microsoft.com/download/0/6/4/064F84EA-D1DB-4EAA-9A5C-CC2F0FF6A638/vc_redist.x64.exe" `
             -OutFile "$env:TEMP\vc_redist.exe" `
-            -UseBasicParsing `
-            -Proxy $Proxy
+            -UseBasicParsing
         Invoke-Native "$env:TEMP\vc_redist.exe /quiet /norestart"
         Write-Host "Downloaded vcruntime." -ForegroundColor "Green"
     }
