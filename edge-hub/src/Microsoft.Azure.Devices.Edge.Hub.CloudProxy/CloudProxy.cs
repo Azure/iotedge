@@ -99,6 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.timer.Reset();
             Twin twin = await this.client.GetTwinAsync();
             Events.GetTwin(this);
+            this.timer.Reset();
             IMessageConverter<Twin> converter = this.messageConverterProvider.Get<Twin>();
             return converter.ToMessage(twin);
         }
