@@ -2,7 +2,6 @@
 %define iotedge_group %{iotedge_user}
 %define iotedge_home %{_localstatedir}/lib/iotedge
 %define iotedge_logdir %{_localstatedir}/log/iotedge
-%define iotedge_rundir %{_localstatedir}/run/iotedge
 %define iotedge_confdir %{_sysconfdir}/iotedge
 %define iotedge_datadir %{_datadir}/iotedge
 
@@ -122,13 +121,12 @@ echo "==========================================================================
 %{_unitdir}/%{name}.service
 
 # sockets
-%attr(660, %{iotedge_user}, %{iotedge_group}) %{iotedge_rundir}/mgmt.sock
-%attr(666, %{iotedge_user}, %{iotedge_group}) %{iotedge_rundir}/workload.sock
+%attr(660, %{iotedge_user}, %{iotedge_group}) %{iotedge_home}/mgmt.sock
+%attr(666, %{iotedge_user}, %{iotedge_group}) %{iotedge_home}/workload.sock
 
 # dirs
 %attr(-, %{iotedge_user}, %{iotedge_group}) %dir %{iotedge_home}
 %attr(-, %{iotedge_user}, %{iotedge_group}) %dir %{iotedge_logdir}
-%attr(-, %{iotedge_user}, %{iotedge_group}) %dir %{iotedge_rundir}
 
 %doc %{_docdir}/%{name}/LICENSE.gz
 %doc %{_docdir}/%{name}/ThirdPartyNotices.gz
