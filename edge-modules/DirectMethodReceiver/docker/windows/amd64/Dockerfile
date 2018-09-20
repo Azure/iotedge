@@ -7,4 +7,4 @@ WORKDIR /app
 
 COPY $EXE_DIR/ ./
 
-CMD ["dotnet", "DMReceiver.dll"]
+CMD ["dotnet", "DirectMethodReceiver.dll"]

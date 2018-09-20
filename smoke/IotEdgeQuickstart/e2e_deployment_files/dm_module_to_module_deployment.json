@@ -61,13 +61,8 @@
             "type": "docker",
             "status": "running",
             "restartPolicy": "always",
-            "env": {
-              "TemperatureThreshold": {
-                "value": "19"
-              }
-            },
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-dmreceiver:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             }
           },

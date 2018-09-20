@@ -7,4 +7,4 @@ WORKDIR /app
 
 COPY $EXE_DIR/ ./
 
-CMD ["dotnet", "DMSender.dll"]
+CMD ["dotnet", "DirectMethodSender.dll"]
