@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
@@ -26,6 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly ICredentialsCache credentialsCache;
         readonly string edgeDeviceId;
         readonly string edgeModuleId;
+        readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
 
         public event EventHandler<IIdentity> CloudConnectionLost;
         public event EventHandler<IIdentity> CloudConnectionEstablished;
@@ -37,6 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             ICredentialsCache credentialsCache,
             string edgeDeviceId,
             string edgeModuleId,
+            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache,
             int maxClients = DefaultMaxClients)
         {
             this.cloudConnectionProvider = Preconditions.CheckNotNull(cloudConnectionProvider, nameof(cloudConnectionProvider));
@@ -44,6 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.credentialsCache = Preconditions.CheckNotNull(credentialsCache, nameof(credentialsCache));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
             this.edgeModuleId = Preconditions.CheckNonWhiteSpace(edgeModuleId, nameof(edgeModuleId));
+            this.deviceScopeIdentitiesCache = Preconditions.CheckNotNull(deviceScopeIdentitiesCache, nameof(deviceScopeIdentitiesCache));
         }
 
         public IEnumerable<IIdentity> GetConnectedClients() =>
@@ -105,6 +109,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 async c =>
                 {
                     Option<IClientCredentials> clientCredentials = await this.credentialsCache.Get(device.Identity);
+                    if (!clientCredentials.HasValue)
+                    {
+                        Option<ServiceIdentity> serviceIdentity = await this.GetServiceIdentity(id);
+                        clientCredentials = serviceIdentity.Map(s => GetScopeClientCredentials(s));
+                    }
                     return await clientCredentials
                         .Map(dc => this.CreateOrUpdateCloudConnection(c, dc))
                         .GetOrElse(Task.FromResult(Try<ICloudConnection>.Failure(new EdgeHubConnectionException($"Could not get credentials for client {id} to connect to IoTHub"))));
@@ -113,6 +122,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Events.GetCloudConnection(device.Identity, cloudConnectionTry);
             Try<ICloudProxy> cloudProxyTry = GetCloudProxyFromCloudConnection(cloudConnectionTry, device.Identity);
             return Option.Maybe(cloudProxyTry.Value);
+        }
+
+        static IClientCredentials GetScopeClientCredentials(ServiceIdentity serviceIdentity)
+        {
+            IIdentity identity = serviceIdentity.ModuleId
+                .Map(m => new ModuleIdentity(string.Empty, serviceIdentity.DeviceId, m) as IIdentity)
+                .GetOrElse(() => new DeviceIdentity(string.Empty, serviceIdentity.DeviceId));
+            IClientCredentials clientCredentials = new ScopeClientCredentials(serviceIdentity, identity, string.Empty);
+            return clientCredentials;
+        }
+
+        Task<Option<ServiceIdentity>> GetServiceIdentity(string id)
+        {
+            string[] parts = id.Split('/');
+            if (parts.Length == 2)
+            {
+                return this.deviceScopeIdentitiesCache.GetServiceIdentity(parts[0], parts[1]);
+            }
+            else
+            {
+                return this.deviceScopeIdentitiesCache.GetServiceIdentity(id);
+            }
         }
 
         public void AddSubscription(string id, DeviceSubscription deviceSubscription)
