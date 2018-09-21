@@ -198,6 +198,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             CloudConnectionStatus connectionStatus)
         {
             Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
+            Events.HandlingConnectionStatusChangedHandler(deviceId, connectionStatus);
             if (!this.devices.TryGetValue(deviceId, out ConnectedDevice device))
             {
                 throw new InvalidOperationException($"Device {deviceId} not found in the list of connected devices");
@@ -433,7 +434,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 ObtainCloudConnectionError,
                 ProcessingTokenNearExpiryEvent,
                 InvokingCloudConnectionLostEvent,
-                InvokingCloudConnectionEstablishedEvent
+                InvokingCloudConnectionEstablishedEvent,
+                HandlingConnectionStatusChangedHandler
             }
 
             public static void NewCloudConnection(IIdentity identity, Try<ICloudConnection> cloudConnection)
@@ -483,6 +485,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             public static void InvokingCloudConnectionEstablishedEvent(IIdentity identity)
             {
                 Log.LogDebug((int)EventIds.InvokingCloudConnectionEstablishedEvent, Invariant($"Invoking cloud connection established event for {identity.Id}"));
+            }
+
+            public static void HandlingConnectionStatusChangedHandler(string deviceId, CloudConnectionStatus connectionStatus)
+            {
+                Log.LogInformation((int)EventIds.HandlingConnectionStatusChangedHandler, Invariant($"Connection status for {deviceId} changed to {connectionStatus}"));
             }
         }
     }
