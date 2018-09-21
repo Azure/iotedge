@@ -68,6 +68,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 {
                     try
                     {
+                        if (this.IsEdgeHubIdentity(identity.Id))
+                        {
+                            continue;
+                        }
+
                         Option<IClientCredentials> clientCredentials = await this.credentialsCache.Get(identity);
                         bool result = await clientCredentials
                             .Map(
@@ -107,6 +112,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             try
             {
                 Events.ServiceIdentityUpdated(serviceIdentity.Id);
+                if (this.IsEdgeHubIdentity(serviceIdentity.Id))
+                {
+                    return;
+                }
+
                 Option<IDeviceProxy> deviceProxy = this.connectionManager.GetDeviceConnection(serviceIdentity.Id);
                 if (deviceProxy.HasValue)
                 {
@@ -157,6 +167,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 Events.ErrorRemovingConnection(ex, id);
             }
         }
+
+        bool IsEdgeHubIdentity(string id) => this.edgeHubIdentity.Id.Equals(id);
 
         static class Events
         {
