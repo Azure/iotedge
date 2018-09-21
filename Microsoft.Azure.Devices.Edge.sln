@@ -163,6 +163,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeHubTriggerCSharp", "edg
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.Service.Test", "edge-hub\test\Microsoft.Azure.Devices.Edge.Hub.Service.Test\Microsoft.Azure.Devices.Edge.Hub.Service.Test.csproj", "{9BED8F14-63E9-4B4B-88F7-659D5E522CBD}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DirectMethodSender", "edge-modules\DirectMethodSender\DirectMethodSender.csproj", "{029174D7-588D-4D29-BF3D-4A414B070C39}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DirectMethodReceiver", "edge-modules\DirectMethodReceiver\DirectMethodReceiver.csproj", "{013D53C7-3AB5-41A4-9A8D-0F2C47238773}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		CodeCoverage|Any CPU = CodeCoverage|Any CPU
@@ -422,6 +426,18 @@ Global
 		{9BED8F14-63E9-4B4B-88F7-659D5E522CBD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9BED8F14-63E9-4B4B-88F7-659D5E522CBD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9BED8F14-63E9-4B4B-88F7-659D5E522CBD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{029174D7-588D-4D29-BF3D-4A414B070C39}.CodeCoverage|Any CPU.ActiveCfg = CodeCoverage|Any CPU
+		{029174D7-588D-4D29-BF3D-4A414B070C39}.CodeCoverage|Any CPU.Build.0 = CodeCoverage|Any CPU
+		{029174D7-588D-4D29-BF3D-4A414B070C39}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{029174D7-588D-4D29-BF3D-4A414B070C39}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{029174D7-588D-4D29-BF3D-4A414B070C39}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{029174D7-588D-4D29-BF3D-4A414B070C39}.Release|Any CPU.Build.0 = Release|Any CPU
+		{013D53C7-3AB5-41A4-9A8D-0F2C47238773}.CodeCoverage|Any CPU.ActiveCfg = CodeCoverage|Any CPU
+		{013D53C7-3AB5-41A4-9A8D-0F2C47238773}.CodeCoverage|Any CPU.Build.0 = CodeCoverage|Any CPU
+		{013D53C7-3AB5-41A4-9A8D-0F2C47238773}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{013D53C7-3AB5-41A4-9A8D-0F2C47238773}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{013D53C7-3AB5-41A4-9A8D-0F2C47238773}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{013D53C7-3AB5-41A4-9A8D-0F2C47238773}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -486,6 +502,8 @@ Global
 		{C3BDC9FA-B7D8-44F3-970F-D24281335F46} = {33B7755E-D6F9-4F9B-86A8-5DFE9FEE674E}
 		{B8D5312A-B37B-4FA3-8B80-2D1A93077DDF} = {C3BDC9FA-B7D8-44F3-970F-D24281335F46}
 		{9BED8F14-63E9-4B4B-88F7-659D5E522CBD} = {63969606-14B2-4D9D-AB72-A5D60D22037C}
+		{029174D7-588D-4D29-BF3D-4A414B070C39} = {578D5330-2F72-44C6-9DB5-C93B3F42C473}
+		{013D53C7-3AB5-41A4-9A8D-0F2C47238773} = {578D5330-2F72-44C6-9DB5-C93B3F42C473}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D71830F5-3AF5-46B4-8A9E-1DCE4F2253AC}
