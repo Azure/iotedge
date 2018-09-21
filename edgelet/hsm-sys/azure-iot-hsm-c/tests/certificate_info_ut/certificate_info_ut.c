@@ -5,10 +5,12 @@
 #include <cstdlib>
 #include <cstdint>
 #include <cstddef>
+#include <ctime>
 #else
 #include <stdlib.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <time.h>
 #endif
 
 static void* my_gballoc_malloc(size_t size)
