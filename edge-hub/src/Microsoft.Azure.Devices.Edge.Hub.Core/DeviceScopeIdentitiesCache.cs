@@ -136,6 +136,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             try
             {
+                Events.RefreshingServiceIdentity(id);
                 Option<ServiceIdentity> serviceIdentity = await this.GetServiceIdentityFromService(id);
                 await serviceIdentity
                     .Map(s => this.HandleNewServiceIdentity(s))
@@ -159,6 +160,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public async Task<Option<ServiceIdentity>> GetServiceIdentity(string id, bool refreshIfNotExists = false)
         {
             Preconditions.CheckNonWhiteSpace(id, nameof(id));
+            Events.GettingServiceIdentity(id);
             if (refreshIfNotExists && !this.serviceIdentityCache.ContainsKey(id))
             {
                 await this.RefreshServiceIdentity(id);
@@ -185,7 +187,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 var storedServiceIdentity = new StoredServiceIdentity(id);
                 this.serviceIdentityCache[id] = storedServiceIdentity;
                 await this.SaveServiceIdentityToStore(id, storedServiceIdentity);
-
+                Events.NotInScope(id);
                 // Remove device if connected
                 this.ServiceIdentityRemoved?.Invoke(this, id);
             }
@@ -202,7 +204,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 var storedServiceIdentity = new StoredServiceIdentity(serviceIdentity);
                 this.serviceIdentityCache[serviceIdentity.Id] = storedServiceIdentity;
                 await this.SaveServiceIdentityToStore(serviceIdentity.Id, storedServiceIdentity);
-
+                Events.AddInScope(serviceIdentity.Id);
                 if (hasUpdated)
                 {
                     this.ServiceIdentityUpdated?.Invoke(this, serviceIdentity);
@@ -294,7 +296,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 DoneCycle,
                 ReceivedRequestToRefreshCache,
                 RefreshSleepCompleted,
-                RefreshSignalled
+                RefreshSignalled,
+                NotInScope,
+                AddInScope,
+                RefreshingServiceIdentity,
+                GettingServiceIdentity
             }
 
             internal static void InitializingRefreshTask(TimeSpan refreshRate) =>
@@ -310,7 +316,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
 
             public static void StartingRefreshCycle() =>
-                Log.LogDebug((int)EventIds.StartingCycle, "Starting refresh of device scope identities cache");
+                Log.LogInformation((int)EventIds.StartingCycle, "Starting refresh of device scope identities cache");
 
             public static void DoneRefreshCycle(TimeSpan refreshRate) =>
                 Log.LogDebug((int)EventIds.DoneCycle, $"Done refreshing device scope identities cache. Waiting for {refreshRate.TotalMinutes} minutes.");
@@ -334,6 +340,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             public static void RefreshSleepCompleted() =>
                 Log.LogDebug((int)EventIds.RefreshSleepCompleted, "Device scope identities refresh is ready because the wait period is over.");
+
+            public static void NotInScope(string id) =>
+                Log.LogDebug((int)EventIds.NotInScope, $"{id} is not in device scope, removing from cache.");
+
+            public static void AddInScope(string id) =>
+                Log.LogDebug((int)EventIds.AddInScope, $"{id} is in device scope, adding to cache.");
+
+            public static void GettingServiceIdentity(string id) =>
+                Log.LogDebug((int)EventIds.GettingServiceIdentity, $"Getting service identity for {id}");
+
+            public static void RefreshingServiceIdentity(string id) =>
+                Log.LogDebug((int)EventIds.RefreshingServiceIdentity, $"Refreshing service identity for {id}");
         }
     }
 }

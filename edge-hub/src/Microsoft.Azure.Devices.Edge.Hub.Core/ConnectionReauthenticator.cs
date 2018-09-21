@@ -91,6 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
                         if (!result)
                         {
+                            Events.NotReauthenticated(identity.Id);
                             await this.connectionManager.RemoveDeviceConnection(identity.Id);
                         }
                     }
@@ -233,12 +234,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             public static void ServiceIdentityUpdatedValidated(string serviceIdentityId)
             {
-                Log.LogInformation((int)EventIds.ServiceIdentityUpdatedValidated, $"Service identity for {serviceIdentityId} in device scope was updated, client connection was re-validated.");
+                Log.LogDebug((int)EventIds.ServiceIdentityUpdatedValidated, $"Service identity for {serviceIdentityId} in device scope was updated, client connection was re-validated.");
             }
 
             public static void ServiceIdentityRemoved(string id)
             {
-                Log.LogInformation((int)EventIds.ServiceIdentityRemoved, $"Service identity for {id} in device scope was removed, dropping client connection.");
+                Log.LogInformation((int)EventIds.ServiceIdentityRemoved, $"Service identity for {id} was removed from device scope, dropping client connection.");
             }
 
             public static void DeviceNotConnected(string id)
@@ -253,12 +254,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             public static void ReauthenticatingClients()
             {
-                Log.LogDebug((int)EventIds.ReauthenticatingClients, "Reauthenticating connected clients");
+                Log.LogInformation((int)EventIds.ReauthenticatingClients, "Reauthenticating connected clients");
             }
 
             public static void EdgeHubConnectionReestablished()
             {
                 Log.LogDebug((int)EventIds.EdgeHubConnectionReestablished, "EdgeHub cloud connection established, refreshing device scope cache.");
+            }
+
+            public static void NotReauthenticated(string id)
+            {
+                Log.LogInformation((int)EventIds.ServiceIdentityRemoved, $"Unable to re-authenticate {id}, dropping client connection.");
             }
         }
 
