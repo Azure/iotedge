@@ -47,13 +47,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 this.connectionStatusChangedHandler = connectionStatusChangedHandler;
             }
+            Events.Initialized(this);
         }
 
         Task HandleIdleTimeout()
         {
             if (this.closeOnIdleTimeout)
             {
-                Events.TimedOutClosing(this.clientId);
+                Events.TimedOutClosing(this);
                 return this.CloseAsync();
             }
 
@@ -387,12 +388,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 StartListening,
                 CloudReceiverNull,
                 ErrorOpening,
-                TimedOutClosing
+                TimedOutClosing,
+                Initialized
             }
 
             public static void Closed(CloudProxy cloudProxy)
             {
-                Log.LogInformation((int)EventIds.Close, Invariant($"Closed cloud proxy {cloudProxy.id} for device {cloudProxy.clientId}"));
+                Log.LogInformation((int)EventIds.Close, Invariant($"Closed cloud proxy {cloudProxy.id} for {cloudProxy.clientId}"));
             }
 
             public static void ErrorClosing(CloudProxy cloudProxy, Exception ex)
@@ -425,11 +427,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Log.LogDebug((int)EventIds.UpdateReportedProperties, Invariant($"Updating reported properties for device {cloudProxy.clientId}"));
             }
 
-            public static void BindCloudListener(CloudProxy cloudProxy)
-            {
-                Log.LogDebug((int)EventIds.BindCloudListener, Invariant($"Binding cloud listener for device {cloudProxy.clientId}"));
-            }
-
             public static void SendFeedbackMessage(CloudProxy cloudProxy)
             {
                 Log.LogDebug((int)EventIds.SendFeedbackMessage, Invariant($"Sending feedback message for device {cloudProxy.clientId}"));
@@ -447,7 +444,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public static void Closing(CloudProxy cloudProxy)
             {
-                Log.LogInformation((int)EventIds.ClosingReceiver, Invariant($"Closing receiver for device {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
+                Log.LogInformation((int)EventIds.ClosingReceiver, Invariant($"Closing receiver in cloud proxy {cloudProxy.id} for {cloudProxy.clientId}"));
             }
 
             public static void ErrorReceivingMessage(CloudProxy cloudProxy, Exception ex)
@@ -485,9 +482,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Log.LogWarning((int)EventIds.ErrorOpening, ex, Invariant($"Error opening IotHub connection for device {clientId}"));
             }
 
-            public static void TimedOutClosing(string clientId)
+            public static void TimedOutClosing(CloudProxy cloudProxy)
             {
-                Log.LogInformation((int)EventIds.TimedOutClosing, Invariant($"Closing cloud proxy for {clientId} because of inactivity"));
+                Log.LogInformation((int)EventIds.TimedOutClosing, Invariant($"Closing cloud proxy {cloudProxy.id} for {cloudProxy.clientId} because of inactivity"));
+            }
+
+            public static void Initialized(CloudProxy cloudProxy)
+            {
+                Log.LogInformation((int)EventIds.Initialized, Invariant($"Initialized cloud proxy {cloudProxy.id} for {cloudProxy.clientId}"));
             }
         }
     }
