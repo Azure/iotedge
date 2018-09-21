@@ -43,6 +43,8 @@ static void* my_gballoc_realloc(void* ptr, size_t size)
 
 #include "certificate_info.h"
 
+extern time_t get_utc_time_from_asn_string(const unsigned char *time_value, size_t length);
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -891,6 +893,48 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         (void)certificate_info_get_chain(NULL);
 
         //assert
+
+        //cleanup
+    }
+
+    TEST_FUNCTION(get_utc_time_from_asn_string_invalid_smaller_len_test)
+    {
+        //arrange
+        time_t test_time;
+
+        //act
+        test_time = get_utc_time_from_asn_string("180101010101Z", 12);
+
+        //assert
+        ASSERT_ARE_EQUAL(int64_t, 0, test_time);
+
+        //cleanup
+    }
+
+    TEST_FUNCTION(get_utc_time_from_asn_string_invalid_larger_len_test)
+    {
+        //arrange
+        time_t test_time;
+
+        //act
+        test_time = get_utc_time_from_asn_string("180101010101Z", 14);
+
+        //assert
+        ASSERT_ARE_EQUAL(int64_t, 0, test_time);
+
+        //cleanup
+    }
+
+    TEST_FUNCTION(get_utc_time_from_asn_string_success_test)
+    {
+        //arrange
+        time_t test_time;
+
+        //act
+        test_time = get_utc_time_from_asn_string("180101010101Z", 13);
+
+        //assert
+        ASSERT_ARE_EQUAL(int64_t, 1514768461, test_time);
 
         //cleanup
     }
