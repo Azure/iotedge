@@ -12,6 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         Task<Option<ServiceIdentity>> GetServiceIdentity(string deviceId, string moduleId);
 
-        Task<Option<ServiceIdentity>> GetServiceIdentity(string deviceId);
+        Task<Option<ServiceIdentity>> GetServiceIdentity(string id);
     }
 }
