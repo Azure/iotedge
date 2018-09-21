@@ -545,7 +545,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             internal static void Initialized(IIdentity edgeHubIdentity)
             {
-                Log.LogDebug((int)EventIds.Initialized, Invariant($"Established IoT Hub connection for edge hub {edgeHubIdentity.Id}"));
+                Log.LogDebug((int)EventIds.Initialized, Invariant($"Initialized connection for {edgeHubIdentity.Id}"));
             }
 
             internal static void ErrorUpdatingLastDesiredStatus(Exception ex)
