@@ -189,8 +189,6 @@ namespace IotEdgeQuickstart.Details
             return this.context.RegistryManager.ApplyConfigurationContentOnDeviceAsync(this.context.Device.Id, config);
         }
 
-        protected Task VerifyTempSensorIsRunning() => this.bootstrapper.VerifyModuleIsRunning("tempSensor");
-
         protected async Task VerifyDataOnIoTHub(string moduleId)
         {
             var builder = new EventHubsConnectionStringBuilder(this.eventhubCompatibleEndpointWithEntityPath);
