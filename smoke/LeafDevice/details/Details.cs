@@ -12,6 +12,7 @@ namespace LeafDevice.Details
     using Microsoft.Azure.Devices.Common;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Azure.EventHubs;
+    using System.Net;
 
     public class Details
     {
@@ -52,13 +53,14 @@ namespace LeafDevice.Details
             Microsoft.Azure.Devices.IotHubConnectionStringBuilder builder = Microsoft.Azure.Devices.IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
             string leafDeviceConnectionString = $"HostName={builder.HostName};DeviceId={this.deviceId};SharedAccessKey={this.context.Device.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={this.edgeHostName}";
             
-            DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(leafDeviceConnectionString, Microsoft.Azure.Devices.Client.TransportType.Mqtt);
+            this.context.DeviceClientInstance = DeviceClient.CreateFromConnectionString(leafDeviceConnectionString, Microsoft.Azure.Devices.Client.TransportType.Mqtt);
             Console.WriteLine("Leaf Device client created.");
 
 
             var message = new Microsoft.Azure.Devices.Client.Message(Encoding.ASCII.GetBytes($"Message from Leaf Device. MsgGUID: {this.context.MessageGuid}"));
             Console.WriteLine($"Trying to send the message to '{this.edgeHostName}'");
-            await deviceClient.SendEventAsync(message);
+            await this.context.DeviceClientInstance.SendEventAsync(message);
+            await this.context.DeviceClientInstance.SetMethodHandlerAsync("DirectMethod", DirectMethod, null).ConfigureAwait(false);
             Console.WriteLine($"Message Sent. ");
         }
 
@@ -104,6 +106,7 @@ namespace LeafDevice.Details
             this.context = new DeviceContext
             {
                 Device = device,
+                DeviceClientInstance = null,
                 IotHubConnectionString = this.iothubConnectionString,
                 RegistryManager = rm,
                 RemoveDevice = true,
@@ -156,6 +159,34 @@ namespace LeafDevice.Details
             await eventHubClient.CloseAsync();
         }
 
+        static Task<MethodResponse> DirectMethod(MethodRequest methodRequest, object userContext)
+        {
+            Console.WriteLine("Leaf device received direct method call...");
+            return Task.FromResult(new MethodResponse((int)HttpStatusCode.OK));
+        }
+
+        protected async Task VerifyDirectMethod()
+        {
+            //User Service SDK to invoke Direct Method on the device.
+            ServiceClient serviceClient =
+                ServiceClient.CreateFromConnectionString(this.context.IotHubConnectionString);
+
+
+            //Call a direct method
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(300)))
+            {
+                CloudToDeviceMethodResult result = await serviceClient.InvokeDeviceMethodAsync(
+                this.context.Device.Id,
+                new CloudToDeviceMethod("DirectMethod"),
+                cts.Token);
+
+                if (result.Status != 200)
+                {
+                    throw new Exception("Could not invoke Direct Method on Device.");
+                }
+            }
+        }
+
         protected void KeepDeviceIdentity()
         {
             if (this.context != null)
@@ -185,6 +216,7 @@ namespace LeafDevice.Details
     public class DeviceContext
     {
         public Device Device;
+        public DeviceClient DeviceClientInstance;
         public string IotHubConnectionString;
         public RegistryManager RegistryManager;
         public bool RemoveDevice;
