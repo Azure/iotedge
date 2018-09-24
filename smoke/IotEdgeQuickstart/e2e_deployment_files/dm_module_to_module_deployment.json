@@ -23,7 +23,12 @@
             "settings": {
               "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-agent:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
-            }
+            },
+            "env": {
+                "UpstreamProtocol" : {
+                    "value": "<UpstreamProtocol>"
+                }
+			}
           },
           "edgeHub": {
             "type": "docker",
@@ -34,7 +39,10 @@
 		    "env": {
 				"OptimizeForPerformance": {
 					"value": "<OptimizeForPerformance>"
-				}
+				},
+                "UpstreamProtocol" : {
+                    "value": "<UpstreamProtocol>"
+                }
 			},
             "status": "running",
             "restartPolicy": "always"
@@ -49,6 +57,9 @@
             "env": {
               "TargetModuleId": {
                 "value": "DirectMethodReceiver"
+              },
+              "ClientTransportType" : {
+                "value": "<ClientTransportType>"
               }
             },
             "settings": {
@@ -61,6 +72,11 @@
             "type": "docker",
             "status": "running",
             "restartPolicy": "always",
+            "env": {
+              "ClientTransportType" : {
+                "value": "<ClientTransportType>"
+              }
+            },
             "settings": {
               "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
