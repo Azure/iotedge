@@ -124,7 +124,7 @@ impl ModuleRegistry for DockerModuleRuntime {
                     .image_create(config.image(), "", "", "", "", &creds, "")
                     .map_err(|err| {
                         let e = Error::from(err);
-                        warn!("Attempt to pull image failed:");
+                        warn!("Attempt to pull image failed.");
                         log_failure(Level::Warn, &e);
                         e
                     });
@@ -142,7 +142,7 @@ impl ModuleRegistry for DockerModuleRuntime {
                 .map(|_| ())
                 .map_err(|err| {
                     let e = Error::from(err);
-                    warn!("Attempt to remove image failed:");
+                    warn!("Attempt to remove image failed.");
                     log_failure(Level::Warn, &e);
                     e
                 }),
@@ -193,7 +193,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                         }
                     }).map_err(|err| {
                         let e = Error::from(err);
-                        debug!("Module runtime init failed:");
+                        warn!("Module runtime init failed.");
                         log_failure(Level::Warn, &e);
                         e
                     });
@@ -245,7 +245,7 @@ impl ModuleRuntime for DockerModuleRuntime {
         match result {
             Ok(f) => Box::new(f),
             Err(err) => {
-                warn!("Attempt to create a container failed:");
+                warn!("Attempt to create a container failed.");
                 log_failure(Level::Warn, &err);
                 Box::new(future::err(err))
             }
@@ -260,7 +260,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                 .container_start(fensure_not_empty!(id), "")
                 .map_err(|err| {
                     let e = Error::from(err);
-                    warn!("Attempt to start a container failed:");
+                    warn!("Attempt to start a container failed.");
                     log_failure(Level::Warn, &e);
                     e
                 }).map(|_| ()),
@@ -279,7 +279,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                         .unwrap_or(WAIT_BEFORE_KILL_SECONDS),
                 ).map_err(|err| {
                     let e = Error::from(err);
-                    warn!("Attempt to stop a container failed:");
+                    warn!("Attempt to stop a container failed.");
                     log_failure(Level::Warn, &e);
                     e
                 }).map(|_| ()),
@@ -304,7 +304,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                     )
                 }).map_err(|err| {
                     let e = Error::from(err);
-                    debug!("Attempt to get system information failed:");
+                    warn!("Attempt to get system information failed.");
                     log_failure(Level::Warn, &e);
                     e
                 }),
@@ -319,7 +319,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                 .container_restart(fensure_not_empty!(id), WAIT_BEFORE_KILL_SECONDS)
                 .map_err(|err| {
                     let e = Error::from(err);
-                    warn!("Attempt to restart a container failed:");
+                    warn!("Attempt to restart a container failed.");
                     log_failure(Level::Warn, &e);
                     e
                 }).map(|_| ()),
@@ -338,7 +338,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                     /* remove link */ false,
                 ).map_err(|err| {
                     let e = Error::from(err);
-                    warn!("Attempt to remove a container failed:");
+                    warn!("Attempt to remove a container failed.");
                     log_failure(Level::Warn, &e);
                     e
                 }).map(|_| ()),
@@ -390,7 +390,7 @@ impl ModuleRuntime for DockerModuleRuntime {
         match result {
             Ok(f) => Box::new(f),
             Err(err) => {
-                warn!("Attempt to list containers failed:");
+                warn!("Attempt to list containers failed.");
                 log_failure(Level::Warn, &err);
                 Box::new(future::err(err))
             }
@@ -406,7 +406,7 @@ impl ModuleRuntime for DockerModuleRuntime {
             .map(Logs)
             .map_err(|err| {
                 let e = Error::from(err);
-                warn!("Attempt to get container logs failed:");
+                warn!("Attempt to get container logs failed.");
                 log_failure(Level::Warn, &e);
                 e
             });
