@@ -67,7 +67,6 @@ namespace IotEdgeQuickstart
                         await DeployToEdgeDevice();
                         if (!this.noVerify)
                         {
-                            await VerifyTempSensorIsRunning();
                             await this.VerifyDataOnIoTHub(this.verifyDataFromModule);
                         }
 

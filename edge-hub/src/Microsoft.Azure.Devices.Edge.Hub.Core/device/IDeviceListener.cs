@@ -29,5 +29,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         Task AddSubscription(DeviceSubscription subscription);
 
         Task RemoveSubscription(DeviceSubscription subscription);
+
+        Task AddDesiredPropertyUpdatesSubscription(string correlationId);
+
+        Task RemoveDesiredPropertyUpdatesSubscription(string correlationId);
     }
 }

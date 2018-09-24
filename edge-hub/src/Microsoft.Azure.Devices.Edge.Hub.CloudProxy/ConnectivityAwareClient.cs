@@ -210,7 +210,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public static void ChangingStatus(AtomicBoolean isConnected, IIdentity identity)
             {
-                Log.LogDebug((int)EventIds.ChangingStatus, $"Cloud connection for {identity.Id} is {isConnected.Get()}");
+                Log.LogInformation((int)EventIds.ChangingStatus, $"Cloud connection for {identity.Id} is {isConnected.Get()}");
             }
         }
     }

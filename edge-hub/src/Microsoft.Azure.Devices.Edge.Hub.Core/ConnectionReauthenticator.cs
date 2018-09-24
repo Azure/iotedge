@@ -68,6 +68,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 {
                     try
                     {
+                        if (this.IsEdgeHubIdentity(identity.Id))
+                        {
+                            continue;
+                        }
+
                         Option<IClientCredentials> clientCredentials = await this.credentialsCache.Get(identity);
                         bool result = await clientCredentials
                             .Map(
@@ -86,6 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
                         if (!result)
                         {
+                            Events.NotReauthenticated(identity.Id);
                             await this.connectionManager.RemoveDeviceConnection(identity.Id);
                         }
                     }
@@ -106,6 +112,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             try
             {
                 Events.ServiceIdentityUpdated(serviceIdentity.Id);
+                if (this.IsEdgeHubIdentity(serviceIdentity.Id))
+                {
+                    return;
+                }
+
                 Option<IDeviceProxy> deviceProxy = this.connectionManager.GetDeviceConnection(serviceIdentity.Id);
                 if (deviceProxy.HasValue)
                 {
@@ -143,6 +154,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             try
             {
+                if (this.IsEdgeHubIdentity(id))
+                {
+                    return;
+                }
+
                 Events.ServiceIdentityRemoved(id);
                 await this.connectionManager.RemoveDeviceConnection(id);
             }
@@ -151,6 +167,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 Events.ErrorRemovingConnection(ex, id);
             }
         }
+
+        bool IsEdgeHubIdentity(string id) => this.edgeHubIdentity.Id.Equals(id);
 
         static class Events
         {
@@ -206,12 +224,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             public static void ServiceIdentityUpdated(string serviceIdentityId)
             {
-                Log.LogDebug((int)EventIds.ServiceIdentityUpdated, $"Service identity for {serviceIdentityId} in device scope was updated.");
+                Log.LogInformation((int)EventIds.ServiceIdentityUpdated, $"Service identity for {serviceIdentityId} in device scope was updated.");
             }
 
             public static void ServiceIdentityUpdatedRemoving(string serviceIdentityId)
             {
-                Log.LogDebug((int)EventIds.ServiceIdentityUpdatedRemoving, $"Service identity for {serviceIdentityId} in device scope was updated, dropping client connection.");
+                Log.LogInformation((int)EventIds.ServiceIdentityUpdatedRemoving, $"Service identity for {serviceIdentityId} in device scope was updated, dropping client connection.");
             }
 
             public static void ServiceIdentityUpdatedValidated(string serviceIdentityId)
@@ -221,7 +239,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             public static void ServiceIdentityRemoved(string id)
             {
-                Log.LogDebug((int)EventIds.ServiceIdentityRemoved, $"Service identity for {id} in device scope was removed, dropping client connection.");
+                Log.LogInformation((int)EventIds.ServiceIdentityRemoved, $"Service identity for {id} was removed from device scope, dropping client connection.");
             }
 
             public static void DeviceNotConnected(string id)
@@ -236,12 +254,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             public static void ReauthenticatingClients()
             {
-                Log.LogDebug((int)EventIds.ReauthenticatingClients, $"Reauthenticating connected clients");
+                Log.LogInformation((int)EventIds.ReauthenticatingClients, "Reauthenticating connected clients");
             }
 
             public static void EdgeHubConnectionReestablished()
             {
-                Log.LogDebug((int)EventIds.EdgeHubConnectionReestablished, $"EdgeHub cloud connection established, refreshing device scope cache.");
+                Log.LogDebug((int)EventIds.EdgeHubConnectionReestablished, "EdgeHub cloud connection established, refreshing device scope cache.");
+            }
+
+            public static void NotReauthenticated(string id)
+            {
+                Log.LogInformation((int)EventIds.ServiceIdentityRemoved, $"Unable to re-authenticate {id}, dropping client connection.");
             }
         }
 

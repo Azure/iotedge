@@ -477,7 +477,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public static void CreateDeviceClientSuccess(TransportType transport, uint timeout, IIdentity identity)
             {
-                Log.LogInformation((int)EventIds.TransportConnected, $"Connected to IoT Hub for client {identity.Id} via {TransportName(transport)}, with client operation timeout {timeout}.");
+                Log.LogInformation((int)EventIds.TransportConnected, $"Created cloud proxy for client {identity.Id} via {TransportName(transport)}, with client operation timeout {timeout}.");
             }
 
             internal static void GetNewToken(string id)
