@@ -86,7 +86,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                         IMessage[] messages = (await iterator.GetNext(this.options.BatchSize)).ToArray();
                         await this.ProcessMessages(messages);
                         Events.SendMessagesSuccess(this, messages);
-                        Metrics.StoredCountDecrement(this.Endpoint.Id, messages.Length);
+                        Metrics.DrainedCountIncrement(this.Endpoint.Id, messages.Length);
 
                         // If store has no messages, then reset the hasMessagesInQueue flag. 
                         if (messages.Length == 0)
@@ -172,9 +172,14 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 
         static class Metrics
         {
-            static readonly CounterOptions EndpointMessageCountOptions = new CounterOptions
+            static readonly CounterOptions EndpointMessageStoredCountOptions = new CounterOptions
             {
                 Name = "EndpointMessageStoredCount",
+                MeasurementUnit = Unit.Events
+            };
+            static readonly CounterOptions EndpointMessageDrainedCountOptions = new CounterOptions
+            {
+                Name = "EndpointMessageDrainedCount",
                 MeasurementUnit = Unit.Events
             };
             static readonly TimerOptions EndpointMessageLatencyOptions = new TimerOptions
@@ -190,9 +195,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                 return new MetricTags("EndpointId", id);
             }
 
-            public static void StoredCountIncrement(string identity) => Edge.Util.Metrics.CountIncrement(GetTags(identity), EndpointMessageCountOptions, 1);
+            public static void StoredCountIncrement(string identity) => Edge.Util.Metrics.CountIncrement(GetTags(identity), EndpointMessageStoredCountOptions, 1);
 
-            public static void StoredCountDecrement(string identity, long amount) => Edge.Util.Metrics.CountDecrement(GetTags(identity), EndpointMessageCountOptions, amount);
+            public static void DrainedCountIncrement(string identity, long amount) => Edge.Util.Metrics.CountIncrement(GetTags(identity), EndpointMessageDrainedCountOptions, amount);
 
             public static IDisposable StoreLatency(string identity) => Edge.Util.Metrics.Latency(GetTags(identity), EndpointMessageLatencyOptions);
         }

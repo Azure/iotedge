@@ -57,13 +57,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
         public Task ProcessDeviceMessageBatch(IIdentity identity, IEnumerable<IMessage> messages)
         {
+            Preconditions.CheckNotNull(messages, nameof(messages));
             Metrics.MessageCount(identity, messages.Count());
-            using (Metrics.MessageLatency(identity))
-            {
-                IEnumerable<IRoutingMessage> routingMessages = Preconditions.CheckNotNull(messages)
-                    .Select(m => this.ProcessMessageInternal(m, true));
-                return this.router.RouteAsync(routingMessages);
-            }
+
+            IEnumerable<IRoutingMessage> routingMessages = messages
+                .Select(m => this.ProcessMessageInternal(m, true));
+            return this.router.RouteAsync(routingMessages);
         }
 
         public Task<DirectMethodResponse> InvokeMethodAsync(string id, DirectMethodRequest methodRequest)
@@ -160,7 +159,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             }
             catch (Exception e)
             {
-                Events.ErrorAddingSubscription(e, id, deviceSubscription);                
+                Events.ErrorAddingSubscription(e, id, deviceSubscription);
             }
         }
 
@@ -175,7 +174,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             }
             catch (Exception e)
             {
-                Events.ErrorRemovingSubscription(e, id, deviceSubscription);                
+                Events.ErrorRemovingSubscription(e, id, deviceSubscription);
             }
         }
 

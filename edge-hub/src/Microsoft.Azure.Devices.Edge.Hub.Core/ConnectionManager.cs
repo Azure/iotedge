@@ -60,6 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Preconditions.CheckNotNull(deviceProxy, nameof(deviceProxy));
             ConnectedDevice device = this.GetOrCreateConnectedDevice(identity);
             Option<DeviceConnection> currentDeviceConnection = device.AddDeviceConnection(deviceProxy);
+
             Events.NewDeviceConnection(identity);
             Metrics.EdgeHubConnectedClientCountIncrement();
             Metrics.ClientConnectionStateIncrement(identity.Id);
