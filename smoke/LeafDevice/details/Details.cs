@@ -189,9 +189,9 @@ namespace LeafDevice.Details
                 if (result.Status != 200)
                 {
                     throw new Exception("Could not invoke Direct Method on Device.");
-                } else if (!result.GetPayloadAsJson().Equals("{\"TestKey\" : \"TestValue\"}"))
+                } else if (!result.GetPayloadAsJson().Equals("{\"TestKey\":\"TestValue\"}"))
                 {
-                    throw new Exception("Payload doesn't match with Sent Payload.");
+                    throw new Exception($"Payload doesn't match with Sent Payload. Received payload: {result.GetPayloadAsJson()}. Expected: {{\"TestKey\":\"TestValue\"}}");
                 }
             }
         }
