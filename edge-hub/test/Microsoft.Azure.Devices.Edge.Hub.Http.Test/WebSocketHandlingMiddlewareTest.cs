@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var middleware = new WebSocketHandlingMiddleware(this._ThrowingNextDelegate(), registry);
             await middleware.Invoke(httpContext);
 
-            Mock.Get(listener).Verify(r => r.ProcessWebSocketRequestAsync(It.IsAny<WebSocket>(), It.IsAny<EndPoint>(), It.IsAny<EndPoint>(), It.IsAny<string>()));
+            Mock.Get(listener).Verify(r => r.ProcessWebSocketRequestAsync(It.IsAny<WebSocket>(), It.IsAny<Option<EndPoint>>(), It.IsAny<EndPoint>(), It.IsAny<string>()));
         }
 
         [Fact]
@@ -161,9 +161,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var registry = new Mock<IWebSocketListenerRegistry>();
             var listener = new Mock<IWebSocketListener>();
 
-            listener.Setup(wsl => wsl.ProcessWebSocketRequestAsync(It.IsAny<WebSocket>(), It.IsAny<EndPoint>(), It.IsAny<EndPoint>(), It.IsAny<string>()))
+            listener.Setup(wsl => wsl.ProcessWebSocketRequestAsync(It.IsAny<WebSocket>(), It.IsAny<Option<EndPoint>>(), It.IsAny<EndPoint>(), It.IsAny<string>()))
                 .Returns(Task.CompletedTask)
-                .Callback<WebSocket, EndPoint, EndPoint, string>((ws, ep1, ep2, id) => correlationIds.Add(id));
+                .Callback<WebSocket, Option<EndPoint>, EndPoint, string>((ws, ep1, ep2, id) => correlationIds.Add(id));
             registry
                 .Setup(wslr => wslr.GetListener(It.IsAny<IList<string>>()))
                 .Returns(Option.Some(listener.Object));

@@ -52,10 +52,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
 
         async Task ProcessRequestAsync(HttpContext context, IWebSocketListener listener, string correlationId)
         {
+            Preconditions.CheckNotNull(context, nameof(context));
+            Preconditions.CheckNotNull(context.Connection, nameof(context.Connection));
+            Preconditions.CheckNotNull(context.Connection.RemoteIpAddress, nameof(context.Connection.RemoteIpAddress));
+            Preconditions.CheckNotNull(correlationId, nameof(correlationId));
+
             Events.WebSocketSubProtocolSelected(context.TraceIdentifier, listener.SubProtocol, correlationId);
 
             WebSocket webSocket = await context.WebSockets.AcceptWebSocketAsync(listener.SubProtocol);
-            var localEndPoint = new IPEndPoint(context.Connection.LocalIpAddress, context.Connection.LocalPort);
+            Option<EndPoint> localEndPoint = Option.None<EndPoint>();
+            if (context.Connection.LocalIpAddress != null)
+            {
+                localEndPoint = Option.Some<EndPoint>(new IPEndPoint(context.Connection.LocalIpAddress, context.Connection.LocalPort));
+            }
             var remoteEndPoint = new IPEndPoint(context.Connection.RemoteIpAddress, context.Connection.RemotePort);
             await listener.ProcessWebSocketRequestAsync(webSocket, localEndPoint, remoteEndPoint, correlationId);
 

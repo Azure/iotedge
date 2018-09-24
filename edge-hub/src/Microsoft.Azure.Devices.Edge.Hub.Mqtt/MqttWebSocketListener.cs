@@ -50,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public string SubProtocol => Constants.WebSocketSubProtocol;
 
-        public async Task ProcessWebSocketRequestAsync(WebSocket webSocket, EndPoint localEndPoint, EndPoint remoteEndPoint, string correlationId)
+        public async Task ProcessWebSocketRequestAsync(WebSocket webSocket, Option<EndPoint> localEndPoint, EndPoint remoteEndPoint, string correlationId)
         {
             try
             {

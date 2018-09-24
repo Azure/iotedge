@@ -20,13 +20,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         {
         }
 
-        public async Task ProcessWebSocketRequestAsync(WebSocket webSocket, EndPoint localEndPoint, EndPoint remoteEndPoint, string correlationId)
+        public async Task ProcessWebSocketRequestAsync(WebSocket webSocket, Option<EndPoint> localEndPoint, EndPoint remoteEndPoint, string correlationId)
         {
             try
             {
                 var taskCompletion = new TaskCompletionSource<bool>();
-                
-                var transport = new ServerWebSocketTransport(webSocket, localEndPoint.ToString(), remoteEndPoint.ToString(), correlationId);
+
+                string localEndpointValue = localEndPoint.Expect(() => new ArgumentNullException(nameof(localEndPoint))).ToString();
+                var transport = new ServerWebSocketTransport(webSocket, localEndpointValue, remoteEndPoint.ToString(), correlationId);
                 transport.Open();
 
                 var args = new TransportAsyncCallbackArgs { Transport = transport, CompletedSynchronously = false };
