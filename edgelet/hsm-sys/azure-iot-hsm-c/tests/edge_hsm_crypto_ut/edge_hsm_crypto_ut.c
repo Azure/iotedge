@@ -862,10 +862,13 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
             // assert
             ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
             ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
-            for (int idx = 0; idx < sizeof(test_output); idx++)
-            {
-                ASSERT_ARE_NOT_EQUAL_WITH_MSG(char, test_input[idx], test_output[idx], "Line:" TOSTRING(__LINE__));
-            }
+            // if this test fails it implies that the call to hsm_client_get_random_bytes
+            // never updated the buffer and yet returned a success OR
+            // the statistically improbable event occured that the random bytes returned
+            // exactly what the test_input was setup with
+            // P(test failure) = P('r') * P('a') * P('n') * P('d') = ((1/256) ^ 4) == very small
+            int cmp = memcmp(test_input, test_output, sizeof(test_input));
+            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, cmp, "Line:" TOSTRING(__LINE__));
 
             //cleanup
             hsm_client_crypto_destroy(hsm_handle);

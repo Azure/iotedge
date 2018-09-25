@@ -23,6 +23,11 @@
             "settings": {
               "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-agent:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
+            },
+            "env": {
+              "UpstreamProtocol" : {
+                "value": "<UpstreamProtocol>"
+              }
             }
           },
           "edgeHub": {
@@ -31,11 +36,14 @@
               "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-hub:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"443/tcp\": [{\"HostPort\": \"443\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
             },
-		    "env": {
-				"OptimizeForPerformance": {
-					"value": "<OptimizeForPerformance>"
-				}
-			},
+            "env": {
+              "OptimizeForPerformance": {
+                "value": "<OptimizeForPerformance>"
+              },
+              "UpstreamProtocol" : {
+                "value": "<UpstreamProtocol>"
+              }
+            },
             "status": "running",
             "restartPolicy": "always"
           }
@@ -49,6 +57,9 @@
             "env": {
               "TargetModuleId": {
                 "value": "DirectMethodReceiver"
+              },
+              "ClientTransportType" : {
+                "value": "<ClientTransportType>"
               }
             },
             "settings": {
@@ -61,6 +72,11 @@
             "type": "docker",
             "status": "running",
             "restartPolicy": "always",
+            "env": {
+              "ClientTransportType" : {
+                "value": "<ClientTransportType>"
+              }
+            },
             "settings": {
               "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""

@@ -206,7 +206,7 @@ pub mod tests {
             .concat2()
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
-                assert_eq!("Container not found", error.message());
+                assert_eq!("Not found", error.message());
                 Ok(())
             }).wait()
             .unwrap();
