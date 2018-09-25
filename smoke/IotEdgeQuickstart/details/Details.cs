@@ -31,6 +31,7 @@ namespace IotEdgeQuickstart.Details
         readonly string deviceCaCerts;
         readonly bool optimizedForPerformance;
         readonly LogLevel runtimeLogLevel;
+        readonly bool cleanUpExistingDeviceOnSuccess; 
 
         DeviceContext context;
 
@@ -47,7 +48,8 @@ namespace IotEdgeQuickstart.Details
             string deviceCaPk,
             string deviceCaCerts,
             bool optimizedForPerformance,
-            LogLevel runtimeLogLevel
+            LogLevel runtimeLogLevel,
+            bool cleanUpExistingDeviceOnSuccess
             )
         {
             this.bootstrapper = bootstrapper;
@@ -63,6 +65,7 @@ namespace IotEdgeQuickstart.Details
             this.deviceCaCerts = deviceCaCerts;
             this.optimizedForPerformance = optimizedForPerformance;
             this.runtimeLogLevel = runtimeLogLevel;
+            this.cleanUpExistingDeviceOnSuccess = cleanUpExistingDeviceOnSuccess;
         }
 
         protected Task VerifyEdgeIsNotAlreadyActive() => this.bootstrapper.VerifyNotActive();
@@ -86,7 +89,7 @@ namespace IotEdgeQuickstart.Details
                     Device = device,
                     IotHubConnectionString = this.iothubConnectionString,
                     RegistryManager = rm,
-                    RemoveDevice = false
+                    RemoveDevice = this.cleanUpExistingDeviceOnSuccess
                 };
             }
             else

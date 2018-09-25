@@ -54,6 +54,7 @@ Defaults:
   --verify-data-from-module  tempSensor
   --deployment               deployment json file
   --runtime-log-level        debug
+  --clean_up_existing_device false
 "
         )]
     [HelpOption]
@@ -124,6 +125,9 @@ Defaults:
 
         [Option("--trusted_ca_certs", Description = "path to a file containing all the trusted CA")]
         public string DeviceCaCerts { get; } = "";
+
+        [Option("--clean_up_existing_device", Description = "Clean up existing device on success.")]
+        public bool CleanUpExistingDeviceOnSuccess { get; } = false;
 
         // ReSharper disable once UnusedMember.Local
         async Task<int> OnExecuteAsync()
@@ -196,7 +200,8 @@ Defaults:
                     this.DeviceCaPk,
                     this.DeviceCaCerts,
                     this.OptimizeForPerformance,
-                    this.RuntimeLogLevel);
+                    this.RuntimeLogLevel,
+                    this.CleanUpExistingDeviceOnSuccess);
                 await test.RunAsync();
             }
             catch (Exception ex)
