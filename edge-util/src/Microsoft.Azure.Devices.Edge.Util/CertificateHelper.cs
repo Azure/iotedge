@@ -197,7 +197,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 .ToList();
         }
 
-        public static async Task<(X509Certificate2, IEnumerable<X509Certificate2>)> GetServerCertificatesFromEdgelet(Uri workloadUri, string workloadApiVersion, string moduleId, string moduleGenerationId, string edgeHubHostname, DateTime expiration)
+        public static async Task<(X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain)> GetServerCertificatesFromEdgelet(Uri workloadUri, string workloadApiVersion, string moduleId, string moduleGenerationId, string edgeHubHostname, DateTime expiration)
         {
             if (string.IsNullOrEmpty(edgeHubHostname))
             {

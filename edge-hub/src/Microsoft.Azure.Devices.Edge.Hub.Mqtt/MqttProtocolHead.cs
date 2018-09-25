@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             {
                 this.logger.LogInformation("Starting MQTT head");
 
-                ServerBootstrap bootstrap = this.SetupServerBoostrap();
+                ServerBootstrap bootstrap = this.SetupServerBootstrap();
 
                 this.logger.LogInformation("Initializing TLS endpoint on port {0} for MQTT head.", MqttsPort);
 
@@ -118,7 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             this.CloseAsync(CancellationToken.None).Wait();
         }
 
-        ServerBootstrap SetupServerBoostrap()
+        ServerBootstrap SetupServerBootstrap()
         {
             int maxInboundMessageSize = this.settingsProvider.GetIntegerSetting("MaxInboundMessageSize", DefaultMaxInboundMessageSize);
             int threadCount = this.settingsProvider.GetIntegerSetting("ThreadCount", DefaultThreadCount);
