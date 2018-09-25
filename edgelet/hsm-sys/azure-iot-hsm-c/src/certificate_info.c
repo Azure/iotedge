@@ -214,20 +214,26 @@ static time_t tm_to_utc(const struct tm *tm)
 time_t get_utc_time_from_asn_string(const unsigned char *time_value, size_t length)
 {
     time_t result;
-    char temp_value[TEMP_DATE_LENGTH];
-    size_t temp_idx = 0;
-    struct tm target_time;
-    uint32_t numeric_val;
 
-    memset(&target_time, 0, sizeof(target_time));
-    memset(temp_value, 0, TEMP_DATE_LENGTH);
-    if (length != TIME_FIELD_LENGTH)
+    if (time_value == NULL)
+    {
+        LogError("Parse time error: Invalid time_value buffer");
+        result = 0;
+    }
+    else if (length != TIME_FIELD_LENGTH)
     {
         LogError("Parse time error: Invalid length field");
         result = 0;
     }
     else
     {
+        char temp_value[TEMP_DATE_LENGTH];
+        size_t temp_idx = 0;
+        struct tm target_time;
+        uint32_t numeric_val;
+
+        memset(&target_time, 0, sizeof(target_time));
+        memset(temp_value, 0, TEMP_DATE_LENGTH);
         // Don't evaluate the Z at the end of the UTC time field
         for (size_t index = 0; index < TIME_FIELD_LENGTH - 1; index++)
         {
@@ -358,10 +364,6 @@ static int parse_tbs_cert_info(unsigned char* tbs_info, size_t len, CERT_DATA_IN
                     iterator++;
                     parse_asn1_object(iterator, &target_obj);
                     // Validate version
-                    uint32_t temp;
-                    memcpy(&temp, target_obj.value, sizeof(uint32_t));
-                    (void)temp;
-
                     cert_info->version = target_obj.value[0];
                     iterator += 3;  // Increment past the array type
                     tbs_field = FIELD_SERIAL_NUM;
