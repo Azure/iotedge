@@ -9,8 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using System.Linq;
     using System.Threading.Tasks;
     using App.Metrics;
-    using App.Metrics.Counter;
-    using App.Metrics.Timer;
+    using App.Metrics.Gauge;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -47,6 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.credentialsCache = Preconditions.CheckNotNull(credentialsCache, nameof(credentialsCache));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
             this.edgeModuleId = Preconditions.CheckNonWhiteSpace(edgeModuleId, nameof(edgeModuleId));
+            Util.Metrics.RegisterGaugeCallback(() => Metrics.SetConnectedClientCountGauge(this.GetConnectedClients().Count()));
         }
 
         public IEnumerable<IIdentity> GetConnectedClients() =>
@@ -62,9 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Option<DeviceConnection> currentDeviceConnection = device.AddDeviceConnection(deviceProxy);
 
             Events.NewDeviceConnection(identity);
-            Metrics.EdgeHubConnectedClientCountIncrement();
-            Metrics.ClientConnectionStateIncrement(identity.Id);
-            Metrics.ClientConnectionHistoryCountIncrement(identity.Id);
+            
 
             await currentDeviceConnection
                 .Filter(dc => dc.IsActive)
@@ -76,9 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             Task remove = this.devices.TryGetValue(Preconditions.CheckNonWhiteSpace(id, nameof(id)), out ConnectedDevice device)
                 ? this.RemoveDeviceConnection(device, false)
-                : Task.CompletedTask;
-            Metrics.EdgeHubConnectedClientCountDecrement();
-            Metrics.ClientConnectionStateDecrement(id);
+                : Task.CompletedTask;            
             return remove;
         }
 
@@ -386,39 +382,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         static class Metrics
         {
-            static readonly CounterOptions ConnectedClientCountOptions = new CounterOptions
+            static readonly GaugeOptions ConnectedClientGaugeOptions = new GaugeOptions
             {
-                Name = "EdgeHubConnectedClientCount",
+                Name = "EdgeHubConnectedClientGauge",
                 MeasurementUnit = Unit.Events
             };
 
-            static readonly CounterOptions ClientConnectionHistoryOptions = new CounterOptions
+            public static void SetConnectedClientCountGauge(long amount)
             {
-                Name = "ClientConnectionHistory",
-                MeasurementUnit = Unit.Events
-            };
-
-            static readonly CounterOptions ClientConnectionStateOptions = new CounterOptions
-            {
-                Name = "ClientConnectionState",
-                MeasurementUnit = Unit.Events
-            };
-
-            internal static MetricTags GetTags(string id)
-            {
-                return new MetricTags("Id", id);
+                Edge.Util.Metrics.SetGauge(ConnectedClientGaugeOptions, amount);
             }
-
-            public static void EdgeHubConnectedClientCountIncrement() => Edge.Util.Metrics.CountIncrement(ConnectedClientCountOptions, 1);
-
-            public static void EdgeHubConnectedClientCountDecrement() => Edge.Util.Metrics.CountDecrement(ConnectedClientCountOptions, 1);
-
-            public static void ClientConnectionHistoryCountIncrement(string identity) => Edge.Util.Metrics.CountIncrement(GetTags(identity), ClientConnectionHistoryOptions, 1);
-
-            public static void ClientConnectionStateIncrement(string identity) => Edge.Util.Metrics.CountIncrement(GetTags(identity), ClientConnectionStateOptions, 1);
-
-            public static void ClientConnectionStateDecrement(string identity) => Edge.Util.Metrics.CountDecrement(GetTags(identity), ClientConnectionStateOptions, 1);
-        }
+        };
 
         static class Events
         {

@@ -3,10 +3,12 @@
 namespace Microsoft.Azure.Devices.Edge.Util
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
     using App.Metrics;
     using App.Metrics.Counter;
     using App.Metrics.Formatters.Json;
+    using App.Metrics.Gauge;
     using App.Metrics.Scheduling;
     using App.Metrics.Timer;
     using Microsoft.Extensions.Configuration;
@@ -16,6 +18,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
         static Metrics()
         {
             MetricsCollector = Option.None<IMetricsRoot>();
+            Gauges = new List<Action>();
+            GaugeListLock = new object();
         }
 
         class NullDisposable : IDisposable
@@ -26,6 +30,10 @@ namespace Microsoft.Azure.Devices.Edge.Util
         }
 
         public static Option<IMetricsRoot> MetricsCollector { private set; get; }
+
+        private static List<Action> Gauges { set; get; }
+
+        private static object GaugeListLock;
 
         public static void BuildMetricsCollector(IConfigurationRoot configuration)
         {
@@ -73,13 +81,24 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
         }
 
+        public static void RegisterGaugeCallback(Action callback)
+        {
+            lock (GaugeListLock)
+            {
+                Gauges.Add(callback);
+            }
+        }
+
         static void StartReporting(IMetricsRoot metricsCollector)
         {
-            // Start reporting metrics every 20s
+            // Start reporting metrics every 5s
             var scheduler = new AppMetricsTaskScheduler(
-                    TimeSpan.FromSeconds(20),
+                    TimeSpan.FromSeconds(5),
                     async () =>
                     {
+                        foreach (var callback in Gauges) {
+                            callback();
+                        }
                         await Task.WhenAll(metricsCollector.ReportRunner.RunAllAsync());
                     });
             scheduler.Start();
@@ -137,6 +156,17 @@ namespace Microsoft.Azure.Devices.Edge.Util
             Preconditions.CheckNotNull(options);
 
             return MetricsCollector.Map(mroot => mroot.Measure.Timer.Time(options, tags) as IDisposable).GetOrElse(() => new NullDisposable());
+        }
+
+        public static void SetGauge(GaugeOptions options, long amount)
+        {
+            Preconditions.CheckNotNull(options);
+            Preconditions.CheckNotNull(amount);
+
+            MetricsCollector.ForEach(mroot =>
+            {
+                mroot.Measure.Gauge.SetValue(options, amount);
+            });
         }
     }
 }
