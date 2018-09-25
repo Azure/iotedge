@@ -364,10 +364,6 @@ static int parse_tbs_cert_info(unsigned char* tbs_info, size_t len, CERT_DATA_IN
                     iterator++;
                     parse_asn1_object(iterator, &target_obj);
                     // Validate version
-                    uint32_t temp;
-                    memcpy(&temp, target_obj.value, sizeof(uint32_t));
-                    (void)temp;
-
                     cert_info->version = target_obj.value[0];
                     iterator += 3;  // Increment past the array type
                     tbs_field = FIELD_SERIAL_NUM;
