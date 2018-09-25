@@ -11,7 +11,7 @@ This project contains the Edge Hub.
 5. You can start debugging Edge Hub by hit F5 in Visual Studio.
 
 ##### If you want to run a leaf device connecting to Edge hub using Visual Studio, then continue to read below:
-1. You can write your leaf device using DeviceClient in Azure IoT client SDK or you can use samples in [Azure IoT C# SDK](https://github.com/azure/azure-iot-sdk-csharp).
+1. You can either use samples in [Azure IoT C# SDK](https://github.com/azure/azure-iot-sdk-csharp) or write your write your own leaf device application using DeviceClient in Azure IoT C# SDK.
 2. I will use Direct method sample in Azure IoT C# SDK, you can find it under iothub\device\samples\DeviceClientMethodSample.
 3. Open that sample application in Visual Studio, update connection string and add `GatewayHostName=127.0.0.1` to it in order to connect to Edge hub running locally in debugging mode in Visual Studio.
 4. Make sure Edge hub is running first, then you can start sample application by hit F5 in Visual Studio.
