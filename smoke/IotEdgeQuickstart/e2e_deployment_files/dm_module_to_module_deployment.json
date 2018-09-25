@@ -25,9 +25,9 @@
               "createOptions": ""
             },
             "env": {
-                "UpstreamProtocol" : {
-                    "value": "<UpstreamProtocol>"
-                }
+              "UpstreamProtocol" : {
+                "value": "<UpstreamProtocol>"
+              }
 			}
           },
           "edgeHub": {
