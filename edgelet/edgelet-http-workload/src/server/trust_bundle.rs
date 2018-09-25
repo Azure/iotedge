@@ -49,21 +49,18 @@ where
                     .context(ErrorKind::Utf8)
                     .map_err(From::from)
                     .map(|s| s.to_string())
-            })
-            .and_then(|cert| {
+            }).and_then(|cert| {
                 serde_json::to_string(&TrustBundleResponse::new(cert))
                     .context(ErrorKind::Serde)
                     .map_err(From::from)
-            })
-            .and_then(|b| {
+            }).and_then(|b| {
                 Response::builder()
                     .status(StatusCode::OK)
                     .header(CONTENT_TYPE, "application/json")
                     .header(CONTENT_LENGTH, b.len().to_string().as_str())
                     .body(b.into())
                     .map_err(Error::from)
-            })
-            .unwrap_or_else(|e| e.into_response());
+            }).unwrap_or_else(|e| e.into_response());
 
         Box::new(future::ok(response))
     }
@@ -174,8 +171,7 @@ mod tests {
                 let trust_bundle: TrustBundleResponse = serde_json::from_slice(&b).unwrap();
                 assert_eq!("boo", trust_bundle.certificate().as_str());
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 }

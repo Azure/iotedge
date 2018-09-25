@@ -136,8 +136,7 @@ impl Sign for TpmKey {
                         },
                         self.key_name
                     ).as_bytes(),
-                )
-                .map_err(Error::from)
+                ).map_err(Error::from)
                 .map_err(CoreError::from),
         }
     }

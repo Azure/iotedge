@@ -223,8 +223,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             {
                 baseStoragePath = Path.GetTempPath();
             }
+
             string storagePath = Path.Combine(baseStoragePath, EdgeAgentStorageFolder);
-            Directory.CreateDirectory(storagePath);
+            if (!Directory.Exists(storagePath))
+            {
+                Directory.CreateDirectory(storagePath);
+            }
+
             return storagePath;
         }
 

@@ -146,8 +146,7 @@ fn make_certification_props(props: &CertificateProperties) -> Result<CERT_PROPS_
                 0 => Some(()),
                 _ => None,
             }
-        })
-        .ok_or_else(|| {
+        }).ok_or_else(|| {
             unsafe { cert_properties_destroy(handle) };
             ErrorKind::CertProps
         })?;
@@ -175,8 +174,7 @@ fn make_certification_props(props: &CertificateProperties) -> Result<CERT_PROPS_
                 0 => Some(()),
                 _ => None,
             }
-        })
-        .ok_or_else(|| {
+        }).ok_or_else(|| {
             unsafe { cert_properties_destroy(handle) };
             ErrorKind::CertProps
         })?;
@@ -189,8 +187,7 @@ fn make_certification_props(props: &CertificateProperties) -> Result<CERT_PROPS_
                 0 => Some(()),
                 _ => None,
             }
-        })
-        .ok_or_else(|| {
+        }).ok_or_else(|| {
             unsafe { cert_properties_destroy(handle) };
             ErrorKind::CertProps
         })?;
@@ -228,8 +225,7 @@ impl CreateCertificate for Crypto {
             .and_then(|c_alias| {
                 unsafe { if_fn(self.handle, c_alias.as_ptr()) };
                 Some(())
-            })
-            .ok_or_else(|| ErrorKind::ToCStr)?;
+            }).ok_or_else(|| ErrorKind::ToCStr)?;
         Ok(())
     }
 }

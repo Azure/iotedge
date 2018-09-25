@@ -327,7 +327,7 @@ static void edge_hsm_client_destroy_certificate(HSM_CLIENT_HANDLE handle, const 
         if (g_hsm_store_if->hsm_client_store_remove_pki_cert(edge_crypto->hsm_store_handle,
                                                              alias) != 0)
         {
-            LOG_ERROR("Could not destroy certificate in the store for alias: %s", alias);
+            LOG_INFO("Could not destroy certificate in the store for alias: %s", alias);
         }
     }
 }

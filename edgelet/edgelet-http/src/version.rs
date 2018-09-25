@@ -56,8 +56,7 @@ where
                                 .or_else(|e| future::ok(e.into_response())),
                         )
                     })
-            })
-            .unwrap_or_else(|| {
+            }).unwrap_or_else(|| {
                 let err = Error::from(ErrorKind::InvalidApiVersion);
                 future::Either::B(future::ok(err.into_response()))
             });

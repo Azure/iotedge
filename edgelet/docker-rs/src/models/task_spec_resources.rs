@@ -19,7 +19,10 @@ pub struct TaskSpecResources {
     #[serde(rename = "Limits", skip_serializing_if = "Option::is_none")]
     limits: Option<::models::ResourceObject>,
     /// Define resources reservation.
-    #[serde(rename = "Reservation", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "Reservation",
+        skip_serializing_if = "Option::is_none"
+    )]
     reservation: Option<::models::ResourceObject>,
 }
 

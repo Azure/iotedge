@@ -150,8 +150,7 @@ fn parse_args<'a>() -> ArgMatches<'a> {
                 .help("SAS token to use when connecting to IoT Hub")
                 .required(true)
                 .takes_value(true),
-        )
-        .arg(
+        ).arg(
             Arg::with_name("hub-name")
                 .short("h")
                 .long("hub-name")
@@ -159,8 +158,7 @@ fn parse_args<'a>() -> ArgMatches<'a> {
                 .help("IoT Hub name")
                 .required(true)
                 .takes_value(true),
-        )
-        .arg(
+        ).arg(
             Arg::with_name("device-id")
                 .short("d")
                 .long("device-id")
@@ -168,22 +166,18 @@ fn parse_args<'a>() -> ArgMatches<'a> {
                 .help("Device ID")
                 .required(true)
                 .takes_value(true),
-        )
-        .subcommand(
+        ).subcommand(
             SubCommand::with_name("create")
                 .about("Create a new module")
                 .arg(module_id.clone()),
-        )
-        .subcommand(
+        ).subcommand(
             SubCommand::with_name("delete")
                 .about("Delete module")
                 .arg(module_id.clone()),
-        )
-        .subcommand(SubCommand::with_name("list").about("List modules"))
+        ).subcommand(SubCommand::with_name("list").about("List modules"))
         .subcommand(
             SubCommand::with_name("get")
                 .about("Get an existing module")
                 .arg(module_id.clone()),
-        )
-        .get_matches()
+        ).get_matches()
 }

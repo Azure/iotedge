@@ -1055,7 +1055,7 @@ static int remove_pki_cert(CRYPTO_STORE *store, const char *alias)
     LIST_ITEM_HANDLE list_item = singlylinkedlist_find(certs_list, find_pki_cert_cb, alias);
     if (list_item == NULL)
     {
-        LOG_ERROR("Certificate not found %s", alias);
+        LOG_DEBUG("Certificate not found %s", alias);
         result = __FAILURE__;
     }
     else
@@ -1472,7 +1472,7 @@ static int remove_if_cert_and_key_exist_by_alias
             }
             else if (remove_pki_cert(store, alias) != 0)
             {
-                LOG_ERROR("Could not remove certificate and key from store for alias %s", alias);
+                LOG_DEBUG("Could not remove certificate and key from store for alias %s", alias);
                 result = __FAILURE__;
             }
             else
@@ -2538,7 +2538,7 @@ static int edge_hsm_client_store_create_pki_cert
         }
         else if (load_status == LOAD_ERR_NOT_FOUND)
         {
-            LOG_ERROR("Generating certificate and key for alias %s", alias);
+            LOG_INFO("Generating certificate and key for alias %s", alias);
             if (edge_hsm_client_store_create_pki_cert_internal(handle, cert_props_handle, 0) != 0)
             {
                 LOG_ERROR("Could not create certificate and key for alias %s", alias);

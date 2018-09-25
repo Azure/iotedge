@@ -1,5 +1,7 @@
 # IoT Edge
 
+[![Build status](https://msazure.visualstudio.com/One/_apis/build/status/Custom/Azure/IoT/Edge/Core/Azure-IoT-Edge-Core%20CI)](https://msazure.visualstudio.com/One/_build/latest?definitionId=4977)
+
 Welcome to the home of IoT Edge.
 
 IoT Edge moves cloud analytics and custom business logic to devices so that your organization can focus on business insights instead of data management.

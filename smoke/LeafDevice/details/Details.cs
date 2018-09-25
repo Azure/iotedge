@@ -12,6 +12,8 @@ namespace LeafDevice.Details
     using Microsoft.Azure.Devices.Common;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Azure.EventHubs;
+    using System.Net;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public class Details
     {
@@ -50,12 +52,21 @@ namespace LeafDevice.Details
         protected async Task ConnectToEdgeAndSendData()
         {
             Microsoft.Azure.Devices.IotHubConnectionStringBuilder builder = Microsoft.Azure.Devices.IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
-            string leafDeviceConnectionString = $"HostName={builder.HostName};DeviceId={this.deviceId};SharedAccessKey={this.context.Device.Authentication.SymmetricKey.PrimaryKey};gatewayHostName={this.edgeHostName}";
-
-            DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(leafDeviceConnectionString, Microsoft.Azure.Devices.Client.TransportType.Amqp);
-
+            string leafDeviceConnectionString = $"HostName={builder.HostName};DeviceId={this.deviceId};SharedAccessKey={this.context.Device.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={this.edgeHostName}";
+            
+            this.context.DeviceClientInstance = Option.Some(DeviceClient.CreateFromConnectionString(leafDeviceConnectionString, Microsoft.Azure.Devices.Client.TransportType.Mqtt));
+            Console.WriteLine("Leaf Device client created.");
+            
             var message = new Microsoft.Azure.Devices.Client.Message(Encoding.ASCII.GetBytes($"Message from Leaf Device. MsgGUID: {this.context.MessageGuid}"));
-            await deviceClient.SendEventAsync(message);
+            Console.WriteLine($"Trying to send the message to '{this.edgeHostName}'");
+
+            await this.context.DeviceClientInstance.ForEachAsync(
+                async dc =>
+                {
+                    await dc.SendEventAsync(message);
+                    await dc.SetMethodHandlerAsync("DirectMethod", DirectMethod, null).ConfigureAwait(false);
+                    Console.WriteLine($"Message Sent. ");
+                });
         }
 
         protected async Task GetOrCreateDeviceIdentity()
@@ -100,6 +111,7 @@ namespace LeafDevice.Details
             this.context = new DeviceContext
             {
                 Device = device,
+                DeviceClientInstance = Option.None<DeviceClient>(),
                 IotHubConnectionString = this.iothubConnectionString,
                 RegistryManager = rm,
                 RemoveDevice = true,
@@ -152,6 +164,38 @@ namespace LeafDevice.Details
             await eventHubClient.CloseAsync();
         }
 
+        static Task<MethodResponse> DirectMethod(MethodRequest methodRequest, object userContext)
+        {
+            Console.WriteLine($"Leaf device received direct method call...Payload Received: {methodRequest.DataAsJson}");
+            return Task.FromResult(new MethodResponse(methodRequest.Data, (int)HttpStatusCode.OK));
+        }
+
+        protected async Task VerifyDirectMethod()
+        {
+            //User Service SDK to invoke Direct Method on the device.
+            ServiceClient serviceClient =
+                ServiceClient.CreateFromConnectionString(this.context.IotHubConnectionString);
+            
+            //Call a direct method
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(300)))
+            {
+                CloudToDeviceMethod cloudToDeviceMethod = new CloudToDeviceMethod("DirectMethod").SetPayloadJson("{\"TestKey\" : \"TestValue\"}");
+
+                CloudToDeviceMethodResult result = await serviceClient.InvokeDeviceMethodAsync(
+                this.context.Device.Id,
+                cloudToDeviceMethod,
+                cts.Token);
+
+                if (result.Status != 200)
+                {
+                    throw new Exception("Could not invoke Direct Method on Device.");
+                } else if (!result.GetPayloadAsJson().Equals("{\"TestKey\":\"TestValue\"}"))
+                {
+                    throw new Exception($"Payload doesn't match with Sent Payload. Received payload: {result.GetPayloadAsJson()}. Expected: {{\"TestKey\":\"TestValue\"}}");
+                }
+            }
+        }
+
         protected void KeepDeviceIdentity()
         {
             if (this.context != null)
@@ -180,10 +224,12 @@ namespace LeafDevice.Details
 
     public class DeviceContext
     {
-        public Device Device;
-        public string IotHubConnectionString;
-        public RegistryManager RegistryManager;
-        public bool RemoveDevice;
-        public string MessageGuid; //used to identify exactly which message got sent. 
+        public Device Device { get; set; }
+
+        public Option<DeviceClient> DeviceClientInstance { get; set; }
+        public string IotHubConnectionString { get; set; }
+        public RegistryManager RegistryManager { get; set; }
+        public bool RemoveDevice { get; set; }
+        public string MessageGuid { get; set; } //used to identify exactly which message got sent.
     }
 }

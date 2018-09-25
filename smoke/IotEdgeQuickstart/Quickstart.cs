@@ -27,8 +27,13 @@ namespace IotEdgeQuickstart
             bool noDeployment,
             bool noVerify,
             string verifyDataFromModule,
-            Option<string> deploymentFileName) :
-            base(bootstrapper, credentials, iothubConnectionString, eventhubCompatibleEndpointWithEntityPath, imageTag, deviceId, hostname, deploymentFileName)
+            Option<string> deploymentFileName,
+            string deviceCaCert,
+            string deviceCaPk,
+            string deviceCaCerts,
+            bool optimizedForPerformance,
+            LogLevel runtimeLogLevel) :
+            base(bootstrapper, credentials, iothubConnectionString, eventhubCompatibleEndpointWithEntityPath, imageTag, deviceId, hostname, deploymentFileName, deviceCaCert, deviceCaPk, deviceCaCerts, optimizedForPerformance, runtimeLogLevel)
         {
             this.leaveRunning = leaveRunning;
             this.noDeployment = noDeployment;
@@ -62,7 +67,6 @@ namespace IotEdgeQuickstart
                         await DeployToEdgeDevice();
                         if (!this.noVerify)
                         {
-                            await VerifyTempSensorIsRunning();
                             await this.VerifyDataOnIoTHub(this.verifyDataFromModule);
                         }
 

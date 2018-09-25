@@ -4,6 +4,15 @@ This file is based on or incorporates material from the projects listed below (T
 
 ***
 
+tafia/hyper-proxy
+The MIT License (MIT)
+Copyright (c) 2017 Johann Tuffe
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+***
+
 BurntSushi/aho-corasick
 Copyright (c) 2015 Andrew Gallant
 This is free and unencumbered software released into the public domain.
@@ -659,7 +668,7 @@ This component also includes the following which are all licensed under The MIT 
 sha3
 Copyright (c) 2006-2009 Graydon Hoare
 Copyright (c) 2009-2013 Mozilla Foundation
-Copyright (c) 2014 S�bastien Martini
+Copyright (c) 2014 Sébastien Martini
 Copyright (c) 2016-2017 Artyom Pavlov, Marek Kotewicz
 
 md5
@@ -910,7 +919,7 @@ Copyright (c) 2016 The humantime Developers
 Includes parts of http date with the following copyright:
 Copyright (c) 2016 Pyfisch
 Includes portions of musl libc with the following copyright:
-Copyright � 2005-2013 Rich Felker
+Copyright (c) 2005-2013 Rich Felker
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
@@ -946,9 +955,9 @@ Copyright (c) 2014 Alex Crichton
 Includes portions from registry.rs with the following copyright:
 Copyright 2015 The Rust Project Developers
 Includes portions from com.rs with the following copyright:
-Copyright � 2017 winapi-rs developers
+Copyright (c) 2017 winapi-rs developers
 Includes portions from winapi.rs with the following copyright:
-Copyright � 2017 winapi-rs developers
+Copyright (c) 2017 winapi-rs developers
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
@@ -1028,7 +1037,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ***
 
-The software may incorporate copyrighted material from third parties under open source licenses which require source code availability. Copies of these licenses are included below. You may find a copy of any Corresponding Source code if required by such licenses at http://3rdpartysource.microsoft.com. You may also obtain a copy of any Corresponding Source during the time period specified in the license by sending a check or money order for US$5.00 to: Source Code Compliance Team, Microsoft Corporation, 1 Microsoft Way, Redmond, WA 98052, USA. Please write �source code for [OSS PROJECT NAME]� in the memo line of your payment. Microsoft reserves all rights not expressly granted, whether by implication, estoppel or otherwise.?
+The software may incorporate copyrighted material from third parties under open source licenses which require source code availability. Copies of these licenses are included below. You may find a copy of any Corresponding Source code if required by such licenses at http://3rdpartysource.microsoft.com. You may also obtain a copy of any Corresponding Source during the time period specified in the license by sending a check or money order for US$5.00 to: Source Code Compliance Team, Microsoft Corporation, 1 Microsoft Way, Redmond, WA 98052, USA. Please write "source code for [OSS PROJECT NAME]" in the memo line of your payment. Microsoft reserves all rights not expressly granted, whether by implication, estoppel or otherwise.
 
 rust-smallvec
 Mozilla Public License Version 2.0

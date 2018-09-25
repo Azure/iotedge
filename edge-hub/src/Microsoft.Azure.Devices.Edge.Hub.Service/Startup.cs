@@ -31,6 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         readonly string iotHubHostname;
         readonly string edgeDeviceId;
         readonly string edgeModuleId;
+        readonly string edgeDeviceHostName;
         readonly Option<string> connectionString;
 
         // ReSharper disable once UnusedParameter.Local
@@ -48,6 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 this.iotHubHostname = iotHubConnectionStringBuilder.HostName;
                 this.edgeDeviceId = iotHubConnectionStringBuilder.DeviceId;
                 this.edgeModuleId = iotHubConnectionStringBuilder.ModuleId;
+                this.edgeDeviceHostName = string.Empty;
                 this.connectionString = Option.Some(edgeHubConnectionString);
             }
             else
@@ -55,6 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 this.iotHubHostname = this.Configuration.GetValue<string>(Constants.IotHubHostnameVariableName);
                 this.edgeDeviceId = this.Configuration.GetValue<string>(Constants.DeviceIdVariableName);
                 this.edgeModuleId = this.Configuration.GetValue<string>(Constants.ModuleIdVariableName);
+                this.edgeDeviceHostName = this.Configuration.GetValue<string>(Constants.EdgeDeviceHostNameKey);
                 this.connectionString = Option.None<string>();
             }
 
@@ -99,9 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward = this.GetStoreAndForwardConfiguration();
 
             IConfiguration mqttSettingsConfiguration = this.Configuration.GetSection("mqttSettings");
-            Option<UpstreamProtocol> upstreamProtocolOption = Enum.TryParse(this.Configuration.GetValue("UpstreamProtocol", string.Empty), false, out UpstreamProtocol upstreamProtocol)
-                ? Option.Some(upstreamProtocol)
-                : Option.None<UpstreamProtocol>();
+            Option<UpstreamProtocol> upstreamProtocolOption = GetUpstreamProtocol(this.Configuration);
             int connectivityCheckFrequencySecs = this.Configuration.GetValue("ConnectivityCheckFrequencySecs", 300);
             TimeSpan connectivityCheckFrequency = connectivityCheckFrequencySecs < 0 ? TimeSpan.MaxValue : TimeSpan.FromSeconds(connectivityCheckFrequencySecs);
 
@@ -117,6 +118,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             int maxConnectedClients = this.Configuration.GetValue("MaxConnectedClients", 100) + 1;
 
             IConfiguration amqpSettings = this.Configuration.GetSection("amqpSettings");
+
+            if (!Enum.TryParse(this.Configuration.GetValue("AuthenticationMode", string.Empty), true, out AuthenticationMode authenticationMode))
+            {
+                authenticationMode = AuthenticationMode.CloudAndScope;
+            }
+
+            int scopeCacheRefreshRateSecs = this.Configuration.GetValue("DeviceScopeCacheRefreshRateSecs", 3600);
+            TimeSpan scopeCacheRefreshRate = TimeSpan.FromSeconds(scopeCacheRefreshRateSecs);
+
+            int cloudConnectionIdleTimeoutSecs = this.Configuration.GetValue("CloudConnectionIdleTimeoutSecs", 3600);
+            TimeSpan cloudConnectionIdleTimeout = TimeSpan.FromSeconds(cloudConnectionIdleTimeoutSecs);
+            bool closeCloudConnectionOnIdleTimeout = this.Configuration.GetValue("CloseCloudConnectionOnIdleTimeout", true);
 
             var builder = new ContainerBuilder();
             builder.Populate(services);
@@ -142,7 +155,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 new CommonModule(
                     productInfo,
                     this.iotHubHostname,
-                    this.edgeDeviceId));
+                    this.edgeDeviceId,
+                    this.edgeModuleId,
+                    this.edgeDeviceHostName,
+                    moduleGenerationId,
+                    authenticationMode,
+                    this.connectionString,
+                    optimizeForPerformance,
+                    storeAndForward.usePersistentStorage,
+                    storeAndForward.storagePath,
+                    workloadUri,
+                    scopeCacheRefreshRate,
+                    cacheTokens));
+
             builder.RegisterModule(
                 new RoutingModule(
                     this.iotHubHostname,
@@ -151,19 +176,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     this.connectionString,
                     routes,
                     storeAndForward.isEnabled,
-                    storeAndForward.usePersistentStorage,
                     storeAndForward.config,
-                    storeAndForward.storagePath,
                     connectionPoolSize,
                     useTwinConfig,
                     this.VersionInfo,
                     upstreamProtocolOption,
-                    optimizeForPerformance,
                     connectivityCheckFrequency,
                     maxConnectedClients,
-                    cacheTokens,
-                    workloadUri,
-                    moduleGenerationId));
+                    cloudConnectionIdleTimeout,
+                    closeCloudConnectionOnIdleTimeout));
 
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, ServerCertificateCache.X509Certificate, storeAndForward.isEnabled, clientCertAuthEnabled, caChainPath, optimizeForPerformance));
             builder.RegisterModule(new AmqpModule(amqpSettings["scheme"], amqpSettings.GetValue<ushort>("port"), ServerCertificateCache.X509Certificate, this.iotHubHostname));
@@ -174,13 +195,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             return container;
         }
 
+        internal static Option<UpstreamProtocol> GetUpstreamProtocol(IConfigurationRoot configuration) =>
+            Enum.TryParse(configuration.GetValue("UpstreamProtocol", string.Empty), true, out UpstreamProtocol upstreamProtocol)
+                ? Option.Some(upstreamProtocol)
+                : Option.None<UpstreamProtocol>();
+
         public void Configure(IApplicationBuilder app)
         {
             var webSocketListenerRegistry = app.ApplicationServices.GetService(typeof(IWebSocketListenerRegistry)) as IWebSocketListenerRegistry;
 
             app.UseWebSockets();
             app.UseWebSocketHandlingMiddleware(webSocketListenerRegistry);
-            app.UseAuthenticationMiddleware(this.iotHubHostname);
+            app.UseAuthenticationMiddleware(this.iotHubHostname, this.edgeDeviceId);
             app.UseMvc();
         }
 
