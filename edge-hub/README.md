@@ -8,10 +8,10 @@ This project contains the Edge Hub.
   * `configSource` - Set it as `twin` to read confirm from twin, or `local` to read Edge Hub config from configuration file.
 3. Set Microsoft.Azure.Devices.Edge.Hub.Service as startup project in Visual Studio.
 4. Make sure to rebuild the solution.
-5. You can start debugging Edge Hub by hit F5 in Visual Studio.
+5. You can start debugging Edge Hub by hitting F5 in Visual Studio.
 
 #### If you want to run a leaf device connecting to Edge hub using Visual Studio, then continue to read below:
-1. You can either use samples in [Azure IoT C# SDK](https://github.com/azure/azure-iot-sdk-csharp) or write your write your own leaf device application using DeviceClient in Azure IoT C# SDK.
+1. You can either use samples in [Azure IoT C# SDK](https://github.com/azure/azure-iot-sdk-csharp) or write your own leaf device application using DeviceClient in Azure IoT C# SDK.
 2. I will use Direct method sample in Azure IoT C# SDK, you can find it under iothub\device\samples\DeviceClientMethodSample.
 3. Open that sample application in Visual Studio, update connection string and add `GatewayHostName=127.0.0.1` to it in order to connect to Edge hub running locally using Visual Studio.
 4. Make sure Edge hub is running first, then you can start sample application by hit F5 in Visual Studio.
