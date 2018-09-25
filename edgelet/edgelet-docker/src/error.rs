@@ -34,7 +34,7 @@ pub enum ErrorKind {
     Transport,
     #[fail(display = "Invalid URL")]
     UrlParse,
-    #[fail(display = "Container not found")]
+    #[fail(display = "Not found")]
     NotFound,
     #[fail(display = "Conflict with current operation")]
     Conflict,
