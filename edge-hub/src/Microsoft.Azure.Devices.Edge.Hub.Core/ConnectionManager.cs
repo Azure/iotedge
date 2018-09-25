@@ -60,10 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Preconditions.CheckNotNull(deviceProxy, nameof(deviceProxy));
             ConnectedDevice device = this.GetOrCreateConnectedDevice(identity);
             Option<DeviceConnection> currentDeviceConnection = device.AddDeviceConnection(deviceProxy);
-
             Events.NewDeviceConnection(identity);
-            
-
             await currentDeviceConnection
                 .Filter(dc => dc.IsActive)
                 .ForEachAsync(dc => dc.CloseAsync(new MultipleConnectionsException($"Multiple connections detected for device {identity.Id}")));
@@ -72,10 +69,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public Task RemoveDeviceConnection(string id)
         {
-            Task remove = this.devices.TryGetValue(Preconditions.CheckNonWhiteSpace(id, nameof(id)), out ConnectedDevice device)
+            return this.devices.TryGetValue(Preconditions.CheckNonWhiteSpace(id, nameof(id)), out ConnectedDevice device)
                 ? this.RemoveDeviceConnection(device, false)
-                : Task.CompletedTask;            
-            return remove;
+                : Task.CompletedTask;
         }
 
         async Task RemoveDeviceConnection(ConnectedDevice device, bool removeCloudConnection)
