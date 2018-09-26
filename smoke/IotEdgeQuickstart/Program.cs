@@ -126,7 +126,7 @@ Defaults:
         [Option("--trusted_ca_certs", Description = "path to a file containing all the trusted CA")]
         public string DeviceCaCerts { get; } = "";
 
-        [Option("--clean_up_existing_device", CommandOptionType.NoValue, Description = "Clean up existing device on success.")]
+        [Option("--clean_up_existing_device <true/false>", CommandOptionType.SingleValue, Description = "Clean up existing device on success.")]
         public bool CleanUpExistingDeviceOnSuccess { get; } = false;
 
         // ReSharper disable once UnusedMember.Local
