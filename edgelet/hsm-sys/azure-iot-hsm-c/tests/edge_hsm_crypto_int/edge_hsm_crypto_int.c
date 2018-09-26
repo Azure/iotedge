@@ -37,6 +37,8 @@ static TEST_MUTEX_HANDLE g_dllByDll;
 #define TEST_SERVER_COMMON_NAME "test_server_cert"
 #define TEST_CLIENT_COMMON_NAME "test_client_cert"
 
+static char* TEST_IOTEDGE_HOMEDIR = NULL;
+
 static unsigned char TEST_ID[] = {'M', 'O', 'D', 'U', 'L', 'E', '1'};
 static size_t TEST_ID_SIZE = sizeof(TEST_ID);
 
@@ -273,21 +275,16 @@ static void test_helper_prepare_transparent_gateway_certs(void)
     cert_properties_destroy(ca_root_handle);
 }
 
-//static char* HSMHOMEDIR = NULL;
 static void test_helper_setup_homedir(void)
 {
-    char *usage_dir = create_temp_dir("sample_test");
-    const char *HSMHOMEDIR = "/tmp/hsm_test_6P86mS"; //create_temp_dir("sample_test");
-    printf("Temp dir created: [%s] [%s]\r\n", HSMHOMEDIR, usage_dir);
-    test_helper_setenv("IOTEDGE_HOMEDIR", HSMHOMEDIR);
-    printf("IoT Edge home dir set to %s\n", HSMHOMEDIR);
-
-#if defined(TESTONLY_IOTEDGE_HOMEDIR)
     int status;
-    test_helper_setenv("IOTEDGE_HOMEDIR", TESTONLY_IOTEDGE_HOMEDIR);
-    printf("IoT Edge home dir set to %s\n", TESTONLY_IOTEDGE_HOMEDIR);
 
-    STRING_HANDLE BASE_TG_CERTS_PATH = STRING_construct(TESTONLY_IOTEDGE_HOMEDIR);
+    TEST_IOTEDGE_HOMEDIR = create_temp_dir("sample_test");
+    printf("Temp dir created: [%s]\r\n", TEST_IOTEDGE_HOMEDIR);
+    test_helper_setenv("IOTEDGE_HOMEDIR", TEST_IOTEDGE_HOMEDIR);
+    printf("IoT Edge home dir set to %s\n", TEST_IOTEDGE_HOMEDIR);
+
+    STRING_HANDLE BASE_TG_CERTS_PATH = STRING_construct(TEST_IOTEDGE_HOMEDIR);
     ASSERT_IS_NOT_NULL_WITH_MSG(BASE_TG_CERTS_PATH, "Line:" TOSTRING(__LINE__));
     status = STRING_concat(BASE_TG_CERTS_PATH, SLASH);
     ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
@@ -332,9 +329,6 @@ static void test_helper_setup_homedir(void)
 
     STRING_delete(BASE_TG_CERTS_PATH);
     BASE_TG_CERTS_PATH = NULL;
-#else
-    #error "Could not find symbol TESTONLY_IOTEDGE_HOMEDIR"
-#endif
 }
 
 static void test_helper_teardown_homedir(void)
@@ -375,11 +369,12 @@ static void test_helper_teardown_homedir(void)
     STRING_delete(INT_2_PK_PATH);
     INT_2_PK_PATH = NULL;
 
-    // if (HSMHOMEDIR != NULL)
-    // {
-    //     free(HSMHOMEDIR);
-    //     HSMHOMEDIR = NULL;
-    // }
+    if (TEST_IOTEDGE_HOMEDIR != NULL)
+    {
+        delete_test_dir(TEST_IOTEDGE_HOMEDIR);
+        free(TEST_IOTEDGE_HOMEDIR);
+        TEST_IOTEDGE_HOMEDIR = NULL;
+    }
 }
 
 static HSM_CLIENT_HANDLE test_helper_crypto_init(void)
