@@ -27,6 +27,7 @@ namespace LeafDevice
                 await GetOrCreateDeviceIdentity();
                 await ConnectToEdgeAndSendData();
                 await this.VerifyDataOnIoTHub();
+                await this.VerifyDirectMethod();
             }
             catch (Exception)
             {
