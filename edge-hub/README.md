@@ -1,6 +1,17 @@
 # Edge Hub
 This project contains the Edge Hub.
 
+## Startup execution flow
+| Sequence | Description | Code reference |
+|----------|-------------|----------------|
+|1 | Edge hub service starts. | `Program.Main` |
+|2 | Load configuration from appsettings_hub.json and environment variables. | `Program.Main` |
+|3 | Load certificates for Edge hub and install certificate chain if available. | `EdgeHubCertificates.LoadAsync` |
+|4 | Initialize web hosting (ASP.Net Core) and build dependency injection container. | `Hosting.Initialize` > `Startup.ConfigureServices` > `ApplicationDependency.RegisterTo` > module Load method e.g. `CommonModule.Load`, `AmqpModule.Load` |
+|5 | Instantiate each protocol including amqp, mqtt and http if it is enabled. | `Program.GetEdgeHubProtocolHeadAsync`, `AmqpProtocolHead`, `MqttProtocolHead`, `HttpProtocolHead`
+|6 | Start enabled protocol(s) asynchronously.  Each protocol will start a listener for incoming requests. | `EdgeHubProtocolHead.StartAsync`, `AmqpProtocolHead.StartAsync`, `MqttProtocolHead.StartAsync`, `HttpProtocolHead.StartAsync` |
+
+
 ## How to debug Edge hub using Visual Studio
 1. Set environment variable `EdgeModuleHubServerCertificateFile` to the path of a SSL Certificate file (e.g. C:\edgeDevice.pfx); for debug purpose, you can [create](https://docs.microsoft.com/en-us/azure/cloud-services/cloud-services-certs-create#create-a-new-self-signed-certificate) and use a self-signed certificate.  Remember to restart Visual Studio to take effect.
 2. Update following values in appsettings_hub.json in Microsoft.Azure.Devices.Edge.Hub.Service project. 
