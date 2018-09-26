@@ -11,6 +11,7 @@
 #include "azure_c_shared_utility/crt_abstractions.h"
 #include "azure_c_shared_utility/strings.h"
 #include "azure_c_shared_utility/threadapi.h"
+#include "test_utils.h"
 #include "hsm_client_store.h"
 #include "hsm_key.h"
 #include "hsm_utils.h"
@@ -84,16 +85,19 @@ static STRING_HANDLE INT_2_PK_PATH = NULL;
 
 static void test_helper_setenv(const char *key, const char *value)
 {
+    printf("1 >>>>>>>>>>> key: %s value: %s\r\n", key, value);
     #if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
         errno_t status = _putenv_s(key, value);
     #else
         int status = setenv(key, value, 1);
     #endif
+    printf("2 >>>>>>>>>>> key: %s value: %s\r\n", key, value);
     ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
     const char *retrieved_value = getenv(key);
     if (retrieved_value != NULL)
     {
         int cmp = strcmp(retrieved_value, value);
+        printf(">>>>>>>>>>>%s %s %s\r\n", key, value, retrieved_value);
         ASSERT_ARE_EQUAL_WITH_MSG(int, 0, cmp, "Line:" TOSTRING(__LINE__));
     }
 }
@@ -269,8 +273,15 @@ static void test_helper_prepare_transparent_gateway_certs(void)
     cert_properties_destroy(ca_root_handle);
 }
 
+//static char* HSMHOMEDIR = NULL;
 static void test_helper_setup_homedir(void)
 {
+    char *usage_dir = create_temp_dir("sample_test");
+    const char *HSMHOMEDIR = "/tmp/hsm_test_6P86mS"; //create_temp_dir("sample_test");
+    printf("Temp dir created: [%s] [%s]\r\n", HSMHOMEDIR, usage_dir);
+    test_helper_setenv("IOTEDGE_HOMEDIR", HSMHOMEDIR);
+    printf("IoT Edge home dir set to %s\n", HSMHOMEDIR);
+
 #if defined(TESTONLY_IOTEDGE_HOMEDIR)
     int status;
     test_helper_setenv("IOTEDGE_HOMEDIR", TESTONLY_IOTEDGE_HOMEDIR);
@@ -363,6 +374,12 @@ static void test_helper_teardown_homedir(void)
     delete_file(STRING_c_str(INT_2_PK_PATH));
     STRING_delete(INT_2_PK_PATH);
     INT_2_PK_PATH = NULL;
+
+    // if (HSMHOMEDIR != NULL)
+    // {
+    //     free(HSMHOMEDIR);
+    //     HSMHOMEDIR = NULL;
+    // }
 }
 
 static HSM_CLIENT_HANDLE test_helper_crypto_init(void)
