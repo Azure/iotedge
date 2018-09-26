@@ -83,6 +83,7 @@ namespace IotEdgeQuickstart.Details
             if (device != null)
             {
                 Console.WriteLine($"Device '{device.Id}' already registered on IoT hub '{builder.HostName}'");
+                Console.WriteLine($"Clean up Existing device? {this.cleanUpExistingDeviceOnSuccess}");
 
                 this.context = new DeviceContext
                 {
@@ -266,6 +267,7 @@ namespace IotEdgeQuickstart.Details
 
         protected void KeepEdgeDeviceIdentity()
         {
+            Console.WriteLine("Keeping Edge Device Identity.");
             if (this.context != null)
             {
                 this.context.RemoveDevice = false;
@@ -282,6 +284,7 @@ namespace IotEdgeQuickstart.Details
 
                 if (remove)
                 {
+                    Console.WriteLine($"Trying to remove device from Registry. Device Id: {device.Id}");
                     return this.context.RegistryManager.RemoveDeviceAsync(device);
                 }
             }
