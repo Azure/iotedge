@@ -316,7 +316,7 @@ BEGIN_TEST_SUITE(edge_hsm_sas_auth_int_tests)
 
         // compute expected result
         BUFFER_HANDLE test_expected_primary_key_buf = test_helper_compute_hmac(decoded_key,
-                                                                               primary_fqmid,
+                                                                               (unsigned char*)primary_fqmid,
                                                                                strlen(primary_fqmid));
 
         BUFFER_HANDLE test_expected_digest = test_helper_compute_hmac(test_expected_primary_key_buf,
@@ -361,11 +361,11 @@ BEGIN_TEST_SUITE(edge_hsm_sas_auth_int_tests)
 
         // compute expected result
         BUFFER_HANDLE test_expected_primary_key_buf = test_helper_compute_hmac(decoded_key,
-                                                                               primary_fqmid,
+                                                                               (unsigned char*)primary_fqmid,
                                                                                strlen(primary_fqmid));
 
         BUFFER_HANDLE test_expected_secondary_key_buf = test_helper_compute_hmac(decoded_key,
-                                                                                 secondary_fqmid,
+                                                                                 (unsigned char*)secondary_fqmid,
                                                                                  strlen(secondary_fqmid));
 
         // act
@@ -375,8 +375,8 @@ BEGIN_TEST_SUITE(edge_hsm_sas_auth_int_tests)
         ASSERT_IS_NOT_NULL_WITH_MSG(test_output_secondary_key_buf, "Line:" TOSTRING(__LINE__));
 
         HSM_CLIENT_HANDLE hsm_handle = test_helper_init_tpm_and_activate_key(decoded_key);
-        tpm_sign(hsm_handle, NULL, 0, primary_fqmid, strlen(primary_fqmid), test_output_primary_key_buf);
-        tpm_sign(hsm_handle, NULL, 0, secondary_fqmid, strlen(secondary_fqmid), test_output_secondary_key_buf);
+        tpm_sign(hsm_handle, NULL, 0, (unsigned char*)primary_fqmid, strlen(primary_fqmid), test_output_primary_key_buf);
+        tpm_sign(hsm_handle, NULL, 0, (unsigned char*)secondary_fqmid, strlen(secondary_fqmid), test_output_secondary_key_buf);
 
         // assert
         STRING_HANDLE expected_primary_key_str = Base64_Encoder(test_expected_primary_key_buf);
