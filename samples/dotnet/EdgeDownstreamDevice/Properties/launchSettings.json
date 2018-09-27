@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "EdgeDownstreamDevice": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DEVICE_CONNECTION_STRING": "<your connection string>",
+        "CA_CERTIFICATE_PATH": "",
+        "MESSAGE_COUNT": "10"
+      }
+    }
+  }
+}
