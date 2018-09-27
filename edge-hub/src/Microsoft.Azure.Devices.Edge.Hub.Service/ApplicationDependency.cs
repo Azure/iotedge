@@ -1,5 +1,12 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Diagnostics.Tracing;
+    using System.IO;
+    using System.Security.Cryptography.X509Certificates;
     using Autofac;
     using DotNetty.Common.Internal.Logging;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
@@ -11,11 +18,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Azure.Devices.ProtocolGateway.Instrumentation;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
-    using System;
-    using System.Collections.Generic;
-    using System.Diagnostics.Tracing;
-    using System.IO;
-    using System.Security.Cryptography.X509Certificates;
 
     class ApplicationDependency : IApplicationDependency
     {
@@ -55,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             this.versionInfo = VersionInfo.Get(Constants.VersionInfoFileName);
         }
-        
+
         public void RegisterTo(ContainerBuilder builder)
         {
             builder.RegisterModule(new LoggingModule());
@@ -176,7 +178,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             Enum.TryParse(configuration.GetValue("UpstreamProtocol", string.Empty), true, out UpstreamProtocol upstreamProtocol)
                 ? Option.Some(upstreamProtocol)
                 : Option.None<UpstreamProtocol>();
-        
+
         (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) GetStoreAndForwardConfiguration()
         {
             int defaultTtl = -1;
