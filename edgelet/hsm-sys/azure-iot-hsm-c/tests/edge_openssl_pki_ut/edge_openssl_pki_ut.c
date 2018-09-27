@@ -282,7 +282,7 @@ static PKI_KEY_PROPS TEST_VALID_KEY_PROPS_ECC = {
 static ASN1_TIME TEST_ASN1_TIME_BEFORE = {
     .length = VALID_ASN1_TIME_STRING_UTC_LEN,
     .type = VALID_ASN1_TIME_STRING_UTC_FORMAT,
-    .data = "BEF012345678",
+    .data = (unsigned char*)"BEF012345678",
     .flags = 0
 };
 
@@ -290,7 +290,7 @@ static ASN1_TIME TEST_ASN1_TIME_BEFORE = {
 static ASN1_TIME TEST_ASN1_TIME_AFTER = {
     .length = VALID_ASN1_TIME_STRING_UTC_LEN,
     .type = VALID_ASN1_TIME_STRING_UTC_FORMAT,
-    .data = "AFT012345678",
+    .data = (unsigned char*)"AFT012345678",
     .flags = 0
 };
 
@@ -407,7 +407,7 @@ static RSA* test_hook_RSA_new(void)
 
 static void test_hook_RSA_free(RSA *r)
 {
-    (void*)r;
+    (void)r;
 }
 
 static int test_hook_RSA_generate_key_ex(RSA *rsa, int bits, BIGNUM *e_value, BN_GENCB *cb)
@@ -781,6 +781,13 @@ static int test_hook_X509_NAME_add_entry_by_txt
     int set
 )
 {
+    (void)name;
+    (void)field;
+    (void)type;
+    (void)bytes;
+    (void)len;
+    (void)loc;
+    (void)set;
     return 1;
 }
 
@@ -790,11 +797,14 @@ static X509_NAME* test_hook_X509_get_subject_name(const X509 *a)
 static X509_NAME* test_hook_X509_get_subject_name(X509 *a)
 #endif
 {
+    (void)a;
     return TEST_X509_SUBJECT_NAME;
 }
 
 static int test_hook_X509_set_issuer_name(X509 *x, X509_NAME *name)
 {
+    (void)x;
+    (void)name;
     return 1;
 }
 
@@ -840,16 +850,22 @@ static const EVP_MD* test_hook_EVP_sha256(void)
 
 static int test_hook_X509_sign(X509 *x, EVP_PKEY *pkey, const EVP_MD *md)
 {
+    (void)x;
+    (void)pkey;
+    (void)md;
     return 1;
 }
 
 static int test_hook_X509_verify(X509 *a, EVP_PKEY *r)
 {
+    (void)a;
+    (void)r;
     return 1;
 }
 
 int test_hook_X509_verify_cert(X509_STORE_CTX *ctx)
 {
+    (void)ctx;
     return 1;
 }
 

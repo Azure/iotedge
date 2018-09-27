@@ -127,10 +127,10 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             g_testByTest = TEST_MUTEX_CREATE();
             ASSERT_IS_NOT_NULL(g_testByTest);
 
-            ASSERT_ARE_EQUAL(int, 0, test_helper_write_data_to_file(TEST_FILE_ALPHA, ALPHA, strlen(ALPHA)));
-            ASSERT_ARE_EQUAL(int, 0, test_helper_write_data_to_file(TEST_FILE_ALPHA_NEWLINE, ALPHA_NEWLINE, strlen(ALPHA_NEWLINE)));
-            ASSERT_ARE_EQUAL(int, 0, test_helper_write_data_to_file(TEST_FILE_NUMERIC, NUMERIC, sizeof(NUMERIC)));
-            ASSERT_ARE_EQUAL(int, 0, test_helper_write_data_to_file(TEST_FILE_NUMERIC_NEWLINE, NUMERIC_NEWLINE, sizeof(NUMERIC_NEWLINE)));
+            ASSERT_ARE_EQUAL(int, 0, test_helper_write_data_to_file(TEST_FILE_ALPHA, (unsigned char*)ALPHA, strlen(ALPHA)));
+            ASSERT_ARE_EQUAL(int, 0, test_helper_write_data_to_file(TEST_FILE_ALPHA_NEWLINE, (unsigned char*)ALPHA_NEWLINE, strlen(ALPHA_NEWLINE)));
+            ASSERT_ARE_EQUAL(int, 0, test_helper_write_data_to_file(TEST_FILE_NUMERIC, (unsigned char*)NUMERIC, sizeof(NUMERIC)));
+            ASSERT_ARE_EQUAL(int, 0, test_helper_write_data_to_file(TEST_FILE_NUMERIC_NEWLINE, (unsigned char*)NUMERIC_NEWLINE, sizeof(NUMERIC_NEWLINE)));
             ASSERT_ARE_EQUAL(int, 0, test_helper_write_data_to_file(TEST_FILE_EMPTY, NULL, 0));
             test_helper_setup_homedir();
         }
@@ -238,13 +238,13 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
 
             // act, assert
             output_size = 100;
-            output_string = read_file_into_cstring(NULL, &output_size);
+            output_string = (unsigned char *)read_file_into_cstring(NULL, &output_size);
             ASSERT_IS_NULL(output_string);
             ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, output_size, "Line:" TOSTRING(__LINE__));
 
             // act, assert
             output_size = 100;
-            output_string = read_file_into_cstring("", &output_size);
+            output_string = (unsigned char *)read_file_into_cstring("", &output_size);
             ASSERT_IS_NULL(output_string);
             ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, output_size, "Line:" TOSTRING(__LINE__));
 

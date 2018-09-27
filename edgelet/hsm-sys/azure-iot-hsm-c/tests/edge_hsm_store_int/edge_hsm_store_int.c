@@ -237,10 +237,10 @@ BEGIN_TEST_SUITE(edge_hsm_store_int_tests)
         result = store_if->hsm_client_store_remove_key(store_handle, HSM_KEY_SAS, "bad_sas_key_name");
         ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
 
-        result = store_if->hsm_client_store_insert_sas_key(store_handle, "my_sas_key", "ABCD", 5);
+        result = store_if->hsm_client_store_insert_sas_key(store_handle, "my_sas_key", (unsigned char*)"ABCD", 5);
         ASSERT_ARE_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
 
-        result = store_if->hsm_client_store_insert_sas_key(store_handle, "my_sas_key", "1234", 5);
+        result = store_if->hsm_client_store_insert_sas_key(store_handle, "my_sas_key", (unsigned char*)"1234", 5);
         ASSERT_ARE_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
 
         result = store_if->hsm_client_store_remove_key(store_handle, HSM_KEY_SAS, "my_sas_key");
@@ -280,7 +280,7 @@ BEGIN_TEST_SUITE(edge_hsm_store_int_tests)
         BUFFER_HANDLE test_output_digest = BUFFER_new();
         ASSERT_IS_NOT_NULL_WITH_MSG(test_output_digest, "Line:" TOSTRING(__LINE__));
 
-        result = store_if->hsm_client_store_insert_sas_key(store_handle, "my_sas_key", "ABCD", 5);
+        result = store_if->hsm_client_store_insert_sas_key(store_handle, "my_sas_key", (unsigned char*)"ABCD", 5);
         ASSERT_ARE_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
         result = store_if->hsm_client_store_insert_sas_key(store_handle, "my_sas_key",
                                                            BUFFER_u_char(decoded_key),
