@@ -202,6 +202,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
                 Assert.Equal(0, batch.Count());
             }
         }
+
+        //[Fact]
+        //public async Task MessageStoreAddRemoveEndpointTest()
+        //{
+
+        //}
         
         IMessage GetMessage(int i)
         {

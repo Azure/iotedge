@@ -64,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
         public async Task RemoveEndpoint(string endpointId)
         {
-            if (this.endpointSequentialStores.TryGetValue(endpointId, out ISequentialStore<MessageRef> sequentialStore))
+            if (this.endpointSequentialStores.TryRemove(endpointId, out ISequentialStore<MessageRef> sequentialStore))
             {
                 await this.storeProvider.RemoveStore(sequentialStore);
                 Events.SequentialStoreRemoved(endpointId);
@@ -109,11 +109,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                     return offset;
                 }
             }
-            catch (Exception)
+            catch (Exception e)
             {
                 // If adding the message to the SequentialStore throws, then remove the message from the EntityStore as well, so that there is no leak.
                 await this.messageEntityStore.Remove(edgeMessageId);
-                throw;
+                throw e;
             }
         }
 
