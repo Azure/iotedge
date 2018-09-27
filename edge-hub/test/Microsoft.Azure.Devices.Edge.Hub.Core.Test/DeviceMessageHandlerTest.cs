@@ -261,6 +261,62 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(sendMessageTask.IsCompletedSuccessfully);
         }
 
+        [Fact]
+        public async Task ProcessDesiredPropertiesUpdateSubscription()
+        {
+            // Arrange
+            var edgeHub = new Mock<IEdgeHub>();
+            edgeHub.Setup(e => e.AddSubscription("d1", DeviceSubscription.DesiredPropertyUpdates)).Returns(Task.CompletedTask);
+            var connMgr = Mock.Of<IConnectionManager>();
+            var identity = Mock.Of<IDeviceIdentity>(i => i.Id == "d1");
+            var deviceProxy = new Mock<IDeviceProxy>();
+            IMessage sentMessage = null;
+            deviceProxy.Setup(d => d.SendTwinUpdate(It.IsAny<IMessage>()))
+                .Callback<IMessage>(m => sentMessage = m)
+                .Returns(Task.CompletedTask);
+
+            var listener = new DeviceMessageHandler(identity, edgeHub.Object, connMgr);
+            listener.BindDeviceProxy(deviceProxy.Object);
+            string correlationId = Guid.NewGuid().ToString();
+
+            // Act
+            await listener.AddDesiredPropertyUpdatesSubscription(correlationId);
+
+            // Assert
+            Assert.NotNull(sentMessage);
+            Assert.Equal(correlationId, sentMessage.SystemProperties[SystemProperties.CorrelationId]);
+            Assert.Equal("200", sentMessage.SystemProperties[SystemProperties.StatusCode]);
+            edgeHub.VerifyAll();            
+        }
+
+        [Fact]
+        public async Task ProcessRemoveDesiredPropertiesUpdateSubscription()
+        {
+            // Arrange
+            var edgeHub = new Mock<IEdgeHub>();
+            edgeHub.Setup(e => e.RemoveSubscription("d1", DeviceSubscription.DesiredPropertyUpdates)).Returns(Task.CompletedTask);
+            var connMgr = Mock.Of<IConnectionManager>();
+            var identity = Mock.Of<IDeviceIdentity>(i => i.Id == "d1");
+            var deviceProxy = new Mock<IDeviceProxy>();
+            IMessage sentMessage = null;
+            deviceProxy.Setup(d => d.SendTwinUpdate(It.IsAny<IMessage>()))
+                .Callback<IMessage>(m => sentMessage = m)
+                .Returns(Task.CompletedTask);
+
+            var listener = new DeviceMessageHandler(identity, edgeHub.Object, connMgr);
+            listener.BindDeviceProxy(deviceProxy.Object);
+            string correlationId = Guid.NewGuid().ToString();
+
+            // Act
+            await listener.RemoveDesiredPropertyUpdatesSubscription(correlationId);
+
+            // Assert
+            Assert.NotNull(sentMessage);
+            Assert.Equal(correlationId, sentMessage.SystemProperties[SystemProperties.CorrelationId]);
+            Assert.Equal("200", sentMessage.SystemProperties[SystemProperties.StatusCode]);
+            edgeHub.VerifyAll();
+        }
+
         DeviceMessageHandler GetDeviceMessageHandler()
         {
             var identity = Mock.Of<IModuleIdentity>(m => m.DeviceId == "device1" && m.ModuleId == "module1" && m.Id == "device1/module1");
