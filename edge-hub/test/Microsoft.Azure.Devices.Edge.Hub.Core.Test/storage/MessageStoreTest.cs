@@ -203,12 +203,65 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
             }
         }
 
-        //[Fact]
-        //public async Task MessageStoreAddRemoveEndpointTest()
-        //{
+        [Fact]
+        public async Task MessageStoreAddRemoveEndpointTest()
+        {
+            // Arrange
+            var dbStoreProvider = new InMemoryDbStoreProvider();
+            IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
+            ICheckpointStore checkpointStore = CheckpointStore.Create(dbStoreProvider);
+            IMessageStore messageStore = new MessageStore(storeProvider, checkpointStore, TimeSpan.FromHours(1));
 
-        //}
-        
+            // Act
+            await messageStore.AddEndpoint("module1");
+
+            for (int i = 0; i < 10; i++)
+            {
+                await messageStore.Add("module1", this.GetMessage(i));
+            }
+
+            // Assert
+            IMessageIterator module1Iterator = messageStore.GetMessageIterator("module1");
+            Assert.NotNull(module1Iterator);
+
+            IEnumerable<IMessage> batch = await module1Iterator.GetNext(1000);
+            List<IMessage> batchItemsAsList = batch.ToList();
+            Assert.Equal(10, batchItemsAsList.Count);
+
+            for (int i = 0; i < 10; i++)
+            {
+                Assert.Equal($"{i}", batchItemsAsList.ElementAt(i).SystemProperties[Core.SystemProperties.MessageId]);
+            }
+
+            // Remove
+            await messageStore.RemoveEndpoint("module1");
+            
+            // Assert
+            await Assert.ThrowsAsync<InvalidOperationException>(() => messageStore.Add("module1", this.GetMessage(0)));
+            Assert.Throws<InvalidOperationException>(() => messageStore.GetMessageIterator("module1"));
+
+            // Act
+            await messageStore.AddEndpoint("module1");
+
+            for (int i = 20; i < 30; i++)
+            {
+                await messageStore.Add("module1", this.GetMessage(i));
+            }
+
+            // Assert
+            module1Iterator = messageStore.GetMessageIterator("module1");
+            Assert.NotNull(module1Iterator);
+
+            batch = await module1Iterator.GetNext(1000);
+            batchItemsAsList = batch.ToList();
+            Assert.Equal(10, batchItemsAsList.Count);
+
+            for (int i = 20; i < 30; i++)
+            {
+                Assert.Equal($"{i}", batchItemsAsList.ElementAt(i - 20).SystemProperties[Core.SystemProperties.MessageId]);
+            }
+        }
+
         IMessage GetMessage(int i)
         {
             return new Message(TelemetryMessageSource.Instance,
