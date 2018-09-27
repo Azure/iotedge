@@ -15,11 +15,13 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
     public static class Metrics
     {
+        private static object gaugeListLock;
+
         static Metrics()
         {
             MetricsCollector = Option.None<IMetricsRoot>();
             Gauges = new List<Action>();
-            GaugeListLock = new object();
+            gaugeListLock = new object();
         }
 
         class NullDisposable : IDisposable
@@ -32,8 +34,6 @@ namespace Microsoft.Azure.Devices.Edge.Util
         public static Option<IMetricsRoot> MetricsCollector { private set; get; }
 
         private static List<Action> Gauges { set; get; }
-
-        private static object GaugeListLock;
 
         public static void BuildMetricsCollector(IConfigurationRoot configuration)
         {
@@ -83,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         public static void RegisterGaugeCallback(Action callback)
         {
-            lock (GaugeListLock)
+            lock (gaugeListLock)
             {
                 Gauges.Add(callback);
             }
@@ -96,7 +96,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
                     TimeSpan.FromSeconds(5),
                     async () =>
                     {
-                        foreach (var callback in Gauges) {
+                        foreach (var callback in Gauges)
+                        {
                             callback();
                         }
                         await Task.WhenAll(metricsCollector.ReportRunner.RunAllAsync());
