@@ -469,7 +469,7 @@ char* concat_files_to_cstring(const char **file_names, int num_files)
                 else
                 {
                     bool concat_error = false;
-                    result[0] = 0;
+                    memset(result, 0, accumulated_size);
                     index = 0;
                     while ((index < num_files) && (!concat_error))
                     {

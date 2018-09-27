@@ -22,7 +22,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
         public const string TwinPut = "PUT";
         public const string TwinDelete = "DELETE";
 
-        public TwinReceivingLinkHandler(IReceivingAmqpLink link, Uri requestUri, IDictionary<string, string> boundVariables,
+        public TwinReceivingLinkHandler(IReceivingAmqpLink link,
+            Uri requestUri,
+            IDictionary<string, string> boundVariables,
             IMessageConverter<AmqpMessage> messageConverter)
             : base(link, requestUri, boundVariables, messageConverter)
         {
