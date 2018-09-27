@@ -109,11 +109,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                     return offset;
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 // If adding the message to the SequentialStore throws, then remove the message from the EntityStore as well, so that there is no leak.
                 await this.messageEntityStore.Remove(edgeMessageId);
-                throw e;
+                throw;
             }
         }
 
