@@ -122,6 +122,11 @@ static HMACSHA256_RESULT test_hook_HMACSHA256_ComputeHash
     BUFFER_HANDLE hash
 )
 {
+    (void)key;
+    (void)keyLen;
+    (void)payload;
+    (void)payloadLen;
+    (void)hash;
     return HMACSHA256_OK;
 }
 
@@ -444,7 +449,7 @@ BEGIN_TEST_SUITE(edge_hsm_key_interface_sas_key_unittests)
         {
             // arrange
             int status;
-            unsigned char* data_to_be_signed = "data";
+            unsigned char* data_to_be_signed = (unsigned char*)"data";
             size_t data_len = 0;
             unsigned char* digest = NULL;
             size_t digest_size = 0;
