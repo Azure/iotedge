@@ -25,15 +25,15 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 
         public Task<IEndpointExecutor> CreateAsync(Endpoint endpoint, ICheckpointer checkpointer) => this.CreateAsync(endpoint, checkpointer, this.config);
 
-        public Task<IEndpointExecutor> CreateAsync(Endpoint endpoint, ICheckpointer checkpointer, EndpointExecutorConfig endpointExecutorConfig)
+        public async Task<IEndpointExecutor> CreateAsync(Endpoint endpoint, ICheckpointer checkpointer, EndpointExecutorConfig endpointExecutorConfig)
         {
             Preconditions.CheckNotNull(endpoint, nameof(endpoint));
             Preconditions.CheckNotNull(checkpointer, nameof(checkpointer));
             Preconditions.CheckNotNull(endpointExecutorConfig, nameof(endpointExecutorConfig));
 
-            this.messageStore.AddEndpoint(endpoint.Id);
+            await this.messageStore.AddEndpoint(endpoint.Id);
             IEndpointExecutor endpointExecutor = new StoringAsyncEndpointExecutor(endpoint, checkpointer, endpointExecutorConfig, this.options, this.messageStore);
-            return Task.FromResult(endpointExecutor);
+            return endpointExecutor;
         }
     }    
 }
