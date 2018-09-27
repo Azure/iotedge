@@ -11,6 +11,7 @@
 #include "azure_c_shared_utility/crt_abstractions.h"
 #include "azure_c_shared_utility/strings.h"
 #include "azure_c_shared_utility/threadapi.h"
+#include "test_utils.h"
 #include "hsm_client_store.h"
 #include "hsm_key.h"
 #include "hsm_utils.h"
@@ -35,6 +36,9 @@ static TEST_MUTEX_HANDLE g_dllByDll;
 #define TEST_CA_COMMON_NAME "test_ca_cert"
 #define TEST_SERVER_COMMON_NAME "test_server_cert"
 #define TEST_CLIENT_COMMON_NAME "test_client_cert"
+
+static char* TEST_IOTEDGE_HOMEDIR = NULL;
+static char* TEST_IOTEDGE_HOMEDIR_GUID = NULL;
 
 static unsigned char TEST_ID[] = {'M', 'O', 'D', 'U', 'L', 'E', '1'};
 static size_t TEST_ID_SIZE = sizeof(TEST_ID);
@@ -81,39 +85,6 @@ static STRING_HANDLE INT_2_PK_PATH = NULL;
 //#############################################################################
 // Test helpers
 //#############################################################################
-
-static void test_helper_setenv(const char *key, const char *value)
-{
-    #if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
-        errno_t status = _putenv_s(key, value);
-    #else
-        int status = setenv(key, value, 1);
-    #endif
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-    const char *retrieved_value = getenv(key);
-    if (retrieved_value != NULL)
-    {
-        int cmp = strcmp(retrieved_value, value);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, cmp, "Line:" TOSTRING(__LINE__));
-    }
-}
-
-static void test_helper_unsetenv(const char *key)
-{
-    #if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
-        STRING_HANDLE key_handle = STRING_construct(key);
-        ASSERT_IS_NOT_NULL_WITH_MSG(key_handle, "Line:" TOSTRING(__LINE__));
-        int ret_val = STRING_concat(key_handle, "=");
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, ret_val, "Line:" TOSTRING(__LINE__));
-        errno_t status = _putenv(STRING_c_str(key_handle));
-        STRING_delete(key_handle);
-    #else
-        int status = unsetenv(key);
-    #endif
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-    const char *retrieved_value = getenv(key);
-    ASSERT_IS_NULL_WITH_MSG(retrieved_value, "Line:" TOSTRING(__LINE__));
-}
 
 static CERT_PROPS_HANDLE test_helper_create_certificate_props
 (
@@ -271,12 +242,17 @@ static void test_helper_prepare_transparent_gateway_certs(void)
 
 static void test_helper_setup_homedir(void)
 {
-#if defined(TESTONLY_IOTEDGE_HOMEDIR)
     int status;
-    test_helper_setenv("IOTEDGE_HOMEDIR", TESTONLY_IOTEDGE_HOMEDIR);
-    printf("IoT Edge home dir set to %s\n", TESTONLY_IOTEDGE_HOMEDIR);
 
-    STRING_HANDLE BASE_TG_CERTS_PATH = STRING_construct(TESTONLY_IOTEDGE_HOMEDIR);
+    TEST_IOTEDGE_HOMEDIR = hsm_test_util_create_temp_dir(&TEST_IOTEDGE_HOMEDIR_GUID);
+    ASSERT_IS_NOT_NULL_WITH_MSG(TEST_IOTEDGE_HOMEDIR_GUID, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL_WITH_MSG(TEST_IOTEDGE_HOMEDIR, "Line:" TOSTRING(__LINE__));
+
+    printf("Temp dir created: [%s]\r\n", TEST_IOTEDGE_HOMEDIR);
+    hsm_test_util_setenv("IOTEDGE_HOMEDIR", TEST_IOTEDGE_HOMEDIR);
+    printf("IoT Edge home dir set to %s\n", TEST_IOTEDGE_HOMEDIR);
+
+    STRING_HANDLE BASE_TG_CERTS_PATH = STRING_construct(TEST_IOTEDGE_HOMEDIR);
     ASSERT_IS_NOT_NULL_WITH_MSG(BASE_TG_CERTS_PATH, "Line:" TOSTRING(__LINE__));
     status = STRING_concat(BASE_TG_CERTS_PATH, SLASH);
     ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
@@ -321,9 +297,6 @@ static void test_helper_setup_homedir(void)
 
     STRING_delete(BASE_TG_CERTS_PATH);
     BASE_TG_CERTS_PATH = NULL;
-#else
-    #error "Could not find symbol TESTONLY_IOTEDGE_HOMEDIR"
-#endif
 }
 
 static void test_helper_teardown_homedir(void)
@@ -363,6 +336,15 @@ static void test_helper_teardown_homedir(void)
     delete_file(STRING_c_str(INT_2_PK_PATH));
     STRING_delete(INT_2_PK_PATH);
     INT_2_PK_PATH = NULL;
+
+    if ((TEST_IOTEDGE_HOMEDIR != NULL) && (TEST_IOTEDGE_HOMEDIR_GUID != NULL))
+    {
+        hsm_test_util_delete_dir(TEST_IOTEDGE_HOMEDIR_GUID);
+        free(TEST_IOTEDGE_HOMEDIR);
+        TEST_IOTEDGE_HOMEDIR = NULL;
+        free(TEST_IOTEDGE_HOMEDIR_GUID);
+        TEST_IOTEDGE_HOMEDIR_GUID = NULL;
+    }
 }
 
 static HSM_CLIENT_HANDLE test_helper_crypto_init(void)
@@ -876,9 +858,9 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         const char *device_ca_path = STRING_c_str(VALID_DEVICE_CA_PATH);
         const char *device_pk_path = STRING_c_str(VALID_DEVICE_PK_PATH);
         const char *trusted_ca_path = STRING_c_str(VALID_TRUSTED_CA_PATH);
-        test_helper_setenv(ENV_DEVICE_CA_PATH, device_ca_path);
-        test_helper_setenv(ENV_DEVICE_PK_PATH, device_pk_path);
-        test_helper_setenv(ENV_TRUSTED_CA_CERTS_PATH, trusted_ca_path);
+        hsm_test_util_setenv(ENV_DEVICE_CA_PATH, device_ca_path);
+        hsm_test_util_setenv(ENV_DEVICE_PK_PATH, device_pk_path);
+        hsm_test_util_setenv(ENV_TRUSTED_CA_CERTS_PATH, trusted_ca_path);
         HSM_CLIENT_HANDLE hsm_handle = test_helper_crypto_init();
         const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
 
@@ -896,9 +878,9 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         free(expected_trust_bundle);
         certificate_info_destroy(result);
         test_helper_crypto_deinit(hsm_handle);
-        test_helper_unsetenv(ENV_DEVICE_CA_PATH);
-        test_helper_unsetenv(ENV_DEVICE_PK_PATH);
-        test_helper_unsetenv(ENV_TRUSTED_CA_CERTS_PATH);
+        hsm_test_util_unsetenv(ENV_DEVICE_CA_PATH);
+        hsm_test_util_unsetenv(ENV_DEVICE_PK_PATH);
+        hsm_test_util_unsetenv(ENV_TRUSTED_CA_CERTS_PATH);
     }
 
     TEST_FUNCTION(hsm_client_transparent_gateway_ca_cert_create_smoke)
@@ -907,9 +889,9 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         const char *device_ca_path = STRING_c_str(VALID_DEVICE_CA_PATH);
         const char *device_pk_path = STRING_c_str(VALID_DEVICE_PK_PATH);
         const char *trusted_ca_path = STRING_c_str(VALID_TRUSTED_CA_PATH);
-        test_helper_setenv(ENV_DEVICE_CA_PATH, device_ca_path);
-        test_helper_setenv(ENV_DEVICE_PK_PATH, device_pk_path);
-        test_helper_setenv(ENV_TRUSTED_CA_CERTS_PATH, trusted_ca_path);
+        hsm_test_util_setenv(ENV_DEVICE_CA_PATH, device_ca_path);
+        hsm_test_util_setenv(ENV_DEVICE_PK_PATH, device_pk_path);
+        hsm_test_util_setenv(ENV_TRUSTED_CA_CERTS_PATH, trusted_ca_path);
         HSM_CLIENT_HANDLE hsm_handle = test_helper_crypto_init();
         const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
         CERT_PROPS_HANDLE ca_certificate_props = test_helper_create_ca_cert_properties();
@@ -930,9 +912,9 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         certificate_info_destroy(result);
         cert_properties_destroy(ca_certificate_props);
         test_helper_crypto_deinit(hsm_handle);
-        test_helper_unsetenv(ENV_DEVICE_CA_PATH);
-        test_helper_unsetenv(ENV_DEVICE_PK_PATH);
-        test_helper_unsetenv(ENV_TRUSTED_CA_CERTS_PATH);
+        hsm_test_util_unsetenv(ENV_DEVICE_CA_PATH);
+        hsm_test_util_unsetenv(ENV_DEVICE_PK_PATH);
+        hsm_test_util_unsetenv(ENV_TRUSTED_CA_CERTS_PATH);
     }
 
     TEST_FUNCTION(hsm_client_transparent_gateway_ca_cert_create_expiration_smoke)
@@ -965,9 +947,9 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         const char *device_ca_path = STRING_c_str(VALID_DEVICE_CA_PATH);
         const char *device_pk_path = STRING_c_str(VALID_DEVICE_PK_PATH);
         const char *trusted_ca_path = STRING_c_str(VALID_TRUSTED_CA_PATH);
-        test_helper_setenv(ENV_DEVICE_CA_PATH, device_ca_path);
-        test_helper_setenv(ENV_DEVICE_PK_PATH, device_pk_path);
-        test_helper_setenv(ENV_TRUSTED_CA_CERTS_PATH, trusted_ca_path);
+        hsm_test_util_setenv(ENV_DEVICE_CA_PATH, device_ca_path);
+        hsm_test_util_setenv(ENV_DEVICE_PK_PATH, device_pk_path);
+        hsm_test_util_setenv(ENV_TRUSTED_CA_CERTS_PATH, trusted_ca_path);
         HSM_CLIENT_HANDLE hsm_handle = test_helper_crypto_init();
         const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
         CERT_PROPS_HANDLE certificate_props = test_helper_create_server_cert_properties();
@@ -989,9 +971,9 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         certificate_info_destroy(result);
         cert_properties_destroy(certificate_props);
         test_helper_crypto_deinit(hsm_handle);
-        test_helper_unsetenv(ENV_DEVICE_CA_PATH);
-        test_helper_unsetenv(ENV_DEVICE_PK_PATH);
-        test_helper_unsetenv(ENV_TRUSTED_CA_CERTS_PATH);
+        hsm_test_util_unsetenv(ENV_DEVICE_CA_PATH);
+        hsm_test_util_unsetenv(ENV_DEVICE_PK_PATH);
+        hsm_test_util_unsetenv(ENV_TRUSTED_CA_CERTS_PATH);
     }
 
     TEST_FUNCTION(hsm_client_transparent_gateway_erroneous_config)
@@ -1002,57 +984,57 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         const char *device_ca_path = STRING_c_str(VALID_DEVICE_CA_PATH);
         const char *device_pk_path = STRING_c_str(VALID_DEVICE_PK_PATH);
         const char *trusted_ca_path = STRING_c_str(VALID_TRUSTED_CA_PATH);
-        test_helper_unsetenv(ENV_DEVICE_CA_PATH);
-        test_helper_unsetenv(ENV_DEVICE_PK_PATH);
-        test_helper_unsetenv(ENV_TRUSTED_CA_CERTS_PATH);
+        hsm_test_util_unsetenv(ENV_DEVICE_CA_PATH);
+        hsm_test_util_unsetenv(ENV_DEVICE_PK_PATH);
+        hsm_test_util_unsetenv(ENV_TRUSTED_CA_CERTS_PATH);
 
         // act, assert
-        test_helper_setenv(ENV_DEVICE_CA_PATH, device_ca_path);
-        test_helper_unsetenv(ENV_DEVICE_PK_PATH);
-        test_helper_unsetenv(ENV_TRUSTED_CA_CERTS_PATH);
+        hsm_test_util_setenv(ENV_DEVICE_CA_PATH, device_ca_path);
+        hsm_test_util_unsetenv(ENV_DEVICE_PK_PATH);
+        hsm_test_util_unsetenv(ENV_TRUSTED_CA_CERTS_PATH);
         status = hsm_client_crypto_init();
         ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
 
-        test_helper_unsetenv(ENV_DEVICE_CA_PATH);
-        test_helper_setenv(ENV_DEVICE_PK_PATH, device_pk_path);
-        test_helper_unsetenv(ENV_TRUSTED_CA_CERTS_PATH);
+        hsm_test_util_unsetenv(ENV_DEVICE_CA_PATH);
+        hsm_test_util_setenv(ENV_DEVICE_PK_PATH, device_pk_path);
+        hsm_test_util_unsetenv(ENV_TRUSTED_CA_CERTS_PATH);
         status = hsm_client_crypto_init();
         ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
 
-        test_helper_setenv(ENV_DEVICE_CA_PATH, device_ca_path);
-        test_helper_setenv(ENV_DEVICE_PK_PATH, device_pk_path);
-        test_helper_unsetenv(ENV_TRUSTED_CA_CERTS_PATH);
+        hsm_test_util_setenv(ENV_DEVICE_CA_PATH, device_ca_path);
+        hsm_test_util_setenv(ENV_DEVICE_PK_PATH, device_pk_path);
+        hsm_test_util_unsetenv(ENV_TRUSTED_CA_CERTS_PATH);
         status = hsm_client_crypto_init();
         ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
 
-        test_helper_unsetenv(ENV_DEVICE_CA_PATH);
-        test_helper_unsetenv(ENV_DEVICE_PK_PATH);
-        test_helper_setenv(ENV_TRUSTED_CA_CERTS_PATH, trusted_ca_path);
+        hsm_test_util_unsetenv(ENV_DEVICE_CA_PATH);
+        hsm_test_util_unsetenv(ENV_DEVICE_PK_PATH);
+        hsm_test_util_setenv(ENV_TRUSTED_CA_CERTS_PATH, trusted_ca_path);
         status = hsm_client_crypto_init();
         ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
 
-        test_helper_setenv(ENV_DEVICE_CA_PATH, device_ca_path);
-        test_helper_unsetenv(ENV_DEVICE_PK_PATH);
-        test_helper_setenv(ENV_TRUSTED_CA_CERTS_PATH, trusted_ca_path);
+        hsm_test_util_setenv(ENV_DEVICE_CA_PATH, device_ca_path);
+        hsm_test_util_unsetenv(ENV_DEVICE_PK_PATH);
+        hsm_test_util_setenv(ENV_TRUSTED_CA_CERTS_PATH, trusted_ca_path);
         status = hsm_client_crypto_init();
         ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
 
-        test_helper_unsetenv(ENV_DEVICE_CA_PATH);
-        test_helper_setenv(ENV_DEVICE_PK_PATH, device_pk_path);
-        test_helper_setenv(ENV_TRUSTED_CA_CERTS_PATH, trusted_ca_path);
+        hsm_test_util_unsetenv(ENV_DEVICE_CA_PATH);
+        hsm_test_util_setenv(ENV_DEVICE_PK_PATH, device_pk_path);
+        hsm_test_util_setenv(ENV_TRUSTED_CA_CERTS_PATH, trusted_ca_path);
         status = hsm_client_crypto_init();
         ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
 
-        test_helper_setenv(ENV_DEVICE_CA_PATH, INVALID_PATH);
-        test_helper_setenv(ENV_DEVICE_PK_PATH, INVALID_PATH);
-        test_helper_setenv(ENV_TRUSTED_CA_CERTS_PATH, INVALID_PATH);
+        hsm_test_util_setenv(ENV_DEVICE_CA_PATH, INVALID_PATH);
+        hsm_test_util_setenv(ENV_DEVICE_PK_PATH, INVALID_PATH);
+        hsm_test_util_setenv(ENV_TRUSTED_CA_CERTS_PATH, INVALID_PATH);
         status = hsm_client_crypto_init();
         ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         // cleanup
-        test_helper_unsetenv(ENV_DEVICE_CA_PATH);
-        test_helper_unsetenv(ENV_DEVICE_PK_PATH);
-        test_helper_unsetenv(ENV_TRUSTED_CA_CERTS_PATH);
+        hsm_test_util_unsetenv(ENV_DEVICE_CA_PATH);
+        hsm_test_util_unsetenv(ENV_DEVICE_PK_PATH);
+        hsm_test_util_unsetenv(ENV_TRUSTED_CA_CERTS_PATH);
     }
 
 END_TEST_SUITE(edge_hsm_crypto_int_tests)
