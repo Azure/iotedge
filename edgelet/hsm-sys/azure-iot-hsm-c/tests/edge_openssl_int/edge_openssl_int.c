@@ -31,6 +31,8 @@ static TEST_MUTEX_HANDLE g_dllByDll;
 
 static char* TEST_IOTEDGE_HOMEDIR = NULL;
 static char* TEST_IOTEDGE_HOMEDIR_GUID = NULL;
+static char* TEST_TEMP_DIR = NULL;
+static char* TEST_TEMP_DIR_GUID = NULL;
 
 #define TEST_VALIDITY         3600
 #define TEST_SERIAL_NUM       1000
@@ -47,57 +49,101 @@ static char* TEST_IOTEDGE_HOMEDIR_GUID = NULL;
 #define TEST_SERVER_ALIAS_3     "test_server_alias_3"
 #define TEST_CLIENT_ALIAS_1     "test_client_alias_1"
 
-#define TEST_CA_CERT_RSA_FILE_1     "ca_rsa_cert_1.cert.pem"
-#define TEST_CA_CERT_RSA_FILE_2     "ca_rsa_cert_2.cert.pem"
-#define TEST_SERVER_CERT_RSA_FILE_1 "server_rsa_cert_1.cert.pem"
-#define TEST_SERVER_CERT_RSA_FILE_3 "server_rsa_cert_3.cert.pem"
-#define TEST_CLIENT_CERT_RSA_FILE_1 "client_rsa_cert_1.cert.pem"
+#define TEST_CA_CERT_RSA_FILE_1_NAME     "ca_rsa_cert_1.cert.pem"
+#define TEST_CA_CERT_RSA_FILE_2_NAME     "ca_rsa_cert_2.cert.pem"
+#define TEST_SERVER_CERT_RSA_FILE_1_NAME "server_rsa_cert_1.cert.pem"
+#define TEST_SERVER_CERT_RSA_FILE_3_NAME "server_rsa_cert_3.cert.pem"
+#define TEST_CLIENT_CERT_RSA_FILE_1_NAME "client_rsa_cert_1.cert.pem"
+static char *TEST_CA_CERT_RSA_FILE_1     = NULL;
+static char *TEST_CA_CERT_RSA_FILE_2     = NULL;
+static char *TEST_SERVER_CERT_RSA_FILE_1 = NULL;
+static char *TEST_SERVER_CERT_RSA_FILE_3 = NULL;
+static char *TEST_CLIENT_CERT_RSA_FILE_1 = NULL;
 
-#define TEST_CA_PK_RSA_FILE_1       "ca_rsa_cert_1.key.pem"
-#define TEST_CA_PK_RSA_FILE_2       "ca_rsa_cert_2.key.pem"
-#define TEST_SERVER_PK_RSA_FILE_1   "server_rsa_cert_1.key.pem"
-#define TEST_SERVER_PK_RSA_FILE_3   "server_rsa_cert_3.key.pem"
-#define TEST_CLIENT_PK_RSA_FILE_1   "client_rsa_cert_1.key.pem"
+#define TEST_CA_PK_RSA_FILE_1_NAME       "ca_rsa_cert_1.key.pem"
+#define TEST_CA_PK_RSA_FILE_2_NAME       "ca_rsa_cert_2.key.pem"
+#define TEST_SERVER_PK_RSA_FILE_1_NAME   "server_rsa_cert_1.key.pem"
+#define TEST_SERVER_PK_RSA_FILE_3_NAME   "server_rsa_cert_3.key.pem"
+#define TEST_CLIENT_PK_RSA_FILE_1_NAME   "client_rsa_cert_1.key.pem"
+static char *TEST_CA_PK_RSA_FILE_1       = NULL;
+static char *TEST_CA_PK_RSA_FILE_2       = NULL;
+static char *TEST_SERVER_PK_RSA_FILE_1   = NULL;
+static char *TEST_SERVER_PK_RSA_FILE_3   = NULL;
+static char *TEST_CLIENT_PK_RSA_FILE_1   = NULL;
 
-#define TEST_CA_CERT_ECC_FILE_1     "ca_ecc_cert_1.cert.pem"
-#define TEST_CA_CERT_ECC_FILE_2     "ca_ecc_cert_2.cert.pem"
-#define TEST_SERVER_CERT_ECC_FILE_1 "server_ecc_cert_1.cert.pem"
-#define TEST_SERVER_CERT_ECC_FILE_3 "server_ecc_cert_3.cert.pem"
-#define TEST_CLIENT_CERT_ECC_FILE_1 "client_ecc_cert_1.cert.pem"
+#define TEST_CA_CERT_ECC_FILE_1_NAME     "ca_ecc_cert_1.cert.pem"
+#define TEST_CA_CERT_ECC_FILE_2_NAME     "ca_ecc_cert_2.cert.pem"
+#define TEST_SERVER_CERT_ECC_FILE_1_NAME "server_ecc_cert_1.cert.pem"
+#define TEST_SERVER_CERT_ECC_FILE_3_NAME "server_ecc_cert_3.cert.pem"
+#define TEST_CLIENT_CERT_ECC_FILE_1_NAME "client_ecc_cert_1.cert.pem"
+static char *TEST_CA_CERT_ECC_FILE_1     = NULL;
+static char *TEST_CA_CERT_ECC_FILE_2     = NULL;
+static char *TEST_SERVER_CERT_ECC_FILE_1 = NULL;
+static char *TEST_SERVER_CERT_ECC_FILE_3 = NULL;
+static char *TEST_CLIENT_CERT_ECC_FILE_1 = NULL;
 
-#define TEST_CA_PK_ECC_FILE_1       "ca_ecc_cert_1.key.pem"
-#define TEST_CA_PK_ECC_FILE_2       "ca_ecc_cert_2.key.pem"
-#define TEST_SERVER_PK_ECC_FILE_1   "server_ecc_cert_1.key.pem"
-#define TEST_SERVER_PK_ECC_FILE_3   "server_ecc_cert_3.key.pem"
-#define TEST_CLIENT_PK_ECC_FILE_1   "client_ecc_cert_1.key.pem"
+#define TEST_CA_PK_ECC_FILE_1_NAME       "ca_ecc_cert_1.key.pem"
+#define TEST_CA_PK_ECC_FILE_2_NAME       "ca_ecc_cert_2.key.pem"
+#define TEST_SERVER_PK_ECC_FILE_1_NAME   "server_ecc_cert_1.key.pem"
+#define TEST_SERVER_PK_ECC_FILE_3_NAME   "server_ecc_cert_3.key.pem"
+#define TEST_CLIENT_PK_ECC_FILE_1_NAME   "client_ecc_cert_1.key.pem"
+static char *TEST_CA_PK_ECC_FILE_1       = NULL;
+static char *TEST_CA_PK_ECC_FILE_2       = NULL;
+static char *TEST_SERVER_PK_ECC_FILE_1   = NULL;
+static char *TEST_SERVER_PK_ECC_FILE_3   = NULL;
+static char *TEST_CLIENT_PK_ECC_FILE_1   = NULL;
 
-#define TEST_CHAIN_FILE_PATH        "chain_file.pem"
+#define TEST_CHAIN_FILE_PATH_NAME        "chain_file.pem"
+static char *TEST_CHAIN_FILE_PATH        = NULL;
 
 //#############################################################################
 // Test helpers
 //#############################################################################
 
-static void test_helper_setup_homedir(void)
+static void test_helper_setup_temp_dir(char **pp_temp_dir, char **pp_temp_dir_guid)
 {
-    TEST_IOTEDGE_HOMEDIR = hsm_test_util_create_temp_dir(&TEST_IOTEDGE_HOMEDIR_GUID);
-    ASSERT_IS_NOT_NULL_WITH_MSG(TEST_IOTEDGE_HOMEDIR_GUID, "Line:" TOSTRING(__LINE__));
-    ASSERT_IS_NOT_NULL_WITH_MSG(TEST_IOTEDGE_HOMEDIR, "Line:" TOSTRING(__LINE__));
-
-    printf("Temp dir created: [%s]\r\n", TEST_IOTEDGE_HOMEDIR);
-    hsm_test_util_setenv("IOTEDGE_HOMEDIR", TEST_IOTEDGE_HOMEDIR);
-    printf("IoT Edge home dir set to %s\n", TEST_IOTEDGE_HOMEDIR);
+    char *temp_dir, *guid;
+    temp_dir = hsm_test_util_create_temp_dir(&guid);
+    ASSERT_IS_NOT_NULL_WITH_MSG(guid, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL_WITH_MSG(temp_dir, "Line:" TOSTRING(__LINE__));
+    printf("Temp dir created: [%s]\r\n", temp_dir);
+    *pp_temp_dir = temp_dir;
+    *pp_temp_dir_guid = guid;
 }
 
-static void test_helper_teardown_homedir(void)
+static void test_helper_teardown_temp_dir(char **pp_temp_dir, char **pp_temp_dir_guid)
 {
-    if ((TEST_IOTEDGE_HOMEDIR != NULL) && (TEST_IOTEDGE_HOMEDIR_GUID != NULL))
-    {
-        hsm_test_util_delete_dir(TEST_IOTEDGE_HOMEDIR_GUID);
-        free(TEST_IOTEDGE_HOMEDIR);
-        TEST_IOTEDGE_HOMEDIR = NULL;
-        free(TEST_IOTEDGE_HOMEDIR_GUID);
-        TEST_IOTEDGE_HOMEDIR_GUID = NULL;
-    }
+    ASSERT_IS_NOT_NULL_WITH_MSG(pp_temp_dir, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL_WITH_MSG(pp_temp_dir_guid, "Line:" TOSTRING(__LINE__));
+
+    char *temp_dir = *pp_temp_dir;
+    char *guid = *pp_temp_dir_guid;
+    ASSERT_IS_NOT_NULL_WITH_MSG(temp_dir, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL_WITH_MSG(guid, "Line:" TOSTRING(__LINE__));
+
+    hsm_test_util_delete_dir(guid);
+    free(temp_dir);
+    free(guid);
+    *pp_temp_dir = NULL;
+    *pp_temp_dir_guid = NULL;
+}
+
+static char* prepare_file_path(const char* base_dir, const char* file_name)
+{
+    size_t path_size = get_max_file_path_size();
+    char *file_path = calloc(path_size, 1);
+    ASSERT_IS_NOT_NULL_WITH_MSG(file_path, "Line:" TOSTRING(__LINE__));
+    int status = snprintf(file_path, path_size, "%s%s", base_dir, file_name);
+    ASSERT_IS_TRUE_WITH_MSG(((status > 0) || (status < path_size)), "Line:" TOSTRING(__LINE__));
+
+    return file_path;
+}
+
+static void test_helper_setup_homedir(void)
+{
+    test_helper_setup_temp_dir(&TEST_IOTEDGE_HOMEDIR, &TEST_IOTEDGE_HOMEDIR_GUID);
+    hsm_test_util_setenv("IOTEDGE_HOMEDIR", TEST_IOTEDGE_HOMEDIR);
+    printf("IoT Edge home dir set to %s\n", TEST_IOTEDGE_HOMEDIR);
 }
 
 static CERT_PROPS_HANDLE test_helper_create_certificate_props
@@ -256,11 +302,65 @@ BEGIN_TEST_SUITE(edge_openssl_int_tests)
         g_testByTest = TEST_MUTEX_CREATE();
         ASSERT_IS_NOT_NULL(g_testByTest);
         test_helper_setup_homedir();
+        test_helper_setup_temp_dir(&TEST_TEMP_DIR, &TEST_TEMP_DIR_GUID);
+
+        TEST_CA_CERT_RSA_FILE_1     = prepare_file_path(TEST_TEMP_DIR, TEST_CA_CERT_RSA_FILE_1_NAME);
+        TEST_CA_CERT_RSA_FILE_2     = prepare_file_path(TEST_TEMP_DIR, TEST_CA_CERT_RSA_FILE_2_NAME);
+        TEST_SERVER_CERT_RSA_FILE_1 = prepare_file_path(TEST_TEMP_DIR, TEST_SERVER_CERT_RSA_FILE_1_NAME);
+        TEST_SERVER_CERT_RSA_FILE_3 = prepare_file_path(TEST_TEMP_DIR, TEST_SERVER_CERT_RSA_FILE_3_NAME);
+        TEST_CLIENT_CERT_RSA_FILE_1 = prepare_file_path(TEST_TEMP_DIR, TEST_CLIENT_CERT_RSA_FILE_1_NAME);
+
+        TEST_CA_PK_RSA_FILE_1       = prepare_file_path(TEST_TEMP_DIR, TEST_CA_PK_RSA_FILE_1_NAME);
+        TEST_CA_PK_RSA_FILE_2       = prepare_file_path(TEST_TEMP_DIR, TEST_CA_PK_RSA_FILE_2_NAME);
+        TEST_SERVER_PK_RSA_FILE_1   = prepare_file_path(TEST_TEMP_DIR, TEST_SERVER_PK_RSA_FILE_1_NAME);
+        TEST_SERVER_PK_RSA_FILE_3   = prepare_file_path(TEST_TEMP_DIR, TEST_SERVER_PK_RSA_FILE_3_NAME);
+        TEST_CLIENT_PK_RSA_FILE_1   = prepare_file_path(TEST_TEMP_DIR, TEST_CLIENT_PK_RSA_FILE_1_NAME);
+
+        TEST_CA_CERT_ECC_FILE_1     = prepare_file_path(TEST_TEMP_DIR, TEST_CA_CERT_ECC_FILE_1_NAME);
+        TEST_CA_CERT_ECC_FILE_2     = prepare_file_path(TEST_TEMP_DIR, TEST_CA_CERT_ECC_FILE_2_NAME);
+        TEST_SERVER_CERT_ECC_FILE_1 = prepare_file_path(TEST_TEMP_DIR, TEST_SERVER_CERT_ECC_FILE_1_NAME);
+        TEST_SERVER_CERT_ECC_FILE_3 = prepare_file_path(TEST_TEMP_DIR, TEST_SERVER_CERT_ECC_FILE_3_NAME);
+        TEST_CLIENT_CERT_ECC_FILE_1 = prepare_file_path(TEST_TEMP_DIR, TEST_CLIENT_CERT_ECC_FILE_1_NAME);
+
+        TEST_CA_PK_ECC_FILE_1       = prepare_file_path(TEST_TEMP_DIR, TEST_CA_PK_ECC_FILE_1_NAME);
+        TEST_CA_PK_ECC_FILE_2       = prepare_file_path(TEST_TEMP_DIR, TEST_CA_PK_ECC_FILE_2_NAME);
+        TEST_SERVER_PK_ECC_FILE_1   = prepare_file_path(TEST_TEMP_DIR, TEST_SERVER_PK_ECC_FILE_1_NAME);
+        TEST_SERVER_PK_ECC_FILE_3   = prepare_file_path(TEST_TEMP_DIR, TEST_SERVER_PK_ECC_FILE_3_NAME);
+        TEST_CLIENT_PK_ECC_FILE_1   = prepare_file_path(TEST_TEMP_DIR, TEST_CLIENT_PK_ECC_FILE_1_NAME);
+
+        TEST_CHAIN_FILE_PATH = prepare_file_path(TEST_TEMP_DIR, TEST_CHAIN_FILE_PATH_NAME);
     }
 
     TEST_SUITE_CLEANUP(TestClassCleanup)
     {
-        test_helper_teardown_homedir();
+        free(TEST_CA_CERT_RSA_FILE_1); TEST_CA_CERT_RSA_FILE_1 = NULL;
+        free(TEST_CA_CERT_RSA_FILE_2); TEST_CA_CERT_RSA_FILE_2 = NULL;
+        free(TEST_SERVER_CERT_RSA_FILE_1); TEST_SERVER_CERT_RSA_FILE_1 = NULL;
+        free(TEST_SERVER_CERT_RSA_FILE_3); TEST_SERVER_CERT_RSA_FILE_3 = NULL;
+        free(TEST_CLIENT_CERT_RSA_FILE_1); TEST_CLIENT_CERT_RSA_FILE_1 = NULL;
+
+        free(TEST_CA_PK_RSA_FILE_1); TEST_CA_PK_RSA_FILE_1 = NULL;
+        free(TEST_CA_PK_RSA_FILE_2); TEST_CA_PK_RSA_FILE_2 = NULL;
+        free(TEST_SERVER_PK_RSA_FILE_1); TEST_SERVER_PK_RSA_FILE_1 = NULL;
+        free(TEST_SERVER_PK_RSA_FILE_3); TEST_SERVER_PK_RSA_FILE_3 = NULL;
+        free(TEST_CLIENT_PK_RSA_FILE_1); TEST_CLIENT_PK_RSA_FILE_1 = NULL;
+
+        free(TEST_CA_CERT_ECC_FILE_1); TEST_CA_CERT_ECC_FILE_1 = NULL;
+        free(TEST_CA_CERT_ECC_FILE_2); TEST_CA_CERT_ECC_FILE_2 = NULL;
+        free(TEST_SERVER_CERT_ECC_FILE_1); TEST_SERVER_CERT_ECC_FILE_1 = NULL;
+        free(TEST_SERVER_CERT_ECC_FILE_3); TEST_SERVER_CERT_ECC_FILE_3 = NULL;
+        free(TEST_CLIENT_CERT_ECC_FILE_1); TEST_CLIENT_CERT_ECC_FILE_1 = NULL;
+
+        free(TEST_CA_PK_ECC_FILE_1); TEST_CA_PK_ECC_FILE_1 = NULL;
+        free(TEST_CA_PK_ECC_FILE_2); TEST_CA_PK_ECC_FILE_2 = NULL;
+        free(TEST_SERVER_PK_ECC_FILE_1); TEST_SERVER_PK_ECC_FILE_1 = NULL;
+        free(TEST_SERVER_PK_ECC_FILE_3); TEST_SERVER_PK_ECC_FILE_3 = NULL;
+        free(TEST_CLIENT_PK_ECC_FILE_1); TEST_CLIENT_PK_ECC_FILE_1 = NULL;
+
+        free(TEST_CHAIN_FILE_PATH); TEST_CHAIN_FILE_PATH = NULL;
+
+        test_helper_teardown_temp_dir(&TEST_TEMP_DIR, &TEST_TEMP_DIR_GUID);
+        test_helper_teardown_temp_dir(&TEST_IOTEDGE_HOMEDIR, &TEST_IOTEDGE_HOMEDIR_GUID);
         TEST_MUTEX_DESTROY(g_testByTest);
         TEST_DEINITIALIZE_MEMORY_DEBUG(g_dllByDll);
     }
