@@ -75,6 +75,11 @@ static int make_test_dir(const char* dir_path)
     return result;
 }
 
+size_t get_max_file_path_size(void)
+{
+    return MAX_FILE_NAME_SIZE;
+}
+
 char *create_temp_dir_path(const char *dir_guid)
 {
     int status;
