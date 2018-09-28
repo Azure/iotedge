@@ -6,6 +6,7 @@
 #include <stddef.h>
 
 #include "testrunnerswitcher.h"
+#include "test_utils.h"
 #include "azure_c_shared_utility/gballoc.h"
 #include "azure_c_shared_utility/sastoken.h"
 #include "azure_c_shared_utility/urlencode.h"
@@ -34,46 +35,36 @@
 static TEST_MUTEX_HANDLE g_testByTest;
 static TEST_MUTEX_HANDLE g_dllByDll;
 
+static char* TEST_IOTEDGE_HOMEDIR = NULL;
+static char* TEST_IOTEDGE_HOMEDIR_GUID = NULL;
+
 extern const char* const ENV_TPM_SELECT;
 
 //#############################################################################
 // Test helpers
 //#############################################################################
 
-static void test_helper_setup_env(const char *key, const char *val)
-{
-#if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
-    errno_t status = _putenv_s(key, val);
-#else
-    int status = setenv(key, val, 1);
-#endif
-    printf("Env variable %s set to %s\n", key, val);
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-}
-
-static void test_helper_unset_env(const char *key)
-{
-#if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
-    errno_t status = _putenv_s(key, "");
-#else
-    int status = unsetenv(key);
-#endif
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-}
-
 static void test_helper_setup_homedir(void)
 {
-#if defined(TESTONLY_IOTEDGE_HOMEDIR)
-    #if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
-        errno_t status = _putenv_s("IOTEDGE_HOMEDIR", TESTONLY_IOTEDGE_HOMEDIR);
-    #else
-        int status = setenv("IOTEDGE_HOMEDIR", TESTONLY_IOTEDGE_HOMEDIR, 1);
-    #endif
-    printf("IoT Edge home dir set to %s\n", TESTONLY_IOTEDGE_HOMEDIR);
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-#else
-    #error "Could not find symbol TESTONLY_IOTEDGE_HOMEDIR"
-#endif
+    TEST_IOTEDGE_HOMEDIR = hsm_test_util_create_temp_dir(&TEST_IOTEDGE_HOMEDIR_GUID);
+    ASSERT_IS_NOT_NULL_WITH_MSG(TEST_IOTEDGE_HOMEDIR_GUID, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL_WITH_MSG(TEST_IOTEDGE_HOMEDIR, "Line:" TOSTRING(__LINE__));
+
+    printf("Temp dir created: [%s]\r\n", TEST_IOTEDGE_HOMEDIR);
+    hsm_test_util_setenv("IOTEDGE_HOMEDIR", TEST_IOTEDGE_HOMEDIR);
+    printf("IoT Edge home dir set to %s\n", TEST_IOTEDGE_HOMEDIR);
+}
+
+static void test_helper_teardown_homedir(void)
+{
+    if ((TEST_IOTEDGE_HOMEDIR != NULL) && (TEST_IOTEDGE_HOMEDIR_GUID != NULL))
+    {
+        hsm_test_util_delete_dir(TEST_IOTEDGE_HOMEDIR_GUID);
+        free(TEST_IOTEDGE_HOMEDIR);
+        TEST_IOTEDGE_HOMEDIR = NULL;
+        free(TEST_IOTEDGE_HOMEDIR_GUID);
+        TEST_IOTEDGE_HOMEDIR_GUID = NULL;
+    }
 }
 
 const HSM_CLIENT_TPM_INTERFACE * init_get_if_deinit(void)
@@ -104,6 +95,7 @@ BEGIN_TEST_SUITE(edge_hsm_sas_auth_int_tests)
 
     TEST_SUITE_CLEANUP(TestClassCleanup)
     {
+        test_helper_teardown_homedir();
         TEST_MUTEX_DESTROY(g_testByTest);
         TEST_DEINITIALIZE_MEMORY_DEBUG(g_dllByDll);
     }
@@ -124,22 +116,22 @@ BEGIN_TEST_SUITE(edge_hsm_sas_auth_int_tests)
     TEST_FUNCTION(hsm_tpm_select_no_tpm_false)
     {
         // arrange
-        static const char * user_says_no[] = { "", 
-                                               "off", "OFF", "Off", 
-                                               "no", "NO", "No", 
+        static const char * user_says_no[] = { "",
+                                               "off", "OFF", "Off",
+                                               "no", "NO", "No",
                                                "false", "FALSE", "False" };
         int array_size = sizeof(user_says_no)/sizeof(user_says_no[0]);
-        int status = test_helper_unset_env(ENV_TPM_SELECT);
+        int status = hsm_test_util_unsetenv(ENV_TPM_SELECT);
         ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
         const HSM_CLIENT_TPM_INTERFACE * no_tpm =  init_get_if_deinit();
         // act
         // assert
         for(int no = 0; no < array_size; no++)
         {
-            int status = test_helper_setup_env(ENV_TPM_SELECT, user_says_no[no]);
+            int status = hsm_test_util_setenv(ENV_TPM_SELECT, user_says_no[no]);
             ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL_WITH_MSG(const HSM_CLIENT_TPM_INTERFACE *, 
-                                      no_tpm, init_get_if_deinit(), 
+            ASSERT_ARE_EQUAL_WITH_MSG(const HSM_CLIENT_TPM_INTERFACE *,
+                                      no_tpm, init_get_if_deinit(),
                                       "Line:" TOSTRING(__LINE__));
         }
         // cleanup
@@ -149,22 +141,22 @@ BEGIN_TEST_SUITE(edge_hsm_sas_auth_int_tests)
     {
         // arrange
         static const char * user_says_yes[] = { "yes", "YES", "Yes",
-                                                "on", "ON", "On", 
+                                                "on", "ON", "On",
                                                 "true", "TRUE", "True",
                                                 "Like CMAKE, it's anything that's not assocated with false",
                                                 "plugh" };
         int array_size = sizeof(user_says_yes)/sizeof(user_says_yes[0]);
-        int status = test_helper_unset_env(ENV_TPM_SELECT);
+        int status = hsm_test_util_unsetenv(ENV_TPM_SELECT);
         ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
         const HSM_CLIENT_TPM_INTERFACE * no_tpm =  init_get_if_deinit();
         // act
         // assert
         for(int yes = 0; yes < array_size; yes++)
         {
-            int status = test_helper_setup_env(ENV_TPM_SELECT, user_says_yes[yes]);
+            int status = hsm_test_util_setenv(ENV_TPM_SELECT, user_says_yes[yes]);
             ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_NOT_EQUAL_WITH_MSG(const HSM_CLIENT_TPM_INTERFACE *, 
-                                          no_tpm, init_get_if_deinit(), 
+            ASSERT_ARE_NOT_EQUAL_WITH_MSG(const HSM_CLIENT_TPM_INTERFACE *,
+                                          no_tpm, init_get_if_deinit(),
                                           "Line:" TOSTRING(__LINE__));
         }
         // cleanup
