@@ -214,7 +214,7 @@ static EVP_PKEY* generate_rsa_key(CERTIFICATE_TYPE cert_type)
     RSA *rsa;
 
     size_t key_len = (cert_type == CERTIFICATE_TYPE_CA) ? RSA_KEY_LEN_CA : RSA_KEY_LEN_NON_CA;
-    LOG_INFO("Generating RSA key of length %lu", key_len);
+    LOG_INFO("Generating RSA key of length %zu", key_len);
     if ((pkey = EVP_PKEY_new()) == NULL)
     {
         LOG_ERROR("Unable to create EVP_PKEY structure");
