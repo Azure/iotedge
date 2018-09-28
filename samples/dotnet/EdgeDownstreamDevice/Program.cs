@@ -16,11 +16,11 @@ namespace Microsoft.Azure.Devices.Client.Samples
     {
 
         // 1) Obtain the connection string for your downstream device and to it
-        //    append this string GatewayHostName=<edge device hostname>;
+        //    append it with this string: GatewayHostName=<edge device hostname>;
         // 2) The edge device hostname is the hostname set in the config.yaml of the Edge device
         //    to which this sample will connect to.
         //
-        // The resulting string should look like the following
+        // The resulting string should have this format:
         //  "HostName=<iothub_host_name>;DeviceId=<device_id>;SharedAccessKey=<device_key>;GatewayHostName=<edge device hostname>"
         //
         // Either set the DEVICE_CONNECTION_STRING environment variable with this connection string
@@ -28,8 +28,6 @@ namespace Microsoft.Azure.Devices.Client.Samples
         private static string DeviceConnectionString = Environment.GetEnvironmentVariable("DEVICE_CONNECTION_STRING");
         private static int MESSAGE_COUNT = 10;
         private const int TEMPERATURE_THRESHOLD = 30;
-        private static float temperature;
-        private static float humidity;
 
         /// <summary>
         /// First install any CA certificate provided by the user to connect to the Edge device.
@@ -65,7 +63,7 @@ namespace Microsoft.Azure.Devices.Client.Samples
             }
             else
             {
-                SendEvents(deviceClient).Wait();
+                SendEvents(deviceClient, MESSAGE_COUNT).Wait();
             }
 
             Console.WriteLine("Exiting!\n");
@@ -112,16 +110,16 @@ namespace Microsoft.Azure.Devices.Client.Samples
         /// to the IoT Edge runtime. The number of messages to be sent is determined
         /// by environment variable MESSAGE_COUNT.
         /// </summary>
-        static async Task SendEvents(DeviceClient deviceClient)
+        static async Task SendEvents(DeviceClient deviceClient, int messageCount)
         {
             string dataBuffer;
             Random rnd = new Random();
-            Console.WriteLine("Edge downstream device attempting to send {0} messages to Edge Hub...\n", MESSAGE_COUNT);
+            Console.WriteLine("Edge downstream device attempting to send {0} messages to Edge Hub...\n", messageCount);
 
-            for (int count = 0; count < MESSAGE_COUNT; count++)
+            for (int count = 0; count < messageCount; count++)
             {
-                temperature = rnd.Next(20, 35);
-                humidity = rnd.Next(60, 80);
+                float temperature = rnd.Next(20, 35);
+                float humidity = rnd.Next(60, 80);
                 dataBuffer = string.Format(new CultureInfo("en-US"), "{{MyFirstDownstreamDevice \"messageId\":{0},\"temperature\":{1},\"humidity\":{2}}}", count, temperature, humidity);
                 Message eventMessage = new Message(Encoding.UTF8.GetBytes(dataBuffer));
                 eventMessage.Properties.Add("temperatureAlert", (temperature > TEMPERATURE_THRESHOLD) ? "true" : "false");
