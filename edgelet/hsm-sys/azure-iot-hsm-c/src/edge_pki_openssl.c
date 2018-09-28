@@ -1,4 +1,5 @@
 #include <fcntl.h>
+#include <inttypes.h>
 #include <limits.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -695,7 +696,7 @@ static int cert_set_expiration
             else
             {
                 uint64_t number_seconds_left = (uint64_t)exp_seconds_left_from_now;
-                LOG_DEBUG("Num issuer expiration seconds left: %lu, Request validity:%lu",
+                LOG_DEBUG("Num issuer expiration seconds left: %" PRIu64 ", Request validity:%" PRIu64,
                           number_seconds_left, requested_validity);
                 requested_validity = (requested_validity == 0) ?
                                         number_seconds_left :
@@ -714,12 +715,12 @@ static int cert_set_expiration
         {
             if (requested_validity == 0)
             {
-                LOG_ERROR("Invalid expiration time in seconds %lu", requested_validity);
+                LOG_ERROR("Invalid expiration time in seconds %" PRIu64, requested_validity);
                 result = __FAILURE__;
             }
             else if (!X509_gmtime_adj(X509_get_notAfter(x509_cert), (long)requested_validity))
             {
-                LOG_ERROR("Failure setting not after time %lu", requested_validity);
+                LOG_ERROR("Failure setting not after time %" PRIu64, requested_validity);
                 result = __FAILURE__;
             }
         }
@@ -1102,7 +1103,7 @@ static int generate_pki_cert_and_key_helper
     }
     else if (requested_validity > LONG_MAX)
     {
-        LOG_ERROR("Number of seconds too large %lu", requested_validity);
+        LOG_ERROR("Number of seconds too large %" PRIu64, requested_validity);
         result = __FAILURE__;
     }
     else if ((common_name_prop_value = get_common_name(cert_props_handle)) == NULL)
