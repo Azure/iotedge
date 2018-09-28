@@ -16,7 +16,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using DotNetty.Transport.Channels;
     using DotNetty.Transport.Channels.Sockets;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
-    using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.ProtocolGateway;
     using Microsoft.Azure.Devices.ProtocolGateway.Identity;
