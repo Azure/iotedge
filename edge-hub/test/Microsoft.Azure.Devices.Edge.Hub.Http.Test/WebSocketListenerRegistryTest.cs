@@ -2,9 +2,9 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 {
     using System;
-    using System.Net;
-    using System.Threading.Tasks;
     using Microsoft.AspNetCore.Http;
+    using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -81,17 +81,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
         }
 
         [Fact]
-        public async Task CanInvokeARegisteredListener()
+        public void CanInvokeARegisteredListener()
         {
             var registry = new WebSocketListenerRegistry();
             registry.TryRegister(this._SubprotocolListener("abc"));
             HttpContext httpContext = this._ContextWithRequestedSubprotocols("abc");
 
-            Assert.True(await registry.InvokeAsync(httpContext, "dontcare"));
+            Option<IWebSocketListener> listener = registry.GetListener(httpContext.WebSockets.WebSocketRequestedProtocols);
+            Assert.True(listener.HasValue);
         }
 
         [Fact]
-        public async Task AlwaysInvokesTheFirstMatchingListener()
+        public void AlwaysInvokesTheFirstMatchingListener()
         {
             IWebSocketListener abcListener = this._SubprotocolListener("abc");
             IWebSocketListener xyzListener = this._SubprotocolListener("xyz");
@@ -102,29 +103,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             HttpContext httpContext = this._ContextWithRequestedSubprotocols("xyz", "abc");
 
-            Assert.True(await registry.InvokeAsync(httpContext, "123"));
-            Mock.Get(xyzListener).Verify(wsl => wsl.ProcessWebSocketRequestAsync(httpContext, "123"));
+            var listener = registry.GetListener(httpContext.WebSockets.WebSocketRequestedProtocols);
+            
+            Assert.True(listener.HasValue);
+            listener.ForEach( l => Assert.Equal(l.SubProtocol, "xyz"));
+            //Mock.Get(xyzListener).Verify(wsl => wsl.ProcessWebSocketRequestAsync(It.IsAny<WebSocket>(), It.IsAny<string>(), It.IsAny<EndPoint>(), It.IsAny<EndPoint>(), It.IsAny<string>()));
         }
 
         [Fact]
-        public async Task CannotInvokeWhenNoListenersAreRegistered()
+        public void CannotInvokeWhenNoListenersAreRegistered()
         {
             var registry = new WebSocketListenerRegistry();
             HttpContext httpContext = this._ContextWithRequestedSubprotocols("abc");
 
-            Assert.False(await registry.InvokeAsync(httpContext, "dontcare"));
-            Assert.Equal((int)HttpStatusCode.BadRequest, httpContext.Response.StatusCode);
+            Assert.False(registry.GetListener(httpContext.WebSockets.WebSocketRequestedProtocols).HasValue);
         }
 
         [Fact]
-        public async Task CannotInvokeANonExistentListener()
+        public void CannotInvokeANonExistentListener()
         {
             var registry = new WebSocketListenerRegistry();
             registry.TryRegister(this._SubprotocolListener("abc"));
             HttpContext httpContext = this._ContextWithRequestedSubprotocols("xyz");
 
-            Assert.False(await registry.InvokeAsync(httpContext, "dontcare"));
-            Assert.Equal((int)HttpStatusCode.BadRequest, httpContext.Response.StatusCode);
+            Assert.False(registry.GetListener(httpContext.WebSockets.WebSocketRequestedProtocols).HasValue);
         }
 
         IWebSocketListener _SubprotocolListener(string subprotocol)

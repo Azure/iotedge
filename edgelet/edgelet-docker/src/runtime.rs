@@ -356,7 +356,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                 Ok(self
                     .client
                     .container_api()
-                    .container_list(true, 0, true, &filters)
+                    .container_list(true, 0, false, &filters)
                     .map(move |containers| {
                         containers
                             .iter()
