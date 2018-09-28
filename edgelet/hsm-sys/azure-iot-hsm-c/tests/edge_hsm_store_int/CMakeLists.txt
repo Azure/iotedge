@@ -6,13 +6,11 @@ cmake_minimum_required(VERSION 2.8.11)
 
 compileAsC11()
 
-include_directories(../../src)
+include_directories(../../src ../test_utils)
 
 set(theseTestsName edge_hsm_store_inut)
 
 add_definitions(-DGB_DEBUG_ALLOC)
-
-prepare_edge_homedir(${theseTestsName})
 
 set(${theseTestsName}_test_files
     # test file
@@ -30,6 +28,7 @@ set(${theseTestsName}_test_files
     ../../src/hsm_utils.c
     ../../src/hsm_log.c
     ../../src/constants.c
+    ../test_utils/test_utils.c
 )
 
 set(${theseTestsName}_h_files

@@ -588,7 +588,7 @@ STRING_HANDLE compute_b64_sha_digest_string
     }
     else if (ip_buffer_size > UINT_MAX)
     {
-        LOG_ERROR("Input buffer size too large %lu", ip_buffer_size);
+        LOG_ERROR("Input buffer size too large %zu", ip_buffer_size);
         result = NULL;
     }
     else
