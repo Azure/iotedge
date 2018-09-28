@@ -6,7 +6,9 @@ links = "iothsm"
 build = "build.rs"
 
 [dependencies]
-num_cpus = "1.0"
 
 [build-dependencies]
 cmake = "0.1"
+
+[dev-dependencies]
+num_cpus = "1.0"
