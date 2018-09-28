@@ -3,6 +3,7 @@
 use std::env;
 use std::path::Path;
 use std::process::Command;
+//use num_cpus;
 
 //Skip ARM(cross-compile) until I figure out how to run ctest on this.
 #[cfg(not(target_arch = "arm"))]
@@ -13,10 +14,12 @@ fn run_ctest() {
     let build_dir =
         Path::new(&env::var("OUT_DIR").expect("Did not find OUT_DIR in build environment"))
             .join("build");
+    let j_arg = format!("-j {}", 4); //num_cpus::get());
     let test_output = Command::new("ctest")
         .arg("-C")
         .arg("Release")
         .arg("-VV")
+        .arg(j_arg)
         .current_dir(build_dir)
         .output()
         .expect("failed to execute ctest");
