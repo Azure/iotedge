@@ -3,12 +3,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
 {
     using System;
     using System.Collections.Concurrent;
-    using System.Net;
-    using System.Threading.Tasks;
-    using Microsoft.AspNetCore.Http;
+    using System.Collections.Generic;
+    using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Extensions.Logging;
-    using static System.FormattableString;
 
     public class WebSocketListenerRegistry : IWebSocketListenerRegistry
     {
@@ -19,25 +16,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
             this.webSocketListeners = new ConcurrentDictionary<string, IWebSocketListener>(StringComparer.OrdinalIgnoreCase);
         }
 
-        public async Task<bool> InvokeAsync(HttpContext context, string correlationId)
+        public Option<IWebSocketListener> GetListener(IEnumerable<string> requestedProtocols)
         {
-            foreach (string subProtocol in context.WebSockets.WebSocketRequestedProtocols)
+            foreach (string subProtocol in requestedProtocols)
             {
                 if (this.webSocketListeners.TryGetValue(subProtocol, out IWebSocketListener webSocketListener))
                 {
-                    Events.WebSocketSubProtocolSelected(subProtocol, correlationId);
-                    await webSocketListener.ProcessWebSocketRequestAsync(context, correlationId);
-                    return true;
-                }
-                else
-                {
-                    Events.WebSocketSubProtocolNotSupported(subProtocol, correlationId);
+                    return Option.Some(webSocketListener);
                 }
             }
-
-            // SubProtocol is not supported. Reject Upgrade request
-            context.Response.StatusCode = (int) HttpStatusCode.BadRequest;
-            return false;
+            
+            return Option.None<IWebSocketListener>();
         }
 
         public bool TryRegister(IWebSocketListener webSocketListener)
@@ -50,28 +39,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
         {
             Preconditions.CheckNonWhiteSpace(subProtocol, nameof(subProtocol));
             return this.webSocketListeners.TryRemove(subProtocol, out webSocketListener);
-        }
-
-        static class Events
-        {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<WebSocketListenerRegistry>();
-            const int IdStart = HttpEventIds.WebSocketListenerRegistry;
-
-            enum EventIds
-            {
-                SubProtocolSelected = IdStart,
-                SubProtocolNotSupported
-            }
-
-            public static void WebSocketSubProtocolSelected(string subProtocol, string correlationId)
-            {
-                Log.LogDebug((int)EventIds.SubProtocolSelected, Invariant($"SubProtocol: {subProtocol} CorrelationId: {correlationId}"));
-            }
-
-            public static void WebSocketSubProtocolNotSupported(string subProtocol, string correlationId)
-            {
-                Log.LogDebug((int)EventIds.SubProtocolNotSupported, Invariant($"SubProtocol: {subProtocol} CorrelationId: {correlationId}"));
-            }
         }
     }
 }

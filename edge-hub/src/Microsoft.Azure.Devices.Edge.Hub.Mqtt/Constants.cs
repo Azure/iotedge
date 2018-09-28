@@ -14,5 +14,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         public const string MethodPrefix = ServicePrefix + "methods" + SegmentSeparator + "res" + SegmentSeparator;
         public const string ModuleIdTemplateParameter = "moduleId";
         public const string TwinLockToken = "r";
+        public const string WebSocketSubProtocol = "mqtt";
     }
 }
