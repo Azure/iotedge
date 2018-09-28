@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "testrunnerswitcher.h"
+#include "test_utils.h"
 #include "azure_c_shared_utility/gballoc.h"
 #include "azure_c_shared_utility/hmacsha256.h"
 #include "azure_c_shared_utility/base64.h"
@@ -32,6 +33,9 @@
 #define TEST_DATA_TO_BE_SIGNED "The quick brown fox jumped over the lazy dog"
 #define TEST_KEY_BASE64 "D7PuplFy7vIr0349blOugqCxyfMscyVZDoV9Ii0EFnA="
 
+static char* TEST_IOTEDGE_HOMEDIR = NULL;
+static char* TEST_IOTEDGE_HOMEDIR_GUID = NULL;
+
 static TEST_MUTEX_HANDLE g_testByTest;
 static TEST_MUTEX_HANDLE g_dllByDll;
 
@@ -41,17 +45,25 @@ static TEST_MUTEX_HANDLE g_dllByDll;
 
 static void test_helper_setup_homedir(void)
 {
-#if defined(TESTONLY_IOTEDGE_HOMEDIR)
-    #if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
-        errno_t status = _putenv_s("IOTEDGE_HOMEDIR", TESTONLY_IOTEDGE_HOMEDIR);
-    #else
-        int status = setenv("IOTEDGE_HOMEDIR", TESTONLY_IOTEDGE_HOMEDIR, 1);
-    #endif
-    printf("IoT Edge home dir set to %s\n", TESTONLY_IOTEDGE_HOMEDIR);
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-#else
-    #error "Could not find symbol TESTONLY_IOTEDGE_HOMEDIR"
-#endif
+    TEST_IOTEDGE_HOMEDIR = hsm_test_util_create_temp_dir(&TEST_IOTEDGE_HOMEDIR_GUID);
+    ASSERT_IS_NOT_NULL_WITH_MSG(TEST_IOTEDGE_HOMEDIR_GUID, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL_WITH_MSG(TEST_IOTEDGE_HOMEDIR, "Line:" TOSTRING(__LINE__));
+
+    printf("Temp dir created: [%s]\r\n", TEST_IOTEDGE_HOMEDIR);
+    hsm_test_util_setenv("IOTEDGE_HOMEDIR", TEST_IOTEDGE_HOMEDIR);
+    printf("IoT Edge home dir set to %s\n", TEST_IOTEDGE_HOMEDIR);
+}
+
+static void test_helper_teardown_homedir(void)
+{
+    if ((TEST_IOTEDGE_HOMEDIR != NULL) && (TEST_IOTEDGE_HOMEDIR_GUID != NULL))
+    {
+        hsm_test_util_delete_dir(TEST_IOTEDGE_HOMEDIR_GUID);
+        free(TEST_IOTEDGE_HOMEDIR);
+        TEST_IOTEDGE_HOMEDIR = NULL;
+        free(TEST_IOTEDGE_HOMEDIR_GUID);
+        TEST_IOTEDGE_HOMEDIR_GUID = NULL;
+    }
 }
 
 static CERT_PROPS_HANDLE test_helper_create_certificate_props
@@ -168,6 +180,7 @@ BEGIN_TEST_SUITE(edge_hsm_store_int_tests)
 
     TEST_SUITE_CLEANUP(TestClassCleanup)
     {
+        test_helper_teardown_homedir();
         TEST_MUTEX_DESTROY(g_testByTest);
         TEST_DEINITIALIZE_MEMORY_DEBUG(g_dllByDll);
     }

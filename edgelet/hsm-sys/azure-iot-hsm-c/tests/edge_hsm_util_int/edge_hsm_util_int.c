@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include "testrunnerswitcher.h"
+#include "test_utils.h"
 #include "umocktypes.h"
 #include "umocktypes_charptr.h"
 #include "azure_c_shared_utility/gballoc.h"
@@ -40,38 +41,34 @@ static unsigned char NUMERIC_NEWLINE[] = {'1', '2', '\n', '4', '5', '\n'};
 static TEST_MUTEX_HANDLE g_testByTest;
 static TEST_MUTEX_HANDLE g_dllByDll;
 
+static char* TEST_IOTEDGE_HOMEDIR = NULL;
+static char* TEST_IOTEDGE_HOMEDIR_GUID = NULL;
+
 //#############################################################################
 // Test helpers
 //#############################################################################
 
-static void test_helper_setup_env(const char *key, const char *val)
-{
-#if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
-    errno_t status = _putenv_s(key, val);
-#else
-    int status = setenv(key, val, 1);
-#endif
-    printf("Env variable %s set to %s\n", key, val);
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-}
-
-static void test_helper_unset_env(const char *key)
-{
-#if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
-    errno_t status = _putenv_s(key, "");
-#else
-    int status = unsetenv(key);
-#endif
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-}
-
 static void test_helper_setup_homedir(void)
 {
-#if defined(TESTONLY_IOTEDGE_HOMEDIR)
-    test_helper_setup_env("IOTEDGE_HOMEDIR", TESTONLY_IOTEDGE_HOMEDIR);
-#else
-    #error "Could not find symbol TESTONLY_IOTEDGE_HOMEDIR"
-#endif
+    TEST_IOTEDGE_HOMEDIR = hsm_test_util_create_temp_dir(&TEST_IOTEDGE_HOMEDIR_GUID);
+    ASSERT_IS_NOT_NULL_WITH_MSG(TEST_IOTEDGE_HOMEDIR_GUID, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL_WITH_MSG(TEST_IOTEDGE_HOMEDIR, "Line:" TOSTRING(__LINE__));
+
+    printf("Temp dir created: [%s]\r\n", TEST_IOTEDGE_HOMEDIR);
+    hsm_test_util_setenv("IOTEDGE_HOMEDIR", TEST_IOTEDGE_HOMEDIR);
+    printf("IoT Edge home dir set to %s\n", TEST_IOTEDGE_HOMEDIR);
+}
+
+static void test_helper_teardown_homedir(void)
+{
+    if ((TEST_IOTEDGE_HOMEDIR != NULL) && (TEST_IOTEDGE_HOMEDIR_GUID != NULL))
+    {
+        hsm_test_util_delete_dir(TEST_IOTEDGE_HOMEDIR_GUID);
+        free(TEST_IOTEDGE_HOMEDIR);
+        TEST_IOTEDGE_HOMEDIR = NULL;
+        free(TEST_IOTEDGE_HOMEDIR_GUID);
+        TEST_IOTEDGE_HOMEDIR_GUID = NULL;
+    }
 }
 
 int test_helper_write_data_to_file
@@ -142,7 +139,7 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             delete_file_if_exists(TEST_FILE_ALPHA_NEWLINE);
             delete_file_if_exists(TEST_FILE_NUMERIC_NEWLINE);
             delete_file_if_exists(TEST_FILE_EMPTY);
-
+            test_helper_teardown_homedir();
             TEST_MUTEX_DESTROY(g_testByTest);
             TEST_DEINITIALIZE_MEMORY_DEBUG(g_dllByDll);
         }
@@ -666,7 +663,7 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             // arrange
             int status;
             char *input_data = "1234";
-            test_helper_setup_env("TEST_ENV_1", input_data);
+            hsm_test_util_setenv("TEST_ENV_1", input_data);
             char *output = NULL;
 
             // act
@@ -682,7 +679,7 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             output = NULL;
 
             // arrange
-            test_helper_unset_env("TEST_ENV_1");
+            hsm_test_util_unsetenv("TEST_ENV_1");
 
             // act
             status = hsm_get_env("TEST_ENV_1", &output);
