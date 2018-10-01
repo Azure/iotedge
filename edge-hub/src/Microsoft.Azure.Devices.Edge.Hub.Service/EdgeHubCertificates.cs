@@ -11,22 +11,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
-    using Microsoft.Extensions.Logging;
 
     public class EdgeHubCertificates
     {
-        IList<X509Certificate2> certificateChain;
+        public X509Certificate2 ServerCertificate { get; }
 
-        public X509Certificate2 ServerCertificate { get; private set; }
-        
+        public IList<X509Certificate2> CertificateChain { get; }
+
         EdgeHubCertificates(X509Certificate2 serverCertificate, IList<X509Certificate2> certificateChain)
         {
             this.ServerCertificate = serverCertificate;
-            this.certificateChain = certificateChain;
-
-            this.LogStatus();
+            this.CertificateChain = certificateChain;
         }
-        
+
         public static async Task<EdgeHubCertificates> LoadAsync(IConfigurationRoot configuration)
         {
             Preconditions.CheckNotNull(configuration, nameof(configuration));
@@ -47,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 InstallCertificates(certificates.CertificateChain);
                 return new EdgeHubCertificates(certificates.ServerCertificate, certificates.CertificateChain?.ToList());
             }
-            
+
             string edgeHubCertPath = configuration.GetValue<string>(Constants.ConfigKey.EdgeHubServerCertificateFile);
             string edgeHubCaChainCertPath = configuration.GetValue<string>(Constants.ConfigKey.EdgeHubServerCAChainCertificateFile);
             List<X509Certificate2> certificateChain = CertificateHelper.GetServerCACertificatesFromFile(edgeHubCaChainCertPath)?.ToList();
@@ -58,18 +55,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
         static void InstallCertificates(IEnumerable<X509Certificate2> certificateChain)
         {
+            string message;
             if (certificateChain != null)
             {
+                message = "Found intermediate certificates.";
+
                 CertificateHelper.InstallCerts(
                     RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? StoreName.CertificateAuthority : StoreName.Root,
                     StoreLocation.CurrentUser,
                     certificateChain);
             }
-        }
+            else
+            {
+                message = "Unable to find intermediate certificates.";
+            }
 
-        void LogStatus()
-        {
-            string message = this.certificateChain == null ? "Unable to find intermediate certificates." : "Found intermediate certificates.";
             Console.WriteLine($"[{DateTime.UtcNow.ToString("MM/dd/yyyy hh:mm:ss.fff tt", CultureInfo.InvariantCulture)}] {message}");
         }
     }
