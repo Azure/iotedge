@@ -58,9 +58,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             // Test Scenario
             var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager, "testEdgeDevice", Mock.Of<IInvokeMethodHandler>());
-            var identity = Mock.Of<IIdentity>();
+            var identity = new Mock<IIdentity>();
+            identity.SetupGet(id => id.Id).Returns("something");
             EdgeMessage[] messages = { new Message.Builder(new byte[0]).Build() };
-            await routingEdgeHub.ProcessDeviceMessageBatch(identity, messages);
+            await routingEdgeHub.ProcessDeviceMessageBatch(identity.Object, messages);
 
             // Verify Expectation
             Mock.Get(endpointExecutor).Verify(e => e.Invoke(It.IsAny<IMessage>()), Times.Once);

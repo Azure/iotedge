@@ -208,7 +208,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 return new MetricTags("DeviceId", id);
             }
 
-            public static void MessageCount(string identity) => Util.Metrics.Count(GetTags(identity), EdgeHubToCloudMessageCountOptions);
+            public static void MessageCount(string identity) => Util.Metrics.CountIncrement(GetTags(identity), EdgeHubToCloudMessageCountOptions, 1);
 
             public static IDisposable CloudLatency(string identity) => Util.Metrics.Latency(GetTags(identity), EdgeHubToCloudMessageLatencyOptions);
         }
