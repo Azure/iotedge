@@ -2,6 +2,9 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
+    using System;
+    using System.Globalization;
+
     public static class Constants
     {
         public static class ConfigKey

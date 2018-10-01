@@ -47,17 +47,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 Routing.LoggerFactory = Logger.Factory;
             }
 
-            var certificates = new EdgeHubCertificates(configuration);
-            await certificates.LoadAsync().ConfigureAwait(false);
-
-            Hosting hosting = Hosting.Initialize(configuration, certificates.ServerCertificate, new ApplicationDependency(configuration, certificates.ServerCertificate));
+            EdgeHubCertificates certificates = await EdgeHubCertificates.LoadAsync(configuration).ConfigureAwait(false);
+            Hosting hosting = Hosting.Initialize(configuration, certificates.ServerCertificate, new DependencyManager(configuration, certificates.ServerCertificate));
             IContainer container = hosting.Container;
 
             ILogger logger = container.Resolve<ILoggerFactory>().CreateLogger("EdgeHub");
             logger.LogInformation("Starting Edge Hub");
             LogLogo(logger);
             LogVersionInfo(logger);
-            certificates.LogStatus(logger);
 
             // EdgeHub and CloudConnectionProvider have a circular dependency. So need to Bind the EdgeHub to the CloudConnectionProvider.
             IEdgeHub edgeHub = await container.Resolve<Task<IEdgeHub>>();
@@ -89,6 +86,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             }
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(ShutdownWaitPeriod, logger);
+
+            Metrics.BuildMetricsCollector(configuration);
 
             using (IProtocolHead protocolHead = await GetEdgeHubProtocolHeadAsync(logger, configuration, container, hosting).ConfigureAwait(false))
             {

@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
 
-    class ApplicationDependency : IApplicationDependency
+    class DependencyManager : IDependencyManager
     {
         readonly IConfigurationRoot configuration;
         readonly X509Certificate2 serverCertificate;
@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         readonly Option<string> connectionString;
         readonly VersionInfo versionInfo;
 
-        public ApplicationDependency(IConfigurationRoot configuration, X509Certificate2 serverCertificate)
+        public DependencyManager(IConfigurationRoot configuration, X509Certificate2 serverCertificate)
         {
             this.configuration = Preconditions.CheckNotNull(configuration, nameof(configuration));
             this.serverCertificate = Preconditions.CheckNotNull(serverCertificate, nameof(serverCertificate));
@@ -71,10 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     var eventListener = new LoggerEventListener(loggerFactory.CreateLogger("ProtocolGateway"));
                     eventListener.EnableEvents(CommonEventSource.Log, EventLevel.Informational);
                 });
-
-            // TODO: should it be moved to Edge hub program.cs and call just before calling EdgeHubProtocol StartAsync method?
-            Metrics.BuildMetricsCollector(this.configuration);
-
+            
             bool optimizeForPerformance = this.configuration.GetValue("OptimizeForPerformance", true);
             (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward = this.GetStoreAndForwardConfiguration();
 

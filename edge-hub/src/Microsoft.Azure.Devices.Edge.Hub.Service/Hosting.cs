@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         public static Hosting Initialize(
             IConfigurationRoot configuration,
             X509Certificate2 serverCertificate,
-            IApplicationDependency applicationDependency)
+            IDependencyManager dependencyManager)
         {
             int port = configuration.GetValue("httpSettings:port", 443);
 
@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 .ConfigureServices(serviceCollection =>
                 {
                     serviceCollection.AddSingleton<IConfigurationRoot>(configuration);
-                    serviceCollection.AddSingleton<IApplicationDependency>(applicationDependency);
+                    serviceCollection.AddSingleton<IDependencyManager>(dependencyManager);
                 })
                 .UseStartup<Startup>();
             IWebHost webHost = webHostBuilder.Build();

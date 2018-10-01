@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test
     using Xunit;
 
     [Unit]
-    public class ApplicationDependencyTest
+    public class DependencyManagerTest
     {
         static IEnumerable<object[]> GetUpstreamProtocolData()
         {
@@ -54,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test
                 .Build();
 
             // Act
-            Option<UpstreamProtocol> upstreamProtocol = ApplicationDependency.GetUpstreamProtocol(configRoot);
+            Option<UpstreamProtocol> upstreamProtocol = DependencyManager.GetUpstreamProtocol(configRoot);
 
             // Assert
             Assert.Equal(expectedValue.HasValue, upstreamProtocol.HasValue);

@@ -18,17 +18,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
     public class Startup : IStartup
     {
-        readonly IApplicationDependency applicationDependency;
+        readonly IDependencyManager dependencyManager;
         readonly IConfigurationRoot configuration;
 
         // ReSharper disable once UnusedParameter.Local
         public Startup(
             IHostingEnvironment env,
             IConfigurationRoot configuration,
-            IApplicationDependency applicationDependency)
+            IDependencyManager dependencyManager)
         {
             this.configuration = Preconditions.CheckNotNull(configuration, nameof(configuration));
-            this.applicationDependency = Preconditions.CheckNotNull(applicationDependency, nameof(applicationDependency));
+            this.dependencyManager = Preconditions.CheckNotNull(dependencyManager, nameof(dependencyManager));
         }
 
         internal IContainer Container { get; private set; }
@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         {
             var builder = new ContainerBuilder();
             builder.Populate(services);
-            this.applicationDependency.RegisterTo(builder);
+            this.dependencyManager.RegisterTo(builder);
             builder.RegisterInstance<IStartup>(this);
 
             return builder.Build();

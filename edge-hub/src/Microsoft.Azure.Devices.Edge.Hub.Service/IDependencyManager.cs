@@ -4,7 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
     using Autofac;
 
-    public interface IApplicationDependency
+    public interface IDependencyManager
     {
         void RegisterTo(ContainerBuilder builder);
     }
