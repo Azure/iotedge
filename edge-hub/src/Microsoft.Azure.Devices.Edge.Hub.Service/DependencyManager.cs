@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             this.versionInfo = VersionInfo.Get(Constants.VersionInfoFileName);
         }
 
-        public void RegisterTo(ContainerBuilder builder)
+        public void Register(ContainerBuilder builder)
         {
             builder.RegisterModule(new LoggingModule());
             builder.RegisterBuildCallback(

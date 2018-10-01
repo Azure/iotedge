@@ -6,6 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
     public interface IDependencyManager
     {
-        void RegisterTo(ContainerBuilder builder);
+        void Register(ContainerBuilder builder);
     }
 }

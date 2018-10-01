@@ -25,14 +25,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             this.certificateChain = certificateChain;
 
             this.LogStatus();
-
-            if (this.certificateChain != null)
-            {
-                CertificateHelper.InstallCerts(
-                    RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? StoreName.CertificateAuthority : StoreName.Root,
-                    StoreLocation.CurrentUser,
-                    this.certificateChain);
-            }
         }
         
         public static async Task<EdgeHubCertificates> LoadAsync(IConfigurationRoot configuration)
@@ -51,15 +43,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 DateTime expiration = DateTime.UtcNow.AddDays(Constants.CertificateValidityDays);
                 (X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain) certificates =
                     await CertificateHelper.GetServerCertificatesFromEdgelet(workloadUri, Constants.WorkloadApiVersion, moduleId, generationId, edgeHubHostname, expiration);
+
+                InstallCertificates(certificates.CertificateChain);
                 return new EdgeHubCertificates(certificates.ServerCertificate, certificates.CertificateChain?.ToList());
             }
             
             string edgeHubCertPath = configuration.GetValue<string>(Constants.ConfigKey.EdgeHubServerCertificateFile);
             string edgeHubCaChainCertPath = configuration.GetValue<string>(Constants.ConfigKey.EdgeHubServerCAChainCertificateFile);
-            return new EdgeHubCertificates(new X509Certificate2(edgeHubCertPath), CertificateHelper.GetServerCACertificatesFromFile(edgeHubCaChainCertPath)?.ToList());
+            List<X509Certificate2> certificateChain = CertificateHelper.GetServerCACertificatesFromFile(edgeHubCaChainCertPath)?.ToList();
+
+            InstallCertificates(certificateChain);
+            return new EdgeHubCertificates(new X509Certificate2(edgeHubCertPath), certificateChain);
         }
 
-        public void LogStatus()
+        static void InstallCertificates(IEnumerable<X509Certificate2> certificateChain)
+        {
+            if (certificateChain != null)
+            {
+                CertificateHelper.InstallCerts(
+                    RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? StoreName.CertificateAuthority : StoreName.Root,
+                    StoreLocation.CurrentUser,
+                    certificateChain);
+            }
+        }
+
+        void LogStatus()
         {
             string message = this.certificateChain == null ? "Unable to find intermediate certificates." : "Found intermediate certificates.";
             Console.WriteLine($"[{DateTime.UtcNow.ToString("MM/dd/yyyy hh:mm:ss.fff tt", CultureInfo.InvariantCulture)}] {message}");

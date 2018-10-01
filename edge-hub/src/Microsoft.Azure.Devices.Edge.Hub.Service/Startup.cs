@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         {
             var builder = new ContainerBuilder();
             builder.Populate(services);
-            this.dependencyManager.RegisterTo(builder);
+            this.dependencyManager.Register(builder);
             builder.RegisterInstance<IStartup>(this);
 
             return builder.Build();
