@@ -9,7 +9,7 @@ EdgeHub is intrumented to collect the following metrics:
 | EdgeHubConnectedClientGauge | Number of clients/devices currently connected to EdgeHub | Count |
 | EndpointMessageStoredLatencyMs | Time taken by EdgeHub to acknowledge receipt of a message | Milliseconds |
 | EndpointMessageStoredCount | Total number of messages stored by EdgeHub | Last recorded total | 
-| EndpointMessageDrainedCount | Total number of messages sent to cloud by EdgeHub | Last recorded total |
+| EndpointMessageDrainedCount | Total number of messages sent to a message endpoint by EdgeHub | Last recorded total |
 | MessageEntityStorePutOrUpdateLatencyMs | Time taken by EdgeHub to record a message in an internal reference counting db store | Milliseconds |
 | SequentialStoreAppendLatencyMs | Time taken by EdgeHub to store a message in an append log | Milliseconds | 
 | DbGetLatencyMs | Time taken by EdgeHub to get a message from the store-and-forward db | Milliseconds | 
@@ -68,7 +68,7 @@ After the modules are deployed, Chronograf can be reached at http://localhost:88
 
 ## Example InfluxDb queries
 
-For example InfluxDb queries, please look at https://github.com/Azure/iotedge/pull/141/files#diff-9fc75ceaff4ae01d42e1bafad8037848
+For example InfluxDb queries, please look at https://github.com/Azure/iotedge/blob/master/tools/snitch/snitcher/src/settings.yaml#L16
 
 ## Collecting CPU and memory stats from EdgeHub and other containers
 
