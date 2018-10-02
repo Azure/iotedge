@@ -632,12 +632,13 @@ static int cert_set_core_properties
     return result;
 }
 
-static int validate_certificate_expiration(X509* x509_cert, double *exp_seconds_left)
+static int validate_certificate_expiration(X509* x509_cert, double *exp_seconds_left, bool *is_expired)
 {
     int result;
     time_t exp_time;
     double seconds_left = 0;
 
+    *is_expired = true;
     time_t now = time(NULL);
     ASN1_TIME *exp_asn1 = X509_get_notAfter(x509_cert);
     if ((exp_asn1->type != ASN1_TIME_STRING_UTC_FORMAT) &&
@@ -651,13 +652,16 @@ static int validate_certificate_expiration(X509* x509_cert, double *exp_seconds_
         LOG_ERROR("Could not parse expiration date from certificate");
         result = __FAILURE__;
     }
-    else if ((seconds_left = difftime(exp_time, now)) <= 0)
-    {
-        LOG_ERROR("Certificate has expired");
-        result = __FAILURE__;
-    }
     else
     {
+        if ((seconds_left = difftime(exp_time, now)) <= 0)
+        {
+            LOG_ERROR("Certificate has expired");
+        }
+        else
+        {
+            *is_expired = false;
+        }
         result = 0;
     }
 
@@ -688,9 +692,11 @@ static int cert_set_expiration
         {
             // determine max validity in seconds of issuer
             double exp_seconds_left_from_now = 0;
-            if (validate_certificate_expiration(issuer_cert, &exp_seconds_left_from_now) != 0)
+            bool is_expired = true;
+            int status = validate_certificate_expiration(issuer_cert, &exp_seconds_left_from_now, &is_expired);
+            if ((status != 0) || (is_expired))
             {
-                LOG_ERROR("Issuer certificate expiration failure");
+                LOG_ERROR("Issuer certificate expiration failure. Status %d, verify status: %d", status, is_expired);
                 result = __FAILURE__;
             }
             else
@@ -1355,17 +1361,10 @@ static int check_certificates
     int result;
     X509_STORE_CTX *store_ctxt = NULL;
     X509* x509_cert = NULL;
-    double exp_seconds = 0;
 
     if ((x509_cert = load_certificate_file(cert_file)) == NULL)
     {
         LOG_ERROR("Could not create X509 to verify certificate %s", cert_file);
-        result = __FAILURE__;
-    }
-    else if (validate_certificate_expiration(x509_cert, &exp_seconds) != 0)
-    {
-        LOG_ERROR("Certificate file has expired %s", cert_file);
-        X509_free(x509_cert);
         result = __FAILURE__;
     }
     else if ((store_ctxt = X509_STORE_CTX_new()) == NULL)
@@ -1386,26 +1385,42 @@ static int check_certificates
         }
         else
         {
+            double exp_seconds = 0;
             int status;
-            if ((status = X509_verify_cert(store_ctxt)) <= 0)
+            bool is_expired = true;
+
+            status = validate_certificate_expiration(x509_cert, &exp_seconds, &is_expired);
+            if (status != 0)
             {
-                const char *msg;
-                int err_code = X509_STORE_CTX_get_error(store_ctxt);
-                msg = X509_verify_cert_error_string(err_code);
-                if (msg == NULL)
-                {
-                    msg = "";
-                }
-                LOG_ERROR("Could not verify certificate %s using issuer certificate %s.",
-                        cert_file, issuer_cert_file);
-                LOG_ERROR("Verification status: %d, Error: %d, Msg: '%s'", status, err_code, msg);
+                LOG_ERROR("Verifying certificate expiration failed for %s", cert_file);
+                result = __FAILURE__;
             }
             else
             {
-                LOG_DEBUG("Certificate validated %s", cert_file);
-                *verify_status = true;
+                if (is_expired)
+                {
+                    LOG_ERROR("Certificate file has expired %s", cert_file);
+                }
+                else if ((status = X509_verify_cert(store_ctxt)) <= 0)
+                {
+                    const char *msg;
+                    int err_code = X509_STORE_CTX_get_error(store_ctxt);
+                    msg = X509_verify_cert_error_string(err_code);
+                    if (msg == NULL)
+                    {
+                        msg = "";
+                    }
+                    LOG_ERROR("Could not verify certificate %s using issuer certificate %s.",
+                            cert_file, issuer_cert_file);
+                    LOG_ERROR("Verification status: %d, Error: %d, Msg: '%s'", status, err_code, msg);
+                }
+                else
+                {
+                    LOG_DEBUG("Certificate validated %s", cert_file);
+                    *verify_status = true;
+                }
+                result = 0;
             }
-            result = 0;
         }
         X509_STORE_CTX_free(store_ctxt);
         X509_free(x509_cert);
