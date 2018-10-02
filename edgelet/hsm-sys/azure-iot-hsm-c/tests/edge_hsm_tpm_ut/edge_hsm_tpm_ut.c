@@ -124,7 +124,8 @@ static const HSM_CLIENT_KEY_INTERFACE mocked_hsm_client_key_interface =
     mocked_hsm_client_key_sign,
     mocked_hsm_client_key_derive_and_sign,
     mocked_hsm_client_key_encrypt,
-    mocked_hsm_client_key_decrypt
+    mocked_hsm_client_key_decrypt,
+    NULL
 };
 
 //#############################################################################
@@ -151,21 +152,25 @@ const HSM_CLIENT_KEY_INTERFACE* test_hook_hsm_client_key_interface(void)
 
 static int test_hook_hsm_client_store_create(const char* store_name)
 {
+    (void)store_name;
     return 0;
 }
 
 static int test_hook_hsm_client_store_destroy(const char* store_name)
 {
+    (void)store_name;
     return 0;
 }
 
 static HSM_CLIENT_STORE_HANDLE test_hook_hsm_client_store_open(const char* store_name)
 {
+    (void)store_name;
     return TEST_HSM_STORE_HANDLE;
 }
 
 static int test_hook_hsm_client_store_close(HSM_CLIENT_STORE_HANDLE handle)
 {
+    (void)handle;
     return 0;
 }
 
@@ -173,12 +178,17 @@ static KEY_HANDLE test_hook_hsm_client_store_open_key(HSM_CLIENT_STORE_HANDLE ha
                                                       HSM_KEY_T key_type,
                                                       const char* key_name)
 {
+    (void)handle;
+    (void)key_type;
+    (void)key_name;
     return TEST_KEY_HANDLE;
 }
 
 static int test_hook_hsm_client_store_close_key(HSM_CLIENT_STORE_HANDLE handle,
                                                 KEY_HANDLE key_handle)
 {
+    (void)handle;
+    (void)key_handle;
     return 0;
 }
 
@@ -186,6 +196,9 @@ static int test_hook_hsm_client_store_remove_key(HSM_CLIENT_STORE_HANDLE handle,
                                                  HSM_KEY_T key_type,
                                                  const char* key_name)
 {
+    (void)handle;
+    (void)key_type;
+    (void)key_name;
     return 0;
 }
 
@@ -194,12 +207,18 @@ static int test_hook_hsm_client_store_insert_sas_key(HSM_CLIENT_STORE_HANDLE han
                                                      const unsigned char* key,
                                                      size_t key_len)
 {
+    (void)handle;
+    (void)key_name;
+    (void)key;
+    (void)key_len;
     return 0;
 }
 
 static int test_hook_hsm_client_store_insert_encryption_key(HSM_CLIENT_STORE_HANDLE handle,
                                                             const char* key_name)
 {
+    (void)handle;
+    (void)key_name;
     ASSERT_FAIL("API not expected to be called");
     return __LINE__;
 }
@@ -207,6 +226,8 @@ static int test_hook_hsm_client_store_insert_encryption_key(HSM_CLIENT_STORE_HAN
 static int test_hook_hsm_client_store_create_pki_cert(HSM_CLIENT_STORE_HANDLE handle,
                                                       CERT_PROPS_HANDLE cert_props_handle)
 {
+    (void)handle;
+    (void)cert_props_handle;
     ASSERT_FAIL("API not expected to be called");
     return __LINE__;
 }
@@ -214,6 +235,8 @@ static int test_hook_hsm_client_store_create_pki_cert(HSM_CLIENT_STORE_HANDLE ha
 static CERT_INFO_HANDLE test_hook_hsm_client_store_get_pki_cert(HSM_CLIENT_STORE_HANDLE handle,
                                                                 const char* alias)
 {
+    (void)handle;
+    (void)alias;
     ASSERT_FAIL("API not expected to be called");
     return NULL;
 }
@@ -221,6 +244,8 @@ static CERT_INFO_HANDLE test_hook_hsm_client_store_get_pki_cert(HSM_CLIENT_STORE
 static int test_hook_hsm_client_store_remove_pki_cert(HSM_CLIENT_STORE_HANDLE handle,
                                                       const char* alias)
 {
+    (void)handle;
+    (void)alias;
     ASSERT_FAIL("API not expected to be called");
     return __LINE__;
 }
@@ -229,6 +254,9 @@ static int test_hook_hsm_client_store_insert_pki_trusted_cert(HSM_CLIENT_STORE_H
                                                               const char* alias,
                                                               const char* file_name)
 {
+    (void)handle;
+    (void)alias;
+    (void)file_name;
     ASSERT_FAIL("API not expected to be called");
     return __LINE__;
 }
@@ -238,6 +266,7 @@ static CERT_INFO_HANDLE test_hook_hsm_client_store_get_pki_trusted_certs
     HSM_CLIENT_STORE_HANDLE handle
 )
 {
+    (void)handle;
     ASSERT_FAIL("API not expected to be called");
     return NULL;
 }
@@ -248,6 +277,8 @@ static int test_hook_hsm_client_store_remove_pki_trusted_cert
     const char* alias
 )
 {
+    (void)handle;
+    (void)alias;
     ASSERT_FAIL("API not expected to be called");
     return __LINE__;
 }
@@ -258,6 +289,11 @@ static int test_hook_hsm_client_key_sign(KEY_HANDLE key_handle,
                                          unsigned char** digest,
                                          size_t* digest_size)
 {
+    (void)key_handle;
+    (void)data_to_be_signed;
+    (void)data_len;
+    (void)digest;
+    (void)digest_size;
     return 0;
 }
 
@@ -269,6 +305,13 @@ static int test_hook_hsm_client_key_derive_and_sign(KEY_HANDLE key_handle,
                                                     unsigned char** digest,
                                                     size_t* digest_size)
 {
+    (void)key_handle;
+    (void)data_to_be_signed;
+    (void)data_len;
+    (void)identity;
+    (void)identity_size;
+    (void)digest;
+    (void)digest_size;
     return 0;
 }
 
@@ -278,6 +321,11 @@ static int test_hook_hsm_client_key_encrypt(KEY_HANDLE key_handle,
                                             const SIZED_BUFFER *initialization_vector,
                                             SIZED_BUFFER *ciphertext)
 {
+    (void)key_handle;
+    (void)identity;
+    (void)plaintext;
+    (void)initialization_vector;
+    (void)ciphertext;
     ASSERT_FAIL("API not expected to be called");
     return __LINE__;
 }
@@ -288,6 +336,11 @@ static int test_hook_hsm_client_key_decrypt(KEY_HANDLE key_handle,
                                             const SIZED_BUFFER *initialization_vector,
                                             SIZED_BUFFER *plaintext)
 {
+    (void)key_handle;
+    (void)identity;
+    (void)ciphertext;
+    (void)initialization_vector;
+    (void)plaintext;
     ASSERT_FAIL("API not expected to be called");
     return __LINE__;
 }
