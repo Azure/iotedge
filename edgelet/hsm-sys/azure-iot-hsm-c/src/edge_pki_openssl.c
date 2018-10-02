@@ -1399,7 +1399,7 @@ static int check_certificates
             {
                 if (is_expired)
                 {
-                    LOG_ERROR("Certificate file has expired %s", cert_file);
+                    LOG_INFO("Certificate file has expired %s", cert_file);
                 }
                 else if ((status = X509_verify_cert(store_ctxt)) <= 0)
                 {
@@ -1411,7 +1411,7 @@ static int check_certificates
                         msg = "";
                     }
                     LOG_ERROR("Could not verify certificate %s using issuer certificate %s.",
-                            cert_file, issuer_cert_file);
+                              cert_file, issuer_cert_file);
                     LOG_ERROR("Verification status: %d, Error: %d, Msg: '%s'", status, err_code, msg);
                 }
                 else
