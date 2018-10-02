@@ -156,6 +156,11 @@ static int test_hook_EVP_EncryptInit_ex
     const unsigned char *iv
 )
 {
+    (void)ctx;
+    (void)type;
+    (void)impl;
+    (void)key;
+    (void)iv;
     return 1;
 }
 
@@ -168,6 +173,9 @@ static int test_hook_EVP_EncryptUpdate
     int inl
 )
 {
+    (void)ctx;
+    (void)out;
+    (void)in;
     *outl = inl;
     return 1;
 }
@@ -180,6 +188,10 @@ static int test_hook_EVP_CIPHER_CTX_ctrl
     void *ptr
 )
 {
+    (void)ctx;
+    (void)type;
+    (void)arg;
+    (void)ptr;
     return 1;
 }
 
@@ -190,13 +202,15 @@ static int test_hook_EVP_EncryptFinal_ex
     int *outl
 )
 {
+    (void)ctx;
+    (void)out;
     *outl = 0;
     return 1;
 }
 
 static void test_hook_EVP_CIPHER_CTX_free(EVP_CIPHER_CTX *ctx)
 {
-
+    (void)ctx;
 }
 
 static const EVP_CIPHER* test_hook_EVP_aes_256_gcm(void)
@@ -213,6 +227,11 @@ static int test_hook_EVP_DecryptInit_ex
     const unsigned char *iv
 )
 {
+    (void)ctx;
+    (void)type;
+    (void)impl;
+    (void)key;
+    (void)iv;
     return 1;
 }
 
@@ -225,6 +244,9 @@ int test_hook_EVP_DecryptUpdate
     int inl
 )
 {
+    (void)ctx;
+    (void)out;
+    (void)in;
     *outl = inl;
     return 1;
 }
@@ -236,6 +258,8 @@ int test_hook_EVP_DecryptFinal_ex
     int *outl
 )
 {
+    (void)ctx;
+    (void)outm;
     *outl = 0;
     return 1;
 }

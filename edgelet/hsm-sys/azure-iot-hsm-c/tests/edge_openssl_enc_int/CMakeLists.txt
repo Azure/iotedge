@@ -6,19 +6,18 @@ cmake_minimum_required(VERSION 2.8.11)
 
 compileAsC11()
 
-include_directories(../../src)
+include_directories(../../src ../test_utils)
 
 set(theseTestsName edge_openssl_enc_inut)
 
 add_definitions(-DGB_DEBUG_ALLOC)
-
-prepare_edge_homedir(${theseTestsName})
 
 set(${theseTestsName}_test_files
     ../../src/edge_openssl_common.c
     ../../src/edge_enc_openssl_key.c
     ../../src/hsm_utils.c
     ../../src/hsm_log.c
+    ../test_utils/test_utils.c
     edge_openssl_enc_int.c
 )
 
