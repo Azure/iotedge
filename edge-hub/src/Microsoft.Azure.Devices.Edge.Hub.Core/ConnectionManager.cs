@@ -8,6 +8,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using System.Collections.ObjectModel;
     using System.Linq;
     using System.Threading.Tasks;
+    using App.Metrics;
+    using App.Metrics.Gauge;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -44,6 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.credentialsCache = Preconditions.CheckNotNull(credentialsCache, nameof(credentialsCache));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
             this.edgeModuleId = Preconditions.CheckNonWhiteSpace(edgeModuleId, nameof(edgeModuleId));
+            Util.Metrics.RegisterGaugeCallback(() => Metrics.SetConnectedClientCountGauge(this.GetConnectedClients().Count()));
         }
 
         public IEnumerable<IIdentity> GetConnectedClients() =>
@@ -58,7 +61,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             ConnectedDevice device = this.GetOrCreateConnectedDevice(identity);
             Option<DeviceConnection> currentDeviceConnection = device.AddDeviceConnection(deviceProxy);
             Events.NewDeviceConnection(identity);
-
             await currentDeviceConnection
                 .Filter(dc => dc.IsActive)
                 .ForEachAsync(dc => dc.CloseAsync(new MultipleConnectionsException($"Multiple connections detected for device {identity.Id}")));
@@ -373,6 +375,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             public Task CloseAsync(Exception ex) => this.DeviceProxy.CloseAsync(ex);
         }
+
+        static class Metrics
+        {
+            static readonly GaugeOptions ConnectedClientGaugeOptions = new GaugeOptions
+            {
+                Name = "EdgeHubConnectedClientGauge",
+                MeasurementUnit = Unit.Events
+            };
+
+            public static void SetConnectedClientCountGauge(long amount)
+            {
+                Edge.Util.Metrics.SetGauge(ConnectedClientGaugeOptions, amount);
+            }
+        };
 
         static class Events
         {

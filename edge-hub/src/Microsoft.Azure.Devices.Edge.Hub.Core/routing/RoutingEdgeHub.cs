@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             Preconditions.CheckNotNull(message, nameof(message));
             Preconditions.CheckNotNull(identity, nameof(identity));
             Events.MessageReceived(identity);
-            Metrics.MessageCount(identity);
+            Metrics.MessageCount(identity, 1);
             using (Metrics.MessageLatency(identity))
             {
                 IRoutingMessage routingMessage = this.ProcessMessageInternal(message, true);
@@ -57,7 +57,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
         public Task ProcessDeviceMessageBatch(IIdentity identity, IEnumerable<IMessage> messages)
         {
-            IEnumerable<IRoutingMessage> routingMessages = Preconditions.CheckNotNull(messages)
+            Preconditions.CheckNotNull(messages, nameof(messages));
+            Metrics.MessageCount(identity, messages.Count());
+
+            IEnumerable<IRoutingMessage> routingMessages = messages
                 .Select(m => this.ProcessMessageInternal(m, true));
             return this.router.RouteAsync(routingMessages);
         }
@@ -156,7 +159,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             }
             catch (Exception e)
             {
-                Events.ErrorAddingSubscription(e, id, deviceSubscription);                
+                Events.ErrorAddingSubscription(e, id, deviceSubscription);
             }
         }
 
@@ -171,7 +174,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             }
             catch (Exception e)
             {
-                Events.ErrorRemovingSubscription(e, id, deviceSubscription);                
+                Events.ErrorRemovingSubscription(e, id, deviceSubscription);
             }
         }
 
@@ -273,7 +276,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 return new MetricTags("Id", identity.Id);
             }
 
-            public static void MessageCount(IIdentity identity) => Util.Metrics.Count(GetTags(identity), EdgeHubMessageReceivedCountOptions);
+            public static void MessageCount(IIdentity identity, long count) => Util.Metrics.CountIncrement(GetTags(identity), EdgeHubMessageReceivedCountOptions, count);
 
             public static IDisposable MessageLatency(IIdentity identity) => Util.Metrics.Latency(GetTags(identity), EdgeHubMessageLatencyOptions);
         }
