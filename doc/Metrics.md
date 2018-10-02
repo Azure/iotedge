@@ -4,18 +4,20 @@ EdgeHub is intrumented to collect the following metrics:
 
 | MetricName        | Description           | Unit  |
 | ------------- |:-------------:|:-----:|
-| EdgeHubToCloudMessageLatencyMs | Time taken by EdgeHub to send a message to the cloud | Milliseconds |
+| EdgeHubToCloudMessageLatencyMs | Time taken by EdgeHub to send a message to the cloud | Milliseconds** |
 | EdgeHubToCloudMessageSentCount | Number of messages sent by EdgeHub to the cloud | Count resets each reporting interval* |
 | EdgeHubConnectedClientGauge | Number of clients/devices currently connected to EdgeHub | Count |
-| EndpointMessageStoredLatencyMs | Time taken by EdgeHub to acknowledge receipt of a message | Milliseconds |
+| EndpointMessageStoredLatencyMs | Time taken by EdgeHub to acknowledge receipt of a message | Milliseconds** |
 | EndpointMessageStoredCount | Total number of messages stored by EdgeHub | Last recorded total | 
 | EndpointMessageDrainedCount | Total number of messages sent to a message endpoint by EdgeHub | Last recorded total |
-| MessageEntityStorePutOrUpdateLatencyMs | Time taken by EdgeHub to record a message in an internal reference counting db store | Milliseconds |
-| SequentialStoreAppendLatencyMs | Time taken by EdgeHub to store a message in an append log | Milliseconds | 
-| DbGetLatencyMs | Time taken by EdgeHub to get a message from the store-and-forward db | Milliseconds | 
-| DbPutLatencyMs | Time taken by EdgeHub to write a message to the store-and-forward db | Milliseconds | 
+| MessageEntityStorePutOrUpdateLatencyMs | Time taken by EdgeHub to record a message in an internal reference counting db store | Milliseconds** |
+| SequentialStoreAppendLatencyMs | Time taken by EdgeHub to store a message in an append log | Milliseconds** | 
+| DbGetLatencyMs | Time taken by EdgeHub to get a message from the store-and-forward db | Milliseconds** | 
+| DbPutLatencyMs | Time taken by EdgeHub to write a message to the store-and-forward db | Milliseconds** | 
 
 \* EdgeHub reports metrics to InfluxDb every 5s. Counters are reset after each reporting interval so that if the time series is summed up over a large interval, it returns the true sum as opposed to a sum of sums.
+
+\** Latency measurements are recorded per operation being measured. The Edge runtime does not aggregate measurements. The measurements are reported to InfluxDb at a regular interval, currently set to 5s. Aggregations can be done via queries from the database.
 
 ## Configuring EdgeHub to record metrics
 
@@ -37,14 +39,14 @@ deployment as a module with the following configuration:
 
 ```
 "influxdb": {
-  "type": "docker",
-  "settings": {
-    "image": "registry.hub.docker.com/library/influxdb:latest",
-    "createOptions": "{\r\n \"PortBindings\": {\r\n \"8086/tcp\": [\r\n {\r\n \"HostPort\": \"8086\"\r\n }\r\n ],\r\n \"8083/tcp\": [\r\n {\r\n \"HostPort\": \"8083\"\r\n }\r\n ]\r\n }\r\n}"
-  },
-  "version": "1.0",
-  "status": "running",
-  "restartPolicy": "always"
+    "type": "docker",
+    "settings": {
+      "image": "registry.hub.docker.com/library/influxdb:latest",
+      "createOptions": ""
+    },
+    "version": "1.0",
+    "status": "running",
+    "restartPolicy": "always"
 }
 ```
 ## Viewing metrics from EdgeHub
@@ -93,7 +95,7 @@ Or the container can be added to an Azure IoT Edge deployment using the followin
 "telegraf": {
     "type": "docker",
     "settings": {
-    "image": "telegraf",
+    "image": "registry.hub.docker.com/library/telegraf:latest",
     "createOptions": "{\"HostConfig\":{\"Binds\":[\"/var/run/docker.sock:/var/run/docker.sock\",\"/home/jadsa/telegraf/telegraf.conf:/etc/telegraf/telegraf.conf\"]}}"
     },
     "version": "1.0",
@@ -117,8 +119,8 @@ Alternatively, the container can be run via an Azure IoT Edge deployment using t
 "kapacitor": {
     "type": "docker",
     "settings": {
-    "image": "kapacitor",
-    "createOptions": "{\"HostConfig\":{\"Binds\":[\"/home/jadsa/kapacitor/kapacitor.conf:/etc/kapacitor/kapacitor.conf\"],\"PortBindings\":{\"9092/tcp\":[{\"HostPort\":\"9092\"}]}}}"
+    "image": "registry.hub.docker.com/library/kapacitor:latest",
+            "createOptions": "{\"HostConfig\":{\"Binds\":[\"/home/jadsa/kapacitor/kapacitor.conf:/etc/kapacitor/kapacitor.conf\"]}}"
     },
     "status": "running",
     "restartPolicy": "always",
