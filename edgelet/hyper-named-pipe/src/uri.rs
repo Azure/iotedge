@@ -3,6 +3,7 @@
 use std::str;
 
 use hex::{decode, encode};
+use hyper::client::connect::Destination;
 use hyper::Uri as HyperUri;
 use url::Url;
 
@@ -38,20 +39,23 @@ impl Uri {
         }
     }
 
-    pub fn get_pipe_path(uri: &HyperUri) -> Result<String> {
-        if uri.scheme() != Some(NAMED_PIPE_SCHEME) {
+    pub fn get_pipe_path(dst: &Destination) -> Result<String> {
+        Uri::get_pipe_path_from_parts(dst.scheme(), dst.host())
+    }
+
+    fn get_pipe_path_from_parts(scheme: &str, host: &str) -> Result<String> {
+        if scheme != NAMED_PIPE_SCHEME {
             Err(ErrorKind::InvalidUrlScheme)?
         } else {
-            uri.host()
-                .map(|h| h.trim())
-                .and_then(|h| if h.is_empty() { None } else { Some(h) })
-                .ok_or_else(|| Error::from(ErrorKind::MissingUrlHost))
-                .and_then(|h| decode(h).map_err(Error::from))
-                .and_then(|bytes| {
-                    str::from_utf8(bytes.as_slice())
-                        .map_err(Error::from)
-                        .map(|s| s.to_owned())
-                })
+            let host = host.trim();
+            if host.is_empty() {
+                return Err(Error::from(ErrorKind::MissingUrlHost));
+            }
+
+            let bytes = decode(host).map_err(Error::from)?;
+
+            let s = str::from_utf8(bytes.as_slice()).map_err(Error::from)?;
+            Ok(s.to_owned())
         }
     }
 }
@@ -123,29 +127,33 @@ mod tests {
 
     #[test]
     fn uri_host_scheme() {
-        let uri = "foo://boo".parse().unwrap();
-        assert!(Uri::get_pipe_path(&uri).is_err());
-    }
-
-    #[test]
-    fn uri_host_empty() {
-        let uri = "npipe://   /".parse().unwrap();
-        assert!(Uri::get_pipe_path(&uri).is_err());
+        let uri: HyperUri = "foo://boo".parse().unwrap();
+        assert!(
+            Uri::get_pipe_path_from_parts(uri.scheme_part().unwrap().as_str(), uri.host().unwrap())
+                .is_err()
+        );
     }
 
     #[test]
     fn uri_host_decode() {
-        let uri = "npipe://123/".parse().unwrap();
-        assert!(Uri::get_pipe_path(&uri).is_err());
+        let uri: HyperUri = "npipe://123/".parse().unwrap();
+        assert!(
+            Uri::get_pipe_path_from_parts(uri.scheme_part().unwrap().as_str(), uri.host().unwrap())
+                .is_err()
+        );
     }
 
     #[test]
     fn uri_host() {
-        let uri = "npipe://5c5c2e5c706970655c646f636b65725f656e67696e65/containers/json?all=true"
-            .parse()
-            .unwrap();
+        let uri: HyperUri =
+            "npipe://5c5c2e5c706970655c646f636b65725f656e67696e65/containers/json?all=true"
+                .parse()
+                .unwrap();
         assert_eq!(
-            &Uri::get_pipe_path(&uri).unwrap(),
+            &Uri::get_pipe_path_from_parts(
+                uri.scheme_part().unwrap().as_str(),
+                uri.host().unwrap()
+            ).unwrap(),
             "\\\\.\\pipe\\docker_engine"
         );
     }

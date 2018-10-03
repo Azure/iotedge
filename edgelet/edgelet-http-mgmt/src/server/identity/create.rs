@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::cell::RefCell;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use failure::ResultExt;
 use futures::future::{self, FutureResult};
@@ -13,7 +12,7 @@ use serde::Serialize;
 use serde_json;
 
 use edgelet_core::{Identity as CoreIdentity, IdentityManager, IdentitySpec};
-use edgelet_http::route::{BoxFuture, Handler, Parameters};
+use edgelet_http::route::{Handler, Parameters};
 use management::models::{Identity, IdentitySpec as CreateIdentitySpec};
 
 use error::{Error, ErrorKind};
@@ -25,7 +24,7 @@ where
     I::Identity: Serialize,
     <I as IdentityManager>::Error: IntoResponse,
 {
-    id_manager: Arc<RefCell<I>>,
+    id_manager: Arc<Mutex<I>>,
 }
 
 impl<I> CreateIdentity<I>
@@ -36,14 +35,14 @@ where
 {
     pub fn new(id_manager: I) -> Self {
         CreateIdentity {
-            id_manager: Arc::new(RefCell::new(id_manager)),
+            id_manager: Arc::new(Mutex::new(id_manager)),
         }
     }
 }
 
 impl<I> Handler<Parameters> for CreateIdentity<I>
 where
-    I: 'static + IdentityManager,
+    I: 'static + IdentityManager + Send,
     I::Identity: CoreIdentity + Serialize,
     <I as IdentityManager>::Error: IntoResponse,
 {
@@ -51,12 +50,12 @@ where
         &self,
         req: Request<Body>,
         _params: Parameters,
-    ) -> BoxFuture<Response<Body>, HyperError> {
+    ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
         let id_mgr = self.id_manager.clone();
         let response =
             read_request(req)
                 .and_then(move |spec| {
-                    let mut rid = id_mgr.borrow_mut();
+                    let mut rid = id_mgr.lock().unwrap();
                     rid.create(spec)
                         .map(|identity| {
                             let identity = Identity::new(

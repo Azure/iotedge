@@ -16,8 +16,7 @@ DIR=$(cd "$(dirname "$0")" && pwd)
 BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}
 PROJECT_ROOT=${BUILD_REPOSITORY_LOCALPATH}/edgelet
 SCRIPT_NAME=$(basename "$0")
-IMAGE="azureiotedge/cargo-clippy:nightly"
-USE_DOCKER=1
+TOOLCHAIN='nightly-2018-09-12'
 RUSTUP="$HOME/.cargo/bin/rustup"
 CARGO="$HOME/.cargo/bin/cargo"
 
@@ -30,8 +29,6 @@ function usage()
     echo ""
     echo "options"
     echo " -h, --help          Print this help and exit."
-    echo " -i, --image         Docker image to run (default: $IMAGE)"
-    echo " -d, --use-docker    Run clippy using a docker image (default: Do not run in a docker image)"
     exit 1;
 }
 
@@ -44,14 +41,9 @@ function print_help_and_exit()
 function run_clippy()
 {
     echo "Running clippy..."
-    (cd $PROJECT_ROOT && $CARGO +nightly clippy --all)
+    (cd $PROJECT_ROOT && $CARGO "+$TOOLCHAIN" clippy --all)
 }
 
-function run_clippy_via_docker()
-{
-    echo "Running clippy docker image..."
-    docker run --user "$(id -u)":"$(id -g)" --rm -v "$PROJECT_ROOT:/volume" "$IMAGE"
-}
 ###############################################################################
 # Obtain and validate the options supported by this script
 ###############################################################################
@@ -61,14 +53,10 @@ function process_args()
     for arg in "$@"
     do
         if [ $save_next_arg -eq 1 ]; then
-            IMAGE="$arg"
-            USE_DOCKER=1
             save_next_arg=0
         else
             case "$arg" in
                 "-h" | "--help" ) usage;;
-                "-i" | "--image" ) save_next_arg=1;;
-                "-d" | "--use-docker" ) USE_DOCKER=1;;
                 * ) usage;;
             esac
         fi
@@ -80,9 +68,9 @@ process_args "$@"
 if [[ $USE_DOCKER -eq 1 ]]; then
     run_clippy_via_docker
 else
-    echo "Installing nightly toolchain"
-    $RUSTUP install nightly
+    echo "Installing $TOOLCHAIN toolchain"
+    $RUSTUP install "$TOOLCHAIN"
     echo "Installing clippy..."
-    $RUSTUP component add clippy-preview --toolchain=nightly
+    $RUSTUP component add clippy-preview "--toolchain=$TOOLCHAIN"
     run_clippy
 fi

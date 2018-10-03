@@ -3,14 +3,14 @@
 use std::str;
 
 use failure::ResultExt;
-use futures::future;
+use futures::{future, Future};
 use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use http::{Request, Response, StatusCode};
 use hyper::{Body, Error as HyperError};
 use serde_json;
 
 use edgelet_core::{Certificate, GetTrustBundle};
-use edgelet_http::route::{BoxFuture, Handler, Parameters};
+use edgelet_http::route::{Handler, Parameters};
 use workload::models::TrustBundleResponse;
 
 use error::{Error, ErrorKind};
@@ -22,7 +22,7 @@ pub struct TrustBundleHandler<T: GetTrustBundle> {
 
 impl<T> TrustBundleHandler<T>
 where
-    T: GetTrustBundle + 'static + Clone,
+    T: 'static + GetTrustBundle + Clone,
 {
     pub fn new(hsm: T) -> Self {
         TrustBundleHandler { hsm }
@@ -31,14 +31,14 @@ where
 
 impl<T> Handler<Parameters> for TrustBundleHandler<T>
 where
-    T: GetTrustBundle + 'static,
+    T: 'static + GetTrustBundle + Send,
     <T as GetTrustBundle>::Certificate: Certificate,
 {
     fn handle(
         &self,
         _req: Request<Body>,
         _params: Parameters,
-    ) -> BoxFuture<Response<Body>, HyperError> {
+    ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
         let response = self
             .hsm
             .get_trust_bundle()

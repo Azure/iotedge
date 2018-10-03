@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use edgelet_core::{Module, ModuleRuntime};
-use edgelet_http::route::{BoxFuture, Handler, Parameters};
+use edgelet_http::route::{Handler, Parameters};
 use failure::ResultExt;
 use futures::{future, Future};
 use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
@@ -35,14 +35,14 @@ where
 
 impl<M> Handler<Parameters> for ListModules<M>
 where
-    M: 'static + ModuleRuntime,
+    M: 'static + ModuleRuntime + Send,
     <M::Module as Module>::Config: Serialize,
 {
     fn handle(
         &self,
         _req: Request<Body>,
         _params: Parameters,
-    ) -> BoxFuture<Response<Body>, HyperError> {
+    ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
         debug!("List modules");
         let response =
             self.runtime

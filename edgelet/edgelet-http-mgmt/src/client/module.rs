@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::fmt;
-use std::rc::Rc;
 use std::str::FromStr;
+use std::sync::Arc;
 use std::time::Duration;
 
 use edgelet_core::SystemInfo as CoreSystemInfo;
@@ -11,26 +11,22 @@ use edgelet_docker::{self, DockerConfig};
 use edgelet_http::{UrlConnector, API_VERSION};
 use futures::future::{self, FutureResult};
 use futures::prelude::*;
-use hyper::client::Client;
-use hyper::{Body, Chunk as HyperChunk};
+use hyper::{Body, Chunk as HyperChunk, Client};
 use management::apis::client::APIClient;
 use management::apis::configuration::Configuration;
 use management::models::{Config, ModuleDetails as HttpModuleDetails};
 use serde_json;
-use tokio_core::reactor::Handle;
 use url::Url;
 
 use error::{Error, ErrorKind};
 
 pub struct ModuleClient {
-    client: Rc<APIClient<UrlConnector>>,
+    client: Arc<APIClient<UrlConnector>>,
 }
 
 impl ModuleClient {
-    pub fn new(url: &Url, handle: &Handle) -> Result<ModuleClient, Error> {
-        let client = Client::configure()
-            .connector(UrlConnector::new(url, handle)?)
-            .build(handle);
+    pub fn new(url: &Url) -> Result<ModuleClient, Error> {
+        let client = Client::builder().build(UrlConnector::new(url)?);
 
         let base_path = get_base_path(url);
         let mut configuration = Configuration::new(client);
@@ -42,7 +38,7 @@ impl ModuleClient {
         });
 
         let module_client = ModuleClient {
-            client: Rc::new(APIClient::new(configuration)),
+            client: Arc::new(APIClient::new(configuration)),
         };
         Ok(module_client)
     }
@@ -147,16 +143,16 @@ impl ModuleRuntime for ModuleClient {
     type Chunk = Chunk;
     type Logs = Logs;
 
-    type CreateFuture = Box<Future<Item = (), Error = Self::Error>>;
+    type CreateFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
     type InitFuture = FutureResult<(), Self::Error>;
-    type ListFuture = Box<Future<Item = Vec<Self::Module>, Error = Self::Error>>;
-    type LogsFuture = Box<Future<Item = Self::Logs, Error = Self::Error>>;
-    type RemoveFuture = Box<Future<Item = (), Error = Self::Error>>;
-    type RestartFuture = Box<Future<Item = (), Error = Self::Error>>;
-    type StartFuture = Box<Future<Item = (), Error = Self::Error>>;
-    type StopFuture = Box<Future<Item = (), Error = Self::Error>>;
-    type SystemInfoFuture = Box<Future<Item = CoreSystemInfo, Error = Self::Error>>;
-    type RemoveAllFuture = Box<Future<Item = (), Error = Self::Error>>;
+    type ListFuture = Box<Future<Item = Vec<Self::Module>, Error = Self::Error> + Send>;
+    type LogsFuture = Box<Future<Item = Self::Logs, Error = Self::Error> + Send>;
+    type RemoveFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
+    type RestartFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
+    type StartFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
+    type StopFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
+    type SystemInfoFuture = Box<Future<Item = CoreSystemInfo, Error = Self::Error> + Send>;
+    type RemoveAllFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
 
     fn system_info(&self) -> Self::SystemInfoFuture {
         unimplemented!()

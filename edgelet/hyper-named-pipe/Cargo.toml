@@ -8,10 +8,8 @@ publish = false
 failure = "0.1"
 futures = "0.1"
 hex = "0.3"
-hyper = "0.11"
-tokio-core = "0.1"
+hyper = "0.12"
 tokio-named-pipe = { path = "../tokio-named-pipe" }
-tokio-service = "0.1"
 url = "1.7"
 
 edgelet-utils = { path = "../edgelet-utils" }
@@ -19,5 +17,7 @@ edgelet-utils = { path = "../edgelet-utils" }
 [dev-dependencies]
 httparse = "1.2"
 rand = "0.4"
+tokio = "0.1.8"
+typed-headers = "0.1"
 
 edgelet-test-utils = { path = "../edgelet-test-utils" }

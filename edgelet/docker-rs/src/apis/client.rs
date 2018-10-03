@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::rc::Rc;
+use std::sync::Arc;
 
 use super::configuration::Configuration;
 use hyper;
 
-pub struct APIClient<C: hyper::client::Connect> {
-    configuration: Rc<Configuration<C>>,
+pub struct APIClient<C: hyper::client::connect::Connect> {
+    configuration: Arc<Configuration<C>>,
     container_api: Box<::apis::ContainerApi>,
     image_api: Box<::apis::ImageApi>,
     network_api: Box<::apis::NetworkApi>,
@@ -14,17 +14,17 @@ pub struct APIClient<C: hyper::client::Connect> {
     volume_api: Box<::apis::VolumeApi>,
 }
 
-impl<C: hyper::client::Connect> APIClient<C> {
+impl<C: hyper::client::connect::Connect + 'static> APIClient<C> {
     pub fn new(configuration: Configuration<C>) -> APIClient<C> {
-        let rc = Rc::new(configuration);
+        let configuration = Arc::new(configuration);
 
         APIClient {
-            configuration: rc.clone(),
-            container_api: Box::new(::apis::ContainerApiClient::new(rc.clone())),
-            image_api: Box::new(::apis::ImageApiClient::new(rc.clone())),
-            network_api: Box::new(::apis::NetworkApiClient::new(rc.clone())),
-            system_api: Box::new(::apis::SystemApiClient::new(rc.clone())),
-            volume_api: Box::new(::apis::VolumeApiClient::new(rc.clone())),
+            configuration: configuration.clone(),
+            container_api: Box::new(::apis::ContainerApiClient::new(configuration.clone())),
+            image_api: Box::new(::apis::ImageApiClient::new(configuration.clone())),
+            network_api: Box::new(::apis::NetworkApiClient::new(configuration.clone())),
+            system_api: Box::new(::apis::SystemApiClient::new(configuration.clone())),
+            volume_api: Box::new(::apis::VolumeApiClient::new(configuration.clone())),
         }
     }
 

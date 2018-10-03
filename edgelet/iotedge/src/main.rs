@@ -1,15 +1,14 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+#![deny(unused_extern_crates, warnings)]
+
 #[macro_use]
 extern crate clap;
 extern crate edgelet_core;
 extern crate edgelet_http_mgmt;
 extern crate failure;
-extern crate futures;
-extern crate hyper;
 extern crate iotedge;
-extern crate management;
-extern crate tokio_core;
+extern crate tokio;
 extern crate url;
 
 use std::io;
@@ -21,7 +20,6 @@ use edgelet_core::{LogOptions, LogTail};
 use edgelet_http_mgmt::ModuleClient;
 use failure::Fail;
 use iotedge::*;
-use tokio_core::reactor::Core;
 use url::Url;
 
 #[cfg(unix)]
@@ -46,7 +44,6 @@ fn main() {
 }
 
 fn run() -> Result<(), Error> {
-    let mut core = Core::new()?;
     let default_uri = option_env!("IOTEDGE_HOST").unwrap_or(MGMT_URI);
 
     let matches = App::new(crate_name!())
@@ -101,11 +98,13 @@ fn run() -> Result<(), Error> {
         .value_of("host")
         .map(|h| Url::parse(h).map_err(Error::from))
         .unwrap_or_else(|| Err(Error::from(ErrorKind::NoHost)))?;
-    let runtime = ModuleClient::new(&url, &core.handle())?;
+    let runtime = ModuleClient::new(&url)?;
+
+    let mut tokio_runtime = tokio::runtime::Runtime::new()?;
 
     match matches.subcommand() {
-        ("list", Some(_args)) => core.run(List::new(runtime, io::stdout()).execute()),
-        ("restart", Some(args)) => core.run(
+        ("list", Some(_args)) => tokio_runtime.block_on(List::new(runtime, io::stdout()).execute()),
+        ("restart", Some(args)) => tokio_runtime.block_on(
             Restart::new(
                 args.value_of("MODULE").unwrap().to_string(),
                 runtime,
@@ -120,9 +119,9 @@ fn run() -> Result<(), Error> {
                 .and_then(|a| a.parse::<LogTail>().ok())
                 .unwrap_or_default();
             let options = LogOptions::new().with_follow(follow).with_tail(tail);
-            core.run(Logs::new(id, options, runtime).execute())
+            tokio_runtime.block_on(Logs::new(id, options, runtime).execute())
         }
-        ("version", Some(_args)) => core.run(Version::new().execute()),
-        (command, _) => core.run(Unknown::new(command.to_string()).execute()),
+        ("version", Some(_args)) => tokio_runtime.block_on(Version::new().execute()),
+        (command, _) => tokio_runtime.block_on(Unknown::new(command.to_string()).execute()),
     }
 }

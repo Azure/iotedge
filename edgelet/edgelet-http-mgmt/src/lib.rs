@@ -1,6 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(warnings)]
+#![deny(unused_extern_crates, warnings)]
+// Remove this when clippy stops warning about old-style `allow()`,
+// which can only be silenced by enabling a feature and thus requires nightly
+//
+// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
+#![allow(renamed_and_removed_lints)]
 
 #[cfg(test)]
 extern crate chrono;
@@ -29,7 +34,6 @@ extern crate serde;
 extern crate serde_json;
 #[cfg(not(test))]
 extern crate serde_json;
-extern crate tokio_core;
 extern crate url;
 
 use http::Response;

@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex};
 
 use bytes::Bytes;
 
@@ -17,7 +17,7 @@ const ROOT_KEY_NAME: &str = "primary";
 /// Represents a key which can sign data.
 #[derive(Clone)]
 pub struct TpmKey {
-    tpm: Arc<RwLock<Tpm>>,
+    tpm: Arc<Mutex<Tpm>>,
     identity: KeyIdentity,
     key_name: String,
 }
@@ -26,7 +26,7 @@ pub struct TpmKey {
 /// Activate a private key, and then you can use that key to sign data.
 #[derive(Clone)]
 pub struct TpmKeyStore {
-    tpm: Arc<RwLock<Tpm>>,
+    tpm: Arc<Mutex<Tpm>>,
 }
 
 impl TpmKeyStore {
@@ -37,15 +37,15 @@ impl TpmKeyStore {
 
     pub fn from_hsm(tpm: Tpm) -> Result<TpmKeyStore, Error> {
         Ok(TpmKeyStore {
-            tpm: Arc::new(RwLock::new(tpm)),
+            tpm: Arc::new(Mutex::new(tpm)),
         })
     }
 
     /// Activate and store a private key in the TPM.
     pub fn activate_key(&self, key_value: &Bytes) -> Result<(), Error> {
         self.tpm
-            .read()
-            .expect("Read lock on KeyStore TPM failed")
+            .lock()
+            .expect("Lock on KeyStore TPM failed")
             .activate_identity_key(key_value)
             .map_err(Error::from)?;
         Ok(())
@@ -117,15 +117,15 @@ impl Sign for TpmKey {
         match self.identity {
             KeyIdentity::Device => self
                 .tpm
-                .read()
-                .expect("Read lock failed")
+                .lock()
+                .expect("Lock failed")
                 .sign_with_identity(data)
                 .map_err(Error::from)
                 .map_err(CoreError::from),
             KeyIdentity::Module(ref _m) => self
                 .tpm
-                .read()
-                .expect("Read lock failed")
+                .lock()
+                .expect("Lock failed")
                 .derive_and_sign_with_identity(
                     data,
                     format!(

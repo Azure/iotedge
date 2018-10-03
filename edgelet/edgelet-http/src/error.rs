@@ -8,8 +8,7 @@ use std::str;
 use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind};
 use failure::{Backtrace, Context, Fail};
 use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
-use http::{Response, StatusCode};
-use hyper::error::UriError;
+use http::{self, Response, StatusCode};
 use hyper::{Body, Error as HyperError, StatusCode as HyperStatusCode};
 #[cfg(windows)]
 use hyper_named_pipe::Error as PipeError;
@@ -35,6 +34,8 @@ pub enum ErrorKind {
     Io,
     #[fail(display = "Service error: [{}] {}", _0, _1)]
     ServiceError(HyperStatusCode, String),
+    #[fail(display = "Http error")]
+    Http,
     #[fail(display = "Hyper error")]
     Hyper,
     #[fail(display = "Utils error")]
@@ -103,17 +104,19 @@ impl From<Context<ErrorKind>> for Error {
     }
 }
 
+impl From<http::Error> for Error {
+    fn from(error: http::Error) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Http),
+        }
+    }
+}
+
 impl From<HyperError> for Error {
     fn from(error: HyperError) -> Error {
         Error {
             inner: error.context(ErrorKind::Hyper),
         }
-    }
-}
-
-impl From<Error> for HyperError {
-    fn from(_error: Error) -> HyperError {
-        HyperError::Method
     }
 }
 
@@ -248,14 +251,6 @@ impl From<HyperTlsError> for Error {
     fn from(error: HyperTlsError) -> Error {
         Error {
             inner: error.context(ErrorKind::HyperTls),
-        }
-    }
-}
-
-impl From<UriError> for Error {
-    fn from(error: UriError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::Parse),
         }
     }
 }

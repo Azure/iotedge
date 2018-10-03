@@ -77,7 +77,7 @@ fn wait_readable(poll: &Poll, events: &mut Events) {
 
 fn get_content_length<'a>(headers: &'a [httparse::Header<'a>]) -> Option<usize> {
     for header in headers {
-        if header.name == "Content-Length" {
+        if header.name.eq_ignore_ascii_case("Content-Length") {
             return Some(str::from_utf8(header.value).unwrap().parse().unwrap());
         }
     }

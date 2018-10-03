@@ -6,8 +6,9 @@ use std::io::{self, Write};
 use bytes::{Buf, BufMut, Bytes, BytesMut, IntoBuf};
 use edgelet_core::{LogOptions, ModuleRuntime};
 use futures::prelude::*;
-use tokio_io::codec::length_delimited::{self, FramedRead};
-use tokio_io::AsyncRead;
+use tokio::codec::length_delimited;
+use tokio::codec::FramedRead;
+use tokio::io::AsyncRead;
 
 use error::{Error, ErrorKind};
 use Command;
@@ -32,7 +33,7 @@ impl<M> Command for Logs<M>
 where
     M: 'static + ModuleRuntime + Clone,
 {
-    type Future = Box<Future<Item = (), Error = Error>>;
+    type Future = Box<Future<Item = (), Error = Error> + Send>;
 
     fn execute(&mut self) -> Self::Future {
         let id = self.id.clone();
@@ -71,7 +72,7 @@ where
 ///
 /// The following set of structs converts a Stream<&[u8]> into a Stream<LogChunk>
 /// by implementing AsyncRead on Stream<&[u8]> and then using the length_delimited
-/// decoder in tokio-io to emit BytesMut with complete frames. The LogChunk
+/// decoder in tokio to emit BytesMut with complete frames. The LogChunk
 /// is then constructed from these BytesMuts
 
 #[derive(Debug, PartialEq)]
@@ -83,7 +84,7 @@ enum LogChunk {
 }
 
 struct LogDecode<T: AsyncRead> {
-    inner: FramedRead<T>,
+    inner: FramedRead<T, length_delimited::LengthDelimitedCodec>,
 }
 
 impl<T: AsyncRead> LogDecode<T> {
