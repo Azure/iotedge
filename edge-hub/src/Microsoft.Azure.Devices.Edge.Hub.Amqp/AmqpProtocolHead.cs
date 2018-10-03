@@ -18,8 +18,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
 
-    // TODO: This suppression will be removed once implementation is complete.
-    // ReSharper disable once UnusedMember.Global
     public class AmqpProtocolHead : IProtocolHead
     {
         readonly AmqpConnectionSettings connectionSettings;
