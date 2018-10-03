@@ -30,7 +30,7 @@ else
     RPM_RELEASE="${REVISION}"
 fi
 
-#docker pull "$IMAGE"
+docker pull "$IMAGE"
 
 run_command()
 {
