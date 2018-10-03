@@ -2,17 +2,15 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test
 {
-    using System.Collections;
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Extensions.Configuration;
-    using Moq;
     using Xunit;
 
     [Unit]
-    public class StartupTest
+    public class DependencyManagerTest
     {
         static IEnumerable<object[]> GetUpstreamProtocolData()
         {
@@ -56,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test
                 .Build();
 
             // Act
-            Option<UpstreamProtocol> upstreamProtocol = Startup.GetUpstreamProtocol(configRoot);
+            Option<UpstreamProtocol> upstreamProtocol = DependencyManager.GetUpstreamProtocol(configRoot);
 
             // Assert
             Assert.Equal(expectedValue.HasValue, upstreamProtocol.HasValue);
