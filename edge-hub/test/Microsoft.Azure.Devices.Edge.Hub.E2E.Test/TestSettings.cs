@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
+    using System;
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
@@ -8,24 +9,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
     public class TestSettings
     {
-        static TestSettings()
-        {
-            bool.TryParse(ConfigHelper.TestConfig["enableWebSocketsTests"], out bool enableWebSocketsTests);
-
-            TransportSettings = new List<object[]>
-            {
-                new object[] { AmqpTransportSettings },
-                new object[] { MqttTransportSettings },
-
-            };
-
-            if (enableWebSocketsTests)
-            {
-                TransportSettings.Add(new object[] { MqttWebSocketsTransportSettings });
-                TransportSettings.Add(new object[] { AmqpWebSocketsTransportSettings });
-            }
-        }
-
         public static readonly ITransportSettings[] MqttTransportSettings =
         {
             new MqttTransportSettings(Client.TransportType.Mqtt_Tcp_Only)
@@ -52,6 +35,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only)
         };
 
-        public static IList<object[]> TransportSettings { get; }
+        public static IList<object[]> TransportSettings => TransportSettingsLazy.Value;
+
+        static readonly Lazy<IList<object[]>> TransportSettingsLazy = new Lazy<IList<object[]>>(() => GetTransportSettings(), true);
+
+        static IList<object[]> GetTransportSettings()
+        {
+            IList<object[]> transportSettings = new List<object[]>
+            {
+                new object[] { AmqpTransportSettings },
+                new object[] { MqttTransportSettings },
+
+            };
+
+            if (bool.TryParse(ConfigHelper.TestConfig["enableWebSocketsTests"], out bool enableWebSocketsTests) && enableWebSocketsTests)
+            {
+                transportSettings.Add(new object[] { MqttWebSocketsTransportSettings });
+                transportSettings.Add(new object[] { AmqpWebSocketsTransportSettings });
+            }
+
+            return transportSettings;
+        }
     }
 }

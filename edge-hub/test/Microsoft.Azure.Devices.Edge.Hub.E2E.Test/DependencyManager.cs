@@ -5,17 +5,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using System;
     using System.Collections.Generic;
     using System.Diagnostics.Tracing;
+    using System.Security.Cryptography.X509Certificates;
     using Autofac;
-    using Autofac.Extensions.DependencyInjection;
     using DotNetty.Common.Internal.Logging;
-    using Microsoft.AspNetCore.Builder;
-    using Microsoft.AspNetCore.Hosting;
-    using Microsoft.AspNetCore.Mvc;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
-    using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
-    using Microsoft.Azure.Devices.Edge.Hub.Http;
-    using Microsoft.Azure.Devices.Edge.Hub.Http.Middleware;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Hub.Service;
     using Microsoft.Azure.Devices.Edge.Hub.Service.Modules;
@@ -23,45 +17,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Microsoft.Azure.Devices.Edge.Util.Logging;
     using Microsoft.Azure.Devices.ProtocolGateway.Instrumentation;
     using Microsoft.Extensions.Configuration;
-    using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Moq;
 
-    class Startup : IStartup
+    class DependencyManager : IDependencyManager
     {
-        internal IContainer Container { get; private set; }
+        readonly IConfigurationRoot configuration;
+        readonly X509Certificate2 serverCertificate;
 
-        string iothubHostname;
-        string deviceId;
-
-        public IServiceProvider ConfigureServices(IServiceCollection services)
+        public DependencyManager(IConfigurationRoot configuration, X509Certificate2 serverCertificate)
         {
-            services.AddMemoryCache();
-            services.AddMvc(options => options.Filters.Add(typeof(ExceptionFilter)));
-
-            services.Configure<MvcOptions>(options =>
-            {
-                options.Filters.Add(new RequireHttpsAttribute());
-            });
-
-            services.AddSingleton<IStartup>(sp => this);
-
-            this.Container = this.BuildContainer(services);
-            return new AutofacServiceProvider(this.Container);
+            this.configuration = configuration;
+            this.serverCertificate = serverCertificate;
         }
 
-        IContainer BuildContainer(IServiceCollection services)
+        public void Register(ContainerBuilder builder)
         {
             const int ConnectionPoolSize = 10;
 
-            string edgeHubConnectionString = $"{ProtocolHeadFixtureCache.EdgeDeviceConnectionString};ModuleId=$edgeHub";
+            string edgeHubConnectionString = $"{this.configuration[Service.Constants.ConfigKey.IotHubConnectionString]};ModuleId=$edgeHub";
             Client.IotHubConnectionStringBuilder iotHubConnectionStringBuilder = Client.IotHubConnectionStringBuilder.Create(edgeHubConnectionString);
-            this.iothubHostname = iotHubConnectionStringBuilder.HostName;
-            this.deviceId = iotHubConnectionStringBuilder.DeviceId;
             var topics = new MessageAddressConversionConfiguration(this.inboundTemplates, this.outboundTemplates);
 
-            var builder = new ContainerBuilder();
-            builder.Populate(services);
             builder.RegisterModule(new LoggingModule());
 
             var mqttSettingsConfiguration = new Mock<IConfiguration>();
@@ -89,7 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     string.Empty,
                     Option.None<string>(),
                     AuthenticationMode.CloudAndScope,
-                    Option.Some(ProtocolHeadFixtureCache.EdgeDeviceConnectionString),
+                    Option.Some(edgeHubConnectionString),
                     false,
                     false,
                     string.Empty,
@@ -116,19 +93,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     true));
 
             builder.RegisterModule(new HttpModule());
-            builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, ProtocolHeadFixtureCache.X509Certificate, false, false, string.Empty, false));
-            builder.RegisterModule(new AmqpModule("amqps", 5671, ProtocolHeadFixtureCache.X509Certificate, iotHubConnectionStringBuilder.HostName));
-            return builder.Build();
-        }
-
-        public void Configure(IApplicationBuilder app)
-        {
-            var webSocketListenerRegistry = app.ApplicationServices.GetService(typeof(IWebSocketListenerRegistry)) as IWebSocketListenerRegistry;
-
-            app.UseWebSockets();
-            app.UseWebSocketHandlingMiddleware(webSocketListenerRegistry);
-            app.UseAuthenticationMiddleware(this.iothubHostname, this.deviceId);
-            app.UseMvc();
+            builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, this.serverCertificate, false, false, string.Empty, false));
+            builder.RegisterModule(new AmqpModule("amqps", 5671, this.serverCertificate, iotHubConnectionStringBuilder.HostName));
         }
 
         readonly IList<string> inboundTemplates = new List<string>()

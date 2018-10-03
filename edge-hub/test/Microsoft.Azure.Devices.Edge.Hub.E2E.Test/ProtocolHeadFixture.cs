@@ -4,13 +4,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
     using System;
     using System.Collections.Generic;
-    using System.Net;
-    using System.Net.Sockets;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Autofac;
-    using Microsoft.AspNetCore;
-    using Microsoft.AspNetCore.Hosting;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Amqp;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -66,18 +62,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
                 string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
 
-                ProtocolHeadFixtureCache.X509Certificate = certificate;
-                ProtocolHeadFixtureCache.EdgeDeviceConnectionString = edgeDeviceConnectionString;
-
                 // TODO - After IoTHub supports MQTT, remove this and move to using MQTT for upstream connections
                 await ConnectToIotHub(edgeDeviceConnectionString);
 
-                IWebHostBuilder webHostBuilder = WebHost.CreateDefaultBuilder()
-                    .UseKestrel(options => { options.Listen(!Socket.OSSupportsIPv6 ? IPAddress.Any : IPAddress.IPv6Any, 443, listenOptions => { listenOptions.UseHttps(certificate); }); });
-                IWebHost webHost = webHostBuilder
-                    .UseStartup<Startup>().Build();
-
-                container = webHost.Services.GetService(typeof(IStartup)) is Startup startup ? startup.Container : null;
+                ConfigHelper.TestConfig[Service.Constants.ConfigKey.IotHubConnectionString] = edgeDeviceConnectionString;
+                Hosting hosting = Hosting.Initialize(ConfigHelper.TestConfig, certificate, new DependencyManager(ConfigHelper.TestConfig, certificate));
+                this.container = hosting.Container;
 
                 // CloudConnectionProvider and RoutingEdgeHub have a circular dependency. So set the
                 // EdgeHub on the CloudConnectionProvider before any other operation
@@ -92,7 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 ILogger logger = this.container.Resolve<ILoggerFactory>().CreateLogger("EdgeHub");
                 MqttProtocolHead mqttProtocolHead = await this.container.Resolve<Task<MqttProtocolHead>>();
                 AmqpProtocolHead amqpProtocolHead = await this.container.Resolve<Task<AmqpProtocolHead>>();
-                var httpProtocolHead = new HttpProtocolHead(webHost);
+                var httpProtocolHead = new HttpProtocolHead(hosting.WebHost);
                 this.protocolHead = new EdgeHubProtocolHead(new List<IProtocolHead> { mqttProtocolHead, amqpProtocolHead, httpProtocolHead }, logger);
                 await this.protocolHead.StartAsync();
             }
