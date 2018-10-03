@@ -642,6 +642,7 @@ name = "hsm-sys"
 version = "0.1.0"
 dependencies = [
  "cmake 0.1.30 (registry+https://github.com/rust-lang/crates.io-index)",
+ "num_cpus 1.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

@@ -1,5 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+extern crate num_cpus;
+
 use std::env;
 use std::path::Path;
 use std::process::Command;
@@ -17,6 +19,7 @@ fn run_ctest() {
         .arg("-C")
         .arg("Release")
         .arg("-VV")
+        .arg(format!("-j {}", num_cpus::get()))
         .current_dir(build_dir)
         .output()
         .expect("failed to execute ctest");
