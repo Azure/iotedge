@@ -177,5 +177,30 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
             Assert.Equal(chain.Count(), 1);
             Assert.Equal(expected, chain.First());
         }
+
+        [Fact]
+        public void ParseCertificateAndKeyShouldReturnCertAndKey()
+        {
+            TestCertificateHelper.GenerateSelfSignedCert("top secret").Export(X509ContentType.Cert);
+            (X509Certificate2 cert, IEnumerable<X509Certificate2> chain) = CertificateHelper.ParseCertificateAndKey(TestCertificateHelper.CertificatePem, TestCertificateHelper.PrivateKeyPem);
+
+            var expected = new X509Certificate2(Encoding.UTF8.GetBytes(TestCertificateHelper.CertificatePem));
+            Assert.Equal(expected, cert);
+            Assert.True(cert.HasPrivateKey);
+            Assert.Equal(chain.Count(), 0);
+        }
+
+        public void ParseMultipleCertificateAndKeyShouldReturnCertAndKey()
+        {
+            TestCertificateHelper.GenerateSelfSignedCert("top secret").Export(X509ContentType.Cert);
+            string certificate = $"{TestCertificateHelper.CertificatePem}\n{TestCertificateHelper.CertificatePem}";
+            (X509Certificate2 cert, IEnumerable<X509Certificate2> chain) = CertificateHelper.ParseCertificateAndKey(certificate, TestCertificateHelper.PrivateKeyPem);
+
+            var expected = new X509Certificate2(Encoding.UTF8.GetBytes(TestCertificateHelper.CertificatePem));
+            Assert.Equal(expected, cert);
+            Assert.True(cert.HasPrivateKey);
+            Assert.Equal(chain.Count(), 1);
+            Assert.Equal(expected, chain.First());
+        }
     }
 }
