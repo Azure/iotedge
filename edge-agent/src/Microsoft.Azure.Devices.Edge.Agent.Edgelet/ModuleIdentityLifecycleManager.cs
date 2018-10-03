@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.GeneratedCode;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
 
     public class ModuleIdentityLifecycleManager : IModuleIdentityLifecycleManager
     {
@@ -32,6 +33,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
                 return ImmutableDictionary<string, IModuleIdentity>.Empty;
             }
 
+            try
+            {
+                IImmutableDictionary<string, IModuleIdentity> moduleIdentities = await this.GetModuleIdentitiesAsync(diff);
+                return moduleIdentities;
+            }
+            catch (Exception ex)
+            {
+                Events.ErrorGettingModuleIdentities(ex);
+                return ImmutableDictionary<string, IModuleIdentity>.Empty;
+            }
+        }
+
+        async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(Diff diff)
+        {
             IList<string> updatedModuleNames = diff.Updated.Select(m => ModuleIdentityHelper.GetModuleIdentityName(m.Name)).ToList();
             IEnumerable<string> removedModuleNames = diff.Removed.Select(m => ModuleIdentityHelper.GetModuleIdentityName(m));
 
@@ -74,5 +89,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         IModuleIdentity GetModuleIdentity(Identity identity) =>
             this.identityProviderServiceBuilder.Create(identity.ModuleId, identity.GenerationId, this.workloadUri.ToString());
+
+        static class Events
+        {
+            static readonly ILogger Log = Logger.Factory.CreateLogger<ModuleIdentityLifecycleManager>();
+            const int IdStart = AgentEventIds.ModuleIdentityLifecycleManager;
+
+            enum EventIds
+            {
+                ErrorGettingModuleIdentities = IdStart,
+            }
+
+            public static void ErrorGettingModuleIdentities(Exception ex)
+            {
+                Log.LogDebug((int)EventIds.ErrorGettingModuleIdentities, ex, "Error getting module identities.");
+            }
+        }
     }
 }

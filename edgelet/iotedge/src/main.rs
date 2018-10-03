@@ -47,6 +47,7 @@ fn main() {
 
 fn run() -> Result<(), Error> {
     let mut core = Core::new()?;
+    let default_uri = option_env!("IOTEDGE_HOST").unwrap_or(MGMT_URI);
 
     let matches = App::new(crate_name!())
         .version(edgelet_core::version())
@@ -61,9 +62,8 @@ fn run() -> Result<(), Error> {
                 .value_name("HOST")
                 .global(true)
                 .env("IOTEDGE_HOST")
-                .default_value(MGMT_URI),
-        )
-        .subcommand(SubCommand::with_name("list").about("List modules"))
+                .default_value(default_uri),
+        ).subcommand(SubCommand::with_name("list").about("List modules"))
         .subcommand(
             SubCommand::with_name("restart")
                 .about("Restart a module")
@@ -73,8 +73,7 @@ fn run() -> Result<(), Error> {
                         .required(true)
                         .index(1),
                 ),
-        )
-        .subcommand(
+        ).subcommand(
             SubCommand::with_name("logs")
                 .about("Fetch the logs of a module")
                 .arg(
@@ -82,23 +81,20 @@ fn run() -> Result<(), Error> {
                         .help("Sets the module identity to get logs")
                         .required(true)
                         .index(1),
-                )
-                .arg(
+                ).arg(
                     Arg::with_name("tail")
                         .help("Number of lines to show from the end of the log")
                         .long("tail")
                         .takes_value(true)
                         .value_name("NUM")
                         .default_value("all"),
-                )
-                .arg(
+                ).arg(
                     Arg::with_name("follow")
                         .help("Follow output log")
                         .short("f")
                         .long("follow"),
                 ),
-        )
-        .subcommand(SubCommand::with_name("version").about("Show the version information"))
+        ).subcommand(SubCommand::with_name("version").about("Show the version information"))
         .get_matches();
 
     let url = matches

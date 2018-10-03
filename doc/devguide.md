@@ -17,12 +17,12 @@ Make sure the following dependencies are installed in your environment before yo
 Besides using Visual Studio in Windows, you can build by running the build script:
 
 ### Linux
-```
+```sh
 scripts/linux/buildBranch.sh
 ```
 
 ### Windows
-```
+```powershell
 scripts\windows\buildBranch.bat
 ```
 
@@ -33,12 +33,12 @@ Binaries are published to `target/publish/`.
 Besides using Test Explorer in Visual Studio, you can run the unit tests with:
 
 ### Linux
-```
+```sh
 scripts/linux/runTests.sh
 ```
 
 ### Windows
-```
+```powershell
 scripts\windows\runTests.bat
 ```
 
@@ -49,28 +49,29 @@ To run integration tests and/or BVTs, make sure the following dependencies are i
 | Dependency        | Notes                |
 |-------------------|----------------------|
 | Azure CLI         | Installation instructions [here](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) |
-| Powershell        | Installation instructions [here](https://github.com/PowerShell/PowerShell/tree/master/docs/installation) |
+| Powershell        | Installation instructions [here](https://docs.microsoft.com/en-us/powershell/scripting/setup/installing-powershell-core-on-linux) |
 | Jq                | Installation instructions [here](https://stedolan.github.io/jq/download/) |
 | Docker            | Installation instructions [here](https://docs.docker.com/engine/installation/#supported-platforms). In Linux environments, be sure to follow the [post-installation steps](https://docs.docker.com/engine/installation/linux/linux-postinstall/) so the tests can run without `sudo`. |
 
 The integration tests and BVTs expect to find certain values in an Azure KeyVault (see `edge-util/test/Microsoft.Azure.Devices.Edge.Util.Test.Common/settings/base.json`). For the tests to access the KeyVault at runtime, a certificate must first be installed in the environment where the tests will run. Install the KeyVault certificate with:
 
 ### Linux
-```
-scripts/linux/downloadAndInstallCert.sh <SpUsername> <SpPassword> <AadTenant> <CertName> <VaultName>
+```sh
+az login # Login and select default subscription, if necessary
+
+scripts/linux/downloadAndInstallCert.sh -v <VaultName> -c <CertName>
 ```
 
 | Argument    | Description                |
 |-------------|----------------------------|
-| SpUsername  | Service principal username. See `az login` [help](https://docs.microsoft.com/en-us/cli/azure/#login). |
-| SpPassword  | Service principal password. See `az login` [help](https://docs.microsoft.com/en-us/cli/azure/#login). |
-| AadTenant   | Azure Active Directory tenant. See `az login` [help](https://docs.microsoft.com/en-us/cli/azure/#login). |
-| CertName    | Certificate name. See `--secret` in `az keyvault secret show` [help](https://docs.microsoft.com/en-us/cli/azure/keyvault/secret#show). |
 | VaultName   | KeyVault name. See `az keyvault secret show` [help](https://docs.microsoft.com/en-us/cli/azure/keyvault/secret#show). |
+| CertName    | Certificate name. See `--secret` in `az keyvault secret show` [help](https://docs.microsoft.com/en-us/cli/azure/keyvault/secret#show). |
 
 ### Windows
-```
-powershell scripts\windows\DownloadAndInstallCertificate.ps1 <VaultName> <CertificateName>
+```powershell
+Connect-AzureRmAccount # Login and select default subscription, if necessary
+
+scripts\windows\setup\Install-VaultCertificate.ps1 -VaultName <VaultName> -CertificateName <CertificateName>
 ```
 
 | Argument    | Description                |
@@ -81,12 +82,12 @@ powershell scripts\windows\DownloadAndInstallCertificate.ps1 <VaultName> <Certif
 Then run the tests either with Test Explorer in Visual Studio IDE, or with:
 
 ### Linux
-```
+```sh
 scripts/linux/runTests.sh "--filter Category=Integration|Category=Bvt"
 ```
 
 ### Windows
-```
+```powershell
 scripts\windows\runTests.bat "--filter Category=Integration|Category=Bvt"
 ```
 
@@ -96,7 +97,7 @@ The syntax of the "filter" argument is described [here](https://docs.microsoft.c
 There is a script in the repo to build multi-architecture images.
 This script assumes that the platform specific images are already in the docker registry.
 Usage is as follows:
-```
+```sh
 $ scripts/linux/buildManifest.sh --help
 
 buildManifest.sh [options]

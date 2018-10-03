@@ -39,7 +39,7 @@ phases:
         displayName: Install
         inputs:
           filePath: scripts/windows/setup/Install-Prerequisites.ps1
-          arguments: -DotnetSdkUrl $(NetCorePackageUriWindows)
+          arguments: -DotnetSdkUrl $(NetCorePackageUriWindows) -Dotnet -Nuget
       - task: PowerShell@2
         displayName: Build
         inputs:

@@ -30,6 +30,9 @@ function Install-SecurityDaemon {
         [ValidateSet("Linux", "Windows")]
         [String] $ContainerOs = "Linux",
 
+        # Proxy URI
+        [Uri] $Proxy,
+
         # Local path to iotedged zip file
         [String] $ArchivePath,
 
@@ -220,29 +223,30 @@ function Get-ContainerOs {
 function Get-SecurityDaemon {
     try {
         $DeleteArchive = $false
-        if (-not $ArchivePath) {
+        if (-not "$ArchivePath") {
             $ArchivePath = "$env:TEMP\iotedged-windows.zip"
             $DeleteArchive = $true
             Write-Host "Downloading the latest version of IoT Edge security daemon." -ForegroundColor "Green"
             Invoke-WebRequest `
                 -Uri "https://aka.ms/iotedged-windows-latest" `
-                -OutFile $ArchivePath `
-                -UseBasicParsing
+                -OutFile "$ArchivePath" `
+                -UseBasicParsing `
+                -Proxy $Proxy
             Write-Host "Downloaded security daemon." -ForegroundColor "Green"
         }
-        if ((Get-Item $ArchivePath).PSIsContainer) {
+        if ((Get-Item "$ArchivePath").PSIsContainer) {
             Copy-Item "$ArchivePath\*" "C:\ProgramData\iotedge" -Force
         }
         else {
             Invoke-Native "mkdir C:\ProgramData\iotedge"
-            Expand-Archive $ArchivePath "C:\ProgramData\iotedge" -Force
+            Expand-Archive "$ArchivePath" "C:\ProgramData\iotedge" -Force
             Copy-Item "C:\ProgramData\iotedge\iotedged-windows\*" "C:\ProgramData\iotedge" -Force
         }
     }
     finally {
         Remove-Item "C:\ProgramData\iotedge\iotedged-windows" -Recurse -Force -ErrorAction "SilentlyContinue"
         if ($DeleteArchive) {
-            Remove-Item $ArchivePath -Recurse -Force -ErrorAction "SilentlyContinue"
+            Remove-Item "$ArchivePath" -Recurse -Force -ErrorAction "SilentlyContinue"
         }
     }
 }
@@ -314,7 +318,8 @@ function Get-VcRuntime {
         Invoke-WebRequest `
             -Uri "https://download.microsoft.com/download/0/6/4/064F84EA-D1DB-4EAA-9A5C-CC2F0FF6A638/vc_redist.x64.exe" `
             -OutFile "$env:TEMP\vc_redist.exe" `
-            -UseBasicParsing
+            -UseBasicParsing `
+            -Proxy $Proxy
         Invoke-Native "$env:TEMP\vc_redist.exe /quiet /norestart"
         Write-Host "Downloaded vcruntime." -ForegroundColor "Green"
     }

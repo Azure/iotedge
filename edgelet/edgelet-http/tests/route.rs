@@ -20,8 +20,7 @@ fn route1(_req: Request<Body>, params: Parameters) -> BoxFuture<Response<Body>, 
                 .status(StatusCode::OK)
                 .body(format!("route1 {}", name).into())
                 .unwrap()
-        })
-        .unwrap_or_else(|| {
+        }).unwrap_or_else(|| {
             Response::builder()
                 .status(StatusCode::BAD_REQUEST)
                 .body(Body::default())
@@ -38,8 +37,7 @@ fn route2(_req: Request<Body>, params: Parameters) -> BoxFuture<Response<Body>, 
                 .status(StatusCode::CREATED)
                 .body(format!("route2 {}", name).into())
                 .unwrap()
-        })
-        .unwrap_or_else(|| {
+        }).unwrap_or_else(|| {
             Response::builder()
                 .status(StatusCode::BAD_REQUEST)
                 .body(Body::default())

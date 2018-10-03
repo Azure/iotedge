@@ -42,13 +42,19 @@ pub struct TaskSpecContainerSpec {
     /// A list of additional groups that the container process will run as.
     #[serde(rename = "Groups", skip_serializing_if = "Option::is_none")]
     groups: Option<Vec<String>>,
-    #[serde(rename = "Privileges", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "Privileges",
+        skip_serializing_if = "Option::is_none"
+    )]
     privileges: Option<::models::TaskSpecContainerSpecPrivileges>,
     /// Whether a pseudo-TTY should be allocated.
     #[serde(rename = "TTY", skip_serializing_if = "Option::is_none")]
     TTY: Option<bool>,
     /// Open `stdin`
-    #[serde(rename = "OpenStdin", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "OpenStdin",
+        skip_serializing_if = "Option::is_none"
+    )]
     open_stdin: Option<bool>,
     /// Mount the container's root filesystem as read only.
     #[serde(rename = "ReadOnly", skip_serializing_if = "Option::is_none")]
@@ -57,17 +63,29 @@ pub struct TaskSpecContainerSpec {
     #[serde(rename = "Mounts", skip_serializing_if = "Option::is_none")]
     mounts: Option<Vec<::models::Mount>>,
     /// Signal to stop the container.
-    #[serde(rename = "StopSignal", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "StopSignal",
+        skip_serializing_if = "Option::is_none"
+    )]
     stop_signal: Option<String>,
     /// Amount of time to wait for the container to terminate before forcefully killing it.
-    #[serde(rename = "StopGracePeriod", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "StopGracePeriod",
+        skip_serializing_if = "Option::is_none"
+    )]
     stop_grace_period: Option<i64>,
-    #[serde(rename = "HealthCheck", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "HealthCheck",
+        skip_serializing_if = "Option::is_none"
+    )]
     health_check: Option<::models::HealthConfig>,
     /// A list of hostname/IP mappings to add to the container's `hosts` file. The format of extra hosts is specified in the [hosts(5)](http://man7.org/linux/man-pages/man5/hosts.5.html) man page:      IP_address canonical_hostname [aliases...]
     #[serde(rename = "Hosts", skip_serializing_if = "Option::is_none")]
     hosts: Option<Vec<String>>,
-    #[serde(rename = "DNSConfig", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "DNSConfig",
+        skip_serializing_if = "Option::is_none"
+    )]
     dns_config: Option<::models::TaskSpecContainerSpecDnsConfig>,
     /// Secrets contains references to zero or more secrets that will be exposed to the service.
     #[serde(rename = "Secrets", skip_serializing_if = "Option::is_none")]

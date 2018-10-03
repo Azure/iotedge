@@ -16,7 +16,10 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct MountTmpfsOptions {
     /// The size for the tmpfs mount in bytes.
-    #[serde(rename = "SizeBytes", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "SizeBytes",
+        skip_serializing_if = "Option::is_none"
+    )]
     size_bytes: Option<i64>,
     /// The permission mode for the tmpfs mount in an integer.
     #[serde(rename = "Mode", skip_serializing_if = "Option::is_none")]

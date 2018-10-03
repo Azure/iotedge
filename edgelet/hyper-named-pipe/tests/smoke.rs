@@ -100,8 +100,7 @@ fn get_with_body() {
         .and_then(|res| {
             assert_eq!(StatusCode::Ok, res.status());
             res.body().concat2()
-        })
-        .map(|body| {
+        }).map(|body| {
             assert_eq!(GET_RESPONSE, &String::from_utf8_lossy(body.as_ref()));
         });
 

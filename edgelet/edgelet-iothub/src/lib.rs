@@ -221,17 +221,14 @@ where
             .get(
                 &KeyIdentity::Module(id.to_string()),
                 &build_key_name(KEY_PRIMARY, generation_id),
-            )
-            .and_then(|primary_key| {
+            ).and_then(|primary_key| {
                 self.state
                     .key_store
                     .get(
                         &KeyIdentity::Module(id.to_string()),
                         &build_key_name(KEY_SECONDARY, generation_id),
-                    )
-                    .map(|secondary_key| (primary_key, secondary_key))
-            })
-            .context(ErrorKind::CannotGetKey(id.to_string()))
+                    ).map(|secondary_key| (primary_key, secondary_key))
+            }).context(ErrorKind::CannotGetKey(id.to_string()))
             .map_err(Error::from)
     }
 }
@@ -284,8 +281,7 @@ where
                     id.module_id(),
                     Some(AuthMechanism::default().with_type(HubAuthType::None)),
                     id.managed_by(),
-                )
-                .map_err(Error::from)
+                ).map_err(Error::from)
                 .and_then(move |module| {
                     if let (Some(module_id), Some(generation_id)) =
                         (module.module_id(), module.generation_id())
@@ -294,8 +290,7 @@ where
                     } else {
                         Err(Error::from(ErrorKind::InvalidHubResponse))
                     }
-                })
-                .and_then(move |(primary_key, secondary_key)| {
+                }).and_then(move |(primary_key, secondary_key)| {
                     let auth = AuthMechanism::default()
                         .with_type(HubAuthType::Sas)
                         .with_symmetric_key(
@@ -333,8 +328,7 @@ where
                             .map_err(Error::from)
                             .map(HubIdentity::new),
                     )
-                })
-                .unwrap_or_else(|err| Either::B(future::err(err)))
+                }).unwrap_or_else(|err| Either::B(future::err(err)))
         } else {
             Either::B(future::err(Error::from(ErrorKind::MissingGenerationId)))
         };
@@ -366,8 +360,7 @@ where
                             Err(err)
                         }
                     })
-                })
-                .map_err(Error::from)
+                }).map_err(Error::from)
                 .map(|module| module.map(HubIdentity::new)),
         )
     }
@@ -594,7 +587,7 @@ mod tests {
                                     .with_generation_id("g1".to_string())
                                     .with_managed_by("iotedge".to_string()),
                             ).unwrap()
-                                .into_bytes(),
+                            .into_bytes(),
                         ))
                 })
         };
@@ -688,8 +681,7 @@ mod tests {
                     .clone()
                     .with_generation_id("g1".to_string())
                     .with_managed_by("iotedge".to_string())
-            })
-            .collect::<Vec<Module>>();
+            }).collect::<Vec<Module>>();
 
         let handler = move |req: Request| {
             assert_eq!(req.method(), &Method::Get);
@@ -707,10 +699,9 @@ mod tests {
                                     .clone()
                                     .with_generation_id("g1".to_string())
                                     .with_managed_by("iotedge".to_string())
-                            })
-                            .collect::<Vec<Module>>(),
+                            }).collect::<Vec<Module>>(),
                     ).unwrap()
-                        .into_bytes(),
+                    .into_bytes(),
                 ))
         };
         let token_source = SasTokenSource::new(
@@ -792,7 +783,7 @@ mod tests {
                             .with_generation_id("g1".to_string())
                             .with_managed_by("iotedge".to_string()),
                     ).unwrap()
-                        .into_bytes(),
+                    .into_bytes(),
                 ))
         };
         let token_source = SasTokenSource::new(

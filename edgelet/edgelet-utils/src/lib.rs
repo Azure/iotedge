@@ -50,8 +50,7 @@ pub fn parse_query(query: &str) -> HashMap<&str, &str> {
             } else {
                 None
             }
-        })
-        .collect()
+        }).collect()
 }
 
 #[cfg(test)]

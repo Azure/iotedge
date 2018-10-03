@@ -42,8 +42,7 @@ mod windows {
                 "-h",
                 &out_dir,
                 "src\\resources\\event_messages.mc",
-            ])
-            .status()
+            ]).status()
             .expect("Message compilation failed");
 
         let rc_source_path = Path::new(&out_dir).join("event_messages.rc");

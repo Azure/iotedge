@@ -19,7 +19,10 @@ pub struct TaskSpecContainerSpecSecrets {
     #[serde(rename = "SecretID", skip_serializing_if = "Option::is_none")]
     secret_id: Option<String>,
     /// SecretName is the name of the secret that this references, but this is just provided for lookup/display purposes. The secret in the reference will be identified by its ID.
-    #[serde(rename = "SecretName", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "SecretName",
+        skip_serializing_if = "Option::is_none"
+    )]
     secret_name: Option<String>,
 }
 

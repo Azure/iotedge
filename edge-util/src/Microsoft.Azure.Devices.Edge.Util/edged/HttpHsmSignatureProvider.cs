@@ -28,20 +28,11 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
             new ExponentialBackoff(retryCount: 3, minBackoff: TimeSpan.FromSeconds(2), maxBackoff: TimeSpan.FromSeconds(30), deltaBackoff: TimeSpan.FromSeconds(3));
 
         public HttpHsmSignatureProvider(string moduleId, string generationId, string providerUri, string apiVersion)
-        {
-            if (string.IsNullOrEmpty(providerUri))
-            {
-                throw new ArgumentNullException(nameof(providerUri));
-            }
-            if (string.IsNullOrEmpty(apiVersion))
-            {
-                throw new ArgumentNullException(nameof(apiVersion));
-            }
-
-            this.providerUri = new Uri(providerUri);
-            this.apiVersion = apiVersion;
-            this.moduleId = moduleId;
-            this.generationId = generationId;
+        {            
+            this.providerUri = new Uri(Preconditions.CheckNotNull(providerUri, nameof(providerUri)));
+            this.apiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion));
+            this.moduleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
+            this.generationId = Preconditions.CheckNonWhiteSpace(generationId, nameof(generationId));
         }
 
         public async Task<string> SignAsync(string data)

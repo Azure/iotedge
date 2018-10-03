@@ -94,6 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             twin.SystemProperties[SystemProperties.OutboundUri] = Constants.OutboundUriTwinEndpoint;
             IProtocolGatewayMessage pgMessage = this.messageConverter.FromMessage(twin);
             this.channel.Handle(pgMessage);
+            Events.SentTwinUpdateToDevice(this.Identity);
             return Task.CompletedTask;
         }
 
@@ -120,7 +121,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             {
                 Close = IdStart,
                 SetInactive,
-                SendMessage
+                SendMessage,
+                SentTwinUpdateToDevice
             }
 
             public static void Close(IIdentity identity)
@@ -136,6 +138,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             public static void SendMessage(IIdentity identity)
             {
                 Log.LogDebug((int)EventIds.SendMessage, Invariant($"Sending message to device for device Id {identity.Id}"));
+            }
+
+            public static void SentTwinUpdateToDevice(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.SentTwinUpdateToDevice, Invariant($"Sent twin update to {identity.Id}"));
             }
         }
     }

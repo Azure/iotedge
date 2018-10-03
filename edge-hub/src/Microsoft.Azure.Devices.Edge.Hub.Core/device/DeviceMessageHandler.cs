@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         public void BindDeviceProxy(IDeviceProxy deviceProxy)
         {
             this.underlyingProxy = Preconditions.CheckNotNull(deviceProxy);
-            this.connectionManager.BindDeviceProxy(this.Identity, this);
+            this.connectionManager.AddDeviceConnection(this.Identity, this);
             Events.BindDeviceProxy(this.Identity);
         }
 
@@ -117,6 +117,38 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         public Task RemoveSubscription(DeviceSubscription subscription) => this.edgeHub.RemoveSubscription(this.Identity.Id, subscription);
 
+        public async Task AddDesiredPropertyUpdatesSubscription(string correlationId)
+        {
+            await this.edgeHub.AddSubscription(this.Identity.Id, DeviceSubscription.DesiredPropertyUpdates);
+            if (!string.IsNullOrWhiteSpace(correlationId))
+            {
+                IMessage responseMessage = new EdgeMessage.Builder(new byte[0])
+                    .SetSystemProperties(new Dictionary<string, string>
+                    {
+                        [SystemProperties.CorrelationId] = correlationId,
+                        [SystemProperties.StatusCode] = ((int)HttpStatusCode.OK).ToString()
+                    })
+                    .Build();
+                await this.SendTwinUpdate(responseMessage);
+            }
+        }
+
+        public async Task RemoveDesiredPropertyUpdatesSubscription(string correlationId)
+        {
+            await this.edgeHub.RemoveSubscription(this.Identity.Id, DeviceSubscription.DesiredPropertyUpdates);
+            if (!string.IsNullOrWhiteSpace(correlationId))
+            {
+                IMessage responseMessage = new EdgeMessage.Builder(new byte[0])
+                    .SetSystemProperties(new Dictionary<string, string>
+                    {
+                        [SystemProperties.CorrelationId] = correlationId,
+                        [SystemProperties.StatusCode] = ((int)HttpStatusCode.OK).ToString()
+                    })
+                    .Build();
+                await this.SendTwinUpdate(responseMessage);
+            }
+        }
+
         public async Task SendGetTwinRequest(string correlationId)
         {
             try
@@ -125,6 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                 twin.SystemProperties[SystemProperties.CorrelationId] = correlationId;
                 twin.SystemProperties[SystemProperties.StatusCode] = ((int)HttpStatusCode.OK).ToString();
                 await this.SendTwinUpdate(twin);
+                Events.ProcessedGetTwin(this.Identity.Id);
             }
             catch (Exception e)
             {
@@ -291,7 +324,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                 MessageFeedbackWithNoMessageId,
                 MessageSentToClient,
                 ErrorGettingTwin,
-                ErrorUpdatingReportedProperties
+                ErrorUpdatingReportedProperties,
+                ProcessedGetTwin
             }
 
             public static void BindDeviceProxy(IIdentity identity)
@@ -357,6 +391,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             public static void ErrorUpdatingReportedPropertiesTwin(IIdentity identity, Exception ex)
             {
                 Log.LogWarning((int)EventIds.ErrorUpdatingReportedProperties, ex, Invariant($"Error updating reported properties for {identity.Id}"));
+            }
+
+            public static void ProcessedGetTwin(string identityId)
+            {
+                Log.LogDebug((int)EventIds.ProcessedGetTwin, Invariant($"Processed GetTwin for {identityId}"));
             }
         }
     }

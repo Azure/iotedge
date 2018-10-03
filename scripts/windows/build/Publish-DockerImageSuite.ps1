@@ -39,7 +39,6 @@ $Images = @{
     "agent"                        = @("Microsoft.Azure.Devices.Edge.Agent.Service", $Agent)
     "hub"                          = @("Microsoft.Azure.Devices.Edge.Hub.Service", $Hub)
     "simulated-temperature-sensor" = @("SimulatedTemperatureSensor", $SimulatedTemperatureSensor)
-    "functions-binding"            = @("Microsoft.Azure.Devices.Edge.Functions.Binding", $FunctionsBinding)
 }
 
 foreach ($Image in $Images.GetEnumerator()) {

@@ -44,31 +44,30 @@ where
         _params: Parameters,
     ) -> BoxFuture<Response<Body>, HyperError> {
         debug!("List modules");
-        let response = self.runtime.list().then(|result| {
-            match result.context(ErrorKind::ModuleRuntime) {
-                Ok(mods) => {
-                    let futures = mods.into_iter().map(core_to_details);
-                    let response = future::join_all(futures)
-                        .map(|details| {
-                            let body = ModuleList::new(details);
-                            serde_json::to_string(&body)
-                                .context(ErrorKind::Serde)
-                                .map(|b| {
-                                    Response::builder()
-                                        .status(StatusCode::OK)
-                                        .header(CONTENT_TYPE, "application/json")
-                                        .header(CONTENT_LENGTH, b.len().to_string().as_str())
-                                        .body(b.into())
-                                        .unwrap_or_else(|e| e.into_response())
-                                })
-                                .unwrap_or_else(|e| e.into_response())
-                        })
-                        .or_else(|e| future::ok(e.into_response()));
-                    future::Either::A(response)
-                }
-                Err(e) => future::Either::B(future::ok(e.into_response())),
-            }
-        });
+        let response =
+            self.runtime
+                .list()
+                .then(|result| match result.context(ErrorKind::ModuleRuntime) {
+                    Ok(mods) => {
+                        let futures = mods.into_iter().map(core_to_details);
+                        let response = future::join_all(futures)
+                            .map(|details| {
+                                let body = ModuleList::new(details);
+                                serde_json::to_string(&body)
+                                    .context(ErrorKind::Serde)
+                                    .map(|b| {
+                                        Response::builder()
+                                            .status(StatusCode::OK)
+                                            .header(CONTENT_TYPE, "application/json")
+                                            .header(CONTENT_LENGTH, b.len().to_string().as_str())
+                                            .body(b.into())
+                                            .unwrap_or_else(|e| e.into_response())
+                                    }).unwrap_or_else(|e| e.into_response())
+                            }).or_else(|e| future::ok(e.into_response()));
+                        future::Either::A(response)
+                    }
+                    Err(e) => future::Either::B(future::ok(e.into_response())),
+                });
         Box::new(response)
     }
 }
@@ -138,8 +137,7 @@ mod tests {
                     module.status().runtime_status().description().unwrap()
                 );
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 
@@ -166,8 +164,7 @@ mod tests {
                     error.message()
                 );
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 
@@ -196,8 +193,7 @@ mod tests {
                     error.message()
                 );
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 }

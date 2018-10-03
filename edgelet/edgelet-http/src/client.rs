@@ -118,8 +118,7 @@ where
             .fold(
                 UrlSerializer::new(String::new()).append_pair("api-version", &self.api_version),
                 |ser, (key, val)| ser.append_pair(key, val),
-            )
-            .finish();
+            ).finish();
 
         self.host_name
             // build the full url
@@ -458,10 +457,8 @@ mod tests {
                     str::from_utf8(&req_body)
                         .map(move |req_body| {
                             assert_eq!("\"Here be dragons\"".to_string(), req_body)
-                        })
-                        .map_err(|e| panic!("Error: {:?}", e))
-                })
-                .and_then(|_| {
+                        }).map_err(|e| panic!("Error: {:?}", e))
+                }).and_then(|_| {
                     let response = r#""response""#.to_string();
                     Ok(Response::new()
                         .with_status(StatusCode::Ok)
@@ -497,10 +494,8 @@ mod tests {
                     str::from_utf8(&req_body)
                         .map(move |req_body| {
                             assert_eq!("\"Here be dragons\"".to_string(), req_body)
-                        })
-                        .map_err(|e| panic!("Error: {:?}", e))
-                })
-                .and_then(|_| Ok(Response::new().with_status(StatusCode::Ok)))
+                        }).map_err(|e| panic!("Error: {:?}", e))
+                }).and_then(|_| Ok(Response::new().with_status(StatusCode::Ok)))
         };
         let client =
             Client::new(service_fn(handler), token_source, api_version, host_name).unwrap();

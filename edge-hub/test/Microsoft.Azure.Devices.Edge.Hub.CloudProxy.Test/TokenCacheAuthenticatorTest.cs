@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 c =>
                     c.CreateCloudConnectionAsync(It.IsAny<IClientCredentials>()) == Task.FromResult(Try.Success(cloudProxy)));
 
-            var credentialsStore = new Mock<ICredentialsStore>();
+            var credentialsStore = new Mock<ICredentialsCache>();
             credentialsStore.Setup(c => c.Get(It.IsAny<IIdentity>()))
                 .ReturnsAsync(Option.None<IClientCredentials>());
             credentialsStore.Setup(c => c.Add(It.IsAny<IClientCredentials>()))
@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
             var credentials = new TokenCredentials(identity, sasToken, callerProductInfo);
 
-            var tokenCredentialsAuthenticator = new TokenCacheAuthenticator(new CloudTokenAuthenticator(connectionManager), credentialsStore.Object, iothubHostName);
+            var tokenCredentialsAuthenticator = new TokenCacheAuthenticator(new CloudTokenAuthenticator(connectionManager, iothubHostName), credentialsStore.Object, iothubHostName);
 
             // Act
             bool isAuthenticated = await tokenCredentialsAuthenticator.AuthenticateAsync(credentials);
@@ -65,13 +65,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var credentials = new TokenCredentials(identity, sasToken, callerProductInfo);
 
             var storedTokenCredentials = Mock.Of<ITokenCredentials>(c => c.Token == sasToken);
-            var credentialsStore = new Mock<ICredentialsStore>();
+            var credentialsStore = new Mock<ICredentialsCache>();
             credentialsStore.Setup(c => c.Get(It.IsAny<IIdentity>()))
                 .ReturnsAsync(Option.Some((IClientCredentials)storedTokenCredentials));
             credentialsStore.Setup(c => c.Add(It.IsAny<IClientCredentials>()))
                 .Returns(Task.CompletedTask);
 
-            var tokenCredentialsAuthenticator = new TokenCacheAuthenticator(new CloudTokenAuthenticator(connectionManager), credentialsStore.Object, iothubHostName);
+            var tokenCredentialsAuthenticator = new TokenCacheAuthenticator(new CloudTokenAuthenticator(connectionManager, iothubHostName), credentialsStore.Object, iothubHostName);
 
             // Act
             bool isAuthenticated = await tokenCredentialsAuthenticator.AuthenticateAsync(credentials);
@@ -103,13 +103,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             string sasToken2 = TokenHelper.CreateSasToken($"{iothubHostName}/devices/device1/modules/moduleId") + "a";
             var storedTokenCredentials = Mock.Of<ITokenCredentials>(c => c.Token == sasToken2);
-            var credentialsStore = new Mock<ICredentialsStore>();
+            var credentialsStore = new Mock<ICredentialsCache>();
             credentialsStore.Setup(c => c.Get(It.IsAny<IIdentity>()))
                 .ReturnsAsync(Option.Some((IClientCredentials)storedTokenCredentials));
             credentialsStore.Setup(c => c.Add(It.IsAny<IClientCredentials>()))
                 .Returns(Task.CompletedTask);
 
-            var tokenCredentialsAuthenticator = new TokenCacheAuthenticator(new CloudTokenAuthenticator(connectionManager), credentialsStore.Object, iothubHostName);
+            var tokenCredentialsAuthenticator = new TokenCacheAuthenticator(new CloudTokenAuthenticator(connectionManager, iothubHostName), credentialsStore.Object, iothubHostName);
 
             // Act
             bool isAuthenticated = await tokenCredentialsAuthenticator.AuthenticateAsync(credentials);
@@ -140,13 +140,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var credentials = new TokenCredentials(identity, sasToken, callerProductInfo);
 
             var storedTokenCredentials = Mock.Of<ITokenCredentials>(c => c.Token == sasToken);
-            var credentialsStore = new Mock<ICredentialsStore>();
+            var credentialsStore = new Mock<ICredentialsCache>();
             credentialsStore.Setup(c => c.Get(It.IsAny<IIdentity>()))
                 .ReturnsAsync(Option.Some((IClientCredentials)storedTokenCredentials));
             credentialsStore.Setup(c => c.Add(It.IsAny<IClientCredentials>()))
                 .Returns(Task.CompletedTask);
 
-            var tokenCredentialsAuthenticator = new TokenCacheAuthenticator(new CloudTokenAuthenticator(connectionManager), credentialsStore.Object, iothubHostName);
+            var tokenCredentialsAuthenticator = new TokenCacheAuthenticator(new CloudTokenAuthenticator(connectionManager, iothubHostName), credentialsStore.Object, iothubHostName);
 
             // Act
             bool isAuthenticated = await tokenCredentialsAuthenticator.AuthenticateAsync(credentials);

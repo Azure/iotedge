@@ -235,8 +235,7 @@ where
                 } else {
                     Ok(true)
                 }
-            })
-            .or_else(|err| {
+            }).or_else(|err| {
                 log_failure(Level::Debug, &err);
                 debug!("Error reading config backup.");
                 Ok(true)
@@ -334,8 +333,7 @@ mod tests {
                     c.trusted_ca_certs().to_str().unwrap(),
                     "trusted_ca_certs.pem"
                 );
-            })
-            .expect("certificates not configured");
+            }).expect("certificates not configured");
     }
 
     #[test]

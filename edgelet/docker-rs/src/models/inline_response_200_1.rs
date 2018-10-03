@@ -17,7 +17,10 @@ pub struct InlineResponse2001 {
     #[serde(rename = "Titles", skip_serializing_if = "Option::is_none")]
     titles: Option<Vec<String>>,
     /// Each process running in the container, where each is process is an array of values corresponding to the titles
-    #[serde(rename = "Processes", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "Processes",
+        skip_serializing_if = "Option::is_none"
+    )]
     processes: Option<Vec<Vec<String>>>,
 }
 

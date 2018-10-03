@@ -3,7 +3,7 @@
 # This script:
 # - builds the IoT Edge runtime components (Agent and Hub)
 # - builds sample modules (temperature sensor and filter)
-# - builds the tests
+# - builds the tests (and e2e test modules)
 # - packages the smoke tests as tarballs for amd64 and arm32v7
 # - publishes everything to {source_root}/target/
 
@@ -182,6 +182,24 @@ publish_quickstart()
         .
 }
 
+publish_leafdevice()
+{
+    local rid="$1"
+    echo "Publishing LeafDevice for '$rid'"
+    $DOTNET_ROOT_PATH/dotnet publish \
+        -c $CONFIGURATION \
+        -f $DOTNET_RUNTIME \
+        -r $rid \
+        $ROOT_FOLDER/smoke/LeafDevice
+    if [ $? -gt 0 ]; then
+        RES=1
+    fi
+
+    tar \
+        -C "$ROOT_FOLDER/smoke/LeafDevice/bin/$CONFIGURATION/$DOTNET_RUNTIME/$rid/publish/" \
+        -czf "$PUBLISH_FOLDER/LeafDevice.$rid.tar.gz" \
+        .
+}
 
 process_args "$@"
 
@@ -195,15 +213,17 @@ publish_app "SimulatedTemperatureSensor"
 publish_app "TemperatureFilter"
 publish_app "load-gen"
 publish_app "MessagesAnalyzer"
+publish_app "DirectMethodSender"
+publish_app "DirectMethodReceiver"
 
-publish_lib "Microsoft.Azure.Devices.Edge.Functions.Binding"
+publish_lib "Microsoft.Azure.WebJobs.Extensions.EdgeHub"
+publish_lib "EdgeHubTriggerCSharp"
 
 publish_files $SRC_DOCKER_DIR $PUBLISH_FOLDER
 publish_files $SRC_SCRIPTS_DIR $PUBLISH_FOLDER
 publish_files $SRC_BIN_DIR $PUBLISH_FOLDER
 publish_files $SRC_STRESS_DIR $PUBLISH_FOLDER
 publish_files $SRC_E2E_TEMPLATES_DIR $PUBLISH_FOLDER
-publish_files $FUNCTIONS_SAMPLE_DIR $PUBLISH_FOLDER
 
 if [ $PUBLISH_TESTS -eq 1 ]; then
     while read proj; do
@@ -216,5 +236,7 @@ fi
 
 publish_quickstart linux-arm
 publish_quickstart linux-x64
+publish_leafdevice linux-arm
+publish_leafdevice linux-x64
 
 exit $RES

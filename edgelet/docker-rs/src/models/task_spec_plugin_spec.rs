@@ -24,7 +24,10 @@ pub struct TaskSpecPluginSpec {
     /// Disable the plugin once scheduled.
     #[serde(rename = "Disabled", skip_serializing_if = "Option::is_none")]
     disabled: Option<bool>,
-    #[serde(rename = "PluginPrivilege", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "PluginPrivilege",
+        skip_serializing_if = "Option::is_none"
+    )]
     plugin_privilege: Option<Vec<::models::Body>>,
 }
 

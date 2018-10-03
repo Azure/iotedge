@@ -187,7 +187,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             public static void NoDeviceProxy(ModuleEndpoint moduleEndpoint)
             {
-                Log.LogError((int)EventIds.NoDeviceProxy, Invariant($"Module {moduleEndpoint.moduleId} is not connected"));
+                Log.LogWarning((int)EventIds.NoDeviceProxy, Invariant($"Module {moduleEndpoint.moduleId} is not connected"));
             }
 
             public static void ErrorSendingMessages(ModuleEndpoint moduleEndpoint, Exception ex)

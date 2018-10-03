@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using System.Text;
     using System.Threading.Tasks;
     using System.Timers;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using static System.FormattableString;
 
     /// <summary>
@@ -50,12 +51,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly StateMachine<State, Trigger> machine;
         readonly Timer connectedTimer;
         readonly Timer disconnectedTimer;
+        readonly IIdentity testClientIdentity;
 
         public event EventHandler DeviceConnected;
         public event EventHandler DeviceDisconnected;
 
-        public DeviceConnectivityManager(TimeSpan minConnectivityCheckFrequency, TimeSpan disconnectedCheckFrequency)
+        public DeviceConnectivityManager(
+            TimeSpan minConnectivityCheckFrequency,
+            TimeSpan disconnectedCheckFrequency,
+            IIdentity testClientIdentity)
         {
+            this.testClientIdentity = Preconditions.CheckNotNull(testClientIdentity, nameof(testClientIdentity));            
             this.connectedTimer = new Timer(minConnectivityCheckFrequency.TotalMilliseconds);
             this.disconnectedTimer = new Timer(disconnectedCheckFrequency.TotalMilliseconds);
             this.machine = new StateMachine<State, Trigger>(() => this.state, s => this.state = s);
@@ -85,6 +91,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             Events.Created(minConnectivityCheckFrequency, disconnectedCheckFrequency);
         }
 
+        public void SetConnectionManager(IConnectionManager connectionManager)
+        {
+            this.connectivityChecker = new ConnectivityChecker(connectionManager, this.testClientIdentity);
+            this.connectedTimer.Start();
+            Events.SetConnectionManager();
+        }
+
         void ResetDisconnectedTimer()
         {
             this.disconnectedTimer.Stop();
@@ -95,13 +108,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             this.connectedTimer.Stop();
             this.connectedTimer.Start();
-        }
-
-        public void SetTestCloudProxy(ICloudProxy testClient)
-        {
-            this.connectivityChecker = new ConnectivityChecker(testClient);
-            this.connectedTimer.Start();
-            Events.SetTestCloudProxy();
         }
 
         public void CallSucceeded()
@@ -166,7 +172,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         class ConnectivityChecker
         {
-            readonly ICloudProxy client;
+            readonly IConnectionManager connectionManager;
+            readonly IIdentity testClientIdentity;
             readonly AsyncLock sync = new AsyncLock();
             readonly Lazy<IMessage> testMessage = new Lazy<IMessage>(
                 () =>
@@ -175,16 +182,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     return new EdgeMessage.Builder(Encoding.UTF8.GetBytes(twinCollectionString)).Build();
                 });
 
-            public ConnectivityChecker(ICloudProxy client)
+            public ConnectivityChecker(
+                IConnectionManager connectionManager,
+                IIdentity testClientIdentity)
             {
-                this.client = Preconditions.CheckNotNull(client, nameof(client));
+                this.connectionManager = connectionManager;
+                this.testClientIdentity = testClientIdentity;
             }
 
             public async Task Check()
             {
                 using (await this.sync.LockAsync())
                 {
-                    await this.client.UpdateReportedPropertiesAsync(this.testMessage.Value);
+                    Option<ICloudProxy> testClient = await this.connectionManager.GetCloudConnection(this.testClientIdentity.Id);
+                    await testClient.ForEachAsync(tc => tc.UpdateReportedPropertiesAsync(this.testMessage.Value));
                 }
             }
         }
@@ -197,7 +208,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             enum EventIds
             {
                 Created = IdStart,
-                CloudProxySet,
+                SetConnectionManager,
                 CallTimedOut,
                 OnDisconnectedExit,
                 OnDisconnected,
@@ -209,9 +220,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 MakingTestIotHubCall
             }
 
-            internal static void SetTestCloudProxy()
+            internal static void SetConnectionManager()
             {
-                Log.LogDebug((int)EventIds.CloudProxySet, Invariant($"CloudProxy to test device connectivity set"));
+                Log.LogDebug((int)EventIds.SetConnectionManager, Invariant($"ConnectionManager provided"));
             }
 
             internal static void Created(TimeSpan connectedCheckFrequency, TimeSpan disconnectedCheckFrequency)

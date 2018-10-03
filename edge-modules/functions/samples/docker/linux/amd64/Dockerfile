@@ -1,6 +1,7 @@
-ARG buildno
-FROM edgebuilds.azurecr.io/microsoft/azureiotedge-functions-binding:${buildno}-linux-amd64
+FROM mcr.microsoft.com/azure-functions/dotnet:2.0
 
 ENV AzureWebJobsScriptRoot=/app
 
 COPY . /app
+
+

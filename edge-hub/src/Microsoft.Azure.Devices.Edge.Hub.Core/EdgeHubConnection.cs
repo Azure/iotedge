@@ -3,12 +3,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
+    using System.Net;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Routing.Core;
@@ -24,20 +26,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         Func<EdgeHubConfig, Task> configUpdateCallback;
         Option<TwinCollection> lastDesiredProperties = Option.None<TwinCollection>();
-        readonly IModuleIdentity edgeHubIdentity;
+        readonly IIdentity edgeHubIdentity;
         readonly ITwinManager twinManager;
         readonly IMessageConverter<TwinCollection> twinCollectionMessageConverter;
         readonly IMessageConverter<Twin> twinMessageConverter;
         readonly VersionInfo versionInfo;
         readonly RouteFactory routeFactory;
         readonly AsyncLock edgeHubConfigLock = new AsyncLock();
+        readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
 
-        EdgeHubConnection(IModuleIdentity edgeHubIdentity,
+        internal EdgeHubConnection(IIdentity edgeHubIdentity,
             ITwinManager twinManager,
             RouteFactory routeFactory,
             IMessageConverter<TwinCollection> twinCollectionMessageConverter,
             IMessageConverter<Twin> twinMessageConverter,
-            VersionInfo versionInfo)
+            VersionInfo versionInfo,
+            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache)
         {
             this.edgeHubIdentity = edgeHubIdentity;
             this.twinManager = twinManager;
@@ -45,47 +49,54 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.twinMessageConverter = twinMessageConverter;
             this.routeFactory = routeFactory;
             this.versionInfo = versionInfo ?? VersionInfo.Empty;
+            this.deviceScopeIdentitiesCache = deviceScopeIdentitiesCache;
         }
 
         public static async Task<EdgeHubConnection> Create(
-            IClientCredentials edgeHubCredentials,
+            IIdentity edgeHubIdentity,
             IEdgeHub edgeHub,
             ITwinManager twinManager,
             IConnectionManager connectionManager,
-            ICloudProxy cloudProxy,
             RouteFactory routeFactory,
             IMessageConverter<TwinCollection> twinCollectionMessageConverter,
             IMessageConverter<Twin> twinMessageConverter,
-            VersionInfo versionInfo
+            VersionInfo versionInfo,
+            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache
         )
         {
-            Preconditions.CheckNotNull(edgeHubCredentials, nameof(edgeHubCredentials));
+            Preconditions.CheckNotNull(edgeHubIdentity, nameof(edgeHubIdentity));
             Preconditions.CheckNotNull(edgeHub, nameof(edgeHub));
             Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
-            Preconditions.CheckNotNull(cloudProxy, nameof(cloudProxy));
             Preconditions.CheckNotNull(twinCollectionMessageConverter, nameof(twinCollectionMessageConverter));
             Preconditions.CheckNotNull(twinMessageConverter, nameof(twinMessageConverter));
             Preconditions.CheckNotNull(routeFactory, nameof(routeFactory));
+            Preconditions.CheckNotNull(deviceScopeIdentitiesCache, nameof(deviceScopeIdentitiesCache));
 
             var edgeHubConnection = new EdgeHubConnection(
-                edgeHubCredentials.Identity as IModuleIdentity, twinManager, routeFactory,
-                twinCollectionMessageConverter, twinMessageConverter,
-                versionInfo ?? VersionInfo.Empty
+                edgeHubIdentity,
+                twinManager,
+                routeFactory,
+                twinCollectionMessageConverter,
+                twinMessageConverter,
+                versionInfo ?? VersionInfo.Empty,
+                deviceScopeIdentitiesCache
             );
 
-            IDeviceProxy deviceProxy = new EdgeHubDeviceProxy(edgeHubConnection);
-            await connectionManager.AddDeviceConnection(edgeHubCredentials);
-            connectionManager.BindDeviceProxy(edgeHubCredentials.Identity, deviceProxy);
-
-            await edgeHub.AddSubscription(edgeHubCredentials.Identity.Id, DeviceSubscription.DesiredPropertyUpdates);
-
-            // Clear out all the reported devices.
-            await edgeHubConnection.ClearDeviceConnectionStatuses();
-
+            await InitEdgeHub(edgeHubConnection, connectionManager, edgeHubIdentity, edgeHub);
             connectionManager.DeviceConnected += edgeHubConnection.DeviceConnected;
             connectionManager.DeviceDisconnected += edgeHubConnection.DeviceDisconnected;
-            Events.Initialized(edgeHubCredentials.Identity);
+            Events.Initialized(edgeHubIdentity);
             return edgeHubConnection;
+        }
+
+        static Task InitEdgeHub(EdgeHubConnection edgeHubConnection, IConnectionManager connectionManager, IIdentity edgeHubIdentity, IEdgeHub edgeHub)
+        {
+            IDeviceProxy deviceProxy = new EdgeHubDeviceProxy(edgeHubConnection);
+            Task addDeviceConnectionTask = connectionManager.AddDeviceConnection(edgeHubIdentity, deviceProxy);
+            Task desiredPropertyUpdatesSubscriptionTask = edgeHub.AddSubscription(edgeHubIdentity.Id, DeviceSubscription.DesiredPropertyUpdates);
+            Task methodsSubscriptionTask = edgeHub.AddSubscription(edgeHubIdentity.Id, DeviceSubscription.Methods);
+            Task clearDeviceConnectionStatusesTask = edgeHubConnection.ClearDeviceConnectionStatuses();
+            return Task.WhenAll(addDeviceConnectionTask, desiredPropertyUpdatesSubscriptionTask, methodsSubscriptionTask, clearDeviceConnectionStatusesTask);
         }
 
         public async Task<Option<EdgeHubConfig>> GetConfig()
@@ -247,7 +258,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        async void DeviceDisconnected(object sender, IIdentity device)
+        internal async void DeviceDisconnected(object sender, IIdentity device)
         {
             try
             {
@@ -259,7 +270,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        async void DeviceConnected(object sender, IIdentity device)
+        internal async void DeviceConnected(object sender, IIdentity device)
         {
             try
             {
@@ -275,6 +286,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             try
             {
+                if (client.Id.Equals(this.edgeHubIdentity.Id))
+                {
+                    Events.SkipUpdatingEdgeHubIdentity(client.Id, connectionStatus);
+                    return Task.CompletedTask;
+                }
+
                 Events.UpdatingDeviceConnectionStatus(client.Id, connectionStatus);
 
                 // If a downstream device disconnects, then remove the entry from Reported properties
@@ -307,7 +324,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 Events.ErrorUpdatingDeviceConnectionStatus(client.Id, ex);
                 return Task.CompletedTask;
             }
-        }        
+        }
 
         Task ClearDeviceConnectionStatuses()
         {
@@ -323,6 +340,55 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 Events.ErrorClearingDeviceConnectionStatuses(ex);
                 return Task.CompletedTask;
             }
+        }
+
+        internal async Task<DirectMethodResponse> HandleMethodInvocation(DirectMethodRequest request)
+        {
+            Preconditions.CheckNotNull(request, nameof(request));
+            Events.MethodRequestReceived(request.Name);
+            if (request.Name.Equals(Constants.ServiceIdentityRefreshMethodName, StringComparison.OrdinalIgnoreCase))
+            {
+                RefreshRequest refreshRequest;
+                try
+                {
+                    refreshRequest = request.Data.FromBytes<RefreshRequest>();
+                }
+                catch (Exception e)
+                {
+                    Events.ErrorParsingMethodRequest(e);
+                    return new DirectMethodResponse(e, HttpStatusCode.BadRequest);
+                }
+
+                try
+                {
+                    Events.RefreshingServiceIdentities(refreshRequest.DeviceIds);
+                    await this.deviceScopeIdentitiesCache.RefreshServiceIdentities(refreshRequest.DeviceIds);
+                    Events.RefreshedServiceIdentities(refreshRequest.DeviceIds);
+                    return new DirectMethodResponse(request.CorrelationId, null, (int)HttpStatusCode.OK);
+                }
+                catch (Exception e)
+                {
+                    Events.ErrorRefreshingServiceIdentities(e);
+                    return new DirectMethodResponse(e, HttpStatusCode.InternalServerError);
+                }
+            }
+            else
+            {
+                Events.InvalidMethodRequest(request.Name);
+                return new DirectMethodResponse(new InvalidOperationException($"Method {request.Name} is not supported"), HttpStatusCode.NotFound);
+            }
+        }
+
+        class RefreshRequest
+        {
+            [JsonConstructor]
+            public RefreshRequest(IEnumerable<string> deviceIds)
+            {
+                this.DeviceIds = deviceIds;
+            }
+
+            [JsonProperty("deviceIds")]
+            public IEnumerable<string> DeviceIds { get; }
         }
 
         class DesiredProperties
@@ -424,10 +490,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             public Task OnDesiredPropertyUpdates(IMessage desiredProperties) => this.edgeHubConnection.HandleDesiredPropertiesUpdate(desiredProperties);
 
-            public Task<DirectMethodResponse> InvokeMethodAsync(DirectMethodRequest request)
-            {
-                throw new NotImplementedException();
-            }
+            public Task<DirectMethodResponse> InvokeMethodAsync(DirectMethodRequest request) =>
+                this.edgeHubConnection.HandleMethodInvocation(request);
 
             public Task SendC2DMessageAsync(IMessage message)
             {
@@ -452,32 +516,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             public Task<Option<IClientCredentials>> GetUpdatedIdentity() => throw new NotImplementedException();
         }
 
-        /// <summary>
-        /// Cloud listener that listens to updates from the cloud for the edge hub module
-        /// Currently only listens for DesiredProperties updates
-        /// </summary>
-        class CloudListener : ICloudListener
-        {
-            readonly EdgeHubConnection edgeHubConnection;
-
-            public CloudListener(EdgeHubConnection edgeHubConnection)
-            {
-                this.edgeHubConnection = edgeHubConnection;
-            }
-
-            public Task OnDesiredPropertyUpdates(IMessage desiredProperties) => this.edgeHubConnection.HandleDesiredPropertiesUpdate(desiredProperties);
-
-            public Task<DirectMethodResponse> CallMethodAsync(DirectMethodRequest request)
-            {
-                throw new NotImplementedException();
-            }
-
-            public Task ProcessMessageAsync(IMessage message)
-            {
-                throw new NotImplementedException();
-            }
-        }
-
         static class Events
         {
             static readonly ILogger Log = Logger.Factory.CreateLogger<EdgeHubConnection>();
@@ -496,12 +534,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 PatchConfigSuccess,
                 ErrorClearingDeviceConnectionStatuses,
                 UpdatingDeviceConnectionStatus,
-                MismatchedSchemaVersion
+                MismatchedSchemaVersion,
+                ErrorParsingMethodRequest,
+                ErrorRefreshingServiceIdentities,
+                RefreshedServiceIdentities,
+                InvalidMethodRequest,
+                SkipUpdatingEdgeHubIdentity,
+                MethodRequestReceived
             }
 
             internal static void Initialized(IIdentity edgeHubIdentity)
             {
-                Log.LogDebug((int)EventIds.Initialized, Invariant($"Established IoT Hub connection for edge hub {edgeHubIdentity.Id}"));
+                Log.LogDebug((int)EventIds.Initialized, Invariant($"Initialized connection for {edgeHubIdentity.Id}"));
             }
 
             internal static void ErrorUpdatingLastDesiredStatus(Exception ex)
@@ -571,6 +615,41 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 Log.LogWarning((int)EventIds.MismatchedSchemaVersion,
                     Invariant($"Desired properties schema version {receivedVersion} does not match expected schema version {expectedVersion}. Some settings may not be supported."));
+            }
+
+            public static void ErrorParsingMethodRequest(Exception ex)
+            {
+                Log.LogWarning((int)EventIds.ErrorParsingMethodRequest, ex, Invariant($"Error parsing refresh service identities request"));
+            }
+
+            public static void ErrorRefreshingServiceIdentities(Exception ex)
+            {
+                Log.LogWarning((int)EventIds.ErrorRefreshingServiceIdentities, ex, Invariant($"Error refreshing service identities"));
+            }
+
+            public static void RefreshedServiceIdentities(IEnumerable<string> refreshRequestDeviceIds)
+            {
+                Log.LogInformation((int)EventIds.RefreshedServiceIdentities, Invariant($"Refreshed {refreshRequestDeviceIds.Count()} device scope identities on demand"));
+            }
+
+            public static void RefreshingServiceIdentities(IEnumerable<string> refreshRequestDeviceIds)
+            {
+                Log.LogDebug((int)EventIds.RefreshedServiceIdentities, Invariant($"Refreshing {refreshRequestDeviceIds.Count()} device scope identities"));
+            }
+
+            public static void MethodRequestReceived(string methodName)
+            {
+                Log.LogDebug((int)EventIds.MethodRequestReceived, Invariant($"Received method request {methodName}"));
+            }
+
+            public static void InvalidMethodRequest(string requestName)
+            {
+                Log.LogWarning((int)EventIds.InvalidMethodRequest, Invariant($"Received request for unsupported method {requestName}"));
+            }
+
+            public static void SkipUpdatingEdgeHubIdentity(string id, ConnectionStatus connectionStatus)
+            {
+                Log.LogDebug((int)EventIds.SkipUpdatingEdgeHubIdentity, Invariant($"Skipped updating connection status change to {connectionStatus} for {id}"));
             }
         }
     }

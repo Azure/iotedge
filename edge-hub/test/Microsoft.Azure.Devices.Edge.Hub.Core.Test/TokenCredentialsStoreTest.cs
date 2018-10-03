@@ -26,7 +26,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var dbStoreProvider = new InMemoryDbStoreProvider();
             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
-            var tokenCredentialsStore = new TokenCredentialsStore(storeProvider.GetEntityStore<string, string>("tokenCredentials"), new NullEncryptionProvider());
+            var encryptedStore = new EncryptedStore<string, string>(storeProvider.GetEntityStore<string, string>("tokenCredentials"), new NullEncryptionProvider());
+            var tokenCredentialsStore = new TokenCredentialsCache(encryptedStore);
 
             // Act
             await tokenCredentialsStore.Add(credentials);
@@ -52,7 +53,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var dbStoreProvider = new InMemoryDbStoreProvider();
             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
-            var tokenCredentialsStore = new TokenCredentialsStore(storeProvider.GetEntityStore<string, string>("tokenCredentials"), new TestEncryptionProvider());
+            var encryptedStore = new EncryptedStore<string, string>(storeProvider.GetEntityStore<string, string>("tokenCredentials"), new TestEncryptionProvider());
+            var tokenCredentialsStore = new TokenCredentialsCache(encryptedStore);
 
             // Act
             await tokenCredentialsStore.Add(credentials);
@@ -76,7 +78,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var dbStoreProvider = new InMemoryDbStoreProvider();
             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
-            var tokenCredentialsStore = new TokenCredentialsStore(storeProvider.GetEntityStore<string, string>("tokenCredentials"), new NullEncryptionProvider());
+            var encryptedStore = new EncryptedStore<string, string>(storeProvider.GetEntityStore<string, string>("tokenCredentials"), new TestEncryptionProvider());
+            var tokenCredentialsStore = new TokenCredentialsCache(encryptedStore);
 
             // Act
             await tokenCredentialsStore.Add(credentials);
