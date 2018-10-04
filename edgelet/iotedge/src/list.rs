@@ -1,9 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::cell::RefCell;
 use std::fmt::Display;
 use std::io::Write;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use chrono::{Duration, Utc};
 use chrono_humanize::{Accuracy, HumanTime, Tense};
@@ -16,7 +15,7 @@ use Command;
 
 pub struct List<M, W> {
     runtime: M,
-    output: Arc<RefCell<TabWriter<W>>>,
+    output: Arc<Mutex<TabWriter<W>>>,
 }
 
 impl<M, W> List<M, W>
@@ -27,7 +26,7 @@ where
         let tab = TabWriter::new(output).minwidth(15);
         List {
             runtime,
-            output: Arc::new(RefCell::new(tab)),
+            output: Arc::new(Mutex::new(tab)),
         }
     }
 }
@@ -39,9 +38,9 @@ where
     M::Config: Display,
     M::Error: Into<Error>,
     <M::Module as Module>::Error: Into<Error>,
-    W: 'static + Write,
+    W: 'static + Write + Send,
 {
-    type Future = Box<Future<Item = (), Error = Error>>;
+    type Future = Box<Future<Item = (), Error = Error> + Send>;
 
     fn execute(&mut self) -> Self::Future {
         let write = self.output.clone();
@@ -55,7 +54,7 @@ where
                 future::join_all(futures)
                     .map_err(|e| e.into())
                     .and_then(move |states| {
-                        let mut w = write.borrow_mut();
+                        let mut w = write.lock().unwrap();
                         writeln!(w, "NAME\tSTATUS\tDESCRIPTION\tCONFIG")?;
                         for (module, state) in modules.iter().zip(states) {
                             writeln!(

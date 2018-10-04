@@ -1,14 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use edgelet_core::{
-    pid::Pid, Authorization as CoreAuth, Error as CoreError, Module, ModuleRuntime, Policy,
-};
+use edgelet_core::pid::Pid;
+use edgelet_core::{Authorization as CoreAuth, Error as CoreError, Module, ModuleRuntime, Policy};
 use error::{Error, ErrorKind};
-use futures::{future, future::Either, Future};
-use http::{Request, Response};
-use hyper::{Body, Error as HyperError};
-use route::{BoxFuture, Handler, Parameters};
-use std::rc::Rc;
+use futures::{future, Future};
+use hyper::{self, Body, Request, Response};
+use route::{Handler, Parameters};
+use std::sync::Arc;
 use IntoResponse;
 
 pub struct Authorization<H, M>
@@ -17,7 +15,7 @@ where
     M: 'static + ModuleRuntime,
 {
     auth: CoreAuth<M>,
-    inner: Rc<H>,
+    inner: Arc<H>,
 }
 
 impl<H, M> Authorization<H, M>
@@ -30,15 +28,15 @@ where
     pub fn new(inner: H, policy: Policy, runtime: M) -> Self {
         Authorization {
             auth: CoreAuth::new(runtime, policy),
-            inner: Rc::new(inner),
+            inner: Arc::new(inner),
         }
     }
 }
 
 impl<H, M> Handler<Parameters> for Authorization<H, M>
 where
-    H: Handler<Parameters>,
-    M: 'static + ModuleRuntime,
+    H: Handler<Parameters> + Sync,
+    M: 'static + ModuleRuntime + Send,
     M::Error: Into<CoreError>,
     <M::Module as Module>::Error: Into<CoreError>,
 {
@@ -46,7 +44,7 @@ where
         &self,
         req: Request<Body>,
         params: Parameters,
-    ) -> BoxFuture<Response<Body>, HyperError> {
+    ) -> Box<Future<Item = Response<Body>, Error = hyper::Error> + Send> {
         let (name, pid) = (
             params.name("name").map(|n| n.to_string()),
             req.extensions()
@@ -62,9 +60,9 @@ where
             .map_err(Error::from)
             .and_then(move |authorized| {
                 if authorized {
-                    Either::A(inner.handle(req, params).map_err(Error::from))
+                    future::Either::A(inner.handle(req, params).map_err(Error::from))
                 } else {
-                    Either::B(future::err(Error::from(ErrorKind::NotFound)))
+                    future::Either::B(future::err(Error::from(ErrorKind::NotFound)))
                 }
             }).or_else(|e| future::ok(e.into_response()));
 
@@ -74,12 +72,13 @@ where
 
 #[cfg(test)]
 mod tests {
-
     use std::time::Duration;
 
     use super::*;
     use edgelet_core::{LogOptions, ModuleRegistry, ModuleRuntimeState, ModuleSpec, SystemInfo};
-    use futures::{future::FutureResult, stream::Empty, Stream};
+    use futures::future::FutureResult;
+    use futures::stream::Empty;
+    use futures::Stream;
     use http::{Request, Response, StatusCode};
     use hyper::{Body, Error as HyperError};
 
@@ -168,7 +167,7 @@ mod tests {
             &self,
             _req: Request<Body>,
             _params: Parameters,
-        ) -> BoxFuture<Response<Body>, HyperError> {
+        ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
             let response = Response::builder()
                 .status(StatusCode::OK)
                 .body("from TestHandler".into())

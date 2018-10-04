@@ -1,42 +1,34 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::marker::PhantomData;
-
 use edgelet_core::pid::Pid;
 use futures::prelude::*;
-use http::{Request, Response};
-use hyper::server::Service;
-use hyper::{Body, Error as HyperError};
+use hyper::service::Service;
+use hyper::{Body, Error as HyperError, Request};
 
 #[derive(Clone)]
-pub struct PidService<T, B> {
+pub struct PidService<T> {
     pid: Pid,
     inner: T,
-    phantom: PhantomData<B>,
 }
 
-impl<T, B> PidService<T, B> {
-    pub fn new(pid: Pid, inner: T) -> PidService<T, B> {
-        PidService {
-            pid,
-            inner,
-            phantom: PhantomData,
-        }
+impl<T> PidService<T> {
+    pub fn new(pid: Pid, inner: T) -> PidService<T> {
+        PidService { pid, inner }
     }
 }
 
-impl<T, B> Service for PidService<T, B>
+impl<T> Service for PidService<T>
 where
-    T: Service<Request = Request<Body>, Response = Response<B>>,
-    B: Stream<Error = HyperError> + 'static,
-    B::Item: AsRef<[u8]>,
+    T: Service<ReqBody = Body>,
+    <T as Service>::ResBody: Stream<Error = HyperError> + 'static,
+    <<T as Service>::ResBody as Stream>::Item: AsRef<[u8]>,
 {
-    type Request = T::Request;
-    type Response = T::Response;
+    type ReqBody = T::ReqBody;
+    type ResBody = T::ResBody;
     type Error = T::Error;
     type Future = T::Future;
 
-    fn call(&self, req: Self::Request) -> Self::Future {
+    fn call(&mut self, req: Request<Self::ReqBody>) -> Self::Future {
         let mut req = req;
         req.extensions_mut().insert(self.pid.clone());
         self.inner.call(req)

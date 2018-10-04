@@ -6,13 +6,16 @@ extern crate http;
 extern crate hyper;
 extern crate regex;
 
-use edgelet_http::route::{BoxFuture, Builder, Parameters, RegexRoutesBuilder, Router};
+use edgelet_http::route::{Builder, Parameters, RegexRoutesBuilder, Router};
 use futures::{future, Future, Stream};
 use http::{Request, Response, StatusCode};
-use hyper::server::{NewService, Service};
+use hyper::service::{NewService, Service};
 use hyper::{Body, Chunk, Error as HyperError};
 
-fn route1(_req: Request<Body>, params: Parameters) -> BoxFuture<Response<Body>, HyperError> {
+fn route1(
+    _req: Request<Body>,
+    params: Parameters,
+) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
     let response = params
         .name("name")
         .map(|name| {
@@ -29,7 +32,10 @@ fn route1(_req: Request<Body>, params: Parameters) -> BoxFuture<Response<Body>, 
     Box::new(future::ok(response))
 }
 
-fn route2(_req: Request<Body>, params: Parameters) -> BoxFuture<Response<Body>, HyperError> {
+fn route2(
+    _req: Request<Body>,
+    params: Parameters,
+) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
     let response = params
         .name("name")
         .map(|name| {
@@ -53,7 +59,7 @@ fn simple_route() {
         .get("/route2/(?P<name>[^/]+)", route2)
         .finish();
     let router = Router::from(recognizer);
-    let service = router.new_service().unwrap();
+    let mut service = router.new_service().wait().unwrap();
 
     let uri1 = "http://example.com/route1/thename";
     let request1 = Request::get(uri1).body(Body::default()).unwrap();
@@ -88,7 +94,7 @@ fn not_found() {
         .get("/route2/(?P<name>[^/]+)", route2)
         .finish();
     let router = Router::from(recognizer);
-    let service = router.new_service().unwrap();
+    let mut service = router.new_service().wait().unwrap();
 
     let uri1 = "http://example.com/route3/thename";
     let request1 = Request::get(uri1).body(Body::default()).unwrap();

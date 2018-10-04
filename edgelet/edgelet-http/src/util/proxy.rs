@@ -1,10 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use super::super::client::ClientImpl;
 use super::hyperwrap::Client;
 use error::Error;
-use hyper::client::Service;
-use hyper::Uri;
-use tokio_core::reactor::Handle;
+use hyper::{Body, Request, Uri};
 
 #[derive(Clone)]
 pub struct MaybeProxyClient {
@@ -12,15 +11,13 @@ pub struct MaybeProxyClient {
 }
 
 impl MaybeProxyClient {
-    pub fn new(handle: &Handle, proxy_uri: Option<Uri>) -> Result<MaybeProxyClient, Error> {
-        MaybeProxyClient::create(Some(handle), proxy_uri)
+    pub fn new(proxy_uri: Option<Uri>) -> Result<MaybeProxyClient, Error> {
+        MaybeProxyClient::create(false, proxy_uri)
     }
 
-    fn create(handle: Option<&Handle>, proxy_uri: Option<Uri>) -> Result<MaybeProxyClient, Error> {
+    fn create(null: bool, proxy_uri: Option<Uri>) -> Result<MaybeProxyClient, Error> {
         let mut config = Client::configure();
-        if let Some(h) = handle {
-            config.handle(h);
-        } else {
+        if null {
             config.null();
         }
         if let Some(uri) = proxy_uri {
@@ -33,7 +30,7 @@ impl MaybeProxyClient {
 
     #[cfg(test)]
     pub fn new_null() -> Result<MaybeProxyClient, Error> {
-        MaybeProxyClient::create(None, None)
+        MaybeProxyClient::create(true, None)
     }
 
     #[cfg(test)]
@@ -47,38 +44,32 @@ impl MaybeProxyClient {
     }
 }
 
-impl Service for MaybeProxyClient {
-    type Request = <Client as Service>::Request;
-    type Response = <Client as Service>::Response;
-    type Error = <Client as Service>::Error;
-    type Future = <Client as Service>::Future;
+impl ClientImpl for MaybeProxyClient {
+    type Response = <Client as ClientImpl>::Response;
 
-    fn call(&self, req: Self::Request) -> Self::Future {
+    fn call(&self, req: Request<Body>) -> Self::Response {
         self.client.call(req)
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::super::super::client::ClientImpl;
     use super::MaybeProxyClient;
     use futures::Future;
     use http::Request;
-    use hyper::client::Service;
     use hyper::{StatusCode, Uri};
-    use tokio_core::reactor::Core;
 
     #[test]
     fn can_create_client() {
-        let handle = Core::new().unwrap().handle();
-        let client = MaybeProxyClient::new(&handle, None).unwrap();
+        let client = MaybeProxyClient::new(None).unwrap();
         assert!(!client.has_proxy() && !client.is_null());
     }
 
     #[test]
     fn can_create_client_with_proxy() {
-        let handle = Core::new().unwrap().handle();
         let uri = "irrelevant".parse::<Uri>().unwrap();
-        let client = MaybeProxyClient::new(&handle, Some(uri)).unwrap();
+        let client = MaybeProxyClient::new(Some(uri)).unwrap();
         assert!(client.has_proxy() && !client.is_null());
     }
 
@@ -86,6 +77,9 @@ mod tests {
     fn client_calls_underlying_service() {
         let client = MaybeProxyClient::new_null().unwrap();
         let response = client.call(Request::default().into()).wait().unwrap();
-        assert_eq!(response.status(), StatusCode::Unregistered(234));
+        assert_eq!(
+            response.status(),
+            StatusCode::from_u16(234).expect("StatusCode::from_u16 should not fail")
+        );
     }
 }
