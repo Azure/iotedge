@@ -2,9 +2,11 @@
 namespace Microsoft.Azure.Devices.Edge.Util
 {
     using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Text.RegularExpressions;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
-    using System.Linq;
 
     public static class JsonEx
     {
@@ -175,6 +177,77 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
 
             return token;
+        }
+
+        public static IEnumerable<JToken> ChunkedValue(this JObject self, string name) => new ChunkedProperty(self, name);
+
+        public static IEnumerable<JToken> ChunkedValue(this JObject self, string name, bool ignoreCase) => new ChunkedProperty(self, name, ignoreCase);
+
+        class ChunkedProperty : IEnumerable<JToken>
+        {
+            readonly JObject obj;
+            readonly string name;
+            readonly Regex regex;
+            readonly IComparer<string> comparer;
+
+            public ChunkedProperty(JObject obj, string name)
+                : this(obj, name, false)
+            {
+            }
+
+            public ChunkedProperty(JObject obj, string name, bool ignoreCase)
+            {
+                this.obj = Preconditions.CheckNotNull(obj, nameof(obj));
+                this.name = Preconditions.CheckNotNull(name, nameof(name));
+                this.comparer = ignoreCase
+                    ? StringComparer.OrdinalIgnoreCase
+                    : StringComparer.Ordinal;
+                var pattern = ignoreCase
+                    ? string.Format("(?i:{0})(?<num>[0-9]*)", this.name.ToLower())
+                    : string.Format("{0}(?<num>[0-9]*)", this.name);
+                this.regex = new Regex(pattern);
+            }
+
+            public IEnumerator<JToken> GetEnumerator()
+            {
+                var tokens = this.obj
+                    .Where<KeyValuePair<string, JToken>>(kv => this.regex.IsMatch(kv.Key))
+                    .OrderBy(kv => kv.Key, this.comparer)
+                    .Enumerate();
+
+                foreach (var (num, kv) in tokens)
+                {
+                    var strNum = this.regex.Match(kv.Key).Groups["num"].Value;
+                    Validate(strNum, num);
+                    yield return kv.Value;
+                }
+            }
+
+            static void Validate(string strNum, uint expectedNum)
+            {
+                // The zero-th item should have an empty num
+                if (expectedNum == 0)
+                {
+                    if (strNum != string.Empty)
+                    {
+                        throw new JsonSerializationException(string.Format("Expected empty field number but found \"{0}\"", strNum));
+                    }
+                }
+                else
+                {
+                    if (!int.TryParse(strNum, out int tokenNum))
+                    {
+                        throw new JsonSerializationException(string.Format("Attempted to parse integer from {0}", strNum));
+                    }
+
+                    if (expectedNum != tokenNum)
+                    {
+                        throw new JsonSerializationException(string.Format("Error while parsing chunked field, expected {0} found {1}", expectedNum, tokenNum));
+                    }
+                }
+            }
+
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
         }
     }
 }

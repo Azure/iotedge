@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
     using System;
+    using System.Linq;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
@@ -19,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         // Do a serialization roundtrip to clone the createOptions
         // https://docs.docker.com/engine/api/v1.25/#operation/ContainerCreate
         [JsonProperty(Required = Required.AllowNull, PropertyName = "createOptions")]
-        public CreateContainerParameters CreateOptions => JsonConvert.DeserializeObject<CreateContainerParameters>(JsonConvert.SerializeObject(this.createOptions));        
+        public CreateContainerParameters CreateOptions => JsonConvert.DeserializeObject<CreateContainerParameters>(JsonConvert.SerializeObject(this.createOptions));
 
         public DockerConfig(string image)
             : this(image, string.Empty)
@@ -79,8 +80,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 writer.WritePropertyName("image");
                 serializer.Serialize(writer, dockerconfig.Image);
 
-                writer.WritePropertyName("createOptions");
-                serializer.Serialize(writer, JsonConvert.SerializeObject(dockerconfig.CreateOptions));
+                var options = JsonConvert.SerializeObject(dockerconfig.CreateOptions);
+                foreach (var (i, chunk) in options.Chunks(Constants.TwinMaxValueSize).Enumerate())
+                {
+                    var field = i != 0
+                        ? string.Format("createOptions{0}", i.ToString("D2"))
+                        : "createOptions";
+                    writer.WritePropertyName(field);
+                    writer.WriteValue(chunk);
+                }
 
                 writer.WriteEndObject();
             }
@@ -91,9 +99,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
                 // Pull out JToken values from json
                 obj.TryGetValue("image", StringComparison.OrdinalIgnoreCase, out JToken jTokenImage);
-                obj.TryGetValue("createOptions", StringComparison.OrdinalIgnoreCase, out JToken jTokenCreateOptions);
 
-                return new DockerConfig(jTokenImage?.ToString(), (jTokenCreateOptions?.ToString() ?? string.Empty));
+                var options = obj.ChunkedValue("createOptions", true)
+                    .Select(token => token?.ToString() ?? string.Empty)
+                    .Join("");
+
+                return new DockerConfig(jTokenImage?.ToString(), options);
             }
 
             public override bool CanConvert(Type objectType) => objectType == typeof(DockerConfig);

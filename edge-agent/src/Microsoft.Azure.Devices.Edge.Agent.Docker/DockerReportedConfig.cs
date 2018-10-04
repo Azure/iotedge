@@ -4,7 +4,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using global::Docker.DotNet.Models;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using CoreConstants = Core.Constants;
@@ -68,8 +70,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 writer.WritePropertyName("imageHash");
                 serializer.Serialize(writer, dockerReportedConfig.ImageHash);
 
-                writer.WritePropertyName("createOptions");
-                serializer.Serialize(writer, JsonConvert.SerializeObject(dockerReportedConfig.CreateOptions));
+                var options = JsonConvert.SerializeObject(dockerReportedConfig.CreateOptions);
+                foreach (var (i, chunk) in options.Chunks(Constants.TwinMaxValueSize).Enumerate())
+                {
+                    var field = i != 0
+                        ? string.Format("createOptions{0}", i.ToString("D2"))
+                        : "createOptions";
+                    writer.WritePropertyName(field);
+                    writer.WriteValue(chunk);
+                }
 
                 writer.WriteEndObject();
             }
@@ -81,9 +90,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 // Pull out JToken values from json
                 obj.TryGetValue("image", StringComparison.OrdinalIgnoreCase, out JToken jTokenImage);
                 obj.TryGetValue("imageHash", StringComparison.OrdinalIgnoreCase, out JToken jTokenImageHash);
-                obj.TryGetValue("createOptions", StringComparison.OrdinalIgnoreCase, out JToken jTokenCreateOptions);
 
-                return new DockerReportedConfig(jTokenImage?.ToString(), (jTokenCreateOptions?.ToString() ?? string.Empty), jTokenImageHash?.ToString());
+                var options = obj.ChunkedValue("createOptions", true)
+                    .Select(token => token?.ToString() ?? string.Empty)
+                    .Join("");
+
+                return new DockerReportedConfig(jTokenImage?.ToString(), options, jTokenImageHash?.ToString());
             }
 
             public override bool CanConvert(Type objectType) => objectType == typeof(DockerReportedConfig);
