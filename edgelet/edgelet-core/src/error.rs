@@ -6,7 +6,7 @@ use std::num::ParseIntError;
 
 use edgelet_utils::Error as UtilsError;
 use failure::{Backtrace, Context, Fail};
-use tokio_timer;
+use tokio;
 
 pub type Result<T> = ::std::result::Result<T, Error>;
 
@@ -100,8 +100,8 @@ impl From<UtilsError> for Error {
     }
 }
 
-impl From<tokio_timer::Error> for Error {
-    fn from(error: tokio_timer::Error) -> Error {
+impl From<tokio::timer::Error> for Error {
+    fn from(error: tokio::timer::Error) -> Error {
         Error {
             inner: error.context(ErrorKind::TokioTimer),
         }

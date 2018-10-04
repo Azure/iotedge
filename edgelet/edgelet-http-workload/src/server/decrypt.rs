@@ -2,7 +2,7 @@
 
 use base64;
 use edgelet_core::Decrypt;
-use edgelet_http::route::{BoxFuture, Handler, Parameters};
+use edgelet_http::route::{Handler, Parameters};
 use error::{Error, ErrorKind};
 use failure::ResultExt;
 use futures::{future, Future, Stream};
@@ -25,13 +25,13 @@ impl<T: Decrypt> DecryptHandler<T> {
 
 impl<T> Handler<Parameters> for DecryptHandler<T>
 where
-    T: Decrypt + 'static + Clone,
+    T: Decrypt + 'static + Clone + Send,
 {
     fn handle(
         &self,
         req: Request<Body>,
         params: Parameters,
-    ) -> BoxFuture<Response<Body>, HyperError> {
+    ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
         let hsm = self.hsm.clone();
         let response = params
             .name("name")

@@ -127,13 +127,13 @@ impl From<DockerError<serde_json::Value>> for Error {
             DockerError::Serde(error) => Error {
                 inner: Error::from(error).context(ErrorKind::Docker),
             },
-            DockerError::ApiError(ref error) if error.code == StatusCode::NotFound => {
+            DockerError::ApiError(ref error) if error.code == StatusCode::NOT_FOUND => {
                 Error::from(ErrorKind::NotFound)
             }
-            DockerError::ApiError(ref error) if error.code == StatusCode::Conflict => {
+            DockerError::ApiError(ref error) if error.code == StatusCode::CONFLICT => {
                 Error::from(ErrorKind::Conflict)
             }
-            DockerError::ApiError(ref error) if error.code == StatusCode::NotModified => {
+            DockerError::ApiError(ref error) if error.code == StatusCode::NOT_MODIFIED => {
                 Error::from(ErrorKind::NotModified)
             }
             _ => Error::from(ErrorKind::DockerRuntime(err)),

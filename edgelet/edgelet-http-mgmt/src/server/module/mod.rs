@@ -78,9 +78,9 @@ impl IntoResponse for DockerError {
     }
 }
 
-fn core_to_details<M>(module: M) -> Box<Future<Item = ModuleDetails, Error = Error>>
+fn core_to_details<M>(module: M) -> Box<Future<Item = ModuleDetails, Error = Error> + Send>
 where
-    M: 'static + Module,
+    M: 'static + Module + Send,
     M::Config: Serialize,
 {
     let details = module

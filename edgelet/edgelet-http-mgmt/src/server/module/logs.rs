@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use edgelet_core::{LogOptions, LogTail, ModuleRuntime};
-use edgelet_http::route::{BoxFuture, Handler, Parameters};
+use edgelet_http::route::{Handler, Parameters};
 use failure::ResultExt;
 use futures::{future, Future};
 use http::{Request, Response, StatusCode};
@@ -29,7 +29,7 @@ where
 
 impl<M> Handler<Parameters> for ModuleLogs<M>
 where
-    M: 'static + ModuleRuntime + Clone,
+    M: 'static + ModuleRuntime + Clone + Send,
     M::Error: IntoResponse,
     M::Logs: Into<Body>,
 {
@@ -37,7 +37,7 @@ where
         &self,
         req: Request<Body>,
         params: Parameters,
-    ) -> BoxFuture<Response<Body>, HyperError> {
+    ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
         let runtime = self.runtime.clone();
         let response = params
             .name("name")

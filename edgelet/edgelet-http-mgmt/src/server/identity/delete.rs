@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::cell::RefCell;
+use std::sync::Mutex;
 
 use edgelet_core::{IdentityManager, IdentitySpec};
-use edgelet_http::route::{BoxFuture, Handler, Parameters};
+use edgelet_http::route::{Handler, Parameters};
 use futures::{future, Future};
 use http::{Request, Response, StatusCode};
 use hyper::{Body, Error as HyperError};
@@ -16,7 +16,7 @@ where
     I: 'static + IdentityManager,
     <I as IdentityManager>::Error: IntoResponse,
 {
-    id_manager: RefCell<I>,
+    id_manager: Mutex<I>,
 }
 
 impl<I> DeleteIdentity<I>
@@ -26,28 +26,29 @@ where
 {
     pub fn new(id_manager: I) -> Self {
         DeleteIdentity {
-            id_manager: RefCell::new(id_manager),
+            id_manager: Mutex::new(id_manager),
         }
     }
 }
 
 impl<I> Handler<Parameters> for DeleteIdentity<I>
 where
-    I: 'static + IdentityManager,
+    I: 'static + IdentityManager + Send,
     <I as IdentityManager>::Error: IntoResponse,
 {
     fn handle(
         &self,
         _req: Request<Body>,
         params: Parameters,
-    ) -> BoxFuture<Response<Body>, HyperError> {
+    ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
         let response = params
             .name("name")
             .ok_or_else(|| Error::from(ErrorKind::BadParam))
             .map(|name| {
                 let result = self
                     .id_manager
-                    .borrow_mut()
+                    .lock()
+                    .unwrap()
                     .delete(IdentitySpec::new(name))
                     .map(|_| {
                         Response::builder()
@@ -89,7 +90,7 @@ mod tests {
         let response = handler.handle(request, parameters).wait().unwrap();
         assert_eq!(StatusCode::NO_CONTENT, response.status());
 
-        let list = handler.id_manager.borrow().list().wait().unwrap();
+        let list = handler.id_manager.lock().unwrap().list().wait().unwrap();
         assert_eq!(2, list.len());
         assert_eq!(
             None,

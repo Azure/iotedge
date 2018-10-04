@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(warnings)]
+#![deny(unused_extern_crates, warnings)]
 
 extern crate edgelet_core;
 #[macro_use]
@@ -19,7 +19,7 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
-extern crate tokio_io;
+extern crate tokio;
 
 use std::net::TcpListener;
 

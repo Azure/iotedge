@@ -13,7 +13,7 @@ extern crate clap;
 extern crate hyper;
 extern crate hyper_tls;
 extern crate serde_json;
-extern crate tokio_core;
+extern crate tokio;
 extern crate url;
 
 extern crate edgelet_http;
@@ -21,13 +21,11 @@ extern crate iothubservice;
 
 use chrono::{DateTime, Utc};
 use clap::{App, Arg, ArgMatches, SubCommand};
-use hyper::client::Service;
-use hyper::{Client as HyperClient, Error as HyperError, Request, Response};
+use hyper::Client as HyperClient;
 use hyper_tls::HttpsConnector;
-use tokio_core::reactor::Core;
 use url::Url;
 
-use edgelet_http::client::{Client, TokenSource};
+use edgelet_http::client::{Client, ClientImpl, TokenSource};
 use edgelet_http::error::Error as HttpError;
 use iothubservice::error::Error;
 use iothubservice::DeviceClient;
@@ -57,10 +55,7 @@ fn main() {
     let hub_name = matches.value_of("hub-name").unwrap();
     let device_id = matches.value_of("device-id").unwrap();
 
-    let mut core = Core::new().unwrap();
-    let hyper_client = HyperClient::configure()
-        .connector(HttpsConnector::new(4, &core.handle()).unwrap())
-        .build(&core.handle());
+    let hyper_client = HyperClient::builder().build(HttpsConnector::new(4).unwrap());
 
     let token_source = StaticTokenSource::new(sas_token.to_string());
 
@@ -73,59 +68,78 @@ fn main() {
 
     let device_client = DeviceClient::new(client, device_id).unwrap();
 
+    let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
+
     if let Some(_) = matches.subcommand_matches("list") {
-        list_modules(&mut core, device_client);
+        list_modules(&mut tokio_runtime, device_client);
     } else if let Some(create) = matches.subcommand_matches("create") {
         let module_id = create.value_of("module-id").unwrap();
-        create_module(&mut core, device_client, module_id);
+        create_module(&mut tokio_runtime, device_client, module_id);
     } else if let Some(delete) = matches.subcommand_matches("delete") {
         let module_id = delete.value_of("module-id").unwrap();
-        delete_module(&mut core, device_client, module_id);
+        delete_module(&mut tokio_runtime, device_client, module_id);
     } else if let Some(get) = matches.subcommand_matches("get") {
         let module_id = get.value_of("module-id").unwrap();
-        get_module(&mut core, device_client, module_id);
+        get_module(&mut tokio_runtime, device_client, module_id);
     }
 }
 
-fn list_modules<S, T>(core: &mut Core, device_client: DeviceClient<S, T>)
-where
-    S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
+fn list_modules<C, T>(
+    tokio_runtime: &mut tokio::runtime::Runtime,
+    device_client: DeviceClient<C, T>,
+) where
+    C: 'static + ClientImpl,
     T: 'static + TokenSource + Clone,
     T::Error: Into<HttpError>,
 {
-    let response = core.run(device_client.list_modules()).unwrap();
-    println!("{}", serde_json::to_string_pretty(&response).unwrap());
-}
-
-fn get_module<S, T>(core: &mut Core, device_client: DeviceClient<S, T>, module_id: &str)
-where
-    S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
-    T: 'static + TokenSource + Clone,
-    T::Error: Into<HttpError>,
-{
-    let response = core.run(device_client.get_module_by_id(module_id)).unwrap();
-    println!("{}", serde_json::to_string_pretty(&response).unwrap());
-}
-
-fn create_module<S, T>(core: &mut Core, device_client: DeviceClient<S, T>, module_id: &str)
-where
-    S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
-    T: 'static + TokenSource + Clone,
-    T::Error: Into<HttpError>,
-{
-    let response = core
-        .run(device_client.create_module(module_id, None, None))
+    let response = tokio_runtime
+        .block_on(device_client.list_modules())
         .unwrap();
     println!("{}", serde_json::to_string_pretty(&response).unwrap());
 }
 
-fn delete_module<S, T>(core: &mut Core, device_client: DeviceClient<S, T>, module_id: &str)
-where
-    S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
+fn get_module<C, T>(
+    tokio_runtime: &mut tokio::runtime::Runtime,
+    device_client: DeviceClient<C, T>,
+    module_id: &str,
+) where
+    C: 'static + ClientImpl,
     T: 'static + TokenSource + Clone,
     T::Error: Into<HttpError>,
 {
-    core.run(device_client.delete_module(module_id)).unwrap();
+    let response = tokio_runtime
+        .block_on(device_client.get_module_by_id(module_id))
+        .unwrap();
+    println!("{}", serde_json::to_string_pretty(&response).unwrap());
+}
+
+fn create_module<C, T>(
+    tokio_runtime: &mut tokio::runtime::Runtime,
+    device_client: DeviceClient<C, T>,
+    module_id: &str,
+) where
+    C: 'static + ClientImpl,
+    T: 'static + TokenSource + Clone,
+    T::Error: Into<HttpError>,
+{
+    let response = tokio_runtime
+        .block_on(device_client.create_module(module_id, None, None))
+        .unwrap();
+    println!("{}", serde_json::to_string_pretty(&response).unwrap());
+}
+
+fn delete_module<C, T>(
+    tokio_runtime: &mut tokio::runtime::Runtime,
+    device_client: DeviceClient<C, T>,
+    module_id: &str,
+) where
+    C: 'static + ClientImpl,
+    T: 'static + TokenSource + Clone,
+    T::Error: Into<HttpError>,
+{
+    tokio_runtime
+        .block_on(device_client.delete_module(module_id))
+        .unwrap();
     println!("Module {} deleted", module_id);
 }
 

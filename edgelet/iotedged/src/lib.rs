@@ -1,6 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(warnings)]
+#![deny(unused_extern_crates, warnings)]
+// Remove this when clippy stops warning about old-style `allow()`,
+// which can only be silenced by enabling a feature and thus requires nightly
+//
+// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
+#![allow(renamed_and_removed_lints)]
 
 extern crate base64;
 #[macro_use]
@@ -22,6 +27,7 @@ extern crate env_logger;
 extern crate failure;
 extern crate futures;
 extern crate hsm;
+extern crate http;
 extern crate hyper;
 extern crate hyper_tls;
 extern crate iothubservice;
@@ -35,7 +41,7 @@ extern crate serde_derive;
 extern crate serde_json;
 #[cfg(test)]
 extern crate tempdir;
-extern crate tokio_core;
+extern crate tokio;
 extern crate tokio_signal;
 extern crate url;
 extern crate url_serde;
@@ -61,7 +67,7 @@ use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::fs::{DirBuilder, File};
-use std::io::Write;
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
 use docker::models::HostConfig;
@@ -75,27 +81,24 @@ use edgelet_core::{ModuleRuntime, ModuleSpec};
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_hsm::Crypto;
-use edgelet_http::client::Client as HttpClient;
+use edgelet_http::client::{Client as HttpClient, ClientImpl};
 use edgelet_http::logging::LoggingService;
 use edgelet_http::{ApiVersionService, HyperExt, MaybeProxyClient, API_VERSION};
 use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
 use edgelet_iothub::{HubIdentityManager, SasTokenSource};
-use futures::future;
 use futures::future::Either;
 use futures::sync::oneshot::{self, Receiver};
-use futures::Future;
+use futures::{future, Future};
 use hsm::tpm::Tpm;
 use hsm::ManageTpmKeys;
-use hyper::client::Service;
-use hyper::server::Http;
-use hyper::{Error as HyperError, Request, Response, Uri};
+use hyper::server::conn::Http;
+use hyper::Uri;
 use iothubservice::DeviceClient;
 use provisioning::provisioning::{
     BackupProvisioning, DpsProvisioning, ManualProvisioning, Provision, ProvisioningResult,
 };
 use sha2::{Digest, Sha256};
-use tokio_core::reactor::{Core, Handle};
 use url::Url;
 
 use settings::{Dps, Manual, Provisioning, Settings, DEFAULT_CONNECTION_STRING};
@@ -178,28 +181,21 @@ const IOTEDGED_COMMONNAME: &str = "iotedged workload ca";
 
 pub struct Main {
     settings: Settings<DockerConfig>,
-    reactor: Core,
 }
 
 impl Main {
     pub fn new(settings: Settings<DockerConfig>) -> Result<Self, Error> {
-        let reactor = Core::new()?;
-        let main = Main { settings, reactor };
+        let main = Main { settings };
         Ok(main)
-    }
-
-    pub fn handle(&self) -> Handle {
-        self.reactor.handle()
     }
 
     pub fn run_until<F>(self, shutdown_signal: F) -> Result<(), Error>
     where
-        F: Future<Item = (), Error = ()> + 'static,
+        F: Future<Item = (), Error = ()> + Send + 'static,
     {
-        let Main {
-            settings,
-            reactor: mut core,
-        } = self;
+        let Main { settings } = self;
+
+        let mut tokio_runtime = tokio::runtime::Runtime::new()?;
 
         if let Provisioning::Manual(ref manual) = settings.provisioning() {
             if manual.device_connection_string() == DEFAULT_CONNECTION_STRING {
@@ -207,17 +203,16 @@ impl Main {
             }
         }
 
-        let handle: Handle = core.handle().clone();
-        let hyper_client = MaybeProxyClient::new(&handle, get_proxy_uri()?)?;
+        let hyper_client = MaybeProxyClient::new(get_proxy_uri()?)?;
 
         info!(
             "Using runtime network id {}",
             settings.moby_runtime().network()
         );
-        let runtime = DockerModuleRuntime::new(settings.moby_runtime().uri(), &handle)?
+        let runtime = DockerModuleRuntime::new(settings.moby_runtime().uri())?
             .with_network_id(settings.moby_runtime().network().to_string());
 
-        init_docker_runtime(&runtime, &mut core)?;
+        init_docker_runtime(&runtime, &mut tokio_runtime)?;
 
         info!(
             "Configuring {} as the home directory.",
@@ -258,19 +253,18 @@ impl Main {
             EDGE_SETTINGS_STATE_FILENAME,
             &settings,
             &runtime,
-            &mut core,
             &crypto,
+            &mut tokio_runtime,
         )?;
 
         info!("Provisioning edge device...");
         match settings.provisioning() {
             Provisioning::Manual(manual) => {
                 let (key_store, provisioning_result, root_key) =
-                    manual_provision(&manual, &mut core)?;
+                    manual_provision(&manual, &mut tokio_runtime)?;
                 info!("Finished provisioning edge device.");
                 start_api(
                     &settings,
-                    core,
                     hyper_client,
                     &runtime,
                     &key_store,
@@ -278,16 +272,21 @@ impl Main {
                     root_key,
                     shutdown_signal,
                     &crypto,
+                    tokio_runtime,
                 )?;
             }
             Provisioning::Dps(dps) => {
                 let dps_path = cache_subdir_path.join(EDGE_PROVISIONING_BACKUP_FILENAME);
-                let (key_store, provisioning_result, root_key) =
-                    dps_provision(&dps, hyper_client.clone(), &mut core, dps_path, &runtime)?;
+                let (key_store, provisioning_result, root_key, runtime) = dps_provision(
+                    &dps,
+                    hyper_client.clone(),
+                    dps_path,
+                    runtime,
+                    &mut tokio_runtime,
+                )?;
                 info!("Finished provisioning edge device.");
                 start_api(
                     &settings,
-                    core,
                     hyper_client,
                     &runtime,
                     &key_store,
@@ -295,6 +294,7 @@ impl Main {
                     root_key,
                     shutdown_signal,
                     &crypto,
+                    tokio_runtime,
                 )?;
             }
         };
@@ -351,12 +351,13 @@ fn check_settings_state<M, C>(
     filename: &str,
     settings: &Settings<DockerConfig>,
     runtime: &M,
-    core: &mut Core,
     crypto: &C,
+    tokio_runtime: &mut tokio::runtime::Runtime,
 ) -> Result<(), Error>
 where
     M: ModuleRuntime,
-    M::Error: Into<Error>,
+    <M as ModuleRuntime>::Error: Into<Error>,
+    <M as ModuleRuntime>::RemoveAllFuture: 'static,
     C: MasterEncryptionKey + CreateCertificate,
 {
     info!("Detecting if configuration file has changed...");
@@ -377,7 +378,14 @@ where
         };
     }
     if reconfig_reqd {
-        reconfigure(subdir_path, filename, settings, runtime, crypto, core)?;
+        reconfigure(
+            subdir_path,
+            filename,
+            settings,
+            runtime,
+            crypto,
+            tokio_runtime,
+        )?;
     }
     Ok(())
 }
@@ -388,16 +396,17 @@ fn reconfigure<M, C>(
     settings: &Settings<DockerConfig>,
     runtime: &M,
     crypto: &C,
-    core: &mut Core,
+    tokio_runtime: &mut tokio::runtime::Runtime,
 ) -> Result<(), Error>
 where
     M: ModuleRuntime,
-    M::Error: Into<Error>,
+    <M as ModuleRuntime>::Error: Into<Error>,
+    <M as ModuleRuntime>::RemoveAllFuture: 'static,
     C: MasterEncryptionKey + CreateCertificate,
 {
     // Remove all edge containers and destroy the cache (settings and dps backup)
     info!("Removing all modules...");
-    core.run(runtime.remove_all().map_err(|err| err.into()))?;
+    tokio_runtime.block_on(runtime.remove_all().map_err(|err| err.into()))?;
     info!("Finished removing modules.");
 
     // Ignore errors from this operation because we could be recovering from a previous bad
@@ -422,28 +431,30 @@ where
 }
 
 #[cfg_attr(feature = "cargo-clippy", allow(too_many_arguments))]
-fn start_api<S, K, F, C>(
+fn start_api<HC, K, F, C>(
     settings: &Settings<DockerConfig>,
-    mut core: Core,
-    hyper_client: S,
+    hyper_client: HC,
     runtime: &DockerModuleRuntime,
     key_store: &DerivedKeyStore<K>,
     provisioning_result: &ProvisioningResult,
     root_key: K,
     shutdown_signal: F,
     crypto: &C,
+    mut tokio_runtime: tokio::runtime::Runtime,
 ) -> Result<(), Error>
 where
-    F: Future<Item = (), Error = ()> + 'static,
-    S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
-    K: 'static + Sign + Clone,
+    F: Future<Item = (), Error = ()> + Send + 'static,
+    HC: 'static + ClientImpl,
+    K: 'static + Sign + Clone + Send + Sync,
     C: 'static
         + CreateCertificate
         + Decrypt
         + Encrypt
         + GetTrustBundle
         + MasterEncryptionKey
-        + Clone,
+        + Clone
+        + Send
+        + Sync,
 {
     let hub_name = provisioning_result.hub_name();
     let device_id = provisioning_result.device_id();
@@ -461,23 +472,16 @@ where
     let (mgmt_tx, mgmt_rx) = oneshot::channel();
     let (work_tx, work_rx) = oneshot::channel();
 
-    let mgmt = start_management(&settings, &core.handle(), &runtime, &id_man, mgmt_rx)?;
+    let mgmt = start_management(&settings, &runtime, &id_man, mgmt_rx);
 
-    let workload = start_workload(
-        &settings,
-        key_store,
-        &core.handle(),
-        &runtime,
-        work_rx,
-        crypto,
-    )?;
+    let workload = start_workload(&settings, key_store, &runtime, work_rx, crypto);
 
     let (runt_tx, runt_rx) = oneshot::channel();
     let edge_rt = start_runtime(&runtime, &id_man, &hub_name, &device_id, &settings, runt_rx)?;
 
     // Wait for the watchdog to finish, and then send signal to the workload and management services.
     // This way the edgeAgent can finish shutting down all modules.
-    let edge_rt_with_cleanup = edge_rt.and_then(|_| {
+    let edge_rt_with_cleanup = edge_rt.map_err(Into::into).and_then(|_| {
         mgmt_tx.send(()).unwrap_or(());
         work_tx.send(()).unwrap_or(());
         future::ok(())
@@ -488,24 +492,37 @@ where
         // Signal the watchdog to shutdown
         runt_tx.send(()).unwrap_or(());
     });
+    tokio_runtime.spawn(shutdown);
 
-    core.handle().spawn(shutdown);
-
-    core.run(mgmt.join3(workload, edge_rt_with_cleanup))?;
+    let services = mgmt
+        .join3(workload, edge_rt_with_cleanup)
+        .then(|result| match result {
+            Ok(((), (), ())) => Ok(()),
+            Err(err) => {
+                error!("{}", err);
+                Err(())
+            }
+        });
+    tokio_runtime
+        .block_on(services)
+        .map_err(|()| io::Error::new(io::ErrorKind::Other, "an error occurred"))?;
 
     Ok(())
 }
 
-fn init_docker_runtime(runtime: &DockerModuleRuntime, core: &mut Core) -> Result<(), Error> {
+fn init_docker_runtime(
+    runtime: &DockerModuleRuntime,
+    tokio_runtime: &mut tokio::runtime::Runtime,
+) -> Result<(), Error> {
     info!("Initializing the module runtime...");
-    core.run(runtime.init())?;
+    tokio_runtime.block_on(runtime.init())?;
     info!("Finished initializing the module runtime.");
     Ok(())
 }
 
 fn manual_provision(
     provisioning: &Manual,
-    core: &mut Core,
+    tokio_runtime: &mut tokio::runtime::Runtime,
 ) -> Result<(DerivedKeyStore<MemoryKey>, ProvisioningResult, MemoryKey), Error> {
     let manual = ManualProvisioning::new(provisioning.device_connection_string())?;
     let memory_hsm = MemoryKeyStore::new();
@@ -521,19 +538,19 @@ fn manual_provision(
                     Ok((derived_key_store, prov_result, k))
                 })
         });
-    core.run(provision)
+    tokio_runtime.block_on(provision)
 }
 
-fn dps_provision<S, M>(
+fn dps_provision<HC, M>(
     provisioning: &Dps,
-    hyper_client: S,
-    core: &mut Core,
+    hyper_client: HC,
     backup_path: PathBuf,
-    runtime: &M,
-) -> Result<(DerivedKeyStore<TpmKey>, ProvisioningResult, TpmKey), Error>
+    runtime: M,
+    tokio_runtime: &mut tokio::runtime::Runtime,
+) -> Result<(DerivedKeyStore<TpmKey>, ProvisioningResult, TpmKey, M), Error>
 where
-    S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
-    M: ModuleRuntime,
+    HC: 'static + ClientImpl,
+    M: ModuleRuntime + Send + 'static,
     M::Error: Into<Error>,
 {
     let tpm = Tpm::new().map_err(Error::from)?;
@@ -563,35 +580,35 @@ where
                 let remove = runtime
                     .remove_all()
                     .map_err(|err| err.into())
-                    .map(|_| prov_result);
+                    .map(|_| (prov_result, runtime));
                 Either::A(remove)
             } else {
-                Either::B(future::ok(prov_result))
+                Either::B(future::ok((prov_result, runtime)))
             }
-        }).and_then(move |prov_result| {
+        }).and_then(move |(prov_result, runtime)| {
             tpm_hsm
                 .get(&KeyIdentity::Device, "primary")
                 .map_err(Error::from)
                 .and_then(|k| {
                     let derived_key_store = DerivedKeyStore::new(k.clone());
-                    Ok((derived_key_store, prov_result, k))
+                    Ok((derived_key_store, prov_result, k, runtime))
                 })
         });
 
-    core.run(provision)
+    tokio_runtime.block_on(provision)
 }
 
-fn start_runtime<K, S>(
+fn start_runtime<K, HC>(
     runtime: &DockerModuleRuntime,
-    id_man: &HubIdentityManager<DerivedKeyStore<K>, S, K>,
+    id_man: &HubIdentityManager<DerivedKeyStore<K>, HC, K>,
     hostname: &str,
     device_id: &str,
     settings: &Settings<DockerConfig>,
     shutdown: Receiver<()>,
 ) -> Result<impl Future<Item = (), Error = Error>, Error>
 where
-    K: 'static + Sign + Clone,
-    S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
+    K: 'static + Sign + Clone + Send + Sync,
+    HC: 'static + ClientImpl,
 {
     let spec = settings.agent().clone();
     let env = build_env(spec.env(), hostname, device_id, settings);
@@ -683,69 +700,67 @@ fn build_env(
     env
 }
 
-fn start_management<K, S>(
+fn start_management<K, HC>(
     settings: &Settings<DockerConfig>,
-    handle: &Handle,
     mgmt: &DockerModuleRuntime,
-    id_man: &HubIdentityManager<DerivedKeyStore<K>, S, K>,
+    id_man: &HubIdentityManager<DerivedKeyStore<K>, HC, K>,
     shutdown: Receiver<()>,
-) -> Result<impl Future<Item = (), Error = Error>, Error>
+) -> impl Future<Item = (), Error = failure::Error>
 where
-    K: 'static + Sign + Clone,
-    S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
+    K: 'static + Sign + Clone + Send + Sync,
+    HC: 'static + ClientImpl + Send + Sync,
 {
     info!("Starting management API...");
 
     let label = "mgmt".to_string();
     let url = settings.listen().management_uri().clone();
-    let server_handle = handle.clone();
-    let service = LoggingService::new(
-        label,
-        ApiVersionService::new(ManagementService::new(mgmt, id_man)?),
-    );
 
-    let run = Http::new()
-        .bind_handle(url.clone(), server_handle, service)?
-        .run_until(shutdown.map_err(|_| ()))
-        .map_err(Error::from);
-    info!("Listening on {} with 1 thread for management API.", url);
-    Ok(run)
+    ManagementService::new(mgmt, id_man)
+        .map(|service| LoggingService::new(label, ApiVersionService::new(service)))
+        .and_then(move |service| {
+            let run = Http::new()
+                .bind_url(url.clone(), service)
+                .map_err(failure::Fail::compat)?
+                .run_until(shutdown.map_err(|_| ()));
+            info!("Listening on {} with 1 thread for management API.", url);
+            Ok(run)
+        }).flatten()
 }
 
 fn start_workload<K, C>(
     settings: &Settings<DockerConfig>,
     key_store: &K,
-    handle: &Handle,
     runtime: &DockerModuleRuntime,
     shutdown: Receiver<()>,
     crypto: &C,
-) -> Result<impl Future<Item = (), Error = Error>, Error>
+) -> impl Future<Item = (), Error = failure::Error>
 where
-    K: 'static + KeyStore + Clone,
+    K: 'static + KeyStore + Clone + Send + Sync,
     C: 'static
         + CreateCertificate
         + Decrypt
         + Encrypt
         + GetTrustBundle
         + MasterEncryptionKey
-        + Clone,
+        + Clone
+        + Send
+        + Sync,
 {
     info!("Starting workload API...");
 
     let label = "work".to_string();
     let url = settings.listen().workload_uri().clone();
-    let server_handle = handle.clone();
-    let service = LoggingService::new(
-        label,
-        ApiVersionService::new(WorkloadService::new(key_store, crypto.clone(), runtime)?),
-    );
 
-    let run = Http::new()
-        .bind_handle(url.clone(), server_handle, service)?
-        .run_until(shutdown.map_err(|_| ()))
-        .map_err(Error::from);
-    info!("Listening on {} with 1 thread for workload API.", url);
-    Ok(run)
+    WorkloadService::new(key_store, crypto.clone(), runtime)
+        .map(|service| LoggingService::new(label, ApiVersionService::new(service)))
+        .and_then(move |service| {
+            let run = Http::new()
+                .bind_url(url.clone(), service)
+                .map_err(failure::Fail::compat)?
+                .run_until(shutdown.map_err(|_| ()));
+            info!("Listening on {} with 1 thread for workload API.", url);
+            Ok(run)
+        }).flatten()
 }
 
 #[cfg(test)]
@@ -815,7 +830,7 @@ mod tests {
     fn default_settings_raise_unconfigured_error() {
         let settings = Settings::<DockerConfig>::new(None).unwrap();
         let main = Main::new(settings).unwrap();
-        let shutdown_signal = signal::shutdown(&main.handle());
+        let shutdown_signal = signal::shutdown();
         let result = main.run_until(shutdown_signal);
 
         assert_eq!(ErrorKind::Unconfigured, *result.unwrap_err().kind());
@@ -823,7 +838,6 @@ mod tests {
 
     #[test]
     fn settings_first_time_creates_backup() {
-        let mut core = Core::new().unwrap();
         let tmp_dir = TempDir::new("blah").unwrap();
         let settings = Settings::<DockerConfig>::new(Some(SETTINGS)).unwrap();
         let config = TestConfig::new("microsoft/test-image".to_string());
@@ -832,17 +846,15 @@ mod tests {
             TestModule::new("test-module".to_string(), config, Ok(state));
         let runtime = TestRuntime::new(Ok(module));
         let crypto = TestCrypto {};
-        assert_eq!(
-            check_settings_state(
-                tmp_dir.path().to_path_buf(),
-                "settings_state",
-                &settings,
-                &runtime,
-                &mut core,
-                &crypto
-            ).unwrap(),
-            ()
-        );
+        let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
+        check_settings_state(
+            tmp_dir.path().to_path_buf(),
+            "settings_state",
+            &settings,
+            &runtime,
+            &crypto,
+            &mut tokio_runtime,
+        ).unwrap();
         let expected = serde_json::to_string(&settings).unwrap();
         let expected_sha = Sha256::digest_str(&expected);
         let expected_base64 = base64::encode(&expected_sha);
@@ -857,7 +869,6 @@ mod tests {
 
     #[test]
     fn settings_change_creates_new_backup() {
-        let mut core = Core::new().unwrap();
         let tmp_dir = TempDir::new("blah").unwrap();
         let settings = Settings::<DockerConfig>::new(Some(SETTINGS)).unwrap();
         let config = TestConfig::new("microsoft/test-image".to_string());
@@ -866,17 +877,15 @@ mod tests {
             TestModule::new("test-module".to_string(), config, Ok(state));
         let runtime = TestRuntime::new(Ok(module));
         let crypto = TestCrypto {};
-        assert_eq!(
-            check_settings_state(
-                tmp_dir.path().to_path_buf(),
-                "settings_state",
-                &settings,
-                &runtime,
-                &mut core,
-                &crypto
-            ).unwrap(),
-            ()
-        );
+        let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
+        check_settings_state(
+            tmp_dir.path().to_path_buf(),
+            "settings_state",
+            &settings,
+            &runtime,
+            &crypto,
+            &mut tokio_runtime,
+        ).unwrap();
         let mut written = String::new();
         File::open(tmp_dir.path().join("settings_state"))
             .unwrap()
@@ -884,17 +893,15 @@ mod tests {
             .unwrap();
 
         let settings1 = Settings::<DockerConfig>::new(Some(SETTINGS1)).unwrap();
-        assert_eq!(
-            check_settings_state(
-                tmp_dir.path().to_path_buf(),
-                "settings_state",
-                &settings1,
-                &runtime,
-                &mut core,
-                &crypto
-            ).unwrap(),
-            ()
-        );
+        let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
+        check_settings_state(
+            tmp_dir.path().to_path_buf(),
+            "settings_state",
+            &settings1,
+            &runtime,
+            &crypto,
+            &mut tokio_runtime,
+        ).unwrap();
         let expected = serde_json::to_string(&settings1).unwrap();
         let expected_sha = Sha256::digest_str(&expected);
         let expected_base64 = base64::encode(&expected_sha);

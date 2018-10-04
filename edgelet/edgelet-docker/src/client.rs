@@ -1,20 +1,20 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::ops::Deref;
-use std::rc::Rc;
+use std::sync::Arc;
 
-use hyper::client::Connect;
+use hyper::client::connect::Connect;
 
 use docker::apis::client::APIClient;
 
 pub struct DockerClient<C: Connect> {
-    client: Rc<APIClient<C>>,
+    client: Arc<APIClient<C>>,
 }
 
 impl<C: Connect> DockerClient<C> {
     pub fn new(client: APIClient<C>) -> DockerClient<C> {
         DockerClient {
-            client: Rc::new(client),
+            client: Arc::new(client),
         }
     }
 }

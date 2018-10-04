@@ -36,6 +36,9 @@ pub struct Crypto {
     interface: HSM_CLIENT_CRYPTO_INTERFACE_TAG,
 }
 
+// Handles don't have thread-affinity
+unsafe impl Send for Crypto {}
+
 impl Drop for Crypto {
     fn drop(&mut self) {
         if let Some(f) = self.interface.hsm_client_crypto_destroy {

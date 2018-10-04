@@ -6,7 +6,7 @@ use std::fmt::Display;
 use base64::DecodeError;
 use failure::{Backtrace, Context, Fail};
 use serde_json::Error as SerdeError;
-use tokio_timer::TimerError as TokioError;
+use tokio::timer::Error as TimerError;
 
 use edgelet_core::Error as CoreError;
 use edgelet_http::{Error as HttpError, ErrorKind as HttpErrorKind};
@@ -106,8 +106,8 @@ impl From<Error> for HttpError {
     }
 }
 
-impl From<TokioError> for Error {
-    fn from(error: TokioError) -> Error {
+impl From<TimerError> for Error {
+    fn from(error: TimerError) -> Error {
         Error {
             inner: error.context(ErrorKind::TimerError),
         }

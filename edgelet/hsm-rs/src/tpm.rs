@@ -19,6 +19,9 @@ pub struct Tpm {
     interface: HSM_CLIENT_TPM_INTERFACE,
 }
 
+// Handles don't have thread-affinity
+unsafe impl Send for Tpm {}
+
 // HSM TPM
 
 impl Drop for Tpm {

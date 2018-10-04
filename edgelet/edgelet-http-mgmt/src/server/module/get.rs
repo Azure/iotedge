@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use edgelet_http::route::{BoxFuture, Handler, Parameters};
-use futures::future;
+use edgelet_http::route::{Handler, Parameters};
+use futures::{future, Future};
 use http::{Request, Response};
 use hyper::{Body, Error as HyperError};
 
@@ -12,7 +12,7 @@ impl Handler<Parameters> for GetModule {
         &self,
         _req: Request<Body>,
         _params: Parameters,
-    ) -> BoxFuture<Response<Body>, HyperError> {
+    ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
         let response = Response::new(Body::default());
         Box::new(future::ok(response))
     }

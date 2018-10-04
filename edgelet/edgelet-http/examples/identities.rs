@@ -5,18 +5,20 @@ extern crate edgelet_http;
 extern crate futures;
 extern crate http;
 extern crate hyper;
-extern crate tokio_core;
+extern crate tokio;
 
-use edgelet_http::route::{BoxFuture, Builder, Parameters, Router};
+use edgelet_http::route::{Builder, Parameters, Router};
 use edgelet_http::HyperExt;
-use futures::future;
+use futures::{future, Future};
 use http::header::CONTENT_TYPE;
 use http::{Request, Response, StatusCode};
-use hyper::server::Http;
+use hyper::server::conn::Http;
 use hyper::{Body, Error as HyperError};
-use tokio_core::reactor::Core;
 
-fn index(_req: Request<Body>, _params: Parameters) -> BoxFuture<Response<Body>, HyperError> {
+fn index(
+    _req: Request<Body>,
+    _params: Parameters,
+) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
     let response = Response::builder()
         .status(StatusCode::OK)
         .header(CONTENT_TYPE, "text/plain")
@@ -28,7 +30,7 @@ fn index(_req: Request<Body>, _params: Parameters) -> BoxFuture<Response<Body>, 
 fn identities_list(
     _req: Request<Body>,
     _params: Parameters,
-) -> BoxFuture<Response<Body>, HyperError> {
+) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
     let response = Response::builder()
         .status(StatusCode::OK)
         .header(CONTENT_TYPE, "application/json")
@@ -40,7 +42,7 @@ fn identities_list(
 fn identities_update(
     _req: Request<Body>,
     params: Parameters,
-) -> BoxFuture<Response<Body>, HyperError> {
+) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
     let response = params
         .name("name")
         .map(|name| {
@@ -62,7 +64,7 @@ fn identities_update(
 fn identities_delete(
     _req: Request<Body>,
     _params: Parameters,
-) -> BoxFuture<Response<Body>, HyperError> {
+) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
     let response = Response::builder()
         .status(StatusCode::BAD_REQUEST)
         .body(Body::default())
@@ -71,8 +73,6 @@ fn identities_delete(
 }
 
 fn main() {
-    let mut core = Core::new().unwrap();
-    let handle = core.handle();
     let router = router!(
         get "/" => index,
         get "/identities" => identities_list,
@@ -83,6 +83,10 @@ fn main() {
     let addr = "tcp://0.0.0.0:8080".parse().unwrap();
 
     println!("Starting server on {}", addr);
-    let run = Http::new().bind_handle(addr, handle, router).unwrap().run();
-    core.run(run).unwrap();
+    let run = Http::new().bind_url(addr, router).unwrap().run();
+
+    tokio::runtime::current_thread::Runtime::new()
+        .unwrap()
+        .block_on(run)
+        .unwrap();
 }
