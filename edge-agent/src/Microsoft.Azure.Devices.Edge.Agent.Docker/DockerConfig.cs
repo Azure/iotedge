@@ -14,12 +14,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     {
         readonly CreateContainerParameters createOptions;
 
-        [JsonProperty(Required = Required.Always, PropertyName = "image")]
         public string Image { get; }
 
         // Do a serialization roundtrip to clone the createOptions
         // https://docs.docker.com/engine/api/v1.25/#operation/ContainerCreate
-        [JsonProperty(Required = Required.AllowNull, PropertyName = "createOptions")]
         public CreateContainerParameters CreateOptions => JsonConvert.DeserializeObject<CreateContainerParameters>(JsonConvert.SerializeObject(this.createOptions));
 
         public DockerConfig(string image)
@@ -27,7 +25,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         {
         }
 
-        [JsonConstructor]
         public DockerConfig(string image, string createOptions)
         {
             this.Image = image?.Trim() ?? string.Empty;
