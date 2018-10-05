@@ -37,6 +37,7 @@ impl SetPlatformDefines for Config {
             .cflag("/D_WINDOWS")
             .cxxflag("/D_WINDOWS")
             .define(USE_EMULATOR, use_emulator)
+            .define("use_cppunittest", "OFF")
     }
 
     #[cfg(unix)]
