@@ -155,7 +155,7 @@ void hsm_test_util_delete_dir(const char *dir_guid)
     char *cmd = calloc(cmd_size, 1);
     ASSERT_IS_NOT_NULL_WITH_MSG(cmd, "TestUtil Line:" TOSTRING(__LINE__));
     status = snprintf(cmd, cmd_size, "%s%s", cmd_prefix, dir_path);
-    ASSERT_IS_TRUE_WITH_MSG(((status > 0) || (status < cmd_size)), "TestUtil Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE_WITH_MSG(((status > 0) || (status < (int)cmd_size)), "TestUtil Line:" TOSTRING(__LINE__));
     printf("Deleting directory using command '%s'.\r\n", cmd);
     status = system(cmd);
     free(cmd);
