@@ -218,19 +218,19 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 foreach (var (num, kv) in tokens)
                 {
                     var strNum = this.regex.Match(kv.Key).Groups["num"].Value;
-                    Validate(strNum, num);
+                    this.Validate(strNum, num);
                     yield return kv.Value;
                 }
             }
 
-            static void Validate(string strNum, uint expectedNum)
+            void Validate(string strNum, uint expectedNum)
             {
                 // The zero-th item should have an empty num
                 if (expectedNum == 0)
                 {
                     if (strNum != string.Empty)
                     {
-                        throw new JsonSerializationException(string.Format("Expected empty field number but found \"{0}\"", strNum));
+                        throw new JsonSerializationException(string.Format("Error while parsing chunked field \"{0}\", expected empty field number but found \"{1}\"", this.name, strNum));
                     }
                 }
                 else
@@ -242,7 +242,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
                     if (expectedNum != tokenNum)
                     {
-                        throw new JsonSerializationException(string.Format("Error while parsing chunked field, expected {0} found {1}", expectedNum, tokenNum));
+                        throw new JsonSerializationException(string.Format("Error while parsing chunked field \"{0}\", expected {0}{1:D2} found {0}{2}", this.name, expectedNum, strNum));
                     }
                 }
             }

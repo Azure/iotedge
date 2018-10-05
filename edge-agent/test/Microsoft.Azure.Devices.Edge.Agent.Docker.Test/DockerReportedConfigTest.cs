@@ -89,10 +89,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         [Fact]
         public void TestDeserializationError()
         {
-            Assert.Throws<JsonSerializationException>(() => JsonConvert.DeserializeObject<DockerReportedConfig>(Extended5Error1));
-            Assert.Throws<JsonSerializationException>(() => JsonConvert.DeserializeObject<DockerReportedConfig>(Extended5Error2));
-            Assert.Throws<JsonSerializationException>(() => JsonConvert.DeserializeObject<DockerReportedConfig>(Extended5Error3));
-            Assert.Throws<JsonSerializationException>(() => JsonConvert.DeserializeObject<DockerReportedConfig>(Extended5Error4));
+            var ex1 = Assert.Throws<JsonSerializationException>(() => JsonConvert.DeserializeObject<DockerReportedConfig>(Extended5Error1));
+            Assert.Equal("Error while parsing chunked field \"createOptions\", expected createOptions01 found createOptions02", ex1.Message);
+
+            var ex2 = Assert.Throws<JsonSerializationException>(() => JsonConvert.DeserializeObject<DockerReportedConfig>(Extended5Error2));
+            Assert.Equal("Error while parsing chunked field \"createOptions\", expected createOptions01 found createOptions02", ex2.Message);
+
+            var ex3 = Assert.Throws<JsonSerializationException>(() => JsonConvert.DeserializeObject<DockerReportedConfig>(Extended5Error3));
+            Assert.Equal("Error while parsing chunked field \"createOptions\", expected empty field number but found \"00\"", ex3.Message);
+
+            var ex4 = Assert.Throws<JsonSerializationException>(() => JsonConvert.DeserializeObject<DockerReportedConfig>(Extended5Error4));
+            Assert.Equal("Error while parsing chunked field \"createOptions\", expected empty field number but found \"01\"", ex4.Message);
         }
 
         [Fact]
