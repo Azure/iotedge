@@ -15,6 +15,7 @@ The remainder of this document discusses the setup on Linux, which provides bett
 # Bridge Networks
 
 By default, IoT Edge uses two bridge networks for connectivity between containers.
+This allows an additional form of isolation between the host network, the Edge Agent, and application containers.
 
 The Edge Agent attaches to the [default docker bridge network][1] (named `bridge`).
 This bridge network device shows up as `docker0` when running `ifconfig`.
@@ -81,6 +82,10 @@ The following table describes these requirements:
 | AMQP    | 5671 | OPTIONAL (For gateway scenario) | OPEN*     | 
 | AMQP+WS | 443  | OPTIONAL (For gateway scenario) | OPEN*     |
 | HTTPS   | 443  | OPTIONAL (For gateway scenario) | OPEN      |
+
+In the gateway scenario, at least one of the Edge Hub's supported protocols must be open for downstream devices to connect.
+This means that one of 8883, 5671, and 443 must be open to inbound access.
+If no downstream devices are to connect to the edge device as a gateway, then all inbound connectivity can be disabled.
 
 *The `Edge Agent` and `Edge Hub` require one of ports 5671, 8883, or 443 open for outbound connectivity to IoT Hub.
 The `iotedged` requires outbound connectivity on port 443 to IoT Hub, and optionally to the Device Provisioning Service (DPS), if DPS is used for provisioning.
