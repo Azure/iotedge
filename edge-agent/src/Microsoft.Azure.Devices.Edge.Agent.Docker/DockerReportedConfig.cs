@@ -70,8 +70,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 writer.WritePropertyName("imageHash");
                 serializer.Serialize(writer, dockerReportedConfig.ImageHash);
 
-                var options = JsonConvert.SerializeObject(dockerReportedConfig.CreateOptions);
-                foreach (var (i, chunk) in options.Chunks(Constants.TwinMaxValueSize).Enumerate())
+                var options = JsonConvert.SerializeObject(dockerReportedConfig.CreateOptions)
+                    .Chunks(Constants.TwinMaxValueSize)
+                    .Take(Constants.TwinValueMaxChunks)
+                    .Enumerate();
+                foreach (var (i, chunk) in options)
                 {
                     var field = i != 0
                         ? string.Format("createOptions{0}", i.ToString("D2"))
@@ -92,6 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 obj.TryGetValue("imageHash", StringComparison.OrdinalIgnoreCase, out JToken jTokenImageHash);
 
                 var options = obj.ChunkedValue("createOptions", true)
+                    .Take(Constants.TwinValueMaxChunks)
                     .Select(token => token?.ToString() ?? string.Empty)
                     .Join("");
 

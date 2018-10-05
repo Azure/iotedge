@@ -77,8 +77,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 writer.WritePropertyName("image");
                 serializer.Serialize(writer, dockerconfig.Image);
 
-                var options = JsonConvert.SerializeObject(dockerconfig.CreateOptions);
-                foreach (var (i, chunk) in options.Chunks(Constants.TwinMaxValueSize).Enumerate())
+                var options = JsonConvert.SerializeObject(dockerconfig.CreateOptions)
+                    .Chunks(Constants.TwinMaxValueSize)
+                    .Take(Constants.TwinValueMaxChunks)
+                    .Enumerate();
+                foreach (var (i, chunk) in options)
                 {
                     var field = i != 0
                         ? string.Format("createOptions{0}", i.ToString("D2"))
@@ -98,6 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 obj.TryGetValue("image", StringComparison.OrdinalIgnoreCase, out JToken jTokenImage);
 
                 var options = obj.ChunkedValue("createOptions", true)
+                    .Take(Constants.TwinValueMaxChunks)
                     .Select(token => token?.ToString() ?? string.Empty)
                     .Join("");
 
