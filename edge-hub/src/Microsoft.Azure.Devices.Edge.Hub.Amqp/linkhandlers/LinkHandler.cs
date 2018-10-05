@@ -82,6 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
         protected virtual void OnLinkClosed(object sender, EventArgs args)
         {
             Events.Closed(this);
+            this.ConnectionHandler.RemoveLinkHandler(this);
         }
 
         public async Task CloseAsync(TimeSpan timeout)
