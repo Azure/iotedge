@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex};
 
 use certificate_properties::convert_properties;
 use edgelet_core::{
@@ -25,7 +25,7 @@ use hsm::{
 /// Activate a private key, and then you can use that key to sign data.
 #[derive(Clone)]
 pub struct Crypto {
-    crypto: Arc<RwLock<HsmCrypto>>,
+    crypto: Arc<Mutex<HsmCrypto>>,
 }
 
 impl Crypto {
@@ -36,7 +36,7 @@ impl Crypto {
 
     pub fn from_hsm(crypto: HsmCrypto) -> Result<Crypto, Error> {
         Ok(Crypto {
-            crypto: Arc::new(RwLock::new(crypto)),
+            crypto: Arc::new(Mutex::new(crypto)),
         })
     }
 }
@@ -44,8 +44,8 @@ impl Crypto {
 impl CoreMasterEncryptionKey for Crypto {
     fn create_key(&self) -> Result<(), CoreError> {
         self.crypto
-            .read()
-            .expect("Shared read lock on crypto structure failed")
+            .lock()
+            .expect("Lock on crypto structure failed")
             .create_master_encryption_key()
             .map_err(Error::from)
             .map_err(CoreError::from)
@@ -53,8 +53,8 @@ impl CoreMasterEncryptionKey for Crypto {
 
     fn destroy_key(&self) -> Result<(), CoreError> {
         self.crypto
-            .read()
-            .expect("Shared read lock on crypto structure failed")
+            .lock()
+            .expect("Lock on crypto structure failed")
             .destroy_master_encryption_key()
             .map_err(Error::from)
             .map_err(CoreError::from)
@@ -68,10 +68,7 @@ impl CoreCreateCertificate for Crypto {
         &self,
         properties: &CoreCertificateProperties,
     ) -> Result<Self::Certificate, CoreError> {
-        let crypto = self
-            .crypto
-            .read()
-            .expect("Shared read lock on crypto structure failed");
+        let crypto = self.crypto.lock().expect("Lock on crypto structure failed");
         let device_ca_alias = crypto.get_device_ca_alias();
         let cert = crypto
             .create_certificate(&convert_properties(properties, &device_ca_alias))
@@ -82,8 +79,8 @@ impl CoreCreateCertificate for Crypto {
 
     fn destroy_certificate(&self, alias: String) -> Result<(), CoreError> {
         self.crypto
-            .read()
-            .expect("Shared read lock on crypto structure failed")
+            .lock()
+            .expect("Lock on crypto structure failed")
             .destroy_certificate(alias)
             .map_err(Error::from)
             .map_err(CoreError::from)?;
@@ -101,8 +98,8 @@ impl CoreEncrypt for Crypto {
         initialization_vector: &[u8],
     ) -> Result<Self::Buffer, CoreError> {
         self.crypto
-            .read()
-            .expect("Shared read lock on crypto structure failed")
+            .lock()
+            .expect("Lock on crypto structure failed")
             .encrypt(client_id, plaintext, initialization_vector)
             .map_err(Error::from)
             .map_err(CoreError::from)
@@ -119,8 +116,8 @@ impl CoreDecrypt for Crypto {
         initialization_vector: &[u8],
     ) -> Result<Self::Buffer, CoreError> {
         self.crypto
-            .read()
-            .expect("Shared read lock on crypto structure failed")
+            .lock()
+            .expect("Lock on crypto structure failed")
             .decrypt(client_id, ciphertext, initialization_vector)
             .map_err(Error::from)
             .map_err(CoreError::from)
@@ -133,8 +130,8 @@ impl CoreGetTrustBundle for Crypto {
     fn get_trust_bundle(&self) -> Result<Self::Certificate, CoreError> {
         let cert = self
             .crypto
-            .read()
-            .expect("Shared lock on crypto structure failed")
+            .lock()
+            .expect("Lock on crypto structure failed")
             .get_trust_bundle()
             .map_err(Error::from)
             .map_err(CoreError::from)?;

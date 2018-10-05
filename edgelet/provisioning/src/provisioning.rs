@@ -10,8 +10,6 @@ use bytes::Bytes;
 
 use futures::future::Either;
 use futures::{future, Future};
-use hyper::client::Service;
-use hyper::{Error as HyperError, Request, Response};
 use regex::RegexSet;
 use serde_json;
 use url::Url;
@@ -19,7 +17,7 @@ use url::Url;
 use dps::registration::{DpsClient, DpsTokenSource};
 use edgelet_core::crypto::{Activate, KeyIdentity, KeyStore, MemoryKey, MemoryKeyStore};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
-use edgelet_http::client::Client as HttpClient;
+use edgelet_http::client::{Client as HttpClient, ClientImpl};
 use edgelet_utils::log_failure;
 use error::{Error, ErrorKind};
 use hsm::TpmKey as HsmTpmKey;
@@ -61,7 +59,7 @@ pub trait Provision {
     fn provision(
         self,
         key_activator: Self::Hsm,
-    ) -> Box<Future<Item = ProvisioningResult, Error = Error>>;
+    ) -> Box<Future<Item = ProvisioningResult, Error = Error> + Send>;
 }
 
 #[derive(Debug)]
@@ -125,7 +123,7 @@ impl Provision for ManualProvisioning {
     fn provision(
         self,
         mut key_activator: Self::Hsm,
-    ) -> Box<Future<Item = ProvisioningResult, Error = Error>> {
+    ) -> Box<Future<Item = ProvisioningResult, Error = Error> + Send> {
         let ManualProvisioning {
             key,
             device_id,
@@ -147,32 +145,32 @@ impl Provision for ManualProvisioning {
     }
 }
 
-pub struct DpsProvisioning<S>
+pub struct DpsProvisioning<C>
 where
-    S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
+    C: ClientImpl,
 {
-    client: HttpClient<S, DpsTokenSource<TpmKey>>,
+    client: HttpClient<C, DpsTokenSource<TpmKey>>,
     scope_id: String,
     registration_id: String,
     hsm_tpm_ek: HsmTpmKey,
     hsm_tpm_srk: HsmTpmKey,
 }
 
-impl<S> DpsProvisioning<S>
+impl<C> DpsProvisioning<C>
 where
-    S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
+    C: ClientImpl,
 {
     pub fn new(
-        service: S,
+        client_impl: C,
         endpoint: Url,
         scope_id: String,
         registration_id: String,
         api_version: &str,
         hsm_tpm_ek: HsmTpmKey,
         hsm_tpm_srk: HsmTpmKey,
-    ) -> Result<DpsProvisioning<S>, Error> {
+    ) -> Result<Self, Error> {
         let client = HttpClient::new(
-            service,
+            client_impl,
             None as Option<DpsTokenSource<TpmKey>>,
             &api_version,
             endpoint,
@@ -189,16 +187,16 @@ where
     }
 }
 
-impl<S> Provision for DpsProvisioning<S>
+impl<C> Provision for DpsProvisioning<C>
 where
-    S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
+    C: 'static + ClientImpl,
 {
     type Hsm = TpmKeyStore;
 
     fn provision(
         self,
         key_activator: Self::Hsm,
-    ) -> Box<Future<Item = ProvisioningResult, Error = Error>> {
+    ) -> Box<Future<Item = ProvisioningResult, Error = Error> + Send> {
         let d = DpsClient::new(
             self.client.clone(),
             self.scope_id.clone(),
@@ -277,7 +275,7 @@ where
     fn provision(
         self,
         key_activator: Self::Hsm,
-    ) -> Box<Future<Item = ProvisioningResult, Error = Error>> {
+    ) -> Box<Future<Item = ProvisioningResult, Error = Error> + Send> {
         let path = self.path.clone();
         let path_on_err = self.path.clone();
         Box::new(
@@ -303,7 +301,7 @@ mod tests {
     use super::*;
 
     use tempdir::TempDir;
-    use tokio_core::reactor::Core;
+    use tokio;
 
     use error::ErrorKind;
 
@@ -315,7 +313,7 @@ mod tests {
         fn provision(
             self,
             _key_activator: Self::Hsm,
-        ) -> Box<Future<Item = ProvisioningResult, Error = Error>> {
+        ) -> Box<Future<Item = ProvisioningResult, Error = Error> + Send> {
             Box::new(future::ok(ProvisioningResult {
                 device_id: "TestDevice".to_string(),
                 hub_name: "TestHub".to_string(),
@@ -332,14 +330,13 @@ mod tests {
         fn provision(
             self,
             _key_activator: Self::Hsm,
-        ) -> Box<Future<Item = ProvisioningResult, Error = Error>> {
+        ) -> Box<Future<Item = ProvisioningResult, Error = Error> + Send> {
             Box::new(future::err(Error::from(ErrorKind::Dps)))
         }
     }
 
     #[test]
     fn manual_get_credentials_success() {
-        let mut core = Core::new().unwrap();
         let provisioning =
             ManualProvisioning::new("HostName=test.com;DeviceId=test;SharedAccessKey=test");
         assert_eq!(provisioning.is_ok(), true);
@@ -357,7 +354,10 @@ mod tests {
                 }
                 Ok(()) as Result<(), Error>
             });
-        core.run(task).unwrap();
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
     }
 
     #[test]
@@ -368,7 +368,6 @@ mod tests {
 
     #[test]
     fn connection_string_split_success() {
-        let mut core = Core::new().unwrap();
         let provisioning =
             ManualProvisioning::new("HostName=test.com;DeviceId=test;SharedAccessKey=test");
         assert_eq!(provisioning.is_ok(), true);
@@ -386,7 +385,10 @@ mod tests {
                 }
                 Ok(()) as Result<(), Error>
             });
-        core.run(task).unwrap();
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
 
         let provisioning1 =
             ManualProvisioning::new("DeviceId=test;SharedAccessKey=test;HostName=test.com");
@@ -404,12 +406,14 @@ mod tests {
                 }
                 Ok(()) as Result<(), Error>
             });
-        core.run(task1).unwrap();
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task1)
+            .unwrap();
     }
 
     #[test]
     fn connection_string_split_error() {
-        let mut core = Core::new().unwrap();
         let test1 = ManualProvisioning::new("DeviceId=test;SharedAccessKey=test");
         assert_eq!(test1.is_err(), true);
         let test2 = ManualProvisioning::new(
@@ -427,12 +431,14 @@ mod tests {
             }
             Ok(()) as Result<(), Error>
         });
-        core.run(task1).unwrap();
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task1)
+            .unwrap();
     }
 
     #[test]
     fn backup_success() {
-        let mut core = Core::new().unwrap();
         let test_provisioner = TestProvisioning {};
         let tmp_dir = TempDir::new("backup").unwrap();
         let file_path = tmp_dir.path().join("dps_backup.json");
@@ -453,19 +459,24 @@ mod tests {
                 }
                 Ok(()) as Result<(), Error>
             });
-        core.run(task).unwrap();
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
     }
 
     #[test]
     fn restore_success() {
-        let mut core = Core::new().unwrap();
         let test_provisioner = TestProvisioning {};
         let tmp_dir = TempDir::new("backup").unwrap();
         let file_path = tmp_dir.path().join("dps_backup.json");
         let file_path_clone = file_path.clone();
         let prov_wrapper = BackupProvisioning::new(test_provisioner, file_path);
         let task = prov_wrapper.provision(MemoryKeyStore::new());
-        core.run(task).unwrap();
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
 
         let prov_wrapper_err =
             BackupProvisioning::new(TestProvisioningWithError {}, file_path_clone);
@@ -482,19 +493,24 @@ mod tests {
                 }
                 Ok(()) as Result<(), Error>
             });
-        core.run(task1).unwrap();
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task1)
+            .unwrap();
     }
 
     #[test]
     fn restore_failure() {
-        let mut core = Core::new().unwrap();
         let test_provisioner = TestProvisioning {};
         let tmp_dir = TempDir::new("backup").unwrap();
         let file_path = tmp_dir.path().join("dps_backup.json");
         let file_path_wrong = tmp_dir.path().join("dps_backup_wrong.json");
         let prov_wrapper = BackupProvisioning::new(test_provisioner, file_path);
         let task = prov_wrapper.provision(MemoryKeyStore::new());
-        core.run(task).unwrap();
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
 
         let prov_wrapper_err =
             BackupProvisioning::new(TestProvisioningWithError {}, file_path_wrong);
@@ -507,7 +523,10 @@ mod tests {
                 }
                 Ok(()) as Result<(), Error>
             });
-        core.run(task1).unwrap();
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task1)
+            .unwrap();
     }
 
     #[test]

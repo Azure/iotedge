@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(warnings)]
+#![deny(unused_extern_crates, warnings)]
 
 extern crate base64;
 extern crate bytes;
@@ -8,18 +8,16 @@ extern crate bytes;
 extern crate failure;
 extern crate futures;
 extern crate hsm;
-extern crate hyper;
 #[macro_use]
 extern crate log;
 extern crate regex;
-extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
 #[cfg(test)]
 extern crate tempdir;
 #[cfg(test)]
-extern crate tokio_core;
+extern crate tokio;
 extern crate url;
 
 extern crate dps;

@@ -10,7 +10,7 @@
 
 use failure::err_msg;
 use failure::Error;
-use hyper::client::Connect;
+use hyper::client::connect::Connect;
 use hyper::{Client, Uri};
 
 pub struct Configuration<C: Connect> {

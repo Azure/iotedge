@@ -1,11 +1,14 @@
+// Copyright (c) Microsoft. All rights reserved.
+
+#![deny(unused_extern_crates, warnings)]
 #![allow(
-    unused_imports,
-    non_snake_case,
-    unused_mut,
     dead_code,
-    unknown_lints
+    non_snake_case,
+    renamed_and_removed_lints,
+    unused_imports,
+    unused_mut,
 )]
-#![allow(clippy, clippy_pedantic)]
+#![cfg_attr(feature = "cargo-clippy", allow(clippy, clippy_pedantic))]
 
 #[macro_use]
 extern crate serde_derive;
@@ -16,6 +19,7 @@ extern crate futures;
 extern crate hyper;
 extern crate serde;
 extern crate serde_json;
+extern crate typed_headers;
 extern crate url;
 
 pub mod apis;

@@ -67,7 +67,7 @@ impl Default for Parameters {
 
 struct RegexRoute {
     pattern: Regex,
-    handler: Box<Handler<Parameters>>,
+    handler: Box<Handler<Parameters> + Sync>,
 }
 
 #[derive(Default)]
@@ -81,7 +81,7 @@ impl Builder for RegexRoutesBuilder {
     fn route<S, H>(mut self, method: Method, pattern: S, handler: H) -> Self
     where
         S: AsRef<str>,
-        H: Handler<<Self::Recognizer as Recognizer>::Parameters>,
+        H: Handler<<Self::Recognizer as Recognizer>::Parameters> + Sync,
     {
         let pattern = normalize_pattern(pattern.as_ref());
         let pattern = Regex::new(&pattern).expect("failed to compile regex");

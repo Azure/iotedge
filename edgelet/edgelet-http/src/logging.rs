@@ -1,15 +1,15 @@
 // Copyright (c) Microsoft. All rights reserved.
 #![allow(deprecated)]
 
-use std::io;
+use std::error::Error as StdError;
 
 use chrono::prelude::*;
 use edgelet_core::pid::Pid;
+use futures::future;
 use futures::prelude::*;
 use http::header::{CONTENT_LENGTH, USER_AGENT};
-use http::{Request, Response};
-use hyper::server::{NewService, Service};
-use hyper::{Body, Error as HyperError};
+use hyper::service::{NewService, Service};
+use hyper::{Body, Request, Response};
 
 #[derive(Clone)]
 pub struct LoggingService<T> {
@@ -68,14 +68,14 @@ where
 
 impl<T> Service for LoggingService<T>
 where
-    T: Service<Request = Request<Body>, Response = Response<Body>>,
+    T: Service<ResBody = Body>,
 {
-    type Request = T::Request;
-    type Response = T::Response;
+    type ReqBody = T::ReqBody;
+    type ResBody = T::ResBody;
     type Error = T::Error;
     type Future = ResponseFuture<T::Future>;
 
-    fn call(&self, req: Self::Request) -> Self::Future {
+    fn call(&mut self, req: Request<Self::ReqBody>) -> Self::Future {
         let uri = req
             .uri()
             .query()
@@ -103,15 +103,16 @@ where
 
 impl<T> NewService for LoggingService<T>
 where
-    T: Clone + Service<Request = Request<Body>, Response = Response<Body>, Error = HyperError>,
-    T::Future: 'static,
+    T: Clone + Service<ResBody = Body>,
 {
-    type Request = T::Request;
-    type Response = Response<Body>;
-    type Error = HyperError;
-    type Instance = Self;
+    type ReqBody = <Self::Service as Service>::ReqBody;
+    type ResBody = <Self::Service as Service>::ResBody;
+    type Error = <Self::Service as Service>::Error;
+    type Service = Self;
+    type Future = future::FutureResult<Self::Service, Self::InitError>;
+    type InitError = Box<StdError + Send + Sync>;
 
-    fn new_service(&self) -> io::Result<Self::Instance> {
-        Ok(self.clone())
+    fn new_service(&self) -> Self::Future {
+        future::ok(self.clone())
     }
 }

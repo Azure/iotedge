@@ -9,8 +9,8 @@ use std::os::unix::net::SocketAddr as UnixSocketAddr;
 use bytes::{Buf, BufMut};
 use edgelet_core::pid::Pid;
 use futures::Poll;
-use tokio_core::net::TcpStream;
-use tokio_io::{AsyncRead, AsyncWrite};
+use tokio::io::{AsyncRead, AsyncWrite};
+use tokio::net::TcpStream;
 #[cfg(windows)]
 use tokio_named_pipe::PipeStream;
 #[cfg(unix)]
@@ -153,14 +153,11 @@ impl fmt::Display for IncomingSocketAddr {
 #[cfg(unix)]
 #[cfg(test)]
 mod tests {
-    use tokio_core::reactor::Core;
-
     use super::*;
 
     #[test]
     fn test_pid() {
-        let core = Core::new().unwrap();
-        let (a, b) = UnixStream::pair(&core.handle()).unwrap();
+        let (a, b) = UnixStream::pair().unwrap();
         assert_eq!(a.pid().unwrap(), b.pid().unwrap());
         match a.pid().unwrap() {
             Pid::None => panic!("no pid 'a'"),

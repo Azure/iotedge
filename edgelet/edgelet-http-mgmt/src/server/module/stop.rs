@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use edgelet_core::ModuleRuntime;
-use edgelet_http::route::{BoxFuture, Handler, Parameters};
+use edgelet_http::route::{Handler, Parameters};
 use futures::{future, Future};
 use http::{Request, Response, StatusCode};
 use hyper::{Body, Error as HyperError};
@@ -29,14 +29,14 @@ where
 
 impl<M> Handler<Parameters> for StopModule<M>
 where
-    M: 'static + ModuleRuntime,
+    M: 'static + ModuleRuntime + Send,
     <M as ModuleRuntime>::Error: IntoResponse,
 {
     fn handle(
         &self,
         _req: Request<Body>,
         params: Parameters,
-    ) -> BoxFuture<Response<Body>, HyperError> {
+    ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
         let response = params
             .name("name")
             .ok_or_else(|| Error::from(ErrorKind::BadParam))

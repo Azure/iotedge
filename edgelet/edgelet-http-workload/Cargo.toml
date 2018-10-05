@@ -7,17 +7,15 @@ publish = false
 [dependencies]
 base64 = "0.9"
 chrono = { version = "0.4", features = ["serde"] }
-failure = "0.1"
+failure = "0.1.2"
 failure_derive = "0.1"
 futures = "0.1"
 http = "0.1"
-hyper = { version = "0.11", features = ["compat"] }
+hyper = "0.12"
 log = "0.4"
-serde = "1.0"
 serde_json = "1.0"
 
 edgelet-core = { path = "../edgelet-core" }
-edgelet-hsm = { path = "../edgelet-hsm" }
 edgelet-http = { path = "../edgelet-http" }
 edgelet-utils = { path = "../edgelet-utils" }
 workload = { path = "../workload" }
