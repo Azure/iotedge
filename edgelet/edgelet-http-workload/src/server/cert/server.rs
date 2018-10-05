@@ -11,7 +11,7 @@ use serde_json;
 use edgelet_core::{
     Certificate, CertificateProperties, CertificateType, CreateCertificate, KeyBytes, PrivateKey,
 };
-use edgelet_http::route::{BoxFuture, Handler, Parameters};
+use edgelet_http::route::{Handler, Parameters};
 use workload::models::{
     CertificateResponse, PrivateKey as PrivateKeyResponse, ServerCertificateRequest,
 };
@@ -31,14 +31,14 @@ impl<T: CreateCertificate> ServerCertHandler<T> {
 
 impl<T> Handler<Parameters> for ServerCertHandler<T>
 where
-    T: CreateCertificate + 'static + Clone,
+    T: CreateCertificate + 'static + Clone + Send,
     <T as CreateCertificate>::Certificate: Certificate,
 {
     fn handle(
         &self,
         req: Request<Body>,
         params: Parameters,
-    ) -> BoxFuture<Response<Body>, HyperError> {
+    ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
         let hsm = self.hsm.clone();
         let response = params
             .name("name")
@@ -124,8 +124,8 @@ fn compute_validity(expiration: &str) -> Result<i64> {
 
 #[cfg(test)]
 mod tests {
-    use std::rc::Rc;
     use std::result::Result as StdResult;
+    use std::sync::Arc;
 
     use chrono::offset::Utc;
     use chrono::Duration;
@@ -138,15 +138,17 @@ mod tests {
 
     #[derive(Clone, Default)]
     struct TestHsm {
-        on_create: Option<Rc<Box<Fn(&CertificateProperties) -> StdResult<TestCert, CoreError>>>>,
+        on_create: Option<
+            Arc<Box<Fn(&CertificateProperties) -> StdResult<TestCert, CoreError> + Send + Sync>>,
+        >,
     }
 
     impl TestHsm {
         fn with_on_create<F>(mut self, on_create: F) -> TestHsm
         where
-            F: Fn(&CertificateProperties) -> StdResult<TestCert, CoreError> + 'static,
+            F: Fn(&CertificateProperties) -> StdResult<TestCert, CoreError> + Send + Sync + 'static,
         {
-            self.on_create = Some(Rc::new(Box::new(on_create)));
+            self.on_create = Some(Arc::new(Box::new(on_create)));
             self
         }
     }

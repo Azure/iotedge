@@ -215,6 +215,7 @@ fn is_socket_unix(
 mod tests {
     use super::*;
 
+    use std::panic;
     use std::sync::{Mutex, MutexGuard};
 
     use nix::unistd;
@@ -282,8 +283,21 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "LISTEN_FDNAMES")]
     fn test_listen_fds_with_missing_env() {
-        listen_fds_with_names(true, 3).unwrap();
+        let r = {
+            let _l = lock_env();
+            panic::catch_unwind(|| listen_fds_with_names(true, 3).unwrap())
+        };
+
+        match r {
+            Ok(_) => panic!("expected listen_fds_with_names to panic"),
+            Err(err) => match err.downcast_ref::<String>().map(String::as_str) {
+                Some(s) if s.contains(ENV_NAMES) => (),
+                other => panic!(
+                    "expected listen_fds_with_names to panic with {} but it panicked with {:?}",
+                    ENV_NAMES, other
+                ),
+            },
+        }
     }
 }

@@ -10,23 +10,22 @@
 
 use std::borrow::Borrow;
 use std::borrow::Cow;
-use std::rc::Rc;
+use std::sync::Arc;
 
 use futures;
 use futures::{Future, Stream};
 use hyper;
 use serde_json;
-
-use hyper::header::{Authorization, UserAgent};
+use typed_headers::{self, http, mime, HeaderMapExt};
 
 use super::{configuration, Error};
 
-pub struct WorkloadApiClient<C: hyper::client::Connect> {
-    configuration: Rc<configuration::Configuration<C>>,
+pub struct WorkloadApiClient<C: hyper::client::connect::Connect> {
+    configuration: Arc<configuration::Configuration<C>>,
 }
 
-impl<C: hyper::client::Connect> WorkloadApiClient<C> {
-    pub fn new(configuration: Rc<configuration::Configuration<C>>) -> WorkloadApiClient<C> {
+impl<C: hyper::client::connect::Connect> WorkloadApiClient<C> {
+    pub fn new(configuration: Arc<configuration::Configuration<C>>) -> WorkloadApiClient<C> {
         WorkloadApiClient { configuration }
     }
 }
@@ -72,7 +71,12 @@ pub trait WorkloadApi {
     ) -> Box<Future<Item = ::models::TrustBundleResponse, Error = Error<serde_json::Value>>>;
 }
 
-impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
+impl<C: hyper::client::connect::Connect> WorkloadApi for WorkloadApiClient<C>
+where
+    C: hyper::client::connect::Connect + 'static,
+    <C as hyper::client::connect::Connect>::Transport: 'static,
+    <C as hyper::client::connect::Connect>::Future: 'static,
+{
     fn create_identity_certificate(
         &self,
         api_version: &str,
@@ -81,7 +85,7 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
     ) -> Box<Future<Item = ::models::CertificateResponse, Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
-        let method = hyper::Method::Post;
+        let method = hyper::Method::POST;
 
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("api-version", &api_version.to_string())
@@ -98,12 +102,14 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
         // if let Err(e) = uri {
         //     return Box::new(futures::future::err(e));
         // }
-        let mut req = hyper::Request::new(method, uri.unwrap());
-
+        let mut req = hyper::Request::builder();
+        req.method(method).uri(uri.unwrap());
         if let Some(ref user_agent) = configuration.user_agent {
-            req.headers_mut()
-                .set(UserAgent::new(Cow::Owned(user_agent.clone())));
+            req.header(http::header::USER_AGENT, &**user_agent);
         }
+        let req = req
+            .body(hyper::Body::empty())
+            .expect("could not build hyper::Request");
 
         // send request
         Box::new(
@@ -112,9 +118,8 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
                 .request(req)
                 .map_err(Error::from)
                 .and_then(|resp| {
-                    let status = resp.status();
-                    resp.body()
-                        .concat2()
+                    let (http::response::Parts { status, .. }, body) = resp.into_parts();
+                    body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(Error::from)
                 }).and_then(|(status, body)| {
@@ -140,7 +145,7 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
     ) -> Box<Future<Item = ::models::CertificateResponse, Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
-        let method = hyper::Method::Post;
+        let method = hyper::Method::POST;
 
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("api-version", &api_version.to_string())
@@ -157,18 +162,21 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
         // if let Err(e) = uri {
         //     return Box::new(futures::future::err(e));
         // }
-        let mut req = hyper::Request::new(method, uri.unwrap());
-
-        if let Some(ref user_agent) = configuration.user_agent {
-            req.headers_mut()
-                .set(UserAgent::new(Cow::Owned(user_agent.clone())));
-        }
-
         let serialized = serde_json::to_string(&request).unwrap();
-        req.headers_mut().set(hyper::header::ContentType::json());
+        let serialized_len = serialized.len();
+
+        let mut req = hyper::Request::builder();
+        req.method(method).uri(uri.unwrap());
+        if let Some(ref user_agent) = configuration.user_agent {
+            req.header(http::header::USER_AGENT, &**user_agent);
+        }
+        let mut req = req
+            .body(hyper::Body::from(serialized))
+            .expect("could not build hyper::Request");
         req.headers_mut()
-            .set(hyper::header::ContentLength(serialized.len() as u64));
-        req.set_body(serialized);
+            .typed_insert(&typed_headers::ContentType(mime::APPLICATION_JSON));
+        req.headers_mut()
+            .typed_insert(&typed_headers::ContentLength(serialized_len as u64));
 
         // send request
         Box::new(
@@ -177,9 +185,8 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
                 .request(req)
                 .map_err(Error::from)
                 .and_then(|resp| {
-                    let status = resp.status();
-                    resp.body()
-                        .concat2()
+                    let (http::response::Parts { status, .. }, body) = resp.into_parts();
+                    body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(Error::from)
                 }).and_then(|(status, body)| {
@@ -205,7 +212,7 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
     ) -> Box<Future<Item = ::models::DecryptResponse, Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
-        let method = hyper::Method::Post;
+        let method = hyper::Method::POST;
 
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("api-version", &api_version.to_string())
@@ -222,18 +229,21 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
         // if let Err(e) = uri {
         //     return Box::new(futures::future::err(e));
         // }
-        let mut req = hyper::Request::new(method, uri.unwrap());
-
-        if let Some(ref user_agent) = configuration.user_agent {
-            req.headers_mut()
-                .set(UserAgent::new(Cow::Owned(user_agent.clone())));
-        }
-
         let serialized = serde_json::to_string(&payload).unwrap();
-        req.headers_mut().set(hyper::header::ContentType::json());
+        let serialized_len = serialized.len();
+
+        let mut req = hyper::Request::builder();
+        req.method(method).uri(uri.unwrap());
+        if let Some(ref user_agent) = configuration.user_agent {
+            req.header(http::header::USER_AGENT, &**user_agent);
+        }
+        let mut req = req
+            .body(hyper::Body::from(serialized))
+            .expect("could not build hyper::Request");
         req.headers_mut()
-            .set(hyper::header::ContentLength(serialized.len() as u64));
-        req.set_body(serialized);
+            .typed_insert(&typed_headers::ContentType(mime::APPLICATION_JSON));
+        req.headers_mut()
+            .typed_insert(&typed_headers::ContentLength(serialized_len as u64));
 
         // send request
         Box::new(
@@ -242,9 +252,8 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
                 .request(req)
                 .map_err(Error::from)
                 .and_then(|resp| {
-                    let status = resp.status();
-                    resp.body()
-                        .concat2()
+                    let (http::response::Parts { status, .. }, body) = resp.into_parts();
+                    body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(Error::from)
                 }).and_then(|(status, body)| {
@@ -270,7 +279,7 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
     ) -> Box<Future<Item = ::models::EncryptResponse, Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
-        let method = hyper::Method::Post;
+        let method = hyper::Method::POST;
 
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("api-version", &api_version.to_string())
@@ -287,18 +296,21 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
         // if let Err(e) = uri {
         //     return Box::new(futures::future::err(e));
         // }
-        let mut req = hyper::Request::new(method, uri.unwrap());
-
-        if let Some(ref user_agent) = configuration.user_agent {
-            req.headers_mut()
-                .set(UserAgent::new(Cow::Owned(user_agent.clone())));
-        }
-
         let serialized = serde_json::to_string(&payload).unwrap();
-        req.headers_mut().set(hyper::header::ContentType::json());
+        let serialized_len = serialized.len();
+
+        let mut req = hyper::Request::builder();
+        req.method(method).uri(uri.unwrap());
+        if let Some(ref user_agent) = configuration.user_agent {
+            req.header(http::header::USER_AGENT, &**user_agent);
+        }
+        let mut req = req
+            .body(hyper::Body::from(serialized))
+            .expect("could not build hyper::Request");
         req.headers_mut()
-            .set(hyper::header::ContentLength(serialized.len() as u64));
-        req.set_body(serialized);
+            .typed_insert(&typed_headers::ContentType(mime::APPLICATION_JSON));
+        req.headers_mut()
+            .typed_insert(&typed_headers::ContentLength(serialized_len as u64));
 
         // send request
         Box::new(
@@ -307,9 +319,8 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
                 .request(req)
                 .map_err(Error::from)
                 .and_then(|resp| {
-                    let status = resp.status();
-                    resp.body()
-                        .concat2()
+                    let (http::response::Parts { status, .. }, body) = resp.into_parts();
+                    body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(Error::from)
                 }).and_then(|(status, body)| {
@@ -335,7 +346,7 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
     ) -> Box<Future<Item = ::models::SignResponse, Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
-        let method = hyper::Method::Post;
+        let method = hyper::Method::POST;
 
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("api-version", &api_version.to_string())
@@ -352,18 +363,21 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
         // if let Err(e) = uri {
         //     return Box::new(futures::future::err(e));
         // }
-        let mut req = hyper::Request::new(method, uri.unwrap());
-
-        if let Some(ref user_agent) = configuration.user_agent {
-            req.headers_mut()
-                .set(UserAgent::new(Cow::Owned(user_agent.clone())));
-        }
-
         let serialized = serde_json::to_string(&payload).unwrap();
-        req.headers_mut().set(hyper::header::ContentType::json());
+        let serialized_len = serialized.len();
+
+        let mut req = hyper::Request::builder();
+        req.method(method).uri(uri.unwrap());
+        if let Some(ref user_agent) = configuration.user_agent {
+            req.header(http::header::USER_AGENT, &**user_agent);
+        }
+        let mut req = req
+            .body(hyper::Body::from(serialized))
+            .expect("could not build hyper::Request");
         req.headers_mut()
-            .set(hyper::header::ContentLength(serialized.len() as u64));
-        req.set_body(serialized);
+            .typed_insert(&typed_headers::ContentType(mime::APPLICATION_JSON));
+        req.headers_mut()
+            .typed_insert(&typed_headers::ContentLength(serialized_len as u64));
 
         // send request
         Box::new(
@@ -372,9 +386,8 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
                 .request(req)
                 .map_err(Error::from)
                 .and_then(|resp| {
-                    let status = resp.status();
-                    resp.body()
-                        .concat2()
+                    let (http::response::Parts { status, .. }, body) = resp.into_parts();
+                    body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(Error::from)
                 }).and_then(|(status, body)| {
@@ -396,7 +409,7 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
     ) -> Box<Future<Item = ::models::TrustBundleResponse, Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
-        let method = hyper::Method::Get;
+        let method = hyper::Method::GET;
 
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("api-version", &api_version.to_string())
@@ -408,12 +421,14 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
         // if let Err(e) = uri {
         //     return Box::new(futures::future::err(e));
         // }
-        let mut req = hyper::Request::new(method, uri.unwrap());
-
+        let mut req = hyper::Request::builder();
+        req.method(method).uri(uri.unwrap());
         if let Some(ref user_agent) = configuration.user_agent {
-            req.headers_mut()
-                .set(UserAgent::new(Cow::Owned(user_agent.clone())));
+            req.header(http::header::USER_AGENT, &**user_agent);
         }
+        let req = req
+            .body(hyper::Body::empty())
+            .expect("could not build hyper::Request");
 
         // send request
         Box::new(
@@ -422,9 +437,8 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
                 .request(req)
                 .map_err(Error::from)
                 .and_then(|resp| {
-                    let status = resp.status();
-                    resp.body()
-                        .concat2()
+                    let (http::response::Parts { status, .. }, body) = resp.into_parts();
+                    body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(Error::from)
                 }).and_then(|(status, body)| {

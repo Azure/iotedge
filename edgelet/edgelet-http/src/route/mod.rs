@@ -4,28 +4,37 @@
 /// with some changes to improve usability of the captured parameters
 /// when using regex based routes.
 use std::clone::Clone;
-use std::io;
+use std::error::Error as StdError;
 use std::sync::Arc;
 
 use futures::{future, Future};
-use http::{Method, Request, Response, StatusCode};
-use hyper::server::{NewService, Service};
-use hyper::{Body, Error as HyperError};
+use hyper::service::{NewService, Service};
+use hyper::{self, Body, Method, Request, Response, StatusCode};
 
 pub mod macros;
 mod regex;
 
 pub type BoxFuture<T, E> = Box<Future<Item = T, Error = E>>;
 
-pub trait Handler<P>: 'static {
-    fn handle(&self, req: Request<Body>, params: P) -> BoxFuture<Response<Body>, HyperError>;
+pub trait Handler<P>: 'static + Send {
+    fn handle(
+        &self,
+        req: Request<Body>,
+        params: P,
+    ) -> Box<Future<Item = Response<Body>, Error = hyper::Error> + Send>;
 }
 
 impl<F, P> Handler<P> for F
 where
-    F: 'static + Fn(Request<Body>, P) -> BoxFuture<Response<Body>, HyperError>,
+    F: 'static
+        + Fn(Request<Body>, P) -> Box<Future<Item = Response<Body>, Error = hyper::Error> + Send>
+        + Send,
 {
-    fn handle(&self, req: Request<Body>, params: P) -> BoxFuture<Response<Body>, HyperError> {
+    fn handle(
+        &self,
+        req: Request<Body>,
+        params: P,
+    ) -> Box<Future<Item = Response<Body>, Error = hyper::Error> + Send> {
         (*self)(req, params)
     }
 }
@@ -48,14 +57,14 @@ pub trait Builder: Sized {
     fn route<S, H>(self, method: Method, pattern: S, handler: H) -> Self
     where
         S: AsRef<str>,
-        H: Handler<<Self::Recognizer as Recognizer>::Parameters>;
+        H: Handler<<Self::Recognizer as Recognizer>::Parameters> + Sync;
 
     fn finish(self) -> Self::Recognizer;
 
     fn get<S, H>(self, pattern: S, handler: H) -> Self
     where
         S: AsRef<str>,
-        H: Handler<<Self::Recognizer as Recognizer>::Parameters>,
+        H: Handler<<Self::Recognizer as Recognizer>::Parameters> + Sync,
     {
         self.route(Method::GET, pattern, handler)
     }
@@ -63,7 +72,7 @@ pub trait Builder: Sized {
     fn post<S, H>(self, pattern: S, handler: H) -> Self
     where
         S: AsRef<str>,
-        H: Handler<<Self::Recognizer as Recognizer>::Parameters>,
+        H: Handler<<Self::Recognizer as Recognizer>::Parameters> + Sync,
     {
         self.route(Method::POST, pattern, handler)
     }
@@ -71,7 +80,7 @@ pub trait Builder: Sized {
     fn put<S, H>(self, pattern: S, handler: H) -> Self
     where
         S: AsRef<str>,
-        H: Handler<<Self::Recognizer as Recognizer>::Parameters>,
+        H: Handler<<Self::Recognizer as Recognizer>::Parameters> + Sync,
     {
         self.route(Method::PUT, pattern, handler)
     }
@@ -79,7 +88,7 @@ pub trait Builder: Sized {
     fn delete<S, H>(self, pattern: S, handler: H) -> Self
     where
         S: AsRef<str>,
-        H: Handler<<Self::Recognizer as Recognizer>::Parameters>,
+        H: Handler<<Self::Recognizer as Recognizer>::Parameters> + Sync,
     {
         self.route(Method::DELETE, pattern, handler)
     }
@@ -101,13 +110,15 @@ impl<R> NewService for Router<R>
 where
     R: Recognizer,
 {
-    type Request = Request<Body>;
-    type Response = Response<Body>;
-    type Error = HyperError;
-    type Instance = RouterService<R>;
+    type ReqBody = <Self::Service as Service>::ReqBody;
+    type ResBody = <Self::Service as Service>::ResBody;
+    type Error = <Self::Service as Service>::Error;
+    type Service = RouterService<R>;
+    type Future = future::FutureResult<Self::Service, Self::InitError>;
+    type InitError = Box<StdError + Send + Sync>;
 
-    fn new_service(&self) -> io::Result<Self::Instance> {
-        Ok(RouterService {
+    fn new_service(&self) -> Self::Future {
+        future::ok(RouterService {
             inner: self.inner.clone(),
         })
     }
@@ -132,23 +143,23 @@ impl<R> Service for RouterService<R>
 where
     R: Recognizer,
 {
-    type Request = Request<Body>;
-    type Response = Response<Body>;
-    type Error = HyperError;
-    type Future = BoxFuture<Self::Response, HyperError>;
+    type ReqBody = Body;
+    type ResBody = Body;
+    type Error = hyper::Error;
+    type Future = Box<Future<Item = Response<Self::ResBody>, Error = Self::Error> + Send>;
 
-    fn call(&self, req: Request<Body>) -> Self::Future {
+    fn call(&mut self, req: Request<Body>) -> Self::Future {
         let method = req.method().clone();
         let path = req.uri().path().to_owned();
         self.inner
             .recognize(&method, &path)
             .map(|(handler, params)| handler.handle(req, params))
             .unwrap_or_else(|code| {
-                Box::new(future::result(
+                Box::new(future::ok(
                     Response::builder()
                         .status(code)
-                        .body(Body::default())
-                        .map_err(|_| HyperError::Status),
+                        .body(Body::empty())
+                        .expect("hyper::Response with empty body should not fail to build"),
                 ))
             })
     }

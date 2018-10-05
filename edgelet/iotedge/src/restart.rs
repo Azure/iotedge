@@ -1,8 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::cell::RefCell;
 use std::io::Write;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use edgelet_core::ModuleRuntime;
 use futures::Future;
@@ -13,7 +12,7 @@ use Command;
 pub struct Restart<M, W> {
     id: String,
     runtime: M,
-    output: Arc<RefCell<W>>,
+    output: Arc<Mutex<W>>,
 }
 
 impl<M, W> Restart<M, W> {
@@ -21,7 +20,7 @@ impl<M, W> Restart<M, W> {
         Restart {
             id,
             runtime,
-            output: Arc::new(RefCell::new(output)),
+            output: Arc::new(Mutex::new(output)),
         }
     }
 }
@@ -30,9 +29,9 @@ impl<M, W> Command for Restart<M, W>
 where
     M: 'static + ModuleRuntime + Clone,
     M::Error: Into<Error>,
-    W: 'static + Write,
+    W: 'static + Write + Send,
 {
-    type Future = Box<Future<Item = (), Error = Error>>;
+    type Future = Box<Future<Item = (), Error = Error> + Send>;
 
     fn execute(&mut self) -> Self::Future {
         let id = self.id.clone();
@@ -42,7 +41,7 @@ where
             .restart(&id)
             .map_err(|e| e.into())
             .and_then(move |_| {
-                let mut w = write.borrow_mut();
+                let mut w = write.lock().unwrap();
                 writeln!(w, "{}", id)?;
                 Ok(())
             });

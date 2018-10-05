@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use edgelet_core::{Module, ModuleRuntime};
-use edgelet_http::route::{BoxFuture, Handler, Parameters};
+use edgelet_http::route::{Handler, Parameters};
 use failure::ResultExt;
 use futures::{future, Future};
 use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
@@ -36,7 +36,7 @@ where
 
 impl<M> Handler<Parameters> for GetSystemInfo<M>
 where
-    M: 'static + ModuleRuntime,
+    M: 'static + ModuleRuntime + Send,
     M::Error: IntoResponse,
     <M::Module as Module>::Config: Serialize,
 {
@@ -44,7 +44,7 @@ where
         &self,
         _req: Request<Body>,
         _params: Parameters,
-    ) -> BoxFuture<Response<Body>, HyperError> {
+    ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
         debug!("Get System Information");
         let response = self
             .runtime

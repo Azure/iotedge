@@ -8,8 +8,7 @@ use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use futures::future::Either;
 use futures::{future, Future};
-use hyper::client::Service;
-use hyper::{Error as HyperError, Method, Request, Response, StatusCode};
+use hyper::{Method, StatusCode};
 use percent_encoding::{percent_encode, PATH_SEGMENT_ENCODE_SET};
 use serde_json;
 use tokio::prelude::*;
@@ -17,7 +16,7 @@ use tokio::timer::Interval;
 use url::form_urlencoded::Serializer as UrlSerializer;
 
 use edgelet_core::crypto::{Activate, KeyIdentity, KeyStore, Sign, Signature, SignatureAlgorithm};
-use edgelet_http::client::{Client, TokenSource};
+use edgelet_http::client::{Client, ClientImpl, TokenSource};
 use edgelet_http::ErrorKind as HttpErrorKind;
 use error::{Error, ErrorKind};
 use model::{
@@ -87,13 +86,13 @@ where
     }
 }
 
-pub struct DpsClient<S, K, A>
+pub struct DpsClient<C, K, A>
 where
-    S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
+    C: ClientImpl,
     K: 'static + Sign + Clone,
     A: 'static + KeyStore<Key = K> + Activate<Key = K> + Clone,
 {
-    client: Arc<RwLock<Client<S, DpsTokenSource<K>>>>,
+    client: Arc<RwLock<Client<C, DpsTokenSource<K>>>>,
     scope_id: String,
     registration_id: String,
     tpm_ek: Bytes,
@@ -101,20 +100,20 @@ where
     key_store: A,
 }
 
-impl<S, K, A> DpsClient<S, K, A>
+impl<C, K, A> DpsClient<C, K, A>
 where
-    S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
-    K: 'static + Sign + Clone,
-    A: 'static + KeyStore<Key = K> + Activate<Key = K> + Clone,
+    C: 'static + ClientImpl,
+    K: 'static + Sign + Clone + Send + Sync,
+    A: 'static + KeyStore<Key = K> + Activate<Key = K> + Clone + Send,
 {
     pub fn new(
-        client: Client<S, DpsTokenSource<K>>,
+        client: Client<C, DpsTokenSource<K>>,
         scope_id: String,
         registration_id: String,
         tpm_ek: Bytes,
         tpm_srk: Bytes,
         key_store: A,
-    ) -> Result<DpsClient<S, K, A>, Error> {
+    ) -> Result<Self, Error> {
         Ok(DpsClient {
             client: Arc::new(RwLock::new(client)),
             scope_id,
@@ -150,12 +149,12 @@ where
     }
 
     fn get_operation_id(
-        client: &Arc<RwLock<Client<S, DpsTokenSource<K>>>>,
+        client: &Arc<RwLock<Client<C, DpsTokenSource<K>>>>,
         scope_id: &str,
         registration_id: &str,
         registration: &DeviceRegistration,
         key: K,
-    ) -> Box<Future<Item = Option<RegistrationOperationStatus>, Error = Error>> {
+    ) -> Box<Future<Item = Option<RegistrationOperationStatus>, Error = Error> + Send> {
         let token_source =
             DpsTokenSource::new(scope_id.to_string(), registration_id.to_string(), key);
         debug!(
@@ -168,7 +167,7 @@ where
             .clone()
             .with_token_source(token_source)
             .request::<DeviceRegistration, RegistrationOperationStatus>(
-                Method::Put,
+                Method::PUT,
                 &format!("{}/registrations/{}/register", scope_id, registration_id),
                 None,
                 Some(registration.clone()),
@@ -178,19 +177,19 @@ where
     }
 
     fn get_operation_status(
-        client: &Arc<RwLock<Client<S, DpsTokenSource<K>>>>,
+        client: &Arc<RwLock<Client<C, DpsTokenSource<K>>>>,
         scope_id: &str,
         registration_id: &str,
         operation_id: &str,
         key: K,
-    ) -> Box<Future<Item = Option<DeviceRegistrationResult>, Error = Error>> {
+    ) -> Box<Future<Item = Option<DeviceRegistrationResult>, Error = Error> + Send> {
         let token_source =
             DpsTokenSource::new(scope_id.to_string(), registration_id.to_string(), key);
         let request = client.read().expect("RwLock read failure")
             .clone()
             .with_token_source(token_source)
             .request::<(), RegistrationOperationStatus>(
-                Method::Get,
+                Method::GET,
                 &format!(
                     "{}/registrations/{}/operations/{}",
                     scope_id, registration_id, operation_id
@@ -245,13 +244,13 @@ where
     // skip_while and take(1) implement discarding all but the desired result. Finally fold is
     // called on the desired result to format and return it from the function.
     fn get_device_registration_result(
-        client: Arc<RwLock<Client<S, DpsTokenSource<K>>>>,
+        client: Arc<RwLock<Client<C, DpsTokenSource<K>>>>,
         scope_id: String,
         registration_id: String,
         operation_id: String,
         key: K,
         retry_count: u64,
-    ) -> Box<Future<Item = Option<DeviceRegistrationResult>, Error = Error>> {
+    ) -> Box<Future<Item = Option<DeviceRegistrationResult>, Error = Error> + Send> {
         debug!(
             "DPS registration result will retry {} times every {} seconds",
             retry_count, DPS_ASSIGNMENT_RETRY_INTERVAL_SECS
@@ -283,13 +282,13 @@ where
     }
 
     fn register_with_auth(
-        client: &Arc<RwLock<Client<S, DpsTokenSource<K>>>>,
+        client: &Arc<RwLock<Client<C, DpsTokenSource<K>>>>,
         scope_id: String,
         registration_id: String,
         tpm_ek: &Bytes,
         tpm_srk: &Bytes,
         key_store: &A,
-    ) -> Box<Future<Item = Option<RegistrationOperationStatus>, Error = Error>> {
+    ) -> Box<Future<Item = Option<RegistrationOperationStatus>, Error = Error> + Send> {
         let tpm_attestation = TpmAttestation::new(base64::encode(&tpm_ek))
             .with_storage_root_key(base64::encode(&tpm_srk));
         let registration = DeviceRegistration::new()
@@ -301,7 +300,7 @@ where
             .read()
             .expect("RwLock read failure")
             .request::<DeviceRegistration, TpmRegistrationResult>(
-                Method::Put,
+                Method::PUT,
                 &format!("{}/registrations/{}/register", scope_id, registration_id),
                 None,
                 Some(registration.clone()),
@@ -313,22 +312,23 @@ where
                         // If request is returned with status unauthorized, extract the tpm
                         // challenge from the payload, generate a signature and re-issue the
                         // request
-                        let body =
-                            if let HttpErrorKind::ServiceError(status, ref body) = *err.kind() {
-                                if status == StatusCode::Unauthorized {
+                        let body = match *err.kind() {
+                            HttpErrorKind::ServiceError(status, ref body) =>
+                                if status == StatusCode::UNAUTHORIZED {
                                     debug!(
-                                    "Registration unauthorized, checking response for challenge {}",
-                                    status
-                                );
+                                        "Registration unauthorized, checking response for challenge {}",
+                                        status,
+                                    );
                                     Some(body.clone())
                                 } else {
                                     debug!("Unexpected registration status, {}", status);
                                     None
-                                }
-                            } else {
+                                },
+                            _ => {
                                 debug!("Response error {:?}", err);
                                 None
-                            };
+                            },
+                        };
 
                         body.map(move |body| {
                             Self::get_tpm_challenge_key(body.as_str(), &mut key_store_inner)
@@ -348,7 +348,7 @@ where
         Box::new(r)
     }
 
-    pub fn register(&self) -> Box<Future<Item = (String, String), Error = Error>> {
+    pub fn register(&self) -> Box<Future<Item = (String, String), Error = Error> + Send> {
         let key_store = self.key_store.clone();
         let mut key_store_status = self.key_store.clone();
         let client_with_token_status = self.client.clone();
@@ -442,52 +442,56 @@ fn get_device_info(
 mod tests {
     use super::*;
 
-    use std::cell::RefCell;
     use std::mem;
+    use std::sync::Mutex;
 
-    use hyper::header::Authorization;
-    use hyper::server::service_fn;
-    use hyper::StatusCode;
+    use http;
+    use hyper::{self, Body, Request, Response, StatusCode};
     use serde_json;
-    use tokio_core::reactor::Core;
+    use tokio;
     use url::Url;
 
     use edgelet_core::crypto::{MemoryKey, MemoryKeyStore};
 
     #[test]
     fn server_register_with_auth_success() {
-        let mut core = Core::new().unwrap();
         let expected_uri = "https://global.azure-devices-provisioning.net/scope/registrations/reg/register?api-version=2017-11-15";
-        let handler = move |req: Request| {
-            let (method, uri, _httpversion, headers, _body) = req.deconstruct();
+        let handler = move |req: Request<Body>| {
+            let (
+                http::request::Parts {
+                    method,
+                    uri,
+                    headers,
+                    ..
+                },
+                _body,
+            ) = req.into_parts();
             assert_eq!(uri, expected_uri);
-            assert_eq!(method, Method::Put);
+            assert_eq!(method, Method::PUT);
             // If authorization header does not have the shared access signature, request one
-            let auth = headers.get::<Authorization<String>>();
+            let auth = headers.get(hyper::header::AUTHORIZATION);
             match auth {
                 None => {
                     let mut result = TpmRegistrationResult::new();
                     result.set_authentication_key(base64::encode("key"));
-                    future::ok(
-                        Response::new()
-                            .with_status(StatusCode::Unauthorized)
-                            .with_body(serde_json::to_string(&result).unwrap().into_bytes()),
-                    )
+                    let response = Response::builder()
+                        .status(StatusCode::UNAUTHORIZED)
+                        .body(serde_json::to_string(&result).unwrap().into())
+                        .expect("could not build hyper::Response");
+                    future::ok(response)
                 }
                 Some(_) => {
                     let mut result = RegistrationOperationStatus::new("something".to_string())
                         .with_status("assigning".to_string());
-                    future::ok(
-                        Response::new()
-                            .with_status(StatusCode::Ok)
-                            .with_body(serde_json::to_string(&result).unwrap().into_bytes()),
-                    )
+                    future::ok(Response::new(
+                        serde_json::to_string(&result).unwrap().into(),
+                    ))
                 }
             }
         };
         let client = Arc::new(RwLock::new(
             Client::new(
-                service_fn(handler),
+                handler,
                 None,
                 "2017-11-15",
                 Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
@@ -508,15 +512,23 @@ mod tests {
             }
             None => panic!("Unexpected"),
         });
-        core.run(task).unwrap();
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
     }
 
     #[test]
     fn server_register_gets_404_fails() {
-        let mut core = Core::new().unwrap();
-        let handler = |_req: Request| future::ok(Response::new().with_status(StatusCode::NotFound));
+        let handler = |_req: Request<Body>| {
+            let response = Response::builder()
+                .status(StatusCode::NOT_FOUND)
+                .body(Body::empty())
+                .expect("could not build hyper::Response");
+            future::ok(response)
+        };
         let client = Client::new(
-            service_fn(handler),
+            handler,
             None,
             "2017-11-15",
             Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
@@ -540,30 +552,38 @@ mod tests {
             }
             Ok(()) as Result<(), Error>
         });
-        core.run(task).unwrap();
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
     }
 
     #[test]
     fn server_register_with_auth_gets_404_fails() {
-        let mut core = Core::new().unwrap();
-        let handler = |req: Request| {
+        let handler = |req: Request<Body>| {
             // If authorization header does not have the shared access signature, request one
-            let auth = req.headers().get::<Authorization<String>>();
+            let auth = req.headers().get(hyper::header::AUTHORIZATION);
             match auth {
                 None => {
                     let mut result = TpmRegistrationResult::new();
                     result.set_authentication_key("key".to_string());
-                    future::ok(
-                        Response::new()
-                            .with_status(StatusCode::Unauthorized)
-                            .with_body(serde_json::to_string(&result).unwrap().into_bytes()),
-                    )
+                    let response = Response::builder()
+                        .status(StatusCode::UNAUTHORIZED)
+                        .body(serde_json::to_string(&result).unwrap().into())
+                        .expect("could not build hyper::Response");
+                    future::ok(response)
                 }
-                Some(_) => future::ok(Response::new().with_status(StatusCode::NotFound)),
+                Some(_) => {
+                    let response = Response::builder()
+                        .status(StatusCode::NOT_FOUND)
+                        .body(Body::empty())
+                        .expect("could not build hyper::Response");
+                    future::ok(response)
+                }
             }
         };
         let client = Client::new(
-            service_fn(handler),
+            handler,
             None,
             "2017-11-15",
             Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
@@ -587,42 +607,45 @@ mod tests {
             }
             Ok(()) as Result<(), Error>
         });
-        core.run(task).unwrap();
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
     }
 
     #[test]
     fn get_device_registration_result_success() {
-        let mut core = Core::new().unwrap();
-        let reg_op_status_vanilla = Response::new().with_status(StatusCode::Ok).with_body(
+        let reg_op_status_vanilla = Response::new(
             serde_json::to_string(&RegistrationOperationStatus::new("operation".to_string()))
                 .unwrap()
-                .into_bytes(),
+                .into(),
         );
-        let reg_op_status_final = Response::new().with_status(StatusCode::Ok).with_body(
+
+        let reg_op_status_final = Response::new(
             serde_json::to_string(
                 &RegistrationOperationStatus::new("operation".to_string()).with_registration_state(
                     DeviceRegistrationResult::new("reg".to_string(), "doesn't matter".to_string()),
                 ),
             ).unwrap()
-            .into_bytes(),
+            .into(),
         );
-        let stream = RefCell::new(stream::iter_result(vec![
+
+        let stream = Mutex::new(stream::iter_result(vec![
             Ok(reg_op_status_vanilla),
             Ok(reg_op_status_final),
             Err(Error::from(ErrorKind::Unexpected)),
         ]));
-        let handler = move |_req: Request| {
-            if let Async::Ready(opt) = stream.borrow_mut().poll().unwrap() {
+        let handler = move |_req: Request<Body>| {
+            if let Async::Ready(opt) = stream.lock().unwrap().poll().unwrap() {
                 future::ok(opt.unwrap())
             } else {
                 unimplemented!();
             }
         };
         let key = MemoryKey::new("key".to_string());
-        let service = service_fn(handler);
         let client = Arc::new(RwLock::new(
             Client::new(
-                service,
+                handler,
                 None,
                 "2017-11-15",
                 Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
@@ -648,27 +671,25 @@ mod tests {
             }
             ()
         });
-        core.run(task).unwrap();
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
     }
 
     #[test]
     fn get_device_registration_result_on_all_attempts_returns_none() {
-        let mut core = Core::new().unwrap();
-        let handler = |_req: Request| {
-            future::ok(
-                Response::new().with_status(StatusCode::Ok).with_body(
-                    serde_json::to_string(&RegistrationOperationStatus::new(
-                        "operation".to_string(),
-                    )).unwrap()
-                    .into_bytes(),
-                ),
-            )
+        let handler = |_req: Request<Body>| {
+            future::ok(Response::new(
+                serde_json::to_string(&RegistrationOperationStatus::new("operation".to_string()))
+                    .unwrap()
+                    .into(),
+            ))
         };
         let key = MemoryKey::new("key".to_string());
-        let service = service_fn(handler);
         let client = Arc::new(RwLock::new(
             Client::new(
-                service,
+                handler,
                 None,
                 "2017-11-15",
                 Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
@@ -695,31 +716,31 @@ mod tests {
             ()
         });
 
-        core.run(task).unwrap();
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
     }
 
     #[test]
     fn get_operation_status_success() {
-        let mut core = Core::new().unwrap();
         let expected_uri = "https://global.azure-devices-provisioning.net/scope_id/registrations/reg/operations/operation?api-version=2017-11-15";
-        let handler = move |req: Request| {
-            let (method, uri, _httpversion, _headers, _body) = req.deconstruct();
+        let handler = move |req: Request<Body>| {
+            let (http::request::Parts { method, uri, .. }, _body) = req.into_parts();
             assert_eq!(uri, expected_uri);
-            assert_eq!(method, Method::Get);
+            assert_eq!(method, Method::GET);
 
             let operation_status: RegistrationOperationStatus =
                 RegistrationOperationStatus::new("operation".to_string());
             let serializable = operation_status.with_registration_state(
                 DeviceRegistrationResult::new("reg".to_string(), "doesn't matter".to_string()),
             );
-            future::ok(
-                Response::new()
-                    .with_status(StatusCode::Ok)
-                    .with_body(serde_json::to_string(&serializable).unwrap().into_bytes()),
-            )
+            future::ok(Response::new(
+                serde_json::to_string(&serializable).unwrap().into(),
+            ))
         };
         let client = Client::new(
-            service_fn(handler),
+            handler,
             None,
             "2017-11-15",
             Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
@@ -738,15 +759,24 @@ mod tests {
             }
             None => panic!("Unexpected"),
         });
-        core.run(task).unwrap();
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
     }
 
     #[test]
     fn get_operation_status_gets_404_fails() {
-        let mut core = Core::new().unwrap();
-        let handler = |_req: Request| future::ok(Response::new().with_status(StatusCode::NotFound));
+        let handler = |_req: Request<Body>| {
+            let response = Response::builder()
+                .status(StatusCode::NOT_FOUND)
+                .body(Body::empty())
+                .expect("could not build hyper::Response");
+            future::ok(response)
+        };
+
         let client = Client::new(
-            service_fn(handler),
+            handler,
             None,
             "2017-11-15",
             Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
@@ -769,7 +799,10 @@ mod tests {
             }
             Ok(()) as Result<(), Error>
         });
-        core.run(task).unwrap();
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
     }
 
     #[test]

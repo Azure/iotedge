@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(warnings)]
+#![deny(unused_extern_crates, warnings)]
 
 extern crate iotedged;
 

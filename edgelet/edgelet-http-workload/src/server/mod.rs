@@ -6,7 +6,7 @@ mod encrypt;
 mod sign;
 mod trust_bundle;
 
-use std::io;
+use std::error::Error as StdError;
 
 use edgelet_core::{
     CreateCertificate, Decrypt, Encrypt, Error as CoreError, GetTrustBundle, KeyStore, Module,
@@ -14,9 +14,10 @@ use edgelet_core::{
 };
 use edgelet_http::authorization::Authorization;
 use edgelet_http::route::*;
-use http::{Request, Response};
-use hyper::server::{NewService, Service};
-use hyper::{Body, Error as HyperError};
+use failure;
+use futures::{future, Future};
+use hyper::service::{NewService, Service};
+use hyper::{Body, Error as HyperError, Request, Response};
 
 use self::cert::{IdentityCertHandler, ServerCertHandler};
 use self::decrypt::DecryptHandler;
@@ -30,11 +31,17 @@ pub struct WorkloadService {
 }
 
 impl WorkloadService {
-    pub fn new<K, H, M>(key_store: &K, hsm: H, runtime: &M) -> Result<Self, HyperError>
+    // clippy bug: https://github.com/rust-lang-nursery/rust-clippy/issues/3220
+    #[cfg_attr(feature = "cargo-clippy", allow(new_ret_no_self))]
+    pub fn new<K, H, M>(
+        key_store: &K,
+        hsm: H,
+        runtime: &M,
+    ) -> impl Future<Item = Self, Error = failure::Error>
     where
-        K: 'static + KeyStore + Clone,
-        H: 'static + CreateCertificate + Decrypt + Encrypt + GetTrustBundle + Clone,
-        M: 'static + ModuleRuntime + Clone,
+        K: 'static + KeyStore + Clone + Send + Sync,
+        H: 'static + CreateCertificate + Decrypt + Encrypt + GetTrustBundle + Clone + Send + Sync,
+        M: 'static + ModuleRuntime + Clone + Send + Sync,
         M::Error: Into<CoreError>,
         <M::Module as Module>::Error: Into<CoreError>,
         M::Logs: Into<Body>,
@@ -48,30 +55,34 @@ impl WorkloadService {
 
             get    "/trust-bundle" => Authorization::new(TrustBundleHandler::new(hsm), Policy::Anonymous, runtime.clone()),
         );
-        let inner = router.new_service()?;
-        let service = WorkloadService { inner };
-        Ok(service)
+
+        router
+            .new_service()
+            .map(|inner| WorkloadService { inner })
+            .map_err(failure::Error::from_boxed_compat)
     }
 }
 
 impl Service for WorkloadService {
-    type Request = Request<Body>;
-    type Response = Response<Body>;
+    type ReqBody = Body;
+    type ResBody = Body;
     type Error = HyperError;
-    type Future = BoxFuture<Self::Response, HyperError>;
+    type Future = Box<Future<Item = Response<Self::ResBody>, Error = Self::Error> + Send>;
 
-    fn call(&self, req: Request<Body>) -> Self::Future {
+    fn call(&mut self, req: Request<Body>) -> Self::Future {
         self.inner.call(req)
     }
 }
 
 impl NewService for WorkloadService {
-    type Request = Request<Body>;
-    type Response = Response<Body>;
-    type Error = HyperError;
-    type Instance = Self;
+    type ReqBody = <Self::Service as Service>::ReqBody;
+    type ResBody = <Self::Service as Service>::ResBody;
+    type Error = <Self::Service as Service>::Error;
+    type Service = Self;
+    type Future = future::FutureResult<Self::Service, Self::InitError>;
+    type InitError = Box<StdError + Send + Sync>;
 
-    fn new_service(&self) -> io::Result<Self::Instance> {
-        Ok(self.clone())
+    fn new_service(&self) -> Self::Future {
+        future::ok(self.clone())
     }
 }

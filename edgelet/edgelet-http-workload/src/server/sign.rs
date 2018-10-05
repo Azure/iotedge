@@ -2,7 +2,7 @@
 
 use base64;
 use edgelet_core::crypto::{KeyIdentity, KeyStore, Sign, Signature, SignatureAlgorithm};
-use edgelet_http::route::{BoxFuture, Handler, Parameters};
+use edgelet_http::route::{Handler, Parameters};
 use failure::ResultExt;
 use futures::{future, Future, Stream};
 use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
@@ -50,13 +50,13 @@ pub fn sign<K: KeyStore>(
 
 impl<K> Handler<Parameters> for SignHandler<K>
 where
-    K: 'static + KeyStore + Clone,
+    K: 'static + KeyStore + Clone + Send,
 {
     fn handle(
         &self,
         req: Request<Body>,
         params: Parameters,
-    ) -> BoxFuture<Response<Body>, HyperError> {
+    ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
         let response = params
             .name("name")
             .ok_or_else(|| Error::from(ErrorKind::BadParam))
@@ -97,8 +97,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::cell::RefCell;
-    use std::rc::Rc;
+    use std::sync::{Arc, Mutex};
 
     use edgelet_core::crypto::MemoryKey;
     use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind, KeyStore};
@@ -125,14 +124,14 @@ mod tests {
     #[derive(Clone, Debug)]
     struct TestKeyStore {
         key: MemoryKey,
-        state: Rc<RefCell<State>>,
+        state: Arc<Mutex<State>>,
     }
 
     impl TestKeyStore {
         pub fn new(key: MemoryKey) -> Self {
             TestKeyStore {
                 key,
-                state: Rc::new(RefCell::new(State::new())),
+                state: Arc::new(Mutex::new(State::new())),
             }
         }
     }
@@ -141,11 +140,13 @@ mod tests {
         type Key = MemoryKey;
 
         fn get(&self, identity: &KeyIdentity, key_name: &str) -> Result<Self::Key, CoreError> {
-            self.state.borrow_mut().last_id = match identity {
+            let state = &mut *self.state.lock().unwrap();
+            state.last_id = match identity {
                 KeyIdentity::Device => "".to_string(),
                 KeyIdentity::Module(ref m) => m.to_string(),
             };
-            self.state.borrow_mut().last_key_name = key_name.to_string();
+            state.last_key_name = key_name.to_string();
+            drop(state);
             Ok(self.key.clone())
         }
     }
@@ -204,8 +205,10 @@ mod tests {
                 Ok(())
             }).wait()
             .unwrap();
-        assert_eq!(&store.state.borrow().last_id, "test");
-        assert_eq!(&store.state.borrow().last_key_name, "primaryg1");
+
+        let state = store.state.lock().unwrap();
+        assert_eq!(state.last_id, "test");
+        assert_eq!(state.last_key_name, "primaryg1");
     }
 
     #[test]

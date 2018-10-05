@@ -293,7 +293,7 @@ impl LogOptions {
 pub trait Module {
     type Config;
     type Error: Fail;
-    type RuntimeStateFuture: Future<Item = ModuleRuntimeState, Error = Self::Error>;
+    type RuntimeStateFuture: Future<Item = ModuleRuntimeState, Error = Self::Error> + Send;
 
     fn name(&self) -> &str;
     fn type_(&self) -> &str;
@@ -303,7 +303,7 @@ pub trait Module {
 
 pub trait ModuleRegistry {
     type Error: Fail;
-    type PullFuture: Future<Item = (), Error = Self::Error>;
+    type PullFuture: Future<Item = (), Error = Self::Error> + Send;
     type RemoveFuture: Future<Item = (), Error = Self::Error>;
     type Config;
 
@@ -346,22 +346,22 @@ impl SystemInfo {
 pub trait ModuleRuntime {
     type Error: Fail;
 
-    type Config;
-    type Module: Module<Config = Self::Config>;
+    type Config: Send;
+    type Module: Module<Config = Self::Config> + Send;
     type ModuleRegistry: ModuleRegistry<Config = Self::Config, Error = Self::Error>;
     type Chunk: AsRef<[u8]>;
-    type Logs: Stream<Item = Self::Chunk, Error = Self::Error>;
+    type Logs: Stream<Item = Self::Chunk, Error = Self::Error> + Send;
 
-    type CreateFuture: Future<Item = (), Error = Self::Error>;
-    type InitFuture: Future<Item = (), Error = Self::Error>;
-    type ListFuture: Future<Item = Vec<Self::Module>, Error = Self::Error>;
-    type LogsFuture: Future<Item = Self::Logs, Error = Self::Error>;
-    type RemoveFuture: Future<Item = (), Error = Self::Error>;
-    type RestartFuture: Future<Item = (), Error = Self::Error>;
-    type StartFuture: Future<Item = (), Error = Self::Error>;
-    type StopFuture: Future<Item = (), Error = Self::Error>;
-    type SystemInfoFuture: Future<Item = SystemInfo, Error = Self::Error>;
-    type RemoveAllFuture: Future<Item = (), Error = Self::Error>;
+    type CreateFuture: Future<Item = (), Error = Self::Error> + Send;
+    type InitFuture: Future<Item = (), Error = Self::Error> + Send;
+    type ListFuture: Future<Item = Vec<Self::Module>, Error = Self::Error> + Send;
+    type LogsFuture: Future<Item = Self::Logs, Error = Self::Error> + Send;
+    type RemoveFuture: Future<Item = (), Error = Self::Error> + Send;
+    type RestartFuture: Future<Item = (), Error = Self::Error> + Send;
+    type StartFuture: Future<Item = (), Error = Self::Error> + Send;
+    type StopFuture: Future<Item = (), Error = Self::Error> + Send;
+    type SystemInfoFuture: Future<Item = SystemInfo, Error = Self::Error> + Send;
+    type RemoveAllFuture: Future<Item = (), Error = Self::Error> + Send;
 
     fn init(&self) -> Self::InitFuture;
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture;

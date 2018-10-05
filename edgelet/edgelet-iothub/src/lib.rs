@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(warnings)]
+#![deny(unused_extern_crates, warnings)]
 
 extern crate base64;
 #[cfg(test)]
@@ -9,16 +9,18 @@ extern crate chrono;
 #[macro_use]
 extern crate failure;
 extern crate futures;
+#[cfg(test)]
 extern crate hyper;
 #[macro_use]
 extern crate percent_encoding;
-extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 #[cfg(test)]
 extern crate serde_json;
 #[cfg(test)]
-extern crate tokio_core;
+extern crate tokio;
+#[cfg(test)]
+extern crate typed_headers;
 extern crate url;
 
 extern crate edgelet_core;
@@ -30,20 +32,18 @@ mod error;
 
 use std::convert::AsRef;
 use std::marker::PhantomData;
-use std::rc::Rc;
+use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
 use failure::ResultExt;
 use futures::future::{self, Either};
 use futures::Future;
-use hyper::client::Service;
-use hyper::{Error as HyperError, Request, Response};
 use percent_encoding::{percent_encode, PATH_SEGMENT_ENCODE_SET};
 use url::form_urlencoded::Serializer as UrlSerializer;
 
 use edgelet_core::crypto::{KeyIdentity, KeyStore, Sign, Signature, SignatureAlgorithm};
 use edgelet_core::{AuthType, Identity, IdentityManager, IdentitySpec};
-use edgelet_http::client::TokenSource;
+use edgelet_http::client::{ClientImpl, TokenSource};
 use iothubservice::{
     AuthMechanism, AuthType as HubAuthType, DeviceClient, ErrorKind as HubErrorKind, Module,
     SymmetricKey,
@@ -112,15 +112,15 @@ fn convert_auth_type(hub_auth_type: &HubAuthType) -> AuthType {
     }
 }
 
-struct State<K, S, D>
+struct State<K, C, D>
 where
     K: KeyStore,
     K::Key: AsRef<[u8]> + Clone,
-    S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
+    C: ClientImpl,
     D: 'static + Sign + Clone,
 {
     key_store: K,
-    client: DeviceClient<S, SasTokenSource<D>>,
+    client: DeviceClient<C, SasTokenSource<D>>,
 }
 
 pub struct SasTokenSource<K>
@@ -187,30 +187,27 @@ where
     }
 }
 
-pub struct HubIdentityManager<K, S, D>
+pub struct HubIdentityManager<K, C, D>
 where
     K: KeyStore,
     K::Key: AsRef<[u8]> + Clone,
-    S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
+    C: ClientImpl,
     D: 'static + Sign + Clone,
 {
-    state: Rc<State<K, S, D>>,
+    state: Arc<State<K, C, D>>,
     phantom: PhantomData<D>,
 }
 
-impl<K, S, D> HubIdentityManager<K, S, D>
+impl<K, C, D> HubIdentityManager<K, C, D>
 where
     K: KeyStore,
     K::Key: AsRef<[u8]> + Clone,
-    S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
+    C: ClientImpl,
     D: 'static + Sign + Clone,
 {
-    pub fn new(
-        key_store: K,
-        client: DeviceClient<S, SasTokenSource<D>>,
-    ) -> HubIdentityManager<K, S, D> {
+    pub fn new(key_store: K, client: DeviceClient<C, SasTokenSource<D>>) -> Self {
         HubIdentityManager {
-            state: Rc::new(State { key_store, client }),
+            state: Arc::new(State { key_store, client }),
             phantom: PhantomData,
         }
     }
@@ -237,11 +234,11 @@ fn build_key_name(key_name: &str, generation_id: &str) -> String {
     format!("{}{}", key_name, generation_id)
 }
 
-impl<K, S, D> Clone for HubIdentityManager<K, S, D>
+impl<K, C, D> Clone for HubIdentityManager<K, C, D>
 where
     K: KeyStore,
     K::Key: AsRef<[u8]> + Clone,
-    S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
+    C: ClientImpl,
     D: 'static + Sign + Clone,
 {
     fn clone(&self) -> Self {
@@ -252,20 +249,20 @@ where
     }
 }
 
-impl<K, S, D> IdentityManager for HubIdentityManager<K, S, D>
+impl<K, C, D> IdentityManager for HubIdentityManager<K, C, D>
 where
-    K: 'static + KeyStore,
-    K::Key: AsRef<[u8]> + Clone,
-    S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
-    D: 'static + Sign + Clone,
+    K: 'static + KeyStore + Send + Sync,
+    K::Key: AsRef<[u8]> + Clone + Send,
+    C: 'static + ClientImpl,
+    D: 'static + Sign + Clone + Send + Sync,
 {
     type Identity = HubIdentity;
     type Error = Error;
-    type CreateFuture = Box<Future<Item = Self::Identity, Error = Self::Error>>;
-    type UpdateFuture = Box<Future<Item = Self::Identity, Error = Self::Error>>;
-    type ListFuture = Box<Future<Item = Vec<Self::Identity>, Error = Self::Error>>;
-    type GetFuture = Box<Future<Item = Option<Self::Identity>, Error = Self::Error>>;
-    type DeleteFuture = Box<Future<Item = (), Error = Self::Error>>;
+    type CreateFuture = Box<Future<Item = Self::Identity, Error = Self::Error> + Send>;
+    type UpdateFuture = Box<Future<Item = Self::Identity, Error = Self::Error> + Send>;
+    type ListFuture = Box<Future<Item = Vec<Self::Identity>, Error = Self::Error> + Send>;
+    type GetFuture = Box<Future<Item = Option<Self::Identity>, Error = Self::Error> + Send>;
+    type DeleteFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
 
     fn create(&mut self, id: IdentitySpec) -> Self::CreateFuture {
         // This code first creates a module in the hub with the auth type
@@ -382,10 +379,8 @@ mod tests {
     use bytes::Bytes;
     use chrono::TimeZone;
     use futures::Stream;
-    use hyper::header::{ContentType, IfMatch};
-    use hyper::server::service_fn;
-    use hyper::{Method, Request, Response, StatusCode};
-    use tokio_core::reactor::Core;
+    use hyper::{self, Body, Method, Request, Response, StatusCode};
+    use typed_headers::{mime, ContentType, HeaderMapExt};
     use url::Url;
 
     use edgelet_core::crypto::{MemoryKey, MemoryKeyStore};
@@ -415,18 +410,13 @@ mod tests {
 
         let api_version = "2018-04-10";
         let host_name = Url::parse("http://localhost").unwrap();
-        let handler = |_req: Request| Ok(Response::new().with_status(StatusCode::Ok));
+        let handler = |_req: Request<Body>| Ok(Response::new(Body::empty()));
         let token_source = SasTokenSource::new(
             "hub".to_string(),
             "device".to_string(),
             MemoryKey::new("device"),
         );
-        let client = Client::new(
-            service_fn(handler),
-            Some(token_source),
-            api_version,
-            host_name,
-        ).unwrap();
+        let client = Client::new(handler, Some(token_source), api_version, host_name).unwrap();
         let device_client = DeviceClient::new(client, "d1").unwrap();
 
         let identity_manager = HubIdentityManager::new(key_store, device_client);
@@ -442,18 +432,13 @@ mod tests {
         let key_store = MemoryKeyStore::new();
         let api_version = "2018-04-10";
         let host_name = Url::parse("http://localhost").unwrap();
-        let handler = |_req: Request| Ok(Response::new().with_status(StatusCode::Ok));
+        let handler = |_req: Request<Body>| Ok(Response::new(Body::empty()));
         let token_source = SasTokenSource::new(
             "hub".to_string(),
             "device".to_string(),
             MemoryKey::new("device"),
         );
-        let client = Client::new(
-            service_fn(handler),
-            Some(token_source),
-            api_version,
-            host_name,
-        ).unwrap();
+        let client = Client::new(handler, Some(token_source), api_version, host_name).unwrap();
         let device_client = DeviceClient::new(client, "d1").unwrap();
 
         let identity_manager = HubIdentityManager::new(key_store, device_client);
@@ -472,18 +457,13 @@ mod tests {
 
         let api_version = "2018-04-10";
         let host_name = Url::parse("http://localhost").unwrap();
-        let handler = |_req: Request| Ok(Response::new().with_status(StatusCode::Ok));
+        let handler = |_req: Request<Body>| Ok(Response::new(Body::empty()));
         let token_source = SasTokenSource::new(
             "hub".to_string(),
             "device".to_string(),
             MemoryKey::new("device"),
         );
-        let client = Client::new(
-            service_fn(handler),
-            Some(token_source),
-            api_version,
-            host_name,
-        ).unwrap();
+        let client = Client::new(handler, Some(token_source), api_version, host_name).unwrap();
         let device_client = DeviceClient::new(client, "d1").unwrap();
 
         let identity_manager = HubIdentityManager::new(key_store, device_client);
@@ -502,18 +482,13 @@ mod tests {
 
         let api_version = "2018-04-10";
         let host_name = Url::parse("http://localhost").unwrap();
-        let handler = |_req: Request| Ok(Response::new().with_status(StatusCode::Ok));
+        let handler = |_req: Request<Body>| Ok(Response::new(Body::empty()));
         let token_source = SasTokenSource::new(
             "hub".to_string(),
             "device".to_string(),
             MemoryKey::new("device"),
         );
-        let client = Client::new(
-            service_fn(handler),
-            Some(token_source),
-            api_version,
-            host_name,
-        ).unwrap();
+        let client = Client::new(handler, Some(token_source), api_version, host_name).unwrap();
         let device_client = DeviceClient::new(client, "d1").unwrap();
 
         let identity_manager = HubIdentityManager::new(key_store, device_client);
@@ -554,15 +529,15 @@ mod tests {
             .with_generation_id("g1".to_string())
             .with_managed_by("iotedge".to_string());
 
-        let handler = move |req: Request| {
-            assert_eq!(req.method(), &Method::Put);
-            assert_eq!(req.path(), "/devices/d1/modules/m1");
+        let handler = move |req: Request<Body>| {
+            assert_eq!(req.method(), &Method::PUT);
+            assert_eq!(req.uri().path(), "/devices/d1/modules/m1");
 
             // if the request has an If-Match header then this is an update
             // module request
             let mut is_update = false;
-            if let Some(header) = req.headers().get::<IfMatch>() {
-                assert_eq!(header, &IfMatch::Any);
+            if let Some(header) = req.headers().get(hyper::header::IF_MATCH) {
+                assert_eq!(header, "*");
                 is_update = true;
             }
 
@@ -572,23 +547,24 @@ mod tests {
                 expected_module1.clone()
             };
 
-            req.body()
+            req.into_body()
                 .concat2()
                 .and_then(|req_body| Ok(serde_json::from_slice::<Module>(&req_body).unwrap()))
                 .and_then(move |module| {
                     assert_eq!(module, expected_module_copy);
 
-                    Ok(Response::new()
-                        .with_status(StatusCode::Ok)
-                        .with_header(ContentType::json())
-                        .with_body(
-                            serde_json::to_string(
-                                &module
-                                    .with_generation_id("g1".to_string())
-                                    .with_managed_by("iotedge".to_string()),
-                            ).unwrap()
-                            .into_bytes(),
-                        ))
+                    let mut response = Response::new(
+                        serde_json::to_string(
+                            &module
+                                .with_generation_id("g1".to_string())
+                                .with_managed_by("iotedge".to_string()),
+                        ).unwrap()
+                        .into(),
+                    );
+                    response
+                        .headers_mut()
+                        .typed_insert(&ContentType(mime::APPLICATION_JSON));
+                    Ok(response)
                 })
         };
         let token_source = SasTokenSource::new(
@@ -596,18 +572,16 @@ mod tests {
             "device".to_string(),
             MemoryKey::new("device"),
         );
-        let client = Client::new(
-            service_fn(handler),
-            Some(token_source),
-            api_version,
-            host_name,
-        ).unwrap();
+        let client = Client::new(handler, Some(token_source), api_version, host_name).unwrap();
         let device_client = DeviceClient::new(client, "d1").unwrap();
 
         let mut identity_manager = HubIdentityManager::new(key_store, device_client);
         let task = identity_manager.create(IdentitySpec::new("m1"));
 
-        let hub_identity = Core::new().unwrap().run(task).unwrap();
+        let hub_identity = tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
 
         assert_eq!(hub_identity.hub_module(), &expected_module_result);
     }
@@ -683,44 +657,43 @@ mod tests {
                     .with_managed_by("iotedge".to_string())
             }).collect::<Vec<Module>>();
 
-        let handler = move |req: Request| {
-            assert_eq!(req.method(), &Method::Get);
-            assert_eq!(req.path(), "/devices/d1/modules");
+        let handler = move |req: Request<Body>| {
+            assert_eq!(req.method(), &Method::GET);
+            assert_eq!(req.uri().path(), "/devices/d1/modules");
 
-            Ok(Response::new()
-                .with_status(StatusCode::Ok)
-                .with_header(ContentType::json())
-                .with_body(
-                    serde_json::to_string(
-                        &response_modules
-                            .iter()
-                            .map(|module| {
-                                module
-                                    .clone()
-                                    .with_generation_id("g1".to_string())
-                                    .with_managed_by("iotedge".to_string())
-                            }).collect::<Vec<Module>>(),
-                    ).unwrap()
-                    .into_bytes(),
-                ))
+            let mut response = Response::new(
+                serde_json::to_string(
+                    &response_modules
+                        .iter()
+                        .map(|module| {
+                            module
+                                .clone()
+                                .with_generation_id("g1".to_string())
+                                .with_managed_by("iotedge".to_string())
+                        }).collect::<Vec<Module>>(),
+                ).unwrap()
+                .into(),
+            );
+            response
+                .headers_mut()
+                .typed_insert(&ContentType(mime::APPLICATION_JSON));
+            Ok(response)
         };
         let token_source = SasTokenSource::new(
             "hub".to_string(),
             "device".to_string(),
             MemoryKey::new("device"),
         );
-        let client = Client::new(
-            service_fn(handler),
-            Some(token_source),
-            api_version,
-            host_name,
-        ).unwrap();
+        let client = Client::new(handler, Some(token_source), api_version, host_name).unwrap();
         let device_client = DeviceClient::new(client, "d1").unwrap();
 
         let identity_manager = HubIdentityManager::new(key_store, device_client);
         let task = identity_manager.list();
 
-        let hub_identities = Core::new().unwrap().run(task).unwrap();
+        let hub_identities = tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
 
         for hub_identity in hub_identities {
             assert_eq!(
@@ -769,40 +742,40 @@ mod tests {
             .with_generation_id("g1".to_string())
             .with_managed_by("iotedge".to_string());
 
-        let handler = move |req: Request| {
-            assert_eq!(req.method(), &Method::Get);
-            assert_eq!(req.path(), "/devices/d1/modules/m1");
+        let handler = move |req: Request<Body>| {
+            assert_eq!(req.method(), &Method::GET);
+            assert_eq!(req.uri().path(), "/devices/d1/modules/m1");
 
-            Ok(Response::new()
-                .with_status(StatusCode::Ok)
-                .with_header(ContentType::json())
-                .with_body(
-                    serde_json::to_string(
-                        &response_module
-                            .clone()
-                            .with_generation_id("g1".to_string())
-                            .with_managed_by("iotedge".to_string()),
-                    ).unwrap()
-                    .into_bytes(),
-                ))
+            let mut response = Response::new(
+                serde_json::to_string(
+                    &response_module
+                        .clone()
+                        .with_generation_id("g1".to_string())
+                        .with_managed_by("iotedge".to_string()),
+                ).unwrap()
+                .into(),
+            );
+            response
+                .headers_mut()
+                .typed_insert(&ContentType(mime::APPLICATION_JSON));
+            Ok(response)
         };
         let token_source = SasTokenSource::new(
             "hub".to_string(),
             "device".to_string(),
             MemoryKey::new("device"),
         );
-        let client = Client::new(
-            service_fn(handler),
-            Some(token_source),
-            api_version,
-            host_name,
-        ).unwrap();
+        let client = Client::new(handler, Some(token_source), api_version, host_name).unwrap();
         let device_client = DeviceClient::new(client, "d1").unwrap();
 
         let identity_manager = HubIdentityManager::new(key_store, device_client);
         let task = identity_manager.get(IdentitySpec::new("m1"));
 
-        let hub_identity = Core::new().unwrap().run(task).unwrap().unwrap();
+        let hub_identity = tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap()
+            .unwrap();
         assert_eq!(hub_identity.hub_module(), &expected_module_result);
     }
 
@@ -813,29 +786,31 @@ mod tests {
         let api_version = "2018-04-10";
         let host_name = Url::parse("http://localhost").unwrap();
 
-        let handler = move |req: Request| {
-            assert_eq!(req.method(), &Method::Get);
-            assert_eq!(req.path(), "/devices/d1/modules/m1");
+        let handler = move |req: Request<Body>| {
+            assert_eq!(req.method(), &Method::GET);
+            assert_eq!(req.uri().path(), "/devices/d1/modules/m1");
 
-            Ok(Response::new().with_status(StatusCode::NotFound))
+            let response = Response::builder()
+                .status(StatusCode::NOT_FOUND)
+                .body(Body::empty())
+                .expect("could not build hyper::Response");
+            Ok(response)
         };
         let token_source = SasTokenSource::new(
             "hub".to_string(),
             "device".to_string(),
             MemoryKey::new("device"),
         );
-        let client = Client::new(
-            service_fn(handler),
-            Some(token_source),
-            api_version,
-            host_name,
-        ).unwrap();
+        let client = Client::new(handler, Some(token_source), api_version, host_name).unwrap();
         let device_client = DeviceClient::new(client, "d1").unwrap();
 
         let identity_manager = HubIdentityManager::new(key_store, device_client);
         let task = identity_manager.get(IdentitySpec::new("m1"));
 
-        let hub_identity = Core::new().unwrap().run(task).unwrap();
+        let hub_identity = tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
         assert_eq!(None, hub_identity);
     }
 
@@ -846,23 +821,18 @@ mod tests {
         let api_version = "2018-04-10";
         let host_name = Url::parse("http://localhost").unwrap();
 
-        let handler = move |req: Request| {
-            assert_eq!(req.method(), &Method::Delete);
-            assert_eq!(req.path(), "/devices/d1/modules/m1");
+        let handler = move |req: Request<Body>| {
+            assert_eq!(req.method(), &Method::DELETE);
+            assert_eq!(req.uri().path(), "/devices/d1/modules/m1");
 
-            Ok(Response::new().with_status(StatusCode::Ok))
+            Ok(Response::new(Body::empty()))
         };
         let token_source = SasTokenSource::new(
             "hub".to_string(),
             "device".to_string(),
             MemoryKey::new("device"),
         );
-        let client = Client::new(
-            service_fn(handler),
-            Some(token_source),
-            api_version,
-            host_name,
-        ).unwrap();
+        let client = Client::new(handler, Some(token_source), api_version, host_name).unwrap();
         let device_client = DeviceClient::new(client, "d1").unwrap();
 
         let mut identity_manager = HubIdentityManager::new(key_store, device_client);
@@ -870,7 +840,10 @@ mod tests {
             .delete(IdentitySpec::new("m1"))
             .then(|result| Ok(assert_eq!(result.unwrap(), ())) as Result<(), Error>);
 
-        Core::new().unwrap().run(task).unwrap();
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
     }
 
     #[test]

@@ -163,7 +163,7 @@ function Test-IsDockerRunning {
 
 function Test-IsKernelValid {
     $MinBuildForLinuxContainers = 14393
-    $SupportedBuildsForWindowsContainers = @(17134)
+    $SupportedBuildsForWindowsContainers = @(17134, 17763)
     $CurrentBuild = (Get-Item "HKLM:\Software\Microsoft\Windows NT\CurrentVersion").GetValue("CurrentBuild")
 
     # If using Linux containers, any Windows 10 version >14393 will suffice.

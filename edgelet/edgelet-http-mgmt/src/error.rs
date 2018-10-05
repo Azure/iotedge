@@ -112,12 +112,6 @@ impl From<HyperError> for Error {
     }
 }
 
-impl From<Error> for HyperError {
-    fn from(_error: Error) -> HyperError {
-        HyperError::Method
-    }
-}
-
 impl From<HttpError> for Error {
     fn from(error: HttpError) -> Error {
         Error {
@@ -139,7 +133,7 @@ impl From<MgmtError<serde_json::Value>> for Error {
         match error {
             MgmtError::Hyper(h) => From::from(h),
             MgmtError::Serde(s) => From::from(s),
-            MgmtError::ApiError(ref e) if e.code == HyperStatusCode::NotModified => {
+            MgmtError::ApiError(ref e) if e.code == HyperStatusCode::NOT_MODIFIED => {
                 From::from(ErrorKind::NotModified)
             }
             MgmtError::ApiError(_) => From::from(ErrorKind::Client(error)),
