@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Util
 {
     using System;
+    using System.Collections;
     using System.Collections.Generic;
     using System.Linq;
     using System.Text.RegularExpressions;
@@ -266,7 +267,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 }
             }
 
-            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
         }
     }
 }

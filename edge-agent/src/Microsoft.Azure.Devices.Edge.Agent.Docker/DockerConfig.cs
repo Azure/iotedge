@@ -103,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 var options = obj.ChunkedValue("createOptions", true)
                     .Take(Constants.TwinValueMaxChunks)
                     .Select(token => token?.ToString() ?? string.Empty)
-                    .Join("");
+                    .Join();
 
                 return new DockerConfig(jTokenImage?.ToString(), options);
             }
