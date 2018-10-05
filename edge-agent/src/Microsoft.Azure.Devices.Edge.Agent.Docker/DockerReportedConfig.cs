@@ -71,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 serializer.Serialize(writer, dockerReportedConfig.ImageHash);
 
                 var options = JsonConvert.SerializeObject(dockerReportedConfig.CreateOptions)
-                    .Chunks(Constants.TwinMaxValueSize)
+                    .Chunks(Constants.TwinValueMaxSize)
                     .Take(Constants.TwinValueMaxChunks)
                     .Enumerate();
                 foreach (var (i, chunk) in options)
