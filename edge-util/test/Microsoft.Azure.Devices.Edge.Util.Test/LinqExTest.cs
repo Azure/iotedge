@@ -129,5 +129,19 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 "k3=v32"
             }));
         }
+
+        [Fact]
+        [Unit]
+        public void EnumerateTest()
+        {
+            var strings = new List<string> { "zero", "one", "two" };
+            var expected = new List<(uint, string)>
+            {
+                {  (0, "zero") },
+                {  (1, "one") },
+                {  (2, "two") },
+            };
+            Assert.Equal(expected, strings.Enumerate().ToList());
+        }
     }
 }
