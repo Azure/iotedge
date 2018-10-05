@@ -10,14 +10,14 @@
 
 use failure::err_msg;
 use failure::Error;
-use hyper::client::Connect;
+use hyper::client::connect::Connect;
 use hyper::{Client, Uri};
 
 pub struct Configuration<C: Connect> {
     pub base_path: String,
     pub user_agent: Option<String>,
     pub client: Client<C>,
-    pub uri_composer: Box<Fn(&str, &str) -> Result<Uri, Error>>,
+    pub uri_composer: Box<Fn(&str, &str) -> Result<Uri, Error> + Send + Sync>,
 }
 
 impl<C: Connect> Configuration<C> {

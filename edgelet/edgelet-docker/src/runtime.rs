@@ -11,7 +11,6 @@ use futures::prelude::*;
 use hyper::{Body, Chunk as HyperChunk, Client};
 use log::Level;
 use serde_json;
-use tokio_core::reactor::Handle;
 use url::Url;
 
 use client::DockerClient;
@@ -48,11 +47,9 @@ pub struct DockerModuleRuntime {
 }
 
 impl DockerModuleRuntime {
-    pub fn new(docker_url: &Url, handle: &Handle) -> Result<DockerModuleRuntime> {
+    pub fn new(docker_url: &Url) -> Result<DockerModuleRuntime> {
         // build the hyper client
-        let client = Client::configure()
-            .connector(UrlConnector::new(docker_url, handle)?)
-            .build(handle);
+        let client = Client::builder().build(UrlConnector::new(docker_url)?);
 
         // extract base path - the bit that comes after the scheme
         let base_path = get_base_path(docker_url);
@@ -107,7 +104,7 @@ fn get_base_path(url: &Url) -> &str {
 
 impl ModuleRegistry for DockerModuleRuntime {
     type Error = Error;
-    type PullFuture = Box<Future<Item = (), Error = Self::Error>>;
+    type PullFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
     type RemoveFuture = Box<Future<Item = (), Error = Self::Error>>;
     type Config = DockerConfig;
 
@@ -158,16 +155,16 @@ impl ModuleRuntime for DockerModuleRuntime {
     type Chunk = Chunk;
     type Logs = Logs;
 
-    type CreateFuture = Box<Future<Item = (), Error = Self::Error>>;
-    type InitFuture = Box<Future<Item = (), Error = Self::Error>>;
-    type ListFuture = Box<Future<Item = Vec<Self::Module>, Error = Self::Error>>;
-    type LogsFuture = Box<Future<Item = Self::Logs, Error = Self::Error>>;
-    type RemoveFuture = Box<Future<Item = (), Error = Self::Error>>;
-    type RestartFuture = Box<Future<Item = (), Error = Self::Error>>;
-    type StartFuture = Box<Future<Item = (), Error = Self::Error>>;
-    type StopFuture = Box<Future<Item = (), Error = Self::Error>>;
-    type SystemInfoFuture = Box<Future<Item = CoreSystemInfo, Error = Self::Error>>;
-    type RemoveAllFuture = Box<Future<Item = (), Error = Self::Error>>;
+    type CreateFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
+    type InitFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
+    type ListFuture = Box<Future<Item = Vec<Self::Module>, Error = Self::Error> + Send>;
+    type LogsFuture = Box<Future<Item = Self::Logs, Error = Self::Error> + Send>;
+    type RemoveFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
+    type RestartFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
+    type StartFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
+    type StopFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
+    type SystemInfoFuture = Box<Future<Item = CoreSystemInfo, Error = Self::Error> + Send>;
+    type RemoveAllFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
 
     fn init(&self) -> Self::InitFuture {
         let created = self
@@ -352,11 +349,10 @@ impl ModuleRuntime for DockerModuleRuntime {
         let client_copy = self.client.clone();
 
         let result = serde_json::to_string(&filters)
-            .and_then(|filters| {
-                Ok(self
-                    .client
+            .map(|filters| {
+                self.client
                     .container_api()
-                    .container_list(true, 0, true, &filters)
+                    .container_list(true, 0, false, &filters)
                     .map(move |containers| {
                         containers
                             .iter()
@@ -384,17 +380,15 @@ impl ModuleRuntime for DockerModuleRuntime {
                                     config,
                                 )
                             }).collect()
-                    }).map_err(Error::from))
-            }).map_err(Error::from);
-
-        match result {
-            Ok(f) => Box::new(f),
-            Err(err) => {
+                    }).map_err(Error::from)
+            }).into_future()
+            .flatten()
+            .map_err(|err| {
                 warn!("Attempt to list containers failed.");
                 log_failure(Level::Warn, &err);
-                Box::new(future::err(err))
-            }
-        }
+                err
+            });
+        Box::new(result)
     }
 
     fn logs(&self, id: &str, options: &LogOptions) -> Self::LogsFuture {
@@ -484,7 +478,7 @@ mod tests {
 
     #[cfg(unix)]
     use tempfile::NamedTempFile;
-    use tokio_core::reactor::Core;
+    use tokio;
     use url::Url;
 
     use docker::models::ContainerCreateBody;
@@ -495,34 +489,26 @@ mod tests {
     #[test]
     #[should_panic(expected = "Invalid uri")]
     fn invalid_uri_prefix_fails() {
-        let core = Core::new().unwrap();
-        let _mri = DockerModuleRuntime::new(
-            &Url::parse("foo:///this/is/not/valid").unwrap(),
-            &core.handle(),
-        ).unwrap();
+        let _mri =
+            DockerModuleRuntime::new(&Url::parse("foo:///this/is/not/valid").unwrap()).unwrap();
     }
 
     #[cfg(unix)]
     #[test]
     #[should_panic(expected = "Invalid uri")]
     fn invalid_uds_path_fails() {
-        let core = Core::new().unwrap();
-        let _mri = DockerModuleRuntime::new(
-            &Url::parse("unix:///this/file/does/not/exist").unwrap(),
-            &core.handle(),
-        ).unwrap();
+        let _mri =
+            DockerModuleRuntime::new(&Url::parse("unix:///this/file/does/not/exist").unwrap())
+                .unwrap();
     }
 
     #[cfg(unix)]
     #[test]
     fn create_with_uds_succeeds() {
-        let core = Core::new().unwrap();
         let file = NamedTempFile::new().unwrap();
         let file_path = file.path().to_str().unwrap();
-        let _mri = DockerModuleRuntime::new(
-            &Url::parse(&format!("unix://{}", file_path)).unwrap(),
-            &core.handle(),
-        ).unwrap();
+        let _mri = DockerModuleRuntime::new(&Url::parse(&format!("unix://{}", file_path)).unwrap())
+            .unwrap();
     }
 
     fn empty_test<F, R>(tester: F)
@@ -530,10 +516,7 @@ mod tests {
         F: Fn(&mut DockerModuleRuntime) -> R,
         R: Future<Item = (), Error = Error>,
     {
-        let mut core = Core::new().unwrap();
-        let mut mri =
-            DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap(), &core.handle())
-                .unwrap();
+        let mut mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
 
         let task = tester(&mut mri).then(|res| match res {
             Ok(_) => Err("Expected error but got a result.".to_string()),
@@ -549,7 +532,10 @@ mod tests {
             }
         });
 
-        core.run(task).unwrap();
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
     }
 
     #[test]
@@ -604,10 +590,7 @@ mod tests {
 
     #[test]
     fn create_fails_for_non_docker_type() {
-        let mut core = Core::new().unwrap();
-        let mri =
-            DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap(), &core.handle())
-                .unwrap();
+        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
 
         let module_config = ModuleSpec::new(
             "m1",
@@ -624,15 +607,15 @@ mod tests {
             },
         });
 
-        core.run(task).unwrap();
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
     }
 
     #[test]
     fn start_fails_for_empty_id() {
-        let mut core = Core::new().unwrap();
-        let mri =
-            DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap(), &core.handle())
-                .unwrap();
+        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
 
         let task = mri.start("").then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
@@ -642,15 +625,15 @@ mod tests {
             },
         });
 
-        core.run(task).unwrap();
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
     }
 
     #[test]
     fn start_fails_for_white_space_id() {
-        let mut core = Core::new().unwrap();
-        let mri =
-            DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap(), &core.handle())
-                .unwrap();
+        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
 
         let task = mri.start("      ").then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
@@ -660,15 +643,15 @@ mod tests {
             },
         });
 
-        core.run(task).unwrap();
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
     }
 
     #[test]
     fn stop_fails_for_empty_id() {
-        let mut core = Core::new().unwrap();
-        let mri =
-            DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap(), &core.handle())
-                .unwrap();
+        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
 
         let task = mri.stop("", None).then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
@@ -678,15 +661,15 @@ mod tests {
             },
         });
 
-        core.run(task).unwrap();
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
     }
 
     #[test]
     fn stop_fails_for_white_space_id() {
-        let mut core = Core::new().unwrap();
-        let mri =
-            DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap(), &core.handle())
-                .unwrap();
+        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
 
         let task = mri.stop("     ", None).then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
@@ -696,15 +679,15 @@ mod tests {
             },
         });
 
-        core.run(task).unwrap();
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
     }
 
     #[test]
     fn restart_fails_for_empty_id() {
-        let mut core = Core::new().unwrap();
-        let mri =
-            DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap(), &core.handle())
-                .unwrap();
+        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
 
         let task = mri.restart("").then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
@@ -714,15 +697,15 @@ mod tests {
             },
         });
 
-        core.run(task).unwrap();
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
     }
 
     #[test]
     fn restart_fails_for_white_space_id() {
-        let mut core = Core::new().unwrap();
-        let mri =
-            DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap(), &core.handle())
-                .unwrap();
+        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
 
         let task = mri.restart("     ").then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
@@ -732,15 +715,15 @@ mod tests {
             },
         });
 
-        core.run(task).unwrap();
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
     }
 
     #[test]
     fn remove_fails_for_empty_id() {
-        let mut core = Core::new().unwrap();
-        let mri =
-            DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap(), &core.handle())
-                .unwrap();
+        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
 
         let task = ModuleRuntime::remove(&mri, "").then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
@@ -750,15 +733,15 @@ mod tests {
             },
         });
 
-        core.run(task).unwrap();
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
     }
 
     #[test]
     fn remove_fails_for_white_space_id() {
-        let mut core = Core::new().unwrap();
-        let mri =
-            DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap(), &core.handle())
-                .unwrap();
+        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
 
         let task = ModuleRuntime::remove(&mri, "    ").then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
@@ -768,6 +751,9 @@ mod tests {
             },
         });
 
-        core.run(task).unwrap();
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
     }
 }

@@ -16,7 +16,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using DotNetty.Transport.Channels;
     using DotNetty.Transport.Channels.Sockets;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
-    using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.ProtocolGateway;
     using Microsoft.Azure.Devices.ProtocolGateway.Identity;
@@ -77,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             {
                 this.logger.LogInformation("Starting MQTT head");
 
-                ServerBootstrap bootstrap = this.SetupServerBoostrap();
+                ServerBootstrap bootstrap = this.SetupServerBootstrap();
 
                 this.logger.LogInformation("Initializing TLS endpoint on port {0} for MQTT head.", MqttsPort);
 
@@ -118,7 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             this.CloseAsync(CancellationToken.None).Wait();
         }
 
-        ServerBootstrap SetupServerBoostrap()
+        ServerBootstrap SetupServerBootstrap()
         {
             int maxInboundMessageSize = this.settingsProvider.GetIntegerSetting("MaxInboundMessageSize", DefaultMaxInboundMessageSize);
             int threadCount = this.settingsProvider.GetIntegerSetting("ThreadCount", DefaultThreadCount);
@@ -128,13 +127,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
             MessagingBridgeFactoryFunc bridgeFactory = this.mqttConnectionProvider.Connect;
 
-            var boostrap = new ServerBootstrap();
+            var bootstrap = new ServerBootstrap();
             // multithreaded event loop that handles the incoming connection
             IEventLoopGroup parentEventLoopGroup = new MultithreadEventLoopGroup(parentEventLoopCount);
             // multithreaded event loop (worker) that handles the traffic of the accepted connections
             this.eventLoopGroup = new MultithreadEventLoopGroup(threadCount);
 
-            boostrap.Group(parentEventLoopGroup, this.eventLoopGroup)
+            bootstrap.Group(parentEventLoopGroup, this.eventLoopGroup)
                 .Option(ChannelOption.SoBacklog, listenBacklogSize)
                 // Allow listening socket to force bind to port if previous socket is still in TIME_WAIT
                 // Fixes "address is already in use" errors
@@ -183,7 +182,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
             this.webSocketListenerRegistry.TryRegister(mqttWebSocketListener);
 
-            return boostrap;
+            return bootstrap;
         }
 
         Option<IList<X509Certificate2>> GetCaChainCerts(string caChainPath)

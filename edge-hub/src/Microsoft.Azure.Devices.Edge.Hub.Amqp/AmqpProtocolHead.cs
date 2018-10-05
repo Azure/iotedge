@@ -18,14 +18,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
 
-    // TODO: This suppression will be removed once implementation is complete.
-    // ReSharper disable once UnusedMember.Global
     public class AmqpProtocolHead : IProtocolHead
     {
         readonly AmqpConnectionSettings connectionSettings;
         readonly ITransportSettings transportSettings;
         readonly AmqpSettings amqpSettings;
         readonly ITransportListenerProvider transportListenerProvider;
+        readonly IWebSocketListenerRegistry webSocketListenerRegistry;
         readonly ConcurrentDictionary<uint, AmqpConnection> incomingConnectionMap;
         readonly AsyncLock syncLock;
 
@@ -34,12 +33,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         public AmqpProtocolHead(
             ITransportSettings transportSettings,
             AmqpSettings amqpSettings,
-            ITransportListenerProvider transportListenerProvider)
+            ITransportListenerProvider transportListenerProvider,
+            IWebSocketListenerRegistry webSocketListenerRegistry)
         {
             this.syncLock = new AsyncLock();
             this.transportSettings = Preconditions.CheckNotNull(transportSettings, nameof(transportSettings));
             this.amqpSettings = Preconditions.CheckNotNull(amqpSettings, nameof(amqpSettings));
             this.transportListenerProvider = Preconditions.CheckNotNull(transportListenerProvider);
+            this.webSocketListenerRegistry = Preconditions.CheckNotNull(webSocketListenerRegistry);
 
             this.connectionSettings = new AmqpConnectionSettings
             {
@@ -62,14 +63,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         {
             Events.Starting();
 
-            // This transport settings object sets up a listener for TLS over TCP right now.
-            TransportListener[] listeners = { this.transportSettings.Settings.CreateListener() };
+            var amqpWebSocketListener = new AmqpWebSocketListener();
+            // This transport settings object sets up a listener for TLS over TCP and a listener for WebSockets.
+            TransportListener[] listeners = { this.transportSettings.Settings.CreateListener(), amqpWebSocketListener };
 
             using (await this.syncLock.LockAsync())
             {
                 this.amqpTransportListener = this.transportListenerProvider.Create(listeners, this.amqpSettings);
                 await this.amqpTransportListener.OpenAsync(TimeSpan.FromMinutes(1));
                 this.amqpTransportListener.Listen(this.OnAcceptTransport);
+            }
+
+            if (this.webSocketListenerRegistry.TryRegister(amqpWebSocketListener))
+            {
+                Events.RegisteredWebSocketListener();
+            }
+            else
+            {
+                Events.RegisterWebSocketListenerFailed();
             }
 
             // Preallocate buffers for AMQP transport
@@ -222,6 +233,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 ConnectionContextAddFailed = IdStart + 3,
                 Starting = IdStart + 4,
                 Started = IdStart + 5,
+                WebSocketsRegistered,
+                WebSocketsRegisterFail
             }
 
             internal static void AcceptTransportInputError(Exception ex) => Log.LogError((int)EventIds.AcceptTransportInputError, ex, $"Received a new transport connection with an error.");
@@ -237,6 +250,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             internal static void Starting() => Log.LogInformation((int)EventIds.Starting, $"Starting AMQP head");
 
             internal static void Started() => Log.LogInformation((int)EventIds.Started, $"Started AMQP head");
+
+            internal static void RegisteredWebSocketListener() => Log.LogDebug((int)EventIds.WebSocketsRegistered, "WebSockets listener registered.");
+
+            internal static void RegisterWebSocketListenerFailed() => Log.LogDebug((int)EventIds.WebSocketsRegisterFail, "WebSockets listener failed to register.");
         }
     }
 }

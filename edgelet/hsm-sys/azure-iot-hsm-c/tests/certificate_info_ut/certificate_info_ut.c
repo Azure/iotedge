@@ -905,7 +905,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         time_t test_time;
 
         //act
-        test_time = get_utc_time_from_asn_string("180101010101Z", 12);
+        test_time = get_utc_time_from_asn_string((unsigned char*)"180101010101Z", 12);
 
         //assert
         ASSERT_ARE_EQUAL(int64_t, 0, test_time);
@@ -919,7 +919,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         time_t test_time;
 
         //act
-        test_time = get_utc_time_from_asn_string("180101010101Z", 14);
+        test_time = get_utc_time_from_asn_string((unsigned char*)"180101010101Z", 14);
 
         //assert
         ASSERT_ARE_EQUAL(int64_t, 0, test_time);
@@ -933,7 +933,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         time_t test_time;
 
         //act
-        test_time = get_utc_time_from_asn_string("180101010101Z", 13);
+        test_time = get_utc_time_from_asn_string((unsigned char*)"180101010101Z", 13);
 
         //assert
         ASSERT_ARE_EQUAL(int64_t, 1514768461, test_time);

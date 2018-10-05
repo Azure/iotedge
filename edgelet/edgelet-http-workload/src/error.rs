@@ -145,12 +145,6 @@ impl From<UtilsError> for Error {
     }
 }
 
-impl From<Error> for HyperError {
-    fn from(_error: Error) -> HyperError {
-        HyperError::Method
-    }
-}
-
 impl From<Utf8Error> for Error {
     fn from(error: Utf8Error) -> Error {
         Error {

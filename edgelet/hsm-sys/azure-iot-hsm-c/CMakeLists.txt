@@ -70,28 +70,13 @@ if(MSVC)
 
     add_definitions(-DGB_MEASURE_MEMORY_FOR_THIS -DGB_DEBUG_ALLOC)
 else()
-    if (run_unittests)
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -fPIC -std=c99 -Werror ")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fPIC -Werror ")
-    else()
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -fPIC -std=c99 -Werror ")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fPIC -Werror ")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -fPIC -Wall -Werror -Wextra -Wformat=2 -Wformat-security -std=c99 ")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fPIC -Wall -Werror -Wextra -Wformat=2 -Wformat-security ")
 
-        # Disabling these more restrictive compiler flags because utpm doesn't build with them.
-        # All of the current builds set run_unittests=On. However this mode produces a bunch
-        # of test artifacts that get included as part of the package/install target.
-
-        # set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -fPIC -Wall -Werror -Wextra -Wformat=2 -Wformat-security -std=c99 ")
-        # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fPIC -Wall -Werror -Wextra -Wformat=2 -Wformat-security ")
-
-        # todo remove this when utpm fixes are mainlined
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-missing-field-initializers -Wno-sign-compare ")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-field-initializers -Wno-sign-compare ")
-        if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
-            set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wtrampolines -fstack-protector-all -Wstack-protector --param ssp-buffer-size=4 ")
-            set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wtrampolines -fstack-protector-all -Wstack-protector --param ssp-buffer-size=4 ")
-        endif()
-    endif(run_unittests)
+    if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
+        set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wtrampolines -fstack-protector-all -Wstack-protector --param ssp-buffer-size=4 ")
+        set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wtrampolines -fstack-protector-all -Wstack-protector --param ssp-buffer-size=4 ")
+    endif()
 endif(MSVC)
 
 # We want this to always be a shared library and let the dynamic linker on the
@@ -126,12 +111,8 @@ function(prepare_edge_homedir whatIsBuilding)
 endfunction(prepare_edge_homedir)
 
 if (run_unittests)
-    enable_testing()
     set(save_ut ${run_unittests})
     set(run_unittests OFF CACHE BOOL "unittests" FORCE)
-    add_subdirectory(./deps/c-shared/testtools/ctest)
-    add_subdirectory(./deps/c-shared/testtools/testrunner)
-    add_subdirectory(./deps/c-shared/testtools/umock-c)
 endif(run_unittests)
 
 add_subdirectory(./deps/c-shared EXCLUDE_FROM_ALL)

@@ -9,6 +9,7 @@
 
 #include "azure_c_shared_utility/gballoc.h"
 #include "testrunnerswitcher.h"
+#include "test_utils.h"
 #include "hsm_client_store.h"
 #include "hsm_log.h"
 #include "hsm_log.h"
@@ -25,6 +26,9 @@
 
 static TEST_MUTEX_HANDLE g_testByTest;
 static TEST_MUTEX_HANDLE g_dllByDll;
+
+static char* TEST_IOTEDGE_HOMEDIR = NULL;
+static char* TEST_IOTEDGE_HOMEDIR_GUID = NULL;
 
 // Test data below is NIST data used for the FIPS self test
 // source: https://github.com/openssl/openssl/blob/master/demos/evp/aesgcm.c
@@ -49,16 +53,16 @@ static unsigned char TEST_ID_2[] = {
 };
 static size_t TEST_ID_2_SIZE = sizeof(TEST_ID_2);
 
-static char TEST_STRING[] = {
+static unsigned char TEST_STRING[] = {
     0xf5, 0x6e, 0x87, 0x05, 0x5b, 0xc3, 0x2d, 0x0e, 0xeb, 0x31, 0xb2, 0xea,
     0xcc, 0x2b, 0xf2, 0xa5
 };
 static size_t TEST_STRING_SIZE = sizeof(TEST_STRING);
 
-static char TEST_IV[] = { 0x99, 0xaa, 0x3e, 0x68, 0xed, 0x81, 0x73, 0xa0, 0xee, 0xd0, 0x66, 0x84 };
+static unsigned char TEST_IV[] = { 0x99, 0xaa, 0x3e, 0x68, 0xed, 0x81, 0x73, 0xa0, 0xee, 0xd0, 0x66, 0x84 };
 size_t TEST_IV_SIZE = sizeof(TEST_IV);
 
-static char TEST_IV_LARGE[] = {
+static unsigned char TEST_IV_LARGE[] = {
     0x99, 0xaa, 0x3e, 0x68, 0xed, 0x81, 0x73, 0xa0, 0xee, 0xd0, 0x66, 0x84,
     0x99, 0xaa, 0x3e, 0x68, 0xed, 0x81, 0x73, 0xa0, 0xee, 0xd0, 0x66, 0x84,
     0x99, 0xaa, 0x3e, 0x68, 0xed, 0x81, 0x73, 0xa0, 0xee, 0xd0, 0x66, 0x84,
@@ -98,17 +102,25 @@ size_t TEST_CIPHER_SIZE = sizeof(TEST_CIPHER);
 
 static void test_helper_setup_homedir(void)
 {
-#if defined(TESTONLY_IOTEDGE_HOMEDIR)
-    #if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
-        errno_t status = _putenv_s("IOTEDGE_HOMEDIR", TESTONLY_IOTEDGE_HOMEDIR);
-    #else
-        int status = setenv("IOTEDGE_HOMEDIR", TESTONLY_IOTEDGE_HOMEDIR, 1);
-    #endif
-    printf("IoT Edge home dir set to %s\n", TESTONLY_IOTEDGE_HOMEDIR);
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-#else
-    #error "Could not find symbol TESTONLY_IOTEDGE_HOMEDIR"
-#endif
+    TEST_IOTEDGE_HOMEDIR = hsm_test_util_create_temp_dir(&TEST_IOTEDGE_HOMEDIR_GUID);
+    ASSERT_IS_NOT_NULL_WITH_MSG(TEST_IOTEDGE_HOMEDIR_GUID, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL_WITH_MSG(TEST_IOTEDGE_HOMEDIR, "Line:" TOSTRING(__LINE__));
+
+    printf("Temp dir created: [%s]\r\n", TEST_IOTEDGE_HOMEDIR);
+    hsm_test_util_setenv("IOTEDGE_HOMEDIR", TEST_IOTEDGE_HOMEDIR);
+    printf("IoT Edge home dir set to %s\n", TEST_IOTEDGE_HOMEDIR);
+}
+
+static void test_helper_teardown_homedir(void)
+{
+    if ((TEST_IOTEDGE_HOMEDIR != NULL) && (TEST_IOTEDGE_HOMEDIR_GUID != NULL))
+    {
+        hsm_test_util_delete_dir(TEST_IOTEDGE_HOMEDIR_GUID);
+        free(TEST_IOTEDGE_HOMEDIR);
+        TEST_IOTEDGE_HOMEDIR = NULL;
+        free(TEST_IOTEDGE_HOMEDIR_GUID);
+        TEST_IOTEDGE_HOMEDIR_GUID = NULL;
+    }
 }
 
 //#############################################################################
@@ -127,6 +139,7 @@ BEGIN_TEST_SUITE(edge_openssl_enc_tests)
 
     TEST_SUITE_CLEANUP(TestClassCleanup)
     {
+        test_helper_teardown_homedir();
         TEST_MUTEX_DESTROY(g_testByTest);
         TEST_DEINITIALIZE_MEMORY_DEBUG(g_dllByDll);
     }

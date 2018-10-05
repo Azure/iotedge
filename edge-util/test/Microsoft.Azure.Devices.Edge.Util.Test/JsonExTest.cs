@@ -3,7 +3,9 @@
 namespace Microsoft.Azure.Devices.Edge.Util.Test
 {
     using System.Collections.Generic;
+    using System.Linq;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using Xunit;
 
@@ -341,6 +343,37 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
 
             // Assert
             Assert.True(JToken.DeepEquals(resultCollection, JToken.FromObject(removeAll)));
+        }
+
+        [Theory]
+        [InlineData("a", "{}", "")]
+        [InlineData("a", @"{'a':'1'}", "1")]
+        [InlineData("a", @"{'a':'1','a01':'2'}", "12")]
+        [InlineData("a", @"{'a01':'1','a':'2'}", "21")]
+        public void ChunkedPropertyTest(string field, string input, string expected)
+        {
+            var obj = JObject.Parse(input);
+            var chunked = obj.ChunkedValue(field, false).Select(t => t.ToString()).Join("");
+            Assert.Equal(expected, chunked);
+        }
+
+        [Theory]
+        [InlineData("a", @"{'a01':'1','A':'2'}", "21")]
+        [InlineData("A", @"{'a01':'1','A':'2'}", "21")]
+        public void ChunkedPropertyIgnoreCaseTest(string field, string input, string expected)
+        {
+            var obj = JObject.Parse(input);
+            var chunked = obj.ChunkedValue(field, true).Select(t => t.ToString()).Join("");
+            Assert.Equal(expected, chunked);
+        }
+
+        [Theory]
+        [InlineData("a", @"{'a01':'1'}")]
+        [InlineData("a", @"{'a':'1','a02':'2'}")]
+        public void ChunkedPropertyThrows(string field, string input)
+        {
+            var obj = JObject.Parse(input);
+            Assert.Throws<JsonSerializationException>(() => obj.ChunkedValue(field).Select(t => t.ToString()).Join());
         }
     }
 }

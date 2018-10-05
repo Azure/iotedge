@@ -234,7 +234,7 @@ static int encrypt
         }
         else if (plaintext->size > (INT_MAX - CIPHER_HEADER_SIZE_V1))
         {
-            LOG_ERROR("Plaintext buffer size too large %lu", plaintext->size);
+            LOG_ERROR("Plaintext buffer size too large %zu", plaintext->size);
             result = __FAILURE__;
         }
         else
@@ -383,7 +383,7 @@ static int decrypt
         }
         else if (ciphertext->size <= CIPHER_HEADER_SIZE_V1)
         {
-            LOG_ERROR("Ciphertext buffer incorrect size %lu", ciphertext->size);
+            LOG_ERROR("Ciphertext buffer incorrect size %zu", ciphertext->size);
             result = __FAILURE__;
         }
         else
@@ -420,7 +420,7 @@ static bool validate_input_param_buffer(const SIZED_BUFFER *sb, const char *name
     }
     else if ((sb->size == 0) || (sb->size > INT_MAX))
     {
-        LOG_ERROR("Parameter %s has invalid size %lu", name, sb->size);
+        LOG_ERROR("Parameter %s has invalid size %zu", name, sb->size);
         result = false;
     }
 
@@ -482,7 +482,7 @@ static bool validate_input_ciphertext_buffer(const SIZED_BUFFER *sb, unsigned ch
     }
     else if ((sb->size == 0) || (sb->size > INT_MAX))
     {
-        LOG_ERROR("Ciphertext has invalid size %lu", sb->size);
+        LOG_ERROR("Ciphertext has invalid size %zu", sb->size);
         result = false;
     }
     else if (sb->buffer[0] != CIPHER_VERSION_V1)

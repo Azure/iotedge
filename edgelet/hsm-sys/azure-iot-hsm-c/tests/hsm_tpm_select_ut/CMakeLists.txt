@@ -8,7 +8,7 @@ compileAsC11()
 
 set(theseTestsName hspm_tpm_select_ut)
 
-include_directories(../../src)
+include_directories(../../src ../test_utils)
 
 add_definitions(-DGB_DEBUG_ALLOC)
 
@@ -16,6 +16,7 @@ set(${theseTestsName}_test_files
     ../../src/hsm_log.c
     ../../src/hsm_utils.c
     ../../src/constants.c
+    ../test_utils/test_utils.c
     ${theseTestsName}.c
 )
 
