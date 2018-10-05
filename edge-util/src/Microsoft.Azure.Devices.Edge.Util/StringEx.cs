@@ -7,6 +7,13 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
     public static class StringEx
     {
+        /// <summary>
+        /// Adds an extension method to string that returns an iterator
+        /// of strings of a specific length.
+        /// </summary>
+        /// <param name="self"></param>
+        /// <param name="size"></param>
+        /// <returns></returns>
         public static IEnumerable<string> Chunks(this string self, int size)
         {
             Preconditions.CheckNotNull(self, nameof(self));
@@ -19,8 +26,19 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
         }
 
+        /// <summary>
+        /// Adds an extension method to make string.Join more ergonomic
+        /// </summary>
+        /// <param name="strings"></param>
+        /// <returns></returns>
         public static string Join(this IEnumerable<string> strings) => strings.Join("");
 
+        /// <summary>
+        /// Adds an extension method to make string.Join more ergonomic
+        /// </summary>
+        /// <param name="strings"></param>
+        /// <param name="separator"></param>
+        /// <returns></returns>
         public static string Join(this IEnumerable<string> strings, string separator) => string.Join(separator, strings);
     }
 }

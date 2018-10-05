@@ -179,8 +179,27 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return token;
         }
 
+        /// <summary>
+        /// Returns an ordered iterator of JTokens for a chunked field.
+        /// The field must use a sequence number suffix, excluding zero.
+        /// For example, createOptions, createOptions01, createOptions02, etc.
+        /// The iterator assumes that these fields are string sortable.
+        /// </summary>
+        /// <param name="self">The JObject</param>
+        /// <param name="name">The base name of the field. For example, createOptions</param>
+        /// <returns></returns>
         public static IEnumerable<JToken> ChunkedValue(this JObject self, string name) => new ChunkedProperty(self, name);
 
+        /// <summary>
+        /// Returns an ordered iterator of JTokens for a chunked field.
+        /// The field must use a sequence number suffix, excluding zero.
+        /// For example, createOptions, createOptions01, createOptions02, etc.
+        /// The iterator assumes that these fields are string sortable.
+        /// </summary>
+        /// <param name="self">The JObject</param>
+        /// <param name="name">The base name of the field. For example, createOptions</param>
+        /// <param name="ignoreCase">If true, ignore case of the field name</param>
+        /// <returns></returns>
         public static IEnumerable<JToken> ChunkedValue(this JObject self, string name, bool ignoreCase) => new ChunkedProperty(self, name, ignoreCase);
 
         class ChunkedProperty : IEnumerable<JToken>
