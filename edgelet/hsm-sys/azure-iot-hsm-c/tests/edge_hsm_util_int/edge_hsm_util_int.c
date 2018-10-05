@@ -130,7 +130,7 @@ static char* prepare_file_path(const char* base_dir, const char* file_name)
     char *file_path = calloc(path_size, 1);
     ASSERT_IS_NOT_NULL_WITH_MSG(file_path, "Line:" TOSTRING(__LINE__));
     int status = snprintf(file_path, path_size, "%s%s", base_dir, file_name);
-    ASSERT_IS_TRUE_WITH_MSG(((status > 0) || (status < path_size)), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE_WITH_MSG(((status > 0) || (status < (int)path_size)), "Line:" TOSTRING(__LINE__));
 
     return file_path;
 }
