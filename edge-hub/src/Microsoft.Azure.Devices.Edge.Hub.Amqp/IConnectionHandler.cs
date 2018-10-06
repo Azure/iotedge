@@ -13,5 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         Task<AmqpAuthentication> GetAmqpAuthentication();
 
         Task RegisterLinkHandler(ILinkHandler linkHandler);
+
+        Task RemoveLinkHandler(ILinkHandler linkHandler);
     }
 }

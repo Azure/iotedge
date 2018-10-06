@@ -154,6 +154,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             }
         }
 
+        public async Task RemoveLinkHandler(ILinkHandler linkHandler)
+        {
+            Preconditions.CheckNotNull(linkHandler);
+            using (await this.registryUpdateLock.LockAsync())
+            {
+                if (this.registry.ContainsKey(linkHandler.Type))
+                {
+                    this.registry.Remove(linkHandler.Type);
+                    if (this.registry.Count == 0)
+                    {
+                        await this.CloseConnection();
+                    }
+                }
+            }
+        }
+
+        async Task CloseConnection()
+        {
+            using (await this.initializationLock.LockAsync())
+            {
+                this.isInitialized = false;                
+                await (this.deviceListener?.CloseAsync() ?? Task.CompletedTask);
+            }
+        }
+
         public class DeviceProxy : IDeviceProxy
         {
             readonly ConnectionHandler connectionHandler;
