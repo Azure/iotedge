@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
 {
     using Microsoft.Azure.Devices.Edge.Util;
@@ -13,9 +13,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
             this.AuthenticationType = AuthenticationType.IoTEdged;
         }
 
-        public IIdentity Identity { get; }
-
         public AuthenticationType AuthenticationType { get; }
+
+        public IIdentity Identity { get; }
 
         public string ProductInfo { get; }
     }

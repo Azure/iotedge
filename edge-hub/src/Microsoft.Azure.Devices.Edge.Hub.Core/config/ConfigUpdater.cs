@@ -1,10 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Routing.Core;
@@ -12,8 +14,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
     public class ConfigUpdater
     {
-        readonly Router router;
         readonly IMessageStore messageStore;
+
+        readonly Router router;
+
         readonly AsyncLock updateLock = new AsyncLock();
 
         public ConfigUpdater(Router router, IMessageStore messageStore)
@@ -38,11 +42,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                     }
                     else
                     {
-                        await edgeHubConfig.ForEachAsync(async ehc =>
-                        {
-                            await this.UpdateRoutes(ehc.Routes, false);
-                            this.UpdateStoreAndForwardConfig(ehc.StoreAndForwardConfiguration);
-                        });
+                        await edgeHubConfig.ForEachAsync(
+                            async ehc =>
+                            {
+                                await this.UpdateRoutes(ehc.Routes, false);
+                                this.UpdateStoreAndForwardConfig(ehc.StoreAndForwardConfiguration);
+                            });
                         Events.Initialized();
                     }
                 }
@@ -88,6 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                         await this.router.SetRoute(route);
                     }
                 }
+
                 Events.RoutesUpdated(routesList);
             }
         }
@@ -103,18 +109,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<ConfigUpdater>();
             const int IdStart = HubCoreEventIds.ConfigUpdater;
+
+            static readonly ILogger Log = Logger.Factory.CreateLogger<ConfigUpdater>();
 
             enum EventIds
             {
                 Initialized = IdStart,
+
                 InitializeError,
+
                 UpdateError,
+
                 UpdatingConfig,
+
                 UpdatedRoutes,
+
                 UpdatedStoreAndForwardConfig,
+
                 EmptyConfig
+            }
+
+            internal static void EmptyConfigReceived()
+            {
+                Log.LogWarning((int)EventIds.EmptyConfig, FormattableString.Invariant($"Empty edge hub configuration received. Ignoring..."));
             }
 
             internal static void Initialized()
@@ -124,19 +142,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
             internal static void InitializingError(Exception ex)
             {
-                Log.LogError((int)EventIds.InitializeError, ex,
+                Log.LogError(
+                    (int)EventIds.InitializeError,
+                    ex,
                     FormattableString.Invariant($"Error initializing edge hub configuration"));
-            }
-
-            internal static void UpdateError(Exception ex)
-            {
-                Log.LogError((int)EventIds.UpdateError, ex,
-                    FormattableString.Invariant($"Error updating edge hub configuration"));
-            }
-
-            internal static void UpdatingConfig()
-            {
-                Log.LogInformation((int)EventIds.UpdatingConfig, "Updating edge hub configuration");
             }
 
             internal static void RoutesUpdated(List<(string Name, string Value, Route Route)> routes)
@@ -157,9 +166,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 Log.LogInformation((int)EventIds.UpdatedStoreAndForwardConfig, "Updated the edge hub store and forward configuration");
             }
 
-            internal static void EmptyConfigReceived()
+            internal static void UpdateError(Exception ex)
             {
-                Log.LogWarning((int)EventIds.EmptyConfig, FormattableString.Invariant($"Empty edge hub configuration received. Ignoring..."));
+                Log.LogError(
+                    (int)EventIds.UpdateError,
+                    ex,
+                    FormattableString.Invariant($"Error updating edge hub configuration"));
+            }
+
+            internal static void UpdatingConfig()
+            {
+                Log.LogInformation((int)EventIds.UpdatingConfig, "Updating edge hub configuration");
             }
         }
     }

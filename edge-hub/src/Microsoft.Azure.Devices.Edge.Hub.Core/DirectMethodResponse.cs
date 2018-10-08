@@ -1,9 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
     using System.Net;
+
     using Microsoft.Azure.Devices.Edge.Util;
 
     public class DirectMethodResponse
@@ -23,14 +24,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.HttpStatusCode = code;
         }
 
+        public string CorrelationId { get; }
+
+        public byte[] Data { get; }
+
         public Option<Exception> Exception { get; }
 
         public HttpStatusCode HttpStatusCode { get; }
 
-        public byte[] Data { get; }
-
         public int Status { get; }
-
-        public string CorrelationId { get; }
     }
 }

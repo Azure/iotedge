@@ -1,8 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -10,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     public class ConnectionProvider : IConnectionProvider
     {
         readonly IConnectionManager connectionManager;
+
         readonly IEdgeHub edgeHub;
 
         public ConnectionProvider(IConnectionManager connectionManager, IEdgeHub edgeHub)
@@ -17,6 +22,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
             this.edgeHub = Preconditions.CheckNotNull(edgeHub, nameof(edgeHub));
         }
+
+        public void Dispose() => this.Dispose(true);
 
         public Task<IDeviceListener> GetDeviceListenerAsync(IClientCredentials clientCredentials)
         {
@@ -32,7 +39,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 this.edgeHub?.Dispose();
             }
         }
-
-        public void Dispose() => this.Dispose(true);
     }
 }

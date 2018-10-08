@@ -1,24 +1,32 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Microsoft.Azure.Devices.Edge.Util;
 
     public class EdgeMessage : IMessage
     {
+        public EdgeMessage(byte[] body, IDictionary<string, string> properties, IDictionary<string, string> systemProperties)
+        {
+            this.Body = Preconditions.CheckNotNull(body, nameof(body));
+            this.Properties = Preconditions.CheckNotNull(properties, nameof(properties));
+            this.SystemProperties = Preconditions.CheckNotNull(systemProperties, nameof(systemProperties));
+        }
+
         public byte[] Body { get; }
 
         public IDictionary<string, string> Properties { get; }
 
         public IDictionary<string, string> SystemProperties { get; }
 
-        public EdgeMessage(byte[] body, IDictionary<string, string> properties, IDictionary<string, string> systemProperties)
+        public void Dispose()
         {
-            this.Body = Preconditions.CheckNotNull(body, nameof(body));
-            this.Properties = Preconditions.CheckNotNull(properties, nameof(properties));
-            this.SystemProperties = Preconditions.CheckNotNull(systemProperties, nameof(systemProperties));
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         public bool Equals(EdgeMessage other)
@@ -34,18 +42,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
 
             return this.Body.SequenceEqual(other.Body) &&
-                this.Properties.Keys.Count == other.Properties.Keys.Count &&
-                this.Properties.Keys.All(key => other.Properties.ContainsKey(key) && Equals(this.Properties[key], other.Properties[key])) &&
-                this.SystemProperties.Keys.Count == other.SystemProperties.Keys.Count &&
-                this.SystemProperties.Keys.All(skey => other.SystemProperties.ContainsKey(skey) && Equals(this.SystemProperties[skey], other.SystemProperties[skey]));
+                   this.Properties.Keys.Count == other.Properties.Keys.Count &&
+                   this.Properties.Keys.All(key => other.Properties.ContainsKey(key) && Equals(this.Properties[key], other.Properties[key])) &&
+                   this.SystemProperties.Keys.Count == other.SystemProperties.Keys.Count &&
+                   this.SystemProperties.Keys.All(skey => other.SystemProperties.ContainsKey(skey) && Equals(this.SystemProperties[skey], other.SystemProperties[skey]));
         }
 
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(null, obj))
+            {
                 return false;
+            }
+
             if (ReferenceEquals(this, obj))
+            {
                 return true;
+            }
+
             return obj.GetType() == this.GetType() && this.Equals((EdgeMessage)obj);
         }
 
@@ -62,12 +76,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        public void Dispose()
-        {
-            this.Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
         protected virtual void Dispose(bool disposing)
         {
         }
@@ -75,12 +83,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public class Builder
         {
             readonly byte[] body;
+
             IDictionary<string, string> properties;
+
             IDictionary<string, string> systemProperties;
 
             public Builder(byte[] body)
             {
                 this.body = Preconditions.CheckNotNull(body);
+            }
+
+            public EdgeMessage Build()
+            {
+                if (this.properties == null)
+                    this.properties = new Dictionary<string, string>();
+                if (this.systemProperties == null)
+                    this.systemProperties = new Dictionary<string, string>();
+
+                return new EdgeMessage(this.body, this.properties, this.systemProperties);
             }
 
             public Builder SetProperties(IDictionary<string, string> props)
@@ -94,17 +114,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 this.systemProperties = new Dictionary<string, string>(Preconditions.CheckNotNull(sysProps), StringComparer.OrdinalIgnoreCase);
                 return this;
             }
-
-            public EdgeMessage Build()
-            {
-                if (this.properties == null)
-                    this.properties = new Dictionary<string, string>();
-                if (this.systemProperties == null)
-                    this.systemProperties = new Dictionary<string, string>();
-
-                return new EdgeMessage(this.body, this.properties, this.systemProperties);
-            }
-
         }
     }
 }

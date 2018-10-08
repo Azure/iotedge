@@ -1,7 +1,11 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 {
     using System;
+    using System.Collections.Generic;
+    using System.Linq;
+
     using Newtonsoft.Json;
 
     public class StoreAndForwardConfiguration
@@ -13,10 +17,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             this.TimeToLive = timeToLiveSecs < 0 ? TimeSpan.MaxValue : TimeSpan.FromSeconds(timeToLiveSecs);
         }
 
-        [JsonProperty(PropertyName = "timeToLiveSecs")]
-        public int TimeToLiveSecs { get; }
-
         [JsonIgnore]
         public TimeSpan TimeToLive { get; }
+
+        [JsonProperty(PropertyName = "timeToLiveSecs")]
+        public int TimeToLiveSecs { get; }
     }
 }

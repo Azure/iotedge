@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
 {
     using Microsoft.Azure.Devices.Client;
@@ -13,8 +13,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
     /// </summary>
     public class ClientCredentialsFactory : IClientCredentialsFactory
     {
-        readonly string iotHubHostName;
         readonly string callerProductInfo;
+
+        readonly string iotHubHostName;
 
         public ClientCredentialsFactory(string iotHubHostName)
             : this(iotHubHostName, string.Empty)
@@ -25,20 +26,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
         {
             this.iotHubHostName = iotHubHostName;
             this.callerProductInfo = callerProductInfo;
-        }
-
-        public IClientCredentials GetWithX509Cert(string deviceId, string moduleId, string deviceClientType)
-        {
-            string productInfo = string.Join(" ", this.callerProductInfo, deviceClientType).Trim();
-            IIdentity identity = this.GetIdentity(deviceId, moduleId);
-            return new X509CertCredentials(identity, productInfo);
-        }
-
-        public IClientCredentials GetWithSasToken(string deviceId, string moduleId, string deviceClientType, string token)
-        {
-            string productInfo = string.Join(" ", this.callerProductInfo, deviceClientType).Trim();
-            IIdentity identity = this.GetIdentity(deviceId, moduleId);
-            return new TokenCredentials(identity, token, productInfo);
         }
 
         public IClientCredentials GetWithConnectionString(string connectionString)
@@ -52,6 +39,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
         public IClientCredentials GetWithIotEdged(string deviceId, string moduleId)
         {
             return new IotEdgedCredentials(this.GetIdentity(deviceId, moduleId), this.callerProductInfo);
+        }
+
+        public IClientCredentials GetWithSasToken(string deviceId, string moduleId, string deviceClientType, string token)
+        {
+            string productInfo = string.Join(" ", this.callerProductInfo, deviceClientType).Trim();
+            IIdentity identity = this.GetIdentity(deviceId, moduleId);
+            return new TokenCredentials(identity, token, productInfo);
+        }
+
+        public IClientCredentials GetWithX509Cert(string deviceId, string moduleId, string deviceClientType)
+        {
+            string productInfo = string.Join(" ", this.callerProductInfo, deviceClientType).Trim();
+            IIdentity identity = this.GetIdentity(deviceId, moduleId);
+            return new X509CertCredentials(identity, productInfo);
         }
 
         IIdentity GetIdentity(string deviceId, string moduleId)

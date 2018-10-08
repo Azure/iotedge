@@ -1,37 +1,40 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 {
+    using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
 
     public interface IDeviceListener
     {
-        Task ProcessDeviceMessageAsync(IMessage message);
+        IIdentity Identity { get; }
 
-        Task ProcessDeviceMessageBatchAsync(IEnumerable<IMessage> message);
+        Task AddDesiredPropertyUpdatesSubscription(string correlationId);
 
-        Task UpdateReportedPropertiesAsync(IMessage reportedPropertiesMessage, string correlationId);
-
-        Task SendGetTwinRequest(string correlationId);
-
-        Task ProcessMethodResponseAsync(IMessage message);
+        Task AddSubscription(DeviceSubscription subscription);
 
         void BindDeviceProxy(IDeviceProxy deviceProxy);
 
         Task CloseAsync();
 
+        Task ProcessDeviceMessageAsync(IMessage message);
+
+        Task ProcessDeviceMessageBatchAsync(IEnumerable<IMessage> message);
+
         Task ProcessMessageFeedbackAsync(string messageId, FeedbackStatus feedbackStatus);
 
-        IIdentity Identity { get; }
+        Task ProcessMethodResponseAsync(IMessage message);
 
-        Task AddSubscription(DeviceSubscription subscription);
+        Task RemoveDesiredPropertyUpdatesSubscription(string correlationId);
 
         Task RemoveSubscription(DeviceSubscription subscription);
 
-        Task AddDesiredPropertyUpdatesSubscription(string correlationId);
+        Task SendGetTwinRequest(string correlationId);
 
-        Task RemoveDesiredPropertyUpdatesSubscription(string correlationId);
+        Task UpdateReportedPropertiesAsync(IMessage reportedPropertiesMessage, string correlationId);
     }
 }

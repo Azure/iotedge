@@ -1,20 +1,23 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
-    using System;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+
     using static System.FormattableString;
 
     public class Authenticator : IAuthenticator
     {
-        readonly string edgeDeviceId;
-        readonly IAuthenticator tokenAuthenticator;
         readonly ICredentialsCache credentialsCache;
+
+        readonly string edgeDeviceId;
+
+        readonly IAuthenticator tokenAuthenticator;
 
         public Authenticator(IAuthenticator tokenAuthenticator, string edgeDeviceId, ICredentialsCache credentialsCache)
         {
@@ -23,15 +26,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.credentialsCache = Preconditions.CheckNotNull(credentialsCache, nameof(ICredentialsCache));
         }
 
-        /// <summary>
-        /// Authenticates the client credentials
-        /// </summary>
         public Task<bool> AuthenticateAsync(IClientCredentials clientCredentials)
             => this.AuthenticateAsync(clientCredentials, false);
 
-        /// <summary>
-        /// Reauthenticates the client credentials
-        /// </summary>
         public Task<bool> ReauthenticateAsync(IClientCredentials clientCredentials)
             => this.AuthenticateAsync(clientCredentials, true);
 
@@ -66,18 +63,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<Authenticator>();
             const int IdStart = HubCoreEventIds.Authenticator;
+
+            static readonly ILogger Log = Logger.Factory.CreateLogger<Authenticator>();
 
             enum EventIds
             {
                 AuthResult = IdStart,
-                InvalidDeviceError
-            }
 
-            public static void InvalidDeviceId(IModuleIdentity moduleIdentity, string edgeDeviceId)
-            {
-                Log.LogError((int)EventIds.InvalidDeviceError, Invariant($"Device Id {moduleIdentity.DeviceId} of module {moduleIdentity.ModuleId} is different from the edge device Id {edgeDeviceId}"));
+                InvalidDeviceError
             }
 
             public static void AuthResult(IClientCredentials clientCredentials, bool reAuthenticating, bool result)
@@ -91,6 +85,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 {
                     Log.LogDebug((int)EventIds.AuthResult, Invariant($"Unable to {operation} client {clientCredentials.Identity.Id}"));
                 }
+            }
+
+            public static void InvalidDeviceId(IModuleIdentity moduleIdentity, string edgeDeviceId)
+            {
+                Log.LogError((int)EventIds.InvalidDeviceError, Invariant($"Device Id {moduleIdentity.DeviceId} of module {moduleIdentity.ModuleId} is different from the edge device Id {edgeDeviceId}"));
             }
         }
     }

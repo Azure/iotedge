@@ -1,14 +1,15 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service
 {
     using System;
+
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Json;
+
     using Newtonsoft.Json;
 
     public class ServiceAuthentication : IEquatable<ServiceAuthentication>
-
     {
         public ServiceAuthentication(SymmetricKeyAuthentication symmetricKeyAuthentication)
             : this(ServiceAuthenticationType.SymmetricKey, Preconditions.CheckNotNull(symmetricKeyAuthentication, nameof(symmetricKeyAuthentication)), null)
@@ -36,12 +37,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service
             this.X509Thumbprint = Option.Maybe(x509Thumbprint);
         }
 
-        [JsonProperty("type")]
-        public ServiceAuthenticationType Type { get; }
-
         [JsonProperty("symmetricKey")]
         [JsonConverter(typeof(OptionConverter<SymmetricKeyAuthentication>))]
         public Option<SymmetricKeyAuthentication> SymmetricKey { get; }
+
+        [JsonProperty("type")]
+        public ServiceAuthenticationType Type { get; }
 
         [JsonProperty("x509Thumbprint")]
         [JsonConverter(typeof(OptionConverter<X509ThumbprintAuthentication>))]
@@ -55,7 +56,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service
                 return true;
             if (obj.GetType() != this.GetType())
                 return false;
-            return Equals((ServiceAuthentication)obj);
+            return this.Equals((ServiceAuthentication)obj);
+        }
+
+        public bool Equals(ServiceAuthentication other)
+        {
+            if (ReferenceEquals(null, other))
+                return false;
+            if (ReferenceEquals(this, other))
+                return true;
+            return this.Type == other.Type && this.SymmetricKey.Equals(other.SymmetricKey) && this.X509Thumbprint.Equals(other.X509Thumbprint);
         }
 
         public override int GetHashCode()
@@ -67,15 +77,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service
                 hashCode = (hashCode * 397) ^ this.X509Thumbprint.GetHashCode();
                 return hashCode;
             }
-        }
-
-        public bool Equals(ServiceAuthentication other)
-        {
-            if (ReferenceEquals(null, other))
-                return false;
-            if (ReferenceEquals(this, other))
-                return true;
-            return this.Type == other.Type && this.SymmetricKey.Equals(other.SymmetricKey) && this.X509Thumbprint.Equals(other.X509Thumbprint);
         }
     }
 }

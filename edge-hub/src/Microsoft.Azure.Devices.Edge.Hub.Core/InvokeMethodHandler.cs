@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
@@ -6,14 +7,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using System.Collections.Generic;
     using System.Net;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+
     using static System.FormattableString;
 
     public class InvokeMethodHandler : IInvokeMethodHandler
     {
         readonly ConcurrentDictionary<string, ConcurrentDictionary<DirectMethodRequest, TaskCompletionSource<DirectMethodResponse>>> clientMethodRequestQueue = new ConcurrentDictionary<string, ConcurrentDictionary<DirectMethodRequest, TaskCompletionSource<DirectMethodResponse>>>();
+
         readonly IConnectionManager connectionManager;
 
         public InvokeMethodHandler(IConnectionManager connectionManager)
@@ -54,10 +58,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         }
 
         /// <summary>
-        /// This method is called when a client subscribes to Method invocations. 
+        /// This method is called when a client subscribes to Method invocations.
         /// It processes all the pending method requests for that client (i.e the method requests
         /// that came in before the client subscribed to method invocations and that haven't expired yet)
         /// </summary>
+        /// <param name="id">Invoke method id</param>
+        /// <returns>Task</returns>
         public Task ProcessInvokeMethodSubscription(string id)
         {
             // We don't want to wait for all pending method requests to be processed here.
@@ -66,27 +72,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             return Task.CompletedTask;
         }
 
-        /// <summary>
-        /// This method is used to process all pending method requests, but without waiting for the 
-        /// processing to complete
-        /// </summary>
-        async void ProcessInvokeMethodSubscriptionInternal(string id)
-        {
-            try
-            {
-                Events.ProcessingInvokeMethodQueue(id);
-                // Temporary hack to wait for the subscription call to complete. Without this,
-                // the EdgeHub will invoke the pending method request "too soon", before the layers
-                // in between have been set up correctly. To fix this, changes are needed in ProtocolGateway,
-                // Client SDK, and need to figure out a way to raise events for AMQP Links. 
-                await Task.Delay(TimeSpan.FromSeconds(3));
-                await this.ProcessInvokeMethodsForClient(id);
-            }
-            catch (Exception e)
-            {
-                Events.ErrorProcessingInvokeMethodRequests(e, id);
-            }
-        }
+        ConcurrentDictionary<DirectMethodRequest, TaskCompletionSource<DirectMethodResponse>> GetClientQueue(string id) => this.clientMethodRequestQueue.GetOrAdd(
+            Preconditions.CheckNonWhiteSpace(id, nameof(id)),
+            new ConcurrentDictionary<DirectMethodRequest, TaskCompletionSource<DirectMethodResponse>>());
 
         Option<IDeviceProxy> GetDeviceProxyWithSubscription(string id)
         {
@@ -105,6 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 return deviceProxy;
             }
+
             return Option.None<IDeviceProxy>();
         }
 
@@ -126,22 +115,50 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 });
         }
 
-        ConcurrentDictionary<DirectMethodRequest, TaskCompletionSource<DirectMethodResponse>> GetClientQueue(string id) => this.clientMethodRequestQueue.GetOrAdd(
-            Preconditions.CheckNonWhiteSpace(id, nameof(id)),
-            new ConcurrentDictionary<DirectMethodRequest, TaskCompletionSource<DirectMethodResponse>>());
+        /// <summary>
+        /// This method is used to process all pending method requests, but without waiting for the processing to complete
+        /// </summary>
+        async void ProcessInvokeMethodSubscriptionInternal(string id)
+        {
+            try
+            {
+                Events.ProcessingInvokeMethodQueue(id);
+
+                // Temporary hack to wait for the subscription call to complete. Without this,
+                // the EdgeHub will invoke the pending method request "too soon", before the layers
+                // in between have been set up correctly. To fix this, changes are needed in ProtocolGateway,
+                // Client SDK, and need to figure out a way to raise events for AMQP Links.
+                await Task.Delay(TimeSpan.FromSeconds(3));
+                await this.ProcessInvokeMethodsForClient(id);
+            }
+            catch (Exception e)
+            {
+                Events.ErrorProcessingInvokeMethodRequests(e, id);
+            }
+        }
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<InvokeMethodHandler>();
             const int IdStart = HubCoreEventIds.InvokeMethodHandler;
+
+            static readonly ILogger Log = Logger.Factory.CreateLogger<InvokeMethodHandler>();
 
             enum EventIds
             {
                 InvokingMethod = IdStart,
+
                 NoSubscription,
+
                 ClientNotFound,
+
                 ProcessingInvokeMethodQueue,
+
                 ErrorProcessingInvokeMethodRequests
+            }
+
+            public static void ErrorProcessingInvokeMethodRequests(Exception exception, string id)
+            {
+                Log.LogWarning((int)EventIds.ErrorProcessingInvokeMethodRequests, exception, Invariant($"Error processing invoke method requests for client {id}."));
             }
 
             public static void InvokingMethod(DirectMethodRequest methodRequest)
@@ -149,24 +166,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 Log.LogDebug((int)EventIds.InvokingMethod, Invariant($"Invoking method {methodRequest.Name} on client {methodRequest.Id}."));
             }
 
-            public static void NoSubscriptionForMethodInvocation(string id)
-            {
-                Log.LogWarning((int)EventIds.NoSubscription, Invariant($"Unable to invoke method on client {id} because no subscription for methods found."));
-            }
-
             public static void NoDeviceProxyForMethodInvocation(string id)
             {
                 Log.LogWarning((int)EventIds.ClientNotFound, Invariant($"Unable to invoke method as client {id} is not connected."));
             }
 
+            public static void NoSubscriptionForMethodInvocation(string id)
+            {
+                Log.LogWarning((int)EventIds.NoSubscription, Invariant($"Unable to invoke method on client {id} because no subscription for methods found."));
+            }
+
             public static void ProcessingInvokeMethodQueue(string id)
             {
                 Log.LogDebug((int)EventIds.ProcessingInvokeMethodQueue, Invariant($"Processing pending method invoke requests for client {id}."));
-            }
-
-            public static void ErrorProcessingInvokeMethodRequests(Exception exception, string id)
-            {
-                Log.LogWarning((int)EventIds.ErrorProcessingInvokeMethodRequests, exception, Invariant($"Error processing invoke method requests for client {id}."));
             }
         }
     }

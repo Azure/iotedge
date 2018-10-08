@@ -1,41 +1,40 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 {
     using System;
     using System.Collections.Concurrent;
+
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Routing.Core;
+
     using IRoutingMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
 
     public class EndpointFactory : IEndpointFactory
     {
         const string CloudEndpointName = "$upstream";
+
         const string FunctionEndpoint = "BrokeredEndpoint";
+
         static readonly char[] BrokeredEndpointSplitChars = { '/' };
-        readonly IConnectionManager connectionManager;
-        readonly Core.IMessageConverter<IRoutingMessage> messageConverter;
-        readonly string edgeDeviceId;
+
         readonly ConcurrentDictionary<string, Endpoint> cache;
 
-        public EndpointFactory(IConnectionManager connectionManager,
-            Core.IMessageConverter<IRoutingMessage> messageConverter, string edgeDeviceId)
+        readonly IConnectionManager connectionManager;
+
+        readonly string edgeDeviceId;
+
+        readonly Core.IMessageConverter<IRoutingMessage> messageConverter;
+
+        public EndpointFactory(
+            IConnectionManager connectionManager,
+            Core.IMessageConverter<IRoutingMessage> messageConverter,
+            string edgeDeviceId)
         {
             this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
             this.messageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
             this.cache = new ConcurrentDictionary<string, Endpoint>();
-        }
-
-        public Endpoint CreateSystemEndpoint(string endpoint)
-        {
-            if (CloudEndpointName.Equals(endpoint, StringComparison.OrdinalIgnoreCase))
-            {
-                return this.cache.GetOrAdd(CloudEndpointName, s => new CloudEndpoint("iothub", id => this.connectionManager.GetCloudConnection(id), this.messageConverter));
-            }
-            else
-            {
-                throw new InvalidOperationException($"System endpoint type '{endpoint ?? string.Empty}' not supported.");
-            }
         }
 
         public Endpoint CreateFunctionEndpoint(string function, string parameterString)
@@ -45,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 throw new InvalidOperationException($"Function endpoint type '{function ?? string.Empty}' not supported.");
             }
 
-            // Parameter string contains endpoint address in this format - /modules/{mid}/inputs/{input}. 
+            // Parameter string contains endpoint address in this format - /modules/{mid}/inputs/{input}.
             parameterString = Preconditions.CheckNonWhiteSpace(parameterString, nameof(parameterString)).Trim();
 
             if (parameterString.StartsWith("/"))
@@ -69,6 +68,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             string id = $"{this.edgeDeviceId}/{moduleId}";
             string endpointId = $"{id}/{input}";
             return this.cache.GetOrAdd(endpointId, s => new ModuleEndpoint(endpointId, id, input, this.connectionManager, this.messageConverter));
+        }
+
+        public Endpoint CreateSystemEndpoint(string endpoint)
+        {
+            if (CloudEndpointName.Equals(endpoint, StringComparison.OrdinalIgnoreCase))
+            {
+                return this.cache.GetOrAdd(CloudEndpointName, s => new CloudEndpoint("iothub", id => this.connectionManager.GetCloudConnection(id), this.messageConverter));
+            }
+            else
+            {
+                throw new InvalidOperationException($"System endpoint type '{endpoint ?? string.Empty}' not supported.");
+            }
         }
     }
 }
