@@ -135,7 +135,7 @@ fn invalid_image_host_pull_handler(
     response
         .headers_mut()
         .typed_insert(&ContentType(mime::APPLICATION_JSON));
-    response.status_mut() = StatusCode::INTERNAL_SERVER_ERROR;
+    *response.status_mut() = StatusCode::INTERNAL_SERVER_ERROR;
     Box::new(future::ok(response))
 }
 
@@ -211,7 +211,7 @@ fn image_pull_with_invalid_creds_handler(
     response
         .headers_mut()
         .typed_insert(&ContentType(mime::APPLICATION_JSON));
-    response.status_mut() == StatusCode::INTERNAL_SERVER_ERROR;
+    *response.status_mut() == StatusCode::INTERNAL_SERVER_ERROR;
     Box::new(future::ok(response))
 }
 
