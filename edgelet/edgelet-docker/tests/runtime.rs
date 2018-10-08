@@ -222,7 +222,7 @@ fn image_pull_with_invalid_creds_handler(
 #[test]
 fn image_pull_with_invalid_creds_fails() {
     let port = get_unused_tcp_port();
-    let server = run_tcp_server("127.0.0.1", port, image_pull_with_creds_handler)
+    let server = run_tcp_server("127.0.0.1", port, image_pull_with_invalid_creds_handler)
         .map_err(|err| eprintln!("{}", err));
 
     let mri =
