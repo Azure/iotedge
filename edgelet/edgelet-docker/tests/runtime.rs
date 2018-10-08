@@ -23,7 +23,7 @@ use std::time::Duration;
 
 use futures::prelude::*;
 use futures::{future, Stream};
-use hyper::{Body, Error as HyperError, Method, Request, Response};
+use hyper::{Body, Error as HyperError, Method, Request, Response, StatusCode};
 use typed_headers::{mime, ContentLength, ContentType, HeaderMapExt};
 use url::form_urlencoded::parse as parse_query;
 use url::Url;
@@ -74,7 +74,7 @@ fn invalid_image_name_pull_handler(
     response
         .headers_mut()
         .typed_insert(&ContentType(mime::APPLICATION_JSON));
-    *response.status_mut() = hyper::StatusCode::NOT_FOUND;
+    *response.status_mut() = StatusCode::NOT_FOUND;
     Box::new(future::ok(response))
 }
 
