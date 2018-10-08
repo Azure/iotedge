@@ -294,6 +294,14 @@ static ASN1_TIME TEST_ASN1_TIME_AFTER = {
     .flags = 0
 };
 
+unsigned char ASN1_DATA_EXPIRED[] = "EXP012345678";
+static ASN1_TIME TEST_ASN1_TIME_AFTER_EXPIRED = {
+    .length = VALID_ASN1_TIME_STRING_UTC_LEN,
+    .type = VALID_ASN1_TIME_STRING_UTC_FORMAT,
+    .data = ASN1_DATA_EXPIRED,
+    .flags = 0
+};
+
 static ASN1_TIME TEST_UTC_NOW_TIME_FROM_ASN1 = {
     VALID_ASN1_TIME_STRING_UTC_LEN,
     VALID_ASN1_TIME_STRING_UTC_FORMAT,
@@ -638,7 +646,14 @@ static time_t test_hook_get_utc_time_from_asn_string
     (void)length;
 
     time_t now = time(NULL);
-    return now + TEST_UTC_TIME_FROM_ASN1;
+    int offset = TEST_UTC_TIME_FROM_ASN1;
+
+    if (memcmp(time_value, ASN1_DATA_EXPIRED, sizeof(ASN1_DATA_EXPIRED)) == 0)
+    {
+        // this ensures that certificate will always be evaluated as expired
+        offset = -5;
+    }
+    return now + offset;
 }
 
 static ASN1_TIME* test_hook_X509_gmtime_adj(ASN1_TIME *s, long adj)
@@ -1621,6 +1636,7 @@ static void test_helper_verify_certificate
     const char *key_file,
     const char *issuer_cert_file,
     bool force_set_verify_return_value,
+    ASN1_TIME *force_set_asn1_time,
     char *failed_function_list,
     size_t failed_function_size
 )
@@ -1681,14 +1697,6 @@ static void test_helper_verify_certificate
 
     test_helper_load_cert_file(TEST_CERT_FILE, TEST_X509, &i, failed_function_list, failed_function_size);
 
-    STRICT_EXPECTED_CALL(mocked_X509_get_notAfter(TEST_X509));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
-    i++;
-
-    STRICT_EXPECTED_CALL(get_utc_time_from_asn_string(TEST_ASN1_TIME_AFTER.data, VALID_ASN1_TIME_STRING_UTC_LEN));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
-    failed_function_list[i++] = 1;
-
     STRICT_EXPECTED_CALL(X509_STORE_CTX_new());
     ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
@@ -1702,6 +1710,15 @@ static void test_helper_verify_certificate
     i++;
 
     STRICT_EXPECTED_CALL(X509_STORE_CTX_init(TEST_STORE_CTXT, TEST_X509_STORE, TEST_X509, 0));
+    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    failed_function_list[i++] = 1;
+
+    ASN1_TIME *asn1_time = (force_set_asn1_time != NULL) ? force_set_asn1_time : &TEST_ASN1_TIME_AFTER;
+    STRICT_EXPECTED_CALL(mocked_X509_get_notAfter(TEST_X509)).SetReturn(asn1_time);
+    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    i++;
+
+    STRICT_EXPECTED_CALL(get_utc_time_from_asn_string(asn1_time->data, VALID_ASN1_TIME_STRING_UTC_LEN));
     ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
@@ -2970,7 +2987,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0, failed_function_size);
-        test_helper_verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, true, failed_function_list, failed_function_size);
+        test_helper_verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, true, NULL, failed_function_list, failed_function_size);
         bool verify_status = true;
 
         // act
@@ -3020,7 +3037,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0, failed_function_size);
-        test_helper_verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, false, failed_function_list, failed_function_size);
+        test_helper_verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, false, NULL, failed_function_list, failed_function_size);
         bool verify_status = false;
 
         // act
@@ -3038,6 +3055,29 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
      * Test function for API
      *   verify_certificate
     */
+    TEST_FUNCTION(verify_certificate_expired_certificate_verifies_false_and_returns_success)
+    {
+        // arrange
+        size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
+        char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
+        memset(failed_function_list, 0, failed_function_size);
+        test_helper_verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, false, &TEST_ASN1_TIME_AFTER_EXPIRED, failed_function_list, failed_function_size);
+        bool verify_status = true;
+
+        // act
+        int status = verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, &verify_status);
+
+        // assert
+        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_FALSE_WITH_MSG(verify_status, "Line:" TOSTRING(__LINE__));
+
+        // cleanup
+    }
+
+    /**
+     * Test function for API
+     *   verify_certificate
+    */
     TEST_FUNCTION(verify_certificate_negative)
     {
         // arrange
@@ -3047,7 +3087,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0, failed_function_size);
-        test_helper_verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, true, failed_function_list, failed_function_size);
+        test_helper_verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, true, NULL, failed_function_list, failed_function_size);
         umock_c_negative_tests_snapshot();
 
         for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)

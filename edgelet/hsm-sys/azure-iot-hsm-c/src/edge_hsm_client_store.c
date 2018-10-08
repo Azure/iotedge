@@ -1641,7 +1641,7 @@ static int generate_edge_hsm_certificates_if_needed(void)
     else if ((load_status == LOAD_ERR_VERIFICATION_FAILED) ||
              (load_status == LOAD_ERR_NOT_FOUND))
     {
-        LOG_DEBUG("Load status %d. Generating owner and device CA certs and keys", load_status);
+        LOG_INFO("Load status %d. Regenerating owner and device CA certs and keys", load_status);
         if (create_owner_ca_cert() != 0)
         {
             result = __FAILURE__;
