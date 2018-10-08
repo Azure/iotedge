@@ -103,10 +103,22 @@ fn image_pull_with_invalid_image_name_fails() {
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
-    runtime.block_on(task).unwrap();
     
     // Assert
-    //assert_eq!(hyper::StatusCode::NOT_FOUND, task.StatusCode);
+    let err = runtime.block_on(task).expect_err("Expected runtime pull method to fail due to invalid image name.");
+    let content = if let ErrorKind::NotFound(Some(content)) = err.kind() {
+        content
+    }
+    else {
+        panic!("it wasn't NotFound");
+    };
+
+    if let serde_json::Value::Object(props) = content {
+        assert_eq!("manifest for {} not found", props["message"]);
+    }
+    else {
+        panic!("it wasn't well-formed NotFound content");
+    }
 }
 
 #[cfg(unix)]

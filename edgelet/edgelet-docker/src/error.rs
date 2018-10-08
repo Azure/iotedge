@@ -34,8 +34,8 @@ pub enum ErrorKind {
     Transport,
     #[fail(display = "Invalid URL")]
     UrlParse,
-    #[fail(display = "Not found")]
-    NotFound,
+    #[fail(display = "Not found - {:?}", _0)]
+    NotFound(Option<serde_json::Value>),
     #[fail(display = "Conflict with current operation")]
     Conflict,
     #[fail(display = "Container already in this state")]
@@ -127,15 +127,19 @@ impl From<DockerError<serde_json::Value>> for Error {
             DockerError::Serde(error) => Error {
                 inner: Error::from(error).context(ErrorKind::Docker),
             },
-            DockerError::ApiError(ref error) if error.code == StatusCode::NOT_FOUND => {
-                Error::from(ErrorKind::NotFound)
-            }
-            DockerError::ApiError(ref error) if error.code == StatusCode::CONFLICT => {
-                Error::from(ErrorKind::Conflict)
-            }
-            DockerError::ApiError(ref error) if error.code == StatusCode::NOT_MODIFIED => {
-                Error::from(ErrorKind::NotModified)
-            }
+            DockerError::ApiError(error) =>
+                if error.code == StatusCode::NOT_FOUND {
+                    Error::from(ErrorKind::NotFound(error.content))
+                }
+                else if error.code == StatusCode::CONFLICT {
+                    Error::from(ErrorKind::Conflict)
+                }
+                else if error.code == StatusCode::NOT_MODIFIED {
+                    Error::from(ErrorKind::NotModified)
+                }
+                else {
+                    Error::from(ErrorKind::DockerRuntime(err))
+                },
             _ => Error::from(ErrorKind::DockerRuntime(err)),
         }
     }
