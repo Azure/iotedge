@@ -60,9 +60,10 @@ fn invalid_image_name_pull_handler(
     assert!(query_map.contains_key("fromImage"));
     assert_eq!(query_map.get("fromImage"), Some(&INVALID_IMAGE_NAME.to_string()));
 
-    let response = json!({
-        "message": &format!("manifest for {} not found", &INVALID_IMAGE_NAME)
-    }).to_string();
+    let response = &format!(r#"{{
+        "message": "manifest for {} not found"
+    }}
+    "#, &INVALID_IMAGE_NAME);
     
     let response_len = response.len();
 
@@ -121,9 +122,9 @@ fn invalid_image_host_pull_handler(
     assert_eq!(query_map.get("fromImage"), Some(&INVALID_IMAGE_HOST.to_string()));
 
     let response = &format!(r#"
-    {
+    {{
         "message":"Get https://invalidhost.com: dial tcp: lookup {} on X.X.X.X: no such host"
-    }
+    }}
     "#, &INVALID_IMAGE_HOST);
     let response_len = response.len();
 
@@ -198,9 +199,9 @@ fn image_pull_with_invalid_creds_handler(
     assert_eq!(auth_config.serveraddress(), Some(&"svr1".to_string()));
 
     let response = &format!(r#"
-    {
+    {{
         "message":"Get {}: unauthorized: authentication required"
-    }
+    }}
     "#, &IMAGE_NAME);
     let response_len = response.len();
 
