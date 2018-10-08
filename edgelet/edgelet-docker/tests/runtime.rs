@@ -60,10 +60,10 @@ fn invalid_image_name_pull_handler(
     assert!(query_map.contains_key("fromImage"));
     assert_eq!(query_map.get("fromImage"), Some(&INVALID_IMAGE_NAME.to_string()));
 
-    let response = &format!(r#"{{
+    let response = r#"{{
         "message": "manifest for {} not found"
     }}
-    "#, &INVALID_IMAGE_NAME);
+    "#;
     
     let response_len = response.len();
 
@@ -121,11 +121,11 @@ fn invalid_image_host_pull_handler(
     assert!(query_map.contains_key("fromImage"));
     assert_eq!(query_map.get("fromImage"), Some(&INVALID_IMAGE_HOST.to_string()));
 
-    let response = &format!(r#"
+    let response = r#"
     {{
         "message":"Get https://invalidhost.com: dial tcp: lookup {} on X.X.X.X: no such host"
     }}
-    "#, &INVALID_IMAGE_HOST);
+    "#;
     let response_len = response.len();
 
     let mut response = Response::new(response.into());
@@ -167,7 +167,6 @@ fn image_pull_with_invalid_image_host_fails() {
     runtime.block_on(task).unwrap();
 }
 
-
 #[cfg(unix)]
 #[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
 fn image_pull_with_invalid_creds_handler(
@@ -198,11 +197,11 @@ fn image_pull_with_invalid_creds_handler(
     assert_eq!(auth_config.email(), Some(&"u1@bleh.com".to_string()));
     assert_eq!(auth_config.serveraddress(), Some(&"svr1".to_string()));
 
-    let response = &format!(r#"
+    let response = r#"
     {{
         "message":"Get {}: unauthorized: authentication required"
     }}
-    "#, &IMAGE_NAME);
+    "#;
     let response_len = response.len();
 
     let mut response = Response::new(response.into());
