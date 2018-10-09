@@ -137,11 +137,11 @@ fn invalid_image_host_pull_handler(
     assert!(query_map.contains_key("fromImage"));
     assert_eq!(query_map.get("fromImage"), Some(&INVALID_IMAGE_HOST.to_string()));
 
-    let response = r#"
+    let response = format!(r#"
     {{
         "message":"Get https://invalidhost.com: dial tcp: lookup {} on X.X.X.X: no such host"
     }}
-    "#;
+    "#, &INVALID_IMAGE_HOST.to_string());
     let response_len = response.len();
 
     let mut response = Response::new(response.into());
@@ -181,9 +181,6 @@ fn image_pull_with_invalid_image_host_fails() {
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
     runtime.block_on(task).unwrap();
-
-    // Assert
-    //assert_eq!(hyper::StatusCode::INTERNAL_SERVER_ERROR, task.StatusCode);
 }
 
 #[cfg(unix)]
