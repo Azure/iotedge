@@ -139,7 +139,6 @@ impl From<HttpError> for Error {
 
 impl From<DockerError<serde_json::Value>> for Error {
     fn from(err: DockerError<serde_json::Value>) -> Error {
-        println!("docker error={:#?}", err);
         match err {
             DockerError::Hyper(error) => Error {
                 inner: Error::from(error).context(ErrorKind::Docker),

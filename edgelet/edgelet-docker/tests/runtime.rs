@@ -182,8 +182,14 @@ fn image_pull_with_invalid_image_host_fails() {
     runtime.spawn(server);
     
     // Assert
-    let err = runtime.block_on(task).expect_err("Expected runtime pull method to fail due to invalid image name.");
-    println!("{:#?}", err);
+    let err = runtime.block_on(task).expect_err("Expected runtime pull method to fail due to invalid image host.");
+        
+    if let edgelet_docker::ErrorKind::FormattedDockerRuntime(message) = err.kind() {
+        assert_eq!(&format!("Get https://invalidhost.com: dial tcp: lookup {} on X.X.X.X: no such host", &INVALID_IMAGE_HOST.to_string()), message);
+    }
+    else {
+        panic!("Specific docker runtime message is expected for invalid image host.");
+    }
 }
 
 #[cfg(unix)]
