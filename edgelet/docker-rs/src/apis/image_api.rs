@@ -394,15 +394,13 @@ where
             .append_pair("platform", &platform.to_string())
             .finish();
         let uri_str = format!("/images/create?{}", query);
-println!("uri_str={:#?}", uri_str);
+
         let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
-println!("uri={:#?}", uri);
         // TODO(farcaller): handle error
         // if let Err(e) = uri {
         //     return Box::new(futures::future::err(e));
         // }
         let serialized = serde_json::to_string(&input_image).unwrap();
-println!("serialized={:#?}", serialized);   
         let serialized_len = serialized.len();
 
         let mut req = hyper::Request::builder();
@@ -424,19 +422,13 @@ println!("serialized={:#?}", serialized);
             configuration
                 .client
                 .request(req)
-                .map_err(|e| {
-                    Error::from(e)
-                })
+                .map_err(|e| Error::from(e))
                 .and_then(|resp| {
-                    println!("api-response={:#?}", resp);
                     let (http::response::Parts { status, .. }, body) = resp.into_parts();
-                    println!("body before={:#?}", body);
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
                 }).and_then(|(status, body)| {
-                    println!("final status={:#?}", status);
-                    println!("final body={:#?}", body);
                     if status.is_success() {
                         Ok(body)
                     } else {
