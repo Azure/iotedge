@@ -120,6 +120,7 @@ impl ModuleRegistry for DockerModuleRuntime {
                     .image_api()
                     .image_create(config.image(), "", "", "", "", &creds, "")
                     .map_err(|err| {
+                        println!("pull error={:#?}", err);
                         let e = Error::from(err);
                         warn!("Attempt to pull image failed.");
                         log_failure(Level::Warn, &e);

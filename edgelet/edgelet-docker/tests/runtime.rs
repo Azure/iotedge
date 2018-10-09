@@ -75,6 +75,7 @@ fn invalid_image_name_pull_handler(
         .headers_mut()
         .typed_insert(&ContentType(mime::APPLICATION_JSON));
     *response.status_mut() = hyper::StatusCode::NOT_FOUND;
+println!("handler={:#?}", response);
     Box::new(future::ok(response))
 }
 
