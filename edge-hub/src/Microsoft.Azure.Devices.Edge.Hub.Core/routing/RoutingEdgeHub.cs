@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         public Task ProcessDeviceMessageBatch(IIdentity identity, IEnumerable<IMessage> messages)
         {
             IList<IMessage> messagesList = Preconditions.CheckNotNull(messages, nameof(messages)).ToList();
-            Events.MessagesReceived(identity, messages);
+            Events.MessagesReceived(identity, messagesList);
             Metrics.MessageCount(identity, messagesList.Count);
 
             IEnumerable<IRoutingMessage> routingMessages = messagesList
@@ -421,18 +421,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             }
             
             public static void MessagesReceived(IIdentity identity, IEnumerable<IMessage> messages)
-            {                
-                IEnumerable<string> messageIds = messages
-                    .Select(m => m.SystemProperties.TryGetValue(SystemProperties.MessageId, out string messageId) ? messageId : string.Empty)
-                    .Where(m => !string.IsNullOrWhiteSpace(m));
-                string messageIdsString = string.Join(", ", messageIds);   
-                if (!string.IsNullOrWhiteSpace(messageIdsString))
+            {
+                if (messages.Count > 1)
                 {
-                    Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received messages from {identity.Id} with message Ids {messageIdsString}"));
+                    IEnumerable<string> messageIds = messages
+                        .Select(m => m.SystemProperties.TryGetValue(SystemProperties.MessageId, out string messageId) ? messageId : string.Empty)
+                        .Where(m => !string.IsNullOrWhiteSpace(m));
+                    string messageIdsString = string.Join(", ", messageIds);
+                    if (!string.IsNullOrWhiteSpace(messageIdsString))
+                    {
+                        Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received messages from {identity.Id} with message Ids [{messageIdsString}]"));
+                    }
+                    else
+                    {
+                        Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received {messages.Count} messages from {identity.Id}"));
+                    }
                 }
-                else
+                else if (messages.Count == 1)
                 {
-                    Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received messages from {identity.Id}"));
+                    if (messages[0].SystemProperties.TryGetValue(SystemProperties.MessageId, out string messageId))
+                    {
+                        Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received message from {identity.Id} with message Id {messageId}"));
+                    }
+                    else
+                    {
+                        Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received message from {identity.Id}"));
+                    }
                 }
             }
         }
