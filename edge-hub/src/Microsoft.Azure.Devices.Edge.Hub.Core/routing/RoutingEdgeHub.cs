@@ -59,7 +59,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
         public Task ProcessDeviceMessageBatch(IIdentity identity, IEnumerable<IMessage> messages)
         {
-            IList<IMessage> messagesList = Preconditions.CheckNotNull(messages, nameof(messages)).ToList();
+            Preconditions.CheckNotNull(messages, nameof(messages));
+            IList<IMessage> messagesList = messages as IList<IMessage> ?? messages.ToList();
             Events.MessagesReceived(identity, messagesList);
             Metrics.MessageCount(identity, messagesList.Count);
 
