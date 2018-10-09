@@ -425,16 +425,18 @@ println!("serialized={:#?}", serialized);
                 .client
                 .request(req)
                 .map_err(|e| {
-                    println!("image_api={:#?}", e);
                     Error::from(e)
                 })
                 .and_then(|resp| {
                     println!("api-response={:#?}", resp);
                     let (http::response::Parts { status, .. }, body) = resp.into_parts();
+                    println!("body before={:#?}", body);
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
                 }).and_then(|(status, body)| {
+                    println!("final status={:#?}", status);
+                    println!("final body={:#?}", body);
                     if status.is_success() {
                         Ok(body)
                     } else {
