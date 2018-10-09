@@ -163,6 +163,13 @@ MOCKABLE_FUNCTION(, const char*, get_organization_name, CERT_PROPS_HANDLE, handl
 MOCKABLE_FUNCTION(, const char*, get_organization_unit, CERT_PROPS_HANDLE, handle);
 MOCKABLE_FUNCTION(, CERTIFICATE_TYPE, get_certificate_type, CERT_PROPS_HANDLE, handle);
 
+// #define LHASH_OF(type) struct lhash_st_##type
+//struct lhash_st_CONF_VALUE;
+//LHASH_OF(CONF_VALUE);
+MOCKABLE_FUNCTION(, X509_EXTENSION*, X509V3_EXT_conf_nid, LHASH_OF(CONF_VALUE)*, conf, X509V3_CTX*, ctx, int, ext_nid, const char*, value);
+MOCKABLE_FUNCTION(, int, X509_add_ext, X509*, x, X509_EXTENSION*, ex, int, loc);
+MOCKABLE_FUNCTION(, void, X509_EXTENSION_free, X509_EXTENSION*, ex);
+
 #undef ENABLE_MOCKS
 
 //#############################################################################

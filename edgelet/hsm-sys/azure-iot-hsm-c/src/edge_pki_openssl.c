@@ -795,6 +795,105 @@ static int set_basic_constraints(X509 *x509_cert, CERTIFICATE_TYPE cert_type, in
     return result;
 }
 
+static int add_ext(X509 *x509_cert, int nid, char *value)
+{
+    int result;
+    X509_EXTENSION *ex;
+
+    if ((ex = X509V3_EXT_conf_nid(NULL, NULL, nid, value)) == NULL)
+    {
+        result = __FAILURE__;
+    }
+    else
+    {
+        if (X509_add_ext(x509_cert, ex, -1) == 0)
+        {
+            result = __FAILURE__;
+        }
+        else
+        {
+            result = 0;
+        }
+        X509_EXTENSION_free(ex);
+    }
+
+    return result;
+}
+
+static int set_key_identifiers
+(
+    X509 *x509_cert,
+    CERTIFICATE_TYPE cert_type
+)
+{
+    int result;
+    char *akv = (cert_type == CERTIFICATE_TYPE_CA) ? "keyid:always,issuer":
+                                                     "keyid,issuer:always";
+
+    if (add_ext(x509_cert, NID_authority_key_identifier, akv) != 0)
+    {
+        LOG_ERROR("Could not add authority key identifier extension to certificate");
+        result = __FAILURE__;
+    }
+    else if (add_ext(x509_cert, NID_subject_key_identifier, "hash") != 0)
+    {
+        LOG_ERROR("Could not add subject key identifier extension to certificate");
+        result = __FAILURE__;
+    }
+    else
+    {
+        result = 0;
+    }
+
+    return result;
+}
+
+static int set_key_usage
+(
+    X509 *x509_cert,
+    CERTIFICATE_TYPE cert_type
+)
+{
+    int result;
+    char *usage, *ext_usage;
+
+    if (cert_type == CERTIFICATE_TYPE_CA)
+    {
+        usage = "critical, digitalSignature, cRLSign, keyCertSign";
+        ext_usage = NULL;
+    }
+    else if (cert_type == CERTIFICATE_TYPE_CLIENT)
+    {
+        usage = "critical, nonRepudiation, digitalSignature, keyEncipherment";
+        ext_usage = "clientAuth";
+    }
+    else
+    {
+        usage = "critical, digitalSignature, keyEncipherment, dataEncipherment";
+        ext_usage = "serverAuth";
+    }
+
+    if (add_ext(x509_cert, NID_key_usage, usage) != 0)
+    {
+        LOG_ERROR("Could not add key usage extension to certificate");
+        result = __FAILURE__;
+    }
+    else
+    {
+        if ((ext_usage != NULL) && (add_ext(x509_cert, NID_ext_key_usage, ext_usage) != 0))
+        {
+            LOG_ERROR("Could not add extended key usage extension to certificate");
+            result = __FAILURE__;
+        }
+        else
+        {
+            result = 0;
+        }
+    }
+
+    return result;
+}
+
 static int cert_set_extensions
 (
     X509 *x509_cert,
@@ -804,7 +903,21 @@ static int cert_set_extensions
 )
 {
     (void)issuer_cert;
-    return set_basic_constraints(x509_cert, cert_type, ca_path_len);
+    int result;
+
+    if ((set_basic_constraints(x509_cert, cert_type, ca_path_len) != 0) ||
+        (set_key_identifiers(x509_cert, cert_type) != 0) ||
+        (set_key_usage(x509_cert, cert_type) != 0))
+    {
+        LOG_ERROR("Failure setting certificate extensions");
+        result = __FAILURE__;
+    }
+    else
+    {
+        result = 0;
+    }
+
+    return result;
 }
 
 static int cert_set_subject_field
