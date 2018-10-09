@@ -60,10 +60,10 @@ fn invalid_image_name_pull_handler(
     assert!(query_map.contains_key("fromImage"));
     assert_eq!(query_map.get("fromImage"), Some(&INVALID_IMAGE_NAME.to_string()));
 
-    let response = r#"{
+    let response = format!(r#"{{
         "message": "manifest for {} not found"
-    }
-    "#;
+    }}
+    "#, &INVALID_IMAGE_NAME.to_string());
     
     let response_len = response.len();
 
@@ -115,7 +115,7 @@ fn image_pull_with_invalid_image_name_fails() {
     };
 
     if let serde_json::Value::Object(props) = content {
-        assert_eq!("manifest for {} not found", props["message"]);
+        assert_eq!(format!("manifest for {} not found", &INVALID_IMAGE_NAME.to_string()), props["message"]);
     }
     else {
         panic!("Specific not found message is expected for invalid image name.");
