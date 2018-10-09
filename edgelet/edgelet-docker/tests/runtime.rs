@@ -106,7 +106,7 @@ fn image_pull_with_invalid_image_name_fails() {
     
     // Assert
     let err = runtime.block_on(task).expect_err("Expected runtime pull method to fail due to invalid image name.");
-    let content = if let error::ErrorKind::NotFound(Some(content)) = err.kind() {
+    let content = if let edgelet_docker::ErrorKind::NotFound(Some(content)) = err.kind() {
         content
     }
     else {
