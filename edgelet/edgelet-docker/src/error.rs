@@ -8,7 +8,7 @@ use hyper::{Error as HyperError, StatusCode};
 use serde_json;
 use url::ParseError;
 
-use docker::apis::Error as DockerError;
+use docker::apis::{ApiError as DockerApiError, Error as DockerError};
 use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind};
 use edgelet_http::Error as HttpError;
 use edgelet_utils::Error as UtilsError;
@@ -21,19 +21,18 @@ pub struct Error {
 }
 
 impl Error {
-    fn get_message(content: Option<serde_json::Value>) -> Option<String>
-    {
+    fn get_message(error: DockerApiError<serde_json::Value>) -> ::std::result::Result<String, DockerApiError<serde_json::Value>> {
+        let DockerApiError { code, content } = error;
+
         match content {
-            Some(value) => {
-                if let serde_json::Value::Object(props) = value {
-                    if let serde_json::Value::String(message) = props["message"] {
-                        Some(message)
-                    }
+            Some(serde_json::Value::Object(props)) => {
+                if let serde_json::Value::String(message) = &props["message"] {
+                    return Ok(message.clone());
                 }
 
-                None
-            },
-            _ => None
+                Err(DockerApiError { code, content: Some(serde_json::Value::Object(props)) })
+            }
+            _ => Err(DockerApiError { code, content })
         }
     }
 }
@@ -61,7 +60,7 @@ pub enum ErrorKind {
     #[fail(display = "Container runtime error")]
     Docker,
     #[fail(display = "Container runtime error message - {}", _0)]
-    WellFormattedDockerRuntime(String),
+    FormattedDockerRuntime(String),
     #[fail(display = "Container runtime error - {:?}", _0)]
     DockerRuntime(DockerError<serde_json::Value>),
     #[fail(display = "Core error")]
@@ -148,22 +147,18 @@ impl From<DockerError<serde_json::Value>> for Error {
             DockerError::Serde(error) => Error {
                 inner: Error::from(error).context(ErrorKind::Docker),
             },
-            DockerError::ApiError(error) => 
-                if error.code == StatusCode::NOT_FOUND {
-                    Error::from(ErrorKind::NotFound(error.content))
-                }
-                else if error.code == StatusCode::CONFLICT {
-                    Error::from(ErrorKind::Conflict)
-                }
-                else if error.code == StatusCode::NOT_MODIFIED {
-                    Error::from(ErrorKind::NotModified)
-                }
-                else {
-                    match Error::get_message(error.content) {
-                        Some(message) => Error::from(ErrorKind::WellFormattedDockerRuntime(message)),
-                        _ => Error::from(ErrorKind::DockerRuntime(DockerError::ApiError(error)))
-                    }
-                }
+            DockerError::ApiError(error) => match error.code {
+                StatusCode::NOT_FOUND =>
+                    Error::from(ErrorKind::NotFound(error.content)),
+                StatusCode::CONFLICT =>
+                    Error::from(ErrorKind::Conflict),
+                StatusCode::NOT_MODIFIED =>
+                    Error::from(ErrorKind::NotModified),
+                _ => match Error::get_message(error) {
+                    Ok(message) => Error::from(ErrorKind::FormattedDockerRuntime(message)),
+                    Err(error) => Error::from(ErrorKind::DockerRuntime(DockerError::ApiError(error)))
+                },
+            }
         }
     }
 }
