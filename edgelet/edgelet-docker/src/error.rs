@@ -127,7 +127,7 @@ impl From<DockerError<serde_json::Value>> for Error {
             DockerError::Serde(error) => Error {
                 inner: Error::from(error).context(ErrorKind::Docker),
             },
-            DockerError::ApiError(error) =>
+            DockerError::ApiError(error) => 
                 if error.code == StatusCode::NOT_FOUND {
                     Error::from(ErrorKind::NotFound(error.content))
                 }
@@ -138,9 +138,8 @@ impl From<DockerError<serde_json::Value>> for Error {
                     Error::from(ErrorKind::NotModified)
                 }
                 else {
-                    Error::from(ErrorKind::DockerRuntime(err))
-                },
-            _ => Error::from(ErrorKind::DockerRuntime(err)),
+                    Error::from(ErrorKind::DockerRuntime(DockerError::ApiError(error)))
+                }
         }
     }
 }
