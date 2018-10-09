@@ -60,9 +60,9 @@ fn invalid_image_name_pull_handler(
     assert!(query_map.contains_key("fromImage"));
     assert_eq!(query_map.get("fromImage"), Some(&INVALID_IMAGE_NAME.to_string()));
 
-    let response = r#"{{
+    let response = r#"{
         "message": "manifest for {} not found"
-    }}
+    }
     "#;
     
     let response_len = response.len();
@@ -75,7 +75,7 @@ fn invalid_image_name_pull_handler(
         .headers_mut()
         .typed_insert(&ContentType(mime::APPLICATION_JSON));
     *response.status_mut() = hyper::StatusCode::NOT_FOUND;
-println!("handler={:#?}", response);
+
     Box::new(future::ok(response))
 }
 
@@ -107,19 +107,18 @@ fn image_pull_with_invalid_image_name_fails() {
     
     // Assert
     let err = runtime.block_on(task).expect_err("Expected runtime pull method to fail due to invalid image name.");
-    println!("{:#?}", err);
     let content = if let edgelet_docker::ErrorKind::NotFound(Some(content)) = err.kind() {
         content
     }
     else {
-        panic!("it wasn't NotFound");
+        panic!("Not found error is expected for invalid image name.");
     };
 
     if let serde_json::Value::Object(props) = content {
         assert_eq!("manifest for {} not found", props["message"]);
     }
     else {
-        panic!("it wasn't well-formed NotFound content");
+        panic!("Specific not found message is expected for invalid image name.");
     }
 }
 
