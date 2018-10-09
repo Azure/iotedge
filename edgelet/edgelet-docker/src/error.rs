@@ -52,7 +52,7 @@ pub enum ErrorKind {
     #[fail(display = "Invalid URL")]
     UrlParse,
     #[fail(display = "Not found - {:?}", _0)]
-    NotFound(Option<serde_json::Value>),
+    NotFound(String),
     #[fail(display = "Conflict with current operation")]
     Conflict,
     #[fail(display = "Container already in this state")]
@@ -147,8 +147,10 @@ impl From<DockerError<serde_json::Value>> for Error {
                 inner: Error::from(error).context(ErrorKind::Docker),
             },
             DockerError::ApiError(error) => match error.code {
-                StatusCode::NOT_FOUND =>
-                    Error::from(ErrorKind::NotFound(error.content)),
+                StatusCode::NOT_FOUND => match Error::get_message(error) {
+                    Ok(message) => Error::from(ErrorKind::NotFound(message)),
+                    Err(error) => Error::from(ErrorKind::DockerRuntime(DockerError::ApiError(error)))
+                },
                 StatusCode::CONFLICT =>
                     Error::from(ErrorKind::Conflict),
                 StatusCode::NOT_MODIFIED =>

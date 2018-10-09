@@ -107,18 +107,12 @@ fn image_pull_with_invalid_image_name_fails() {
     
     // Assert
     let err = runtime.block_on(task).expect_err("Expected runtime pull method to fail due to invalid image name.");
-    let content = if let edgelet_docker::ErrorKind::NotFound(Some(content)) = err.kind() {
-        content
+        
+    if let edgelet_docker::ErrorKind::NotFound(message) = err.kind() {
+        assert_eq!(&format!("manifest for {} not found", &_INVALID_IMAGE_NAME.to_string()), message);
     }
     else {
-        panic!("Not found error is expected for invalid image name.");
-    };
-
-    if let serde_json::Value::Object(props) = content {
-        assert_eq!(format!("manifest for {} not found", &INVALID_IMAGE_NAME.to_string()), props["message"]);
-    }
-    else {
-        panic!("Specific not found message is expected for invalid image name.");
+        panic!("Specific docker runtime message is expected for invalid image name.");
     }
 }
 
@@ -222,11 +216,11 @@ fn image_pull_with_invalid_creds_handler(
     assert_eq!(auth_config.email(), Some(&"u1@bleh.com".to_string()));
     assert_eq!(auth_config.serveraddress(), Some(&"svr1".to_string()));
 
-    let response = r#"
+    let response = format!(r#"
     {{
         "message":"Get {}: unauthorized: authentication required"
     }}
-    "#;
+    "#, IMAGE_NAME);
     let response_len = response.len();
 
     let mut response = Response::new(response.into());
@@ -268,7 +262,14 @@ fn image_pull_with_invalid_creds_fails() {
     runtime.block_on(task).unwrap();
     
     // Assert
-    //assert_eq!(hyper::StatusCode::INTERNAL_SERVER_ERROR, task.StatusCode);
+    let err = runtime.block_on(task).expect_err("Expected runtime pull method to fail due to unauthentication.");
+        
+    if let edgelet_docker::ErrorKind::FormattedDockerRuntime(message) = err.kind() {
+        assert_eq!(&format!("Get {}: unauthorized: authentication required", &IMAGE_NAME.to_string()), message);
+    }
+    else {
+        panic!("Specific docker runtime message is expected for unauthentication.");
+    }
 }
 
 #[cfg(unix)]
