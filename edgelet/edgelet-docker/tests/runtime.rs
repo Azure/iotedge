@@ -180,7 +180,10 @@ fn image_pull_with_invalid_image_host_fails() {
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
-    runtime.block_on(task).unwrap();
+    
+    // Assert
+    let err = runtime.block_on(task).expect_err("Expected runtime pull method to fail due to invalid image name.");
+    println!("{:#?}", err);
 }
 
 #[cfg(unix)]

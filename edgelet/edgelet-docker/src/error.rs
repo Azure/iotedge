@@ -20,6 +20,24 @@ pub struct Error {
     inner: Context<ErrorKind>,
 }
 
+impl Error {
+    fn get_message(content: Option<serde_json::Value>) -> Option<String>
+    {
+        match content {
+            Some(value) => {
+                if let serde_json::Value::Object(props) = value {
+                    if let serde_json::Value::String(message) = props["message"] {
+                        Some(message)
+                    }
+                }
+
+                None
+            },
+            _ => None
+        }
+    }
+}
+
 #[derive(Debug, Fail)]
 pub enum ErrorKind {
     #[fail(display = "Invalid docker URI - {}", _0)]
@@ -42,6 +60,8 @@ pub enum ErrorKind {
     NotModified,
     #[fail(display = "Container runtime error")]
     Docker,
+    #[fail(display = "Container runtime error message - {}", _0)]
+    WellFormattedDockerRuntime(String),
     #[fail(display = "Container runtime error - {:?}", _0)]
     DockerRuntime(DockerError<serde_json::Value>),
     #[fail(display = "Core error")]
@@ -120,6 +140,7 @@ impl From<HttpError> for Error {
 
 impl From<DockerError<serde_json::Value>> for Error {
     fn from(err: DockerError<serde_json::Value>) -> Error {
+        println!("docker error={:#?}", err);
         match err {
             DockerError::Hyper(error) => Error {
                 inner: Error::from(error).context(ErrorKind::Docker),
@@ -138,7 +159,10 @@ impl From<DockerError<serde_json::Value>> for Error {
                     Error::from(ErrorKind::NotModified)
                 }
                 else {
-                    Error::from(ErrorKind::DockerRuntime(DockerError::ApiError(error)))
+                    match Error::get_message(error.content) {
+                        Some(message) => Error::from(ErrorKind::WellFormattedDockerRuntime(message)),
+                        _ => Error::from(ErrorKind::DockerRuntime(DockerError::ApiError(error)))
+                    }
                 }
         }
     }
