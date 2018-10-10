@@ -1,3 +1,4 @@
 ﻿{
-  "dockerHostUrl": "unix://var/run/docker.sock"
+  "dockerHostUrl": "unix://var/run/docker.sock",
+  "enableWebSocketsTests":  true 
 }
