@@ -239,6 +239,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 case CloudConnectionStatus.Disconnected:
                     Events.InvokingCloudConnectionLostEvent(device.Identity);
                     this.CloudConnectionLost?.Invoke(this, device.Identity);
+                    await device.CloudConnection.Filter(cp => cp.IsActive).ForEachAsync(cp => cp.CloseAsync());
                     break;
 
                 case CloudConnectionStatus.ConnectionEstablished:

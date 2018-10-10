@@ -75,7 +75,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                                         AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings
                                         {
                                             Pooling = true,
-                                            MaxPoolSize = (uint)connectionPoolSize
+                                            MaxPoolSize = (uint)connectionPoolSize,
+                                            ConnectionIdleTimeout = TimeSpan.FromSeconds(5)
                                         }
                                     }
                                 };
@@ -110,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                                 }
                             }
                         });
-        }        
+        }
 
         public async Task<Try<ICloudConnection>> Connect(IClientCredentials identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
         {
@@ -162,5 +163,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Log.LogWarning((int)EventIds.CloudConnectError, exception, $"Error creating cloud connection for client {identity.Id}");
             }
         }
-    }    
+    }
 }

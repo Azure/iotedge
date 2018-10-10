@@ -187,7 +187,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 client.SetProductInfo(newCredentials.ProductInfo);
             }
-
+            await client.OpenAsync();
             Events.CreateDeviceClientSuccess(transportSettings.GetTransportType(), OperationTimeoutMilliseconds, newCredentials.Identity);
             return client;
         }
