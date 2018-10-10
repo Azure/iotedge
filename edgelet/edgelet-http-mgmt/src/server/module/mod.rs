@@ -47,7 +47,7 @@ impl IntoResponse for DockerError {
         }
 
         let status_code = match *self.kind() {
-            DockerErrorKind::NotFound => StatusCode::NOT_FOUND,
+            DockerErrorKind::NotFound(_) => StatusCode::NOT_FOUND,
             DockerErrorKind::Conflict => StatusCode::CONFLICT,
             DockerErrorKind::NotModified => StatusCode::NOT_MODIFIED,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
