@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
 {
@@ -10,17 +10,17 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
     {
         const string Directory = "settings";
 
-        static readonly Lazy<IConfiguration> TestConfigLazy = new Lazy<IConfiguration>(() => GetTestConfiguration(), true);
-        static readonly Lazy<IConfiguration> TestEnvironmentConfigLazy = new Lazy<IConfiguration>(() => GetTestEnvironmentConfiguration(), true);
+        static readonly Lazy<IConfigurationRoot> TestConfigLazy = new Lazy<IConfigurationRoot>(() => GetTestConfiguration(), true);
+        static readonly Lazy<IConfigurationRoot> TestEnvironmentConfigLazy = new Lazy<IConfigurationRoot>(() => GetTestEnvironmentConfiguration(), true);
         static readonly Lazy<TestEnvironment> LazyEnvironment = new Lazy<TestEnvironment>(() => GetEnvironment(), true);
 
-        public static IConfiguration TestConfig => TestConfigLazy.Value;
+        public static IConfigurationRoot TestConfig => TestConfigLazy.Value;
 
         public static IConfiguration KeyVaultConfig => TestConfig.GetSection("keyVault");
 
         public static TestEnvironment Environment => LazyEnvironment.Value;
 
-        static IConfiguration GetTestConfiguration()
+        static IConfigurationRoot GetTestConfiguration()
         {
             string env = Environment.ToString().ToLowerInvariant();
             string testEnvironmentFile = Path.Combine("settings", string.Concat(env, ".json"));
@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
             return builder.Build();
         }
 
-        static IConfiguration GetTestEnvironmentConfiguration()
+        static IConfigurationRoot GetTestEnvironmentConfiguration()
         {
             IConfigurationBuilder builder = new ConfigurationBuilder()
                 .AddJsonFile(Path.Combine(Directory, "environment.json"))
