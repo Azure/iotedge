@@ -22,9 +22,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             TimeSpan timeToExpire = DateTime.UtcNow - certificates.ServerCertificate.NotAfter;
             if (timeToExpire > TimeSpan.Zero)
             {
-                TimeSpan renewAfter = timeToExpire * Constants.CertificateRenewalPeriod;
-                logger.LogInformation("Scheduling server certificate renewal for {}.", DateTime.UtcNow.Add(renewAfter).ToString("o"));
-                this.cts = new CancellationTokenSource(renewAfter);
+                logger.LogInformation("Scheduling server certificate renewal for {}.", DateTime.UtcNow.Add(timeToExpire).ToString("o"));
+                this.cts = new CancellationTokenSource(timeToExpire);
                 this.cts.Token.Register(l => ((ILogger)l).LogInformation("Performing server certificate renewal."), logger);
             }
             else

@@ -21,7 +21,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         }
 
         public const int CertificateValidityDays = 90;
-        public const double CertificateRenewalPeriod = 0.90;   // 90% of the time to expiration
         public const string ConfigFileName = "appsettings_hub.json";
         public const string EdgeHubStorageFolder = "edgeHub";
         public const string InitializationVectorFileName = "EdgeHubIV";
