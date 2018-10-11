@@ -34,5 +34,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         public const string MessageAnnotationsConnectionModuleId = "iothub-connection-module-id";
         public const string WebSocketSubProtocol = "AMQPWSB10";
         public const string WebSocketListenerName = WebSocketSubProtocol +"-listener";
+        public const string ServiceBusCbsSaslMechanismName = "MSSBCBS";
     }
 }

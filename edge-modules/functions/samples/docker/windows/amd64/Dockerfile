@@ -1,10 +1,5 @@
 # escape=`
 
-ARG buildno
-FROM edgebuilds.azurecr.io/microsoft/azureiotedge-functions-binding:${buildno}-windows-amd64
+FROM mcr.microsoft.com/azure-functions/dotnet:2.0-nanoserver-1803
 
-WORKDIR /app
-
-COPY $EXE_DIR/ ./$FUNCTION_FILE_NAME
-
-ENV AzureWebJobsScriptRoot=samples
+COPY . /approot
