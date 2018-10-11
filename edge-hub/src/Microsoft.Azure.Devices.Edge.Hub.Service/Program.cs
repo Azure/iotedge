@@ -96,11 +96,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             {
                 await protocolHead.StartAsync();
                 await Task.WhenAny(cts.Token.WhenCanceled(), renewal.Token.WhenCanceled());
+                logger.LogInformation("Stopping the protocol heads...");
                 await Task.WhenAny(protocolHead.CloseAsync(CancellationToken.None), Task.Delay(TimeSpan.FromSeconds(10), CancellationToken.None));
+                logger.LogInformation("Protocol heads stopped.");
             }
 
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
+            logger.LogInformation("Shutdown complete.");
             return 0;
         }
 

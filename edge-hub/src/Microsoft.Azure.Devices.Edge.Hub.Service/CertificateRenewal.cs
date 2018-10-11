@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             else
             {
                 this.cts = new CancellationTokenSource();
-                logger.LogWarning("Time to server certificate expiration is {0}. Not scheduling renewal.", timeToExpire.ToString("c"));
+                logger.LogWarning("Server certificate is expired ({0}). Not scheduling renewal.", timeToExpire.ToString("c"));
             }
         }
 
@@ -47,7 +47,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         {
             if (disposing)
             {
-                this.cts.Dispose();
+                try
+                {
+                    this.cts.Dispose();
+                }
+                catch (OperationCanceledException)
+                {
+                    // ignore by design
+                }
             }
         }
     }
