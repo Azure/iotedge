@@ -56,6 +56,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             LogLogo(logger);
             LogVersionInfo(logger);
 
+            logger.LogInformation("Loaded server certificate with expiration date of {0}", certificates.ServerCertificate.NotAfter.ToString("o"));
+
             // EdgeHub and CloudConnectionProvider have a circular dependency. So need to Bind the EdgeHub to the CloudConnectionProvider.
             IEdgeHub edgeHub = await container.Resolve<Task<IEdgeHub>>();
             ICloudConnectionProvider cloudConnectionProvider = await container.Resolve<Task<ICloudConnectionProvider>>();
@@ -90,14 +92,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             Metrics.BuildMetricsCollector(configuration);
 
             using (IProtocolHead protocolHead = await GetEdgeHubProtocolHeadAsync(logger, configuration, container, hosting).ConfigureAwait(false))
+            using (var renewal = new CertificateRenewal(certificates, logger))
             {
                 await protocolHead.StartAsync();
-                await cts.Token.WhenCanceled();
+                await Task.WhenAny(cts.Token.WhenCanceled(), renewal.Token.WhenCanceled());
+                logger.LogInformation("Stopping the protocol heads...");
                 await Task.WhenAny(protocolHead.CloseAsync(CancellationToken.None), Task.Delay(TimeSpan.FromSeconds(10), CancellationToken.None));
+                logger.LogInformation("Protocol heads stopped.");
             }
 
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
+            logger.LogInformation("Shutdown complete.");
             return 0;
         }
 
