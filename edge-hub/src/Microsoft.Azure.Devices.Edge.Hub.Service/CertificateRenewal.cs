@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             Preconditions.CheckNotNull(certificates, nameof(certificates));
             Preconditions.CheckNotNull(logger, nameof(logger));
 
-            TimeSpan timeToExpire = DateTime.UtcNow - certificates.ServerCertificate.NotAfter;
+            TimeSpan timeToExpire = certificates.ServerCertificate.NotAfter - DateTime.UtcNow;
             if (timeToExpire > TimeSpan.Zero)
             {
                 logger.LogInformation("Scheduling server certificate renewal for {}.", DateTime.UtcNow.Add(timeToExpire).ToString("o"));
