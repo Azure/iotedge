@@ -51,7 +51,7 @@ pub enum ErrorKind {
     Transport,
     #[fail(display = "Invalid URL")]
     UrlParse,
-    #[fail(display = "Not found - {}", _0)]
+    #[fail(display = "{}", _0)]
     NotFound(String),
     #[fail(display = "Conflict with current operation")]
     Conflict,
@@ -59,7 +59,7 @@ pub enum ErrorKind {
     NotModified,
     #[fail(display = "Container runtime error")]
     Docker,
-    #[fail(display = "Container runtime error message - {}", _0)]
+    #[fail(display = "{}", _0)]
     FormattedDockerRuntime(String),
     #[fail(display = "Container runtime error - {:?}", _0)]
     DockerRuntime(DockerError<serde_json::Value>),
