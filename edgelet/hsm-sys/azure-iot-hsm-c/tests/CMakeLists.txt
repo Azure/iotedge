@@ -4,7 +4,6 @@
 include(../deps/c-shared/configs/azure_iot_build_rules.cmake)
 usePermissiveRulesForSamplesAndTests()
 
-enable_testing()
 set(save_ut ${run_unittests})
 set(run_unittests OFF CACHE BOOL "unittests" FORCE)
 add_subdirectory(../deps/c-shared/testtools/ctest c-shared/testtools/ctest)
