@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 var renewAfter = timeToExpire - TimeBuffer;
                 logger.LogInformation("Scheduling server certificate renewal for {0}.", DateTime.UtcNow.Add(renewAfter).ToString("o"));
                 this.cts = new CancellationTokenSource(renewAfter);
-                this.cts.Token.Register(l => ((ILogger)l).LogInformation("Performing server certificate renewal."), logger);
+                this.cts.Token.Register(l => ((ILogger)l).LogInformation("Restarting process to perform server certificate renewal."), logger);
             }
             else
             {
