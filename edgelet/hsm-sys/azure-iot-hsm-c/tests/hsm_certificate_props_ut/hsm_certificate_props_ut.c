@@ -26,6 +26,11 @@ static void* my_gballoc_realloc(void* ptr, size_t size)
     return realloc(ptr, size);
 }
 
+static void* my_gballoc_calloc(size_t num, size_t size)
+{
+    return calloc(num, size);
+}
+
 #include "testrunnerswitcher.h"
 #include "umock_c.h"
 #include "umocktypes_charptr.h"
@@ -80,6 +85,17 @@ BEGIN_TEST_SUITE(hsm_certificate_props_ut)
         TEST_INITIALIZE_MEMORY_DEBUG(g_dllByDll);
         g_testByTest = TEST_MUTEX_CREATE();
         ASSERT_IS_NOT_NULL(g_testByTest);
+
+        REGISTER_GLOBAL_MOCK_HOOK(gballoc_malloc, my_gballoc_malloc);
+        REGISTER_GLOBAL_MOCK_FAIL_RETURN(gballoc_malloc, NULL);
+
+        REGISTER_GLOBAL_MOCK_HOOK(gballoc_calloc, my_gballoc_calloc);
+        REGISTER_GLOBAL_MOCK_FAIL_RETURN(gballoc_calloc, NULL);
+
+        REGISTER_GLOBAL_MOCK_HOOK(gballoc_realloc, my_gballoc_realloc);
+        REGISTER_GLOBAL_MOCK_FAIL_RETURN(gballoc_realloc, NULL);
+
+        REGISTER_GLOBAL_MOCK_HOOK(gballoc_free, my_gballoc_free);
 
         (void)umock_c_init(on_umock_c_error);
         (void)umocktypes_bool_register_types();
@@ -982,6 +998,122 @@ BEGIN_TEST_SUITE(hsm_certificate_props_ut)
         ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
         test_output_string = get_organization_unit(props_handle);
         ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, test_input_string, test_output_string, "Line:" TOSTRING(__LINE__));
+
+        //cleanup
+        cert_properties_destroy(props_handle);
+    }
+
+    /**
+    * Test function for APIs
+    *   get_san_entries
+    */
+    TEST_FUNCTION(certificate_props_get_san_entries_bad_params)
+    {
+        //arrange
+        const char const** test_output;
+        size_t num_entries = 10;
+
+        CERT_PROPS_HANDLE props_handle = cert_properties_create();
+
+        // act 1, assert
+        test_output = get_san_entries(NULL, &num_entries);
+        ASSERT_IS_NULL_WITH_MSG(test_output, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, num_entries, "Line:" TOSTRING(__LINE__));
+
+        // act 2, assert
+        test_output = get_san_entries(props_handle, NULL);
+        ASSERT_IS_NULL_WITH_MSG(test_output, "Line:" TOSTRING(__LINE__));
+
+        //cleanup
+        cert_properties_destroy(props_handle);
+    }
+
+    /**
+    * Test function for APIs
+    *   get_san_entries
+    */
+    TEST_FUNCTION(certificate_props_get_san_entries_default_has_no_entries)
+    {
+        //arrange
+        const char const** test_output;
+        size_t num_entries = 10;
+
+        CERT_PROPS_HANDLE props_handle = cert_properties_create();
+
+        // act
+        test_output = get_san_entries(props_handle, &num_entries);
+
+        // assert
+        ASSERT_IS_NULL_WITH_MSG(test_output, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, num_entries, "Line:" TOSTRING(__LINE__));
+
+        //cleanup
+        cert_properties_destroy(props_handle);
+    }
+
+    /**
+    * Test function for APIs
+    *   set_san_entries
+    *   get_san_entries
+    */
+    TEST_FUNCTION(certificate_props_get_set_san_entries)
+    {
+        //arrange
+        const char const** test_output;
+        const char* test_input_string_1 = TEST_STRING_64;
+        const char* test_input_string_2 = TEST_STRING_128;
+        char const* san_list_1[] = { test_input_string_1, test_input_string_2 };
+        size_t san_list_size_1 = sizeof(san_list_1) / sizeof(san_list_1[0]);
+        const char* test_input_string_3 = "1234";
+        char const* san_list_2[] = { test_input_string_3 };
+        size_t san_list_size_2 = sizeof(san_list_2) / sizeof(san_list_2[0]);
+
+        size_t num_entries, num_matched;
+        int status;
+
+        CERT_PROPS_HANDLE props_handle = cert_properties_create();
+
+        // act 1, assert
+        status = set_san_entries(props_handle, san_list_1, san_list_size_1);
+        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        num_entries = 10;
+        test_output = get_san_entries(props_handle, &num_entries);
+        ASSERT_IS_NOT_NULL_WITH_MSG(test_output, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL_WITH_MSG(size_t, san_list_size_1, num_entries, "Line:" TOSTRING(__LINE__));
+        num_matched = 0;
+        for (size_t i = 0; i < san_list_size_1; i++)
+        {
+            for (size_t j = 0; j < num_entries; j++)
+            {
+                if (strcmp(san_list_1[i], test_output[j]) == 0)
+                {
+                    num_matched++;
+                    break;
+                }
+            }
+        }
+        ASSERT_ARE_EQUAL_WITH_MSG(size_t, san_list_size_1, num_matched, "Line:" TOSTRING(__LINE__));
+
+        // act 2, assert
+        status = set_san_entries(props_handle, san_list_2, san_list_size_2);
+        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        num_entries = 10;
+        test_output = get_san_entries(props_handle, &num_entries);
+        ASSERT_IS_NOT_NULL_WITH_MSG(test_output, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL_WITH_MSG(size_t, san_list_size_2, num_entries, "Line:" TOSTRING(__LINE__));
+        num_matched = 0;
+        for (size_t i = 0; i < san_list_size_2; i++)
+        {
+            for (size_t j = 0; j < num_entries; j++)
+            {
+                if (strcmp(san_list_2[i], test_output[j]) == 0)
+                {
+                    num_matched++;
+                    break;
+                }
+            }
+        }
+        ASSERT_ARE_EQUAL_WITH_MSG(size_t, san_list_size_2, num_matched, "Line:" TOSTRING(__LINE__));
 
         //cleanup
         cert_properties_destroy(props_handle);

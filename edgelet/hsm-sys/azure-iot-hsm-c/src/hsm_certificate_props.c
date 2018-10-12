@@ -29,6 +29,9 @@ typedef struct HSM_CERT_PROPS_TAG
     char* org_unit;
     char country_name[MAX_COUNTRY_SIZE];
     uint64_t validity;
+    char **san_list;
+    char const** san_list_ro;
+    size_t num_san_entries;
 } HSM_CERT_PROPS;
 
 CERT_PROPS_HANDLE cert_properties_create(void)
@@ -46,6 +49,29 @@ CERT_PROPS_HANDLE cert_properties_create(void)
     return result;
 }
 
+static void destroy_san_entries(CERT_PROPS_HANDLE handle)
+{
+    if (handle->san_list != NULL)
+    {
+        for (size_t i = 0; i < handle->num_san_entries; i++)
+        {
+            if (handle->san_list[i] != NULL)
+            {
+                free(handle->san_list[i]);
+                handle->san_list[i] = NULL;
+            }
+        }
+        free(handle->san_list);
+        handle->san_list = NULL;
+    }
+    if (handle->san_list_ro != NULL)
+    {
+        free(handle->san_list_ro);
+        handle->san_list_ro = NULL;
+    }
+    handle->num_san_entries = 0;
+}
+
 void cert_properties_destroy(CERT_PROPS_HANDLE handle)
 {
     if (handle != NULL)
@@ -57,6 +83,7 @@ void cert_properties_destroy(CERT_PROPS_HANDLE handle)
         free(handle->locality);
         free(handle->org_name);
         free(handle->org_unit);
+        destroy_san_entries(handle);
         free(handle);
     }
 }
@@ -584,5 +611,100 @@ const char* get_alias(CERT_PROPS_HANDLE handle)
     {
         result = handle->alias;
     }
+    return result;
+}
+
+int set_san_entries
+(
+    CERT_PROPS_HANDLE handle,
+    const char* san_list[],
+    size_t num_san_entries
+)
+{
+    int result;
+    if (handle == NULL || san_list == NULL || num_san_entries == 0)
+    {
+        LogError("Invalid parameter encounterered");
+        result = __LINE__;
+    }
+    else
+    {
+        size_t i;
+        size_t list_size = num_san_entries * sizeof(char*);
+        destroy_san_entries(handle);
+        if (((handle->san_list = (char **)malloc(list_size)) == NULL) ||
+            ((handle->san_list_ro = (char const**)malloc(list_size)) == NULL))
+        {
+            LogError("Could not allocate memory for SAN list");
+            result = __LINE__;
+        }
+        else
+        {
+            bool fail_flag = false;
+            memset(handle->san_list, 0, list_size);
+            for (i = 0; i < num_san_entries; i++)
+            {
+                char *dest = NULL;
+                if (san_list[i] == NULL)
+                {
+                    LogError("Error NULL found in input string at index %zu", i);
+                    fail_flag = true;
+                    break;
+                }
+                else if (mallocAndStrcpy_s(&dest, san_list[i]) != 0)
+                {
+                    LogError("Could not allocate memory for a SAN entry");
+                    fail_flag = true;
+                    break;
+                }
+                else
+                {
+                    handle->san_list[i] = dest;
+                }
+            }
+            if (fail_flag)
+            {
+                destroy_san_entries(handle);
+                result = __LINE__;
+            }
+            else
+            {
+                handle->num_san_entries = num_san_entries;
+                for (i = 0; i < num_san_entries; i++)
+                {
+                    handle->san_list_ro[i] = handle->san_list[i];
+                }
+                result = 0;
+            }
+        }
+    }
+
+    return result;
+}
+
+const char const** get_san_entries(CERT_PROPS_HANDLE handle, size_t *num_entries)
+{
+    char const **result;
+
+    if (num_entries == NULL)
+    {
+        LogError("Invalid parameter num_entries encounterered");
+        result = NULL;
+    }
+    else
+    {
+        *num_entries = 0;
+        if (handle == NULL)
+        {
+            LogError("Invalid parameter handle encounterered");
+            result = NULL;
+        }
+        else
+        {
+            *num_entries = handle->num_san_entries;
+            result = handle->san_list_ro;
+        }
+    }
+
     return result;
 }

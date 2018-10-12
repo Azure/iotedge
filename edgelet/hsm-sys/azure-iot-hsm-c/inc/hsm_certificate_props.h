@@ -231,6 +231,33 @@ extern int set_alias(CERT_PROPS_HANDLE handle, const char* alias);
 */
 extern const char* get_alias(CERT_PROPS_HANDLE handle);
 
+/**
+* @brief                  Sets the certificate subject alternate names
+*
+* @param handle           The CERT_PROPS_HANDLE that was created by the cert_properties_create call
+* @param san_list         A pointer to a list of string containing san entries
+* @param num_entries      The number of entries in the list
+*
+* @return                 On success 0 on.  Non-zero on failure.
+*/
+extern int set_san_entries
+(
+    CERT_PROPS_HANDLE handle,
+    const char* san_list[],
+    size_t num_san_entries
+);
+
+/**
+* @brief                Gets the alias type
+*
+* @param handle         The CERT_PROPS_HANDLE that was created by the cert_properties_create call
+* @param num_entries    The number of entries in the list will be returned
+*
+* @return               A pointer to a list of NULL terminated strings containing the SAN entries,
+*                       NULL otherwise.
+*/
+extern const char const** get_san_entries(CERT_PROPS_HANDLE handle, size_t *num_entries);
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
