@@ -111,6 +111,7 @@ function(prepare_edge_homedir whatIsBuilding)
 endfunction(prepare_edge_homedir)
 
 if (run_unittests)
+    enable_testing()
     set(save_ut ${run_unittests})
     set(run_unittests OFF CACHE BOOL "unittests" FORCE)
 endif(run_unittests)
