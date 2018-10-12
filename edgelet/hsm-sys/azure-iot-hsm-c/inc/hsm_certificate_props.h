@@ -15,6 +15,9 @@ extern "C" {
 #include <stdint.h>
 #endif /* __cplusplus */
 
+/** defines whether the HSM API supports SAN entries */
+#define HSM_FEATURE_CERTIFICATE_SAN
+
 typedef struct HSM_CERT_PROPS_TAG* CERT_PROPS_HANDLE;
 
 typedef enum CERTIFICATE_TYPE_TAG
