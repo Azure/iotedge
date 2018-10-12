@@ -299,7 +299,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 }
                 else
                 {
-                    Events.TokenNotUsable(iotHub, id, token);                    
+                    Events.TokenNotUsable(iotHub, id, token);
                 }
 
                 bool newTokenGetterCreated = false;
@@ -311,7 +311,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                             Events.SafeCreateNewToken(id);
                             var taskCompletionSource = new TaskCompletionSource<string>();
                             this.tokenGetter = Option.Some(taskCompletionSource);
-                            newTokenGetterCreated = true;                            
+                            newTokenGetterCreated = true;
                             return taskCompletionSource;
                         });
 
