@@ -842,12 +842,12 @@ static int set_key_usage
     }
     else if (cert_type == CERTIFICATE_TYPE_CLIENT)
     {
-        usage = "critical, nonRepudiation, digitalSignature, keyEncipherment";
+        usage = "critical, nonRepudiation, digitalSignature, keyEncipherment, dataEncipherment";
         ext_usage = "clientAuth";
     }
     else
     {
-        usage = "critical, digitalSignature, keyEncipherment, dataEncipherment";
+        usage = "critical, nonRepudiation, digitalSignature, keyEncipherment, dataEncipherment, keyAgreement";
         ext_usage = "serverAuth";
     }
 

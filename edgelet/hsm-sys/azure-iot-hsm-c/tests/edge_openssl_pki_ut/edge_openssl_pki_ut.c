@@ -1427,7 +1427,7 @@ static void test_helper_cert_create_with_subject
     }
     else if (cert_type == CERTIFICATE_TYPE_CLIENT)
     {
-        STRICT_EXPECTED_CALL(mocked_X509V3_EXT_conf_nid(NULL, NULL, NID_key_usage, "critical, nonRepudiation, digitalSignature, keyEncipherment"));
+        STRICT_EXPECTED_CALL(mocked_X509V3_EXT_conf_nid(NULL, NULL, NID_key_usage, "critical, nonRepudiation, digitalSignature, keyEncipherment, dataEncipherment"));
         ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
 
@@ -1451,7 +1451,7 @@ static void test_helper_cert_create_with_subject
     }
     else
     {
-        STRICT_EXPECTED_CALL(mocked_X509V3_EXT_conf_nid(NULL, NULL, NID_key_usage, "critical, digitalSignature, keyEncipherment, dataEncipherment"));
+        STRICT_EXPECTED_CALL(mocked_X509V3_EXT_conf_nid(NULL, NULL, NID_key_usage, "critical, nonRepudiation, digitalSignature, keyEncipherment, dataEncipherment, keyAgreement"));
         ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
 
