@@ -23,20 +23,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         {
             Preconditions.CheckNotNull(certificates, nameof(certificates));
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
+            this.cts = new CancellationTokenSource();
 
             TimeSpan timeToExpire = certificates.ServerCertificate.NotAfter - DateTime.UtcNow;
             if (timeToExpire > TimeBuffer)
             {
                 var renewAfter = timeToExpire - TimeBuffer;
                 logger.LogInformation("Scheduling server certificate renewal for {0}.", DateTime.UtcNow.Add(renewAfter).ToString("o"));
-                this.cts = new CancellationTokenSource();
                 this.timer = new Timer(this.Callback, null, renewAfter, Timeout.InfiniteTimeSpan);
             }
             else
             {
-                this.cts = new CancellationTokenSource();
-                this.timer = new Timer(this.Callback, null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
                 logger.LogWarning("Server certificate is expired ({0}). Not scheduling renewal.", timeToExpire.ToString("c"));
+                this.timer = new Timer(this.Callback, null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
             }
         }
 
