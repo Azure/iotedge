@@ -15,6 +15,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
     public class CloudConnectionProvider : ICloudConnectionProvider
     {
+        // Minimum value allowed by the SDK for Connection Idle timeout for AMQP Multiplexed connections.
+        static readonly TimeSpan MinAmqpConnectionMuxIdleTimeout = TimeSpan.FromSeconds(5);
+
         static readonly IDictionary<UpstreamProtocol, TransportType> UpstreamProtocolTransportTypeMap = new Dictionary<UpstreamProtocol, TransportType>
         {
             [UpstreamProtocol.Amqp] = TransportType.Amqp_Tcp_Only,
@@ -76,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                                         {
                                             Pooling = true,
                                             MaxPoolSize = (uint)connectionPoolSize,
-                                            ConnectionIdleTimeout = TimeSpan.FromSeconds(5)
+                                            ConnectionIdleTimeout = MinAmqpConnectionMuxIdleTimeout
                                         }
                                     }
                                 };
@@ -100,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                                 {
                                     Pooling = true,
                                     MaxPoolSize = (uint)connectionPoolSize,
-                                    ConnectionIdleTimeout = TimeSpan.FromSeconds(5)
+                                    ConnectionIdleTimeout = MinAmqpConnectionMuxIdleTimeout
                                 }
                             },
                             new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only)
@@ -109,7 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                                 {
                                     Pooling = true,
                                     MaxPoolSize = (uint)connectionPoolSize,
-                                    ConnectionIdleTimeout = TimeSpan.FromSeconds(5)
+                                    ConnectionIdleTimeout = MinAmqpConnectionMuxIdleTimeout
                                 }
                             }
                         });
