@@ -1414,7 +1414,7 @@ static void test_helper_cert_create_with_subject
 
     if (cert_type == CERTIFICATE_TYPE_CA)
     {
-        STRICT_EXPECTED_CALL(mocked_X509V3_EXT_conf_nid(NULL, NULL, NID_key_usage, "critical, digitalSignature, cRLSign, keyCertSign"));
+        STRICT_EXPECTED_CALL(mocked_X509V3_EXT_conf_nid(NULL, NULL, NID_key_usage, "critical, digitalSignature, keyCertSign"));
         ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
 
