@@ -25,12 +25,16 @@ MOCKABLE_FUNCTION(, ASN1_TIME*, mocked_X509_get_notAfter, X509*, x509_cert);
 MOCKABLE_FUNCTION(, int, mocked_OPEN, const char*, path, int, flags, MODE_T, mode);
 MOCKABLE_FUNCTION(, int, mocked_CLOSE, int, fd);
 
+struct lhash_st_CONF_VALUE;
+MOCKABLE_FUNCTION(, X509_EXTENSION*, mocked_X509V3_EXT_conf_nid, struct lhash_st_CONF_VALUE*, conf, X509V3_CTX*, ctx, int, ext_nid, char*, value);
+
+#define X509V3_EXT_conf_nid_HELPER(conf, ctx, nid, value) mocked_X509V3_EXT_conf_nid((conf), (ctx), (nid), (value))
+
 #undef X509_get_notBefore
 #undef X509_get_notAfter
 #define X509_get_notBefore mocked_X509_get_notBefore
 #define X509_get_notAfter  mocked_X509_get_notAfter
 
-#undef OPEN_HELPER
 #undef CLOSE_HELPER
 #if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
     #define OPEN_HELPER(fname) mocked_OPEN((fname), _O_CREAT|_O_WRONLY|_O_TRUNC, _S_IREAD|_S_IWRITE)
