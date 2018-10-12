@@ -195,14 +195,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 using (await this.sync.LockAsync())
                 {
                     Option<ICloudProxy> testClient = await this.connectionManager.GetCloudConnection(this.testClientIdentity.Id);
-                    if (testClient.HasValue)
-                    {
-                        await testClient.ForEachAsync(tc => tc.UpdateReportedPropertiesAsync(this.testMessage.Value));
-                    }
-                    else
-                    {
-                        Console.WriteLine("**** Unable to get Test Client");
-                    }
+                    await testClient.ForEachAsync(tc => tc.UpdateReportedPropertiesAsync(this.testMessage.Value));
                 }
             }
         }
