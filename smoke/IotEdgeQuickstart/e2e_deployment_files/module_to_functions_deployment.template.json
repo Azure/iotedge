@@ -31,11 +31,11 @@
               "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-hub:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"443/tcp\": [{\"HostPort\": \"443\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
             },
-		    "env": {
-				"OptimizeForPerformance": {
-					"value": "<OptimizeForPerformance>"
-				}
-			},
+            "env": {
+              "OptimizeForPerformance": {
+                "value": "<OptimizeForPerformance>"
+              }
+            },
             "status": "running",
             "restartPolicy": "always"
           }
@@ -59,8 +59,13 @@
             "settings": {
               "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-functions-filter:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
+            },
+            "env": {
+              "AZURE_FUNCTIONS_ENVIRONMENT": {
+                "value": "Development"
+              }
             }
-          },          
+          }
         }
       }
     },

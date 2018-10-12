@@ -53,7 +53,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Settings
                 //       needs (i.e. old clients that are still using EXTERNAL for CBS).
                 // saslProvider.AddHandler(new SaslExternalHandler());
 
-                saslProvider.AddHandler(new SaslAnonymousHandler()); // CBS for other clients
+                // CBS 
+                saslProvider.AddHandler(new SaslAnonymousHandler());
+
+                // CBS - used by some SDKs like C
+                saslProvider.AddHandler(new SaslAnonymousHandler(Constants.ServiceBusCbsSaslMechanismName));
 
                 // This handler implements SAS key based auth.
                 saslProvider.AddHandler(new SaslPlainHandler(new EdgeHubSaslPlainAuthenticator(authenticator, identityFactory, iotHubHostName)));

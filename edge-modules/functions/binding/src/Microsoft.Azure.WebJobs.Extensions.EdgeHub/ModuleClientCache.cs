@@ -51,7 +51,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
             ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(TransportType.Mqtt_Tcp_Only)
                 .ConfigureAwait(false);
 
-            moduleClient.ProductInfo = "Microsoft.Azure.Devices.Edge.Functions.Binding";
+            moduleClient.ProductInfo = "Microsoft.Azure.WebJobs.Extensions.EdgeHub";
             return moduleClient;
         }
     }
