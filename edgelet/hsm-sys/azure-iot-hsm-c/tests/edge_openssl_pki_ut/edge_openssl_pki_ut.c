@@ -162,6 +162,9 @@ MOCKABLE_FUNCTION(, const char*, get_locality, CERT_PROPS_HANDLE, handle);
 MOCKABLE_FUNCTION(, const char*, get_organization_name, CERT_PROPS_HANDLE, handle);
 MOCKABLE_FUNCTION(, const char*, get_organization_unit, CERT_PROPS_HANDLE, handle);
 MOCKABLE_FUNCTION(, CERTIFICATE_TYPE, get_certificate_type, CERT_PROPS_HANDLE, handle);
+MOCKABLE_FUNCTION(, X509_EXTENSION*, mocked_X509V3_EXT_conf_nid, struct lhash_st_CONF_VALUE*, conf, X509V3_CTX*, ctx, int, ext_nid, char*, value);
+MOCKABLE_FUNCTION(, int, X509_add_ext, X509*, x, X509_EXTENSION*, ex, int, loc);
+MOCKABLE_FUNCTION(, void, X509_EXTENSION_free, X509_EXTENSION*, ex);
 
 #undef ENABLE_MOCKS
 
@@ -251,7 +254,7 @@ static TEST_MUTEX_HANDLE g_dllByDll;
 #define TEST_CERT_PROPS_HANDLE (CERT_PROPS_HANDLE)0x2029
 #define TEST_WRITE_PRIVATE_KEY_FD (int)0x2030
 #define TEST_WRITE_CERTIFICATE_FD (int)0x2031
-
+#define TEST_NID_EXTENSION (X509_EXTENSION*)0x2032
 #define TEST_UTC_TIME_FROM_ASN1 1000
 #define VALID_ASN1_TIME_STRING_UTC_FORMAT 0x17
 #define VALID_ASN1_TIME_STRING_UTC_LEN    13
@@ -1042,6 +1045,36 @@ static CERTIFICATE_TYPE test_hook_get_certificate_type(CERT_PROPS_HANDLE handle)
     return TEST_PROPS_CERT_TYPE;
 }
 
+static X509_EXTENSION* test_hook_mocked_X509V3_EXT_conf_nid
+(
+    struct lhash_st_CONF_VALUE *conf,
+    X509V3_CTX *ctx,
+    int ext_nid,
+    char *value
+)
+{
+    (void)conf;
+    (void)ctx;
+    (void)ext_nid;
+    (void)value;
+
+    return TEST_NID_EXTENSION;
+}
+
+static int test_hook_X509_add_ext(X509* x, X509_EXTENSION* ex, int loc)
+{
+    (void)x;
+    (void)ex;
+    (void)loc;
+
+    return 1;
+}
+
+static void test_hook_X509_EXTENSION_free(X509_EXTENSION* ex)
+{
+    (void)ex;
+}
+
 //#############################################################################
 // Test helpers
 //#############################################################################
@@ -1376,6 +1409,68 @@ static void test_helper_cert_create_with_subject
 
         STRICT_EXPECTED_CALL(BASIC_CONSTRAINTS_free(&TEST_NON_CA_BASIC_CONSTRAINTS));
         ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        i++;
+    }
+
+    if (cert_type == CERTIFICATE_TYPE_CA)
+    {
+        STRICT_EXPECTED_CALL(mocked_X509V3_EXT_conf_nid(NULL, NULL, NID_key_usage, "critical, digitalSignature, keyCertSign"));
+        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        i++;
+
+        STRICT_EXPECTED_CALL(X509_add_ext(TEST_X509, TEST_NID_EXTENSION, -1));
+        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        i++;
+
+        STRICT_EXPECTED_CALL(X509_EXTENSION_free(TEST_NID_EXTENSION));
+        i++;
+    }
+    else if (cert_type == CERTIFICATE_TYPE_CLIENT)
+    {
+        STRICT_EXPECTED_CALL(mocked_X509V3_EXT_conf_nid(NULL, NULL, NID_key_usage, "critical, nonRepudiation, digitalSignature, keyEncipherment, dataEncipherment"));
+        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        i++;
+
+        STRICT_EXPECTED_CALL(X509_add_ext(TEST_X509, TEST_NID_EXTENSION, -1));
+        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        i++;
+
+        STRICT_EXPECTED_CALL(X509_EXTENSION_free(TEST_NID_EXTENSION));
+        i++;
+
+        STRICT_EXPECTED_CALL(mocked_X509V3_EXT_conf_nid(NULL, NULL, NID_ext_key_usage, "clientAuth"));
+        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        i++;
+
+        STRICT_EXPECTED_CALL(X509_add_ext(TEST_X509, TEST_NID_EXTENSION, -1));
+        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        i++;
+
+        STRICT_EXPECTED_CALL(X509_EXTENSION_free(TEST_NID_EXTENSION));
+        i++;
+    }
+    else
+    {
+        STRICT_EXPECTED_CALL(mocked_X509V3_EXT_conf_nid(NULL, NULL, NID_key_usage, "critical, nonRepudiation, digitalSignature, keyEncipherment, dataEncipherment, keyAgreement"));
+        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        i++;
+
+        STRICT_EXPECTED_CALL(X509_add_ext(TEST_X509, TEST_NID_EXTENSION, -1));
+        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        i++;
+
+        STRICT_EXPECTED_CALL(X509_EXTENSION_free(TEST_NID_EXTENSION));
+        i++;
+
+        STRICT_EXPECTED_CALL(mocked_X509V3_EXT_conf_nid(NULL, NULL, NID_ext_key_usage, "serverAuth"));
+        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        i++;
+
+        STRICT_EXPECTED_CALL(X509_add_ext(TEST_X509, TEST_NID_EXTENSION, -1));
+        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        i++;
+
+        STRICT_EXPECTED_CALL(X509_EXTENSION_free(TEST_NID_EXTENSION));
         i++;
     }
 
@@ -1989,6 +2084,14 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
 
         REGISTER_GLOBAL_MOCK_HOOK(get_certificate_type, test_hook_get_certificate_type);
         REGISTER_GLOBAL_MOCK_FAIL_RETURN(get_certificate_type, CERTIFICATE_TYPE_UNKNOWN);
+
+        REGISTER_GLOBAL_MOCK_HOOK(mocked_X509V3_EXT_conf_nid, test_hook_mocked_X509V3_EXT_conf_nid);
+        REGISTER_GLOBAL_MOCK_FAIL_RETURN(mocked_X509V3_EXT_conf_nid, NULL);
+
+        REGISTER_GLOBAL_MOCK_HOOK(X509_add_ext, test_hook_X509_add_ext);
+        REGISTER_GLOBAL_MOCK_FAIL_RETURN(X509_add_ext, 0);
+
+        REGISTER_GLOBAL_MOCK_HOOK(X509_EXTENSION_free, test_hook_X509_EXTENSION_free);
     }
 
     TEST_SUITE_CLEANUP(TestClassCleanup)
