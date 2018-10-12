@@ -259,7 +259,7 @@ extern int set_san_entries
 * @return               A pointer to a list of NULL terminated strings containing the SAN entries,
 *                       NULL otherwise.
 */
-extern const char const** get_san_entries(CERT_PROPS_HANDLE handle, size_t *num_entries);
+extern const char * const* get_san_entries(CERT_PROPS_HANDLE handle, size_t *num_entries);
 
 #ifdef __cplusplus
 }

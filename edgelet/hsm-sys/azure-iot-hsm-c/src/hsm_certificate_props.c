@@ -66,7 +66,7 @@ static void destroy_san_entries(CERT_PROPS_HANDLE handle)
     }
     if (handle->san_list_ro != NULL)
     {
-        free(handle->san_list_ro);
+        free((void*)(handle->san_list_ro));
         handle->san_list_ro = NULL;
     }
     handle->num_san_entries = 0;
@@ -682,9 +682,9 @@ int set_san_entries
     return result;
 }
 
-const char const** get_san_entries(CERT_PROPS_HANDLE handle, size_t *num_entries)
+const char * const* get_san_entries(CERT_PROPS_HANDLE handle, size_t *num_entries)
 {
-    char const **result;
+    const char * const* result;
 
     if (num_entries == NULL)
     {

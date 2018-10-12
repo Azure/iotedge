@@ -1010,7 +1010,7 @@ BEGIN_TEST_SUITE(hsm_certificate_props_ut)
     TEST_FUNCTION(certificate_props_get_san_entries_bad_params)
     {
         //arrange
-        const char const** test_output;
+        const char * const* test_output;
         size_t num_entries = 10;
 
         CERT_PROPS_HANDLE props_handle = cert_properties_create();
@@ -1035,7 +1035,7 @@ BEGIN_TEST_SUITE(hsm_certificate_props_ut)
     TEST_FUNCTION(certificate_props_get_san_entries_default_has_no_entries)
     {
         //arrange
-        const char const** test_output;
+        const char * const* test_output;
         size_t num_entries = 10;
 
         CERT_PROPS_HANDLE props_handle = cert_properties_create();
@@ -1059,7 +1059,7 @@ BEGIN_TEST_SUITE(hsm_certificate_props_ut)
     TEST_FUNCTION(certificate_props_get_set_san_entries)
     {
         //arrange
-        const char const** test_output;
+        const char * const* test_output;
         const char* test_input_string_1 = TEST_STRING_64;
         const char* test_input_string_2 = TEST_STRING_128;
         char const* san_list_1[] = { test_input_string_1, test_input_string_2 };
