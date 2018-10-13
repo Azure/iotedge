@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         readonly string iotHubHostName;
         readonly ICredentialsCache credentialsCache;
         readonly ConcurrentDictionary<string, CredentialsInfo> clientCredentialsMap = new ConcurrentDictionary<string, CredentialsInfo>();
-        bool disposed;
+        bool disposed;        
 
         ISendingAmqpLink sendingLink;
         IReceivingAmqpLink receivingLink;
@@ -71,43 +71,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             Events.LinkRegistered(link);
         }
 
-        // TODO: Temporary implementation - just get the first credentials and return it. 
-        public async Task<AmqpAuthentication> GetAmqpAuthentication()
-        {
-            if (!this.clientCredentialsMap.Any())
-            {
-                throw new InvalidOperationException("No valid credentials found");
-            }
-
-            KeyValuePair<string, CredentialsInfo> creds = this.clientCredentialsMap.First();
-            if (!creds.Value.IsAuthenticated)
-            {
-                creds.Value.IsAuthenticated = await this.authenticator.AuthenticateAsync(creds.Value.ClientCredentials);
-            }
-            return new AmqpAuthentication(creds.Value.IsAuthenticated, Option.Some(creds.Value.ClientCredentials));
-        }
-
         public async Task<bool> AuthenticateAsync(string id)
         {
             try
             {
                 if (this.clientCredentialsMap.TryGetValue(id, out CredentialsInfo credentialsInfo))
                 {
-                    // Not -ve caching isAuthenticated here.
-                    // If incorrect credentials are sent, then it authenticates every time and fails
-                    // If correct credentials are sent later, then the authentication will succeed.
-                    if (!credentialsInfo.IsAuthenticated)
+                    if (credentialsInfo.IsAuthenticated)
                     {
-                        using (await credentialsInfo.AsyncLock.LockAsync())
-                        {
-                            if (!credentialsInfo.IsAuthenticated)
-                            {
-                                credentialsInfo.IsAuthenticated = await this.authenticator.AuthenticateAsync(credentialsInfo.ClientCredentials);
-                            }
-                        }
+                        return true;
                     }
+                    else
+                    {
+                        bool isAuthenticated = await this.authenticator.AuthenticateAsync(credentialsInfo.ClientCredentials);
+                        if (isAuthenticated)
+                        {
+                            credentialsInfo.IsAuthenticated = true;
+                        }
 
-                    return credentialsInfo.IsAuthenticated;
+                        return isAuthenticated;
+                    }
                 }
                 else
                 {
@@ -119,19 +102,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 Events.ErrorAuthenticatingIdentity(id, e);
                 return false;
             }
-        }        
+        }
 
-        async void OnMessageReceived(AmqpMessage message)
+        public Option<IIdentity> GetIdentity(string id)
+        {
+            if (this.clientCredentialsMap.TryGetValue(id, out CredentialsInfo credentialsInfo))
+            {
+                return Option.Some(credentialsInfo.ClientCredentials.Identity);
+            }
+
+            return Option.None<IIdentity>();
+        }
+
+        void OnMessageReceived(AmqpMessage message)
         {
             Events.NewTokenReceived();
-            try
-            {
-                await this.HandleTokenUpdate(message);
-            }
-            catch (Exception ex)
-            {
-                Events.ErrorHandlingTokenUpdate(ex);
-            }
+            this.HandleTokenUpdate(message);
         }
 
         async Task HandleTokenUpdate(AmqpMessage message)
@@ -151,13 +137,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             }
         }
 
-        // Note: This method updates this.clientCredentialsMap, and should be invoked only within this.identitySyncLock
+        // Note: This method accesses this.amqpAuthentication, and should be invoked only within this.identitySyncLock
         internal async Task<(AmqpResponseStatusCode, string)> UpdateCbsToken(AmqpMessage message)
         {
-            IClientCredentials clientCredentials;
+            IClientCredentials identity;
             try
             {
-                clientCredentials = this.GetClientCredentials(message);
+                identity = this.GetClientCredentials(message);
             }
             catch (Exception e) when (!ExceptionEx.IsFatal(e))
             {
@@ -165,25 +151,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 return (AmqpResponseStatusCode.BadRequest, e.Message);
             }
 
-            if (!this.clientCredentialsMap.TryGetValue(clientCredentials.Identity.Id, out CredentialsInfo credentialsInfo))
+            if (!this.clientCredentialsMap.TryGetValue(identity.Identity.Id, out CredentialsInfo credentialsInfo))
             {
-                this.clientCredentialsMap[clientCredentials.Identity.Id] = new CredentialsInfo(clientCredentials);
+                this.clientCredentialsMap[identity.Identity.Id] = new CredentialsInfo(identity);
             }
             else
             {
-                using (await credentialsInfo.AsyncLock.LockAsync())
-                {
-                    credentialsInfo.ClientCredentials = clientCredentials;
-                }
-
+                credentialsInfo.ClientCredentials = identity;
                 if (credentialsInfo.IsAuthenticated)
                 {
-                    await this.credentialsCache.Add(clientCredentials);
-                    Events.CbsTokenUpdated(clientCredentials.Identity);
-                }
-                else
-                {
-                    Events.CbsTokenNotUpdated(clientCredentials.Identity);
+                    await this.credentialsCache.Add(identity);
                 }
             }
 
@@ -308,14 +285,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             {
                 this.ClientCredentials = clientCredentials;
                 this.IsAuthenticated = false;
-                this.AsyncLock = new AsyncLock();
             }
 
             public IClientCredentials ClientCredentials { get; set; }
 
             public bool IsAuthenticated { get; set; }
-
-            public AsyncLock AsyncLock { get; }
         }
 
         static class Events
@@ -330,9 +304,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 ErrorUpdatingToken,
                 ErrorGettingIdentity,
                 TokenUpdated,
-                ErrorSendingResponse,
-                ErrorHandlingTokenUpdate,
-                CbsTokenNotUpdated
+                ErrorSendingResponse
             }
 
             public static void LinkRegistered(IAmqpLink link)
@@ -355,9 +327,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 Log.LogWarning((int)EventIds.ErrorGettingIdentity, exception, "Error getting identity from the token received on the Cbs link");
             }
 
-            public static void ErrorAuthenticatingIdentity(string id, Exception e)
+            public static void ErrorAuthenticatingIdentity(IIdentity identity)
             {
-                Log.LogWarning((int)EventIds.ErrorGettingIdentity, e, $"Error authenticating token received on the Cbs link for {id}");
+                Log.LogWarning((int)EventIds.ErrorGettingIdentity, $"Error authenticating token received on the Cbs link for {identity.Id}");
             }
 
             public static void CbsTokenUpdated(IIdentity identity)
@@ -368,16 +340,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             public static void ErrorSendingResponse(Exception exception)
             {
                 Log.LogWarning((int)EventIds.ErrorSendingResponse, exception, "Error sending response message");
-            }
-
-            public static void ErrorHandlingTokenUpdate(Exception exception)
-            {
-                Log.LogWarning((int)EventIds.ErrorHandlingTokenUpdate, exception, "Error handling token update");
-            }
-
-            public static void CbsTokenNotUpdated(IIdentity identity)
-            {
-                Log.LogDebug((int)EventIds.CbsTokenNotUpdated, $"Got a new token for an unauthenticated identity {identity.Id}, not updating credentials cache");
             }
         }
     }

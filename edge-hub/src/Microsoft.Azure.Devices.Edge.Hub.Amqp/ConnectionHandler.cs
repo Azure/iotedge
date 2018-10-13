@@ -36,6 +36,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             this.connectionProvider = Preconditions.CheckNotNull(connectionProvider, nameof(connectionProvider));
         }
 
+        public ConnectionHandler(string id, IClientCredentials credentia)
+
+        public static async Task<ConnectionHandler> Create(string id, IAmqpConnection connection, IConnectionProvider connectionProvider)
+        {
+            IAmqpAuthenticator amqpAuth;
+            Option<IIdentity> identityOption;
+            // Check if Principal is SaslPrincipal
+            if (connection.Principal is SaslPrincipal saslPrincipal)
+            {
+                amqpAuth = saslPrincipal;
+                identityOption = saslPrincipal.AmqpAuthentication.ClientCredentials.Map(c => c.Identity);
+            }
+            else
+            {
+                // Else the connection uses CBS authentication. Get AmqpAuthentication from the CbsNode                    
+                var cbsNode = connection.FindExtension<ICbsNode>();
+                amqpAuth = cbsNode ?? throw new InvalidOperationException("CbsNode is null");
+                identityOption = cbsNode.GetIdentity(id);
+            }
+
+            IIdentity identity = identityOption.Expect(() => new InvalidOperationException($"Unable to find an identity for {id}"));
+            IDeviceListener deviceListener = await connectionProvider.GetDeviceListenerAsync(identity);
+            var deviceProxy = new DeviceProxy(this, identity.Identity);
+            this.deviceListener.BindDeviceProxy(deviceProxy);
+            Events.InitializedConnectionHandler(identity.Identity);
+        }
+
         public async Task<IDeviceListener> GetDeviceListener()
         {
             await this.EnsureInitialized();
