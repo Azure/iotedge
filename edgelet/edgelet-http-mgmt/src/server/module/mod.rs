@@ -117,8 +117,7 @@ where
                         )
                     })
             })
-        })
-        .map_err(From::from);
+        }).map_err(From::from);
     Box::new(details)
 }
 
@@ -131,14 +130,14 @@ where
 {
     let name = spec.name();
     let type_ = spec.type_();
-    let env = spec.config()
+    let env = spec
+        .config()
         .env()
         .map(|vars| {
             vars.into_iter()
                 .map(|var| (var.key().clone(), var.value().clone()))
                 .collect()
-        })
-        .unwrap_or_else(HashMap::new);
+        }).unwrap_or_else(HashMap::new);
     let config = serde_json::from_value(spec.config().settings().clone())?;
     let module_spec = CoreModuleSpec::new(name, type_, config, env)?;
     Ok(module_spec)
@@ -211,8 +210,7 @@ pub mod tests {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
                 assert_eq!("manifest for image:latest not found", error.message());
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 
@@ -233,8 +231,7 @@ pub mod tests {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
                 assert_eq!("Conflict with current operation", error.message());
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 
@@ -255,8 +252,7 @@ pub mod tests {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
                 assert_eq!("Invalid URL", error.message());
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 
@@ -279,8 +275,7 @@ pub mod tests {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
                 assert_eq!("manifest for image:latest not found", error.message());
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 }
