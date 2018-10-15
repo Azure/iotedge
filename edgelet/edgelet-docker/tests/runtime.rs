@@ -95,8 +95,9 @@ fn image_pull_with_invalid_image_name_fails() {
     let server = run_tcp_server("127.0.0.1", port, invalid_image_name_pull_handler)
         .map_err(|err| eprintln!("{}", err));
 
-    let mri = DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
-        .unwrap();
+    let mri = 
+        DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
+            .unwrap();
 
     let auth = AuthConfig::new()
         .with_username("u1".to_string())
@@ -175,8 +176,9 @@ fn image_pull_with_invalid_image_host_fails() {
     let server = run_tcp_server("127.0.0.1", port, invalid_image_host_pull_handler)
         .map_err(|err| eprintln!("{}", err));
 
-    let mri = DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
-        .unwrap();
+    let mri = 
+        DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
+            .unwrap();
 
     let auth = AuthConfig::new()
         .with_username("u1".to_string())
@@ -225,7 +227,8 @@ fn image_pull_with_invalid_creds_handler(
     assert_eq!(query_map.get("fromImage"), Some(&IMAGE_NAME.to_string()));
 
     // verify registry creds
-    let auth_str = req.headers()
+    let auth_str = req
+        .headers()
         .get_all("X-Registry-Auth")
         .into_iter()
         .map(|bytes| base64::decode(bytes).unwrap())
@@ -269,8 +272,9 @@ fn image_pull_with_invalid_creds_fails() {
     let server = run_tcp_server("127.0.0.1", port, image_pull_with_invalid_creds_handler)
         .map_err(|err| eprintln!("{}", err));
 
-    let mri = DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
-        .unwrap();
+    let mri = 
+        DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
+            .unwrap();
 
     let auth = AuthConfig::new()
         .with_username("u1".to_string())
@@ -345,8 +349,9 @@ fn image_pull_succeeds() {
     let server =
         run_tcp_server("127.0.0.1", port, image_pull_handler).map_err(|err| eprintln!("{}", err));
 
-    let mri = DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
-        .unwrap();
+    let mri = 
+        DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
+            .unwrap();
 
     let auth = AuthConfig::new()
         .with_username("u1".to_string())
@@ -378,7 +383,8 @@ fn image_pull_with_creds_handler(
     assert_eq!(query_map.get("fromImage"), Some(&IMAGE_NAME.to_string()));
 
     // verify registry creds
-    let auth_str = req.headers()
+    let auth_str = req
+        .headers()
         .get_all("X-Registry-Auth")
         .into_iter()
         .map(|bytes| base64::decode(bytes).unwrap())
@@ -419,8 +425,9 @@ fn image_pull_with_creds_succeeds() {
     let server = run_tcp_server("127.0.0.1", port, image_pull_with_creds_handler)
         .map_err(|err| eprintln!("{}", err));
 
-    let mri = DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
-        .unwrap();
+    let mri = 
+        DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
+            .unwrap();
 
     let auth = AuthConfig::new()
         .with_username("u1".to_string())
@@ -464,9 +471,9 @@ fn image_remove_succeeds() {
     let server =
         run_tcp_server("127.0.0.1", port, image_remove_handler).map_err(|err| eprintln!("{}", err));
 
-    let mut mri = DockerModuleRuntime::new(
-        &Url::parse(&format!("http://localhost:{}/", port)).unwrap()
-    ).unwrap();
+    let mut mri = 
+        DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
+            .unwrap();
 
     let task = ModuleRegistry::remove(&mut mri, IMAGE_NAME);
 
@@ -551,8 +558,7 @@ fn container_create_handler(
                 assert_eq!(*volumes, expected);
 
                 Ok(())
-            })
-            .map(move |_| {
+            }).map(move |_| {
                 let mut response = Response::new(response.into());
                 response
                     .headers_mut()
@@ -594,16 +600,13 @@ fn container_create_succeeds() {
             HostConfig::new()
                 .with_port_bindings(port_bindings)
                 .with_memory(memory),
-        )
-        .with_cmd(vec![
+        ).with_cmd(vec![
             "/do/the/custom/command".to_string(),
             "with these args".to_string(),
-        ])
-        .with_entrypoint(vec![
+        ]).with_entrypoint(vec![
             "/also/do/the/entrypoint".to_string(),
             "and this".to_string(),
-        ])
-        .with_env(vec!["k4=v4".to_string(), "k5=v5".to_string()])
+        ]).with_env(vec!["k4=v4".to_string(), "k5=v5".to_string()])
         .with_volumes(volumes);
 
     let module_config = ModuleSpec::new(
@@ -613,9 +616,10 @@ fn container_create_succeeds() {
         env,
     ).unwrap();
 
-    let mri = DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
-        .unwrap()
-        .with_network_id("edge-network".to_string());
+    let mri = 
+        DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
+            .unwrap()
+            .with_network_id("edge-network".to_string());
 
     let task = mri.create(module_config);
 
@@ -639,8 +643,9 @@ fn container_start_succeeds() {
     let server = run_tcp_server("127.0.0.1", port, container_start_handler)
         .map_err(|err| eprintln!("{}", err));
 
-    let mri = DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
-        .unwrap();
+    let mri = 
+        DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
+            .unwrap();
 
     let task = mri.start("m1");
 
@@ -664,8 +669,9 @@ fn container_stop_succeeds() {
     let server = run_tcp_server("127.0.0.1", port, container_stop_handler)
         .map_err(|err| eprintln!("{}", err));
 
-    let mri = DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
-        .unwrap();
+    let mri = 
+        DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
+            .unwrap();
 
     let task = mri.stop("m1", None);
 
@@ -690,8 +696,9 @@ fn container_stop_with_timeout_succeeds() {
     let server = run_tcp_server("127.0.0.1", port, container_stop_with_timeout_handler)
         .map_err(|err| eprintln!("{}", err));
 
-    let mri = DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
-        .unwrap();
+    let mri = 
+        DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
+            .unwrap();
 
     let task = mri.stop("m1", Some(Duration::from_secs(600)));
 
@@ -715,9 +722,9 @@ fn container_remove_succeeds() {
     let server = run_tcp_server("127.0.0.1", port, container_remove_handler)
         .map_err(|err| eprintln!("{}", err));
 
-    let mut mri = DockerModuleRuntime::new(
-        &Url::parse(&format!("http://localhost:{}/", port)).unwrap()
-    ).unwrap();
+    let mut mri = 
+        DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
+            .unwrap();
 
     let task = ModuleRuntime::remove(&mut mri, "m1");
 
@@ -738,9 +745,11 @@ fn container_list_handler(
     assert!(query_map.contains_key("filters"));
     assert_eq!(
         query_map.get("filters"),
-        Some(&json!({
-            "label": vec!["net.azure-devices.edge.owner=Microsoft.Azure.Devices.Edge.Agent"]
-        }).to_string())
+        Some(
+            &json!({
+                "label": vec!["net.azure-devices.edge.owner=Microsoft.Azure.Devices.Edge.Agent"]
+            }).to_string()
+        )
     );
 
     let mut labels = HashMap::new();
@@ -821,8 +830,9 @@ fn container_list_succeeds() {
     let server = run_tcp_server("127.0.0.1", port, container_list_handler)
         .map_err(|err| eprintln!("{}", err));
 
-    let mri = DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
-        .unwrap();
+    let mri = 
+        DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
+            .unwrap();
 
     let task = mri.list();
 
@@ -890,8 +900,9 @@ fn container_logs_succeeds() {
     let server = run_tcp_server("127.0.0.1", port, container_logs_handler)
         .map_err(|err| eprintln!("{}", err));
 
-    let mri = DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
-        .unwrap();
+    let mri = 
+        DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
+            .unwrap();
 
     let options = LogOptions::new().with_follow(true).with_tail(LogTail::All);
     let task = mri.logs("mod1", &options);
@@ -971,9 +982,10 @@ fn runtime_init_network_does_not_exist_create() {
         }
     }).map_err(|err| eprintln!("{}", err));
 
-    let mri = DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
-        .unwrap()
-        .with_network_id("azure-iot-edge".to_string());
+    let mri = 
+        DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
+            .unwrap()
+            .with_network_id("azure-iot-edge".to_string());
 
     //act
     let task = mri.init();
@@ -1064,9 +1076,10 @@ fn runtime_init_network_exist_do_not_create() {
         }
     }).map_err(|err| eprintln!("{}", err));
 
-    let mri = DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
-        .unwrap()
-        .with_network_id("azure-iot-edge".to_string());
+    let mri = 
+        DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
+            .unwrap()
+            .with_network_id("azure-iot-edge".to_string());
 
     //act
     let task = mri.init();
@@ -1117,8 +1130,9 @@ fn runtime_system_info_succeed() {
         }
     }).map_err(|err| eprintln!("{}", err));
 
-    let mri = DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
-        .unwrap();
+    let mri = 
+        DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
+            .unwrap();
 
     //act
     let task = mri.system_info();
@@ -1165,8 +1179,9 @@ fn runtime_system_info_none_returns_unkown() {
         }
     }).map_err(|err| eprintln!("{}", err));
 
-    let mri = DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
-        .unwrap();
+    let mri = 
+        DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
+            .unwrap();
 
     //act
     let task = mri.system_info();
