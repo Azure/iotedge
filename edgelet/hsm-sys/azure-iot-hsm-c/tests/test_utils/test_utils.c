@@ -148,7 +148,7 @@ void hsm_test_util_delete_dir(const char *dir_guid)
         FALSE,
         NULL,
         NULL };
-    status = SHFileOperation(&shfo);
+    status = SHFileOperationA(&shfo);
 #else
     const char *cmd_prefix = "rm -fr ";
     size_t cmd_size = strlen(cmd_prefix) + MAX_FILE_NAME_SIZE + 1;
