@@ -150,12 +150,11 @@ impl From<DockerError<serde_json::Value>> for Error {
                 inner: Error::from(error).context(ErrorKind::Docker),
             },
             DockerError::ApiError(error) => match error.code {
-                StatusCode::NOT_FOUND => match get_message(error) {
-                    Ok(message) => Error::from(ErrorKind::NotFound(message)),
-                    Err(error) => {
+                StatusCode::NOT_FOUND => get_message(error)
+                    .map(|message| Error::from(ErrorKind::NotFound(message)))
+                    .unwrap_or_else(|e| {
                         Error::from(ErrorKind::DockerRuntime(DockerError::ApiError(error)))
-                    }
-                },
+                    }),
                 StatusCode::CONFLICT => Error::from(ErrorKind::Conflict),
                 StatusCode::NOT_MODIFIED => Error::from(ErrorKind::NotModified),
                 _ => get_message(error)
