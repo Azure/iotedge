@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "azure_c_shared_utility/crt_abstractions.h"
+#include "azure_c_shared_utility/gballoc.h"
 #include "azure_c_shared_utility/xlogging.h"
 
 #include "hsm_certificate_props.h"
@@ -632,16 +633,24 @@ int set_san_entries
         size_t i;
         size_t list_size = num_san_entries * sizeof(char*);
         destroy_san_entries(handle);
-        if (((handle->san_list = (char **)malloc(list_size)) == NULL) ||
-            ((handle->san_list_ro = (char const**)malloc(list_size)) == NULL))
+
+        if ((handle->san_list = (char **)malloc(list_size)) == NULL)
         {
             LogError("Could not allocate memory for SAN list");
+            result = __LINE__;
+        }
+        else if ((handle->san_list_ro = (char const**)malloc(list_size)) == NULL)
+        {
+            LogError("Could not allocate memory for SAN list pointers");
+            free(handle->san_list);
+            handle->san_list = NULL;
             result = __LINE__;
         }
         else
         {
             bool fail_flag = false;
             memset(handle->san_list, 0, list_size);
+            memset(handle->san_list_ro, 0, list_size);
             for (i = 0; i < num_san_entries; i++)
             {
                 char *dest = NULL;

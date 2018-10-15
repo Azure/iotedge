@@ -40,6 +40,7 @@ static void* my_gballoc_calloc(size_t num, size_t size)
 #include "azure_c_shared_utility/macro_utils.h"
 
 #define ENABLE_MOCKS
+#include "azure_c_shared_utility/crt_abstractions.h"
 #include "azure_c_shared_utility/gballoc.h"
 #include "azure_c_shared_utility/umock_c_prod.h"
 #undef ENABLE_MOCKS
@@ -50,6 +51,9 @@ static void* my_gballoc_calloc(size_t num, size_t size)
 extern "C"
 {
 #endif
+
+int real_mallocAndStrcpy_s(char** destination, const char* source);
+
 #ifdef __cplusplus
 }
 #endif
@@ -96,6 +100,9 @@ BEGIN_TEST_SUITE(hsm_certificate_props_ut)
         REGISTER_GLOBAL_MOCK_FAIL_RETURN(gballoc_realloc, NULL);
 
         REGISTER_GLOBAL_MOCK_HOOK(gballoc_free, my_gballoc_free);
+
+        REGISTER_GLOBAL_MOCK_HOOK(mallocAndStrcpy_s, real_mallocAndStrcpy_s);
+        REGISTER_GLOBAL_MOCK_FAIL_RETURN(mallocAndStrcpy_s, 1);
 
         (void)umock_c_init(on_umock_c_error);
         (void)umocktypes_bool_register_types();
@@ -1119,4 +1126,53 @@ BEGIN_TEST_SUITE(hsm_certificate_props_ut)
         cert_properties_destroy(props_handle);
     }
 
-    END_TEST_SUITE(hsm_certificate_props_ut)
+    /**
+    * Test function for APIs
+    *   set_san_entries
+    *   get_san_entries
+    */
+    TEST_FUNCTION(certificate_props_get_set_san_entries_negative)
+    {
+        //arrange
+        int test_result = umock_c_negative_tests_init();
+        ASSERT_ARE_EQUAL(int, 0, test_result);
+
+        const char * const* test_output;
+        const char* test_input_string_1 = TEST_STRING_64;
+        const char* test_input_string_2 = TEST_STRING_128;
+        char const* san_list[] = { test_input_string_1, test_input_string_2 };
+        size_t san_list_size = sizeof(san_list) / sizeof(san_list[0]);
+        size_t i;
+        CERT_PROPS_HANDLE props_handle = cert_properties_create();
+
+        umock_c_reset_all_calls();
+        STRICT_EXPECTED_CALL(gballoc_malloc(sizeof(char*) * san_list_size));
+        STRICT_EXPECTED_CALL(gballoc_malloc(sizeof(char*) * san_list_size));
+        for (i = 0; i < san_list_size; i++)
+        {
+            STRICT_EXPECTED_CALL(mallocAndStrcpy_s(IGNORED_PTR_ARG, san_list[i]));
+        }
+        umock_c_negative_tests_snapshot();
+
+        for (i = 0; i < umock_c_negative_tests_call_count(); i++)
+        {
+            size_t num_entries = 10;
+            umock_c_negative_tests_reset();
+            umock_c_negative_tests_fail_call(i);
+
+            // act
+            int status = set_san_entries(props_handle, san_list, san_list_size);
+
+            // assert
+            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+            test_output = get_san_entries(props_handle, &num_entries);
+            ASSERT_IS_NULL_WITH_MSG(test_output, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, num_entries, "Line:" TOSTRING(__LINE__));
+        }
+
+        //cleanup
+        cert_properties_destroy(props_handle);
+        umock_c_negative_tests_deinit();
+    }
+
+END_TEST_SUITE(hsm_certificate_props_ut)
