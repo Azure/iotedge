@@ -16,6 +16,11 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         internal Option(T value, bool hasValue)
         {
+            if (hasValue && value == null)
+            {
+                throw new ArgumentOutOfRangeException(nameof(value), "Value cannot be null if hasValue flag is set to true.");
+            }
+
             this.Value = value;
             this.HasValue = hasValue;
         }
@@ -211,7 +216,6 @@ namespace Microsoft.Azure.Devices.Edge.Util
         /// </summary>
         public static Option<T> None<T>() => new Option<T>(default(T), false);
 
-        public static Option<T> Maybe<T>(T value) where T : class =>
-            value == null ? None<T>() : Some(value);
+        public static Option<T> Maybe<T>(T value) => value == null ? None<T>() : Some(value);
     }
 }
