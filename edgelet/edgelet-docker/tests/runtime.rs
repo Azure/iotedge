@@ -41,6 +41,272 @@ use edgelet_test_utils::{get_unused_tcp_port, run_tcp_server};
 const IMAGE_NAME: &str = "nginx:latest";
 
 #[cfg(unix)]
+const INVALID_IMAGE_NAME: &str = "invalidname:latest";
+#[cfg(unix)]
+const INVALID_IMAGE_HOST: &str = "invalidhost.com/nginx:latest";
+
+#[cfg(unix)]
+#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
+fn invalid_image_name_pull_handler(
+    req: Request<Body>,
+) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+    // verify that path is /images/create and that the "fromImage" query
+    // parameter has the image name we expect
+    assert_eq!(req.uri().path(), "/images/create");
+
+    let query_map: HashMap<String, String> = parse_query(req.uri().query().unwrap().as_bytes())
+        .into_owned()
+        .collect();
+    assert!(query_map.contains_key("fromImage"));
+    assert_eq!(
+        query_map.get("fromImage"),
+        Some(&INVALID_IMAGE_NAME.to_string())
+    );
+
+    let response = format!(
+        r#"{{
+        "message": "manifest for {} not found"
+    }}
+    "#,
+        &INVALID_IMAGE_NAME.to_string()
+    );
+
+    let response_len = response.len();
+
+    let mut response = Response::new(response.into());
+    response
+        .headers_mut()
+        .typed_insert(&ContentLength(response_len as u64));
+    response
+        .headers_mut()
+        .typed_insert(&ContentType(mime::APPLICATION_JSON));
+    *response.status_mut() = hyper::StatusCode::NOT_FOUND;
+
+    Box::new(future::ok(response))
+}
+
+// This test is super flaky on Windows for some reason. It keeps occassionally
+// failing on Windows with error 10054 which means the server keeps dropping the
+// socket for no reason apparently.
+#[cfg(unix)]
+#[test]
+fn image_pull_with_invalid_image_name_fails() {
+    let port = get_unused_tcp_port();
+    let server = run_tcp_server("127.0.0.1", port, invalid_image_name_pull_handler)
+        .map_err(|err| eprintln!("{}", err));
+
+    let mri =
+        DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
+            .unwrap();
+
+    let auth = AuthConfig::new()
+        .with_username("u1".to_string())
+        .with_password("bleh".to_string())
+        .with_email("u1@bleh.com".to_string())
+        .with_serveraddress("svr1".to_string());
+    let config =
+        DockerConfig::new(INVALID_IMAGE_NAME, ContainerCreateBody::new(), Some(auth)).unwrap();
+
+    let task = mri.pull(&config);
+
+    let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+    runtime.spawn(server);
+
+    // Assert
+    let err = runtime
+        .block_on(task)
+        .expect_err("Expected runtime pull method to fail due to invalid image name.");
+
+    if let edgelet_docker::ErrorKind::NotFound(message) = err.kind() {
+        assert_eq!(
+            &format!("manifest for {} not found", &INVALID_IMAGE_NAME.to_string()),
+            message
+        );
+    } else {
+        panic!("Specific docker runtime message is expected for invalid image name.");
+    }
+}
+
+#[cfg(unix)]
+#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
+fn invalid_image_host_pull_handler(
+    req: Request<Body>,
+) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+    // verify that path is /images/create and that the "fromImage" query
+    // parameter has the image name we expect
+    assert_eq!(req.uri().path(), "/images/create");
+
+    let query_map: HashMap<String, String> = parse_query(req.uri().query().unwrap().as_bytes())
+        .into_owned()
+        .collect();
+    assert!(query_map.contains_key("fromImage"));
+    assert_eq!(
+        query_map.get("fromImage"),
+        Some(&INVALID_IMAGE_HOST.to_string())
+    );
+
+    let response = format!(
+        r#"
+    {{
+        "message":"Get https://invalidhost.com: dial tcp: lookup {} on X.X.X.X: no such host"
+    }}
+    "#,
+        &INVALID_IMAGE_HOST.to_string()
+    );
+    let response_len = response.len();
+
+    let mut response = Response::new(response.into());
+    response
+        .headers_mut()
+        .typed_insert(&ContentLength(response_len as u64));
+    response
+        .headers_mut()
+        .typed_insert(&ContentType(mime::APPLICATION_JSON));
+    *response.status_mut() = hyper::StatusCode::INTERNAL_SERVER_ERROR;
+    Box::new(future::ok(response))
+}
+
+// This test is super flaky on Windows for some reason. It keeps occassionally
+// failing on Windows with error 10054 which means the server keeps dropping the
+// socket for no reason apparently.
+#[cfg(unix)]
+#[test]
+fn image_pull_with_invalid_image_host_fails() {
+    let port = get_unused_tcp_port();
+    let server = run_tcp_server("127.0.0.1", port, invalid_image_host_pull_handler)
+        .map_err(|err| eprintln!("{}", err));
+
+    let mri =
+        DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
+            .unwrap();
+
+    let auth = AuthConfig::new()
+        .with_username("u1".to_string())
+        .with_password("bleh".to_string())
+        .with_email("u1@bleh.com".to_string())
+        .with_serveraddress("svr1".to_string());
+    let config =
+        DockerConfig::new(INVALID_IMAGE_HOST, ContainerCreateBody::new(), Some(auth)).unwrap();
+
+    let task = mri.pull(&config);
+
+    let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+    runtime.spawn(server);
+
+    // Assert
+    let err = runtime
+        .block_on(task)
+        .expect_err("Expected runtime pull method to fail due to invalid image host.");
+
+    if let edgelet_docker::ErrorKind::FormattedDockerRuntime(message) = err.kind() {
+        assert_eq!(
+            &format!(
+                "Get https://invalidhost.com: dial tcp: lookup {} on X.X.X.X: no such host",
+                &INVALID_IMAGE_HOST.to_string()
+            ),
+            message
+        );
+    } else {
+        panic!("Specific docker runtime message is expected for invalid image host.");
+    }
+}
+
+#[cfg(unix)]
+#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
+fn image_pull_with_invalid_creds_handler(
+    req: Request<Body>,
+) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+    // verify that path is /images/create and that the "fromImage" query
+    // parameter has the image name we expect
+    assert_eq!(req.uri().path(), "/images/create");
+
+    let query_map: HashMap<String, String> = parse_query(req.uri().query().unwrap().as_bytes())
+        .into_owned()
+        .collect();
+    assert!(query_map.contains_key("fromImage"));
+    assert_eq!(query_map.get("fromImage"), Some(&IMAGE_NAME.to_string()));
+
+    // verify registry creds
+    let auth_str = req
+        .headers()
+        .get_all("X-Registry-Auth")
+        .into_iter()
+        .map(|bytes| base64::decode(bytes).unwrap())
+        .map(|raw| str::from_utf8(&raw).unwrap().to_owned())
+        .collect::<Vec<String>>()
+        .join("");
+    let auth_config: AuthConfig = serde_json::from_str(&auth_str.to_string()).unwrap();
+    assert_eq!(auth_config.username(), Some(&"u1".to_string()));
+    assert_eq!(auth_config.password(), Some(&"wrong_password".to_string()));
+    assert_eq!(auth_config.email(), Some(&"u1@bleh.com".to_string()));
+    assert_eq!(auth_config.serveraddress(), Some(&"svr1".to_string()));
+
+    let response = format!(
+        r#"
+    {{
+        "message":"Get {}: unauthorized: authentication required"
+    }}
+    "#,
+        IMAGE_NAME
+    );
+    let response_len = response.len();
+
+    let mut response = Response::new(response.into());
+    response
+        .headers_mut()
+        .typed_insert(&ContentLength(response_len as u64));
+    response
+        .headers_mut()
+        .typed_insert(&ContentType(mime::APPLICATION_JSON));
+    *response.status_mut() = hyper::StatusCode::INTERNAL_SERVER_ERROR;
+    Box::new(future::ok(response))
+}
+
+// This test is super flaky on Windows for some reason. It keeps occassionally
+// failing on Windows with error 10054 which means the server keeps dropping the
+// socket for no reason apparently.
+#[cfg(unix)]
+#[test]
+fn image_pull_with_invalid_creds_fails() {
+    let port = get_unused_tcp_port();
+    let server = run_tcp_server("127.0.0.1", port, image_pull_with_invalid_creds_handler)
+        .map_err(|err| eprintln!("{}", err));
+
+    let mri =
+        DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
+            .unwrap();
+
+    let auth = AuthConfig::new()
+        .with_username("u1".to_string())
+        .with_password("wrong_password".to_string())
+        .with_email("u1@bleh.com".to_string())
+        .with_serveraddress("svr1".to_string());
+    let config = DockerConfig::new(IMAGE_NAME, ContainerCreateBody::new(), Some(auth)).unwrap();
+
+    let task = mri.pull(&config);
+
+    let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+    runtime.spawn(server);
+
+    // Assert
+    let err = runtime
+        .block_on(task)
+        .expect_err("Expected runtime pull method to fail due to unauthentication.");
+
+    if let edgelet_docker::ErrorKind::FormattedDockerRuntime(message) = err.kind() {
+        assert_eq!(
+            &format!(
+                "Get {}: unauthorized: authentication required",
+                &IMAGE_NAME.to_string()
+            ),
+            message
+        );
+    } else {
+        panic!("Specific docker runtime message is expected for unauthentication.");
+    }
+}
+
+#[cfg(unix)]
 #[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
 fn image_pull_handler(
     req: Request<Body>,
@@ -745,20 +1011,16 @@ fn runtime_init_network_exist_do_not_create() {
 
     //let mut got_called = false;
 
-    let server =
-        run_tcp_server(
-            "127.0.0.1",
-            port,
-            move |req: Request<Body>| {
-                let method = req.method();
-                match method {
-                    &Method::GET => {
-                        let mut list_got_called_w = list_got_called_lock.write().unwrap();
-                        *list_got_called_w = true;
+    let server = run_tcp_server("127.0.0.1", port, move |req: Request<Body>| {
+        let method = req.method();
+        match method {
+            &Method::GET => {
+                let mut list_got_called_w = list_got_called_lock.write().unwrap();
+                *list_got_called_w = true;
 
-                        assert_eq!(req.uri().path(), "/networks");
+                assert_eq!(req.uri().path(), "/networks");
 
-                        let response = json!([
+                let response = json!([
                             {
                                 "Name": "azure-iot-edge",
                                 "Id": "8e3209d08ed5e73d1c9c8e7580ddad232b6dceb5bf0c6d74cadbed75422eef0e",
@@ -777,36 +1039,42 @@ fn runtime_init_network_exist_do_not_create() {
                                 "Options": {}
                             }
                         ]).to_string();
-                        let response_len = response.len();
+                let response_len = response.len();
 
-                        let mut response = Response::new(response.into());
-                        response.headers_mut().typed_insert(&ContentLength(response_len as u64));
-                        response.headers_mut().typed_insert(&ContentType(mime::APPLICATION_JSON));
-                        return Box::new(future::ok(response));
-                    }
-                    &Method::POST => {
-                        //Netowk create.
-                        let mut create_got_called_w = create_got_called_lock.write().unwrap();
-                        *create_got_called_w = true;
+                let mut response = Response::new(response.into());
+                response
+                    .headers_mut()
+                    .typed_insert(&ContentLength(response_len as u64));
+                response
+                    .headers_mut()
+                    .typed_insert(&ContentType(mime::APPLICATION_JSON));
+                return Box::new(future::ok(response));
+            }
+            &Method::POST => {
+                //Netowk create.
+                let mut create_got_called_w = create_got_called_lock.write().unwrap();
+                *create_got_called_w = true;
 
-                        assert_eq!(req.uri().path(), "/networks/create");
+                assert_eq!(req.uri().path(), "/networks/create");
 
-                        let response = json!({
+                let response = json!({
                             "Id": "12345",
                             "Warnings": ""
                         }).to_string();
-                        let response_len = response.len();
+                let response_len = response.len();
 
-                        let mut response = Response::new(response.into());
-                        response.headers_mut().typed_insert(&ContentLength(response_len as u64));
-                        response.headers_mut().typed_insert(&ContentType(mime::APPLICATION_JSON));
-                        return Box::new(future::ok(response));
-                    }
-                    _ => panic!("Method is not a get neither a post."),
-                }
-            },
-        )
-        .map_err(|err| eprintln!("{}", err));
+                let mut response = Response::new(response.into());
+                response
+                    .headers_mut()
+                    .typed_insert(&ContentLength(response_len as u64));
+                response
+                    .headers_mut()
+                    .typed_insert(&ContentType(mime::APPLICATION_JSON));
+                return Box::new(future::ok(response));
+            }
+            _ => panic!("Method is not a get neither a post."),
+        }
+    }).map_err(|err| eprintln!("{}", err));
 
     let mri =
         DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())

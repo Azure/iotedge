@@ -15,6 +15,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
     public class CloudConnectionProvider : ICloudConnectionProvider
     {
+        // Minimum value allowed by the SDK for Connection Idle timeout for AMQP Multiplexed connections.
+        static readonly TimeSpan MinAmqpConnectionMuxIdleTimeout = TimeSpan.FromSeconds(5);
+
         static readonly IDictionary<UpstreamProtocol, TransportType> UpstreamProtocolTransportTypeMap = new Dictionary<UpstreamProtocol, TransportType>
         {
             [UpstreamProtocol.Amqp] = TransportType.Amqp_Tcp_Only,
@@ -75,7 +78,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                                         AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings
                                         {
                                             Pooling = true,
-                                            MaxPoolSize = (uint)connectionPoolSize
+                                            MaxPoolSize = (uint)connectionPoolSize,
+                                            ConnectionIdleTimeout = MinAmqpConnectionMuxIdleTimeout
                                         }
                                     }
                                 };
@@ -98,7 +102,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                                 AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings
                                 {
                                     Pooling = true,
-                                    MaxPoolSize = (uint)connectionPoolSize
+                                    MaxPoolSize = (uint)connectionPoolSize,
+                                    ConnectionIdleTimeout = MinAmqpConnectionMuxIdleTimeout
                                 }
                             },
                             new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only)
@@ -106,11 +111,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                                 AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings
                                 {
                                     Pooling = true,
-                                    MaxPoolSize = (uint)connectionPoolSize
+                                    MaxPoolSize = (uint)connectionPoolSize,
+                                    ConnectionIdleTimeout = MinAmqpConnectionMuxIdleTimeout
                                 }
                             }
                         });
-        }        
+        }
 
         public async Task<Try<ICloudConnection>> Connect(IClientCredentials identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
         {
@@ -162,5 +168,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Log.LogWarning((int)EventIds.CloudConnectError, exception, $"Error creating cloud connection for client {identity.Id}");
             }
         }
-    }    
+    }
 }
