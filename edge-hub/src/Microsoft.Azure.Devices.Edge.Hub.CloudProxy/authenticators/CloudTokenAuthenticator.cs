@@ -31,20 +31,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             Try<ICloudProxy> cloudProxyTry = await this.connectionManager.CreateCloudConnectionAsync(clientCredentials);
             if (cloudProxyTry.Success)
             {
-                try
-                {
-                    await cloudProxyTry.Value.OpenAsync();
-                    Events.AuthenticatedWithIotHub(clientCredentials.Identity);
-                    return true;
-                }
-                catch (Exception ex)
-                {
-                    Events.ErrorValidatingTokenWithIoTHub(clientCredentials.Identity, ex);
-                }
+                Events.AuthenticatedWithIotHub(clientCredentials.Identity);
+                return true;
             }
             else
             {
-                Events.ErrorGettingCloudProxy(clientCredentials.Identity, cloudProxyTry.Exception);
+                Events.ErrorValidatingTokenWithIoTHub(clientCredentials.Identity, cloudProxyTry.Exception);
             }
 
             return false;

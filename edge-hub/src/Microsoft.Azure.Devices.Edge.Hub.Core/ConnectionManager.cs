@@ -239,6 +239,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 case CloudConnectionStatus.Disconnected:
                     Events.InvokingCloudConnectionLostEvent(device.Identity);
                     this.CloudConnectionLost?.Invoke(this, device.Identity);
+                    await device.CloudConnection.Filter(cp => cp.IsActive).ForEachAsync(cp =>
+                    {
+                        Events.CloudConnectionLostClosingClient(device.Identity);
+                        return cp.CloseAsync();
+                    });
                     break;
 
                 case CloudConnectionStatus.ConnectionEstablished:
@@ -406,7 +411,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 ProcessingTokenNearExpiryEvent,
                 InvokingCloudConnectionLostEvent,
                 InvokingCloudConnectionEstablishedEvent,
-                HandlingConnectionStatusChangedHandler
+                HandlingConnectionStatusChangedHandler,
+                CloudConnectionLostClosingClient
             }
 
             public static void NewCloudConnection(IIdentity identity, Try<ICloudConnection> cloudConnection)
@@ -461,6 +467,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             public static void HandlingConnectionStatusChangedHandler(string deviceId, CloudConnectionStatus connectionStatus)
             {
                 Log.LogInformation((int)EventIds.HandlingConnectionStatusChangedHandler, Invariant($"Connection status for {deviceId} changed to {connectionStatus}"));
+            }
+
+            public static void CloudConnectionLostClosingClient(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.CloudConnectionLostClosingClient, Invariant($"Cloud connection lost for {identity.Id}, closing client."));
             }
         }
     }
