@@ -46,15 +46,15 @@ on Windows and "unix:///var/run/docker.sock" on Linux.
 ### DeviceConnectionString
 
 Set to the IoT Hub connection string of the edge device. Needed when 
-`ConfigSource` is "iothubconnected".
+`ConfigSource` is "twin".
 
 ### ConfigSource
 
-May be set to "iothubconnected" or "standalone".  When set to "iothubconnected",
+May be set to "twin" or "local".  When set to "twin",
 the edge device twin is used as a configuration source for modules. When set to 
-standalone, a file (`config.json`) is used as a configuration source for modules. 
+"local", a file (`config.json`) is used as a configuration source for modules. 
 `DeviceConnectionString` must be set to a device connection string if `ConfigSource`
-is set to "iothubconnected".
+is set to "twin".
 
 ### DockerLoggingDriver
 
@@ -93,7 +93,7 @@ these logging drivers.
 
 ### NetworkId
 
-Set to the Docker network you want the modules in the Edge deployment to be a part of.
+Set to the Docker network you want the modules in the Edge deployment to be a part of.  If not provided, it will run under "azure-iot-edge" docker network, which uses docker `bridge` network drvier.
 
 ### EdgeDeviceHostName
 
