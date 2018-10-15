@@ -20,7 +20,9 @@ pub struct Error {
     inner: Context<ErrorKind>,
 }
 
-fn get_message(error: DockerApiError<serde_json::Value>) -> ::std::result::Result<String, DockerApiError<serde_json::Value>> {
+fn get_message(
+    error: DockerApiError<serde_json::Value>,
+) -> ::std::result::Result<String, DockerApiError<serde_json::Value>> {
     let DockerApiError { code, content } = error;
 
     match content {
@@ -29,9 +31,12 @@ fn get_message(error: DockerApiError<serde_json::Value>) -> ::std::result::Resul
                 return Ok(message.clone());
             }
 
-            Err(DockerApiError { code, content: Some(serde_json::Value::Object(props)) })
+            Err(DockerApiError {
+                code,
+                content: Some(serde_json::Value::Object(props)),
+            })
         }
-        _ => Err(DockerApiError { code, content })
+        _ => Err(DockerApiError { code, content }),
     }
 }
 
@@ -147,16 +152,18 @@ impl From<DockerError<serde_json::Value>> for Error {
             DockerError::ApiError(error) => match error.code {
                 StatusCode::NOT_FOUND => match get_message(error) {
                     Ok(message) => Error::from(ErrorKind::NotFound(message)),
-                    Err(error) => Error::from(ErrorKind::DockerRuntime(DockerError::ApiError(error)))
+                    Err(error) => {
+                        Error::from(ErrorKind::DockerRuntime(DockerError::ApiError(error)))
+                    }
                 },
-                StatusCode::CONFLICT =>
-                    Error::from(ErrorKind::Conflict),
-                StatusCode::NOT_MODIFIED =>
-                    Error::from(ErrorKind::NotModified),
+                StatusCode::CONFLICT => Error::from(ErrorKind::Conflict),
+                StatusCode::NOT_MODIFIED => Error::from(ErrorKind::NotModified),
                 _ => get_message(error)
-                        .map(|message| Error::from(ErrorKind::FormattedDockerRuntime(message)))
-                        .unwrap_or_else(|e| Error::from(ErrorKind::DockerRuntime(DockerError::ApiError(e))))
-            }
+                    .map(|message| Error::from(ErrorKind::FormattedDockerRuntime(message)))
+                    .unwrap_or_else(|e| {
+                        Error::from(ErrorKind::DockerRuntime(DockerError::ApiError(e)))
+                    }),
+            },
         }
     }
 }
