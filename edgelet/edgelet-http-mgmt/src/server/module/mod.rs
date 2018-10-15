@@ -117,7 +117,8 @@ where
                         )
                     })
             })
-        }).map_err(From::from);
+        })
+        .map_err(From::from);
     Box::new(details)
 }
 
