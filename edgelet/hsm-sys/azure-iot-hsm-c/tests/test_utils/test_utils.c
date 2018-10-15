@@ -139,7 +139,7 @@ void hsm_test_util_delete_dir(const char *dir_guid)
     printf("Deleting temp directory '%s'.\r\n", dir_path);
 
 #if (defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows)
-    SHFILEOPSTRUCT shfo = {
+    SHFILEOPSTRUCTA shfo = {
         NULL,
         FO_DELETE,
         dir_path,
