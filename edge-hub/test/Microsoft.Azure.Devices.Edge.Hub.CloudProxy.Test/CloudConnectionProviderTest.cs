@@ -98,7 +98,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                        AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings
                        {
                            Pooling = true,
-                           MaxPoolSize = 20
+                           MaxPoolSize = 20,
+                           ConnectionIdleTimeout = TimeSpan.FromSeconds(5)
                        }
                    },
                    new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only)
@@ -106,7 +107,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                        AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings
                        {
                            Pooling = true,
-                           MaxPoolSize = 20
+                           MaxPoolSize = 20,
+                           ConnectionIdleTimeout = TimeSpan.FromSeconds(5)
                        }
                    }
                }
@@ -123,7 +125,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                         AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings
                         {
                             Pooling = true,
-                            MaxPoolSize = 30
+                            MaxPoolSize = 30,
+                            ConnectionIdleTimeout = TimeSpan.FromSeconds(5)
                         }
                     }
                 }
@@ -140,7 +143,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                         AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings
                         {
                             Pooling = true,
-                            MaxPoolSize = 50
+                            MaxPoolSize = 50,
+                            ConnectionIdleTimeout = TimeSpan.FromSeconds(5)
                         }
                     }
                 }

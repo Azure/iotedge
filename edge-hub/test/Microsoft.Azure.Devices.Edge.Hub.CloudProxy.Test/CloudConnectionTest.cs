@@ -74,6 +74,41 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
         [Fact]
         [Unit]
+        public async Task InitializeAndGetCloudProxyTest()
+        {
+            string iothubHostName = "test.azure-devices.net";
+            string deviceId = "device1";
+
+            IClientCredentials GetClientCredentialsWithNonExpiringToken()
+            {
+                string token = TokenHelper.CreateSasToken(iothubHostName, DateTime.UtcNow.AddMinutes(10));
+                var identity = new DeviceIdentity(iothubHostName, deviceId);
+                return new TokenCredentials(identity, token, string.Empty);
+            }
+
+            IClient client = GetMockDeviceClient();
+            var deviceClientProvider = new Mock<IClientProvider>();
+            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<IAuthenticationMethod>(), It.IsAny<ITransportSettings[]>()))
+                .Returns(() => client);
+
+            var transportSettings = new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
+
+            var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter> { [typeof(TwinCollection)] = Mock.Of<IMessageConverter>() });
+
+            var cloudConnection = new CloudConnection((_, __) => { }, transportSettings, messageConverterProvider, deviceClientProvider.Object, Mock.Of<ICloudListener>(), TokenProvider, DeviceScopeIdentitiesCache, TimeSpan.FromMinutes(60), true);
+
+            IClientCredentials clientCredentialsWithExpiringToken2 = GetClientCredentialsWithNonExpiringToken();
+            ICloudProxy cloudProxy = await cloudConnection.CreateOrUpdateAsync(clientCredentialsWithExpiringToken2);
+
+            // Wait for the task to complete
+            await Task.Delay(TimeSpan.FromSeconds(10));
+            Assert.Equal(cloudProxy, cloudConnection.CloudProxy.OrDefault());
+            Assert.True(cloudProxy.IsActive);
+            Mock.Get(client).Verify(c => c.OpenAsync(), Times.Once);
+        }
+
+        [Fact]
+        [Unit]
         public async Task RefreshTokenTest()
         {
             string iothubHostName = "test.azure-devices.net";
@@ -421,6 +456,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             deviceClient.Setup(dc => dc.CloseAsync())
                 .Callback(() => deviceClient.SetupGet(dc => dc.IsActive).Returns(false))
                 .Returns(Task.FromResult(true));
+            deviceClient.Setup(dc => dc.OpenAsync()).Returns(Task.CompletedTask);
             return deviceClient.Object;
         }
 
