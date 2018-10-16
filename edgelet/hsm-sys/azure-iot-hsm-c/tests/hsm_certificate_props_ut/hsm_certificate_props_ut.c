@@ -1141,14 +1141,14 @@ BEGIN_TEST_SUITE(hsm_certificate_props_ut)
         const char* test_input_string_1 = TEST_STRING_64;
         const char* test_input_string_2 = TEST_STRING_128;
         char const* san_list[] = { test_input_string_1, test_input_string_2 };
-        size_t san_list_size = sizeof(san_list) / sizeof(san_list[0]);
+        size_t num_san_entries = sizeof(san_list) / sizeof(san_list[0]);
         size_t i;
         CERT_PROPS_HANDLE props_handle = cert_properties_create();
 
         umock_c_reset_all_calls();
-        STRICT_EXPECTED_CALL(gballoc_malloc(sizeof(char*) * san_list_size));
-        STRICT_EXPECTED_CALL(gballoc_malloc(sizeof(char*) * san_list_size));
-        for (i = 0; i < san_list_size; i++)
+        STRICT_EXPECTED_CALL(gballoc_malloc(sizeof(void*) * num_san_entries));
+        STRICT_EXPECTED_CALL(gballoc_calloc(num_san_entries, sizeof(void*)));
+        for (i = 0; i < num_san_entries; i++)
         {
             STRICT_EXPECTED_CALL(mallocAndStrcpy_s(IGNORED_PTR_ARG, san_list[i]));
         }
@@ -1161,7 +1161,7 @@ BEGIN_TEST_SUITE(hsm_certificate_props_ut)
             umock_c_negative_tests_fail_call(i);
 
             // act
-            int status = set_san_entries(props_handle, san_list, san_list_size);
+            int status = set_san_entries(props_handle, san_list, num_san_entries);
 
             // assert
             ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));

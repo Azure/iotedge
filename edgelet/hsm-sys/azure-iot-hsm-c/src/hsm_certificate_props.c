@@ -631,7 +631,7 @@ int set_san_entries
     else
     {
         size_t i;
-        size_t list_size = num_san_entries * sizeof(char*);
+        size_t list_size = num_san_entries * sizeof(void*);
         destroy_san_entries(handle);
 
         if ((handle->san_list = (char **)malloc(list_size)) == NULL)
@@ -639,7 +639,7 @@ int set_san_entries
             LogError("Could not allocate memory for SAN list");
             result = __LINE__;
         }
-        else if ((handle->san_list_ro = (char const**)malloc(list_size)) == NULL)
+        else if ((handle->san_list_ro = (char const**)calloc(num_san_entries, sizeof(void*))) == NULL)
         {
             LogError("Could not allocate memory for SAN list pointers");
             free(handle->san_list);
@@ -650,7 +650,6 @@ int set_san_entries
         {
             bool fail_flag = false;
             memset(handle->san_list, 0, list_size);
-            memset(handle->san_list_ro, 0, list_size);
             for (i = 0; i < num_san_entries; i++)
             {
                 char *dest = NULL;
