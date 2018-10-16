@@ -170,6 +170,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             cloudProxy.StartListening();
         }
 
+        [Fact]
+        public async Task TestCloseThrows()
+        {
+            // Arrange
+            var messageConverterProvider = Mock.Of<IMessageConverterProvider>();
+            string clientId = "d1";
+            var cloudListener = Mock.Of<ICloudListener>();
+            TimeSpan idleTimeout = TimeSpan.FromSeconds(60);
+            Action<string, CloudConnectionStatus> connectionStatusChangedHandler = (s, status) => { };
+            var client = new Mock<IClient>();
+            client.Setup(c => c.CloseAsync()).ThrowsAsync(new InvalidOperationException());
+            var cloudProxy = new CloudProxy(client.Object, messageConverterProvider, clientId, connectionStatusChangedHandler, cloudListener, idleTimeout, false);
+
+            // Act
+            bool result = await cloudProxy.CloseAsync();
+
+            // Assert.
+            Assert.True(result);
+            client.VerifyAll();
+        }
+
         Task<ICloudProxy> GetCloudProxyWithConnectionStringKey(string connectionStringConfigKey) =>
             GetCloudProxyWithConnectionStringKey(connectionStringConfigKey, Mock.Of<IEdgeHub>());
 

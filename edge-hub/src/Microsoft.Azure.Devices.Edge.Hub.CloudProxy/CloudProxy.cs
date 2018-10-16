@@ -67,7 +67,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             try
             {
-                await this.client.CloseAsync();
+                // In offline scenario, sometimes the underlying connection has already closed and
+                // in that case calling CloseAsync throws. This needs to be fixed in the SDK, but meanwhile
+                // wrapping this.client.CloseAsync in a try/catch
+                try
+                {
+                    await this.client.CloseAsync();
+                }
+                catch (Exception ex)
+                {
+                    Events.ErrorClosingClient(this.clientId, ex);
+                }
+
                 await (this.cloudReceiver?.CloseAsync() ?? Task.CompletedTask);
                 this.timer.Disable();
                 Events.Closed(this);
@@ -389,7 +400,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 CloudReceiverNull,
                 ErrorOpening,
                 TimedOutClosing,
-                Initialized
+                Initialized,
+                ErrorClosingClient
             }
 
             public static void Closed(CloudProxy cloudProxy)
@@ -490,6 +502,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             public static void Initialized(CloudProxy cloudProxy)
             {
                 Log.LogInformation((int)EventIds.Initialized, Invariant($"Initialized cloud proxy {cloudProxy.id} for {cloudProxy.clientId}"));
+            }
+
+            public static void ErrorClosingClient(string clientId, Exception ex)
+            {
+                Log.LogDebug((int)EventIds.ErrorClosingClient, ex, Invariant($"Error closing client for {clientId}"));
             }
         }
     }
