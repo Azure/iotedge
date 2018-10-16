@@ -103,7 +103,7 @@ static BUFFER_HANDLE decode_certificate(CERT_DATA_INFO* cert_info)
     // no need to do append a +1 due to we're not
     // copying the headers
     size_t len = strlen(iterator);
-    if ((cert_base64 = malloc(len)) == NULL)
+    if ((cert_base64 = (char*)malloc(len)) == NULL)
     {
         LogError("Failure allocating base64 decoding certificate");
         result = NULL;
@@ -539,7 +539,7 @@ CERT_INFO_HANDLE certificate_info_create(const char* certificate, const void* pr
     {
         memset(result, 0, sizeof(CERT_DATA_INFO));
 
-        if (cert_len == 0 || (result->certificate_pem = malloc(cert_len + 1)) == NULL)
+        if (cert_len == 0 || (result->certificate_pem = (char*)malloc(cert_len + 1)) == NULL)
         {
             LogError("Failure allocating certificate");
             free(result);
@@ -560,7 +560,7 @@ CERT_INFO_HANDLE certificate_info_create(const char* certificate, const void* pr
             else
             {
                 size_t num_bytes_first_cert = result->first_cert_end - result->first_cert_start + 1;
-                if ((result->first_certificate = malloc(num_bytes_first_cert + 1)) == NULL)
+                if ((result->first_certificate = (char*)malloc(num_bytes_first_cert + 1)) == NULL)
                 {
                     LogError("Failure allocating memory to hold the main certificate");
                     free(result->certificate_pem);
@@ -602,10 +602,13 @@ void certificate_info_destroy(CERT_INFO_HANDLE handle)
     if (cert_info != NULL)
     {
         free(cert_info->first_certificate);
+        cert_info->first_certificate = NULL;
         free(cert_info->certificate_pem);
+        cert_info->certificate_pem = NULL;
         if (cert_info->private_key != NULL)
         {
             free(cert_info->private_key);
+            cert_info->private_key = NULL;
         }
         free(cert_info);
     }
