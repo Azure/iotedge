@@ -649,6 +649,7 @@ int set_san_entries
         else
         {
             bool fail_flag = false;
+            handle->num_san_entries = num_san_entries;
             memset(handle->san_list, 0, list_size);
             for (i = 0; i < num_san_entries; i++)
             {
@@ -677,7 +678,6 @@ int set_san_entries
             }
             else
             {
-                handle->num_san_entries = num_san_entries;
                 for (i = 0; i < num_san_entries; i++)
                 {
                     handle->san_list_ro[i] = handle->san_list[i];
