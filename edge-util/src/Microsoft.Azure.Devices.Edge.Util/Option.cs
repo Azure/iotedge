@@ -16,8 +16,6 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         internal Option(T value, bool hasValue)
         {
-            Preconditions.CheckArgument(!hasValue || value != null , "Value cannot be null if hasValue flag is set to true.");
-
             this.Value = value;
             this.HasValue = hasValue;
         }
@@ -205,7 +203,12 @@ namespace Microsoft.Azure.Devices.Edge.Util
         /// Creates an <c>Option &lt;T&gt;</c> with <paramref name="value"/> and marks
         /// the option object as having a value, i.e., <c>Option&lt;T&gt;.HasValue == true</c>.
         /// </summary>
-        public static Option<T> Some<T>(T value) => new Option<T>(value, true);
+        public static Option<T> Some<T>(T value)
+        {
+            Preconditions.CheckNotNull(value, nameof(value));
+
+            return new Option<T>(value, true);
+        }
 
         /// <summary>
         /// Creates an <c>Option &lt;T&gt;</c> with a default value (<c>default(T)</c>) and marks
