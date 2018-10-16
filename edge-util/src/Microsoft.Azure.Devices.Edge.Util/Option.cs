@@ -144,8 +144,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         /// <summary>
         /// If this option has a value then it transforms it into a new option instance by
-        /// calling the <paramref name="mapping"/> callback. Returns <see cref="Option.None{T}"/>
-        /// if there is no value.
+        /// calling the <paramref name="mapping"/> callback.  It will follow exception if callback returns null.
+        /// Returns <see cref="Option.None{T}"/> if there is no value.
         /// </summary>
         [Pure]
         public Option<TResult> Map<TResult>(Func<T, TResult> mapping)
