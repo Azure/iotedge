@@ -1163,6 +1163,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 // build current module set
                 ModuleSet currentModuleSet = ModuleSet.Create(
                     edgeAgent,
+                    edgeHub,
                     new TestRuntimeModule(
                         "mod1", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
                         new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
@@ -1198,6 +1199,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     {
                         {
                             edgeAgent.Name,
+                            new
+                            {
+                                runtimeStatus = "unknown"
+                            }
+                        },
+                        {
+                            edgeHub.Name,
                             new
                             {
                                 runtimeStatus = "unknown"
