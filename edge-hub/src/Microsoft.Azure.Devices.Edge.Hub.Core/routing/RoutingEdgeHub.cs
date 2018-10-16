@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Extensions.Logging;
+    using Serilog.Events;
     using static System.FormattableString;
     using IIdentity = Microsoft.Azure.Devices.Edge.Hub.Core.Identity.IIdentity;
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
@@ -423,30 +424,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             
             public static void MessagesReceived(IIdentity identity, IEnumerable<IMessage> messages)
             {
-                if (messages.Count > 1)
+                if (Logger.GetLogLevel() <= LogEventLevel.Debug)
                 {
-                    IEnumerable<string> messageIds = messages
-                        .Select(m => m.SystemProperties.TryGetValue(SystemProperties.MessageId, out string messageId) ? messageId : string.Empty)
-                        .Where(m => !string.IsNullOrWhiteSpace(m));
-                    string messageIdsString = string.Join(", ", messageIds);
-                    if (!string.IsNullOrWhiteSpace(messageIdsString))
+                    if (messages.Count > 1)
                     {
-                        Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received messages from {identity.Id} with message Ids [{messageIdsString}]"));
+                        IEnumerable<string> messageIds = messages
+                            .Select(m => m.SystemProperties.TryGetValue(SystemProperties.MessageId, out string messageId) ? messageId : string.Empty)
+                            .Where(m => !string.IsNullOrWhiteSpace(m));
+                        string messageIdsString = string.Join(", ", messageIds);
+                        if (!string.IsNullOrWhiteSpace(messageIdsString))
+                        {
+                            Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received messages from {identity.Id} with message Ids [{messageIdsString}]"));
+                        }
+                        else
+                        {
+                            Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received {messages.Count} messages from {identity.Id}"));
+                        }
                     }
-                    else
+                    else if (messages.Count == 1)
                     {
-                        Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received {messages.Count} messages from {identity.Id}"));
-                    }
-                }
-                else if (messages.Count == 1)
-                {
-                    if (messages[0].SystemProperties.TryGetValue(SystemProperties.MessageId, out string messageId))
-                    {
-                        Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received message from {identity.Id} with message Id {messageId}"));
-                    }
-                    else
-                    {
-                        Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received message from {identity.Id}"));
+                        if (messages[0].SystemProperties.TryGetValue(SystemProperties.MessageId, out string messageId))
+                        {
+                            Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received message from {identity.Id} with message Id {messageId}"));
+                        }
+                        else
+                        {
+                            Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received message from {identity.Id}"));
+                        }
                     }
                 }
             }
