@@ -207,7 +207,7 @@ namespace IotEdgeQuickstart.Details
                 EventHubPartitionKeyResolver.ResolveToPartition(
                     this.context.Device.Id,
                     (await eventHubClient.GetRuntimeInformationAsync()).PartitionCount),
-                DateTime.Now);
+                EventPosition.FromEnd());
 
             var result = new TaskCompletionSource<bool>();
             using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3)))
