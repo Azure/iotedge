@@ -64,12 +64,16 @@ namespace IotEdgeQuickstart.Details
         readonly string archivePath;
         readonly Option<RegistryCredentials> credentials;
         readonly Option<HttpUris> httpUris;
+        readonly Option<string> proxy;
+        readonly Option<string> upstreamProtocol;
 
-        public IotedgedLinux(string archivePath, Option<RegistryCredentials> credentials, Option<HttpUris> httpUris)
+        public IotedgedLinux(string archivePath, Option<RegistryCredentials> credentials, Option<HttpUris> httpUris, Option<string> proxy, Option<String> upstreamProtocol)
         {
             this.archivePath = archivePath;
             this.credentials = credentials;
             this.httpUris = httpUris;
+            this.proxy = proxy;
+            this.upstreamProtocol = upstreamProtocol;
         }
 
         public async Task VerifyNotActive()
@@ -197,6 +201,10 @@ namespace IotEdgeQuickstart.Details
                 doc.ReplaceOrAdd("certificates.device_ca_pk", deviceCaPk);
                 doc.ReplaceOrAdd("certificates.trusted_ca_certs", deviceCaCerts);
             }
+
+            this.proxy.ForEach(proxy => doc.ReplaceOrAdd("agent.env.https_proxy", proxy));
+
+            this.upstreamProtocol.ForEach(upstreamProtocol => doc.ReplaceOrAdd("agent.env.UpstreamProtocol", upstreamProtocol));
 
             string result = doc.ToString();
 
