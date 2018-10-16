@@ -227,7 +227,6 @@ namespace IotEdgeQuickstart.Details
             EventHubClient eventHubClient =
                 EventHubClient.CreateFromConnectionString(builder.ToString());
 
-
             PartitionReceiver eventHubReceiver = eventHubClient.CreateReceiver(
                 "$Default",
                 EventHubPartitionKeyResolver.ResolveToPartition(
@@ -242,8 +241,8 @@ namespace IotEdgeQuickstart.Details
                 {
                     eventHubReceiver.SetReceiveHandler(new PartitionReceiveHandler(eventData =>
                     {
-                        eventData.Properties.TryGetValue("iothub-connection-device-id", out object devId);
-                        eventData.Properties.TryGetValue("iothub-connection-module-id", out object modId);
+                        eventData.SystemProperties.TryGetValue("iothub-connection-device-id", out object devId);
+                        eventData.SystemProperties.TryGetValue("iothub-connection-module-id", out object modId);
 
                         if (devId != null && devId.ToString().Equals(this.context.Device.Id) &&
                             modId != null && modId.ToString().Equals(moduleId))
