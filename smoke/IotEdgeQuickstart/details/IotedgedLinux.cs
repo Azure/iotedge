@@ -65,9 +65,9 @@ namespace IotEdgeQuickstart.Details
         readonly Option<RegistryCredentials> credentials;
         readonly Option<HttpUris> httpUris;
         readonly Option<string> proxy;
-        readonly Option<string> upstreamProtocol;
+        readonly Option<UpstreamProtocolType> upstreamProtocol;
 
-        public IotedgedLinux(string archivePath, Option<RegistryCredentials> credentials, Option<HttpUris> httpUris, Option<string> proxy, Option<String> upstreamProtocol)
+        public IotedgedLinux(string archivePath, Option<RegistryCredentials> credentials, Option<HttpUris> httpUris, Option<string> proxy, Option<UpstreamProtocolType> upstreamProtocol)
         {
             this.archivePath = archivePath;
             this.credentials = credentials;
@@ -204,7 +204,7 @@ namespace IotEdgeQuickstart.Details
 
             this.proxy.ForEach(proxy => doc.ReplaceOrAdd("agent.env.https_proxy", proxy));
 
-            this.upstreamProtocol.ForEach(upstreamProtocol => doc.ReplaceOrAdd("agent.env.UpstreamProtocol", upstreamProtocol));
+            this.upstreamProtocol.ForEach(upstreamProtocol => doc.ReplaceOrAdd("agent.env.UpstreamProtocol", upstreamProtocol.ToString()));
 
             string result = doc.ToString();
 

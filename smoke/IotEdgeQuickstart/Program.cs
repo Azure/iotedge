@@ -135,7 +135,7 @@ Defaults:
         public (bool useProxy, string proxyUrl) Proxy { get; } = (false, string.Empty);
 
         [Option("--upstream-protocol <value>", CommandOptionType.SingleValue, Description = "Upstream protocol for IoT Hub connections.")]
-        public (bool overrideUpstreamProtocol, string upstreamProtocol) UpstreamProtocol { get; } = (false, string.Empty);
+        public (bool overrideUpstreamProtocol, UpstreamProtocolType upstreamProtocol) UpstreamProtocol { get; } = (false, UpstreamProtocolType.Amqp);
 
         // ReSharper disable once UnusedMember.Local
         async Task<int> OnExecuteAsync()
@@ -176,10 +176,10 @@ Defaults:
                                     ? Option.Some(string.IsNullOrEmpty(hostname) ? new HttpUris() : new HttpUris(hostname))
                                     : Option.None<HttpUris>();
 
-                                (bool overrideUpstreamProtocol, string upstreamProtocol) = this.UpstreamProtocol;
-                                Option<string> upstreamProtocolOption = overrideUpstreamProtocol
-                                    ? Option.Maybe(upstreamProtocol)
-                                    : Option.None<string>();
+                                (bool overrideUpstreamProtocol, UpstreamProtocolType upstreamProtocol) = this.UpstreamProtocol;
+                                Option<UpstreamProtocolType> upstreamProtocolOption = overrideUpstreamProtocol
+                                    ? Option.Some(upstreamProtocol)
+                                    : Option.None<UpstreamProtocolType>();
 
                                 bootstrapper = new IotedgedLinux(this.BootstrapperArchivePath, credentials, uris, proxy, upstreamProtocolOption);
                             }
@@ -207,6 +207,7 @@ Defaults:
                     credentials,
                     connectionString,
                     endpoint,
+                    this.UpstreamProtocol.Item2,
                     tag,
                     this.DeviceId,
                     this.EdgeHostname,
@@ -264,5 +265,13 @@ Defaults:
     {
         Info,
         Debug
+    }
+
+    public enum UpstreamProtocolType
+    {
+        Amqp,
+        AmqpWs,
+        Mqtt,
+        MqttWs
     }
 }
