@@ -16,10 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         internal Option(T value, bool hasValue)
         {
-            if (hasValue && value == null)
-            {
-                throw new ArgumentOutOfRangeException(nameof(value), "Value cannot be null if hasValue flag is set to true.");
-            }
+            Preconditions.CheckArgument(!hasValue || value != null , "Value cannot be null if hasValue flag is set to true.");
 
             this.Value = value;
             this.HasValue = hasValue;
