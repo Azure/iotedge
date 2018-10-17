@@ -142,8 +142,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         /// <summary>
         /// If this option has a value then it transforms it into a new option instance by
-        /// calling the <paramref name="mapping"/> callback. Returns <see cref="Option.None{T}"/>
-        /// if there is no value.
+        /// calling the <paramref name="mapping"/> callback.  It will follow exception if callback returns null.
+        /// Returns <see cref="Option.None{T}"/> if there is no value.
         /// </summary>
         [Pure]
         public Option<TResult> Map<TResult>(Func<T, TResult> mapping)
@@ -203,7 +203,12 @@ namespace Microsoft.Azure.Devices.Edge.Util
         /// Creates an <c>Option &lt;T&gt;</c> with <paramref name="value"/> and marks
         /// the option object as having a value, i.e., <c>Option&lt;T&gt;.HasValue == true</c>.
         /// </summary>
-        public static Option<T> Some<T>(T value) => new Option<T>(value, true);
+        public static Option<T> Some<T>(T value)
+        {
+            Preconditions.CheckNotNull(value, nameof(value));
+
+            return new Option<T>(value, true);
+        }
 
         /// <summary>
         /// Creates an <c>Option &lt;T&gt;</c> with a default value (<c>default(T)</c>) and marks
@@ -211,7 +216,6 @@ namespace Microsoft.Azure.Devices.Edge.Util
         /// </summary>
         public static Option<T> None<T>() => new Option<T>(default(T), false);
 
-        public static Option<T> Maybe<T>(T value) where T : class =>
-            value == null ? None<T>() : Some(value);
+        public static Option<T> Maybe<T>(T value) where T : class => value == null ? None<T>() : Some(value);
     }
 }
