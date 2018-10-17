@@ -15,6 +15,8 @@ namespace IotEdgeQuickstart.Details
     using Microsoft.Azure.EventHubs;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
+    using EventHubClientTransportType = Microsoft.Azure.EventHubs.TransportType;
+    using ServiceClientTransportType = Microsoft.Azure.Devices.TransportType;
 
     public class Details
     {
@@ -22,6 +24,8 @@ namespace IotEdgeQuickstart.Details
         readonly Option<RegistryCredentials> credentials;
         readonly string iothubConnectionString;
         readonly string eventhubCompatibleEndpointWithEntityPath;
+        readonly ServiceClientTransportType serviceClientTransportType;
+        readonly EventHubClientTransportType eventHubClientTransportType;
         readonly string imageTag;
         readonly string deviceId;
         readonly string hostname;
@@ -40,6 +44,7 @@ namespace IotEdgeQuickstart.Details
             Option<RegistryCredentials> credentials,
             string iothubConnectionString,
             string eventhubCompatibleEndpointWithEntityPath,
+            UpstreamProtocolType upstreamProtocol,
             string imageTag,
             string deviceId,
             string hostname,
@@ -56,6 +61,25 @@ namespace IotEdgeQuickstart.Details
             this.credentials = credentials;
             this.iothubConnectionString = iothubConnectionString;
             this.eventhubCompatibleEndpointWithEntityPath = eventhubCompatibleEndpointWithEntityPath;
+
+            switch (upstreamProtocol)
+            {
+                case UpstreamProtocolType.Amqp:
+                case UpstreamProtocolType.Mqtt:
+                    this.serviceClientTransportType = ServiceClientTransportType.Amqp;
+                    this.eventHubClientTransportType = EventHubClientTransportType.Amqp;
+                    break;
+
+                case UpstreamProtocolType.AmqpWs:
+                case UpstreamProtocolType.MqttWs:
+                    this.serviceClientTransportType = ServiceClientTransportType.Amqp_WebSocket_Only;
+                    this.eventHubClientTransportType = EventHubClientTransportType.AmqpWebSockets;
+                    break;
+
+                default:
+                    throw new Exception($"Unexpected upstream protocol type {upstreamProtocol}");
+            }
+
             this.imageTag = imageTag;
             this.deviceId = deviceId;
             this.hostname = hostname;
@@ -147,7 +171,7 @@ namespace IotEdgeQuickstart.Details
                 try
                 {
                     ServiceClient serviceClient =
-                        ServiceClient.CreateFromConnectionString(this.context.IotHubConnectionString);
+                        ServiceClient.CreateFromConnectionString(this.context.IotHubConnectionString, this.serviceClientTransportType);
 
                     while (true)
                     {
@@ -196,6 +220,7 @@ namespace IotEdgeQuickstart.Details
         protected async Task VerifyDataOnIoTHub(string moduleId)
         {
             var builder = new EventHubsConnectionStringBuilder(this.eventhubCompatibleEndpointWithEntityPath);
+            builder.TransportType = this.eventHubClientTransportType;
 
             Console.WriteLine($"Receiving events from device '{this.context.Device.Id}' on Event Hub '{builder.EntityPath}'");
 
@@ -207,7 +232,7 @@ namespace IotEdgeQuickstart.Details
                 EventHubPartitionKeyResolver.ResolveToPartition(
                     this.context.Device.Id,
                     (await eventHubClient.GetRuntimeInformationAsync()).PartitionCount),
-                DateTime.Now);
+                EventPosition.FromEnd());
 
             var result = new TaskCompletionSource<bool>();
             using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3)))
@@ -216,8 +241,8 @@ namespace IotEdgeQuickstart.Details
                 {
                     eventHubReceiver.SetReceiveHandler(new PartitionReceiveHandler(eventData =>
                     {
-                        eventData.Properties.TryGetValue("iothub-connection-device-id", out object devId);
-                        eventData.Properties.TryGetValue("iothub-connection-module-id", out object modId);
+                        eventData.SystemProperties.TryGetValue("iothub-connection-device-id", out object devId);
+                        eventData.SystemProperties.TryGetValue("iothub-connection-module-id", out object modId);
 
                         if (devId != null && devId.ToString().Equals(this.context.Device.Id) &&
                             modId != null && modId.ToString().Equals(moduleId))

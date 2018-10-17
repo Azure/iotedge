@@ -81,8 +81,7 @@
               "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             }
-          },
-          
+          }
         }
       }
     },
