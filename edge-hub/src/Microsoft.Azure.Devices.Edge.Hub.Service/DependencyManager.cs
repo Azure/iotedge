@@ -178,24 +178,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
         (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) GetStoreAndForwardConfiguration()
         {
-            int defaultTtl = -1;
-            bool isEnabled = this.configuration.GetValue<bool>("storeAndForwardEnabled");
+            int defaultTtl = -1;            
             bool usePersistentStorage = this.configuration.GetValue<bool>("usePersistentStorage");
             int timeToLiveSecs = defaultTtl;
-            string storagePath = string.Empty;
-            if (isEnabled)
+            string storagePath = this.GetStoragePath();
+            bool storeAndForwardEnabled = this.configuration.GetValue<bool>("storeAndForwardEnabled");
+            if (storeAndForwardEnabled)
             {
                 IConfiguration storeAndForwardConfigurationSection = this.configuration.GetSection("storeAndForward");
                 timeToLiveSecs = storeAndForwardConfigurationSection.GetValue("timeToLiveSecs", defaultTtl);
-
-                if (usePersistentStorage)
-                {
-                    storagePath = this.GetStoragePath();
-                }
             }
 
             var storeAndForwardConfiguration = new StoreAndForwardConfiguration(timeToLiveSecs);
-            return (isEnabled, usePersistentStorage, storeAndForwardConfiguration, storagePath);
+            return (storeAndForwardEnabled, usePersistentStorage, storeAndForwardConfiguration, storagePath);
         }
 
         string GetStoragePath()
