@@ -20,6 +20,7 @@ namespace IotEdgeQuickstart
             Option<RegistryCredentials> credentials,
             string iothubConnectionString,
             string eventhubCompatibleEndpointWithEntityPath,
+            UpstreamProtocolType upstreamProtocol,
             string imageTag,
             string deviceId,
             string hostname,
@@ -34,7 +35,7 @@ namespace IotEdgeQuickstart
             bool optimizedForPerformance,
             LogLevel runtimeLogLevel,
             bool cleanUpExistingDeviceOnSuccess) :
-            base(bootstrapper, credentials, iothubConnectionString, eventhubCompatibleEndpointWithEntityPath, imageTag, deviceId, hostname, deploymentFileName, deviceCaCert, deviceCaPk, deviceCaCerts, optimizedForPerformance, runtimeLogLevel, cleanUpExistingDeviceOnSuccess)
+            base(bootstrapper, credentials, iothubConnectionString, eventhubCompatibleEndpointWithEntityPath, upstreamProtocol, imageTag, deviceId, hostname, deploymentFileName, deviceCaCert, deviceCaPk, deviceCaCerts, optimizedForPerformance, runtimeLogLevel, cleanUpExistingDeviceOnSuccess)
         {
             this.leaveRunning = leaveRunning;
             this.noDeployment = noDeployment;
