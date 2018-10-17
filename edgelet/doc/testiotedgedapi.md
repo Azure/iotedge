@@ -81,7 +81,7 @@ Unhandled Exception: System.AggregateException: One or more errors occurred. (Pe
 2018-10-11T16:29:04Z [INFO] - [work] - - - [2018-10-11 16:29:04.627120292 UTC] "POST /modules/%24edgeAgent/genid/636748070676263768/encrypt?api-version=2018-06-28 HTTP/1.1" 200 OK 1261 "-" "-" pid(any)
 ```
 
-7. You can use `curl` to send request to API ednpoint for testing.  For example, test [list_modules](https://github.com/Azure/iotedge/blob/master/edgelet/management/docs/ModuleApi.md#list_modules) endpoint:
+7. You can use `curl` to send request to API endpoint for testing.  For example, test [list_modules](https://github.com/Azure/iotedge/blob/master/edgelet/management/docs/ModuleApi.md#list_modules) endpoint:
 
     `curl -v http://172.17.0.1:8080/modules/?api-version=2018-06-28`
 
