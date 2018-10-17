@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 // Clamp the renew time to TimeSpan.FromMilliseconds(Int32.MaxValue)
                 // This is the maximum value for the timer (~24 days)
                 // Math.Min unfortunately doesn't work with TimeSpans so we need to do the check manually
-                TimeSpan renewAfter = timeToExpire - TimeBuffer;
+                TimeSpan renewAfter = timeToExpire - (TimeBuffer / 2);
                 TimeSpan clamped = renewAfter > MaxRenewAfter
                     ? MaxRenewAfter
                     : renewAfter;
@@ -66,7 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 // Clamp the renew time to TimeSpan.FromMilliseconds(Int32.MaxValue)
                 // This is the maximum value for the timer (~24 days)
                 // Math.Min unfortunately doesn't work with TimeSpans so we need to do the check manually
-                TimeSpan renewAfter = timeToExpire - TimeBuffer;
+                TimeSpan renewAfter = timeToExpire - (TimeBuffer / 2);
                 TimeSpan clamped = renewAfter > MaxRenewAfter
                     ? MaxRenewAfter
                     : renewAfter;
