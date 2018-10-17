@@ -27,6 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var authenticator = new Mock<IAuthenticator>(MockBehavior.Strict);
             var credentialsStore = new Mock<ICredentialsCache>(MockBehavior.Strict);
             var deviceScopeIdentitiesCache = Mock.Of<IDeviceScopeIdentitiesCache>();
+            var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
             TimeSpan reauthFrequency = TimeSpan.FromSeconds(3);
 
             var deviceIdentity = new DeviceIdentity(IoTHubHostName, "d2");
@@ -49,7 +50,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             authenticator.Setup(a => a.ReauthenticateAsync(moduleCredentials)).ReturnsAsync(true);
 
             // Act
-            var connectionReauthenticator = new ConnectionReauthenticator(connectionManager.Object, authenticator.Object, credentialsStore.Object, deviceScopeIdentitiesCache, reauthFrequency, edgeHubIdentity);
+            var connectionReauthenticator = new ConnectionReauthenticator(
+                connectionManager.Object,
+                authenticator.Object,
+                credentialsStore.Object,
+                deviceScopeIdentitiesCache,
+                reauthFrequency,
+                edgeHubIdentity,
+                deviceConnectivityManager);
             connectionReauthenticator.Init();
 
             // Assert            
@@ -70,6 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var authenticator = new Mock<IAuthenticator>(MockBehavior.Strict);
             var credentialsStore = new Mock<ICredentialsCache>(MockBehavior.Strict);
             var deviceScopeIdentitiesCache = Mock.Of<IDeviceScopeIdentitiesCache>();
+            var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
             TimeSpan reauthFrequency = TimeSpan.FromSeconds(3);
 
             var deviceIdentity = new DeviceIdentity(IoTHubHostName, "d1");
@@ -92,7 +101,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             authenticator.Setup(a => a.ReauthenticateAsync(moduleCredentials)).ReturnsAsync(false);
 
             // Act
-            var connectionReauthenticator = new ConnectionReauthenticator(connectionManager.Object, authenticator.Object, credentialsStore.Object, deviceScopeIdentitiesCache, reauthFrequency, Mock.Of<IIdentity>(e => e.Id == "ed/$edgeHub"));
+            var connectionReauthenticator = new ConnectionReauthenticator(
+                connectionManager.Object,
+                authenticator.Object,
+                credentialsStore.Object,
+                deviceScopeIdentitiesCache,
+                reauthFrequency,
+                Mock.Of<IIdentity>(e => e.Id == "ed/$edgeHub"),
+                deviceConnectivityManager);
             connectionReauthenticator.Init();
 
             // Assert            
@@ -114,6 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var authenticator = new Mock<IAuthenticator>(MockBehavior.Strict);
             var credentialsStore = new Mock<ICredentialsCache>(MockBehavior.Strict);
             var deviceScopeIdentitiesCache = Mock.Of<IDeviceScopeIdentitiesCache>();
+            var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
             TimeSpan reauthFrequency = TimeSpan.FromSeconds(5);
 
             var deviceIdentity = new DeviceIdentity(IoTHubHostName, "d1");
@@ -139,7 +156,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .ReturnsAsync(true);
 
             // Act
-            var connectionReauthenticator = new ConnectionReauthenticator(connectionManager.Object, authenticator.Object, credentialsStore.Object, deviceScopeIdentitiesCache, reauthFrequency, Mock.Of<IIdentity>(e => e.Id == "ed/$edgeHub"));
+            var connectionReauthenticator = new ConnectionReauthenticator(
+                connectionManager.Object,
+                authenticator.Object,
+                credentialsStore.Object,
+                deviceScopeIdentitiesCache,
+                reauthFrequency,
+                Mock.Of<IIdentity>(e => e.Id == "ed/$edgeHub"),
+                deviceConnectivityManager);
             connectionReauthenticator.Init();
 
             // Assert            
@@ -161,13 +185,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var authenticator = new Mock<IAuthenticator>(MockBehavior.Strict);
             var credentialsStore = new Mock<ICredentialsCache>(MockBehavior.Strict);
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(MockBehavior.Strict);
+            var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
             TimeSpan reauthFrequency = TimeSpan.FromSeconds(3);
 
             connectionManager.Setup(c => c.RemoveDeviceConnection("d1")).Returns(Task.CompletedTask);
             connectionManager.Setup(c => c.RemoveDeviceConnection("d1/m1")).Returns(Task.CompletedTask);
 
             // Act
-            var connectionReauthenticator = new ConnectionReauthenticator(connectionManager.Object, authenticator.Object, credentialsStore.Object, deviceScopeIdentitiesCache.Object, reauthFrequency, Mock.Of<IIdentity>(e => e.Id == "ed/$edgeHub"));
+            var connectionReauthenticator = new ConnectionReauthenticator(
+                connectionManager.Object,
+                authenticator.Object,
+                credentialsStore.Object,
+                deviceScopeIdentitiesCache.Object,
+                reauthFrequency,
+                Mock.Of<IIdentity>(e => e.Id == "ed/$edgeHub"),
+                deviceConnectivityManager);
             deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentityRemoved += null, null, "d1");
             deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentityRemoved += null, null, "d1/m1");
 
@@ -189,13 +221,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var authenticator = new Mock<IAuthenticator>(MockBehavior.Strict);
             var credentialsStore = new Mock<ICredentialsCache>(MockBehavior.Strict);
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(MockBehavior.Strict);
+            var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
             TimeSpan reauthFrequency = TimeSpan.FromSeconds(3);
             var edgeHubIdentity = Mock.Of<IIdentity>(i => i.Id == "d2/$edgeHub");
 
             connectionManager.Setup(c => c.RemoveDeviceConnection("d2/$edgeHub")).Returns(Task.CompletedTask);
 
             // Act
-            var connectionReauthenticator = new ConnectionReauthenticator(connectionManager.Object, authenticator.Object, credentialsStore.Object, deviceScopeIdentitiesCache.Object, reauthFrequency, edgeHubIdentity);
+            var connectionReauthenticator = new ConnectionReauthenticator(
+                connectionManager.Object,
+                authenticator.Object,
+                credentialsStore.Object,
+                deviceScopeIdentitiesCache.Object,
+                reauthFrequency,
+                edgeHubIdentity,
+                deviceConnectivityManager);
             deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentityRemoved += null, null, "d2/$edgeHub");
 
             // Assert            
@@ -214,6 +254,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var authenticator = new Mock<IAuthenticator>(MockBehavior.Strict);
             var credentialsStore = new Mock<ICredentialsCache>(MockBehavior.Strict);
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(MockBehavior.Strict);
+            var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
             TimeSpan reauthFrequency = TimeSpan.FromSeconds(3);
 
             var deviceIdentity = new DeviceIdentity(IoTHubHostName, "d1");
@@ -240,7 +281,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var moduleServiceIdentity = new ServiceIdentity("d1/m1", "1234", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
 
             // Act
-            var connectionReauthenticator = new ConnectionReauthenticator(connectionManager.Object, authenticator.Object, credentialsStore.Object, deviceScopeIdentitiesCache.Object, reauthFrequency, Mock.Of<IIdentity>(e => e.Id == "ed/$edgeHub"));
+            var connectionReauthenticator = new ConnectionReauthenticator(
+                connectionManager.Object,
+                authenticator.Object,
+                credentialsStore.Object,
+                deviceScopeIdentitiesCache.Object,
+                reauthFrequency,
+                Mock.Of<IIdentity>(e => e.Id == "ed/$edgeHub"),
+                deviceConnectivityManager);
             deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentityUpdated += null, null, deviceServiceIdentity);
             deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentityUpdated += null, null, moduleServiceIdentity);
 
@@ -262,6 +310,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var authenticator = new Mock<IAuthenticator>(MockBehavior.Strict);
             var credentialsStore = new Mock<ICredentialsCache>(MockBehavior.Strict);
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(MockBehavior.Strict);
+            var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
             TimeSpan reauthFrequency = TimeSpan.FromSeconds(3);
 
             var deviceIdentity = new DeviceIdentity(IoTHubHostName, "d1");
@@ -288,7 +337,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var moduleServiceIdentity = new ServiceIdentity("d1/m1", "1234", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
 
             // Act
-            var connectionReauthenticator = new ConnectionReauthenticator(connectionManager.Object, authenticator.Object, credentialsStore.Object, deviceScopeIdentitiesCache.Object, reauthFrequency, Mock.Of<IIdentity>(e => e.Id == "ed/$edgeHub"));
+            var connectionReauthenticator = new ConnectionReauthenticator(
+                connectionManager.Object,
+                authenticator.Object,
+                credentialsStore.Object,
+                deviceScopeIdentitiesCache.Object,
+                reauthFrequency,
+                Mock.Of<IIdentity>(e => e.Id == "ed/$edgeHub"),
+                deviceConnectivityManager);
             deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentityUpdated += null, null, deviceServiceIdentity);
             deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentityUpdated += null, null, moduleServiceIdentity);
 
@@ -311,6 +367,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var authenticator = new Mock<IAuthenticator>(MockBehavior.Strict);
             var credentialsStore = new Mock<ICredentialsCache>(MockBehavior.Strict);
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(MockBehavior.Strict);
+            var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
             TimeSpan reauthFrequency = TimeSpan.FromSeconds(3);
 
             var edgeHubIdentity = new ModuleIdentity(IoTHubHostName, "d1", "$edgeHub");
@@ -326,7 +383,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var edgeHubServiceIdentity = new ServiceIdentity("d1/$edgeHub", "1234", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
 
             // Act
-            var connectionReauthenticator = new ConnectionReauthenticator(connectionManager.Object, authenticator.Object, credentialsStore.Object, deviceScopeIdentitiesCache.Object, reauthFrequency, Mock.Of<IIdentity>(i => i.Id == "d1/$edgeHub"));
+            var connectionReauthenticator = new ConnectionReauthenticator(
+                connectionManager.Object,
+                authenticator.Object,
+                credentialsStore.Object,
+                deviceScopeIdentitiesCache.Object,
+                reauthFrequency,
+                Mock.Of<IIdentity>(i => i.Id == "d1/$edgeHub"),
+                deviceConnectivityManager);
             deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentityUpdated += null, null, edgeHubServiceIdentity);
 
             // Assert            
@@ -336,6 +400,34 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             connectionManager.Verify(c => c.GetDeviceConnection("d1/$edgeHub"), Times.Never);
             authenticator.Verify(a => a.ReauthenticateAsync(edgeHubCredentials), Times.Never);
             credentialsStore.Verify(c => c.Get(edgeHubIdentity), Times.Never);
+            deviceScopeIdentitiesCache.VerifyAll();
+        }
+
+        [Fact]
+        public void DeviceScopeIdentitiesCacheOnDeviceConnectedEvent()
+        {
+            // Arrange
+            var connectionManager = new Mock<IConnectionManager>(MockBehavior.Strict);
+            var authenticator = new Mock<IAuthenticator>(MockBehavior.Strict);
+            var credentialsStore = new Mock<ICredentialsCache>(MockBehavior.Strict);
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(MockBehavior.Strict);
+            var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
+            TimeSpan reauthFrequency = TimeSpan.FromHours(1);
+            var connectionReauthenticator = new ConnectionReauthenticator(
+                connectionManager.Object,
+                authenticator.Object,
+                credentialsStore.Object,
+                deviceScopeIdentitiesCache.Object,
+                reauthFrequency,
+                Mock.Of<IIdentity>(i => i.Id == "d1/$edgeHub"),
+                deviceConnectivityManager);
+
+            deviceScopeIdentitiesCache.Setup(d => d.InitiateCacheRefresh());
+
+            // Act
+            Mock.Get(deviceConnectivityManager).Raise(d => d.DeviceConnected += null, new EventArgs());
+
+            // Assert
             deviceScopeIdentitiesCache.VerifyAll();
         }
     }
