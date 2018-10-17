@@ -375,12 +375,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         var twinManagerTask = c.Resolve<Task<ITwinManager>>();
                         var invokeMethodHandlerTask = c.Resolve<Task<IInvokeMethodHandler>>();
                         var connectionManagerTask = c.Resolve<Task<IConnectionManager>>();
+                        var deviceConnectivityManager = c.Resolve<IDeviceConnectivityManager>();
                         Router router = await routerTask;
                         ITwinManager twinManager = await twinManagerTask;
                         IConnectionManager connectionManager = await connectionManagerTask;
                         IInvokeMethodHandler invokeMethodHandler = await invokeMethodHandlerTask;
                         IEdgeHub hub = new RoutingEdgeHub(router, routingMessageConverter,
-                            connectionManager, twinManager, this.edgeDeviceId, invokeMethodHandler);
+                            connectionManager, twinManager, this.edgeDeviceId, invokeMethodHandler, deviceConnectivityManager);
                         return hub;
                     })
                 .As<Task<IEdgeHub>>()
