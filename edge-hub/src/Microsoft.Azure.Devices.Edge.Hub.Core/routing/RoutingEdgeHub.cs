@@ -221,7 +221,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             Events.DeviceConnectedProcessingSubscriptions();
             try
             {
-                IEnumerable<IIdentity> connectedClients = this.connectionManager.GetConnectedClients();
+                IEnumerable<IIdentity> connectedClients = this.connectionManager.GetConnectedClients().ToList();
                 foreach (IIdentity identity in connectedClients)
                 {
                     try
