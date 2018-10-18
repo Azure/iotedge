@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             string callerProductInfo = "productInfo";
             string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/device1/modules/moduleId");
             var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
-            var credentials = new TokenCredentials(identity, sasToken, callerProductInfo);
+            var credentials = new TokenCredentials(identity, sasToken, callerProductInfo, false);
 
             var dbStoreProvider = new InMemoryDbStoreProvider();
             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
@@ -49,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             string callerProductInfo = "productInfo";
             string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/device1/modules/moduleId");
             var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
-            var credentials = new TokenCredentials(identity, sasToken, callerProductInfo);
+            var credentials = new TokenCredentials(identity, sasToken, callerProductInfo, false);
 
             var dbStoreProvider = new InMemoryDbStoreProvider();
             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);

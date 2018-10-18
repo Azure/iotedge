@@ -141,7 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
             var clientCredentials = Mock.Of<IClientCredentials>();
             var identityFactory = new Mock<IClientCredentialsFactory>();
-            identityFactory.Setup(i => i.GetWithSasToken(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            identityFactory.Setup(i => i.GetWithSasToken(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>()))
                 .Returns(clientCredentials);
 
             string iotHubHostName = "edgehubtest1.azure-devices.net";
@@ -172,7 +172,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var identity = Mock.Of<IIdentity>(i => i.Id == "device1/mod1");
             var clientCredentials = Mock.Of<IClientCredentials>(c => c.Identity == identity);
             var clientCredentialsFactory = new Mock<IClientCredentialsFactory>();
-            clientCredentialsFactory.Setup(i => i.GetWithSasToken(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            clientCredentialsFactory.Setup(i => i.GetWithSasToken(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>()))
                 .Returns(clientCredentials);
 
             string iotHubHostName = "edgehubtest1.azure-devices.net";

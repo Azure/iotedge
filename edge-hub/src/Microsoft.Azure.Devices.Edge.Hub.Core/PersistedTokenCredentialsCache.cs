@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json;
 
     public class TokenCredentialsCache : ICredentialsCache
     {
@@ -23,7 +24,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 try
                 {
-                    await this.encryptedStore.Put(tokenCredentials.Identity.Id, tokenCredentials.Token);
+                    var tokenCredentialsData = new TokenCredentialsData(tokenCredentials.Token, tokenCredentials.IsUpdatable);
+                    await this.encryptedStore.Put(tokenCredentials.Identity.Id, tokenCredentialsData.ToJson());
                     Events.Stored(clientCredentials.Identity.Id);
                 }
                 catch (Exception e)
@@ -35,13 +37,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public async Task<Option<IClientCredentials>> Get(IIdentity identity)
         {
-            Option<string> tokenOption = await this.encryptedStore.Get(identity.Id);
-            return tokenOption.Map(token =>
+            Option<string> tokenCredentialsDataOption = await this.encryptedStore.Get(identity.Id);
+            return tokenCredentialsDataOption.Map(t =>
             {
                 try
                 {
-                    Events.Retrieved(identity.Id);
-                    return Option.Some(new TokenCredentials(identity, token, string.Empty) as IClientCredentials);
+                    var tokenCredentialsData = t.FromJson<TokenCredentialsData>();
+                    Events.Retrieved(identity.Id);                    
+                    return Option.Some(new TokenCredentials(identity, tokenCredentialsData.Token, string.Empty, tokenCredentialsData.IsUpdatable) as IClientCredentials);
                 }
                 catch (Exception e)
                 {
@@ -50,6 +53,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 }                
             })
             .GetOrElse(Option.None<IClientCredentials>());
+        }
+
+        class TokenCredentialsData
+        {
+            [JsonConstructor]
+            public TokenCredentialsData(string token, bool isUpdatable)
+            {
+                this.Token = token;
+                this.IsUpdatable = isUpdatable;
+            }
+
+            [JsonProperty("isUpdatable")]
+            public bool IsUpdatable { get; }
+
+            [JsonProperty("token")]
+            public string Token { get; }
         }
 
         static class Events
