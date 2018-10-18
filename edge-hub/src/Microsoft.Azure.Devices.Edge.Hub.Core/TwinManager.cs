@@ -24,25 +24,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     public class TwinManager : ITwinManager
     {
         const int TwinPropertyDocMaxLength = 8 * 1024; // 8K bytes. taken from IoTHub
-
         const int TwinPropertyMaxDepth = 5; // taken from IoTHub
-
         const long TwinPropertyMaxSafeValue = 4503599627370495; // (2^52) - 1. taken from IoTHub
-
         const long TwinPropertyMinSafeValue = -4503599627370496; // -2^52. taken from IoTHub
-
         const int TwinPropertyValueMaxLength = 4096; // bytes. taken from IoTHub
-
         readonly ActionBlock<IIdentity> actionBlock;
-
         readonly IConnectionManager connectionManager;
-
         readonly AsyncLock reportedPropertiesLock;
-
         readonly IMessageConverter<TwinCollection> twinCollectionConverter;
-
         readonly IMessageConverter<Twin> twinConverter;
-
         readonly AsyncLock twinLock;
 
         public TwinManager(IConnectionManager connectionManager, IMessageConverter<TwinCollection> twinCollectionConverter, IMessageConverter<Twin> twinConverter, Option<IEntityStore<string, TwinInfo>> twinStore)
@@ -95,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public async Task UpdateDesiredPropertiesAsync(string id, IMessage desiredProperties)
         {
             await this.TwinStore.Map(
-                s => this.UpdateDesiredPropertiesWithStoreSupportAsync(id, desiredProperties))
+                    s => this.UpdateDesiredPropertiesWithStoreSupportAsync(id, desiredProperties))
                 .GetOrElse(() => this.SendDesiredPropertiesToDeviceProxy(id, desiredProperties));
         }
 
@@ -326,7 +316,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 Option<ICloudProxy> cloudProxy = await this.connectionManager.GetCloudConnection(id);
                 return await cloudProxy.Map(
-                    cp => this.GetTwinInfoWhenCloudOnlineAsync(id, cp, false))
+                        cp => this.GetTwinInfoWhenCloudOnlineAsync(id, cp, false))
                     .GetOrElse(() => this.GetTwinInfoWhenCloudOfflineAsync(id, new InvalidOperationException($"Error accessing cloud proxy for device {id}")));
             }
             catch (Exception e)
@@ -622,45 +612,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             enum EventIds
             {
                 UpdateReportedToCloudException = IdStart,
-
                 ReportedPropertiesSyncedToCloudSuccess,
-
                 ValidatedTwinPropertiesSuccess,
-
                 SentReportedPropertiesToCloud,
-
                 NeedsUpdateCachedReportedPropertiesPatch,
-
                 UpdatingReportedPropertiesPatchCollection,
-
                 UpdatedCachedReportedProperties,
-
                 GetTwinFromStoreWhenOffline,
-
                 GotTwinFromCloudSuccess,
-
                 UpdateCachedTwin,
-
                 SendDesiredPropertyUpdateToSubscriber,
-
                 PreserveCachedTwin,
-
                 ConnectionEstablished,
-
                 GetTwinOnEstablished,
-
                 SendDiffToDeviceProxy,
-
                 ProcessConnectionEstablishedForDevice,
-
                 SentDesiredPropertiesToDevice,
-
                 InOrderDesiredPropertyPatchReceived,
-
                 OutOfOrderDesiredPropertyPatchReceived,
-
                 ConnectionEstablishedCallbackException,
-
                 MissingTwinOnUpdateReported,
 
                 UpdateReportedPropertiesFailed

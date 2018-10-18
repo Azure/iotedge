@@ -3,8 +3,6 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
 {
     using System;
-    using System.Collections.Generic;
-    using System.Linq;
 
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;

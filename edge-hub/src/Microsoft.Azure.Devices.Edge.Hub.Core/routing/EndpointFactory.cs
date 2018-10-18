@@ -13,17 +13,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     public class EndpointFactory : IEndpointFactory
     {
         const string CloudEndpointName = "$upstream";
-
         const string FunctionEndpoint = "BrokeredEndpoint";
-
         static readonly char[] BrokeredEndpointSplitChars = { '/' };
-
         readonly ConcurrentDictionary<string, Endpoint> cache;
-
         readonly IConnectionManager connectionManager;
-
         readonly string edgeDeviceId;
-
         readonly Core.IMessageConverter<IRoutingMessage> messageConverter;
 
         public EndpointFactory(

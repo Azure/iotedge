@@ -14,9 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     public class Authenticator : IAuthenticator
     {
         readonly ICredentialsCache credentialsCache;
-
         readonly string edgeDeviceId;
-
         readonly IAuthenticator tokenAuthenticator;
 
         public Authenticator(IAuthenticator tokenAuthenticator, string edgeDeviceId, ICredentialsCache credentialsCache)
@@ -64,13 +62,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         static class Events
         {
             const int IdStart = HubCoreEventIds.Authenticator;
-
             static readonly ILogger Log = Logger.Factory.CreateLogger<Authenticator>();
 
             enum EventIds
             {
                 AuthResult = IdStart,
-
                 InvalidDeviceError
             }
 

@@ -3,9 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
-    using System.Collections.Generic;
     using System.IO;
-    using System.Linq;
 
     public class EdgeHubConnectionException : IOException
     {

@@ -24,19 +24,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     public class ConnectionManager : IConnectionManager
     {
         const int DefaultMaxClients = 101; // 100 Clients + 1 Edgehub
-
         readonly ICloudConnectionProvider cloudConnectionProvider;
-
         readonly ICredentialsCache credentialsCache;
-
         readonly object deviceConnLock = new object();
-
         readonly ConcurrentDictionary<string, ConnectedDevice> devices = new ConcurrentDictionary<string, ConnectedDevice>();
-
         readonly string edgeDeviceId;
-
         readonly string edgeModuleId;
-
         readonly int maxClients;
 
         public ConnectionManager(
@@ -307,111 +300,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.DeviceDisconnected?.Invoke(this, device.Identity);
         }
 
-        static class Events
-        {
-            const int IdStart = HubCoreEventIds.ConnectionManager;
-
-            static readonly ILogger Log = Logger.Factory.CreateLogger<ConnectionManager>();
-
-            enum EventIds
-            {
-                CreateNewCloudConnection = IdStart,
-
-                NewDeviceConnection,
-
-                RemoveDeviceConnection,
-
-                CreateNewCloudConnectionError,
-
-                ObtainedCloudConnection,
-
-                ObtainCloudConnectionError,
-
-                ProcessingTokenNearExpiryEvent,
-
-                InvokingCloudConnectionLostEvent,
-
-                InvokingCloudConnectionEstablishedEvent,
-
-                HandlingConnectionStatusChangedHandler,
-
-                CloudConnectionLostClosingClient
-            }
-
-            public static void CloudConnectionLostClosingClient(IIdentity identity)
-            {
-                Log.LogDebug((int)EventIds.CloudConnectionLostClosingClient, Invariant($"Cloud connection lost for {identity.Id}, closing client."));
-            }
-
-            public static void HandlingConnectionStatusChangedHandler(string deviceId, CloudConnectionStatus connectionStatus)
-            {
-                Log.LogInformation((int)EventIds.HandlingConnectionStatusChangedHandler, Invariant($"Connection status for {deviceId} changed to {connectionStatus}"));
-            }
-
-            public static void InvokingCloudConnectionEstablishedEvent(IIdentity identity)
-            {
-                Log.LogDebug((int)EventIds.InvokingCloudConnectionEstablishedEvent, Invariant($"Invoking cloud connection established event for {identity.Id}"));
-            }
-
-            public static void InvokingCloudConnectionLostEvent(IIdentity identity)
-            {
-                Log.LogDebug((int)EventIds.InvokingCloudConnectionLostEvent, Invariant($"Invoking cloud connection lost event for {identity.Id}"));
-            }
-
-            public static void NewCloudConnection(IIdentity identity, Try<ICloudConnection> cloudConnection)
-            {
-                if (cloudConnection.Success)
-                {
-                    Log.LogInformation((int)EventIds.CreateNewCloudConnection, Invariant($"New cloud connection created for device {identity.Id}"));
-                }
-                else
-                {
-                    Log.LogInformation((int)EventIds.CreateNewCloudConnectionError, cloudConnection.Exception, Invariant($"Error creating new device connection for device {identity.Id}"));
-                }
-            }
-
-            public static void NewDeviceConnection(IIdentity identity)
-            {
-                Log.LogInformation((int)EventIds.NewDeviceConnection, Invariant($"New device connection for device {identity.Id}"));
-            }
-
-            public static void ProcessingTokenNearExpiryEvent(IIdentity identity)
-            {
-                Log.LogDebug((int)EventIds.ProcessingTokenNearExpiryEvent, Invariant($"Processing token near expiry for {identity.Id}"));
-            }
-
-            public static void RemoveDeviceConnection(string id)
-            {
-                Log.LogInformation((int)EventIds.RemoveDeviceConnection, Invariant($"Device connection removed for device {id}"));
-            }
-
-            internal static void GetCloudConnection(IIdentity identity, Try<ICloudConnection> cloudConnection)
-            {
-                if (cloudConnection.Success)
-                {
-                    Log.LogDebug((int)EventIds.ObtainedCloudConnection, Invariant($"Obtained cloud connection for device {identity.Id}"));
-                }
-                else
-                {
-                    Log.LogInformation((int)EventIds.ObtainCloudConnectionError, cloudConnection.Exception, Invariant($"Error getting cloud connection for device {identity.Id}"));
-                }
-            }
-        }
-
-        static class Metrics
-        {
-            static readonly GaugeOptions ConnectedClientGaugeOptions = new GaugeOptions
-            {
-                Name = "EdgeHubConnectedClientGauge",
-                MeasurementUnit = Unit.Events
-            };
-
-            public static void SetConnectedClientCountGauge(long amount)
-            {
-                Util.Metrics.SetGauge(ConnectedClientGaugeOptions, amount);
-            }
-        }
-
         class ConnectedDevice
         {
             readonly AsyncLock cloudConnectionLock = new AsyncLock();
@@ -510,6 +398,101 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             public IDictionary<DeviceSubscription, bool> Subscriptions { get; }
 
             public Task CloseAsync(Exception ex) => this.DeviceProxy.CloseAsync(ex);
+        }
+
+        static class Events
+        {
+            const int IdStart = HubCoreEventIds.ConnectionManager;
+
+            static readonly ILogger Log = Logger.Factory.CreateLogger<ConnectionManager>();
+
+            enum EventIds
+            {
+                CreateNewCloudConnection = IdStart,
+                NewDeviceConnection,
+                RemoveDeviceConnection,
+                CreateNewCloudConnectionError,
+                ObtainedCloudConnection,
+                ObtainCloudConnectionError,
+                ProcessingTokenNearExpiryEvent,
+                InvokingCloudConnectionLostEvent,
+                InvokingCloudConnectionEstablishedEvent,
+                HandlingConnectionStatusChangedHandler,
+                CloudConnectionLostClosingClient
+            }
+
+            public static void CloudConnectionLostClosingClient(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.CloudConnectionLostClosingClient, Invariant($"Cloud connection lost for {identity.Id}, closing client."));
+            }
+
+            public static void HandlingConnectionStatusChangedHandler(string deviceId, CloudConnectionStatus connectionStatus)
+            {
+                Log.LogInformation((int)EventIds.HandlingConnectionStatusChangedHandler, Invariant($"Connection status for {deviceId} changed to {connectionStatus}"));
+            }
+
+            public static void InvokingCloudConnectionEstablishedEvent(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.InvokingCloudConnectionEstablishedEvent, Invariant($"Invoking cloud connection established event for {identity.Id}"));
+            }
+
+            public static void InvokingCloudConnectionLostEvent(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.InvokingCloudConnectionLostEvent, Invariant($"Invoking cloud connection lost event for {identity.Id}"));
+            }
+
+            public static void NewCloudConnection(IIdentity identity, Try<ICloudConnection> cloudConnection)
+            {
+                if (cloudConnection.Success)
+                {
+                    Log.LogInformation((int)EventIds.CreateNewCloudConnection, Invariant($"New cloud connection created for device {identity.Id}"));
+                }
+                else
+                {
+                    Log.LogInformation((int)EventIds.CreateNewCloudConnectionError, cloudConnection.Exception, Invariant($"Error creating new device connection for device {identity.Id}"));
+                }
+            }
+
+            public static void NewDeviceConnection(IIdentity identity)
+            {
+                Log.LogInformation((int)EventIds.NewDeviceConnection, Invariant($"New device connection for device {identity.Id}"));
+            }
+
+            public static void ProcessingTokenNearExpiryEvent(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.ProcessingTokenNearExpiryEvent, Invariant($"Processing token near expiry for {identity.Id}"));
+            }
+
+            public static void RemoveDeviceConnection(string id)
+            {
+                Log.LogInformation((int)EventIds.RemoveDeviceConnection, Invariant($"Device connection removed for device {id}"));
+            }
+
+            internal static void GetCloudConnection(IIdentity identity, Try<ICloudConnection> cloudConnection)
+            {
+                if (cloudConnection.Success)
+                {
+                    Log.LogDebug((int)EventIds.ObtainedCloudConnection, Invariant($"Obtained cloud connection for device {identity.Id}"));
+                }
+                else
+                {
+                    Log.LogInformation((int)EventIds.ObtainCloudConnectionError, cloudConnection.Exception, Invariant($"Error getting cloud connection for device {identity.Id}"));
+                }
+            }
+        }
+
+        static class Metrics
+        {
+            static readonly GaugeOptions ConnectedClientGaugeOptions = new GaugeOptions
+            {
+                Name = "EdgeHubConnectedClientGauge",
+                MeasurementUnit = Unit.Events
+            };
+
+            public static void SetConnectedClientCountGauge(long amount)
+            {
+                Util.Metrics.SetGauge(ConnectedClientGaugeOptions, amount);
+            }
         }
     }
 }

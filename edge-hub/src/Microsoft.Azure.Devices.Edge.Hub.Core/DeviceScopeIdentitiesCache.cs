@@ -23,21 +23,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     public sealed class DeviceScopeIdentitiesCache : IDeviceScopeIdentitiesCache
     {
         readonly AsyncLock cacheLock = new AsyncLock();
-
         readonly IKeyValueStore<string, string> encryptedStore;
-
         readonly object refreshCacheLock = new object();
-
         readonly AsyncAutoResetEvent refreshCacheSignal = new AsyncAutoResetEvent();
-
         readonly Timer refreshCacheTimer;
-
         readonly TimeSpan refreshRate;
-
         readonly IDictionary<string, StoredServiceIdentity> serviceIdentityCache;
-
         readonly IServiceProxy serviceProxy;
-
         Task refreshCacheTask;
 
         DeviceScopeIdentitiesCache(
@@ -307,27 +299,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             enum EventIds
             {
                 InitializingRefreshTask = IdStart,
-
                 Created,
-
                 ErrorInRefresh,
-
                 StartingCycle,
-
                 DoneCycle,
-
                 ReceivedRequestToRefreshCache,
-
                 RefreshSleepCompleted,
-
                 RefreshSignalled,
-
                 NotInScope,
-
                 AddInScope,
-
                 RefreshingServiceIdentity,
-
                 GettingServiceIdentity
             }
 

@@ -51,20 +51,35 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(null, obj))
+            {
                 return false;
+            }
+
             if (ReferenceEquals(this, obj))
+            {
                 return true;
+            }
+
             if (obj.GetType() != this.GetType())
+            {
                 return false;
+            }
+
             return this.Equals((ServiceAuthentication)obj);
         }
 
         public bool Equals(ServiceAuthentication other)
         {
             if (ReferenceEquals(null, other))
+            {
                 return false;
+            }
+
             if (ReferenceEquals(this, other))
+            {
                 return true;
+            }
+
             return this.Type == other.Type && this.SymmetricKey.Equals(other.SymmetricKey) && this.X509Thumbprint.Equals(other.X509Thumbprint);
         }
 

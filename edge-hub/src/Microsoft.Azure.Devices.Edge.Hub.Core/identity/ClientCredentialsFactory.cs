@@ -14,7 +14,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
     public class ClientCredentialsFactory : IClientCredentialsFactory
     {
         readonly string callerProductInfo;
-
         readonly string iotHubHostName;
 
         public ClientCredentialsFactory(string iotHubHostName)

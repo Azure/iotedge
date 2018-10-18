@@ -9,7 +9,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
     public class CloudListener : ICloudListener
     {
         readonly string clientId;
-
         readonly IEdgeHub edgeHub;
 
         public CloudListener(IEdgeHub edgeHub, string clientId)

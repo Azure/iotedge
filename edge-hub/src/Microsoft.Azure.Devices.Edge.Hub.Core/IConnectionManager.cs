@@ -24,11 +24,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     public interface IConnectionManager
     {
         event EventHandler<IIdentity> CloudConnectionEstablished;
-
         event EventHandler<IIdentity> CloudConnectionLost;
-
         event EventHandler<IIdentity> DeviceConnected;
-
         event EventHandler<IIdentity> DeviceDisconnected;
 
         Task AddDeviceConnection(IIdentity identity, IDeviceProxy deviceProxy);

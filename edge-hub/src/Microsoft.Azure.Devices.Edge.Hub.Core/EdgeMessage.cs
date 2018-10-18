@@ -83,9 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public class Builder
         {
             readonly byte[] body;
-
             IDictionary<string, string> properties;
-
             IDictionary<string, string> systemProperties;
 
             public Builder(byte[] body)
@@ -96,9 +94,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             public EdgeMessage Build()
             {
                 if (this.properties == null)
+                {
                     this.properties = new Dictionary<string, string>();
+                }
+
                 if (this.systemProperties == null)
+                {
                     this.systemProperties = new Dictionary<string, string>();
+                }
 
                 return new EdgeMessage(this.body, this.properties, this.systemProperties);
             }

@@ -5,11 +5,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
     public enum CloudConnectionStatus
     {
         ConnectionEstablished,
-
         DisconnectedTokenExpired,
-
         Disconnected,
-
         TokenNearExpiry
     }
 }

@@ -31,7 +31,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     public class CloudEndpoint : Endpoint
     {
         readonly Func<string, Task<Util.Option<ICloudProxy>>> cloudProxyGetterFunc;
-
         readonly Core.IMessageConverter<IRoutingMessage> messageConverter;
 
         public CloudEndpoint(string id, Func<string, Task<Util.Option<ICloudProxy>>> cloudProxyGetterFunc, Core.IMessageConverter<IRoutingMessage> messageConverter)
@@ -48,94 +47,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         public override void LogUserMetrics(long messageCount, long latencyInMs)
         {
             // TODO - No-op for now
-        }
-
-        static class Events
-        {
-            const int IdStart = HubCoreEventIds.CloudEndpoint;
-
-            static readonly ILogger Log = Logger.Factory.CreateLogger<CloudEndpoint>();
-
-            enum EventIds
-            {
-                DeviceIdNotFound = IdStart,
-
-                IoTHubNotConnected,
-
-                RetryingMessages,
-
-                InvalidMessage,
-
-                ProcessingMessages
-            }
-
-            public static void DeviceIdNotFound(IRoutingMessage routingMessage)
-            {
-                string message = routingMessage.SystemProperties.TryGetValue(SystemProperties.MessageId, out string messageId)
-                    ? Invariant($"Message with MessageId {messageId} does not contain a device Id.")
-                    : "Received message does not contain a device Id";
-                Log.LogError((int)EventIds.DeviceIdNotFound, message);
-            }
-
-            public static void ProcessingMessages(ICollection<IRoutingMessage> routingMessages)
-            {
-                Log.LogDebug((int)EventIds.ProcessingMessages, Invariant($"Sending {routingMessages.Count} message(s) upstream."));
-            }
-
-            internal static void InvalidMessage(Exception ex)
-            {
-                // TODO - Add more info to this log message
-                Log.LogWarning((int)EventIds.InvalidMessage, ex, Invariant($"Non retryable exception occurred while sending message."));
-            }
-
-            internal static void IoTHubNotConnected(string id)
-            {
-                Log.LogWarning((int)EventIds.IoTHubNotConnected, Invariant($"Could not get an active Iot Hub connection for device {id}"));
-            }
-
-            internal static void RetryingMessage(IRoutingMessage message, Exception ex)
-            {
-                if (message.SystemProperties.TryGetValue(SystemProperties.ConnectionDeviceId, out string deviceId))
-                {
-                    string id = message.SystemProperties.TryGetValue(SystemProperties.ConnectionModuleId, out string moduleId)
-                        ? $"{deviceId}/{moduleId}"
-                        : deviceId;
-
-                    // TODO - Add more info to this log message
-                    Log.LogDebug((int)EventIds.RetryingMessages, Invariant($"Retrying sending message from {id} to Iot Hub due to exception {ex.GetType()}:{ex.Message}."));
-                }
-                else
-                {
-                    Log.LogDebug((int)EventIds.RetryingMessages, Invariant($"Retrying sending message to Iot Hub due to exception {ex.GetType()}:{ex.Message}."));
-                }
-            }
-        }
-
-        static class Metrics
-        {
-            static readonly CounterOptions EdgeHubToCloudMessageCountOptions = new CounterOptions
-            {
-                Name = "EdgeHubToCloudMessageSentCount",
-                MeasurementUnit = Unit.Events,
-                ResetOnReporting = true,
-            };
-
-            static readonly TimerOptions EdgeHubToCloudMessageLatencyOptions = new TimerOptions
-            {
-                Name = "EdgeHubToCloudMessageLatencyMs",
-                MeasurementUnit = Unit.None,
-                DurationUnit = TimeUnit.Milliseconds,
-                RateUnit = TimeUnit.Seconds
-            };
-
-            public static IDisposable CloudLatency(string identity) => Util.Metrics.Latency(GetTags(identity), EdgeHubToCloudMessageLatencyOptions);
-
-            public static void MessageCount(string identity) => Util.Metrics.CountIncrement(GetTags(identity), EdgeHubToCloudMessageCountOptions, 1);
-
-            internal static MetricTags GetTags(string id)
-            {
-                return new MetricTags("DeviceId", id);
-            }
         }
 
         class CloudMessageProcessor : IProcessor
@@ -285,6 +196,94 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             }
 
             bool IsTransientException(Exception ex) => ex is EdgeHubIOException || ex is EdgeHubConnectionException;
+        }
+
+        static class Events
+        {
+            const int IdStart = HubCoreEventIds.CloudEndpoint;
+
+            static readonly ILogger Log = Logger.Factory.CreateLogger<CloudEndpoint>();
+
+            enum EventIds
+            {
+                DeviceIdNotFound = IdStart,
+
+                IoTHubNotConnected,
+
+                RetryingMessages,
+
+                InvalidMessage,
+
+                ProcessingMessages
+            }
+
+            public static void DeviceIdNotFound(IRoutingMessage routingMessage)
+            {
+                string message = routingMessage.SystemProperties.TryGetValue(SystemProperties.MessageId, out string messageId)
+                    ? Invariant($"Message with MessageId {messageId} does not contain a device Id.")
+                    : "Received message does not contain a device Id";
+                Log.LogError((int)EventIds.DeviceIdNotFound, message);
+            }
+
+            public static void ProcessingMessages(ICollection<IRoutingMessage> routingMessages)
+            {
+                Log.LogDebug((int)EventIds.ProcessingMessages, Invariant($"Sending {routingMessages.Count} message(s) upstream."));
+            }
+
+            internal static void InvalidMessage(Exception ex)
+            {
+                // TODO - Add more info to this log message
+                Log.LogWarning((int)EventIds.InvalidMessage, ex, Invariant($"Non retryable exception occurred while sending message."));
+            }
+
+            internal static void IoTHubNotConnected(string id)
+            {
+                Log.LogWarning((int)EventIds.IoTHubNotConnected, Invariant($"Could not get an active Iot Hub connection for device {id}"));
+            }
+
+            internal static void RetryingMessage(IRoutingMessage message, Exception ex)
+            {
+                if (message.SystemProperties.TryGetValue(SystemProperties.ConnectionDeviceId, out string deviceId))
+                {
+                    string id = message.SystemProperties.TryGetValue(SystemProperties.ConnectionModuleId, out string moduleId)
+                        ? $"{deviceId}/{moduleId}"
+                        : deviceId;
+
+                    // TODO - Add more info to this log message
+                    Log.LogDebug((int)EventIds.RetryingMessages, Invariant($"Retrying sending message from {id} to Iot Hub due to exception {ex.GetType()}:{ex.Message}."));
+                }
+                else
+                {
+                    Log.LogDebug((int)EventIds.RetryingMessages, Invariant($"Retrying sending message to Iot Hub due to exception {ex.GetType()}:{ex.Message}."));
+                }
+            }
+        }
+
+        static class Metrics
+        {
+            static readonly CounterOptions EdgeHubToCloudMessageCountOptions = new CounterOptions
+            {
+                Name = "EdgeHubToCloudMessageSentCount",
+                MeasurementUnit = Unit.Events,
+                ResetOnReporting = true,
+            };
+
+            static readonly TimerOptions EdgeHubToCloudMessageLatencyOptions = new TimerOptions
+            {
+                Name = "EdgeHubToCloudMessageLatencyMs",
+                MeasurementUnit = Unit.None,
+                DurationUnit = TimeUnit.Milliseconds,
+                RateUnit = TimeUnit.Seconds
+            };
+
+            public static IDisposable CloudLatency(string identity) => Util.Metrics.Latency(GetTags(identity), EdgeHubToCloudMessageLatencyOptions);
+
+            public static void MessageCount(string identity) => Util.Metrics.CountIncrement(GetTags(identity), EdgeHubToCloudMessageCountOptions, 1);
+
+            internal static MetricTags GetTags(string id)
+            {
+                return new MetricTags("DeviceId", id);
+            }
         }
     }
 }

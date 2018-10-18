@@ -29,23 +29,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     public class EdgeHubConnection : IConfigSource
     {
         readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
-
         readonly AsyncLock edgeHubConfigLock = new AsyncLock();
-
         readonly IIdentity edgeHubIdentity;
-
         readonly RouteFactory routeFactory;
-
         readonly IMessageConverter<TwinCollection> twinCollectionMessageConverter;
-
         readonly ITwinManager twinManager;
-
         readonly IMessageConverter<Twin> twinMessageConverter;
-
         readonly VersionInfo versionInfo;
-
         Func<EdgeHubConfig, Task> configUpdateCallback;
-
         Option<TwinCollection> lastDesiredProperties = Option.None<TwinCollection>();
 
         internal EdgeHubConnection(
@@ -457,6 +448,70 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             public VersionInfo VersionInfo { get; }
         }
 
+        class DesiredProperties
+        {
+            [JsonConstructor]
+            public DesiredProperties(string schemaVersion, IDictionary<string, string> routes, StoreAndForwardConfiguration storeAndForwardConfiguration)
+            {
+                this.SchemaVersion = schemaVersion;
+                this.Routes = routes;
+                this.StoreAndForwardConfiguration = storeAndForwardConfiguration;
+            }
+
+            public IDictionary<string, string> Routes { get; }
+
+            public string SchemaVersion { get; }
+
+            public StoreAndForwardConfiguration StoreAndForwardConfiguration { get; }
+        }
+
+        /// <summary>
+        /// The Edge hub device proxy, that receives communication for the EdgeHub from the cloud.
+        /// Currently only receives DesiredProperties updates.
+        /// </summary>
+        class EdgeHubDeviceProxy : IDeviceProxy
+        {
+            readonly EdgeHubConnection edgeHubConnection;
+
+            public EdgeHubDeviceProxy(EdgeHubConnection edgeHubConnection)
+            {
+                this.edgeHubConnection = edgeHubConnection;
+            }
+
+            public IIdentity Identity => this.edgeHubConnection.edgeHubIdentity;
+
+            public bool IsActive => true;
+
+            public Task CloseAsync(Exception ex) => Task.CompletedTask;
+
+            public Task<Option<IClientCredentials>> GetUpdatedIdentity() => throw new NotImplementedException();
+
+            public Task<DirectMethodResponse> InvokeMethodAsync(DirectMethodRequest request) =>
+                this.edgeHubConnection.HandleMethodInvocation(request);
+
+            public Task OnDesiredPropertyUpdates(IMessage desiredProperties) => this.edgeHubConnection.HandleDesiredPropertiesUpdate(desiredProperties);
+
+            public Task SendC2DMessageAsync(IMessage message)
+            {
+                throw new NotImplementedException();
+            }
+
+            public Task SendMessageAsync(IMessage message, string input)
+            {
+                throw new NotImplementedException();
+            }
+
+            public Task SendTwinUpdate(IMessage twin)
+            {
+                throw new NotImplementedException();
+            }
+
+            public void SetInactive()
+            {
+                throw new NotImplementedException();
+            }
+        }
+
         static class Events
         {
             const int IdStart = HubCoreEventIds.EdgeHubConnection;
@@ -466,39 +521,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             enum EventIds
             {
                 Initialized = IdStart,
-
                 ErrorUpdatingLastDesiredStatus,
-
                 ErrorHandlingDesiredPropertiesUpdate,
-
                 ErrorPatchingDesiredProperties,
-
                 ErrorHandlingDeviceDisconnectedEvent,
-
                 ErrorHandlingDeviceConnectedEvent,
-
                 ErrorUpdatingDeviceConnectionStatus,
-
                 GetConfigSuccess,
-
                 PatchConfigSuccess,
-
                 ErrorClearingDeviceConnectionStatuses,
-
                 UpdatingDeviceConnectionStatus,
-
                 MismatchedSchemaVersion,
-
                 ErrorParsingMethodRequest,
-
                 ErrorRefreshingServiceIdentities,
-
                 RefreshedServiceIdentities,
-
                 InvalidMethodRequest,
-
                 SkipUpdatingEdgeHubIdentity,
-
                 MethodRequestReceived
             }
 
@@ -626,70 +664,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             internal static void UpdatingDeviceConnectionStatus(string deviceId, ConnectionStatus connectionStatus)
             {
                 Log.LogDebug((int)EventIds.UpdatingDeviceConnectionStatus, Invariant($"Updating device {deviceId} connection status to {connectionStatus}"));
-            }
-        }
-
-        class DesiredProperties
-        {
-            [JsonConstructor]
-            public DesiredProperties(string schemaVersion, IDictionary<string, string> routes, StoreAndForwardConfiguration storeAndForwardConfiguration)
-            {
-                this.SchemaVersion = schemaVersion;
-                this.Routes = routes;
-                this.StoreAndForwardConfiguration = storeAndForwardConfiguration;
-            }
-
-            public IDictionary<string, string> Routes { get; }
-
-            public string SchemaVersion { get; }
-
-            public StoreAndForwardConfiguration StoreAndForwardConfiguration { get; }
-        }
-
-        /// <summary>
-        /// The Edge hub device proxy, that receives communication for the EdgeHub from the cloud.
-        /// Currently only receives DesiredProperties updates.
-        /// </summary>
-        class EdgeHubDeviceProxy : IDeviceProxy
-        {
-            readonly EdgeHubConnection edgeHubConnection;
-
-            public EdgeHubDeviceProxy(EdgeHubConnection edgeHubConnection)
-            {
-                this.edgeHubConnection = edgeHubConnection;
-            }
-
-            public IIdentity Identity => this.edgeHubConnection.edgeHubIdentity;
-
-            public bool IsActive => true;
-
-            public Task CloseAsync(Exception ex) => Task.CompletedTask;
-
-            public Task<Option<IClientCredentials>> GetUpdatedIdentity() => throw new NotImplementedException();
-
-            public Task<DirectMethodResponse> InvokeMethodAsync(DirectMethodRequest request) =>
-                this.edgeHubConnection.HandleMethodInvocation(request);
-
-            public Task OnDesiredPropertyUpdates(IMessage desiredProperties) => this.edgeHubConnection.HandleDesiredPropertiesUpdate(desiredProperties);
-
-            public Task SendC2DMessageAsync(IMessage message)
-            {
-                throw new NotImplementedException();
-            }
-
-            public Task SendMessageAsync(IMessage message, string input)
-            {
-                throw new NotImplementedException();
-            }
-
-            public Task SendTwinUpdate(IMessage twin)
-            {
-                throw new NotImplementedException();
-            }
-
-            public void SetInactive()
-            {
-                throw new NotImplementedException();
             }
         }
 

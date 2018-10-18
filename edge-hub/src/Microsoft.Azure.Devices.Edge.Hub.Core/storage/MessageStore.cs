@@ -34,19 +34,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
     public class MessageStore : IMessageStore
     {
         const long DefaultStartingOffset = 0;
-
         readonly ICheckpointStore checkpointStore;
-
         readonly ConcurrentDictionary<string, ISequentialStore<MessageRef>> endpointSequentialStores;
-
-        readonly IEntityStore<string, MessageWrapper> messageEntityStore;
-
-        readonly CleanupProcessor messagesCleaner;
-
-        readonly IStoreProvider storeProvider;
-
         readonly long messageCount = 0;
-
+        readonly IEntityStore<string, MessageWrapper> messageEntityStore;
+        readonly CleanupProcessor messagesCleaner;
+        readonly IStoreProvider storeProvider;
         TimeSpan timeToLive;
 
         public MessageStore(IStoreProvider storeProvider, ICheckpointStore checkpointStore, TimeSpan timeToLive)
@@ -197,169 +190,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             public DateTime TimeStamp { get; }
         }
 
-        static class Events
-        {
-            const int IdStart = HubCoreEventIds.MessageStore;
-
-            static readonly ILogger Log = Logger.Factory.CreateLogger<MessageStore>();
-
-            enum EventIds
-            {
-                MessageStoreCreated = IdStart,
-
-                DisposingMessageStore,
-
-                CleanupTaskStarted,
-
-                ErrorCleaningMessagesForEndpoint,
-
-                ErrorCleaningMessages,
-
-                CleanupCompleted,
-
-                TtlUpdated,
-
-                SequentialStoreAdded,
-
-                SequentialStoreRemoved,
-
-                GettingNextBatch,
-
-                ObtainedNextBatch,
-
-                CleanupCheckpointState,
-
-                MessageAdded,
-
-                ErrorGettingMessagesBatch
-            }
-
-            public static void CleanupCompleted(string endpointId, int queueMessagesCount, int storeMessagesCount, long totalQueueMessagesCount, long totalStoreMessagesCount)
-            {
-                Log.LogInformation((int)EventIds.CleanupCompleted, Invariant($"Cleaned up {queueMessagesCount} messages from queue for endpoint {endpointId} and {storeMessagesCount} messages from message store."));
-                Log.LogDebug((int)EventIds.CleanupCompleted, Invariant($"Total messages cleaned up from queue for endpoint {endpointId} = {totalQueueMessagesCount}, and total messages cleaned up for message store = {totalStoreMessagesCount}."));
-            }
-
-            public static void CleanupTaskInitialized()
-            {
-                Log.LogInformation((int)EventIds.CleanupTaskStarted, "Started task to cleanup processed and stale messages");
-            }
-
-            public static void CleanupTaskStarted(string endpointId)
-            {
-                Log.LogInformation((int)EventIds.CleanupTaskStarted, Invariant($"Started task to cleanup processed and stale messages for endpoint {endpointId}"));
-            }
-
-            public static void DisposingMessageStore()
-            {
-                Log.LogInformation((int)EventIds.DisposingMessageStore, "Disposing message store");
-            }
-
-            public static void ErrorCleaningMessages(Exception ex)
-            {
-                Log.LogWarning((int)EventIds.ErrorCleaningMessages, ex, "Error cleaning up messages in message store");
-            }
-
-            public static void ErrorCleaningMessagesForEndpoint(Exception ex, string endpointId)
-            {
-                Log.LogWarning((int)EventIds.ErrorCleaningMessagesForEndpoint, ex, Invariant($"Error cleaning up messages for endpoint {endpointId}"));
-            }
-
-            public static void ErrorGettingMessagesBatch(string entityName, Exception ex)
-            {
-                Log.LogWarning((int)EventIds.ErrorGettingMessagesBatch, ex, $"Error getting next batch for endpoint {entityName}.");
-            }
-
-            public static void MessageStoreCreated()
-            {
-                Log.LogInformation((int)EventIds.MessageStoreCreated, Invariant($"Created new message store"));
-            }
-
-            internal static void CleanupCheckpointState(string endpointId, CheckpointData checkpointData)
-            {
-                Log.LogDebug((int)EventIds.CleanupCheckpointState, Invariant($"Checkpoint for endpoint {endpointId} is {checkpointData.Offset}"));
-            }
-
-            internal static void GettingNextBatch(string entityName, long startingOffset, int batchSize)
-            {
-                Log.LogDebug((int)EventIds.GettingNextBatch, $"Getting next batch for endpoint {entityName} starting from {startingOffset} with batch size {batchSize}.");
-            }
-
-            internal static void MessageAdded(long offset, string edgeMessageId, string endpointId, long messageCount)
-            {
-                // Print only after every 1000th message to avoid flooding logs.
-                if (offset % 1000 == 0)
-                {
-                    Log.LogDebug((int)EventIds.MessageAdded, Invariant($"Added message {edgeMessageId} to store for {endpointId} at offset {offset} - messageCount = {messageCount}"));
-                }
-            }
-
-            internal static void MessageNotFound(string edgeMessageId)
-            {
-                Log.LogWarning((int)EventIds.ErrorCleaningMessagesForEndpoint, Invariant($"Unable to find message with EdgeMessageId {edgeMessageId}"));
-            }
-
-            internal static void ObtainedNextBatch(string entityName, long startingOffset, int count)
-            {
-                Log.LogDebug((int)EventIds.ObtainedNextBatch, $"Obtained next batch for endpoint {entityName} with batch size {count}. Next start offset = {startingOffset}.");
-            }
-
-            internal static void SequentialStoreAdded(string endpointId)
-            {
-                Log.LogDebug((int)EventIds.SequentialStoreAdded, $"Added sequential store for endpoint {endpointId}");
-            }
-
-            internal static void SequentialStoreRemoved(string endpointId)
-            {
-                Log.LogDebug((int)EventIds.SequentialStoreRemoved, $"Removed sequential store for endpoint {endpointId}");
-            }
-
-            internal static void TtlUpdated(TimeSpan timeSpan)
-            {
-                Log.LogInformation((int)EventIds.TtlUpdated, $"Updated message store TTL to {timeSpan.TotalSeconds} seconds");
-            }
-        }
-
-        static class Metrics
-        {
-            static readonly TimerOptions MessageEntityStorePutOrUpdateLatencyOptions = new TimerOptions
-            {
-                Name = "MessageEntityStorePutOrUpdateLatencyMs",
-                MeasurementUnit = Unit.None,
-                DurationUnit = TimeUnit.Milliseconds,
-                RateUnit = TimeUnit.Seconds
-            };
-
-            static readonly TimerOptions SequentialStoreAppendLatencyOptions = new TimerOptions
-            {
-                Name = "SequentialStoreAppendLatencyMs",
-                MeasurementUnit = Unit.None,
-                DurationUnit = TimeUnit.Milliseconds,
-                RateUnit = TimeUnit.Seconds
-            };
-
-            public static IDisposable MessageStoreLatency(string identity) => Util.Metrics.Latency(GetTags(identity), MessageEntityStorePutOrUpdateLatencyOptions);
-
-            public static IDisposable SequentialStoreLatency(string identity) => Util.Metrics.Latency(GetTags(identity), SequentialStoreAppendLatencyOptions);
-
-            internal static MetricTags GetTags(string id)
-            {
-                return new MetricTags("EndpointId", id);
-            }
-        }
-
         class CleanupProcessor : IDisposable
         {
             static readonly TimeSpan CleanupTaskFrequency = TimeSpan.FromMinutes(30); // Run once every 30 mins.
-
             static readonly TimeSpan MinCleanupSleepTime = TimeSpan.FromSeconds(30); // Sleep for 30 secs
-
             readonly CancellationTokenSource cancellationTokenSource;
-
             readonly Timer ensureCleanupTaskTimer;
-
             readonly MessageStore messageStore;
-
             Task cleanupTask;
 
             public CleanupProcessor(MessageStore messageStore)
@@ -489,12 +326,120 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             }
         }
 
+        static class Events
+        {
+            const int IdStart = HubCoreEventIds.MessageStore;
+
+            static readonly ILogger Log = Logger.Factory.CreateLogger<MessageStore>();
+
+            enum EventIds
+            {
+                MessageStoreCreated = IdStart,
+                DisposingMessageStore,
+                CleanupTaskStarted,
+                ErrorCleaningMessagesForEndpoint,
+                ErrorCleaningMessages,
+                CleanupCompleted,
+                TtlUpdated,
+                SequentialStoreAdded,
+                SequentialStoreRemoved,
+                GettingNextBatch,
+                ObtainedNextBatch,
+                CleanupCheckpointState,
+                MessageAdded,
+                ErrorGettingMessagesBatch
+            }
+
+            public static void CleanupCompleted(string endpointId, int queueMessagesCount, int storeMessagesCount, long totalQueueMessagesCount, long totalStoreMessagesCount)
+            {
+                Log.LogInformation((int)EventIds.CleanupCompleted, Invariant($"Cleaned up {queueMessagesCount} messages from queue for endpoint {endpointId} and {storeMessagesCount} messages from message store."));
+                Log.LogDebug((int)EventIds.CleanupCompleted, Invariant($"Total messages cleaned up from queue for endpoint {endpointId} = {totalQueueMessagesCount}, and total messages cleaned up for message store = {totalStoreMessagesCount}."));
+            }
+
+            public static void CleanupTaskInitialized()
+            {
+                Log.LogInformation((int)EventIds.CleanupTaskStarted, "Started task to cleanup processed and stale messages");
+            }
+
+            public static void CleanupTaskStarted(string endpointId)
+            {
+                Log.LogInformation((int)EventIds.CleanupTaskStarted, Invariant($"Started task to cleanup processed and stale messages for endpoint {endpointId}"));
+            }
+
+            public static void DisposingMessageStore()
+            {
+                Log.LogInformation((int)EventIds.DisposingMessageStore, "Disposing message store");
+            }
+
+            public static void ErrorCleaningMessages(Exception ex)
+            {
+                Log.LogWarning((int)EventIds.ErrorCleaningMessages, ex, "Error cleaning up messages in message store");
+            }
+
+            public static void ErrorCleaningMessagesForEndpoint(Exception ex, string endpointId)
+            {
+                Log.LogWarning((int)EventIds.ErrorCleaningMessagesForEndpoint, ex, Invariant($"Error cleaning up messages for endpoint {endpointId}"));
+            }
+
+            public static void ErrorGettingMessagesBatch(string entityName, Exception ex)
+            {
+                Log.LogWarning((int)EventIds.ErrorGettingMessagesBatch, ex, $"Error getting next batch for endpoint {entityName}.");
+            }
+
+            public static void MessageStoreCreated()
+            {
+                Log.LogInformation((int)EventIds.MessageStoreCreated, Invariant($"Created new message store"));
+            }
+
+            internal static void CleanupCheckpointState(string endpointId, CheckpointData checkpointData)
+            {
+                Log.LogDebug((int)EventIds.CleanupCheckpointState, Invariant($"Checkpoint for endpoint {endpointId} is {checkpointData.Offset}"));
+            }
+
+            internal static void GettingNextBatch(string entityName, long startingOffset, int batchSize)
+            {
+                Log.LogDebug((int)EventIds.GettingNextBatch, $"Getting next batch for endpoint {entityName} starting from {startingOffset} with batch size {batchSize}.");
+            }
+
+            internal static void MessageAdded(long offset, string edgeMessageId, string endpointId, long messageCount)
+            {
+                // Print only after every 1000th message to avoid flooding logs.
+                if (offset % 1000 == 0)
+                {
+                    Log.LogDebug((int)EventIds.MessageAdded, Invariant($"Added message {edgeMessageId} to store for {endpointId} at offset {offset} - messageCount = {messageCount}"));
+                }
+            }
+
+            internal static void MessageNotFound(string edgeMessageId)
+            {
+                Log.LogWarning((int)EventIds.ErrorCleaningMessagesForEndpoint, Invariant($"Unable to find message with EdgeMessageId {edgeMessageId}"));
+            }
+
+            internal static void ObtainedNextBatch(string entityName, long startingOffset, int count)
+            {
+                Log.LogDebug((int)EventIds.ObtainedNextBatch, $"Obtained next batch for endpoint {entityName} with batch size {count}. Next start offset = {startingOffset}.");
+            }
+
+            internal static void SequentialStoreAdded(string endpointId)
+            {
+                Log.LogDebug((int)EventIds.SequentialStoreAdded, $"Added sequential store for endpoint {endpointId}");
+            }
+
+            internal static void SequentialStoreRemoved(string endpointId)
+            {
+                Log.LogDebug((int)EventIds.SequentialStoreRemoved, $"Removed sequential store for endpoint {endpointId}");
+            }
+
+            internal static void TtlUpdated(TimeSpan timeSpan)
+            {
+                Log.LogInformation((int)EventIds.TtlUpdated, $"Updated message store TTL to {timeSpan.TotalSeconds} seconds");
+            }
+        }
+
         class MessageIterator : IMessageIterator
         {
             readonly ISequentialStore<MessageRef> endpointSequentialStore;
-
             readonly IKeyValueStore<string, MessageWrapper> entityStore;
-
             long startingOffset;
 
             public MessageIterator(
@@ -584,6 +529,34 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             public string EdgeMessageId { get; }
 
             public DateTime TimeStamp { get; }
+        }
+
+        static class Metrics
+        {
+            static readonly TimerOptions MessageEntityStorePutOrUpdateLatencyOptions = new TimerOptions
+            {
+                Name = "MessageEntityStorePutOrUpdateLatencyMs",
+                MeasurementUnit = Unit.None,
+                DurationUnit = TimeUnit.Milliseconds,
+                RateUnit = TimeUnit.Seconds
+            };
+
+            static readonly TimerOptions SequentialStoreAppendLatencyOptions = new TimerOptions
+            {
+                Name = "SequentialStoreAppendLatencyMs",
+                MeasurementUnit = Unit.None,
+                DurationUnit = TimeUnit.Milliseconds,
+                RateUnit = TimeUnit.Seconds
+            };
+
+            public static IDisposable MessageStoreLatency(string identity) => Util.Metrics.Latency(GetTags(identity), MessageEntityStorePutOrUpdateLatencyOptions);
+
+            public static IDisposable SequentialStoreLatency(string identity) => Util.Metrics.Latency(GetTags(identity), SequentialStoreAppendLatencyOptions);
+
+            internal static MetricTags GetTags(string id)
+            {
+                return new MetricTags("EndpointId", id);
+            }
         }
     }
 }

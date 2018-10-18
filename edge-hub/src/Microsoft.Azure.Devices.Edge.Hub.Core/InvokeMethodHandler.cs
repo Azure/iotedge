@@ -17,7 +17,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     public class InvokeMethodHandler : IInvokeMethodHandler
     {
         readonly ConcurrentDictionary<string, ConcurrentDictionary<DirectMethodRequest, TaskCompletionSource<DirectMethodResponse>>> clientMethodRequestQueue = new ConcurrentDictionary<string, ConcurrentDictionary<DirectMethodRequest, TaskCompletionSource<DirectMethodResponse>>>();
-
         readonly IConnectionManager connectionManager;
 
         public InvokeMethodHandler(IConnectionManager connectionManager)
@@ -146,13 +145,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             enum EventIds
             {
                 InvokingMethod = IdStart,
-
                 NoSubscription,
-
                 ClientNotFound,
-
                 ProcessingInvokeMethodQueue,
-
                 ErrorProcessingInvokeMethodRequests
             }
 

@@ -64,11 +64,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             enum EventIds
             {
                 ErrorStoring = IdStart,
-
                 ErrorRetrieving,
-
                 Retrieved,
-
                 Stored
             }
 

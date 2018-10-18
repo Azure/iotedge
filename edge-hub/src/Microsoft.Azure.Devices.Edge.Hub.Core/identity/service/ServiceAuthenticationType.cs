@@ -9,11 +9,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service
     public enum ServiceAuthenticationType
     {
         SymmetricKey,
-
         CertificateThumbprint,
-
         CertificateAuthority,
-
         None,
     }
 }

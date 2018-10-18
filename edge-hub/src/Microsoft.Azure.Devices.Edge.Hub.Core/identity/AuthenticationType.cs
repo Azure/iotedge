@@ -5,13 +5,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
     public enum AuthenticationType
     {
         None,
-
         SasKey,
-
         Token,
-
         X509Cert,
-
         IoTEdged
     }
 }

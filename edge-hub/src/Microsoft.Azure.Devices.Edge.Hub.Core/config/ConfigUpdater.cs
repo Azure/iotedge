@@ -15,9 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     public class ConfigUpdater
     {
         readonly IMessageStore messageStore;
-
         readonly Router router;
-
         readonly AsyncLock updateLock = new AsyncLock();
 
         public ConfigUpdater(Router router, IMessageStore messageStore)
@@ -116,17 +114,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             enum EventIds
             {
                 Initialized = IdStart,
-
                 InitializeError,
-
                 UpdateError,
-
                 UpdatingConfig,
-
                 UpdatedRoutes,
-
                 UpdatedStoreAndForwardConfig,
-
                 EmptyConfig
             }
 

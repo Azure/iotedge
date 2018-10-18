@@ -5,7 +5,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
-    using System.Linq;
     using System.Net;
     using System.Threading.Tasks;
 
@@ -21,19 +20,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
     {
         // IoTHub error codes
         const int GenericBadRequest = 400000;
-
         static readonly TimeSpan MessageResponseTimeout = TimeSpan.FromSeconds(30);
-
         readonly IConnectionManager connectionManager;
-
         readonly IEdgeHub edgeHub;
-
         readonly ConcurrentDictionary<string, TaskCompletionSource<bool>> messageTaskCompletionSources = new ConcurrentDictionary<string, TaskCompletionSource<bool>>();
-
         readonly ConcurrentDictionary<string, TaskCompletionSource<DirectMethodResponse>> methodCallTaskCompletionSources = new ConcurrentDictionary<string, TaskCompletionSource<DirectMethodResponse>>();
-
         readonly AsyncLock serializeMessagesLock = new AsyncLock();
-
         IDeviceProxy underlyingProxy;
 
         public DeviceMessageHandler(IIdentity identity, IEdgeHub edgeHub, IConnectionManager connectionManager)
@@ -326,31 +318,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             enum EventIds
             {
                 BindDeviceProxy = IdStart,
-
                 RemoveDeviceConnection,
-
                 MethodSentToClient,
-
                 MethodResponseReceived,
-
                 MethodRequestIdNotMatched,
-
                 MethodResponseTimedout,
-
                 InvalidMethodResponse,
-
                 MessageFeedbackTimedout,
-
                 MessageFeedbackReceived,
-
                 MessageFeedbackWithNoMessageId,
-
                 MessageSentToClient,
-
                 ErrorGettingTwin,
-
                 ErrorUpdatingReportedProperties,
-
                 ProcessedGetTwin
             }
 

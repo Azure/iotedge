@@ -25,9 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     public class ModuleEndpoint : Endpoint
     {
         readonly IConnectionManager connectionManager;
-
         readonly Core.IMessageConverter<IRoutingMessage> messageConverter;
-
         readonly string moduleId;
 
         public ModuleEndpoint(string id, string moduleId, string input, IConnectionManager connectionManager, Core.IMessageConverter<IRoutingMessage> messageConverter)
@@ -59,13 +57,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             enum EventIds
             {
                 NoDeviceProxy = IdStart,
-
                 ErrorSendingMessages,
-
                 RetryingMessages,
-
                 InvalidMessage,
-
                 ProcessingMessages
             }
 
@@ -226,8 +220,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 return this.devicePoxy;
             }
 
-            bool IsTransientException(Exception ex) => ex is EdgeHubConnectionException
-                                                       || ex is EdgeHubIOException;
+            bool IsTransientException(Exception ex) => ex is EdgeHubConnectionException || ex is EdgeHubIOException;
         }
     }
 }

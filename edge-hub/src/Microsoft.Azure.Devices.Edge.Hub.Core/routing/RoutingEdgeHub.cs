@@ -28,17 +28,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     public class RoutingEdgeHub : IEdgeHub
     {
         const long MaxMessageSize = 256 * 1024; // matches IoTHub
-
         readonly IConnectionManager connectionManager;
-
         readonly string edgeDeviceId;
-
         readonly IInvokeMethodHandler invokeMethodHandler;
-
         readonly Core.IMessageConverter<IRoutingMessage> messageConverter;
-
         readonly Router router;
-
         readonly ITwinManager twinManager;
 
         public RoutingEdgeHub(
@@ -62,6 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         {
             Events.AddingSubscription(id, deviceSubscription);
             this.connectionManager.AddSubscription(id, deviceSubscription);
+
             try
             {
                 Option<ICloudProxy> cloudProxy = await this.connectionManager.GetCloudConnection(id);
@@ -100,6 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             Preconditions.CheckNotNull(identity, nameof(identity));
             Events.MessageReceived(identity);
             Metrics.MessageCount(identity, 1);
+
             using (Metrics.MessageLatency(identity))
             {
                 IRoutingMessage routingMessage = this.ProcessMessageInternal(message, true);
@@ -121,6 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         {
             Events.RemovingSubscription(id, deviceSubscription);
             this.connectionManager.RemoveSubscription(id, deviceSubscription);
+
             try
             {
                 Option<ICloudProxy> cloudProxy = await this.connectionManager.GetCloudConnection(id);
@@ -189,7 +186,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     }
 
                     break;
-
                 case DeviceSubscription.DesiredPropertyUpdates:
                     await cloudProxy.ForEachAsync(c => addSubscription ? c.SetupDesiredPropertyUpdatesAsync() : c.RemoveDesiredPropertyUpdatesAsync());
                     break;
@@ -206,7 +202,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     }
 
                     break;
-
                 case DeviceSubscription.ModuleMessages:
                 case DeviceSubscription.TwinResponse:
                 case DeviceSubscription.Unknown:
@@ -282,27 +277,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             enum EventIds
             {
                 MethodReceived = IdStart,
-
                 MessageReceived = 1501,
-
                 ReportedPropertiesUpdateReceived = 1502,
-
                 DesiredPropertiesUpdateReceived = 1503,
-
                 DeviceConnectionNotFound,
-
                 ErrorProcessingSubscriptions,
-
                 ErrorRemovingSubscription,
-
                 ErrorAddingSubscription,
-
                 AddingSubscription,
-
                 RemovingSubscription,
-
                 ProcessingSubscriptions,
-
                 ProcessingSubscription
             }
 

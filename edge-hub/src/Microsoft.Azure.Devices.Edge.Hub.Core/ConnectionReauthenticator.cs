@@ -17,15 +17,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     public sealed class ConnectionReauthenticator : IDisposable
     {
         readonly IAuthenticator authenticator;
-
         readonly IConnectionManager connectionManager;
-
         readonly ICredentialsCache credentialsCache;
-
         readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
-
         readonly IIdentity edgeHubIdentity;
-
         readonly Timer timer;
 
         public ConnectionReauthenticator(
@@ -186,25 +181,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             enum EventIds
             {
                 ErrorReauthenticating = IdStart,
-
                 ErrorRemovingConnection,
-
                 ServiceIdentityUpdated,
-
                 ServiceIdentityUpdatedRemoving,
-
                 ServiceIdentityUpdatedValidated,
-
                 ServiceIdentityRemoved,
-
                 ClientCredentialsResult,
-
                 DeviceNotConnected,
-
                 StartingReauthTimer,
-
                 ReauthenticatingClients,
-
                 EdgeHubConnectionReestablished
             }
 
