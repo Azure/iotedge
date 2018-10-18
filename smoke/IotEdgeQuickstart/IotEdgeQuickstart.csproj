@@ -23,10 +23,10 @@
   <ItemGroup>
     <PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="2.2.0-*" />
     <PackageReference Include="Microsoft.Azure.Devices" Version="1.17.1" />
-    <PackageReference Include="Microsoft.Azure.EventHubs" Version="1.1.0" />
+    <PackageReference Include="Microsoft.Azure.EventHubs" Version="2.2.1" />
     <PackageReference Include="Microsoft.CodeCoverage" Version="1.0.3" />
     <PackageReference Include="RunProcessAsTask" Version="1.2.3" />
-    <PackageReference Include="YamlDotNet" Version="4.3.2" />
+    <PackageReference Include="YamlDotNet" Version="5.2.1" />
   </ItemGroup>
 
   <ItemGroup>
