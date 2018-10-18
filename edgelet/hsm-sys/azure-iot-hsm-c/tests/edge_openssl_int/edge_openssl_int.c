@@ -8,6 +8,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <openssl/bio.h>
+#include <openssl/err.h>
+#include <openssl/pem.h>
+#include <openssl/x509.h>
+#include <openssl/x509v3.h>
+
 #include "azure_c_shared_utility/gballoc.h"
 #include "azure_c_shared_utility/crt_abstractions.h"
 #include "testrunnerswitcher.h"
@@ -95,6 +101,22 @@ static char *TEST_CLIENT_PK_ECC_FILE_1   = NULL;
 
 #define TEST_CHAIN_FILE_PATH_NAME        "chain_file.pem"
 static char *TEST_CHAIN_FILE_PATH        = NULL;
+
+#define TEST_X509_EXT_BASIC_CONSTRIANTS         "X509v3 Basic Constraints"
+#define TEST_X509_EXT_KEY_USAGE                 "X509v3 Key Usage"
+#define TEST_X509_EXT_KEY_EXT_USAGE             "X509v3 Extended Key Usage"
+#define TEST_X509_EXT_SAN                       "X509v3 Subject Alternative Name"
+#define TEST_X509_KEY_USAGE_DIG_SIG             "Digital Signature"
+#define TEST_X509_KEY_USAGE_NON_REPUDIATION     "Non Repudiation"
+#define TEST_X509_KEY_USAGE_KEY_ENCIPHER        "Key Encipherment"
+#define TEST_X509_KEY_USAGE_DATA_ENCIPHER       "Data Encipherment"
+#define TEST_X509_KEY_USAGE_KEY_AGREEMENT       "Key Agreement"
+#define TEST_X509_KEY_USAGE_KEY_CERT_SIGN       "Certificate Sign"
+#define TEST_X509_KEY_EXT_USAGE_SERVER_AUTH     "TLS Web Server Authentication"
+#define TEST_X509_KEY_EXT_USAGE_CLIENT_AUTH     "TLS Web Client Authentication"
+
+#define MAX_PATHLEN_STRING_SIZE 32
+#define MAX_X509_EXT_SIZE 512
 
 //#############################################################################
 // Test helpers
@@ -285,6 +307,280 @@ void test_helper_server_chain_validator(const PKI_KEY_PROPS *key_props)
     delete_file(TEST_CA_CERT_RSA_FILE_2);
     delete_file(TEST_CA_PK_RSA_FILE_1);
     delete_file(TEST_CA_CERT_RSA_FILE_1);
+    cert_properties_destroy(server_root_handle);
+    cert_properties_destroy(int_ca_root_handle);
+    cert_properties_destroy(ca_root_handle);
+}
+
+static X509* test_helper_load_certificate_file(const char* cert_file_name)
+{
+    BIO* cert_file = BIO_new_file(cert_file_name, "r");
+    ASSERT_IS_NOT_NULL_WITH_MSG(cert_file, "Line:" TOSTRING(__LINE__));
+    X509* x509_cert = PEM_read_bio_X509(cert_file, NULL, NULL, NULL);
+    // make sure the file is closed before asserting below
+    BIO_free_all(cert_file);
+    ASSERT_IS_NOT_NULL_WITH_MSG(x509_cert, "Line:" TOSTRING(__LINE__));
+    return x509_cert;
+}
+
+// parts of the implementation taken from X509V3_EXT_print
+// https://github.com/openssl/openssl/blob/32f803d88ec3df7f95dfbf840c271f7438ce3357/crypto/x509v3/v3_prn.c#L69
+static void test_helper_validate_extension
+(
+    X509* input_test_cert,
+    const char *ext_name,
+    const char * const* expected_vals,
+    size_t num_expted_vals
+)
+{
+    size_t nid_match = 0, match_count = 0;
+    X509_CINF *cert_inf = NULL;
+    STACK_OF(X509_EXTENSION) *ext_list;
+
+    cert_inf = input_test_cert->cert_info;
+    ext_list = cert_inf->extensions;
+    ASSERT_IS_TRUE_WITH_MSG((sk_X509_EXTENSION_num(ext_list) > 0), "Found zero extensions");
+
+    BIO *outbio = NULL;
+    outbio  = BIO_new_fp(stdout, BIO_NOCLOSE);
+    for (int ext_idx=0; ext_idx < sk_X509_EXTENSION_num(ext_list); ext_idx++)
+    {
+        int sz;
+        char output_buffer[MAX_X509_EXT_SIZE];
+        ASN1_OBJECT *obj;
+        X509_EXTENSION *ext;
+
+        ext = sk_X509_EXTENSION_value(ext_list, ext_idx);
+        ASSERT_IS_NOT_NULL_WITH_MSG(ext, "Line:" TOSTRING(__LINE__));
+
+        obj = X509_EXTENSION_get_object(ext);
+        ASSERT_IS_NOT_NULL_WITH_MSG(obj, "Line:" TOSTRING(__LINE__));
+
+        memset(output_buffer, 0, MAX_X509_EXT_SIZE);
+        sz = i2t_ASN1_OBJECT(output_buffer, MAX_X509_EXT_SIZE, obj);
+        // if size is larger use the call twice first to get size and then allocate or increase MAX_X509_EXT_SIZE
+        ASSERT_IS_FALSE_WITH_MSG((sz > MAX_X509_EXT_SIZE), "Unexpected buffer size");
+
+        if (strcmp(ext_name, output_buffer) == 0)
+        {
+            long sz;
+            char *memst = NULL;
+
+            BIO *mem_bio = BIO_new(BIO_s_mem());
+            ASSERT_IS_NOT_NULL_WITH_MSG(mem_bio, "Line:" TOSTRING(__LINE__));
+
+            BIO_printf(outbio, "\n Matching Extension: [%s]\n", output_buffer);
+            X509V3_EXT_print(mem_bio, ext, 0, 0);
+            sz = BIO_get_mem_data(mem_bio, &memst);
+            BIO_printf(outbio, "\n Obtained Extension Value from certificate Size:[%ld] Data:[%s]\n", sz, memst);
+            for (size_t idx = 0; idx < num_expted_vals; idx++)
+            {
+                if (expected_vals != NULL)
+                {
+                    //BIO_printf(outbio, "\n MATCHING[%s]\n", (char*)expected_vals[idx]);
+                    if (strstr(memst, (char*)expected_vals[idx]) != NULL)
+                    {
+                        BIO_printf(outbio, "\n MATCHED[%s]\n", (char*)expected_vals[idx]);
+                        match_count++;
+                    }
+                }
+            }
+            BIO_free_all(mem_bio);
+        }
+    }
+    BIO_free_all(outbio);
+
+    ASSERT_ARE_EQUAL_WITH_MSG(size_t, num_expted_vals, match_count,  "Match count failed");
+}
+
+static void test_helper_validate_all_x509_extensions
+(
+    const char *cert_file_path,
+    CERT_PROPS_HANDLE handle,
+    int pathlen
+)
+{
+    char const** expected_key_usage_vals; size_t expected_key_usage_vals_size;
+    char const** expected_ext_key_usage_vals; size_t expected_ext_key_usage_vals_size;
+    char const** expected_basic_constraints_vals; size_t expected_basic_constraints_val_sizes;
+    const char * const* sans; size_t expected_san_entry_val_sizes;
+    char expected_path_len_string[MAX_PATHLEN_STRING_SIZE];
+    size_t idx;
+    bool test_path_len = false;
+
+    CERTIFICATE_TYPE cert_type = get_certificate_type(handle);
+    ASSERT_ARE_NOT_EQUAL_WITH_MSG(size_t, CERTIFICATE_TYPE_UNKNOWN, cert_type, "Unknown cert type not supported");
+
+    // setup common extension expected values such as basic constraints and SAN entries
+    idx = 0;
+    expected_basic_constraints_val_sizes = (pathlen != -1)? 2 : 1;
+    expected_basic_constraints_vals = calloc(expected_basic_constraints_val_sizes, sizeof(void*));
+    expected_basic_constraints_vals[idx++] = (cert_type == CERTIFICATE_TYPE_CA) ? "CA:TRUE" : "CA:FALSE";
+    if (pathlen != -1)
+    {
+        memset(expected_path_len_string, 0, MAX_PATHLEN_STRING_SIZE);
+        snprintf(expected_path_len_string, MAX_PATHLEN_STRING_SIZE, "pathlen:%d", pathlen);
+        expected_basic_constraints_vals[idx++] = expected_path_len_string;
+    }
+
+    sans = get_san_entries(handle, &expected_san_entry_val_sizes);
+
+    if (cert_type == CERTIFICATE_TYPE_CA)
+    {
+        idx = 0;
+        expected_key_usage_vals_size = 2;
+        expected_key_usage_vals = calloc(expected_key_usage_vals_size, sizeof(SIZED_BUFFER));
+        ASSERT_IS_NOT_NULL_WITH_MSG(expected_key_usage_vals, "Line:" TOSTRING(__LINE__));
+        expected_key_usage_vals[idx++] = TEST_X509_KEY_USAGE_DIG_SIG;
+        expected_key_usage_vals[idx++] = TEST_X509_KEY_USAGE_KEY_CERT_SIGN;
+
+        idx = 0;
+        expected_ext_key_usage_vals_size = 0;
+        expected_ext_key_usage_vals = NULL;
+    }
+    else if (cert_type == CERTIFICATE_TYPE_CLIENT)
+    {
+        idx = 0;
+        expected_key_usage_vals_size = 4;
+        expected_key_usage_vals = calloc(expected_key_usage_vals_size, sizeof(void*));
+        ASSERT_IS_NOT_NULL_WITH_MSG(expected_key_usage_vals, "Line:" TOSTRING(__LINE__));
+        expected_key_usage_vals[idx++] = TEST_X509_KEY_USAGE_DIG_SIG;
+        expected_key_usage_vals[idx++] = TEST_X509_KEY_USAGE_NON_REPUDIATION;
+        expected_key_usage_vals[idx++] = TEST_X509_KEY_USAGE_KEY_ENCIPHER;
+        expected_key_usage_vals[idx++] = TEST_X509_KEY_USAGE_DATA_ENCIPHER;
+
+        idx = 0;
+        expected_ext_key_usage_vals_size = 1;
+        expected_ext_key_usage_vals = calloc(expected_ext_key_usage_vals_size, sizeof(void*));
+        ASSERT_IS_NOT_NULL_WITH_MSG(expected_ext_key_usage_vals, "Line:" TOSTRING(__LINE__));
+        expected_ext_key_usage_vals[idx++] = TEST_X509_KEY_EXT_USAGE_CLIENT_AUTH;
+    }
+    else
+    {
+        idx = 0;
+        expected_key_usage_vals_size = 5;
+        expected_key_usage_vals = calloc(expected_key_usage_vals_size, sizeof(void*));
+        ASSERT_IS_NOT_NULL_WITH_MSG(expected_key_usage_vals, "Line:" TOSTRING(__LINE__));
+        expected_key_usage_vals[idx++] = TEST_X509_KEY_USAGE_DIG_SIG;
+        expected_key_usage_vals[idx++] = TEST_X509_KEY_USAGE_NON_REPUDIATION;
+        expected_key_usage_vals[idx++] = TEST_X509_KEY_USAGE_KEY_ENCIPHER;
+        expected_key_usage_vals[idx++] = TEST_X509_KEY_USAGE_DATA_ENCIPHER;
+        expected_key_usage_vals[idx++] = TEST_X509_KEY_USAGE_KEY_AGREEMENT;
+
+        idx = 0;
+        expected_ext_key_usage_vals_size = 1;
+        expected_ext_key_usage_vals = calloc(expected_ext_key_usage_vals_size, sizeof(SIZED_BUFFER));
+        ASSERT_IS_NOT_NULL_WITH_MSG(expected_ext_key_usage_vals, "Line:" TOSTRING(__LINE__));
+        expected_ext_key_usage_vals[idx++] = TEST_X509_KEY_EXT_USAGE_SERVER_AUTH;
+    }
+    X509* cert = test_helper_load_certificate_file(cert_file_path);
+    test_helper_validate_extension(cert, TEST_X509_EXT_BASIC_CONSTRIANTS, expected_basic_constraints_vals, expected_basic_constraints_val_sizes);
+    test_helper_validate_extension(cert, TEST_X509_EXT_SAN, sans, expected_san_entry_val_sizes);
+    test_helper_validate_extension(cert, TEST_X509_EXT_KEY_USAGE, expected_key_usage_vals, expected_key_usage_vals_size);
+    test_helper_validate_extension(cert, TEST_X509_EXT_KEY_EXT_USAGE, expected_ext_key_usage_vals, expected_ext_key_usage_vals_size);
+
+    // cleanup
+    X509_free(cert);
+    if (expected_basic_constraints_vals) free((void*)expected_basic_constraints_vals);
+    if (expected_key_usage_vals) free((void*)expected_key_usage_vals);
+    if (expected_ext_key_usage_vals) free((void*)expected_ext_key_usage_vals);
+}
+
+void test_helper_x509_ext_validator(const PKI_KEY_PROPS *key_props)
+{
+    // arrange
+    CERT_PROPS_HANDLE ca_root_handle;
+    CERT_PROPS_HANDLE int_ca_root_handle;
+    CERT_PROPS_HANDLE server_root_handle;
+    CERT_PROPS_HANDLE client_root_handle;
+    int status;
+
+    ca_root_handle = test_helper_create_certificate_props(TEST_CA_CN_1,
+                                                          TEST_CA_ALIAS_1,
+                                                          TEST_CA_ALIAS_1,
+                                                          CERTIFICATE_TYPE_CA,
+                                                          TEST_VALIDITY);
+
+    int_ca_root_handle = test_helper_create_certificate_props(TEST_CA_CN_2,
+                                                              TEST_CA_ALIAS_2,
+                                                              TEST_CA_ALIAS_1,
+                                                              CERTIFICATE_TYPE_CA,
+                                                              TEST_VALIDITY);
+
+    server_root_handle = test_helper_create_certificate_props(TEST_SERVER_CN_3,
+                                                              TEST_SERVER_ALIAS_3,
+                                                              TEST_CA_ALIAS_2,
+                                                              CERTIFICATE_TYPE_SERVER,
+                                                              TEST_VALIDITY);
+
+    client_root_handle = test_helper_create_certificate_props(TEST_SERVER_CN_3,
+                                                              TEST_CLIENT_ALIAS_1,
+                                                              TEST_CA_ALIAS_2,
+                                                              CERTIFICATE_TYPE_CLIENT,
+                                                              TEST_VALIDITY);
+
+    // add SAN entries
+    const char* ca_san_list[] = {"URI:edgetest://ca/root/pathlen/2"};
+    const char* int_ca_san_list[] = {"URI:edgetest://ca/int/pathlen/1"};
+    const char* server_san_list[] = {"URI:edgetest://server/test1", "DNS:test.contoso.com"};
+    const char* client_san_list[] = {"URI:edgetest://client/test2", "email:test@contoso.com"};
+    status = set_san_entries(ca_root_handle, ca_san_list, sizeof(ca_san_list)/sizeof(ca_san_list[0]));
+    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+    status = set_san_entries(int_ca_root_handle, int_ca_san_list, sizeof(int_ca_san_list)/sizeof(int_ca_san_list[0]));
+    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+    status = set_san_entries(server_root_handle, server_san_list, sizeof(server_san_list)/sizeof(server_san_list[0]));
+    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+    status = set_san_entries(client_root_handle, client_san_list, sizeof(client_san_list)/sizeof(client_san_list[0]));
+    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+
+    // act
+    test_helper_generate_self_signed(ca_root_handle,
+                                     TEST_SERIAL_NUM + 1,
+                                     2,
+                                     TEST_CA_PK_RSA_FILE_1,
+                                     TEST_CA_CERT_RSA_FILE_1,
+                                     key_props);
+
+    test_helper_generate_pki_certificate(int_ca_root_handle,
+                                         TEST_SERIAL_NUM + 2,
+                                         1,
+                                         TEST_CA_PK_RSA_FILE_2,
+                                         TEST_CA_CERT_RSA_FILE_2,
+                                         TEST_CA_PK_RSA_FILE_1,
+                                         TEST_CA_CERT_RSA_FILE_1);
+
+    test_helper_generate_pki_certificate(server_root_handle,
+                                         TEST_SERIAL_NUM + 3,
+                                         0,
+                                         TEST_SERVER_PK_RSA_FILE_3,
+                                         TEST_SERVER_CERT_RSA_FILE_3,
+                                         TEST_CA_PK_RSA_FILE_2,
+                                         TEST_CA_CERT_RSA_FILE_2);
+
+    test_helper_generate_pki_certificate(client_root_handle,
+                                         TEST_SERIAL_NUM + 4,
+                                         0,
+                                         TEST_CLIENT_PK_RSA_FILE_1,
+                                         TEST_CLIENT_CERT_RSA_FILE_1,
+                                         TEST_CA_PK_RSA_FILE_2,
+                                         TEST_CA_CERT_RSA_FILE_2);
+
+    // assert
+    test_helper_validate_all_x509_extensions(TEST_CA_CERT_RSA_FILE_1, ca_root_handle, 2);
+    test_helper_validate_all_x509_extensions(TEST_CA_CERT_RSA_FILE_2, int_ca_root_handle, 1);
+    test_helper_validate_all_x509_extensions(TEST_SERVER_CERT_RSA_FILE_3, server_root_handle, -1);
+    test_helper_validate_all_x509_extensions(TEST_CLIENT_CERT_RSA_FILE_1, client_root_handle, -1);
+
+    // cleanup
+    delete_file(TEST_CLIENT_PK_RSA_FILE_1);
+    delete_file(TEST_CLIENT_CERT_RSA_FILE_1);
+    delete_file(TEST_SERVER_PK_RSA_FILE_3);
+    delete_file(TEST_SERVER_CERT_RSA_FILE_3);
+    delete_file(TEST_CA_PK_RSA_FILE_2);
+    delete_file(TEST_CA_CERT_RSA_FILE_2);
+    delete_file(TEST_CA_PK_RSA_FILE_1);
+    delete_file(TEST_CA_CERT_RSA_FILE_1);
+    cert_properties_destroy(client_root_handle);
     cert_properties_destroy(server_root_handle);
     cert_properties_destroy(int_ca_root_handle);
     cert_properties_destroy(ca_root_handle);
@@ -601,5 +897,16 @@ BEGIN_TEST_SUITE(edge_openssl_int_tests)
         // cleanup
     }
 #endif //USE_ECC_KEYS
+
+    TEST_FUNCTION(test_x509v3_extensions)
+    {
+        // arrange
+        PKI_KEY_PROPS key_props = { HSM_PKI_KEY_RSA, NULL };
+
+        // act, assert
+        test_helper_x509_ext_validator(&key_props);
+
+        //cleanup
+    }
 
 END_TEST_SUITE(edge_openssl_int_tests)
