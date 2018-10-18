@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
 
     public class AgentTests
     {
-        [E2E]
+        [Integration]
         [Theory]
         [MemberData(nameof(GenerateStartTestData))]
         public async Task AgentStartsUpModules(TestConfig testConfig)
