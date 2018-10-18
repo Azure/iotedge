@@ -162,6 +162,8 @@ MOCKABLE_FUNCTION(, const char*, get_locality, CERT_PROPS_HANDLE, handle);
 MOCKABLE_FUNCTION(, const char*, get_organization_name, CERT_PROPS_HANDLE, handle);
 MOCKABLE_FUNCTION(, const char*, get_organization_unit, CERT_PROPS_HANDLE, handle);
 MOCKABLE_FUNCTION(, CERTIFICATE_TYPE, get_certificate_type, CERT_PROPS_HANDLE, handle);
+MOCKABLE_FUNCTION(, const char * const*, get_san_entries, CERT_PROPS_HANDLE, handle, size_t*, num_entries);
+
 MOCKABLE_FUNCTION(, X509_EXTENSION*, mocked_X509V3_EXT_conf_nid, struct lhash_st_CONF_VALUE*, conf, X509V3_CTX*, ctx, int, ext_nid, char*, value);
 MOCKABLE_FUNCTION(, int, X509_add_ext, X509*, x, X509_EXTENSION*, ex, int, loc);
 MOCKABLE_FUNCTION(, void, X509_EXTENSION_free, X509_EXTENSION*, ex);
@@ -321,6 +323,9 @@ static BASIC_CONSTRAINTS TEST_NON_CA_BASIC_CONSTRAINTS = {
     .ca = 0,
     .pathlen = NULL
 };
+
+const char *TEST_SAN_ENTRIES[] = { "DNS: TESTDNS", "URI: scheme://simple/scheme/v/1" };
+size_t TEST_NUM_SAN_ENTRIES = sizeof(TEST_SAN_ENTRIES)/sizeof(TEST_SAN_ENTRIES[0]);
 
 //#############################################################################
 // Mocked functions test hooks
@@ -1075,6 +1080,13 @@ static void test_hook_X509_EXTENSION_free(X509_EXTENSION* ex)
     (void)ex;
 }
 
+static const char * const* test_hook_get_san_entries(CERT_PROPS_HANDLE handle, size_t *num_entries)
+{
+    (void)handle;
+    *num_entries = TEST_NUM_SAN_ENTRIES;
+    return TEST_SAN_ENTRIES;
+}
+
 //#############################################################################
 // Test helpers
 //#############################################################################
@@ -1463,6 +1475,23 @@ static void test_helper_cert_create_with_subject
         i++;
 
         STRICT_EXPECTED_CALL(mocked_X509V3_EXT_conf_nid(NULL, NULL, NID_ext_key_usage, "serverAuth"));
+        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        i++;
+
+        STRICT_EXPECTED_CALL(X509_add_ext(TEST_X509, TEST_NID_EXTENSION, -1));
+        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        i++;
+
+        STRICT_EXPECTED_CALL(X509_EXTENSION_free(TEST_NID_EXTENSION));
+        i++;
+    }
+
+    STRICT_EXPECTED_CALL(get_san_entries(TEST_CERT_PROPS_HANDLE, IGNORED_PTR_ARG));
+    i++;
+
+    for (size_t san_idx = 0; san_idx < TEST_NUM_SAN_ENTRIES; san_idx++)
+    {
+        STRICT_EXPECTED_CALL(mocked_X509V3_EXT_conf_nid(NULL, NULL, NID_subject_alt_name, (char*)TEST_SAN_ENTRIES[san_idx]));
         ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
 
@@ -2092,6 +2121,8 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         REGISTER_GLOBAL_MOCK_FAIL_RETURN(X509_add_ext, 0);
 
         REGISTER_GLOBAL_MOCK_HOOK(X509_EXTENSION_free, test_hook_X509_EXTENSION_free);
+
+        REGISTER_GLOBAL_MOCK_HOOK(get_san_entries, test_hook_get_san_entries);
     }
 
     TEST_SUITE_CLEANUP(TestClassCleanup)
