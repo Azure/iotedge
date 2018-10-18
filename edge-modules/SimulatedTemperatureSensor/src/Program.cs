@@ -23,6 +23,7 @@ namespace SimulatedTemperatureSensor
     class Program
     {
         const int RetryCount = 5;
+        const string MessageCountConfigKey = "MessageCount";
         static readonly ITransientErrorDetectionStrategy TimeoutErrorDetectionStrategy = new DelegateErrorDetectionStrategy(ex => ex.HasTimeoutException());
         static readonly RetryStrategy TransientRetryStrategy =
             new ExponentialBackoff(RetryCount, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
@@ -44,6 +45,8 @@ namespace SimulatedTemperatureSensor
                 .Build();
 
             TimeSpan messageDelay = configuration.GetValue("MessageDelay", TimeSpan.FromSeconds(5));
+            int messageCount = configuration.GetValue(MessageCountConfigKey, 500);
+            bool sendForever = messageCount < 0;
             var sim = new SimulatorParameters
             {
                 MachineTempMin = configuration.GetValue<double>("machineTempMin", 21),
@@ -53,6 +56,10 @@ namespace SimulatedTemperatureSensor
                 AmbientTemp = configuration.GetValue<double>("ambientTemp", 21),
                 HumidityPercent = configuration.GetValue("ambientHumidity", 25)
             };
+
+            string messagesToSendString = sendForever ? "unlimited" : messageCount.ToString();
+            Console.WriteLine($"Initializing simulated temperature sensor to send {messagesToSendString} messages, at an interval of {messageDelay.TotalSeconds} seconds.\n"
+                + $"To change this, set the environment variable {MessageCountConfigKey} to the number of messages that should be sent (set it to -1 to send unlimited messages).");
 
             TransportType transportType = configuration.GetValue("ClientTransportType", TransportType.Amqp_Tcp_Only);
             Console.WriteLine($"Using transport {transportType.ToString()}");
@@ -69,11 +76,12 @@ namespace SimulatedTemperatureSensor
             ModuleClient moduleClient = await retryPolicy.ExecuteAsync(() => InitModuleClient(transportType));
 
             ModuleClient userContext = moduleClient;
-            await moduleClient.SetInputMessageHandlerAsync("control", ControlMessageHandle, userContext).ConfigureAwait(false);
+            await moduleClient.SetInputMessageHandlerAsync("control", ControlMessageHandle, userContext);
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler)
                 = ShutdownHandler.Init(TimeSpan.FromSeconds(5), null);
-            await SendEvents(moduleClient, messageDelay, sim, cts).ConfigureAwait(false);
+            await SendEvents(moduleClient, messageDelay, sendForever, messageCount, sim, cts);            
+            await cts.Token.WhenCanceled();
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
             return 0;
@@ -90,14 +98,14 @@ namespace SimulatedTemperatureSensor
                     case TransportType.Mqtt_WebSocket_Only:
                         return new ITransportSettings[] { new MqttTransportSettings(transportType) };
                     default:
-                        return new ITransportSettings[] { new AmqpTransportSettings(transportType) };
+                        return new ITransportSettings[]{new AmqpTransportSettings(transportType)};
                 }
             }
             ITransportSettings[] settings = GetTransportSettings();
 
-            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings).ConfigureAwait(false);
+            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
             await moduleClient.OpenAsync().ConfigureAwait(false);
-            await moduleClient.SetMethodHandlerAsync("reset", ResetMethod, null).ConfigureAwait(false);
+            await moduleClient.SetMethodHandlerAsync("reset", ResetMethod, null);
 
             Console.WriteLine("Successfully initialized module client.");
             return moduleClient;
@@ -163,22 +171,19 @@ namespace SimulatedTemperatureSensor
 
         /// <summary>
         /// Module behavior:
-        ///        Sends data once every 5 seconds.
+        ///        Sends data periodically (with default frequency of 5 seconds).
         ///        Data trend:
-        ///-	Machine Temperature regularly rises from 21C to 100C in regularly with jitter
-        ///-	Machine Pressure correlates with Temperature 1 to 10psi
-        ///-	Ambient temperature stable around 21C
-        ///-	Humidity is stable with tiny jitter around 25%
+        ///         -	Machine Temperature regularly rises from 21C to 100C in regularly with jitter
+        ///         -	Machine Pressure correlates with Temperature 1 to 10psi
+        ///         -	Ambient temperature stable around 21C
+        ///         -	Humidity is stable with tiny jitter around 25%
         ///                Method for resetting the data stream
         /// </summary>
-        /// <param name="moduleClient"></param>
-        /// <param name="messageDelay"></param>
-        /// <param name="sim"></param>
-        /// <param name="cts"></param>
-        /// <returns></returns>
         static async Task SendEvents(
             ModuleClient moduleClient,
             TimeSpan messageDelay,
+            bool sendForever,
+            int messageCount,
             SimulatorParameters sim,
             CancellationTokenSource cts)
         {
@@ -186,7 +191,7 @@ namespace SimulatedTemperatureSensor
             double currentTemp = sim.MachineTempMin;
             double normal = (sim.MachinePressureMax - sim.MachinePressureMin) / (sim.MachineTempMax - sim.MachineTempMin);
 
-            while (!cts.Token.IsCancellationRequested)
+            while (!cts.Token.IsCancellationRequested && (sendForever || messageCount >= count))
             {
                 if (Reset)
                 {
@@ -221,9 +226,14 @@ namespace SimulatedTemperatureSensor
                 var eventMessage = new Message(Encoding.UTF8.GetBytes(dataBuffer));
                 Console.WriteLine($"\t{DateTime.Now.ToLocalTime()}> Sending message: {count}, Body: [{dataBuffer}]");
 
-                await moduleClient.SendEventAsync("temperatureOutput", eventMessage).ConfigureAwait(false);
-                await Task.Delay(messageDelay, cts.Token).ConfigureAwait(false);
+                await moduleClient.SendEventAsync("temperatureOutput", eventMessage);
+                await Task.Delay(messageDelay, cts.Token);
                 count++;
+            }
+
+            if (messageCount < count)
+            {
+                Console.WriteLine($"Done sending {messageCount} messages");
             }
         }
 
