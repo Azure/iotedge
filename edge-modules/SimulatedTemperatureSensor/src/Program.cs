@@ -5,9 +5,7 @@ namespace SimulatedTemperatureSensor
     using System;
     using System.Globalization;
     using System.IO;
-    using System.Linq.Expressions;
     using System.Net;
-    using System.Runtime.Loader;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -80,7 +78,7 @@ namespace SimulatedTemperatureSensor
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler)
                 = ShutdownHandler.Init(TimeSpan.FromSeconds(5), null);
-            await SendEvents(moduleClient, messageDelay, sendForever, messageCount, sim, cts);            
+            await SendEvents(moduleClient, messageDelay, sendForever, messageCount, sim, cts);
             await cts.Token.WhenCanceled();
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
@@ -98,7 +96,7 @@ namespace SimulatedTemperatureSensor
                     case TransportType.Mqtt_WebSocket_Only:
                         return new ITransportSettings[] { new MqttTransportSettings(transportType) };
                     default:
-                        return new ITransportSettings[]{new AmqpTransportSettings(transportType)};
+                        return new ITransportSettings[] { new AmqpTransportSettings(transportType) };
                 }
             }
             ITransportSettings[] settings = GetTransportSettings();
