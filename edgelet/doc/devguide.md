@@ -135,7 +135,10 @@ VS Code has good support for rust. Consider installing the following extensions:
 
 There is a `launch.json` configuration in this repo to setup debugging on Windows. This should work out of the box.
 
-### Other
+## Test IoT Edge daemon API endpoints on dev machine
+If you would like to know how to test IoT Edge daemon API endpoints on dev machine, please read from [here](testiotedgedapi.md).
+
+## Other
 
 * [The Book](https://doc.rust-lang.org/book/second-edition/index.html) - The Rust Programming Language
 * [RUST Api Guidelines](https://rust-lang-nursery.github.io/api-guidelines/) - Guidelines on naming conventions, organization, etc.

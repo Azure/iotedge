@@ -27,6 +27,7 @@ Environment Variables:
   --registry                registryAddress
   --tag                     imageTag
   --username                registryUser
+  --proxy                   https_proxy
 
 Defaults:
   All options to this command have defaults. If an option is not specified and
@@ -55,6 +56,7 @@ Defaults:
   --deployment               deployment json file
   --runtime-log-level        debug
   --clean_up_existing_device false
+  --proxy                    No proxy is used
 "
         )]
     [HelpOption]
@@ -129,6 +131,12 @@ Defaults:
         [Option("--clean_up_existing_device <true/false>", CommandOptionType.SingleValue, Description = "Clean up existing device on success.")]
         public bool CleanUpExistingDeviceOnSuccess { get; } = false;
 
+        [Option("--proxy <value>", CommandOptionType.SingleValue, Description = "Proxy for IoT Hub connections.")]
+        public (bool useProxy, string proxyUrl) Proxy { get; } = (false, string.Empty);
+
+        [Option("--upstream-protocol <value>", CommandOptionType.SingleValue, Description = "Upstream protocol for IoT Hub connections.")]
+        public (bool overrideUpstreamProtocol, UpstreamProtocolType upstreamProtocol) UpstreamProtocol { get; } = (false, UpstreamProtocolType.Amqp);
+
         // ReSharper disable once UnusedMember.Local
         async Task<int> OnExecuteAsync()
         {
@@ -152,9 +160,14 @@ Defaults:
                 {
                     case BootstrapperType.Iotedged:
                         {
+                            (bool useProxy, string proxyUrl) = this.Proxy;
+                            Option<string> proxy = useProxy
+                                ? Option.Some(proxyUrl)
+                                : Option.Maybe(Environment.GetEnvironmentVariable("https_proxy"));
+
                             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                             {
-                                bootstrapper = new IotedgedWindows(this.BootstrapperArchivePath, credentials);
+                                bootstrapper = new IotedgedWindows(this.BootstrapperArchivePath, credentials, proxy);
                             }
                             else
                             {
@@ -162,7 +175,13 @@ Defaults:
                                 Option<HttpUris> uris = useHttp
                                     ? Option.Some(string.IsNullOrEmpty(hostname) ? new HttpUris() : new HttpUris(hostname))
                                     : Option.None<HttpUris>();
-                                bootstrapper = new IotedgedLinux(this.BootstrapperArchivePath, credentials, uris);
+
+                                (bool overrideUpstreamProtocol, UpstreamProtocolType upstreamProtocol) = this.UpstreamProtocol;
+                                Option<UpstreamProtocolType> upstreamProtocolOption = overrideUpstreamProtocol
+                                    ? Option.Some(upstreamProtocol)
+                                    : Option.None<UpstreamProtocolType>();
+
+                                bootstrapper = new IotedgedLinux(this.BootstrapperArchivePath, credentials, uris, proxy, upstreamProtocolOption);
                             }
                         }
                         break;
@@ -188,6 +207,7 @@ Defaults:
                     credentials,
                     connectionString,
                     endpoint,
+                    this.UpstreamProtocol.Item2,
                     tag,
                     this.DeviceId,
                     this.EdgeHostname,
@@ -245,5 +265,13 @@ Defaults:
     {
         Info,
         Debug
+    }
+
+    public enum UpstreamProtocolType
+    {
+        Amqp,
+        AmqpWs,
+        Mqtt,
+        MqttWs
     }
 }
