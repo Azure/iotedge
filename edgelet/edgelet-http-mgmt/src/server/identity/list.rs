@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use edgelet_core::{Identity as CoreIdentity, IdentityManager};
-use edgelet_http::route::{BoxFuture, Handler, Parameters};
+use edgelet_http::route::{Handler, Parameters};
 use failure::ResultExt;
 use futures::{future, Future};
 use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
@@ -34,14 +34,14 @@ where
 
 impl<I> Handler<Parameters> for ListIdentities<I>
 where
-    I: 'static + IdentityManager,
+    I: 'static + IdentityManager + Send,
     I::Identity: Serialize,
 {
     fn handle(
         &self,
         _req: Request<Body>,
         _params: Parameters,
-    ) -> BoxFuture<Response<Body>, HyperError> {
+    ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
         let response = self.id_manager.list().then(|result| {
             result
                 .context(ErrorKind::IdentityManager)

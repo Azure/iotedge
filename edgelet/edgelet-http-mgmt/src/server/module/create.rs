@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use edgelet_core::{Module, ModuleRegistry, ModuleRuntime, ModuleStatus};
-use edgelet_http::route::{BoxFuture, Handler, Parameters};
+use edgelet_http::route::{Handler, Parameters};
 use failure::ResultExt;
 use futures::{future, Future, Stream};
 use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
@@ -36,7 +36,7 @@ where
 
 impl<M> Handler<Parameters> for CreateModule<M>
 where
-    M: 'static + ModuleRuntime + Clone,
+    M: 'static + ModuleRuntime + Clone + Send,
     <M::Module as Module>::Config: DeserializeOwned + Serialize,
     M::Error: IntoResponse,
     <M::ModuleRegistry as ModuleRegistry>::Error: IntoResponse,
@@ -45,7 +45,7 @@ where
         &self,
         req: Request<Body>,
         _params: Parameters,
-    ) -> BoxFuture<Response<Body>, HyperError> {
+    ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
         let runtime = self.runtime.clone();
         let response = req
             .into_body()

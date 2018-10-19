@@ -60,6 +60,24 @@ process_args()
 
 process_args "$@"
 
+# ld crashes in the VSTS CI's Linux amd64 job while trying to link iotedged
+# with a generic exit code 1 and no indicative error message. It seems to
+# work fine if we reduce the number of objects given to the linker,
+# by disabling parallel codegen and incremental compile.
+#
+# We don't want to disable these for everyone else, so only do it in this script
+# that the CI uses.
+>> "$PROJECT_ROOT/Cargo.toml" cat <<-EOF
+
+[profile.dev]
+codegen-units = 1
+incremental = false
+
+[profile.test]
+codegen-units = 1
+incremental = false
+EOF
+
 if [[ -z ${RELEASE} ]]; then
     cd "$PROJECT_ROOT" && $CARGO "+$TOOLCHAIN" build --all
 else

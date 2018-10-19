@@ -162,6 +162,11 @@ MOCKABLE_FUNCTION(, const char*, get_locality, CERT_PROPS_HANDLE, handle);
 MOCKABLE_FUNCTION(, const char*, get_organization_name, CERT_PROPS_HANDLE, handle);
 MOCKABLE_FUNCTION(, const char*, get_organization_unit, CERT_PROPS_HANDLE, handle);
 MOCKABLE_FUNCTION(, CERTIFICATE_TYPE, get_certificate_type, CERT_PROPS_HANDLE, handle);
+MOCKABLE_FUNCTION(, const char * const*, get_san_entries, CERT_PROPS_HANDLE, handle, size_t*, num_entries);
+
+MOCKABLE_FUNCTION(, X509_EXTENSION*, mocked_X509V3_EXT_conf_nid, struct lhash_st_CONF_VALUE*, conf, X509V3_CTX*, ctx, int, ext_nid, char*, value);
+MOCKABLE_FUNCTION(, int, X509_add_ext, X509*, x, X509_EXTENSION*, ex, int, loc);
+MOCKABLE_FUNCTION(, void, X509_EXTENSION_free, X509_EXTENSION*, ex);
 
 #undef ENABLE_MOCKS
 
@@ -251,7 +256,7 @@ static TEST_MUTEX_HANDLE g_dllByDll;
 #define TEST_CERT_PROPS_HANDLE (CERT_PROPS_HANDLE)0x2029
 #define TEST_WRITE_PRIVATE_KEY_FD (int)0x2030
 #define TEST_WRITE_CERTIFICATE_FD (int)0x2031
-
+#define TEST_NID_EXTENSION (X509_EXTENSION*)0x2032
 #define TEST_UTC_TIME_FROM_ASN1 1000
 #define VALID_ASN1_TIME_STRING_UTC_FORMAT 0x17
 #define VALID_ASN1_TIME_STRING_UTC_LEN    13
@@ -294,6 +299,14 @@ static ASN1_TIME TEST_ASN1_TIME_AFTER = {
     .flags = 0
 };
 
+unsigned char ASN1_DATA_EXPIRED[] = "EXP012345678";
+static ASN1_TIME TEST_ASN1_TIME_AFTER_EXPIRED = {
+    .length = VALID_ASN1_TIME_STRING_UTC_LEN,
+    .type = VALID_ASN1_TIME_STRING_UTC_FORMAT,
+    .data = ASN1_DATA_EXPIRED,
+    .flags = 0
+};
+
 static ASN1_TIME TEST_UTC_NOW_TIME_FROM_ASN1 = {
     VALID_ASN1_TIME_STRING_UTC_LEN,
     VALID_ASN1_TIME_STRING_UTC_FORMAT,
@@ -310,6 +323,9 @@ static BASIC_CONSTRAINTS TEST_NON_CA_BASIC_CONSTRAINTS = {
     .ca = 0,
     .pathlen = NULL
 };
+
+const char *TEST_SAN_ENTRIES[] = { "DNS: TESTDNS", "URI: scheme://simple/scheme/v/1" };
+size_t TEST_NUM_SAN_ENTRIES = sizeof(TEST_SAN_ENTRIES)/sizeof(TEST_SAN_ENTRIES[0]);
 
 //#############################################################################
 // Mocked functions test hooks
@@ -638,7 +654,14 @@ static time_t test_hook_get_utc_time_from_asn_string
     (void)length;
 
     time_t now = time(NULL);
-    return now + TEST_UTC_TIME_FROM_ASN1;
+    int offset = TEST_UTC_TIME_FROM_ASN1;
+
+    if (memcmp(time_value, ASN1_DATA_EXPIRED, sizeof(ASN1_DATA_EXPIRED)) == 0)
+    {
+        // this ensures that certificate will always be evaluated as expired
+        offset = -5;
+    }
+    return now + offset;
 }
 
 static ASN1_TIME* test_hook_X509_gmtime_adj(ASN1_TIME *s, long adj)
@@ -1027,6 +1050,43 @@ static CERTIFICATE_TYPE test_hook_get_certificate_type(CERT_PROPS_HANDLE handle)
     return TEST_PROPS_CERT_TYPE;
 }
 
+static X509_EXTENSION* test_hook_mocked_X509V3_EXT_conf_nid
+(
+    struct lhash_st_CONF_VALUE *conf,
+    X509V3_CTX *ctx,
+    int ext_nid,
+    char *value
+)
+{
+    (void)conf;
+    (void)ctx;
+    (void)ext_nid;
+    (void)value;
+
+    return TEST_NID_EXTENSION;
+}
+
+static int test_hook_X509_add_ext(X509* x, X509_EXTENSION* ex, int loc)
+{
+    (void)x;
+    (void)ex;
+    (void)loc;
+
+    return 1;
+}
+
+static void test_hook_X509_EXTENSION_free(X509_EXTENSION* ex)
+{
+    (void)ex;
+}
+
+static const char * const* test_hook_get_san_entries(CERT_PROPS_HANDLE handle, size_t *num_entries)
+{
+    (void)handle;
+    *num_entries = TEST_NUM_SAN_ENTRIES;
+    return TEST_SAN_ENTRIES;
+}
+
 //#############################################################################
 // Test helpers
 //#############################################################################
@@ -1364,6 +1424,85 @@ static void test_helper_cert_create_with_subject
         i++;
     }
 
+    if (cert_type == CERTIFICATE_TYPE_CA)
+    {
+        STRICT_EXPECTED_CALL(mocked_X509V3_EXT_conf_nid(NULL, NULL, NID_key_usage, "critical, digitalSignature, keyCertSign"));
+        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        i++;
+
+        STRICT_EXPECTED_CALL(X509_add_ext(TEST_X509, TEST_NID_EXTENSION, -1));
+        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        i++;
+
+        STRICT_EXPECTED_CALL(X509_EXTENSION_free(TEST_NID_EXTENSION));
+        i++;
+    }
+    else if (cert_type == CERTIFICATE_TYPE_CLIENT)
+    {
+        STRICT_EXPECTED_CALL(mocked_X509V3_EXT_conf_nid(NULL, NULL, NID_key_usage, "critical, nonRepudiation, digitalSignature, keyEncipherment, dataEncipherment"));
+        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        i++;
+
+        STRICT_EXPECTED_CALL(X509_add_ext(TEST_X509, TEST_NID_EXTENSION, -1));
+        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        i++;
+
+        STRICT_EXPECTED_CALL(X509_EXTENSION_free(TEST_NID_EXTENSION));
+        i++;
+
+        STRICT_EXPECTED_CALL(mocked_X509V3_EXT_conf_nid(NULL, NULL, NID_ext_key_usage, "clientAuth"));
+        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        i++;
+
+        STRICT_EXPECTED_CALL(X509_add_ext(TEST_X509, TEST_NID_EXTENSION, -1));
+        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        i++;
+
+        STRICT_EXPECTED_CALL(X509_EXTENSION_free(TEST_NID_EXTENSION));
+        i++;
+    }
+    else
+    {
+        STRICT_EXPECTED_CALL(mocked_X509V3_EXT_conf_nid(NULL, NULL, NID_key_usage, "critical, nonRepudiation, digitalSignature, keyEncipherment, dataEncipherment, keyAgreement"));
+        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        i++;
+
+        STRICT_EXPECTED_CALL(X509_add_ext(TEST_X509, TEST_NID_EXTENSION, -1));
+        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        i++;
+
+        STRICT_EXPECTED_CALL(X509_EXTENSION_free(TEST_NID_EXTENSION));
+        i++;
+
+        STRICT_EXPECTED_CALL(mocked_X509V3_EXT_conf_nid(NULL, NULL, NID_ext_key_usage, "serverAuth"));
+        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        i++;
+
+        STRICT_EXPECTED_CALL(X509_add_ext(TEST_X509, TEST_NID_EXTENSION, -1));
+        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        i++;
+
+        STRICT_EXPECTED_CALL(X509_EXTENSION_free(TEST_NID_EXTENSION));
+        i++;
+    }
+
+    STRICT_EXPECTED_CALL(get_san_entries(TEST_CERT_PROPS_HANDLE, IGNORED_PTR_ARG));
+    i++;
+
+    for (size_t san_idx = 0; san_idx < TEST_NUM_SAN_ENTRIES; san_idx++)
+    {
+        STRICT_EXPECTED_CALL(mocked_X509V3_EXT_conf_nid(NULL, NULL, NID_subject_alt_name, (char*)TEST_SAN_ENTRIES[san_idx]));
+        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        i++;
+
+        STRICT_EXPECTED_CALL(X509_add_ext(TEST_X509, TEST_NID_EXTENSION, -1));
+        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        i++;
+
+        STRICT_EXPECTED_CALL(X509_EXTENSION_free(TEST_NID_EXTENSION));
+        i++;
+    }
+
     X509_NAME* issuer_subject;
     if (!is_self_signed)
     {
@@ -1621,6 +1760,7 @@ static void test_helper_verify_certificate
     const char *key_file,
     const char *issuer_cert_file,
     bool force_set_verify_return_value,
+    ASN1_TIME *force_set_asn1_time,
     char *failed_function_list,
     size_t failed_function_size
 )
@@ -1681,14 +1821,6 @@ static void test_helper_verify_certificate
 
     test_helper_load_cert_file(TEST_CERT_FILE, TEST_X509, &i, failed_function_list, failed_function_size);
 
-    STRICT_EXPECTED_CALL(mocked_X509_get_notAfter(TEST_X509));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
-    i++;
-
-    STRICT_EXPECTED_CALL(get_utc_time_from_asn_string(TEST_ASN1_TIME_AFTER.data, VALID_ASN1_TIME_STRING_UTC_LEN));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
-    failed_function_list[i++] = 1;
-
     STRICT_EXPECTED_CALL(X509_STORE_CTX_new());
     ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
@@ -1702,6 +1834,15 @@ static void test_helper_verify_certificate
     i++;
 
     STRICT_EXPECTED_CALL(X509_STORE_CTX_init(TEST_STORE_CTXT, TEST_X509_STORE, TEST_X509, 0));
+    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    failed_function_list[i++] = 1;
+
+    ASN1_TIME *asn1_time = (force_set_asn1_time != NULL) ? force_set_asn1_time : &TEST_ASN1_TIME_AFTER;
+    STRICT_EXPECTED_CALL(mocked_X509_get_notAfter(TEST_X509)).SetReturn(asn1_time);
+    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    i++;
+
+    STRICT_EXPECTED_CALL(get_utc_time_from_asn_string(asn1_time->data, VALID_ASN1_TIME_STRING_UTC_LEN));
     ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
@@ -1972,6 +2113,16 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
 
         REGISTER_GLOBAL_MOCK_HOOK(get_certificate_type, test_hook_get_certificate_type);
         REGISTER_GLOBAL_MOCK_FAIL_RETURN(get_certificate_type, CERTIFICATE_TYPE_UNKNOWN);
+
+        REGISTER_GLOBAL_MOCK_HOOK(mocked_X509V3_EXT_conf_nid, test_hook_mocked_X509V3_EXT_conf_nid);
+        REGISTER_GLOBAL_MOCK_FAIL_RETURN(mocked_X509V3_EXT_conf_nid, NULL);
+
+        REGISTER_GLOBAL_MOCK_HOOK(X509_add_ext, test_hook_X509_add_ext);
+        REGISTER_GLOBAL_MOCK_FAIL_RETURN(X509_add_ext, 0);
+
+        REGISTER_GLOBAL_MOCK_HOOK(X509_EXTENSION_free, test_hook_X509_EXTENSION_free);
+
+        REGISTER_GLOBAL_MOCK_HOOK(get_san_entries, test_hook_get_san_entries);
     }
 
     TEST_SUITE_CLEANUP(TestClassCleanup)
@@ -2970,7 +3121,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0, failed_function_size);
-        test_helper_verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, true, failed_function_list, failed_function_size);
+        test_helper_verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, true, NULL, failed_function_list, failed_function_size);
         bool verify_status = true;
 
         // act
@@ -3020,7 +3171,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0, failed_function_size);
-        test_helper_verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, false, failed_function_list, failed_function_size);
+        test_helper_verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, false, NULL, failed_function_list, failed_function_size);
         bool verify_status = false;
 
         // act
@@ -3038,6 +3189,29 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
      * Test function for API
      *   verify_certificate
     */
+    TEST_FUNCTION(verify_certificate_expired_certificate_verifies_false_and_returns_success)
+    {
+        // arrange
+        size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
+        char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
+        memset(failed_function_list, 0, failed_function_size);
+        test_helper_verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, false, &TEST_ASN1_TIME_AFTER_EXPIRED, failed_function_list, failed_function_size);
+        bool verify_status = true;
+
+        // act
+        int status = verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, &verify_status);
+
+        // assert
+        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_FALSE_WITH_MSG(verify_status, "Line:" TOSTRING(__LINE__));
+
+        // cleanup
+    }
+
+    /**
+     * Test function for API
+     *   verify_certificate
+    */
     TEST_FUNCTION(verify_certificate_negative)
     {
         // arrange
@@ -3047,7 +3221,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0, failed_function_size);
-        test_helper_verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, true, failed_function_list, failed_function_size);
+        test_helper_verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, true, NULL, failed_function_list, failed_function_size);
         umock_c_negative_tests_snapshot();
 
         for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)

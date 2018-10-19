@@ -21,8 +21,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
         EdgeHubCertificates(X509Certificate2 serverCertificate, IList<X509Certificate2> certificateChain)
         {
-            this.ServerCertificate = serverCertificate;
-            this.CertificateChain = certificateChain;
+            this.ServerCertificate = Preconditions.CheckNotNull(serverCertificate, nameof(serverCertificate));
+            this.CertificateChain = Preconditions.CheckNotNull(certificateChain, nameof(certificateChain));
         }
 
         public static async Task<EdgeHubCertificates> LoadAsync(IConfigurationRoot configuration)

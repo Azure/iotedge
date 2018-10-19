@@ -95,6 +95,10 @@ static void destroy_evp_key(EVP_PKEY *evp_key);
     #endif
 #endif
 
+#if !defined(X509V3_EXT_conf_nid_HELPER)
+    #define X509V3_EXT_conf_nid_HELPER(conf, ctx, nid, value) X509V3_EXT_conf_nid((conf), (ctx), (nid), (value))
+#endif
+
 extern time_t get_utc_time_from_asn_string(const unsigned char *time_value, size_t length);
 
 //#################################################################################################
@@ -632,12 +636,13 @@ static int cert_set_core_properties
     return result;
 }
 
-static int validate_certificate_expiration(X509* x509_cert, double *exp_seconds_left)
+static int validate_certificate_expiration(X509* x509_cert, double *exp_seconds_left, bool *is_expired)
 {
     int result;
     time_t exp_time;
     double seconds_left = 0;
 
+    *is_expired = true;
     time_t now = time(NULL);
     ASN1_TIME *exp_asn1 = X509_get_notAfter(x509_cert);
     if ((exp_asn1->type != ASN1_TIME_STRING_UTC_FORMAT) &&
@@ -651,13 +656,16 @@ static int validate_certificate_expiration(X509* x509_cert, double *exp_seconds_
         LOG_ERROR("Could not parse expiration date from certificate");
         result = __FAILURE__;
     }
-    else if ((seconds_left = difftime(exp_time, now)) <= 0)
-    {
-        LOG_ERROR("Certificate has expired");
-        result = __FAILURE__;
-    }
     else
     {
+        if ((seconds_left = difftime(exp_time, now)) <= 0)
+        {
+            LOG_ERROR("Certificate has expired");
+        }
+        else
+        {
+            *is_expired = false;
+        }
         result = 0;
     }
 
@@ -688,9 +696,11 @@ static int cert_set_expiration
         {
             // determine max validity in seconds of issuer
             double exp_seconds_left_from_now = 0;
-            if (validate_certificate_expiration(issuer_cert, &exp_seconds_left_from_now) != 0)
+            bool is_expired = true;
+            int status = validate_certificate_expiration(issuer_cert, &exp_seconds_left_from_now, &is_expired);
+            if ((status != 0) || (is_expired))
             {
-                LOG_ERROR("Issuer certificate expiration failure");
+                LOG_ERROR("Issuer certificate expiration failure. Status %d, verify status: %d", status, is_expired);
                 result = __FAILURE__;
             }
             else
@@ -789,16 +799,130 @@ static int set_basic_constraints(X509 *x509_cert, CERTIFICATE_TYPE cert_type, in
     return result;
 }
 
+static int add_ext(X509 *x509_cert, int nid, const char *value, const char* nid_diagnostic)
+{
+    int result;
+    X509_EXTENSION *ex;
+
+    // openssl API requires a non const value be passed in
+    if ((ex = X509V3_EXT_conf_nid_HELPER(NULL, NULL, nid, (char*)value)) == NULL)
+    {
+        LOG_ERROR("Could not obtain V3 extension by NID %#x, %s", nid, nid_diagnostic);
+        result = __FAILURE__;
+    }
+    else
+    {
+        if (X509_add_ext(x509_cert, ex, -1) == 0)
+        {
+            LOG_ERROR("Could not add V3 extension by NID %#x, %s", nid, nid_diagnostic);
+            result = __FAILURE__;
+        }
+        else
+        {
+            result = 0;
+        }
+        X509_EXTENSION_free(ex);
+    }
+
+    return result;
+}
+
+static int set_key_usage
+(
+    X509 *x509_cert,
+    CERTIFICATE_TYPE cert_type
+)
+{
+    int result;
+    char *usage, *ext_usage;
+
+    if (cert_type == CERTIFICATE_TYPE_CA)
+    {
+        usage = "critical, digitalSignature, keyCertSign";
+        ext_usage = NULL;
+    }
+    else if (cert_type == CERTIFICATE_TYPE_CLIENT)
+    {
+        usage = "critical, nonRepudiation, digitalSignature, keyEncipherment, dataEncipherment";
+        ext_usage = "clientAuth";
+    }
+    else
+    {
+        usage = "critical, nonRepudiation, digitalSignature, keyEncipherment, dataEncipherment, keyAgreement";
+        ext_usage = "serverAuth";
+    }
+
+    if (add_ext(x509_cert, NID_key_usage, usage, "NID_key_usage") != 0)
+    {
+        result = __FAILURE__;
+    }
+    else
+    {
+        if ((ext_usage != NULL) &&
+            (add_ext(x509_cert, NID_ext_key_usage, ext_usage, "NID_ext_key_usage") != 0))
+        {
+            result = __FAILURE__;
+        }
+        else
+        {
+            result = 0;
+        }
+    }
+
+    return result;
+}
+
+static int set_san
+(
+    X509 *x509_cert,
+    CERT_PROPS_HANDLE cert_props_handle
+)
+{
+    size_t num_entries = 0, idx;
+    bool fail_flag = false;
+    const char * const* sans = get_san_entries(cert_props_handle, &num_entries);
+
+    if (sans != NULL)
+    {
+        for (idx = 0; idx < num_entries; idx++)
+        {
+            if ((sans[idx] != NULL) &&
+                (add_ext(x509_cert, NID_subject_alt_name, sans[idx], "NID_subject_alt_name") != 0))
+            {
+                fail_flag = true;
+                break;
+            }
+        }
+    }
+
+    return (fail_flag) ? __FAILURE__ : 0;
+}
+
 static int cert_set_extensions
 (
     X509 *x509_cert,
     CERTIFICATE_TYPE cert_type,
     X509* issuer_cert,
-    int ca_path_len
+    int ca_path_len,
+    CERT_PROPS_HANDLE cert_props_handle
 )
 {
     (void)issuer_cert;
-    return set_basic_constraints(x509_cert, cert_type, ca_path_len);
+    int result;
+
+    if ((set_basic_constraints(x509_cert, cert_type, ca_path_len) != 0) ||
+        (set_key_usage(x509_cert, cert_type) != 0) ||
+        (set_san(x509_cert, cert_props_handle) != 0))
+    {
+        LOG_ERROR("Failure setting certificate extensions");
+        result = __FAILURE__;
+    }
+    else
+    {
+        result = 0;
+    }
+
+    return result;
 }
 
 static int cert_set_subject_field
@@ -1011,7 +1135,8 @@ static int generate_evp_certificate
         else if (cert_set_extensions(x509_cert,
                                      cert_type,
                                      issuer_certificate,
-                                     ca_path_len) != 0)
+                                     ca_path_len,
+                                     cert_props_handle) != 0)
         {
             LOG_ERROR("Failure setting certificate extensions");
             result = __FAILURE__;
@@ -1355,17 +1480,10 @@ static int check_certificates
     int result;
     X509_STORE_CTX *store_ctxt = NULL;
     X509* x509_cert = NULL;
-    double exp_seconds = 0;
 
     if ((x509_cert = load_certificate_file(cert_file)) == NULL)
     {
         LOG_ERROR("Could not create X509 to verify certificate %s", cert_file);
-        result = __FAILURE__;
-    }
-    else if (validate_certificate_expiration(x509_cert, &exp_seconds) != 0)
-    {
-        LOG_ERROR("Certificate file has expired %s", cert_file);
-        X509_free(x509_cert);
         result = __FAILURE__;
     }
     else if ((store_ctxt = X509_STORE_CTX_new()) == NULL)
@@ -1386,26 +1504,42 @@ static int check_certificates
         }
         else
         {
+            double exp_seconds = 0;
             int status;
-            if ((status = X509_verify_cert(store_ctxt)) <= 0)
+            bool is_expired = true;
+
+            status = validate_certificate_expiration(x509_cert, &exp_seconds, &is_expired);
+            if (status != 0)
             {
-                const char *msg;
-                int err_code = X509_STORE_CTX_get_error(store_ctxt);
-                msg = X509_verify_cert_error_string(err_code);
-                if (msg == NULL)
-                {
-                    msg = "";
-                }
-                LOG_ERROR("Could not verify certificate %s using issuer certificate %s.",
-                        cert_file, issuer_cert_file);
-                LOG_ERROR("Verification status: %d, Error: %d, Msg: '%s'", status, err_code, msg);
+                LOG_ERROR("Verifying certificate expiration failed for %s", cert_file);
+                result = __FAILURE__;
             }
             else
             {
-                LOG_DEBUG("Certificate validated %s", cert_file);
-                *verify_status = true;
+                if (is_expired)
+                {
+                    LOG_INFO("Certificate file has expired %s", cert_file);
+                }
+                else if ((status = X509_verify_cert(store_ctxt)) <= 0)
+                {
+                    const char *msg;
+                    int err_code = X509_STORE_CTX_get_error(store_ctxt);
+                    msg = X509_verify_cert_error_string(err_code);
+                    if (msg == NULL)
+                    {
+                        msg = "";
+                    }
+                    LOG_ERROR("Could not verify certificate %s using issuer certificate %s.",
+                              cert_file, issuer_cert_file);
+                    LOG_ERROR("Verification status: %d, Error: %d, Msg: '%s'", status, err_code, msg);
+                }
+                else
+                {
+                    LOG_DEBUG("Certificate validated %s", cert_file);
+                    *verify_status = true;
+                }
+                result = 0;
             }
-            result = 0;
         }
         X509_STORE_CTX_free(store_ctxt);
         X509_free(x509_cert);

@@ -1,5 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+#![deny(unused_extern_crates, warnings)]
+
 extern crate failure;
 #[macro_use]
 extern crate failure_derive;

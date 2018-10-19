@@ -71,11 +71,11 @@ impl IdentitySpec {
 pub trait IdentityManager {
     type Identity: Identity;
     type Error: Fail;
-    type CreateFuture: Future<Item = Self::Identity, Error = Self::Error>;
-    type UpdateFuture: Future<Item = Self::Identity, Error = Self::Error>;
-    type ListFuture: Future<Item = Vec<Self::Identity>, Error = Self::Error>;
-    type GetFuture: Future<Item = Option<Self::Identity>, Error = Self::Error>;
-    type DeleteFuture: Future<Item = (), Error = Self::Error>;
+    type CreateFuture: Future<Item = Self::Identity, Error = Self::Error> + Send;
+    type UpdateFuture: Future<Item = Self::Identity, Error = Self::Error> + Send;
+    type ListFuture: Future<Item = Vec<Self::Identity>, Error = Self::Error> + Send;
+    type GetFuture: Future<Item = Option<Self::Identity>, Error = Self::Error> + Send;
+    type DeleteFuture: Future<Item = (), Error = Self::Error> + Send;
 
     fn create(&mut self, id: IdentitySpec) -> Self::CreateFuture;
     fn update(&mut self, id: IdentitySpec) -> Self::UpdateFuture;

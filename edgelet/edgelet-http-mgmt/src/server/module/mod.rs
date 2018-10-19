@@ -47,7 +47,7 @@ impl IntoResponse for DockerError {
         }
 
         let status_code = match *self.kind() {
-            DockerErrorKind::NotFound => StatusCode::NOT_FOUND,
+            DockerErrorKind::NotFound(_) => StatusCode::NOT_FOUND,
             DockerErrorKind::Conflict => StatusCode::CONFLICT,
             DockerErrorKind::NotModified => StatusCode::NOT_MODIFIED,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
@@ -78,9 +78,9 @@ impl IntoResponse for DockerError {
     }
 }
 
-fn core_to_details<M>(module: M) -> Box<Future<Item = ModuleDetails, Error = Error>>
+fn core_to_details<M>(module: M) -> Box<Future<Item = ModuleDetails, Error = Error> + Send>
 where
-    M: 'static + Module,
+    M: 'static + Module + Send,
     M::Config: Serialize,
 {
     let details = module
@@ -194,7 +194,9 @@ pub mod tests {
     #[test]
     fn not_found() {
         // arrange
-        let error = DockerError::from(DockerErrorKind::NotFound);
+        let error = DockerError::from(DockerErrorKind::NotFound(
+            "manifest for image:latest not found".to_string(),
+        ));
 
         // act
         let response = error.into_response();
@@ -206,7 +208,7 @@ pub mod tests {
             .concat2()
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
-                assert_eq!("Not found", error.message());
+                assert_eq!("manifest for image:latest not found", error.message());
                 Ok(())
             }).wait()
             .unwrap();
@@ -249,6 +251,29 @@ pub mod tests {
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
                 assert_eq!("Invalid URL", error.message());
+                Ok(())
+            }).wait()
+            .unwrap();
+    }
+
+    #[test]
+    fn formatted_docker_runtime() {
+        // arrange
+        let error = DockerError::from(DockerErrorKind::FormattedDockerRuntime(
+            "manifest for image:latest not found".to_string(),
+        ));
+
+        // act
+        let response = error.into_response();
+
+        // assert
+        assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
+        response
+            .into_body()
+            .concat2()
+            .and_then(|b| {
+                let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
+                assert_eq!("manifest for image:latest not found", error.message());
                 Ok(())
             }).wait()
             .unwrap();

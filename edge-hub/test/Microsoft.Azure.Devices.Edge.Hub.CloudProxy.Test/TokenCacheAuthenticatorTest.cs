@@ -88,12 +88,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public async Task NotAuthenticatedTest()
         {
             // Arrange
-            var cloudProxy = new Mock<ICloudProxy>();
-            cloudProxy.Setup(c => c.OpenAsync())
-                .Throws(new UnauthorizedException("Not authorized"));
             var connectionManager = Mock.Of<IConnectionManager>(
                 c =>
-                    c.CreateCloudConnectionAsync(It.IsAny<IClientCredentials>()) == Task.FromResult(Try.Success(cloudProxy.Object)));
+                    c.CreateCloudConnectionAsync(It.IsAny<IClientCredentials>()) == Task.FromResult(Try<ICloudProxy>.Failure(new UnauthorizedException("Not authorized"))));
 
             string iothubHostName = "iothub1.azure.net";
             string callerProductInfo = "productInfo";
@@ -118,7 +115,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.False(isAuthenticated);
             Mock.Verify(credentialsStore);
             Mock.Verify(Mock.Get(connectionManager));
-            cloudProxy.VerifyAll();
         }
 
         [Unit]
@@ -126,12 +122,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public async Task CacheTokenExpiredNotAuthenticatedTest()
         {
             // Arrange
-            var cloudProxy = new Mock<ICloudProxy>();
-            cloudProxy.Setup(c => c.OpenAsync())
-                .Throws(new UnauthorizedException("Not authorized"));
             var connectionManager = Mock.Of<IConnectionManager>(
                 c =>
-                    c.CreateCloudConnectionAsync(It.IsAny<IClientCredentials>()) == Task.FromResult(Try.Success(cloudProxy.Object)));
+                    c.CreateCloudConnectionAsync(It.IsAny<IClientCredentials>()) == Task.FromResult(Try<ICloudProxy>.Failure(new UnauthorizedException("Not authorized"))));
 
             string iothubHostName = "iothub1.azure.net";
             string callerProductInfo = "productInfo";
@@ -155,7 +148,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.False(isAuthenticated);
             Mock.Verify(credentialsStore);
             Mock.Verify(Mock.Get(connectionManager));
-            cloudProxy.VerifyAll();
         }
     }
 }

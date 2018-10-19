@@ -11,8 +11,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
     {
         /// <summary>
         /// Here are some references which were used for this code -
-        /// https://stackoverflow.com/questions/40742192/how-to-do-gracefully-shutdown-on-dotnet-with-docker/43813871 
-        /// https://msdn.microsoft.com/en-us/library/system.gc.keepalive(v=vs.110).aspx       
+        /// https://stackoverflow.com/questions/40742192/how-to-do-gracefully-shutdown-on-dotnet-with-docker/43813871
+        /// https://msdn.microsoft.com/en-us/library/system.gc.keepalive(v=vs.110).aspx
         /// </summary>
         public static (CancellationTokenSource cts, ManualResetEventSlim doneSignal, Option<object> handler)
             Init(TimeSpan shutdownWaitPeriod, ILogger logger)
@@ -61,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
         }
 
         /// <summary>
-        /// This is the recommended way to handle shutdown of windows containers. References - 
+        /// This is the recommended way to handle shutdown of windows containers. References -
         /// https://github.com/moby/moby/issues/25982
         /// https://gist.github.com/darstahl/fbb80c265dcfd1b327aabcc0f3554e56
         /// </summary>

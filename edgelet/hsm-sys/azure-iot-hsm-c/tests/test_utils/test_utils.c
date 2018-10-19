@@ -75,6 +75,11 @@ static int make_test_dir(const char* dir_path)
     return result;
 }
 
+size_t get_max_file_path_size(void)
+{
+    return MAX_FILE_NAME_SIZE;
+}
+
 char *create_temp_dir_path(const char *dir_guid)
 {
     int status;
@@ -134,7 +139,7 @@ void hsm_test_util_delete_dir(const char *dir_guid)
     printf("Deleting temp directory '%s'.\r\n", dir_path);
 
 #if (defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows)
-    SHFILEOPSTRUCT shfo = {
+    SHFILEOPSTRUCTA shfo = {
         NULL,
         FO_DELETE,
         dir_path,
@@ -143,14 +148,14 @@ void hsm_test_util_delete_dir(const char *dir_guid)
         FALSE,
         NULL,
         NULL };
-    status = SHFileOperation(&shfo);
+    status = SHFileOperationA(&shfo);
 #else
     const char *cmd_prefix = "rm -fr ";
     size_t cmd_size = strlen(cmd_prefix) + MAX_FILE_NAME_SIZE + 1;
     char *cmd = calloc(cmd_size, 1);
     ASSERT_IS_NOT_NULL_WITH_MSG(cmd, "TestUtil Line:" TOSTRING(__LINE__));
     status = snprintf(cmd, cmd_size, "%s%s", cmd_prefix, dir_path);
-    ASSERT_IS_TRUE_WITH_MSG(((status > 0) || (status < cmd_size)), "TestUtil Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE_WITH_MSG(((status > 0) || (status < (int)cmd_size)), "TestUtil Line:" TOSTRING(__LINE__));
     printf("Deleting directory using command '%s'.\r\n", cmd);
     status = system(cmd);
     free(cmd);

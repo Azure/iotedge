@@ -58,11 +58,11 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         {
             Option<int> some1 = Option.Some(1);
             Option<int> some2 = Option.Some(2);
-            Option<object> some3 = Option.Some<object>(null);
+            Option<object> some3 = Option.None<object>();
             Option<int> none = Option.None<int>();
 
             Assert.Equal(0, none.GetHashCode());
-            Assert.Equal(1, some3.GetHashCode());
+            Assert.Equal(0, some3.GetHashCode());
             Assert.NotEqual(some1.GetHashCode(), some2.GetHashCode());
         }
 
@@ -71,11 +71,11 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         public void TestToString()
         {
             Option<int> some1 = Option.Some(1);
-            Option<object> some2 = Option.Some<object>(null);
+            Option<object> some2 = Option.Some<object>(new object());
             Option<int> none = Option.None<int>();
 
             Assert.Equal("Some(1)", some1.ToString());
-            Assert.Equal("Some(null)", some2.ToString());
+            Assert.Equal("Some(System.Object)", some2.ToString());
             Assert.Equal("None", none.ToString());
         }
 
@@ -111,12 +111,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         {
             Option<int> some = Option.Some(3);
             Option<int> none = Option.None<int>();
-            Option<object> some2 = Option.Some<object>(null);
+            var value = new object();
+            Option<object> some2 = Option.Some<object>(value);
 
             Assert.True(some.Contains(3));
             Assert.False(some.Contains(2));
             Assert.False(none.Contains(3));
-            Assert.True(some2.Contains(null));
+            Assert.True(some2.Contains(value));
         }
 
         [Fact]

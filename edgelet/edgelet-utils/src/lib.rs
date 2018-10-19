@@ -1,9 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(warnings)]
+#![deny(unused_extern_crates, warnings)]
 
 #[macro_use]
 extern crate failure;
+#[cfg(test)]
 extern crate futures;
 #[macro_use]
 extern crate log;
