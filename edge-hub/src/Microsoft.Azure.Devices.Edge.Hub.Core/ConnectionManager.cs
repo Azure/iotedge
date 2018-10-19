@@ -51,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public IEnumerable<IIdentity> GetConnectedClients() =>
             this.devices.Values
-                .Where(d => d.DeviceConnection.Map(dc => dc.IsActive).GetOrElse(false) && !d.Identity.Id.Equals($"{this.edgeDeviceId}/{this.edgeModuleId}"))
+                .Where(d => d.DeviceConnection.Map(dc => dc.IsActive).GetOrElse(false))
                 .Select(d => d.Identity);
 
         public async Task AddDeviceConnection(IIdentity identity, IDeviceProxy deviceProxy)
