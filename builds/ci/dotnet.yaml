@@ -6,10 +6,6 @@
 variables:
   NetCorePackageUriLinux: https://download.microsoft.com/download/4/0/9/40920432-3302-47a8-b13c-bbc4848ad114/dotnet-sdk-2.1.302-linux-x64.tar.gz
   NetCorePackageUriWindows: https://download.microsoft.com/download/4/0/9/40920432-3302-47a8-b13c-bbc4848ad114/dotnet-sdk-2.1.302-win-x64.zip
-  kv.name:
-  kv.sp.tenant:
-  kv.sp.user:
-  kv.sp.password:
 
 jobs:
   - job: linux
@@ -32,6 +28,11 @@ jobs:
           scripts/linux/downloadAndInstallCert.sh -c IotHubMqttHeadCert -v $KV_NAME -s 'Root'
         name: install_certs
         displayName: 'Install test certificate'
+        env:
+          KV_NAME: $(kv.name)
+          KV_SP_USER: $(kv.sp.user)
+          KV_SP_PASSWORD: $(kv.sp.password)
+          KV_SP_TENANT: $(kv.sp.tenant)
       - script: scripts/linux/runTests.sh "--filter Category!=Stress"
         name: test
         displayName: Test
