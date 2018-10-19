@@ -9,11 +9,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
-    public class TokenCredentialsCache : ICredentialsCache
+    public class PersistedTokenCredentialsCache : ICredentialsCache
     {
         readonly IKeyValueStore<string, string> encryptedStore;
 
-        public TokenCredentialsCache(IKeyValueStore<string, string> encryptedStore)
+        public PersistedTokenCredentialsCache(IKeyValueStore<string, string> encryptedStore)
         {
             this.encryptedStore = Preconditions.CheckNotNull(encryptedStore, nameof(encryptedStore));
         }
@@ -73,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<TokenCredentialsCache>();
+            static readonly ILogger Log = Logger.Factory.CreateLogger<PersistedTokenCredentialsCache>();
             const int IdStart = HubCoreEventIds.TokenCredentialsStore;
 
             enum EventIds
