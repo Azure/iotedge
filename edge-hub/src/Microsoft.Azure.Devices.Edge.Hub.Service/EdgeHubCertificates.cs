@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
     public class EdgeHubCertificates
     {
+
         public X509Certificate2 ServerCertificate { get; }
 
         public IList<X509Certificate2> CertificateChain { get; }
@@ -27,30 +28,52 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         public static async Task<EdgeHubCertificates> LoadAsync(IConfigurationRoot configuration)
         {
             Preconditions.CheckNotNull(configuration, nameof(configuration));
-
+            EdgeHubCertificates result;
+            string edgeHubDevCertPath = configuration.GetValue<string>(Constants.ConfigKey.EdgeHubDevServerCertificateFile);
+            string edgeHubDevPrivateKeyPath = configuration.GetValue<string>(Constants.ConfigKey.EdgeHubDevServerPrivateKeyFile);
+            string edgeHubDockerCertPFXPath = configuration.GetValue<string>(Constants.ConfigKey.EdgeHubServerCertificateFile);
+            string edgeHubDockerCaChainCertPath = configuration.GetValue<string>(Constants.ConfigKey.EdgeHubServerCAChainCertificateFile);
             string edgeHubConnectionString = configuration.GetValue<string>(Constants.ConfigKey.IotHubConnectionString);
 
-            // When connection string is not set it is edged mode
             if (string.IsNullOrEmpty(edgeHubConnectionString))
             {
+                // When connection string is not set it is edged mode as iotedgd is expected to set this.
+                // In this case we reach out to the iotedged via the workload interface.
+                (X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain) certificates;
+
                 var workloadUri = new Uri(configuration.GetValue<string>(Constants.ConfigKey.WorkloadUri));
                 string edgeHubHostname = configuration.GetValue<string>(Constants.ConfigKey.EdgeDeviceHostName);
                 string moduleId = configuration.GetValue<string>(Constants.ConfigKey.ModuleId);
                 string generationId = configuration.GetValue<string>(Constants.ConfigKey.ModuleGenerationId);
                 DateTime expiration = DateTime.UtcNow.AddDays(Constants.CertificateValidityDays);
-                (X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain) certificates =
-                    await CertificateHelper.GetServerCertificatesFromEdgelet(workloadUri, Constants.WorkloadApiVersion, moduleId, generationId, edgeHubHostname, expiration);
-
+                certificates = await CertificateHelper.GetServerCertificatesFromEdgelet(workloadUri, Constants.WorkloadApiVersion, moduleId, generationId, edgeHubHostname, expiration);
                 InstallCertificates(certificates.CertificateChain);
-                return new EdgeHubCertificates(certificates.ServerCertificate, certificates.CertificateChain?.ToList());
+                result = new EdgeHubCertificates(certificates.ServerCertificate, certificates.CertificateChain?.ToList());
+            }
+            else if (!string.IsNullOrEmpty(edgeHubDevCertPath) &&
+                     !string.IsNullOrEmpty(edgeHubDevPrivateKeyPath))
+            {
+                // If no connection string was set and we use iotedged workload style certificates for development
+                (X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain) certificates;
+
+                certificates = CertificateHelper.GetServerCertificateAndChainFromFile(edgeHubDevCertPath, edgeHubDevPrivateKeyPath);
+                InstallCertificates(certificates.CertificateChain);
+                result = new EdgeHubCertificates(certificates.ServerCertificate, certificates.CertificateChain?.ToList());
+            }
+            else if (!string.IsNullOrEmpty(edgeHubDockerCertPFXPath) &&
+                     !string.IsNullOrEmpty(edgeHubDockerCaChainCertPath))
+            {
+                // If no connection string was set and we use iotedge devdiv style certificates for development
+                List<X509Certificate2> certificateChain = CertificateHelper.GetServerCACertificatesFromFile(edgeHubDockerCaChainCertPath)?.ToList();
+                InstallCertificates(certificateChain);
+                result = new EdgeHubCertificates(new X509Certificate2(edgeHubDockerCertPFXPath), certificateChain);
+            }
+            else
+            {
+                throw new InvalidOperationException("Edge Hub certificate files incorrectly configured");
             }
 
-            string edgeHubCertPath = configuration.GetValue<string>(Constants.ConfigKey.EdgeHubServerCertificateFile);
-            string edgeHubCaChainCertPath = configuration.GetValue<string>(Constants.ConfigKey.EdgeHubServerCAChainCertificateFile);
-            List<X509Certificate2> certificateChain = CertificateHelper.GetServerCACertificatesFromFile(edgeHubCaChainCertPath)?.ToList();
-
-            InstallCertificates(certificateChain);
-            return new EdgeHubCertificates(new X509Certificate2(edgeHubCertPath), certificateChain);
+            return result;
         }
 
         static void InstallCertificates(IEnumerable<X509Certificate2> certificateChain)
