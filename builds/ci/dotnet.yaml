@@ -6,14 +6,14 @@
 variables:
   NetCorePackageUriLinux: https://download.microsoft.com/download/4/0/9/40920432-3302-47a8-b13c-bbc4848ad114/dotnet-sdk-2.1.302-linux-x64.tar.gz
   NetCorePackageUriWindows: https://download.microsoft.com/download/4/0/9/40920432-3302-47a8-b13c-bbc4848ad114/dotnet-sdk-2.1.302-win-x64.zip
+  kv.spn:
+
 
 jobs:
   - job: linux
     displayName: Linux
     pool:
       name: Hosted Ubuntu 1604
-      demands:
-        - sh
       vmImage: ubuntu-16.04
     steps:
       - script: scripts/linux/installPrereqs.sh -u $(NetCorePackageUriLinux)
@@ -22,3 +22,9 @@ jobs:
       - script: scripts/linux/installKvPrereqs_Ubuntu.sh
         name: install_test_dependencies
         displayName: 'Install test dependencies'
+      - bash: |
+          az login --service-principal -u $KV_SP_USER --tenant $KV_SP_TENANT -p $KV_SP_PASSWORD
+          scripts/linux/downloadAndInstallCert.sh -c IoTEdgeTestCert -v $KV_NAME
+          scripts/linux/downloadAndInstallCert.sh -c IotHubMqttHeadCert -v $KV_NAME -s 'Root'
+        name: install_certs
+        displayName: 'Install test certificate'
