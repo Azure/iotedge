@@ -372,6 +372,7 @@ static void test_helper_validate_extension
             ASSERT_IS_NOT_NULL_WITH_MSG(mem_bio, "Line:" TOSTRING(__LINE__));
             // initialize the mem_bio
             BIO_reset(mem_bio);
+            BIO_puts(mem_bio, "TESTSEED ");
             // print the extension contents into the mem_bio
             X509V3_EXT_print(mem_bio, ext, 0, 0);
             sz = BIO_get_mem_data(mem_bio, &memst);
