@@ -348,6 +348,7 @@ pub struct CertificateProperties {
     locality: Option<String>,
     organization: Option<String>,
     organization_unit: Option<String>,
+    san_entries: Option<Vec<String>>,
 }
 
 impl CertificateProperties {
@@ -369,6 +370,7 @@ impl CertificateProperties {
             locality: None,
             organization: None,
             organization_unit: None,
+            san_entries: None,
         }
     }
 
@@ -462,6 +464,15 @@ impl CertificateProperties {
 
     pub fn with_alias(mut self, alias: String) -> CertificateProperties {
         self.alias = alias;
+        self
+    }
+
+    pub fn san_entries(&self) -> Option<&Vec<String>> {
+        self.san_entries.as_ref()
+    }
+
+    pub fn with_san_entries(mut self, entries: &Vec<String>) -> CertificateProperties {
+        self.san_entries = entries;
         self
     }
 }

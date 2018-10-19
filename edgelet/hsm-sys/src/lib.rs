@@ -329,6 +329,9 @@ extern "C" {
 extern "C" {
     pub fn get_alias(handle: CERT_PROPS_HANDLE) -> *const c_char;
 }
+extern "C" {
+    pub fn set_san_entries(handle: CERT_PROPS_HANDLE, san_list: *const *const c_char, num_entries: usize) -> c_int;
+}
 
 /// API generates a X.509 certificate and private key pair using the supplied
 /// certificate properties. Any CA certificates are expected to by issued by
