@@ -5,6 +5,7 @@ namespace LeafDevice
     using System;
     using System.Threading.Tasks;
     using McMaster.Extensions.CommandLineUtils;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
 
     [Command(
@@ -19,7 +20,7 @@ Environment Variables:
   Option                    Environment variable
   --connection-string       iothubConnectionString
   --eventhub-endpoint       eventhubCompatibleEndpointWithEntityPath
- 
+
 Defaults:
   All options to this command have defaults. If an option is not specified and
   its corresponding environment variable is not defined, then the default will
@@ -54,6 +55,9 @@ Defaults:
         [Option("-ed|--edge-hostname", Description = "Leaf device identifier to be registered with IoT Hub")]
         public string EdgeHostName { get; } = "";
 
+        [Option("--upstream-protocol <value>", CommandOptionType.SingleValue, Description = "Upstream protocol for IoT Hub connections.")]
+        public (bool overrideUpstreamProtocol, UpstreamProtocolType upstreamProtocol) UpstreamProtocol { get; } = (false, UpstreamProtocolType.Amqp);
+
         // ReSharper disable once UnusedMember.Local
         async Task<int> OnExecuteAsync()
         {
@@ -65,12 +69,18 @@ Defaults:
                 string endpoint = this.EventHubCompatibleEndpointWithEntityPath ??
                     await SecretsHelper.GetSecretFromConfigKey("eventHubConnStrKey");
 
+                (bool overrideUpstreamProtocol, UpstreamProtocolType upstreamProtocol) = this.UpstreamProtocol;
+                Option<UpstreamProtocolType> upstreamProtocolOption = overrideUpstreamProtocol
+                    ? Option.Some(upstreamProtocol)
+                    : Option.None<UpstreamProtocolType>();
+
                 var test = new LeafDevice(
                     connectionString,
                     endpoint,
                     this.DeviceId,
                     this.CertificateFileName,
-                    this.EdgeHostName);
+                    this.EdgeHostName,
+                    upstreamProtocolOption);
                 await test.RunAsync();
             }
             catch (Exception ex)
@@ -82,5 +92,13 @@ Defaults:
             Console.WriteLine("Success!");
             return 0;
         }
+    }
+
+    public enum UpstreamProtocolType
+    {
+        Amqp,
+        AmqpWs,
+        Mqtt,
+        MqttWs
     }
 }

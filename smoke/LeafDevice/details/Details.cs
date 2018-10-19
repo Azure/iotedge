@@ -14,6 +14,9 @@ namespace LeafDevice.Details
     using Microsoft.Azure.EventHubs;
     using System.Net;
     using Microsoft.Azure.Devices.Edge.Util;
+    using EventHubClientTransportType = Microsoft.Azure.EventHubs.TransportType;
+    using ServiceClientTransportType = Microsoft.Azure.Devices.TransportType;
+    using DeviceClientTransportType = Microsoft.Azure.Devices.Client.TransportType;
 
     public class Details
     {
@@ -22,6 +25,9 @@ namespace LeafDevice.Details
         readonly string deviceId;
         readonly string certificateFileName;
         readonly string edgeHostName;
+        readonly ServiceClientTransportType serviceClientTransportType;
+        readonly EventHubClientTransportType eventHubClientTransportType;
+        readonly DeviceClientTransportType deviceClientTransportType;
 
         DeviceContext context;
 
@@ -30,7 +36,8 @@ namespace LeafDevice.Details
             string eventhubCompatibleEndpointWithEntityPath,
             string deviceId,
             string certificateFileName,
-            string edgeHostName
+            string edgeHostName,
+            Option<UpstreamProtocolType> upstreamProtocol
         )
         {
             this.iothubConnectionString = iothubConnectionString;
@@ -38,6 +45,24 @@ namespace LeafDevice.Details
             this.deviceId = deviceId;
             this.certificateFileName = certificateFileName;
             this.edgeHostName = edgeHostName;
+
+            switch (upstreamProtocol.GetOrElse(UpstreamProtocolType.Amqp))
+            {
+                case UpstreamProtocolType.Amqp:
+                case UpstreamProtocolType.Mqtt:
+                    this.serviceClientTransportType = ServiceClientTransportType.Amqp;
+                    this.eventHubClientTransportType = EventHubClientTransportType.Amqp;
+                    this.deviceClientTransportType = DeviceClientTransportType.Mqtt;
+                    break;
+                case UpstreamProtocolType.AmqpWs:
+                case UpstreamProtocolType.MqttWs:
+                    this.serviceClientTransportType = ServiceClientTransportType.Amqp_WebSocket_Only;
+                    this.eventHubClientTransportType = EventHubClientTransportType.AmqpWebSockets;
+                    this.deviceClientTransportType = DeviceClientTransportType.Mqtt_WebSocket_Only;
+                    break;
+                default:
+                    throw new Exception($"Unexpected upstream protocol type {upstreamProtocol}");
+            }
         }
 
         protected Task InstallCaCertificate()
@@ -54,7 +79,7 @@ namespace LeafDevice.Details
             Microsoft.Azure.Devices.IotHubConnectionStringBuilder builder = Microsoft.Azure.Devices.IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
             string leafDeviceConnectionString = $"HostName={builder.HostName};DeviceId={this.deviceId};SharedAccessKey={this.context.Device.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={this.edgeHostName}";
             
-            this.context.DeviceClientInstance = Option.Some(DeviceClient.CreateFromConnectionString(leafDeviceConnectionString, Microsoft.Azure.Devices.Client.TransportType.Mqtt));
+            this.context.DeviceClientInstance = Option.Some(DeviceClient.CreateFromConnectionString(leafDeviceConnectionString, this.deviceClientTransportType));
             Console.WriteLine("Leaf Device client created.");
             
             var message = new Microsoft.Azure.Devices.Client.Message(Encoding.ASCII.GetBytes($"Message from Leaf Device. MsgGUID: {this.context.MessageGuid}"));
@@ -122,6 +147,7 @@ namespace LeafDevice.Details
         protected async Task VerifyDataOnIoTHub()
         {
             var builder = new EventHubsConnectionStringBuilder(this.eventhubCompatibleEndpointWithEntityPath);
+            builder.TransportType = this.eventHubClientTransportType;
 
             Console.WriteLine($"Receiving events from device '{this.context.Device.Id}' on Event Hub '{builder.EntityPath}'");
 
@@ -133,7 +159,7 @@ namespace LeafDevice.Details
                 EventHubPartitionKeyResolver.ResolveToPartition(
                     this.context.Device.Id,
                     (await eventHubClient.GetRuntimeInformationAsync()).PartitionCount),
-                DateTime.Now.AddMinutes(-5));
+                EventPosition.FromEnqueuedTime(DateTime.Now.AddMinutes(-5)));
 
             var result = new TaskCompletionSource<bool>();
             using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3)))
@@ -144,7 +170,7 @@ namespace LeafDevice.Details
                         new PartitionReceiveHandler(
                             eventData =>
                             {
-                                eventData.Properties.TryGetValue("iothub-connection-device-id", out object devId);
+                                eventData.SystemProperties.TryGetValue("iothub-connection-device-id", out object devId);
 
                                 if (devId != null && devId.ToString().Equals(this.context.Device.Id)
                                     && Encoding.UTF8.GetString(eventData.Body).Contains(this.context.MessageGuid))
@@ -174,7 +200,7 @@ namespace LeafDevice.Details
         {
             //User Service SDK to invoke Direct Method on the device.
             ServiceClient serviceClient =
-                ServiceClient.CreateFromConnectionString(this.context.IotHubConnectionString);
+                ServiceClient.CreateFromConnectionString(this.context.IotHubConnectionString, this.serviceClientTransportType);
             
             //Call a direct method
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(300)))
