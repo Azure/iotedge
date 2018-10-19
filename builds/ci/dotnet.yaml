@@ -17,6 +17,8 @@ jobs:
       vmImage: ubuntu-16.04
     steps:
       - script: scripts/linux/installPrereqs.sh -u $(NetCorePackageUriLinux)
-        name: 'Install dependencies'
+        name: install_dependencies
+        displayName: Install dependencies
       - script: scripts/linux/installKvPrereqs_Ubuntu.sh
-        name: 'Install test dependencies'
+        name: install_test_dependencies
+        displayName: 'Install test dependencies'
