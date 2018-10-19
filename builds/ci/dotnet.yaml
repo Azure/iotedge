@@ -4,9 +4,7 @@
 #     include:
 #       - master
 variables:
-  NetCorePackageUriLinux: https://download.microsoft.com/download/4/0/9/40920432-3302-47a8-b13c-bbc4848ad114/dotnet-sdk-2.1.302-linux-x64.tar.gz
-  NetCorePackageUriWindows: https://download.microsoft.com/download/4/0/9/40920432-3302-47a8-b13c-bbc4848ad114/dotnet-sdk-2.1.302-win-x64.zip
-
+  test.filter: "Category!=Stress"
 jobs:
   - job: linux
     displayName: Linux
@@ -15,8 +13,9 @@ jobs:
       vmImage: ubuntu-16.04
     variables:
       TestEnvironment: linux
+      NetCorePackageUri: https://download.microsoft.com/download/4/0/9/40920432-3302-47a8-b13c-bbc4848ad114/dotnet-sdk-2.1.302-linux-x64.tar.gz
     steps:
-      - script: scripts/linux/installPrereqs.sh -u $(NetCorePackageUriLinux)
+      - script: scripts/linux/installPrereqs.sh -u $(NetCorePackageUri)
         name: install_dependencies
         displayName: Install dependencies
       - script: scripts/linux/installKvPrereqs_Ubuntu.sh
@@ -33,22 +32,68 @@ jobs:
           KV_SP_USER: $(kv.sp.user)
           KV_SP_PASSWORD: $(kv.sp.password)
           KV_SP_TENANT: $(kv.sp.tenant)
-      - script: scripts/linux/runTests.sh "--filter Category!=Stress"
+      - script: scripts/linux/buildBranch.sh -c Release --no-rocksdb-bin
+        name: build
+        displayName: 'Build (release)'
+      - script: scripts/linux/runTests.sh "--filter $(TEST_FILTER)"
         name: test
         displayName: Test
-      # - task: PublishTestResults@1
-      #   name: publish_results
-      #   displayName: 'Publish test results'
-      #   condition: succeededOrFailed()
-      #   inputs:
-      #     testRunner: VSTest
-      #     testResultsFiles: '**/TestResults/result.trx'
-      # - script: scripts/linux/buildBranch.sh -c Release --no-rocksdb-bin
-      #   name: build
-      #   displayName: 'Build (release)'
-      # - task: PublishBuildArtifacts@1
-      #   name: publish
-      #   displayName: 'Publish Artifacts'
-      #   inputs:
-      #     PathtoPublish: '$(Build.BinariesDirectory)/publish'
-      #     ArtifactName: 'core-linux'
+        env:
+          TEST_FILTER: $(test.filter)
+      - task: PublishBuildArtifacts@1
+        name: publish
+        displayName: 'Publish Artifacts'
+        inputs:
+          PathtoPublish: '$(Build.BinariesDirectory)/publish'
+          ArtifactName: 'core-linux'
+      - task: PublishTestResults@1
+        name: publish_results
+        displayName: 'Publish test results'
+        condition: succeededOrFailed()
+        inputs:
+          testRunner: VSTest
+          testResultsFiles: '**/TestResults/result.trx'
+  - job: windows
+    displayName: Windows
+    pool: Azure-Iot-Edge-Core
+      demands:
+        - azureps
+    variables:
+      NetCorePackageUri: https://download.microsoft.com/download/4/0/9/40920432-3302-47a8-b13c-bbc4848ad114/dotnet-sdk-2.1.302-win-x64.zip
+      PublishTests: $True
+      TestEnvironment: windows
+    steps:
+      - task: AzurePowerShell@2
+        displayName: 'Install test certificate'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          ScriptPath: 'scripts/windows/setup/Install-VaultCertificate.ps1'
+          ScriptArguments: '-VaultName $(kv.name) -CertificateName IoTEdgeTestCert'
+          azurePowerShellVersion: LatestVersion
+      - powershell: scripts/windows/Install-Prerequisites.ps1 -DotnetSdkUrl $(NetCorePackageUri)
+        name: install_dependencies
+        displayName: Install dependencies
+      - powershell: scripts/windows/build/Publish-Branch.ps1 -PublishTests:$(PublishTests) -UpdateVersion
+        name: build
+        displayName: Build
+      - powershell: scripts/windows/test/Test-Branch.ps1 -Filter "$env:TEST_FILTER"
+        name: test
+        displayName: Test
+        env:
+          TEST_FILTER: $(test.filter)
+      - task: PublishBuildArtifacts@1
+        name: publish_artifacts
+        displayName: 'Publish Artifacts'
+        inputs:
+          PathtoPublish: '$(Build.BinariesDirectory)/publish'
+          ArtifactName: 'core-windows'
+      - task: PublishTestResults@1
+        name: publish_results
+        displayName: 'Publish test results'
+        condition: succeededOrFailed()
+        inputs:
+          testRunner: VSTest
+          testResultsFiles: '**\TestResults\*.trx'
+      - powershell: docker system prune -a -f
+        name: clean_machine
+        displayName: Clean machine
