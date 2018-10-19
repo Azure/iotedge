@@ -13,8 +13,9 @@ namespace LeafDevice
             string eventhubCompatibleEndpointWithEntityPath,
             string deviceId,
             string certificateFileName,
-            string edgeHostName) :
-            base(iothubConnectionString, eventhubCompatibleEndpointWithEntityPath, deviceId, certificateFileName, edgeHostName)
+            string edgeHostName,
+            bool useWebSockets) :
+            base(iothubConnectionString, eventhubCompatibleEndpointWithEntityPath, deviceId, certificateFileName, edgeHostName, useWebSockets)
         {
         }
 
