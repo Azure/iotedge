@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
 {
     using System;
+    using System.IO;
     using System.Collections.Generic;
     using System.Linq;
     using System.Security.Cryptography.X509Certificates;
@@ -92,6 +93,24 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
         {
             Assert.Throws<ArgumentException>(() => CertificateHelper.ExtractCertsFromPem(null));
             Assert.Throws<ArgumentException>(() => CertificateHelper.ExtractCertsFromPem(""));
+        }
+
+        [Fact]
+        public void GetServerCertificateAndChainFromFileRaisesArgExceptionWithInvalidCertFile()
+        {
+            string testFile = Path.GetRandomFileName();
+            Assert.Throws<ArgumentException>(() => CertificateHelper.GetServerCertificateAndChainFromFile(null, testFile));
+            Assert.Throws<ArgumentException>(() => CertificateHelper.GetServerCertificateAndChainFromFile("", testFile));
+            Assert.Throws<ArgumentException>(() => CertificateHelper.GetServerCertificateAndChainFromFile("   ", testFile));
+        }
+
+        [Fact]
+        public void GetServerCertificateAndChainFromFileRaisesArgExceptionWithInvalidPrivateKeyFile()
+        {
+            string testFile = Path.GetRandomFileName();
+            Assert.Throws<ArgumentException>(() => CertificateHelper.GetServerCertificateAndChainFromFile(testFile, null));
+            Assert.Throws<ArgumentException>(() => CertificateHelper.GetServerCertificateAndChainFromFile(testFile, ""));
+            Assert.Throws<ArgumentException>(() => CertificateHelper.GetServerCertificateAndChainFromFile(testFile, "   "));
         }
 
         [Fact]
