@@ -26,12 +26,14 @@ pub fn convert_properties(
         CoreCertificateIssuer::DeviceCa => device_ca_alias.to_string(),
         CoreCertificateIssuer::DefaultCa => IOTEDGED_CA_ALIAS.to_string(),
     };
+    let no_sans: Vec<String> = Vec::new();
     HsmCertificateProperties::new(
         *core.validity_in_secs(),
         core.common_name().to_string(),
         convert_certificate_type(*core.certificate_type()),
         issuer_ca,
         core.alias().to_string(),
+        core.san_entries().unwrap_or(&no_sans),
     )
 }
 
@@ -66,6 +68,14 @@ mod tests {
             CoreCertificateIssuer::DeviceCa => assert_eq!("device_ca_test", hsm.issuer_alias()),
         };
         assert_eq!(core.alias(), hsm.alias());
+
+        let expected_sans: Vec<String> = vec![String::from("serif"), String::from("guile")];
+        if core.san_entries().is_some() {
+            assert_eq!(expected_sans, *hsm.san_entries());
+        } else {
+            let no_sans: Vec<String> = Vec::new();
+            assert_eq!(no_sans, *hsm.san_entries());
+        }
 
         assert_eq!(None, hsm.country());
         assert_eq!(None, hsm.state());
@@ -105,6 +115,18 @@ mod tests {
             CoreCertificateType::Ca,
             alias.clone(),
         ).with_issuer(CoreCertificateIssuer::DeviceCa);
+        check_conversion(
+            &core_props,
+            super::convert_properties(&core_props, "device_ca_test"),
+        );
+
+        let input_sans: Vec<String> = vec![String::from("serif"), String::from("guile")];
+        let core_props = CoreCertificateProperties::new(
+            validity_in_secs,
+            common_name.clone(),
+            CoreCertificateType::Ca,
+            alias.clone(),
+        ).with_san_entries(&input_sans);
         check_conversion(
             &core_props,
             super::convert_properties(&core_props, "device_ca_test"),

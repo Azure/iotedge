@@ -348,7 +348,7 @@ pub struct CertificateProperties {
     locality: Option<String>,
     organization: Option<String>,
     organization_unit: Option<String>,
-    san_entries: Option<Vec<String>>,
+    san_entries: Vec<String>,
 }
 
 impl CertificateProperties {
@@ -358,6 +358,7 @@ impl CertificateProperties {
         certificate_type: CertificateType,
         issuer_alias: String,
         alias: String,
+        san_entries: &Vec<String>
     ) -> Self {
         CertificateProperties {
             validity_in_secs,
@@ -370,7 +371,7 @@ impl CertificateProperties {
             locality: None,
             organization: None,
             organization_unit: None,
-            san_entries: None,
+            san_entries: san_entries.clone()
         }
     }
 
@@ -467,12 +468,12 @@ impl CertificateProperties {
         self
     }
 
-    pub fn san_entries(&self) -> Option<&Vec<String>> {
-        self.san_entries.as_ref()
+    pub fn san_entries(&self) -> &Vec<String> {
+        &self.san_entries
     }
 
     pub fn with_san_entries(mut self, entries: &Vec<String>) -> CertificateProperties {
-        self.san_entries = entries;
+        self.san_entries = entries.clone();
         self
     }
 }
@@ -490,6 +491,7 @@ impl Default for CertificateProperties {
             locality: None,
             organization: None,
             organization_unit: None,
+            san_entries: Vec::new(),
         }
     }
 }
@@ -614,6 +616,20 @@ mod tests {
             hsm_client_free_buffer: Some(real_buffer_destroy),
             ..HSM_CLIENT_CRYPTO_INTERFACE::default()
         }
+    }
+
+    #[test]
+    fn certificate_props_get_set_default_test() {
+        let input_sans: Vec<String> = Vec::new();
+        let props = CertificateProperties::default();
+        assert_eq!(input_sans, *props.san_entries());
+    }
+
+    #[test]
+    fn certificate_props_get_set_test() {
+        let input_sans: Vec<String> = vec![String::from("aa"), String::from("bb")];
+        let props = CertificateProperties::default().with_san_entries(&input_sans);
+        assert_eq!(input_sans, *props.san_entries());
     }
 
     #[test]

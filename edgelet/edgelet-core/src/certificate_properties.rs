@@ -24,6 +24,7 @@ pub struct CertificateProperties {
     certificate_type: CertificateType,
     alias: String,
     issuer: CertificateIssuer,
+    san_entries: Option<Vec<String>>,
 }
 
 impl CertificateProperties {
@@ -39,6 +40,7 @@ impl CertificateProperties {
             certificate_type,
             alias,
             issuer: CertificateIssuer::DefaultCa,
+            san_entries: None,
         }
     }
 
@@ -89,6 +91,15 @@ impl CertificateProperties {
         self.issuer = issuer;
         self
     }
+
+    pub fn san_entries(&self) -> Option<&Vec<String>> {
+        self.san_entries.as_ref()
+    }
+
+    pub fn with_san_entries(mut self, entries: &Vec<String>) -> CertificateProperties {
+        self.san_entries = Some(entries.clone());
+        self
+    }
 }
 
 #[cfg(test)]
@@ -109,10 +120,12 @@ mod tests {
         assert_eq!(&CertificateType::Client, c.certificate_type());
         assert_eq!("alias", c.alias());
         assert_eq!(&CertificateIssuer::DefaultCa, c.issuer());
+        assert_eq!(true, c.san_entries().is_none());
     }
 
     #[test]
     fn test_default_with_settings() {
+        let input_sans: Vec<String> = vec![String::from("serif"), String::from("sar")];
         let c = CertificateProperties::new(
             3600,
             "common_name".to_string(),
@@ -122,11 +135,13 @@ mod tests {
         .with_common_name("bafflegab".to_string())
         .with_validity_in_secs(240)
         .with_alias("Andrew Johnson".to_string())
-        .with_issuer(CertificateIssuer::DeviceCa);
+        .with_issuer(CertificateIssuer::DeviceCa)
+        .with_san_entries(&input_sans);
         assert_eq!(&240, c.validity_in_secs());
         assert_eq!("bafflegab", c.common_name());
         assert_eq!(&CertificateType::Ca, c.certificate_type());
         assert_eq!("Andrew Johnson", c.alias());
         assert_eq!(&CertificateIssuer::DeviceCa, c.issuer());
+        assert_eq!(input_sans, *c.san_entries().unwrap());
     }
 }
