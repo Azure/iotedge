@@ -635,7 +635,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Assert
             Assert.NotNull(connectedClients);
             List<IIdentity> connectedClientsList = connectedClients.ToList();
-            Assert.Equal(10, connectedClientsList.Count);
+            Assert.Equal(11, connectedClientsList.Count);
+            Assert.True(connectedClientsList.Any(c => c.Id.Equals($"{EdgeDeviceId}/{EdgeModuleId}")));
 
             for (int i = 0; i < 10; i++)
             {
@@ -654,7 +655,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Assert
             Assert.NotNull(connectedClients);
             connectedClientsList = connectedClients.ToList();
-            Assert.Equal(5, connectedClientsList.Count);
+            Assert.Equal(6, connectedClientsList.Count);
+            Assert.True(connectedClientsList.Any(c => c.Id.Equals($"{EdgeDeviceId}/{EdgeModuleId}")));
 
             for (int i = 5; i < 10; i++)
             {
