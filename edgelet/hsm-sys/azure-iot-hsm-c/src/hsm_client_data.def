@@ -20,6 +20,7 @@ EXPORTS
     get_locality
     get_organization_name
     get_organization_unit
+    get_san_entries
     get_state_name
     get_validity_seconds
     hsm_client_crypto_deinit
@@ -41,5 +42,6 @@ EXPORTS
     set_locality
     set_organization_name
     set_organization_unit
+    set_san_entries
     set_state_name
     set_validity_seconds
