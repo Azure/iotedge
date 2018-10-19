@@ -799,12 +799,13 @@ static int set_basic_constraints(X509 *x509_cert, CERTIFICATE_TYPE cert_type, in
     return result;
 }
 
-static int add_ext(X509 *x509_cert, int nid, char *value, const char* nid_diagnostic)
+static int add_ext(X509 *x509_cert, int nid, const char *value, const char* nid_diagnostic)
 {
     int result;
     X509_EXTENSION *ex;
 
-    if ((ex = X509V3_EXT_conf_nid_HELPER(NULL, NULL, nid, value)) == NULL)
+    // openssl API requires a non const value be passed in
+    if ((ex = X509V3_EXT_conf_nid_HELPER(NULL, NULL, nid, (char*)value)) == NULL)
     {
         LOG_ERROR("Could not obtain V3 extension by NID %#x, %s", nid, nid_diagnostic);
         result = __FAILURE__;
@@ -871,19 +872,47 @@ static int set_key_usage
     return result;
 }
 
+static int set_san
+(
+    X509 *x509_cert,
+    CERT_PROPS_HANDLE cert_props_handle
+)
+{
+    size_t num_entries = 0, idx;
+    bool fail_flag = false;
+    const char * const* sans = get_san_entries(cert_props_handle, &num_entries);
+
+    if (sans != NULL)
+    {
+        for (idx = 0; idx < num_entries; idx++)
+        {
+            if ((sans[idx] != NULL) &&
+                (add_ext(x509_cert, NID_subject_alt_name, sans[idx], "NID_subject_alt_name") != 0))
+            {
+                fail_flag = true;
+                break;
+            }
+        }
+    }
+
+    return (fail_flag) ? __FAILURE__ : 0;
+}
+
 static int cert_set_extensions
 (
     X509 *x509_cert,
     CERTIFICATE_TYPE cert_type,
     X509* issuer_cert,
-    int ca_path_len
+    int ca_path_len,
+    CERT_PROPS_HANDLE cert_props_handle
 )
 {
     (void)issuer_cert;
     int result;
 
     if ((set_basic_constraints(x509_cert, cert_type, ca_path_len) != 0) ||
-        (set_key_usage(x509_cert, cert_type) != 0))
+        (set_key_usage(x509_cert, cert_type) != 0) ||
+        (set_san(x509_cert, cert_props_handle) != 0))
     {
         LOG_ERROR("Failure setting certificate extensions");
         result = __FAILURE__;
@@ -1106,7 +1135,8 @@ static int generate_evp_certificate
         else if (cert_set_extensions(x509_cert,
                                      cert_type,
                                      issuer_certificate,
-                                     ca_path_len) != 0)
+                                     ca_path_len,
+                                     cert_props_handle) != 0)
         {
             LOG_ERROR("Failure setting certificate extensions");
             result = __FAILURE__;
