@@ -366,10 +366,13 @@ static void test_helper_validate_extension
             long sz;
             char *memst = NULL;
 
+            BIO_printf(outbio, "\n Matching Extension: [%s]\n", output_buffer);
+
             BIO *mem_bio = BIO_new(BIO_s_mem());
             ASSERT_IS_NOT_NULL_WITH_MSG(mem_bio, "Line:" TOSTRING(__LINE__));
-
-            BIO_printf(outbio, "\n Matching Extension: [%s]\n", output_buffer);
+            // initialize the mem_bio
+            BIO_puts(mem_bio, "");
+            // print the extension contents into the mem_bio
             X509V3_EXT_print(mem_bio, ext, 0, 0);
             sz = BIO_get_mem_data(mem_bio, &memst);
             BIO_printf(outbio, "\n Obtained Extension Value from certificate Size:[%ld] Data:[%s]\n", sz, memst);
