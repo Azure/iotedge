@@ -323,8 +323,8 @@ static X509* test_helper_load_certificate_file(const char* cert_file_name)
     return x509_cert;
 }
 
-// parts of the implementation taken from X509V3_EXT_print
-// https://github.com/openssl/openssl/blob/32f803d88ec3df7f95dfbf840c271f7438ce3357/crypto/x509v3/v3_prn.c#L69
+// parts of the implementation taken from X509V3_extensions_print
+// https://github.com/openssl/openssl/blob/32f803d88ec3df7f95dfbf840c271f7438ce3357/crypto/x509v3/v3_prn.c#L138
 static void test_helper_validate_extension
 (
     X509* input_test_cert,
