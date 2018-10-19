@@ -220,11 +220,7 @@
         &lt;/Or&gt;&#xD;
       &lt;/Entry.Match&gt;&#xD;
       &lt;Entry.SortBy&gt;&#xD;
-        &lt;Static /&gt;&#xD;
-        &lt;Access Order="Public Internal ProtectedInternal Protected Private" /&gt;&#xD;
-        &lt;Kind /&gt;&#xD;
-        &lt;Readonly /&gt;&#xD;
-        &lt;Name /&gt;&#xD;
+        &lt;Access /&gt;&#xD;
       &lt;/Entry.SortBy&gt;&#xD;
     &lt;/Entry&gt;&#xD;
     &lt;Entry DisplayName="Constructors and Destructors" Priority="100"&gt;&#xD;

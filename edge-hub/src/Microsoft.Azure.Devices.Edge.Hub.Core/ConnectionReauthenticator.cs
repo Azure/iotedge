@@ -16,8 +16,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
     public sealed class ConnectionReauthenticator : IDisposable
     {
-        readonly IAuthenticator authenticator;
         readonly IConnectionManager connectionManager;
+        readonly IAuthenticator authenticator;
         readonly ICredentialsCache credentialsCache;
         readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
         readonly IIdentity edgeHubIdentity;

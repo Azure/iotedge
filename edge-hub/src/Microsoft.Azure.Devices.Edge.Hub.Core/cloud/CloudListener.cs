@@ -8,9 +8,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 
     public class CloudListener : ICloudListener
     {
-        readonly string clientId;
         readonly IEdgeHub edgeHub;
-
+        readonly string clientId;
+            
         public CloudListener(IEdgeHub edgeHub, string clientId)
         {
             this.edgeHub = Preconditions.CheckNotNull(edgeHub, nameof(edgeHub));

@@ -12,8 +12,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     public class CredentialsCache : ICredentialsCache
     {
         readonly IDictionary<string, IClientCredentials> cache = new Dictionary<string, IClientCredentials>();
-        readonly AsyncLock cacheLock = new AsyncLock();
         readonly ICredentialsCache underlyingCache;
+        readonly AsyncLock cacheLock = new AsyncLock();
 
         public CredentialsCache(ICredentialsCache underlyingCache)
         {
