@@ -23,6 +23,9 @@ jobs:
         name: install_test_dependencies
         displayName: 'Install test dependencies'
       - bash: |
+          echo 'KV_NAME      $KB_NAME'
+          echo 'KV_SP_USER   $KB_SP_USER'
+          echo 'KV_SP_TENANT $KB_SP_TENANT'
           az login --service-principal --username $KV_SP_USER --tenant $KV_SP_TENANT --password $KV_SP_PASSWORD
           scripts/linux/downloadAndInstallCert.sh -c IoTEdgeTestCert -v $KV_NAME
           scripts/linux/downloadAndInstallCert.sh -c IotHubMqttHeadCert -v $KV_NAME -s 'Root'
