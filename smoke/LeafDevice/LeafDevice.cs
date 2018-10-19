@@ -5,7 +5,6 @@ namespace LeafDevice
 {
     using System;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Util;
 
     public class LeafDevice : Details.Details
     {
@@ -15,8 +14,8 @@ namespace LeafDevice
             string deviceId,
             string certificateFileName,
             string edgeHostName,
-            Option<UpstreamProtocolType> upstreamProtocol) :
-            base(iothubConnectionString, eventhubCompatibleEndpointWithEntityPath, deviceId, certificateFileName, edgeHostName, upstreamProtocol)
+            bool useWebSockets) :
+            base(iothubConnectionString, eventhubCompatibleEndpointWithEntityPath, deviceId, certificateFileName, edgeHostName, useWebSockets)
         {
         }
 

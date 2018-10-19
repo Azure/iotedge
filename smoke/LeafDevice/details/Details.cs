@@ -14,9 +14,9 @@ namespace LeafDevice.Details
     using Microsoft.Azure.EventHubs;
     using System.Net;
     using Microsoft.Azure.Devices.Edge.Util;
+    using DeviceClientTransportType = Microsoft.Azure.Devices.Client.TransportType;
     using EventHubClientTransportType = Microsoft.Azure.EventHubs.TransportType;
     using ServiceClientTransportType = Microsoft.Azure.Devices.TransportType;
-    using DeviceClientTransportType = Microsoft.Azure.Devices.Client.TransportType;
 
     public class Details
     {
@@ -37,7 +37,7 @@ namespace LeafDevice.Details
             string deviceId,
             string certificateFileName,
             string edgeHostName,
-            Option<UpstreamProtocolType> upstreamProtocol
+            bool useWebSockets
         )
         {
             this.iothubConnectionString = iothubConnectionString;
@@ -46,22 +46,17 @@ namespace LeafDevice.Details
             this.certificateFileName = certificateFileName;
             this.edgeHostName = edgeHostName;
 
-            switch (upstreamProtocol.GetOrElse(UpstreamProtocolType.Amqp))
+            if (useWebSockets)
             {
-                case UpstreamProtocolType.Amqp:
-                case UpstreamProtocolType.Mqtt:
-                    this.serviceClientTransportType = ServiceClientTransportType.Amqp;
-                    this.eventHubClientTransportType = EventHubClientTransportType.Amqp;
-                    this.deviceClientTransportType = DeviceClientTransportType.Mqtt;
-                    break;
-                case UpstreamProtocolType.AmqpWs:
-                case UpstreamProtocolType.MqttWs:
-                    this.serviceClientTransportType = ServiceClientTransportType.Amqp_WebSocket_Only;
-                    this.eventHubClientTransportType = EventHubClientTransportType.AmqpWebSockets;
-                    this.deviceClientTransportType = DeviceClientTransportType.Mqtt_WebSocket_Only;
-                    break;
-                default:
-                    throw new Exception($"Unexpected upstream protocol type {upstreamProtocol}");
+                this.serviceClientTransportType = ServiceClientTransportType.Amqp_WebSocket_Only;
+                this.eventHubClientTransportType = EventHubClientTransportType.AmqpWebSockets;
+                this.deviceClientTransportType = DeviceClientTransportType.Mqtt_WebSocket_Only;
+            }
+            else
+            {
+                this.serviceClientTransportType = ServiceClientTransportType.Amqp;
+                this.eventHubClientTransportType = EventHubClientTransportType.Amqp;
+                this.deviceClientTransportType = DeviceClientTransportType.Mqtt;
             }
         }
 
