@@ -332,7 +332,9 @@ extern "C" {
 extern "C" {
     pub fn set_san_entries(handle: CERT_PROPS_HANDLE, san_list: *const *const c_char, num_entries: usize) -> c_int;
 }
-
+extern "C" {
+    pub fn get_san_entries(handle: CERT_PROPS_HANDLE, num_entries: *usize) -> *const *const c_char;
+}
 /// API generates a X.509 certificate and private key pair using the supplied
 /// certificate properties. Any CA certificates are expected to by issued by
 /// the Device CA. Other certificates may be issued by any intermediate CA
