@@ -3,6 +3,7 @@ variables:
 jobs:
   - job: linux
     displayName: Linux
+    timeoutInMinutes: 120
     pool:
       name: Hosted Ubuntu 1604
       vmImage: ubuntu-16.04
@@ -50,6 +51,7 @@ jobs:
           testResultsFiles: '**/TestResults/result.trx'
   - job: windows
     displayName: Windows
+    timeoutInMinutes: 120
     pool:
       name: Azure-IoT-Edge-Core
       demands: azureps
