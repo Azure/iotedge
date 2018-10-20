@@ -1,8 +1,3 @@
-# trigger:
-#   batch: true
-#   branches:
-#     include:
-#       - master
 variables:
   test.filter: "Category!=Stress"
 jobs:
