@@ -1,5 +1,5 @@
 variables:
-  test.filter: "Category!=Stress"
+  test.filter: "Category=E2E&Category!=Stress"
 jobs:
   - job: linux
     displayName: Linux
@@ -36,7 +36,7 @@ jobs:
         inputs:
           PathtoPublish: '$(Build.BinariesDirectory)/publish'
           ArtifactName: 'core-linux'
-      - script: scripts/linux/runTests.sh "--filter $(TEST_FILTER)"
+      - script: scripts/linux/runTests.sh "--filter $TEST_FILTER"
         name: test
         displayName: Test
         env:
@@ -68,9 +68,11 @@ jobs:
       - powershell: scripts/windows/setup/Install-Prerequisites.ps1 -DotnetSdkUrl $(NetCorePackageUri)
         name: install_dependencies
         displayName: Install dependencies
-      - powershell: scripts/windows/build/Publish-Branch.ps1 -PublishTests:$(PublishTests) -UpdateVersion
+      - powershell: scripts/windows/build/Publish-Branch.ps1 -PublishTests:$env:PublishTests -UpdateVersion
         name: build
         displayName: Build
+        env:
+          PublishTests: $(PublishTests)
       - task: PublishBuildArtifacts@1
         name: publish_artifacts
         displayName: 'Publish Artifacts'
