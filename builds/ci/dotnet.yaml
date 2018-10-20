@@ -35,17 +35,17 @@ jobs:
       - script: scripts/linux/buildBranch.sh -c Release --no-rocksdb-bin
         name: build
         displayName: 'Build (release)'
-      - script: scripts/linux/runTests.sh "--filter $(TEST_FILTER)"
-        name: test
-        displayName: Test
-        env:
-          TEST_FILTER: $(test.filter)
       - task: PublishBuildArtifacts@1
         name: publish
         displayName: 'Publish Artifacts'
         inputs:
           PathtoPublish: '$(Build.BinariesDirectory)/publish'
           ArtifactName: 'core-linux'
+      - script: scripts/linux/runTests.sh "--filter $(TEST_FILTER)"
+        name: test
+        displayName: Test
+        env:
+          TEST_FILTER: $(test.filter)
       - task: PublishTestResults@1
         name: publish_results
         displayName: 'Publish test results'
@@ -56,7 +56,7 @@ jobs:
   - job: windows
     displayName: Windows
     pool:
-      name: Azure-Iot-Edge-Core
+      name: Azure-IoT-Edge-Core
       demands: azureps
     variables:
       NetCorePackageUri: https://download.microsoft.com/download/4/0/9/40920432-3302-47a8-b13c-bbc4848ad114/dotnet-sdk-2.1.302-win-x64.zip
@@ -66,7 +66,7 @@ jobs:
       - task: AzurePowerShell@2
         displayName: 'Install test certificate'
         inputs:
-          azureSubscription: $(azure.subscription)
+          azureSubscription: "$(azure.subscription)"
           ScriptPath: 'scripts/windows/setup/Install-VaultCertificate.ps1'
           ScriptArguments: '-VaultName $(kv.name) -CertificateName IoTEdgeTestCert'
           azurePowerShellVersion: LatestVersion
@@ -76,17 +76,17 @@ jobs:
       - powershell: scripts/windows/build/Publish-Branch.ps1 -PublishTests:$(PublishTests) -UpdateVersion
         name: build
         displayName: Build
-      - powershell: scripts/windows/test/Test-Branch.ps1 -Filter "$env:TEST_FILTER"
-        name: test
-        displayName: Test
-        env:
-          TEST_FILTER: $(test.filter)
       - task: PublishBuildArtifacts@1
         name: publish_artifacts
         displayName: 'Publish Artifacts'
         inputs:
           PathtoPublish: '$(Build.BinariesDirectory)/publish'
           ArtifactName: 'core-windows'
+      - powershell: scripts/windows/test/Test-Branch.ps1 -Filter "$env:TEST_FILTER"
+        name: test
+        displayName: Test
+        env:
+          TEST_FILTER: $(test.filter)
       - task: PublishTestResults@1
         name: publish_results
         displayName: 'Publish test results'
