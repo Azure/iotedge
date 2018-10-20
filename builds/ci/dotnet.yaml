@@ -56,7 +56,7 @@ jobs:
   - job: windows
     displayName: Windows
     pool:
-      name: $(windows.pool.name)
+      name: Azure-IoT-Edge-Core
       demands: azureps
     variables:
       NetCorePackageUri: https://download.microsoft.com/download/4/0/9/40920432-3302-47a8-b13c-bbc4848ad114/dotnet-sdk-2.1.302-win-x64.zip
