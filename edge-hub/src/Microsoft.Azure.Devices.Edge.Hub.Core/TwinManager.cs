@@ -44,7 +44,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.actionBlock = new ActionBlock<IIdentity>(this.ProcessConnectionEstablishedForDevice);
         }
 
-        public static ITwinManager CreateTwinManager(IConnectionManager connectionManager, IMessageConverterProvider messageConverterProvider, Option<IStoreProvider> storeProvider)
+        public static ITwinManager CreateTwinManager(
+            IConnectionManager connectionManager,
+            IMessageConverterProvider messageConverterProvider,
+            Option<IStoreProvider> storeProvider)
         {
             Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
             Preconditions.CheckNotNull(messageConverterProvider, nameof(messageConverterProvider));
