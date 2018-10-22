@@ -240,7 +240,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             deviceScopeIdentitiesCache.InitiateCacheRefresh();
             deviceScopeIdentitiesCache.InitiateCacheRefresh();
 
-            // Wait for the 5 refresh cycles to complete, this time because of the refresh request
+            // Wait for the 2 refresh cycles to complete, this time because of the refresh request
             await Task.Delay(TimeSpan.FromSeconds(5));
             receivedServiceIdentity1 = await deviceScopeIdentitiesCache.GetServiceIdentity("d1");
             receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2/m1");
