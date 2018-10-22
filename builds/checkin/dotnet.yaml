@@ -16,6 +16,7 @@ phases:
         displayName: Build
         inputs:
           filePath: scripts/linux/buildBranch.sh
+          arguments: -c "Release"
       - task: Bash@3
         displayName: Test
         inputs:
@@ -44,7 +45,7 @@ phases:
         displayName: Build
         inputs:
           filePath: scripts/windows/build/Publish-Branch.ps1
-          arguments: -PublishTests:$True -UpdateVersion
+          arguments: -Configuration:"Release" -PublishTests:$True -UpdateVersion
       - task: PowerShell@2
         displayName: Test
         inputs:
