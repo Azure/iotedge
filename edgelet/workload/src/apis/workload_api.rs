@@ -35,7 +35,7 @@ pub trait WorkloadApi {
         &self,
         api_version: &str,
         name: &str,
-        genid: &str,
+        request: ::models::IdentityCertificateRequest,
     ) -> Box<Future<Item = ::models::CertificateResponse, Error = Error<serde_json::Value>>>;
     fn create_server_certificate(
         &self,
@@ -81,7 +81,7 @@ where
         &self,
         api_version: &str,
         name: &str,
-        genid: &str,
+        request: ::models::IdentityCertificateRequest,
     ) -> Box<Future<Item = ::models::CertificateResponse, Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
@@ -91,10 +91,9 @@ where
             .append_pair("api-version", &api_version.to_string())
             .finish();
         let uri_str = format!(
-            "/modules/{name}/genid/{genid}/certificate/identity?{}",
+            "/modules/{name}/certificate/identity?{}",
             query,
             name = name,
-            genid = genid
         );
 
         let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
