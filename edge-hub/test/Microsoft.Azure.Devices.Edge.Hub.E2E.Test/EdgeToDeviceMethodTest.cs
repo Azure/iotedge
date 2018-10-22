@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Newtonsoft.Json;
     using Xunit;
 
-    [E2E]
+    [Integration]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
     public class EdgeToDeviceMethodTest : IClassFixture<ProtocolHeadFixture>
     {
