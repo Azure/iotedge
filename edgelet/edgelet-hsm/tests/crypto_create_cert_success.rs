@@ -28,7 +28,10 @@ fn crypto_create_cert_success() {
     let buffer = workload_ca_cert.pem().unwrap();
     assert!(buffer.as_bytes().len() > 0);
 
-    let san_entries: Vec<String> = vec!["URI: bar:://pity/foo".to_string(), "DNS: foo.bar".to_string()];
+    let san_entries: Vec<String> = vec![
+        "URI: bar:://pity/foo".to_string(),
+        "DNS: foo.bar".to_string(),
+    ];
 
     // act
     let props = CertificateProperties::new(

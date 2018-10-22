@@ -3,7 +3,7 @@
 use std::convert::AsRef;
 use std::ffi::{CStr, CString, NulError};
 use std::ops::{Deref, Drop};
-use std::os::raw::{c_uchar, c_char, c_void};
+use std::os::raw::{c_char, c_uchar, c_void};
 use std::slice;
 use std::str;
 
@@ -196,22 +196,18 @@ fn make_certification_props(props: &CertificateProperties) -> Result<CERT_PROPS_
         })?;
 
     if props.san_entries.len() > 0 {
-        let result: Result<Vec<CString>, NulError> =
-            props.san_entries.iter()
+        let result: Result<Vec<CString>, NulError> = props
+            .san_entries
+            .iter()
             .map(|s: &String| CString::new(s.clone()))
             .collect();
 
-        let result: Vec<CString> = result
-            .ok()
-            .ok_or_else(|| {
-                unsafe { cert_properties_destroy(handle) };
-                ErrorKind::CertProps
-            })?;
+        let result: Vec<CString> = result.ok().ok_or_else(|| {
+            unsafe { cert_properties_destroy(handle) };
+            ErrorKind::CertProps
+        })?;
 
-        let result: Vec<*const c_char> =
-            result.iter()
-            .map(|s| s.as_ptr())
-            .collect();
+        let result: Vec<*const c_char> = result.iter().map(|s| s.as_ptr()).collect();
 
         let result = unsafe { set_san_entries(handle, result.as_ptr(), result.len()) };
         match result {
@@ -386,7 +382,7 @@ impl CertificateProperties {
         certificate_type: CertificateType,
         issuer_alias: String,
         alias: String,
-        san_entries: &Vec<String>
+        san_entries: &Vec<String>,
     ) -> Self {
         CertificateProperties {
             validity_in_secs,
@@ -399,7 +395,7 @@ impl CertificateProperties {
             locality: None,
             organization: None,
             organization_unit: None,
-            san_entries: san_entries.clone()
+            san_entries: san_entries.clone(),
         }
     }
 
@@ -675,7 +671,10 @@ mod tests {
         assert_eq!(0, set_result);
         unsafe {
             let get_result = CStr::from_ptr(get_common_name(handle));
-            assert_eq!(test_input.to_bytes_with_nul(), get_result.to_bytes_with_nul());
+            assert_eq!(
+                test_input.to_bytes_with_nul(),
+                get_result.to_bytes_with_nul()
+            );
         };
 
         // country get/set test
@@ -684,7 +683,10 @@ mod tests {
         assert_eq!(0, set_result);
         unsafe {
             let get_result = CStr::from_ptr(get_country_name(handle));
-            assert_eq!(test_input.to_bytes_with_nul(), get_result.to_bytes_with_nul());
+            assert_eq!(
+                test_input.to_bytes_with_nul(),
+                get_result.to_bytes_with_nul()
+            );
         };
 
         // state get/set test
@@ -693,7 +695,10 @@ mod tests {
         assert_eq!(0, set_result);
         unsafe {
             let get_result = CStr::from_ptr(get_state_name(handle));
-            assert_eq!(test_input.to_bytes_with_nul(), get_result.to_bytes_with_nul());
+            assert_eq!(
+                test_input.to_bytes_with_nul(),
+                get_result.to_bytes_with_nul()
+            );
         };
 
         // locality get/set test
@@ -702,7 +707,10 @@ mod tests {
         assert_eq!(0, set_result);
         unsafe {
             let get_result = CStr::from_ptr(get_locality(handle));
-            assert_eq!(test_input.to_bytes_with_nul(), get_result.to_bytes_with_nul());
+            assert_eq!(
+                test_input.to_bytes_with_nul(),
+                get_result.to_bytes_with_nul()
+            );
         };
 
         // org get/set test
@@ -711,7 +719,10 @@ mod tests {
         assert_eq!(0, set_result);
         unsafe {
             let get_result = CStr::from_ptr(get_organization_name(handle));
-            assert_eq!(test_input.to_bytes_with_nul(), get_result.to_bytes_with_nul());
+            assert_eq!(
+                test_input.to_bytes_with_nul(),
+                get_result.to_bytes_with_nul()
+            );
         };
 
         // org unit get/set test
@@ -720,7 +731,10 @@ mod tests {
         assert_eq!(0, set_result);
         unsafe {
             let get_result = CStr::from_ptr(get_organization_unit(handle));
-            assert_eq!(test_input.to_bytes_with_nul(), get_result.to_bytes_with_nul());
+            assert_eq!(
+                test_input.to_bytes_with_nul(),
+                get_result.to_bytes_with_nul()
+            );
         };
 
         // alias get/set test
@@ -729,7 +743,10 @@ mod tests {
         assert_eq!(0, set_result);
         unsafe {
             let get_result = CStr::from_ptr(get_alias(handle));
-            assert_eq!(test_input.to_bytes_with_nul(), get_result.to_bytes_with_nul());
+            assert_eq!(
+                test_input.to_bytes_with_nul(),
+                get_result.to_bytes_with_nul()
+            );
         };
 
         // issuer alias get/set test
@@ -738,19 +755,20 @@ mod tests {
         assert_eq!(0, set_result);
         unsafe {
             let get_result = CStr::from_ptr(get_issuer_alias(handle));
-            assert_eq!(test_input.to_bytes_with_nul(), get_result.to_bytes_with_nul());
+            assert_eq!(
+                test_input.to_bytes_with_nul(),
+                get_result.to_bytes_with_nul()
+            );
         };
 
         // san get/set test
-        let test_strings:  Vec<CString> =
-            vec![CString::new("He Who Must Not Be Named").unwrap(),
-                 CString::new("The Dark Lord").unwrap(),
-                 CString::new("You know who").unwrap()];
+        let test_strings: Vec<CString> = vec![
+            CString::new("He Who Must Not Be Named").unwrap(),
+            CString::new("The Dark Lord").unwrap(),
+            CString::new("You know who").unwrap(),
+        ];
 
-        let san_ptrs: Vec<*const c_char> =
-            test_strings.iter()
-            .map(|s| s.as_ptr())
-            .collect();
+        let san_ptrs: Vec<*const c_char> = test_strings.iter().map(|s| s.as_ptr()).collect();
 
         let set_result = unsafe { set_san_entries(handle, san_ptrs.as_ptr(), san_ptrs.len()) };
         assert_eq!(0, set_result);
@@ -763,7 +781,9 @@ mod tests {
             for _ in 0..num_entries {
                 let mut matched = false;
                 for i in 0..num_entries {
-                    if test_strings[i].to_bytes_with_nul() == CStr::from_ptr(*current).to_bytes_with_nul() {
+                    if test_strings[i].to_bytes_with_nul()
+                        == CStr::from_ptr(*current).to_bytes_with_nul()
+                    {
                         matched = true;
                         break;
                     }
