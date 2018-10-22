@@ -30,7 +30,7 @@ Our C# tests use [xUnit](https://xunit.github.io/docs/getting-started-dotnet-cor
 | Attribute   | Goal                                                                                            | Notes                                                                                 | Runs in build(s)  |
 |-------------|-------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------|-------------------|
 | Unit        | Fast, reliable, repeatable tests against low-level components of the codebase.                  | Should not depend on external resources (e.g., network, disk) or configuration.       | Checkin           |
-| Integration | Tests that verify interaction with dependencies _in isolation_and core end-to-end scenarios.    | Require external configuration.                                                       | CI                |
+| Integration | Tests that verify interaction with dependencies _in isolation_ and core end-to-end scenarios.    | Require external configuration.                                                       | CI                |
 | Stress      | Specialized end-to-end tests for scenarios under heavy load.                                    |                                                                                       | N/A               |
 
 Besides these tests, E2E scenario testing is implemented in IoTEdgeQuickStart and LeafDevice project in smoke folder.  These tests will be run in Linux, Raspberry Pi and Windows to ensure all core IoT Edge features function correctly.
