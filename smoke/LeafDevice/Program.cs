@@ -19,7 +19,7 @@ Environment Variables:
   Option                    Environment variable
   --connection-string       iothubConnectionString
   --eventhub-endpoint       eventhubCompatibleEndpointWithEntityPath
- 
+
 Defaults:
   All options to this command have defaults. If an option is not specified and
   its corresponding environment variable is not defined, then the default will
@@ -54,6 +54,9 @@ Defaults:
         [Option("-ed|--edge-hostname", Description = "Leaf device identifier to be registered with IoT Hub")]
         public string EdgeHostName { get; } = "";
 
+        [Option("--use-web-sockets", CommandOptionType.NoValue, Description = "Use websockets for IoT Hub connections.")]
+        public bool UseWebSockets { get; } = false;
+
         // ReSharper disable once UnusedMember.Local
         async Task<int> OnExecuteAsync()
         {
@@ -70,7 +73,8 @@ Defaults:
                     endpoint,
                     this.DeviceId,
                     this.CertificateFileName,
-                    this.EdgeHostName);
+                    this.EdgeHostName,
+                    this.UseWebSockets);
                 await test.RunAsync();
             }
             catch (Exception ex)

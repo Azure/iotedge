@@ -24,13 +24,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     public class ConnectionManager : IConnectionManager
     {
         const int DefaultMaxClients = 101; // 100 Clients + 1 Edgehub
-        readonly ICloudConnectionProvider cloudConnectionProvider;
-        readonly ICredentialsCache credentialsCache;
         readonly object deviceConnLock = new object();
         readonly ConcurrentDictionary<string, ConnectedDevice> devices = new ConcurrentDictionary<string, ConnectedDevice>();
+        readonly ICloudConnectionProvider cloudConnectionProvider;
+        readonly int maxClients;
+        readonly ICredentialsCache credentialsCache;
         readonly string edgeDeviceId;
         readonly string edgeModuleId;
-        readonly int maxClients;
 
         public ConnectionManager(
             ICloudConnectionProvider cloudConnectionProvider,
@@ -113,7 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public IEnumerable<IIdentity> GetConnectedClients() =>
             this.devices.Values
-                .Where(d => d.DeviceConnection.Map(dc => dc.IsActive).GetOrElse(false) && !d.Identity.Id.Equals($"{this.edgeDeviceId}/{this.edgeModuleId}"))
+                .Where(d => d.DeviceConnection.Map(dc => dc.IsActive).GetOrElse(false))
                 .Select(d => d.Identity);
 
         public Option<IDeviceProxy> GetDeviceConnection(string id)
@@ -124,7 +124,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         }
 
         // This method is not used, but it has important logic and this will be useful for offline scenarios.
-        // So do not delete this method.
+        // So do not delete this method. 
         public async Task<Try<ICloudProxy>> GetOrCreateCloudConnectionAsync(IClientCredentials credentials)
         {
             Preconditions.CheckNotNull(credentials, nameof(credentials));
@@ -302,11 +302,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         class ConnectedDevice
         {
-            readonly AsyncLock cloudConnectionLock = new AsyncLock();
-
             // Device Proxy methods are sync coming from the Protocol gateway,
             // so using traditional locking mechanism for those.
             readonly object deviceProxyLock = new object();
+            readonly AsyncLock cloudConnectionLock = new AsyncLock();
 
             public ConnectedDevice(IIdentity identity)
                 : this(identity, Option.None<ICloudConnection>(), Option.None<DeviceConnection>())
@@ -344,7 +343,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 Func<ConnectedDevice, Task<Try<ICloudConnection>>> cloudConnectionUpdater)
             {
                 Preconditions.CheckNotNull(cloudConnectionUpdater, nameof(cloudConnectionUpdater));
-
                 // Lock in case multiple connections are created to the cloud for the same device at the same time
                 using (await this.cloudConnectionLock.LockAsync())
                 {
@@ -362,7 +360,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 Func<ConnectedDevice, Task<Try<ICloudConnection>>> cloudConnectionUpdater)
             {
                 Preconditions.CheckNotNull(cloudConnectionUpdater, nameof(cloudConnectionUpdater));
-
                 // Lock in case multiple connections are created to the cloud for the same device at the same time
                 using (await this.cloudConnectionLock.LockAsync())
                 {
@@ -402,9 +399,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         static class Events
         {
-            const int IdStart = HubCoreEventIds.ConnectionManager;
-
             static readonly ILogger Log = Logger.Factory.CreateLogger<ConnectionManager>();
+            const int IdStart = HubCoreEventIds.ConnectionManager;
 
             enum EventIds
             {
@@ -493,6 +489,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 Util.Metrics.SetGauge(ConnectedClientGaugeOptions, amount);
             }
-        }
+        };
     }
 }

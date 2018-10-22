@@ -19,9 +19,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly IConnectionManager connectionManager;
         readonly IAuthenticator authenticator;
         readonly ICredentialsCache credentialsCache;
-        readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
-        readonly IIdentity edgeHubIdentity;
         readonly Timer timer;
+        readonly IIdentity edgeHubIdentity;
+        readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
 
         public ConnectionReauthenticator(
             IConnectionManager connectionManager,
@@ -29,7 +29,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             ICredentialsCache credentialsCache,
             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache,
             TimeSpan reauthenticateFrequency,
-            IIdentity edgeHubIdentity)
+            IIdentity edgeHubIdentity,
+            IDeviceConnectivityManager deviceConnectivityManager)
         {
             this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
             this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
@@ -38,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.deviceScopeIdentitiesCache = Preconditions.CheckNotNull(deviceScopeIdentitiesCache, nameof(deviceScopeIdentitiesCache));
             this.timer = new Timer(reauthenticateFrequency.TotalMilliseconds);
             this.timer.Elapsed += this.ReauthenticateConnections;
-            this.connectionManager.CloudConnectionEstablished += this.CloudConnectionEstablishedHandler;
+            deviceConnectivityManager.DeviceConnected += this.DeviceConnected;
             this.deviceScopeIdentitiesCache.ServiceIdentityUpdated += this.HandleServiceIdentityUpdate;
             this.deviceScopeIdentitiesCache.ServiceIdentityRemoved += this.HandleServiceIdentityRemove;
         }
@@ -51,13 +52,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.timer.Start();
         }
 
-        void CloudConnectionEstablishedHandler(object sender, IIdentity identity)
+        void DeviceConnected(object sender, EventArgs args)
         {
-            if (this.edgeHubIdentity.Id.Equals(identity.Id))
-            {
-                Events.EdgeHubConnectionReestablished();
-                this.deviceScopeIdentitiesCache.InitiateCacheRefresh();
-            }
+            Events.EdgeHubConnectionReestablished();
+            this.deviceScopeIdentitiesCache.InitiateCacheRefresh();
         }
 
         async void HandleServiceIdentityRemove(object sender, string id)
@@ -174,9 +172,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         static class Events
         {
-            const int IdStart = HubCoreEventIds.PeriodicConnectionAuthenticator;
-
             static readonly ILogger Log = Logger.Factory.CreateLogger<ConnectionReauthenticator>();
+            const int IdStart = HubCoreEventIds.PeriodicConnectionAuthenticator;
 
             enum EventIds
             {
