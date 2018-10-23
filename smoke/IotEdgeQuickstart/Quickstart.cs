@@ -56,20 +56,20 @@ namespace IotEdgeQuickstart
 
             try
             {
-                await GetOrCreateEdgeDeviceIdentity();
+                await GetOrCreateEdgeDeviceIdentityAsync();
                 await ConfigureBootstrapper();
 
                 try
                 {
                     await StartBootstrapper();
                     await VerifyEdgeAgentIsRunning();
-                    await VerifyEdgeAgentIsConnectedToIotHub();
+                    await VerifyEdgeAgentIsConnectedToIotHubAsync();
                     if (!this.noDeployment)
                     {
                         await DeployToEdgeDevice();
                         if (!this.noVerify)
                         {
-                            await this.VerifyDataOnIoTHub(this.verifyDataFromModule);
+                            await this.VerifyDataOnIoTHubAsync(this.verifyDataFromModule);
                         }
 
                         if (this.leaveRunning == LeaveRunning.Core)

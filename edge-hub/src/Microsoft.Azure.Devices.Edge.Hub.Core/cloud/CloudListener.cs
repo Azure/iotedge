@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
     {
         readonly IEdgeHub edgeHub;
         readonly string clientId;
-            
+
         public CloudListener(IEdgeHub edgeHub, string clientId)
         {
             this.edgeHub = Preconditions.CheckNotNull(edgeHub, nameof(edgeHub));

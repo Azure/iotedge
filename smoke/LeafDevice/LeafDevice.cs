@@ -25,10 +25,10 @@ namespace LeafDevice
             try
             {
                 await this.InstallCaCertificate();
-                await GetOrCreateDeviceIdentity();
-                await ConnectToEdgeAndSendData();
-                await this.VerifyDataOnIoTHub();
-                await this.VerifyDirectMethod();
+                await GetOrCreateDeviceIdentityAsync();
+                await ConnectToEdgeAndSendDataAsync();
+                await this.VerifyDataOnIoTHubAsync();
+                await this.VerifyDirectMethodAsync();
             }
             catch (Exception)
             {

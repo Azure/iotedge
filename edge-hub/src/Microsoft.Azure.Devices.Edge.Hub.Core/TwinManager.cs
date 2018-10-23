@@ -88,8 +88,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public async Task UpdateDesiredPropertiesAsync(string id, IMessage desiredProperties)
         {
             await this.TwinStore.Map(
-                s => this.UpdateDesiredPropertiesWithStoreSupportAsync(id, desiredProperties)
-            ).GetOrElse(() => this.SendDesiredPropertiesToDeviceProxy(id, desiredProperties));
+                    s => this.UpdateDesiredPropertiesWithStoreSupportAsync(id, desiredProperties))
+                .GetOrElse(() => this.SendDesiredPropertiesToDeviceProxy(id, desiredProperties));
         }
 
         public async Task UpdateReportedPropertiesAsync(string id, IMessage reportedProperties)
@@ -129,6 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         internal async Task<TwinInfo> GetTwinInfoWhenCloudOnlineAsync(string id, ICloudProxy cp, bool sendDesiredPropertyUpdate)
         {
             TwinCollection diff = null;
+
             // Used for returning value to caller
             TwinInfo cached;
 
@@ -162,6 +163,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                                     t.Twin.Properties.Reported.Version,
                                     cloudTwin.Properties.Reported.Version);
                                 cached = new TwinInfo(cloudTwin, t.ReportedPropertiesPatch);
+
                                 // If the device is subscribed to desired property updates and we are refreshing twin as a result
                                 // of a connection reset or desired property update, send a patch to the downstream device
                                 if (sendDesiredPropertyUpdate)
@@ -230,6 +232,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             for (int index = 0; index < name.Length; index++)
             {
                 char ch = name[index];
+
                 // $ is reserved for service properties like $metadata, $version etc.
                 // However, $ is already a reserved character in Mongo, so we need to substitute it with another character like #.
                 // So we're also reserving # for service side usage.
@@ -316,8 +319,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 Option<ICloudProxy> cloudProxy = await this.connectionManager.GetCloudConnection(id);
                 return await cloudProxy.Map(
-                    cp => this.GetTwinInfoWhenCloudOnlineAsync(id, cp, false)
-                ).GetOrElse(() => this.GetTwinInfoWhenCloudOfflineAsync(id, new InvalidOperationException($"Error accessing cloud proxy for device {id}")));
+                    cp => this.GetTwinInfoWhenCloudOnlineAsync(id, cp, false))
+                    .GetOrElse(() => this.GetTwinInfoWhenCloudOfflineAsync(id, new InvalidOperationException($"Error accessing cloud proxy for device {id}")));
             }
             catch (Exception e)
             {
@@ -514,7 +517,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 // If we fail to find the twin in the twin store, then we simply store the reported property
                 // patch and wait for the next GetTwin or ConnectionEstablished callback to fetch the twin
-
                 Events.MissingTwinOnUpdateReported(id, e);
                 throw new TwinNotFoundException("Twin unavailable", e);
             }
@@ -533,6 +535,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     IEntityStore<string, TwinInfo> twinStore = this.TwinStore.Expect(() => new InvalidOperationException("Missing twin store"));
 
                     Option<TwinInfo> info = await twinStore.Get(id);
+
                     // If the reported properties patch is not null, we will not attempt to write the reported
                     // properties to the cloud as we are still waiting for a connection established callback
                     // to sync the local reported properties with that of the cloud
@@ -605,8 +608,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<TwinManager>();
             const int IdStart = HubCoreEventIds.TwinManager;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<TwinManager>();
 
             enum EventIds
             {

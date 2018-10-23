@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
-    <Configurations>Debug;Release;CodeCoverage</Configurations>
+    <Configurations>Debug;Release;CodeCoverage;CheckInBuild</Configurations>
     <HighEntropyVA>true</HighEntropyVA>
   </PropertyGroup>
 
@@ -40,13 +40,8 @@
     <PackageReference Include="Nito.AsyncEx" Version="5.0.0-pre-05" />
     <PackageReference Include="System.ValueTuple" Version="4.5.0" />
   </ItemGroup>
-    
-  <ItemGroup  Condition="'$(Configuration)' == 'Release'">
-    <PackageReference Include="StyleCop.Analyzers" Version="1.1.0-beta004">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
-    </PackageReference>
-  </ItemGroup>
+
+  <Import Project="..\..\..\stylecop.props" />
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Storage\Microsoft.Azure.Devices.Edge.Storage.csproj" />

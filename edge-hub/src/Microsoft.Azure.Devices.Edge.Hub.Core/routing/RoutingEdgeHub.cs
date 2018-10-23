@@ -27,14 +27,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
     public class RoutingEdgeHub : IEdgeHub
     {
+        const long MaxMessageSize = 256 * 1024; // matches IoTHub
+
         readonly Router router;
         readonly Core.IMessageConverter<IRoutingMessage> messageConverter;
         readonly IConnectionManager connectionManager;
         readonly ITwinManager twinManager;
         readonly string edgeDeviceId;
         readonly IInvokeMethodHandler invokeMethodHandler;
-
-        const long MaxMessageSize = 256 * 1024; // matches IoTHub
 
         public RoutingEdgeHub(
             Router router,
@@ -283,8 +283,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<RoutingEdgeHub>();
             const int IdStart = HubCoreEventIds.RoutingEdgeHub;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<RoutingEdgeHub>();
 
             enum EventIds
             {

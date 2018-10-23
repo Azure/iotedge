@@ -69,7 +69,7 @@ namespace LeafDevice.Details
             return Task.CompletedTask;
         }
 
-        protected async Task ConnectToEdgeAndSendData()
+        protected async Task ConnectToEdgeAndSendDataAsync()
         {
             Microsoft.Azure.Devices.IotHubConnectionStringBuilder builder = Microsoft.Azure.Devices.IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
             string leafDeviceConnectionString = $"HostName={builder.HostName};DeviceId={this.deviceId};SharedAccessKey={this.context.Device.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={this.edgeHostName}";
@@ -89,7 +89,7 @@ namespace LeafDevice.Details
                 });
         }
 
-        protected async Task GetOrCreateDeviceIdentity()
+        protected async Task GetOrCreateDeviceIdentityAsync()
         {
             Microsoft.Azure.Devices.IotHubConnectionStringBuilder builder = Microsoft.Azure.Devices.IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(builder.ToString());
@@ -111,11 +111,11 @@ namespace LeafDevice.Details
             }
             else
             {
-                await this.CreateDeviceIdentity(rm);
+                await this.CreateDeviceIdentityAsync(rm);
             }
         }
 
-        async Task CreateDeviceIdentity(RegistryManager rm)
+        async Task CreateDeviceIdentityAsync(RegistryManager rm)
         {
             var device = new Device(this.deviceId)
             {
@@ -139,10 +139,12 @@ namespace LeafDevice.Details
             };
         }
 
-        protected async Task VerifyDataOnIoTHub()
+        protected async Task VerifyDataOnIoTHubAsync()
         {
-            var builder = new EventHubsConnectionStringBuilder(this.eventhubCompatibleEndpointWithEntityPath);
-            builder.TransportType = this.eventHubClientTransportType;
+            var builder = new EventHubsConnectionStringBuilder(this.eventhubCompatibleEndpointWithEntityPath)
+            {
+                TransportType = this.eventHubClientTransportType
+            };
 
             Console.WriteLine($"Receiving events from device '{this.context.Device.Id}' on Event Hub '{builder.EntityPath}'");
 
@@ -191,7 +193,7 @@ namespace LeafDevice.Details
             return Task.FromResult(new MethodResponse(methodRequest.Data, (int)HttpStatusCode.OK));
         }
 
-        protected async Task VerifyDirectMethod()
+        protected async Task VerifyDirectMethodAsync()
         {
             //User Service SDK to invoke Direct Method on the device.
             ServiceClient serviceClient =

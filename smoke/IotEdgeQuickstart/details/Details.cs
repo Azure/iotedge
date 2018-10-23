@@ -98,7 +98,7 @@ namespace IotEdgeQuickstart.Details
 
         protected Task InstallBootstrapper() => this.bootstrapper.Install();
 
-        protected async Task GetOrCreateEdgeDeviceIdentity()
+        protected async Task GetOrCreateEdgeDeviceIdentityAsync()
         {
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(builder.ToString());
@@ -119,11 +119,11 @@ namespace IotEdgeQuickstart.Details
             }
             else
             {
-                await this.CreateEdgeDeviceIdentity(rm);
+                await this.CreateEdgeDeviceIdentityAsync(rm);
             }
         }
 
-        async Task CreateEdgeDeviceIdentity(RegistryManager rm)
+        async Task CreateEdgeDeviceIdentityAsync(RegistryManager rm)
         {
             var device = new Device(this.deviceId)
             {
@@ -162,7 +162,7 @@ namespace IotEdgeQuickstart.Details
 
         protected Task VerifyEdgeAgentIsRunning() => this.bootstrapper.VerifyModuleIsRunning("edgeAgent");
 
-        protected async Task VerifyEdgeAgentIsConnectedToIotHub()
+        protected async Task VerifyEdgeAgentIsConnectedToIotHubAsync()
         {
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(300)))
             {
@@ -217,10 +217,12 @@ namespace IotEdgeQuickstart.Details
             return this.context.RegistryManager.ApplyConfigurationContentOnDeviceAsync(this.context.Device.Id, config);
         }
 
-        protected async Task VerifyDataOnIoTHub(string moduleId)
+        protected async Task VerifyDataOnIoTHubAsync(string moduleId)
         {
-            var builder = new EventHubsConnectionStringBuilder(this.eventhubCompatibleEndpointWithEntityPath);
-            builder.TransportType = this.eventHubClientTransportType;
+            var builder = new EventHubsConnectionStringBuilder(this.eventhubCompatibleEndpointWithEntityPath)
+            {
+                TransportType = this.eventHubClientTransportType
+            };
 
             Console.WriteLine($"Receiving events from device '{this.context.Device.Id}' on Event Hub '{builder.EntityPath}'");
 

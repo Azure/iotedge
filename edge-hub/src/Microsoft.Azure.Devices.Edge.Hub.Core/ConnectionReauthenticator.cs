@@ -172,8 +172,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<ConnectionReauthenticator>();
             const int IdStart = HubCoreEventIds.PeriodicConnectionAuthenticator;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<ConnectionReauthenticator>();
 
             enum EventIds
             {
