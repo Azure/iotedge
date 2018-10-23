@@ -202,7 +202,7 @@ fn make_certification_props(props: &CertificateProperties) -> Result<CERT_PROPS_
             .map(|s: &String| CString::new(s.clone()))
             .collect();
 
-        let result: Vec<CString> = result.ok().ok_or_else(|| {
+        let result: Vec<CString> = result.map_err(|_| {
             unsafe { cert_properties_destroy(handle) };
             ErrorKind::CertProps
         })?;
@@ -210,13 +210,10 @@ fn make_certification_props(props: &CertificateProperties) -> Result<CERT_PROPS_
         let result: Vec<*const c_char> = result.iter().map(|s| s.as_ptr()).collect();
 
         let result = unsafe { set_san_entries(handle, result.as_ptr(), result.len()) };
-        match result {
-            0 => Some(()),
-            _ => None,
-        }.ok_or_else(|| {
+        if result != 0 {
             unsafe { cert_properties_destroy(handle) };
-            ErrorKind::CertProps
-        })?;
+            return Err(ErrorKind::CertProps)?;
+        }
     }
     Ok(handle)
 }
