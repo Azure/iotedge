@@ -40,8 +40,7 @@ where
         params: Parameters,
     ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
         let hsm = self.hsm.clone();
-        let default_expr = Utc::now().checked_add_signed(Duration::hours(2)).unwrap().to_string().as_str();
-        let mut expr = default_expr;
+        let default_expr = Utc::now().checked_add_signed(Duration::hours(2)).unwrap().to_string();
         let response = params
             .name("name")
             .ok_or_else(|| Error::from(ErrorKind::BadParam))
@@ -55,9 +54,9 @@ where
                             .context(ErrorKind::BadBody)
                             .map_err(Error::from)
                             .and_then(|cert_req| {
-                                expr = match cert_req.expiration() {
-                                    None => default_expr,
-                                    Some(exp) => exp.as_str()
+                                let expr = match cert_req.expiration() {
+                                    None => default_expr.as_str(),
+                                    Some(exp) => exp
                                 };
                                 compute_validity(expr)
                                     .map(|expiration| (cert_req, expiration))
@@ -79,7 +78,7 @@ where
                                     .and_then(|cert| {
                                         let cert = cert_to_response(
                                             &cert,
-                                            expr,
+                                            default_expr.as_str(),
                                         )?;
                                         let body = serde_json::to_string(&cert)?;
                                         Response::builder()
@@ -195,68 +194,74 @@ mod tests {
     }
 
     #[test]
-    fn empty_body_ok() {
-        let handler = ServerCertHandler::new(TestHsm::default());
+    fn empty_body_okay() {
+        let handler = IdentityCertHandler::new(TestHsm::default());
         let request =
             Request::get("http://localhost/modules/beeblebrox/certificate/identity")
                 .body("".into())
                 .unwrap();
-
         let params = Parameters::with_captures(vec![
             (Some("name".to_string()), "beeblebrox".to_string()),
-            (Some("genid".to_string()), "II".to_string()),
         ]);
         let response = handler.handle(request, params).wait().unwrap();
         assert_eq!(StatusCode::CREATED, response.status());
-        // assert_ne!(
-        //     parse_error_response(response).message().find("Bad body"),
-        //     None
-        // );
+    }
+
+    #[test]
+    fn empty_common_name() {
+        let handler = IdentityCertHandler::new(TestHsm::default());
+
+        let cert_req = IdentityCertificateRequest::new().with_expiration("1999-06-28T16:39:57-08:00".to_string());
+
+        let request =
+            Request::get("http://localhost/modules/beeblebrox/certificate/identity")
+                .body(serde_json::to_string(&cert_req).unwrap().into())
+                .unwrap();
+
+        let params = Parameters::with_captures(vec![
+            (Some("name".to_string()), "beeblebrox".to_string()),
+        ]);
+
+        let response = handler.handle(request, params).wait().unwrap();
+        assert_eq!(StatusCode::CREATED, response.status());
+    }
+
+    #[test]
+    fn bad_expiration() {
+        let handler = IdentityCertHandler::new(TestHsm::default());
+
+        let cert_req = IdentityCertificateRequest::new().with_expiration("Umm.. No.. Just no..".to_string());
+
+        let request =
+            Request::get("http://localhost/modules/beeblebrox/certificate/identity")
+                .body(serde_json::to_string(&cert_req).unwrap().into())
+                .unwrap();
+
+        let params = Parameters::with_captures(vec![
+            (Some("name".to_string()), "beeblebrox".to_string()),
+        ]);
+
+        let response = handler.handle(request, params).wait().unwrap();
+        assert_eq!(StatusCode::CREATED, response.status());
     }
 
     // #[test]
-    // fn bad_body() {
-    //     let handler = ServerCertHandler::new(TestHsm::default());
-    //     let request =
-    //         Request::get("http://localhost/modules/beeblebrox/genid/III/certificate/server")
-    //             .body("The answer is 42.".into())
-    //             .unwrap();
-
-    //     let params = Parameters::with_captures(vec![
-    //         (Some("name".to_string()), "beeblebrox".to_string()),
-    //         (Some("genid".to_string()), "III".to_string()),
-    //     ]);
-    //     let response = handler.handle(request, params).wait().unwrap();
-    //     assert_eq!(StatusCode::BAD_REQUEST, response.status());
-    //     assert_ne!(
-    //         parse_error_response(response).message().find("Bad body"),
-    //         None
-    //     );
-    // }
-
-    // #[test]
     // fn empty_expiration() {
-    //     let handler = ServerCertHandler::new(TestHsm::default());
+    //     let handler = IdentityCertHandler::new(TestHsm::default());
 
-    //     let cert_req = ServerCertificateRequest::new("".to_string(), "".to_string());
+    //     let cert_req = IdentityCertificateRequest::new().with_common_name("BEEBLEBROX".to_string());
 
     //     let request =
-    //         Request::get("http://localhost/modules/beeblebrox/genid/IV/certificate/server")
+    //         Request::get("http://localhost/modules/beeblebrox/certificate/identity")
     //             .body(serde_json::to_string(&cert_req).unwrap().into())
     //             .unwrap();
 
     //     let params = Parameters::with_captures(vec![
-    //         (Some("name".to_string()), "beeblebrox".to_string()),
-    //         (Some("genid".to_string()), "IV".to_string()),
+    //         (Some("name".to_string()), "BEEBLEBROX".to_string()),
     //     ]);
+
     //     let response = handler.handle(request, params).wait().unwrap();
-    //     assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
-    //     assert_ne!(
-    //         parse_error_response(response)
-    //             .message()
-    //             .find("Argument is empty or only has whitespace"),
-    //         None
-    //     );
+    //     assert_eq!(StatusCode::CREATED, response.status());
     // }
 
     // #[test]
