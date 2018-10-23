@@ -33,7 +33,7 @@ pub fn convert_properties(
         convert_certificate_type(*core.certificate_type()),
         issuer_ca,
         core.alias().to_string(),
-        core.san_entries().unwrap_or(&no_sans),
+        core.san_entries().unwrap_or(&no_sans).to_vec(),
     )
 }
 

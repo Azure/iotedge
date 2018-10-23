@@ -195,7 +195,7 @@ fn make_certification_props(props: &CertificateProperties) -> Result<CERT_PROPS_
             ErrorKind::CertProps
         })?;
 
-    if props.san_entries.len() > 0 {
+    if !props.san_entries.is_empty() {
         let result: Result<Vec<CString>, NulError> = props
             .san_entries
             .iter()
@@ -382,7 +382,7 @@ impl CertificateProperties {
         certificate_type: CertificateType,
         issuer_alias: String,
         alias: String,
-        san_entries: &Vec<String>,
+        san_entries: Vec<String>,
     ) -> Self {
         CertificateProperties {
             validity_in_secs,
@@ -395,7 +395,7 @@ impl CertificateProperties {
             locality: None,
             organization: None,
             organization_unit: None,
-            san_entries: san_entries.clone(),
+            san_entries,
         }
     }
 
