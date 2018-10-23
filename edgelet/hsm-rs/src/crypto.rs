@@ -496,8 +496,8 @@ impl CertificateProperties {
         &self.san_entries
     }
 
-    pub fn with_san_entries(mut self, entries: &Vec<String>) -> CertificateProperties {
-        self.san_entries = entries.clone();
+    pub fn with_san_entries(mut self, entries: Vec<String>) -> CertificateProperties {
+        self.san_entries = entries;
         self
     }
 }
@@ -806,7 +806,7 @@ mod tests {
     #[test]
     fn certificate_props_get_set_test() {
         let input_sans: Vec<String> = vec![String::from("aa"), String::from("bb")];
-        let props = CertificateProperties::default().with_san_entries(&input_sans);
+        let props = CertificateProperties::default().with_san_entries(input_sans.clone());
         assert_eq!(input_sans, *props.san_entries());
     }
 

@@ -96,8 +96,8 @@ impl CertificateProperties {
         self.san_entries.as_ref()
     }
 
-    pub fn with_san_entries(mut self, entries: &Vec<String>) -> CertificateProperties {
-        self.san_entries = Some(entries.clone());
+    pub fn with_san_entries(mut self, entries: Vec<String>) -> CertificateProperties {
+        self.san_entries = Some(entries);
         self
     }
 }
@@ -136,7 +136,7 @@ mod tests {
         .with_validity_in_secs(240)
         .with_alias("Andrew Johnson".to_string())
         .with_issuer(CertificateIssuer::DeviceCa)
-        .with_san_entries(&input_sans);
+        .with_san_entries(input_sans.clone());
         assert_eq!(&240, c.validity_in_secs());
         assert_eq!("bafflegab", c.common_name());
         assert_eq!(&CertificateType::Ca, c.certificate_type());

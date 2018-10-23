@@ -39,7 +39,7 @@ fn crypto_create_cert_success() {
         "Common Name".to_string(),
         CertificateType::Ca,
         "Alias".to_string(),
-    ).with_san_entries(&san_entries);
+    ).with_san_entries(san_entries);
 
     let cert_info = crypto.create_certificate(&props).unwrap();
 
