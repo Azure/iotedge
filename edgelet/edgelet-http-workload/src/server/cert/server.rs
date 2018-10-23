@@ -49,7 +49,7 @@ where
                     .ok_or_else(|| Error::from(ErrorKind::BadParam))
                     .map(|genid| (name, genid))
             }).map(|(module_id, genid)| {
-                let alias = format!("{}{}", module_id.to_string(), genid.to_string());
+                let alias = format!("{}{}server", module_id.to_string(), genid.to_string());
                 let result = req
                     .into_body()
                     .concat2()
