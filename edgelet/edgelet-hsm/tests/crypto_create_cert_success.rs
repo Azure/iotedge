@@ -28,13 +28,18 @@ fn crypto_create_cert_success() {
     let buffer = workload_ca_cert.pem().unwrap();
     assert!(buffer.as_bytes().len() > 0);
 
+    let san_entries: Vec<String> = vec![
+        "URI: bar:://pity/foo".to_string(),
+        "DNS: foo.bar".to_string(),
+    ];
+
     // act
     let props = CertificateProperties::new(
         3600,
         "Common Name".to_string(),
         CertificateType::Ca,
         "Alias".to_string(),
-    );
+    ).with_san_entries(san_entries);
 
     let cert_info = crypto.create_certificate(&props).unwrap();
 
