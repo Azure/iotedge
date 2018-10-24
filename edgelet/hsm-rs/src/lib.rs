@@ -2,8 +2,8 @@
 
 #![deny(unused_extern_crates, warnings)]
 
-#[macro_use]
 extern crate chrono;
+#[macro_use]
 extern crate failure;
 extern crate hsm_sys;
 

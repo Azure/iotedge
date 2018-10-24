@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::sync::{Arc, Mutex};
+use chrono::{DateTime, Utc};
 
 use certificate_properties::convert_properties;
 use edgelet_core::{
@@ -160,5 +161,9 @@ impl CoreCertificate for Certificate {
                 None => None,
             }).map_err(Error::from)
             .map_err(CoreError::from)
+    }
+
+    fn get_valid_to(&self) -> Result<DateTime<Utc>, CoreError> {
+        self.0.get_valid_to().map_err(Error::from).map_err(CoreError::from)
     }
 }
