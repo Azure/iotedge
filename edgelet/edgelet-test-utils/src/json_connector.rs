@@ -3,11 +3,10 @@
 use std::io::{self, Cursor, Read, Write};
 
 use futures::{future, task, Future, Poll};
-use hyper::client::Service;
-use hyper::Uri;
+use hyper::client::connect::{Connect, Connected, Destination};
 use serde::Serialize;
 use serde_json;
-use tokio_io::{AsyncRead, AsyncWrite};
+use tokio::io::{AsyncRead, AsyncWrite};
 
 pub struct StaticStream {
     wrote: bool,
@@ -53,37 +52,36 @@ impl AsyncWrite for StaticStream {
     }
 }
 
-pub struct JsonConnector<T: Serialize> {
-    body: T,
+pub struct JsonConnector {
+    body: Vec<u8>,
 }
 
-impl<T: Serialize> JsonConnector<T> {
-    pub fn new(body: T) -> JsonConnector<T> {
-        JsonConnector { body }
-    }
-}
-
-impl<T: Serialize> Service for JsonConnector<T> {
-    type Request = Uri;
-    type Response = StaticStream;
-    type Error = io::Error;
-    type Future = Box<Future<Item = Self::Response, Error = io::Error>>;
-
-    fn call(&self, _req: Uri) -> Self::Future {
-        let json = serde_json::to_string(&self.body).unwrap();
-        let response = format!(
+impl JsonConnector {
+    pub fn new<T: Serialize>(body: &T) -> JsonConnector {
+        let body = serde_json::to_string(body).unwrap();
+        let body = format!(
             "HTTP/1.1 200 OK\r\n\
              Content-Type: application/json; charset=utf-8\r\n\
              Content-Length: {}\r\n\
              \r\n\
              {}",
-            json.len(),
-            json
-        );
+            body.len(),
+            body,
+        ).into();
 
-        Box::new(future::ok(StaticStream {
-            wrote: false,
-            body: Cursor::new(response.into_bytes()),
-        }))
+        JsonConnector { body }
+    }
+}
+
+impl Connect for JsonConnector {
+    type Transport = StaticStream;
+    type Error = io::Error;
+    type Future = Box<Future<Item = (Self::Transport, Connected), Error = Self::Error> + Send>;
+
+    fn connect(&self, _dst: Destination) -> Self::Future {
+        Box::new(future::ok((
+            StaticStream::new(self.body.clone()),
+            Connected::new(),
+        )))
     }
 }

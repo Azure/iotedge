@@ -262,5 +262,52 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             Assert.NotNull(receivedMessage);
             Assert.Equal(messageToSend, receivedMessage);
         }
+
+        [Fact]
+        public async Task CloseOnRemovingAllLinksTest()
+        {
+            // Arrange
+            var deviceListener = new Mock<IDeviceListener>();
+            deviceListener.Setup(d => d.CloseAsync()).Returns(Task.CompletedTask);
+            var identity = Mock.Of<IIdentity>(i => i.Id == "d1/m1");
+            var clientCredentials = Mock.Of<IClientCredentials>(c => c.Identity == identity);
+            var connectionProvider = Mock.Of<IConnectionProvider>(c => c.GetDeviceListenerAsync(clientCredentials) == Task.FromResult(deviceListener.Object));
+            deviceListener.Setup(d => d.BindDeviceProxy(It.IsAny<IDeviceProxy>()));
+
+            var amqpAuthentication = new AmqpAuthentication(true, Option.Some(clientCredentials));
+            var cbsNode = Mock.Of<ICbsNode>(c => c.GetAmqpAuthentication() == Task.FromResult(amqpAuthentication));
+            var amqpConnection = Mock.Of<IAmqpConnection>(c => c.FindExtension<ICbsNode>() == cbsNode);
+            var connectionHandler = new ConnectionHandler(amqpConnection, connectionProvider);
+
+            var eventsLinkHandler = Mock.Of<ILinkHandler>(l => l.Type == LinkType.Events);
+            string twinCorrelationId = Guid.NewGuid().ToString();
+            var twinReceivingLinkHander = Mock.Of<ILinkHandler>(l => l.Type == LinkType.TwinReceiving && l.CorrelationId == twinCorrelationId);
+            var twinSendingLinkHandler = Mock.Of<ILinkHandler>(l => l.Type == LinkType.TwinSending && l.CorrelationId == twinCorrelationId);
+            string methodCorrelationId = Guid.NewGuid().ToString();
+            var methodReceivingLinkHander = Mock.Of<ILinkHandler>(l => l.Type == LinkType.MethodReceiving && l.CorrelationId == methodCorrelationId);
+            var methodSendingLinkHandler = Mock.Of<ILinkHandler>(l => l.Type == LinkType.MethodSending && l.CorrelationId == methodCorrelationId);
+
+            // Act
+            await connectionHandler.GetDeviceListener();
+            await connectionHandler.RegisterLinkHandler(eventsLinkHandler);
+            await connectionHandler.RegisterLinkHandler(twinReceivingLinkHander);
+            await connectionHandler.RegisterLinkHandler(twinSendingLinkHandler);
+            await connectionHandler.RegisterLinkHandler(methodSendingLinkHandler);
+            await connectionHandler.RegisterLinkHandler(methodReceivingLinkHander);
+
+            await connectionHandler.RemoveLinkHandler(eventsLinkHandler);
+            await connectionHandler.RemoveLinkHandler(twinReceivingLinkHander);
+            await connectionHandler.RemoveLinkHandler(twinSendingLinkHandler);
+            await connectionHandler.RemoveLinkHandler(methodSendingLinkHandler);
+
+            // Assert
+            deviceListener.Verify(d => d.CloseAsync(), Times.Never);
+
+            // Act
+            await connectionHandler.RemoveLinkHandler(methodReceivingLinkHander);
+
+            // Assert
+            deviceListener.Verify(d => d.CloseAsync(), Times.Once);
+        }
     }
 }

@@ -16,5 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         public const int SendingLinkHandler = EventIdStart + 600;
         public const int DeviceBoundLinkHandler = EventIdStart + 650;
         public const int LinkHandler = EventIdStart + 700;
+        public const int AmqpWebSocketListener = EventIdStart + 800;
+        public const int ServerWebSocketTransport = EventIdStart + 900;
     }
 }

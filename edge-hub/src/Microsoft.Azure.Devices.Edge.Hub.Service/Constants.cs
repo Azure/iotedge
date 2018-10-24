@@ -2,26 +2,32 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
+    using System;
+    using System.Globalization;
+
     public static class Constants
     {
-        public const string VersionInfoFileName = "versionInfo.json";
-        public const string ConfigFileName = "appsettings_hub.json";
-        public const string TopicNameConversionSectionName = "mqttTopicNameConversion";
-        public const string EdgeHubStorageFolder = "edgeHub";
-        public const string SslCertPathEnvName = "SSL_CERTIFICATE_PATH";
-        public const string SslCertEnvName = "SSL_CERTIFICATE_NAME";
-        public const string IotHubConnectionStringVariableName = "IotHubConnectionString";
-        public const string IotHubHostnameVariableName = "IOTEDGE_IOTHUBHOSTNAME";
-        public const string DeviceIdVariableName = "IOTEDGE_DEVICEID";
-        public const string ModuleIdVariableName = "IOTEDGE_MODULEID";
-        public const string ModuleGenerationIdVariableName = "IOTEDGE_MODULEGENERATIONID";
-        public const string WorkloadUriVariableName = "IOTEDGE_WORKLOADURI";
-        public const string EdgeDeviceHostNameKey = "EDGEDEVICEHOSTNAME";
-        public const string EdgeDeviceHostnameVariableName = "EdgeDeviceHostName";
-        public const string WorkloadApiVersion = "2018-06-28";
+        public static class ConfigKey
+        {
+            public const string DeviceId = "IOTEDGE_DEVICEID";
+            public const string EdgeDeviceHostName = "EDGEDEVICEHOSTNAME";
+            public const string EdgeHubServerCAChainCertificateFile = "EdgeModuleHubServerCAChainCertificateFile";
+            public const string EdgeHubServerCertificateFile = "EdgeModuleHubServerCertificateFile";
+            public const string IotHubConnectionString = "IotHubConnectionString";
+            public const string IotHubHostname = "IOTEDGE_IOTHUBHOSTNAME";
+            public const string ModuleGenerationId = "IOTEDGE_MODULEGENERATIONID";
+            public const string ModuleId = "IOTEDGE_MODULEID";
+            public const string WorkloadUri = "IOTEDGE_WORKLOADURI";
+            public const string EdgeHubDevServerCertificateFile = "EdgeHubDevServerCertificateFile";
+            public const string EdgeHubDevServerPrivateKeyFile = "EdgeHubDevServerPrivateKeyFile";
+        }
+
         public const int CertificateValidityDays = 90;
+        public const string ConfigFileName = "appsettings_hub.json";
+        public const string EdgeHubStorageFolder = "edgeHub";
         public const string InitializationVectorFileName = "EdgeHubIV";
-        public const string EdgeHubServerCAChainCertificateFileKey = "EdgeModuleHubServerCAChainCertificateFile";
-        public const string EdgeHubServerCertificateFileKey = "EdgeModuleHubServerCertificateFile";
+        public const string TopicNameConversionSectionName = "mqttTopicNameConversion";
+        public const string VersionInfoFileName = "versionInfo.json";
+        public const string WorkloadApiVersion = "2018-06-28";
     }
 }

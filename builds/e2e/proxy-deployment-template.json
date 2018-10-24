@@ -1,0 +1,396 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"vms_linux_ssh_public_key": {
+			"type": "string"
+		},
+		"vms_linux_username": {
+			"type": "string"
+		},
+		"vms_vnet_name": {
+			"type": "string"
+		},
+		"vms_vnet_subnet_name": {
+			"type": "string"
+		},
+		"vsts_agent_vm_name": {
+			"type": "string"
+		},
+		"vsts_agent_vm_public_ip_name": {
+			"type": "string"
+		},
+		"vsts_runner1_vm_name": {
+			"type": "string"
+		},
+
+		"vsts_agent_vm_network_interface_name": {
+			"defaultValue": "e2eproxyvstsagent",
+			"type": "string"
+		},
+		"vsts_agent_vm_nsg_name": {
+			"defaultValue": "e2eproxyvstsagent",
+			"type": "string"
+		},
+		"vsts_agent_vm_public_nsg_name": {
+			"defaultValue": "e2eproxyvstsagentpublic",
+			"type": "string"
+		},
+		"vsts_agent_vm_size": {
+			"defaultValue": "Standard_DS1_v2",
+			"type": "string"
+		},
+		"vsts_runner1_vm_network_interface_name": {
+			"defaultValue": "e2eproxyvstsrunner1",
+			"type": "string"
+		},
+		"vsts_runner1_vm_nsg_name": {
+			"defaultValue": "e2eproxyvstsrunner1",
+			"type": "string"
+		},
+		"vsts_runner1_vm_size": {
+			"defaultValue": "Standard_D2s_v3",
+			"type": "string"
+		}
+	},
+	"variables": {},
+	"resources": [{
+		"type": "Microsoft.Network/networkSecurityGroups",
+		"name": "[parameters('vsts_agent_vm_nsg_name')]",
+		"apiVersion": "2018-02-01",
+		"location": "[resourceGroup().location]",
+		"scale": null,
+		"properties": {
+			"provisioningState": "Succeeded",
+			"securityRules": [{
+				"name": "ssh",
+				"properties": {
+					"provisioningState": "Succeeded",
+					"protocol": "Tcp",
+					"sourceAddressPrefix": "*",
+					"sourceAddressPrefixes": [],
+					"sourcePortRange": "*",
+					"destinationAddressPrefix": "*",
+					"destinationAddressPrefixes": [],
+					"destinationPortRange": "22",
+					"direction": "Inbound",
+					"access": "Allow",
+					"priority": 200
+				}
+			}, {
+				"name": "AllowVnetInBound",
+				"properties": {
+					"provisioningState": "Succeeded",
+					"protocol": "*",
+					"sourceAddressPrefix": "VirtualNetwork",
+					"sourceAddressPrefixes": [],
+					"sourcePortRange": "*",
+					"destinationAddressPrefix": "VirtualNetwork",
+					"destinationAddressPrefixes": [],
+					"destinationPortRange": "*",
+					"direction": "Inbound",
+					"access": "Allow",
+					"priority": 300
+				}
+			}, {
+				"name": "DenyAllInBound",
+				"properties": {
+					"provisioningState": "Succeeded",
+					"description": "Deny all inbound traffic",
+					"protocol": "*",
+					"sourceAddressPrefix": "*",
+					"sourceAddressPrefixes": [],
+					"sourcePortRange": "*",
+					"destinationAddressPrefix": "*",
+					"destinationAddressPrefixes": [],
+					"destinationPortRange": "*",
+					"direction": "Inbound",
+					"access": "Deny",
+					"priority": 400
+				}
+			}, {
+				"name": "AllowVnetOutBound",
+				"properties": {
+					"provisioningState": "Succeeded",
+					"protocol": "*",
+					"sourceAddressPrefix": "VirtualNetwork",
+					"sourceAddressPrefixes": [],
+					"sourcePortRange": "*",
+					"destinationAddressPrefix": "VirtualNetwork",
+					"destinationAddressPrefixes": [],
+					"destinationPortRange": "*",
+					"direction": "Outbound",
+					"access": "Allow",
+					"priority": 500
+				}
+			}, {
+				"name": "AllowInternetOutBound",
+				"properties": {
+					"provisioningState": "Succeeded",
+					"protocol": "*",
+					"sourceAddressPrefix": "*",
+					"sourceAddressPrefixes": [],
+					"sourcePortRange": "*",
+					"destinationAddressPrefix": "Internet",
+					"destinationAddressPrefixes": [],
+					"destinationPortRange": "*",
+					"direction": "Outbound",
+					"access": "Allow",
+					"priority": 600
+				}
+			}, {
+				"name": "DenyAllOutBound",
+				"properties": {
+					"provisioningState": "Succeeded",
+					"protocol": "*",
+					"sourceAddressPrefix": "*",
+					"sourceAddressPrefixes": [],
+					"sourcePortRange": "*",
+					"destinationAddressPrefix": "*",
+					"destinationAddressPrefixes": [],
+					"destinationPortRange": "*",
+					"direction": "Outbound",
+					"access": "Deny",
+					"priority": 700
+				}
+			}],
+			"defaultSecurityRules": []
+		},
+		"dependsOn": []
+	}, {
+		"type": "Microsoft.Network/networkSecurityGroups",
+		"name": "[parameters('vsts_runner1_vm_nsg_name')]",
+		"apiVersion": "2018-02-01",
+		"location": "[resourceGroup().location]",
+		"scale": null,
+		"properties": {
+			"provisioningState": "Succeeded",
+			"securityRules": [{
+				"name": "AllowVnetInBound",
+				"properties": {
+					"provisioningState": "Succeeded",
+					"protocol": "*",
+					"sourceAddressPrefix": "VirtualNetwork",
+					"sourceAddressPrefixes": [],
+					"sourcePortRange": "*",
+					"destinationAddressPrefix": "VirtualNetwork",
+					"destinationAddressPrefixes": [],
+					"destinationPortRange": "*",
+					"direction": "Inbound",
+					"access": "Allow",
+					"priority": 200
+				}
+			}, {
+				"name": "DenyAllInBound",
+				"properties": {
+					"provisioningState": "Succeeded",
+					"description": "Deny all inbound traffic",
+					"protocol": "*",
+					"sourceAddressPrefix": "*",
+					"sourceAddressPrefixes": [],
+					"sourcePortRange": "*",
+					"destinationAddressPrefix": "*",
+					"destinationAddressPrefixes": [],
+					"destinationPortRange": "*",
+					"direction": "Inbound",
+					"access": "Deny",
+					"priority": 300
+				}
+			}, {
+				"name": "AllowVnetOutBound",
+				"properties": {
+					"provisioningState": "Succeeded",
+					"protocol": "*",
+					"sourceAddressPrefix": "VirtualNetwork",
+					"sourceAddressPrefixes": [],
+					"sourcePortRange": "*",
+					"destinationAddressPrefix": "VirtualNetwork",
+					"destinationAddressPrefixes": [],
+					"destinationPortRange": "*",
+					"direction": "Outbound",
+					"access": "Allow",
+					"priority": 400
+				}
+			}, {
+				"name": "DenyAllOutBound",
+				"properties": {
+					"provisioningState": "Succeeded",
+					"protocol": "*",
+					"sourceAddressPrefix": "*",
+					"sourceAddressPrefixes": [],
+					"sourcePortRange": "*",
+					"destinationAddressPrefix": "*",
+					"destinationAddressPrefixes": [],
+					"destinationPortRange": "*",
+					"direction": "Outbound",
+					"access": "Deny",
+					"priority": 500
+				}
+			}],
+			"defaultSecurityRules": []
+		},
+		"dependsOn": []
+	}, {
+		"type": "Microsoft.Network/publicIPAddresses",
+		"name": "[parameters('vsts_agent_vm_public_ip_name')]",
+		"apiVersion": "2018-02-01",
+		"sku": {
+			"name": "Basic",
+			"tier": "Regional"
+		},
+		"location": "[resourceGroup().location]",
+		"properties": {
+			"publicIPAddressVersion": "IPv4",
+			"publicIPAllocationMethod": "Dynamic"
+		},
+		"dependsOn": []
+	}, {
+		"type": "Microsoft.Network/networkInterfaces",
+		"name": "[parameters('vsts_agent_vm_network_interface_name')]",
+		"apiVersion": "2018-02-01",
+		"location": "[resourceGroup().location]",
+		"properties": {
+			"ipConfigurations": [{
+				"name": "ipconfig1",
+				"properties": {
+					"subnet": {
+						"id": "[resourceId(resourceGroup().name, 'Microsoft.Network/virtualNetworks/subnets', parameters('vms_vnet_name'), parameters('vms_vnet_subnet_name'))]"
+					},
+					"privateIPAllocationMethod": "Dynamic",
+					"publicIPAddress": {
+						"id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('vsts_agent_vm_public_ip_name'))]"
+					}
+				}
+			}],
+			"networkSecurityGroup": {
+				"id": "[resourceId(resourceGroup().name, 'Microsoft.Network/networkSecurityGroups', parameters('vsts_agent_vm_nsg_name'))]"
+			},
+			"primary": false
+		},
+		"dependsOn": [
+			"[resourceId(resourceGroup().name, 'Microsoft.Network/networkSecurityGroups', parameters('vsts_agent_vm_nsg_name'))]",
+			"[resourceId('Microsoft.Network/publicIPAddresses', parameters('vsts_agent_vm_public_ip_name'))]"
+		]
+	}, {
+		"type": "Microsoft.Network/networkInterfaces",
+		"name": "[parameters('vsts_runner1_vm_network_interface_name')]",
+		"apiVersion": "2018-02-01",
+		"location": "[resourceGroup().location]",
+		"properties": {
+			"ipConfigurations": [{
+				"name": "ipconfig1",
+				"properties": {
+					"subnet": {
+						"id": "[resourceId(resourceGroup().name, 'Microsoft.Network/virtualNetworks/subnets', parameters('vms_vnet_name'), parameters('vms_vnet_subnet_name'))]"
+					},
+					"privateIPAllocationMethod": "Dynamic"
+				}
+			}],
+			"networkSecurityGroup": {
+				"id": "[resourceId(resourceGroup().name, 'Microsoft.Network/networkSecurityGroups', parameters('vsts_runner1_vm_nsg_name'))]"
+			},
+			"primary": false
+		},
+		"dependsOn": [
+			"[resourceId(resourceGroup().name, 'Microsoft.Network/networkSecurityGroups', parameters('vsts_runner1_vm_nsg_name'))]"
+		]
+	}, {
+		"type": "Microsoft.Compute/virtualMachines",
+		"name": "[parameters('vsts_agent_vm_name')]",
+		"apiVersion": "2017-12-01",
+		"location": "[resourceGroup().location]",
+		"properties": {
+			"osProfile": {
+				"computerName": "[parameters('vsts_agent_vm_name')]",
+				"adminUsername": "[parameters('vms_linux_username')]",
+				"linuxConfiguration": {
+					"disablePasswordAuthentication": true,
+					"ssh": {
+						"publicKeys": [{
+							"path": "[concat('/home/', parameters('vms_linux_username'), '/.ssh/authorized_keys')]",
+							"keyData": "[parameters('vms_linux_ssh_public_key')]"
+						}]
+					}
+				}
+			},
+			"hardwareProfile": {
+				"vmSize": "[parameters('vsts_agent_vm_size')]"
+			},
+			"storageProfile": {
+				"imageReference": {
+					"publisher": "Canonical",
+					"offer": "UbuntuServer",
+					"sku": "18.04-LTS",
+					"version": "latest"
+				},
+				"osDisk": {
+					"createOption": "FromImage",
+					"managedDisk": {
+						"storageAccountType": "Standard_LRS"
+					}
+				},
+				"dataDisks": []
+			},
+			"networkProfile": {
+				"networkInterfaces": [{
+					"id": "[resourceId('Microsoft.Network/networkInterfaces', parameters('vsts_agent_vm_network_interface_name'))]",
+					"properties": {
+						"primary": true
+					}
+				}]
+			}
+		},
+		"dependsOn": [
+			"[resourceId('Microsoft.Network/networkInterfaces', parameters('vsts_agent_vm_network_interface_name'))]"
+		]
+	}, {
+		"type": "Microsoft.Compute/virtualMachines",
+		"name": "[parameters('vsts_runner1_vm_name')]",
+		"apiVersion": "2017-12-01",
+		"location": "[resourceGroup().location]",
+		"properties": {
+			"osProfile": {
+				"computerName": "[parameters('vsts_runner1_vm_name')]",
+				"adminUsername": "[parameters('vms_linux_username')]",
+				"linuxConfiguration": {
+					"disablePasswordAuthentication": true,
+					"ssh": {
+						"publicKeys": [{
+							"path": "[concat('/home/', parameters('vms_linux_username'), '/.ssh/authorized_keys')]",
+							"keyData": "[parameters('vms_linux_ssh_public_key')]"
+						}]
+					}
+				}
+			},
+			"hardwareProfile": {
+				"vmSize": "[parameters('vsts_runner1_vm_size')]"
+			},
+			"storageProfile": {
+				"imageReference": {
+					"publisher": "Canonical",
+					"offer": "UbuntuServer",
+					"sku": "18.04-LTS",
+					"version": "latest"
+				},
+				"osDisk": {
+					"createOption": "FromImage",
+					"managedDisk": {
+						"storageAccountType": "Standard_LRS"
+					}
+				},
+				"dataDisks": []
+			},
+			"networkProfile": {
+				"networkInterfaces": [{
+					"id": "[resourceId('Microsoft.Network/networkInterfaces', parameters('vsts_runner1_vm_network_interface_name'))]",
+					"properties": {
+						"primary": false
+					}
+				}]
+			}
+		},
+		"dependsOn": [
+			"[resourceId('Microsoft.Network/networkInterfaces', parameters('vsts_runner1_vm_network_interface_name'))]"
+		]
+	}]
+}

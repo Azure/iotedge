@@ -31,7 +31,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         const long MaxMessageSize = 256 * 1024; // matches IoTHub
 
         public RoutingEdgeHub(Router router, Core.IMessageConverter<IRoutingMessage> messageConverter,
-            IConnectionManager connectionManager, ITwinManager twinManager, string edgeDeviceId, IInvokeMethodHandler invokeMethodHandler)
+            IConnectionManager connectionManager, ITwinManager twinManager, string edgeDeviceId,
+            IInvokeMethodHandler invokeMethodHandler,
+            IDeviceConnectivityManager deviceConnectivityManager)
         {
             this.router = Preconditions.CheckNotNull(router, nameof(router));
             this.messageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
@@ -39,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             this.twinManager = Preconditions.CheckNotNull(twinManager, nameof(twinManager));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
             this.invokeMethodHandler = Preconditions.CheckNotNull(invokeMethodHandler, nameof(invokeMethodHandler));
-            this.connectionManager.CloudConnectionEstablished += this.CloudConnectionEstablished;
+            deviceConnectivityManager.DeviceConnected += this.DeviceConnected;
         }
 
         public Task ProcessDeviceMessage(IIdentity identity, IMessage message)
@@ -47,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             Preconditions.CheckNotNull(message, nameof(message));
             Preconditions.CheckNotNull(identity, nameof(identity));
             Events.MessageReceived(identity);
-            Metrics.MessageCount(identity);
+            Metrics.MessageCount(identity, 1);
             using (Metrics.MessageLatency(identity))
             {
                 IRoutingMessage routingMessage = this.ProcessMessageInternal(message, true);
@@ -57,7 +59,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
         public Task ProcessDeviceMessageBatch(IIdentity identity, IEnumerable<IMessage> messages)
         {
-            IEnumerable<IRoutingMessage> routingMessages = Preconditions.CheckNotNull(messages)
+            Preconditions.CheckNotNull(messages, nameof(messages));
+            Metrics.MessageCount(identity, messages.Count());
+
+            IEnumerable<IRoutingMessage> routingMessages = messages
                 .Select(m => this.ProcessMessageInternal(m, true));
             return this.router.RouteAsync(routingMessages);
         }
@@ -156,7 +161,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             }
             catch (Exception e)
             {
-                Events.ErrorAddingSubscription(e, id, deviceSubscription);                
+                Events.ErrorAddingSubscription(e, id, deviceSubscription);
             }
         }
 
@@ -171,7 +176,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             }
             catch (Exception e)
             {
-                Events.ErrorRemovingSubscription(e, id, deviceSubscription);                
+                Events.ErrorRemovingSubscription(e, id, deviceSubscription);
             }
         }
 
@@ -211,16 +216,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             }
         }
 
-        async void CloudConnectionEstablished(object sender, IIdentity identity)
+        async void DeviceConnected(object sender, EventArgs eventArgs)
         {
+            Events.DeviceConnectedProcessingSubscriptions();
             try
             {
-                Events.ProcessingSubscriptions(identity);
-                await this.ProcessSubscriptions(identity.Id);
+                IEnumerable<IIdentity> connectedClients = this.connectionManager.GetConnectedClients().ToList();
+                foreach (IIdentity identity in connectedClients)
+                {
+                    try
+                    {
+                        Events.ProcessingSubscriptions(identity);
+                        await this.ProcessSubscriptions(identity.Id);
+                    }
+                    catch (Exception e)
+                    {
+                        Events.ErrorProcessingSubscriptions(e, identity);
+                    }
+                }
             }
             catch (Exception e)
             {
-                Events.ErrorProcessingSubscriptions(e, identity);
+                Events.ErrorProcessingSubscriptions(e);
             }
         }
 
@@ -273,7 +290,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 return new MetricTags("Id", identity.Id);
             }
 
-            public static void MessageCount(IIdentity identity) => Util.Metrics.Count(GetTags(identity), EdgeHubMessageReceivedCountOptions);
+            public static void MessageCount(IIdentity identity, long count) => Util.Metrics.CountIncrement(GetTags(identity), EdgeHubMessageReceivedCountOptions, count);
 
             public static IDisposable MessageLatency(IIdentity identity) => Util.Metrics.Latency(GetTags(identity), EdgeHubMessageLatencyOptions);
         }
@@ -383,6 +400,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             public static void ProcessingSubscription(string id, DeviceSubscription deviceSubscription)
             {
                 Log.LogInformation((int)EventIds.ProcessingSubscription, Invariant($"Processing subscription {deviceSubscription} for client {id}."));
+            }
+
+            internal static void DeviceConnectedProcessingSubscriptions()
+            {
+                Log.LogInformation((int)EventIds.ProcessingSubscription, Invariant($"Device connected to cloud, processing subscriptions for connected clients."));
+            }
+
+            internal static void ErrorProcessingSubscriptions(Exception e)
+            {
+                Log.LogWarning((int)EventIds.ProcessingSubscription, e, Invariant($"Error processing subscriptions for connected clients."));
             }
         }
     }

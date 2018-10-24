@@ -103,7 +103,7 @@ static BUFFER_HANDLE decode_certificate(CERT_DATA_INFO* cert_info)
     // no need to do append a +1 due to we're not
     // copying the headers
     size_t len = strlen(iterator);
-    if ((cert_base64 = malloc(len)) == NULL)
+    if ((cert_base64 = (char*)malloc(len)) == NULL)
     {
         LogError("Failure allocating base64 decoding certificate");
         result = NULL;
@@ -214,20 +214,26 @@ static time_t tm_to_utc(const struct tm *tm)
 time_t get_utc_time_from_asn_string(const unsigned char *time_value, size_t length)
 {
     time_t result;
-    char temp_value[TEMP_DATE_LENGTH];
-    size_t temp_idx = 0;
-    struct tm target_time;
-    uint32_t numeric_val;
 
-    memset(&target_time, 0, sizeof(target_time));
-    memset(temp_value, 0, TEMP_DATE_LENGTH);
-    if (length != TIME_FIELD_LENGTH)
+    if (time_value == NULL)
+    {
+        LogError("Parse time error: Invalid time_value buffer");
+        result = 0;
+    }
+    else if (length != TIME_FIELD_LENGTH)
     {
         LogError("Parse time error: Invalid length field");
         result = 0;
     }
     else
     {
+        char temp_value[TEMP_DATE_LENGTH];
+        size_t temp_idx = 0;
+        struct tm target_time;
+        uint32_t numeric_val;
+
+        memset(&target_time, 0, sizeof(target_time));
+        memset(temp_value, 0, TEMP_DATE_LENGTH);
         // Don't evaluate the Z at the end of the UTC time field
         for (size_t index = 0; index < TIME_FIELD_LENGTH - 1; index++)
         {
@@ -533,7 +539,7 @@ CERT_INFO_HANDLE certificate_info_create(const char* certificate, const void* pr
     {
         memset(result, 0, sizeof(CERT_DATA_INFO));
 
-        if (cert_len == 0 || (result->certificate_pem = malloc(cert_len + 1)) == NULL)
+        if (cert_len == 0 || (result->certificate_pem = (char*)malloc(cert_len + 1)) == NULL)
         {
             LogError("Failure allocating certificate");
             free(result);
@@ -554,7 +560,7 @@ CERT_INFO_HANDLE certificate_info_create(const char* certificate, const void* pr
             else
             {
                 size_t num_bytes_first_cert = result->first_cert_end - result->first_cert_start + 1;
-                if ((result->first_certificate = malloc(num_bytes_first_cert + 1)) == NULL)
+                if ((result->first_certificate = (char*)malloc(num_bytes_first_cert + 1)) == NULL)
                 {
                     LogError("Failure allocating memory to hold the main certificate");
                     free(result->certificate_pem);
@@ -596,10 +602,13 @@ void certificate_info_destroy(CERT_INFO_HANDLE handle)
     if (cert_info != NULL)
     {
         free(cert_info->first_certificate);
+        cert_info->first_certificate = NULL;
         free(cert_info->certificate_pem);
+        cert_info->certificate_pem = NULL;
         if (cert_info->private_key != NULL)
         {
             free(cert_info->private_key);
+            cert_info->private_key = NULL;
         }
         free(cert_info);
     }

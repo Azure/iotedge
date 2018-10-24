@@ -1,6 +1,7 @@
 [Unit]
 Description=Azure IoT Edge daemon workload socket
 Documentation=man:iotedged(8)
+PartOf=iotedge.service
 
 [Socket]
 ListenStream=/var/run/iotedge/workload.sock

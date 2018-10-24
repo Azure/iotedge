@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using Newtonsoft.Json.Linq;
     using Xunit;
 
-    [E2E]
+    [Integration]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test")]
     [TestCaseOrderer("Microsoft.Azure.Devices.Edge.Util.Test.PriorityOrderer", "Microsoft.Azure.Devices.Edge.Util.Test")]
     public class CloudProxyTest
@@ -168,6 +168,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             await cloudProxy.SetupDesiredPropertyUpdatesAsync();
             await cloudProxy.RemoveDesiredPropertyUpdatesAsync();
             cloudProxy.StartListening();
+        }
+
+        [Fact]
+        public async Task TestCloseThrows()
+        {
+            // Arrange
+            var messageConverterProvider = Mock.Of<IMessageConverterProvider>();
+            string clientId = "d1";
+            var cloudListener = Mock.Of<ICloudListener>();
+            TimeSpan idleTimeout = TimeSpan.FromSeconds(60);
+            Action<string, CloudConnectionStatus> connectionStatusChangedHandler = (s, status) => { };
+            var client = new Mock<IClient>();
+            client.Setup(c => c.CloseAsync()).ThrowsAsync(new InvalidOperationException());
+            var cloudProxy = new CloudProxy(client.Object, messageConverterProvider, clientId, connectionStatusChangedHandler, cloudListener, idleTimeout, false);
+
+            // Act
+            bool result = await cloudProxy.CloseAsync();
+
+            // Assert.
+            Assert.True(result);
+            client.VerifyAll();
         }
 
         Task<ICloudProxy> GetCloudProxyWithConnectionStringKey(string connectionStringConfigKey) =>

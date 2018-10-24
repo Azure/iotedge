@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::convert::AsRef;
-use std::ffi::{CStr, CString};
+use std::ffi::{CStr, CString, NulError};
 use std::ops::{Deref, Drop};
-use std::os::raw::{c_uchar, c_void};
+use std::os::raw::{c_char, c_uchar, c_void};
 use std::slice;
 use std::str;
 
@@ -35,6 +35,9 @@ pub struct Crypto {
     handle: HSM_CLIENT_HANDLE,
     interface: HSM_CLIENT_CRYPTO_INTERFACE_TAG,
 }
+
+// Handles don't have thread-affinity
+unsafe impl Send for Crypto {}
 
 impl Drop for Crypto {
     fn drop(&mut self) {
@@ -191,6 +194,27 @@ fn make_certification_props(props: &CertificateProperties) -> Result<CERT_PROPS_
             unsafe { cert_properties_destroy(handle) };
             ErrorKind::CertProps
         })?;
+
+    if !props.san_entries.is_empty() {
+        let result: Result<Vec<CString>, NulError> = props
+            .san_entries
+            .iter()
+            .map(|s: &String| CString::new(s.clone()))
+            .collect();
+
+        let result: Vec<CString> = result.map_err(|_| {
+            unsafe { cert_properties_destroy(handle) };
+            ErrorKind::CertProps
+        })?;
+
+        let result: Vec<*const c_char> = result.iter().map(|s| s.as_ptr()).collect();
+
+        let result = unsafe { set_san_entries(handle, result.as_ptr(), result.len()) };
+        if result != 0 {
+            unsafe { cert_properties_destroy(handle) };
+            return Err(ErrorKind::CertProps)?;
+        }
+    }
     Ok(handle)
 }
 
@@ -345,6 +369,7 @@ pub struct CertificateProperties {
     locality: Option<String>,
     organization: Option<String>,
     organization_unit: Option<String>,
+    san_entries: Vec<String>,
 }
 
 impl CertificateProperties {
@@ -354,6 +379,7 @@ impl CertificateProperties {
         certificate_type: CertificateType,
         issuer_alias: String,
         alias: String,
+        san_entries: Vec<String>,
     ) -> Self {
         CertificateProperties {
             validity_in_secs,
@@ -366,6 +392,7 @@ impl CertificateProperties {
             locality: None,
             organization: None,
             organization_unit: None,
+            san_entries,
         }
     }
 
@@ -461,6 +488,15 @@ impl CertificateProperties {
         self.alias = alias;
         self
     }
+
+    pub fn san_entries(&self) -> &Vec<String> {
+        &self.san_entries
+    }
+
+    pub fn with_san_entries(mut self, entries: Vec<String>) -> CertificateProperties {
+        self.san_entries = entries;
+        self
+    }
 }
 
 impl Default for CertificateProperties {
@@ -476,6 +512,7 @@ impl Default for CertificateProperties {
             locality: None,
             organization: None,
             organization_unit: None,
+            san_entries: Vec::new(),
         }
     }
 }
@@ -572,7 +609,7 @@ impl AsRef<[u8]> for Buffer {
 
 #[cfg(test)]
 mod tests {
-    use std::ffi::CString;
+    use std::ffi::{CStr, CString};
     use std::os::raw::{c_char, c_int, c_uchar, c_void};
 
     use super::super::{
@@ -600,6 +637,174 @@ mod tests {
             hsm_client_free_buffer: Some(real_buffer_destroy),
             ..HSM_CLIENT_CRYPTO_INTERFACE::default()
         }
+    }
+
+    #[test]
+    fn cert_props_get_set() {
+        let handle = unsafe { cert_properties_create() };
+        assert_eq!(false, handle.is_null());
+
+        // validity get/set test
+        let test_input: u64 = 3600;
+        let set_result = unsafe { set_validity_seconds(handle, test_input) };
+        assert_eq!(0, set_result);
+        unsafe {
+            let get_result = get_validity_seconds(handle);
+            assert_eq!(test_input, get_result);
+        };
+
+        // cert type get/set test
+        let test_input: CERTIFICATE_TYPE = CERTIFICATE_TYPE_TAG_CERTIFICATE_TYPE_SERVER;
+        let set_result = unsafe { set_certificate_type(handle, test_input) };
+        assert_eq!(0, set_result);
+        unsafe {
+            let get_result = get_certificate_type(handle);
+            assert_eq!(test_input, get_result);
+        };
+
+        // common name get/set test
+        let test_input = CString::new("Lord Voldermort").unwrap();
+        let set_result = unsafe { set_common_name(handle, test_input.as_ptr()) };
+        assert_eq!(0, set_result);
+        unsafe {
+            let get_result = CStr::from_ptr(get_common_name(handle));
+            assert_eq!(
+                test_input.to_bytes_with_nul(),
+                get_result.to_bytes_with_nul()
+            );
+        };
+
+        // country get/set test
+        let test_input = CString::new("UK").unwrap();
+        let set_result = unsafe { set_country_name(handle, test_input.as_ptr()) };
+        assert_eq!(0, set_result);
+        unsafe {
+            let get_result = CStr::from_ptr(get_country_name(handle));
+            assert_eq!(
+                test_input.to_bytes_with_nul(),
+                get_result.to_bytes_with_nul()
+            );
+        };
+
+        // state get/set test
+        let test_input = CString::new("Scotland").unwrap();
+        let set_result = unsafe { set_state_name(handle, test_input.as_ptr()) };
+        assert_eq!(0, set_result);
+        unsafe {
+            let get_result = CStr::from_ptr(get_state_name(handle));
+            assert_eq!(
+                test_input.to_bytes_with_nul(),
+                get_result.to_bytes_with_nul()
+            );
+        };
+
+        // locality get/set test
+        let test_input = CString::new("Somewhere in Scotland").unwrap();
+        let set_result = unsafe { set_locality(handle, test_input.as_ptr()) };
+        assert_eq!(0, set_result);
+        unsafe {
+            let get_result = CStr::from_ptr(get_locality(handle));
+            assert_eq!(
+                test_input.to_bytes_with_nul(),
+                get_result.to_bytes_with_nul()
+            );
+        };
+
+        // org get/set test
+        let test_input = CString::new("Hogwarts").unwrap();
+        let set_result = unsafe { set_organization_name(handle, test_input.as_ptr()) };
+        assert_eq!(0, set_result);
+        unsafe {
+            let get_result = CStr::from_ptr(get_organization_name(handle));
+            assert_eq!(
+                test_input.to_bytes_with_nul(),
+                get_result.to_bytes_with_nul()
+            );
+        };
+
+        // org unit get/set test
+        let test_input = CString::new("Slytherin").unwrap();
+        let set_result = unsafe { set_organization_unit(handle, test_input.as_ptr()) };
+        assert_eq!(0, set_result);
+        unsafe {
+            let get_result = CStr::from_ptr(get_organization_unit(handle));
+            assert_eq!(
+                test_input.to_bytes_with_nul(),
+                get_result.to_bytes_with_nul()
+            );
+        };
+
+        // alias get/set test
+        let test_input = CString::new("Tom Marvolo Riddle").unwrap();
+        let set_result = unsafe { set_alias(handle, test_input.as_ptr()) };
+        assert_eq!(0, set_result);
+        unsafe {
+            let get_result = CStr::from_ptr(get_alias(handle));
+            assert_eq!(
+                test_input.to_bytes_with_nul(),
+                get_result.to_bytes_with_nul()
+            );
+        };
+
+        // issuer alias get/set test
+        let test_input = CString::new("JK Rowling").unwrap();
+        let set_result = unsafe { set_issuer_alias(handle, test_input.as_ptr()) };
+        assert_eq!(0, set_result);
+        unsafe {
+            let get_result = CStr::from_ptr(get_issuer_alias(handle));
+            assert_eq!(
+                test_input.to_bytes_with_nul(),
+                get_result.to_bytes_with_nul()
+            );
+        };
+
+        // san get/set test
+        let test_strings: Vec<CString> = vec![
+            CString::new("He Who Must Not Be Named").unwrap(),
+            CString::new("The Dark Lord").unwrap(),
+            CString::new("You know who").unwrap(),
+        ];
+
+        let san_ptrs: Vec<*const c_char> = test_strings.iter().map(|s| s.as_ptr()).collect();
+
+        let set_result = unsafe { set_san_entries(handle, san_ptrs.as_ptr(), san_ptrs.len()) };
+        assert_eq!(0, set_result);
+        unsafe {
+            let mut num_entries: usize = 0;
+            let get_result = get_san_entries(handle, &mut num_entries);
+            assert_eq!(num_entries, san_ptrs.len());
+            let result: *const *const c_char = get_result;
+            let mut current = result;
+            for _ in 0..num_entries {
+                let mut matched = false;
+                for i in 0..num_entries {
+                    if test_strings[i].to_bytes_with_nul()
+                        == CStr::from_ptr(*current).to_bytes_with_nul()
+                    {
+                        matched = true;
+                        break;
+                    }
+                }
+                assert_eq!(true, matched);
+                current = current.offset(1);
+            }
+        };
+
+        unsafe { cert_properties_destroy(handle) };
+    }
+
+    #[test]
+    fn certificate_props_get_set_default_test() {
+        let input_sans: Vec<String> = Vec::new();
+        let props = CertificateProperties::default();
+        assert_eq!(input_sans, *props.san_entries());
+    }
+
+    #[test]
+    fn certificate_props_get_set_test() {
+        let input_sans: Vec<String> = vec![String::from("aa"), String::from("bb")];
+        let props = CertificateProperties::default().with_san_entries(input_sans.clone());
+        assert_eq!(input_sans, *props.san_entries());
     }
 
     #[test]

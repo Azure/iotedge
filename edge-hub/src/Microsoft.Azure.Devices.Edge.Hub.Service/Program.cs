@@ -5,8 +5,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using System;
     using System.Collections.Generic;
     using System.Globalization;
-    using System.Runtime.InteropServices;
-    using System.Security.Cryptography.X509Certificates;
     using System.Threading;
     using System.Threading.Tasks;
     using Autofac;
@@ -19,13 +17,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
-    using ILogger = Microsoft.Extensions.Logging.ILogger;
 
     public class Program
     {
         static readonly TimeSpan ShutdownWaitPeriod = TimeSpan.FromSeconds(20);
+
         public static int Main()
         {
             Console.WriteLine($"[{DateTime.UtcNow.ToString("MM/dd/yyyy hh:mm:ss.fff tt", CultureInfo.InvariantCulture)}] Edge Hub Main()");
@@ -37,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             return MainAsync(configuration).Result;
         }
 
-        public static async Task<int> MainAsync(IConfigurationRoot configuration)
+        static async Task<int> MainAsync(IConfigurationRoot configuration)
         {
             string logLevel = configuration.GetValue($"{Logger.RuntimeLogLevelEnvKey}", "info");
             Logger.SetLogLevel(logLevel);
@@ -45,76 +44,35 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             // Set the LoggerFactory used by the Routing code.
             if (configuration.GetValue("EnableRoutingLogging", false))
             {
-                Routing.Core.Routing.LoggerFactory = Logger.Factory;
+                Routing.LoggerFactory = Logger.Factory;
             }
 
-            X509Certificate2 cert;
-            IEnumerable<X509Certificate2> chain;
-            string edgeHubConnectionString = configuration.GetValue<string>(Constants.IotHubConnectionStringVariableName);
-            // When connection string is not set it is edged mode
-            if (string.IsNullOrEmpty(edgeHubConnectionString))
-            {
-                var workloadUri = new Uri(configuration.GetValue<string>(Constants.WorkloadUriVariableName));
-                string edgeHubHostname = configuration.GetValue<string>(Constants.EdgeDeviceHostnameVariableName);
-                string moduleId = configuration.GetValue<string>(Constants.ModuleIdVariableName);
-                string generationId = configuration.GetValue<string>(Constants.ModuleGenerationIdVariableName);
-                DateTime expiration = DateTime.UtcNow.AddDays(Constants.CertificateValidityDays);
-                (cert, chain) = await CertificateHelper.GetServerCertificatesFromEdgelet(workloadUri, Constants.WorkloadApiVersion, moduleId, generationId, edgeHubHostname, expiration);
-            }
-            else
-            {
-                string edgeHubCertPath = configuration.GetValue<string>(Constants.EdgeHubServerCertificateFileKey);
-                cert = new X509Certificate2(edgeHubCertPath);
-                string edgeHubCaChainCertPath = configuration.GetValue<string>(Constants.EdgeHubServerCAChainCertificateFileKey);
-                chain = CertificateHelper.GetServerCACertificatesFromFile(edgeHubCaChainCertPath);
-            }
-
-            // TODO: set certificate for Startup without the cache
-            ServerCertificateCache.X509Certificate = cert;
-
-            int port = configuration.GetValue("httpSettings:port", 443);
-            Hosting hosting = Hosting.Initialize(port);
-
+            EdgeHubCertificates certificates = await EdgeHubCertificates.LoadAsync(configuration).ConfigureAwait(false);
+            Hosting hosting = Hosting.Initialize(configuration, certificates.ServerCertificate, new DependencyManager(configuration, certificates.ServerCertificate));
             IContainer container = hosting.Container;
 
             ILogger logger = container.Resolve<ILoggerFactory>().CreateLogger("EdgeHub");
             logger.LogInformation("Starting Edge Hub");
-            VersionInfo versionInfo = VersionInfo.Get(Constants.VersionInfoFileName);
-            if (versionInfo != VersionInfo.Empty)
-            {
-                logger.LogInformation($"Version - {versionInfo.ToString(true)}");
-            }
             LogLogo(logger);
-            
-            if (chain != null)
-            {
-                logger.LogInformation("Installing intermediate certificates.");
+            LogVersionInfo(logger);
 
-                CertificateHelper.InstallCerts(
-                    RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? StoreName.CertificateAuthority : StoreName.Root,
-                    StoreLocation.CurrentUser,
-                    chain);
-            }
-            else
-            {
-                logger.LogWarning("Unable to find intermediate certificates.");
-            }
+            logger.LogInformation("Loaded server certificate with expiration date of {0}", certificates.ServerCertificate.NotAfter.ToString("o"));
 
             // EdgeHub and CloudConnectionProvider have a circular dependency. So need to Bind the EdgeHub to the CloudConnectionProvider.
             IEdgeHub edgeHub = await container.Resolve<Task<IEdgeHub>>();
             ICloudConnectionProvider cloudConnectionProvider = await container.Resolve<Task<ICloudConnectionProvider>>();
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
-            // Register EdgeHub credentials
-            var edgeHubCredentials = container.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
-            ICredentialsCache credentialsCache = await container.Resolve<Task<ICredentialsCache>>();
-            await credentialsCache.Add(edgeHubCredentials);
-
             // EdgeHub cloud proxy and DeviceConnectivityManager have a circular dependency,
             // so the cloud proxy has to be set on the DeviceConnectivityManager after both have been initialized.
             var deviceConnectivityManager = container.Resolve<IDeviceConnectivityManager>();
             IConnectionManager connectionManager = await container.Resolve<Task<IConnectionManager>>();
             (deviceConnectivityManager as DeviceConnectivityManager)?.SetConnectionManager(connectionManager);
+
+            // Register EdgeHub credentials
+            var edgeHubCredentials = container.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
+            ICredentialsCache credentialsCache = await container.Resolve<Task<ICredentialsCache>>();
+            await credentialsCache.Add(edgeHubCredentials);
 
             // Initializing configuration
             logger.LogInformation("Initializing configuration");
@@ -129,9 +87,37 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 connectionReauthenticator.Init();
             }
 
-            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler)
-                = ShutdownHandler.Init(ShutdownWaitPeriod, logger);
+            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(ShutdownWaitPeriod, logger);
 
+            Metrics.BuildMetricsCollector(configuration);
+
+            using (IProtocolHead protocolHead = await GetEdgeHubProtocolHeadAsync(logger, configuration, container, hosting).ConfigureAwait(false))
+            using (var renewal = new CertificateRenewal(certificates, logger))
+            {
+                await protocolHead.StartAsync();
+                await Task.WhenAny(cts.Token.WhenCanceled(), renewal.Token.WhenCanceled());
+                logger.LogInformation("Stopping the protocol heads...");
+                await Task.WhenAny(protocolHead.CloseAsync(CancellationToken.None), Task.Delay(TimeSpan.FromSeconds(10), CancellationToken.None));
+                logger.LogInformation("Protocol heads stopped.");
+            }
+
+            completed.Set();
+            handler.ForEach(h => GC.KeepAlive(h));
+            logger.LogInformation("Shutdown complete.");
+            return 0;
+        }
+
+        static void LogVersionInfo(ILogger logger)
+        {
+            VersionInfo versionInfo = VersionInfo.Get(Constants.VersionInfoFileName);
+            if (versionInfo != VersionInfo.Empty)
+            {
+                logger.LogInformation($"Version - {versionInfo.ToString(true)}");
+            }
+        }
+
+        static async Task<EdgeHubProtocolHead> GetEdgeHubProtocolHeadAsync(ILogger logger, IConfigurationRoot configuration, IContainer container, Hosting hosting)
+        {
             var protocolHeads = new List<IProtocolHead>();
             if (configuration.GetValue("mqttSettings:enabled", true))
             {
@@ -148,21 +134,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 protocolHeads.Add(new HttpProtocolHead(hosting.WebHost));
             }
 
-            using (IProtocolHead protocolHead = new EdgeHubProtocolHead(protocolHeads, logger))
-            {
-                await protocolHead.StartAsync();
-                await cts.Token.WhenCanceled();
-                await Task.WhenAny(protocolHead.CloseAsync(CancellationToken.None), Task.Delay(TimeSpan.FromSeconds(10), CancellationToken.None));
-            }
-
-            completed.Set();
-            handler.ForEach(h => GC.KeepAlive(h));
-            return 0;
-        }        
+            return new EdgeHubProtocolHead(protocolHeads, logger);
+        }
 
         static void LogLogo(ILogger logger)
         {
-            logger.LogInformation(@"
+            logger.LogInformation(
+                @"
         █████╗ ███████╗██╗   ██╗██████╗ ███████╗
        ██╔══██╗╚══███╔╝██║   ██║██╔══██╗██╔════╝
        ███████║  ███╔╝ ██║   ██║██████╔╝█████╗

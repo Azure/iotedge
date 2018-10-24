@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+
 //! iot-hsm-sys
 //! Rust FFI to C library interface
 //! Based off of https://github.com/Azure/azure-iot-hsm-c/inc/hsm_client_data.h
@@ -6,9 +7,8 @@
 //!
 //! Intitial version created through bindgen https://docs.rs/bindgen/
 
-#![allow(non_upper_case_globals)]
-#![allow(non_camel_case_types)]
-#![allow(non_snake_case)]
+#![deny(unused_extern_crates, warnings)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals)]
 
 use std::os::raw::{c_char, c_int, c_uchar, c_void};
 
@@ -329,7 +329,19 @@ extern "C" {
 extern "C" {
     pub fn get_alias(handle: CERT_PROPS_HANDLE) -> *const c_char;
 }
-
+extern "C" {
+    pub fn set_san_entries(
+        handle: CERT_PROPS_HANDLE,
+        san_list: *const *const c_char,
+        num_entries: usize,
+    ) -> c_int;
+}
+extern "C" {
+    pub fn get_san_entries(
+        handle: CERT_PROPS_HANDLE,
+        num_entries: *mut usize,
+    ) -> *const *const c_char;
+}
 /// API generates a X.509 certificate and private key pair using the supplied
 /// certificate properties. Any CA certificates are expected to by issued by
 /// the Device CA. Other certificates may be issued by any intermediate CA

@@ -6,6 +6,7 @@
 #include <stddef.h>
 
 #include "testrunnerswitcher.h"
+#include "test_utils.h"
 #include "azure_c_shared_utility/gballoc.h"
 #include "azure_c_shared_utility/sastoken.h"
 #include "azure_c_shared_utility/urlencode.h"
@@ -31,6 +32,9 @@
 #define PRIMARY_URI "primary"
 #define SECONDARY_URI "secondary"
 
+static char* TEST_IOTEDGE_HOMEDIR = NULL;
+static char* TEST_IOTEDGE_HOMEDIR_GUID = NULL;
+
 static TEST_MUTEX_HANDLE g_testByTest;
 static TEST_MUTEX_HANDLE g_dllByDll;
 
@@ -40,17 +44,25 @@ static TEST_MUTEX_HANDLE g_dllByDll;
 
 static void test_helper_setup_homedir(void)
 {
-#if defined(TESTONLY_IOTEDGE_HOMEDIR)
-    #if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
-        errno_t status = _putenv_s("IOTEDGE_HOMEDIR", TESTONLY_IOTEDGE_HOMEDIR);
-    #else
-        int status = setenv("IOTEDGE_HOMEDIR", TESTONLY_IOTEDGE_HOMEDIR, 1);
-    #endif
-    printf("IoT Edge home dir set to %s\n", TESTONLY_IOTEDGE_HOMEDIR);
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-#else
-    #error "Could not find symbol TESTONLY_IOTEDGE_HOMEDIR"
-#endif
+    TEST_IOTEDGE_HOMEDIR = hsm_test_util_create_temp_dir(&TEST_IOTEDGE_HOMEDIR_GUID);
+    ASSERT_IS_NOT_NULL_WITH_MSG(TEST_IOTEDGE_HOMEDIR_GUID, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL_WITH_MSG(TEST_IOTEDGE_HOMEDIR, "Line:" TOSTRING(__LINE__));
+
+    printf("Temp dir created: [%s]\r\n", TEST_IOTEDGE_HOMEDIR);
+    hsm_test_util_setenv("IOTEDGE_HOMEDIR", TEST_IOTEDGE_HOMEDIR);
+    printf("IoT Edge home dir set to %s\n", TEST_IOTEDGE_HOMEDIR);
+}
+
+static void test_helper_tear_down_homedir(void)
+{
+    if ((TEST_IOTEDGE_HOMEDIR != NULL) && (TEST_IOTEDGE_HOMEDIR_GUID != NULL))
+    {
+        hsm_test_util_delete_dir(TEST_IOTEDGE_HOMEDIR_GUID);
+        free(TEST_IOTEDGE_HOMEDIR);
+        TEST_IOTEDGE_HOMEDIR = NULL;
+        free(TEST_IOTEDGE_HOMEDIR_GUID);
+        TEST_IOTEDGE_HOMEDIR_GUID = NULL;
+    }
 }
 
 static HSM_CLIENT_HANDLE tpm_provision(void)
@@ -239,6 +251,7 @@ BEGIN_TEST_SUITE(edge_hsm_sas_auth_int_tests)
 
     TEST_SUITE_CLEANUP(TestClassCleanup)
     {
+        test_helper_tear_down_homedir();
         TEST_MUTEX_DESTROY(g_testByTest);
         TEST_DEINITIALIZE_MEMORY_DEBUG(g_dllByDll);
     }
@@ -316,7 +329,7 @@ BEGIN_TEST_SUITE(edge_hsm_sas_auth_int_tests)
 
         // compute expected result
         BUFFER_HANDLE test_expected_primary_key_buf = test_helper_compute_hmac(decoded_key,
-                                                                               primary_fqmid,
+                                                                               (unsigned char*)primary_fqmid,
                                                                                strlen(primary_fqmid));
 
         BUFFER_HANDLE test_expected_digest = test_helper_compute_hmac(test_expected_primary_key_buf,
@@ -361,11 +374,11 @@ BEGIN_TEST_SUITE(edge_hsm_sas_auth_int_tests)
 
         // compute expected result
         BUFFER_HANDLE test_expected_primary_key_buf = test_helper_compute_hmac(decoded_key,
-                                                                               primary_fqmid,
+                                                                               (unsigned char*)primary_fqmid,
                                                                                strlen(primary_fqmid));
 
         BUFFER_HANDLE test_expected_secondary_key_buf = test_helper_compute_hmac(decoded_key,
-                                                                                 secondary_fqmid,
+                                                                                 (unsigned char*)secondary_fqmid,
                                                                                  strlen(secondary_fqmid));
 
         // act
@@ -375,8 +388,8 @@ BEGIN_TEST_SUITE(edge_hsm_sas_auth_int_tests)
         ASSERT_IS_NOT_NULL_WITH_MSG(test_output_secondary_key_buf, "Line:" TOSTRING(__LINE__));
 
         HSM_CLIENT_HANDLE hsm_handle = test_helper_init_tpm_and_activate_key(decoded_key);
-        tpm_sign(hsm_handle, NULL, 0, primary_fqmid, strlen(primary_fqmid), test_output_primary_key_buf);
-        tpm_sign(hsm_handle, NULL, 0, secondary_fqmid, strlen(secondary_fqmid), test_output_secondary_key_buf);
+        tpm_sign(hsm_handle, NULL, 0, (unsigned char*)primary_fqmid, strlen(primary_fqmid), test_output_primary_key_buf);
+        tpm_sign(hsm_handle, NULL, 0, (unsigned char*)secondary_fqmid, strlen(secondary_fqmid), test_output_secondary_key_buf);
 
         // assert
         STRING_HANDLE expected_primary_key_str = Base64_Encoder(test_expected_primary_key_buf);

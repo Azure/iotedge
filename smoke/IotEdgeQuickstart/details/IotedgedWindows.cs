@@ -12,12 +12,14 @@ namespace IotEdgeQuickstart.Details
     {
         readonly string archivePath;
         readonly Option<RegistryCredentials> credentials;
+        readonly Option<string> proxy;
         string scriptDir;
 
-        public IotedgedWindows(string archivePath, Option<RegistryCredentials> credentials)
+        public IotedgedWindows(string archivePath, Option<RegistryCredentials> credentials, Option<string> proxy)
         {
             this.archivePath = archivePath;
             this.credentials = credentials;
+            this.proxy = proxy;
         }
 
         public async Task VerifyNotActive()
@@ -114,6 +116,10 @@ namespace IotEdgeQuickstart.Details
                 {
                     args += $" -Username '{c.User}' -Password (ConvertTo-SecureString '{c.Password}' -AsPlainText -Force)";
                 }
+
+                this.proxy.ForEach(proxy => {
+                    args += $" -Proxy '{proxy}'";
+                });
 
                 if (this.archivePath != null)
                 {

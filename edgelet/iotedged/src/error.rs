@@ -16,7 +16,7 @@ use edgelet_hsm::Error as SoftHsmError;
 use edgelet_http::Error as HttpError;
 use failure::{Backtrace, Context, Fail};
 use hsm::Error as HardHsmError;
-use hyper::error::UriError;
+use http;
 use hyper::Error as HyperError;
 use hyper_tls::Error as HyperTlsError;
 use iothubservice::error::Error as IotHubError;
@@ -238,8 +238,8 @@ impl From<ParseError> for Error {
     }
 }
 
-impl From<UriError> for Error {
-    fn from(error: UriError) -> Error {
+impl From<http::uri::InvalidUri> for Error {
+    fn from(error: http::uri::InvalidUri) -> Error {
         Error {
             inner: error.context(ErrorKind::Parse),
         }

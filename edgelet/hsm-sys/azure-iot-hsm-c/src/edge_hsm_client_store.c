@@ -588,7 +588,7 @@ STRING_HANDLE compute_b64_sha_digest_string
     }
     else if (ip_buffer_size > UINT_MAX)
     {
-        LOG_ERROR("Input buffer size too large %lu", ip_buffer_size);
+        LOG_ERROR("Input buffer size too large %zu", ip_buffer_size);
         result = NULL;
     }
     else
@@ -1641,7 +1641,7 @@ static int generate_edge_hsm_certificates_if_needed(void)
     else if ((load_status == LOAD_ERR_VERIFICATION_FAILED) ||
              (load_status == LOAD_ERR_NOT_FOUND))
     {
-        LOG_DEBUG("Load status %d. Generating owner and device CA certs and keys", load_status);
+        LOG_INFO("Load status %d. Regenerating owner and device CA certs and keys", load_status);
         if (create_owner_ca_cert() != 0)
         {
             result = __FAILURE__;

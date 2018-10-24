@@ -197,7 +197,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 .ToList();
         }
 
-        public static async Task<(X509Certificate2, IEnumerable<X509Certificate2>)> GetServerCertificatesFromEdgelet(Uri workloadUri, string workloadApiVersion, string moduleId, string moduleGenerationId, string edgeHubHostname, DateTime expiration)
+        public static async Task<(X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain)> GetServerCertificatesFromEdgelet(Uri workloadUri, string workloadApiVersion, string moduleId, string moduleGenerationId, string edgeHubHostname, DateTime expiration)
         {
             if (string.IsNullOrEmpty(edgeHubHostname))
             {
@@ -206,6 +206,33 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
             CertificateResponse response = await new WorkloadClient(workloadUri, workloadApiVersion, moduleId, moduleGenerationId).CreateServerCertificateAsync(edgeHubHostname, expiration);
             return ParseCertificateResponse(response);
+        }
+
+        public static (X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain) GetServerCertificateAndChainFromFile(string serverWithChainFilePath, string serverPrivateKeyFilePath)
+        {
+            string cert, privateKey;
+
+            if (string.IsNullOrWhiteSpace(serverWithChainFilePath) || !File.Exists(serverWithChainFilePath))
+            {
+                throw new ArgumentException($"'{serverWithChainFilePath}' is not a path to a server certificate file");
+            }
+
+            if (string.IsNullOrWhiteSpace(serverPrivateKeyFilePath) || !File.Exists(serverPrivateKeyFilePath))
+            {
+                throw new ArgumentException($"'{serverPrivateKeyFilePath}' is not a path to a private key file");
+            }
+
+            using (var sr = new StreamReader(serverWithChainFilePath))
+            {
+                cert = sr.ReadToEnd();
+            }
+
+            using (var sr = new StreamReader(serverPrivateKeyFilePath))
+            {
+                privateKey = sr.ReadToEnd();
+            }
+
+            return ParseCertificateAndKey(cert, privateKey);
         }
 
         public static IEnumerable<X509Certificate2> GetServerCACertificatesFromFile(string chainPath)
@@ -233,7 +260,12 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateResponse(CertificateResponse response)
         {
-            IEnumerable<string> pemCerts = ParsePemCerts(response.Certificate);
+            return ParseCertificateAndKey(response.Certificate, response.PrivateKey.Bytes);
+        }
+
+        internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateAndKey(string certificateWithChain, string privateKey)
+        {
+            IEnumerable<string> pemCerts = ParsePemCerts(certificateWithChain);
 
             if (pemCerts.FirstOrDefault() == null)
             {
@@ -245,7 +277,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
             Pkcs12Store store = new Pkcs12StoreBuilder().Build();
             IList<X509CertificateEntry> chain = new List<X509CertificateEntry>();
 
-            var sr = new StringReader(pemCerts.First() + "\r\n" + response.PrivateKey.Bytes);
+            // note: the seperator between the certificate and private key is added for safety to delinate the cert and key boundary
+            var sr = new StringReader(pemCerts.First() + "\r\n" + privateKey);
             var pemReader = new PemReader(sr);
 
             RsaPrivateCrtKeyParameters keyParams = null;

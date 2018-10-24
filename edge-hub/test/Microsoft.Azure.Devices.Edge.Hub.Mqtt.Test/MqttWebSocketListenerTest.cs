@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 false,
                 0);
 
-            Assert.Equal("mqtt", listener.SubProtocol);
+            Assert.Equal(Constants.WebSocketSubProtocol, listener.SubProtocol);
         }
     }
 }

@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(warnings)]
+#![deny(unused_extern_crates, warnings)]
 
 extern crate base64;
 extern crate chrono;
@@ -13,19 +13,22 @@ extern crate hyper;
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
-extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+#[cfg(test)]
+extern crate serde;
 // Need stuff other than macros from serde_json for non-test code.
 #[cfg(not(test))]
 extern crate serde_json;
-extern crate tokio_core;
+#[cfg(test)]
+extern crate tokio;
 extern crate url;
 
 // Need macros from serde_json for unit tests.
 #[cfg(test)]
 #[macro_use]
 extern crate serde_json;
+#[cfg(unix)]
 #[cfg(test)]
 extern crate tempfile;
 #[cfg(test)]

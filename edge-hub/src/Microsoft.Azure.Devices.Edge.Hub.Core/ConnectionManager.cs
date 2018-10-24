@@ -8,6 +8,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using System.Collections.ObjectModel;
     using System.Linq;
     using System.Threading.Tasks;
+    using App.Metrics;
+    using App.Metrics.Gauge;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -44,11 +46,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.credentialsCache = Preconditions.CheckNotNull(credentialsCache, nameof(credentialsCache));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
             this.edgeModuleId = Preconditions.CheckNonWhiteSpace(edgeModuleId, nameof(edgeModuleId));
+            Util.Metrics.RegisterGaugeCallback(() => Metrics.SetConnectedClientCountGauge(this.GetConnectedClients().Count()));
         }
 
         public IEnumerable<IIdentity> GetConnectedClients() =>
             this.devices.Values
-                .Where(d => d.DeviceConnection.Map(dc => dc.IsActive).GetOrElse(false) && !d.Identity.Id.Equals($"{this.edgeDeviceId}/{this.edgeModuleId}"))
+                .Where(d => d.DeviceConnection.Map(dc => dc.IsActive).GetOrElse(false))
                 .Select(d => d.Identity);
 
         public async Task AddDeviceConnection(IIdentity identity, IDeviceProxy deviceProxy)
@@ -58,7 +61,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             ConnectedDevice device = this.GetOrCreateConnectedDevice(identity);
             Option<DeviceConnection> currentDeviceConnection = device.AddDeviceConnection(deviceProxy);
             Events.NewDeviceConnection(identity);
-
             await currentDeviceConnection
                 .Filter(dc => dc.IsActive)
                 .ForEachAsync(dc => dc.CloseAsync(new MultipleConnectionsException($"Multiple connections detected for device {identity.Id}")));
@@ -237,6 +239,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 case CloudConnectionStatus.Disconnected:
                     Events.InvokingCloudConnectionLostEvent(device.Identity);
                     this.CloudConnectionLost?.Invoke(this, device.Identity);
+                    await device.CloudConnection.Filter(cp => cp.IsActive).ForEachAsync(cp =>
+                    {
+                        Events.CloudConnectionLostClosingClient(device.Identity);
+                        return cp.CloseAsync();
+                    });
                     break;
 
                 case CloudConnectionStatus.ConnectionEstablished:
@@ -374,6 +381,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             public Task CloseAsync(Exception ex) => this.DeviceProxy.CloseAsync(ex);
         }
 
+        static class Metrics
+        {
+            static readonly GaugeOptions ConnectedClientGaugeOptions = new GaugeOptions
+            {
+                Name = "EdgeHubConnectedClientGauge",
+                MeasurementUnit = Unit.Events
+            };
+
+            public static void SetConnectedClientCountGauge(long amount)
+            {
+                Edge.Util.Metrics.SetGauge(ConnectedClientGaugeOptions, amount);
+            }
+        };
+
         static class Events
         {
             static readonly ILogger Log = Logger.Factory.CreateLogger<ConnectionManager>();
@@ -390,7 +411,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 ProcessingTokenNearExpiryEvent,
                 InvokingCloudConnectionLostEvent,
                 InvokingCloudConnectionEstablishedEvent,
-                HandlingConnectionStatusChangedHandler
+                HandlingConnectionStatusChangedHandler,
+                CloudConnectionLostClosingClient
             }
 
             public static void NewCloudConnection(IIdentity identity, Try<ICloudConnection> cloudConnection)
@@ -445,6 +467,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             public static void HandlingConnectionStatusChangedHandler(string deviceId, CloudConnectionStatus connectionStatus)
             {
                 Log.LogInformation((int)EventIds.HandlingConnectionStatusChangedHandler, Invariant($"Connection status for {deviceId} changed to {connectionStatus}"));
+            }
+
+            public static void CloudConnectionLostClosingClient(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.CloudConnectionLostClosingClient, Invariant($"Cloud connection lost for {identity.Id}, closing client."));
             }
         }
     }
