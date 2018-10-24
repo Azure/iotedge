@@ -133,8 +133,8 @@ mod tests {
     use std::result::Result as StdResult;
     use std::sync::Arc;
 
-    // use chrono::offset::Utc;
-    // use chrono::Duration;
+    use chrono::offset::Utc;
+    use chrono::Duration;
 
     use edgelet_core::{Error as CoreError};
     use edgelet_test_utils::cert::TestCert;
@@ -192,9 +192,9 @@ mod tests {
                 .with_private_key(PrivateKey::Key(KeyBytes::Pem("Betelgeuse".to_string()))))
         }));
 
-        let cert_req = IdentityCertificateRequest::new();
-                            // .with_common_name("marvin".to_string())
-                            // .with_expiration((Utc::now() + Duration::hours(1)).to_rfc3339());
+        let cert_req = IdentityCertificateRequest::new()
+                            .with_common_name("marvin".to_string())
+                            .with_expiration((Utc::now() + Duration::hours(1)).to_rfc3339());
 
         let request = Request::get("http://localhost/modules/beeblebrox/certificate/identity")
             .body(serde_json::to_string(&cert_req).unwrap().into())
