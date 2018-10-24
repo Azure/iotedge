@@ -3,6 +3,7 @@
 #![deny(unused_extern_crates, warnings)]
 
 extern crate bytes;
+extern crate chrono;
 extern crate edgelet_core;
 #[macro_use]
 extern crate failure;

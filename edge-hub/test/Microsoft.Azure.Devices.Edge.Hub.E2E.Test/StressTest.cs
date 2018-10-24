@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
-    [E2E, Stress]
+    [Integration, Stress]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
     [TestCaseOrderer("Microsoft.Azure.Devices.Edge.Util.Test.PriorityOrderer", "Microsoft.Azure.Devices.Edge.Util.Test")]
     public class StressTest : IClassFixture<ProtocolHeadFixture>
