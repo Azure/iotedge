@@ -5,6 +5,7 @@ authors = ["Azure IoT Edge Devs"]
 publish = false
 
 [dependencies]
+chrono = "0.4"
 failure = "0.1"
 futures = "0.1"
 hyper = "0.12"

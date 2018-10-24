@@ -31,6 +31,8 @@ pub enum ErrorKind {
     Utf8,
     #[fail(display = "Invalid private key type: {}", _0)]
     PrivateKeyType(u32),
+    #[fail(display = "Invalid certificate timestamp")]
+    ToDateTime,
 }
 
 impl Fail for Error {
