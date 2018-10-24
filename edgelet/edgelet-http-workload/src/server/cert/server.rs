@@ -72,9 +72,7 @@ where
                                 hsm.create_certificate(&props)
                                     .map_err(Error::from)
                                     .and_then(|cert| {
-                                        let cert = cert_to_response(
-                                            &cert,
-                                        )?;
+                                        let cert = cert_to_response(&cert)?;
                                         let body = serde_json::to_string(&cert)?;
                                         Response::builder()
                                             .status(StatusCode::CREATED)
@@ -597,7 +595,8 @@ mod tests {
         let response = handler.handle(request, params).wait().unwrap();
 
         assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
-        assert!(parse_error_response(response)
+        assert!(
+            parse_error_response(response)
                 .message()
                 .find("An IO error occurred")
                 .is_some()

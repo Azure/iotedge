@@ -565,10 +565,10 @@ impl HsmCertificate {
     }
 
     pub fn get_valid_to(&self) -> Result<DateTime<Utc>, Error> {
-        let ts:i64 = unsafe { certificate_info_get_valid_to(self.cert_info_handle) };
+        let ts: i64 = unsafe { certificate_info_get_valid_to(self.cert_info_handle) };
         let naive_ts = NaiveDateTime::from_timestamp_opt(ts, 0);
         if naive_ts.is_none() {
-           Err(ErrorKind::NullResponse)?
+            Err(ErrorKind::NullResponse)?
         }
         Ok(DateTime::<Utc>::from_utc(naive_ts.unwrap(), Utc))
     }
