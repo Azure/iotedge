@@ -133,8 +133,8 @@ mod tests {
     use std::result::Result as StdResult;
     use std::sync::Arc;
 
-    use chrono::offset::Utc;
-    use chrono::Duration;
+    // use chrono::offset::Utc;
+    // use chrono::Duration;
 
     use edgelet_core::{Error as CoreError};
     use edgelet_test_utils::cert::TestCert;
@@ -149,15 +149,15 @@ mod tests {
         >,
     }
 
-    // impl TestHsm {
-    //     fn with_on_create<F>(mut self, on_create: F) -> TestHsm
-    //     where
-    //         F: Fn(&CertificateProperties) -> StdResult<TestCert, CoreError> + Send + Sync + 'static,
-    //     {
-    //         self.on_create = Some(Arc::new(Box::new(on_create)));
-    //         self
-    //     }
-    // }
+    impl TestHsm {
+        fn with_on_create<F>(mut self, on_create: F) -> TestHsm
+        where
+            F: Fn(&CertificateProperties) -> StdResult<TestCert, CoreError> + Send + Sync + 'static,
+        {
+            self.on_create = Some(Arc::new(Box::new(on_create)));
+            self
+        }
+    }
 
     impl CreateCertificate for TestHsm {
         type Certificate = TestCert;
@@ -185,12 +185,16 @@ mod tests {
     }
 
     #[test]
-    fn simple_test() {
-        let handler = IdentityCertHandler::new(TestHsm::default());
+    fn succeeds_with_private_key() {
+        let handler = IdentityCertHandler::new(TestHsm::default().with_on_create(|props| {
+            assert_eq!("marvin", props.common_name());
+            Ok(TestCert::default()
+                .with_private_key(PrivateKey::Key(KeyBytes::Pem("Betelgeuse".to_string()))))
+        }));
 
-        let cert_req = IdentityCertificateRequest::new()
-                            .with_common_name("marvin".to_string())
-                            .with_expiration((Utc::now() + Duration::hours(1)).to_rfc3339());
+        let cert_req = IdentityCertificateRequest::new();
+                            // .with_common_name("marvin".to_string())
+                            // .with_expiration((Utc::now() + Duration::hours(1)).to_rfc3339());
 
         let request = Request::get("http://localhost/modules/beeblebrox/certificate/identity")
             .body(serde_json::to_string(&cert_req).unwrap().into())
@@ -199,10 +203,21 @@ mod tests {
         let params = Parameters::with_captures(vec![
             (Some("name".to_string()), "beeblebrox".to_string()),
         ]);
-        println!("Req {:?} Body {:?}", request, serde_json::to_string(&cert_req).unwrap());
+
         let response = handler.handle(request, params).wait().unwrap();
-        //assert_eq!(StatusCode::CREATED, response.status());
-        assert_eq!("Bad parameter", parse_error_response(response).message());
+
+        assert_eq!(StatusCode::CREATED, response.status());
+        let cert_resp = response
+            .into_body()
+            .concat2()
+            .and_then(|b| Ok(serde_json::from_slice::<CertificateResponse>(&b).unwrap()))
+            .wait()
+            .unwrap();
+        assert_eq!("key", cert_resp.private_key().type_());
+        assert_eq!(
+            Some(&"Betelgeuse".to_string()),
+            cert_resp.private_key().bytes()
+        );
     }
 
     #[test]
