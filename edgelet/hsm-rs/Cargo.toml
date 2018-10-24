@@ -4,5 +4,6 @@ version = "0.1.0"
 authors = ["Azure IoT Edge Devs"]
 
 [dependencies]
+chrono = "0.4"
 hsm-sys = { path = "../hsm-sys"}
 failure = "0.1"
