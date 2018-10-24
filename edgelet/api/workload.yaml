@@ -307,9 +307,6 @@ definitions:
         type: string
         format: date-time
         description: Certificate expiration date-time (ISO 8601)
-    optional:
-      - commonName
-      - expiration
   CertificateResponse:
     type: object
     properties:

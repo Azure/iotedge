@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use chrono::{DateTime, Duration, Utc};
+use std::cmp;
+use chrono::{DateTime, Utc};
 use failure::ResultExt;
 use futures::{future, Future, Stream};
 use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
@@ -40,7 +41,8 @@ where
         params: Parameters,
     ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
         let hsm = self.hsm.clone();
-        let default_expr = Utc::now().checked_add_signed(Duration::hours(2)).unwrap().to_string();
+        let max_duration_sec:i64 = 3600 * 2;
+        //let max_expr = Utc::now().checked_add_signed(Duration::seconds(max_duration_sec)).unwrap();
         let response = params
             .name("name")
             .ok_or_else(|| Error::from(ErrorKind::BadParam))
@@ -54,12 +56,11 @@ where
                             .context(ErrorKind::BadBody)
                             .map_err(Error::from)
                             .and_then(|cert_req| {
-                                let expr = match cert_req.expiration() {
-                                    None => default_expr.as_str(),
-                                    Some(exp) => exp
-                                };
-                                compute_validity(expr)
-                                    .map(|expiration| (cert_req, expiration))
+                                match cert_req.expiration() {
+                                    None => Ok(max_duration_sec),
+                                    Some(exp) => compute_validity(exp, max_duration_sec)
+                                }.map(|expiration| (cert_req, expiration))
+                                .map_err(Error::from)
                             }).and_then(move |(cert_req, expiration)| {
                                 hsm.destroy_certificate(alias.clone())
                                     .map_err(Error::from)?;
@@ -77,8 +78,8 @@ where
                                     .map_err(Error::from)
                                     .and_then(|cert| {
                                         let cert = cert_to_response(
-                                            &cert,
-                                            default_expr.as_str(),
+                                            &cert, //MSRTODO
+                                            "2000".to_string().as_str(),
                                         )?;
                                         let body = serde_json::to_string(&cert)?;
                                         Response::builder()
@@ -116,13 +117,14 @@ fn cert_to_response<T: Certificate>(cert: &T, expiration: &str) -> Result<Certif
     ))
 }
 
-fn compute_validity(expiration: &str) -> Result<i64> {
+fn compute_validity(expiration: &str, max_duration_sec: i64) -> Result<i64> {
     DateTime::parse_from_rfc3339(expiration)
         .map(|expiration| {
-            expiration
+            let secs = expiration
                 .with_timezone(&Utc)
                 .signed_duration_since(Utc::now())
-                .num_seconds()
+                .num_seconds();
+            cmp::max(0, cmp::min(secs, max_duration_sec))
         }).map_err(Error::from)
 }
 

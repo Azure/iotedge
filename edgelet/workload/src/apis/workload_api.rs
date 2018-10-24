@@ -101,14 +101,21 @@ where
         // if let Err(e) = uri {
         //     return Box::new(futures::future::err(e));
         // }
+        let serialized = serde_json::to_string(&request).unwrap();
+        let serialized_len = serialized.len();
+
         let mut req = hyper::Request::builder();
         req.method(method).uri(uri.unwrap());
         if let Some(ref user_agent) = configuration.user_agent {
             req.header(http::header::USER_AGENT, &**user_agent);
         }
-        let req = req
-            .body(hyper::Body::empty())
+        let mut req = req
+            .body(hyper::Body::from(serialized))
             .expect("could not build hyper::Request");
+        req.headers_mut()
+            .typed_insert(&typed_headers::ContentType(mime::APPLICATION_JSON));
+        req.headers_mut()
+            .typed_insert(&typed_headers::ContentLength(serialized_len as u64));
 
         // send request
         Box::new(
