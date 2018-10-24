@@ -625,6 +625,7 @@ dependencies = [
 name = "hsm"
 version = "0.1.0"
 dependencies = [
+ "chrono 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "hsm-sys 0.1.0",
 ]

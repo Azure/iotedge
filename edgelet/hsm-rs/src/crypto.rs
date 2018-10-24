@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use chrono::{DateTime, NaiveDateTime, Utc};
 use std::convert::AsRef;
 use std::ffi::{CStr, CString, NulError};
 use std::ops::{Deref, Drop};
@@ -561,6 +562,15 @@ impl HsmCertificate {
             e => Err(Error::from(ErrorKind::PrivateKeyType(e))),
         }?;
         Ok(private_key)
+    }
+
+    pub fn get_valid_to(&self) -> Result<DateTime, Error> {
+        let ts = unsafe { certificate_info_get_valid_to(self.cert_info_handle); };
+        let native_ts = NaiveDateTime::from_timestamp_opt(ts, 0);
+        if native_ts.is_none() {
+            return Err(Error::from(ErrorKind::ToDateTime));
+        }
+        Ok(DateTime::from_utc(native_ts, Utc))
     }
 }
 
