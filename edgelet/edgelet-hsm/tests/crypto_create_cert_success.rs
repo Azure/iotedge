@@ -43,7 +43,7 @@ fn crypto_create_cert_success() {
 
     let cert_info = crypto.create_certificate(&props).unwrap();
 
-    assert_eq!(true, cert_info.get_valid_to().is_ok());
+    assert!(cert_info.get_valid_to().is_ok());
 
     let buffer = cert_info.pem().unwrap();
 

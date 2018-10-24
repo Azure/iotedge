@@ -597,11 +597,10 @@ mod tests {
         let response = handler.handle(request, params).wait().unwrap();
 
         assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
-        assert_ne!(
-            parse_error_response(response)
+        assert!(parse_error_response(response)
                 .message()
-                .find("An IO error occurred"),
-            None
+                .find("An IO error occurred")
+                .is_some()
         );
     }
 }

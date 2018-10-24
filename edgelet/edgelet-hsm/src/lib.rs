@@ -9,7 +9,6 @@ extern crate edgelet_core;
 extern crate failure;
 extern crate hsm;
 
-
 mod certificate_properties;
 mod crypto;
 mod error;
