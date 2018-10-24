@@ -74,7 +74,6 @@ where
                                     .and_then(|cert| {
                                         let cert = cert_to_response(
                                             &cert,
-                                            cert_req.expiration().as_str(),
                                         )?;
                                         let body = serde_json::to_string(&cert)?;
                                         Response::builder()
@@ -95,7 +94,7 @@ where
     }
 }
 
-fn cert_to_response<T: Certificate>(cert: &T, expiration: &str) -> Result<CertificateResponse> {
+fn cert_to_response<T: Certificate>(cert: &T) -> Result<CertificateResponse> {
     let cert_buffer = cert.pem()?;
 
     let private_key = match cert.get_private_key()? {
@@ -105,10 +104,11 @@ fn cert_to_response<T: Certificate>(cert: &T, expiration: &str) -> Result<Certif
         None => Err(ErrorKind::BadPrivateKey)?,
     };
 
+    let expiration = cert.get_valid_to()?;
     Ok(CertificateResponse::new(
         private_key,
         String::from_utf8_lossy(cert_buffer.as_ref()).to_string(),
-        expiration.to_string(),
+        expiration.to_rfc3339(),
     ))
 }
 
