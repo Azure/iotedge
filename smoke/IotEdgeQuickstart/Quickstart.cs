@@ -80,7 +80,8 @@ namespace IotEdgeQuickstart
                 }
                 catch(Exception e)
                 {
-                    Console.WriteLine($"** Oops, there was a problem. We'll stop the IoT Edge runtime, but we'll leave it configured so you can investigate. /n Exception: {e}");
+                    Console.WriteLine("** Oops, there was a problem. We'll stop the IoT Edge runtime, but we'll leave it configured so you can investigate.");
+                    Console.WriteLine($"Exception: {e}");
                     KeepEdgeDeviceIdentity();
                     await StopBootstrapper();
                     throw;

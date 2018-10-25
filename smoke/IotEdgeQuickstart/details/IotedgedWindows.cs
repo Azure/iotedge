@@ -133,7 +133,7 @@ namespace IotEdgeQuickstart.Details
             }
         }
 
-        public async Task Start()
+        public Task Start()
         {
             Console.WriteLine("Starting up iotedge service on Windows");
 
@@ -141,21 +141,17 @@ namespace IotEdgeQuickstart.Details
             // Therefore we check if service is not running and start it up explicitly
             try
             {
-                ServiceController iotedgeService = ServiceController.GetServices().Single(s => s.ServiceName == "iotedge");
+                var iotedgeService = new ServiceController("iotedge");
 
                 if (iotedgeService.Status != ServiceControllerStatus.Running)
                 {
-                    using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2)))
-                    {
-                        iotedgeService.Start();
+                    iotedgeService.Start();
+                    iotedgeService.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromMinutes(2));
+                    iotedgeService.Refresh();
 
-                        // Wait for service to become active
-                        do
-                        {
-                            await Task.Delay(TimeSpan.FromSeconds(3), cts.Token);
-                            iotedgeService.Refresh();
-                        }
-                        while (!cts.Token.IsCancellationRequested && iotedgeService.Status != ServiceControllerStatus.Running);
+                    if (iotedgeService.Status != ServiceControllerStatus.Running)
+                    {
+                        throw new Exception("Can't start up iotedge service within timeout period.");
                     }
                 }
             }
@@ -163,6 +159,8 @@ namespace IotEdgeQuickstart.Details
             {
                 throw new Exception($"Error starting iotedged: {e}");
             }
+
+            return Task.CompletedTask;
         }
 
         public async Task Stop()
