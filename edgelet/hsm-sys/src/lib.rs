@@ -463,6 +463,10 @@ extern "C" {
 }
 
 extern "C" {
+    pub fn certificate_info_get_valid_to(handle: CERT_INFO_HANDLE) -> i64;
+}
+
+extern "C" {
     pub fn certificate_info_private_key_type(handle: CERT_INFO_HANDLE) -> PRIVATE_KEY_TYPE;
 }
 

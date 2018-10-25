@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use chrono::{DateTime, Utc};
 use std::sync::{Arc, Mutex};
 
 use certificate_properties::convert_properties;
@@ -159,6 +160,13 @@ impl CoreCertificate for Certificate {
                 Some(HsmPrivateKey::Ref(key_string)) => Some(CorePrivateKey::Ref(key_string)),
                 None => None,
             }).map_err(Error::from)
+            .map_err(CoreError::from)
+    }
+
+    fn get_valid_to(&self) -> Result<DateTime<Utc>, CoreError> {
+        self.0
+            .get_valid_to()
+            .map_err(Error::from)
             .map_err(CoreError::from)
     }
 }
