@@ -175,11 +175,12 @@ where
                     let serialized = serde_json::to_string(&body)?;
                     let serialized_len = serialized.len();
                     let mut req = req.body(Body::from(serialized))?;
-                    req.headers_mut().typed_insert(&ContentType(mime::APPLICATION_JSON));
-                    req.headers_mut().typed_insert(&ContentLength(serialized_len as u64));
+                    req.headers_mut()
+                        .typed_insert(&ContentType(mime::APPLICATION_JSON));
+                    req.headers_mut()
+                        .typed_insert(&ContentLength(serialized_len as u64));
                     req
-                }
-                else {
+                } else {
                     req.body(Body::empty())?
                 };
 
@@ -187,26 +188,25 @@ where
                 self.add_sas_token(&mut req, path)?;
 
                 Ok(req)
-            })
-            .map(|req| {
-                let res =
-                    self.inner.call(req)
-                    .map_err(|e| { error!("{:?}", e); Error::from(e) })
-                    .and_then(|resp| {
+            }).map(|req| {
+                let res = self
+                    .inner
+                    .call(req)
+                    .map_err(|e| {
+                        error!("{:?}", e);
+                        Error::from(e)
+                    }).and_then(|resp| {
                         let (http::response::Parts { status, .. }, body) = resp.into_parts();
-                        body
-                            .concat2()
+                        body.concat2()
                             .and_then(move |body| Ok((status, body)))
                             .map_err(<Error as From<HyperError>>::from)
-                    })
-                    .and_then(|(status, body)| {
+                    }).and_then(|(status, body)| {
                         if status.is_success() {
                             Ok(body)
                         } else {
                             Err(Error::from((status, &*body)))
                         }
-                    })
-                    .and_then(|body| {
+                    }).and_then(|body| {
                         if body.len() == 0 {
                             Ok(None)
                         } else {
@@ -217,8 +217,7 @@ where
                     });
 
                 Either::A(res)
-            })
-            .unwrap_or_else(|e| Either::B(future::err(e)))
+            }).unwrap_or_else(|e| Either::B(future::err(e)))
     }
 }
 
