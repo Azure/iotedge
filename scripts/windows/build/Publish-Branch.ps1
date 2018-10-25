@@ -29,7 +29,7 @@ param (
 
 Set-StrictMode -Version "Latest"
 $ErrorActionPreference = "Stop"
-$RUNTIME_IDENTIFIER="win10-x64"
+$RUNTIME_IDENTIFIER="win-x64"
 
 <#
  # Prepare environment
