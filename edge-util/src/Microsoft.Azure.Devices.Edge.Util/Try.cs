@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         public Try(T value)
         {
-            this.value = value;
+            this.value = Preconditions.CheckNotNull(value, nameof(value));
             this.Exception = null;
         }
 

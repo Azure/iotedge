@@ -10,6 +10,14 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
     public class TryTests
     {
         [Fact]
+        public void TryWithNullValueThrowsTest()
+        {
+            // Act/Assert
+            Assert.Throws<ArgumentNullException>(() => Try.Success<string>(null));
+            Assert.Throws<ArgumentNullException>(() => new Try<string>((string)null));
+        }
+
+        [Fact]
         public void OkWithValueTest()
         {
             // Arrange
