@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
     {
         const string DockerType = "docker";
 
-        [E2E]
+        [Integration]
         [Fact]
         public async Task EdgeAgentConnectionBasicTest()
         {
@@ -289,7 +289,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             await rm.ApplyConfigurationContentOnDeviceAsync(deviceId, cc);
         }
 
-        [E2E]
+        [Integration]
         [Fact]
         public async Task EdgeAgentConnectionConfigurationTest()
         {
@@ -1124,7 +1124,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             Assert.Equal(deploymentConfigInfo.OrDefault().DeploymentConfig, deploymentConfig);
         }
 
-        [E2E]
+        [Integration]
         [Fact]
         public async Task EdgeAgentConnectionStatusTest()
         {
@@ -1213,7 +1213,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             }
         }
 
-        [E2E]
+        [Integration]
         [Fact]
         public async Task EdgeAgentPingMethodTest()
         {

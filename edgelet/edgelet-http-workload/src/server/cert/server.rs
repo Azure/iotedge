@@ -72,10 +72,7 @@ where
                                 hsm.create_certificate(&props)
                                     .map_err(Error::from)
                                     .and_then(|cert| {
-                                        let cert = cert_to_response(
-                                            &cert,
-                                            cert_req.expiration().as_str(),
-                                        )?;
+                                        let cert = cert_to_response(&cert)?;
                                         let body = serde_json::to_string(&cert)?;
                                         Response::builder()
                                             .status(StatusCode::CREATED)
@@ -95,8 +92,9 @@ where
     }
 }
 
-fn cert_to_response<T: Certificate>(cert: &T, expiration: &str) -> Result<CertificateResponse> {
+fn cert_to_response<T: Certificate>(cert: &T) -> Result<CertificateResponse> {
     let cert_buffer = cert.pem()?;
+    let expiration = cert.get_valid_to()?;
 
     let private_key = match cert.get_private_key()? {
         Some(PrivateKey::Ref(ref_)) => PrivateKeyResponse::new("ref".to_string()).with_ref(ref_),
@@ -108,7 +106,7 @@ fn cert_to_response<T: Certificate>(cert: &T, expiration: &str) -> Result<Certif
     Ok(CertificateResponse::new(
         private_key,
         String::from_utf8_lossy(cert_buffer.as_ref()).to_string(),
-        expiration.to_string(),
+        expiration.to_rfc3339(),
     ))
 }
 
@@ -570,6 +568,38 @@ mod tests {
         assert_eq!(
             Some(&"Betelgeuse".to_string()),
             cert_resp.private_key().ref_()
+        );
+    }
+
+    #[test]
+    fn get_cert_time_fails() {
+        let handler = ServerCertHandler::new(TestHsm::default().with_on_create(|props| {
+            assert_eq!("marvin", props.common_name());
+            Ok(TestCert::default().with_fail_valid_to(true))
+        }));
+
+        let cert_req = ServerCertificateRequest::new(
+            "marvin".to_string(),
+            (Utc::now() + Duration::hours(1)).to_rfc3339(),
+        );
+
+        let request =
+            Request::get("http://localhost/modules/beeblebrox/genid/I/certificate/server")
+                .body(serde_json::to_string(&cert_req).unwrap().into())
+                .unwrap();
+
+        let params = Parameters::with_captures(vec![
+            (Some("name".to_string()), "beeblebrox".to_string()),
+            (Some("genid".to_string()), "I".to_string()),
+        ]);
+        let response = handler.handle(request, params).wait().unwrap();
+
+        assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
+        assert!(
+            parse_error_response(response)
+                .message()
+                .find("An IO error occurred")
+                .is_some()
         );
     }
 }

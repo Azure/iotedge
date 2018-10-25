@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Newtonsoft.Json.Linq;
     using Xunit;
 
-    [E2E]
+    [Integration]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
     public class TwinDiffE2ETest : IClassFixture<ProtocolHeadFixture>
     {
