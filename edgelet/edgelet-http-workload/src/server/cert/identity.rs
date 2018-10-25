@@ -43,7 +43,6 @@ where
         params: Parameters,
     ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
         let hsm = self.hsm.clone();
-        //let max_expr = Utc::now().checked_add_signed(Duration::seconds(MAX_DURATION_SEC)).unwrap();
         let response = params
             .name("name")
             .ok_or_else(|| Error::from(ErrorKind::BadParam))
