@@ -169,7 +169,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
                     var clientProvider = c.Resolve<IClientProvider>();
                     var tokenProvider = c.ResolveNamed<ITokenProvider>("EdgeHubClientAuthTokenProvider");
-                    IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
+                    var credentialsCacheTask = c.Resolve<Task<ICredentialsCache>>();
+                    var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
+                    var deviceScopeIdentitiesCacheTask = c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
+                    IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await deviceScopeIdentitiesCacheTask;
+                    ICredentialsCache credentialsCache = await credentialsCacheTask;
                     ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(
                         messageConverterProvider,
                         this.connectionPoolSize,
@@ -177,6 +181,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         this.upstreamProtocol,
                         tokenProvider,
                         deviceScopeIdentitiesCache,
+                        credentialsCache,
+                        edgeHubCredentials.Identity,
                         this.cloudConnectionIdleTimeout,
                         this.closeCloudConnectionOnIdleTimeout);
                     return cloudConnectionProvider;
@@ -188,13 +194,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                 async c =>
                 {
-                    var cloudConnectionProviderTask = c.Resolve<Task<ICloudConnectionProvider>>();
-                    var credentialsCacheTask = c.Resolve<Task<ICredentialsCache>>();
-                    ICloudConnectionProvider cloudConnectionProvider = await cloudConnectionProviderTask;
-                    ICredentialsCache credentialsCache = await credentialsCacheTask;
+                    ICloudConnectionProvider cloudConnectionProvider = await c.Resolve<Task<ICloudConnectionProvider>>();
                     IConnectionManager connectionManager = new ConnectionManager(
                         cloudConnectionProvider,
-                        credentialsCache,
                         this.maxConnectedClients);
                     return connectionManager;
                 })
