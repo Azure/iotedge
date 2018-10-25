@@ -150,10 +150,12 @@ namespace IotEdgeQuickstart.Details
                         iotedgeService.Start();
 
                         // Wait for service to become active
-                        while (!cts.Token.IsCancellationRequested && iotedgeService.Status != ServiceControllerStatus.Running)
+                        do
                         {
                             await Task.Delay(TimeSpan.FromSeconds(3), cts.Token);
+                            iotedgeService.Refresh();
                         }
+                        while (!cts.Token.IsCancellationRequested && iotedgeService.Status != ServiceControllerStatus.Running);
                     }
                 }
             }
