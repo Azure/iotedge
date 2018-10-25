@@ -135,23 +135,29 @@ namespace IotEdgeQuickstart.Details
 
         public async Task Start()
         {
-            // In Windows 10 RS4, after service is configured; it doesn't start up automatically
-            // Therefore we need to explicitly start it.
-            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2)))
-            {
-                try
-                {
-                    await Process.RunAsync("sc", "start iotedge", cts.Token);
+            Console.WriteLine($"Current OS Version: {Environment.OSVersion}");
 
-                    // Wait for service to become active
-                    while (ServiceController.GetServices().FirstOrDefault(s => s.ServiceName == "iotedge")?.Status != ServiceControllerStatus.Running)
-                    {
-                        await Task.Delay(TimeSpan.FromSeconds(3), cts.Token);
-                    }
-                }
-                catch (OperationCanceledException e)
+            // Need to start up service explicitly as service is not started up automatically after configured in Windows 10 RS4
+            if (Environment.OSVersion.ToString().Equals("Microsoft Windows NT 6.2.9200.0"))
+            {
+                Console.WriteLine($"Starting up iotedged on Windows");
+
+                using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2)))
                 {
-                    throw new Exception($"Error starting iotedged: {e}");
+                    try
+                    {
+                        await Process.RunAsync("sc", "start iotedge", cts.Token);
+
+                        // Wait for service to become active
+                        while (ServiceController.GetServices().FirstOrDefault(s => s.ServiceName == "iotedge")?.Status != ServiceControllerStatus.Running)
+                        {
+                            await Task.Delay(TimeSpan.FromSeconds(3), cts.Token);
+                        }
+                    }
+                    catch (OperationCanceledException e)
+                    {
+                        throw new Exception($"Error starting iotedged: {e}");
+                    }
                 }
             }
         }
