@@ -259,11 +259,14 @@ function Get-SecurityDaemon {
                     ($CmdErr.Exception -is [System.IO.IOException]) -and
                     ($CmdErr.Exception.HResult -eq 0x800700b7) # HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS)
                 ) {
-                    # ERROR_ALREADY_EXISTS despite Move-Item -Force likely means the DLL is held open by something
-
-                    Write-Warning ("Could not overwrite 'C:\ProgramData\iotedge-eventlog\iotedged_eventlog_messages.dll'. " +
-                        "It might be held open by the Windows EventLog service or some other process.")
-                    Write-Warning "This is not a fatal error, but messages in the Windows event log may not display correctly."
+                    # ERROR_ALREADY_EXISTS despite Move-Item -Force likely means the DLL is held open by something,
+                    # probably the Windows EventLog service or some other process.
+                    #
+                    # It's not really a problem to have an old DLL from a previous installation lying around, since the message IDs
+                    # and format strings haven't changed. Even if they have changed, it just means some logs in the event log will
+                    # not display correcty.
+                    #
+                    # Don't bother warning the user about it.
                 }
                 else {
                     throw $CmdErr
