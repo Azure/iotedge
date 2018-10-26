@@ -57,6 +57,8 @@ namespace IotEdgeQuickstart.Details
                         await Task.Delay(TimeSpan.FromSeconds(3), cts.Token);
 
                         string[] result = await Process.RunAsync("iotedge", "list", cts.Token);
+                        WriteToConsole("Output of iotedge list", result);
+
                         string status = result
                             .Where(ln => ln.Split(null as char[], StringSplitOptions.RemoveEmptyEntries).First() == name)
                             .DefaultIfEmpty("name status")
@@ -71,11 +73,11 @@ namespace IotEdgeQuickstart.Details
                 }
                 catch (OperationCanceledException e)
                 {
-                    throw new Exception($"Error searching for {name} module: {errorMessage ?? e.Message}");
+                    throw new Exception($"Error searching for {name} module: {errorMessage ?? e.ToString()}");
                 }
                 catch (Exception e)
                 {
-                    throw new Exception($"Error searching for {name} module: {e.Message}");
+                    throw new Exception($"Error searching for {name} module: {e}");
                 }
             }
         }
@@ -129,7 +131,8 @@ namespace IotEdgeQuickstart.Details
 
                 // note: ignore hostname for now
 
-                await Process.RunAsync("powershell", args, cts.Token);
+                string[] result = await Process.RunAsync("powershell", args, cts.Token);
+                WriteToConsole("Output from Configure iotedge windows service", result);
             }
         }
 
@@ -160,6 +163,7 @@ namespace IotEdgeQuickstart.Details
                 throw new Exception($"Error starting iotedged: {e}");
             }
 
+            Console.WriteLine("iotedge service started on Windows");
             return Task.CompletedTask;
         }
 
@@ -176,6 +180,15 @@ namespace IotEdgeQuickstart.Details
                 await Process.RunAsync("powershell",
                     $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Uninstall-SecurityDaemon",
                     cts.Token);
+            }
+        }
+
+        static void WriteToConsole(string header, string[] result)
+        {
+            Console.WriteLine(header);
+            foreach (string r in result)
+            {
+                Console.WriteLine(r);
             }
         }
     }
