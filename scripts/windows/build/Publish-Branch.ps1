@@ -76,6 +76,8 @@ $SRC_BIN_DIR = Join-Path $BuildRepositoryLocalPath "bin"
 $PUB_SCRIPTS_DIR = Join-Path $PUBLISH_FOLDER "scripts"
 $PUB_BIN_DIR = Join-Path $PUBLISH_FOLDER "bin"
 $TEST_SCRIPTS_DIR = Join-Path $RELEASE_TESTS_FOLDER "scripts"
+$SRC_E2E_TEMPLATES_DIR = Join-Path $BuildRepositoryLocalPath "smoke/IotEdgeQuickstart/e2e_deployment_files"
+$PUB_E2E_TEMPLATES_DIR = Join-Path $PUBLISH_FOLDER "e2e_deployment_files"
 
 if (-not (Test-Path $DOTNET_PATH -PathType Leaf)) {
     throw "$DOTNET_PATH not found"
@@ -160,6 +162,9 @@ Copy-Item $SRC_SCRIPTS_DIR $PUB_SCRIPTS_DIR -Recurse -Force
 
 Write-Host "Copying $SRC_BIN_DIR to $PUB_BIN_DIR"
 Copy-Item $SRC_BIN_DIR $PUB_BIN_DIR -Recurse -Force 
+
+Write-Host "Copying $SRC_E2E_TEMPLATES_DIR"
+Copy-Item $SRC_E2E_TEMPLATES_DIR $PUB_E2E_TEMPLATES_DIR -Recurse -Force
 
 <#
  # Publish tests
