@@ -238,9 +238,36 @@ function Get-SecurityDaemon {
             Copy-Item "$ArchivePath\*" "C:\ProgramData\iotedge" -Force
         }
         else {
-            Invoke-Native "mkdir C:\ProgramData\iotedge"
+            New-Item -Type Directory 'C:\ProgramData\iotedge'
             Expand-Archive "$ArchivePath" "C:\ProgramData\iotedge" -Force
             Copy-Item "C:\ProgramData\iotedge\iotedged-windows\*" "C:\ProgramData\iotedge" -Force
+        }
+
+        New-Item -Type Directory 'C:\ProgramData\iotedge-eventlog' -ErrorAction SilentlyContinue -ErrorVariable CmdErr
+        if ($? -or ($CmdErr.FullyQualifiedErrorId -eq 'DirectoryExist,Microsoft.PowerShell.Commands.NewItemCommand')) {
+            Move-Item `
+                'C:\ProgramData\iotedge\iotedged_eventlog_messages.dll' `
+                'C:\ProgramData\iotedge-eventlog\iotedged_eventlog_messages.dll' `
+                -Force -ErrorAction SilentlyContinue -ErrorVariable CmdErr
+            if ($?) {
+                # Copied eventlog messages DLL successfully
+            }
+            elseif (
+                ($CmdErr.Exception -is [System.IO.IOException]) -and
+                ($CmdErr.Exception.HResult -eq 0x800700b7) # HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS)
+            ) {
+                # ERROR_ALREADY_EXISTS despite Move-Item -Force likely means the DLL is held open by something
+
+                Write-Warning ("Could not overwrite 'C:\ProgramData\iotedge-eventlog\iotedged_eventlog_messages.dll'. " +
+                    "It might be held open by the Windows EventLog service or some other process.")
+                Write-Warning "This is not a fatal error, but messages in the Windows event log may not display correctly."
+            }
+            else {
+                throw $CmdErr
+            }
+        }
+        else {
+            throw $CmdErr
         }
     }
     finally {
@@ -259,18 +286,32 @@ function Remove-SecurityDaemonResources {
     Write-Verbose "$(if ($?) { "Deleted registry key '$LogKey'" } else { $CmdErr })"
 
     $EdgePath = "C:\ProgramData\iotedge"
+    $EdgeEventLogMessagesPath = "C:\ProgramData\iotedge-eventlog"
+
     Remove-Item -Recurse $EdgePath -ErrorAction SilentlyContinue -ErrorVariable CmdErr
     if ($?) {
         Write-Verbose "Deleted install directory '$EdgePath'"
     }
-    else {
+    elseif ($CmdErr.FullyQualifiedErrorId -ne "PathNotFound,Microsoft.PowerShell.Commands.RemoveItemCommand") {
         Write-Verbose "$CmdErr"
-        if ($CmdErr.FullyQualifiedErrorId -ne "PathNotFound,Microsoft.PowerShell.Commands.RemoveItemCommand") {
-            Write-Host ("Could not delete install directory '$EdgePath'. Please reboot " +
-                "your device and run Uninstall-SecurityDaemon again with '-Force'.") `
-                -ForegroundColor "Red"
-            $success = $false
-        }
+        Write-Host ("Could not delete install directory '$EdgePath'. Please reboot " +
+            "your device and run Uninstall-SecurityDaemon again with '-Force'.") `
+            -ForegroundColor "Red"
+        $success = $false
+    }
+
+    Remove-Item -Recurse $EdgeEventLogMessagesPath -ErrorAction SilentlyContinue -ErrorVariable CmdErr
+    if ($?) {
+        Write-Verbose "Deleted install directory '$EdgeEventLogMessagesPath'"
+    }
+    elseif ($CmdErr.FullyQualifiedErrorId -ne "PathNotFound,Microsoft.PowerShell.Commands.RemoveItemCommand") {
+        Write-Warning "Could not delete '$EdgeEventLogMessagesPath'. It is probably held open by the EventLog service."
+        Write-Warning "If you're reinstalling or updating IoT Edge, then this is safe to ignore."
+        Write-Warning ("Otherwise, please close Event Viewer, or any PowerShell windows where you ran Get-WinEvent, " +
+            "then run Uninstall-SecurityDaemon again with '-Force'.")
+    }
+    else {
+        $success = $false
     }
 
     $success
@@ -380,7 +421,7 @@ function Add-IotEdgeRegistryKey {
         "",
         "[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\EventLog\Application\iotedged]"
         "`"CustomSource`"=dword:00000001"
-        "`"EventMessageFile`"=`"C:\\ProgramData\\iotedge\\iotedged.exe`""
+        "`"EventMessageFile`"=`"C:\\ProgramData\\iotedge-eventlog\\iotedged_eventlog_messages.dll`""
         "`"TypesSupported`"=dword:00000007")
     try {
         $RegistryContent | Set-Content "$env:TEMP\iotedge.reg" -Force
