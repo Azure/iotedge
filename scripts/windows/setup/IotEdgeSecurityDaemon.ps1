@@ -238,12 +238,12 @@ function Get-SecurityDaemon {
             Copy-Item "$ArchivePath\*" "C:\ProgramData\iotedge" -Force
         }
         else {
-            New-Item -Type Directory 'C:\ProgramData\iotedge'
+            New-Item -Type Directory 'C:\ProgramData\iotedge' | Out-Null
             Expand-Archive "$ArchivePath" "C:\ProgramData\iotedge" -Force
             Copy-Item "C:\ProgramData\iotedge\iotedged-windows\*" "C:\ProgramData\iotedge" -Force
         }
 
-        New-Item -Type Directory 'C:\ProgramData\iotedge-eventlog' -ErrorAction SilentlyContinue -ErrorVariable CmdErr
+        New-Item -Type Directory 'C:\ProgramData\iotedge-eventlog' -ErrorAction SilentlyContinue -ErrorVariable CmdErr | Out-Null
         if ($? -or ($CmdErr.FullyQualifiedErrorId -eq 'DirectoryExist,Microsoft.PowerShell.Commands.NewItemCommand')) {
             Move-Item `
                 'C:\ProgramData\iotedge\iotedged_eventlog_messages.dll' `
