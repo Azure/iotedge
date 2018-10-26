@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public async Task<Option<IClientCredentials>> Get(IIdentity identity)
         {
             Option<string> tokenCredentialsDataOption = await this.encryptedStore.Get(identity.Id);
-            return tokenCredentialsDataOption.Map(t =>
+            return tokenCredentialsDataOption.FlatMap(t =>
             {
                 try
                 {
@@ -48,11 +48,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 }
                 catch (Exception e)
                 {
-                    Events.ErrorGetting(e, identity.Id);
-                    return Option.None<IClientCredentials>();
+                    try
+                    {
+                        Events.ErrorParsingData(identity.Id, e);
+                        return Option.Some(new TokenCredentials(identity, t, string.Empty, false) as IClientCredentials);
+                    }
+                    catch (Exception ex)
+                    {
+                        Events.ErrorGetting(ex, identity.Id);
+                        return Option.None<IClientCredentials>();
+                    }                    
                 }                
-            })
-            .GetOrElse(Option.None<IClientCredentials>());
+            });
         }
 
         class TokenCredentialsData
@@ -81,7 +88,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 ErrorStoring = IdStart,
                 ErrorRetrieving,
                 Retrieved,
-                Stored
+                Stored,
+                ErrorParsingData
             }
 
             public static void Stored(string id)
@@ -102,6 +110,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             public static void ErrorGetting(Exception ex, string id)
             {
                 Log.LogWarning((int)EventIds.ErrorRetrieving, ex, $"Error storing token for - {id}");
+            }
+
+            public static void ErrorParsingData(string id, Exception ex)
+            {
+                Log.LogDebug((int)EventIds.ErrorParsingData, ex, $"Error parsing persisted token credentials data for {id}, treating it as the token string instead.");
             }
         }
     }

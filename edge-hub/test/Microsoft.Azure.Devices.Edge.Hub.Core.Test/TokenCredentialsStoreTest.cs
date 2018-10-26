@@ -91,6 +91,34 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.False(storedCredentials.HasValue);
         }
 
+        [Fact]
+        [Unit]
+        public async Task RoundtripTokenCredentialsWithEncryptionBackwardCompatibilityTest()
+        {
+            // Arrange
+            string iothubHostName = "iothub1.azure.net";
+            string callerProductInfo = "productInfo";
+            string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/device1/modules/moduleId");
+            var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
+            var credentials = new TokenCredentials(identity, sasToken, callerProductInfo, true);
+
+            var dbStoreProvider = new InMemoryDbStoreProvider();
+            IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
+            var encryptedStore = new EncryptedStore<string, string>(storeProvider.GetEntityStore<string, string>("tokenCredentials"), new TestEncryptionProvider());
+            var tokenCredentialsStore = new PersistedTokenCredentialsCache(encryptedStore);
+
+            // Act
+            await encryptedStore.Put(credentials.Identity.Id, credentials.Token);
+            Option<IClientCredentials> storedCredentials = await tokenCredentialsStore.Get(identity);
+
+            // Assert
+            Assert.True(storedCredentials.HasValue);
+            var storedTokenCredentials = storedCredentials.OrDefault() as ITokenCredentials;
+            Assert.NotNull(storedTokenCredentials);
+            Assert.Equal(sasToken, storedTokenCredentials.Token);
+            Assert.Equal(false, storedTokenCredentials.IsUpdatable);
+        }
+
         class TestEncryptionProvider : IEncryptionProvider
         {
             public Task<string> DecryptAsync(string encryptedText) => Task.FromResult(Encoding.UTF8.GetString(Convert.FromBase64String(encryptedText)));
