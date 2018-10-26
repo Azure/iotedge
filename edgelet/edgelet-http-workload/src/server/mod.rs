@@ -10,7 +10,7 @@ use std::error::Error as StdError;
 
 use edgelet_core::{
     CreateCertificate, Decrypt, Encrypt, Error as CoreError, GetTrustBundle, KeyStore, Module,
-    ModuleRuntime, Policy,
+    ModuleRuntime, Policy, ProvisioningInfo
 };
 use edgelet_http::authorization::Authorization;
 use edgelet_http::route::*;
@@ -33,10 +33,11 @@ pub struct WorkloadService {
 impl WorkloadService {
     // clippy bug: https://github.com/rust-lang-nursery/rust-clippy/issues/3220
     #[cfg_attr(feature = "cargo-clippy", allow(new_ret_no_self))]
-    pub fn new<K, H, M>(
+    pub fn new<K, H, M, P>(
         key_store: &K,
         hsm: H,
         runtime: &M,
+        _prov_info: &P,
     ) -> impl Future<Item = Self, Error = failure::Error>
     where
         K: 'static + KeyStore + Clone + Send + Sync,
@@ -45,6 +46,7 @@ impl WorkloadService {
         M::Error: Into<CoreError>,
         <M::Module as Module>::Error: Into<CoreError>,
         M::Logs: Into<Body>,
+        P: 'static + ProvisioningInfo + Clone
     {
         let router = router!(
             post   "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/sign" => Authorization::new(SignHandler::new(key_store.clone()), Policy::Caller, runtime.clone()),

@@ -31,6 +31,7 @@ mod error;
 mod identity;
 mod module;
 pub mod pid;
+pub mod provisioning;
 pub mod watchdog;
 
 pub use authorization::{Authorization, Policy};
@@ -45,6 +46,7 @@ pub use module::{
     LogOptions, LogTail, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
     ModuleStatus, SystemInfo,
 };
+pub use provisioning::{ProvisioningMethod, ProvisioningInfo};
 
 lazy_static! {
     static ref VERSION: String = option_env!("VERSION")

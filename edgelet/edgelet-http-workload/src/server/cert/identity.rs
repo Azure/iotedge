@@ -65,6 +65,7 @@ where
                             }).and_then(move |(cert_req, expiration)| {
                                 hsm.destroy_certificate(alias.clone())
                                     .map_err(Error::from)?;
+                                let sans = vec!["".to_string()];
                                 let cn = match cert_req.common_name() {
                                     None => cn_default,
                                     Some(name) => name.to_string(),
@@ -74,7 +75,7 @@ where
                                     ensure_not_empty!(cn),
                                     CertificateType::Client,
                                     alias,
-                                );
+                                ).with_san_entries(sans);
                                 hsm.create_certificate(&props)
                                     .map_err(Error::from)
                                     .and_then(|cert| {

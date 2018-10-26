@@ -78,6 +78,7 @@ use edgelet_core::crypto::{
 use edgelet_core::watchdog::Watchdog;
 use edgelet_core::{CertificateIssuer, CertificateProperties, CertificateType};
 use edgelet_core::{ModuleRuntime, ModuleSpec};
+use edgelet_core::{ProvisioningInfo, ProvisioningMethod};
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_hsm::Crypto;
@@ -183,6 +184,65 @@ pub struct Main {
     settings: Settings<DockerConfig>,
 }
 
+#[derive(Debug, Clone)]
+
+pub struct ProvisioningData {
+    iot_hub_name: String,
+    device_id: String,
+    method: ProvisioningMethod,
+}
+
+impl ProvisioningData {
+    pub fn new(iot_hub_name: String, device_id: String, method: ProvisioningMethod) -> Self {
+        ProvisioningData {
+            iot_hub_name,
+            device_id,
+            method,
+        }
+    }
+
+    pub fn iot_hub_name(&self) -> &str {
+        &self.iot_hub_name
+    }
+
+    pub fn with_iot_hub_name(mut self, iot_hub_name: String) -> ProvisioningData {
+        self.iot_hub_name = iot_hub_name;
+        self
+    }
+
+    pub fn device_id(&self) -> &str {
+        &self.device_id
+    }
+
+    pub fn with_device_id(mut self, device_id: String) -> ProvisioningData {
+        self.device_id = device_id;
+        self
+    }
+
+    pub fn method(&self) -> &ProvisioningMethod {
+        &self.method
+    }
+
+    pub fn with_method(mut self, method: ProvisioningMethod) -> ProvisioningData {
+        self.method = method;
+        self
+    }
+}
+
+impl ProvisioningInfo for ProvisioningData {
+    fn iot_hub_name(&self) -> &str {
+        self.iot_hub_name()
+    }
+
+    fn device_id(&self) -> &str {
+        self.device_id()
+    }
+
+    fn method(&self) -> &ProvisioningMethod {
+        self.method()
+    }
+}
+
 impl Main {
     pub fn new(settings: Settings<DockerConfig>) -> Result<Self, Error> {
         let main = Main { settings };
@@ -263,12 +323,15 @@ impl Main {
                 let (key_store, provisioning_result, root_key) =
                     manual_provision(&manual, &mut tokio_runtime)?;
                 info!("Finished provisioning edge device.");
+                let prov = ProvisioningData::new(provisioning_result.hub_name().to_string(),
+                                                 provisioning_result.device_id().to_string(),
+                                                 ProvisioningMethod::Manual);
                 start_api(
                     &settings,
                     hyper_client,
                     &runtime,
                     &key_store,
-                    &provisioning_result,
+                    &prov,
                     root_key,
                     shutdown_signal,
                     &crypto,
@@ -285,12 +348,15 @@ impl Main {
                     &mut tokio_runtime,
                 )?;
                 info!("Finished provisioning edge device.");
+                let prov = ProvisioningData::new(provisioning_result.hub_name().to_string(),
+                                                 provisioning_result.device_id().to_string(),
+                                                 ProvisioningMethod::Dps);
                 start_api(
                     &settings,
                     hyper_client,
                     &runtime,
                     &key_store,
-                    &provisioning_result,
+                    &prov,
                     root_key,
                     shutdown_signal,
                     &crypto,
@@ -431,12 +497,12 @@ where
 }
 
 #[cfg_attr(feature = "cargo-clippy", allow(too_many_arguments))]
-fn start_api<HC, K, F, C>(
+fn start_api<HC, K, F, C, P>(
     settings: &Settings<DockerConfig>,
     hyper_client: HC,
     runtime: &DockerModuleRuntime,
     key_store: &DerivedKeyStore<K>,
-    provisioning_result: &ProvisioningResult,
+    provisioning_result: &P,
     root_key: K,
     shutdown_signal: F,
     crypto: &C,
@@ -455,8 +521,9 @@ where
         + Clone
         + Send
         + Sync,
+    P: 'static + ProvisioningInfo + Clone
 {
-    let hub_name = provisioning_result.hub_name();
+    let hub_name = provisioning_result.iot_hub_name();
     let device_id = provisioning_result.device_id();
     let hostname = format!("https://{}", hub_name);
     let token_source = SasTokenSource::new(hub_name.to_string(), device_id.to_string(), root_key);
@@ -474,7 +541,7 @@ where
 
     let mgmt = start_management(&settings, &runtime, &id_man, mgmt_rx);
 
-    let workload = start_workload(&settings, key_store, &runtime, work_rx, crypto);
+    let workload = start_workload(&settings, key_store, &runtime, work_rx, crypto, provisioning_result);
 
     let (runt_tx, runt_rx) = oneshot::channel();
     let edge_rt = start_runtime(&runtime, &id_man, &hub_name, &device_id, &settings, runt_rx)?;
@@ -727,12 +794,13 @@ where
         }).flatten()
 }
 
-fn start_workload<K, C>(
+fn start_workload<K, C, P>(
     settings: &Settings<DockerConfig>,
     key_store: &K,
     runtime: &DockerModuleRuntime,
     shutdown: Receiver<()>,
     crypto: &C,
+    prov_info: &P,
 ) -> impl Future<Item = (), Error = failure::Error>
 where
     K: 'static + KeyStore + Clone + Send + Sync,
@@ -745,13 +813,14 @@ where
         + Clone
         + Send
         + Sync,
+    P: 'static + ProvisioningInfo + Clone
 {
     info!("Starting workload API...");
 
     let label = "work".to_string();
     let url = settings.listen().workload_uri().clone();
 
-    WorkloadService::new(key_store, crypto.clone(), runtime)
+    WorkloadService::new(key_store, crypto.clone(), runtime, prov_info)
         .map(|service| LoggingService::new(label, ApiVersionService::new(service)))
         .and_then(move |service| {
             let run = Http::new()
