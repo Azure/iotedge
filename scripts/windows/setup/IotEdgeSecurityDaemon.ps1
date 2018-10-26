@@ -66,11 +66,11 @@ function Install-SecurityDaemon {
         return
     }
 
-    Get-SecurityDaemon
+    $usesSeparateDllForEventLogMessages = Get-SecurityDaemon
     Set-SystemPath
     Get-VcRuntime
     Add-FirewallExceptions
-    Add-IotEdgeRegistryKey
+    Add-IotEdgeRegistryKey -UsesSeparateDllForEventLogMessages:$usesSeparateDllForEventLogMessages
 
     Set-ProvisioningMode
     Set-AgentImage
@@ -243,32 +243,44 @@ function Get-SecurityDaemon {
             Copy-Item "C:\ProgramData\iotedge\iotedged-windows\*" "C:\ProgramData\iotedge" -Force
         }
 
-        New-Item -Type Directory 'C:\ProgramData\iotedge-eventlog' -ErrorAction SilentlyContinue -ErrorVariable CmdErr | Out-Null
-        if ($? -or ($CmdErr.FullyQualifiedErrorId -eq 'DirectoryExist,Microsoft.PowerShell.Commands.NewItemCommand')) {
-            Move-Item `
-                'C:\ProgramData\iotedge\iotedged_eventlog_messages.dll' `
-                'C:\ProgramData\iotedge-eventlog\iotedged_eventlog_messages.dll' `
-                -Force -ErrorAction SilentlyContinue -ErrorVariable CmdErr
-            if ($?) {
-                # Copied eventlog messages DLL successfully
-            }
-            elseif (
-                ($CmdErr.Exception -is [System.IO.IOException]) -and
-                ($CmdErr.Exception.HResult -eq 0x800700b7) # HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS)
-            ) {
-                # ERROR_ALREADY_EXISTS despite Move-Item -Force likely means the DLL is held open by something
+        if (Test-Path 'C:\ProgramData\iotedge\iotedged_eventlog_messages.dll') {
+            # This release uses iotedged_eventlog_messages.dll as the eventlog message file
 
-                Write-Warning ("Could not overwrite 'C:\ProgramData\iotedge-eventlog\iotedged_eventlog_messages.dll'. " +
-                    "It might be held open by the Windows EventLog service or some other process.")
-                Write-Warning "This is not a fatal error, but messages in the Windows event log may not display correctly."
+            New-Item -Type Directory 'C:\ProgramData\iotedge-eventlog' -ErrorAction SilentlyContinue -ErrorVariable CmdErr | Out-Null
+            if ($? -or ($CmdErr.FullyQualifiedErrorId -eq 'DirectoryExist,Microsoft.PowerShell.Commands.NewItemCommand')) {
+                Move-Item `
+                    'C:\ProgramData\iotedge\iotedged_eventlog_messages.dll' `
+                    'C:\ProgramData\iotedge-eventlog\iotedged_eventlog_messages.dll' `
+                    -Force -ErrorAction SilentlyContinue -ErrorVariable CmdErr
+                if ($?) {
+                    # Copied eventlog messages DLL successfully
+                }
+                elseif (
+                    ($CmdErr.Exception -is [System.IO.IOException]) -and
+                    ($CmdErr.Exception.HResult -eq 0x800700b7) # HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS)
+                ) {
+                    # ERROR_ALREADY_EXISTS despite Move-Item -Force likely means the DLL is held open by something
+
+                    Write-Warning ("Could not overwrite 'C:\ProgramData\iotedge-eventlog\iotedged_eventlog_messages.dll'. " +
+                        "It might be held open by the Windows EventLog service or some other process.")
+                    Write-Warning "This is not a fatal error, but messages in the Windows event log may not display correctly."
+                }
+                else {
+                    throw $CmdErr
+                }
             }
             else {
                 throw $CmdErr
             }
+
+            $usesSeparateDllForEventLogMessages = $true
         }
         else {
-            throw $CmdErr
+            # This release uses iotedged.exe as the eventlog message file
+            $usesSeparateDllForEventLogMessages = $false
         }
+
+        return $usesSeparateDllForEventLogMessages
     }
     finally {
         Remove-Item "C:\ProgramData\iotedge\iotedged-windows" -Recurse -Force -ErrorAction "SilentlyContinue"
@@ -415,13 +427,19 @@ function Remove-FirewallExceptions {
     Write-Verbose "$(if ($?) { "Removed firewall exceptions" } else { $CmdErr })"
 }
 
-function Add-IotEdgeRegistryKey {
+function Add-IotEdgeRegistryKey([switch] $UsesSeparateDllForEventLogMessages) {
+    if ($UsesSeparateDllForEventLogMessages) {
+        $messageFilePath = 'C:\ProgramData\iotedge-eventlog\iotedged_eventlog_messages.dll'
+    }
+    else {
+        $messageFilePath = 'C:\ProgramData\iotedge\iotedged.exe'
+    }
     $RegistryContent = @(
         "Windows Registry Editor Version 5.00",
         "",
         "[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\EventLog\Application\iotedged]"
         "`"CustomSource`"=dword:00000001"
-        "`"EventMessageFile`"=`"C:\\ProgramData\\iotedge-eventlog\\iotedged_eventlog_messages.dll`""
+        "`"EventMessageFile`"=`"$($messageFilePath -replace '\\', '\\')`""
         "`"TypesSupported`"=dword:00000007")
     try {
         $RegistryContent | Set-Content "$env:TEMP\iotedge.reg" -Force
