@@ -4,6 +4,7 @@ namespace IotEdgeQuickstart.Details
     using System.ComponentModel;
     using System.IO;
     using System.Linq;
+    using System.ServiceProcess;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -132,7 +133,35 @@ namespace IotEdgeQuickstart.Details
             }
         }
 
-        public Task Start() => Task.CompletedTask; // Runtime starts automatically when it's installed
+        public Task Start()
+        {
+            Console.WriteLine("Starting up iotedge service on Windows");
+
+            // Configured service is not started up automatically in Windows 10 RS4, but should start up in RS5.
+            // Therefore we check if service is not running and start it up explicitly
+            try
+            {
+                var iotedgeService = new ServiceController("iotedge");
+
+                if (iotedgeService.Status != ServiceControllerStatus.Running)
+                {
+                    iotedgeService.Start();
+                    iotedgeService.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromMinutes(2));
+                    iotedgeService.Refresh();
+
+                    if (iotedgeService.Status != ServiceControllerStatus.Running)
+                    {
+                        throw new Exception("Can't start up iotedge service within timeout period.");
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                throw new Exception($"Error starting iotedged: {e}");
+            }
+
+            return Task.CompletedTask;
+        }
 
         public async Task Stop()
         {
