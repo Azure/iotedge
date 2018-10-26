@@ -10,7 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.GeneratedCode;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
 
     public class CreateOrUpdateCommand : ICommand
@@ -54,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
             Preconditions.CheckNotNull(configSource, nameof(configSource));
             Preconditions.CheckNotNull(settings, nameof(settings));
 
-            IEnumerable<EnvVar> envVars = GetEnvVars(module.Env, identity, configSource);
+            IEnumerable<EnvVar> envVars = GetEnvVars(module.Env, identity, configSource.AppSettings);
             ModuleSpec moduleSpec = BuildModuleSpec(module, envVars, settings);
             return new CreateOrUpdateCommand(moduleManager, moduleSpec, operation);
         }
@@ -108,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
             return moduleSpec;
         }
 
-        internal static IEnumerable<EnvVar> GetEnvVars(IDictionary<string, EnvVal> moduleEnvVars, IModuleIdentity identity, IConfigSource configSource)
+        internal static IEnumerable<EnvVar> GetEnvVars(IDictionary<string, EnvVal> moduleEnvVars, IModuleIdentity identity, IAgentAppSettings appSettings)
         {
             List<EnvVar> envVars = moduleEnvVars.Select(m => new EnvVar { Key = m.Key, Value = m.Value.Value }).ToList();
 
@@ -173,7 +172,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
                 envVars.Add(new EnvVar { Key = Logger.RuntimeLogLevelEnvKey, Value = Logger.GetLogLevel().ToString() });
             }
 
-            configSource.Configuration.GetValue<string>(Constants.UpstreamProtocolKey).ToUpstreamProtocol().ForEach(
+            appSettings.UpstreamProtocol.ForEach(
                 u =>
                 {
                     if (!envVars.Any(e => e.Key.Equals(Constants.UpstreamProtocolKey, StringComparison.OrdinalIgnoreCase)))
@@ -184,26 +183,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
 
             if (identity.ModuleId.Equals(Constants.EdgeAgentModuleIdentityName))
             {
-                string managementUri = configSource.Configuration.GetValue<string>(Constants.EdgeletManagementUriVariableName);
-                if (!string.IsNullOrEmpty(managementUri))
+                if (!string.IsNullOrEmpty(appSettings.ManagementUri))
                 {
-                    envVars.Add(new EnvVar { Key = Constants.EdgeletManagementUriVariableName, Value = managementUri });
+                    envVars.Add(new EnvVar { Key = Constants.EdgeletManagementUriVariableName, Value = appSettings.ManagementUri });
                 }
 
-                string networkId = configSource.Configuration.GetValue<string>(Constants.NetworkIdKey);
-                if (!string.IsNullOrEmpty(networkId))
+                if (!string.IsNullOrEmpty(appSettings.NetworkId))
                 {
-                    envVars.Add(new EnvVar { Key = Constants.NetworkIdKey, Value = networkId });
+                    envVars.Add(new EnvVar { Key = Constants.NetworkIdKey, Value = appSettings.NetworkId });
                 }
 
                 envVars.Add(new EnvVar { Key = Constants.ModeKey, Value = Constants.IotedgedMode });
             }
 
             // Set the edgelet's api version
-            string apiVersion = configSource.Configuration.GetValue<string>(Constants.EdgeletApiVersionVariableName);
-            if (!string.IsNullOrEmpty(apiVersion))
+            if (!string.IsNullOrEmpty(appSettings.ApiVersion))
             {
-                envVars.Add(new EnvVar { Key = Constants.EdgeletApiVersionVariableName, Value = apiVersion });
+                envVars.Add(new EnvVar { Key = Constants.EdgeletApiVersionVariableName, Value = appSettings.ApiVersion });
             }
 
             return envVars;

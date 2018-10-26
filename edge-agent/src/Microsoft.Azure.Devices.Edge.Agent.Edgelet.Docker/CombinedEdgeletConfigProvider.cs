@@ -8,7 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
 
     public class CombinedEdgeletConfigProvider : CombinedDockerConfigProvider
@@ -41,45 +40,40 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
 
         void InjectNetworkAliases(IModule module, CreateContainerParameters createOptions)
         {
-            if (createOptions.NetworkingConfig?.EndpointsConfig == null)
+            if (createOptions.NetworkingConfig?.EndpointsConfig == null &&
+                !string.IsNullOrWhiteSpace(this.configSource.AppSettings.NetworkId))
             {
-                string networkId = this.configSource.Configuration.GetValue<string>(Constants.NetworkIdKey);
-                string edgeDeviceHostName = this.configSource.Configuration.GetValue<string>(Constants.EdgeDeviceHostNameKey);
+                var endpointSettings = new EndpointSettings();
 
-                if (!string.IsNullOrWhiteSpace(networkId))
+                if (module.Name.Equals(Constants.EdgeHubModuleName, StringComparison.OrdinalIgnoreCase)
+                    && !string.IsNullOrWhiteSpace(this.configSource.AppSettings.EdgeDeviceHostName))
                 {
-                    var endpointSettings = new EndpointSettings();
-                    if (module.Name.Equals(Constants.EdgeHubModuleName, StringComparison.OrdinalIgnoreCase)
-                        && !string.IsNullOrWhiteSpace(edgeDeviceHostName))
+                    endpointSettings.Aliases = new List<string>
                     {
-                        endpointSettings.Aliases = new List<string>
-                        {
-                            edgeDeviceHostName
-                        };
-                    }
-
-                    IDictionary<string, EndpointSettings> endpointsConfig = new Dictionary<string, EndpointSettings>
-                    {
-                        [networkId] = endpointSettings
-                    };
-                    createOptions.NetworkingConfig = new NetworkingConfig
-                    {
-                        EndpointsConfig = endpointsConfig
+                        this.configSource.AppSettings.EdgeDeviceHostName
                     };
                 }
+
+                createOptions.NetworkingConfig = new NetworkingConfig
+                {
+                    EndpointsConfig = new Dictionary<string, EndpointSettings>
+                    {
+                        [this.configSource.AppSettings.NetworkId] = endpointSettings
+                    }
+                };
             }
         }
 
         void MountSockets(IModule module, CreateContainerParameters createOptions)
         {
-            var workloadUri = new Uri(this.configSource.Configuration.GetValue<string>(Constants.EdgeletWorkloadUriVariableName));
+            var workloadUri = new Uri(this.configSource.AppSettings.WorkloadUri);
             if (workloadUri.Scheme == "unix")
             {
                 SetMountOptions(createOptions, workloadUri);
             }
 
             // If Management URI is Unix domain socket, and the module is the EdgeAgent, then mount it ino the container.
-            var managementUri = new Uri(this.configSource.Configuration.GetValue<string>(Constants.EdgeletManagementUriVariableName));
+            var managementUri = new Uri(this.configSource.AppSettings.ManagementUri);
             if (managementUri.Scheme == "unix"
                 && module.Name.Equals(Constants.EdgeAgentModuleName, StringComparison.OrdinalIgnoreCase))
             {

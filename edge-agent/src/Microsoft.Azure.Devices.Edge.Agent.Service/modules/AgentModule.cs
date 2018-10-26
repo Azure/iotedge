@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     {
         readonly int maxRestartCount;
         readonly TimeSpan intensiveCareTime;
-        readonly int coolOffTimeUnitInSeconds;
+        readonly TimeSpan coolOffTimeUnit;
         readonly bool usePersistentStorage;
         readonly string storagePath;
         readonly Option<Uri> workloadUri;
@@ -64,18 +64,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             }
         }
 
-        public AgentModule(int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds, bool usePersistentStorage, string storagePath)
-            : this(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.None<Uri>(), Constants.EdgeAgentModuleIdentityName, Option.None<string>())
+        public AgentModule(int maxRestartCount, TimeSpan intensiveCareTime, TimeSpan coolOffTimeUnit, bool usePersistentStorage, string storagePath)
+            : this(maxRestartCount, intensiveCareTime, coolOffTimeUnit, usePersistentStorage, storagePath, Option.None<Uri>(), Constants.EdgeAgentModuleIdentityName, Option.None<string>())
         {
 
         }
 
-        public AgentModule(int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds,
+        public AgentModule(int maxRestartCount, TimeSpan intensiveCareTime, TimeSpan coolOffTimeUnit,
             bool usePersistentStorage, string storagePath, Option<Uri> workloadUri, string moduleId, Option<string> moduleGenerationId)
         {
             this.maxRestartCount = maxRestartCount;
             this.intensiveCareTime = intensiveCareTime;
-            this.coolOffTimeUnitInSeconds = coolOffTimeUnitInSeconds;
+            this.coolOffTimeUnit = coolOffTimeUnit;
             this.usePersistentStorage = usePersistentStorage;
             this.storagePath = Preconditions.CheckNonWhiteSpace(storagePath, nameof(storagePath));
             this.workloadUri = workloadUri;
@@ -185,7 +185,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // IRestartManager
-            builder.Register(c => new RestartPolicyManager(this.maxRestartCount, this.coolOffTimeUnitInSeconds))
+            builder.Register(c => new RestartPolicyManager(this.maxRestartCount, this.coolOffTimeUnit))
                 .As<IRestartPolicyManager>()
                 .SingleInstance();
 
@@ -200,7 +200,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // IPlanRunner
-            builder.Register(c => new OrderedRetryPlanRunner(this.maxRestartCount, this.coolOffTimeUnitInSeconds, SystemTime.Instance))
+            builder.Register(c => new OrderedRetryPlanRunner(this.maxRestartCount, this.coolOffTimeUnit, SystemTime.Instance))
                 .As<IPlanRunner>()
                 .SingleInstance();
 

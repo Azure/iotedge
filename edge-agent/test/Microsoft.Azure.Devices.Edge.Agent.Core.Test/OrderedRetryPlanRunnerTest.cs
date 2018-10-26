@@ -19,11 +19,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [Unit]
         public void TestCreate()
         {
-            Assert.Throws<ArgumentOutOfRangeException>(() => new OrderedRetryPlanRunner(-1, 10, SystemTime.Instance));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new OrderedRetryPlanRunner(0, 10, SystemTime.Instance));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new OrderedRetryPlanRunner(5, -1, SystemTime.Instance));
-            Assert.Throws<ArgumentNullException>(() => new OrderedRetryPlanRunner(5, 10, null));
-            Assert.NotNull(new OrderedRetryPlanRunner(5, 10, SystemTime.Instance));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new OrderedRetryPlanRunner(-1, TimeSpan.FromSeconds(10), SystemTime.Instance));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new OrderedRetryPlanRunner(0, TimeSpan.FromSeconds(10), SystemTime.Instance));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new OrderedRetryPlanRunner(5, TimeSpan.FromSeconds(-1), SystemTime.Instance));
+            Assert.Throws<ArgumentNullException>(() => new OrderedRetryPlanRunner(5, TimeSpan.FromSeconds(10), null));
+            Assert.NotNull(new OrderedRetryPlanRunner(5, TimeSpan.FromSeconds(10), SystemTime.Instance));
         }
 
         [Fact]
@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public async void TestExecuteAsyncInputs()
         {
             // Arrange
-            var runner = new OrderedRetryPlanRunner(5, 10, SystemTime.Instance);
+            var runner = new OrderedRetryPlanRunner(5, TimeSpan.FromSeconds(10), SystemTime.Instance);
             var plan = new Plan(new List<ICommand>());
             CancellationToken token = CancellationToken.None;
 
@@ -51,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public async void ExecuteAsyncRunsPlanCommands()
         {
             // Arrange
-            var runner = new OrderedRetryPlanRunner(5, 10, SystemTime.Instance);
+            var runner = new OrderedRetryPlanRunner(5, TimeSpan.FromSeconds(10), SystemTime.Instance);
             var commands = new List<Mock<ICommand>>
             {
                 this.MakeMockCommandThatWorks("cmd1"),
@@ -73,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public async void ExecuteAsyncRunsPlanCommandsTwiceForSameDeployment()
         {
             // Arrange
-            var runner = new OrderedRetryPlanRunner(5, 10, SystemTime.Instance);
+            var runner = new OrderedRetryPlanRunner(5, TimeSpan.FromSeconds(10), SystemTime.Instance);
             var commands = new List<Mock<ICommand>>
             {
                 this.MakeMockCommandThatWorks("cmd1"),
@@ -96,7 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public async void ExecuteAsyncRunsPlanCommandsEvenIfOneThrows()
         {
             // Arrange
-            var runner = new OrderedRetryPlanRunner(5, 10, SystemTime.Instance);
+            var runner = new OrderedRetryPlanRunner(5, TimeSpan.FromSeconds(10), SystemTime.Instance);
             var commands = new List<Mock<ICommand>>
             {
                 this.MakeMockCommandThatWorks("cmd1"),
@@ -118,7 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public async void ExecuteAsyncSkipsCommandThatThrowsDuringSecondRun()
         {
             // Arrange
-            var runner = new OrderedRetryPlanRunner(5, 10, SystemTime.Instance);
+            var runner = new OrderedRetryPlanRunner(5, TimeSpan.FromSeconds(10), SystemTime.Instance);
             var commands = new List<Mock<ICommand>>
             {
                 this.MakeMockCommandThatWorks("cmd1"),
@@ -146,7 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public async void ExecuteAsyncDoesNotSkipCommandThatThrowsDuringSecondRunWithNewDeployment()
         {
             // Arrange
-            var runner = new OrderedRetryPlanRunner(5, 10, SystemTime.Instance);
+            var runner = new OrderedRetryPlanRunner(5, TimeSpan.FromSeconds(10), SystemTime.Instance);
             var commands = new List<Mock<ICommand>>
             {
                 this.MakeMockCommandThatWorks("cmd1"),
@@ -171,7 +171,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             // Arrange
             var systemTime = new Mock<ISystemTime>();
             const int CoolOffTimeInSeconds = 10;
-            var runner = new OrderedRetryPlanRunner(5, CoolOffTimeInSeconds, systemTime.Object);
+            var runner = new OrderedRetryPlanRunner(5, TimeSpan.FromSeconds(CoolOffTimeInSeconds), systemTime.Object);
             var commands = new List<Mock<ICommand>>
             {
                 this.MakeMockCommandThatWorks("cmd1"),
@@ -201,7 +201,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             // Arrange
             var systemTime = new Mock<ISystemTime>();
             const int CoolOffTimeInSeconds = 10;
-            var runner = new OrderedRetryPlanRunner(5, CoolOffTimeInSeconds, systemTime.Object);
+            var runner = new OrderedRetryPlanRunner(5, TimeSpan.FromSeconds(CoolOffTimeInSeconds), systemTime.Object);
             var commands = new List<Mock<ICommand>>
             {
                 this.MakeMockCommandThatWorks("cmd1"),
@@ -239,7 +239,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var systemTime = new Mock<ISystemTime>();
             const int CoolOffTimeInSeconds = 10;
             const int MaxRunCount = 2;
-            var runner = new OrderedRetryPlanRunner(MaxRunCount, CoolOffTimeInSeconds, systemTime.Object);
+            var runner = new OrderedRetryPlanRunner(MaxRunCount, TimeSpan.FromSeconds(CoolOffTimeInSeconds), systemTime.Object);
             var commands = new List<Mock<ICommand>>
             {
                 this.MakeMockCommandThatWorks("cmd1"),
@@ -277,7 +277,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var systemTime = new Mock<ISystemTime>();
             const int CoolOffTimeInSeconds = 10;
             const int MaxRunCount = 2;
-            var runner = new OrderedRetryPlanRunner(MaxRunCount, CoolOffTimeInSeconds, systemTime.Object);
+            var runner = new OrderedRetryPlanRunner(MaxRunCount, TimeSpan.FromSeconds(CoolOffTimeInSeconds), systemTime.Object);
             Mock<ICommand> goodCommand = this.MakeMockCommandThatWorks("cmd1");
             Mock<ICommand> badCommand = this.MakeMockCommandThatThrows("badcmd1");
             var commands = new List<Mock<ICommand>>
@@ -352,7 +352,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var systemTime = new Mock<ISystemTime>();
             const int CoolOffTimeInSeconds = 10;
             const int MaxRunCount = 2;
-            var runner = new OrderedRetryPlanRunner(MaxRunCount, CoolOffTimeInSeconds, systemTime.Object);
+            var runner = new OrderedRetryPlanRunner(MaxRunCount, TimeSpan.FromSeconds(CoolOffTimeInSeconds), systemTime.Object);
 
             // Act
             await runner.ExecuteAsync(1, plan, cts.Token);

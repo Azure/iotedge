@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
     using System.Collections.Generic;
@@ -18,7 +18,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         public DockerLoggingConfig(string type) : 
             this(type, ImmutableDictionary<string, string>.Empty)
         {
-
         }
 
         [JsonConstructor]

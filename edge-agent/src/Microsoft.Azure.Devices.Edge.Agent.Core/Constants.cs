@@ -6,9 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     {
         public const string OwnerValue = "Microsoft.Azure.Devices.Edge.Agent";
 
-        // Connection string of the Edge Device.
-        public const string EdgeDeviceConnectionStringKey = "EdgeDeviceConnectionString";
-
         // Connection string base for Edge Hub Modules
         public const string EdgeHubConnectionStringKey = "EdgeHubConnectionString";
 
@@ -17,9 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public const string ModuleIdKey = "ModuleId";
 
         public const RestartPolicy DefaultRestartPolicy = RestartPolicy.OnUnhealthy;
-
-        public const ModuleStatus DefaultDesiredStatus = ModuleStatus.Running;
-
+        
         public const string EdgeHubModuleName = "edgeHub";
 
         public const string EdgeAgentModuleName = "edgeAgent";
@@ -29,15 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public const string EdgeAgentModuleIdentityName = "$edgeAgent";
 
         public const string EdgeDeviceHostNameKey = "EdgeDeviceHostName";
-
-        public const string EdgeHubVolumeNameKey = "EdgeHubVolumeName";
-
-        public const string EdgeModuleVolumeNameKey = "EdgeModuleVolumeName";
-
-        public const string EdgeHubVolumePathKey = "EdgeHubVolumePath";
-
-        public const string EdgeModuleVolumePathKey = "EdgeModuleVolumePath";
-
+        
         public const string EdgeModuleCaCertificateFileKey = "EdgeModuleCACertificateFile";
 
         public const string EdgeModuleHubServerCaChainCertificateFileKey = "EdgeModuleHubServerCAChainCertificateFile";
@@ -71,9 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public const string ModeKey = "Mode";
 
         public const string IotedgedMode = "iotedged";
-
-        public const string DockerMode = "docker";
-
+        
         public const string NetworkIdKey = "NetworkId";
 
         public const string EdgeletWorkloadApiVersion = "2018-06-28";

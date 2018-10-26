@@ -16,17 +16,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
         long lastDeploymentId;
         Dictionary<string, CommandRunStats> commandRunStatus;
         readonly int maxRunCount;
-        readonly int coolOffTimeUnitInSeconds;
+        readonly TimeSpan coolOffTimeUnit;
         readonly ISystemTime systemTime;
 
-        public OrderedRetryPlanRunner(int maxRunCount, int coolOffTimeUnitInSeconds, ISystemTime systemTime)
+        public OrderedRetryPlanRunner(int maxRunCount, TimeSpan coolOffTimeUnit, ISystemTime systemTime)
         {
+            Preconditions.CheckRange(coolOffTimeUnit.Seconds, 0, nameof(coolOffTimeUnit));
+
             this.maxRunCount = Preconditions.CheckRange(
                 maxRunCount, 1, nameof(maxRunCount)
             );
-            this.coolOffTimeUnitInSeconds = Preconditions.CheckRange(
-                coolOffTimeUnitInSeconds, 0, nameof(coolOffTimeUnitInSeconds)
-            );
+            this.coolOffTimeUnit = coolOffTimeUnit;
             this.systemTime = Preconditions.CheckNotNull(systemTime, nameof(systemTime));
             this.sync = new AsyncLock();
             this.lastDeploymentId = -1;
@@ -139,9 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
                 return (false, commandRunStatus.RunCount, TimeSpan.MinValue, TimeSpan.MinValue);
             }
 
-            TimeSpan coolOffPeriod = TimeSpan.FromSeconds(
-                this.coolOffTimeUnitInSeconds * Math.Pow(2, commandRunStatus.RunCount)
-            );
+            TimeSpan coolOffPeriod = TimeSpan.FromSeconds(this.coolOffTimeUnit.Seconds * Math.Pow(2, commandRunStatus.RunCount));
             TimeSpan elapsedTime = this.systemTime.UtcNow - commandRunStatus.LastRunTimeUtc;
 
             return (elapsedTime > coolOffPeriod, commandRunStatus.RunCount, coolOffPeriod, elapsedTime);

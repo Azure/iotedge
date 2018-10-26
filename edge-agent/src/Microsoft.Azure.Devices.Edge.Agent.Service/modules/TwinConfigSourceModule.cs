@@ -14,26 +14,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Extensions.Configuration;
-
+    
     public class TwinConfigSourceModule : Module
     {
-        readonly string backupConfigFilePath;
         const string DockerType = "docker";
-        readonly IConfiguration configuration;
-        readonly VersionInfo versionInfo;
-        readonly TimeSpan configRefreshFrequency;
+        readonly IAgentAppSettings appSettings;
 
-        public TwinConfigSourceModule(string backupConfigFilePath,
-            IConfiguration config,
-            VersionInfo versionInfo,
-            TimeSpan configRefreshFrequency
+        public TwinConfigSourceModule(
+            IAgentAppSettings appSettings
         )
         {
-            this.backupConfigFilePath = Preconditions.CheckNonWhiteSpace(backupConfigFilePath, nameof(backupConfigFilePath));
-            this.configuration = Preconditions.CheckNotNull(config, nameof(config));
-            this.versionInfo = Preconditions.CheckNotNull(versionInfo, nameof(versionInfo));
-            this.configRefreshFrequency = configRefreshFrequency;
+            this.appSettings = Preconditions.CheckNotNull(appSettings, nameof(appSettings));
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -44,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 {
                     var serde = c.Resolve<ISerde<DeploymentConfig>>();
                     var deviceClientprovider = c.Resolve<IModuleClientProvider>();
-                    IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(deviceClientprovider, serde, this.configRefreshFrequency);
+                    IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(deviceClientprovider, serde, this.appSettings.CoolOffTimeUnit);
                     return edgeAgentConnection;
                 })
                 .As<IEdgeAgentConnection>()
@@ -57,8 +48,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         var serde = c.Resolve<ISerde<DeploymentConfigInfo>>();
                         var edgeAgentConnection = c.Resolve<IEdgeAgentConnection>();
                         IEncryptionProvider encryptionProvider = await c.Resolve<Task<IEncryptionProvider>>();
-                        var twinConfigSource = new TwinConfigSource(edgeAgentConnection, this.configuration);
-                        IConfigSource backupConfigSource = new FileBackupConfigSource(this.backupConfigFilePath, twinConfigSource, serde, encryptionProvider);
+                        var twinConfigSource = new TwinConfigSource(edgeAgentConnection, this.appSettings);
+                        IConfigSource backupConfigSource = new FileBackupConfigSource(this.appSettings.BackupConfigFilePath, twinConfigSource, serde, encryptionProvider);
                         return backupConfigSource;
                     })
                 .As<Task<IConfigSource>>()
@@ -102,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         return new IoTHubReporter(
                             c.Resolve<IEdgeAgentConnection>(),
                             new TypeSpecificSerDe<AgentState>(deserializerTypesMap),
-                            this.versionInfo
+                            this.appSettings.VersionInfo
                         ) as IReporter;
                     }
                 )

@@ -7,7 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.Extensions.Configuration;
     using Moq;
     using Xunit;
 
@@ -20,8 +19,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
             // Arrange
             var edgeAgentConnection = new Mock<IEdgeAgentConnection>();
             edgeAgentConnection.Setup(e => e.GetDeploymentConfigInfoAsync()).ReturnsAsync(Option.None<DeploymentConfigInfo>());
-            var configuration = Mock.Of<IConfiguration>();
-            var twinConfigSource = new TwinConfigSource(edgeAgentConnection.Object, configuration);
+            var agentAppSettings = Mock.Of<IAgentAppSettings>();
+            var twinConfigSource = new TwinConfigSource(edgeAgentConnection.Object, agentAppSettings);
 
             // Act
             DeploymentConfigInfo deploymentConfigInfo = await twinConfigSource.GetDeploymentConfigInfoAsync();
@@ -56,8 +55,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
 
             var edgeAgentConnection = new Mock<IEdgeAgentConnection>();
             edgeAgentConnection.Setup(e => e.GetDeploymentConfigInfoAsync()).ReturnsAsync(Option.Some(deploymentConfigInfo));
-            var configuration = Mock.Of<IConfiguration>();
-            var twinConfigSource = new TwinConfigSource(edgeAgentConnection.Object, configuration);
+            var agentAppSettings = Mock.Of<IAgentAppSettings>();
+            var twinConfigSource = new TwinConfigSource(edgeAgentConnection.Object, agentAppSettings);
 
             // Act
             DeploymentConfigInfo receivedDeploymentConfigInfo = await twinConfigSource.GetDeploymentConfigInfoAsync();

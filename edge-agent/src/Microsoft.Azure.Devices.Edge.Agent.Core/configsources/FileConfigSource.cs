@@ -11,7 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
-    using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
 
     public class FileConfigSource : IConfigSource
@@ -25,10 +24,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
         readonly AsyncLock sync;
         readonly ISerde<DeploymentConfigInfo> serde;
 
-        FileConfigSource(FileSystemWatcher watcher, DeploymentConfigInfo initial, IConfiguration configuration, ISerde<DeploymentConfigInfo> serde)
+        FileConfigSource(FileSystemWatcher watcher, DeploymentConfigInfo initial, IAgentAppSettings appSettings, ISerde<DeploymentConfigInfo> serde)
         {
             this.watcher = Preconditions.CheckNotNull(watcher, nameof(watcher));
-            this.Configuration = Preconditions.CheckNotNull(configuration, nameof(configuration));
+            this.AppSettings = Preconditions.CheckNotNull(appSettings, nameof(appSettings));
             this.current = new AtomicReference<DeploymentConfigInfo>(Preconditions.CheckNotNull(initial, nameof(initial)));
             this.serde = Preconditions.CheckNotNull(serde, nameof(serde));
             this.configFilePath = Path.Combine(this.watcher.Path, this.watcher.Filter);
@@ -43,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
             Events.Created(this.configFilePath);
         }
         
-        public static async Task<FileConfigSource> Create(string configFilePath, IConfiguration configuration, ISerde<DeploymentConfigInfo> serde)
+        public static async Task<FileConfigSource> Create(string configFilePath, IAgentAppSettings appSettings, ISerde<DeploymentConfigInfo> serde)
         {
             Preconditions.CheckNotNull(serde, nameof(serde));
             string path = Preconditions.CheckNonWhiteSpace(Path.GetFullPath(configFilePath), nameof(configFilePath));
@@ -60,10 +59,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
             {
                 NotifyFilter = NotifyFilters.LastWrite
             };
-            return new FileConfigSource(watcher, initial, configuration, serde);
+            return new FileConfigSource(watcher, initial, appSettings, serde);
         }
 
-        public IConfiguration Configuration { get; }
+        public IAgentAppSettings AppSettings { get; }
 
         static async Task<DeploymentConfigInfo> ReadFromDisk(string path, ISerde<DeploymentConfigInfo> serde)
         {

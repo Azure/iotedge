@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         {
             var factory = new TestCommandFactory();
             var store = new Mock<IEntityStore<string, ModuleState>>();
-            var restartManager = new RestartPolicyManager(MaxRestartCount, CoolOffTimeUnitInSeconds);
+            var restartManager = new RestartPolicyManager(MaxRestartCount, TimeSpan.FromSeconds(CoolOffTimeUnitInSeconds));
             var planner = new HealthRestartPlanner(factory, store.Object, IntensiveCareTime, restartManager);
 
             return (factory, store, restartManager, planner);

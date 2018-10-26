@@ -1,12 +1,12 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
 {
     using System;
-    using System.Collections.Generic;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.Extensions.Configuration;
     using Moq;
     using Xunit;
 
@@ -31,13 +31,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
             module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest"));
             module.SetupGet(m => m.Name).Returns(Constants.EdgeAgentModuleName);
 
-            IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
-                new Dictionary<string, string>
-                {
-                    {Constants.EdgeletWorkloadUriVariableName, "unix:///var/run/iotedgedworkload.sock" },
-                    {Constants.EdgeletManagementUriVariableName, "unix:///var/run/iotedgedmgmt.sock" }
-                }).Build();
-            var configSource = Mock.Of<IConfigSource>(s => s.Configuration == configRoot);
+            var mockAppSetting = new Mock<IAgentAppSettings>();
+            mockAppSetting.SetupGet(s => s.WorkloadUri).Returns("unix:///var/run/iotedgedworkload.sock");
+            mockAppSetting.SetupGet(s => s.ManagementUri).Returns("unix:///var/run/iotedgedmgmt.sock");
+            var configSource = Mock.Of<IConfigSource>(s => s.AppSettings == mockAppSetting.Object);
             ICombinedConfigProvider<CombinedDockerConfig> provider = new CombinedEdgeletConfigProvider(new[] { new AuthConfig() }, configSource);
 
             // Act
@@ -63,13 +60,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
             module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest"));
             module.SetupGet(m => m.Name).Returns(Constants.EdgeAgentModuleName);
 
-            IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
-                new Dictionary<string, string>
-                {
-                    {Constants.EdgeletWorkloadUriVariableName, "http://localhost:2375/" },
-                    {Constants.EdgeletManagementUriVariableName, "http://localhost:2376/" }
-                }).Build();
-            var configSource = Mock.Of<IConfigSource>(s => s.Configuration == configRoot);
+            var mockAppSetting = new Mock<IAgentAppSettings>();
+            mockAppSetting.SetupGet(s => s.WorkloadUri).Returns("http://localhost:2375/");
+            mockAppSetting.SetupGet(s => s.ManagementUri).Returns("http://localhost:2376/");
+            var configSource = Mock.Of<IConfigSource>(s => s.AppSettings == mockAppSetting.Object);
             ICombinedConfigProvider<CombinedDockerConfig> provider = new CombinedEdgeletConfigProvider(new[] { new AuthConfig() }, configSource);
 
             // Act
@@ -91,15 +85,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
             module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest"));
             module.SetupGet(m => m.Name).Returns("mod1");
 
-            IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
-                new Dictionary<string, string>
-                {
-                    { Constants.EdgeletWorkloadUriVariableName, "unix:///var/run/iotedgedworkload.sock" },
-                    { Constants.EdgeletManagementUriVariableName, "unix:///var/run/iotedgedmgmt.sock" },
-                    { Constants.NetworkIdKey, "testnetwork1" },
-                    { Constants.EdgeDeviceHostNameKey, "edhk1" }
-                }).Build();
-            var configSource = Mock.Of<IConfigSource>(s => s.Configuration == configRoot);
+            var mockAppSetting = new Mock<IAgentAppSettings>();
+            mockAppSetting.SetupGet(s => s.WorkloadUri).Returns("unix:///var/run/iotedgedworkload.sock");
+            mockAppSetting.SetupGet(s => s.ManagementUri).Returns("unix:///var/run/iotedgedmgmt.sock");
+            mockAppSetting.SetupGet(s => s.NetworkId).Returns("testnetwork1");
+            mockAppSetting.SetupGet(s => s.EdgeDeviceHostName).Returns("edhk1");
+            var configSource = Mock.Of<IConfigSource>(s => s.AppSettings == mockAppSetting.Object);
 
             ICombinedConfigProvider<CombinedDockerConfig> provider = new CombinedEdgeletConfigProvider(new[] { new AuthConfig() }, configSource);
 
@@ -125,15 +116,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
             module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest"));
             module.SetupGet(m => m.Name).Returns(Constants.EdgeHubModuleName);
 
-            IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
-                new Dictionary<string, string>
-                {
-                    { Constants.EdgeletWorkloadUriVariableName, "unix:///var/run/iotedgedworkload.sock" },
-                    { Constants.EdgeletManagementUriVariableName, "unix:///var/run/iotedgedmgmt.sock" },
-                    { Constants.NetworkIdKey, "testnetwork1" },
-                    { Constants.EdgeDeviceHostNameKey, "edhk1" }
-                }).Build();
-            var configSource = Mock.Of<IConfigSource>(s => s.Configuration == configRoot);
+            var mockAppSetting = new Mock<IAgentAppSettings>();
+            mockAppSetting.SetupGet(s => s.WorkloadUri).Returns("unix:///var/run/iotedgedworkload.sock");
+            mockAppSetting.SetupGet(s => s.ManagementUri).Returns("unix:///var/run/iotedgedmgmt.sock");
+            mockAppSetting.SetupGet(s => s.NetworkId).Returns("testnetwork1");
+            mockAppSetting.SetupGet(s => s.EdgeDeviceHostName).Returns("edhk1");
+            var configSource = Mock.Of<IConfigSource>(s => s.AppSettings == mockAppSetting.Object);
 
             ICombinedConfigProvider<CombinedDockerConfig> provider = new CombinedEdgeletConfigProvider(new[] { new AuthConfig() }, configSource);
 
@@ -160,15 +148,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
             module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", hostNetworkCreateOptions));
             module.SetupGet(m => m.Name).Returns("mod1");
 
-            IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
-                new Dictionary<string, string>
-                {
-                    { Constants.EdgeletWorkloadUriVariableName, "unix:///var/run/iotedgedworkload.sock" },
-                    { Constants.EdgeletManagementUriVariableName, "unix:///var/run/iotedgedmgmt.sock" },
-                    { Constants.NetworkIdKey, "testnetwork1" },
-                    { Constants.EdgeDeviceHostNameKey, "edhk1" }
-                }).Build();
-            var configSource = Mock.Of<IConfigSource>(s => s.Configuration == configRoot);
+            var mockAppSetting = new Mock<IAgentAppSettings>();
+            mockAppSetting.SetupGet(s => s.WorkloadUri).Returns("unix:///var/run/iotedgedworkload.sock");
+            mockAppSetting.SetupGet(s => s.ManagementUri).Returns("unix:///var/run/iotedgedmgmt.sock");
+            mockAppSetting.SetupGet(s => s.NetworkId).Returns("testnetwork1");
+            mockAppSetting.SetupGet(s => s.EdgeDeviceHostName).Returns("edhk1");
+
+            var configSource = Mock.Of<IConfigSource>(s => s.AppSettings == mockAppSetting.Object);
 
             ICombinedConfigProvider<CombinedDockerConfig> provider = new CombinedEdgeletConfigProvider(new[] { new AuthConfig() }, configSource);
 

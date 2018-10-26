@@ -12,17 +12,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
     public class RestartPolicyManagerTest
     {
         const int MaxRestartCount = 5;
-        const int CoolOffTimeUnitInSeconds = 10;
-        
+        readonly TimeSpan coolOffTImeUnit = TimeSpan.FromSeconds(10);
+
         [Fact]
         [Unit]
         public void TestCreateValidation()
         {
-            Assert.Throws<ArgumentOutOfRangeException>(() => new RestartPolicyManager(-1, 10));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new RestartPolicyManager(0, 10));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new RestartPolicyManager(5, -5));
-            Assert.NotNull(new RestartPolicyManager(5, 0));
-            Assert.NotNull(new RestartPolicyManager(5, 10));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new RestartPolicyManager(-1, TimeSpan.FromSeconds(10)));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new RestartPolicyManager(0, TimeSpan.FromSeconds(10)));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new RestartPolicyManager(5, TimeSpan.FromSeconds(-5)));
+            Assert.NotNull(new RestartPolicyManager(5, TimeSpan.FromSeconds(0)));
+            Assert.NotNull(new RestartPolicyManager(5, TimeSpan.FromSeconds(10)));
         }
 
         static IEnumerable<object[]> GetTestDataForComputeModuleStatusFromRestartPolicy()
@@ -197,7 +197,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [Unit]
         public void TestComputeModuleStatusFromRestartPolicyInvalidStatus()
         {
-            var manager = new RestartPolicyManager(MaxRestartCount, CoolOffTimeUnitInSeconds);
+            var manager = new RestartPolicyManager(MaxRestartCount, this.coolOffTImeUnit);
             Assert.Throws<ArgumentException>(() => manager.ComputeModuleStatusFromRestartPolicy(ModuleStatus.Unknown, RestartPolicy.Always, 0, DateTime.MinValue));
         }
 
@@ -206,7 +206,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [Unit]
         public void TestComputeModuleStatusFromRestartPolicy(ModuleStatus status, RestartPolicy restartPolicy, int restartCount, ModuleStatus expectedStatus)
         {
-            var manager = new RestartPolicyManager(MaxRestartCount, CoolOffTimeUnitInSeconds);
+            var manager = new RestartPolicyManager(MaxRestartCount, this.coolOffTImeUnit);
             Assert.Equal(expectedStatus, manager.ComputeModuleStatusFromRestartPolicy(status, restartPolicy, restartCount, DateTime.MinValue));
         }
 
@@ -647,7 +647,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         )
         {
             // Arrange
-            var manager = new RestartPolicyManager(MaxRestartCount, CoolOffTimeUnitInSeconds);
+            var manager = new RestartPolicyManager(MaxRestartCount, this.coolOffTImeUnit);
             Mock<IRuntimeModule> module = CreateMockRuntimeModule(restartPolicy, runtimeStatus, restartCount, getLastExitTimeUtc());
 
             // Act
@@ -662,7 +662,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [Unit]
         public void TestApplyRestartPolicyWithUnknownRuntimeStatus()
         {
-            var manager = new RestartPolicyManager(MaxRestartCount, CoolOffTimeUnitInSeconds);
+            var manager = new RestartPolicyManager(MaxRestartCount, this.coolOffTImeUnit);
             Mock<IRuntimeModule> module = CreateMockRuntimeModule(RestartPolicy.Always, ModuleStatus.Unknown, 0, DateTime.MinValue);
             Assert.Throws<ArgumentException>(() => manager.ApplyRestartPolicy(new[] { module.Object }).ToList());
         }
@@ -680,7 +680,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public void CoolOffPeriodTest(int restartCount, int expectedCoolOffPeriodSecs)
         {
             // Arrange
-            var restartPolicyManager = new RestartPolicyManager(20, 10);
+            var restartPolicyManager = new RestartPolicyManager(20, this.coolOffTImeUnit);
 
             // Act
             TimeSpan coolOffPeriod = restartPolicyManager.GetCoolOffPeriod(restartCount);

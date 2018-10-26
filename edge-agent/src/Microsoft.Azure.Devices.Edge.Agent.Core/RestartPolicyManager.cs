@@ -12,12 +12,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     {        
         const int MaxCoolOffPeriodSecs = 300; // 5 mins
         readonly int maxRestartCount;
-        readonly int coolOffTimeUnitInSeconds;
+        readonly TimeSpan coolOffTimeUnit;
 
-        public RestartPolicyManager(int maxRestartCount, int coolOffTimeUnitInSeconds)
+        public RestartPolicyManager(int maxRestartCount, TimeSpan coolOffTimeUnit)
         {
+            Preconditions.CheckRange(coolOffTimeUnit.Seconds, 0, nameof(coolOffTimeUnit));
+
             this.maxRestartCount = Preconditions.CheckRange(maxRestartCount, 1);
-            this.coolOffTimeUnitInSeconds = Preconditions.CheckRange(coolOffTimeUnitInSeconds, 0);
+            this.coolOffTimeUnit = coolOffTimeUnit;
         }
 
         public ModuleStatus ComputeModuleStatusFromRestartPolicy(ModuleStatus status, RestartPolicy restartPolicy, int restartCount, DateTime lastExitTimeUtc)
@@ -84,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         }
 
         internal TimeSpan GetCoolOffPeriod(int restartCount) =>
-            TimeSpan.FromSeconds(Math.Min(this.coolOffTimeUnitInSeconds * Math.Pow(2, restartCount), MaxCoolOffPeriodSecs));        
+            TimeSpan.FromSeconds(Math.Min(this.coolOffTimeUnit.Seconds * Math.Pow(2, restartCount), MaxCoolOffPeriodSecs));        
 
         public IEnumerable<IRuntimeModule> ApplyRestartPolicy(IEnumerable<IRuntimeModule> modules) =>
             modules.Where(module => this.ShouldRestart(module));

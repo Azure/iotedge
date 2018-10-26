@@ -9,10 +9,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.Extensions.Configuration;
+    using Moq;
     using Xunit;
 
-    public class FileConfigSourceTest : IDisposable
+    public class FileConfigSourceTest
     {
         const string TestType = "test";
         static readonly IDictionary<string, EnvVal> EnvVars = new Dictionary<string, EnvVal>();
@@ -31,15 +31,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
 
         static readonly string InvalidJson1 = "{\"This is a terrible string\"}";
 
-        readonly string tempFileName;
-        readonly IConfigurationRoot config;
         readonly ISerde<DeploymentConfigInfo> serde;
+        readonly IAgentAppSettings agentAppSettings;
 
         public FileConfigSourceTest()
         {
-            // GetTempFileName() creates the file.
-            this.tempFileName = Path.GetTempFileName();
-            this.config = new ConfigurationBuilder().Build();
+            this.agentAppSettings = new Mock<IAgentAppSettings>().Object;
 
             var moduleDeserializerTypes = new Dictionary<string, Type>
             {
@@ -70,30 +67,31 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
             };
             this.serde = new TypeSpecificSerDe<DeploymentConfigInfo>(deserializerTypesMap);
         }
-
-        public void Dispose()
-        {
-            if (File.Exists(this.tempFileName))
-            {
-                File.Delete(this.tempFileName);
-            }
-        }
-
+        
         [Fact]
         [Unit]
         public async void CreateSuccess()
         {
-            File.WriteAllText(this.tempFileName, ValidJson1);
+            string testDataFile = "TestData_CreateSuccess.json";
 
-            using (FileConfigSource configSource = await FileConfigSource.Create(this.tempFileName, this.config, this.serde))
+            try
             {
-                Assert.NotNull(configSource);
-                DeploymentConfigInfo deploymentConfigInfo = await configSource.GetDeploymentConfigInfoAsync();
-                Assert.NotNull(deploymentConfigInfo);
-                Assert.NotNull(deploymentConfigInfo.DeploymentConfig);
-                ModuleSet moduleSet = deploymentConfigInfo.DeploymentConfig.GetModuleSet();
-                Diff emptyDiff = ValidSet1.Diff(moduleSet);
-                Assert.True(emptyDiff.IsEmpty);
+                File.WriteAllText(testDataFile, ValidJson1);
+
+                using (FileConfigSource configSource = await FileConfigSource.Create(testDataFile, this.agentAppSettings, this.serde))
+                {
+                    Assert.NotNull(configSource);
+                    DeploymentConfigInfo deploymentConfigInfo = await configSource.GetDeploymentConfigInfoAsync();
+                    Assert.NotNull(deploymentConfigInfo);
+                    Assert.NotNull(deploymentConfigInfo.DeploymentConfig);
+                    ModuleSet moduleSet = deploymentConfigInfo.DeploymentConfig.GetModuleSet();
+                    Diff emptyDiff = ValidSet1.Diff(moduleSet);
+                    Assert.True(emptyDiff.IsEmpty);
+                }
+            }
+            finally
+            {
+                File.Delete(testDataFile);
             }
         }
 
@@ -101,72 +99,90 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
         [Unit]
         public async void ChangeFileAndSeeChange()
         {
-            // Set up initial config file and create `FileConfigSource`
-            File.WriteAllText(this.tempFileName, ValidJson1);
-            Diff validDiff1To2 = ValidSet2.Diff(ValidSet1);
+            string testDataFile = "TestData_ChangeFileAndSeeChange.json";
 
-            using (FileConfigSource configSource = await FileConfigSource.Create(this.tempFileName, this.config, this.serde))
+            try
             {
-                Assert.NotNull(configSource);
+                File.WriteAllText(testDataFile, ValidJson1);
+                Diff validDiff1To2 = ValidSet2.Diff(ValidSet1);
 
-                DeploymentConfigInfo deploymentConfigInfo = await configSource.GetDeploymentConfigInfoAsync();
-                Assert.NotNull(deploymentConfigInfo);
-                ModuleSet initialModuleSet = deploymentConfigInfo.DeploymentConfig.GetModuleSet();
-                Diff emptyDiff = ValidSet1.Diff(initialModuleSet);
-                Assert.True(emptyDiff.IsEmpty);
+                using (FileConfigSource configSource = await FileConfigSource.Create(testDataFile, this.agentAppSettings, this.serde))
+                {
+                    Assert.NotNull(configSource);
 
-                // Modify the config file by writing new content.
-                File.WriteAllText(this.tempFileName, ValidJson2);
-                await Task.Delay(TimeSpan.FromSeconds(20));
+                    DeploymentConfigInfo deploymentConfigInfo = await configSource.GetDeploymentConfigInfoAsync();
+                    Assert.NotNull(deploymentConfigInfo);
+                    ModuleSet initialModuleSet = deploymentConfigInfo.DeploymentConfig.GetModuleSet();
+                    Diff emptyDiff = ValidSet1.Diff(initialModuleSet);
+                    Assert.True(emptyDiff.IsEmpty);
 
-                DeploymentConfigInfo updatedAgentConfig = await configSource.GetDeploymentConfigInfoAsync();
-                Assert.NotNull(updatedAgentConfig);
-                ModuleSet updatedModuleSet = updatedAgentConfig.DeploymentConfig.GetModuleSet();
-                Diff newDiff = updatedModuleSet.Diff(initialModuleSet);
-                Assert.False(newDiff.IsEmpty);
-                Assert.Equal(newDiff, validDiff1To2);
+                    // Modify the config file by writing new content.
+                    File.WriteAllText(testDataFile, ValidJson2);
+                    await Task.Delay(TimeSpan.FromSeconds(20));
+
+                    DeploymentConfigInfo updatedAgentConfig = await configSource.GetDeploymentConfigInfoAsync();
+                    Assert.NotNull(updatedAgentConfig);
+                    ModuleSet updatedModuleSet = updatedAgentConfig.DeploymentConfig.GetModuleSet();
+                    Diff newDiff = updatedModuleSet.Diff(initialModuleSet);
+                    Assert.False(newDiff.IsEmpty);
+                    Assert.Equal(newDiff, validDiff1To2);
+                }
             }
+            finally
+            {
+                File.Delete(testDataFile);
+            }
+            
         }        
 
         [Fact]
         [Unit]
         public async void ChangeFileToInvalidBackToOk()
         {
-            // Set up initial config file and create `FileConfigSource`
-            File.WriteAllText(this.tempFileName, ValidJson1);
-            Diff validDiff1To2 = ValidSet2.Diff(ValidSet1);
+            string testDataFile = "TestData_ChangeFileAndSeeChange.json";
 
-            using (FileConfigSource configSource = await FileConfigSource.Create(this.tempFileName, this.config, this.serde))
+            try
             {
-                Assert.NotNull(configSource);
+                File.WriteAllText(testDataFile, ValidJson1);
+                Diff validDiff1To2 = ValidSet2.Diff(ValidSet1);
 
-                DeploymentConfigInfo deploymentConfigInfo = await configSource.GetDeploymentConfigInfoAsync();
-                Assert.NotNull(deploymentConfigInfo);
-                ModuleSet initialModuleSet = deploymentConfigInfo.DeploymentConfig.GetModuleSet();
-                Diff emptyDiff = ValidSet1.Diff(initialModuleSet);
-                Assert.True(emptyDiff.IsEmpty);
+                using (FileConfigSource configSource = await FileConfigSource.Create(testDataFile, this.agentAppSettings, this.serde))
+                {
+                    Assert.NotNull(configSource);
 
-                // Modify the config file by writing new content.
-                File.WriteAllText(this.tempFileName, InvalidJson1);
-                await Task.Delay(TimeSpan.FromSeconds(10));
+                    DeploymentConfigInfo deploymentConfigInfo = await configSource.GetDeploymentConfigInfoAsync();
+                    Assert.NotNull(deploymentConfigInfo);
+                    ModuleSet initialModuleSet = deploymentConfigInfo.DeploymentConfig.GetModuleSet();
+                    Diff emptyDiff = ValidSet1.Diff(initialModuleSet);
+                    Assert.True(emptyDiff.IsEmpty);
 
-                DeploymentConfigInfo updatedAgentConfig = await configSource.GetDeploymentConfigInfoAsync();
-                Assert.NotNull(updatedAgentConfig);
-                ModuleSet updatedModuleSet = updatedAgentConfig.DeploymentConfig.GetModuleSet();
-                Diff newDiff = updatedModuleSet.Diff(initialModuleSet);
-                Assert.True(newDiff.IsEmpty);
+                    // Modify the config file by writing new content.
+                    File.WriteAllText(testDataFile, InvalidJson1);
+                    await Task.Delay(TimeSpan.FromSeconds(10));
 
-                // Modify the config file by writing new content.
-                File.WriteAllText(this.tempFileName, ValidJson2);
-                await Task.Delay(TimeSpan.FromSeconds(10));
+                    DeploymentConfigInfo updatedAgentConfig = await configSource.GetDeploymentConfigInfoAsync();
+                    Assert.NotNull(updatedAgentConfig);
+                    ModuleSet updatedModuleSet = updatedAgentConfig.DeploymentConfig.GetModuleSet();
+                    Diff newDiff = updatedModuleSet.Diff(initialModuleSet);
+                    Assert.True(newDiff.IsEmpty);
 
-                updatedAgentConfig = await configSource.GetDeploymentConfigInfoAsync();
-                Assert.NotNull(updatedAgentConfig);
-                updatedModuleSet = updatedAgentConfig.DeploymentConfig.GetModuleSet();
-                newDiff = updatedModuleSet.Diff(initialModuleSet);
-                Assert.False(newDiff.IsEmpty);
-                Assert.Equal(newDiff, validDiff1To2);
+                    // Modify the config file by writing new content.
+                    File.WriteAllText(testDataFile, ValidJson2);
+                    await Task.Delay(TimeSpan.FromSeconds(10));
+
+                    updatedAgentConfig = await configSource.GetDeploymentConfigInfoAsync();
+                    Assert.NotNull(updatedAgentConfig);
+                    updatedModuleSet = updatedAgentConfig.DeploymentConfig.GetModuleSet();
+                    newDiff = updatedModuleSet.Diff(initialModuleSet);
+                    Assert.False(newDiff.IsEmpty);
+                    Assert.Equal(newDiff, validDiff1To2);
+                }
             }
+            finally
+            {
+                File.Delete(testDataFile);
+            }
+            
         }
 
         const string ValidJson1 = @"{

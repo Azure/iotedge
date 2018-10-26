@@ -4,36 +4,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 {
     using System;
     using System.Collections.Generic;
-    using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
     using Autofac;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
     using Microsoft.Azure.Devices.Edge.Agent.Service.Modules;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
-    using ILogger = Extensions.Logging.ILogger;
 
     public class Program
     {
         static readonly TimeSpan ShutdownWaitPeriod = TimeSpan.FromMinutes(1);
         const string ConfigFileName = "appsettings_agent.json";
-        const string EdgeAgentStorageFolder = "edgeAgent";
-        const string VersionInfoFileName = "versionInfo.json";
 
         public static int Main()
         {
             Console.WriteLine($"[{DateTime.UtcNow.ToString("MM/dd/yyyy hh:mm:ss.fff tt")}] Edge Agent Main()");
             try
             {
-                IConfigurationRoot configuration = new ConfigurationBuilder()
-                    .AddJsonFile(ConfigFileName)
-                    .AddEnvironmentVariables()
-                    .Build();
-
-                return MainAsync(configuration).Result;
+                var appSettings = new AgentAppSettings(ConfigFileName);
+                return MainAsync(appSettings).Result;
             }
             catch (Exception ex)
             {
@@ -42,54 +35,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             }
         }
 
-        public static async Task<int> MainAsync(IConfiguration configuration)
+        public static async Task<int> MainAsync(IAgentAppSettings appSettings)
         {
             // Bring up the logger before anything else so we can log errors ASAP
-            ILogger logger = SetupLogger(configuration);
+            ILogger logger = SetupLogger(appSettings);
 
             logger.LogInformation("Starting module management agent.");
 
-            VersionInfo versionInfo = VersionInfo.Get(VersionInfoFileName);
-            if (versionInfo != VersionInfo.Empty)
+            if (appSettings.VersionInfo != VersionInfo.Empty)
             {
-                logger.LogInformation($"Version - {versionInfo.ToString(true)}");
+                logger.LogInformation($"Version - {appSettings.VersionInfo.ToString(true)}");
             }
+
             LogLogo(logger);
 
-            string mode;
-
-            string configSourceConfig;
-            string backupConfigFilePath;
-            int maxRestartCount;
-            TimeSpan intensiveCareTime;
-            int coolOffTimeUnitInSeconds;
-            bool usePersistentStorage;
-            string storagePath;
-            string edgeDeviceHostName;
-            string dockerLoggingDriver;
-            Dictionary<string, string> dockerLoggingOptions;
             IEnumerable<AuthConfig> dockerAuthConfig;
-            int configRefreshFrequencySecs;
 
             try
             {
-                mode = configuration.GetValue(Constants.ModeKey, "docker");
-                configSourceConfig = configuration.GetValue<string>("ConfigSource");
-                backupConfigFilePath = configuration.GetValue<string>("BackupConfigFilePath");
-                maxRestartCount = configuration.GetValue<int>("MaxRestartCount");
-                intensiveCareTime = TimeSpan.FromMinutes(configuration.GetValue<int>("IntensiveCareTimeInMinutes"));
-                coolOffTimeUnitInSeconds = configuration.GetValue("CoolOffTimeUnitInSeconds", 10);
-                usePersistentStorage = configuration.GetValue("UsePersistentStorage", true);
-                storagePath = GetStoragePath(configuration);
-                edgeDeviceHostName = configuration.GetValue<string>(Constants.EdgeDeviceHostNameKey);
-                dockerLoggingDriver = configuration.GetValue<string>("DockerLoggingDriver");
-                dockerLoggingOptions = configuration.GetSection("DockerLoggingOptions").Get<Dictionary<string, string>>() ?? new Dictionary<string, string>();
-                dockerAuthConfig = configuration.GetSection("DockerRegistryAuth").Get<List<AuthConfig>>() ?? new List<AuthConfig>();
-                configRefreshFrequencySecs = configuration.GetValue("ConfigRefreshFrequencySecs", 3600);
+                dockerAuthConfig = appSettings.DockerRegistryAuthConfigSection.Get<List<AuthConfig>>() ?? new List<AuthConfig>();
             }
             catch (Exception ex)
             {
-                logger.LogCritical(AgentEventIds.Agent, ex, "Fatal error reading the Agent's configuration.");
+                logger.LogCritical(AgentEventIds.Agent, ex, "Fatal error reading the Agent's appSettings.");
                 return 1;
             }
 
@@ -97,45 +65,38 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             try
             {
                 var builder = new ContainerBuilder();
-                builder.RegisterModule(new LoggingModule(dockerLoggingDriver, dockerLoggingOptions));
-                Option<string> productInfo = versionInfo != VersionInfo.Empty ? Option.Some(versionInfo.ToString()) : Option.None<string>();
-                Option<UpstreamProtocol> upstreamProtocol = configuration.GetValue<string>(Constants.UpstreamProtocolKey).ToUpstreamProtocol();
-                switch (mode.ToLowerInvariant())
+                builder.RegisterModule(new LoggingModule(appSettings.DockerLoggingDriver, appSettings.DockerLoggingOptions));
+                Option<string> productInfo = appSettings.VersionInfo != VersionInfo.Empty ? Option.Some(appSettings.VersionInfo.ToString()) : Option.None<string>();
+
+                switch (appSettings.RuntimeMode)
                 {
-                    case Constants.DockerMode:
-                        var dockerUri = new Uri(configuration.GetValue<string>("DockerUri"));
-                        string deviceConnectionString = configuration.GetValue<string>("DeviceConnectionString");
-                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath));
-                        builder.RegisterModule(new DockerModule(deviceConnectionString, edgeDeviceHostName, dockerUri, dockerAuthConfig, upstreamProtocol, productInfo));
+                    case EdgeRuntimeMode.Docker:
+                        var dockerUri = new Uri(appSettings.DockerUri);
+                        builder.RegisterModule(new AgentModule(appSettings.MaxRestartCount, appSettings.IntensiveCareTime, appSettings.CoolOffTimeUnit, appSettings.UsePersistentStorage, appSettings.StoragePath));
+                        builder.RegisterModule(new DockerModule(appSettings.DeviceConnectionString, appSettings.EdgeDeviceHostName, dockerUri, dockerAuthConfig, appSettings.UpstreamProtocol, productInfo));
                         break;
 
-                    case Constants.IotedgedMode:
-                        string managementUri = configuration.GetValue<string>(Constants.EdgeletManagementUriVariableName);
-                        string workloadUri = configuration.GetValue<string>(Constants.EdgeletWorkloadUriVariableName);
-                        string iothubHostname = configuration.GetValue<string>(Constants.IotHubHostnameVariableName);
-                        string deviceId = configuration.GetValue<string>(Constants.DeviceIdVariableName);
-                        string moduleId = configuration.GetValue(Constants.ModuleIdVariableName, Constants.EdgeAgentModuleIdentityName);
-                        string moduleGenerationId = configuration.GetValue<string>(Constants.EdgeletModuleGenerationIdVariableName);
-                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), moduleId, Option.Some(moduleGenerationId)));
-                        builder.RegisterModule(new EdgeletModule(iothubHostname, edgeDeviceHostName, deviceId, new Uri(managementUri), new Uri(workloadUri), dockerAuthConfig, upstreamProtocol, productInfo));
+                    case EdgeRuntimeMode.Iotedged:
+                        builder.RegisterModule(new AgentModule(appSettings.MaxRestartCount, appSettings.IntensiveCareTime, appSettings.CoolOffTimeUnit, appSettings.UsePersistentStorage, appSettings.StoragePath, Option.Some(new Uri(appSettings.WorkloadUri)), appSettings.ModuleId, Option.Some(appSettings.ModuleGenerationId)));
+                        builder.RegisterModule(new EdgeletModule(appSettings.IoTHubHostName, appSettings.EdgeDeviceHostName, appSettings.DeviceId, new Uri(appSettings.ManagementUri), new Uri(appSettings.WorkloadUri), dockerAuthConfig, appSettings.UpstreamProtocol, productInfo));
                         break;
 
                     default:
-                        throw new InvalidOperationException($"Mode '{mode}' not supported.");
+                        throw new InvalidOperationException($"Runtime mode '{appSettings.RuntimeMode}' not supported.");
                 }
 
-                switch (configSourceConfig.ToLowerInvariant())
+                switch (appSettings.ConfigSource)
                 {
-                    case "twin":
-                        builder.RegisterModule(new TwinConfigSourceModule(backupConfigFilePath, configuration, versionInfo, TimeSpan.FromSeconds(configRefreshFrequencySecs)));
+                    case ConfigSource.Twin:
+                        builder.RegisterModule(new TwinConfigSourceModule(appSettings));
                         break;
 
-                    case "local":
-                        builder.RegisterModule(new FileConfigSourceModule("config.json", configuration));
+                    case ConfigSource.Local:
+                        builder.RegisterModule(new FileConfigSourceModule("config.json", appSettings));
                         break;
 
                     default:
-                        throw new InvalidOperationException($"ConfigSource '{configSourceConfig}' not supported.");
+                        throw new InvalidOperationException($"ConfigSource '{appSettings.ConfigSource}' not supported.");
                 }
 
                 container = builder.Build();
@@ -155,7 +116,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 Option<Agent> agentOption = Option.None<Agent>();
 
                 try
-                {                    
+                {
                     Agent agent = await container.Resolve<Task<Agent>>();
                     agentOption = Option.Some(agent);
                     while (!cts.Token.IsCancellationRequested)
@@ -168,8 +129,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         {
                             logger.LogWarning(AgentEventIds.Agent, ex, "Agent reconcile concluded with errors.");
                         }
+
                         await Task.Delay(TimeSpan.FromSeconds(5), cts.Token);
                     }
+
                     logger.LogInformation("Closing module management agent.");
 
                     returnCode = 0;
@@ -189,16 +152,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 await Cleanup(agentOption, logger);
                 completed.Set();
             }
+
             handler.ForEach(h => GC.KeepAlive(h));
             return returnCode;
         }
 
-        static ILogger SetupLogger(IConfiguration configuration)
+        static ILogger SetupLogger(IAgentAppSettings appSettings)
         {
-            string logLevel = configuration.GetValue($"{Logger.RuntimeLogLevelEnvKey}", "info");
-            Logger.SetLogLevel(logLevel);
-            ILogger logger = Logger.Factory.CreateLogger<Program>();
-            return logger;
+            Logger.SetLogLevel(appSettings.RuntimeLogLevel);
+            return Logger.Factory.CreateLogger<Program>();
         }
 
         static Task Cleanup(Option<Agent> agentOption, ILogger logger)
@@ -216,26 +178,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             }
         }
 
-        static string GetStoragePath(IConfiguration configuration)
-        {
-            string baseStoragePath = configuration.GetValue<string>("StorageFolder");
-            if (string.IsNullOrWhiteSpace(baseStoragePath) || !Directory.Exists(baseStoragePath))
-            {
-                baseStoragePath = Path.GetTempPath();
-            }
-
-            string storagePath = Path.Combine(baseStoragePath, EdgeAgentStorageFolder);
-            if (!Directory.Exists(storagePath))
-            {
-                Directory.CreateDirectory(storagePath);
-            }
-
-            return storagePath;
-        }
-
         static void LogLogo(ILogger logger)
         {
-            logger.LogInformation(@"
+            logger.LogInformation(
+                @"
         █████╗ ███████╗██╗   ██╗██████╗ ███████╗
        ██╔══██╗╚══███╔╝██║   ██║██╔══██╗██╔════╝
        ███████║  ███╔╝ ██║   ██║██████╔╝█████╗

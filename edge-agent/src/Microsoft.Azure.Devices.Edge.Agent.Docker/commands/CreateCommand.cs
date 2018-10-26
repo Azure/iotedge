@@ -10,7 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
 
     public class CreateCommand : ICommand
@@ -66,15 +65,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
                 : Option.None<DockerRuntimeInfo>();
 
             // Inject global parameters
-            InjectCerts(createContainerParameters, configSource, buildForEdgeHub);
-            InjectConfig(createContainerParameters, identity, buildForEdgeHub, configSource);
+            InjectCerts(createContainerParameters, configSource.AppSettings, buildForEdgeHub);
+            InjectConfig(createContainerParameters, identity, buildForEdgeHub, configSource.AppSettings);
             InjectPortBindings(createContainerParameters, buildForEdgeHub);
             InjectLoggerConfig(createContainerParameters, defaultDockerLoggerConfig, dockerRuntimeInfo.Map(r => r.Config.LoggingOptions));
             InjectModuleEnvVars(createContainerParameters, module.Env);
             // Inject required Edge parameters
             InjectLabels(createContainerParameters, module, createOptionsString);
 
-            InjectNetworkAlias(createContainerParameters, configSource, buildForEdgeHub);
+            InjectNetworkAlias(createContainerParameters, configSource.AppSettings, buildForEdgeHub);
 
             return new CreateCommand(client, createContainerParameters);
         }
@@ -85,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
 
         public Task UndoAsync(CancellationToken token) => TaskEx.Done;
 
-        static void InjectConfig(CreateContainerParameters createContainerParameters, IModuleIdentity identity, bool injectForEdgeHub, IConfigSource configSource)
+        static void InjectConfig(CreateContainerParameters createContainerParameters, IModuleIdentity identity, bool injectForEdgeHub, IAgentAppSettings appSettings)
         {
             var envVars = new List<string>();
 
@@ -101,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
                 envVars.Add($"{Logger.RuntimeLogLevelEnvKey}={Logger.GetLogLevel()}");
             }
 
-            configSource.Configuration.GetValue<string>(Constants.UpstreamProtocolKey).ToUpstreamProtocol().ForEach(
+            appSettings.UpstreamProtocol.ForEach(
                 u =>
                 {
                     if (createContainerParameters.Env?.Any(e => e.StartsWith("UpstreamProtocol=", StringComparison.OrdinalIgnoreCase)) == false)
@@ -147,7 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
                 sourceOptions = Option.None<LogConfig>();
             }
 
-            if (createContainerParameters.HostConfig.LogConfig == null || (string.IsNullOrWhiteSpace(createContainerParameters.HostConfig.LogConfig.Type)))
+            if (string.IsNullOrWhiteSpace(createContainerParameters.HostConfig.LogConfig?.Type))
             {
                 createContainerParameters.HostConfig.LogConfig = sourceOptions.GetOrElse(new LogConfig
                 {
@@ -178,21 +177,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             }
         }
 
-        static void InjectNetworkAlias(CreateContainerParameters createContainerParameters, IConfigSource configSource, bool addEdgeDeviceHostNameAlias)
+        static void InjectNetworkAlias(CreateContainerParameters createContainerParameters, IAgentAppSettings appSettings, bool addEdgeDeviceHostNameAlias)
         {
-            string networkId = configSource.Configuration.GetValue<string>(Constants.NetworkIdKey);
-            string edgeDeviceHostName = configSource.Configuration.GetValue<string>(Constants.EdgeDeviceHostNameKey);
-            if (!string.IsNullOrWhiteSpace(networkId))
+            if (!string.IsNullOrWhiteSpace(appSettings.NetworkId))
             {
                 var endpointSettings = new EndpointSettings();
-                if (addEdgeDeviceHostNameAlias && !string.IsNullOrWhiteSpace(edgeDeviceHostName))
+                if (addEdgeDeviceHostNameAlias && !string.IsNullOrWhiteSpace(appSettings.EdgeDeviceHostName))
                 {
-                    endpointSettings.Aliases = new List<string> { edgeDeviceHostName };
+                    endpointSettings.Aliases = new List<string> { appSettings.EdgeDeviceHostName };
                 }
 
                 IDictionary<string, EndpointSettings> endpointsConfig = new Dictionary<string, EndpointSettings>
                 {
-                    [networkId] = endpointSettings
+                    [appSettings.NetworkId] = endpointSettings
                 };
                 createContainerParameters.NetworkingConfig = new NetworkingConfig { EndpointsConfig = endpointsConfig };
             }
@@ -210,49 +207,46 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             }
         }
 
-        static void InjectCerts(CreateContainerParameters createContainerParameters, IConfigSource configSource, bool injectForEdgeHub)
+        static void InjectCerts(CreateContainerParameters createContainerParameters, IAgentAppSettings appSettings, bool injectForEdgeHub)
         {
             createContainerParameters.HostConfig = createContainerParameters.HostConfig ?? new HostConfig();
             var varsList = new List<string>();
             if (injectForEdgeHub)
             {
                 // for the EdgeHub we need to inject the CA chain cert that was used to sign the Hub server certificate
-                string moduleCaChainCertFile = configSource.Configuration.GetValue(Constants.EdgeModuleHubServerCaChainCertificateFileKey, string.Empty);
-                if (string.IsNullOrWhiteSpace(moduleCaChainCertFile) == false)
+                if (!string.IsNullOrWhiteSpace(appSettings.EdgeModuleHubServerCAChainCertificateFile))
                 {
-                    varsList.Add($"{Constants.EdgeModuleHubServerCaChainCertificateFileKey}={moduleCaChainCertFile}");
+                    varsList.Add($"{Constants.EdgeModuleHubServerCaChainCertificateFileKey}={appSettings.EdgeModuleHubServerCAChainCertificateFile}");
                 }
 
                 // for the EdgeHub we also need to inject the Hub server certificate which will be used for TLS connections
                 // from modules and leaf devices
-                string moduleHubCertFile = configSource.Configuration.GetValue(Constants.EdgeModuleHubServerCertificateFileKey, string.Empty);
-                if (string.IsNullOrWhiteSpace(moduleHubCertFile) == false)
+                if (!string.IsNullOrWhiteSpace(appSettings.EdgeModuleHubServerCertificateFile))
                 {
-                    varsList.Add($"{Constants.EdgeModuleHubServerCertificateFileKey}={moduleHubCertFile}");
+                    varsList.Add($"{Constants.EdgeModuleHubServerCertificateFileKey}={appSettings.EdgeModuleHubServerCertificateFile}");
                 }
 
                 // mount edge hub volume
                 InjectVolume(
                     createContainerParameters,
-                    configSource.Configuration.GetValue(Constants.EdgeHubVolumeNameKey, string.Empty),
-                    configSource.Configuration.GetValue(Constants.EdgeHubVolumePathKey, string.Empty)
+                    appSettings.EdgeHubVolumeName,
+                    appSettings.EdgeHubVolumePath
                 );
             }
             else
             {
                 // for all Edge modules, the agent should inject the CA certificate that can be used for Edge Hub server certificate
                 // validation
-                string moduleCaCertFile = configSource.Configuration.GetValue(Constants.EdgeModuleCaCertificateFileKey, string.Empty);
-                if (string.IsNullOrWhiteSpace(moduleCaCertFile) == false)
+                if (!string.IsNullOrWhiteSpace(appSettings.EdgeModuleCACertificateFile))
                 {
-                    varsList.Add($"{Constants.EdgeModuleCaCertificateFileKey}={moduleCaCertFile}");
+                    varsList.Add($"{Constants.EdgeModuleCaCertificateFileKey}={appSettings.EdgeModuleCACertificateFile}");
                 }
 
                 // mount module volume
                 InjectVolume(
                     createContainerParameters,
-                    configSource.Configuration.GetValue(Constants.EdgeModuleVolumeNameKey, string.Empty),
-                    configSource.Configuration.GetValue(Constants.EdgeModuleVolumePathKey, string.Empty)
+                    appSettings.EdgeModuleVolumeName,
+                    appSettings.EdgeModuleVolumePath
                 );
             }
 

@@ -9,18 +9,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Agent.Core.Reporters;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Extensions.Configuration;
 
     public class FileConfigSourceModule : Module
     {
         readonly string configFilename;
-        readonly IConfiguration configuration;
+        readonly IAgentAppSettings appSettings;
 
-        public FileConfigSourceModule(string configFilename,
-            IConfiguration configuration)
+        public FileConfigSourceModule(
+            string configFilename,
+            IAgentAppSettings appSettings)
         {
             this.configFilename = Preconditions.CheckNonWhiteSpace(configFilename, nameof(configFilename));
-            this.configuration = Preconditions.CheckNotNull(configuration, nameof(configuration));
+            this.appSettings = Preconditions.CheckNotNull(appSettings, nameof(appSettings));
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     var serde = c.Resolve<ISerde<DeploymentConfigInfo>>();
                     IConfigSource config = await FileConfigSource.Create(
                         this.configFilename,
-                        this.configuration,
+                        this.appSettings,
                         serde);
                     return config;
                 })

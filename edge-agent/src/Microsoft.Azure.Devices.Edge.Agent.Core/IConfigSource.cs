@@ -4,12 +4,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
     using System;
     using System.Threading.Tasks;
-    using Microsoft.Extensions.Configuration;
 
     public interface IConfigSource : IDisposable
     {
         Task<DeploymentConfigInfo> GetDeploymentConfigInfoAsync();
 
-        IConfiguration Configuration { get; }
+        IAgentAppSettings AppSettings { get; }
     }
 }

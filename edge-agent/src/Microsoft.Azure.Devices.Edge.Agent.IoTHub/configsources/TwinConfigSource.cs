@@ -5,21 +5,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
 
     public class TwinConfigSource : IConfigSource
     {
         readonly IEdgeAgentConnection edgeAgentConnection;
 
-        public TwinConfigSource(IEdgeAgentConnection edgeAgentConnection, IConfiguration configuration)
+        public TwinConfigSource(IEdgeAgentConnection edgeAgentConnection, IAgentAppSettings appSettings)
         {
-            this.Configuration = Preconditions.CheckNotNull(configuration, nameof(configuration));
+            this.AppSettings = Preconditions.CheckNotNull(appSettings, nameof(appSettings));
             this.edgeAgentConnection = Preconditions.CheckNotNull(edgeAgentConnection, nameof(edgeAgentConnection));
             Events.Created();
         }
 
-        public IConfiguration Configuration { get; }
+        public IAgentAppSettings AppSettings { get; }
 
         public async Task<DeploymentConfigInfo> GetDeploymentConfigInfoAsync()
         {

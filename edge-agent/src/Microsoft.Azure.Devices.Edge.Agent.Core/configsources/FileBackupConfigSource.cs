@@ -8,7 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
-    using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
 
     public class FileBackupConfigSource : IConfigSource
@@ -28,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
             Events.Created(this.configFilePath);
         }
 
-        public IConfiguration Configuration => this.underlying.Configuration;
+        public IAgentAppSettings AppSettings => this.underlying.AppSettings;
 
         async Task<DeploymentConfigInfo> ReadFromBackup()
         {

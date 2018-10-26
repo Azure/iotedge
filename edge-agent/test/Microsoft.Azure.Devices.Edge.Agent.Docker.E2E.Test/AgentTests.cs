@@ -13,7 +13,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
     using global::Docker.DotNet;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Planners;
     using Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Reporters;
@@ -74,17 +73,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                 var loggingConfig = new DockerLoggingConfig("json-file", dockerLoggingOptions);
 
                 string sharedAccessKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("test"));
-                IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
-                {
-                    { "DeviceConnectionString", $"Hostname=fakeiothub;Deviceid=test;SharedAccessKey={sharedAccessKey}" }
-                }).Build();
-
+                
+                var mockAppSetting = new Mock<IAgentAppSettings>();
+                mockAppSetting.SetupGet(s => s.DeviceConnectionString).Returns($"Hostname=fakeiothub;Deviceid=test;SharedAccessKey={sharedAccessKey}");
                 var runtimeConfig = new DockerRuntimeConfig("1.24.0", "{}");
                 var runtimeInfo = new DockerRuntimeInfo("docker", runtimeConfig);
                 var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", runtimeInfo, systemModules, modules));
 
                 var configSource = new Mock<IConfigSource>();
-                configSource.Setup(cs => cs.Configuration).Returns(configRoot);
+                configSource.Setup(cs => cs.AppSettings).Returns(mockAppSetting.Object);
                 configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
 
                 // TODO: Fix this up with a real reporter. But before we can do that we need to use
