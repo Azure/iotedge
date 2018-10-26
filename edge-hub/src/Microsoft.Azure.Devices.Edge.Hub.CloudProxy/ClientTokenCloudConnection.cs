@@ -49,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
         }
 
-        public static async Task<CloudConnection> Create(
+        public static async Task<ClientTokenCloudConnection> Create(
             ITokenCredentials tokenCredentials,
             Action<string, CloudConnectionStatus> connectionStatusChangedHandler,
             ITransportSettings[] transportSettings,

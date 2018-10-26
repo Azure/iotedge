@@ -18,9 +18,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
     public class CloudConnectionProviderTest
     {
-        static readonly Core.IMessageConverterProvider MessageConverterProvider = Mock.Of<IMessageConverterProvider>();
+        static readonly IMessageConverterProvider MessageConverterProvider = Mock.Of<IMessageConverterProvider>();
         static readonly ITokenProvider TokenProvider = Mock.Of<ITokenProvider>();
         static readonly IDeviceScopeIdentitiesCache DeviceScopeIdentitiesCache = Mock.Of<IDeviceScopeIdentitiesCache>();
+        static readonly ICredentialsCache CredentialsCache = Mock.Of<ICredentialsCache>();
+        static readonly IIdentity EdgeHubIdentity = Mock.Of<IIdentity>(i => i.Id == "device1/$edgeHub");
+
         const int ConnectionPoolSize = 10;
 
         [Fact]
@@ -28,7 +31,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public async Task ConnectTest()
         {
             var edgeHub = Mock.Of<IEdgeHub>();
-            ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(MessageConverterProvider, ConnectionPoolSize, new ClientProvider(), Option.None<UpstreamProtocol>(), TokenProvider, DeviceScopeIdentitiesCache, TimeSpan.FromMinutes(60), true);
+            ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(
+                MessageConverterProvider,
+                ConnectionPoolSize,
+                new ClientProvider(),
+                Option.None<UpstreamProtocol>(),
+                TokenProvider,
+                DeviceScopeIdentitiesCache,
+                CredentialsCache,
+                EdgeHubIdentity,
+                TimeSpan.FromMinutes(60),
+                true);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
             string deviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("device1ConnStrKey");
             var deviceIdentity = Mock.Of<IDeviceIdentity>(m => m.Id == ConnectionStringHelper.GetDeviceId(deviceConnectionString));
@@ -44,7 +57,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public async Task ConnectWithInvalidConnectionStringTest()
         {
             var edgeHub = Mock.Of<IEdgeHub>();
-            ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(MessageConverterProvider, ConnectionPoolSize, new ClientProvider(), Option.None<UpstreamProtocol>(), TokenProvider, DeviceScopeIdentitiesCache, TimeSpan.FromMinutes(60), true);
+            ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(
+                MessageConverterProvider,
+                ConnectionPoolSize,
+                new ClientProvider(),
+                Option.None<UpstreamProtocol>(),
+                TokenProvider,
+                DeviceScopeIdentitiesCache,
+                CredentialsCache,
+                EdgeHubIdentity,
+                TimeSpan.FromMinutes(60),
+                true);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
             var deviceIdentity1 = Mock.Of<IIdentity>(m => m.Id == "device1");
             var clientCredentials1 = new SharedKeyCredentials(deviceIdentity1, "dummyConnStr", null);
@@ -89,20 +112,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             yield return new object[]
             {
-               Option.None<UpstreamProtocol>(),
-               20,
-               new ITransportSettings[]
-               {
-                   new AmqpTransportSettings(TransportType.Amqp_Tcp_Only)
-                   {
-                       AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings
-                       {
-                           Pooling = true,
-                           MaxPoolSize = 20,
-                           ConnectionIdleTimeout = TimeSpan.FromSeconds(5)
-                       }
-                   }
-               }
+                Option.None<UpstreamProtocol>(),
+                20,
+                new ITransportSettings[]
+                {
+                    new AmqpTransportSettings(TransportType.Amqp_Tcp_Only)
+                    {
+                        AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings
+                        {
+                            Pooling = true,
+                            MaxPoolSize = 20,
+                            ConnectionIdleTimeout = TimeSpan.FromSeconds(5)
+                        }
+                    }
+                }
             };
 
             yield return new object[]

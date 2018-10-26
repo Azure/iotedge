@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+
 namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
     using System;
@@ -42,23 +43,35 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     { typeof(Twin), twinMessageConverter },
                     { typeof(TwinCollection), twinCollectionMessageConverter }
                 });
-            var cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, new ClientProvider(), Option.None<UpstreamProtocol>(), Mock.Of<ITokenProvider>(), Mock.Of<IDeviceScopeIdentitiesCache>(), TimeSpan.FromMinutes(60), true);
-            var credentialsCache = Mock.Of<ICredentialsCache>();
-            var connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache);
 
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
             Devices.IotHubConnectionStringBuilder iotHubConnectionStringBuilder = Devices.IotHubConnectionStringBuilder.Create(iotHubConnectionString);
             RegistryManager registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
             await registryManager.OpenAsync();
 
+            string iothubHostName = iotHubConnectionStringBuilder.HostName;
+            var identityFactory = new ClientCredentialsFactory(iothubHostName);
+
             (string edgeDeviceId, string deviceConnStr) = await RegistryManagerHelper.CreateDevice(EdgeDeviceId, iotHubConnectionString, registryManager, true, false);
+            string edgeHubConnectionString = $"{deviceConnStr};ModuleId={EdgeHubModuleId}";
+
+            IClientCredentials edgeHubCredentials = identityFactory.GetWithConnectionString(edgeHubConnectionString);
+            var credentialsCache = Mock.Of<ICredentialsCache>();
+            var cloudConnectionProvider = new CloudConnectionProvider(
+                messageConverterProvider,
+                1,
+                new ClientProvider(),
+                Option.None<UpstreamProtocol>(),
+                Mock.Of<ITokenProvider>(),
+                Mock.Of<IDeviceScopeIdentitiesCache>(),
+                credentialsCache,
+                edgeHubCredentials.Identity,
+                TimeSpan.FromMinutes(60),
+                true);
+            var connectionManager = new ConnectionManager(cloudConnectionProvider, EdgeDeviceId, EdgeHubModuleId);
 
             try
             {
-                string iothubHostName = iotHubConnectionStringBuilder.HostName;
-                var identityFactory = new ClientCredentialsFactory(iothubHostName);
-                string edgeHubConnectionString = $"{deviceConnStr};ModuleId={EdgeHubModuleId}";
-                IClientCredentials edgeHubCredentials = identityFactory.GetWithConnectionString(edgeHubConnectionString);
                 Mock.Get(credentialsCache)
                     .Setup(c => c.Get(edgeHubCredentials.Identity))
                     .ReturnsAsync(Option.Some(edgeHubCredentials));
@@ -254,14 +267,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 Assert.Equal(versionInfo, reportedProperties.VersionInfo);
 
                 // If the edge hub restarts, clear out the connected devices in the reported properties.
-                await EdgeHubConnection.Create(edgeHubCredentials.Identity, edgeHub, twinManager, connectionManager, routeFactory, twinCollectionMessageConverter, twinMessageConverter, versionInfo,
+                await EdgeHubConnection.Create(
+                    edgeHubCredentials.Identity,
+                    edgeHub,
+                    twinManager,
+                    connectionManager,
+                    routeFactory,
+                    twinCollectionMessageConverter,
+                    twinMessageConverter,
+                    versionInfo,
                     new NullDeviceScopeIdentitiesCache());
                 await Task.Delay(TimeSpan.FromMinutes(1));
                 reportedProperties = await this.GetReportedProperties(registryManager, edgeDeviceId);
                 Assert.Null(reportedProperties.Clients);
                 Assert.Equal("1.0", reportedProperties.SchemaVersion);
                 Assert.Equal(versionInfo, reportedProperties.VersionInfo);
-
             }
             finally
             {
@@ -309,7 +329,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     ["$edgeHub"] = new Dictionary<string, object>
                     {
                         ["properties.desired"] = desiredProperties
-
                     },
                     ["$edgeAgent"] = new Dictionary<string, object>
                     {
@@ -346,7 +365,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     ["$edgeHub"] = new Dictionary<string, object>
                     {
                         ["properties.desired"] = desiredProperties
-
                     },
                     ["$edgeAgent"] = new Dictionary<string, object>
                     {
