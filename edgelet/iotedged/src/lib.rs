@@ -78,7 +78,7 @@ use edgelet_core::crypto::{
 use edgelet_core::watchdog::Watchdog;
 use edgelet_core::{CertificateIssuer, CertificateProperties, CertificateType};
 use edgelet_core::{ModuleRuntime, ModuleSpec};
-use edgelet_core::{WorkloadConfig,  WorkloadConfigData};
+use edgelet_core::{WorkloadConfig};
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_hsm::Crypto;
@@ -187,79 +187,79 @@ pub struct Main {
     settings: Settings<DockerConfig>,
 }
 
-// #[derive(Debug, Clone)]
+#[derive(Debug, Clone)]
 
-// pub struct WorkloadConfigData {
-//     iot_hub_name: String,
-//     device_id: String,
-//     id_cert_max_duration: u64,
-//     srv_cert_max_duration: u64,
-// }
+pub struct WorkloadConfigData {
+    iot_hub_name: String,
+    device_id: String,
+    id_cert_max_duration: u64,
+    srv_cert_max_duration: u64,
+}
 
-// impl WorkloadConfigData {
-//     pub fn new(iot_hub_name: String, device_id: String, id_cert_max_duration: u64, srv_cert_max_duration: u64) -> Self {
-//         WorkloadConfigData {
-//             iot_hub_name,
-//             device_id,
-//             id_cert_max_duration,
-//             srv_cert_max_duration,
-//         }
-//     }
+impl WorkloadConfigData {
+    pub fn new(iot_hub_name: String, device_id: String, id_cert_max_duration: u64, srv_cert_max_duration: u64) -> Self {
+        WorkloadConfigData {
+            iot_hub_name,
+            device_id,
+            id_cert_max_duration,
+            srv_cert_max_duration,
+        }
+    }
 
-//     pub fn iot_hub_name(&self) -> &str {
-//         &self.iot_hub_name
-//     }
+    pub fn iot_hub_name(&self) -> &str {
+        &self.iot_hub_name
+    }
 
-//     pub fn with_iot_hub_name(mut self, iot_hub_name: String) -> WorkloadConfigData {
-//         self.iot_hub_name = iot_hub_name;
-//         self
-//     }
+    pub fn with_iot_hub_name(mut self, iot_hub_name: String) -> WorkloadConfigData {
+        self.iot_hub_name = iot_hub_name;
+        self
+    }
 
-//     pub fn device_id(&self) -> &str {
-//         &self.device_id
-//     }
+    pub fn device_id(&self) -> &str {
+        &self.device_id
+    }
 
-//     pub fn with_device_id(mut self, device_id: String) -> WorkloadConfigData {
-//         self.device_id = device_id;
-//         self
-//     }
+    pub fn with_device_id(mut self, device_id: String) -> WorkloadConfigData {
+        self.device_id = device_id;
+        self
+    }
 
-//     pub fn id_cert_max(&self) -> u64 {
-//         self.id_cert_max_duration
-//     }
+    pub fn id_cert_max(&self) -> u64 {
+        self.id_cert_max_duration
+    }
 
-//     pub fn with_id_cert_max(mut self, duration_in_sec: u64) -> WorkloadConfigData {
-//         self.id_cert_max_duration = duration_in_sec;
-//         self
-//     }
+    pub fn with_id_cert_max(mut self, duration_in_sec: u64) -> WorkloadConfigData {
+        self.id_cert_max_duration = duration_in_sec;
+        self
+    }
 
-//     pub fn server_cert_max(&self) -> u64 {
-//         self.srv_cert_max_duration
-//     }
+    pub fn server_cert_max(&self) -> u64 {
+        self.srv_cert_max_duration
+    }
 
-//     pub fn with_server_cert_max(mut self, duration_in_sec: u64) -> WorkloadConfigData {
-//         self.srv_cert_max_duration = duration_in_sec;
-//         self
-//     }
-// }
+    pub fn with_server_cert_max(mut self, duration_in_sec: u64) -> WorkloadConfigData {
+        self.srv_cert_max_duration = duration_in_sec;
+        self
+    }
+}
 
-// impl WorkloadConfig for WorkloadConfigData {
-//     fn iot_hub_name(&self) -> &str {
-//         self.iot_hub_name()
-//     }
+impl WorkloadConfig for WorkloadConfigData {
+    fn iot_hub_name(&self) -> &str {
+        self.iot_hub_name()
+    }
 
-//     fn device_id(&self) -> &str {
-//         self.device_id()
-//     }
+    fn device_id(&self) -> &str {
+        self.device_id()
+    }
 
-//     fn get_max_duration(&self, cert_type: CertificateType) -> u64 {
-//         match cert_type {
-//             CertificateType::Client => self.id_cert_max(),
-//             CertificateType::Server => self.server_cert_max(),
-//             _ => 0,
-//         }
-//     }
-// }
+    fn get_max_duration(&self, cert_type: CertificateType) -> u64 {
+        match cert_type {
+            CertificateType::Client => self.id_cert_max(),
+            CertificateType::Server => self.server_cert_max(),
+            _ => 0,
+        }
+    }
+}
 
 impl Main {
     pub fn new(settings: Settings<DockerConfig>) -> Result<Self, Error> {
