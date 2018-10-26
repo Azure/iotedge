@@ -122,6 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             try
             {
+                Events.CreatingCloudConnectionUsingClientCredentials(clientCredentials);
                 var cloudListener = new CloudListener(this.edgeHub.Expect(() => new InvalidOperationException("EdgeHub reference should not be null")), clientCredentials.Identity.Id);
 
                 if (this.edgeHubIdentity.Id.Equals(clientCredentials.Identity.Id))
@@ -172,10 +173,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             try
             {
                 var cloudListener = new CloudListener(this.edgeHub.Expect(() => new InvalidOperationException("EdgeHub reference should not be null")), identity.Id);
-                Option<ServiceIdentity> serviceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(identity.Id);
+                Option<ServiceIdentity> serviceIdentity = (await this.deviceScopeIdentitiesCache.GetServiceIdentity(identity.Id))
+                    .Filter(s => s.Status == ServiceIdentityStatus.Enabled);
                 return await serviceIdentity
                     .Map(async si =>
                     {
+                        Events.CreatingCloudConnectionOnBehalfOf(identity);
                         ICloudConnection cc = await CloudConnection.Create(
                             identity,
                             connectionStatusChangedHandler,
@@ -192,6 +195,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     .GetOrElse(
                         async () =>
                         {
+                            Events.ServiceIdentityNotFound(identity);
                             Option<IClientCredentials> clientCredentials = await this.credentialsCache.Get(identity);
                             return await clientCredentials
                                 .Map(cc => this.Connect(cc, connectionStatusChangedHandler))
@@ -213,7 +217,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             enum EventIds
             {
                 CloudConnectError = IdStart,
-                CloudConnectSuccess
+                CloudConnectSuccess,
+                CreatingCloudConnectionUsingClientCredentials,
+                CreatingCloudConnectionOnBehalfOf,
+                ServiceIdentityNotFound
             }
 
             public static void SuccessCreatingCloudConnection(IIdentity identity)
@@ -224,6 +231,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             public static void ErrorCreatingCloudConnection(IIdentity identity, Exception exception)
             {
                 Log.LogWarning((int)EventIds.CloudConnectError, exception, $"Error creating cloud connection for client {identity.Id}");
+            }
+
+            public static void CreatingCloudConnectionUsingClientCredentials(IClientCredentials clientCredentials)
+            {
+                Log.LogDebug((int)EventIds.CreatingCloudConnectionUsingClientCredentials, $"Creating cloud connection for client {clientCredentials.Identity.Id} using client credentials");
+            }
+
+            public static void CreatingCloudConnectionOnBehalfOf(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.CreatingCloudConnectionOnBehalfOf, $"Creating cloud connection for client {identity.Id} using EdgeHub credentials");
+            }
+
+            public static void ServiceIdentityNotFound(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.ServiceIdentityNotFound, $"Creating cloud connection for client {identity.Id}. Client identity is not in device scope, attempting to use client credentials.");
             }
         }
     }
