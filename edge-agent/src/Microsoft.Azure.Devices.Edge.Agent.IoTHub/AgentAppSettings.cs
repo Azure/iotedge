@@ -135,7 +135,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
 
             Preconditions.CheckNotNull(this.DockerLoggingDriver, nameof(this.DockerLoggingDriver));
-            Preconditions.CheckRange(this.MaxRestartCount, 1);
+            Preconditions.CheckRange(this.MaxRestartCount, 1, nameof(this.MaxRestartCount));
             Preconditions.CheckNonWhiteSpace(this.StoragePath, nameof(this.StoragePath));
             Preconditions.CheckNotNull(this.VersionInfo, nameof(this.VersionInfo));
         }

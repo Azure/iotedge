@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Util
 {
@@ -64,15 +64,19 @@ namespace Microsoft.Azure.Devices.Edge.Util
         /// </summary>
         /// <param name="expression"></param>
         /// <param name="message"></param>
-        public static void CheckArgument(bool expression, string message)
+        public static void CheckArgument(bool expression, string message, string paramName = "")
         {
             if (!expression)
             {
-                throw new ArgumentException(message);
+                if (string.IsNullOrEmpty(paramName))
+                {
+                    throw new ArgumentException(message);
+                }
+
+                throw new ArgumentException(message, paramName);
             }
         }
-
-
+        
         /// <summary>
         ///  Checks that an Enum is defined. Throws ArgumentOutOfRangeException is not.
         /// </summary>
@@ -181,7 +185,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
         /// <param name="paramName"></param>
         public static string CheckNonWhiteSpace(string value, string paramName)
         {
-            CheckArgument(!string.IsNullOrWhiteSpace(value), $"{paramName} is null or whitespace.");
+            CheckArgument(!string.IsNullOrWhiteSpace(value), $"{paramName} is null or whitespace.", paramName);
             return value;
         }
 
