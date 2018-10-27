@@ -34,7 +34,7 @@ fn bindgen_test_supported_hsm_version() {
             .to_string_lossy()
             .into_owned()
     };
-    assert_eq!(String::from("1.0.0"), result);
+    assert_eq!(String::from("1.0.1"), result);
 }
 
 pub type HSM_CLIENT_HANDLE = *mut c_void;

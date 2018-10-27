@@ -5,7 +5,7 @@
 
 static const char* const DEVICE_CA_ALIAS = "device_ca_alias";
 
-static const char* const HSM_CLIENT_VERSION = "1.0.0";
+static const char* const HSM_CLIENT_VERSION = "1.0.1";
 
 const char* hsm_get_device_ca_alias(void)
 {
