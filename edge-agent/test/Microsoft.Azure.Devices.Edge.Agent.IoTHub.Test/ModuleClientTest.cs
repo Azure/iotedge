@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Moq;
     using Xunit;
 
     public class ModuleClientTest
@@ -40,6 +41,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         {
             // Arrange
             var receivedTransportTypes = new List<Client.TransportType>();
+            string deviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("device2ConnStrKey");
+            string moduleClientConnectionString = $"{deviceConnectionString};ModuleId=mod1";
             Task<Client.ModuleClient> DeviceClientCreator(Client.TransportType transportType)
             {
                 receivedTransportTypes.Add(transportType);
@@ -47,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 {
                     throw new InvalidOperationException();
                 }
-                return Task.FromResult((Client.ModuleClient)null);
+                return Task.FromResult(Client.ModuleClient.CreateFromConnectionString(moduleClientConnectionString));
             }
 
             // Act
