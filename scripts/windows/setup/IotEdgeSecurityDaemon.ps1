@@ -496,11 +496,11 @@ function Set-MobyNetwork {
     $SelectionRegex = "moby_runtime:\s*uri:\s*`".*`"\s*#?\s*network:\s*`".*`""
     $ReplacementContentWindows = @(
         "moby_runtime:",
-        "  docker_uri: `"npipe://./pipe/docker_engine`"",
+        "  uri: `"npipe://./pipe/docker_engine`"",
         "  network: `"nat`"")
     $ReplacementContentLinux = @(
         "moby_runtime:",
-        "  docker_uri: `"npipe://./pipe/docker_engine`"",
+        "  uri: `"npipe://./pipe/docker_engine`"",
         "  network: `"azure-iot-edge`"")
     if ($ContainerOs -eq "Windows") {
         ($ConfigurationYaml -replace $SelectionRegex, ($ReplacementContentWindows -join "`n")) | Set-Content "C:\ProgramData\iotedge\config.yaml" -Force
