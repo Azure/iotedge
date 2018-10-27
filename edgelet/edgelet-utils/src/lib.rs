@@ -54,6 +54,10 @@ pub fn parse_query(query: &str) -> HashMap<&str, &str> {
         }).collect()
 }
 
+pub fn prepare_cert_uri_module(hub_name: String, device_id: String, module_id: String) -> String {
+    format!("URI: azureiot://{}/devices/{}/module/{}", hub_name, device_id, module_id)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

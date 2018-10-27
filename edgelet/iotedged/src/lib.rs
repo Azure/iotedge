@@ -56,6 +56,7 @@ mod error;
 pub mod logging;
 pub mod settings;
 pub mod signal;
+pub mod workload;
 
 #[cfg(not(target_os = "windows"))]
 pub mod unix;
@@ -103,6 +104,8 @@ use sha2::{Digest, Sha256};
 use url::Url;
 
 use settings::{Dps, Manual, Provisioning, Settings, DEFAULT_CONNECTION_STRING};
+
+use workload::WorkloadData;
 
 pub use self::error::{Error, ErrorKind};
 
@@ -180,85 +183,11 @@ const EDGE_SETTINGS_SUBDIR: &str = "cache";
 const IOTEDGED_VALIDITY: u64 = 7_776_000; // 90 days
 const IOTEDGED_COMMONNAME: &str = "iotedged workload ca";
 
-const IOTEDGE_ID_CERT_MAX_DURATION_SECS: u64 = 7200; // 2 hours
-const IOTEDGE_SERVER_CERT_MAX_DURATION_SECS: u64 = 7_776_000; // 90 days
+const IOTEDGE_ID_CERT_MAX_DURATION_SECS: i64 = 7200; // 2 hours
+const IOTEDGE_SERVER_CERT_MAX_DURATION_SECS: i64 = 7_776_000; // 90 days
 
 pub struct Main {
     settings: Settings<DockerConfig>,
-}
-
-#[derive(Debug, Clone)]
-
-pub struct WorkloadConfigData {
-    iot_hub_name: String,
-    device_id: String,
-    id_cert_max_duration: u64,
-    srv_cert_max_duration: u64,
-}
-
-impl WorkloadConfigData {
-    pub fn new(iot_hub_name: String, device_id: String, id_cert_max_duration: u64, srv_cert_max_duration: u64) -> Self {
-        WorkloadConfigData {
-            iot_hub_name,
-            device_id,
-            id_cert_max_duration,
-            srv_cert_max_duration,
-        }
-    }
-
-    pub fn iot_hub_name(&self) -> &str {
-        &self.iot_hub_name
-    }
-
-    pub fn with_iot_hub_name(mut self, iot_hub_name: String) -> WorkloadConfigData {
-        self.iot_hub_name = iot_hub_name;
-        self
-    }
-
-    pub fn device_id(&self) -> &str {
-        &self.device_id
-    }
-
-    pub fn with_device_id(mut self, device_id: String) -> WorkloadConfigData {
-        self.device_id = device_id;
-        self
-    }
-
-    pub fn id_cert_max(&self) -> u64 {
-        self.id_cert_max_duration
-    }
-
-    pub fn with_id_cert_max(mut self, duration_in_sec: u64) -> WorkloadConfigData {
-        self.id_cert_max_duration = duration_in_sec;
-        self
-    }
-
-    pub fn server_cert_max(&self) -> u64 {
-        self.srv_cert_max_duration
-    }
-
-    pub fn with_server_cert_max(mut self, duration_in_sec: u64) -> WorkloadConfigData {
-        self.srv_cert_max_duration = duration_in_sec;
-        self
-    }
-}
-
-impl WorkloadConfig for WorkloadConfigData {
-    fn iot_hub_name(&self) -> &str {
-        self.iot_hub_name()
-    }
-
-    fn device_id(&self) -> &str {
-        self.device_id()
-    }
-
-    fn get_max_duration(&self, cert_type: CertificateType) -> u64 {
-        match cert_type {
-            CertificateType::Client => self.id_cert_max(),
-            CertificateType::Server => self.server_cert_max(),
-            _ => 0,
-        }
-    }
 }
 
 impl Main {
@@ -341,16 +270,16 @@ impl Main {
                 let (key_store, provisioning_result, root_key) =
                     manual_provision(&manual, &mut tokio_runtime)?;
                 info!("Finished provisioning edge device.");
-                let cfg = WorkloadConfigData::new(provisioning_result.hub_name().to_string(),
-                                                  provisioning_result.device_id().to_string(),
-                                                  IOTEDGE_ID_CERT_MAX_DURATION_SECS,
-                                                  IOTEDGE_SERVER_CERT_MAX_DURATION_SECS);
+                let cfg = WorkloadData::new(provisioning_result.hub_name().to_string(),
+                                            provisioning_result.device_id().to_string(),
+                                            IOTEDGE_ID_CERT_MAX_DURATION_SECS,
+                                            IOTEDGE_SERVER_CERT_MAX_DURATION_SECS);
                 start_api(
                     &settings,
                     hyper_client,
                     &runtime,
                     &key_store,
-                    &cfg,
+                    cfg,
                     root_key,
                     shutdown_signal,
                     &crypto,
@@ -367,16 +296,16 @@ impl Main {
                     &mut tokio_runtime,
                 )?;
                 info!("Finished provisioning edge device.");
-                let cfg = WorkloadConfigData::new(provisioning_result.hub_name().to_string(),
-                                                  provisioning_result.device_id().to_string(),
-                                                  IOTEDGE_ID_CERT_MAX_DURATION_SECS,
-                                                  IOTEDGE_SERVER_CERT_MAX_DURATION_SECS);
+                let cfg = WorkloadData::new(provisioning_result.hub_name().to_string(),
+                                            provisioning_result.device_id().to_string(),
+                                            IOTEDGE_ID_CERT_MAX_DURATION_SECS,
+                                            IOTEDGE_SERVER_CERT_MAX_DURATION_SECS);
                 start_api(
                     &settings,
                     hyper_client,
                     &runtime,
                     &key_store,
-                    &cfg,
+                    cfg,
                     root_key,
                     shutdown_signal,
                     &crypto,
@@ -522,7 +451,7 @@ fn start_api<HC, K, F, C, W>(
     hyper_client: HC,
     runtime: &DockerModuleRuntime,
     key_store: &DerivedKeyStore<K>,
-    workload_config: &W,
+    workload_config: W,
     root_key: K,
     shutdown_signal: F,
     crypto: &C,
@@ -530,23 +459,23 @@ fn start_api<HC, K, F, C, W>(
 ) -> Result<(), Error>
 where
     F: Future<Item = (), Error = ()> + Send + 'static,
-    HC: 'static + ClientImpl,
-    K: 'static + Sign + Clone + Send + Sync,
-    C: 'static
-        + CreateCertificate
+    HC: ClientImpl + 'static,
+    K: Sign + Clone + Send + Sync + 'static,
+    C: CreateCertificate
         + Decrypt
         + Encrypt
         + GetTrustBundle
         + MasterEncryptionKey
         + Clone
         + Send
-        + Sync,
-    W: 'static + WorkloadConfig + Clone
+        + Sync
+        + 'static,
+    W: WorkloadConfig + Clone + Send + Sync + 'static,
 {
-    let hub_name = workload_config.iot_hub_name();
-    let device_id = workload_config.device_id();
+    let hub_name = workload_config.iot_hub_name().to_string();
+    let device_id = workload_config.device_id().to_string();
     let hostname = format!("https://{}", hub_name);
-    let token_source = SasTokenSource::new(hub_name.to_string(), device_id.to_string(), root_key);
+    let token_source = SasTokenSource::new(hub_name.clone(), device_id.clone(), root_key);
     let http_client = HttpClient::new(
         hyper_client,
         Some(token_source),
@@ -820,20 +749,20 @@ fn start_workload<K, C, W>(
     runtime: &DockerModuleRuntime,
     shutdown: Receiver<()>,
     crypto: &C,
-    config: &W,
+    config: W,
 ) -> impl Future<Item = (), Error = failure::Error>
 where
-    K: 'static + KeyStore + Clone + Send + Sync,
-    C: 'static
-        + CreateCertificate
+    K: KeyStore + Clone + Send + Sync + 'static,
+    C: CreateCertificate
         + Decrypt
         + Encrypt
         + GetTrustBundle
         + MasterEncryptionKey
         + Clone
         + Send
-        + Sync,
-    W: 'static + WorkloadConfig + Clone
+        + Sync
+        + 'static,
+    W: WorkloadConfig + Clone + Send + Sync + 'static,
 {
     info!("Starting workload API...");
 

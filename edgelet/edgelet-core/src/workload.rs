@@ -2,11 +2,8 @@
 
 use certificate_properties::CertificateType;
 
-#[derive(Debug, Clone)]
-
-pub struct WorkloadConfigData {
-    iot_hub_name: String,
-    device_id: String,
-    id_cert_max_duration: u64,
-    srv_cert_max_duration: u64,
+pub trait WorkloadConfig {
+    fn iot_hub_name(&self) -> &str;
+    fn device_id(&self) -> &str;
+    fn get_max_duration(&self, cert_type: CertificateType) -> i64;
 }
