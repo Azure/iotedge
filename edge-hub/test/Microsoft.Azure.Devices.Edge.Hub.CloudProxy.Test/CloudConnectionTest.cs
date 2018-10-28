@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.Equal(cloudProxy1, cloudConnection.CloudProxy.OrDefault());
 
             IClientCredentials identity2 = GetMockClientCredentialsWithToken();
-            await Assert.ThrowsAsync<AggregateException>(() => cloudConnection.CreateOrUpdateAsync(identity2));
+            await Assert.ThrowsAsync<UnauthorizedException>(() => cloudConnection.CreateOrUpdateAsync(identity2));
             Assert.True(cloudProxy1.IsActive);
             Assert.Equal(cloudProxy1, cloudConnection.CloudProxy.OrDefault());
         }
