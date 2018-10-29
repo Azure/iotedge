@@ -4,6 +4,7 @@ namespace IotEdgeQuickstart.Details
     using System.ComponentModel;
     using System.IO;
     using System.Linq;
+    using System.ServiceProcess;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -56,6 +57,8 @@ namespace IotEdgeQuickstart.Details
                         await Task.Delay(TimeSpan.FromSeconds(3), cts.Token);
 
                         string[] result = await Process.RunAsync("iotedge", "list", cts.Token);
+                        WriteToConsole("Output of iotedge list", result);
+
                         string status = result
                             .Where(ln => ln.Split(null as char[], StringSplitOptions.RemoveEmptyEntries).First() == name)
                             .DefaultIfEmpty("name status")
@@ -70,11 +73,11 @@ namespace IotEdgeQuickstart.Details
                 }
                 catch (OperationCanceledException e)
                 {
-                    throw new Exception($"Error searching for {name} module: {errorMessage ?? e.Message}");
+                    throw new Exception($"Error searching for {name} module: {errorMessage ?? e.ToString()}");
                 }
                 catch (Exception e)
                 {
-                    throw new Exception($"Error searching for {name} module: {e.Message}");
+                    throw new Exception($"Error searching for {name} module: {e}");
                 }
             }
         }
@@ -128,11 +131,41 @@ namespace IotEdgeQuickstart.Details
 
                 // note: ignore hostname for now
 
-                await Process.RunAsync("powershell", args, cts.Token);
+                string[] result = await Process.RunAsync("powershell", args, cts.Token);
+                WriteToConsole("Output from Configure iotedge windows service", result);
             }
         }
 
-        public Task Start() => Task.CompletedTask; // Runtime starts automatically when it's installed
+        public Task Start()
+        {
+            Console.WriteLine("Starting up iotedge service on Windows");
+
+            // Configured service is not started up automatically in Windows 10 RS4, but should start up in RS5.
+            // Therefore we check if service is not running and start it up explicitly
+            try
+            {
+                var iotedgeService = new ServiceController("iotedge");
+
+                if (iotedgeService.Status != ServiceControllerStatus.Running)
+                {
+                    iotedgeService.Start();
+                    iotedgeService.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromMinutes(2));
+                    iotedgeService.Refresh();
+
+                    if (iotedgeService.Status != ServiceControllerStatus.Running)
+                    {
+                        throw new Exception("Can't start up iotedge service within timeout period.");
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                throw new Exception($"Error starting iotedged: {e}");
+            }
+
+            Console.WriteLine("iotedge service started on Windows");
+            return Task.CompletedTask;
+        }
 
         public async Task Stop()
         {
@@ -147,6 +180,15 @@ namespace IotEdgeQuickstart.Details
                 await Process.RunAsync("powershell",
                     $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Uninstall-SecurityDaemon",
                     cts.Token);
+            }
+        }
+
+        static void WriteToConsole(string header, string[] result)
+        {
+            Console.WriteLine(header);
+            foreach (string r in result)
+            {
+                Console.WriteLine(r);
             }
         }
     }

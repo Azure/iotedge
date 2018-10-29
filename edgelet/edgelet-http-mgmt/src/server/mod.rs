@@ -19,7 +19,7 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 
 use self::identity::*;
-use self::module::*;
+pub use self::module::*;
 use self::system_info::*;
 
 use IntoResponse;

@@ -191,9 +191,8 @@ pub struct Main {
 }
 
 impl Main {
-    pub fn new(settings: Settings<DockerConfig>) -> Result<Self, Error> {
-        let main = Main { settings };
-        Ok(main)
+    pub fn new(settings: Settings<DockerConfig>) -> Self {
+        Main { settings }
     }
 
     pub fn run_until<F>(self, shutdown_signal: F) -> Result<(), Error>
@@ -858,7 +857,7 @@ mod tests {
     #[test]
     fn default_settings_raise_unconfigured_error() {
         let settings = Settings::<DockerConfig>::new(None).unwrap();
-        let main = Main::new(settings).unwrap();
+        let main = Main::new(settings);
         let shutdown_signal = signal::shutdown();
         let result = main.run_until(shutdown_signal);
 
