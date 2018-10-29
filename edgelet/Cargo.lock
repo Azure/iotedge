@@ -819,9 +819,15 @@ dependencies = [
  "tokio-signal 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "url_serde 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "version-compare 0.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "win-logger 0.1.0",
  "windows-service 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "iotedged-eventlog-messages"
+version = "0.1.0"
+dependencies = [
+ "version-compare 0.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "winreg 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
