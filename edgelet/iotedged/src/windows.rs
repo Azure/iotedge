@@ -8,7 +8,7 @@ use std::time::Duration;
 use app;
 use error::Error;
 use futures::prelude::*;
-use futures::sync::mpsc;
+use futures::sync::oneshot;
 use logging;
 use signal;
 use windows_service::service::{
@@ -33,24 +33,28 @@ fn iotedge_service_main(args: Vec<OsString>) {
 
 fn run_as_service(_: Vec<OsString>) -> Result<(), Error> {
     // setup a channel for notifying service stop/shutdown
-    let (sender, receiver) = mpsc::channel::<()>(1);
+    let (sender, receiver) = oneshot::channel();
+    let sender = RefCell::new(Some(sender)); // register() takes Fn, not FnMut
 
     // setup the service control handler
-    let sender_ref = RefCell::new(sender);
     let status_handle = register(
         IOTEDGED_SERVICE_NAME,
         move |control_event| match control_event {
             ServiceControl::Shutdown | ServiceControl::Stop => {
                 info!("{} service is shutting down", IOTEDGED_SERVICE_NAME);
-                sender_ref
-                    .borrow_mut()
-                    .try_send(())
-                    .map_err(|err| {
+
+                match sender.borrow_mut().take() {
+                    Some(sender) => sender.send(()).unwrap_or_else(|err| {
                         error!(
                             "An error occurred while raising service shutdown signal: {:?}",
                             err
                         );
-                    }).unwrap_or(());
+                    }),
+
+                    // sender has already been consumed by a previous shutdown / stop notification that signaled the receiver.
+                    // Nothing to do.
+                    None => (),
+                }
 
                 ServiceControlHandlerResult::NoError
             }
@@ -64,9 +68,16 @@ fn run_as_service(_: Vec<OsString>) -> Result<(), Error> {
     let settings = app::init_win_svc()?;
     let main = super::Main::new(settings);
     let shutdown_signal = signal::shutdown()
-        .select(receiver.into_future().map(|_| ()).map_err(|_| ()))
-        .map(|_| ())
-        .map_err(|_| ());
+        .select(receiver.map_err(|_| ()))
+        .map(move |_| {
+            info!("Stopping {} service.", IOTEDGED_SERVICE_NAME);
+            if let Err(err) = update_service_state(status_handle, ServiceState::StopPending) {
+                error!(
+                    "An error occurred while setting service status to STOP_PENDING: {:?}",
+                    err,
+                );
+            }
+        }).map_err(|_| ());
 
     // tell Windows we're all set
     update_service_state(status_handle, ServiceState::Running)?;
