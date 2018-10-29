@@ -195,8 +195,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     IConnectionManager connectionManager = new ConnectionManager(
                         cloudConnectionProvider,
                         credentialsCache,
-                        this.edgeDeviceId,
-                        this.edgeModuleId,
                         this.maxConnectedClients);
                     return connectionManager;
                 })
