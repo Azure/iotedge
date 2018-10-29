@@ -4,6 +4,7 @@ use std::fmt::{self, Display};
 use std::io;
 use std::num::ParseIntError;
 use std::str;
+use std::str::Utf8Error;
 
 use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind};
 use failure::{Backtrace, Context, Fail};
@@ -17,6 +18,7 @@ use hyper_tls::Error as HyperTlsError;
 use nix::Error as NixError;
 use serde_json::Error as SerdeError;
 use systemd::Error as SystemdError;
+use typed_headers::Error as TypedHeadersError;
 use url::ParseError;
 
 use edgelet_utils::Error as UtilsError;
@@ -66,6 +68,10 @@ pub enum ErrorKind {
     #[cfg(unix)]
     #[fail(display = "Syscall for socket failed.")]
     Nix,
+    #[fail(display = "UTF-8 coversion error.")]
+    Utf8,
+    #[fail(display = "Error creating HTTP header")]
+    TypedHeaders,
 }
 
 impl Fail for Error {
@@ -251,6 +257,22 @@ impl From<HyperTlsError> for Error {
     fn from(error: HyperTlsError) -> Error {
         Error {
             inner: error.context(ErrorKind::HyperTls),
+        }
+    }
+}
+
+impl From<Utf8Error> for Error {
+    fn from(error: Utf8Error) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Utf8),
+        }
+    }
+}
+
+impl From<TypedHeadersError> for Error {
+    fn from(error: TypedHeadersError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::TypedHeaders),
         }
     }
 }

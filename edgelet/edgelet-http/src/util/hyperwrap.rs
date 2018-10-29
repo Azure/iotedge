@@ -6,6 +6,9 @@ use hyper::client::HttpConnector;
 use hyper::{Body, Client as HyperClient, Error as HyperError, Request, Response, StatusCode, Uri};
 use hyper_proxy::{Intercept, Proxy, ProxyConnector};
 use hyper_tls::HttpsConnector;
+use typed_headers::Credentials;
+use url::Url;
+use url::percent_encoding::percent_decode;
 
 use super::super::client::ClientImpl;
 
@@ -37,13 +40,28 @@ impl Config {
             match config.proxy_uri {
                 None => Ok(Client::NoProxy(HyperClient::builder().build(https))),
                 Some(uri) => {
-                    let proxy = Proxy::new(Intercept::All, uri);
+                    let proxy = uri_to_proxy(uri)?;
                     let conn = ProxyConnector::from_proxy(https, proxy)?;
                     Ok(Client::Proxy(HyperClient::builder().build(conn)))
                 }
             }
         }
     }
+}
+
+fn uri_to_proxy(uri: Uri) -> Result<Proxy, Error> {
+    let cloned = uri.clone();
+    let url = Url::parse(&uri.to_string())?;
+    let mut proxy = Proxy::new(Intercept::All, cloned);
+
+    if let Some(password) = url.password() {
+        let username = percent_decode(url.username().as_bytes()).decode_utf8()?;
+        let password = percent_decode(password.as_bytes()).decode_utf8()?;
+        let credentials = Credentials::basic(&username, &password)?;
+        proxy.set_authorization(credentials);
+    }
+
+    Ok(proxy)
 }
 
 #[derive(Clone, Debug)]
@@ -98,7 +116,7 @@ impl ClientImpl for Client {
 
 #[cfg(test)]
 mod tests {
-    use super::Client;
+    use super::*;
     use hyper::Uri;
 
     // test that the client builder (Config) is wired up correctly to create the
@@ -125,9 +143,25 @@ mod tests {
 
     #[test]
     fn can_create_client_with_proxy() {
-        let uri = "irrelevant".parse::<Uri>().unwrap();
+        let uri = "http://example.com".parse::<Uri>().unwrap();
         let client = Client::configure().proxy(uri).build().unwrap();
         assert!(client.has_proxy());
+    }
+
+    #[test]
+    fn proxy_no_username() {
+        let uri = "http://example.com".parse().unwrap();
+        let proxy = uri_to_proxy(uri).unwrap();
+        assert_eq!(None, proxy.headers().get("Authorization"));
+    }
+
+    #[test]
+    fn proxy_username_password() {
+        let uri = "http://user100:password123@example.com".parse().unwrap();
+        let proxy = uri_to_proxy(uri).unwrap();
+
+        let expected = "Basic dXNlcjEwMDpwYXNzd29yZDEyMw==";
+        assert_eq!(&expected, proxy.headers().get("Authorization").unwrap());
     }
 
     // TODO:
