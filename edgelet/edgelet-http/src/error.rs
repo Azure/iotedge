@@ -68,7 +68,7 @@ pub enum ErrorKind {
     #[cfg(unix)]
     #[fail(display = "Syscall for socket failed.")]
     Nix,
-    #[fail(display = "UTF-8 coversion error.")]
+    #[fail(display = "UTF-8 conversion error.")]
     Utf8,
     #[fail(display = "Error creating HTTP header")]
     TypedHeaders,
