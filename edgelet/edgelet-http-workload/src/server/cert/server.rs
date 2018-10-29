@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::cmp;
 use chrono::prelude::*;
 use failure::ResultExt;
 use futures::{future, Future, Stream};
@@ -8,9 +7,11 @@ use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use http::{Request, Response, StatusCode};
 use hyper::{Body, Error as HyperError};
 use serde_json;
+use std::cmp;
 
 use edgelet_core::{
-    Certificate, CertificateProperties, CertificateType, CreateCertificate, KeyBytes, PrivateKey, WorkloadConfig,
+    Certificate, CertificateProperties, CertificateType, CreateCertificate, KeyBytes, PrivateKey,
+    WorkloadConfig,
 };
 use edgelet_http::route::{Handler, Parameters};
 use workload::models::{
@@ -22,7 +23,7 @@ use IntoResponse;
 
 pub struct ServerCertHandler<T: CreateCertificate, W: WorkloadConfig> {
     hsm: T,
-    config: W
+    config: W,
 }
 
 impl<T: CreateCertificate, W: WorkloadConfig> ServerCertHandler<T, W> {
@@ -62,8 +63,10 @@ where
                             .context(ErrorKind::BadBody)
                             .map_err(Error::from)
                             .and_then(|cert_req| {
-                                compute_validity(ensure_not_empty!(cert_req.expiration()).as_str(), max_duration)
-                                    .map(|expiration| (cert_req, expiration))
+                                compute_validity(
+                                    ensure_not_empty!(cert_req.expiration()).as_str(),
+                                    max_duration,
+                                ).map(|expiration| (cert_req, expiration))
                             }).and_then(move |(cert_req, expiration)| {
                                 hsm.destroy_certificate(alias.clone())
                                     .map_err(Error::from)?;
@@ -177,7 +180,7 @@ mod tests {
     struct TestWorkloadConfig {
         iot_hub_name: String,
         device_id: String,
-        duration: i64
+        duration: i64,
     }
 
     impl Default for TestWorkloadConfig {
@@ -450,13 +453,16 @@ mod tests {
 
     #[test]
     fn create_cert_fails() {
-        let handler = ServerCertHandler::new(TestHsm::default().with_on_create(|props| {
-            assert_eq!("marvin", props.common_name());
-            assert_eq!("beeblebroxIserver", props.alias());
-            assert_eq!(CertificateType::Server, *props.certificate_type());
-            assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
-            Err(CoreError::from(CoreErrorKind::Io))
-        }), TestWorkloadData::default());
+        let handler = ServerCertHandler::new(
+            TestHsm::default().with_on_create(|props| {
+                assert_eq!("marvin", props.common_name());
+                assert_eq!("beeblebroxIserver", props.alias());
+                assert_eq!(CertificateType::Server, *props.certificate_type());
+                assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
+                Err(CoreError::from(CoreErrorKind::Io))
+            }),
+            TestWorkloadData::default(),
+        );
 
         let cert_req = ServerCertificateRequest::new(
             "marvin".to_string(),
@@ -485,13 +491,16 @@ mod tests {
 
     #[test]
     fn pem_fails() {
-        let handler = ServerCertHandler::new(TestHsm::default().with_on_create(|props| {
-            assert_eq!("marvin", props.common_name());
-            assert_eq!("beeblebroxIserver", props.alias());
-            assert_eq!(CertificateType::Server, *props.certificate_type());
-            assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
-            Ok(TestCert::default().with_fail_pem(true))
-        }), TestWorkloadData::default());
+        let handler = ServerCertHandler::new(
+            TestHsm::default().with_on_create(|props| {
+                assert_eq!("marvin", props.common_name());
+                assert_eq!("beeblebroxIserver", props.alias());
+                assert_eq!(CertificateType::Server, *props.certificate_type());
+                assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
+                Ok(TestCert::default().with_fail_pem(true))
+            }),
+            TestWorkloadData::default(),
+        );
 
         let cert_req = ServerCertificateRequest::new(
             "marvin".to_string(),
@@ -520,13 +529,16 @@ mod tests {
 
     #[test]
     fn private_key_fails() {
-        let handler = ServerCertHandler::new(TestHsm::default().with_on_create(|props| {
-            assert_eq!("marvin", props.common_name());
-            assert_eq!("beeblebroxIserver", props.alias());
-            assert_eq!(CertificateType::Server, *props.certificate_type());
-            assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
-            Ok(TestCert::default().with_fail_private_key(true))
-        }), TestWorkloadData::default());
+        let handler = ServerCertHandler::new(
+            TestHsm::default().with_on_create(|props| {
+                assert_eq!("marvin", props.common_name());
+                assert_eq!("beeblebroxIserver", props.alias());
+                assert_eq!(CertificateType::Server, *props.certificate_type());
+                assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
+                Ok(TestCert::default().with_fail_private_key(true))
+            }),
+            TestWorkloadData::default(),
+        );
 
         let cert_req = ServerCertificateRequest::new(
             "marvin".to_string(),
@@ -555,14 +567,17 @@ mod tests {
 
     #[test]
     fn succeeds_key() {
-        let handler = ServerCertHandler::new(TestHsm::default().with_on_create(|props| {
-            assert_eq!("marvin", props.common_name());
-            assert_eq!("beeblebroxIserver", props.alias());
-            assert_eq!(CertificateType::Server, *props.certificate_type());
-            assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
-            Ok(TestCert::default()
-                .with_private_key(PrivateKey::Key(KeyBytes::Pem("Betelgeuse".to_string()))))
-        }), TestWorkloadData::default());
+        let handler = ServerCertHandler::new(
+            TestHsm::default().with_on_create(|props| {
+                assert_eq!("marvin", props.common_name());
+                assert_eq!("beeblebroxIserver", props.alias());
+                assert_eq!(CertificateType::Server, *props.certificate_type());
+                assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
+                Ok(TestCert::default()
+                    .with_private_key(PrivateKey::Key(KeyBytes::Pem("Betelgeuse".to_string()))))
+            }),
+            TestWorkloadData::default(),
+        );
 
         let cert_req = ServerCertificateRequest::new(
             "marvin".to_string(),
@@ -597,13 +612,16 @@ mod tests {
 
     #[test]
     fn succeeds_ref() {
-        let handler = ServerCertHandler::new(TestHsm::default().with_on_create(|props| {
-            assert_eq!("marvin", props.common_name());
-            assert_eq!("beeblebroxIserver", props.alias());
-            assert_eq!(CertificateType::Server, *props.certificate_type());
-            assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
-            Ok(TestCert::default().with_private_key(PrivateKey::Ref("Betelgeuse".to_string())))
-        }), TestWorkloadData::default());
+        let handler = ServerCertHandler::new(
+            TestHsm::default().with_on_create(|props| {
+                assert_eq!("marvin", props.common_name());
+                assert_eq!("beeblebroxIserver", props.alias());
+                assert_eq!(CertificateType::Server, *props.certificate_type());
+                assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
+                Ok(TestCert::default().with_private_key(PrivateKey::Ref("Betelgeuse".to_string())))
+            }),
+            TestWorkloadData::default(),
+        );
 
         let cert_req = ServerCertificateRequest::new(
             "marvin".to_string(),
@@ -638,14 +656,17 @@ mod tests {
 
     #[test]
     fn long_expiration_capped_to_max_duration_ok() {
-        let handler = ServerCertHandler::new(TestHsm::default().with_on_create(|props| {
-            assert_eq!("marvin", props.common_name());
-            assert_eq!("beeblebroxIserver", props.alias());
-            assert_eq!(CertificateType::Server, *props.certificate_type());
-            assert_eq!(MAX_DURATION_SEC, *props.validity_in_secs());
-            Ok(TestCert::default()
-                .with_private_key(PrivateKey::Key(KeyBytes::Pem("Betelgeuse".to_string()))))
-        }), TestWorkloadData::default());
+        let handler = ServerCertHandler::new(
+            TestHsm::default().with_on_create(|props| {
+                assert_eq!("marvin", props.common_name());
+                assert_eq!("beeblebroxIserver", props.alias());
+                assert_eq!(CertificateType::Server, *props.certificate_type());
+                assert_eq!(MAX_DURATION_SEC, *props.validity_in_secs());
+                Ok(TestCert::default()
+                    .with_private_key(PrivateKey::Key(KeyBytes::Pem("Betelgeuse".to_string()))))
+            }),
+            TestWorkloadData::default(),
+        );
 
         let cert_req = ServerCertificateRequest::new(
             "marvin".to_string(),
@@ -680,13 +701,16 @@ mod tests {
 
     #[test]
     fn get_cert_time_fails() {
-        let handler = ServerCertHandler::new(TestHsm::default().with_on_create(|props| {
-            assert_eq!("marvin", props.common_name());
-            assert_eq!("beeblebroxIserver", props.alias());
-            assert_eq!(CertificateType::Server, *props.certificate_type());
-            assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
-            Ok(TestCert::default().with_fail_valid_to(true))
-        }), TestWorkloadData::default());
+        let handler = ServerCertHandler::new(
+            TestHsm::default().with_on_create(|props| {
+                assert_eq!("marvin", props.common_name());
+                assert_eq!("beeblebroxIserver", props.alias());
+                assert_eq!(CertificateType::Server, *props.certificate_type());
+                assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
+                Ok(TestCert::default().with_fail_valid_to(true))
+            }),
+            TestWorkloadData::default(),
+        );
 
         let cert_req = ServerCertificateRequest::new(
             "marvin".to_string(),

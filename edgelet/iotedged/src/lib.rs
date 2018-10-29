@@ -77,9 +77,9 @@ use edgelet_core::crypto::{
     MasterEncryptionKey, MemoryKey, MemoryKeyStore, Sign, IOTEDGED_CA_ALIAS,
 };
 use edgelet_core::watchdog::Watchdog;
+use edgelet_core::WorkloadConfig;
 use edgelet_core::{CertificateIssuer, CertificateProperties, CertificateType};
 use edgelet_core::{ModuleRuntime, ModuleSpec};
-use edgelet_core::{WorkloadConfig};
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_hsm::Crypto;
@@ -270,10 +270,12 @@ impl Main {
                 let (key_store, provisioning_result, root_key) =
                     manual_provision(&manual, &mut tokio_runtime)?;
                 info!("Finished provisioning edge device.");
-                let cfg = WorkloadData::new(provisioning_result.hub_name().to_string(),
-                                            provisioning_result.device_id().to_string(),
-                                            IOTEDGE_ID_CERT_MAX_DURATION_SECS,
-                                            IOTEDGE_SERVER_CERT_MAX_DURATION_SECS);
+                let cfg = WorkloadData::new(
+                    provisioning_result.hub_name().to_string(),
+                    provisioning_result.device_id().to_string(),
+                    IOTEDGE_ID_CERT_MAX_DURATION_SECS,
+                    IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
+                );
                 start_api(
                     &settings,
                     hyper_client,
@@ -296,10 +298,12 @@ impl Main {
                     &mut tokio_runtime,
                 )?;
                 info!("Finished provisioning edge device.");
-                let cfg = WorkloadData::new(provisioning_result.hub_name().to_string(),
-                                            provisioning_result.device_id().to_string(),
-                                            IOTEDGE_ID_CERT_MAX_DURATION_SECS,
-                                            IOTEDGE_SERVER_CERT_MAX_DURATION_SECS);
+                let cfg = WorkloadData::new(
+                    provisioning_result.hub_name().to_string(),
+                    provisioning_result.device_id().to_string(),
+                    IOTEDGE_ID_CERT_MAX_DURATION_SECS,
+                    IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
+                );
                 start_api(
                     &settings,
                     hyper_client,
@@ -490,7 +494,14 @@ where
 
     let mgmt = start_management(&settings, &runtime, &id_man, mgmt_rx);
 
-    let workload = start_workload(&settings, key_store, &runtime, work_rx, crypto, workload_config);
+    let workload = start_workload(
+        &settings,
+        key_store,
+        &runtime,
+        work_rx,
+        crypto,
+        workload_config,
+    );
 
     let (runt_tx, runt_rx) = oneshot::channel();
     let edge_rt = start_runtime(&runtime, &id_man, &hub_name, &device_id, &settings, runt_rx)?;

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::sync::Arc;
 use edgelet_core::{CertificateType, WorkloadConfig};
+use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 struct WorkloadConfigData {
@@ -12,7 +12,12 @@ struct WorkloadConfigData {
 }
 
 impl WorkloadConfigData {
-    pub fn new(iot_hub_name: String, device_id: String, id_cert_max_duration: i64, srv_cert_max_duration: i64) -> Self {
+    pub fn new(
+        iot_hub_name: String,
+        device_id: String,
+        id_cert_max_duration: i64,
+        srv_cert_max_duration: i64,
+    ) -> Self {
         WorkloadConfigData {
             iot_hub_name,
             device_id,
@@ -44,11 +49,19 @@ pub struct WorkloadData {
 }
 
 impl WorkloadData {
-    pub fn new(iot_hub_name: String, device_id: String, id_cert_max_duration: i64, srv_cert_max_duration: i64) -> Self {
-        let w = WorkloadConfigData::new(iot_hub_name, device_id, id_cert_max_duration, srv_cert_max_duration);
-        WorkloadData {
-            data: Arc::new(w),
-        }
+    pub fn new(
+        iot_hub_name: String,
+        device_id: String,
+        id_cert_max_duration: i64,
+        srv_cert_max_duration: i64,
+    ) -> Self {
+        let w = WorkloadConfigData::new(
+            iot_hub_name,
+            device_id,
+            id_cert_max_duration,
+            srv_cert_max_duration,
+        );
+        WorkloadData { data: Arc::new(w) }
     }
 }
 

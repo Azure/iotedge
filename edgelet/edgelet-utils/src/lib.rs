@@ -55,7 +55,10 @@ pub fn parse_query(query: &str) -> HashMap<&str, &str> {
 }
 
 pub fn prepare_cert_uri_module(hub_name: String, device_id: String, module_id: String) -> String {
-    format!("URI: azureiot://{}/devices/{}/module/{}", hub_name, device_id, module_id)
+    format!(
+        "URI: azureiot://{}/devices/{}/module/{}",
+        hub_name, device_id, module_id
+    )
 }
 
 #[cfg(test)]

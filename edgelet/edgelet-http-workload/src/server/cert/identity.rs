@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::cmp;
 use chrono::{DateTime, Utc};
 use failure::ResultExt;
 use futures::{future, Future, Stream};
@@ -8,14 +7,16 @@ use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use http::{Request, Response, StatusCode};
 use hyper::{Body, Error as HyperError};
 use serde_json;
+use std::cmp;
 
 use edgelet_core::{
-    Certificate, CertificateProperties, CertificateType, CreateCertificate, KeyBytes, PrivateKey, WorkloadConfig
+    Certificate, CertificateProperties, CertificateType, CreateCertificate, KeyBytes, PrivateKey,
+    WorkloadConfig,
 };
 use edgelet_http::route::{Handler, Parameters};
-use edgelet_utils::{prepare_cert_uri_module};
+use edgelet_utils::prepare_cert_uri_module;
 use workload::models::{
-    CertificateResponse, PrivateKey as PrivateKeyResponse, IdentityCertificateRequest,
+    CertificateResponse, IdentityCertificateRequest, PrivateKey as PrivateKeyResponse,
 };
 
 use error::{Error, ErrorKind, Result};
@@ -23,7 +24,7 @@ use IntoResponse;
 
 pub struct IdentityCertHandler<T: CreateCertificate, W: WorkloadConfig> {
     hsm: T,
-    config: W
+    config: W,
 }
 
 impl<T: CreateCertificate, W: WorkloadConfig> IdentityCertHandler<T, W> {
@@ -52,9 +53,11 @@ where
             .map(|module_id| {
                 let cn_default = module_id.to_string();
                 let alias = format!("{}identity", module_id);
-                let module_uri = prepare_cert_uri_module(cfg.iot_hub_name().to_string(),
-                                                         cfg.device_id().to_string(),
-                                                         module_id.to_string());
+                let module_uri = prepare_cert_uri_module(
+                    cfg.iot_hub_name().to_string(),
+                    cfg.device_id().to_string(),
+                    module_id.to_string(),
+                );
                 let result = req
                     .into_body()
                     .concat2()
@@ -187,7 +190,7 @@ mod tests {
     struct TestWorkloadConfig {
         iot_hub_name: String,
         device_id: String,
-        duration: i64
+        duration: i64,
     }
 
     impl Default for TestWorkloadConfig {
@@ -228,7 +231,11 @@ mod tests {
     }
 
     fn test_module_uri(module_id: String) -> String {
-        prepare_cert_uri_module(String::from("zaphods_hub"), String::from("marvins_device"), module_id)
+        prepare_cert_uri_module(
+            String::from("zaphods_hub"),
+            String::from("marvins_device"),
+            module_id,
+        )
     }
 
     fn parse_error_response(response: Response<Body>) -> ErrorResponse {
@@ -253,28 +260,30 @@ mod tests {
 
     #[test]
     fn succeeds_with_private_key_bytes() {
-        let handler = IdentityCertHandler::new(TestHsm::default().with_on_create(|props| {
-            assert_eq!("marvin", props.common_name());
-            assert_eq!("beeblebroxidentity", props.alias());
-            assert_eq!(CertificateType::Client, *props.certificate_type());
-            assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
-            let expected_uri = test_module_uri("beeblebrox".to_string());
-            assert!(props.san_entries().unwrap().contains(&expected_uri));
-            Ok(TestCert::default()
-                .with_private_key(PrivateKey::Key(KeyBytes::Pem("Betelgeuse".to_string()))))
-        }), TestWorkloadData::default());
+        let handler = IdentityCertHandler::new(
+            TestHsm::default().with_on_create(|props| {
+                assert_eq!("marvin", props.common_name());
+                assert_eq!("beeblebroxidentity", props.alias());
+                assert_eq!(CertificateType::Client, *props.certificate_type());
+                assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
+                let expected_uri = test_module_uri("beeblebrox".to_string());
+                assert!(props.san_entries().unwrap().contains(&expected_uri));
+                Ok(TestCert::default()
+                    .with_private_key(PrivateKey::Key(KeyBytes::Pem("Betelgeuse".to_string()))))
+            }),
+            TestWorkloadData::default(),
+        );
 
         let cert_req = IdentityCertificateRequest::new()
-                            .with_common_name("marvin".to_string())
-                            .with_expiration((Utc::now() + Duration::hours(1)).to_rfc3339());
+            .with_common_name("marvin".to_string())
+            .with_expiration((Utc::now() + Duration::hours(1)).to_rfc3339());
 
         let request = Request::get("http://localhost/modules/beeblebrox/certificate/identity")
             .body(serde_json::to_string(&cert_req).unwrap().into())
             .unwrap();
 
-        let params = Parameters::with_captures(vec![
-            (Some("name".to_string()), "beeblebrox".to_string()),
-        ]);
+        let params =
+            Parameters::with_captures(vec![(Some("name".to_string()), "beeblebrox".to_string())]);
 
         let response = handler.handle(request, params).wait().unwrap();
 
@@ -294,27 +303,29 @@ mod tests {
 
     #[test]
     fn succeeds_with_private_key_ref() {
-        let handler = IdentityCertHandler::new(TestHsm::default().with_on_create(|props| {
-            assert_eq!("marvin", props.common_name());
-            assert_eq!("beeblebroxidentity", props.alias());
-            assert_eq!(CertificateType::Client, *props.certificate_type());
-            assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
-            let expected_uri = test_module_uri("beeblebrox".to_string());
-            assert!(props.san_entries().unwrap().contains(&expected_uri));
-            Ok(TestCert::default().with_private_key(PrivateKey::Ref("Betelgeuse".to_string())))
-        }), TestWorkloadData::default());
+        let handler = IdentityCertHandler::new(
+            TestHsm::default().with_on_create(|props| {
+                assert_eq!("marvin", props.common_name());
+                assert_eq!("beeblebroxidentity", props.alias());
+                assert_eq!(CertificateType::Client, *props.certificate_type());
+                assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
+                let expected_uri = test_module_uri("beeblebrox".to_string());
+                assert!(props.san_entries().unwrap().contains(&expected_uri));
+                Ok(TestCert::default().with_private_key(PrivateKey::Ref("Betelgeuse".to_string())))
+            }),
+            TestWorkloadData::default(),
+        );
 
         let cert_req = IdentityCertificateRequest::new()
-                            .with_common_name("marvin".to_string())
-                            .with_expiration((Utc::now() + Duration::hours(1)).to_rfc3339());
+            .with_common_name("marvin".to_string())
+            .with_expiration((Utc::now() + Duration::hours(1)).to_rfc3339());
 
         let request = Request::get("http://localhost/modules/beeblebrox/certificate/identity")
             .body(serde_json::to_string(&cert_req).unwrap().into())
             .unwrap();
 
-        let params = Parameters::with_captures(vec![
-            (Some("name".to_string()), "beeblebrox".to_string()),
-        ]);
+        let params =
+            Parameters::with_captures(vec![(Some("name".to_string()), "beeblebrox".to_string())]);
 
         let response = handler.handle(request, params).wait().unwrap();
 
@@ -334,27 +345,29 @@ mod tests {
 
     #[test]
     fn empty_common_name_ok() {
-        let handler = IdentityCertHandler::new(TestHsm::default().with_on_create(|props| {
-            assert_eq!("beeblebrox", props.common_name());
-            assert_eq!("beeblebroxidentity", props.alias());
-            assert_eq!(CertificateType::Client, *props.certificate_type());
-            assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
-            let expected_uri = test_module_uri("beeblebrox".to_string());
-            assert!(props.san_entries().unwrap().contains(&expected_uri));
-            Ok(TestCert::default()
-                .with_private_key(PrivateKey::Key(KeyBytes::Pem("Betelgeuse".to_string()))))
-        }), TestWorkloadData::default());
+        let handler = IdentityCertHandler::new(
+            TestHsm::default().with_on_create(|props| {
+                assert_eq!("beeblebrox", props.common_name());
+                assert_eq!("beeblebroxidentity", props.alias());
+                assert_eq!(CertificateType::Client, *props.certificate_type());
+                assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
+                let expected_uri = test_module_uri("beeblebrox".to_string());
+                assert!(props.san_entries().unwrap().contains(&expected_uri));
+                Ok(TestCert::default()
+                    .with_private_key(PrivateKey::Key(KeyBytes::Pem("Betelgeuse".to_string()))))
+            }),
+            TestWorkloadData::default(),
+        );
 
         let cert_req = IdentityCertificateRequest::new()
-                            .with_expiration((Utc::now() + Duration::hours(1)).to_rfc3339());
+            .with_expiration((Utc::now() + Duration::hours(1)).to_rfc3339());
 
         let request = Request::get("http://localhost/modules/beeblebrox/certificate/identity")
             .body(serde_json::to_string(&cert_req).unwrap().into())
             .unwrap();
 
-        let params = Parameters::with_captures(vec![
-            (Some("name".to_string()), "beeblebrox".to_string()),
-        ]);
+        let params =
+            Parameters::with_captures(vec![(Some("name".to_string()), "beeblebrox".to_string())]);
 
         let response = handler.handle(request, params).wait().unwrap();
 
@@ -376,16 +389,14 @@ mod tests {
     fn whitespace_common_name_fails() {
         let handler = IdentityCertHandler::new(TestHsm::default(), TestWorkloadData::default());
 
-        let cert_req = IdentityCertificateRequest::new()
-                            .with_common_name("       ".to_string());
+        let cert_req = IdentityCertificateRequest::new().with_common_name("       ".to_string());
 
         let request = Request::get("http://localhost/modules/beeblebrox/certificate/identity")
-                .body(serde_json::to_string(&cert_req).unwrap().into())
-                .unwrap();
+            .body(serde_json::to_string(&cert_req).unwrap().into())
+            .unwrap();
 
-        let params = Parameters::with_captures(vec![
-            (Some("name".to_string()), "beeblebrox".to_string()),
-        ]);
+        let params =
+            Parameters::with_captures(vec![(Some("name".to_string()), "beeblebrox".to_string())]);
 
         let response = handler.handle(request, params).wait().unwrap();
         assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
@@ -399,27 +410,28 @@ mod tests {
 
     #[test]
     fn empty_expiration_ok() {
-        let handler = IdentityCertHandler::new(TestHsm::default().with_on_create(|props| {
-            assert_eq!("marvin", props.common_name());
-            assert_eq!("beeblebroxidentity", props.alias());
-            assert_eq!(CertificateType::Client, *props.certificate_type());
-            assert_eq!(MAX_DURATION_SEC, *props.validity_in_secs());
-            let expected_uri = test_module_uri("beeblebrox".to_string());
-            assert!(props.san_entries().unwrap().contains(&expected_uri));
-            Ok(TestCert::default()
-                .with_private_key(PrivateKey::Key(KeyBytes::Pem("Betelgeuse".to_string()))))
-        }), TestWorkloadData::default());
+        let handler = IdentityCertHandler::new(
+            TestHsm::default().with_on_create(|props| {
+                assert_eq!("marvin", props.common_name());
+                assert_eq!("beeblebroxidentity", props.alias());
+                assert_eq!(CertificateType::Client, *props.certificate_type());
+                assert_eq!(MAX_DURATION_SEC, *props.validity_in_secs());
+                let expected_uri = test_module_uri("beeblebrox".to_string());
+                assert!(props.san_entries().unwrap().contains(&expected_uri));
+                Ok(TestCert::default()
+                    .with_private_key(PrivateKey::Key(KeyBytes::Pem("Betelgeuse".to_string()))))
+            }),
+            TestWorkloadData::default(),
+        );
 
-        let cert_req = IdentityCertificateRequest::new()
-                            .with_common_name("marvin".to_string());
+        let cert_req = IdentityCertificateRequest::new().with_common_name("marvin".to_string());
 
         let request = Request::get("http://localhost/modules/beeblebrox/certificate/identity")
             .body(serde_json::to_string(&cert_req).unwrap().into())
             .unwrap();
 
-        let params = Parameters::with_captures(vec![
-            (Some("name".to_string()), "beeblebrox".to_string()),
-        ]);
+        let params =
+            Parameters::with_captures(vec![(Some("name".to_string()), "beeblebrox".to_string())]);
 
         let response = handler.handle(request, params).wait().unwrap();
 
@@ -439,28 +451,30 @@ mod tests {
 
     #[test]
     fn long_expiration_capped_to_max_duration_ok() {
-        let handler = IdentityCertHandler::new(TestHsm::default().with_on_create(|props| {
-            assert_eq!("marvin", props.common_name());
-            assert_eq!("beeblebroxidentity", props.alias());
-            assert_eq!(CertificateType::Client, *props.certificate_type());
-            assert_eq!(MAX_DURATION_SEC, *props.validity_in_secs());
-            let expected_uri = test_module_uri("beeblebrox".to_string());
-            assert!(props.san_entries().unwrap().contains(&expected_uri));
-            Ok(TestCert::default()
-                .with_private_key(PrivateKey::Key(KeyBytes::Pem("Betelgeuse".to_string()))))
-        }), TestWorkloadData::default());
+        let handler = IdentityCertHandler::new(
+            TestHsm::default().with_on_create(|props| {
+                assert_eq!("marvin", props.common_name());
+                assert_eq!("beeblebroxidentity", props.alias());
+                assert_eq!(CertificateType::Client, *props.certificate_type());
+                assert_eq!(MAX_DURATION_SEC, *props.validity_in_secs());
+                let expected_uri = test_module_uri("beeblebrox".to_string());
+                assert!(props.san_entries().unwrap().contains(&expected_uri));
+                Ok(TestCert::default()
+                    .with_private_key(PrivateKey::Key(KeyBytes::Pem("Betelgeuse".to_string()))))
+            }),
+            TestWorkloadData::default(),
+        );
 
         let cert_req = IdentityCertificateRequest::new()
-                            .with_common_name("marvin".to_string())
-                            .with_expiration((Utc::now() + Duration::hours(7000)).to_rfc3339());
+            .with_common_name("marvin".to_string())
+            .with_expiration((Utc::now() + Duration::hours(7000)).to_rfc3339());
 
         let request = Request::get("http://localhost/modules/beeblebrox/certificate/identity")
             .body(serde_json::to_string(&cert_req).unwrap().into())
             .unwrap();
 
-        let params = Parameters::with_captures(vec![
-            (Some("name".to_string()), "beeblebrox".to_string()),
-        ]);
+        let params =
+            Parameters::with_captures(vec![(Some("name".to_string()), "beeblebrox".to_string())]);
 
         let response = handler.handle(request, params).wait().unwrap();
 
@@ -482,17 +496,14 @@ mod tests {
     fn whitespace_expiration_fails() {
         let handler = IdentityCertHandler::new(TestHsm::default(), TestWorkloadData::default());
 
-        let cert_req = IdentityCertificateRequest::new()
-                            .with_expiration("       ".to_string());
+        let cert_req = IdentityCertificateRequest::new().with_expiration("       ".to_string());
 
-        let request =
-            Request::get("http://localhost/modules/beeblebrox/certificate/identity")
-                .body(serde_json::to_string(&cert_req).unwrap().into())
-                .unwrap();
+        let request = Request::get("http://localhost/modules/beeblebrox/certificate/identity")
+            .body(serde_json::to_string(&cert_req).unwrap().into())
+            .unwrap();
 
-        let params = Parameters::with_captures(vec![
-            (Some("name".to_string()), "beeblebrox".to_string()),
-        ]);
+        let params =
+            Parameters::with_captures(vec![(Some("name".to_string()), "beeblebrox".to_string())]);
 
         let response = handler.handle(request, params).wait().unwrap();
         assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
@@ -508,17 +519,15 @@ mod tests {
     fn invalid_expiration_fails() {
         let handler = IdentityCertHandler::new(TestHsm::default(), TestWorkloadData::default());
 
-        let cert_req = IdentityCertificateRequest::new()
-                        .with_expiration("Umm.. No.. Just no..".to_string());
+        let cert_req =
+            IdentityCertificateRequest::new().with_expiration("Umm.. No.. Just no..".to_string());
 
-        let request =
-            Request::get("http://localhost/modules/beeblebrox/certificate/identity")
-                .body(serde_json::to_string(&cert_req).unwrap().into())
-                .unwrap();
+        let request = Request::get("http://localhost/modules/beeblebrox/certificate/identity")
+            .body(serde_json::to_string(&cert_req).unwrap().into())
+            .unwrap();
 
-        let params = Parameters::with_captures(vec![
-            (Some("name".to_string()), "beeblebrox".to_string()),
-        ]);
+        let params =
+            Parameters::with_captures(vec![(Some("name".to_string()), "beeblebrox".to_string())]);
 
         let response = handler.handle(request, params).wait().unwrap();
         assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
@@ -535,16 +544,14 @@ mod tests {
         let handler = IdentityCertHandler::new(TestHsm::default(), TestWorkloadData::default());
 
         let cert_req = IdentityCertificateRequest::new()
-                        .with_expiration("1999-06-28T16:39:57-08:00".to_string());
+            .with_expiration("1999-06-28T16:39:57-08:00".to_string());
 
-        let request =
-            Request::get("http://localhost/modules/beeblebrox/certificate/identity")
-                .body(serde_json::to_string(&cert_req).unwrap().into())
-                .unwrap();
+        let request = Request::get("http://localhost/modules/beeblebrox/certificate/identity")
+            .body(serde_json::to_string(&cert_req).unwrap().into())
+            .unwrap();
 
-        let params = Parameters::with_captures(vec![
-            (Some("name".to_string()), "beeblebrox".to_string()),
-        ]);
+        let params =
+            Parameters::with_captures(vec![(Some("name".to_string()), "beeblebrox".to_string())]);
 
         let response = handler.handle(request, params).wait().unwrap();
         assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
@@ -558,16 +565,19 @@ mod tests {
 
     #[test]
     fn empty_common_name_and_expiration_ok() {
-        let handler = IdentityCertHandler::new(TestHsm::default().with_on_create(|props| {
-            assert_eq!("beeblebrox", props.common_name());
-            assert_eq!("beeblebroxidentity", props.alias());
-            assert_eq!(CertificateType::Client, *props.certificate_type());
-            assert_eq!(MAX_DURATION_SEC, *props.validity_in_secs());
-            let expected_uri = test_module_uri("beeblebrox".to_string());
-            assert!(props.san_entries().unwrap().contains(&expected_uri));
-            Ok(TestCert::default()
-                .with_private_key(PrivateKey::Key(KeyBytes::Pem("Betelgeuse".to_string()))))
-        }), TestWorkloadData::default());
+        let handler = IdentityCertHandler::new(
+            TestHsm::default().with_on_create(|props| {
+                assert_eq!("beeblebrox", props.common_name());
+                assert_eq!("beeblebroxidentity", props.alias());
+                assert_eq!(CertificateType::Client, *props.certificate_type());
+                assert_eq!(MAX_DURATION_SEC, *props.validity_in_secs());
+                let expected_uri = test_module_uri("beeblebrox".to_string());
+                assert!(props.san_entries().unwrap().contains(&expected_uri));
+                Ok(TestCert::default()
+                    .with_private_key(PrivateKey::Key(KeyBytes::Pem("Betelgeuse".to_string()))))
+            }),
+            TestWorkloadData::default(),
+        );
 
         let cert_req = IdentityCertificateRequest::new();
 
@@ -575,9 +585,8 @@ mod tests {
             .body(serde_json::to_string(&cert_req).unwrap().into())
             .unwrap();
 
-        let params = Parameters::with_captures(vec![
-            (Some("name".to_string()), "beeblebrox".to_string()),
-        ]);
+        let params =
+            Parameters::with_captures(vec![(Some("name".to_string()), "beeblebrox".to_string())]);
 
         let response = handler.handle(request, params).wait().unwrap();
 
@@ -597,25 +606,26 @@ mod tests {
 
     #[test]
     fn empty_body_fails() {
-        let handler = IdentityCertHandler::new(TestHsm::default().with_on_create(|props| {
-            assert_eq!("beeblebrox", props.common_name());
-            assert_eq!("beeblebroxidentity", props.alias());
-            assert_eq!(CertificateType::Client, *props.certificate_type());
-            assert_eq!(MAX_DURATION_SEC, *props.validity_in_secs());
-            let expected_uri = test_module_uri("beeblebrox".to_string());
-            assert!(props.san_entries().unwrap().contains(&expected_uri));
-            Ok(TestCert::default()
-                .with_private_key(PrivateKey::Key(KeyBytes::Pem("Betelgeuse".to_string()))))
-        }), TestWorkloadData::default());
+        let handler = IdentityCertHandler::new(
+            TestHsm::default().with_on_create(|props| {
+                assert_eq!("beeblebrox", props.common_name());
+                assert_eq!("beeblebroxidentity", props.alias());
+                assert_eq!(CertificateType::Client, *props.certificate_type());
+                assert_eq!(MAX_DURATION_SEC, *props.validity_in_secs());
+                let expected_uri = test_module_uri("beeblebrox".to_string());
+                assert!(props.san_entries().unwrap().contains(&expected_uri));
+                Ok(TestCert::default()
+                    .with_private_key(PrivateKey::Key(KeyBytes::Pem("Betelgeuse".to_string()))))
+            }),
+            TestWorkloadData::default(),
+        );
 
-        let request =
-            Request::get("http://localhost/modules/beeblebrox/certificate/identity")
-                .body("".into())
-                .unwrap();
+        let request = Request::get("http://localhost/modules/beeblebrox/certificate/identity")
+            .body("".into())
+            .unwrap();
 
-        let params = Parameters::with_captures(vec![
-            (Some("name".to_string()), "beeblebrox".to_string()),
-        ]);
+        let params =
+            Parameters::with_captures(vec![(Some("name".to_string()), "beeblebrox".to_string())]);
         let response = handler.handle(request, params).wait().unwrap();
         assert_eq!(StatusCode::BAD_REQUEST, response.status());
         assert_ne!(
@@ -626,28 +636,29 @@ mod tests {
 
     #[test]
     fn create_cert_fails() {
-        let handler = IdentityCertHandler::new(TestHsm::default().with_on_create(|props| {
-            assert_eq!("marvin", props.common_name());
-            assert_eq!("beeblebroxidentity", props.alias());
-            assert_eq!(CertificateType::Client, *props.certificate_type());
-            assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
-            let expected_uri = test_module_uri("beeblebrox".to_string());
-            assert!(props.san_entries().unwrap().contains(&expected_uri));
-            Err(CoreError::from(CoreErrorKind::Io))
-        }), TestWorkloadData::default());
+        let handler = IdentityCertHandler::new(
+            TestHsm::default().with_on_create(|props| {
+                assert_eq!("marvin", props.common_name());
+                assert_eq!("beeblebroxidentity", props.alias());
+                assert_eq!(CertificateType::Client, *props.certificate_type());
+                assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
+                let expected_uri = test_module_uri("beeblebrox".to_string());
+                assert!(props.san_entries().unwrap().contains(&expected_uri));
+                Err(CoreError::from(CoreErrorKind::Io))
+            }),
+            TestWorkloadData::default(),
+        );
 
         let cert_req = IdentityCertificateRequest::new()
-                            .with_common_name("marvin".to_string())
-                            .with_expiration((Utc::now() + Duration::hours(1)).to_rfc3339());
+            .with_common_name("marvin".to_string())
+            .with_expiration((Utc::now() + Duration::hours(1)).to_rfc3339());
 
-        let request =
-            Request::get("http://localhost/modules/beeblebrox/certificate/identity")
-                .body(serde_json::to_string(&cert_req).unwrap().into())
-                .unwrap();
+        let request = Request::get("http://localhost/modules/beeblebrox/certificate/identity")
+            .body(serde_json::to_string(&cert_req).unwrap().into())
+            .unwrap();
 
-        let params = Parameters::with_captures(vec![
-            (Some("name".to_string()), "beeblebrox".to_string()),
-        ]);
+        let params =
+            Parameters::with_captures(vec![(Some("name".to_string()), "beeblebrox".to_string())]);
         let response = handler.handle(request, params).wait().unwrap();
 
         assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
@@ -661,28 +672,29 @@ mod tests {
 
     #[test]
     fn pem_fails() {
-        let handler = IdentityCertHandler::new(TestHsm::default().with_on_create(|props| {
-            assert_eq!("marvin", props.common_name());
-            assert_eq!("beeblebroxidentity", props.alias());
-            assert_eq!(CertificateType::Client, *props.certificate_type());
-            assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
-            let expected_uri = test_module_uri("beeblebrox".to_string());
-            assert!(props.san_entries().unwrap().contains(&expected_uri));
-            Ok(TestCert::default().with_fail_pem(true))
-        }), TestWorkloadData::default());
+        let handler = IdentityCertHandler::new(
+            TestHsm::default().with_on_create(|props| {
+                assert_eq!("marvin", props.common_name());
+                assert_eq!("beeblebroxidentity", props.alias());
+                assert_eq!(CertificateType::Client, *props.certificate_type());
+                assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
+                let expected_uri = test_module_uri("beeblebrox".to_string());
+                assert!(props.san_entries().unwrap().contains(&expected_uri));
+                Ok(TestCert::default().with_fail_pem(true))
+            }),
+            TestWorkloadData::default(),
+        );
 
         let cert_req = IdentityCertificateRequest::new()
-                            .with_common_name("marvin".to_string())
-                            .with_expiration((Utc::now() + Duration::hours(1)).to_rfc3339());
+            .with_common_name("marvin".to_string())
+            .with_expiration((Utc::now() + Duration::hours(1)).to_rfc3339());
 
-        let request =
-            Request::get("http://localhost/modules/beeblebrox/certificate/identity")
-                .body(serde_json::to_string(&cert_req).unwrap().into())
-                .unwrap();
+        let request = Request::get("http://localhost/modules/beeblebrox/certificate/identity")
+            .body(serde_json::to_string(&cert_req).unwrap().into())
+            .unwrap();
 
-        let params = Parameters::with_captures(vec![
-            (Some("name".to_string()), "beeblebrox".to_string()),
-        ]);
+        let params =
+            Parameters::with_captures(vec![(Some("name".to_string()), "beeblebrox".to_string())]);
         let response = handler.handle(request, params).wait().unwrap();
 
         assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
@@ -696,28 +708,29 @@ mod tests {
 
     #[test]
     fn private_key_fails() {
-        let handler = IdentityCertHandler::new(TestHsm::default().with_on_create(|props| {
-            assert_eq!("marvin", props.common_name());
-            assert_eq!("beeblebroxidentity", props.alias());
-            assert_eq!(CertificateType::Client, *props.certificate_type());
-            assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
-            let expected_uri = test_module_uri("beeblebrox".to_string());
-            assert!(props.san_entries().unwrap().contains(&expected_uri));
-            Ok(TestCert::default().with_fail_private_key(true))
-        }), TestWorkloadData::default());
+        let handler = IdentityCertHandler::new(
+            TestHsm::default().with_on_create(|props| {
+                assert_eq!("marvin", props.common_name());
+                assert_eq!("beeblebroxidentity", props.alias());
+                assert_eq!(CertificateType::Client, *props.certificate_type());
+                assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
+                let expected_uri = test_module_uri("beeblebrox".to_string());
+                assert!(props.san_entries().unwrap().contains(&expected_uri));
+                Ok(TestCert::default().with_fail_private_key(true))
+            }),
+            TestWorkloadData::default(),
+        );
 
         let cert_req = IdentityCertificateRequest::new()
-                            .with_common_name("marvin".to_string())
-                            .with_expiration((Utc::now() + Duration::hours(1)).to_rfc3339());
+            .with_common_name("marvin".to_string())
+            .with_expiration((Utc::now() + Duration::hours(1)).to_rfc3339());
 
-        let request =
-            Request::get("http://localhost/modules/beeblebrox/certificate/identity")
-                .body(serde_json::to_string(&cert_req).unwrap().into())
-                .unwrap();
+        let request = Request::get("http://localhost/modules/beeblebrox/certificate/identity")
+            .body(serde_json::to_string(&cert_req).unwrap().into())
+            .unwrap();
 
-        let params = Parameters::with_captures(vec![
-            (Some("name".to_string()), "beeblebrox".to_string()),
-        ]);
+        let params =
+            Parameters::with_captures(vec![(Some("name".to_string()), "beeblebrox".to_string())]);
         let response = handler.handle(request, params).wait().unwrap();
 
         assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
@@ -731,28 +744,29 @@ mod tests {
 
     #[test]
     fn get_cert_time_fails() {
-        let handler = IdentityCertHandler::new(TestHsm::default().with_on_create(|props| {
-            assert_eq!("marvin", props.common_name());
-            assert_eq!("beeblebroxidentity", props.alias());
-            assert_eq!(CertificateType::Client, *props.certificate_type());
-            assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
-            let expected_uri = test_module_uri("beeblebrox".to_string());
-            assert!(props.san_entries().unwrap().contains(&expected_uri));
-            Ok(TestCert::default().with_fail_valid_to(true))
-        }), TestWorkloadData::default());
+        let handler = IdentityCertHandler::new(
+            TestHsm::default().with_on_create(|props| {
+                assert_eq!("marvin", props.common_name());
+                assert_eq!("beeblebroxidentity", props.alias());
+                assert_eq!(CertificateType::Client, *props.certificate_type());
+                assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
+                let expected_uri = test_module_uri("beeblebrox".to_string());
+                assert!(props.san_entries().unwrap().contains(&expected_uri));
+                Ok(TestCert::default().with_fail_valid_to(true))
+            }),
+            TestWorkloadData::default(),
+        );
 
         let cert_req = IdentityCertificateRequest::new()
-                            .with_common_name("marvin".to_string())
-                            .with_expiration((Utc::now() + Duration::hours(1)).to_rfc3339());
+            .with_common_name("marvin".to_string())
+            .with_expiration((Utc::now() + Duration::hours(1)).to_rfc3339());
 
-        let request =
-            Request::get("http://localhost/modules/beeblebrox/certificate/identity")
-                .body(serde_json::to_string(&cert_req).unwrap().into())
-                .unwrap();
+        let request = Request::get("http://localhost/modules/beeblebrox/certificate/identity")
+            .body(serde_json::to_string(&cert_req).unwrap().into())
+            .unwrap();
 
-        let params = Parameters::with_captures(vec![
-            (Some("name".to_string()), "beeblebrox".to_string()),
-        ]);
+        let params =
+            Parameters::with_captures(vec![(Some("name".to_string()), "beeblebrox".to_string())]);
         let response = handler.handle(request, params).wait().unwrap();
 
         assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
