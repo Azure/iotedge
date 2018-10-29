@@ -302,7 +302,10 @@ macro_rules! ensure_greater_impl {
             (val_val, low_val) => $ensure!(
                 *val_val,
                 *val_val > *low_val,
-                $crate::ErrorKind::ArgumentTooLow(format!("{}", val_val), format!("{}", low_val),)
+                $crate::ErrorKind::ArgumentTooLow(
+                    format!("{}", val_val),
+                    format!("{}", low_val),
+                )
             ),
         }
     };
