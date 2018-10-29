@@ -7,8 +7,8 @@ use hyper::{Body, Client as HyperClient, Error as HyperError, Request, Response,
 use hyper_proxy::{Intercept, Proxy, ProxyConnector};
 use hyper_tls::HttpsConnector;
 use typed_headers::Credentials;
-use url::Url;
 use url::percent_encoding::percent_decode;
+use url::Url;
 
 use super::super::client::ClientImpl;
 
@@ -53,10 +53,14 @@ fn uri_to_proxy(uri: Uri) -> Result<Proxy, Error> {
     let url = Url::parse(&uri.to_string())?;
     let mut proxy = Proxy::new(Intercept::All, uri);
 
-    if let Some(password) = url.password() {
+    if !url.username().is_empty() {
         let username = percent_decode(url.username().as_bytes()).decode_utf8()?;
-        let password = percent_decode(password.as_bytes()).decode_utf8()?;
-        let credentials = Credentials::basic(&username, &password)?;
+        let credentials = if let Some(password) = url.password() {
+            let password = percent_decode(password.as_bytes()).decode_utf8()?;
+            Credentials::basic(&username, &password)?
+        } else {
+            Credentials::basic(&username, "")?
+        };
         proxy.set_authorization(credentials);
     }
 
@@ -152,6 +156,15 @@ mod tests {
         let uri = "http://example.com".parse().unwrap();
         let proxy = uri_to_proxy(uri).unwrap();
         assert_eq!(None, proxy.headers().get("Authorization"));
+    }
+
+    #[test]
+    fn proxy_username() {
+        let uri = "http://user100@example.com".parse().unwrap();
+        let proxy = uri_to_proxy(uri).unwrap();
+
+        let expected = "Basic dXNlcjEwMDo=";
+        assert_eq!(&expected, proxy.headers().get("Authorization").unwrap());
     }
 
     #[test]
