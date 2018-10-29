@@ -54,7 +54,7 @@ pub fn parse_query(query: &str) -> HashMap<&str, &str> {
         }).collect()
 }
 
-pub fn prepare_cert_uri_module(hub_name: String, device_id: String, module_id: String) -> String {
+pub fn prepare_cert_uri_module(hub_name: &str, device_id: &str, module_id: &str) -> String {
     format!(
         "URI: azureiot://{}/devices/{}/module/{}",
         hub_name, device_id, module_id

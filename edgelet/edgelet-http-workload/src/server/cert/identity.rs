@@ -54,9 +54,9 @@ where
                 let cn = module_id.to_string();
                 let alias = format!("{}identity", module_id);
                 let module_uri = prepare_cert_uri_module(
-                    cfg.iot_hub_name().to_string(),
-                    cfg.device_id().to_string(),
-                    module_id.to_string(),
+                    cfg.iot_hub_name(),
+                    cfg.device_id(),
+                    module_id,
                 );
                 let result = req
                     .into_body()
@@ -228,9 +228,9 @@ mod tests {
 
     fn test_module_uri(module_id: String) -> String {
         prepare_cert_uri_module(
-            String::from("zaphods_hub"),
-            String::from("marvins_device"),
-            module_id,
+            "zaphods_hub",
+            "marvins_device",
+            module_id.as_str(),
         )
     }
 
