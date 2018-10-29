@@ -320,7 +320,7 @@ function Remove-SecurityDaemonResources {
         Write-Verbose "Deleted install directory '$EdgeEventLogMessagesPath'"
     }
     elseif ($CmdErr.FullyQualifiedErrorId -ne "PathNotFound,Microsoft.PowerShell.Commands.RemoveItemCommand") {
-        Write-Warning "Could not delete '$EdgeEventLogMessagesPath'. It is probably held open by the EventLog service."
+        Write-Warning "Could not delete '$EdgeEventLogMessagesPath'."
         Write-Warning "If you're reinstalling or updating IoT Edge, then this is safe to ignore."
         Write-Warning ("Otherwise, please close Event Viewer, or any PowerShell windows where you ran Get-WinEvent, " +
             "then run Uninstall-SecurityDaemon again with '-Force'.")
