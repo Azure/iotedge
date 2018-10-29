@@ -50,9 +50,8 @@ impl Config {
 }
 
 fn uri_to_proxy(uri: Uri) -> Result<Proxy, Error> {
-    let cloned = uri.clone();
     let url = Url::parse(&uri.to_string())?;
-    let mut proxy = Proxy::new(Intercept::All, cloned);
+    let mut proxy = Proxy::new(Intercept::All, uri);
 
     if let Some(password) = url.password() {
         let username = percent_decode(url.username().as_bytes()).decode_utf8()?;
