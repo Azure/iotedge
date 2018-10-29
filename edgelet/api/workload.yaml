@@ -300,9 +300,6 @@ definitions:
   IdentityCertificateRequest:
     type: object
     properties:
-      commonName:
-        type: string
-        description: Subject common name
       expiration:
         type: string
         format: date-time
