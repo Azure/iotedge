@@ -71,12 +71,12 @@ fn run_as_service(_: Vec<OsString>) -> Result<(), Error> {
         .select(receiver.map_err(|_| ()))
         .map(move |_| {
             info!("Stopping {} service.", IOTEDGED_SERVICE_NAME);
-            let _ = update_service_state(status_handle, ServiceState::StopPending).map_err(|err| {
+            if let Err(err) = update_service_state(status_handle, ServiceState::StopPending) {
                 error!(
                     "An error occurred while setting service status to STOP_PENDING: {:?}",
                     err,
-                )
-            });
+                );
+            }
         }).map_err(|_| ());
 
     // tell Windows we're all set
