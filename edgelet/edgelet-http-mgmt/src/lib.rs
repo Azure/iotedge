@@ -45,6 +45,7 @@ mod server;
 
 pub use client::ModuleClient;
 pub use error::{Error, ErrorKind};
+pub use server::ListModules;
 pub use server::ManagementService;
 
 pub trait IntoResponse {
