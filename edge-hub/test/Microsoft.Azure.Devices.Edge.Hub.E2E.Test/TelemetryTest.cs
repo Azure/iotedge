@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
-    [E2E]
+    [Integration]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
     public class TelemetryTest : IClassFixture<ProtocolHeadFixture>
     {

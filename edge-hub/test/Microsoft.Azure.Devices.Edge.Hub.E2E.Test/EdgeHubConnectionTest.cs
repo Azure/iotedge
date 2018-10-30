@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Newtonsoft.Json;
     using Xunit;
 
-    [E2E]
+    [Integration]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
     public class EdgeHubConnectionTest : IClassFixture<ProtocolHeadFixture>
     {
@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 });
             var cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, new ClientProvider(), Option.None<UpstreamProtocol>(), Mock.Of<ITokenProvider>(), Mock.Of<IDeviceScopeIdentitiesCache>(), TimeSpan.FromMinutes(60), true);
             var credentialsCache = Mock.Of<ICredentialsCache>();
-            var connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, EdgeDeviceId, EdgeHubModuleId);
+            var connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache);
 
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
             Devices.IotHubConnectionStringBuilder iotHubConnectionStringBuilder = Devices.IotHubConnectionStringBuilder.Create(iotHubConnectionString);

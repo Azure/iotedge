@@ -412,11 +412,9 @@ where
                                             kb,
                                         ).map_err(Error::from)
                                 })
-                        }).and_then(
-                            |_| -> Result<(String, String), Error> {
-                                get_device_info(&tpm_result_inner)
-                            },
-                        )
+                        }).and_then(|_| -> Result<(String, String), Error> {
+                            get_device_info(&tpm_result_inner)
+                        })
                 })
         });
         Box::new(r)

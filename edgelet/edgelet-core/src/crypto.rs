@@ -7,6 +7,7 @@ use std::string::ToString;
 use std::sync::{Arc, RwLock};
 
 use bytes::Bytes;
+use chrono::{DateTime, Utc};
 use consistenttime::ct_u8_slice_eq;
 use failure::ResultExt;
 use hmac::{Hmac, Mac};
@@ -128,6 +129,7 @@ pub trait Certificate {
 
     fn pem(&self) -> Result<Self::Buffer, Error>;
     fn get_private_key(&self) -> Result<Option<PrivateKey<Self::KeyBuffer>>, Error>;
+    fn get_valid_to(&self) -> Result<DateTime<Utc>, Error>;
 }
 
 pub trait GetTrustBundle {

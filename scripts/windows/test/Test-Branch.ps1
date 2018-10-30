@@ -78,6 +78,7 @@ $Success = $True
 foreach ($Project in (Get-ChildItem $BuildRepositoryLocalPath -Include $TEST_PROJ_PATTERN -Recurse)) {
     Write-Host "Running tests for $Project."
     if (Test-Path $OPENCOVER -PathType "Leaf") {
+		Write-Host "Run command: $OPENCOVER -register:user -target:$DOTNET_PATH -targetargs:'$BaseTestCommand $Project' -skipautoprops -hideskipped:All -oldstyle -output:$CODE_COVERAGE -mergeoutput:$CODE_COVERAGE -returntargetcode ..."
         &$OPENCOVER `
             -register:user `
             -target:$DOTNET_PATH `
@@ -87,9 +88,11 @@ foreach ($Project in (Get-ChildItem $BuildRepositoryLocalPath -Include $TEST_PRO
             -oldstyle `
             -output:$CODE_COVERAGE `
             -mergeoutput:$CODE_COVERAGE `
-            -returntargetcode
+            -returntargetcode `
+			-filter:"+[*]* -[Moq*]* -[App.Metrics.Reporting*]*"
     }
     else {
+		Write-Host "Run command: '" + $DOTNET_PATH + "' " + $BaseTestCommand " -o " + $BuildBinariesDirectory + " " + $Project
         Invoke-Expression "&`"$DOTNET_PATH`" $BaseTestCommand -o $BuildBinariesDirectory $Project"
     }
 

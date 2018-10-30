@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+
 #[cfg(windows)]
 extern crate version_compare;
 #[cfg(windows)]
@@ -11,14 +12,12 @@ fn main() {
 
 #[cfg(windows)]
 mod windows {
-    use std::cmp::Ordering;
     use std::env;
     use std::fs;
     use std::io::Result;
     use std::path::{Path, PathBuf};
     use std::process::Command;
 
-    use version_compare::comp_op::CompOp;
     use version_compare::VersionCompare;
     use winreg::enums::*;
     use winreg::RegKey;
@@ -67,20 +66,12 @@ mod windows {
         let max_version = installed_roots
             .enum_keys()
             .map(|v| v.unwrap())
-            .max_by(|v1, v2| comp_op_to_ordering(VersionCompare::compare(v1, v2).unwrap()))
+            .max_by(|v1, v2| VersionCompare::compare(v1, v2).unwrap().ord().unwrap())
             .unwrap();
 
         let kits_root: String = installed_roots.get_value("KitsRoot10").unwrap();
         let install_root = Path::new(&kits_root);
 
         Ok(install_root.join("bin").join(max_version).join("x64"))
-    }
-
-    fn comp_op_to_ordering(op: CompOp) -> Ordering {
-        match op {
-            CompOp::Eq | CompOp::Le | CompOp::Ge => Ordering::Equal,
-            CompOp::Lt | CompOp::Ne => Ordering::Less,
-            CompOp::Gt => Ordering::Greater,
-        }
     }
 }

@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using Newtonsoft.Json.Linq;
     using Xunit;
 
-    [E2E]
+    [Integration]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test")]
     [TestCaseOrderer("Microsoft.Azure.Devices.Edge.Util.Test.PriorityOrderer", "Microsoft.Azure.Devices.Edge.Util.Test")]
     public class CloudProxyTest

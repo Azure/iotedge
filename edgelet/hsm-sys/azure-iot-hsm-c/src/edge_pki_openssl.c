@@ -814,7 +814,7 @@ static int add_ext(X509 *x509_cert, int nid, const char *value, const char* nid_
     {
         if (X509_add_ext(x509_cert, ex, -1) == 0)
         {
-            LOG_ERROR("Could not add V3 extension by NID %#x, %s", nid, nid_diagnostic);
+            LOG_ERROR("Could not add V3 extension by NID %#x, %s. Value %s", nid, nid_diagnostic, value);
             result = __FAILURE__;
         }
         else
