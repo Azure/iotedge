@@ -47,12 +47,49 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             {
                 File.Delete(testDataFile);
             }
+        }
+
+        [Fact]
+        [Unit]
+        public void ValidateAppSettingsAreCaseInsensitive()
+        {
+            string testDataFile = "TestData_AppSettingsAreCaseInsensitive.json";
+
+            try
+            {
+                string currentFolder = new DirectoryInfo("./").FullName;
+                string appSettingsJson = @"
+                {
+                    ""MODE"": ""DOCKER"",
+                    ""DEVICEConnectionString"": ""Fake-Device-Connection-String"",
+                    ""DockerUri"":""http://localhost:2375"",
+                    ""dOcKeRLoGgInGDrIvEr"": ""json-file"",
+                    ""MaxRestartCount"": 20,
+                    ""IntensiveCareTimeInMinutes"": 10,
+                    ""RuntimeLogLevel"": ""info"",
+                    ""StorageFolder"": """ + currentFolder.Replace("\\", "\\\\") + @""",
+                    ""UsePersistentStorage"": true,
+                    ""ConfigRefreshFrequencySecs"": ""3600""
+                }";
+
+                File.WriteAllText(testDataFile, appSettingsJson);
+
+                var appSettings = new AgentAppSettings(testDataFile);
+
+                Assert.Equal(EdgeRuntimeMode.Docker, appSettings.RuntimeMode);
+                Assert.Equal("Fake-Device-Connection-String", appSettings.DeviceConnectionString);
+                Assert.Equal("json-file", appSettings.DockerLoggingDriver);
+            }
+            finally
+            {
+                File.Delete(testDataFile);
+            }
 
         }
 
         [Fact]
         [Unit]
-        public void ValidatesMaxRestartCountShouldBeGreaterThanOrEqualToOne()
+        public void ValidateMaxRestartCountShouldBeGreaterThanOrEqualToOne()
         {
             string testDataFile = "TestData_ValidatesMaxRestartCountShouldBeGreaterThanOrEqualToOne.json";
 
