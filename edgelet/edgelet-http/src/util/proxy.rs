@@ -68,7 +68,7 @@ mod tests {
 
     #[test]
     fn can_create_client_with_proxy() {
-        let uri = "irrelevant".parse::<Uri>().unwrap();
+        let uri = "http://example.com".parse::<Uri>().unwrap();
         let client = MaybeProxyClient::new(Some(uri)).unwrap();
         assert!(client.has_proxy() && !client.is_null());
     }
