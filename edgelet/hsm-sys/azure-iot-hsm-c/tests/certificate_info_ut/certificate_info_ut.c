@@ -45,12 +45,12 @@ static void* my_gballoc_realloc(void* ptr, size_t size)
 
 #include "certificate_info.h"
 
-extern time_t get_utc_time_from_asn_string(const unsigned char *time_value, size_t length);
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+ extern time_t get_utc_time_from_asn_string(const unsigned char *time_value, size_t length);
  extern STRING_HANDLE real_Base64_Encoder(BUFFER_HANDLE input);
  extern STRING_HANDLE real_Base64_Encode_Bytes(const unsigned char* source, size_t size);
  extern BUFFER_HANDLE real_Base64_Decoder(const char* source);
@@ -295,10 +295,10 @@ BEGIN_TEST_SUITE(certificate_info_ut)
     TEST_FUNCTION(certificate_info_create_pk_type_invalid_fails)
     {
         //arrange
-        int BAD_PRIVATE_KEY_TYPE = 500;
+        int BAD_PRIVATE_KEY_TYPE = 50;
 
         //act
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, BAD_PRIVATE_KEY_TYPE);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, (PRIVATE_KEY_TYPE)BAD_PRIVATE_KEY_TYPE);
 
         //assert
         ASSERT_IS_NULL(cert_handle);
