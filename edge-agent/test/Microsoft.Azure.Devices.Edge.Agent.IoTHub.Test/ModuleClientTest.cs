@@ -41,16 +41,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         {
             // Arrange
             var receivedTransportTypes = new List<Client.TransportType>();
-            string deviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("device2ConnStrKey");
-            string moduleClientConnectionString = $"{deviceConnectionString};ModuleId=mod1";
             Task<Client.ModuleClient> DeviceClientCreator(Client.TransportType transportType)
             {
                 receivedTransportTypes.Add(transportType);
-                if (receivedTransportTypes.Count == 1)
-                {
-                    throw new InvalidOperationException();
-                }
-                return Task.FromResult(Client.ModuleClient.CreateFromConnectionString(moduleClientConnectionString));
+                return receivedTransportTypes.Count == 1
+                    ? Task.FromException<Client.ModuleClient>(new InvalidOperationException())
+                    : Task.FromResult(Client.ModuleClient.Create("example.com", new Client.ModuleAuthenticationWithToken("deviceid", "moduleid", "SharedAccessSignature sr=example/com%2Fdevices%2Fdeviceid%2Fmodules%2Fmoduleid&sig=dummy&se=1540944301")));
             }
 
             // Act
