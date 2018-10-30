@@ -442,10 +442,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Try<ICloudProxy> receivedCloudProxy2 = await connectionManager.CreateCloudConnectionAsync(deviceCredentials);
             Assert.False(receivedCloudProxy2.Success);
             Assert.IsType<EdgeHubConnectionException>(receivedCloudProxy2.Exception);
-            List<Exception> innerExceptions = (receivedCloudProxy2.Exception.InnerException as AggregateException)?.InnerExceptions.ToList() ?? new List<Exception>();
-            Assert.Equal(2, innerExceptions.Count);
-            Assert.IsType<UnauthorizedException>(innerExceptions[0]);
-            Assert.IsType<UnauthorizedException>(innerExceptions[1]);
+            Assert.IsType<UnauthorizedException>(receivedCloudProxy2.Exception.InnerException);
             Assert.True(receivedCloudProxy1.Value.IsActive);
             Assert.Equal(deviceProxy, connectionManager.GetDeviceConnection(deviceCredentials.Identity.Id).OrDefault());
         }
