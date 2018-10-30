@@ -12,6 +12,7 @@ extern crate chrono;
 extern crate edgelet_core;
 #[macro_use]
 extern crate edgelet_http;
+extern crate edgelet_http_mgmt;
 #[cfg(test)]
 extern crate edgelet_test_utils;
 #[macro_use]
@@ -24,6 +25,7 @@ extern crate http;
 extern crate hyper;
 #[macro_use]
 extern crate log;
+extern crate serde;
 extern crate serde_json;
 extern crate workload;
 
