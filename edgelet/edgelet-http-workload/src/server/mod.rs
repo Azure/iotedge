@@ -50,7 +50,7 @@ impl WorkloadService {
         M::Logs: Into<Body>,
     {
         let router = router!(
-            get    "/modules" => Authorization::new(ListModules::new(runtime.clone()), Policy::Caller, runtime.clone()),
+            get    "/modules" => Authorization::new(ListModules::new(runtime.clone()), Policy::Anonymous, runtime.clone()),
             post   "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/sign" => Authorization::new(SignHandler::new(key_store.clone()), Policy::Caller, runtime.clone()),
             post   "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/decrypt" => Authorization::new(DecryptHandler::new(hsm.clone()), Policy::Caller, runtime.clone()),
             post   "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/encrypt" => Authorization::new(EncryptHandler::new(hsm.clone()), Policy::Caller, runtime.clone()),
