@@ -6,8 +6,8 @@ use std::ops::Deref;
 use std::time::Duration;
 
 use base64;
-use futures::future;
 use futures::prelude::*;
+use futures::{future, stream, Async, Stream};
 use hyper::{Body, Chunk as HyperChunk, Client};
 use log::Level;
 use serde_json;
@@ -19,12 +19,13 @@ use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
 use docker::models::{ContainerCreateBody, NetworkConfig};
 use edgelet_core::{
-    LogOptions, Module, ModuleRegistry, ModuleRuntime, ModuleSpec, SystemInfo as CoreSystemInfo,
+    LogOptions, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
+    SystemInfo as CoreSystemInfo,
 };
 use edgelet_http::UrlConnector;
 use edgelet_utils::log_failure;
 
-use error::{Error, Result};
+use error::{Error, ErrorKind, Result};
 use module::{DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
 
 const WAIT_BEFORE_KILL_SECONDS: i32 = 10;
@@ -158,6 +159,8 @@ impl ModuleRuntime for DockerModuleRuntime {
     type CreateFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
     type InitFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
     type ListFuture = Box<Future<Item = Vec<Self::Module>, Error = Self::Error> + Send>;
+    type ListWithDetailsStream =
+        Box<Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
     type LogsFuture = Box<Future<Item = Self::Logs, Error = Self::Error> + Send>;
     type RemoveFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
     type RestartFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
@@ -391,6 +394,10 @@ impl ModuleRuntime for DockerModuleRuntime {
         Box::new(result)
     }
 
+    fn list_with_details(&self) -> Self::ListWithDetailsStream {
+        Box::new(ListWithDetailsStream::WaitingForModulesList(self.list()))
+    }
+
     fn logs(&self, id: &str, options: &LogOptions) -> Self::LogsFuture {
         let tail = &options.tail().to_string();
         let result = self
@@ -468,6 +475,49 @@ impl Into<Body> for Logs {
 impl AsRef<[u8]> for Chunk {
     fn as_ref(&self) -> &[u8] {
         self.0.as_ref()
+    }
+}
+
+enum ListWithDetailsStream {
+    WaitingForModulesList(
+        Box<Future<Item = Vec<DockerModule<UrlConnector>>, Error = Error> + Send>,
+    ),
+    HaveModulesList(
+        Box<Stream<Item = (DockerModule<UrlConnector>, ModuleRuntimeState), Error = Error> + Send>,
+    ),
+}
+
+impl Stream for ListWithDetailsStream {
+    type Item = (DockerModule<UrlConnector>, ModuleRuntimeState);
+    type Error = Error;
+
+    fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
+        loop {
+            let next_self = match self {
+                ListWithDetailsStream::WaitingForModulesList(f) => match f.poll() {
+                    Ok(Async::Ready(list)) => {
+                        ListWithDetailsStream::HaveModulesList(Box::new(stream::futures_unordered(
+                            list.into_iter()
+                                .map(|module| module.runtime_state().map(|state| (module, state))),
+                        )))
+                    }
+                    Ok(Async::NotReady) => return Ok(Async::NotReady),
+                    Err(err) => return Err(err),
+                },
+
+                ListWithDetailsStream::HaveModulesList(list) => match list.poll() {
+                    Ok(next) => return Ok(next),
+
+                    Err(err) => match err.kind() {
+                        ErrorKind::NotFound(_) => continue,
+
+                        _ => return Err(err),
+                    },
+                },
+            };
+
+            *self = next_self;
+        }
     }
 }
 

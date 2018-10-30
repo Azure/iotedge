@@ -3,7 +3,7 @@
 use edgelet_core::{Module, ModuleRuntime};
 use edgelet_http::route::{Handler, Parameters};
 use failure::ResultExt;
-use futures::{future, Future};
+use futures::{Future, Stream};
 use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use http::{Request, Response, StatusCode};
 use hyper::{Body, Error as HyperError};
@@ -12,7 +12,7 @@ use serde::Serialize;
 use serde_json;
 
 use super::core_to_details;
-use error::ErrorKind;
+use error::{Error, ErrorKind};
 use IntoResponse;
 
 pub struct ListModules<M>
@@ -44,30 +44,24 @@ where
         _params: Parameters,
     ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
         debug!("List modules");
-        let response =
-            self.runtime
-                .list()
-                .then(|result| match result.context(ErrorKind::ModuleRuntime) {
-                    Ok(mods) => {
-                        let futures = mods.into_iter().map(core_to_details);
-                        let response = future::join_all(futures)
-                            .map(|details| {
-                                let body = ModuleList::new(details);
-                                serde_json::to_string(&body)
-                                    .context(ErrorKind::Serde)
-                                    .map(|b| {
-                                        Response::builder()
-                                            .status(StatusCode::OK)
-                                            .header(CONTENT_TYPE, "application/json")
-                                            .header(CONTENT_LENGTH, b.len().to_string().as_str())
-                                            .body(b.into())
-                                            .unwrap_or_else(|e| e.into_response())
-                                    }).unwrap_or_else(|e| e.into_response())
-                            }).or_else(|e| future::ok(e.into_response()));
-                        future::Either::A(response)
-                    }
-                    Err(e) => future::Either::B(future::ok(e.into_response())),
-                });
+        let response = self
+            .runtime
+            .list_with_details()
+            .collect()
+            .then(|result| {
+                let details: Result<_, Error> = result
+                    .context(ErrorKind::ModuleRuntime)?
+                    .into_iter()
+                    .map(|(module, state)| core_to_details(&module, &state))
+                    .collect();
+                let body = ModuleList::new(details?);
+                let b = serde_json::to_string(&body).context(ErrorKind::Serde)?;
+                Ok(Response::builder()
+                    .status(StatusCode::OK)
+                    .header(CONTENT_TYPE, "application/json")
+                    .header(CONTENT_LENGTH, b.len().to_string().as_str())
+                    .body(b.into())?)
+            }).or_else(|e: Error| Ok(e.into_response()));
         Box::new(response)
     }
 }
