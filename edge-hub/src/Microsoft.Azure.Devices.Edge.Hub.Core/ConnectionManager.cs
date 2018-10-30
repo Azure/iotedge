@@ -341,27 +341,41 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 }
             }
 
+            Option<Task<Try<ICloudConnection>>> cloudConnectionCreateTask = Option.None<Task<Try<ICloudConnection>>>();
+
             public async Task<Try<ICloudConnection>> GetOrCreateCloudConnection(
-                Func<ConnectedDevice, Task<Try<ICloudConnection>>> cloudConnectionUpdater)
+                Func<ConnectedDevice, Task<Try<ICloudConnection>>> cloudConnectionCreator)
             {
-                Preconditions.CheckNotNull(cloudConnectionUpdater, nameof(cloudConnectionUpdater));
-                // Lock in case multiple connections are created to the cloud for the same device at the same time
-                using (await this.cloudConnectionLock.LockAsync())
+                Preconditions.CheckNotNull(cloudConnectionCreator, nameof(cloudConnectionCreator));
+
+                async Task<Try<ICloudConnection>> CloudConnectionCreator()
                 {
-                    return await this.CloudConnection.Filter(cp => cp.IsActive)
-                        .Match(cp => Task.FromResult(Try.Success(cp)),
-                        async () =>
-                        {
-                            Try<ICloudConnection> cloudConnection = await cloudConnectionUpdater(this);
-                            if (cloudConnection.Success)
-                            {
-                                this.CloudConnection = Option.Some(cloudConnection.Value);
-                            }
-                            return cloudConnection;
-                        });
+                    Try<ICloudConnection> cloudConnection = await cloudConnectionCreator(this);
+                    if (cloudConnection.Success)
+                    {
+                        this.CloudConnection = Option.Some(cloudConnection.Value);
+                    }
+                    return cloudConnection;
                 }
+
+                return await this.CloudConnection.Filter(cp => cp.IsActive)
+                    .Map(c => Task.FromResult(Try.Success(c)))
+                    .GetOrElse(async () =>
+                    {
+                        return await this.cloudConnectionCreateTask.Filter(c => c.IsCompleted)
+                            .GetOrElse(
+                                async () =>
+                                {
+                                    using (await this.cloudConnectionLock.LockAsync())
+                                    {
+                                        Task<Try<ICloudConnection>> createTask = CloudConnectionCreator();
+                                        this.cloudConnectionCreateTask = Option.Some(createTask);
+                                        return await createTask;
+                                    }
+                                });                        
+                    });
             }
-        }
+        }    
 
         class DeviceConnection
         {
