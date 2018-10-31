@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 async () =>
                 {
                     // The device SDK doesn't appear to be falling back to WebSocket from TCP,
-                    // so we'll do it explicitly until we can get the SDK sorted out.                        
+                    // so we'll do it explicitly until we can get the SDK sorted out.
                     Try<Client.ModuleClient> result = await Fallback.ExecuteAsync(
                         () => deviceClientCreator(TransportType.Amqp_Tcp_Only),
                         () => deviceClientCreator(TransportType.Amqp_WebSocket_Only));
@@ -156,7 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 RetryingDeviceClientConnection,
                 DeviceClientSetupFailed
             }
-            
+
             public static void AttemptingConnectionWithTransport(TransportType transport)
             {
                 Log.LogInformation((int)EventIds.AttemptingConnect, $"Edge agent attempting to connect to IoT Hub via {transport.ToString()}...");
