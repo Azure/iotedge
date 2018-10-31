@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
     using System.Collections.Generic;
@@ -10,13 +11,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     public class DockerLoggingConfig
     {
         [JsonProperty(PropertyName = "type")]
-        public string Type { get; } 
+        public string Type { get; }
 
         [JsonProperty(Required = Required.AllowNull, PropertyName = "config")]
         public IDictionary<string, string> Config { get; }
 
-        public DockerLoggingConfig(string type) : 
-            this(type, ImmutableDictionary<string, string>.Empty)
+        public DockerLoggingConfig(string type)
+            : this(type, ImmutableDictionary<string, string>.Empty)
         {
         }
 
@@ -51,6 +52,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 return hashCode;
             }
         }
-
     }
 }

@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters;
     using Microsoft.Azure.Devices.Edge.Util;
-    
+
     public class TwinConfigSourceModule : Module
     {
         const string DockerType = "docker";
@@ -31,13 +31,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         {
             // IEdgeAgentConnection
             builder.Register(
-                c =>
-                {
-                    var serde = c.Resolve<ISerde<DeploymentConfig>>();
-                    var deviceClientprovider = c.Resolve<IModuleClientProvider>();
-                    IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(deviceClientprovider, serde, this.appSettings.CoolOffTimeUnit);
-                    return edgeAgentConnection;
-                })
+                    c =>
+                    {
+                        var serde = c.Resolve<ISerde<DeploymentConfig>>();
+                        var deviceClientprovider = c.Resolve<IModuleClientProvider>();
+                        IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(deviceClientprovider, serde, this.appSettings.CoolOffTimeUnit);
+                        return edgeAgentConnection;
+                    })
                 .As<IEdgeAgentConnection>()
                 .SingleInstance();
 
