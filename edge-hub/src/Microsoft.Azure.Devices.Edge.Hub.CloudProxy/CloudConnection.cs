@@ -46,6 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.idleTimeout = idleTimeout;
             this.closeOnIdleTimeout = closeOnIdleTimeout;
             this.cloudProxy = Option.None<ICloudProxy>();
+            this.operationTimeout = operationTimeout;
         }
 
         public static async Task<CloudConnection> Create(
@@ -186,7 +187,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 string transportType = transportSettings.Length == 1
                     ? TransportName(transportSettings[0].GetTransportType())
                     : transportSettings.Select(t => TransportName(t.GetTransportType())).Join("/");
-                Log.LogInformation((int)EventIds.TransportConnected, $"Created cloud proxy for client {identity.Id} via {transportType}, with client operation timeout {timeout}.");
+                Log.LogInformation((int)EventIds.TransportConnected, $"Created cloud proxy for client {identity.Id} via {transportType}, with client operation timeout {timeout.TotalSeconds} seconds.");
             }
         }
     }
