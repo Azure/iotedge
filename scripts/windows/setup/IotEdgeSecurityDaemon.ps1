@@ -240,7 +240,7 @@ function Get-SecurityDaemon {
         else {
             New-Item -Type Directory 'C:\ProgramData\iotedge' | Out-Null
             Expand-Archive "$ArchivePath" "C:\ProgramData\iotedge" -Force
-            Copy-Item "C:\ProgramData\iotedge\iotedged-windows\*" "C:\ProgramData\iotedge" -Force
+            Copy-Item "C:\ProgramData\iotedge\iotedged-windows\*" "C:\ProgramData\iotedge" -Force -Recurse
         }
 
         if (Test-Path 'C:\ProgramData\iotedge\iotedged_eventlog_messages.dll') {
