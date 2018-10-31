@@ -46,7 +46,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 receivedTransportTypes.Add(transportType);
                 return receivedTransportTypes.Count == 1
                     ? Task.FromException<Client.ModuleClient>(new InvalidOperationException())
-                    : Task.FromResult(Client.ModuleClient.Create("example.com", new Client.ModuleAuthenticationWithToken("deviceid", "moduleid", "SharedAccessSignature sr=example/com%2Fdevices%2Fdeviceid%2Fmodules%2Fmoduleid&sig=dummy&se=1540944301")));
+                    : Task.FromResult(Client.ModuleClient.Create("example.com",
+                        new Client.ModuleAuthenticationWithToken("deviceid", "moduleid", TokenHelper.CreateSasToken("foo.azure-devices.net"))));
             }
 
             // Act
