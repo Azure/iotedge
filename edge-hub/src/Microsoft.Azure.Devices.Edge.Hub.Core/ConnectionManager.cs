@@ -29,22 +29,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly ICloudConnectionProvider cloudConnectionProvider;
         readonly int maxClients;
         readonly ICredentialsCache credentialsCache;
-        readonly string edgeDeviceId;
-        readonly string edgeModuleId;
 
         public ConnectionManager(
             ICloudConnectionProvider cloudConnectionProvider,
             ICredentialsCache credentialsCache,
-            string edgeDeviceId,
-            string edgeModuleId,
             int maxClients = DefaultMaxClients)
         {
             this.cloudConnectionProvider = Preconditions.CheckNotNull(cloudConnectionProvider, nameof(cloudConnectionProvider));
             this.maxClients = Preconditions.CheckRange(maxClients, 1, nameof(maxClients));
             this.credentialsCache = Preconditions.CheckNotNull(credentialsCache, nameof(credentialsCache));
-            this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
-            this.edgeModuleId = Preconditions.CheckNonWhiteSpace(edgeModuleId, nameof(edgeModuleId));
-            Util.Metrics.RegisterGaugeCallback(() => Metrics.SetConnectedClientCountGauge(this.GetConnectedClients().Count()));
+            Util.Metrics.RegisterGaugeCallback(() => Metrics.SetConnectedClientCountGauge(this));
         }
 
         public event EventHandler<IIdentity> CloudConnectionEstablished;
@@ -108,7 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             Events.GetCloudConnection(device.Identity, cloudConnectionTry);
             Try<ICloudProxy> cloudProxyTry = GetCloudProxyFromCloudConnection(cloudConnectionTry, device.Identity);
-            return Option.Maybe(cloudProxyTry.Value);
+            return cloudProxyTry.Ok();
         }
 
         public IEnumerable<IIdentity> GetConnectedClients() =>
@@ -124,7 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         }
 
         // This method is not used, but it has important logic and this will be useful for offline scenarios.
-        // So do not delete this method.
+        // So do not delete this method. 
         public async Task<Try<ICloudProxy>> GetOrCreateCloudConnectionAsync(IClientCredentials credentials)
         {
             Preconditions.CheckNotNull(credentials, nameof(credentials));
@@ -343,7 +337,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 Func<ConnectedDevice, Task<Try<ICloudConnection>>> cloudConnectionUpdater)
             {
                 Preconditions.CheckNotNull(cloudConnectionUpdater, nameof(cloudConnectionUpdater));
-
                 // Lock in case multiple connections are created to the cloud for the same device at the same time
                 using (await this.cloudConnectionLock.LockAsync())
                 {
@@ -361,7 +354,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 Func<ConnectedDevice, Task<Try<ICloudConnection>>> cloudConnectionUpdater)
             {
                 Preconditions.CheckNotNull(cloudConnectionUpdater, nameof(cloudConnectionUpdater));
-
                 // Lock in case multiple connections are created to the cloud for the same device at the same time
                 using (await this.cloudConnectionLock.LockAsync())
                 {
@@ -401,8 +393,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         static class Events
         {
-            const int IdStart = HubCoreEventIds.ConnectionManager;
             static readonly ILogger Log = Logger.Factory.CreateLogger<ConnectionManager>();
+            const int IdStart = HubCoreEventIds.ConnectionManager;
 
             enum EventIds
             {
@@ -487,10 +479,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 MeasurementUnit = Unit.Events
             };
 
-            public static void SetConnectedClientCountGauge(long amount)
+            public static void SetConnectedClientCountGauge(ConnectionManager connectionManager)
             {
-                Util.Metrics.SetGauge(ConnectedClientGaugeOptions, amount);
+                // Subtract EdgeHub from the list of connected clients
+                int connectedClients = connectionManager.GetConnectedClients().Count() - 1;
+                Util.Metrics.SetGauge(ConnectedClientGaugeOptions, connectedClients);
             }
-        }
+        };
     }
 }

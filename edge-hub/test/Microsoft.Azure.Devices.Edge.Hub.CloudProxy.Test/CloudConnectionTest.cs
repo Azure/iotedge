@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.Equal(cloudProxy1, cloudConnection.CloudProxy.OrDefault());
 
             IClientCredentials identity2 = GetMockClientCredentialsWithToken();
-            await Assert.ThrowsAsync<AggregateException>(() => cloudConnection.CreateOrUpdateAsync(identity2));
+            await Assert.ThrowsAsync<UnauthorizedException>(() => cloudConnection.CreateOrUpdateAsync(identity2));
             Assert.True(cloudProxy1.IsActive);
             Assert.Equal(cloudProxy1, cloudConnection.CloudProxy.OrDefault());
         }
@@ -375,7 +375,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, deviceClientProvider.Object, Option.None<UpstreamProtocol>(), TokenProvider, DeviceScopeIdentitiesCache, TimeSpan.FromMinutes(60), true);
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
             var credentialsCache = Mock.Of<ICredentialsCache>();
-            IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, deviceId, "$edgeHub");
+            IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache);
 
             IClientCredentials clientCredentials1 = GetClientCredentials(TimeSpan.FromSeconds(10));
             Try<ICloudProxy> cloudProxyTry1 = await connectionManager.CreateCloudConnectionAsync(clientCredentials1);

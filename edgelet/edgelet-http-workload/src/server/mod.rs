@@ -14,10 +14,12 @@ use edgelet_core::{
 };
 use edgelet_http::authorization::Authorization;
 use edgelet_http::route::*;
+use edgelet_http_mgmt::ListModules;
 use failure;
 use futures::{future, Future};
 use hyper::service::{NewService, Service};
 use hyper::{Body, Error as HyperError, Request, Response};
+use serde::Serialize;
 
 use self::cert::{IdentityCertHandler, ServerCertHandler};
 use self::decrypt::DecryptHandler;
@@ -43,10 +45,12 @@ impl WorkloadService {
         H: 'static + CreateCertificate + Decrypt + Encrypt + GetTrustBundle + Clone + Send + Sync,
         M: 'static + ModuleRuntime + Clone + Send + Sync,
         M::Error: Into<CoreError>,
+        <M::Module as Module>::Config: Serialize,
         <M::Module as Module>::Error: Into<CoreError>,
         M::Logs: Into<Body>,
     {
         let router = router!(
+            get    "/modules" => Authorization::new(ListModules::new(runtime.clone()), Policy::Anonymous, runtime.clone()),
             post   "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/sign" => Authorization::new(SignHandler::new(key_store.clone()), Policy::Caller, runtime.clone()),
             post   "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/decrypt" => Authorization::new(DecryptHandler::new(hsm.clone()), Policy::Caller, runtime.clone()),
             post   "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/encrypt" => Authorization::new(EncryptHandler::new(hsm.clone()), Policy::Caller, runtime.clone()),
