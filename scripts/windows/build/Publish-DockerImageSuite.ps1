@@ -26,6 +26,8 @@ param (
     [Switch]$Hub,
     [Switch]$SimulatedTemperatureSensor,
     [Switch]$TemperatureFilter,
+	[Switch]$DirectMethodSender,
+	[Switch]$DirectMethodReceiver,
 
     [Switch]$Push,
     [Switch]$Clean
@@ -40,6 +42,8 @@ $Images = @{
     "hub"                          = @("Microsoft.Azure.Devices.Edge.Hub.Service", $Hub)
     "simulated-temperature-sensor" = @("SimulatedTemperatureSensor", $SimulatedTemperatureSensor)
     "temperature-filter"           = @("TemperatureFilter", $TemperatureFilter)
+    "direct-method-sender"         = @("DirectMethodSender", $DirectMethodSender)
+    "direct-method-receiver"       = @("DirectMethodReceiver", $DirectMethodReceiver)	
 }
 
 foreach ($Image in $Images.GetEnumerator()) {
