@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Util
 {
     using System;
@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         public Try(T value)
         {
-            this.value = value;
+            this.value = Preconditions.CheckNotNull(value, nameof(value));
             this.Exception = null;
         }
 
@@ -35,6 +35,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
         public Exception Exception { get; }
 
         public bool Success => this.Exception == null;
+
+        public Option<T> Ok() => this.Success ? Option.Some(this.Value) : Option.None<T>();
 
         public static Try<T> Failure(Exception exception) => new Try<T>(exception);
 
