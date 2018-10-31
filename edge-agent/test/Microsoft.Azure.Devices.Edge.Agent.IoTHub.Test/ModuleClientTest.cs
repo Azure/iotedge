@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Moq;
     using Xunit;
 
     public class ModuleClientTest
@@ -43,11 +44,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             Task<Client.ModuleClient> DeviceClientCreator(Client.TransportType transportType)
             {
                 receivedTransportTypes.Add(transportType);
-                if (receivedTransportTypes.Count == 1)
-                {
-                    throw new InvalidOperationException();
-                }
-                return Task.FromResult((Client.ModuleClient)null);
+                return receivedTransportTypes.Count == 1
+                    ? Task.FromException<Client.ModuleClient>(new InvalidOperationException())
+                    : Task.FromResult(Client.ModuleClient.Create("example.com", new Client.ModuleAuthenticationWithToken("deviceid", "moduleid", "SharedAccessSignature sr=example/com%2Fdevices%2Fdeviceid%2Fmodules%2Fmoduleid&sig=dummy&se=1540944301")));
             }
 
             // Act

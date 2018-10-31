@@ -26,8 +26,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly ICloudConnectionProvider cloudConnectionProvider;
         readonly int maxClients;
         readonly ICredentialsCache credentialsCache;
-        readonly string edgeDeviceId;
-        readonly string edgeModuleId;
 
         public event EventHandler<IIdentity> CloudConnectionLost;
         public event EventHandler<IIdentity> CloudConnectionEstablished;
@@ -37,16 +35,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public ConnectionManager(
             ICloudConnectionProvider cloudConnectionProvider,
             ICredentialsCache credentialsCache,
-            string edgeDeviceId,
-            string edgeModuleId,
             int maxClients = DefaultMaxClients)
         {
             this.cloudConnectionProvider = Preconditions.CheckNotNull(cloudConnectionProvider, nameof(cloudConnectionProvider));
             this.maxClients = Preconditions.CheckRange(maxClients, 1, nameof(maxClients));
             this.credentialsCache = Preconditions.CheckNotNull(credentialsCache, nameof(credentialsCache));
-            this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
-            this.edgeModuleId = Preconditions.CheckNonWhiteSpace(edgeModuleId, nameof(edgeModuleId));
-            Util.Metrics.RegisterGaugeCallback(() => Metrics.SetConnectedClientCountGauge(this.GetConnectedClients().Count()));
+            Util.Metrics.RegisterGaugeCallback(() => Metrics.SetConnectedClientCountGauge(this));
         }
 
         public IEnumerable<IIdentity> GetConnectedClients() =>
@@ -114,7 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             Events.GetCloudConnection(device.Identity, cloudConnectionTry);
             Try<ICloudProxy> cloudProxyTry = GetCloudProxyFromCloudConnection(cloudConnectionTry, device.Identity);
-            return Option.Maybe(cloudProxyTry.Value);
+            return cloudProxyTry.Ok();
         }
 
         public void AddSubscription(string id, DeviceSubscription deviceSubscription)
@@ -389,9 +383,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 MeasurementUnit = Unit.Events
             };
 
-            public static void SetConnectedClientCountGauge(long amount)
+            public static void SetConnectedClientCountGauge(ConnectionManager connectionManager)
             {
-                Edge.Util.Metrics.SetGauge(ConnectedClientGaugeOptions, amount);
+                // Subtract EdgeHub from the list of connected clients
+                int connectedClients = connectionManager.GetConnectedClients().Count() - 1;
+                Util.Metrics.SetGauge(ConnectedClientGaugeOptions, connectedClients);
             }
         };
 
