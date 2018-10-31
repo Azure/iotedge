@@ -7,7 +7,7 @@ use edgelet_core::*;
 use failure::Fail;
 use futures::future::{self, FutureResult};
 use futures::prelude::*;
-use futures::stream::IterResult;
+use futures::stream;
 use futures::IntoFuture;
 use hyper::Body;
 
@@ -158,9 +158,8 @@ impl<E: Clone + Fail> ModuleRuntime for TestRuntime<E> {
     type CreateFuture = FutureResult<(), Self::Error>;
     type InitFuture = FutureResult<(), Self::Error>;
     type ListFuture = FutureResult<Vec<Self::Module>, Self::Error>;
-    #[cfg_attr(feature = "cargo-clippy", allow(type_complexity))]
     type ListWithDetailsStream =
-        IterResult<::std::vec::IntoIter<Result<(Self::Module, ModuleRuntimeState), Self::Error>>>;
+        Box<Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
     type LogsFuture = FutureResult<Self::Logs, Self::Error>;
     type RemoveFuture = FutureResult<(), Self::Error>;
     type RestartFuture = FutureResult<(), Self::Error>;
@@ -229,7 +228,13 @@ impl<E: Clone + Fail> ModuleRuntime for TestRuntime<E> {
     }
 
     fn list_with_details(&self) -> Self::ListWithDetailsStream {
-        unimplemented!()
+        match self.module {
+            Ok(ref m) => {
+                let m = m.clone();
+                Box::new(m.runtime_state().map(|rs| (m, rs)).into_stream())
+            }
+            Err(ref e) => Box::new(stream::once(Err(e.clone()))),
+        }
     }
 
     fn logs(&self, _id: &str, _options: &LogOptions) -> Self::LogsFuture {

@@ -91,7 +91,7 @@ mod tests {
     use error::{Error, ErrorKind};
     use failure::Context;
     use futures::future::FutureResult;
-    use futures::stream::{Empty, Once};
+    use futures::stream::Empty;
     use futures::{future, stream};
     use module::{
         LogOptions, Module, ModuleRegistry, ModuleRuntimeState, ModuleSpec,
@@ -362,7 +362,8 @@ mod tests {
         type CreateFuture = FutureResult<(), Self::Error>;
         type InitFuture = FutureResult<(), Self::Error>;
         type ListFuture = FutureResult<Vec<Self::Module>, Self::Error>;
-        type ListWithDetailsStream = Once<(Self::Module, ModuleRuntimeState), Self::Error>;
+        type ListWithDetailsStream =
+            Box<Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
         type LogsFuture = FutureResult<Self::Logs, Self::Error>;
         type RemoveFuture = FutureResult<(), Self::Error>;
         type RestartFuture = FutureResult<(), Self::Error>;
@@ -407,7 +408,15 @@ mod tests {
         }
 
         fn list_with_details(&self) -> Self::ListWithDetailsStream {
-            notimpl_error_stream!()
+            match self.behavior {
+                TestModuleListBehavior::Default => Box::new(stream::futures_unordered(
+                    self.modules
+                        .clone()
+                        .into_iter()
+                        .map(|m| m.runtime_state().map(|rs| (m, rs))),
+                )),
+                TestModuleListBehavior::FailList => Box::new(notimpl_error_stream!()),
+            }
         }
 
         fn logs(&self, _id: &str, _options: &LogOptions) -> Self::LogsFuture {
