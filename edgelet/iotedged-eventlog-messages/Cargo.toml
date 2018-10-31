@@ -1,0 +1,12 @@
+[package]
+name = "iotedged-eventlog-messages"
+version = "0.1.0"
+authors = ["Azure IoT Edge Devs"]
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[target.'cfg(windows)'.build-dependencies]
+version-compare = "0.0.6"
+winreg = "0.5.1"
