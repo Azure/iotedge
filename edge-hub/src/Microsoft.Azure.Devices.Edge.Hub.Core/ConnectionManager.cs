@@ -292,6 +292,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             // so using traditional locking mechanism for those.
             readonly object deviceProxyLock = new object();
             readonly AsyncLock cloudConnectionLock = new AsyncLock();
+            Option<Task<Try<ICloudConnection>>> cloudConnectionCreateTask = Option.None<Task<Try<ICloudConnection>>>();
 
             public ConnectedDevice(IIdentity identity)
                 : this(identity, Option.None<ICloudConnection>(), Option.None<DeviceConnection>())
@@ -341,8 +342,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 }
             }
 
-            Option<Task<Try<ICloudConnection>>> cloudConnectionCreateTask = Option.None<Task<Try<ICloudConnection>>>();
-
             public async Task<Try<ICloudConnection>> GetOrCreateCloudConnection(
                 Func<ConnectedDevice, Task<Try<ICloudConnection>>> cloudConnectionCreator)
             {
@@ -368,14 +367,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                                 {
                                     using (await this.cloudConnectionLock.LockAsync())
                                     {
-                                        Task<Try<ICloudConnection>> createTask = CloudConnectionCreator();
-                                        this.cloudConnectionCreateTask = Option.Some(createTask);
-                                        return await createTask;
+
+                                        return await this.CloudConnection.Filter(cp => cp.IsActive)
+                                            .Map(c => Task.FromResult(Try.Success(c)))
+                                            .GetOrElse(async () =>
+                                            {
+                                                return await this.cloudConnectionCreateTask.Filter(c => c.IsCompleted)
+                                                    .GetOrElse(
+                                                        async () =>
+                                                        {
+                                                            Task<Try<ICloudConnection>> createTask = CloudConnectionCreator();
+                                                            this.cloudConnectionCreateTask = Option.Some(createTask);
+                                                            Try<ICloudConnection> cloudConnectionResult = await createTask;
+                                                            this.cloudConnectionCreateTask = Option.None<Task<Try<ICloudConnection>>>();
+                                                            return cloudConnectionResult;
+                                                        });
+                                            });
                                     }
-                                });                        
+                                });
                     });
             }
-        }    
+        }
 
         class DeviceConnection
         {
