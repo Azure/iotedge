@@ -26,8 +26,8 @@ param (
     [Switch]$Hub,
     [Switch]$SimulatedTemperatureSensor,
     [Switch]$TemperatureFilter,
-	[Switch]$DirectMethodSender,
-	[Switch]$DirectMethodReceiver,
+    [Switch]$DirectMethodSender,
+    [Switch]$DirectMethodReceiver,
 
     [Switch]$Push,
     [Switch]$Clean
