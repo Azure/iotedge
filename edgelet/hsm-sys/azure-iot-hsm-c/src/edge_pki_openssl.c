@@ -872,6 +872,64 @@ static int set_key_usage
     return result;
 }
 
+static int set_key_identifier_extension
+(
+    X509 *x509_cert,
+    X509 *issuer_cert,
+    int nid,
+    const char *nid_diagnostic,
+    char *value
+)
+{
+    int result;
+    X509V3_CTX ctx;
+    X509V3_set_ctx(&ctx, issuer_cert, x509_cert, NULL, NULL, 0);
+    X509_EXTENSION* ex = X509V3_EXT_conf_nid(NULL, &ctx, nid, value);
+
+    if (X509_add_ext(x509_cert, ex, -1) == 0)
+    {
+        LOG_ERROR("Could not add V3 extension by NID %#x, %s. Value %s", nid, nid_diagnostic, value);
+        result = __FAILURE__;
+    }
+    else
+    {
+        result = 0;
+    }
+
+    return result;
+}
+
+static int cert_set_key_id_extensions
+(
+    X509 *x509_cert,
+    X509 *issuer_cert
+)
+{
+    int result;
+
+    if (set_key_identifier_extension(x509_cert, NULL, NID_subject_key_identifier,
+                                     "NID_subject_key_identifier", "hash") != 0)
+    {
+        result = __FAILURE__;
+    }
+    else
+    {
+        char *auth_value = "issuer:always,keyid:always";
+        issuer_cert = (issuer_cert != NULL) ? issuer_cert : x509_cert;
+        if (set_key_identifier_extension(x509_cert, issuer_cert, NID_authority_key_identifier,
+                                         "NID_authority_key_identifier", auth_value) != 0)
+        {
+            result = __FAILURE__;
+        }
+        else
+        {
+            result = 0;
+        }
+    }
+
+    return result;
+}
+
 static int set_san
 (
     X509 *x509_cert,
@@ -1147,6 +1205,11 @@ static int generate_evp_certificate
                                                     cert_props_handle) != 0)
         {
             LOG_ERROR("Failure setting certificate subject fields");
+            result = __FAILURE__;
+        }
+        else if (cert_set_key_id_extensions(x509_cert, issuer_certificate) != 0)
+        {
+            LOG_ERROR("Failure setting certificate subject auth key id extensions");
             result = __FAILURE__;
         }
         else
