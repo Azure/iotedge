@@ -395,7 +395,7 @@ impl ModuleRuntime for DockerModuleRuntime {
     }
 
     fn list_with_details(&self) -> Self::ListWithDetailsStream {
-        Box::new(ListWithDetailsStream::WaitingForModulesList(self.list()))
+        list_with_details(self)
     }
 
     fn logs(&self, id: &str, options: &LogOptions) -> Self::LogsFuture {
@@ -478,47 +478,37 @@ impl AsRef<[u8]> for Chunk {
     }
 }
 
-enum ListWithDetailsStream {
-    WaitingForModulesList(
-        Box<Future<Item = Vec<DockerModule<UrlConnector>>, Error = Error> + Send>,
-    ),
-    HaveModulesList(
-        Box<Stream<Item = (DockerModule<UrlConnector>, ModuleRuntimeState), Error = Error> + Send>,
-    ),
-}
-
-impl Stream for ListWithDetailsStream {
-    type Item = (DockerModule<UrlConnector>, ModuleRuntimeState);
-    type Error = Error;
-
-    fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
-        loop {
-            let next_self = match self {
-                ListWithDetailsStream::WaitingForModulesList(f) => match f.poll() {
-                    Ok(Async::Ready(list)) => {
-                        ListWithDetailsStream::HaveModulesList(Box::new(stream::futures_unordered(
-                            list.into_iter()
-                                .map(|module| module.runtime_state().map(|state| (module, state))),
-                        )))
-                    }
-                    Ok(Async::NotReady) => return Ok(Async::NotReady),
-                    Err(err) => return Err(err),
+/// Invokes `ModuleRuntime::list`, then `Module::runtime_state` on each Module.
+/// Modules whose `runtime_state` returns `NotFound` are filtered out from the result,
+/// instead of letting the whole `list_with_details` call fail.
+fn list_with_details<MR, M>(
+    runtime: &MR,
+) -> Box<Stream<Item = (M, ModuleRuntimeState), Error = Error> + Send>
+where
+    MR: ModuleRuntime<Error = Error, Config = <M as Module>::Config, Module = M>,
+    <MR as ModuleRuntime>::ListFuture: 'static,
+    M: Module<Error = Error> + Send + 'static,
+    <M as Module>::Config: Send,
+{
+    Box::new(
+        runtime
+            .list()
+            .into_stream()
+            .map(|list| {
+                stream::futures_unordered(
+                    list.into_iter()
+                        .map(|module| module.runtime_state().map(|state| (module, state))),
+                )
+            }).flatten()
+            .then(Ok::<_, Error>) // Ok(_) -> Ok(Ok(_)), Err(_) -> Ok(Err(_)), ! -> Err(_)
+            .filter_map(|value| match value {
+                Ok(value) => Some(Ok(value)),
+                Err(err) => match err.kind() {
+                    ErrorKind::NotFound(_) => None,
+                    _ => Some(Err(err)),
                 },
-
-                ListWithDetailsStream::HaveModulesList(list) => match list.poll() {
-                    Ok(next) => return Ok(next),
-
-                    Err(err) => match err.kind() {
-                        ErrorKind::NotFound(_) => continue,
-
-                        _ => return Err(err),
-                    },
-                },
-            };
-
-            *self = next_self;
-        }
-    }
+            }).then(Result::unwrap), // Ok(Ok(_)) -> Ok(_), Ok(Err(_)) -> Err(_), Err(_) -> !
+    )
 }
 
 #[cfg(test)]
@@ -526,12 +516,15 @@ mod tests {
     use super::*;
     use std::mem;
 
+    use futures::future::FutureResult;
+    use futures::stream::Empty;
     #[cfg(unix)]
     use tempfile::NamedTempFile;
     use tokio;
     use url::Url;
 
     use docker::models::ContainerCreateBody;
+    use edgelet_core::pid::Pid;
     use edgelet_core::ModuleRegistry;
 
     use error::{Error, ErrorKind};
@@ -805,5 +798,182 @@ mod tests {
             .unwrap()
             .block_on(task)
             .unwrap();
+    }
+
+    #[test]
+    fn list_with_details_filters_out_deleted_containers() {
+        let runtime = TestModuleList {
+            modules: vec![
+                TestModule {
+                    name: "a".to_string(),
+                    runtime_state_behavior: TestModuleRuntimeStateBehavior::Default,
+                },
+                TestModule {
+                    name: "b".to_string(),
+                    runtime_state_behavior: TestModuleRuntimeStateBehavior::NotFound,
+                },
+                TestModule {
+                    name: "c".to_string(),
+                    runtime_state_behavior: TestModuleRuntimeStateBehavior::NotFound,
+                },
+                TestModule {
+                    name: "d".to_string(),
+                    runtime_state_behavior: TestModuleRuntimeStateBehavior::Default,
+                },
+            ],
+        };
+
+        assert_eq!(
+            runtime.list_with_details().collect().wait().unwrap(),
+            vec![
+                (
+                    TestModule {
+                        name: "a".to_string(),
+                        runtime_state_behavior: TestModuleRuntimeStateBehavior::Default,
+                    },
+                    ModuleRuntimeState::default().with_pid(&Pid::Any)
+                ),
+                (
+                    TestModule {
+                        name: "d".to_string(),
+                        runtime_state_behavior: TestModuleRuntimeStateBehavior::Default,
+                    },
+                    ModuleRuntimeState::default().with_pid(&Pid::Any)
+                ),
+            ]
+        );
+    }
+
+    struct TestConfig;
+
+    #[derive(Clone, Copy, Debug, PartialEq)]
+    enum TestModuleRuntimeStateBehavior {
+        Default,
+        NotFound,
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    struct TestModule {
+        name: String,
+        runtime_state_behavior: TestModuleRuntimeStateBehavior,
+    }
+
+    impl Module for TestModule {
+        type Config = TestConfig;
+        type Error = Error;
+        type RuntimeStateFuture = FutureResult<ModuleRuntimeState, Self::Error>;
+
+        fn name(&self) -> &str {
+            &self.name
+        }
+
+        fn type_(&self) -> &str {
+            ""
+        }
+
+        fn config(&self) -> &Self::Config {
+            &TestConfig
+        }
+
+        fn runtime_state(&self) -> Self::RuntimeStateFuture {
+            match self.runtime_state_behavior {
+                TestModuleRuntimeStateBehavior::Default => {
+                    future::ok(ModuleRuntimeState::default().with_pid(&Pid::Any))
+                }
+                TestModuleRuntimeStateBehavior::NotFound => {
+                    future::err(ErrorKind::NotFound(String::new()).into())
+                }
+            }
+        }
+    }
+
+    #[derive(Clone)]
+    struct TestModuleList {
+        modules: Vec<TestModule>,
+    }
+
+    impl ModuleRegistry for TestModuleList {
+        type Config = TestConfig;
+        type Error = Error;
+        type PullFuture = FutureResult<(), Self::Error>;
+        type RemoveFuture = FutureResult<(), Self::Error>;
+
+        fn pull(&self, _config: &Self::Config) -> Self::PullFuture {
+            unimplemented!()
+        }
+
+        fn remove(&self, _name: &str) -> Self::RemoveFuture {
+            unimplemented!()
+        }
+    }
+
+    impl ModuleRuntime for TestModuleList {
+        type Error = Error;
+        type Config = TestConfig;
+        type Module = TestModule;
+        type ModuleRegistry = Self;
+        type Chunk = String;
+        type Logs = Empty<Self::Chunk, Self::Error>;
+
+        type CreateFuture = FutureResult<(), Self::Error>;
+        type InitFuture = FutureResult<(), Self::Error>;
+        type ListFuture = FutureResult<Vec<Self::Module>, Self::Error>;
+        type ListWithDetailsStream =
+            Box<Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
+        type LogsFuture = FutureResult<Self::Logs, Self::Error>;
+        type RemoveFuture = FutureResult<(), Self::Error>;
+        type RestartFuture = FutureResult<(), Self::Error>;
+        type StartFuture = FutureResult<(), Self::Error>;
+        type StopFuture = FutureResult<(), Self::Error>;
+        type SystemInfoFuture = FutureResult<CoreSystemInfo, Self::Error>;
+        type RemoveAllFuture = FutureResult<(), Self::Error>;
+
+        fn init(&self) -> Self::InitFuture {
+            unimplemented!()
+        }
+
+        fn create(&self, _module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
+            unimplemented!()
+        }
+
+        fn start(&self, _id: &str) -> Self::StartFuture {
+            unimplemented!()
+        }
+
+        fn stop(&self, _id: &str, _wait_before_kill: Option<Duration>) -> Self::StopFuture {
+            unimplemented!()
+        }
+
+        fn system_info(&self) -> Self::SystemInfoFuture {
+            unimplemented!()
+        }
+
+        fn restart(&self, _id: &str) -> Self::RestartFuture {
+            unimplemented!()
+        }
+
+        fn remove(&self, _id: &str) -> Self::RemoveFuture {
+            unimplemented!()
+        }
+
+        fn list(&self) -> Self::ListFuture {
+            future::ok(self.modules.clone())
+        }
+
+        fn list_with_details(&self) -> Self::ListWithDetailsStream {
+            list_with_details(self)
+        }
+
+        fn logs(&self, _id: &str, _options: &LogOptions) -> Self::LogsFuture {
+            unimplemented!()
+        }
+
+        fn registry(&self) -> &Self::ModuleRegistry {
+            self
+        }
+
+        fn remove_all(&self) -> Self::RemoveAllFuture {
+            unimplemented!()
+        }
     }
 }
