@@ -74,7 +74,7 @@ impl WorkloadConfig for WorkloadData {
         self.data.device_id()
     }
 
-    fn get_max_duration(&self, cert_type: CertificateType) -> i64 {
+    fn get_cert_max_duration(&self, cert_type: CertificateType) -> i64 {
         match cert_type {
             CertificateType::Client => self.data.id_cert_max(),
             CertificateType::Server => self.data.server_cert_max(),

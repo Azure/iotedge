@@ -112,4 +112,10 @@ mod tests {
         assert_eq!(map.get("k4"), Some(&"10=20"));
         assert_eq!(map.get("bling"), Some(&""));
     }
+
+    #[test]
+    fn validate_cert_uri_module() {
+        assert_eq!("URI: azureiot://hub_id/devices/did/module/mid", prepare_cert_uri_module("hub_id", "did", "mid"));
+    }
+
 }

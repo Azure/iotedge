@@ -1,24 +1,20 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use chrono::prelude::*;
 use failure::ResultExt;
 use futures::{future, Future, Stream};
 use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use http::{Request, Response, StatusCode};
 use hyper::{Body, Error as HyperError};
 use serde_json;
-use std::cmp;
+use super::{cert_to_response, compute_validity};
 
 use edgelet_core::{
-    Certificate, CertificateProperties, CertificateType, CreateCertificate, KeyBytes, PrivateKey,
-    WorkloadConfig,
+    Certificate, CertificateProperties, CertificateType, CreateCertificate, WorkloadConfig,
 };
 use edgelet_http::route::{Handler, Parameters};
-use workload::models::{
-    CertificateResponse, PrivateKey as PrivateKeyResponse, ServerCertificateRequest,
-};
+use workload::models::ServerCertificateRequest;
 
-use error::{Error, ErrorKind, Result};
+use error::{Error, ErrorKind};
 use IntoResponse;
 
 pub struct ServerCertHandler<T: CreateCertificate, W: WorkloadConfig> {
@@ -44,7 +40,7 @@ where
     ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
         let hsm = self.hsm.clone();
         let cfg = self.config.clone();
-        let max_duration = cfg.get_max_duration(CertificateType::Server);
+        let max_duration = cfg.get_cert_max_duration(CertificateType::Server);
         let response = params
             .name("name")
             .ok_or_else(|| Error::from(ErrorKind::BadParam))
@@ -99,35 +95,6 @@ where
     }
 }
 
-fn cert_to_response<T: Certificate>(cert: &T) -> Result<CertificateResponse> {
-    let cert_buffer = cert.pem()?;
-    let expiration = cert.get_valid_to()?;
-
-    let private_key = match cert.get_private_key()? {
-        Some(PrivateKey::Ref(ref_)) => PrivateKeyResponse::new("ref".to_string()).with_ref(ref_),
-        Some(PrivateKey::Key(KeyBytes::Pem(buffer))) => PrivateKeyResponse::new("key".to_string())
-            .with_bytes(String::from_utf8_lossy(buffer.as_ref()).to_string()),
-        None => Err(ErrorKind::BadPrivateKey)?,
-    };
-
-    Ok(CertificateResponse::new(
-        private_key,
-        String::from_utf8_lossy(cert_buffer.as_ref()).to_string(),
-        expiration.to_rfc3339(),
-    ))
-}
-
-fn compute_validity(expiration: &str, max_duration_sec: i64) -> Result<i64> {
-    DateTime::parse_from_rfc3339(expiration)
-        .map(|expiration| {
-            let secs = expiration
-                .with_timezone(&Utc)
-                .signed_duration_since(Utc::now())
-                .num_seconds();
-            cmp::min(secs, max_duration_sec)
-        }).map_err(Error::from)
-}
-
 #[cfg(test)]
 mod tests {
     use std::result::Result as StdResult;
@@ -136,10 +103,14 @@ mod tests {
     use chrono::offset::Utc;
     use chrono::Duration;
 
-    use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind};
+    use edgelet_core::{
+        CertificateProperties, CertificateType, CreateCertificate, KeyBytes, PrivateKey,
+        WorkloadConfig, Error as CoreError, ErrorKind as CoreErrorKind,
+    };
     use edgelet_test_utils::cert::TestCert;
-    use workload::models::ErrorResponse;
-
+    use workload::models::{
+        CertificateResponse, ServerCertificateRequest, ErrorResponse
+    };
     use super::*;
 
     const MAX_DURATION_SEC: u64 = 7200;
@@ -215,7 +186,7 @@ mod tests {
             self.data.device_id.as_str()
         }
 
-        fn get_max_duration(&self, _cert_type: CertificateType) -> i64 {
+        fn get_cert_max_duration(&self, _cert_type: CertificateType) -> i64 {
             self.data.duration
         }
     }
