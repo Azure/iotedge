@@ -2,10 +2,11 @@
 
 use std::collections::HashMap;
 
-use edgelet_core::{Module, ModuleRuntime, ModuleSpec as CoreModuleSpec, ModuleStatus};
+use edgelet_core::{
+    Module, ModuleRuntime, ModuleRuntimeState, ModuleSpec as CoreModuleSpec, ModuleStatus,
+};
 use edgelet_docker::{Error as DockerError, ErrorKind as DockerErrorKind};
 use failure::{Fail, ResultExt};
-use futures::Future;
 use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use http::{Response, StatusCode};
 use hyper::Body;
@@ -78,47 +79,34 @@ impl IntoResponse for DockerError {
     }
 }
 
-fn core_to_details<M>(module: M) -> Box<Future<Item = ModuleDetails, Error = Error> + Send>
+fn core_to_details<M>(module: &M, state: &ModuleRuntimeState) -> Result<ModuleDetails, Error>
 where
     M: 'static + Module + Send,
     M::Config: Serialize,
 {
-    let details = module
-        .runtime_state()
-        .then(move |result| {
-            result.context(ErrorKind::ModuleRuntime).and_then(|state| {
-                serde_json::to_value(module.config())
-                    .context(ErrorKind::Serde)
-                    .map(|settings| {
-                        let config = Config::new(settings).with_env(Vec::new());
-                        let mut runtime_status = RuntimeStatus::new(state.status().to_string());
-                        if let Some(description) = state.status_description() {
-                            runtime_status.set_description(description.to_string());
-                        }
-                        let mut status = Status::new(runtime_status);
-                        if let Some(started_at) = state.started_at() {
-                            status.set_start_time(started_at.to_rfc3339());
-                        }
-                        if let Some(code) = state.exit_code() {
-                            if let Some(finished_at) = state.finished_at() {
-                                status.set_exit_status(ExitStatus::new(
-                                    finished_at.to_rfc3339(),
-                                    code.to_string(),
-                                ));
-                            }
-                        }
+    let settings = serde_json::to_value(module.config()).context(ErrorKind::Serde)?;
+    let config = Config::new(settings).with_env(Vec::new());
+    let mut runtime_status = RuntimeStatus::new(state.status().to_string());
+    if let Some(description) = state.status_description() {
+        runtime_status.set_description(description.to_string());
+    }
+    let mut status = Status::new(runtime_status);
+    if let Some(started_at) = state.started_at() {
+        status.set_start_time(started_at.to_rfc3339());
+    }
+    if let Some(code) = state.exit_code() {
+        if let Some(finished_at) = state.finished_at() {
+            status.set_exit_status(ExitStatus::new(finished_at.to_rfc3339(), code.to_string()));
+        }
+    }
 
-                        ModuleDetails::new(
-                            "id".to_string(),
-                            module.name().to_string(),
-                            module.type_().to_string(),
-                            config,
-                            status,
-                        )
-                    })
-            })
-        }).map_err(From::from);
-    Box::new(details)
+    Ok(ModuleDetails::new(
+        "id".to_string(),
+        module.name().to_string(),
+        module.type_().to_string(),
+        config,
+        status,
+    ))
 }
 
 fn spec_to_core<M>(
