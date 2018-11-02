@@ -10,18 +10,14 @@ extern crate httparse;
 extern crate hyper;
 #[cfg(windows)]
 extern crate hyper_named_pipe;
-#[cfg(unix)]
 extern crate hyperlocal;
 #[cfg(windows)]
 extern crate rand;
-#[cfg(unix)]
-#[macro_use(defer)]
-extern crate scopeguard;
+extern crate tempdir;
 extern crate tokio;
 extern crate typed_headers;
 extern crate url;
 
-#[cfg(unix)]
 use std::io;
 #[cfg(windows)]
 use std::sync::mpsc::channel;
@@ -31,7 +27,6 @@ use std::thread;
 use edgelet_http::UrlConnector;
 #[cfg(windows)]
 use edgelet_test_utils::run_pipe_server;
-#[cfg(unix)]
 use edgelet_test_utils::run_uds_server;
 use edgelet_test_utils::{get_unused_tcp_port, run_tcp_server};
 use futures::future;
@@ -43,10 +38,10 @@ use hyper::{
 };
 #[cfg(windows)]
 use hyper_named_pipe::Uri as PipeUri;
-#[cfg(unix)]
 use hyperlocal::Uri as HyperlocalUri;
 #[cfg(windows)]
 use rand::Rng;
+use tempdir::TempDir;
 use typed_headers::mime;
 use typed_headers::{ContentLength, ContentType, HeaderMapExt};
 use url::Url;
@@ -85,23 +80,19 @@ fn tcp_get() {
     runtime.block_on(task).unwrap();
 }
 
-#[cfg(unix)]
 #[test]
 fn uds_get() {
-    let file_path = "/tmp/edgelet_test_uds_get.sock";
+    let dir = TempDir::new("uds").unwrap();
+    let file_path = dir.path().join("sock");
+    let file_path = file_path.to_str().unwrap();
 
-    // make sure file gets deleted when test is done
-    defer! {{
-        ::std::fs::remove_file(&file_path).unwrap_or(());
-    }}
-
-    let path_copy = file_path.to_string();
-    let server = run_uds_server(&path_copy, |req| {
+    let server = run_uds_server(&file_path, |req| {
         hello_handler(req).map_err(|err| io::Error::new(io::ErrorKind::Other, err))
     }).map_err(|err| eprintln!("{}", err));
 
-    let connector =
-        UrlConnector::new(&Url::parse(&format!("unix://{}", file_path)).unwrap()).unwrap();
+    let mut url = Url::from_file_path(file_path).unwrap();
+    let _ = url.set_scheme("unix").unwrap();
+    let connector = UrlConnector::new(&url).unwrap();
 
     let client = Client::builder().build::<_, Body>(connector);
     let task = client
@@ -221,23 +212,19 @@ fn tcp_post() {
     runtime.block_on(task).unwrap();
 }
 
-#[cfg(unix)]
 #[test]
 fn uds_post() {
-    let file_path = "/tmp/edgelet_test_uds_post.sock";
+    let dir = TempDir::new("uds").unwrap();
+    let file_path = dir.path().join("sock");
+    let file_path = file_path.to_str().unwrap();
 
-    // make sure file gets deleted when test is done
-    defer! {{
-        ::std::fs::remove_file(&file_path).unwrap_or(());
-    }}
-
-    let path_copy = file_path.to_string();
-    let server = run_uds_server(&path_copy, |req| {
+    let server = run_uds_server(&file_path, |req| {
         hello_handler(req).map_err(|err| io::Error::new(io::ErrorKind::Other, err))
     }).map_err(|err| eprintln!("{}", err));
 
-    let connector =
-        UrlConnector::new(&Url::parse(&format!("unix://{}", file_path)).unwrap()).unwrap();
+    let mut url = Url::from_file_path(file_path).unwrap();
+    let _ = url.set_scheme("unix").unwrap();
+    let connector = UrlConnector::new(&url).unwrap();
 
     let client = Client::builder().build::<_, Body>(connector);
 

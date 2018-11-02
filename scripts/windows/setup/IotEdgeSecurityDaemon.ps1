@@ -255,6 +255,21 @@ function Get-SecurityDaemon {
             Copy-Item "C:\ProgramData\iotedge\iotedged-windows\*" "C:\ProgramData\iotedge" -Force -Recurse
         }
 
+        foreach ($Name in "mgmt", "workload")
+        {
+            # We can't bind socket files directly in Windows, so create a folder
+            # and bind to that. The folder needs to give Modify rights to a
+            # well-known group that will exist in any container so that
+            # non-privileged modules can access it.
+            $Path = "C:\ProgramData\iotedge\$Name"
+            New-Item "$Path" -ItemType "Directory" -Force
+            $Rule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule(`
+                "NT AUTHORITY\Authenticated Users", 'Modify', 'ObjectInherit', 'InheritOnly', 'Allow')
+            $Acl = [System.IO.Directory]::GetAccessControl($Path)
+            $Acl.AddAccessRule($Rule)
+            [System.IO.Directory]::SetAccessControl($Path, $Acl)            
+        }
+
         if (Test-Path 'C:\ProgramData\iotedge\iotedged_eventlog_messages.dll') {
             # This release uses iotedged_eventlog_messages.dll as the eventlog message file
 

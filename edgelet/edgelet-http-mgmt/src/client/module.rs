@@ -2,13 +2,14 @@
 
 use std::fmt;
 use std::str::FromStr;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
 use edgelet_core::SystemInfo as CoreSystemInfo;
 use edgelet_core::*;
 use edgelet_docker::{self, DockerConfig};
-use edgelet_http::{UrlConnector, API_VERSION};
+use edgelet_http::{UrlConnector, UrlExt, API_VERSION};
 use futures::future::{self, FutureResult};
 use futures::prelude::*;
 use futures::stream;
@@ -29,9 +30,9 @@ impl ModuleClient {
     pub fn new(url: &Url) -> Result<ModuleClient, Error> {
         let client = Client::builder().build(UrlConnector::new(url)?);
 
-        let base_path = get_base_path(url);
+        let base_path = get_base_path(url)?;
         let mut configuration = Configuration::new(client);
-        configuration.base_path = base_path.to_string();
+        configuration.base_path = base_path.to_str().unwrap().to_string();
 
         let scheme = url.scheme().to_string();
         configuration.uri_composer = Box::new(move |base_path, path| {
@@ -45,10 +46,13 @@ impl ModuleClient {
     }
 }
 
-fn get_base_path(url: &Url) -> &str {
+fn get_base_path(url: &Url) -> Result<PathBuf, Error> {
     match url.scheme() {
-        "unix" => url.path(),
-        _ => url.as_str(),
+        "unix" => {
+            url.to_uds_file_path()
+                .map_err(Error::from)
+        }
+        _ => Ok(url.as_str().into()),
     }
 }
 

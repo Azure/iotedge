@@ -3,6 +3,7 @@
 use std::collections::HashMap;
 use std::convert::From;
 use std::ops::Deref;
+use std::path::PathBuf;
 use std::time::Duration;
 
 use base64;
@@ -22,7 +23,7 @@ use edgelet_core::{
     LogOptions, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
     SystemInfo as CoreSystemInfo,
 };
-use edgelet_http::UrlConnector;
+use edgelet_http::{UrlConnector, UrlExt};
 use edgelet_utils::log_failure;
 
 use error::{Error, ErrorKind, Result};
@@ -53,9 +54,9 @@ impl DockerModuleRuntime {
         let client = Client::builder().build(UrlConnector::new(docker_url)?);
 
         // extract base path - the bit that comes after the scheme
-        let base_path = get_base_path(docker_url);
+        let base_path = get_base_path(docker_url)?;
         let mut configuration = Configuration::new(client);
-        configuration.base_path = base_path.to_string();
+        configuration.base_path = base_path.to_str().unwrap().to_string();
 
         let scheme = docker_url.scheme().to_string();
         configuration.uri_composer = Box::new(move |base_path, path| {
@@ -96,10 +97,12 @@ impl DockerModuleRuntime {
     }
 }
 
-fn get_base_path(url: &Url) -> &str {
+fn get_base_path(url: &Url) -> Result<PathBuf> {
     match url.scheme() {
-        "unix" => url.path(),
-        _ => url.as_str(),
+        "unix" => url
+            .to_uds_file_path()
+            .map_err(Error::from),
+        _ => Ok(url.as_str().into()),
     }
 }
 

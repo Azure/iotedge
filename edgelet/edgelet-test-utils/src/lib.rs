@@ -15,12 +15,13 @@ extern crate futures;
 #[cfg(windows)]
 extern crate httparse;
 extern crate hyper;
-#[cfg(unix)]
 extern crate hyperlocal;
 #[cfg(windows)]
 extern crate mio;
 #[cfg(windows)]
 extern crate mio_named_pipes;
+#[cfg(windows)]
+extern crate mio_uds_windows;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -38,7 +39,6 @@ pub mod web;
 pub use json_connector::{JsonConnector, StaticStream};
 pub use web::run_tcp_server;
 
-#[cfg(unix)]
 pub use web::run_uds_server;
 
 #[cfg(windows)]

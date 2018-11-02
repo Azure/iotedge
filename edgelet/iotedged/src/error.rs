@@ -80,6 +80,8 @@ pub enum ErrorKind {
     #[cfg(target_os = "windows")]
     #[fail(display = "Windows service error")]
     WindowsService,
+    #[fail(display = "Invalid uri {}", _0)]
+    InvalidUri(String),
 }
 
 impl Error {

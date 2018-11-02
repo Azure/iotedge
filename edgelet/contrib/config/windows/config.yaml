@@ -102,12 +102,13 @@ hostname: "<ADD HOSTNAME HERE>"
 #
 # The following uri schemes are supported:
 #     http - connect over TCP
+#     unix - connect over Unix domain socket
 #
 ###############################################################################
 
 connect:
-  management_uri: "http://<GATEWAY_ADDRESS>:15580"
-  workload_uri: "http://<GATEWAY_ADDRESS>:15581"
+  management_uri: "unix:///C:/ProgramData/iotedge/mgmt/sock"
+  workload_uri: "unix:///C:/ProgramData/iotedge/workload/sock"
 
 ###############################################################################
 # Listen settings
@@ -120,12 +121,13 @@ connect:
 #
 # The following uri schemes are supported:
 #     http - listen over TCP
+#     unix - listen over Unix domain socket
 #
 ###############################################################################
 
 listen:
-  management_uri: "http://<GATEWAY_ADDRESS>:15580"
-  workload_uri: "http://<GATEWAY_ADDRESS>:15581"
+  management_uri: "unix:///C:/ProgramData/iotedge/mgmt/sock"
+  workload_uri: "unix:///C:/ProgramData/iotedge/workload/sock"
 
 ###############################################################################
 # Home Directory
