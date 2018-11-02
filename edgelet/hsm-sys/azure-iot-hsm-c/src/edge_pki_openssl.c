@@ -799,13 +799,20 @@ static int set_basic_constraints(X509 *x509_cert, CERTIFICATE_TYPE cert_type, in
     return result;
 }
 
-static int add_ext(X509 *x509_cert, int nid, const char *value, const char* nid_diagnostic)
+static int add_ext
+(
+    X509 *x509_cert,
+    X509V3_CTX *ctx,
+    int nid,
+    const char *value,
+    const char* nid_diagnostic
+)
 {
     int result;
     X509_EXTENSION *ex;
 
     // openssl API requires a non const value be passed in
-    if ((ex = X509V3_EXT_conf_nid_HELPER(NULL, NULL, nid, (char*)value)) == NULL)
+    if ((ex = X509V3_EXT_conf_nid_HELPER(NULL, ctx, nid, (char*)value)) == NULL)
     {
         LOG_ERROR("Could not obtain V3 extension by NID %#x, %s", nid, nid_diagnostic);
         result = __FAILURE__;
@@ -852,14 +859,14 @@ static int set_key_usage
         ext_usage = "serverAuth";
     }
 
-    if (add_ext(x509_cert, NID_key_usage, usage, "NID_key_usage") != 0)
+    if (add_ext(x509_cert, NULL, NID_key_usage, usage, "NID_key_usage") != 0)
     {
         result = __FAILURE__;
     }
     else
     {
         if ((ext_usage != NULL) &&
-            (add_ext(x509_cert, NID_ext_key_usage, ext_usage, "NID_ext_key_usage") != 0))
+            (add_ext(x509_cert, NULL, NID_ext_key_usage, ext_usage, "NID_ext_key_usage") != 0))
         {
             result = __FAILURE__;
         }
@@ -884,11 +891,9 @@ static int set_key_identifier_extension
     int result;
     X509V3_CTX ctx;
     X509V3_set_ctx(&ctx, issuer_cert, x509_cert, NULL, NULL, 0);
-    X509_EXTENSION* ex = X509V3_EXT_conf_nid(NULL, &ctx, nid, value);
 
-    if (X509_add_ext(x509_cert, ex, -1) == 0)
+    if (add_ext(x509_cert, &ctx, nid, value, nid_diagnostic) != 0)
     {
-        LOG_ERROR("Could not add V3 extension by NID %#x, %s. Value %s", nid, nid_diagnostic, value);
         result = __FAILURE__;
     }
     else
@@ -945,7 +950,7 @@ static int set_san
         for (idx = 0; idx < num_entries; idx++)
         {
             if ((sans[idx] != NULL) &&
-                (add_ext(x509_cert, NID_subject_alt_name, sans[idx], "NID_subject_alt_name") != 0))
+                (add_ext(x509_cert, NULL, NID_subject_alt_name, sans[idx], "NID_subject_alt_name") != 0))
             {
                 fail_flag = true;
                 break;

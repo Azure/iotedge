@@ -168,6 +168,8 @@ MOCKABLE_FUNCTION(, X509_EXTENSION*, mocked_X509V3_EXT_conf_nid, struct lhash_st
 MOCKABLE_FUNCTION(, int, X509_add_ext, X509*, x, X509_EXTENSION*, ex, int, loc);
 MOCKABLE_FUNCTION(, void, X509_EXTENSION_free, X509_EXTENSION*, ex);
 
+MOCKABLE_FUNCTION(, void, X509V3_set_ctx, X509V3_CTX*, ctx, X509*, issuer, X509*, subj, X509_REQ*, req, X509_CRL*, crl, int, flags);
+
 #undef ENABLE_MOCKS
 
 //#############################################################################
@@ -257,6 +259,7 @@ static TEST_MUTEX_HANDLE g_dllByDll;
 #define TEST_WRITE_PRIVATE_KEY_FD (int)0x2030
 #define TEST_WRITE_CERTIFICATE_FD (int)0x2031
 #define TEST_NID_EXTENSION (X509_EXTENSION*)0x2032
+#define TEST_EXT_CTXT (X509V3_CTX*)0x2033
 #define TEST_UTC_TIME_FROM_ASN1 1000
 #define VALID_ASN1_TIME_STRING_UTC_FORMAT 0x17
 #define VALID_ASN1_TIME_STRING_UTC_LEN    13
@@ -1087,6 +1090,24 @@ static const char * const* test_hook_get_san_entries(CERT_PROPS_HANDLE handle, s
     return TEST_SAN_ENTRIES;
 }
 
+static void test_hook_X509V3_set_ctx
+(
+    X509V3_CTX *ctx,
+    X509 *issuer,
+    X509 *subj,
+    X509_REQ *req,
+    X509_CRL *crl,
+    int flags
+)
+{
+    (void)ctx;
+    (void)issuer;
+    (void)subj;
+    (void)req;
+    (void)crl;
+    (void)flags;
+}
+
 //#############################################################################
 // Test helpers
 //#############################################################################
@@ -1629,6 +1650,47 @@ static void test_helper_cert_create_with_subject
     ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
+    // subject key identifier
+    STRICT_EXPECTED_CALL(X509V3_set_ctx(IGNORED_PTR_ARG, NULL, TEST_X509, NULL, NULL, 0));
+    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    i++;
+
+    STRICT_EXPECTED_CALL(mocked_X509V3_EXT_conf_nid(NULL, IGNORED_PTR_ARG, NID_subject_key_identifier, "hash"));
+    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    i++;
+
+    STRICT_EXPECTED_CALL(X509_add_ext(TEST_X509, TEST_NID_EXTENSION, -1));
+    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    i++;
+
+    STRICT_EXPECTED_CALL(X509_EXTENSION_free(TEST_NID_EXTENSION));
+    i++;
+
+    // auth key identifier
+    if (!is_self_signed)
+    {
+        STRICT_EXPECTED_CALL(X509V3_set_ctx(IGNORED_PTR_ARG, TEST_ISSUER_X509, TEST_X509, NULL, NULL, 0));
+        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        i++;
+    }
+    else
+    {
+        STRICT_EXPECTED_CALL(X509V3_set_ctx(IGNORED_PTR_ARG, TEST_X509, TEST_X509, NULL, NULL, 0));
+        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        i++;
+    }
+
+    STRICT_EXPECTED_CALL(mocked_X509V3_EXT_conf_nid(NULL, IGNORED_PTR_ARG, NID_authority_key_identifier, "issuer:always,keyid:always"));
+    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    i++;
+
+    STRICT_EXPECTED_CALL(X509_add_ext(TEST_X509, TEST_NID_EXTENSION, -1));
+    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    i++;
+
+    STRICT_EXPECTED_CALL(X509_EXTENSION_free(TEST_NID_EXTENSION));
+    i++;
+
     EXPECTED_CALL(EVP_sha256());
     ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
@@ -2123,6 +2185,8 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         REGISTER_GLOBAL_MOCK_HOOK(X509_EXTENSION_free, test_hook_X509_EXTENSION_free);
 
         REGISTER_GLOBAL_MOCK_HOOK(get_san_entries, test_hook_get_san_entries);
+
+        REGISTER_GLOBAL_MOCK_HOOK(X509V3_set_ctx, test_hook_X509V3_set_ctx);
     }
 
     TEST_SUITE_CLEANUP(TestClassCleanup)
