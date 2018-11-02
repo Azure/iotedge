@@ -18,6 +18,8 @@ extern "C" {
 
 /** @file */
 
+#define AZURE_IOT_HSM_VERSION "1.0.1"
+
 typedef void* HSM_CLIENT_HANDLE;
 
 /**
