@@ -57,7 +57,7 @@ impl WorkloadService {
             post   "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/decrypt" => Authorization::new(DecryptHandler::new(hsm.clone()), Policy::Caller, runtime.clone()),
             post   "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/encrypt" => Authorization::new(EncryptHandler::new(hsm.clone()), Policy::Caller, runtime.clone()),
             post   "/modules/(?P<name>[^/]+)/certificate/identity" => Authorization::new(IdentityCertHandler::new(hsm.clone(), config.clone()), Policy::Caller, runtime.clone()),
-            post   "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/certificate/server" => Authorization::new(ServerCertHandler::new(hsm.clone(), config.clone()), Policy::Caller, runtime.clone()),
+            post   "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/certificate/server" => Authorization::new(ServerCertHandler::new(hsm.clone(), config), Policy::Caller, runtime.clone()),
 
             get    "/trust-bundle" => Authorization::new(TrustBundleHandler::new(hsm), Policy::Anonymous, runtime.clone()),
         );
