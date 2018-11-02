@@ -20,7 +20,7 @@ pub struct EnvVar {
 }
 
 impl EnvVar {
-    pub fn new(key: String, value: String) -> EnvVar {
+    pub fn new(key: String, value: String) -> Self {
         EnvVar { key, value }
     }
 
@@ -28,7 +28,7 @@ impl EnvVar {
         self.key = key;
     }
 
-    pub fn with_key(mut self, key: String) -> EnvVar {
+    pub fn with_key(mut self, key: String) -> Self {
         self.key = key;
         self
     }
@@ -41,7 +41,7 @@ impl EnvVar {
         self.value = value;
     }
 
-    pub fn with_value(mut self, value: String) -> EnvVar {
+    pub fn with_value(mut self, value: String) -> Self {
         self.value = value;
         self
     }

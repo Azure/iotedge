@@ -28,7 +28,7 @@ pub struct InlineResponse2005 {
 }
 
 impl InlineResponse2005 {
-    pub fn new() -> InlineResponse2005 {
+    pub fn new() -> Self {
         InlineResponse2005 {
             containers_deleted: None,
             space_reclaimed: None,
@@ -39,16 +39,13 @@ impl InlineResponse2005 {
         self.containers_deleted = Some(containers_deleted);
     }
 
-    pub fn with_containers_deleted(
-        mut self,
-        containers_deleted: Vec<String>,
-    ) -> InlineResponse2005 {
+    pub fn with_containers_deleted(mut self, containers_deleted: Vec<String>) -> Self {
         self.containers_deleted = Some(containers_deleted);
         self
     }
 
-    pub fn containers_deleted(&self) -> Option<&Vec<String>> {
-        self.containers_deleted.as_ref()
+    pub fn containers_deleted(&self) -> Option<&[String]> {
+        self.containers_deleted.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_containers_deleted(&mut self) {
@@ -59,7 +56,7 @@ impl InlineResponse2005 {
         self.space_reclaimed = Some(space_reclaimed);
     }
 
-    pub fn with_space_reclaimed(mut self, space_reclaimed: i64) -> InlineResponse2005 {
+    pub fn with_space_reclaimed(mut self, space_reclaimed: i64) -> Self {
         self.space_reclaimed = Some(space_reclaimed);
         self
     }

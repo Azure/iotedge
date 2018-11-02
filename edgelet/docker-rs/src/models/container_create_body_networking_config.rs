@@ -25,7 +25,7 @@ pub struct ContainerCreateBodyNetworkingConfig {
 
 impl ContainerCreateBodyNetworkingConfig {
     /// This container's networking configuration.
-    pub fn new() -> ContainerCreateBodyNetworkingConfig {
+    pub fn new() -> Self {
         ContainerCreateBodyNetworkingConfig {
             endpoints_config: None,
         }
@@ -41,7 +41,7 @@ impl ContainerCreateBodyNetworkingConfig {
     pub fn with_endpoints_config(
         mut self,
         endpoints_config: ::std::collections::HashMap<String, ::models::EndpointSettings>,
-    ) -> ContainerCreateBodyNetworkingConfig {
+    ) -> Self {
         self.endpoints_config = Some(endpoints_config);
         self
     }

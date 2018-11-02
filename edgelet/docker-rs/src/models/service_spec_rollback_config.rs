@@ -46,7 +46,7 @@ pub struct ServiceSpecRollbackConfig {
 
 impl ServiceSpecRollbackConfig {
     /// Specification for the rollback strategy of the service.
-    pub fn new() -> ServiceSpecRollbackConfig {
+    pub fn new() -> Self {
         ServiceSpecRollbackConfig {
             parallelism: None,
             delay: None,
@@ -61,7 +61,7 @@ impl ServiceSpecRollbackConfig {
         self.parallelism = Some(parallelism);
     }
 
-    pub fn with_parallelism(mut self, parallelism: i64) -> ServiceSpecRollbackConfig {
+    pub fn with_parallelism(mut self, parallelism: i64) -> Self {
         self.parallelism = Some(parallelism);
         self
     }
@@ -78,7 +78,7 @@ impl ServiceSpecRollbackConfig {
         self.delay = Some(delay);
     }
 
-    pub fn with_delay(mut self, delay: i64) -> ServiceSpecRollbackConfig {
+    pub fn with_delay(mut self, delay: i64) -> Self {
         self.delay = Some(delay);
         self
     }
@@ -95,13 +95,13 @@ impl ServiceSpecRollbackConfig {
         self.failure_action = Some(failure_action);
     }
 
-    pub fn with_failure_action(mut self, failure_action: String) -> ServiceSpecRollbackConfig {
+    pub fn with_failure_action(mut self, failure_action: String) -> Self {
         self.failure_action = Some(failure_action);
         self
     }
 
-    pub fn failure_action(&self) -> Option<&String> {
-        self.failure_action.as_ref()
+    pub fn failure_action(&self) -> Option<&str> {
+        self.failure_action.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_failure_action(&mut self) {
@@ -112,7 +112,7 @@ impl ServiceSpecRollbackConfig {
         self.monitor = Some(monitor);
     }
 
-    pub fn with_monitor(mut self, monitor: i64) -> ServiceSpecRollbackConfig {
+    pub fn with_monitor(mut self, monitor: i64) -> Self {
         self.monitor = Some(monitor);
         self
     }
@@ -129,7 +129,7 @@ impl ServiceSpecRollbackConfig {
         self.max_failure_ratio = Some(max_failure_ratio);
     }
 
-    pub fn with_max_failure_ratio(mut self, max_failure_ratio: f32) -> ServiceSpecRollbackConfig {
+    pub fn with_max_failure_ratio(mut self, max_failure_ratio: f32) -> Self {
         self.max_failure_ratio = Some(max_failure_ratio);
         self
     }
@@ -146,13 +146,13 @@ impl ServiceSpecRollbackConfig {
         self.order = Some(order);
     }
 
-    pub fn with_order(mut self, order: String) -> ServiceSpecRollbackConfig {
+    pub fn with_order(mut self, order: String) -> Self {
         self.order = Some(order);
         self
     }
 
-    pub fn order(&self) -> Option<&String> {
-        self.order.as_ref()
+    pub fn order(&self) -> Option<&str> {
+        self.order.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_order(&mut self) {

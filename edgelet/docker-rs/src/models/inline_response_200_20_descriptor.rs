@@ -30,7 +30,7 @@ pub struct InlineResponse20020Descriptor {
 
 impl InlineResponse20020Descriptor {
     /// A descriptor struct containing digest, media type, and size
-    pub fn new() -> InlineResponse20020Descriptor {
+    pub fn new() -> Self {
         InlineResponse20020Descriptor {
             media_type: None,
             size: None,
@@ -43,13 +43,13 @@ impl InlineResponse20020Descriptor {
         self.media_type = Some(media_type);
     }
 
-    pub fn with_media_type(mut self, media_type: String) -> InlineResponse20020Descriptor {
+    pub fn with_media_type(mut self, media_type: String) -> Self {
         self.media_type = Some(media_type);
         self
     }
 
-    pub fn media_type(&self) -> Option<&String> {
-        self.media_type.as_ref()
+    pub fn media_type(&self) -> Option<&str> {
+        self.media_type.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_media_type(&mut self) {
@@ -60,7 +60,7 @@ impl InlineResponse20020Descriptor {
         self.size = Some(size);
     }
 
-    pub fn with_size(mut self, size: i64) -> InlineResponse20020Descriptor {
+    pub fn with_size(mut self, size: i64) -> Self {
         self.size = Some(size);
         self
     }
@@ -77,13 +77,13 @@ impl InlineResponse20020Descriptor {
         self.digest = Some(digest);
     }
 
-    pub fn with_digest(mut self, digest: String) -> InlineResponse20020Descriptor {
+    pub fn with_digest(mut self, digest: String) -> Self {
         self.digest = Some(digest);
         self
     }
 
-    pub fn digest(&self) -> Option<&String> {
-        self.digest.as_ref()
+    pub fn digest(&self) -> Option<&str> {
+        self.digest.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_digest(&mut self) {
@@ -94,13 +94,13 @@ impl InlineResponse20020Descriptor {
         self.ur_ls = Some(ur_ls);
     }
 
-    pub fn with_ur_ls(mut self, ur_ls: Vec<String>) -> InlineResponse20020Descriptor {
+    pub fn with_ur_ls(mut self, ur_ls: Vec<String>) -> Self {
         self.ur_ls = Some(ur_ls);
         self
     }
 
-    pub fn ur_ls(&self) -> Option<&Vec<String>> {
-        self.ur_ls.as_ref()
+    pub fn ur_ls(&self) -> Option<&[String]> {
+        self.ur_ls.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_ur_ls(&mut self) {

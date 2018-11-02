@@ -37,7 +37,7 @@ pub struct TlsInfo {
 
 impl TlsInfo {
     /// Information about the issuer of leaf TLS certificates and the trusted root CA certificate
-    pub fn new() -> TlsInfo {
+    pub fn new() -> Self {
         TlsInfo {
             trust_root: None,
             cert_issuer_subject: None,
@@ -49,13 +49,13 @@ impl TlsInfo {
         self.trust_root = Some(trust_root);
     }
 
-    pub fn with_trust_root(mut self, trust_root: String) -> TlsInfo {
+    pub fn with_trust_root(mut self, trust_root: String) -> Self {
         self.trust_root = Some(trust_root);
         self
     }
 
-    pub fn trust_root(&self) -> Option<&String> {
-        self.trust_root.as_ref()
+    pub fn trust_root(&self) -> Option<&str> {
+        self.trust_root.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_trust_root(&mut self) {
@@ -66,13 +66,13 @@ impl TlsInfo {
         self.cert_issuer_subject = Some(cert_issuer_subject);
     }
 
-    pub fn with_cert_issuer_subject(mut self, cert_issuer_subject: String) -> TlsInfo {
+    pub fn with_cert_issuer_subject(mut self, cert_issuer_subject: String) -> Self {
         self.cert_issuer_subject = Some(cert_issuer_subject);
         self
     }
 
-    pub fn cert_issuer_subject(&self) -> Option<&String> {
-        self.cert_issuer_subject.as_ref()
+    pub fn cert_issuer_subject(&self) -> Option<&str> {
+        self.cert_issuer_subject.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_cert_issuer_subject(&mut self) {
@@ -83,13 +83,13 @@ impl TlsInfo {
         self.cert_issuer_public_key = Some(cert_issuer_public_key);
     }
 
-    pub fn with_cert_issuer_public_key(mut self, cert_issuer_public_key: String) -> TlsInfo {
+    pub fn with_cert_issuer_public_key(mut self, cert_issuer_public_key: String) -> Self {
         self.cert_issuer_public_key = Some(cert_issuer_public_key);
         self
     }
 
-    pub fn cert_issuer_public_key(&self) -> Option<&String> {
-        self.cert_issuer_public_key.as_ref()
+    pub fn cert_issuer_public_key(&self) -> Option<&str> {
+        self.cert_issuer_public_key.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_cert_issuer_public_key(&mut self) {

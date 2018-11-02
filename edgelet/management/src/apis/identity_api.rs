@@ -9,7 +9,6 @@
  */
 
 use std::borrow::Borrow;
-use std::borrow::Cow;
 use std::sync::Arc;
 
 use futures;
@@ -25,7 +24,7 @@ pub struct IdentityApiClient<C: hyper::client::connect::Connect> {
 }
 
 impl<C: hyper::client::connect::Connect> IdentityApiClient<C> {
-    pub fn new(configuration: Arc<configuration::Configuration<C>>) -> IdentityApiClient<C> {
+    pub fn new(configuration: Arc<configuration::Configuration<C>>) -> Self {
         IdentityApiClient { configuration }
     }
 }

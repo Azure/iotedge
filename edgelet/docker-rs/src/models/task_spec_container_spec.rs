@@ -97,7 +97,7 @@ pub struct TaskSpecContainerSpec {
 
 impl TaskSpecContainerSpec {
     /// Invalid when specified with `PluginSpec`.
-    pub fn new() -> TaskSpecContainerSpec {
+    pub fn new() -> Self {
         TaskSpecContainerSpec {
             image: None,
             labels: None,
@@ -127,13 +127,13 @@ impl TaskSpecContainerSpec {
         self.image = Some(image);
     }
 
-    pub fn with_image(mut self, image: String) -> TaskSpecContainerSpec {
+    pub fn with_image(mut self, image: String) -> Self {
         self.image = Some(image);
         self
     }
 
-    pub fn image(&self) -> Option<&String> {
-        self.image.as_ref()
+    pub fn image(&self) -> Option<&str> {
+        self.image.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_image(&mut self) {
@@ -144,10 +144,7 @@ impl TaskSpecContainerSpec {
         self.labels = Some(labels);
     }
 
-    pub fn with_labels(
-        mut self,
-        labels: ::std::collections::HashMap<String, String>,
-    ) -> TaskSpecContainerSpec {
+    pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
         self.labels = Some(labels);
         self
     }
@@ -164,13 +161,13 @@ impl TaskSpecContainerSpec {
         self.command = Some(command);
     }
 
-    pub fn with_command(mut self, command: Vec<String>) -> TaskSpecContainerSpec {
+    pub fn with_command(mut self, command: Vec<String>) -> Self {
         self.command = Some(command);
         self
     }
 
-    pub fn command(&self) -> Option<&Vec<String>> {
-        self.command.as_ref()
+    pub fn command(&self) -> Option<&[String]> {
+        self.command.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_command(&mut self) {
@@ -181,13 +178,13 @@ impl TaskSpecContainerSpec {
         self.args = Some(args);
     }
 
-    pub fn with_args(mut self, args: Vec<String>) -> TaskSpecContainerSpec {
+    pub fn with_args(mut self, args: Vec<String>) -> Self {
         self.args = Some(args);
         self
     }
 
-    pub fn args(&self) -> Option<&Vec<String>> {
-        self.args.as_ref()
+    pub fn args(&self) -> Option<&[String]> {
+        self.args.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_args(&mut self) {
@@ -198,13 +195,13 @@ impl TaskSpecContainerSpec {
         self.hostname = Some(hostname);
     }
 
-    pub fn with_hostname(mut self, hostname: String) -> TaskSpecContainerSpec {
+    pub fn with_hostname(mut self, hostname: String) -> Self {
         self.hostname = Some(hostname);
         self
     }
 
-    pub fn hostname(&self) -> Option<&String> {
-        self.hostname.as_ref()
+    pub fn hostname(&self) -> Option<&str> {
+        self.hostname.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_hostname(&mut self) {
@@ -215,13 +212,13 @@ impl TaskSpecContainerSpec {
         self.env = Some(env);
     }
 
-    pub fn with_env(mut self, env: Vec<String>) -> TaskSpecContainerSpec {
+    pub fn with_env(mut self, env: Vec<String>) -> Self {
         self.env = Some(env);
         self
     }
 
-    pub fn env(&self) -> Option<&Vec<String>> {
-        self.env.as_ref()
+    pub fn env(&self) -> Option<&[String]> {
+        self.env.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_env(&mut self) {
@@ -232,13 +229,13 @@ impl TaskSpecContainerSpec {
         self.dir = Some(dir);
     }
 
-    pub fn with_dir(mut self, dir: String) -> TaskSpecContainerSpec {
+    pub fn with_dir(mut self, dir: String) -> Self {
         self.dir = Some(dir);
         self
     }
 
-    pub fn dir(&self) -> Option<&String> {
-        self.dir.as_ref()
+    pub fn dir(&self) -> Option<&str> {
+        self.dir.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_dir(&mut self) {
@@ -249,13 +246,13 @@ impl TaskSpecContainerSpec {
         self.user = Some(user);
     }
 
-    pub fn with_user(mut self, user: String) -> TaskSpecContainerSpec {
+    pub fn with_user(mut self, user: String) -> Self {
         self.user = Some(user);
         self
     }
 
-    pub fn user(&self) -> Option<&String> {
-        self.user.as_ref()
+    pub fn user(&self) -> Option<&str> {
+        self.user.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_user(&mut self) {
@@ -266,13 +263,13 @@ impl TaskSpecContainerSpec {
         self.groups = Some(groups);
     }
 
-    pub fn with_groups(mut self, groups: Vec<String>) -> TaskSpecContainerSpec {
+    pub fn with_groups(mut self, groups: Vec<String>) -> Self {
         self.groups = Some(groups);
         self
     }
 
-    pub fn groups(&self) -> Option<&Vec<String>> {
-        self.groups.as_ref()
+    pub fn groups(&self) -> Option<&[String]> {
+        self.groups.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_groups(&mut self) {
@@ -286,7 +283,7 @@ impl TaskSpecContainerSpec {
     pub fn with_privileges(
         mut self,
         privileges: ::models::TaskSpecContainerSpecPrivileges,
-    ) -> TaskSpecContainerSpec {
+    ) -> Self {
         self.privileges = Some(privileges);
         self
     }
@@ -303,7 +300,7 @@ impl TaskSpecContainerSpec {
         self.TTY = Some(TTY);
     }
 
-    pub fn with_TTY(mut self, TTY: bool) -> TaskSpecContainerSpec {
+    pub fn with_TTY(mut self, TTY: bool) -> Self {
         self.TTY = Some(TTY);
         self
     }
@@ -320,7 +317,7 @@ impl TaskSpecContainerSpec {
         self.open_stdin = Some(open_stdin);
     }
 
-    pub fn with_open_stdin(mut self, open_stdin: bool) -> TaskSpecContainerSpec {
+    pub fn with_open_stdin(mut self, open_stdin: bool) -> Self {
         self.open_stdin = Some(open_stdin);
         self
     }
@@ -337,7 +334,7 @@ impl TaskSpecContainerSpec {
         self.read_only = Some(read_only);
     }
 
-    pub fn with_read_only(mut self, read_only: bool) -> TaskSpecContainerSpec {
+    pub fn with_read_only(mut self, read_only: bool) -> Self {
         self.read_only = Some(read_only);
         self
     }
@@ -354,13 +351,13 @@ impl TaskSpecContainerSpec {
         self.mounts = Some(mounts);
     }
 
-    pub fn with_mounts(mut self, mounts: Vec<::models::Mount>) -> TaskSpecContainerSpec {
+    pub fn with_mounts(mut self, mounts: Vec<::models::Mount>) -> Self {
         self.mounts = Some(mounts);
         self
     }
 
-    pub fn mounts(&self) -> Option<&Vec<::models::Mount>> {
-        self.mounts.as_ref()
+    pub fn mounts(&self) -> Option<&[::models::Mount]> {
+        self.mounts.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_mounts(&mut self) {
@@ -371,13 +368,13 @@ impl TaskSpecContainerSpec {
         self.stop_signal = Some(stop_signal);
     }
 
-    pub fn with_stop_signal(mut self, stop_signal: String) -> TaskSpecContainerSpec {
+    pub fn with_stop_signal(mut self, stop_signal: String) -> Self {
         self.stop_signal = Some(stop_signal);
         self
     }
 
-    pub fn stop_signal(&self) -> Option<&String> {
-        self.stop_signal.as_ref()
+    pub fn stop_signal(&self) -> Option<&str> {
+        self.stop_signal.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_stop_signal(&mut self) {
@@ -388,7 +385,7 @@ impl TaskSpecContainerSpec {
         self.stop_grace_period = Some(stop_grace_period);
     }
 
-    pub fn with_stop_grace_period(mut self, stop_grace_period: i64) -> TaskSpecContainerSpec {
+    pub fn with_stop_grace_period(mut self, stop_grace_period: i64) -> Self {
         self.stop_grace_period = Some(stop_grace_period);
         self
     }
@@ -405,10 +402,7 @@ impl TaskSpecContainerSpec {
         self.health_check = Some(health_check);
     }
 
-    pub fn with_health_check(
-        mut self,
-        health_check: ::models::HealthConfig,
-    ) -> TaskSpecContainerSpec {
+    pub fn with_health_check(mut self, health_check: ::models::HealthConfig) -> Self {
         self.health_check = Some(health_check);
         self
     }
@@ -425,13 +419,13 @@ impl TaskSpecContainerSpec {
         self.hosts = Some(hosts);
     }
 
-    pub fn with_hosts(mut self, hosts: Vec<String>) -> TaskSpecContainerSpec {
+    pub fn with_hosts(mut self, hosts: Vec<String>) -> Self {
         self.hosts = Some(hosts);
         self
     }
 
-    pub fn hosts(&self) -> Option<&Vec<String>> {
-        self.hosts.as_ref()
+    pub fn hosts(&self) -> Option<&[String]> {
+        self.hosts.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_hosts(&mut self) {
@@ -442,10 +436,7 @@ impl TaskSpecContainerSpec {
         self.dns_config = Some(dns_config);
     }
 
-    pub fn with_dns_config(
-        mut self,
-        dns_config: ::models::TaskSpecContainerSpecDnsConfig,
-    ) -> TaskSpecContainerSpec {
+    pub fn with_dns_config(mut self, dns_config: ::models::TaskSpecContainerSpecDnsConfig) -> Self {
         self.dns_config = Some(dns_config);
         self
     }
@@ -462,16 +453,13 @@ impl TaskSpecContainerSpec {
         self.secrets = Some(secrets);
     }
 
-    pub fn with_secrets(
-        mut self,
-        secrets: Vec<::models::TaskSpecContainerSpecSecrets>,
-    ) -> TaskSpecContainerSpec {
+    pub fn with_secrets(mut self, secrets: Vec<::models::TaskSpecContainerSpecSecrets>) -> Self {
         self.secrets = Some(secrets);
         self
     }
 
-    pub fn secrets(&self) -> Option<&Vec<::models::TaskSpecContainerSpecSecrets>> {
-        self.secrets.as_ref()
+    pub fn secrets(&self) -> Option<&[::models::TaskSpecContainerSpecSecrets]> {
+        self.secrets.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_secrets(&mut self) {
@@ -482,16 +470,13 @@ impl TaskSpecContainerSpec {
         self.configs = Some(configs);
     }
 
-    pub fn with_configs(
-        mut self,
-        configs: Vec<::models::TaskSpecContainerSpecConfigs>,
-    ) -> TaskSpecContainerSpec {
+    pub fn with_configs(mut self, configs: Vec<::models::TaskSpecContainerSpecConfigs>) -> Self {
         self.configs = Some(configs);
         self
     }
 
-    pub fn configs(&self) -> Option<&Vec<::models::TaskSpecContainerSpecConfigs>> {
-        self.configs.as_ref()
+    pub fn configs(&self) -> Option<&[::models::TaskSpecContainerSpecConfigs]> {
+        self.configs.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_configs(&mut self) {

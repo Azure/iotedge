@@ -46,7 +46,7 @@ pub struct Node {
 }
 
 impl Node {
-    pub fn new() -> Node {
+    pub fn new() -> Self {
         Node {
             ID: None,
             version: None,
@@ -63,13 +63,13 @@ impl Node {
         self.ID = Some(ID);
     }
 
-    pub fn with_ID(mut self, ID: String) -> Node {
+    pub fn with_ID(mut self, ID: String) -> Self {
         self.ID = Some(ID);
         self
     }
 
-    pub fn ID(&self) -> Option<&String> {
-        self.ID.as_ref()
+    pub fn ID(&self) -> Option<&str> {
+        self.ID.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_ID(&mut self) {
@@ -80,7 +80,7 @@ impl Node {
         self.version = Some(version);
     }
 
-    pub fn with_version(mut self, version: ::models::ObjectVersion) -> Node {
+    pub fn with_version(mut self, version: ::models::ObjectVersion) -> Self {
         self.version = Some(version);
         self
     }
@@ -97,13 +97,13 @@ impl Node {
         self.created_at = Some(created_at);
     }
 
-    pub fn with_created_at(mut self, created_at: String) -> Node {
+    pub fn with_created_at(mut self, created_at: String) -> Self {
         self.created_at = Some(created_at);
         self
     }
 
-    pub fn created_at(&self) -> Option<&String> {
-        self.created_at.as_ref()
+    pub fn created_at(&self) -> Option<&str> {
+        self.created_at.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_created_at(&mut self) {
@@ -114,13 +114,13 @@ impl Node {
         self.updated_at = Some(updated_at);
     }
 
-    pub fn with_updated_at(mut self, updated_at: String) -> Node {
+    pub fn with_updated_at(mut self, updated_at: String) -> Self {
         self.updated_at = Some(updated_at);
         self
     }
 
-    pub fn updated_at(&self) -> Option<&String> {
-        self.updated_at.as_ref()
+    pub fn updated_at(&self) -> Option<&str> {
+        self.updated_at.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_updated_at(&mut self) {
@@ -131,7 +131,7 @@ impl Node {
         self.spec = Some(spec);
     }
 
-    pub fn with_spec(mut self, spec: ::models::NodeSpec) -> Node {
+    pub fn with_spec(mut self, spec: ::models::NodeSpec) -> Self {
         self.spec = Some(spec);
         self
     }
@@ -148,7 +148,7 @@ impl Node {
         self.description = Some(description);
     }
 
-    pub fn with_description(mut self, description: ::models::NodeDescription) -> Node {
+    pub fn with_description(mut self, description: ::models::NodeDescription) -> Self {
         self.description = Some(description);
         self
     }
@@ -165,7 +165,7 @@ impl Node {
         self.status = Some(status);
     }
 
-    pub fn with_status(mut self, status: ::models::NodeStatus) -> Node {
+    pub fn with_status(mut self, status: ::models::NodeStatus) -> Self {
         self.status = Some(status);
         self
     }
@@ -182,7 +182,7 @@ impl Node {
         self.manager_status = Some(manager_status);
     }
 
-    pub fn with_manager_status(mut self, manager_status: ::models::ManagerStatus) -> Node {
+    pub fn with_manager_status(mut self, manager_status: ::models::ManagerStatus) -> Self {
         self.manager_status = Some(manager_status);
         self
     }

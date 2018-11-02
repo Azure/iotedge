@@ -24,7 +24,7 @@ pub struct ContainerConfigVolumes {
 
 impl ContainerConfigVolumes {
     /// An object mapping mount point paths inside the container to empty objects.
-    pub fn new() -> ContainerConfigVolumes {
+    pub fn new() -> Self {
         ContainerConfigVolumes {
             additional_properties: None,
         }
@@ -34,10 +34,7 @@ impl ContainerConfigVolumes {
         self.additional_properties = Some(additional_properties);
     }
 
-    pub fn with_additional_properties(
-        mut self,
-        additional_properties: Value,
-    ) -> ContainerConfigVolumes {
+    pub fn with_additional_properties(mut self, additional_properties: Value) -> Self {
         self.additional_properties = Some(additional_properties);
         self
     }

@@ -30,7 +30,7 @@ pub struct InlineResponse20012 {
 }
 
 impl InlineResponse20012 {
-    pub fn new() -> InlineResponse20012 {
+    pub fn new() -> Self {
         InlineResponse20012 {
             _type: None,
             action: None,
@@ -44,13 +44,13 @@ impl InlineResponse20012 {
         self._type = Some(_type);
     }
 
-    pub fn with__type(mut self, _type: String) -> InlineResponse20012 {
+    pub fn with__type(mut self, _type: String) -> Self {
         self._type = Some(_type);
         self
     }
 
-    pub fn _type(&self) -> Option<&String> {
-        self._type.as_ref()
+    pub fn _type(&self) -> Option<&str> {
+        self._type.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset__type(&mut self) {
@@ -61,13 +61,13 @@ impl InlineResponse20012 {
         self.action = Some(action);
     }
 
-    pub fn with_action(mut self, action: String) -> InlineResponse20012 {
+    pub fn with_action(mut self, action: String) -> Self {
         self.action = Some(action);
         self
     }
 
-    pub fn action(&self) -> Option<&String> {
-        self.action.as_ref()
+    pub fn action(&self) -> Option<&str> {
+        self.action.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_action(&mut self) {
@@ -78,7 +78,7 @@ impl InlineResponse20012 {
         self.actor = Some(actor);
     }
 
-    pub fn with_actor(mut self, actor: ::models::InlineResponse20012Actor) -> InlineResponse20012 {
+    pub fn with_actor(mut self, actor: ::models::InlineResponse20012Actor) -> Self {
         self.actor = Some(actor);
         self
     }
@@ -95,13 +95,13 @@ impl InlineResponse20012 {
         self.time = Some(time);
     }
 
-    pub fn with_time(mut self, time: i32) -> InlineResponse20012 {
+    pub fn with_time(mut self, time: i32) -> Self {
         self.time = Some(time);
         self
     }
 
-    pub fn time(&self) -> Option<&i32> {
-        self.time.as_ref()
+    pub fn time(&self) -> Option<i32> {
+        self.time
     }
 
     pub fn reset_time(&mut self) {
@@ -112,7 +112,7 @@ impl InlineResponse20012 {
         self.time_nano = Some(time_nano);
     }
 
-    pub fn with_time_nano(mut self, time_nano: i64) -> InlineResponse20012 {
+    pub fn with_time_nano(mut self, time_nano: i64) -> Self {
         self.time_nano = Some(time_nano);
         self
     }

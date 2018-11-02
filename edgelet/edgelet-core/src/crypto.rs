@@ -16,7 +16,7 @@ use sha2::Sha256;
 use certificate_properties::CertificateProperties;
 use error::{Error, ErrorKind};
 
-/// This is the issuer alias used when CertificateIssuer::DefaultCa is provided by the caller
+/// This is the issuer alias used when `CertificateIssuer::DefaultCa` is provided by the caller
 pub const IOTEDGED_CA_ALIAS: &str = "iotedged-workload-ca";
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -61,6 +61,7 @@ pub trait KeyStore {
     fn get(&self, identity: &KeyIdentity, key_name: &str) -> Result<Self::Key, Error>;
 }
 
+#[derive(Clone, Copy)]
 pub enum SignatureAlgorithm {
     HMACSHA256,
 }
@@ -175,7 +176,7 @@ pub struct Digest {
 }
 
 impl PartialEq for Digest {
-    fn eq(&self, other: &Digest) -> bool {
+    fn eq(&self, other: &Self) -> bool {
         ct_u8_slice_eq(self.bytes.as_ref(), other.bytes.as_ref())
     }
 }
@@ -187,7 +188,7 @@ impl Signature for Digest {
 }
 
 impl Digest {
-    pub fn new(bytes: Bytes) -> Digest {
+    pub fn new(bytes: Bytes) -> Self {
         Digest { bytes }
     }
 }
@@ -198,7 +199,7 @@ pub struct MemoryKey {
 }
 
 impl MemoryKey {
-    pub fn new<B: AsRef<[u8]>>(key: B) -> MemoryKey {
+    pub fn new<B: AsRef<[u8]>>(key: B) -> Self {
         MemoryKey {
             key: Bytes::from(key.as_ref()),
         }
@@ -253,13 +254,13 @@ struct MemoryKeyIdentity {
 }
 
 impl MemoryKeyIdentity {
-    pub fn new(identity: KeyIdentity, key_name: String) -> MemoryKeyIdentity {
+    pub fn new(identity: KeyIdentity, key_name: String) -> Self {
         MemoryKeyIdentity { identity, key_name }
     }
 }
 
 impl MemoryKeyStore {
-    pub fn new() -> MemoryKeyStore {
+    pub fn new() -> Self {
         MemoryKeyStore {
             keys: Arc::new(RwLock::new(HashMap::new())),
         }

@@ -1,6 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 #![deny(unused_extern_crates, warnings)]
+// Remove this when clippy stops warning about old-style `allow()`,
+// which can only be silenced by enabling a feature and thus requires nightly
+//
+// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
+#![allow(renamed_and_removed_lints)]
+#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
+#![cfg_attr(feature = "cargo-clippy", allow(stutter, use_self))]
 
 #[macro_use]
 extern crate failure;
@@ -39,17 +46,17 @@ pub fn parse_query(query: &str) -> HashMap<&str, &str> {
     query
         .split('&')
         .filter_map(|seg| {
-            if !seg.is_empty() {
+            if seg.is_empty() {
+                None
+            } else {
                 let mut tokens = seg.splitn(2, '=');
-                if let Some(key) = tokens.nth(0) {
-                    let val = tokens.nth(0).unwrap_or("");
+                if let Some(key) = tokens.next() {
+                    let val = tokens.next().unwrap_or("");
                     Some((key, val))
                 } else {
                     // if there's no key then we ignore this token
                     None
                 }
-            } else {
-                None
             }
         }).collect()
 }

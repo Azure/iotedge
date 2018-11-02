@@ -32,7 +32,7 @@ impl Drop for X509 {
 
 impl X509 {
     /// Create a new x509 implementation for the HSM API.
-    pub fn new() -> Result<X509, Error> {
+    pub fn new() -> Result<Self, Error> {
         let result = unsafe { hsm_client_x509_init() as isize };
         if result != 0 {
             Err(result)?
@@ -196,7 +196,7 @@ mod tests {
     }
 
     unsafe extern "C" fn fake_handle_create_good() -> HSM_CLIENT_HANDLE {
-        0_isize as *mut c_void
+        ptr::null_mut()
     }
     unsafe extern "C" fn fake_handle_create_bad() -> HSM_CLIENT_HANDLE {
         1_isize as *mut c_void

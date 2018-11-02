@@ -25,7 +25,7 @@ pub struct SwarmSpecDispatcher {
 
 impl SwarmSpecDispatcher {
     /// Dispatcher configuration.
-    pub fn new() -> SwarmSpecDispatcher {
+    pub fn new() -> Self {
         SwarmSpecDispatcher {
             heartbeat_period: None,
         }
@@ -35,7 +35,7 @@ impl SwarmSpecDispatcher {
         self.heartbeat_period = Some(heartbeat_period);
     }
 
-    pub fn with_heartbeat_period(mut self, heartbeat_period: i64) -> SwarmSpecDispatcher {
+    pub fn with_heartbeat_period(mut self, heartbeat_period: i64) -> Self {
         self.heartbeat_period = Some(heartbeat_period);
         self
     }

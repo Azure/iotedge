@@ -23,7 +23,7 @@ pub struct ServiceEndpointVirtualIPs {
 }
 
 impl ServiceEndpointVirtualIPs {
-    pub fn new() -> ServiceEndpointVirtualIPs {
+    pub fn new() -> Self {
         ServiceEndpointVirtualIPs {
             network_id: None,
             addr: None,
@@ -34,13 +34,13 @@ impl ServiceEndpointVirtualIPs {
         self.network_id = Some(network_id);
     }
 
-    pub fn with_network_id(mut self, network_id: String) -> ServiceEndpointVirtualIPs {
+    pub fn with_network_id(mut self, network_id: String) -> Self {
         self.network_id = Some(network_id);
         self
     }
 
-    pub fn network_id(&self) -> Option<&String> {
-        self.network_id.as_ref()
+    pub fn network_id(&self) -> Option<&str> {
+        self.network_id.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_network_id(&mut self) {
@@ -51,13 +51,13 @@ impl ServiceEndpointVirtualIPs {
         self.addr = Some(addr);
     }
 
-    pub fn with_addr(mut self, addr: String) -> ServiceEndpointVirtualIPs {
+    pub fn with_addr(mut self, addr: String) -> Self {
         self.addr = Some(addr);
         self
     }
 
-    pub fn addr(&self) -> Option<&String> {
-        self.addr.as_ref()
+    pub fn addr(&self) -> Option<&str> {
+        self.addr.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_addr(&mut self) {

@@ -22,7 +22,7 @@ pub struct IdResponse {
 
 impl IdResponse {
     /// Response to an API call that returns just an Id
-    pub fn new(id: String) -> IdResponse {
+    pub fn new(id: String) -> Self {
         IdResponse { id: id }
     }
 
@@ -30,7 +30,7 @@ impl IdResponse {
         self.id = id;
     }
 
-    pub fn with_id(mut self, id: String) -> IdResponse {
+    pub fn with_id(mut self, id: String) -> Self {
         self.id = id;
         self
     }

@@ -20,7 +20,7 @@ pub struct ProgressDetail {
 }
 
 impl ProgressDetail {
-    pub fn new() -> ProgressDetail {
+    pub fn new() -> Self {
         ProgressDetail {
             code: None,
             message: None,
@@ -31,13 +31,13 @@ impl ProgressDetail {
         self.code = Some(code);
     }
 
-    pub fn with_code(mut self, code: i32) -> ProgressDetail {
+    pub fn with_code(mut self, code: i32) -> Self {
         self.code = Some(code);
         self
     }
 
-    pub fn code(&self) -> Option<&i32> {
-        self.code.as_ref()
+    pub fn code(&self) -> Option<i32> {
+        self.code
     }
 
     pub fn reset_code(&mut self) {
@@ -48,13 +48,13 @@ impl ProgressDetail {
         self.message = Some(message);
     }
 
-    pub fn with_message(mut self, message: i32) -> ProgressDetail {
+    pub fn with_message(mut self, message: i32) -> Self {
         self.message = Some(message);
         self
     }
 
-    pub fn message(&self) -> Option<&i32> {
-        self.message.as_ref()
+    pub fn message(&self) -> Option<i32> {
+        self.message
     }
 
     pub fn reset_message(&mut self) {

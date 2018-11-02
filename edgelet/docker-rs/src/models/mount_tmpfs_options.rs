@@ -28,7 +28,7 @@ pub struct MountTmpfsOptions {
 
 impl MountTmpfsOptions {
     /// Optional configuration for the `tmpfs` type.
-    pub fn new() -> MountTmpfsOptions {
+    pub fn new() -> Self {
         MountTmpfsOptions {
             size_bytes: None,
             mode: None,
@@ -39,7 +39,7 @@ impl MountTmpfsOptions {
         self.size_bytes = Some(size_bytes);
     }
 
-    pub fn with_size_bytes(mut self, size_bytes: i64) -> MountTmpfsOptions {
+    pub fn with_size_bytes(mut self, size_bytes: i64) -> Self {
         self.size_bytes = Some(size_bytes);
         self
     }
@@ -56,13 +56,13 @@ impl MountTmpfsOptions {
         self.mode = Some(mode);
     }
 
-    pub fn with_mode(mut self, mode: i32) -> MountTmpfsOptions {
+    pub fn with_mode(mut self, mode: i32) -> Self {
         self.mode = Some(mode);
         self
     }
 
-    pub fn mode(&self) -> Option<&i32> {
-        self.mode.as_ref()
+    pub fn mode(&self) -> Option<i32> {
+        self.mode
     }
 
     pub fn reset_mode(&mut self) {

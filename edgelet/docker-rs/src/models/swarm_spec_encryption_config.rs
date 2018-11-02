@@ -25,7 +25,7 @@ pub struct SwarmSpecEncryptionConfig {
 
 impl SwarmSpecEncryptionConfig {
     /// Parameters related to encryption-at-rest.
-    pub fn new() -> SwarmSpecEncryptionConfig {
+    pub fn new() -> Self {
         SwarmSpecEncryptionConfig {
             auto_lock_managers: None,
         }
@@ -35,10 +35,7 @@ impl SwarmSpecEncryptionConfig {
         self.auto_lock_managers = Some(auto_lock_managers);
     }
 
-    pub fn with_auto_lock_managers(
-        mut self,
-        auto_lock_managers: bool,
-    ) -> SwarmSpecEncryptionConfig {
+    pub fn with_auto_lock_managers(mut self, auto_lock_managers: bool) -> Self {
         self.auto_lock_managers = Some(auto_lock_managers);
         self
     }

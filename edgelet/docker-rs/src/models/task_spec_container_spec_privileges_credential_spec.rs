@@ -25,7 +25,7 @@ pub struct TaskSpecContainerSpecPrivilegesCredentialSpec {
 
 impl TaskSpecContainerSpecPrivilegesCredentialSpec {
     /// CredentialSpec for managed service account (Windows only)
-    pub fn new() -> TaskSpecContainerSpecPrivilegesCredentialSpec {
+    pub fn new() -> Self {
         TaskSpecContainerSpecPrivilegesCredentialSpec {
             file: None,
             registry: None,
@@ -36,13 +36,13 @@ impl TaskSpecContainerSpecPrivilegesCredentialSpec {
         self.file = Some(file);
     }
 
-    pub fn with_file(mut self, file: String) -> TaskSpecContainerSpecPrivilegesCredentialSpec {
+    pub fn with_file(mut self, file: String) -> Self {
         self.file = Some(file);
         self
     }
 
-    pub fn file(&self) -> Option<&String> {
-        self.file.as_ref()
+    pub fn file(&self) -> Option<&str> {
+        self.file.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_file(&mut self) {
@@ -53,16 +53,13 @@ impl TaskSpecContainerSpecPrivilegesCredentialSpec {
         self.registry = Some(registry);
     }
 
-    pub fn with_registry(
-        mut self,
-        registry: String,
-    ) -> TaskSpecContainerSpecPrivilegesCredentialSpec {
+    pub fn with_registry(mut self, registry: String) -> Self {
         self.registry = Some(registry);
         self
     }
 
-    pub fn registry(&self) -> Option<&String> {
-        self.registry.as_ref()
+    pub fn registry(&self) -> Option<&str> {
+        self.registry.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_registry(&mut self) {

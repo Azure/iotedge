@@ -26,7 +26,7 @@ impl PluginConfigLinux {
         capabilities: Vec<String>,
         allow_all_devices: bool,
         devices: Vec<::models::PluginDevice>,
-    ) -> PluginConfigLinux {
+    ) -> Self {
         PluginConfigLinux {
             capabilities: capabilities,
             allow_all_devices: allow_all_devices,
@@ -38,12 +38,12 @@ impl PluginConfigLinux {
         self.capabilities = capabilities;
     }
 
-    pub fn with_capabilities(mut self, capabilities: Vec<String>) -> PluginConfigLinux {
+    pub fn with_capabilities(mut self, capabilities: Vec<String>) -> Self {
         self.capabilities = capabilities;
         self
     }
 
-    pub fn capabilities(&self) -> &Vec<String> {
+    pub fn capabilities(&self) -> &[String] {
         &self.capabilities
     }
 
@@ -51,7 +51,7 @@ impl PluginConfigLinux {
         self.allow_all_devices = allow_all_devices;
     }
 
-    pub fn with_allow_all_devices(mut self, allow_all_devices: bool) -> PluginConfigLinux {
+    pub fn with_allow_all_devices(mut self, allow_all_devices: bool) -> Self {
         self.allow_all_devices = allow_all_devices;
         self
     }
@@ -64,12 +64,12 @@ impl PluginConfigLinux {
         self.devices = devices;
     }
 
-    pub fn with_devices(mut self, devices: Vec<::models::PluginDevice>) -> PluginConfigLinux {
+    pub fn with_devices(mut self, devices: Vec<::models::PluginDevice>) -> Self {
         self.devices = devices;
         self
     }
 
-    pub fn devices(&self) -> &Vec<::models::PluginDevice> {
+    pub fn devices(&self) -> &[::models::PluginDevice] {
         &self.devices
     }
 }

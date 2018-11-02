@@ -9,10 +9,8 @@
  */
 
 use std::borrow::Borrow;
-use std::borrow::Cow;
 use std::sync::Arc;
 
-use futures;
 use futures::{Future, Stream};
 use hyper;
 use serde_json;
@@ -25,7 +23,7 @@ pub struct WorkloadApiClient<C: hyper::client::connect::Connect> {
 }
 
 impl<C: hyper::client::connect::Connect> WorkloadApiClient<C> {
-    pub fn new(configuration: Arc<configuration::Configuration<C>>) -> WorkloadApiClient<C> {
+    pub fn new(configuration: Arc<configuration::Configuration<C>>) -> Self {
         WorkloadApiClient { configuration }
     }
 }

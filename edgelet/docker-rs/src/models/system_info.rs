@@ -306,7 +306,7 @@ pub struct SystemInfo {
 }
 
 impl SystemInfo {
-    pub fn new() -> SystemInfo {
+    pub fn new() -> Self {
         SystemInfo {
             ID: None,
             containers: None,
@@ -372,13 +372,13 @@ impl SystemInfo {
         self.ID = Some(ID);
     }
 
-    pub fn with_ID(mut self, ID: String) -> SystemInfo {
+    pub fn with_ID(mut self, ID: String) -> Self {
         self.ID = Some(ID);
         self
     }
 
-    pub fn ID(&self) -> Option<&String> {
-        self.ID.as_ref()
+    pub fn ID(&self) -> Option<&str> {
+        self.ID.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_ID(&mut self) {
@@ -389,13 +389,13 @@ impl SystemInfo {
         self.containers = Some(containers);
     }
 
-    pub fn with_containers(mut self, containers: i32) -> SystemInfo {
+    pub fn with_containers(mut self, containers: i32) -> Self {
         self.containers = Some(containers);
         self
     }
 
-    pub fn containers(&self) -> Option<&i32> {
-        self.containers.as_ref()
+    pub fn containers(&self) -> Option<i32> {
+        self.containers
     }
 
     pub fn reset_containers(&mut self) {
@@ -406,13 +406,13 @@ impl SystemInfo {
         self.containers_running = Some(containers_running);
     }
 
-    pub fn with_containers_running(mut self, containers_running: i32) -> SystemInfo {
+    pub fn with_containers_running(mut self, containers_running: i32) -> Self {
         self.containers_running = Some(containers_running);
         self
     }
 
-    pub fn containers_running(&self) -> Option<&i32> {
-        self.containers_running.as_ref()
+    pub fn containers_running(&self) -> Option<i32> {
+        self.containers_running
     }
 
     pub fn reset_containers_running(&mut self) {
@@ -423,13 +423,13 @@ impl SystemInfo {
         self.containers_paused = Some(containers_paused);
     }
 
-    pub fn with_containers_paused(mut self, containers_paused: i32) -> SystemInfo {
+    pub fn with_containers_paused(mut self, containers_paused: i32) -> Self {
         self.containers_paused = Some(containers_paused);
         self
     }
 
-    pub fn containers_paused(&self) -> Option<&i32> {
-        self.containers_paused.as_ref()
+    pub fn containers_paused(&self) -> Option<i32> {
+        self.containers_paused
     }
 
     pub fn reset_containers_paused(&mut self) {
@@ -440,13 +440,13 @@ impl SystemInfo {
         self.containers_stopped = Some(containers_stopped);
     }
 
-    pub fn with_containers_stopped(mut self, containers_stopped: i32) -> SystemInfo {
+    pub fn with_containers_stopped(mut self, containers_stopped: i32) -> Self {
         self.containers_stopped = Some(containers_stopped);
         self
     }
 
-    pub fn containers_stopped(&self) -> Option<&i32> {
-        self.containers_stopped.as_ref()
+    pub fn containers_stopped(&self) -> Option<i32> {
+        self.containers_stopped
     }
 
     pub fn reset_containers_stopped(&mut self) {
@@ -457,13 +457,13 @@ impl SystemInfo {
         self.images = Some(images);
     }
 
-    pub fn with_images(mut self, images: i32) -> SystemInfo {
+    pub fn with_images(mut self, images: i32) -> Self {
         self.images = Some(images);
         self
     }
 
-    pub fn images(&self) -> Option<&i32> {
-        self.images.as_ref()
+    pub fn images(&self) -> Option<i32> {
+        self.images
     }
 
     pub fn reset_images(&mut self) {
@@ -474,13 +474,13 @@ impl SystemInfo {
         self.driver = Some(driver);
     }
 
-    pub fn with_driver(mut self, driver: String) -> SystemInfo {
+    pub fn with_driver(mut self, driver: String) -> Self {
         self.driver = Some(driver);
         self
     }
 
-    pub fn driver(&self) -> Option<&String> {
-        self.driver.as_ref()
+    pub fn driver(&self) -> Option<&str> {
+        self.driver.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_driver(&mut self) {
@@ -491,13 +491,13 @@ impl SystemInfo {
         self.driver_status = Some(driver_status);
     }
 
-    pub fn with_driver_status(mut self, driver_status: Vec<Vec<String>>) -> SystemInfo {
+    pub fn with_driver_status(mut self, driver_status: Vec<Vec<String>>) -> Self {
         self.driver_status = Some(driver_status);
         self
     }
 
-    pub fn driver_status(&self) -> Option<&Vec<Vec<String>>> {
-        self.driver_status.as_ref()
+    pub fn driver_status(&self) -> Option<&[Vec<String>]> {
+        self.driver_status.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_driver_status(&mut self) {
@@ -508,13 +508,13 @@ impl SystemInfo {
         self.docker_root_dir = Some(docker_root_dir);
     }
 
-    pub fn with_docker_root_dir(mut self, docker_root_dir: String) -> SystemInfo {
+    pub fn with_docker_root_dir(mut self, docker_root_dir: String) -> Self {
         self.docker_root_dir = Some(docker_root_dir);
         self
     }
 
-    pub fn docker_root_dir(&self) -> Option<&String> {
-        self.docker_root_dir.as_ref()
+    pub fn docker_root_dir(&self) -> Option<&str> {
+        self.docker_root_dir.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_docker_root_dir(&mut self) {
@@ -525,13 +525,13 @@ impl SystemInfo {
         self.system_status = Some(system_status);
     }
 
-    pub fn with_system_status(mut self, system_status: Vec<Vec<String>>) -> SystemInfo {
+    pub fn with_system_status(mut self, system_status: Vec<Vec<String>>) -> Self {
         self.system_status = Some(system_status);
         self
     }
 
-    pub fn system_status(&self) -> Option<&Vec<Vec<String>>> {
-        self.system_status.as_ref()
+    pub fn system_status(&self) -> Option<&[Vec<String>]> {
+        self.system_status.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_system_status(&mut self) {
@@ -542,7 +542,7 @@ impl SystemInfo {
         self.plugins = Some(plugins);
     }
 
-    pub fn with_plugins(mut self, plugins: ::models::PluginsInfo) -> SystemInfo {
+    pub fn with_plugins(mut self, plugins: ::models::PluginsInfo) -> Self {
         self.plugins = Some(plugins);
         self
     }
@@ -559,7 +559,7 @@ impl SystemInfo {
         self.memory_limit = Some(memory_limit);
     }
 
-    pub fn with_memory_limit(mut self, memory_limit: bool) -> SystemInfo {
+    pub fn with_memory_limit(mut self, memory_limit: bool) -> Self {
         self.memory_limit = Some(memory_limit);
         self
     }
@@ -576,7 +576,7 @@ impl SystemInfo {
         self.swap_limit = Some(swap_limit);
     }
 
-    pub fn with_swap_limit(mut self, swap_limit: bool) -> SystemInfo {
+    pub fn with_swap_limit(mut self, swap_limit: bool) -> Self {
         self.swap_limit = Some(swap_limit);
         self
     }
@@ -593,7 +593,7 @@ impl SystemInfo {
         self.kernel_memory = Some(kernel_memory);
     }
 
-    pub fn with_kernel_memory(mut self, kernel_memory: bool) -> SystemInfo {
+    pub fn with_kernel_memory(mut self, kernel_memory: bool) -> Self {
         self.kernel_memory = Some(kernel_memory);
         self
     }
@@ -610,7 +610,7 @@ impl SystemInfo {
         self.cpu_cfs_period = Some(cpu_cfs_period);
     }
 
-    pub fn with_cpu_cfs_period(mut self, cpu_cfs_period: bool) -> SystemInfo {
+    pub fn with_cpu_cfs_period(mut self, cpu_cfs_period: bool) -> Self {
         self.cpu_cfs_period = Some(cpu_cfs_period);
         self
     }
@@ -627,7 +627,7 @@ impl SystemInfo {
         self.cpu_cfs_quota = Some(cpu_cfs_quota);
     }
 
-    pub fn with_cpu_cfs_quota(mut self, cpu_cfs_quota: bool) -> SystemInfo {
+    pub fn with_cpu_cfs_quota(mut self, cpu_cfs_quota: bool) -> Self {
         self.cpu_cfs_quota = Some(cpu_cfs_quota);
         self
     }
@@ -644,7 +644,7 @@ impl SystemInfo {
         self.cpu_shares = Some(cpu_shares);
     }
 
-    pub fn with_cpu_shares(mut self, cpu_shares: bool) -> SystemInfo {
+    pub fn with_cpu_shares(mut self, cpu_shares: bool) -> Self {
         self.cpu_shares = Some(cpu_shares);
         self
     }
@@ -661,7 +661,7 @@ impl SystemInfo {
         self.cpu_set = Some(cpu_set);
     }
 
-    pub fn with_cpu_set(mut self, cpu_set: bool) -> SystemInfo {
+    pub fn with_cpu_set(mut self, cpu_set: bool) -> Self {
         self.cpu_set = Some(cpu_set);
         self
     }
@@ -678,7 +678,7 @@ impl SystemInfo {
         self.oom_kill_disable = Some(oom_kill_disable);
     }
 
-    pub fn with_oom_kill_disable(mut self, oom_kill_disable: bool) -> SystemInfo {
+    pub fn with_oom_kill_disable(mut self, oom_kill_disable: bool) -> Self {
         self.oom_kill_disable = Some(oom_kill_disable);
         self
     }
@@ -695,7 +695,7 @@ impl SystemInfo {
         self.i_pv4_forwarding = Some(i_pv4_forwarding);
     }
 
-    pub fn with_i_pv4_forwarding(mut self, i_pv4_forwarding: bool) -> SystemInfo {
+    pub fn with_i_pv4_forwarding(mut self, i_pv4_forwarding: bool) -> Self {
         self.i_pv4_forwarding = Some(i_pv4_forwarding);
         self
     }
@@ -712,7 +712,7 @@ impl SystemInfo {
         self.bridge_nf_iptables = Some(bridge_nf_iptables);
     }
 
-    pub fn with_bridge_nf_iptables(mut self, bridge_nf_iptables: bool) -> SystemInfo {
+    pub fn with_bridge_nf_iptables(mut self, bridge_nf_iptables: bool) -> Self {
         self.bridge_nf_iptables = Some(bridge_nf_iptables);
         self
     }
@@ -729,7 +729,7 @@ impl SystemInfo {
         self.bridge_nf_ip6tables = Some(bridge_nf_ip6tables);
     }
 
-    pub fn with_bridge_nf_ip6tables(mut self, bridge_nf_ip6tables: bool) -> SystemInfo {
+    pub fn with_bridge_nf_ip6tables(mut self, bridge_nf_ip6tables: bool) -> Self {
         self.bridge_nf_ip6tables = Some(bridge_nf_ip6tables);
         self
     }
@@ -746,7 +746,7 @@ impl SystemInfo {
         self.debug = Some(debug);
     }
 
-    pub fn with_debug(mut self, debug: bool) -> SystemInfo {
+    pub fn with_debug(mut self, debug: bool) -> Self {
         self.debug = Some(debug);
         self
     }
@@ -763,13 +763,13 @@ impl SystemInfo {
         self.n_fd = Some(n_fd);
     }
 
-    pub fn with_n_fd(mut self, n_fd: i32) -> SystemInfo {
+    pub fn with_n_fd(mut self, n_fd: i32) -> Self {
         self.n_fd = Some(n_fd);
         self
     }
 
-    pub fn n_fd(&self) -> Option<&i32> {
-        self.n_fd.as_ref()
+    pub fn n_fd(&self) -> Option<i32> {
+        self.n_fd
     }
 
     pub fn reset_n_fd(&mut self) {
@@ -780,13 +780,13 @@ impl SystemInfo {
         self.n_goroutines = Some(n_goroutines);
     }
 
-    pub fn with_n_goroutines(mut self, n_goroutines: i32) -> SystemInfo {
+    pub fn with_n_goroutines(mut self, n_goroutines: i32) -> Self {
         self.n_goroutines = Some(n_goroutines);
         self
     }
 
-    pub fn n_goroutines(&self) -> Option<&i32> {
-        self.n_goroutines.as_ref()
+    pub fn n_goroutines(&self) -> Option<i32> {
+        self.n_goroutines
     }
 
     pub fn reset_n_goroutines(&mut self) {
@@ -797,13 +797,13 @@ impl SystemInfo {
         self.system_time = Some(system_time);
     }
 
-    pub fn with_system_time(mut self, system_time: String) -> SystemInfo {
+    pub fn with_system_time(mut self, system_time: String) -> Self {
         self.system_time = Some(system_time);
         self
     }
 
-    pub fn system_time(&self) -> Option<&String> {
-        self.system_time.as_ref()
+    pub fn system_time(&self) -> Option<&str> {
+        self.system_time.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_system_time(&mut self) {
@@ -814,13 +814,13 @@ impl SystemInfo {
         self.logging_driver = Some(logging_driver);
     }
 
-    pub fn with_logging_driver(mut self, logging_driver: String) -> SystemInfo {
+    pub fn with_logging_driver(mut self, logging_driver: String) -> Self {
         self.logging_driver = Some(logging_driver);
         self
     }
 
-    pub fn logging_driver(&self) -> Option<&String> {
-        self.logging_driver.as_ref()
+    pub fn logging_driver(&self) -> Option<&str> {
+        self.logging_driver.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_logging_driver(&mut self) {
@@ -831,13 +831,13 @@ impl SystemInfo {
         self.cgroup_driver = Some(cgroup_driver);
     }
 
-    pub fn with_cgroup_driver(mut self, cgroup_driver: String) -> SystemInfo {
+    pub fn with_cgroup_driver(mut self, cgroup_driver: String) -> Self {
         self.cgroup_driver = Some(cgroup_driver);
         self
     }
 
-    pub fn cgroup_driver(&self) -> Option<&String> {
-        self.cgroup_driver.as_ref()
+    pub fn cgroup_driver(&self) -> Option<&str> {
+        self.cgroup_driver.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_cgroup_driver(&mut self) {
@@ -848,13 +848,13 @@ impl SystemInfo {
         self.n_events_listener = Some(n_events_listener);
     }
 
-    pub fn with_n_events_listener(mut self, n_events_listener: i32) -> SystemInfo {
+    pub fn with_n_events_listener(mut self, n_events_listener: i32) -> Self {
         self.n_events_listener = Some(n_events_listener);
         self
     }
 
-    pub fn n_events_listener(&self) -> Option<&i32> {
-        self.n_events_listener.as_ref()
+    pub fn n_events_listener(&self) -> Option<i32> {
+        self.n_events_listener
     }
 
     pub fn reset_n_events_listener(&mut self) {
@@ -865,13 +865,13 @@ impl SystemInfo {
         self.kernel_version = Some(kernel_version);
     }
 
-    pub fn with_kernel_version(mut self, kernel_version: String) -> SystemInfo {
+    pub fn with_kernel_version(mut self, kernel_version: String) -> Self {
         self.kernel_version = Some(kernel_version);
         self
     }
 
-    pub fn kernel_version(&self) -> Option<&String> {
-        self.kernel_version.as_ref()
+    pub fn kernel_version(&self) -> Option<&str> {
+        self.kernel_version.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_kernel_version(&mut self) {
@@ -882,13 +882,13 @@ impl SystemInfo {
         self.operating_system = Some(operating_system);
     }
 
-    pub fn with_operating_system(mut self, operating_system: String) -> SystemInfo {
+    pub fn with_operating_system(mut self, operating_system: String) -> Self {
         self.operating_system = Some(operating_system);
         self
     }
 
-    pub fn operating_system(&self) -> Option<&String> {
-        self.operating_system.as_ref()
+    pub fn operating_system(&self) -> Option<&str> {
+        self.operating_system.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_operating_system(&mut self) {
@@ -899,13 +899,13 @@ impl SystemInfo {
         self.os_type = Some(os_type);
     }
 
-    pub fn with_os_type(mut self, os_type: String) -> SystemInfo {
+    pub fn with_os_type(mut self, os_type: String) -> Self {
         self.os_type = Some(os_type);
         self
     }
 
-    pub fn os_type(&self) -> Option<&String> {
-        self.os_type.as_ref()
+    pub fn os_type(&self) -> Option<&str> {
+        self.os_type.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_os_type(&mut self) {
@@ -916,13 +916,13 @@ impl SystemInfo {
         self.architecture = Some(architecture);
     }
 
-    pub fn with_architecture(mut self, architecture: String) -> SystemInfo {
+    pub fn with_architecture(mut self, architecture: String) -> Self {
         self.architecture = Some(architecture);
         self
     }
 
-    pub fn architecture(&self) -> Option<&String> {
-        self.architecture.as_ref()
+    pub fn architecture(&self) -> Option<&str> {
+        self.architecture.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_architecture(&mut self) {
@@ -933,13 +933,13 @@ impl SystemInfo {
         self.NCPU = Some(NCPU);
     }
 
-    pub fn with_NCPU(mut self, NCPU: i32) -> SystemInfo {
+    pub fn with_NCPU(mut self, NCPU: i32) -> Self {
         self.NCPU = Some(NCPU);
         self
     }
 
-    pub fn NCPU(&self) -> Option<&i32> {
-        self.NCPU.as_ref()
+    pub fn NCPU(&self) -> Option<i32> {
+        self.NCPU
     }
 
     pub fn reset_NCPU(&mut self) {
@@ -950,7 +950,7 @@ impl SystemInfo {
         self.mem_total = Some(mem_total);
     }
 
-    pub fn with_mem_total(mut self, mem_total: i64) -> SystemInfo {
+    pub fn with_mem_total(mut self, mem_total: i64) -> Self {
         self.mem_total = Some(mem_total);
         self
     }
@@ -967,13 +967,13 @@ impl SystemInfo {
         self.index_server_address = Some(index_server_address);
     }
 
-    pub fn with_index_server_address(mut self, index_server_address: String) -> SystemInfo {
+    pub fn with_index_server_address(mut self, index_server_address: String) -> Self {
         self.index_server_address = Some(index_server_address);
         self
     }
 
-    pub fn index_server_address(&self) -> Option<&String> {
-        self.index_server_address.as_ref()
+    pub fn index_server_address(&self) -> Option<&str> {
+        self.index_server_address.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_index_server_address(&mut self) {
@@ -987,7 +987,7 @@ impl SystemInfo {
     pub fn with_registry_config(
         mut self,
         registry_config: ::models::RegistryServiceConfig,
-    ) -> SystemInfo {
+    ) -> Self {
         self.registry_config = Some(registry_config);
         self
     }
@@ -1004,10 +1004,7 @@ impl SystemInfo {
         self.generic_resources = Some(generic_resources);
     }
 
-    pub fn with_generic_resources(
-        mut self,
-        generic_resources: ::models::GenericResources,
-    ) -> SystemInfo {
+    pub fn with_generic_resources(mut self, generic_resources: ::models::GenericResources) -> Self {
         self.generic_resources = Some(generic_resources);
         self
     }
@@ -1024,13 +1021,13 @@ impl SystemInfo {
         self.http_proxy = Some(http_proxy);
     }
 
-    pub fn with_http_proxy(mut self, http_proxy: String) -> SystemInfo {
+    pub fn with_http_proxy(mut self, http_proxy: String) -> Self {
         self.http_proxy = Some(http_proxy);
         self
     }
 
-    pub fn http_proxy(&self) -> Option<&String> {
-        self.http_proxy.as_ref()
+    pub fn http_proxy(&self) -> Option<&str> {
+        self.http_proxy.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_http_proxy(&mut self) {
@@ -1041,13 +1038,13 @@ impl SystemInfo {
         self.https_proxy = Some(https_proxy);
     }
 
-    pub fn with_https_proxy(mut self, https_proxy: String) -> SystemInfo {
+    pub fn with_https_proxy(mut self, https_proxy: String) -> Self {
         self.https_proxy = Some(https_proxy);
         self
     }
 
-    pub fn https_proxy(&self) -> Option<&String> {
-        self.https_proxy.as_ref()
+    pub fn https_proxy(&self) -> Option<&str> {
+        self.https_proxy.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_https_proxy(&mut self) {
@@ -1058,13 +1055,13 @@ impl SystemInfo {
         self.no_proxy = Some(no_proxy);
     }
 
-    pub fn with_no_proxy(mut self, no_proxy: String) -> SystemInfo {
+    pub fn with_no_proxy(mut self, no_proxy: String) -> Self {
         self.no_proxy = Some(no_proxy);
         self
     }
 
-    pub fn no_proxy(&self) -> Option<&String> {
-        self.no_proxy.as_ref()
+    pub fn no_proxy(&self) -> Option<&str> {
+        self.no_proxy.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_no_proxy(&mut self) {
@@ -1075,13 +1072,13 @@ impl SystemInfo {
         self.name = Some(name);
     }
 
-    pub fn with_name(mut self, name: String) -> SystemInfo {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
     }
 
-    pub fn name(&self) -> Option<&String> {
-        self.name.as_ref()
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_name(&mut self) {
@@ -1092,13 +1089,13 @@ impl SystemInfo {
         self.labels = Some(labels);
     }
 
-    pub fn with_labels(mut self, labels: Vec<String>) -> SystemInfo {
+    pub fn with_labels(mut self, labels: Vec<String>) -> Self {
         self.labels = Some(labels);
         self
     }
 
-    pub fn labels(&self) -> Option<&Vec<String>> {
-        self.labels.as_ref()
+    pub fn labels(&self) -> Option<&[String]> {
+        self.labels.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_labels(&mut self) {
@@ -1109,7 +1106,7 @@ impl SystemInfo {
         self.experimental_build = Some(experimental_build);
     }
 
-    pub fn with_experimental_build(mut self, experimental_build: bool) -> SystemInfo {
+    pub fn with_experimental_build(mut self, experimental_build: bool) -> Self {
         self.experimental_build = Some(experimental_build);
         self
     }
@@ -1126,13 +1123,13 @@ impl SystemInfo {
         self.server_version = Some(server_version);
     }
 
-    pub fn with_server_version(mut self, server_version: String) -> SystemInfo {
+    pub fn with_server_version(mut self, server_version: String) -> Self {
         self.server_version = Some(server_version);
         self
     }
 
-    pub fn server_version(&self) -> Option<&String> {
-        self.server_version.as_ref()
+    pub fn server_version(&self) -> Option<&str> {
+        self.server_version.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_server_version(&mut self) {
@@ -1143,13 +1140,13 @@ impl SystemInfo {
         self.cluster_store = Some(cluster_store);
     }
 
-    pub fn with_cluster_store(mut self, cluster_store: String) -> SystemInfo {
+    pub fn with_cluster_store(mut self, cluster_store: String) -> Self {
         self.cluster_store = Some(cluster_store);
         self
     }
 
-    pub fn cluster_store(&self) -> Option<&String> {
-        self.cluster_store.as_ref()
+    pub fn cluster_store(&self) -> Option<&str> {
+        self.cluster_store.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_cluster_store(&mut self) {
@@ -1160,13 +1157,13 @@ impl SystemInfo {
         self.cluster_advertise = Some(cluster_advertise);
     }
 
-    pub fn with_cluster_advertise(mut self, cluster_advertise: String) -> SystemInfo {
+    pub fn with_cluster_advertise(mut self, cluster_advertise: String) -> Self {
         self.cluster_advertise = Some(cluster_advertise);
         self
     }
 
-    pub fn cluster_advertise(&self) -> Option<&String> {
-        self.cluster_advertise.as_ref()
+    pub fn cluster_advertise(&self) -> Option<&str> {
+        self.cluster_advertise.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_cluster_advertise(&mut self) {
@@ -1183,7 +1180,7 @@ impl SystemInfo {
     pub fn with_runtimes(
         mut self,
         runtimes: ::std::collections::HashMap<String, ::models::Runtime>,
-    ) -> SystemInfo {
+    ) -> Self {
         self.runtimes = Some(runtimes);
         self
     }
@@ -1200,13 +1197,13 @@ impl SystemInfo {
         self.default_runtime = Some(default_runtime);
     }
 
-    pub fn with_default_runtime(mut self, default_runtime: String) -> SystemInfo {
+    pub fn with_default_runtime(mut self, default_runtime: String) -> Self {
         self.default_runtime = Some(default_runtime);
         self
     }
 
-    pub fn default_runtime(&self) -> Option<&String> {
-        self.default_runtime.as_ref()
+    pub fn default_runtime(&self) -> Option<&str> {
+        self.default_runtime.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_default_runtime(&mut self) {
@@ -1217,7 +1214,7 @@ impl SystemInfo {
         self.swarm = Some(swarm);
     }
 
-    pub fn with_swarm(mut self, swarm: ::models::SwarmInfo) -> SystemInfo {
+    pub fn with_swarm(mut self, swarm: ::models::SwarmInfo) -> Self {
         self.swarm = Some(swarm);
         self
     }
@@ -1234,7 +1231,7 @@ impl SystemInfo {
         self.live_restore_enabled = Some(live_restore_enabled);
     }
 
-    pub fn with_live_restore_enabled(mut self, live_restore_enabled: bool) -> SystemInfo {
+    pub fn with_live_restore_enabled(mut self, live_restore_enabled: bool) -> Self {
         self.live_restore_enabled = Some(live_restore_enabled);
         self
     }
@@ -1251,13 +1248,13 @@ impl SystemInfo {
         self.isolation = Some(isolation);
     }
 
-    pub fn with_isolation(mut self, isolation: String) -> SystemInfo {
+    pub fn with_isolation(mut self, isolation: String) -> Self {
         self.isolation = Some(isolation);
         self
     }
 
-    pub fn isolation(&self) -> Option<&String> {
-        self.isolation.as_ref()
+    pub fn isolation(&self) -> Option<&str> {
+        self.isolation.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_isolation(&mut self) {
@@ -1268,13 +1265,13 @@ impl SystemInfo {
         self.init_binary = Some(init_binary);
     }
 
-    pub fn with_init_binary(mut self, init_binary: String) -> SystemInfo {
+    pub fn with_init_binary(mut self, init_binary: String) -> Self {
         self.init_binary = Some(init_binary);
         self
     }
 
-    pub fn init_binary(&self) -> Option<&String> {
-        self.init_binary.as_ref()
+    pub fn init_binary(&self) -> Option<&str> {
+        self.init_binary.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_init_binary(&mut self) {
@@ -1285,7 +1282,7 @@ impl SystemInfo {
         self.containerd_commit = Some(containerd_commit);
     }
 
-    pub fn with_containerd_commit(mut self, containerd_commit: ::models::Commit) -> SystemInfo {
+    pub fn with_containerd_commit(mut self, containerd_commit: ::models::Commit) -> Self {
         self.containerd_commit = Some(containerd_commit);
         self
     }
@@ -1302,7 +1299,7 @@ impl SystemInfo {
         self.runc_commit = Some(runc_commit);
     }
 
-    pub fn with_runc_commit(mut self, runc_commit: ::models::Commit) -> SystemInfo {
+    pub fn with_runc_commit(mut self, runc_commit: ::models::Commit) -> Self {
         self.runc_commit = Some(runc_commit);
         self
     }
@@ -1319,7 +1316,7 @@ impl SystemInfo {
         self.init_commit = Some(init_commit);
     }
 
-    pub fn with_init_commit(mut self, init_commit: ::models::Commit) -> SystemInfo {
+    pub fn with_init_commit(mut self, init_commit: ::models::Commit) -> Self {
         self.init_commit = Some(init_commit);
         self
     }
@@ -1336,13 +1333,13 @@ impl SystemInfo {
         self.security_options = Some(security_options);
     }
 
-    pub fn with_security_options(mut self, security_options: Vec<String>) -> SystemInfo {
+    pub fn with_security_options(mut self, security_options: Vec<String>) -> Self {
         self.security_options = Some(security_options);
         self
     }
 
-    pub fn security_options(&self) -> Option<&Vec<String>> {
-        self.security_options.as_ref()
+    pub fn security_options(&self) -> Option<&[String]> {
+        self.security_options.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_security_options(&mut self) {

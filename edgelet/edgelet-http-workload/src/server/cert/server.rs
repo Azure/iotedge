@@ -40,7 +40,7 @@ where
         params: Parameters,
     ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
         let hsm = self.hsm.clone();
-        let response = params
+        let response = match params
             .name("name")
             .ok_or_else(|| Error::from(ErrorKind::BadParam))
             .and_then(|name| {
@@ -48,7 +48,8 @@ where
                     .name("genid")
                     .ok_or_else(|| Error::from(ErrorKind::BadParam))
                     .map(|genid| (name, genid))
-            }).map(|(module_id, genid)| {
+            }) {
+            Ok((module_id, genid)) => {
                 let alias = format!("{}{}", module_id.to_string(), genid.to_string());
                 let result = req
                     .into_body()
@@ -63,6 +64,7 @@ where
                             }).and_then(move |(cert_req, expiration)| {
                                 hsm.destroy_certificate(alias.clone())
                                     .map_err(Error::from)?;
+                                #[cfg_attr(feature = "cargo-clippy", allow(cast_sign_loss))]
                                 let props = CertificateProperties::new(
                                     ensure_range!(expiration, 0, i64::max_value()) as u64,
                                     ensure_not_empty!(cert_req.common_name().to_string()),
@@ -86,7 +88,9 @@ where
                     .or_else(|e| future::ok(e.into_response()));
 
                 future::Either::A(result)
-            }).unwrap_or_else(|e| future::Either::B(future::ok(e.into_response())));
+            }
+            Err(e) => future::Either::B(future::ok(e.into_response())),
+        };
 
         Box::new(response)
     }
@@ -142,7 +146,7 @@ mod tests {
     }
 
     impl TestHsm {
-        fn with_on_create<F>(mut self, on_create: F) -> TestHsm
+        fn with_on_create<F>(mut self, on_create: F) -> Self
         where
             F: Fn(&CertificateProperties) -> StdResult<TestCert, CoreError> + Send + Sync + 'static,
         {
@@ -157,7 +161,7 @@ mod tests {
         fn create_certificate(
             &self,
             properties: &CertificateProperties,
-        ) -> StdResult<TestCert, CoreError> {
+        ) -> StdResult<Self::Certificate, CoreError> {
             let callback = self.on_create.as_ref().unwrap();
             callback(properties)
         }
@@ -527,10 +531,7 @@ mod tests {
             .wait()
             .unwrap();
         assert_eq!("key", cert_resp.private_key().type_());
-        assert_eq!(
-            Some(&"Betelgeuse".to_string()),
-            cert_resp.private_key().bytes()
-        );
+        assert_eq!(Some("Betelgeuse"), cert_resp.private_key().bytes());
     }
 
     #[test]
@@ -565,10 +566,7 @@ mod tests {
             .wait()
             .unwrap();
         assert_eq!("ref", cert_resp.private_key().type_());
-        assert_eq!(
-            Some(&"Betelgeuse".to_string()),
-            cert_resp.private_key().ref_()
-        );
+        assert_eq!(Some("Betelgeuse"), cert_resp.private_key().ref_());
     }
 
     #[test]

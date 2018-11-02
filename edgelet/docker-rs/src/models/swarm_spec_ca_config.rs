@@ -49,7 +49,7 @@ pub struct SwarmSpecCaConfig {
 
 impl SwarmSpecCaConfig {
     /// CA configuration.
-    pub fn new() -> SwarmSpecCaConfig {
+    pub fn new() -> Self {
         SwarmSpecCaConfig {
             node_cert_expiry: None,
             external_c_as: None,
@@ -63,7 +63,7 @@ impl SwarmSpecCaConfig {
         self.node_cert_expiry = Some(node_cert_expiry);
     }
 
-    pub fn with_node_cert_expiry(mut self, node_cert_expiry: i64) -> SwarmSpecCaConfig {
+    pub fn with_node_cert_expiry(mut self, node_cert_expiry: i64) -> Self {
         self.node_cert_expiry = Some(node_cert_expiry);
         self
     }
@@ -86,13 +86,13 @@ impl SwarmSpecCaConfig {
     pub fn with_external_c_as(
         mut self,
         external_c_as: Vec<::models::SwarmSpecCaConfigExternalCAs>,
-    ) -> SwarmSpecCaConfig {
+    ) -> Self {
         self.external_c_as = Some(external_c_as);
         self
     }
 
-    pub fn external_c_as(&self) -> Option<&Vec<::models::SwarmSpecCaConfigExternalCAs>> {
-        self.external_c_as.as_ref()
+    pub fn external_c_as(&self) -> Option<&[::models::SwarmSpecCaConfigExternalCAs]> {
+        self.external_c_as.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_external_c_as(&mut self) {
@@ -103,13 +103,13 @@ impl SwarmSpecCaConfig {
         self.signing_ca_cert = Some(signing_ca_cert);
     }
 
-    pub fn with_signing_ca_cert(mut self, signing_ca_cert: String) -> SwarmSpecCaConfig {
+    pub fn with_signing_ca_cert(mut self, signing_ca_cert: String) -> Self {
         self.signing_ca_cert = Some(signing_ca_cert);
         self
     }
 
-    pub fn signing_ca_cert(&self) -> Option<&String> {
-        self.signing_ca_cert.as_ref()
+    pub fn signing_ca_cert(&self) -> Option<&str> {
+        self.signing_ca_cert.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_signing_ca_cert(&mut self) {
@@ -120,13 +120,13 @@ impl SwarmSpecCaConfig {
         self.signing_ca_key = Some(signing_ca_key);
     }
 
-    pub fn with_signing_ca_key(mut self, signing_ca_key: String) -> SwarmSpecCaConfig {
+    pub fn with_signing_ca_key(mut self, signing_ca_key: String) -> Self {
         self.signing_ca_key = Some(signing_ca_key);
         self
     }
 
-    pub fn signing_ca_key(&self) -> Option<&String> {
-        self.signing_ca_key.as_ref()
+    pub fn signing_ca_key(&self) -> Option<&str> {
+        self.signing_ca_key.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_signing_ca_key(&mut self) {
@@ -137,13 +137,13 @@ impl SwarmSpecCaConfig {
         self.force_rotate = Some(force_rotate);
     }
 
-    pub fn with_force_rotate(mut self, force_rotate: i32) -> SwarmSpecCaConfig {
+    pub fn with_force_rotate(mut self, force_rotate: i32) -> Self {
         self.force_rotate = Some(force_rotate);
         self
     }
 
-    pub fn force_rotate(&self) -> Option<&i32> {
-        self.force_rotate.as_ref()
+    pub fn force_rotate(&self) -> Option<i32> {
+        self.force_rotate
     }
 
     pub fn reset_force_rotate(&mut self) {

@@ -1,5 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+#![deny(unused_extern_crates, warnings)]
+// Remove this when clippy stops warning about old-style `allow()`,
+// which can only be silenced by enabling a feature and thus requires nightly
+//
+// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
+#![allow(renamed_and_removed_lints)]
+#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
+
 #[macro_use]
 extern crate edgelet_http;
 extern crate futures;
@@ -15,6 +23,7 @@ use http::{Request, Response, StatusCode};
 use hyper::server::conn::Http;
 use hyper::{Body, Error as HyperError};
 
+#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
 fn index(
     _req: Request<Body>,
     _params: Parameters,
@@ -27,6 +36,7 @@ fn index(
     Box::new(future::ok(response))
 }
 
+#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
 fn identities_list(
     _req: Request<Body>,
     _params: Parameters,
@@ -39,28 +49,29 @@ fn identities_list(
     Box::new(future::ok(response))
 }
 
+#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
 fn identities_update(
     _req: Request<Body>,
     params: Parameters,
 ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
     let response = params
         .name("name")
-        .map(|name| {
+        .map_or_else(|| {
+            Response::builder()
+                .status(StatusCode::BAD_REQUEST)
+                .body(Body::default())
+                .unwrap()
+        }, |name| {
             Response::builder()
                 .status(StatusCode::OK)
                 .header(CONTENT_TYPE, "application/json")
                 .body(format!("{{\"moduleId\":\"{}\",\"managedBy\":\"iot-edge\",\"generationId\":\"731f88d3-cf72-4a23-aca1-cd91fd4f52ff\"}}", name).into())
                 .unwrap()
-        })
-        .unwrap_or_else(|| {
-            Response::builder()
-                .status(StatusCode::BAD_REQUEST)
-                .body(Body::default())
-                .unwrap()
         });
     Box::new(future::ok(response))
 }
 
+#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
 fn identities_delete(
     _req: Request<Body>,
     _params: Parameters,

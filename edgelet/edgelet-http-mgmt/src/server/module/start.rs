@@ -37,10 +37,8 @@ where
         _req: Request<Body>,
         params: Parameters,
     ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
-        let response = params
-            .name("name")
-            .ok_or_else(|| Error::from(ErrorKind::BadParam))
-            .map(|name| {
+        let response = match params.name("name") {
+            Some(name) => {
                 let result = self
                     .runtime
                     .start(name)
@@ -51,7 +49,11 @@ where
                             .unwrap_or_else(|e| e.into_response())
                     }).or_else(|e| future::ok(e.into_response()));
                 future::Either::A(result)
-            }).unwrap_or_else(|e| future::Either::B(future::ok(e.into_response())));
+            }
+
+            None => future::Either::B(future::ok(Error::from(ErrorKind::BadParam).into_response())),
+        };
+
         Box::new(response)
     }
 }

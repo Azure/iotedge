@@ -67,7 +67,7 @@ pub struct ContainerSummaryInner {
 }
 
 impl ContainerSummaryInner {
-    pub fn new() -> ContainerSummaryInner {
+    pub fn new() -> Self {
         ContainerSummaryInner {
             id: None,
             names: None,
@@ -91,13 +91,13 @@ impl ContainerSummaryInner {
         self.id = Some(id);
     }
 
-    pub fn with_id(mut self, id: String) -> ContainerSummaryInner {
+    pub fn with_id(mut self, id: String) -> Self {
         self.id = Some(id);
         self
     }
 
-    pub fn id(&self) -> Option<&String> {
-        self.id.as_ref()
+    pub fn id(&self) -> Option<&str> {
+        self.id.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_id(&mut self) {
@@ -108,13 +108,13 @@ impl ContainerSummaryInner {
         self.names = Some(names);
     }
 
-    pub fn with_names(mut self, names: Vec<String>) -> ContainerSummaryInner {
+    pub fn with_names(mut self, names: Vec<String>) -> Self {
         self.names = Some(names);
         self
     }
 
-    pub fn names(&self) -> Option<&Vec<String>> {
-        self.names.as_ref()
+    pub fn names(&self) -> Option<&[String]> {
+        self.names.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_names(&mut self) {
@@ -125,13 +125,13 @@ impl ContainerSummaryInner {
         self.image = Some(image);
     }
 
-    pub fn with_image(mut self, image: String) -> ContainerSummaryInner {
+    pub fn with_image(mut self, image: String) -> Self {
         self.image = Some(image);
         self
     }
 
-    pub fn image(&self) -> Option<&String> {
-        self.image.as_ref()
+    pub fn image(&self) -> Option<&str> {
+        self.image.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_image(&mut self) {
@@ -142,13 +142,13 @@ impl ContainerSummaryInner {
         self.image_id = Some(image_id);
     }
 
-    pub fn with_image_id(mut self, image_id: String) -> ContainerSummaryInner {
+    pub fn with_image_id(mut self, image_id: String) -> Self {
         self.image_id = Some(image_id);
         self
     }
 
-    pub fn image_id(&self) -> Option<&String> {
-        self.image_id.as_ref()
+    pub fn image_id(&self) -> Option<&str> {
+        self.image_id.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_image_id(&mut self) {
@@ -159,13 +159,13 @@ impl ContainerSummaryInner {
         self.command = Some(command);
     }
 
-    pub fn with_command(mut self, command: String) -> ContainerSummaryInner {
+    pub fn with_command(mut self, command: String) -> Self {
         self.command = Some(command);
         self
     }
 
-    pub fn command(&self) -> Option<&String> {
-        self.command.as_ref()
+    pub fn command(&self) -> Option<&str> {
+        self.command.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_command(&mut self) {
@@ -176,7 +176,7 @@ impl ContainerSummaryInner {
         self.created = Some(created);
     }
 
-    pub fn with_created(mut self, created: i64) -> ContainerSummaryInner {
+    pub fn with_created(mut self, created: i64) -> Self {
         self.created = Some(created);
         self
     }
@@ -193,13 +193,13 @@ impl ContainerSummaryInner {
         self.ports = Some(ports);
     }
 
-    pub fn with_ports(mut self, ports: Vec<::models::Port>) -> ContainerSummaryInner {
+    pub fn with_ports(mut self, ports: Vec<::models::Port>) -> Self {
         self.ports = Some(ports);
         self
     }
 
-    pub fn ports(&self) -> Option<&Vec<::models::Port>> {
-        self.ports.as_ref()
+    pub fn ports(&self) -> Option<&[::models::Port]> {
+        self.ports.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_ports(&mut self) {
@@ -210,7 +210,7 @@ impl ContainerSummaryInner {
         self.size_rw = Some(size_rw);
     }
 
-    pub fn with_size_rw(mut self, size_rw: i64) -> ContainerSummaryInner {
+    pub fn with_size_rw(mut self, size_rw: i64) -> Self {
         self.size_rw = Some(size_rw);
         self
     }
@@ -227,7 +227,7 @@ impl ContainerSummaryInner {
         self.size_root_fs = Some(size_root_fs);
     }
 
-    pub fn with_size_root_fs(mut self, size_root_fs: i64) -> ContainerSummaryInner {
+    pub fn with_size_root_fs(mut self, size_root_fs: i64) -> Self {
         self.size_root_fs = Some(size_root_fs);
         self
     }
@@ -244,10 +244,7 @@ impl ContainerSummaryInner {
         self.labels = Some(labels);
     }
 
-    pub fn with_labels(
-        mut self,
-        labels: ::std::collections::HashMap<String, String>,
-    ) -> ContainerSummaryInner {
+    pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
         self.labels = Some(labels);
         self
     }
@@ -264,13 +261,13 @@ impl ContainerSummaryInner {
         self.state = Some(state);
     }
 
-    pub fn with_state(mut self, state: String) -> ContainerSummaryInner {
+    pub fn with_state(mut self, state: String) -> Self {
         self.state = Some(state);
         self
     }
 
-    pub fn state(&self) -> Option<&String> {
-        self.state.as_ref()
+    pub fn state(&self) -> Option<&str> {
+        self.state.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_state(&mut self) {
@@ -281,13 +278,13 @@ impl ContainerSummaryInner {
         self.status = Some(status);
     }
 
-    pub fn with_status(mut self, status: String) -> ContainerSummaryInner {
+    pub fn with_status(mut self, status: String) -> Self {
         self.status = Some(status);
         self
     }
 
-    pub fn status(&self) -> Option<&String> {
-        self.status.as_ref()
+    pub fn status(&self) -> Option<&str> {
+        self.status.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_status(&mut self) {
@@ -301,7 +298,7 @@ impl ContainerSummaryInner {
     pub fn with_host_config(
         mut self,
         host_config: ::models::ContainerSummaryInnerHostConfig,
-    ) -> ContainerSummaryInner {
+    ) -> Self {
         self.host_config = Some(host_config);
         self
     }
@@ -324,7 +321,7 @@ impl ContainerSummaryInner {
     pub fn with_network_settings(
         mut self,
         network_settings: ::models::ContainerSummaryInnerNetworkSettings,
-    ) -> ContainerSummaryInner {
+    ) -> Self {
         self.network_settings = Some(network_settings);
         self
     }
@@ -341,13 +338,13 @@ impl ContainerSummaryInner {
         self.mounts = Some(mounts);
     }
 
-    pub fn with_mounts(mut self, mounts: Vec<::models::Mount>) -> ContainerSummaryInner {
+    pub fn with_mounts(mut self, mounts: Vec<::models::Mount>) -> Self {
         self.mounts = Some(mounts);
         self
     }
 
-    pub fn mounts(&self) -> Option<&Vec<::models::Mount>> {
-        self.mounts.as_ref()
+    pub fn mounts(&self) -> Option<&[::models::Mount]> {
+        self.mounts.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_mounts(&mut self) {

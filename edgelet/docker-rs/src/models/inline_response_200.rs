@@ -107,7 +107,7 @@ pub struct InlineResponse200 {
 }
 
 impl InlineResponse200 {
-    pub fn new() -> InlineResponse200 {
+    pub fn new() -> Self {
         InlineResponse200 {
             id: None,
             created: None,
@@ -141,13 +141,13 @@ impl InlineResponse200 {
         self.id = Some(id);
     }
 
-    pub fn with_id(mut self, id: String) -> InlineResponse200 {
+    pub fn with_id(mut self, id: String) -> Self {
         self.id = Some(id);
         self
     }
 
-    pub fn id(&self) -> Option<&String> {
-        self.id.as_ref()
+    pub fn id(&self) -> Option<&str> {
+        self.id.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_id(&mut self) {
@@ -158,13 +158,13 @@ impl InlineResponse200 {
         self.created = Some(created);
     }
 
-    pub fn with_created(mut self, created: String) -> InlineResponse200 {
+    pub fn with_created(mut self, created: String) -> Self {
         self.created = Some(created);
         self
     }
 
-    pub fn created(&self) -> Option<&String> {
-        self.created.as_ref()
+    pub fn created(&self) -> Option<&str> {
+        self.created.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_created(&mut self) {
@@ -175,13 +175,13 @@ impl InlineResponse200 {
         self.path = Some(path);
     }
 
-    pub fn with_path(mut self, path: String) -> InlineResponse200 {
+    pub fn with_path(mut self, path: String) -> Self {
         self.path = Some(path);
         self
     }
 
-    pub fn path(&self) -> Option<&String> {
-        self.path.as_ref()
+    pub fn path(&self) -> Option<&str> {
+        self.path.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_path(&mut self) {
@@ -192,13 +192,13 @@ impl InlineResponse200 {
         self.args = Some(args);
     }
 
-    pub fn with_args(mut self, args: Vec<String>) -> InlineResponse200 {
+    pub fn with_args(mut self, args: Vec<String>) -> Self {
         self.args = Some(args);
         self
     }
 
-    pub fn args(&self) -> Option<&Vec<String>> {
-        self.args.as_ref()
+    pub fn args(&self) -> Option<&[String]> {
+        self.args.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_args(&mut self) {
@@ -209,7 +209,7 @@ impl InlineResponse200 {
         self.state = Some(state);
     }
 
-    pub fn with_state(mut self, state: ::models::InlineResponse200State) -> InlineResponse200 {
+    pub fn with_state(mut self, state: ::models::InlineResponse200State) -> Self {
         self.state = Some(state);
         self
     }
@@ -226,13 +226,13 @@ impl InlineResponse200 {
         self.image = Some(image);
     }
 
-    pub fn with_image(mut self, image: String) -> InlineResponse200 {
+    pub fn with_image(mut self, image: String) -> Self {
         self.image = Some(image);
         self
     }
 
-    pub fn image(&self) -> Option<&String> {
-        self.image.as_ref()
+    pub fn image(&self) -> Option<&str> {
+        self.image.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_image(&mut self) {
@@ -243,13 +243,13 @@ impl InlineResponse200 {
         self.resolv_conf_path = Some(resolv_conf_path);
     }
 
-    pub fn with_resolv_conf_path(mut self, resolv_conf_path: String) -> InlineResponse200 {
+    pub fn with_resolv_conf_path(mut self, resolv_conf_path: String) -> Self {
         self.resolv_conf_path = Some(resolv_conf_path);
         self
     }
 
-    pub fn resolv_conf_path(&self) -> Option<&String> {
-        self.resolv_conf_path.as_ref()
+    pub fn resolv_conf_path(&self) -> Option<&str> {
+        self.resolv_conf_path.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_resolv_conf_path(&mut self) {
@@ -260,13 +260,13 @@ impl InlineResponse200 {
         self.hostname_path = Some(hostname_path);
     }
 
-    pub fn with_hostname_path(mut self, hostname_path: String) -> InlineResponse200 {
+    pub fn with_hostname_path(mut self, hostname_path: String) -> Self {
         self.hostname_path = Some(hostname_path);
         self
     }
 
-    pub fn hostname_path(&self) -> Option<&String> {
-        self.hostname_path.as_ref()
+    pub fn hostname_path(&self) -> Option<&str> {
+        self.hostname_path.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_hostname_path(&mut self) {
@@ -277,13 +277,13 @@ impl InlineResponse200 {
         self.hosts_path = Some(hosts_path);
     }
 
-    pub fn with_hosts_path(mut self, hosts_path: String) -> InlineResponse200 {
+    pub fn with_hosts_path(mut self, hosts_path: String) -> Self {
         self.hosts_path = Some(hosts_path);
         self
     }
 
-    pub fn hosts_path(&self) -> Option<&String> {
-        self.hosts_path.as_ref()
+    pub fn hosts_path(&self) -> Option<&str> {
+        self.hosts_path.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_hosts_path(&mut self) {
@@ -294,13 +294,13 @@ impl InlineResponse200 {
         self.log_path = Some(log_path);
     }
 
-    pub fn with_log_path(mut self, log_path: String) -> InlineResponse200 {
+    pub fn with_log_path(mut self, log_path: String) -> Self {
         self.log_path = Some(log_path);
         self
     }
 
-    pub fn log_path(&self) -> Option<&String> {
-        self.log_path.as_ref()
+    pub fn log_path(&self) -> Option<&str> {
+        self.log_path.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_log_path(&mut self) {
@@ -311,7 +311,7 @@ impl InlineResponse200 {
         self.node = Some(node);
     }
 
-    pub fn with_node(mut self, node: Value) -> InlineResponse200 {
+    pub fn with_node(mut self, node: Value) -> Self {
         self.node = Some(node);
         self
     }
@@ -328,13 +328,13 @@ impl InlineResponse200 {
         self.name = Some(name);
     }
 
-    pub fn with_name(mut self, name: String) -> InlineResponse200 {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
     }
 
-    pub fn name(&self) -> Option<&String> {
-        self.name.as_ref()
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_name(&mut self) {
@@ -345,13 +345,13 @@ impl InlineResponse200 {
         self.restart_count = Some(restart_count);
     }
 
-    pub fn with_restart_count(mut self, restart_count: i32) -> InlineResponse200 {
+    pub fn with_restart_count(mut self, restart_count: i32) -> Self {
         self.restart_count = Some(restart_count);
         self
     }
 
-    pub fn restart_count(&self) -> Option<&i32> {
-        self.restart_count.as_ref()
+    pub fn restart_count(&self) -> Option<i32> {
+        self.restart_count
     }
 
     pub fn reset_restart_count(&mut self) {
@@ -362,13 +362,13 @@ impl InlineResponse200 {
         self.driver = Some(driver);
     }
 
-    pub fn with_driver(mut self, driver: String) -> InlineResponse200 {
+    pub fn with_driver(mut self, driver: String) -> Self {
         self.driver = Some(driver);
         self
     }
 
-    pub fn driver(&self) -> Option<&String> {
-        self.driver.as_ref()
+    pub fn driver(&self) -> Option<&str> {
+        self.driver.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_driver(&mut self) {
@@ -379,13 +379,13 @@ impl InlineResponse200 {
         self.mount_label = Some(mount_label);
     }
 
-    pub fn with_mount_label(mut self, mount_label: String) -> InlineResponse200 {
+    pub fn with_mount_label(mut self, mount_label: String) -> Self {
         self.mount_label = Some(mount_label);
         self
     }
 
-    pub fn mount_label(&self) -> Option<&String> {
-        self.mount_label.as_ref()
+    pub fn mount_label(&self) -> Option<&str> {
+        self.mount_label.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_mount_label(&mut self) {
@@ -396,13 +396,13 @@ impl InlineResponse200 {
         self.process_label = Some(process_label);
     }
 
-    pub fn with_process_label(mut self, process_label: String) -> InlineResponse200 {
+    pub fn with_process_label(mut self, process_label: String) -> Self {
         self.process_label = Some(process_label);
         self
     }
 
-    pub fn process_label(&self) -> Option<&String> {
-        self.process_label.as_ref()
+    pub fn process_label(&self) -> Option<&str> {
+        self.process_label.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_process_label(&mut self) {
@@ -413,13 +413,13 @@ impl InlineResponse200 {
         self.app_armor_profile = Some(app_armor_profile);
     }
 
-    pub fn with_app_armor_profile(mut self, app_armor_profile: String) -> InlineResponse200 {
+    pub fn with_app_armor_profile(mut self, app_armor_profile: String) -> Self {
         self.app_armor_profile = Some(app_armor_profile);
         self
     }
 
-    pub fn app_armor_profile(&self) -> Option<&String> {
-        self.app_armor_profile.as_ref()
+    pub fn app_armor_profile(&self) -> Option<&str> {
+        self.app_armor_profile.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_app_armor_profile(&mut self) {
@@ -430,13 +430,13 @@ impl InlineResponse200 {
         self.exec_i_ds = Some(exec_i_ds);
     }
 
-    pub fn with_exec_i_ds(mut self, exec_i_ds: Vec<String>) -> InlineResponse200 {
+    pub fn with_exec_i_ds(mut self, exec_i_ds: Vec<String>) -> Self {
         self.exec_i_ds = Some(exec_i_ds);
         self
     }
 
-    pub fn exec_i_ds(&self) -> Option<&Vec<String>> {
-        self.exec_i_ds.as_ref()
+    pub fn exec_i_ds(&self) -> Option<&[String]> {
+        self.exec_i_ds.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_exec_i_ds(&mut self) {
@@ -447,7 +447,7 @@ impl InlineResponse200 {
         self.host_config = Some(host_config);
     }
 
-    pub fn with_host_config(mut self, host_config: ::models::HostConfig) -> InlineResponse200 {
+    pub fn with_host_config(mut self, host_config: ::models::HostConfig) -> Self {
         self.host_config = Some(host_config);
         self
     }
@@ -464,10 +464,7 @@ impl InlineResponse200 {
         self.graph_driver = Some(graph_driver);
     }
 
-    pub fn with_graph_driver(
-        mut self,
-        graph_driver: ::models::GraphDriverData,
-    ) -> InlineResponse200 {
+    pub fn with_graph_driver(mut self, graph_driver: ::models::GraphDriverData) -> Self {
         self.graph_driver = Some(graph_driver);
         self
     }
@@ -484,7 +481,7 @@ impl InlineResponse200 {
         self.size_rw = Some(size_rw);
     }
 
-    pub fn with_size_rw(mut self, size_rw: i64) -> InlineResponse200 {
+    pub fn with_size_rw(mut self, size_rw: i64) -> Self {
         self.size_rw = Some(size_rw);
         self
     }
@@ -501,7 +498,7 @@ impl InlineResponse200 {
         self.size_root_fs = Some(size_root_fs);
     }
 
-    pub fn with_size_root_fs(mut self, size_root_fs: i64) -> InlineResponse200 {
+    pub fn with_size_root_fs(mut self, size_root_fs: i64) -> Self {
         self.size_root_fs = Some(size_root_fs);
         self
     }
@@ -518,13 +515,13 @@ impl InlineResponse200 {
         self.mounts = Some(mounts);
     }
 
-    pub fn with_mounts(mut self, mounts: Vec<::models::MountPoint>) -> InlineResponse200 {
+    pub fn with_mounts(mut self, mounts: Vec<::models::MountPoint>) -> Self {
         self.mounts = Some(mounts);
         self
     }
 
-    pub fn mounts(&self) -> Option<&Vec<::models::MountPoint>> {
-        self.mounts.as_ref()
+    pub fn mounts(&self) -> Option<&[::models::MountPoint]> {
+        self.mounts.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_mounts(&mut self) {
@@ -535,7 +532,7 @@ impl InlineResponse200 {
         self.config = Some(config);
     }
 
-    pub fn with_config(mut self, config: ::models::ContainerConfig) -> InlineResponse200 {
+    pub fn with_config(mut self, config: ::models::ContainerConfig) -> Self {
         self.config = Some(config);
         self
     }
@@ -552,10 +549,7 @@ impl InlineResponse200 {
         self.network_settings = Some(network_settings);
     }
 
-    pub fn with_network_settings(
-        mut self,
-        network_settings: ::models::NetworkSettings,
-    ) -> InlineResponse200 {
+    pub fn with_network_settings(mut self, network_settings: ::models::NetworkSettings) -> Self {
         self.network_settings = Some(network_settings);
         self
     }

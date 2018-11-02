@@ -25,7 +25,7 @@ pub struct Container1 {
 }
 
 impl Container1 {
-    pub fn new() -> Container1 {
+    pub fn new() -> Self {
         Container1 {
             container: None,
             force: None,
@@ -36,13 +36,13 @@ impl Container1 {
         self.container = Some(container);
     }
 
-    pub fn with_container(mut self, container: String) -> Container1 {
+    pub fn with_container(mut self, container: String) -> Self {
         self.container = Some(container);
         self
     }
 
-    pub fn container(&self) -> Option<&String> {
-        self.container.as_ref()
+    pub fn container(&self) -> Option<&str> {
+        self.container.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_container(&mut self) {
@@ -53,7 +53,7 @@ impl Container1 {
         self.force = Some(force);
     }
 
-    pub fn with_force(mut self, force: bool) -> Container1 {
+    pub fn with_force(mut self, force: bool) -> Self {
         self.force = Some(force);
         self
     }

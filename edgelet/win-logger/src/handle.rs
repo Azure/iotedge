@@ -9,7 +9,7 @@ unsafe impl Send for Handle {}
 unsafe impl Sync for Handle {}
 
 impl Handle {
-    pub fn new(handle: HANDLE) -> Handle {
+    pub fn new(handle: HANDLE) -> Self {
         Handle(handle)
     }
 

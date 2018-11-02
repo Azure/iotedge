@@ -18,7 +18,7 @@ pub struct GenericResources {}
 
 impl GenericResources {
     /// User-defined resources can be either Integer resources (e.g, `SSD=3`) or String resources (e.g, `GPU=UUID1`)
-    pub fn new() -> GenericResources {
+    pub fn new() -> Self {
         GenericResources {}
     }
 }

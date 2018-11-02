@@ -12,7 +12,7 @@ pub struct DockerClient<C: Connect> {
 }
 
 impl<C: Connect> DockerClient<C> {
-    pub fn new(client: APIClient<C>) -> DockerClient<C> {
+    pub fn new(client: APIClient<C>) -> Self {
         DockerClient {
             client: Arc::new(client),
         }

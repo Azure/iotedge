@@ -13,7 +13,7 @@ pub struct Error {
     inner: Context<ErrorKind>,
 }
 
-#[derive(Debug, Fail)]
+#[derive(Clone, Copy, Debug, Fail)]
 pub enum ErrorKind {
     #[fail(display = "A module runtime error occurred.")]
     ModuleRuntime,
@@ -44,7 +44,7 @@ impl Display for Error {
 }
 
 impl Error {
-    pub fn new(inner: Context<ErrorKind>) -> Error {
+    pub fn new(inner: Context<ErrorKind>) -> Self {
         Error { inner }
     }
 
@@ -54,7 +54,7 @@ impl Error {
 }
 
 impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Error {
+    fn from(kind: ErrorKind) -> Self {
         Error {
             inner: Context::new(kind),
         }
@@ -62,13 +62,13 @@ impl From<ErrorKind> for Error {
 }
 
 impl From<Context<ErrorKind>> for Error {
-    fn from(inner: Context<ErrorKind>) -> Error {
+    fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
     }
 }
 
 impl From<io::Error> for Error {
-    fn from(error: io::Error) -> Error {
+    fn from(error: io::Error) -> Self {
         Error {
             inner: error.context(ErrorKind::Io),
         }
@@ -76,7 +76,7 @@ impl From<io::Error> for Error {
 }
 
 impl From<ParseError> for Error {
-    fn from(error: ParseError) -> Error {
+    fn from(error: ParseError) -> Self {
         Error {
             inner: error.context(ErrorKind::UrlParse),
         }
@@ -84,7 +84,7 @@ impl From<ParseError> for Error {
 }
 
 impl From<HttpMgmtError> for Error {
-    fn from(error: HttpMgmtError) -> Error {
+    fn from(error: HttpMgmtError) -> Self {
         Error {
             inner: error.context(ErrorKind::HttpMgmt),
         }

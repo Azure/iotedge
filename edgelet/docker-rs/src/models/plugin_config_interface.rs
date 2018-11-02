@@ -23,7 +23,7 @@ pub struct PluginConfigInterface {
 
 impl PluginConfigInterface {
     /// The interface between Docker and the plugin
-    pub fn new(types: Vec<::models::PluginInterfaceType>, socket: String) -> PluginConfigInterface {
+    pub fn new(types: Vec<::models::PluginInterfaceType>, socket: String) -> Self {
         PluginConfigInterface {
             types: types,
             socket: socket,
@@ -34,15 +34,12 @@ impl PluginConfigInterface {
         self.types = types;
     }
 
-    pub fn with_types(
-        mut self,
-        types: Vec<::models::PluginInterfaceType>,
-    ) -> PluginConfigInterface {
+    pub fn with_types(mut self, types: Vec<::models::PluginInterfaceType>) -> Self {
         self.types = types;
         self
     }
 
-    pub fn types(&self) -> &Vec<::models::PluginInterfaceType> {
+    pub fn types(&self) -> &[::models::PluginInterfaceType] {
         &self.types
     }
 
@@ -50,7 +47,7 @@ impl PluginConfigInterface {
         self.socket = socket;
     }
 
-    pub fn with_socket(mut self, socket: String) -> PluginConfigInterface {
+    pub fn with_socket(mut self, socket: String) -> Self {
         self.socket = socket;
         self
     }

@@ -312,36 +312,38 @@ where
                         // If request is returned with status unauthorized, extract the tpm
                         // challenge from the payload, generate a signature and re-issue the
                         // request
-                        let body = match *err.kind() {
-                            HttpErrorKind::ServiceError(status, ref body) =>
-                                if status == StatusCode::UNAUTHORIZED {
-                                    debug!(
-                                        "Registration unauthorized, checking response for challenge {}",
-                                        status,
-                                    );
-                                    Some(body.clone())
-                                } else {
-                                    debug!("Unexpected registration status, {}", status);
-                                    None
-                                },
-                            _ => {
-                                debug!("Response error {:?}", err);
+                        let body = if let HttpErrorKind::ServiceError(status, body) = err.kind() {
+                            if *status == StatusCode::UNAUTHORIZED {
+                                debug!(
+                                    "Registration unauthorized, checking response for challenge {}",
+                                    status,
+                                );
+                                Some(body.clone())
+                            } else {
+                                debug!("Unexpected registration status, {}", status);
                                 None
-                            },
+                            }
+                        } else {
+                            debug!("Response error {:?}", err);
+                            None
                         };
 
-                        body.map(move |body| {
-                            Self::get_tpm_challenge_key(body.as_str(), &mut key_store_inner)
-                                .map(move |key| {
-                                    Either::A(Self::get_operation_id(
-                                        &client_inner.clone(),
-                                        scope_id.as_str(),
-                                        registration_id.as_str(),
-                                        &registration,
-                                        key.clone(),
-                                    ))
-                                }).unwrap_or_else(|err| Either::B(future::err(err)))
-                        }).unwrap_or_else(|| Either::B(future::err(Error::from(err))))
+                        body.map_or_else(
+                            || Either::B(future::err(Error::from(err))),
+                            move |body| match Self::get_tpm_challenge_key(
+                                body.as_str(),
+                                &mut key_store_inner,
+                            ) {
+                                Ok(key) => Either::A(Self::get_operation_id(
+                                    &client_inner.clone(),
+                                    scope_id.as_str(),
+                                    registration_id.as_str(),
+                                    &registration,
+                                    key.clone(),
+                                )),
+                                Err(err) => Either::B(future::err(err)),
+                            },
+                        )
                     }
                 }
             });
@@ -370,27 +372,25 @@ where
             &tpm_srk,
             &self.key_store,
         ).and_then(
-            move |operation_status: Option<RegistrationOperationStatus>| {
-                key_store
-                    .get(&KeyIdentity::Device, "primary")
-                    .map(|k| {
-                        operation_status
-                            .map(move |s| {
-                                let retry_count = (DPS_ASSIGNMENT_TIMEOUT_SECS
-                                    / DPS_ASSIGNMENT_RETRY_INTERVAL_SECS)
-                                    + 1;
-                                Either::A(Self::get_device_registration_result(
-                                    client_with_token_status,
-                                    scope_id_status,
-                                    registration_id_status,
-                                    s.operation_id().clone(),
-                                    k.clone(),
-                                    retry_count,
-                                ))
-                            }).unwrap_or_else(|| {
-                                Either::B(future::err(Error::from(ErrorKind::NotAssigned)))
-                            })
-                    }).unwrap_or_else(|err| Either::B(future::err(Error::from(err))))
+            move |operation_status: Option<RegistrationOperationStatus>| match key_store
+                .get(&KeyIdentity::Device, "primary")
+            {
+                Ok(k) => operation_status.map_or_else(
+                    || Either::B(future::err(Error::from(ErrorKind::NotAssigned))),
+                    move |s| {
+                        let retry_count =
+                            (DPS_ASSIGNMENT_TIMEOUT_SECS / DPS_ASSIGNMENT_RETRY_INTERVAL_SECS) + 1;
+                        Either::A(Self::get_device_registration_result(
+                            client_with_token_status,
+                            scope_id_status,
+                            registration_id_status,
+                            s.operation_id().clone(),
+                            k.clone(),
+                            retry_count,
+                        ))
+                    },
+                ),
+                Err(err) => Either::B(future::err(Error::from(err))),
             },
         ).and_then(move |operation_status: Option<DeviceRegistrationResult>| {
             operation_status
@@ -427,11 +427,11 @@ fn get_device_info(
     Ok((
         registration_result
             .device_id()
-            .cloned()
+            .map(ToOwned::to_owned)
             .ok_or_else(|| Error::from(ErrorKind::NotAssigned))?,
         registration_result
             .assigned_hub()
-            .cloned()
+            .map(ToOwned::to_owned)
             .ok_or_else(|| Error::from(ErrorKind::NotAssigned))?,
     ))
 }
@@ -548,7 +548,7 @@ mod tests {
                     }
                 }
             }
-            Ok(()) as Result<(), Error>
+            Ok::<_, Error>(())
         });
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
@@ -603,7 +603,7 @@ mod tests {
                     }
                 }
             }
-            Ok(()) as Result<(), Error>
+            Ok::<_, Error>(())
         });
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
@@ -795,7 +795,7 @@ mod tests {
                     }
                 }
             }
-            Ok(()) as Result<(), Error>
+            Ok::<_, Error>(())
         });
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()

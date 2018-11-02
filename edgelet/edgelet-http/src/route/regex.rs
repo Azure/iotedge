@@ -21,12 +21,10 @@ pub struct Parameters {
 
 impl Parameters {
     pub fn new() -> Self {
-        Parameters {
-            captures: Vec::new(),
-        }
+        Parameters { captures: vec![] }
     }
 
-    pub fn with_captures<I>(captures: I) -> Parameters
+    pub fn with_captures<I>(captures: I) -> Self
     where
         I: IntoCaptures,
     {
@@ -130,8 +128,10 @@ fn match_route(re: &Regex, path: &str) -> Option<Parameters> {
             let val = name
                 .map(|n| cap.name(n).expect("missing name"))
                 .and_then(|v| percent_decode(v.as_str().as_bytes()).decode_utf8().ok())
-                .map(|v| v.to_string())
-                .unwrap_or_else(|| cap.get(i).expect("missing capture").as_str().to_owned());
+                .map_or_else(
+                    || cap.get(i).expect("missing capture").as_str().to_owned(),
+                    |v| v.to_string(),
+                );
             captures.push((name.map(|s| s.to_owned()), val));
         }
         Parameters { captures }

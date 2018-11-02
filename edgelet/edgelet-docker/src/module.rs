@@ -22,11 +22,7 @@ pub struct DockerModule<C: Connect> {
 }
 
 impl<C: Connect> DockerModule<C> {
-    pub fn new(
-        client: DockerClient<C>,
-        name: &str,
-        config: DockerConfig,
-    ) -> Result<DockerModule<C>> {
+    pub fn new(client: DockerClient<C>, name: &str, config: DockerConfig) -> Result<Self> {
         Ok(DockerModule {
             client,
             name: ensure_not_empty!(name.to_string()),
@@ -69,40 +65,38 @@ impl<C: 'static + Connect> Module for DockerModule<C> {
                 .container_inspect(&self.name, false)
                 .map(|resp| {
                     resp.state()
-                        .map(|state| {
+                        .map_or_else(ModuleRuntimeState::default, |state| {
                             let status = state
                                 .status()
-                                .and_then(|status| match status.as_ref() {
-                                    "created" => Some(ModuleStatus::Stopped),
-                                    "paused" => Some(ModuleStatus::Stopped),
-                                    "restarting" => Some(ModuleStatus::Stopped),
-                                    "removing" => status_from_exit_code(state.exit_code().cloned()),
-                                    "dead" => status_from_exit_code(state.exit_code().cloned()),
-                                    "exited" => status_from_exit_code(state.exit_code().cloned()),
+                                .and_then(|status| match status {
+                                    "created" | "paused" | "restarting" => {
+                                        Some(ModuleStatus::Stopped)
+                                    }
+                                    "removing" | "dead" | "exited" => {
+                                        status_from_exit_code(state.exit_code().cloned())
+                                    }
                                     "running" => Some(ModuleStatus::Running),
                                     _ => Some(ModuleStatus::Unknown),
                                 }).unwrap_or_else(|| ModuleStatus::Unknown);
                             ModuleRuntimeState::default()
                                 .with_status(status)
                                 .with_exit_code(state.exit_code().cloned())
-                                .with_status_description(state.status().cloned())
+                                .with_status_description(state.status().map(ToOwned::to_owned))
                                 .with_started_at(
                                     state
                                         .started_at()
-                                        .and_then(|d| if d != MIN_DATE { Some(d) } else { None })
+                                        .and_then(|d| if d == MIN_DATE { None } else { Some(d) })
                                         .and_then(|started_at| DateTime::from_str(started_at).ok()),
                                 ).with_finished_at(
                                     state
                                         .finished_at()
-                                        .and_then(|d| if d != MIN_DATE { Some(d) } else { None })
+                                        .and_then(|d| if d == MIN_DATE { None } else { Some(d) })
                                         .and_then(|finished_at| {
                                             DateTime::from_str(finished_at).ok()
                                         }),
-                                ).with_image_id(resp.id().cloned())
-                                .with_pid(
-                                    &state.pid().map(|val| Pid::Value(*val)).unwrap_or(Pid::None),
-                                )
-                        }).unwrap_or_else(ModuleRuntimeState::default)
+                                ).with_image_id(resp.id().map(ToOwned::to_owned))
+                                .with_pid(state.pid().map_or(Pid::None, Pid::Value))
+                        })
                 }).map_err(Error::from),
         )
     }
@@ -192,7 +186,7 @@ mod tests {
     fn module_status() {
         let inputs = get_inputs();
 
-        for &(docker_status, exit_code, ref module_status) in inputs.iter() {
+        for &(docker_status, exit_code, ref module_status) in &inputs {
             let docker_module = DockerModule::new(
                 create_api_client(
                     InlineResponse200::new().with_state(
@@ -246,7 +240,7 @@ mod tests {
             finished_at,
             runtime_state.finished_at().unwrap().to_rfc3339()
         );
-        assert_eq!(Pid::Value(1234), *runtime_state.pid());
+        assert_eq!(Pid::Value(1234), runtime_state.pid());
     }
 
     #[test]

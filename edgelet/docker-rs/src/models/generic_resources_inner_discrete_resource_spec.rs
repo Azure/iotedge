@@ -20,7 +20,7 @@ pub struct GenericResourcesInnerDiscreteResourceSpec {
 }
 
 impl GenericResourcesInnerDiscreteResourceSpec {
-    pub fn new() -> GenericResourcesInnerDiscreteResourceSpec {
+    pub fn new() -> Self {
         GenericResourcesInnerDiscreteResourceSpec {
             kind: None,
             value: None,
@@ -31,13 +31,13 @@ impl GenericResourcesInnerDiscreteResourceSpec {
         self.kind = Some(kind);
     }
 
-    pub fn with_kind(mut self, kind: String) -> GenericResourcesInnerDiscreteResourceSpec {
+    pub fn with_kind(mut self, kind: String) -> Self {
         self.kind = Some(kind);
         self
     }
 
-    pub fn kind(&self) -> Option<&String> {
-        self.kind.as_ref()
+    pub fn kind(&self) -> Option<&str> {
+        self.kind.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_kind(&mut self) {
@@ -48,7 +48,7 @@ impl GenericResourcesInnerDiscreteResourceSpec {
         self.value = Some(value);
     }
 
-    pub fn with_value(mut self, value: i64) -> GenericResourcesInnerDiscreteResourceSpec {
+    pub fn with_value(mut self, value: i64) -> Self {
         self.value = Some(value);
         self
     }

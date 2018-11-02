@@ -57,7 +57,7 @@ impl Error {
 }
 
 impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Error {
+    fn from(kind: ErrorKind) -> Self {
         Error {
             inner: Context::new(kind),
         }
@@ -65,13 +65,13 @@ impl From<ErrorKind> for Error {
 }
 
 impl From<Context<ErrorKind>> for Error {
-    fn from(inner: Context<ErrorKind>) -> Error {
+    fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
     }
 }
 
 impl From<serde_json::Error> for Error {
-    fn from(error: serde_json::Error) -> Error {
+    fn from(error: serde_json::Error) -> Self {
         Error {
             inner: error.context(ErrorKind::Serde),
         }
