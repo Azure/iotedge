@@ -58,11 +58,11 @@ where
                             .context(ErrorKind::BadBody)
                             .map_err(Error::from)
                             .and_then(|cert_req| {
-                                match cert_req.expiration() {
-                                    None => Ok(max_duration),
-                                    Some(exp) => compute_validity(exp, max_duration),
-                                }.map(|expiration| expiration)
-                                .map_err(Error::from)
+                                cert_req
+                                    .expiration()
+                                    .map(|exp| compute_validity(exp, max_duration))
+                                    .unwrap_or_else(|| Ok(max_duration))
+                                    .map_err(Error::from)
                             }).and_then(move |expiration| {
                                 let sans = vec![module_uri];
                                 let props = CertificateProperties::new(
