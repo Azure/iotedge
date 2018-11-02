@@ -2,11 +2,10 @@
 
 use failure::ResultExt;
 use futures::{future, Future, Stream};
-use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
-use http::{Request, Response, StatusCode};
+use http::{Request, Response};
 use hyper::{Body, Error as HyperError};
 use serde_json;
-use super::{cert_to_response, compute_validity};
+use super::{compute_validity, refresh_cert};
 
 use edgelet_core::{
     Certificate, CertificateProperties, CertificateType, CreateCertificate, WorkloadConfig,
@@ -64,26 +63,13 @@ where
                                     max_duration,
                                 ).map(|expiration| (cert_req, expiration))
                             }).and_then(move |(cert_req, expiration)| {
-                                hsm.destroy_certificate(alias.clone())
-                                    .map_err(Error::from)?;
                                 let props = CertificateProperties::new(
                                     ensure_range!(expiration, 0, max_duration) as u64,
                                     ensure_not_empty!(cert_req.common_name().to_string()),
                                     CertificateType::Server,
-                                    alias,
+                                    alias.clone(),
                                 );
-                                hsm.create_certificate(&props)
-                                    .map_err(Error::from)
-                                    .and_then(|cert| {
-                                        let cert = cert_to_response(&cert)?;
-                                        let body = serde_json::to_string(&cert)?;
-                                        Response::builder()
-                                            .status(StatusCode::CREATED)
-                                            .header(CONTENT_TYPE, "application/json")
-                                            .header(CONTENT_LENGTH, body.len().to_string().as_str())
-                                            .body(body.into())
-                                            .map_err(From::from)
-                                    })
+                                refresh_cert(&hsm, alias, &props)
                             }).unwrap_or_else(|e| e.into_response())
                     }).map_err(Error::from)
                     .or_else(|e| future::ok(e.into_response()));
@@ -111,6 +97,7 @@ mod tests {
     use workload::models::{
         CertificateResponse, ServerCertificateRequest, ErrorResponse
     };
+    use http::StatusCode;
     use super::*;
 
     const MAX_DURATION_SEC: u64 = 7200;

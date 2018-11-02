@@ -3,12 +3,16 @@
 use std::cmp;
 use chrono::{DateTime, Utc};
 use edgelet_core::{
-    Certificate, KeyBytes, PrivateKey,
+    Certificate, KeyBytes, PrivateKey, CertificateProperties,CreateCertificate
 };
 use error::{Error, ErrorKind, Result};
 use workload::models::{
     CertificateResponse, PrivateKey as PrivateKeyResponse,
 };
+use serde_json;
+use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use http::{Response, StatusCode};
+use hyper::{Body};
 
 mod identity;
 mod server;
@@ -44,4 +48,22 @@ fn compute_validity(expiration: &str, max_duration_sec: i64) -> Result<i64> {
                 .num_seconds();
             cmp::min(secs, max_duration_sec)
         }).map_err(Error::from)
+}
+
+fn refresh_cert<T: CreateCertificate> (hsm: &T, alias: String, props: &CertificateProperties) -> Result<Response<Body>> {
+    hsm.destroy_certificate(alias)
+        .map_err(Error::from)?;
+
+    hsm.create_certificate(props)
+        .map_err(Error::from)
+        .and_then(|cert| {
+            let cert = cert_to_response(&cert)?;
+            let body = serde_json::to_string(&cert)?;
+            Response::builder()
+                .status(StatusCode::CREATED)
+                .header(CONTENT_TYPE, "application/json")
+                .header(CONTENT_LENGTH, body.len().to_string().as_str())
+                .body(body.into())
+                .map_err(From::from)
+        })
 }
