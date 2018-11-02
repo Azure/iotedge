@@ -330,7 +330,6 @@ extern "C" {
     pub fn get_alias(handle: CERT_PROPS_HANDLE) -> *const c_char;
 }
 
-#[cfg(feature = "hsm_feature_certificate_san")]
 extern "C" {
     pub fn set_san_entries(
         handle: CERT_PROPS_HANDLE,
@@ -339,7 +338,6 @@ extern "C" {
     ) -> c_int;
 }
 
-#[cfg(feature = "hsm_feature_certificate_san")]
 extern "C" {
     pub fn get_san_entries(
         handle: CERT_PROPS_HANDLE,
