@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use super::{compute_validity, refresh_cert};
 use failure::ResultExt;
 use futures::{future, Future, Stream};
 use http::{Request, Response};
 use hyper::{Body, Error as HyperError};
 use serde_json;
-use super::{compute_validity, refresh_cert};
 
 use edgelet_core::{
     Certificate, CertificateProperties, CertificateType, CreateCertificate, WorkloadConfig,
@@ -92,16 +92,14 @@ mod tests {
     use chrono::Duration;
 
     use edgelet_core::{
-        CertificateProperties, CertificateType, CreateCertificate, KeyBytes, PrivateKey,
-        WorkloadConfig, Error as CoreError, ErrorKind as CoreErrorKind,
+        CertificateProperties, CertificateType, CreateCertificate, Error as CoreError,
+        ErrorKind as CoreErrorKind, KeyBytes, PrivateKey, WorkloadConfig,
     };
     use edgelet_test_utils::cert::TestCert;
-    use workload::models::{
-        CertificateResponse, IdentityCertificateRequest, ErrorResponse,
-    };
+    use workload::models::{CertificateResponse, ErrorResponse, IdentityCertificateRequest};
 
-    use http::StatusCode;
     use super::*;
+    use http::StatusCode;
 
     const MAX_DURATION_SEC: u64 = 7200;
 

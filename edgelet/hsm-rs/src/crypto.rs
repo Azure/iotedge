@@ -2,13 +2,13 @@
 
 use chrono::{DateTime, NaiveDateTime, Utc};
 use std::convert::AsRef;
-use std::ffi::{CStr, CString};
 #[cfg(feature = "hsm_feature_certificate_san")]
 use std::ffi::NulError;
+use std::ffi::{CStr, CString};
 use std::ops::{Deref, Drop};
-use std::os::raw::{c_uchar, c_void};
 #[cfg(feature = "hsm_feature_certificate_san")]
 use std::os::raw::c_char;
+use std::os::raw::{c_uchar, c_void};
 use std::slice;
 use std::str;
 

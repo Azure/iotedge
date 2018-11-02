@@ -1,18 +1,14 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::cmp;
 use chrono::{DateTime, Utc};
-use edgelet_core::{
-    Certificate, KeyBytes, PrivateKey, CertificateProperties,CreateCertificate
-};
+use edgelet_core::{Certificate, CertificateProperties, CreateCertificate, KeyBytes, PrivateKey};
 use error::{Error, ErrorKind, Result};
-use workload::models::{
-    CertificateResponse, PrivateKey as PrivateKeyResponse,
-};
-use serde_json;
 use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use http::{Response, StatusCode};
-use hyper::{Body};
+use hyper::Body;
+use serde_json;
+use std::cmp;
+use workload::models::{CertificateResponse, PrivateKey as PrivateKeyResponse};
 
 mod identity;
 mod server;
@@ -50,9 +46,12 @@ fn compute_validity(expiration: &str, max_duration_sec: i64) -> Result<i64> {
         }).map_err(Error::from)
 }
 
-fn refresh_cert<T: CreateCertificate> (hsm: &T, alias: String, props: &CertificateProperties) -> Result<Response<Body>> {
-    hsm.destroy_certificate(alias)
-        .map_err(Error::from)?;
+fn refresh_cert<T: CreateCertificate>(
+    hsm: &T,
+    alias: String,
+    props: &CertificateProperties,
+) -> Result<Response<Body>> {
+    hsm.destroy_certificate(alias).map_err(Error::from)?;
 
     hsm.create_certificate(props)
         .map_err(Error::from)
