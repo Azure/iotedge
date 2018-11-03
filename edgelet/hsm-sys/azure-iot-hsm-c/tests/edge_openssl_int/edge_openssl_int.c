@@ -371,12 +371,17 @@ static void test_helper_validate_extension
             // print the extension contents into the mem_bio
             X509V3_EXT_print(mem_bio, ext, 0, 0);
             sz = BIO_get_mem_data(mem_bio, &memst);
-            printf("\r\n Obtained Extension value from cert. Size:[%ld] Data:[%s]", sz, memst);
+            ASSERT_IS_TRUE_WITH_MSG((sz > 0), "Line:" TOSTRING(__LINE__));
+            ASSERT_IS_NOT_NULL_WITH_MSG(memst, "Line:" TOSTRING(__LINE__));
+            char *output_str = calloc(sz + 1, 1);
+            ASSERT_IS_NOT_NULL_WITH_MSG(output_str, "Line:" TOSTRING(__LINE__));
+            memcpy(output_str, memst, sz);
+            printf("\r\n Obtained Extension value from cert. Size:[%ld] Data:[%s]", sz, output_str);
             for (size_t idx = 0; idx < num_expted_vals; idx++)
             {
                 if (expected_vals != NULL)
                 {
-                    if (strstr(memst, (char*)expected_vals[idx]) != NULL)
+                    if (strstr(output_str, (char*)expected_vals[idx]) != NULL)
                     {
                         printf("\r\n MATCHED[%s]\r\n", (char*)expected_vals[idx]);
                         match_count++;
