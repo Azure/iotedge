@@ -341,8 +341,6 @@ static void test_helper_validate_extension
     ext_list = cert_inf->extensions;
     ASSERT_IS_TRUE_WITH_MSG((sk_X509_EXTENSION_num(ext_list) > 0), "Found zero extensions");
 
-    BIO *outbio = NULL;
-    outbio  = BIO_new_fp(stdout, BIO_NOCLOSE);
     for (int ext_idx=0; ext_idx < sk_X509_EXTENSION_num(ext_list); ext_idx++)
     {
         int sz;
@@ -366,25 +364,21 @@ static void test_helper_validate_extension
             long sz;
             char *memst = NULL;
 
-            BIO_printf(outbio, "\n Matching Extension: [%s]\n", output_buffer);
+            printf("\r\n Matching Extension: [%s]\r\n", output_buffer);
 
             BIO *mem_bio = BIO_new(BIO_s_mem());
             ASSERT_IS_NOT_NULL_WITH_MSG(mem_bio, "Line:" TOSTRING(__LINE__));
-            // initialize the mem_bio
-            BIO_reset(mem_bio);
-            BIO_puts(mem_bio, "TESTSEED ");
             // print the extension contents into the mem_bio
             X509V3_EXT_print(mem_bio, ext, 0, 0);
             sz = BIO_get_mem_data(mem_bio, &memst);
-            BIO_printf(outbio, "\n Obtained Extension Value from certificate Size:[%ld] Data:[%s]\n", sz, memst);
+            printf("\r\n Obtained Extension value from cert. Size:[%ld] Data:[%s]", sz, memst);
             for (size_t idx = 0; idx < num_expted_vals; idx++)
             {
                 if (expected_vals != NULL)
                 {
-                    //BIO_printf(outbio, "\n MATCHING[%s]\n", (char*)expected_vals[idx]);
                     if (strstr(memst, (char*)expected_vals[idx]) != NULL)
                     {
-                        BIO_printf(outbio, "\n MATCHED[%s]\n", (char*)expected_vals[idx]);
+                        printf("\r\n MATCHED[%s]\r\n", (char*)expected_vals[idx]);
                         match_count++;
                     }
                 }
@@ -392,7 +386,6 @@ static void test_helper_validate_extension
             BIO_free_all(mem_bio);
         }
     }
-    BIO_free_all(outbio);
 
     ASSERT_ARE_EQUAL_WITH_MSG(size_t, num_expted_vals, match_count,  "Match count failed");
 }
