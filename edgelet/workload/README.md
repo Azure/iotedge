@@ -21,7 +21,7 @@ All URIs are relative to *http://localhost*
 
 Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
-*WorkloadApi* | [**create_identity_certificate**](docs/WorkloadApi.md#create_identity_certificate) | **Post** /modules/{name}/genid/{genid}/certificate/identity | 
+*WorkloadApi* | [**create_identity_certificate**](docs/WorkloadApi.md#create_identity_certificate) | **Post** /modules/{name}/certificate/identity | 
 *WorkloadApi* | [**create_server_certificate**](docs/WorkloadApi.md#create_server_certificate) | **Post** /modules/{name}/genid/{genid}/certificate/server | 
 *WorkloadApi* | [**decrypt**](docs/WorkloadApi.md#decrypt) | **Post** /modules/{name}/genid/{genid}/decrypt | 
 *WorkloadApi* | [**encrypt**](docs/WorkloadApi.md#encrypt) | **Post** /modules/{name}/genid/{genid}/encrypt | 
@@ -37,6 +37,7 @@ Class | Method | HTTP request | Description
  - [EncryptRequest](docs/EncryptRequest.md)
  - [EncryptResponse](docs/EncryptResponse.md)
  - [ErrorResponse](docs/ErrorResponse.md)
+ - [IdentityCertificateRequest](docs/IdentityCertificateRequest.md)
  - [PrivateKey](docs/PrivateKey.md)
  - [ServerCertificateRequest](docs/ServerCertificateRequest.md)
  - [SignRequest](docs/SignRequest.md)

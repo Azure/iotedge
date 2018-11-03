@@ -216,6 +216,7 @@ fn make_certification_props(props: &CertificateProperties) -> Result<CERT_PROPS_
             return Err(ErrorKind::CertProps)?;
         }
     }
+
     Ok(handle)
 }
 

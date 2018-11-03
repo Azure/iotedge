@@ -34,7 +34,7 @@ fn bindgen_test_supported_hsm_version() {
             .to_string_lossy()
             .into_owned()
     };
-    assert_eq!(String::from("1.0.0"), result);
+    assert_eq!(String::from("1.0.1"), result);
 }
 
 pub type HSM_CLIENT_HANDLE = *mut c_void;
@@ -329,6 +329,7 @@ extern "C" {
 extern "C" {
     pub fn get_alias(handle: CERT_PROPS_HANDLE) -> *const c_char;
 }
+
 extern "C" {
     pub fn set_san_entries(
         handle: CERT_PROPS_HANDLE,
@@ -336,12 +337,14 @@ extern "C" {
         num_entries: usize,
     ) -> c_int;
 }
+
 extern "C" {
     pub fn get_san_entries(
         handle: CERT_PROPS_HANDLE,
         num_entries: *mut usize,
     ) -> *const *const c_char;
 }
+
 /// API generates a X.509 certificate and private key pair using the supplied
 /// certificate properties. Any CA certificates are expected to by issued by
 /// the Device CA. Other certificates may be issued by any intermediate CA

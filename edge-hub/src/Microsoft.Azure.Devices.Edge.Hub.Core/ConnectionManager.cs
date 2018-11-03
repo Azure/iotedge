@@ -108,7 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             Events.GetCloudConnection(device.Identity, cloudConnectionTry);
             Try<ICloudProxy> cloudProxyTry = GetCloudProxyFromCloudConnection(cloudConnectionTry, device.Identity);
-            return Option.Maybe(cloudProxyTry.Value);
+            return cloudProxyTry.Ok();
         }
 
         public void AddSubscription(string id, DeviceSubscription deviceSubscription)

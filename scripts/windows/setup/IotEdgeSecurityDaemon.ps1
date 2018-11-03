@@ -66,6 +66,18 @@ function Install-SecurityDaemon {
         return
     }
 
+    if (-not (Test-IotCore)) {
+        # `Invoke-WebRequest` may not use TLS 1.2 by default, depending on the specific release of Windows 10.
+        # This will be a problem if the release is downloaded from github.com since it only provides TLS 1.2.
+        # So enable TLS 1.2 in `[System.Net.ServicePointManager]::SecurityProtocol`, which enables it (in the current PS session)
+        # for `Invoke-WebRequest` and everything else that uses `System.Net.HttpWebRequest`
+        #
+        # This is not needed on IoT Core since its `Invoke-WebRequest` supports TLS 1.2 by default. It *can't* be done
+        # for IoT Core anyway because the `System.Net.ServicePointManager` type doesn't exist in its version of dotnet.
+        [System.Net.ServicePointManager]::SecurityProtocol =
+            [System.Net.ServicePointManager]::SecurityProtocol -bor [System.Net.SecurityProtocolType]::Tls12
+    }
+
     $usesSeparateDllForEventLogMessages = Get-SecurityDaemon
     Set-SystemPath
     Get-VcRuntime
@@ -146,7 +158,7 @@ function Test-IsDockerRunning {
         }
     } else {
         Write-Host "Docker is not running." -ForegroundColor "Red"
-        if ((Get-Item "HKLM:\Software\Microsoft\Windows NT\CurrentVersion").GetValue("EditionID") -eq "IoTUAP") {
+        if (Test-IotCore) {
             Write-Host ("Please visit https://docs.microsoft.com/en-us/azure/iot-edge/how-to-install-iot-core " +
                 "for assistance with installing Docker on IoT Core.") `
                 -ForegroundColor "Red"
@@ -240,7 +252,7 @@ function Get-SecurityDaemon {
         else {
             New-Item -Type Directory 'C:\ProgramData\iotedge' | Out-Null
             Expand-Archive "$ArchivePath" "C:\ProgramData\iotedge" -Force
-            Copy-Item "C:\ProgramData\iotedge\iotedged-windows\*" "C:\ProgramData\iotedge" -Force
+            Copy-Item "C:\ProgramData\iotedge\iotedged-windows\*" "C:\ProgramData\iotedge" -Force -Recurse
         }
 
         if (Test-Path 'C:\ProgramData\iotedge\iotedged_eventlog_messages.dll') {
@@ -364,7 +376,7 @@ function Reset-SystemPath {
 }
 
 function Get-VcRuntime {
-    if ((Get-Item "HKLM:\Software\Microsoft\Windows NT\CurrentVersion").GetValue("EditionID") -eq "IoTUAP") {
+    if (Test-IotCore) {
         Write-Host "Skipped vcruntime download on IoT Core." -ForegroundColor "Green"
         return
     }
@@ -645,6 +657,10 @@ function Invoke-Native {
             $out
         }
     }
+}
+
+function Test-IotCore {
+    (Get-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion').'EditionID' -eq 'IoTUAP'
 }
 
 Export-ModuleMember -Function Install-SecurityDaemon, Uninstall-SecurityDaemon

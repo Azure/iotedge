@@ -54,6 +54,13 @@ pub fn parse_query(query: &str) -> HashMap<&str, &str> {
         }).collect()
 }
 
+pub fn prepare_cert_uri_module(hub_name: &str, device_id: &str, module_id: &str) -> String {
+    format!(
+        "URI: azureiot://{}/devices/{}/module/{}",
+        hub_name, device_id, module_id
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -105,4 +112,13 @@ mod tests {
         assert_eq!(map.get("k4"), Some(&"10=20"));
         assert_eq!(map.get("bling"), Some(&""));
     }
+
+    #[test]
+    fn validate_cert_uri_module() {
+        assert_eq!(
+            "URI: azureiot://hub_id/devices/did/module/mid",
+            prepare_cert_uri_module("hub_id", "did", "mid")
+        );
+    }
+
 }
