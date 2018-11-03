@@ -329,6 +329,7 @@ static void test_helper_validate_extension
 (
     X509* input_test_cert,
     const char *ext_name,
+    size_t expected_num_ext_name_entries,
     const char * const* expected_vals,
     size_t num_expted_vals
 )
@@ -364,7 +365,7 @@ static void test_helper_validate_extension
             long sz;
             char *memst = NULL;
 
-            printf("\r\n Matching Extension: [%s]\r\n", output_buffer);
+            printf("\r\nTesting Extension Contents: [%s]\r\n", output_buffer);
 
             BIO *mem_bio = BIO_new(BIO_s_mem());
             ASSERT_IS_NOT_NULL_WITH_MSG(mem_bio, "Line:" TOSTRING(__LINE__));
@@ -388,10 +389,13 @@ static void test_helper_validate_extension
                     }
                 }
             }
+            free(output_str);
             BIO_free_all(mem_bio);
+            nid_match++;
         }
     }
 
+    ASSERT_ARE_EQUAL_WITH_MSG(size_t, expected_num_ext_name_entries, nid_match,  "NID match count failed");
     ASSERT_ARE_EQUAL_WITH_MSG(size_t, num_expted_vals, match_count,  "Match count failed");
 }
 
@@ -476,10 +480,10 @@ static void test_helper_validate_all_x509_extensions
         expected_ext_key_usage_vals[idx++] = TEST_X509_KEY_EXT_USAGE_SERVER_AUTH;
     }
     X509* cert = test_helper_load_certificate_file(cert_file_path);
-    test_helper_validate_extension(cert, TEST_X509_EXT_BASIC_CONSTRIANTS, expected_basic_constraints_vals, expected_basic_constraints_val_sizes);
-    test_helper_validate_extension(cert, TEST_X509_EXT_SAN, sans, expected_san_entry_val_sizes);
-    test_helper_validate_extension(cert, TEST_X509_EXT_KEY_USAGE, expected_key_usage_vals, expected_key_usage_vals_size);
-    test_helper_validate_extension(cert, TEST_X509_EXT_KEY_EXT_USAGE, expected_ext_key_usage_vals, expected_ext_key_usage_vals_size);
+    test_helper_validate_extension(cert, TEST_X509_EXT_BASIC_CONSTRIANTS, 1, expected_basic_constraints_vals, expected_basic_constraints_val_sizes);
+    test_helper_validate_extension(cert, TEST_X509_EXT_SAN, expected_san_entry_val_sizes, sans, expected_san_entry_val_sizes);
+    test_helper_validate_extension(cert, TEST_X509_EXT_KEY_USAGE, 1, expected_key_usage_vals, expected_key_usage_vals_size);
+    test_helper_validate_extension(cert, TEST_X509_EXT_KEY_EXT_USAGE, (expected_ext_key_usage_vals_size>0)?1:0, expected_ext_key_usage_vals, expected_ext_key_usage_vals_size);
 
     // cleanup
     X509_free(cert);
