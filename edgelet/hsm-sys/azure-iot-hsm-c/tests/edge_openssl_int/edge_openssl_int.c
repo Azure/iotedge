@@ -106,6 +106,8 @@ static char *TEST_CHAIN_FILE_PATH        = NULL;
 #define TEST_X509_EXT_KEY_USAGE                 "X509v3 Key Usage"
 #define TEST_X509_EXT_KEY_EXT_USAGE             "X509v3 Extended Key Usage"
 #define TEST_X509_EXT_SAN                       "X509v3 Subject Alternative Name"
+#define TEST_X509_EXT_SUBJ_KEY_IDENTIFIER       "X509v3 Subject Key Identifier"
+#define TEST_X509_EXT_AUTH_KEY_IDENTIFIER       "X509v3 Authority Key Identifier"
 #define TEST_X509_KEY_USAGE_DIG_SIG             "Digital Signature"
 #define TEST_X509_KEY_USAGE_NON_REPUDIATION     "Non Repudiation"
 #define TEST_X509_KEY_USAGE_KEY_ENCIPHER        "Key Encipherment"
@@ -484,6 +486,8 @@ static void test_helper_validate_all_x509_extensions
     test_helper_validate_extension(cert, TEST_X509_EXT_SAN, expected_san_entry_val_sizes, sans, expected_san_entry_val_sizes);
     test_helper_validate_extension(cert, TEST_X509_EXT_KEY_USAGE, 1, expected_key_usage_vals, expected_key_usage_vals_size);
     test_helper_validate_extension(cert, TEST_X509_EXT_KEY_EXT_USAGE, (expected_ext_key_usage_vals_size>0)?1:0, expected_ext_key_usage_vals, expected_ext_key_usage_vals_size);
+    test_helper_validate_extension(cert, TEST_X509_EXT_SUBJ_KEY_IDENTIFIER, 1, NULL, 0);
+    test_helper_validate_extension(cert, TEST_X509_EXT_AUTH_KEY_IDENTIFIER, 1, NULL, 0);
 
     // cleanup
     X509_free(cert);
