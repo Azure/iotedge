@@ -367,7 +367,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                                 {
                                     using (await this.cloudConnectionLock.LockAsync())
                                     {
-
                                         return await this.CloudConnection.Filter(cp => cp.IsActive)
                                             .Map(c => Task.FromResult(Try.Success(c)))
                                             .GetOrElse(async () =>
