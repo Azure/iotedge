@@ -355,6 +355,10 @@ pub trait ModuleRuntime {
     type CreateFuture: Future<Item = (), Error = Self::Error> + Send;
     type InitFuture: Future<Item = (), Error = Self::Error> + Send;
     type ListFuture: Future<Item = Vec<Self::Module>, Error = Self::Error> + Send;
+    type ListWithDetailsStream: Stream<
+            Item = (Self::Module, ModuleRuntimeState),
+            Error = Self::Error,
+        > + Send;
     type LogsFuture: Future<Item = Self::Logs, Error = Self::Error> + Send;
     type RemoveFuture: Future<Item = (), Error = Self::Error> + Send;
     type RestartFuture: Future<Item = (), Error = Self::Error> + Send;
@@ -371,6 +375,7 @@ pub trait ModuleRuntime {
     fn remove(&self, id: &str) -> Self::RemoveFuture;
     fn system_info(&self) -> Self::SystemInfoFuture;
     fn list(&self) -> Self::ListFuture;
+    fn list_with_details(&self) -> Self::ListWithDetailsStream;
     fn logs(&self, id: &str, options: &LogOptions) -> Self::LogsFuture;
     fn registry(&self) -> &Self::ModuleRegistry;
     fn remove_all(&self) -> Self::RemoveAllFuture;

@@ -455,7 +455,7 @@ BEGIN_TEST_SUITE(hsm_certificate_props_ut)
         CERT_PROPS_HANDLE cert_handle = cert_properties_create();
 
         //act
-        int result = set_certificate_type(cert_handle, 500);
+        int result = set_certificate_type(cert_handle, (CERTIFICATE_TYPE)50);
 
         //assert
         ASSERT_ARE_NOT_EQUAL(int, 0, result);

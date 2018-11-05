@@ -66,11 +66,23 @@ function Install-SecurityDaemon {
         return
     }
 
-    Get-SecurityDaemon
+    if (-not (Test-IotCore)) {
+        # `Invoke-WebRequest` may not use TLS 1.2 by default, depending on the specific release of Windows 10.
+        # This will be a problem if the release is downloaded from github.com since it only provides TLS 1.2.
+        # So enable TLS 1.2 in `[System.Net.ServicePointManager]::SecurityProtocol`, which enables it (in the current PS session)
+        # for `Invoke-WebRequest` and everything else that uses `System.Net.HttpWebRequest`
+        #
+        # This is not needed on IoT Core since its `Invoke-WebRequest` supports TLS 1.2 by default. It *can't* be done
+        # for IoT Core anyway because the `System.Net.ServicePointManager` type doesn't exist in its version of dotnet.
+        [System.Net.ServicePointManager]::SecurityProtocol =
+            [System.Net.ServicePointManager]::SecurityProtocol -bor [System.Net.SecurityProtocolType]::Tls12
+    }
+
+    $usesSeparateDllForEventLogMessages = Get-SecurityDaemon
     Set-SystemPath
     Get-VcRuntime
     Add-FirewallExceptions
-    Add-IotEdgeRegistryKey
+    Add-IotEdgeRegistryKey -UsesSeparateDllForEventLogMessages:$usesSeparateDllForEventLogMessages
 
     Set-ProvisioningMode
     Set-AgentImage
@@ -146,7 +158,7 @@ function Test-IsDockerRunning {
         }
     } else {
         Write-Host "Docker is not running." -ForegroundColor "Red"
-        if ((Get-Item "HKLM:\Software\Microsoft\Windows NT\CurrentVersion").GetValue("EditionID") -eq "IoTUAP") {
+        if (Test-IotCore) {
             Write-Host ("Please visit https://docs.microsoft.com/en-us/azure/iot-edge/how-to-install-iot-core " +
                 "for assistance with installing Docker on IoT Core.") `
                 -ForegroundColor "Red"
@@ -238,10 +250,52 @@ function Get-SecurityDaemon {
             Copy-Item "$ArchivePath\*" "C:\ProgramData\iotedge" -Force
         }
         else {
-            Invoke-Native "mkdir C:\ProgramData\iotedge"
+            New-Item -Type Directory 'C:\ProgramData\iotedge' | Out-Null
             Expand-Archive "$ArchivePath" "C:\ProgramData\iotedge" -Force
-            Copy-Item "C:\ProgramData\iotedge\iotedged-windows\*" "C:\ProgramData\iotedge" -Force
+            Copy-Item "C:\ProgramData\iotedge\iotedged-windows\*" "C:\ProgramData\iotedge" -Force -Recurse
         }
+
+        if (Test-Path 'C:\ProgramData\iotedge\iotedged_eventlog_messages.dll') {
+            # This release uses iotedged_eventlog_messages.dll as the eventlog message file
+
+            New-Item -Type Directory 'C:\ProgramData\iotedge-eventlog' -ErrorAction SilentlyContinue -ErrorVariable CmdErr | Out-Null
+            if ($? -or ($CmdErr.FullyQualifiedErrorId -eq 'DirectoryExist,Microsoft.PowerShell.Commands.NewItemCommand')) {
+                Move-Item `
+                    'C:\ProgramData\iotedge\iotedged_eventlog_messages.dll' `
+                    'C:\ProgramData\iotedge-eventlog\iotedged_eventlog_messages.dll' `
+                    -Force -ErrorAction SilentlyContinue -ErrorVariable CmdErr
+                if ($?) {
+                    # Copied eventlog messages DLL successfully
+                }
+                elseif (
+                    ($CmdErr.Exception -is [System.IO.IOException]) -and
+                    ($CmdErr.Exception.HResult -eq 0x800700b7) # HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS)
+                ) {
+                    # ERROR_ALREADY_EXISTS despite Move-Item -Force likely means the DLL is held open by something,
+                    # probably the Windows EventLog service or some other process.
+                    #
+                    # It's not really a problem to have an old DLL from a previous installation lying around, since the message IDs
+                    # and format strings haven't changed. Even if they have changed, it just means some logs in the event log will
+                    # not display correcty.
+                    #
+                    # Don't bother warning the user about it.
+                }
+                else {
+                    throw $CmdErr
+                }
+            }
+            else {
+                throw $CmdErr
+            }
+
+            $usesSeparateDllForEventLogMessages = $true
+        }
+        else {
+            # This release uses iotedged.exe as the eventlog message file
+            $usesSeparateDllForEventLogMessages = $false
+        }
+
+        return $usesSeparateDllForEventLogMessages
     }
     finally {
         Remove-Item "C:\ProgramData\iotedge\iotedged-windows" -Recurse -Force -ErrorAction "SilentlyContinue"
@@ -259,18 +313,32 @@ function Remove-SecurityDaemonResources {
     Write-Verbose "$(if ($?) { "Deleted registry key '$LogKey'" } else { $CmdErr })"
 
     $EdgePath = "C:\ProgramData\iotedge"
+    $EdgeEventLogMessagesPath = "C:\ProgramData\iotedge-eventlog"
+
     Remove-Item -Recurse $EdgePath -ErrorAction SilentlyContinue -ErrorVariable CmdErr
     if ($?) {
         Write-Verbose "Deleted install directory '$EdgePath'"
     }
-    else {
+    elseif ($CmdErr.FullyQualifiedErrorId -ne "PathNotFound,Microsoft.PowerShell.Commands.RemoveItemCommand") {
         Write-Verbose "$CmdErr"
-        if ($CmdErr.FullyQualifiedErrorId -ne "PathNotFound,Microsoft.PowerShell.Commands.RemoveItemCommand") {
-            Write-Host ("Could not delete install directory '$EdgePath'. Please reboot " +
-                "your device and run Uninstall-SecurityDaemon again with '-Force'.") `
-                -ForegroundColor "Red"
-            $success = $false
-        }
+        Write-Host ("Could not delete install directory '$EdgePath'. Please reboot " +
+            "your device and run Uninstall-SecurityDaemon again with '-Force'.") `
+            -ForegroundColor "Red"
+        $success = $false
+    }
+
+    Remove-Item -Recurse $EdgeEventLogMessagesPath -ErrorAction SilentlyContinue -ErrorVariable CmdErr
+    if ($?) {
+        Write-Verbose "Deleted install directory '$EdgeEventLogMessagesPath'"
+    }
+    elseif ($CmdErr.FullyQualifiedErrorId -ne "PathNotFound,Microsoft.PowerShell.Commands.RemoveItemCommand") {
+        Write-Warning "Could not delete '$EdgeEventLogMessagesPath'."
+        Write-Warning "If you're reinstalling or updating IoT Edge, then this is safe to ignore."
+        Write-Warning ("Otherwise, please close Event Viewer, or any PowerShell windows where you ran Get-WinEvent, " +
+            "then run Uninstall-SecurityDaemon again with '-Force'.")
+    }
+    else {
+        $success = $false
     }
 
     $success
@@ -308,7 +376,7 @@ function Reset-SystemPath {
 }
 
 function Get-VcRuntime {
-    if ((Get-Item "HKLM:\Software\Microsoft\Windows NT\CurrentVersion").GetValue("EditionID") -eq "IoTUAP") {
+    if (Test-IotCore) {
         Write-Host "Skipped vcruntime download on IoT Core." -ForegroundColor "Green"
         return
     }
@@ -374,13 +442,19 @@ function Remove-FirewallExceptions {
     Write-Verbose "$(if ($?) { "Removed firewall exceptions" } else { $CmdErr })"
 }
 
-function Add-IotEdgeRegistryKey {
+function Add-IotEdgeRegistryKey([switch] $UsesSeparateDllForEventLogMessages) {
+    if ($UsesSeparateDllForEventLogMessages) {
+        $messageFilePath = 'C:\ProgramData\iotedge-eventlog\iotedged_eventlog_messages.dll'
+    }
+    else {
+        $messageFilePath = 'C:\ProgramData\iotedge\iotedged.exe'
+    }
     $RegistryContent = @(
         "Windows Registry Editor Version 5.00",
         "",
         "[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\EventLog\Application\iotedged]"
         "`"CustomSource`"=dword:00000001"
-        "`"EventMessageFile`"=`"C:\\ProgramData\\iotedge\\iotedged.exe`""
+        "`"EventMessageFile`"=`"$($messageFilePath -replace '\\', '\\')`""
         "`"TypesSupported`"=dword:00000007")
     try {
         $RegistryContent | Set-Content "$env:TEMP\iotedge.reg" -Force
@@ -583,6 +657,10 @@ function Invoke-Native {
             $out
         }
     }
+}
+
+function Test-IotCore {
+    (Get-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion').'EditionID' -eq 'IoTUAP'
 }
 
 Export-ModuleMember -Function Install-SecurityDaemon, Uninstall-SecurityDaemon

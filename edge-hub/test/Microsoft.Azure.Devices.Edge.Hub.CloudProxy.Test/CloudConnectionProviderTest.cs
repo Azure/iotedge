@@ -50,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var clientCredentials1 = new SharedKeyCredentials(deviceIdentity1, "dummyConnStr", null);
             Try<ICloudConnection> result = await cloudConnectionProvider.Connect(clientCredentials1, null);
             Assert.False(result.Success);
-            Assert.IsType<AggregateException>(result.Exception);
+            Assert.IsType<InvalidOperationException>(result.Exception);
 
             string deviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("device1ConnStrKey");
             // Change the connection string key, deliberately.
@@ -94,15 +94,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                new ITransportSettings[]
                {
                    new AmqpTransportSettings(TransportType.Amqp_Tcp_Only)
-                   {
-                       AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings
-                       {
-                           Pooling = true,
-                           MaxPoolSize = 20,
-                           ConnectionIdleTimeout = TimeSpan.FromSeconds(5)
-                       }
-                   },
-                   new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only)
                    {
                        AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings
                        {

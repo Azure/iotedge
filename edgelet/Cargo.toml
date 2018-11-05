@@ -16,6 +16,7 @@ members = [
     "hyper-named-pipe",
     "iotedge",
     "iotedged",
+    "iotedged-eventlog-messages",
     "iothubservice",
     "management",
     "provisioning",

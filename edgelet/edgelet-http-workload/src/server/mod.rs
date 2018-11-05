@@ -10,14 +10,16 @@ use std::error::Error as StdError;
 
 use edgelet_core::{
     CreateCertificate, Decrypt, Encrypt, Error as CoreError, GetTrustBundle, KeyStore, Module,
-    ModuleRuntime, Policy,
+    ModuleRuntime, Policy, WorkloadConfig,
 };
 use edgelet_http::authorization::Authorization;
 use edgelet_http::route::*;
+use edgelet_http_mgmt::ListModules;
 use failure;
 use futures::{future, Future};
 use hyper::service::{NewService, Service};
 use hyper::{Body, Error as HyperError, Request, Response};
+use serde::Serialize;
 
 use self::cert::{IdentityCertHandler, ServerCertHandler};
 use self::decrypt::DecryptHandler;
@@ -33,25 +35,29 @@ pub struct WorkloadService {
 impl WorkloadService {
     // clippy bug: https://github.com/rust-lang-nursery/rust-clippy/issues/3220
     #[cfg_attr(feature = "cargo-clippy", allow(new_ret_no_self))]
-    pub fn new<K, H, M>(
+    pub fn new<K, H, M, W>(
         key_store: &K,
         hsm: H,
         runtime: &M,
+        config: W,
     ) -> impl Future<Item = Self, Error = failure::Error>
     where
-        K: 'static + KeyStore + Clone + Send + Sync,
-        H: 'static + CreateCertificate + Decrypt + Encrypt + GetTrustBundle + Clone + Send + Sync,
-        M: 'static + ModuleRuntime + Clone + Send + Sync,
+        K: KeyStore + Clone + Send + Sync + 'static,
+        H: CreateCertificate + Decrypt + Encrypt + GetTrustBundle + Clone + Send + Sync + 'static,
+        M: ModuleRuntime + Clone + Send + Sync + 'static,
         M::Error: Into<CoreError>,
+        <M::Module as Module>::Config: Serialize,
         <M::Module as Module>::Error: Into<CoreError>,
         M::Logs: Into<Body>,
+        W: WorkloadConfig + Clone + Send + Sync + 'static,
     {
         let router = router!(
+            get    "/modules" => Authorization::new(ListModules::new(runtime.clone()), Policy::Anonymous, runtime.clone()),
             post   "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/sign" => Authorization::new(SignHandler::new(key_store.clone()), Policy::Caller, runtime.clone()),
             post   "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/decrypt" => Authorization::new(DecryptHandler::new(hsm.clone()), Policy::Caller, runtime.clone()),
             post   "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/encrypt" => Authorization::new(EncryptHandler::new(hsm.clone()), Policy::Caller, runtime.clone()),
-            post   "/modules/(?P<name>[^/]+)/certificate/identity" => Authorization::new(IdentityCertHandler, Policy::Caller, runtime.clone()),
-            post   "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/certificate/server" => Authorization::new(ServerCertHandler::new(hsm.clone()), Policy::Caller, runtime.clone()),
+            post   "/modules/(?P<name>[^/]+)/certificate/identity" => Authorization::new(IdentityCertHandler::new(hsm.clone(), config.clone()), Policy::Caller, runtime.clone()),
+            post   "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/certificate/server" => Authorization::new(ServerCertHandler::new(hsm.clone(), config), Policy::Caller, runtime.clone()),
 
             get    "/trust-bundle" => Authorization::new(TrustBundleHandler::new(hsm), Policy::Anonymous, runtime.clone()),
         );

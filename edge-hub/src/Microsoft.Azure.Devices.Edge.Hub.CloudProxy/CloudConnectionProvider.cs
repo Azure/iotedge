@@ -105,15 +105,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                                     MaxPoolSize = (uint)connectionPoolSize,
                                     ConnectionIdleTimeout = MinAmqpConnectionMuxIdleTimeout
                                 }
-                            },
-                            new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only)
-                            {
-                                AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings
-                                {
-                                    Pooling = true,
-                                    MaxPoolSize = (uint)connectionPoolSize,
-                                    ConnectionIdleTimeout = MinAmqpConnectionMuxIdleTimeout
-                                }
                             }
                         });
         }
