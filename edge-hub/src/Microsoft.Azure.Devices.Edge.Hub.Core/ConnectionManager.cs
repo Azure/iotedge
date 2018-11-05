@@ -347,16 +347,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 Preconditions.CheckNotNull(cloudConnectionCreator, nameof(cloudConnectionCreator));
 
-                async Task<Try<ICloudConnection>> CloudConnectionCreator()
-                {
-                    Try<ICloudConnection> cloudConnection = await cloudConnectionCreator(this);
-                    if (cloudConnection.Success)
-                    {
-                        this.CloudConnection = Option.Some(cloudConnection.Value);
-                    }
-                    return cloudConnection;
-                }
-
                 return await this.CloudConnection.Filter(cp => cp.IsActive)
                     .Map(c => Task.FromResult(Try.Success(c)))
                     .GetOrElse(async () =>
@@ -375,10 +365,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                                                     .GetOrElse(
                                                         async () =>
                                                         {
-                                                            Task<Try<ICloudConnection>> createTask = CloudConnectionCreator();
+                                                            Task<Try<ICloudConnection>> createTask = cloudConnectionCreator(this);
                                                             this.cloudConnectionCreateTask = Option.Some(createTask);
                                                             Try<ICloudConnection> cloudConnectionResult = await createTask;
-                                                            this.cloudConnectionCreateTask = Option.None<Task<Try<ICloudConnection>>>();
+                                                            this.CloudConnection = cloudConnectionResult.Ok();
                                                             return cloudConnectionResult;
                                                         });
                                             });
