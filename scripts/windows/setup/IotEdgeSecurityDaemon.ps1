@@ -87,7 +87,6 @@ function Install-SecurityDaemon {
     Set-ProvisioningMode
     Set-AgentImage
     Set-Hostname
-    Set-GatewayAddress
     Set-MobyNetwork
     Install-IotEdgeService
 
@@ -547,37 +546,6 @@ function Set-Hostname {
     $ReplacementContent = "hostname: `"$Hostname`""
     ($ConfigurationYaml -replace $SelectionRegex, ($ReplacementContent -join "`n")) | Set-Content "C:\ProgramData\iotedge\config.yaml" -Force
     Write-Host "Configured device with hostname `"$Hostname`"." -ForegroundColor "Green"
-}
-
-function Set-GatewayAddress {
-    $ConfigurationYaml = Get-Content "C:\ProgramData\iotedge\config.yaml" -Raw
-    if ($ContainerOs -eq "Windows") {
-        $GatewayAddress = (Get-NetIpAddress |
-                Where-Object {$_.InterfaceAlias -like "*vEthernet (nat)*" -and $_.AddressFamily -like "IPv4"}).IPAddress
-    } else {
-        $GatewayAddress = (Get-NetIpAddress |
-                Where-Object {$_.InterfaceAlias -like "*vEthernet (DockerNAT)*" -and $_.AddressFamily -like "IPv4"}).IPAddress
-    }
-
-    $SelectionRegex = "connect:\s*management_uri:\s*`".*`"\s*workload_uri:\s*`".*`""
-    $ReplacementContent = @(
-        "connect:",
-        "  management_uri: `"http://${GatewayAddress}:15580`"",
-        "  workload_uri: `"http://${GatewayAddress}:15581`"")
-    $ConfigurationYaml = $ConfigurationYaml -replace $SelectionRegex, ($ReplacementContent -join "`n")
-
-    $SelectionRegex = "listen:\s*management_uri:\s*`".*`"\s*workload_uri:\s*`".*`""
-    $ReplacementContent = @(
-        "listen:",
-        "  management_uri: `"http://${GatewayAddress}:15580`"",
-        "  workload_uri: `"http://${GatewayAddress}:15581`"")
-    $ConfigurationYaml = $ConfigurationYaml -replace $SelectionRegex, ($ReplacementContent -join "`n")
-
-    [Environment]::SetEnvironmentVariable("IOTEDGE_HOST", "http://${GatewayAddress}:15580")
-    Invoke-Native "setx /M IOTEDGE_HOST `"http://${GatewayAddress}:15580`""
-
-    $ConfigurationYaml | Set-Content "C:\ProgramData\iotedge\config.yaml" -Force
-    Write-Host "Configured device with gateway address `"$GatewayAddress`"." -ForegroundColor "Green"
 }
 
 function Set-MobyNetwork {
