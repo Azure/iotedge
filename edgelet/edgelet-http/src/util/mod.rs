@@ -5,12 +5,12 @@ use std::io::{self, Read, Write};
 use std::net::SocketAddr;
 #[cfg(unix)]
 use std::os::unix::net::SocketAddr as UnixSocketAddr;
-#[cfg(windows)]
-use mio_uds_windows::net::SocketAddr as UnixSocketAddr;
 
 use bytes::{Buf, BufMut};
 use edgelet_core::pid::Pid;
 use futures::Poll;
+#[cfg(windows)]
+use mio_uds_windows::net::SocketAddr as UnixSocketAddr;
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::net::TcpStream;
 #[cfg(windows)]
@@ -181,18 +181,23 @@ mod tests {
         let server = UnixListener::bind(&addr).unwrap();
         let (tx, rx) = oneshot::channel();
         rt.spawn(
-            server.incoming()
+            server
+                .incoming()
                 .into_future()
                 .and_then(move |(sock, _)| {
                     tx.send(sock.unwrap()).unwrap();
                     Ok(())
-                })
-                .map_err(|e| panic!("err={:?}", e))
+                }).map_err(|e| panic!("err={:?}", e)),
         );
 
         let a = rt.block_on(UnixStream::connect(&addr)).unwrap();
         let b = rt.block_on(rx).unwrap();
-        Pair { _dir: dir, _rt: rt, a, b }
+        Pair {
+            _dir: dir,
+            _rt: rt,
+            a,
+            b,
+        }
     }
 
     #[test]

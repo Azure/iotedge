@@ -677,7 +677,8 @@ fn vol_mount_uri(config: &mut DockerConfig, uris: &[&Url]) -> Result<(), Error> 
             // On Windows we mount the parent folder because we can't mount the
             // socket files directly
             #[cfg(windows)]
-            let path = path.parent()
+            let path = path
+                .parent()
                 .ok_or_else(|| ErrorKind::InvalidUri(uri.to_string()))?;
             let path = path.to_str().unwrap().to_string();
             let bind = format!("{}:{}", &path, &path);

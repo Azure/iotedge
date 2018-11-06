@@ -10,14 +10,14 @@ use std::fs;
 use std::io;
 #[cfg(unix)]
 use std::os::unix::net::UnixListener as StdUnixListener;
-#[cfg(windows)]
-use mio_uds_windows::net::UnixListener as StdUnixListener;
 
 use futures::prelude::*;
 use hyper::server::conn::Http;
 use hyper::service::service_fn;
 use hyper::{self, Body, Request, Response};
 use hyperlocal::server::{Http as UdsHttp, Incoming as UdsIncoming};
+#[cfg(windows)]
+use mio_uds_windows::net::UnixListener as StdUnixListener;
 
 pub fn run_tcp_server<F, R>(
     ip: &str,

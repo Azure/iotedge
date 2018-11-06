@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::fmt;
-use std::str::FromStr;
 use std::path::PathBuf;
+use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -48,10 +48,7 @@ impl ModuleClient {
 
 fn get_base_path(url: &Url) -> Result<PathBuf, Error> {
     match url.scheme() {
-        "unix" => {
-            url.to_uds_file_path()
-                .map_err(Error::from)
-        }
+        "unix" => url.to_uds_file_path().map_err(Error::from),
         _ => Ok(url.as_str().into()),
     }
 }

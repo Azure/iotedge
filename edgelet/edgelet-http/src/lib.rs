@@ -276,8 +276,7 @@ impl UrlExt for Url {
         debug_assert_eq!(self.scheme(), UNIX_SCHEME);
         let mut s = self.to_string();
         s.replace_range(..4, "file");
-        let url = Url::parse(&s)
-            .map_err(|_| Error::from(ErrorKind::InvalidUri(s.clone())))?;
+        let url = Url::parse(&s).map_err(|_| Error::from(ErrorKind::InvalidUri(s.clone())))?;
         url.to_file_path()
             .map_err(|()| ErrorKind::InvalidUri(s.clone()).into())
     }

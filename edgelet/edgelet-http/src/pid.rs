@@ -106,7 +106,7 @@ mod impl_windows {
     use std::io;
     use std::os::windows::io::AsRawSocket;
     use winapi::ctypes::c_long;
-    use winapi::um::winsock2::{ioctlsocket, SOCKET_ERROR, WSAGetLastError};
+    use winapi::um::winsock2::{ioctlsocket, WSAGetLastError, SOCKET_ERROR};
 
     use super::*;
 
@@ -117,7 +117,11 @@ mod impl_windows {
         let raw_socket = sock.as_raw_socket();
         let mut pid = 0u32;
         let ret = unsafe {
-            ioctlsocket(raw_socket as _, SIO_AF_UNIX_GETPEERPID, &mut pid as *mut u32)
+            ioctlsocket(
+                raw_socket as _,
+                SIO_AF_UNIX_GETPEERPID,
+                &mut pid as *mut u32,
+            )
         };
         if ret == SOCKET_ERROR {
             Err(io::Error::from_raw_os_error(unsafe { WSAGetLastError() }))
