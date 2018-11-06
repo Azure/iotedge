@@ -266,7 +266,13 @@ impl UrlExt for Url {
     #[cfg(windows)]
     fn to_uds_file_path(&self) -> Result<PathBuf, Error> {
         // We get better handling of Windows file syntax if we parse a
-        // unix:// URL as a file:// URL.
+        // unix:// URL as a file:// URL. Specifically:
+        // - On Unix, `Url::parse("unix:///path")?.to_file_path()` succeeds and
+        //   returns "/path".
+        // - On Windows, `Url::parse("unix:///C:/path")?.to_file_path()` fails
+        //   with Err(()).
+        // - On Windows, `Url::parse("file:///C:/path")?.to_file_path()` succeeds
+        //   and returns "C:\\path".
         debug_assert_eq!(self.scheme(), UNIX_SCHEME);
         let mut s = self.to_string();
         s.replace_range(..4, "file");

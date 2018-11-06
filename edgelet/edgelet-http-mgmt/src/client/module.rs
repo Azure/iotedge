@@ -32,7 +32,7 @@ impl ModuleClient {
 
         let base_path = get_base_path(url)?;
         let mut configuration = Configuration::new(client);
-        configuration.base_path = base_path.to_str().unwrap().to_string();
+        configuration.base_path = base_path.to_str().ok_or(ErrorKind::Utf8)?.to_string();
 
         let scheme = url.scheme().to_string();
         configuration.uri_composer = Box::new(move |base_path, path| {

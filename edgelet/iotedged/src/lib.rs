@@ -673,9 +673,8 @@ fn vol_mount_uri(config: &mut DockerConfig, uris: &[&Url]) -> Result<(), Error> 
     // if the url is a domain socket URL then vol mount it into the container
     for uri in uris {
         if uri.scheme() == UNIX_SCHEME {
-            let path = uri.to_uds_file_path()
-                .map_err(Error::from)?;
-            // On Windows we mount the parent folder due to problems mounting
+            let path = uri.to_uds_file_path()?;
+            // On Windows we mount the parent folder because we can't mount the
             // socket files directly
             #[cfg(windows)]
             let path = path.parent()

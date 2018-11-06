@@ -110,6 +110,7 @@ mod impl_windows {
 
     use super::*;
 
+    // SIO_AF_UNIX_GETPEERPID is defined in the Windows header afunix.h.
     const SIO_AF_UNIX_GETPEERPID: c_long = 0x5800_0100;
 
     pub fn get_pid(sock: &UnixStream) -> io::Result<Pid> {

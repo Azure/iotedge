@@ -180,7 +180,7 @@ mod tests {
         let mut rt = Runtime::new().unwrap();
         let server = UnixListener::bind(&addr).unwrap();
         let (tx, rx) = oneshot::channel();
-        rt.spawn({
+        rt.spawn(
             server.incoming()
                 .into_future()
                 .and_then(move |(sock, _)| {
@@ -188,7 +188,7 @@ mod tests {
                     Ok(())
                 })
                 .map_err(|e| panic!("err={:?}", e))
-        });
+        );
 
         let a = rt.block_on(UnixStream::connect(&addr)).unwrap();
         let b = rt.block_on(rx).unwrap();
