@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 use chrono::{Duration, Utc};
 use chrono_humanize::{Accuracy, HumanTime, Tense};
 use edgelet_core::{Module, ModuleRuntime, ModuleRuntimeState, ModuleStatus};
-use futures::{future, Future};
+use futures::{Future, Stream};
 use tabwriter::TabWriter;
 
 use error::Error;
@@ -46,29 +46,24 @@ where
         let write = self.output.clone();
         let result = self
             .runtime
-            .list()
+            .list_with_details()
             .map_err(|e| e.into())
-            .and_then(move |list| {
-                let modules = list.clone();
-                let futures = list.into_iter().map(|m| m.runtime_state());
-                future::join_all(futures)
-                    .map_err(|e| e.into())
-                    .and_then(move |states| {
-                        let mut w = write.lock().unwrap();
-                        writeln!(w, "NAME\tSTATUS\tDESCRIPTION\tCONFIG")?;
-                        for (module, state) in modules.iter().zip(states) {
-                            writeln!(
-                                w,
-                                "{}\t{}\t{}\t{}",
-                                module.name(),
-                                state.status(),
-                                humanize_state(&state),
-                                module.config(),
-                            )?;
-                        }
-                        w.flush()?;
-                        Ok(())
-                    })
+            .collect()
+            .and_then(move |result| {
+                let mut w = write.lock().unwrap();
+                writeln!(w, "NAME\tSTATUS\tDESCRIPTION\tCONFIG")?;
+                for (module, state) in result {
+                    writeln!(
+                        w,
+                        "{}\t{}\t{}\t{}",
+                        module.name(),
+                        state.status(),
+                        humanize_state(&state),
+                        module.config(),
+                    )?;
+                }
+                w.flush()?;
+                Ok(())
             });
         Box::new(result)
     }

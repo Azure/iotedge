@@ -335,19 +335,40 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 IEntityStore<string, TwinInfo> twinStore = this.TwinStore.Expect(() => new InvalidOperationException("Missing twin store"));
                 await twinStore.Update(
-                        id,
-                        u =>
+                    id,
+                    u =>
+                    {
+                        if (u.Twin == null)
                         {
-                            string mergedJson = JsonEx.Merge(u.Twin.Properties.Reported, reported, /*treatNullAsDelete*/ true);
-                            var mergedProperty = new TwinCollection(mergedJson);
                             if (!cloudVerified)
                             {
-                                ValidateTwinCollectionSize(mergedProperty);
+                                ValidateTwinCollectionSize(reported);
                             }
-                            u.Twin.Properties.Reported = mergedProperty;
-                            Events.UpdatedCachedReportedProperties(id, u.Twin.Properties.Reported.Version, cloudVerified);
+
+                            var twinProperties = new TwinProperties
+                            {
+                                Desired = new TwinCollection(),
+                                Reported = reported
+                            };
+                            var twin = new Twin(twinProperties);
+                            Events.UpdatedCachedReportedProperties(id, reported.Version, cloudVerified);
+                            return new TwinInfo(twin, reported);
+                        }
+                        else
+                        {
+                            string mergedJson = JsonEx.Merge(u.Twin.Properties.Reported, reported, /*treatNullAsDelete*/ true);
+                            var mergedReportedProperties = new TwinCollection(mergedJson);
+
+                            if (!cloudVerified)
+                            {
+                                ValidateTwinCollectionSize(mergedReportedProperties);
+                            }
+
+                            u.Twin.Properties.Reported = mergedReportedProperties;
+                            Events.UpdatedCachedReportedProperties(id, mergedReportedProperties.Version, cloudVerified);
                             return u;
-                        });
+                        }
+                    });
             }
         }
 

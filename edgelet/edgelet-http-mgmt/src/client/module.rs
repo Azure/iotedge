@@ -11,6 +11,7 @@ use edgelet_docker::{self, DockerConfig};
 use edgelet_http::{UrlConnector, API_VERSION};
 use futures::future::{self, FutureResult};
 use futures::prelude::*;
+use futures::stream;
 use hyper::{Body, Chunk as HyperChunk, Client};
 use management::apis::client::APIClient;
 use management::apis::configuration::Configuration;
@@ -146,6 +147,8 @@ impl ModuleRuntime for ModuleClient {
     type CreateFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
     type InitFuture = FutureResult<(), Self::Error>;
     type ListFuture = Box<Future<Item = Vec<Self::Module>, Error = Self::Error> + Send>;
+    type ListWithDetailsStream =
+        Box<Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
     type LogsFuture = Box<Future<Item = Self::Logs, Error = Self::Error> + Send>;
     type RemoveFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
     type RestartFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
@@ -233,6 +236,26 @@ impl ModuleRuntime for ModuleClient {
                         ModuleDetails(m, ModuleConfig(type_, config))
                     }).collect()
             }).map_err(From::from);
+        Box::new(modules)
+    }
+
+    fn list_with_details(&self) -> Self::ListWithDetailsStream {
+        let modules = self
+            .client
+            .module_api()
+            .list_modules(API_VERSION)
+            .map_err(Error::from)
+            .map(|list| {
+                let iter = list.modules().to_owned().into_iter().map(|m| {
+                    let type_ = m.type_().clone();
+                    let config = m.config().clone();
+                    let runtime_state = runtime_status(&m)?;
+                    let module = ModuleDetails(m, ModuleConfig(type_, config));
+                    Ok((module, runtime_state))
+                });
+                stream::iter_result(iter)
+            }).into_stream()
+            .flatten();
         Box::new(modules)
     }
 

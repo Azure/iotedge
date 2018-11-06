@@ -2,7 +2,7 @@
 
 use error::Error;
 use futures::future::Either;
-use futures::{future, Future};
+use futures::{future, Future, Stream};
 use module::{Module, ModuleRuntime};
 use pid::Pid;
 
@@ -54,30 +54,23 @@ where
     ) -> impl Future<Item = bool, Error = Error> {
         name.map_or_else(
             || Either::A(future::ok(false)),
-            |name| {
-                Either::B(
-                    self.runtime
-                        .list()
-                        .map_err(|e| e.into())
-                        .and_then(move |list| {
-                            list.iter()
-                                .filter_map(|m| if m.name() == name { Some(m) } else { None })
-                                .nth(0)
-                                .map(|m| {
-                                    Either::A(m.runtime_state().map_err(|e| e.into()).and_then(
-                                        move |rs| {
-                                            let authorized = rs.pid() == &pid;
-                                            if !authorized {
-                                                info!("Request not authorized - expected caller pid: {}, actual caller pid: {}", rs.pid(), pid);
-                                            }
-                                            Ok(authorized)
-                                        },
-                                    ))
-                                })
-                                .unwrap_or_else(|| Either::B(future::ok(false)))
-                        }),
-                )
-            },
+            |name| Either::B(
+                self.runtime
+                    .list_with_details()
+                    .map_err(|e| e.into())
+                    .filter_map(move |(m, rs)| if m.name() == name { Some(rs) } else { None })
+                    .into_future()
+                    .then(move |result| match result {
+                        Ok((Some(rs), _)) => {
+                            let authorized = rs.pid() == &pid;
+                            if !authorized {
+                                info!("Request not authorized - expected caller pid: {}, actual caller pid: {}", rs.pid(), pid);
+                            }
+                            Ok(authorized)
+                        },
+                        Ok((None, _)) => Ok(false),
+                        Err((err, _)) => Err(err),
+                    })),
         )
     }
 
@@ -97,9 +90,9 @@ mod tests {
     use super::*;
     use error::{Error, ErrorKind};
     use failure::Context;
-    use futures::future;
     use futures::future::FutureResult;
     use futures::stream::Empty;
+    use futures::{future, stream};
     use module::{
         LogOptions, Module, ModuleRegistry, ModuleRuntimeState, ModuleSpec,
         SystemInfo as CoreSystemInfo,
@@ -282,6 +275,12 @@ mod tests {
         };
     }
 
+    macro_rules! notimpl_error_stream {
+        () => {
+            stream::once(Err(Error::new(Context::new(ErrorKind::ModuleRuntime))))
+        };
+    }
+
     impl Module for TestModule {
         type Config = TestConfig;
         type Error = Error;
@@ -363,6 +362,8 @@ mod tests {
         type CreateFuture = FutureResult<(), Self::Error>;
         type InitFuture = FutureResult<(), Self::Error>;
         type ListFuture = FutureResult<Vec<Self::Module>, Self::Error>;
+        type ListWithDetailsStream =
+            Box<Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
         type LogsFuture = FutureResult<Self::Logs, Self::Error>;
         type RemoveFuture = FutureResult<(), Self::Error>;
         type RestartFuture = FutureResult<(), Self::Error>;
@@ -403,6 +404,18 @@ mod tests {
             match self.behavior {
                 TestModuleListBehavior::Default => future::ok(self.modules.clone()),
                 TestModuleListBehavior::FailList => notimpl_error!(),
+            }
+        }
+
+        fn list_with_details(&self) -> Self::ListWithDetailsStream {
+            match self.behavior {
+                TestModuleListBehavior::Default => Box::new(stream::futures_unordered(
+                    self.modules
+                        .clone()
+                        .into_iter()
+                        .map(|m| m.runtime_state().map(|rs| (m, rs))),
+                )),
+                TestModuleListBehavior::FailList => Box::new(notimpl_error_stream!()),
             }
         }
 
