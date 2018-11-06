@@ -1,0 +1,79 @@
+# iotedged configuration
+iotedged:
+  image:
+    repository: azureiotedge/iotedged
+    tag: 0.1.0-alpha
+    pullPolicy: Always
+  service:
+    name: iotedged
+    type: ClusterIP
+  apiVersion: '2018-06-28'
+  # TCP ports on which iotedged should listen
+  ports:
+    management: 35000
+    workload: 35001
+  data:
+    targetPath: /var/lib/iotedge
+    # In order to benefit from HA, at a minimum the data location for iotedged
+    # should be backed by a persistent volume. Please setup a persistent volume
+    # and define a persistent volume claim and provide its reference below. If
+    # this is not provided then the iotedged pod will default to using an
+    # "emptyDir" volume which doesn't work for HA because its lifetime is linked
+    # to the pod's lifetime.
+    #
+    # persistentVolumeClaim:
+    #   name: <CLAIM NAME HERE>
+    #   storageClassName: <STORAGE CLASS NAME HERE>
+
+iotedgedProxy:
+  image:
+    repository: traefik
+    tag: v1.7-alpine
+    pullPolicy: Always
+
+# Edge Agent image configuration
+edgeAgent:
+  containerName: edgeagent
+  image:
+    repository: azureiotedge/azureiotedge-agent
+    tag: 0.1.0-alpha
+    pullPolicy: Always
+  # Optional registry credentials used in the configuration file for iotedged
+  # registryCredentials:
+  #   username: '<USERNAME>'
+  #   password: '<PASSWORD>'
+  #   serveraddress: '<SERVER ADDRESS>'
+  env:
+    # This should typically be the name by which the loadbalancer that's sitting
+    # in front of the cluster is known by. Edge Hub for example will use this name
+    # as the "Common Name" when it requests a server cert from iotedged. So this
+    # should typically be DNS resolvable by downstream devices.
+    deviceHostName: 'edge'
+    # This variable isn't really used in k8s mode.
+    networkId: 'azure-iot-edge'
+    authScheme: 'sasToken'
+    # Set this to false if you want to turn off verbose k8s call tracing
+    enableK8sServiceCallTracing: false
+    # Configure edge agent log verbosity
+    runtimeLogLevel: 'debug'
+
+# Optional registry credentials for module images
+# registryCredentials:
+#   <SERVER ADDRESS>:
+#     username: '<USERNAME>'
+#     password: '<PASSWORD>'
+
+# Azure IoT Hub device connection string
+deviceConnectionString: '<ADD DEVICE CONNECTION STRING HERE>'
+
+# The K8S namespace to use for creating all resources
+namespace: microsoft-azure-devices-edge
+
+# Deploy debug container?
+deployDebugContainer: false
+
+updateIdentityHook:
+  image:
+    repository: azureiotedge/update-identity-hook
+    tag: 0.1.0-alpha
+    pullPolicy: Always

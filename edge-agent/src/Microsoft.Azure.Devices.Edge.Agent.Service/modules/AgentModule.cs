@@ -5,8 +5,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Autofac;
+    using k8s;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using Microsoft.Azure.Devices.Edge.Agent.Core.Planners;
     using Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
@@ -196,16 +196,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<IRestartPolicyManager>()
                 .SingleInstance();
 
-            // IPlanner
-            builder.Register(
-                    async c => new HealthRestartPlanner(
-                        await c.Resolve<Task<ICommandFactory>>(),
-                        c.Resolve<IEntityStore<string, ModuleState>>(),
-                        this.intensiveCareTime,
-                        c.Resolve<IRestartPolicyManager>()) as IPlanner)
-                .As<Task<IPlanner>>()
-                .SingleInstance();
-
             // IPlanRunner
             builder.Register(c => new OrderedRetryPlanRunner(this.maxRestartCount, this.coolOffTimeUnitInSeconds, SystemTime.Instance))
                 .As<IPlanRunner>()
@@ -237,25 +227,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                     async c =>
                     {
-                        var configSource = c.Resolve<Task<IConfigSource>>();
-                        var environmentProvider = c.Resolve<Task<IEnvironmentProvider>>();
-                        var planner = c.Resolve<Task<IPlanner>>();
+                        var configSourceTask = c.Resolve<Task<IConfigSource>>();
+                        var environmentProviderTask = c.Resolve<Task<IEnvironmentProvider>>();
+                        var plannerTask = c.Resolve<Task<IPlanner>>();
                         var planRunner = c.Resolve<IPlanRunner>();
                         var reporter = c.Resolve<IReporter>();
                         var moduleIdentityLifecycleManager = c.Resolve<IModuleIdentityLifecycleManager>();
                         var deploymentConfigInfoSerde = c.Resolve<ISerde<DeploymentConfigInfo>>();
                         var deploymentConfigInfoStore = c.Resolve<IEntityStore<string, string>>();
-                        var encryptionProvider = c.Resolve<Task<IEncryptionProvider>>();
+                        var encryptionProviderTask = c.Resolve<Task<IEncryptionProvider>>();
+                        IConfigSource configSource = await configSourceTask;
+                        IPlanner planner = await plannerTask;
+                        IEnvironmentProvider environmentProvider = await environmentProviderTask;
+                        IEncryptionProvider encryptionProvider = await encryptionProviderTask;
                         return await Agent.Create(
-                            await configSource,
-                            await planner,
+                            configSource,
+                            planner,
                             planRunner,
                             reporter,
                             moduleIdentityLifecycleManager,
-                            await environmentProvider,
+                            environmentProvider,
                             deploymentConfigInfoStore,
                             deploymentConfigInfoSerde,
-                            await encryptionProvider);
+                            encryptionProvider);
                     })
                 .As<Task<Agent>>()
                 .SingleInstance();

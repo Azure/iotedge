@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.namespace | quote }}
+  labels:
+    app.kubernetes.io/name: {{ include "edge-kubernetes.name" . }}-iotedged
+    helm.sh/chart: {{ include "edge-kubernetes.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}

@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: '{{ include "edge-kubernetes.hostname" . }}-{{ include "edge-kubernetes.deviceid" . }}-edgeagent'
+  namespace: {{ .Values.namespace | quote }}
+  labels:
+    app.kubernetes.io/name: {{ include "edge-kubernetes.name" . }}-edge-agent
+    helm.sh/chart: {{ include "edge-kubernetes.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    net.azure-devices.edge.deviceid: {{ include "edge-kubernetes.deviceid" . | quote }}
+    net.azure-devices.edge.hub: {{ include "edge-kubernetes.hostname" . | quote }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      net.azure-devices.edge.module: "edgeagent"
+      net.azure-devices.edge.deviceid: {{ include "edge-kubernetes.deviceid" . | quote }}
+      net.azure-devices.edge.hub: {{ include "edge-kubernetes.hostname" . | quote }}
+  template:
+    metadata:
+      labels:
+        net.azure-devices.edge.module: "edgeagent"
+        net.azure-devices.edge.deviceid: {{ include "edge-kubernetes.deviceid" . | quote }}
+        net.azure-devices.edge.hub: {{ include "edge-kubernetes.hostname" . | quote }}
+      annotations:
+        net.azure-devices.edge.original-moduleid: '$edgeAgent'
+    spec:
+      serviceAccountName: "{{.Release.Name}}-service-account"
+      containers:
+        - name: {{ .Values.edgeAgent.containerName | quote }}
+          image: "{{ .Values.edgeAgent.image.repository }}:{{ .Values.edgeAgent.image.tag }}"
+          imagePullPolicy: {{ .Values.edgeAgent.image.pullPolicy }}
+          env:
+          - name: IOTEDGE_MODULEGENERATIONID
+            valueFrom:
+              configMapKeyRef:
+                name: {{ .Release.Name }}-ea-config
+                key: generationId
+          - name: EDGEDEVICEHOSTNAME
+            value: {{ .Values.edgeAgent.env.deviceHostName | quote }}
+          - name: NetworkId
+            value: {{ .Values.edgeAgent.env.networkId | quote }}
+          - name: IOTEDGE_AUTHSCHEME
+            value: {{ .Values.edgeAgent.env.authScheme | quote }}
+          - name: IOTEDGE_WORKLOADURI
+            value: "http://localhost:{{ .Values.iotedged.ports.workload }}"
+          - name: IOTEDGE_MANAGEMENTURI
+            value: "http://localhost:{{ .Values.iotedged.ports.management }}"
+          - name: IOTEDGE_MODULEID
+            value: "$edgeAgent"
+          - name: IOTEDGE_DEVICEID
+            valueFrom:
+              configMapKeyRef:
+                name: {{ .Release.Name }}-ea-config
+                key: deviceId
+          - name: IOTEDGE_IOTHUBHOSTNAME
+            valueFrom:
+              configMapKeyRef:
+                name: {{ .Release.Name }}-ea-config
+                key: iotHubHostName
+          - name: Mode
+            value: kubernetes
+          - name: IOTEDGE_APIVERSION
+            value: {{ .Values.iotedged.apiVersion | quote }}
+          - name: "ProxyConfigVolume"
+            value: {{ include "edge-kubernetes.fullname" . }}-iotedged-proxy-config
+          - name: "ServiceAccountName"
+            value: "{{.Release.Name}}-service-account"
+          - name: "EnableK8sServiceCallTracing"
+            value: {{ .Values.edgeAgent.env.enableK8sServiceCallTracing | quote }}
+        - name: proxy
+          image: "{{ .Values.iotedgedProxy.image.repository }}:{{ .Values.iotedgedProxy.image.tag }}"
+          imagePullPolicy: {{ .Values.iotedgedProxy.image.pullPolicy }}
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/traefik
+      {{- /* Render image pull secrets if they have been provided. */ -}}
+      {{- if .Values.registryCredentials }}
+      imagePullSecrets:
+        - name: {{ include "edge-kubernetes.fullname" . }}-regcreds
+      {{ end }}
+      volumes:
+        - name: config-volume
+          configMap:
+            name: {{ include "edge-kubernetes.fullname" . }}-iotedged-proxy-config

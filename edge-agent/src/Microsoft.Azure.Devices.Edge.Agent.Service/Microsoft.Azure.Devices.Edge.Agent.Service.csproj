@@ -20,12 +20,14 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Autofac" Version="4.5.0" />
+    <PackageReference Include="KubernetesClient" Version="1.2.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="2.1.1" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="2.1.1" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="2.0.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Storage.RocksDb\Microsoft.Azure.Devices.Edge.Storage.RocksDb.csproj" />
+    <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Agent.Kubernetes\Microsoft.Azure.Devices.Edge.Agent.Kubernetes.csproj" />
     <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Agent.Core\Microsoft.Azure.Devices.Edge.Agent.Core.csproj" />
     <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Agent.Docker\Microsoft.Azure.Devices.Edge.Agent.Docker.csproj" />
     <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker\Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.csproj" />

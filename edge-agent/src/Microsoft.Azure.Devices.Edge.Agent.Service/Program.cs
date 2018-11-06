@@ -9,10 +9,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Autofac;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes;
     using Microsoft.Azure.Devices.Edge.Agent.Service.Modules;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
+    using CoreConstant = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
 
     public class Program
     {
@@ -72,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
             try
             {
-                mode = configuration.GetValue(Constants.ModeKey, "docker");
+                mode = configuration.GetValue(CoreConstant.ModeKey, "docker");
                 configSourceConfig = configuration.GetValue<string>("ConfigSource");
                 backupConfigFilePath = configuration.GetValue<string>("BackupConfigFilePath");
                 maxRestartCount = configuration.GetValue<int>("MaxRestartCount");
@@ -80,7 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 coolOffTimeUnitInSeconds = configuration.GetValue("CoolOffTimeUnitInSeconds", 10);
                 usePersistentStorage = configuration.GetValue("UsePersistentStorage", true);
                 storagePath = GetStoragePath(configuration);
-                edgeDeviceHostName = configuration.GetValue<string>(Constants.EdgeDeviceHostNameKey);
+                edgeDeviceHostName = configuration.GetValue<string>(CoreConstant.EdgeDeviceHostNameKey);
                 dockerLoggingDriver = configuration.GetValue<string>("DockerLoggingDriver");
                 dockerLoggingOptions = configuration.GetSection("DockerLoggingOptions").Get<Dictionary<string, string>>() ?? new Dictionary<string, string>();
                 dockerAuthConfig = configuration.GetSection("DockerRegistryAuth").Get<List<AuthConfig>>() ?? new List<AuthConfig>();
@@ -98,25 +100,55 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 var builder = new ContainerBuilder();
                 builder.RegisterModule(new LoggingModule(dockerLoggingDriver, dockerLoggingOptions));
                 Option<string> productInfo = versionInfo != VersionInfo.Empty ? Option.Some(versionInfo.ToString()) : Option.None<string>();
-                Option<UpstreamProtocol> upstreamProtocol = configuration.GetValue<string>(Constants.UpstreamProtocolKey).ToUpstreamProtocol();
+                Option<UpstreamProtocol> upstreamProtocol = configuration.GetValue<string>(CoreConstant.UpstreamProtocolKey).ToUpstreamProtocol();
                 switch (mode.ToLowerInvariant())
                 {
-                    case Constants.DockerMode:
+                    case CoreConstant.DockerMode:
                         var dockerUri = new Uri(configuration.GetValue<string>("DockerUri"));
                         string deviceConnectionString = configuration.GetValue<string>("DeviceConnectionString");
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath));
                         builder.RegisterModule(new DockerModule(deviceConnectionString, edgeDeviceHostName, dockerUri, dockerAuthConfig, upstreamProtocol, productInfo));
                         break;
 
-                    case Constants.IotedgedMode:
-                        string managementUri = configuration.GetValue<string>(Constants.EdgeletManagementUriVariableName);
-                        string workloadUri = configuration.GetValue<string>(Constants.EdgeletWorkloadUriVariableName);
-                        string iothubHostname = configuration.GetValue<string>(Constants.IotHubHostnameVariableName);
-                        string deviceId = configuration.GetValue<string>(Constants.DeviceIdVariableName);
-                        string moduleId = configuration.GetValue(Constants.ModuleIdVariableName, Constants.EdgeAgentModuleIdentityName);
-                        string moduleGenerationId = configuration.GetValue<string>(Constants.EdgeletModuleGenerationIdVariableName);
+                    case CoreConstant.IotedgedMode:
+                        string managementUri = configuration.GetValue<string>(CoreConstant.EdgeletManagementUriVariableName);
+                        string workloadUri = configuration.GetValue<string>(CoreConstant.EdgeletWorkloadUriVariableName);
+                        string iothubHostname = configuration.GetValue<string>(CoreConstant.IotHubHostnameVariableName);
+                        string deviceId = configuration.GetValue<string>(CoreConstant.DeviceIdVariableName);
+                        string moduleId = configuration.GetValue(CoreConstant.ModuleIdVariableName, CoreConstant.EdgeAgentModuleIdentityName);
+                        string moduleGenerationId = configuration.GetValue<string>(CoreConstant.EdgeletModuleGenerationIdVariableName);
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), moduleId, Option.Some(moduleGenerationId)));
                         builder.RegisterModule(new EdgeletModule(iothubHostname, edgeDeviceHostName, deviceId, new Uri(managementUri), new Uri(workloadUri), dockerAuthConfig, upstreamProtocol, productInfo));
+                        break;
+
+                    case CoreConstant.KubernetesMode:
+                        managementUri = configuration.GetValue<string>(CoreConstant.EdgeletManagementUriVariableName);
+                        workloadUri = configuration.GetValue<string>(CoreConstant.EdgeletWorkloadUriVariableName);
+                        iothubHostname = configuration.GetValue<string>(CoreConstant.IotHubHostnameVariableName);
+                        deviceId = configuration.GetValue<string>(CoreConstant.DeviceIdVariableName);
+                        moduleId = configuration.GetValue(CoreConstant.ModuleIdVariableName, CoreConstant.EdgeAgentModuleIdentityName);
+                        moduleGenerationId = configuration.GetValue<string>(CoreConstant.EdgeletModuleGenerationIdVariableName);
+                        string proxyImage = configuration.GetValue<string>(CoreConstant.ProxyImageEnvKey);
+                        string proxyConfigPath = configuration.GetValue<string>(CoreConstant.ProxyConfigPathEnvKey);
+                        string proxyConfigVolumeName = configuration.GetValue<string>(CoreConstant.ProxyConfigVolumeEnvKey);
+                        string serviceAccountName = configuration.GetValue<string>(CoreConstant.EdgeAgentServiceAccountName);
+                        bool enableServiceCallTracing = configuration.GetValue<bool>(CoreConstant.EnableK8sServiceCallTracingName);
+
+                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), moduleId, Option.Some(moduleGenerationId)));
+                        builder.RegisterModule(new Modules.KubernetesModule(
+                            iothubHostname,
+                            edgeDeviceHostName,
+                            deviceId,
+                            proxyImage,
+                            proxyConfigPath,
+                            proxyConfigVolumeName,
+                            serviceAccountName,
+                            new Uri(managementUri),
+                            new Uri(workloadUri),
+                            dockerAuthConfig,
+                            upstreamProtocol,
+                            productInfo,
+                            enableServiceCallTracing));
                         break;
 
                     default:
@@ -143,6 +175,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             {
                 logger.LogCritical(AgentEventIds.Agent, ex, "Fatal error building application.");
                 return 1;
+            }
+
+            IRuntimeInfoProvider edgeOperator = await container.Resolve<Task<IRuntimeInfoProvider>>();
+            if (edgeOperator is IKubernetesOperator kubernetesOperator)
+            {
+                kubernetesOperator.Start();
             }
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler)

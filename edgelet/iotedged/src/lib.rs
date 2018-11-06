@@ -17,8 +17,6 @@
 extern crate base64;
 #[macro_use]
 extern crate clap;
-extern crate config;
-extern crate docker;
 extern crate edgelet_core;
 extern crate edgelet_docker;
 extern crate edgelet_hsm;
@@ -26,6 +24,8 @@ extern crate edgelet_http;
 extern crate edgelet_http_mgmt;
 extern crate edgelet_http_workload;
 extern crate edgelet_iothub;
+#[cfg(feature = "runtime-kubernetes")]
+extern crate edgelet_kube;
 #[cfg(test)]
 extern crate edgelet_test_utils;
 extern crate edgelet_utils;
@@ -39,16 +39,13 @@ extern crate iothubservice;
 extern crate log;
 extern crate provisioning;
 extern crate serde;
-extern crate sha2;
-#[macro_use]
-extern crate serde_derive;
 extern crate serde_json;
+extern crate sha2;
 #[cfg(test)]
 extern crate tempdir;
 extern crate tokio;
 extern crate tokio_signal;
 extern crate url;
-extern crate url_serde;
 #[cfg(target_os = "windows")]
 #[macro_use]
 extern crate windows_service;
@@ -58,7 +55,6 @@ extern crate win_logger;
 pub mod app;
 mod error;
 pub mod logging;
-pub mod settings;
 pub mod signal;
 pub mod workload;
 
@@ -70,8 +66,7 @@ pub mod windows;
 
 use std::collections::HashMap;
 use std::env;
-use std::fs;
-use std::fs::{DirBuilder, File};
+use std::fs::{self, DirBuilder, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
@@ -80,28 +75,31 @@ use futures::future::Either;
 use futures::sync::oneshot::{self, Receiver};
 use futures::{future, Future};
 use hyper::server::conn::Http;
-use hyper::Uri;
+use hyper::{Body, Uri};
+use log::Level;
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 use sha2::{Digest, Sha256};
 use url::Url;
 
-use docker::models::HostConfig;
 use edgelet_core::crypto::{
     CreateCertificate, Decrypt, DerivedKeyStore, Encrypt, GetTrustBundle, KeyIdentity, KeyStore,
     MasterEncryptionKey, MemoryKey, MemoryKeyStore, Sign, IOTEDGED_CA_ALIAS,
 };
 use edgelet_core::watchdog::Watchdog;
-use edgelet_core::WorkloadConfig;
-use edgelet_core::{CertificateIssuer, CertificateProperties, CertificateType};
-use edgelet_core::{ModuleRuntime, ModuleSpec};
-use edgelet_docker::{DockerConfig, DockerModuleRuntime};
+use edgelet_core::{
+    CertificateIssuer, CertificateProperties, CertificateType, Dps, Manual, Module, ModuleRuntime,
+    ModuleRuntimeErrorReason, ModuleSpec, Provisioning, RuntimeSettings, WorkloadConfig,
+};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_hsm::Crypto;
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
 use edgelet_http::logging::LoggingService;
-use edgelet_http::{ApiVersionService, HyperExt, MaybeProxyClient, UrlExt, API_VERSION};
+use edgelet_http::{ApiVersionService, HyperExt, MaybeProxyClient, API_VERSION};
 use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
 use edgelet_iothub::{HubIdentityManager, SasTokenSource};
+use edgelet_utils::log_failure;
 use hsm::tpm::Tpm;
 use hsm::ManageTpmKeys;
 use iothubservice::DeviceClient;
@@ -109,7 +107,6 @@ use provisioning::provisioning::{
     BackupProvisioning, DpsProvisioning, ManualProvisioning, Provision, ProvisioningResult,
 };
 
-use settings::{Dps, Manual, Provisioning, Settings, DEFAULT_CONNECTION_STRING};
 use workload::WorkloadData;
 
 pub use self::error::{Error, ErrorKind, InitializeErrorReason};
@@ -166,14 +163,11 @@ const DEVICE_CA_CERT_KEY: &str = "IOTEDGE_DEVICE_CA_CERT";
 const DEVICE_CA_PK_KEY: &str = "IOTEDGE_DEVICE_CA_PK";
 const TRUSTED_CA_CERTS_KEY: &str = "IOTEDGE_TRUSTED_CA_CERTS";
 
-/// This is the key for the docker network Id.
-const EDGE_NETWORKID_KEY: &str = "NetworkId";
-
 /// This is the key for the largest API version that this edgelet supports
 const API_VERSION_KEY: &str = "IOTEDGE_APIVERSION";
 
 const IOTHUB_API_VERSION: &str = "2017-11-08-preview";
-const UNIX_SCHEME: &str = "unix";
+// const UNIX_SCHEME: &str = "unix";
 
 /// This is the name of the provisioning backup file
 const EDGE_PROVISIONING_BACKUP_FILENAME: &str = "provisioning_backup.json";
@@ -191,20 +185,37 @@ const IOTEDGED_COMMONNAME: &str = "iotedged workload ca";
 const IOTEDGE_ID_CERT_MAX_DURATION_SECS: i64 = 7200; // 2 hours
 const IOTEDGE_SERVER_CERT_MAX_DURATION_SECS: i64 = 7_776_000; // 90 days
 
-pub struct Main {
-    settings: Settings<DockerConfig>,
+/// This is the default connection string
+const DEFAULT_CONNECTION_STRING: &str = "<ADD DEVICE CONNECTION STRING HERE>";
+
+pub struct Main<M>
+where
+    M: ModuleRuntime,
+{
+    runtime: M,
+    settings: M::Settings,
 }
 
-impl Main {
-    pub fn new(settings: Settings<DockerConfig>) -> Self {
-        Main { settings }
+impl<M> Main<M>
+where
+    M: 'static + ModuleRuntime + Clone + Send + Sync,
+    <M::Module as Module>::Config: Clone + DeserializeOwned + Serialize,
+    M::Settings: 'static + Clone + Serialize,
+    M::Logs: Into<Body>,
+    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
+{
+    pub fn new(runtime: M, settings: M::Settings) -> Self {
+        Main { runtime, settings }
     }
 
     pub fn run_until<F>(self, shutdown_signal: F) -> Result<(), Error>
     where
         F: Future<Item = (), Error = ()> + Send + 'static,
     {
-        let Main { settings } = self;
+        let Main {
+            mut runtime,
+            settings,
+        } = self;
 
         let mut tokio_runtime = tokio::runtime::Runtime::new()
             .context(ErrorKind::Initialize(InitializeErrorReason::Tokio))?;
@@ -220,15 +231,7 @@ impl Main {
         let hyper_client = MaybeProxyClient::new(get_proxy_uri(None)?)
             .context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?;
 
-        info!(
-            "Using runtime network id {}",
-            settings.moby_runtime().network()
-        );
-        let runtime = DockerModuleRuntime::new(settings.moby_runtime().uri())
-            .context(ErrorKind::Initialize(InitializeErrorReason::ModuleRuntime))?
-            .with_network_id(settings.moby_runtime().network().to_string());
-
-        init_docker_runtime(&runtime, &mut tokio_runtime)?;
+        init_runtime(&mut runtime, settings.clone(), &mut tokio_runtime)?;
 
         info!(
             "Configuring {} as the home directory.",
@@ -384,7 +387,7 @@ where
 fn check_settings_state<M, C>(
     subdir_path: PathBuf,
     filename: &str,
-    settings: &Settings<DockerConfig>,
+    settings: &<M as ModuleRuntime>::Settings,
     runtime: &M,
     crypto: &C,
     tokio_runtime: &mut tokio::runtime::Runtime,
@@ -393,11 +396,13 @@ where
     M: ModuleRuntime,
     <M as ModuleRuntime>::RemoveAllFuture: 'static,
     C: MasterEncryptionKey + CreateCertificate,
+    M::Config: Clone + DeserializeOwned + Serialize,
+    <M as ModuleRuntime>::Settings: Serialize,
 {
     info!("Detecting if configuration file has changed...");
     let path = subdir_path.join(filename);
     let mut reconfig_reqd = false;
-    let diff = settings.diff_with_cached(path)?;
+    let diff = diff_with_cached(settings, path)?;
     if diff {
         info!("Change to configuration file detected.");
         reconfig_reqd = true;
@@ -426,10 +431,32 @@ where
     Ok(())
 }
 
+fn diff_with_cached<T: Serialize>(settings: &T, path: PathBuf) -> Result<bool, Error> {
+    fs::read_to_string(path)
+        .context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))
+        .and_then(|buffer| {
+            let s = serde_json::to_string(settings)
+                .context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
+            let s = Sha256::digest_str(&s);
+            let encoded = base64::encode(&s);
+            if encoded == buffer {
+                debug!("Config state matches supplied config.");
+                Ok(false)
+            } else {
+                Ok(true)
+            }
+        })
+        .or_else(|err| {
+            log_failure(Level::Debug, &err);
+            debug!("Error reading config backup.");
+            Ok(true)
+        })
+}
+
 fn reconfigure<M, C>(
     subdir: PathBuf,
     filename: &str,
-    settings: &Settings<DockerConfig>,
+    settings: &<M as ModuleRuntime>::Settings,
     runtime: &M,
     crypto: &C,
     tokio_runtime: &mut tokio::runtime::Runtime,
@@ -437,7 +464,9 @@ fn reconfigure<M, C>(
 where
     M: ModuleRuntime,
     <M as ModuleRuntime>::RemoveAllFuture: 'static,
+    M::Config: Serialize,
     C: MasterEncryptionKey + CreateCertificate,
+    <M as ModuleRuntime>::Settings: Serialize,
 {
     // Remove all edge containers and destroy the cache (settings and dps backup)
     info!("Removing all modules...");
@@ -481,10 +510,10 @@ where
 }
 
 #[cfg_attr(feature = "cargo-clippy", allow(too_many_arguments))]
-fn start_api<HC, K, F, C, W>(
-    settings: &Settings<DockerConfig>,
+fn start_api<HC, K, F, C, W, M>(
+    settings: &<M as ModuleRuntime>::Settings,
     hyper_client: HC,
-    runtime: &DockerModuleRuntime,
+    runtime: &M,
     key_store: &DerivedKeyStore<K>,
     workload_config: W,
     root_key: K,
@@ -506,6 +535,10 @@ where
         + Sync
         + 'static,
     W: WorkloadConfig + Clone + Send + Sync + 'static,
+    M: 'static + ModuleRuntime + Clone + Send + Sync,
+    <M::Module as Module>::Config: Clone + DeserializeOwned + Serialize,
+    M::Logs: Into<Body>,
+    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
 {
     let hub_name = workload_config.iot_hub_name().to_string();
     let device_id = workload_config.device_id().to_string();
@@ -525,19 +558,19 @@ where
     let (mgmt_tx, mgmt_rx) = oneshot::channel();
     let (work_tx, work_rx) = oneshot::channel();
 
-    let mgmt = start_management(&settings, &runtime, &id_man, mgmt_rx);
+    let mgmt = start_management(settings, runtime, &id_man, mgmt_rx);
 
     let workload = start_workload(
-        &settings,
+        settings,
         key_store,
-        &runtime,
+        runtime,
         work_rx,
         crypto,
         workload_config,
     );
 
     let (runt_tx, runt_rx) = oneshot::channel();
-    let edge_rt = start_runtime(&runtime, &id_man, &hub_name, &device_id, &settings, runt_rx)?;
+    let edge_rt = start_runtime(runtime, &id_man, &hub_name, &device_id, settings, runt_rx)?;
 
     // Wait for the watchdog to finish, and then send signal to the workload and management services.
     // This way the edgeAgent can finish shutting down all modules.
@@ -554,24 +587,24 @@ where
     });
     tokio_runtime.spawn(shutdown);
 
-    let services = mgmt
-        .join3(workload, edge_rt_with_cleanup)
-        .then(|result| match result {
-            Ok(((), (), ())) => Ok(()),
-            Err(err) => Err(err),
-        });
+    let services = mgmt.join3(workload, edge_rt_with_cleanup).map(|_| ());
     tokio_runtime.block_on(services)?;
 
     Ok(())
 }
 
-fn init_docker_runtime(
-    runtime: &DockerModuleRuntime,
+fn init_runtime<M>(
+    runtime: &mut M,
+    settings: <M as ModuleRuntime>::Settings,
     tokio_runtime: &mut tokio::runtime::Runtime,
-) -> Result<(), Error> {
+) -> Result<(), Error>
+where
+    M: ModuleRuntime,
+    <M as edgelet_core::ModuleRuntime>::InitFuture: 'static,
+{
     info!("Initializing the module runtime...");
     tokio_runtime
-        .block_on(runtime.init())
+        .block_on(runtime.init(settings))
         .context(ErrorKind::Initialize(InitializeErrorReason::ModuleRuntime))?;
     info!("Finished initializing the module runtime.");
     Ok(())
@@ -682,36 +715,30 @@ where
     tokio_runtime.block_on(provision)
 }
 
-fn start_runtime<K, HC>(
-    runtime: &DockerModuleRuntime,
+fn start_runtime<K, HC, M>(
+    runtime: &M,
     id_man: &HubIdentityManager<DerivedKeyStore<K>, HC, K>,
     hostname: &str,
     device_id: &str,
-    settings: &Settings<DockerConfig>,
+    settings: &<M as ModuleRuntime>::Settings,
     shutdown: Receiver<()>,
 ) -> Result<impl Future<Item = (), Error = Error>, Error>
 where
     K: 'static + Sign + Clone + Send + Sync,
     HC: 'static + ClientImpl,
+    M: 'static + ModuleRuntime + Clone + Send + Sync,
+    <M::Module as Module>::Config: Clone + DeserializeOwned + Serialize,
+    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
 {
     let spec = settings.agent().clone();
     let env = build_env(spec.env(), hostname, device_id, settings);
-    let mut spec = ModuleSpec::<DockerConfig>::new(
+    let spec = ModuleSpec::<M::Config>::new(
         EDGE_RUNTIME_MODULE_NAME.to_string(),
         spec.type_().to_string(),
         spec.config().clone(),
         env,
     )
     .context(ErrorKind::Initialize(InitializeErrorReason::EdgeRuntime))?;
-
-    // volume mount management and workload URIs
-    vol_mount_uri(
-        spec.config_mut(),
-        &[
-            settings.connect().management_uri(),
-            settings.connect().workload_uri(),
-        ],
-    )?;
 
     let watchdog = Watchdog::new(runtime.clone(), id_man.clone());
     let runtime_future = watchdog
@@ -721,56 +748,16 @@ where
     Ok(runtime_future)
 }
 
-fn vol_mount_uri(config: &mut DockerConfig, uris: &[&Url]) -> Result<(), Error> {
-    let create_options = config
-        .clone_create_options()
-        .context(ErrorKind::Initialize(InitializeErrorReason::EdgeRuntime))?;
-    let host_config = create_options
-        .host_config()
-        .cloned()
-        .unwrap_or_else(HostConfig::new);
-    let mut binds = host_config.binds().map_or_else(Vec::new, ToOwned::to_owned);
-
-    // if the url is a domain socket URL then vol mount it into the container
-    for uri in uris {
-        if uri.scheme() == UNIX_SCHEME {
-            let path = uri.to_uds_file_path().context(ErrorKind::Initialize(
-                InitializeErrorReason::InvalidSocketUri,
-            ))?;
-            // On Windows we mount the parent folder because we can't mount the
-            // socket files directly
-            #[cfg(windows)]
-            let path = path
-                .parent()
-                .ok_or_else(|| ErrorKind::Initialize(InitializeErrorReason::InvalidSocketUri))?;
-            let path = path
-                .to_str()
-                .ok_or_else(|| ErrorKind::Initialize(InitializeErrorReason::InvalidSocketUri))?
-                .to_string();
-            let bind = format!("{}:{}", &path, &path);
-            if !binds.contains(&bind) {
-                binds.push(bind);
-            }
-        }
-    }
-
-    if !binds.is_empty() {
-        let host_config = host_config.with_binds(binds);
-        let create_options = create_options.with_host_config(host_config);
-
-        config.set_create_options(create_options);
-    }
-
-    Ok(())
-}
-
 // Add the environment variables needed by the EdgeAgent.
-fn build_env(
+fn build_env<S>(
     spec_env: &HashMap<String, String>,
     hostname: &str,
     device_id: &str,
-    settings: &Settings<DockerConfig>,
-) -> HashMap<String, String> {
+    settings: &S,
+) -> HashMap<String, String>
+where
+    S: RuntimeSettings,
+{
     let mut env = HashMap::new();
     env.insert(HOSTNAME_KEY.to_string(), hostname.to_string());
     env.insert(
@@ -792,10 +779,6 @@ fn build_env(
         EDGE_RUNTIME_MODE_KEY.to_string(),
         EDGE_RUNTIME_MODE.to_string(),
     );
-    env.insert(
-        EDGE_NETWORKID_KEY.to_string(),
-        settings.moby_runtime().network().to_string(),
-    );
     for (key, val) in spec_env.iter() {
         env.insert(key.clone(), val.clone());
     }
@@ -803,15 +786,18 @@ fn build_env(
     env
 }
 
-fn start_management<K, HC>(
-    settings: &Settings<DockerConfig>,
-    mgmt: &DockerModuleRuntime,
+fn start_management<K, HC, M>(
+    settings: &<M as ModuleRuntime>::Settings,
+    mgmt: &M,
     id_man: &HubIdentityManager<DerivedKeyStore<K>, HC, K>,
     shutdown: Receiver<()>,
 ) -> impl Future<Item = (), Error = Error>
 where
     K: 'static + Sign + Clone + Send + Sync,
     HC: 'static + ClientImpl + Send + Sync,
+    M: 'static + ModuleRuntime + Clone + Send + Sync,
+    <M::Module as Module>::Config: DeserializeOwned + Serialize,
+    M::Logs: Into<Body>,
 {
     info!("Starting management API...");
 
@@ -839,10 +825,10 @@ where
         .flatten()
 }
 
-fn start_workload<K, C, W>(
-    settings: &Settings<DockerConfig>,
+fn start_workload<K, C, W, M>(
+    settings: &<M as ModuleRuntime>::Settings,
     key_store: &K,
-    runtime: &DockerModuleRuntime,
+    runtime: &M,
     shutdown: Receiver<()>,
     crypto: &C,
     config: W,
@@ -859,6 +845,9 @@ where
         + Sync
         + 'static,
     W: WorkloadConfig + Clone + Send + Sync + 'static,
+    M: ModuleRuntime + Clone + Send + Sync + 'static,
+    <M::Module as Module>::Config: Clone + DeserializeOwned + Serialize,
+    M::Logs: Into<Body>,
 {
     info!("Starting workload API...");
 

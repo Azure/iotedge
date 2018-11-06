@@ -1,0 +1,14 @@
+{{- if .Values.iotedged.data.persistentVolumeClaim }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.iotedged.data.persistentVolumeClaim.name | quote }}
+  namespace: {{ .Values.namespace | quote }}
+spec:
+  resources:
+    requests:
+      storage: 100Mi
+  accessModes:
+    - ReadWriteMany
+  storageClassName: {{ .Values.iotedged.data.persistentVolumeClaim.storageClassName | quote }}
+  {{- end }}

@@ -14,6 +14,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Planners;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using ModuleIdentityLifecycleManager = Microsoft.Azure.Devices.Edge.Agent.Edgelet.ModuleIdentityLifecycleManager;
 
     /// <summary>
@@ -69,6 +71,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             var identityBuilder = new ModuleIdentityProviderServiceBuilder(this.iotHubHostName, this.deviceId, this.gatewayHostName);
             builder.Register(c => new ModuleIdentityLifecycleManager(c.Resolve<IIdentityManager>(), identityBuilder, this.workloadUri))
                 .As<IModuleIdentityLifecycleManager>()
+                .SingleInstance();
+
+            // IPlanner
+            builder.Register(
+                async c => new HealthRestartPlanner(
+                    await c.Resolve<Task<ICommandFactory>>(),
+                    c.Resolve<IEntityStore<string, ModuleState>>(),
+                    TimeSpan.FromSeconds(10),
+                    c.Resolve<IRestartPolicyManager>()) as IPlanner)
+                .As<Task<IPlanner>>()
                 .SingleInstance();
 
             // ICombinedConfigProvider<CombinedDockerConfig>

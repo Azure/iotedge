@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Serde
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
+    using Newtonsoft.Json.Serialization;
 
     /// <summary>
     /// SerDe for objects with types that depend on the "type" property
@@ -29,6 +30,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Serde
 
             this.jsonSerializerSettings = new JsonSerializerSettings
             {
+                Converters = new List<JsonConverter>
+                {
+                    new TypeSpecificJsonConverter(deserializerTypesMap)
+                }
+            };
+        }
+
+        public TypeSpecificSerDe(IDictionary<Type, IDictionary<string, Type>> deserializerTypesMap, IContractResolver resolver)
+        {
+            Preconditions.CheckNotNull(deserializerTypesMap, nameof(deserializerTypesMap));
+            Preconditions.CheckNotNull(resolver, nameof(resolver));
+
+            this.jsonSerializerSettings = new JsonSerializerSettings
+            {
+                ContractResolver = resolver,
                 Converters = new List<JsonConverter>
                 {
                     new TypeSpecificJsonConverter(deserializerTypesMap)

@@ -80,7 +80,6 @@ pub enum InitializeErrorReason {
     Hsm,
     HttpClient,
     InvalidProxyUri,
-    InvalidSocketUri,
     LoadSettings,
     ManagementService,
     ManualProvisioningClient,
@@ -125,8 +124,6 @@ impl fmt::Display for InitializeErrorReason {
             InitializeErrorReason::HttpClient => write!(f, "Could not initialize HTTP client"),
 
             InitializeErrorReason::InvalidProxyUri => write!(f, "Invalid proxy URI"),
-
-            InitializeErrorReason::InvalidSocketUri => write!(f, "Invalid socket URI"),
 
             InitializeErrorReason::LoadSettings => write!(f, "Could not load settings"),
 

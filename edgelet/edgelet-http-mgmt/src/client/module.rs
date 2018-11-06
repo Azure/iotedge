@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::fmt;
+use std::path::Path;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
@@ -142,9 +143,44 @@ impl ModuleRegistry for ModuleClient {
     }
 }
 
+pub struct Settings;
+
+impl RuntimeSettings for Settings {
+    type Config = ModuleConfig;
+
+    fn provisioning(&self) -> &Provisioning {
+        unimplemented!()
+    }
+
+    fn agent(&self) -> &ModuleSpec<Self::Config> {
+        unimplemented!()
+    }
+
+    fn hostname(&self) -> &str {
+        unimplemented!()
+    }
+
+    fn connect(&self) -> &Connect {
+        unimplemented!()
+    }
+
+    fn listen(&self) -> &Listen {
+        unimplemented!()
+    }
+
+    fn homedir(&self) -> &Path {
+        unimplemented!()
+    }
+
+    fn certificates(&self) -> Option<&Certificates> {
+        unimplemented!()
+    }
+}
+
 impl ModuleRuntime for ModuleClient {
     type Error = Error;
     type Config = ModuleConfig;
+    type Settings = Settings;
     type Module = ModuleDetails;
     type ModuleRegistry = Self;
     type Chunk = Chunk;
@@ -167,7 +203,7 @@ impl ModuleRuntime for ModuleClient {
         unimplemented!()
     }
 
-    fn init(&self) -> Self::InitFuture {
+    fn init(&mut self, _: Self::Settings) -> Self::InitFuture {
         future::ok(())
     }
 

@@ -43,6 +43,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string EdgeModuleHubServerCertificateFileKey = "EdgeModuleHubServerCertificateFile";
 
+        public const string ProxyImageEnvKey = "ProxyImage";
+
+        public const string ProxyConfigPathEnvKey = "ProxyConfigPath";
+
+        public const string ProxyConfigVolumeEnvKey = "ProxyConfigVolume";
+
         public const string Unknown = "Unknown";
 
         public const string UpstreamProtocolKey = "UpstreamProtocol";
@@ -61,6 +67,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string ModuleIdVariableName = "IOTEDGE_MODULEID";
 
+        public const string EdgeAgentServiceAccountName = "ServiceAccountName";
+
+        public const string EnableK8sServiceCallTracingName = "EnableK8sServiceCallTracing";
+
         public const string EdgeletAuthSchemeVariableName = "IOTEDGE_AUTHSCHEME";
 
         public const string EdgeletModuleGenerationIdVariableName = "IOTEDGE_MODULEGENERATIONID";
@@ -72,6 +82,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public const string IotedgedMode = "iotedged";
 
         public const string DockerMode = "docker";
+
+        public const string KubernetesMode = "kubernetes";
 
         public const string NetworkIdKey = "NetworkId";
 

@@ -1,0 +1,14 @@
+[package]
+name = "edgelet-kube"
+version = "0.1.0"
+authors = ["Rajasekharan Vengalil <rajave@microsoft.com>"]
+
+[dependencies]
+failure = "0.1"
+futures = "0.1"
+hyper = "0.12"
+
+edgelet-core = { path = "../edgelet-core" }
+edgelet-docker = { path = "../edgelet-docker" }
+edgelet-utils = { path = "../edgelet-utils" }
+kube-client = { path = "../kube-client" }

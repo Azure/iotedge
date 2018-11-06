@@ -8,11 +8,7 @@ use error::{Error, ErrorKind};
 use module::{Module, ModuleRuntime};
 use pid::Pid;
 
-pub enum Policy {
-    Anonymous,
-    Caller,
-    Module(&'static str),
-}
+use super::Policy;
 
 pub struct Authorization<M>
 where

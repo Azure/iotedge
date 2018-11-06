@@ -1,0 +1,44 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "{{.Release.Name}}-delete-ea-identity"
+  namespace: {{ .Values.namespace | quote }}
+  labels:
+    app.kubernetes.io/managed-by: {{.Release.Service | quote }}
+    app.kubernetes.io/instance: {{.Release.Name | quote }}
+    helm.sh/chart: "{{.Chart.Name}}-{{.Chart.Version}}"
+  annotations:
+    "helm.sh/hook": pre-delete
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": "before-hook-creation,hook-succeeded"
+spec:
+  template:
+    metadata:
+      name: "{{.Release.Name}}-delete-ea-identity"
+      labels:
+        app.kubernetes.io/managed-by: {{.Release.Service | quote }}
+        app.kubernetes.io/instance: {{.Release.Name | quote }}
+        helm.sh/chart: "{{.Chart.Name}}-{{.Chart.Version}}"
+    spec:
+      serviceAccountName: "{{.Release.Name}}-service-account"
+      restartPolicy: Never
+      containers:
+      - name: delete-ea-identity
+        image: "{{ .Values.updateIdentityHook.image.repository }}:{{ .Values.updateIdentityHook.image.tag }}"
+        imagePullPolicy: {{ .Values.updateIdentityHook.image.pullPolicy }}
+        env:
+        - name: RUST_BACKTRACE
+          value: "1"
+        - name: RUST_LOG
+          value: "debug"
+        command: ["/app/update-identity-hook"]
+        args: [
+          "--device-connection-string", {{ .Values.deviceConnectionString | quote }},
+          "--kubernetes-namespace", {{ .Values.namespace | quote }},
+          "--release-name", {{ .Release.Name | quote }},
+          "--run-mode", "delete"
+        ]
+      {{- if .Values.registryCredentials }}
+      imagePullSecrets:
+        - name: {{ include "edge-kubernetes.fullname" . }}-regcreds
+      {{ end -}}

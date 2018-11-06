@@ -19,8 +19,13 @@ sha2 = "0.7.0"
 log = "0.4"
 url = "1.7"
 tokio = "0.1"
+url_serde = "0.2"
 
 edgelet-utils = { path = "../edgelet-utils" }
 
 [dev-dependencies]
 base64 = "0.9"
+
+[features]
+runtime-docker = []
+runtime-kubernetes = []

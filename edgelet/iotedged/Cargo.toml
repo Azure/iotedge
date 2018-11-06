@@ -31,6 +31,7 @@ edgelet-http = { path = "../edgelet-http" }
 edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
 edgelet-http-workload = { path = "../edgelet-http-workload" }
 edgelet-iothub = { path = "../edgelet-iothub" }
+edgelet-kube = { path = "../edgelet-kube", optional = true }
 edgelet-utils = { path = "../edgelet-utils" }
 iothubservice = { path = "../iothubservice" }
 provisioning = { path = "../provisioning" }
@@ -40,7 +41,9 @@ windows-service = "0.1"
 
 win-logger = { path = "../win-logger" }
 
-[dev_dependencies]
-tempdir = "0.3.7"
-
 edgelet-test-utils = { path = "../edgelet-test-utils" }
+
+[features]
+default = ["runtime-docker"]
+runtime-docker = ["edgelet-core/runtime-docker"]
+runtime-kubernetes = ["edgelet-kube", "edgelet-core/runtime-kubernetes"]

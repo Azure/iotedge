@@ -7,8 +7,9 @@ use std::time::Duration;
 
 use base64;
 use failure::{Fail, ResultExt};
+use futures::future::{self, Either};
 use futures::prelude::*;
-use futures::{future, stream, Async, Stream};
+use futures::{stream, Async, Stream};
 use hyper::{Body, Chunk as HyperChunk, Client};
 use log::Level;
 use serde_json;
@@ -28,6 +29,7 @@ use edgelet_utils::{ensure_not_empty_with_context, log_failure};
 
 use error::{Error, ErrorKind, Result};
 use module::{DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
+use settings::Settings;
 
 const WAIT_BEFORE_KILL_SECONDS: i32 = 10;
 
@@ -42,43 +44,26 @@ lazy_static! {
     };
 }
 
+macro_rules! get_client {
+    ($self:ident) => {
+        match $self {
+            DockerModuleRuntime::Uninitialized => {
+                return Box::new(Err(Error::from(ErrorKind::Uninitialized)).into_future());
+            }
+            DockerModuleRuntime::Initialized(ref client) => client,
+        }
+    };
+}
+
 #[derive(Clone)]
-pub struct DockerModuleRuntime {
-    client: DockerClient<UrlConnector>,
-    network_id: Option<String>,
+pub enum DockerModuleRuntime {
+    Uninitialized,
+    Initialized(DockerClient<UrlConnector>),
 }
 
 impl DockerModuleRuntime {
-    pub fn new(docker_url: &Url) -> Result<Self> {
-        // build the hyper client
-        let client = Client::builder()
-            .build(UrlConnector::new(docker_url).context(ErrorKind::Initialization)?);
-
-        // extract base path - the bit that comes after the scheme
-        let base_path = docker_url
-            .to_base_path()
-            .context(ErrorKind::Initialization)?;
-        let mut configuration = Configuration::new(client);
-        configuration.base_path = base_path
-            .to_str()
-            .ok_or(ErrorKind::Initialization)?
-            .to_string();
-
-        let scheme = docker_url.scheme().to_string();
-        configuration.uri_composer = Box::new(move |base_path, path| {
-            Ok(UrlConnector::build_hyper_uri(&scheme, base_path, path)
-                .context(ErrorKind::Initialization)?)
-        });
-
-        Ok(DockerModuleRuntime {
-            client: DockerClient::new(APIClient::new(configuration)),
-            network_id: None,
-        })
-    }
-
-    pub fn with_network_id(mut self, network_id: String) -> Self {
-        self.network_id = Some(network_id);
-        self
+    pub fn new() -> Self {
+        DockerModuleRuntime::Uninitialized
     }
 
     fn merge_env(cur_env: Option<&[String]>, new_env: &HashMap<String, String>) -> Vec<String> {
@@ -104,6 +89,12 @@ impl DockerModuleRuntime {
     }
 }
 
+impl Default for DockerModuleRuntime {
+    fn default() -> DockerModuleRuntime {
+        DockerModuleRuntime::new()
+    }
+}
+
 impl ModuleRegistry for DockerModuleRuntime {
     type Error = Error;
     type PullFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
@@ -111,6 +102,7 @@ impl ModuleRegistry for DockerModuleRuntime {
     type Config = DockerConfig;
 
     fn pull(&self, config: &Self::Config) -> Self::PullFuture {
+        let client = get_client!(self);
         let image = config.image().to_string();
 
         info!("Pulling image {}...", image);
@@ -127,7 +119,8 @@ impl ModuleRegistry for DockerModuleRuntime {
 
         let response = creds
             .map(|creds| {
-                self.client
+                debug!("Pulling {}", image);
+                client
                     .image_api()
                     .image_create(&image, "", "", "", "", &creds, "")
                     .then(|result| match result {
@@ -155,7 +148,8 @@ impl ModuleRegistry for DockerModuleRuntime {
     }
 
     fn remove(&self, name: &str) -> Self::RemoveFuture {
-        info!("Removing image {}...", name);
+        debug!("Removing image {}...", name);
+        let client = get_client!(self);
 
         if let Err(err) = ensure_not_empty_with_context(name, || {
             ErrorKind::RegistryOperation(RegistryOperation::RemoveImage(name.to_string()))
@@ -166,7 +160,7 @@ impl ModuleRegistry for DockerModuleRuntime {
         let name = name.to_string();
 
         Box::new(
-            self.client
+            client
                 .image_api()
                 .image_delete(&name, false, false)
                 .then(|result| match result {
@@ -190,6 +184,7 @@ impl ModuleRegistry for DockerModuleRuntime {
 impl ModuleRuntime for DockerModuleRuntime {
     type Error = Error;
     type Config = DockerConfig;
+    type Settings = Settings;
     type Module = DockerModule<UrlConnector>;
     type ModuleRegistry = Self;
     type Chunk = Chunk;
@@ -208,27 +203,36 @@ impl ModuleRuntime for DockerModuleRuntime {
     type SystemInfoFuture = Box<Future<Item = CoreSystemInfo, Error = Self::Error> + Send>;
     type RemoveAllFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
 
-    fn init(&self) -> Self::InitFuture {
+    fn init(&mut self, settings: Self::Settings) -> Self::InitFuture {
         info!("Initializing module runtime...");
 
-        let created = self.network_id.clone().map_or_else(
-            || future::Either::B(future::ok(())),
-            |id| {
-                let filter = format!(r#"{{"name":{{"{}":true}}}}"#, id);
-                let client_copy = self.client.clone();
-                let fut = self
-                    .client
+        if let DockerModuleRuntime::Initialized(_) = *self {
+            return Box::new(Err(Error::from(ErrorKind::AlreadyInitialized)).into_future());
+        }
+
+        let created = init_client(settings.moby_runtime().uri())
+            .map(move |client| {
+                // update our state to reflect that we are initialized
+                *self = DockerModuleRuntime::Initialized(client.clone());
+
+                let network_id = settings.moby_runtime().network().to_string();
+                info!("Using runtime network id {}", network_id);
+
+                let filter = format!(r#"{{"name":{{"{}":true}}}}"#, network_id);
+                let client_copy = client.clone();
+
+                let fut = client
                     .network_api()
                     .network_list(&filter)
                     .and_then(move |existing_networks| {
                         if existing_networks.is_empty() {
                             let fut = client_copy
                                 .network_api()
-                                .network_create(NetworkConfig::new(id))
+                                .network_create(NetworkConfig::new(network_id))
                                 .map(|_| ());
-                            future::Either::A(fut)
+                            Either::A(fut)
                         } else {
-                            future::Either::B(future::ok(()))
+                            Either::B(future::ok(()))
                         }
                     })
                     .map_err(|err| {
@@ -239,15 +243,16 @@ impl ModuleRuntime for DockerModuleRuntime {
                         log_failure(Level::Warn, &e);
                         e
                     });
-                future::Either::A(fut)
-            },
-        );
+
+                Either::A(fut)
+            })
+            .unwrap_or_else(|err| Either::B(Err(err).into_future()));
+
         let created = created.then(|result| {
             match result {
                 Ok(()) => info!("Successfully initialized module runtime"),
                 Err(ref err) => log_failure(Level::Warn, err),
             }
-
             result
         });
 
@@ -256,6 +261,7 @@ impl ModuleRuntime for DockerModuleRuntime {
 
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
         info!("Creating module {}...", module.name());
+        let client = get_client!(self);
 
         // we only want "docker" modules
         if module.type_() != DOCKER_MODULE_TYPE {
@@ -291,8 +297,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                 // Here we don't add the container to the iot edge docker network as the edge-agent is expected to do that.
                 // It contains the logic to add a container to the iot edge network only if a network is not already specified.
 
-                Ok(self
-                    .client
+                Ok(client
                     .container_api()
                     .container_create(create_options, module.name())
                     .then(|result| match result {
@@ -323,6 +328,7 @@ impl ModuleRuntime for DockerModuleRuntime {
 
     fn start(&self, id: &str) -> Self::StartFuture {
         info!("Starting module {}...", id);
+        let client = get_client!(self);
 
         let id = id.to_string();
 
@@ -333,7 +339,7 @@ impl ModuleRuntime for DockerModuleRuntime {
         }
 
         Box::new(
-            self.client
+            client
                 .container_api()
                 .container_start(&id, "")
                 .then(|result| match result {
@@ -355,6 +361,7 @@ impl ModuleRuntime for DockerModuleRuntime {
 
     fn stop(&self, id: &str, wait_before_kill: Option<Duration>) -> Self::StopFuture {
         info!("Stopping module {}...", id);
+        let client = get_client!(self);
 
         let id = id.to_string();
 
@@ -369,7 +376,7 @@ impl ModuleRuntime for DockerModuleRuntime {
             allow(cast_possible_truncation, cast_sign_loss)
         )]
         Box::new(
-            self.client
+            client
                 .container_api()
                 .container_stop(
                     &id,
@@ -397,9 +404,9 @@ impl ModuleRuntime for DockerModuleRuntime {
 
     fn system_info(&self) -> Self::SystemInfoFuture {
         info!("Querying system info...");
-
+        let client = get_client!(self);
         Box::new(
-            self.client
+            client
                 .system_api()
                 .system_info()
                 .then(|result| match result {
@@ -431,6 +438,7 @@ impl ModuleRuntime for DockerModuleRuntime {
 
     fn restart(&self, id: &str) -> Self::RestartFuture {
         info!("Restarting module {}...", id);
+        let client = get_client!(self);
 
         let id = id.to_string();
 
@@ -441,7 +449,7 @@ impl ModuleRuntime for DockerModuleRuntime {
         }
 
         Box::new(
-            self.client
+            client
                 .container_api()
                 .container_restart(&id, WAIT_BEFORE_KILL_SECONDS)
                 .then(|result| match result {
@@ -463,6 +471,7 @@ impl ModuleRuntime for DockerModuleRuntime {
 
     fn remove(&self, id: &str) -> Self::RemoveFuture {
         info!("Removing module {}...", id);
+        let client = get_client!(self);
 
         let id = id.to_string();
 
@@ -473,7 +482,7 @@ impl ModuleRuntime for DockerModuleRuntime {
         }
 
         Box::new(
-            self.client
+            client
                 .container_api()
                 .container_delete(
                     &id, /* remove volumes */ false, /* force */ true,
@@ -502,13 +511,14 @@ impl ModuleRuntime for DockerModuleRuntime {
         let mut filters = HashMap::new();
         filters.insert("label", LABELS.deref());
 
-        let client_copy = self.client.clone();
+        let client = get_client!(self);
+        let client_copy = client.clone();
 
         let result = serde_json::to_string(&filters)
             .context(ErrorKind::RuntimeOperation(RuntimeOperation::ListModules))
             .map_err(Error::from)
             .map(|filters| {
-                self.client
+                client
                     .container_api()
                     .container_list(true, 0, false, &filters)
                     .map(move |containers| {
@@ -570,10 +580,10 @@ impl ModuleRuntime for DockerModuleRuntime {
         info!("Getting logs for module {}...", id);
 
         let id = id.to_string();
+        let client = get_client!(self);
 
         let tail = &options.tail().to_string();
-        let result = self
-            .client
+        let result = client
             .container_api()
             .container_logs(&id, options.follow(), true, true, 0, false, tail)
             .then(|result| match result {
@@ -606,6 +616,30 @@ impl ModuleRuntime for DockerModuleRuntime {
             future::join_all(n).map(|_| ())
         }))
     }
+}
+
+fn init_client(docker_url: &Url) -> Result<DockerClient<UrlConnector>> {
+    // build the hyper client
+    let client =
+        Client::builder().build(UrlConnector::new(docker_url).context(ErrorKind::Initialization)?);
+
+    // extract base path - the bit that comes after the scheme
+    let base_path = docker_url
+        .to_base_path()
+        .context(ErrorKind::Initialization)?;
+    let mut configuration = Configuration::new(client);
+    configuration.base_path = base_path
+        .to_str()
+        .ok_or(ErrorKind::Initialization)?
+        .to_string();
+
+    let scheme = docker_url.scheme().to_string();
+    configuration.uri_composer = Box::new(move |base_path, path| {
+        Ok(UrlConnector::build_hyper_uri(&scheme, base_path, path)
+            .context(ErrorKind::Initialization)?)
+    });
+
+    Ok(DockerClient::new(APIClient::new(configuration)))
 }
 
 #[derive(Debug)]

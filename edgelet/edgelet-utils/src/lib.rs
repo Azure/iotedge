@@ -35,7 +35,9 @@ mod logging;
 pub mod macros;
 mod ser_de;
 
+use std::cmp;
 use std::collections::HashMap;
+use std::str;
 
 pub use error::{Error, ErrorKind};
 pub use logging::log_failure;
@@ -67,6 +69,22 @@ pub fn prepare_cert_uri_module(hub_name: &str, device_id: &str, module_id: &str)
         "URI: azureiot://{}/devices/{}/modules/{}",
         hub_name, device_id, module_id
     )
+}
+
+pub fn prepare_dns_san_entry(name: &str) -> String {
+    // The name returned from here must conform to following rules (as per RFC 1035):
+    //  - length must be <= 63 characters
+    //  - must be all lower case alphanumeric characters or '-'
+    //  - must start with an alphabet
+    //  - must end with an alphanumeric character
+
+    let name = name.to_lowercase();
+    let name = name
+        .trim_start_matches(|c| !char::is_ascii_lowercase(&c))
+        .trim_end_matches(|c| !char::is_alphanumeric(c))
+        .replace(|c| !(char::is_alphanumeric(c) || c == '-'), "");
+
+    format!("DNS: {}", &name[0..cmp::min(name.len(), 63)])
 }
 
 #[cfg(test)]
@@ -129,4 +147,26 @@ mod tests {
         );
     }
 
+    #[test]
+    fn dns_san() {
+        assert_eq!("DNS: edgehub", prepare_dns_san_entry("edgehub"));
+        assert_eq!("DNS: edgehub", prepare_dns_san_entry("EDGEhub"));
+        assert_eq!("DNS: edgehub", prepare_dns_san_entry("$$$Edgehub"));
+        assert_eq!("DNS: edgehub", prepare_dns_san_entry("$$$Edgehub###$$$"));
+        assert_eq!("DNS: edge-hub", prepare_dns_san_entry("$$$Edge-hub###$$"));
+        assert_eq!(
+            "DNS: edge-hub",
+            prepare_dns_san_entry("$$$Ed###ge-h$$^$ub###$$")
+        );
+
+        let name = "$eDgE##-##Hub23212$$$eDgE##-##Hub23212$$$eDgE##-##Hub23212$$$eDgE##-##Hub23212$$$eDgE##-##Hub23212$$";
+        let expected_name = "edge-hub23212edge-hub23212edge-hub23212edge-hub23212edge-hub232";
+        assert_eq!(
+            format!("DNS: {}", expected_name),
+            prepare_dns_san_entry(name)
+        );
+
+        // 63 letters for the name and 5 more for the literal "DNS: "
+        assert_eq!(63 + 5, prepare_dns_san_entry(name).len());
+    }
 }

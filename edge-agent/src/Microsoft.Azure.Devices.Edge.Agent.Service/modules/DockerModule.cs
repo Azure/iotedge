@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using global::Docker.DotNet;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Planners;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
     using Microsoft.Azure.Devices.Edge.Storage;
@@ -70,6 +71,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             // ICombinedConfigProvider<CombinedDockerConfig>
             builder.Register(c => new CombinedDockerConfigProvider(this.dockerAuthConfig))
                 .As<ICombinedConfigProvider<CombinedDockerConfig>>()
+                .SingleInstance();
+
+            // IPlanner
+            builder.Register(
+                async c => new HealthRestartPlanner(
+                    await c.Resolve<Task<ICommandFactory>>(),
+                    c.Resolve<IEntityStore<string, ModuleState>>(),
+                    TimeSpan.FromSeconds(10),
+                    c.Resolve<IRestartPolicyManager>()) as IPlanner)
+                .As<Task<IPlanner>>()
                 .SingleInstance();
 
             // ICommandFactory

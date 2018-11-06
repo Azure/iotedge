@@ -191,36 +191,6 @@ where
         .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime)))
 }
 
-// Gets and updates the identity of the module.
-fn update_identity<I>(
-    id_mgr: &mut I,
-    module_id: String,
-) -> impl Future<Item = I::Identity, Error = Error>
-where
-    I: 'static + IdentityManager + Clone,
-{
-    let mut id_mgr_copy = id_mgr.clone();
-    id_mgr
-        .get(IdentitySpec::new(module_id))
-        .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime)))
-        .and_then(move |identity| match identity {
-            Some(module) => {
-                info!("Updating identity for module {}", module.module_id());
-                let res = id_mgr_copy
-                    .update(
-                        IdentitySpec::new(module.module_id().to_string())
-                            .with_generation_id(module.generation_id().to_string()),
-                    )
-                    .map_err(|e| Error::from(e.context(ErrorKind::IdentityManager)));
-                Either::A(res)
-            }
-            None => Either::B(
-                future::err(Error::from(ErrorKind::EdgeRuntimeIdentityNotFound))
-                    as FutureResult<I::Identity, Error>,
-            ),
-        })
-}
-
 // Edge agent does not exist - pull, create and start the container
 fn create_and_start<M, I>(
     runtime: M,
@@ -253,6 +223,36 @@ where
             .and_then(move |_| runtime_copy.start(&module_name))
             .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime)))
     })
+}
+
+// Gets and updates the identity of the module.
+fn update_identity<I>(
+    id_mgr: &mut I,
+    module_id: String,
+) -> impl Future<Item = I::Identity, Error = Error>
+where
+    I: 'static + IdentityManager + Clone,
+{
+    let mut id_mgr_copy = id_mgr.clone();
+    id_mgr
+        .get(IdentitySpec::new(module_id))
+        .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime)))
+        .and_then(move |identity| match identity {
+            Some(module) => {
+                info!("Updating identity for module {}", module.module_id());
+                let res = id_mgr_copy
+                    .update(
+                        IdentitySpec::new(module.module_id().to_string())
+                            .with_generation_id(module.generation_id().to_string()),
+                    )
+                    .map_err(|e| Error::from(e.context(ErrorKind::IdentityManager)));
+                Either::A(res)
+            }
+            None => Either::B(
+                future::err(Error::from(ErrorKind::EdgeRuntimeIdentityNotFound))
+                    as FutureResult<I::Identity, Error>,
+            ),
+        })
 }
 
 #[cfg(test)]

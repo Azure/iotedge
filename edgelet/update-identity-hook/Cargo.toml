@@ -1,0 +1,23 @@
+[package]
+name = "update-identity-hook"
+version = "0.1.0"
+authors = ["Azure IoT Edge Devs"]
+publish = false
+edition = "2018"
+
+[dependencies]
+clap = "2.31"
+env_logger = "0.5"
+futures = "0.1"
+hyper = "0.12"
+hyper-tls = "0.3"
+serde_yaml = "0.8"
+tokio = "0.1.8"
+url = "1.7"
+
+edgelet-core = { path = "../edgelet-core" }
+edgelet-http = { path = "../edgelet-http" }
+edgelet-iothub = { path = "../edgelet-iothub" }
+iothubservice = { path = "../iothubservice" }
+kube-client = { path = "../kube-client" }
+provisioning = { path = "../provisioning" }

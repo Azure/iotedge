@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::marker::PhantomData;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use edgelet_core::*;
@@ -57,6 +58,74 @@ impl TestConfig {
 
     pub fn image(&self) -> &str {
         &self.image
+    }
+}
+
+pub struct TestSettings {
+    provisioning: Provisioning,
+    agent: ModuleSpec<TestConfig>,
+    hostname: String,
+    connect: Connect,
+    listen: Listen,
+    homedir: PathBuf,
+    certificates: Option<Certificates>,
+}
+
+impl TestSettings {
+    pub fn new(
+        provisioning: Provisioning,
+        agent: ModuleSpec<TestConfig>,
+        hostname: String,
+        connect: Connect,
+        listen: Listen,
+        homedir: PathBuf,
+    ) -> Self {
+        TestSettings {
+            provisioning,
+            agent,
+            hostname,
+            connect,
+            listen,
+            homedir,
+            certificates: None,
+        }
+    }
+
+    pub fn with_certificates(mut self, certificates: Certificates) -> Self {
+        self.certificates = Some(certificates);
+        self
+    }
+}
+
+impl RuntimeSettings for TestSettings {
+    type Config = TestConfig;
+
+    fn provisioning(&self) -> &Provisioning {
+        &self.provisioning
+    }
+
+    fn agent(&self) -> &ModuleSpec<Self::Config> {
+        &self.agent
+    }
+
+    fn hostname(&self) -> &str {
+        &self.hostname
+    }
+
+    fn connect(&self) -> &Connect {
+        &self.connect
+    }
+
+    fn listen(&self) -> &Listen {
+        &self.listen
+    }
+
+    fn homedir(&self) -> &Path {
+        &self.homedir
+    }
+
+    fn certificates(&self) -> Option<&Certificates> {
+        self.certificates.as_ref()
     }
 }
 
@@ -150,6 +219,7 @@ impl<E> From<EmptyBody<E>> for Body {
 impl<E: Clone + Fail> ModuleRuntime for TestRuntime<E> {
     type Error = E;
     type Config = TestConfig;
+    type Settings = TestSettings;
     type Module = TestModule<E>;
     type ModuleRegistry = NullRegistry<E>;
     type Chunk = String;
@@ -178,7 +248,7 @@ impl<E: Clone + Fail> ModuleRuntime for TestRuntime<E> {
         }
     }
 
-    fn init(&self) -> Self::InitFuture {
+    fn init(&mut self, _settings: TestSettings) -> Self::InitFuture {
         match self.module {
             Ok(_) => future::ok(()),
             Err(ref e) => future::err(e.clone()),
