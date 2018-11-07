@@ -4,7 +4,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use chrono::{DateTime, Duration, Utc};
-use futures::future::{self, Either};
 use futures::{Future, IntoFuture, Stream};
 use hyper::{self, Body, Error as HyperError, Method, Request, Response};
 use serde::de::DeserializeOwned;
@@ -103,7 +102,7 @@ where
     }
 
     pub fn user_agent(&self) -> Option<&str> {
-        self.user_agent.as_ref().map(String::as_str)
+        self.user_agent.as_ref().map(AsRef::as_ref)
     }
 
     pub fn host_name(&self) -> &Url {
@@ -189,8 +188,7 @@ where
 
                 Ok(req)
             }).map(|req| {
-                let res = self
-                    .inner
+                self.inner
                     .call(req)
                     .map_err(|e| {
                         error!("{:?}", e);
@@ -214,10 +212,9 @@ where
                                 .map_err(Error::from)
                                 .map(Option::Some)
                         }
-                    });
-
-                Either::A(res)
-            }).unwrap_or_else(|e| Either::B(future::err(e)))
+                    })
+            }).into_future()
+            .flatten()
     }
 }
 
@@ -365,7 +362,7 @@ mod tests {
             assert_eq!(query_map.get("k1"), Some(&"v1".to_string()));
             assert_eq!(
                 query_map.get("k2"),
-                Some(&"this value has spaces and 🐮🐮🐮".to_string())
+                Some(&"this value has spaces and \u{1f42e}\u{1f42e}\u{1f42e}".to_string())
             );
 
             Ok(Response::new(response.into()))
@@ -374,7 +371,10 @@ mod tests {
 
         let mut query = HashMap::new();
         query.insert("k1", "v1");
-        query.insert("k2", "this value has spaces and 🐮🐮🐮");
+        query.insert(
+            "k2",
+            "this value has spaces and \u{1f42e}\u{1f42e}\u{1f42e}",
+        );
 
         let task = client.request::<String, String>(Method::GET, "/boo", Some(query), None, false);
 

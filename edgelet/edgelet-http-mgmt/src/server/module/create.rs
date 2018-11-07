@@ -51,7 +51,7 @@ where
             .into_body()
             .concat2()
             .and_then(move |b| {
-                serde_json::from_slice::<ModuleSpec>(&b)
+                match serde_json::from_slice::<ModuleSpec>(&b)
                     .context(ErrorKind::BadBody)
                     .map_err(From::from)
                     .and_then(|spec| {
@@ -59,7 +59,8 @@ where
                             .context(ErrorKind::BadBody)
                             .map_err(Error::from)
                             .map(|core_spec| (core_spec, spec))
-                    }).map(move |(core_spec, spec)| {
+                    }) {
+                    Ok((core_spec, spec)) => {
                         let created = runtime
                             .registry()
                             .pull(core_spec.config())
@@ -67,24 +68,26 @@ where
                                 runtime
                                     .create(core_spec)
                                     .map(move |_| {
-                                        let details =
-                                            spec_to_details(&spec, &ModuleStatus::Stopped);
-                                        serde_json::to_string(&details)
+                                        let details = spec_to_details(&spec, ModuleStatus::Stopped);
+                                        match serde_json::to_string(&details)
                                             .context(ErrorKind::Serde)
-                                            .map(|b| {
-                                                Response::builder()
-                                                    .status(StatusCode::CREATED)
-                                                    .header(CONTENT_TYPE, "application/json")
-                                                    .header(
-                                                        CONTENT_LENGTH,
-                                                        b.len().to_string().as_str(),
-                                                    ).body(b.into())
-                                                    .unwrap_or_else(|e| e.into_response())
-                                            }).unwrap_or_else(|e| e.into_response())
+                                        {
+                                            Ok(b) => Response::builder()
+                                                .status(StatusCode::CREATED)
+                                                .header(CONTENT_TYPE, "application/json")
+                                                .header(
+                                                    CONTENT_LENGTH,
+                                                    b.len().to_string().as_str(),
+                                                ).body(b.into())
+                                                .unwrap_or_else(|e| e.into_response()),
+                                            Err(e) => e.into_response(),
+                                        }
                                     }).or_else(|e| future::ok(e.into_response()))
                             }).or_else(|e| future::ok(e.into_response()));
                         future::Either::A(created)
-                    }).unwrap_or_else(|e| future::Either::B(future::ok(e.into_response())))
+                    }
+                    Err(e) => future::Either::B(future::ok(e.into_response())),
+                }
             }).or_else(|e| future::ok(e.into_response()));
         Box::new(response)
     }

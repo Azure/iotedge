@@ -55,27 +55,30 @@ impl IntoResponse for DockerError {
         };
 
         // Per the RFC, status code NotModified should not have a body
-        let body = if status_code != StatusCode::NOT_MODIFIED {
+        let body = if status_code == StatusCode::NOT_MODIFIED {
+            None
+        } else {
             let b = serde_json::to_string(&ErrorResponse::new(message))
                 .expect("serialization of ErrorResponse failed.");
             Some(b)
-        } else {
-            None
         };
 
-        body.map(|b| {
-            Response::builder()
-                .status(status_code)
-                .header(CONTENT_TYPE, "application/json")
-                .header(CONTENT_LENGTH, b.len().to_string().as_str())
-                .body(b.into())
-                .expect("response builder failure")
-        }).unwrap_or_else(|| {
-            Response::builder()
-                .status(status_code)
-                .body(Body::default())
-                .expect("response builder failure")
-        })
+        body.map_or_else(
+            || {
+                Response::builder()
+                    .status(status_code)
+                    .body(Body::default())
+                    .expect("response builder failure")
+            },
+            |b| {
+                Response::builder()
+                    .status(status_code)
+                    .header(CONTENT_TYPE, "application/json")
+                    .header(CONTENT_LENGTH, b.len().to_string().as_str())
+                    .body(b.into())
+                    .expect("response builder failure")
+            },
+        )
     }
 }
 
@@ -85,7 +88,7 @@ where
     M::Config: Serialize,
 {
     let settings = serde_json::to_value(module.config()).context(ErrorKind::Serde)?;
-    let config = Config::new(settings).with_env(Vec::new());
+    let config = Config::new(settings).with_env(vec![]);
     let mut runtime_status = RuntimeStatus::new(state.status().to_string());
     if let Some(description) = state.status_description() {
         runtime_status.set_description(description.to_string());
@@ -118,20 +121,17 @@ where
 {
     let name = spec.name();
     let type_ = spec.type_();
-    let env = spec
-        .config()
-        .env()
-        .map(|vars| {
-            vars.into_iter()
-                .map(|var| (var.key().clone(), var.value().clone()))
-                .collect()
-        }).unwrap_or_else(HashMap::new);
+    let env = spec.config().env().map_or_else(HashMap::new, |vars| {
+        vars.into_iter()
+            .map(|var| (var.key().clone(), var.value().clone()))
+            .collect()
+    });
     let config = serde_json::from_value(spec.config().settings().clone())?;
     let module_spec = CoreModuleSpec::new(name, type_, config, env)?;
     Ok(module_spec)
 }
 
-fn spec_to_details(spec: &ModuleSpec, module_status: &ModuleStatus) -> ModuleDetails {
+fn spec_to_details(spec: &ModuleSpec, module_status: ModuleStatus) -> ModuleDetails {
     let id = spec.name().clone();
     let name = spec.name().clone();
     let type_ = spec.type_().clone();
@@ -162,7 +162,7 @@ pub mod tests {
 
     use IntoResponse;
 
-    #[derive(Clone, Debug, Fail)]
+    #[derive(Clone, Copy, Debug, Fail)]
     pub enum Error {
         #[fail(display = "General error")]
         General,

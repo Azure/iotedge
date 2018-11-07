@@ -25,7 +25,7 @@ pub struct PeerNode {
 
 impl PeerNode {
     /// Represents a peer-node in the swarm
-    pub fn new() -> PeerNode {
+    pub fn new() -> Self {
         PeerNode {
             node_id: None,
             addr: None,
@@ -36,13 +36,13 @@ impl PeerNode {
         self.node_id = Some(node_id);
     }
 
-    pub fn with_node_id(mut self, node_id: String) -> PeerNode {
+    pub fn with_node_id(mut self, node_id: String) -> Self {
         self.node_id = Some(node_id);
         self
     }
 
-    pub fn node_id(&self) -> Option<&String> {
-        self.node_id.as_ref()
+    pub fn node_id(&self) -> Option<&str> {
+        self.node_id.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_node_id(&mut self) {
@@ -53,13 +53,13 @@ impl PeerNode {
         self.addr = Some(addr);
     }
 
-    pub fn with_addr(mut self, addr: String) -> PeerNode {
+    pub fn with_addr(mut self, addr: String) -> Self {
         self.addr = Some(addr);
         self
     }
 
-    pub fn addr(&self) -> Option<&String> {
-        self.addr.as_ref()
+    pub fn addr(&self) -> Option<&str> {
+        self.addr.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_addr(&mut self) {

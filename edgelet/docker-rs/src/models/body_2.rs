@@ -46,7 +46,7 @@ pub struct Body2 {
 }
 
 impl Body2 {
-    pub fn new() -> Body2 {
+    pub fn new() -> Self {
         Body2 {
             listen_addr: None,
             advertise_addr: None,
@@ -60,13 +60,13 @@ impl Body2 {
         self.listen_addr = Some(listen_addr);
     }
 
-    pub fn with_listen_addr(mut self, listen_addr: String) -> Body2 {
+    pub fn with_listen_addr(mut self, listen_addr: String) -> Self {
         self.listen_addr = Some(listen_addr);
         self
     }
 
-    pub fn listen_addr(&self) -> Option<&String> {
-        self.listen_addr.as_ref()
+    pub fn listen_addr(&self) -> Option<&str> {
+        self.listen_addr.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_listen_addr(&mut self) {
@@ -77,13 +77,13 @@ impl Body2 {
         self.advertise_addr = Some(advertise_addr);
     }
 
-    pub fn with_advertise_addr(mut self, advertise_addr: String) -> Body2 {
+    pub fn with_advertise_addr(mut self, advertise_addr: String) -> Self {
         self.advertise_addr = Some(advertise_addr);
         self
     }
 
-    pub fn advertise_addr(&self) -> Option<&String> {
-        self.advertise_addr.as_ref()
+    pub fn advertise_addr(&self) -> Option<&str> {
+        self.advertise_addr.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_advertise_addr(&mut self) {
@@ -94,13 +94,13 @@ impl Body2 {
         self.data_path_addr = Some(data_path_addr);
     }
 
-    pub fn with_data_path_addr(mut self, data_path_addr: String) -> Body2 {
+    pub fn with_data_path_addr(mut self, data_path_addr: String) -> Self {
         self.data_path_addr = Some(data_path_addr);
         self
     }
 
-    pub fn data_path_addr(&self) -> Option<&String> {
-        self.data_path_addr.as_ref()
+    pub fn data_path_addr(&self) -> Option<&str> {
+        self.data_path_addr.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_data_path_addr(&mut self) {
@@ -111,13 +111,13 @@ impl Body2 {
         self.remote_addrs = Some(remote_addrs);
     }
 
-    pub fn with_remote_addrs(mut self, remote_addrs: String) -> Body2 {
+    pub fn with_remote_addrs(mut self, remote_addrs: String) -> Self {
         self.remote_addrs = Some(remote_addrs);
         self
     }
 
-    pub fn remote_addrs(&self) -> Option<&String> {
-        self.remote_addrs.as_ref()
+    pub fn remote_addrs(&self) -> Option<&str> {
+        self.remote_addrs.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_remote_addrs(&mut self) {
@@ -128,13 +128,13 @@ impl Body2 {
         self.join_token = Some(join_token);
     }
 
-    pub fn with_join_token(mut self, join_token: String) -> Body2 {
+    pub fn with_join_token(mut self, join_token: String) -> Self {
         self.join_token = Some(join_token);
         self
     }
 
-    pub fn join_token(&self) -> Option<&String> {
-        self.join_token.as_ref()
+    pub fn join_token(&self) -> Option<&str> {
+        self.join_token.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_join_token(&mut self) {

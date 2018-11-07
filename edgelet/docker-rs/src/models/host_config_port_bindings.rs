@@ -22,7 +22,7 @@ pub struct HostConfigPortBindings {
 }
 
 impl HostConfigPortBindings {
-    pub fn new() -> HostConfigPortBindings {
+    pub fn new() -> Self {
         HostConfigPortBindings {
             host_ip: None,
             host_port: None,
@@ -33,13 +33,13 @@ impl HostConfigPortBindings {
         self.host_ip = Some(host_ip);
     }
 
-    pub fn with_host_ip(mut self, host_ip: String) -> HostConfigPortBindings {
+    pub fn with_host_ip(mut self, host_ip: String) -> Self {
         self.host_ip = Some(host_ip);
         self
     }
 
-    pub fn host_ip(&self) -> Option<&String> {
-        self.host_ip.as_ref()
+    pub fn host_ip(&self) -> Option<&str> {
+        self.host_ip.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_host_ip(&mut self) {
@@ -50,13 +50,13 @@ impl HostConfigPortBindings {
         self.host_port = Some(host_port);
     }
 
-    pub fn with_host_port(mut self, host_port: String) -> HostConfigPortBindings {
+    pub fn with_host_port(mut self, host_port: String) -> Self {
         self.host_port = Some(host_port);
         self
     }
 
-    pub fn host_port(&self) -> Option<&String> {
-        self.host_port.as_ref()
+    pub fn host_port(&self) -> Option<&str> {
+        self.host_port.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_host_port(&mut self) {

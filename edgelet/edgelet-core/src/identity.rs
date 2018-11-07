@@ -5,7 +5,7 @@ use std::fmt;
 use failure::Fail;
 use futures::Future;
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum AuthType {
     None,
     Sas,
@@ -37,7 +37,7 @@ pub struct IdentitySpec {
 }
 
 impl IdentitySpec {
-    pub fn new(module_id: &str) -> IdentitySpec {
+    pub fn new(module_id: &str) -> Self {
         IdentitySpec {
             module_id: module_id.to_string(),
             generation_id: None,
@@ -49,8 +49,8 @@ impl IdentitySpec {
         &self.module_id
     }
 
-    pub fn generation_id(&self) -> Option<&String> {
-        self.generation_id.as_ref()
+    pub fn generation_id(&self) -> Option<&str> {
+        self.generation_id.as_ref().map(AsRef::as_ref)
     }
 
     pub fn with_generation_id(mut self, generation_id: String) -> Self {
@@ -58,8 +58,8 @@ impl IdentitySpec {
         self
     }
 
-    pub fn managed_by(&self) -> Option<&String> {
-        self.managed_by.as_ref()
+    pub fn managed_by(&self) -> Option<&str> {
+        self.managed_by.as_ref().map(AsRef::as_ref)
     }
 
     pub fn with_managed_by(mut self, managed_by: String) -> Self {

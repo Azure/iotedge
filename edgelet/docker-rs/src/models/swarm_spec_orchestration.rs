@@ -25,7 +25,7 @@ pub struct SwarmSpecOrchestration {
 
 impl SwarmSpecOrchestration {
     /// Orchestration configuration.
-    pub fn new() -> SwarmSpecOrchestration {
+    pub fn new() -> Self {
         SwarmSpecOrchestration {
             task_history_retention_limit: None,
         }
@@ -35,16 +35,13 @@ impl SwarmSpecOrchestration {
         self.task_history_retention_limit = Some(task_history_retention_limit);
     }
 
-    pub fn with_task_history_retention_limit(
-        mut self,
-        task_history_retention_limit: i64,
-    ) -> SwarmSpecOrchestration {
+    pub fn with_task_history_retention_limit(mut self, task_history_retention_limit: i64) -> Self {
         self.task_history_retention_limit = Some(task_history_retention_limit);
         self
     }
 
-    pub fn task_history_retention_limit(&self) -> Option<&i64> {
-        self.task_history_retention_limit.as_ref()
+    pub fn task_history_retention_limit(&self) -> Option<i64> {
+        self.task_history_retention_limit
     }
 
     pub fn reset_task_history_retention_limit(&mut self) {

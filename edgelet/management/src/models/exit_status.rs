@@ -20,7 +20,7 @@ pub struct ExitStatus {
 }
 
 impl ExitStatus {
-    pub fn new(exit_time: String, status_code: String) -> ExitStatus {
+    pub fn new(exit_time: String, status_code: String) -> Self {
         ExitStatus {
             exit_time,
             status_code,
@@ -31,7 +31,7 @@ impl ExitStatus {
         self.exit_time = exit_time;
     }
 
-    pub fn with_exit_time(mut self, exit_time: String) -> ExitStatus {
+    pub fn with_exit_time(mut self, exit_time: String) -> Self {
         self.exit_time = exit_time;
         self
     }
@@ -44,7 +44,7 @@ impl ExitStatus {
         self.status_code = status_code;
     }
 
-    pub fn with_status_code(mut self, status_code: String) -> ExitStatus {
+    pub fn with_status_code(mut self, status_code: String) -> Self {
         self.status_code = status_code;
         self
     }

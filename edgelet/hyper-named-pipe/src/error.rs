@@ -18,7 +18,7 @@ pub struct Error {
     inner: Context<ErrorKind>,
 }
 
-#[derive(Debug, Fail)]
+#[derive(Clone, Copy, Debug, Fail)]
 pub enum ErrorKind {
     #[fail(display = "URL scheme is missing or is not npipe")]
     InvalidUrlScheme,
@@ -59,7 +59,7 @@ impl Error {
 }
 
 impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Error {
+    fn from(kind: ErrorKind) -> Self {
         Error {
             inner: Context::new(kind),
         }
@@ -67,13 +67,13 @@ impl From<ErrorKind> for Error {
 }
 
 impl From<Context<ErrorKind>> for Error {
-    fn from(inner: Context<ErrorKind>) -> Error {
+    fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
     }
 }
 
 impl From<ParseError> for Error {
-    fn from(err: ParseError) -> Error {
+    fn from(err: ParseError) -> Self {
         Error {
             inner: err.context(ErrorKind::UrlParse),
         }
@@ -81,7 +81,7 @@ impl From<ParseError> for Error {
 }
 
 impl From<UtilsError> for Error {
-    fn from(err: UtilsError) -> Error {
+    fn from(err: UtilsError) -> Self {
         Error {
             inner: err.context(ErrorKind::Utils),
         }
@@ -89,7 +89,7 @@ impl From<UtilsError> for Error {
 }
 
 impl From<FromHexError> for Error {
-    fn from(err: FromHexError) -> Error {
+    fn from(err: FromHexError) -> Self {
         Error {
             inner: err.context(ErrorKind::Hex),
         }
@@ -97,7 +97,7 @@ impl From<FromHexError> for Error {
 }
 
 impl From<Utf8Error> for Error {
-    fn from(err: Utf8Error) -> Error {
+    fn from(err: Utf8Error) -> Self {
         Error {
             inner: err.context(ErrorKind::Utf8),
         }

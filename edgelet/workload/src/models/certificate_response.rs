@@ -24,11 +24,7 @@ pub struct CertificateResponse {
 }
 
 impl CertificateResponse {
-    pub fn new(
-        private_key: ::models::PrivateKey,
-        certificate: String,
-        expiration: String,
-    ) -> CertificateResponse {
+    pub fn new(private_key: ::models::PrivateKey, certificate: String, expiration: String) -> Self {
         CertificateResponse {
             private_key,
             certificate,
@@ -40,7 +36,7 @@ impl CertificateResponse {
         self.private_key = private_key;
     }
 
-    pub fn with_private_key(mut self, private_key: ::models::PrivateKey) -> CertificateResponse {
+    pub fn with_private_key(mut self, private_key: ::models::PrivateKey) -> Self {
         self.private_key = private_key;
         self
     }
@@ -53,7 +49,7 @@ impl CertificateResponse {
         self.certificate = certificate;
     }
 
-    pub fn with_certificate(mut self, certificate: String) -> CertificateResponse {
+    pub fn with_certificate(mut self, certificate: String) -> Self {
         self.certificate = certificate;
         self
     }
@@ -66,7 +62,7 @@ impl CertificateResponse {
         self.expiration = expiration;
     }
 
-    pub fn with_expiration(mut self, expiration: String) -> CertificateResponse {
+    pub fn with_expiration(mut self, expiration: String) -> Self {
         self.expiration = expiration;
         self
     }

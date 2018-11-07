@@ -28,7 +28,7 @@ pub struct EngineDescription {
 
 impl EngineDescription {
     /// EngineDescription provides information about an engine.
-    pub fn new() -> EngineDescription {
+    pub fn new() -> Self {
         EngineDescription {
             engine_version: None,
             labels: None,
@@ -40,13 +40,13 @@ impl EngineDescription {
         self.engine_version = Some(engine_version);
     }
 
-    pub fn with_engine_version(mut self, engine_version: String) -> EngineDescription {
+    pub fn with_engine_version(mut self, engine_version: String) -> Self {
         self.engine_version = Some(engine_version);
         self
     }
 
-    pub fn engine_version(&self) -> Option<&String> {
-        self.engine_version.as_ref()
+    pub fn engine_version(&self) -> Option<&str> {
+        self.engine_version.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_engine_version(&mut self) {
@@ -57,10 +57,7 @@ impl EngineDescription {
         self.labels = Some(labels);
     }
 
-    pub fn with_labels(
-        mut self,
-        labels: ::std::collections::HashMap<String, String>,
-    ) -> EngineDescription {
+    pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
         self.labels = Some(labels);
         self
     }
@@ -77,16 +74,13 @@ impl EngineDescription {
         self.plugins = Some(plugins);
     }
 
-    pub fn with_plugins(
-        mut self,
-        plugins: Vec<::models::EngineDescriptionPlugins>,
-    ) -> EngineDescription {
+    pub fn with_plugins(mut self, plugins: Vec<::models::EngineDescriptionPlugins>) -> Self {
         self.plugins = Some(plugins);
         self
     }
 
-    pub fn plugins(&self) -> Option<&Vec<::models::EngineDescriptionPlugins>> {
-        self.plugins.as_ref()
+    pub fn plugins(&self) -> Option<&[::models::EngineDescriptionPlugins]> {
+        self.plugins.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_plugins(&mut self) {

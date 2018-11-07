@@ -26,7 +26,7 @@ pub fn convert_properties(
         CoreCertificateIssuer::DeviceCa => device_ca_alias.to_string(),
         CoreCertificateIssuer::DefaultCa => IOTEDGED_CA_ALIAS.to_string(),
     };
-    let no_sans: Vec<String> = Vec::new();
+    let no_sans: Vec<String> = vec![];
     HsmCertificateProperties::new(
         *core.validity_in_secs(),
         core.common_name().to_string(),
@@ -48,7 +48,7 @@ mod tests {
         CertificateProperties as HsmCertificateProperties, CertificateType as HsmCertificateType,
     };
 
-    fn check_conversion(core: &CoreCertificateProperties, hsm: HsmCertificateProperties) {
+    fn check_conversion(core: &CoreCertificateProperties, hsm: &HsmCertificateProperties) {
         assert_eq!(core.validity_in_secs(), hsm.validity_in_secs());
         assert_eq!(core.common_name(), hsm.common_name());
         match *core.certificate_type() {
@@ -69,12 +69,12 @@ mod tests {
         };
         assert_eq!(core.alias(), hsm.alias());
 
-        let expected_sans: Vec<String> = vec![String::from("serif"), String::from("guile")];
+        let expected_sans = &[String::from("serif"), String::from("guile")];
         if core.san_entries().is_some() {
-            assert_eq!(expected_sans, *hsm.san_entries());
+            assert_eq!(expected_sans, hsm.san_entries());
         } else {
-            let no_sans: Vec<String> = Vec::new();
-            assert_eq!(no_sans, *hsm.san_entries());
+            let no_sans: &[String] = &[];
+            assert_eq!(no_sans, hsm.san_entries());
         }
 
         assert_eq!(None, hsm.country());
@@ -105,7 +105,7 @@ mod tests {
 
             check_conversion(
                 &core_props,
-                super::convert_properties(&core_props, "device_ca_test"),
+                &super::convert_properties(&core_props, "device_ca_test"),
             );
         }
 
@@ -117,7 +117,7 @@ mod tests {
         ).with_issuer(CoreCertificateIssuer::DeviceCa);
         check_conversion(
             &core_props,
-            super::convert_properties(&core_props, "device_ca_test"),
+            &super::convert_properties(&core_props, "device_ca_test"),
         );
 
         let input_sans: Vec<String> = vec![String::from("serif"), String::from("guile")];
@@ -129,7 +129,7 @@ mod tests {
         ).with_san_entries(input_sans);
         check_conversion(
             &core_props,
-            super::convert_properties(&core_props, "device_ca_test"),
+            &super::convert_properties(&core_props, "device_ca_test"),
         );
     }
 

@@ -25,7 +25,7 @@ pub struct SwarmSpecTaskDefaultsLogDriver {
 
 impl SwarmSpecTaskDefaultsLogDriver {
     /// The log driver to use for tasks created in the orchestrator if unspecified by a service.  Updating this value only affects new tasks. Existing tasks continue to use their previously configured log driver until recreated.
-    pub fn new() -> SwarmSpecTaskDefaultsLogDriver {
+    pub fn new() -> Self {
         SwarmSpecTaskDefaultsLogDriver {
             name: None,
             options: None,
@@ -36,13 +36,13 @@ impl SwarmSpecTaskDefaultsLogDriver {
         self.name = Some(name);
     }
 
-    pub fn with_name(mut self, name: String) -> SwarmSpecTaskDefaultsLogDriver {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
     }
 
-    pub fn name(&self) -> Option<&String> {
-        self.name.as_ref()
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_name(&mut self) {
@@ -53,10 +53,7 @@ impl SwarmSpecTaskDefaultsLogDriver {
         self.options = Some(options);
     }
 
-    pub fn with_options(
-        mut self,
-        options: ::std::collections::HashMap<String, String>,
-    ) -> SwarmSpecTaskDefaultsLogDriver {
+    pub fn with_options(mut self, options: ::std::collections::HashMap<String, String>) -> Self {
         self.options = Some(options);
         self
     }

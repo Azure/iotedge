@@ -54,7 +54,7 @@ where
             .and_then(|query| {
                 parse_query(query.as_bytes())
                     .find(|&(ref key, _)| key == "start")
-                    .and_then(|(_, v)| if v != "false" { Some(()) } else { None })
+                    .and_then(|(_, v)| if v == "false" { None } else { Some(()) })
                     .map(|_| true)
             }).unwrap_or_else(|| false);
 
@@ -62,7 +62,7 @@ where
             .into_body()
             .concat2()
             .and_then(move |b| {
-                serde_json::from_slice::<ModuleSpec>(&b)
+                match serde_json::from_slice::<ModuleSpec>(&b)
                     .context(ErrorKind::BadBody)
                     .map_err(From::from)
                     .and_then(|spec| {
@@ -70,7 +70,8 @@ where
                             .context(ErrorKind::BadBody)
                             .map_err(Error::from)
                             .map(|core_spec| (core_spec, spec))
-                    }).map(move |(core_spec, spec)| {
+                    }) {
+                    Ok((core_spec, spec)) => {
                         let name = core_spec.name().to_string();
 
                         if start {
@@ -101,30 +102,31 @@ where
                                                 future::Either::B(future::ok(ModuleStatus::Stopped))
                                             }.map(
                                                 move |status| {
-                                                    let details = spec_to_details(&spec, &status);
-                                                    serde_json::to_string(&details)
+                                                    let details = spec_to_details(&spec, status);
+                                                    match serde_json::to_string(&details)
                                                         .context(ErrorKind::Serde)
-                                                        .map(|b| {
-                                                            Response::builder()
-                                                                .status(StatusCode::OK)
-                                                                .header(
-                                                                    CONTENT_TYPE,
-                                                                    "application/json",
-                                                                ).header(
-                                                                    CONTENT_LENGTH,
-                                                                    b.len().to_string().as_str(),
-                                                                ).body(b.into())
-                                                                .unwrap_or_else(|e| {
-                                                                    e.into_response()
-                                                                })
-                                                        }).unwrap_or_else(|e| e.into_response())
+                                                    {
+                                                        Ok(b) => Response::builder()
+                                                            .status(StatusCode::OK)
+                                                            .header(
+                                                                CONTENT_TYPE,
+                                                                "application/json",
+                                                            ).header(
+                                                                CONTENT_LENGTH,
+                                                                b.len().to_string().as_str(),
+                                                            ).body(b.into())
+                                                            .unwrap_or_else(|e| e.into_response()),
+                                                        Err(e) => e.into_response(),
+                                                    }
                                                 },
                                             )
                                         })
                                     })
                             }).or_else(|e| future::ok(e.into_response()));
                         future::Either::A(created)
-                    }).unwrap_or_else(|e| future::Either::B(future::ok(e.into_response())))
+                    }
+                    Err(e) => future::Either::B(future::ok(e.into_response())),
+                }
             }).or_else(|e| future::ok(e.into_response()));
         Box::new(response)
     }

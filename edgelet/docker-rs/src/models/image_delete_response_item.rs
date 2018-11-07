@@ -22,7 +22,7 @@ pub struct ImageDeleteResponseItem {
 }
 
 impl ImageDeleteResponseItem {
-    pub fn new() -> ImageDeleteResponseItem {
+    pub fn new() -> Self {
         ImageDeleteResponseItem {
             untagged: None,
             deleted: None,
@@ -33,13 +33,13 @@ impl ImageDeleteResponseItem {
         self.untagged = Some(untagged);
     }
 
-    pub fn with_untagged(mut self, untagged: String) -> ImageDeleteResponseItem {
+    pub fn with_untagged(mut self, untagged: String) -> Self {
         self.untagged = Some(untagged);
         self
     }
 
-    pub fn untagged(&self) -> Option<&String> {
-        self.untagged.as_ref()
+    pub fn untagged(&self) -> Option<&str> {
+        self.untagged.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_untagged(&mut self) {
@@ -50,13 +50,13 @@ impl ImageDeleteResponseItem {
         self.deleted = Some(deleted);
     }
 
-    pub fn with_deleted(mut self, deleted: String) -> ImageDeleteResponseItem {
+    pub fn with_deleted(mut self, deleted: String) -> Self {
         self.deleted = Some(deleted);
         self
     }
 
-    pub fn deleted(&self) -> Option<&String> {
-        self.deleted.as_ref()
+    pub fn deleted(&self) -> Option<&str> {
+        self.deleted.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_deleted(&mut self) {

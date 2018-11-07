@@ -55,16 +55,15 @@ where
                     systeminfo.architecture().to_string(),
                     systeminfo.version().to_string(),
                 );
-                let response = serde_json::to_string(&body)
-                    .context(ErrorKind::Serde)
-                    .map(|b| {
-                        Response::builder()
-                            .status(StatusCode::OK)
-                            .header(CONTENT_TYPE, "application/json")
-                            .header(CONTENT_LENGTH, b.len().to_string().as_str())
-                            .body(b.into())
-                            .unwrap_or_else(|e| e.into_response())
-                    }).unwrap_or_else(|e| e.into_response());
+                let response = match serde_json::to_string(&body).context(ErrorKind::Serde) {
+                    Ok(b) => Response::builder()
+                        .status(StatusCode::OK)
+                        .header(CONTENT_TYPE, "application/json")
+                        .header(CONTENT_LENGTH, b.len().to_string().as_str())
+                        .body(b.into())
+                        .unwrap_or_else(|e| e.into_response()),
+                    Err(e) => e.into_response(),
+                };
                 future::ok(response)
             }).or_else(|e| future::ok(e.into_response()));
 

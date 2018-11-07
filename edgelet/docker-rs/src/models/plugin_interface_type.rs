@@ -22,7 +22,7 @@ pub struct PluginInterfaceType {
 }
 
 impl PluginInterfaceType {
-    pub fn new(prefix: String, capability: String, version: String) -> PluginInterfaceType {
+    pub fn new(prefix: String, capability: String, version: String) -> Self {
         PluginInterfaceType {
             prefix: prefix,
             capability: capability,
@@ -34,7 +34,7 @@ impl PluginInterfaceType {
         self.prefix = prefix;
     }
 
-    pub fn with_prefix(mut self, prefix: String) -> PluginInterfaceType {
+    pub fn with_prefix(mut self, prefix: String) -> Self {
         self.prefix = prefix;
         self
     }
@@ -47,7 +47,7 @@ impl PluginInterfaceType {
         self.capability = capability;
     }
 
-    pub fn with_capability(mut self, capability: String) -> PluginInterfaceType {
+    pub fn with_capability(mut self, capability: String) -> Self {
         self.capability = capability;
         self
     }
@@ -60,7 +60,7 @@ impl PluginInterfaceType {
         self.version = version;
     }
 
-    pub fn with_version(mut self, version: String) -> PluginInterfaceType {
+    pub fn with_version(mut self, version: String) -> Self {
         self.version = version;
         self
     }

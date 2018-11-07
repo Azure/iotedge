@@ -23,7 +23,7 @@ pub struct Error {
     inner: Context<ErrorKind>,
 }
 
-#[derive(Debug, Fail)]
+#[derive(Clone, Copy, Debug, Fail)]
 pub enum ErrorKind {
     #[fail(display = "Keystore error")]
     KeyStore,
@@ -76,7 +76,7 @@ impl Error {
 }
 
 impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Error {
+    fn from(kind: ErrorKind) -> Self {
         Error {
             inner: Context::new(kind),
         }
@@ -84,13 +84,13 @@ impl From<ErrorKind> for Error {
 }
 
 impl From<Context<ErrorKind>> for Error {
-    fn from(inner: Context<ErrorKind>) -> Error {
+    fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
     }
 }
 
 impl From<serde_json::Error> for Error {
-    fn from(error: serde_json::Error) -> Error {
+    fn from(error: serde_json::Error) -> Self {
         Error {
             inner: error.context(ErrorKind::Serde),
         }
@@ -98,7 +98,7 @@ impl From<serde_json::Error> for Error {
 }
 
 impl From<HyperError> for Error {
-    fn from(error: HyperError) -> Error {
+    fn from(error: HyperError) -> Self {
         Error {
             inner: error.context(ErrorKind::Hyper),
         }
@@ -106,7 +106,7 @@ impl From<HyperError> for Error {
 }
 
 impl From<HttpError> for Error {
-    fn from(error: HttpError) -> Error {
+    fn from(error: HttpError) -> Self {
         Error {
             inner: error.context(ErrorKind::Http),
         }
@@ -114,7 +114,7 @@ impl From<HttpError> for Error {
 }
 
 impl From<DecodeError> for Error {
-    fn from(error: DecodeError) -> Error {
+    fn from(error: DecodeError) -> Self {
         Error {
             inner: error.context(ErrorKind::Base64),
         }
@@ -122,7 +122,7 @@ impl From<DecodeError> for Error {
 }
 
 impl From<CoreError> for Error {
-    fn from(error: CoreError) -> Error {
+    fn from(error: CoreError) -> Self {
         Error {
             inner: error.context(ErrorKind::Sign),
         }
@@ -130,7 +130,7 @@ impl From<CoreError> for Error {
 }
 
 impl From<ParseError> for Error {
-    fn from(error: ParseError) -> Error {
+    fn from(error: ParseError) -> Self {
         Error {
             inner: error.context(ErrorKind::DateParse),
         }
@@ -138,7 +138,7 @@ impl From<ParseError> for Error {
 }
 
 impl From<UtilsError> for Error {
-    fn from(error: UtilsError) -> Error {
+    fn from(error: UtilsError) -> Self {
         Error {
             inner: error.context(ErrorKind::Utils),
         }
@@ -146,7 +146,7 @@ impl From<UtilsError> for Error {
 }
 
 impl From<Utf8Error> for Error {
-    fn from(error: Utf8Error) -> Error {
+    fn from(error: Utf8Error) -> Self {
         Error {
             inner: error.context(ErrorKind::Utf8),
         }
@@ -164,8 +164,7 @@ impl IntoResponse for Error {
 
         let status_code = match *self.kind() {
             ErrorKind::NotFound => StatusCode::NOT_FOUND,
-            ErrorKind::BadParam => StatusCode::BAD_REQUEST,
-            ErrorKind::BadBody => StatusCode::BAD_REQUEST,
+            ErrorKind::BadParam | ErrorKind::BadBody => StatusCode::BAD_REQUEST,
             ErrorKind::Base64 => StatusCode::UNPROCESSABLE_ENTITY,
             _ => {
                 error!("Internal server error: {}", message);
@@ -174,27 +173,30 @@ impl IntoResponse for Error {
         };
 
         // Per the RFC, status code NotModified should not have a body
-        let body = if status_code != StatusCode::NOT_MODIFIED {
+        let body = if status_code == StatusCode::NOT_MODIFIED {
+            None
+        } else {
             let b = serde_json::to_string(&ErrorResponse::new(message))
                 .expect("serialization of ErrorResponse failed.");
             Some(b)
-        } else {
-            None
         };
 
-        body.map(|b| {
-            Response::builder()
-                .status(status_code)
-                .header(CONTENT_TYPE, "application/json")
-                .header(CONTENT_LENGTH, b.len().to_string().as_str())
-                .body(b.into())
-                .expect("response builder failure")
-        }).unwrap_or_else(|| {
-            Response::builder()
-                .status(status_code)
-                .body(Body::default())
-                .expect("response builder failure")
-        })
+        body.map_or_else(
+            || {
+                Response::builder()
+                    .status(status_code)
+                    .body(Body::default())
+                    .expect("response builder failure")
+            },
+            |b| {
+                Response::builder()
+                    .status(status_code)
+                    .header(CONTENT_TYPE, "application/json")
+                    .header(CONTENT_LENGTH, b.len().to_string().as_str())
+                    .body(b.into())
+                    .expect("response builder failure")
+            },
+        )
     }
 }
 

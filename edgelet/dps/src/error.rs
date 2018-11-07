@@ -63,7 +63,7 @@ impl Error {
 }
 
 impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Error {
+    fn from(kind: ErrorKind) -> Self {
         Error {
             inner: Context::new(kind),
         }
@@ -71,13 +71,13 @@ impl From<ErrorKind> for Error {
 }
 
 impl From<Context<ErrorKind>> for Error {
-    fn from(inner: Context<ErrorKind>) -> Error {
+    fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
     }
 }
 
 impl From<CoreError> for Error {
-    fn from(error: CoreError) -> Error {
+    fn from(error: CoreError) -> Self {
         Error {
             inner: error.context(ErrorKind::Core),
         }
@@ -85,7 +85,7 @@ impl From<CoreError> for Error {
 }
 
 impl From<HttpError> for Error {
-    fn from(error: HttpError) -> Error {
+    fn from(error: HttpError) -> Self {
         Error {
             inner: error.context(ErrorKind::Http),
         }
@@ -93,7 +93,7 @@ impl From<HttpError> for Error {
 }
 
 impl From<SerdeError> for Error {
-    fn from(error: SerdeError) -> Error {
+    fn from(error: SerdeError) -> Self {
         Error {
             inner: error.context(ErrorKind::Serde),
         }
@@ -101,13 +101,13 @@ impl From<SerdeError> for Error {
 }
 
 impl From<Error> for HttpError {
-    fn from(err: Error) -> HttpError {
+    fn from(err: Error) -> Self {
         HttpError::from(err.context(HttpErrorKind::TokenSource))
     }
 }
 
 impl From<TimerError> for Error {
-    fn from(error: TimerError) -> Error {
+    fn from(error: TimerError) -> Self {
         Error {
             inner: error.context(ErrorKind::TimerError),
         }
@@ -115,7 +115,7 @@ impl From<TimerError> for Error {
 }
 
 impl From<DecodeError> for Error {
-    fn from(error: DecodeError) -> Error {
+    fn from(error: DecodeError) -> Self {
         Error {
             inner: error.context(ErrorKind::Decode),
         }

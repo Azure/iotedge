@@ -28,7 +28,7 @@ pub struct Address {
 
 impl Address {
     /// Address represents an IPv4 or IPv6 IP address.
-    pub fn new() -> Address {
+    pub fn new() -> Self {
         Address {
             addr: None,
             prefix_len: None,
@@ -39,13 +39,13 @@ impl Address {
         self.addr = Some(addr);
     }
 
-    pub fn with_addr(mut self, addr: String) -> Address {
+    pub fn with_addr(mut self, addr: String) -> Self {
         self.addr = Some(addr);
         self
     }
 
-    pub fn addr(&self) -> Option<&String> {
-        self.addr.as_ref()
+    pub fn addr(&self) -> Option<&str> {
+        self.addr.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_addr(&mut self) {
@@ -56,13 +56,13 @@ impl Address {
         self.prefix_len = Some(prefix_len);
     }
 
-    pub fn with_prefix_len(mut self, prefix_len: i32) -> Address {
+    pub fn with_prefix_len(mut self, prefix_len: i32) -> Self {
         self.prefix_len = Some(prefix_len);
         self
     }
 
-    pub fn prefix_len(&self) -> Option<&i32> {
-        self.prefix_len.as_ref()
+    pub fn prefix_len(&self) -> Option<i32> {
+        self.prefix_len
     }
 
     pub fn reset_prefix_len(&mut self) {
