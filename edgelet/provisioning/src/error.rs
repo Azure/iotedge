@@ -69,7 +69,7 @@ impl Error {
 }
 
 impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Error {
+    fn from(kind: ErrorKind) -> Self {
         Error {
             inner: Context::new(kind),
         }
@@ -77,13 +77,13 @@ impl From<ErrorKind> for Error {
 }
 
 impl From<Context<ErrorKind>> for Error {
-    fn from(inner: Context<ErrorKind>) -> Error {
+    fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
     }
 }
 
 impl From<UtilsError> for Error {
-    fn from(error: UtilsError) -> Error {
+    fn from(error: UtilsError) -> Self {
         Error {
             inner: error.context(ErrorKind::Utils),
         }
@@ -91,7 +91,7 @@ impl From<UtilsError> for Error {
 }
 
 impl From<DpsError> for Error {
-    fn from(error: DpsError) -> Error {
+    fn from(error: DpsError) -> Self {
         Error {
             inner: error.context(ErrorKind::Dps),
         }
@@ -99,7 +99,7 @@ impl From<DpsError> for Error {
 }
 
 impl From<CoreError> for Error {
-    fn from(error: CoreError) -> Error {
+    fn from(error: CoreError) -> Self {
         Error {
             inner: error.context(ErrorKind::Core),
         }
@@ -107,19 +107,19 @@ impl From<CoreError> for Error {
 }
 
 impl From<Error> for DpsError {
-    fn from(err: Error) -> DpsError {
+    fn from(err: Error) -> Self {
         DpsError::from(err.context(DpsErrorKind::Keystore))
     }
 }
 
 impl From<Error> for CoreError {
-    fn from(err: Error) -> CoreError {
+    fn from(err: Error) -> Self {
         CoreError::from(err.context(CoreErrorKind::Activate))
     }
 }
 
 impl From<RegexError> for Error {
-    fn from(err: RegexError) -> Error {
+    fn from(err: RegexError) -> Self {
         Error {
             inner: err.context(ErrorKind::Regex),
         }
@@ -127,7 +127,7 @@ impl From<RegexError> for Error {
 }
 
 impl From<DecodeError> for Error {
-    fn from(error: DecodeError) -> Error {
+    fn from(error: DecodeError) -> Self {
         Error {
             inner: error.context(ErrorKind::Base64),
         }
@@ -135,7 +135,7 @@ impl From<DecodeError> for Error {
 }
 
 impl From<HttpError> for Error {
-    fn from(error: HttpError) -> Error {
+    fn from(error: HttpError) -> Self {
         Error {
             inner: error.context(ErrorKind::Http),
         }
@@ -143,7 +143,7 @@ impl From<HttpError> for Error {
 }
 
 impl From<IoError> for Error {
-    fn from(error: IoError) -> Error {
+    fn from(error: IoError) -> Self {
         Error {
             inner: error.context(ErrorKind::Io),
         }
@@ -151,7 +151,7 @@ impl From<IoError> for Error {
 }
 
 impl From<SerdeError> for Error {
-    fn from(error: SerdeError) -> Error {
+    fn from(error: SerdeError) -> Self {
         Error {
             inner: error.context(ErrorKind::Serde),
         }

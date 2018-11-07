@@ -23,7 +23,7 @@ pub struct HostConfigLogConfig {
 
 impl HostConfigLogConfig {
     /// The logging configuration for this container
-    pub fn new() -> HostConfigLogConfig {
+    pub fn new() -> Self {
         HostConfigLogConfig {
             _type: None,
             config: None,
@@ -34,13 +34,13 @@ impl HostConfigLogConfig {
         self._type = Some(_type);
     }
 
-    pub fn with__type(mut self, _type: String) -> HostConfigLogConfig {
+    pub fn with__type(mut self, _type: String) -> Self {
         self._type = Some(_type);
         self
     }
 
-    pub fn _type(&self) -> Option<&String> {
-        self._type.as_ref()
+    pub fn _type(&self) -> Option<&str> {
+        self._type.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset__type(&mut self) {
@@ -51,10 +51,7 @@ impl HostConfigLogConfig {
         self.config = Some(config);
     }
 
-    pub fn with_config(
-        mut self,
-        config: ::std::collections::HashMap<String, String>,
-    ) -> HostConfigLogConfig {
+    pub fn with_config(mut self, config: ::std::collections::HashMap<String, String>) -> Self {
         self.config = Some(config);
         self
     }

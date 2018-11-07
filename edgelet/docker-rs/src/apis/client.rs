@@ -15,7 +15,7 @@ pub struct APIClient<C: hyper::client::connect::Connect> {
 }
 
 impl<C: hyper::client::connect::Connect + 'static> APIClient<C> {
-    pub fn new(configuration: Configuration<C>) -> APIClient<C> {
+    pub fn new(configuration: Configuration<C>) -> Self {
         let configuration = Arc::new(configuration);
 
         APIClient {

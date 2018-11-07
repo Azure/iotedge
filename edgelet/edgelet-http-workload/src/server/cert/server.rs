@@ -40,15 +40,9 @@ where
         let hsm = self.hsm.clone();
         let cfg = self.config.clone();
         let max_duration = cfg.get_cert_max_duration(CertificateType::Server);
-        let response = params
-            .name("name")
-            .ok_or_else(|| Error::from(ErrorKind::BadParam))
-            .and_then(|name| {
-                params
-                    .name("genid")
-                    .ok_or_else(|| Error::from(ErrorKind::BadParam))
-                    .map(|genid| (name, genid))
-            }).map(|(module_id, genid)| {
+
+        let response = match (params.name("name"), params.name("genid")) {
+            (Some(module_id), Some(genid)) => {
                 let alias = format!("{}{}server", module_id.to_string(), genid.to_string());
                 let result = req
                     .into_body()
@@ -63,6 +57,7 @@ where
                                     max_duration,
                                 ).map(|expiration| (cert_req, expiration))
                             }).and_then(move |(cert_req, expiration)| {
+                                #[cfg_attr(feature = "cargo-clippy", allow(cast_sign_loss))]
                                 let props = CertificateProperties::new(
                                     ensure_range!(expiration, 0, max_duration) as u64,
                                     ensure_not_empty!(cert_req.common_name().to_string()),
@@ -75,7 +70,12 @@ where
                     .or_else(|e| future::ok(e.into_response()));
 
                 future::Either::A(result)
-            }).unwrap_or_else(|e| future::Either::B(future::ok(e.into_response())));
+            }
+
+            (None, _) | (_, None) => {
+                future::Either::B(future::ok(Error::from(ErrorKind::BadParam).into_response()))
+            }
+        };
 
         Box::new(response)
     }
@@ -108,7 +108,7 @@ mod tests {
     }
 
     impl TestHsm {
-        fn with_on_create<F>(mut self, on_create: F) -> TestHsm
+        fn with_on_create<F>(mut self, on_create: F) -> Self
         where
             F: Fn(&CertificateProperties) -> StdResult<TestCert, CoreError> + Send + Sync + 'static,
         {
@@ -123,7 +123,7 @@ mod tests {
         fn create_certificate(
             &self,
             properties: &CertificateProperties,
-        ) -> StdResult<TestCert, CoreError> {
+        ) -> StdResult<Self::Certificate, CoreError> {
             let callback = self.on_create.as_ref().unwrap();
             callback(properties)
         }
@@ -140,7 +140,13 @@ mod tests {
     }
 
     impl Default for TestWorkloadConfig {
+        #[cfg_attr(
+            feature = "cargo-clippy",
+            allow(cast_possible_wrap, cast_sign_loss)
+        )]
         fn default() -> Self {
+            assert!(MAX_DURATION_SEC < (i64::max_value() as u64));
+
             TestWorkloadConfig {
                 iot_hub_name: String::from("zaphods_hub"),
                 device_id: String::from("marvins_device"),
@@ -560,10 +566,7 @@ mod tests {
             .wait()
             .unwrap();
         assert_eq!("key", cert_resp.private_key().type_());
-        assert_eq!(
-            Some(&"Betelgeuse".to_string()),
-            cert_resp.private_key().bytes()
-        );
+        assert_eq!(Some("Betelgeuse"), cert_resp.private_key().bytes());
     }
 
     #[test]
@@ -604,10 +607,7 @@ mod tests {
             .wait()
             .unwrap();
         assert_eq!("ref", cert_resp.private_key().type_());
-        assert_eq!(
-            Some(&"Betelgeuse".to_string()),
-            cert_resp.private_key().ref_()
-        );
+        assert_eq!(Some("Betelgeuse"), cert_resp.private_key().ref_());
     }
 
     #[test]
@@ -649,10 +649,7 @@ mod tests {
             .wait()
             .unwrap();
         assert_eq!("key", cert_resp.private_key().type_());
-        assert_eq!(
-            Some(&"Betelgeuse".to_string()),
-            cert_resp.private_key().bytes()
-        );
+        assert_eq!(Some("Betelgeuse"), cert_resp.private_key().bytes());
     }
 
     #[test]

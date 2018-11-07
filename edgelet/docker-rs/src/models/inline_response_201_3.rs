@@ -19,7 +19,7 @@ pub struct InlineResponse2013 {
 }
 
 impl InlineResponse2013 {
-    pub fn new() -> InlineResponse2013 {
+    pub fn new() -> Self {
         InlineResponse2013 { ID: None }
     }
 
@@ -27,13 +27,13 @@ impl InlineResponse2013 {
         self.ID = Some(ID);
     }
 
-    pub fn with_ID(mut self, ID: String) -> InlineResponse2013 {
+    pub fn with_ID(mut self, ID: String) -> Self {
         self.ID = Some(ID);
         self
     }
 
-    pub fn ID(&self) -> Option<&String> {
-        self.ID.as_ref()
+    pub fn ID(&self) -> Option<&str> {
+        self.ID.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_ID(&mut self) {

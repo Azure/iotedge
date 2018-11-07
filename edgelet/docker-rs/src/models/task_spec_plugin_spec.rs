@@ -33,7 +33,7 @@ pub struct TaskSpecPluginSpec {
 
 impl TaskSpecPluginSpec {
     /// Invalid when specified with `ContainerSpec`. *(Experimental release only.)*
-    pub fn new() -> TaskSpecPluginSpec {
+    pub fn new() -> Self {
         TaskSpecPluginSpec {
             name: None,
             remote: None,
@@ -46,13 +46,13 @@ impl TaskSpecPluginSpec {
         self.name = Some(name);
     }
 
-    pub fn with_name(mut self, name: String) -> TaskSpecPluginSpec {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
     }
 
-    pub fn name(&self) -> Option<&String> {
-        self.name.as_ref()
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_name(&mut self) {
@@ -63,13 +63,13 @@ impl TaskSpecPluginSpec {
         self.remote = Some(remote);
     }
 
-    pub fn with_remote(mut self, remote: String) -> TaskSpecPluginSpec {
+    pub fn with_remote(mut self, remote: String) -> Self {
         self.remote = Some(remote);
         self
     }
 
-    pub fn remote(&self) -> Option<&String> {
-        self.remote.as_ref()
+    pub fn remote(&self) -> Option<&str> {
+        self.remote.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_remote(&mut self) {
@@ -80,7 +80,7 @@ impl TaskSpecPluginSpec {
         self.disabled = Some(disabled);
     }
 
-    pub fn with_disabled(mut self, disabled: bool) -> TaskSpecPluginSpec {
+    pub fn with_disabled(mut self, disabled: bool) -> Self {
         self.disabled = Some(disabled);
         self
     }
@@ -97,16 +97,13 @@ impl TaskSpecPluginSpec {
         self.plugin_privilege = Some(plugin_privilege);
     }
 
-    pub fn with_plugin_privilege(
-        mut self,
-        plugin_privilege: Vec<::models::Body>,
-    ) -> TaskSpecPluginSpec {
+    pub fn with_plugin_privilege(mut self, plugin_privilege: Vec<::models::Body>) -> Self {
         self.plugin_privilege = Some(plugin_privilege);
         self
     }
 
-    pub fn plugin_privilege(&self) -> Option<&Vec<::models::Body>> {
-        self.plugin_privilege.as_ref()
+    pub fn plugin_privilege(&self) -> Option<&[::models::Body]> {
+        self.plugin_privilege.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_plugin_privilege(&mut self) {

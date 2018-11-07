@@ -143,25 +143,22 @@ where
     let module = spec.name().to_string();
     get_edge_runtime_mod(&runtime, module.clone())
         .and_then(|m| m.map(|m| m.runtime_state().map_err(|e| e.into())))
-        .and_then(move |state| {
-            state
-                .map(|state| {
-                    let res = match *state.status() {
-                        ModuleStatus::Running => {
-                            info!("Edge runtime is running.");
-                            future::Either::A(future::ok(()))
-                        }
-                        _ => {
-                            info!(
-                                "Edge runtime status is {}, starting module now...",
-                                *state.status()
-                            );
-                            future::Either::B(runtime.start(&module).map_err(|e| e.into()))
-                        }
-                    };
-                    Either::A(res)
-                })
-                .unwrap_or_else(|| Either::B(create_and_start(runtime, &id_mgr, spec, &module_id)))
+        .and_then(move |state| match state {
+            Some(state) => {
+                let res = if *state.status() == ModuleStatus::Running {
+                    info!("Edge runtime is running.");
+                    future::Either::A(future::ok(()))
+                } else {
+                    info!(
+                        "Edge runtime status is {}, starting module now...",
+                        *state.status(),
+                    );
+                    future::Either::B(runtime.start(&module).map_err(|e| e.into()))
+                };
+                Either::A(res)
+            }
+
+            None => Either::B(create_and_start(runtime, &id_mgr, spec, &module_id)),
         }).map(|_| ())
 }
 
@@ -181,7 +178,7 @@ where
         .map(move |m| {
             m.into_iter()
                 .filter_map(move |m| if m.name() == name { Some(m) } else { None })
-                .nth(0)
+                .next()
         }).map_err(|e| e.into())
 }
 
@@ -198,22 +195,20 @@ where
     id_mgr
         .get(IdentitySpec::new(module_id))
         .map_err(|e| e.into())
-        .and_then(move |identity| {
-            identity
-                .map(|module| {
-                    info!("Updating identity for module {}", module.module_id());
-                    let res = id_mgr_copy
-                        .update(
-                            IdentitySpec::new(module.module_id())
-                                .with_generation_id(module.generation_id().to_string()),
-                        ).map_err(|e| e.into());
-                    Either::A(res)
-                }).unwrap_or_else(|| {
-                    Either::B(
-                        future::err(Error::from(ErrorKind::EdgeRuntimeIdentityNotFound))
-                            as FutureResult<I::Identity, Error>,
-                    )
-                })
+        .and_then(move |identity| match identity {
+            Some(module) => {
+                info!("Updating identity for module {}", module.module_id());
+                let res = id_mgr_copy
+                    .update(
+                        IdentitySpec::new(module.module_id())
+                            .with_generation_id(module.generation_id().to_string()),
+                    ).map_err(|e| e.into());
+                Either::A(res)
+            }
+            None => Either::B(
+                future::err(Error::from(ErrorKind::EdgeRuntimeIdentityNotFound))
+                    as FutureResult<I::Identity, Error>,
+            ),
         })
 }
 
@@ -265,7 +260,7 @@ mod tests {
     use error::{Error as CoreError, ErrorKind as CoreErrorKind};
     use identity::{AuthType, Identity, IdentityManager, IdentitySpec};
 
-    #[derive(Clone, Debug, Fail)]
+    #[derive(Clone, Copy, Debug, Fail)]
     pub enum Error {
         #[fail(display = "General error")]
         General,
@@ -275,7 +270,7 @@ mod tests {
     }
 
     impl From<Error> for CoreError {
-        fn from(_err: Error) -> CoreError {
+        fn from(_err: Error) -> Self {
             CoreError::from(CoreErrorKind::Identity)
         }
     }
@@ -298,7 +293,7 @@ mod tests {
             managed_by: &str,
             generation_id: &str,
             auth_type: AuthType,
-        ) -> TestIdentity {
+        ) -> Self {
             TestIdentity {
                 module_id: module_id.to_string(),
                 managed_by: managed_by.to_string(),
@@ -322,7 +317,7 @@ mod tests {
         }
 
         fn auth_type(&self) -> AuthType {
-            self.auth_type.clone()
+            self.auth_type
         }
     }
 
@@ -340,7 +335,7 @@ mod tests {
     }
 
     impl TestIdentityManager {
-        pub fn new(identities: Vec<TestIdentity>) -> TestIdentityManager {
+        pub fn new(identities: Vec<TestIdentity>) -> Self {
             TestIdentityManager {
                 state: Rc::new(RefCell::new(State {
                     identities,
@@ -352,12 +347,12 @@ mod tests {
             }
         }
 
-        pub fn with_fail_get(self, fail_get: bool) -> TestIdentityManager {
+        pub fn with_fail_get(self, fail_get: bool) -> Self {
             self.state.borrow_mut().fail_get = fail_get;
             self
         }
 
-        pub fn with_fail_update(self, fail_update: bool) -> TestIdentityManager {
+        pub fn with_fail_update(self, fail_update: bool) -> Self {
             self.state.borrow_mut().fail_update = fail_update;
             self
         }
@@ -444,8 +439,7 @@ mod tests {
                 .iter()
                 .position(|ref mid| mid.module_id() == id.module_id())
                 .map(|index| self.state.borrow_mut().identities.remove(index))
-                .map(|_| future::ok(()))
-                .unwrap_or_else(|| future::err(Error::ModuleNotFound))
+                .map_or_else(|| future::err(Error::ModuleNotFound), |_| future::ok(()))
         }
     }
 

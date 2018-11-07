@@ -16,14 +16,14 @@ pub struct Uri {
 }
 
 impl Uri {
-    pub fn new(base_path: &str, path: &str) -> Result<Uri> {
+    pub fn new(base_path: &str, path: &str) -> Result<Self> {
         // parse base_path as url and extract host and path from it;
         // "host" is the name of the machine which should be "." for localhost
         // and "path" will be "/pipe/<name>" where <name> is the pipe name
         let url = Url::parse(ensure_not_empty!(base_path))?;
         if url.scheme() != NAMED_PIPE_SCHEME {
             Err(ErrorKind::InvalidUrlScheme)?
-        } else if url.host_str().map(|h| h.trim()).unwrap_or("") == "" {
+        } else if url.host_str().map_or("", |h| h.trim()) == "" {
             Err(ErrorKind::MissingUrlHost)?
         } else if !url.path().starts_with("/pipe/") || url.path().len() < "/pipe/".len() + 1 {
             Err(ErrorKind::MalformedNamedPipeUrl)?
@@ -44,9 +44,7 @@ impl Uri {
     }
 
     fn get_pipe_path_from_parts(scheme: &str, host: &str) -> Result<String> {
-        if scheme != NAMED_PIPE_SCHEME {
-            Err(ErrorKind::InvalidUrlScheme)?
-        } else {
+        if scheme == NAMED_PIPE_SCHEME {
             let host = host.trim();
             if host.is_empty() {
                 return Err(Error::from(ErrorKind::MissingUrlHost));
@@ -56,6 +54,8 @@ impl Uri {
 
             let s = str::from_utf8(bytes.as_slice()).map_err(Error::from)?;
             Ok(s.to_owned())
+        } else {
+            Err(ErrorKind::InvalidUrlScheme)?
         }
     }
 }

@@ -14,7 +14,7 @@ pub struct StaticStream {
 }
 
 impl StaticStream {
-    pub fn new(body: Vec<u8>) -> StaticStream {
+    pub fn new(body: Vec<u8>) -> Self {
         StaticStream {
             wrote: false,
             body: Cursor::new(body),

@@ -26,7 +26,7 @@ pub struct VolumeApiClient<C: hyper::client::connect::Connect> {
 }
 
 impl<C: hyper::client::connect::Connect> VolumeApiClient<C> {
-    pub fn new(configuration: Arc<configuration::Configuration<C>>) -> VolumeApiClient<C> {
+    pub fn new(configuration: Arc<configuration::Configuration<C>>) -> Self {
         VolumeApiClient {
             configuration: configuration,
         }

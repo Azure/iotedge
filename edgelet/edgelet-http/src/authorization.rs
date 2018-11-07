@@ -84,7 +84,7 @@ mod tests {
 
     #[test]
     fn handler_calls_inner_handler() {
-        let runtime = TestModuleList::new(&vec![TestModule::new("abc", 123)]);
+        let runtime = TestModuleList::new(vec![TestModule::new("abc", 123)]);
         let mut request = Request::default();
         request.extensions_mut().insert(Pid::Value(123));
         let params = Parameters::with_captures(vec![(Some("name".to_string()), "abc".to_string())]);
@@ -103,7 +103,7 @@ mod tests {
 
     #[test]
     fn handler_responds_with_not_found_when_not_authorized() {
-        let runtime = TestModuleList::new(&vec![TestModule::new("abc", 123)]);
+        let runtime = TestModuleList::new(vec![TestModule::new("abc", 123)]);
         let params = Parameters::with_captures(vec![(Some("name".to_string()), "xyz".to_string())]);
         let mut request = Request::default();
         request.extensions_mut().insert(Pid::Value(456));
@@ -115,7 +115,7 @@ mod tests {
 
     #[test]
     fn handler_responds_with_not_found_when_name_is_omitted() {
-        let runtime = TestModuleList::new(&vec![TestModule::new("abc", 123)]);
+        let runtime = TestModuleList::new(vec![TestModule::new("abc", 123)]);
         let params = Parameters::with_captures(vec![]);
         let mut request = Request::default();
         request.extensions_mut().insert(Pid::Value(123));
@@ -127,7 +127,7 @@ mod tests {
 
     #[test]
     fn handler_responds_with_not_found_when_pid_is_omitted() {
-        let runtime = TestModuleList::new(&vec![TestModule::new("abc", 123)]);
+        let runtime = TestModuleList::new(vec![TestModule::new("abc", 123)]);
         let params = Parameters::with_captures(vec![(Some("name".to_string()), "abc".to_string())]);
         let mut request = Request::default();
         request.extensions_mut().insert(Pid::None);
@@ -139,7 +139,7 @@ mod tests {
 
     #[test]
     fn handler_responds_with_not_found_when_authorizer_fails() {
-        let runtime = TestModuleList::new(&vec![TestModule::new_with_behavior(
+        let runtime = TestModuleList::new(vec![TestModule::new_with_behavior(
             "abc",
             123,
             TestModuleBehavior::FailRuntimeState,
@@ -178,7 +178,7 @@ mod tests {
 
     struct TestConfig {}
 
-    #[derive(Clone)]
+    #[derive(Clone, Copy)]
     enum TestModuleBehavior {
         Default,
         FailRuntimeState,
@@ -234,7 +234,7 @@ mod tests {
         fn runtime_state(&self) -> Self::RuntimeStateFuture {
             match self.behavior {
                 TestModuleBehavior::Default => {
-                    future::ok(ModuleRuntimeState::default().with_pid(&Pid::Value(self.pid)))
+                    future::ok(ModuleRuntimeState::default().with_pid(Pid::Value(self.pid)))
                 }
                 TestModuleBehavior::FailRuntimeState => notimpl_error!(),
             }
@@ -247,10 +247,8 @@ mod tests {
     }
 
     impl TestModuleList {
-        pub fn new(modules: &Vec<TestModule>) -> Self {
-            TestModuleList {
-                modules: modules.clone(),
-            }
+        pub fn new(modules: Vec<TestModule>) -> Self {
+            TestModuleList { modules }
         }
     }
 

@@ -22,7 +22,7 @@ pub struct Body3 {
 }
 
 impl Body3 {
-    pub fn new() -> Body3 {
+    pub fn new() -> Self {
         Body3 { unlock_key: None }
     }
 
@@ -30,13 +30,13 @@ impl Body3 {
         self.unlock_key = Some(unlock_key);
     }
 
-    pub fn with_unlock_key(mut self, unlock_key: String) -> Body3 {
+    pub fn with_unlock_key(mut self, unlock_key: String) -> Self {
         self.unlock_key = Some(unlock_key);
         self
     }
 
-    pub fn unlock_key(&self) -> Option<&String> {
-        self.unlock_key.as_ref()
+    pub fn unlock_key(&self) -> Option<&str> {
+        self.unlock_key.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_unlock_key(&mut self) {

@@ -24,12 +24,7 @@ pub struct PluginDevice {
 }
 
 impl PluginDevice {
-    pub fn new(
-        name: String,
-        description: String,
-        settable: Vec<String>,
-        path: String,
-    ) -> PluginDevice {
+    pub fn new(name: String, description: String, settable: Vec<String>, path: String) -> Self {
         PluginDevice {
             name: name,
             description: description,
@@ -42,7 +37,7 @@ impl PluginDevice {
         self.name = name;
     }
 
-    pub fn with_name(mut self, name: String) -> PluginDevice {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = name;
         self
     }
@@ -55,7 +50,7 @@ impl PluginDevice {
         self.description = description;
     }
 
-    pub fn with_description(mut self, description: String) -> PluginDevice {
+    pub fn with_description(mut self, description: String) -> Self {
         self.description = description;
         self
     }
@@ -68,12 +63,12 @@ impl PluginDevice {
         self.settable = settable;
     }
 
-    pub fn with_settable(mut self, settable: Vec<String>) -> PluginDevice {
+    pub fn with_settable(mut self, settable: Vec<String>) -> Self {
         self.settable = settable;
         self
     }
 
-    pub fn settable(&self) -> &Vec<String> {
+    pub fn settable(&self) -> &[String] {
         &self.settable
     }
 
@@ -81,7 +76,7 @@ impl PluginDevice {
         self.path = path;
     }
 
-    pub fn with_path(mut self, path: String) -> PluginDevice {
+    pub fn with_path(mut self, path: String) -> Self {
         self.path = path;
         self
     }

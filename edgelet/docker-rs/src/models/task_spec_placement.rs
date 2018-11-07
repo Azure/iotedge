@@ -34,7 +34,7 @@ pub struct TaskSpecPlacement {
 }
 
 impl TaskSpecPlacement {
-    pub fn new() -> TaskSpecPlacement {
+    pub fn new() -> Self {
         TaskSpecPlacement {
             constraints: None,
             preferences: None,
@@ -46,13 +46,13 @@ impl TaskSpecPlacement {
         self.constraints = Some(constraints);
     }
 
-    pub fn with_constraints(mut self, constraints: Vec<String>) -> TaskSpecPlacement {
+    pub fn with_constraints(mut self, constraints: Vec<String>) -> Self {
         self.constraints = Some(constraints);
         self
     }
 
-    pub fn constraints(&self) -> Option<&Vec<String>> {
-        self.constraints.as_ref()
+    pub fn constraints(&self) -> Option<&[String]> {
+        self.constraints.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_constraints(&mut self) {
@@ -66,13 +66,13 @@ impl TaskSpecPlacement {
     pub fn with_preferences(
         mut self,
         preferences: Vec<::models::TaskSpecPlacementPreferences>,
-    ) -> TaskSpecPlacement {
+    ) -> Self {
         self.preferences = Some(preferences);
         self
     }
 
-    pub fn preferences(&self) -> Option<&Vec<::models::TaskSpecPlacementPreferences>> {
-        self.preferences.as_ref()
+    pub fn preferences(&self) -> Option<&[::models::TaskSpecPlacementPreferences]> {
+        self.preferences.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_preferences(&mut self) {
@@ -83,13 +83,13 @@ impl TaskSpecPlacement {
         self.platforms = Some(platforms);
     }
 
-    pub fn with_platforms(mut self, platforms: Vec<::models::Platform>) -> TaskSpecPlacement {
+    pub fn with_platforms(mut self, platforms: Vec<::models::Platform>) -> Self {
         self.platforms = Some(platforms);
         self
     }
 
-    pub fn platforms(&self) -> Option<&Vec<::models::Platform>> {
-        self.platforms.as_ref()
+    pub fn platforms(&self) -> Option<&[::models::Platform]> {
+        self.platforms.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_platforms(&mut self) {

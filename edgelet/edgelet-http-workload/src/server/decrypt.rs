@@ -33,7 +33,7 @@ where
         params: Parameters,
     ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
         let hsm = self.hsm.clone();
-        let response = params
+        let response = match params
             .name("name")
             .ok_or_else(|| Error::from(ErrorKind::BadParam))
             .and_then(|name| {
@@ -41,7 +41,8 @@ where
                     .name("genid")
                     .ok_or_else(|| Error::from(ErrorKind::BadParam))
                     .map(|genid| (name, genid))
-            }).map(|(module_id, genid)| {
+            }) {
+            Ok((module_id, genid)) => {
                 let id = format!("{}{}", module_id.to_string(), genid.to_string());
                 let ok = req.into_body().concat2().map(move |b| {
                     serde_json::from_slice::<DecryptRequest>(&b)
@@ -68,7 +69,9 @@ where
                         }).unwrap_or_else(|e| e.into_response())
                 });
                 future::Either::A(ok)
-            }).unwrap_or_else(|e| future::Either::B(future::ok(e.into_response())));
+            }
+            Err(e) => future::Either::B(future::ok(e.into_response())),
+        };
         Box::new(response)
     }
 }
@@ -123,7 +126,7 @@ mod tests {
         (request, params)
     }
 
-    static RAW_TEXT: &'static str = "!@#$%";
+    const RAW_TEXT: &str = "!@#$%";
 
     macro_rules! raw_text {
         () => {
@@ -270,14 +273,14 @@ mod tests {
 
     #[test]
     fn handler_responds_with_unprocessable_entity_when_request_args_are_not_base64_encoded() {
-        let bodies = [
+        let bodies = &[
             request_with_unencoded_ciphertext(),
             request_with_unencoded_init_vector(),
         ];
         let handler = DecryptHandler::new(TestHsm::default());
 
-        for body in bodies.iter() {
-            let (request, params) = create_args(Some(&body), params_ok!());
+        for body in bodies {
+            let (request, params) = create_args(Some(body), params_ok!());
             let response = handler.handle(request, params).wait().unwrap();
 
             assert_eq!(StatusCode::UNPROCESSABLE_ENTITY, response.status());

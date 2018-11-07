@@ -39,18 +39,18 @@ where
         params: Parameters,
     ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
         let runtime = self.runtime.clone();
-        let response = params
+        let response = match params
             .name("name")
             .ok_or_else(|| Error::from(ErrorKind::BadParam))
             .and_then(|name| {
                 let options = req
                     .uri()
                     .query()
-                    .map(parse_options)
-                    .unwrap_or_else(|| Ok(LogOptions::default()))
+                    .map_or_else(|| Ok(LogOptions::default()), parse_options)
                     .context(ErrorKind::BadParam);
                 Ok((name, options?))
-            }).map(|(name, options)| {
+            }) {
+            Ok((name, options)) => {
                 let result = runtime
                     .logs(name, &options)
                     .map(|s| {
@@ -60,7 +60,9 @@ where
                             .unwrap_or_else(|e| e.into_response())
                     }).or_else(|e| future::ok(e.into_response()));
                 future::Either::A(result)
-            }).unwrap_or_else(|e| future::Either::B(future::ok(e.into_response())));
+            }
+            Err(e) => future::Either::B(future::ok(e.into_response())),
+        };
         Box::new(response)
     }
 }
@@ -70,13 +72,11 @@ fn parse_options(query: &str) -> Result<LogOptions, Error> {
     let tail = parse
         .iter()
         .find(|&(ref key, _)| key == "tail")
-        .map(|(_, val)| val.parse::<LogTail>())
-        .unwrap_or_else(|| Ok(LogTail::default()))?;
+        .map_or_else(|| Ok(LogTail::default()), |(_, val)| val.parse::<LogTail>())?;
     let follow = parse
         .iter()
         .find(|&(ref key, _)| key == "follow")
-        .map(|(_, val)| val.parse::<bool>())
-        .unwrap_or_else(|| Ok(false))?;
+        .map_or_else(|| Ok(false), |(_, val)| val.parse::<bool>())?;
     let options = LogOptions::new().with_follow(follow).with_tail(tail);
     Ok(options)
 }

@@ -2,6 +2,13 @@
 
 #![cfg(windows)]
 #![deny(unused_extern_crates, warnings)]
+// Remove this when clippy stops warning about old-style `allow()`,
+// which can only be silenced by enabling a feature and thus requires nightly
+//
+// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
+#![allow(renamed_and_removed_lints)]
+#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
+#![cfg_attr(feature = "cargo-clippy", allow(stutter, use_self))]
 
 #[macro_use]
 extern crate failure;
@@ -37,7 +44,7 @@ pub struct EventLogger {
 }
 
 impl EventLogger {
-    pub fn new(name: &str, min_level: &str) -> Result<EventLogger, Error> {
+    pub fn new(name: &str, min_level: &str) -> Result<Self, Error> {
         let wide_name: Vec<u16> = OsStr::new(ensure_not_empty!(name))
             .encode_wide()
             .chain(once(0))
@@ -125,7 +132,6 @@ fn log_level_to_type(level: Level) -> WORD {
         Level::Error => EVENTLOG_ERROR_TYPE,
         Level::Warn => EVENTLOG_WARNING_TYPE,
         Level::Info => EVENTLOG_INFORMATION_TYPE,
-        Level::Trace => EVENTLOG_SUCCESS,
-        Level::Debug => EVENTLOG_SUCCESS,
+        Level::Trace | Level::Debug => EVENTLOG_SUCCESS,
     }
 }

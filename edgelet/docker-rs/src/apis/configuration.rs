@@ -21,7 +21,7 @@ pub struct Configuration<C: Connect> {
 }
 
 impl<C: Connect> Configuration<C> {
-    pub fn new(client: Client<C>) -> Configuration<C> {
+    pub fn new(client: Client<C>) -> Self {
         Configuration {
             base_path: "http://localhost/v1.34".to_owned(),
             user_agent: Some("edgelet/0.1.0".to_owned()),

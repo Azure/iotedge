@@ -34,7 +34,7 @@ pub struct TaskSpecContainerSpecPrivilegesSeLinuxContext {
 
 impl TaskSpecContainerSpecPrivilegesSeLinuxContext {
     /// SELinux labels of the container
-    pub fn new() -> TaskSpecContainerSpecPrivilegesSeLinuxContext {
+    pub fn new() -> Self {
         TaskSpecContainerSpecPrivilegesSeLinuxContext {
             disable: None,
             user: None,
@@ -48,7 +48,7 @@ impl TaskSpecContainerSpecPrivilegesSeLinuxContext {
         self.disable = Some(disable);
     }
 
-    pub fn with_disable(mut self, disable: bool) -> TaskSpecContainerSpecPrivilegesSeLinuxContext {
+    pub fn with_disable(mut self, disable: bool) -> Self {
         self.disable = Some(disable);
         self
     }
@@ -65,13 +65,13 @@ impl TaskSpecContainerSpecPrivilegesSeLinuxContext {
         self.user = Some(user);
     }
 
-    pub fn with_user(mut self, user: String) -> TaskSpecContainerSpecPrivilegesSeLinuxContext {
+    pub fn with_user(mut self, user: String) -> Self {
         self.user = Some(user);
         self
     }
 
-    pub fn user(&self) -> Option<&String> {
-        self.user.as_ref()
+    pub fn user(&self) -> Option<&str> {
+        self.user.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_user(&mut self) {
@@ -82,13 +82,13 @@ impl TaskSpecContainerSpecPrivilegesSeLinuxContext {
         self.role = Some(role);
     }
 
-    pub fn with_role(mut self, role: String) -> TaskSpecContainerSpecPrivilegesSeLinuxContext {
+    pub fn with_role(mut self, role: String) -> Self {
         self.role = Some(role);
         self
     }
 
-    pub fn role(&self) -> Option<&String> {
-        self.role.as_ref()
+    pub fn role(&self) -> Option<&str> {
+        self.role.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_role(&mut self) {
@@ -99,13 +99,13 @@ impl TaskSpecContainerSpecPrivilegesSeLinuxContext {
         self._type = Some(_type);
     }
 
-    pub fn with__type(mut self, _type: String) -> TaskSpecContainerSpecPrivilegesSeLinuxContext {
+    pub fn with__type(mut self, _type: String) -> Self {
         self._type = Some(_type);
         self
     }
 
-    pub fn _type(&self) -> Option<&String> {
-        self._type.as_ref()
+    pub fn _type(&self) -> Option<&str> {
+        self._type.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset__type(&mut self) {
@@ -116,13 +116,13 @@ impl TaskSpecContainerSpecPrivilegesSeLinuxContext {
         self.level = Some(level);
     }
 
-    pub fn with_level(mut self, level: String) -> TaskSpecContainerSpecPrivilegesSeLinuxContext {
+    pub fn with_level(mut self, level: String) -> Self {
         self.level = Some(level);
         self
     }
 
-    pub fn level(&self) -> Option<&String> {
-        self.level.as_ref()
+    pub fn level(&self) -> Option<&str> {
+        self.level.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_level(&mut self) {

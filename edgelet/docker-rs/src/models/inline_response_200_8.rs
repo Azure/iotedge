@@ -38,7 +38,7 @@ pub struct InlineResponse2008 {
 }
 
 impl InlineResponse2008 {
-    pub fn new() -> InlineResponse2008 {
+    pub fn new() -> Self {
         InlineResponse2008 {
             description: None,
             is_official: None,
@@ -52,13 +52,13 @@ impl InlineResponse2008 {
         self.description = Some(description);
     }
 
-    pub fn with_description(mut self, description: String) -> InlineResponse2008 {
+    pub fn with_description(mut self, description: String) -> Self {
         self.description = Some(description);
         self
     }
 
-    pub fn description(&self) -> Option<&String> {
-        self.description.as_ref()
+    pub fn description(&self) -> Option<&str> {
+        self.description.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_description(&mut self) {
@@ -69,7 +69,7 @@ impl InlineResponse2008 {
         self.is_official = Some(is_official);
     }
 
-    pub fn with_is_official(mut self, is_official: bool) -> InlineResponse2008 {
+    pub fn with_is_official(mut self, is_official: bool) -> Self {
         self.is_official = Some(is_official);
         self
     }
@@ -86,7 +86,7 @@ impl InlineResponse2008 {
         self.is_automated = Some(is_automated);
     }
 
-    pub fn with_is_automated(mut self, is_automated: bool) -> InlineResponse2008 {
+    pub fn with_is_automated(mut self, is_automated: bool) -> Self {
         self.is_automated = Some(is_automated);
         self
     }
@@ -103,13 +103,13 @@ impl InlineResponse2008 {
         self.name = Some(name);
     }
 
-    pub fn with_name(mut self, name: String) -> InlineResponse2008 {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
     }
 
-    pub fn name(&self) -> Option<&String> {
-        self.name.as_ref()
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_name(&mut self) {
@@ -120,13 +120,13 @@ impl InlineResponse2008 {
         self.star_count = Some(star_count);
     }
 
-    pub fn with_star_count(mut self, star_count: i32) -> InlineResponse2008 {
+    pub fn with_star_count(mut self, star_count: i32) -> Self {
         self.star_count = Some(star_count);
         self
     }
 
-    pub fn star_count(&self) -> Option<&i32> {
-        self.star_count.as_ref()
+    pub fn star_count(&self) -> Option<i32> {
+        self.star_count
     }
 
     pub fn reset_star_count(&mut self) {

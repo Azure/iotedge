@@ -20,7 +20,7 @@ pub struct EngineDescriptionPlugins {
 }
 
 impl EngineDescriptionPlugins {
-    pub fn new() -> EngineDescriptionPlugins {
+    pub fn new() -> Self {
         EngineDescriptionPlugins {
             _type: None,
             name: None,
@@ -31,13 +31,13 @@ impl EngineDescriptionPlugins {
         self._type = Some(_type);
     }
 
-    pub fn with__type(mut self, _type: String) -> EngineDescriptionPlugins {
+    pub fn with__type(mut self, _type: String) -> Self {
         self._type = Some(_type);
         self
     }
 
-    pub fn _type(&self) -> Option<&String> {
-        self._type.as_ref()
+    pub fn _type(&self) -> Option<&str> {
+        self._type.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset__type(&mut self) {
@@ -48,13 +48,13 @@ impl EngineDescriptionPlugins {
         self.name = Some(name);
     }
 
-    pub fn with_name(mut self, name: String) -> EngineDescriptionPlugins {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
     }
 
-    pub fn name(&self) -> Option<&String> {
-        self.name.as_ref()
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_name(&mut self) {
