@@ -53,11 +53,7 @@ fn set_umask(metadata: &fs::Metadata, path: &Path) -> Mode {
     let mut mask = Mode::all();
     mask.toggle(mode);
 
-    debug!(
-        "settings permissions {:#o} for {}...",
-        mode,
-        path.display()
-    );
+    debug!("settings permissions {:#o} for {}...", mode, path.display());
 
     umask(mask)
 }
