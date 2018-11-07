@@ -31,7 +31,7 @@ pub struct Error {
     inner: Context<ErrorKind>,
 }
 
-#[derive(Clone, Copy, Debug, Fail, PartialEq)]
+#[derive(Clone, Debug, Fail, PartialEq)]
 pub enum ErrorKind {
     #[fail(display = "Invalid configuration file")]
     Settings,

@@ -116,8 +116,9 @@ mod impl_windows {
 
     pub fn get_pid(sock: &UnixStream) -> io::Result<Pid> {
         let raw_socket = sock.as_raw_socket();
-        let mut pid = 0u32;
+        let mut pid = 0_u32;
         let ret = unsafe {
+            #[cfg_attr(feature = "cargo-clippy", allow(cast_possible_truncation))]
             ioctlsocket(
                 raw_socket as _,
                 SIO_AF_UNIX_GETPEERPID,
@@ -127,6 +128,7 @@ mod impl_windows {
         if ret == SOCKET_ERROR {
             Err(io::Error::from_raw_os_error(unsafe { WSAGetLastError() }))
         } else {
+            #[cfg_attr(feature = "cargo-clippy", allow(cast_possible_wrap))]
             Ok(Pid::Value(pid as _))
         }
     }
