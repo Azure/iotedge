@@ -10,6 +10,8 @@ mod encrypt_response;
 pub use self::encrypt_response::EncryptResponse;
 mod error_response;
 pub use self::error_response::ErrorResponse;
+mod identity_certificate_request;
+pub use self::identity_certificate_request::IdentityCertificateRequest;
 mod private_key;
 pub use self::private_key::PrivateKey;
 mod server_certificate_request;

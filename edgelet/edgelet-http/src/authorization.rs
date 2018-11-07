@@ -78,7 +78,7 @@ mod tests {
     use edgelet_core::{LogOptions, ModuleRegistry, ModuleRuntimeState, ModuleSpec, SystemInfo};
     use futures::future::FutureResult;
     use futures::stream::Empty;
-    use futures::Stream;
+    use futures::{stream, Stream};
     use http::{Request, Response, StatusCode};
     use hyper::{Body, Error as HyperError};
 
@@ -278,6 +278,8 @@ mod tests {
         type CreateFuture = FutureResult<(), Self::Error>;
         type InitFuture = FutureResult<(), Self::Error>;
         type ListFuture = FutureResult<Vec<Self::Module>, Self::Error>;
+        type ListWithDetailsStream =
+            Box<Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
         type LogsFuture = FutureResult<Self::Logs, Self::Error>;
         type RemoveFuture = FutureResult<(), Self::Error>;
         type RestartFuture = FutureResult<(), Self::Error>;
@@ -316,6 +318,15 @@ mod tests {
 
         fn list(&self) -> Self::ListFuture {
             future::ok(self.modules.clone())
+        }
+
+        fn list_with_details(&self) -> Self::ListWithDetailsStream {
+            Box::new(stream::futures_unordered(
+                self.modules
+                    .clone()
+                    .into_iter()
+                    .map(|m| m.runtime_state().map(|rs| (m, rs))),
+            ))
         }
 
         fn logs(&self, _id: &str, _options: &LogOptions) -> Self::LogsFuture {
