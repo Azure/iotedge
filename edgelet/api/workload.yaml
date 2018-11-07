@@ -10,6 +10,27 @@ tags:
     description: |
 
 paths:
+  /modules:
+    get:
+      tags:
+        - Module
+      summary: List modules.
+      produces:
+        - application/json
+      description: |
+        This returns the list of currently running modules and their statuses.
+      operationId: ListModules
+      parameters:
+        - $ref: '#/parameters/api-version'
+      responses:
+        '200':
+          description: Ok
+          schema:
+            $ref: '#/definitions/ModuleList'
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
   '/modules/{name}/genid/{genid}/sign':
     post:
       tags:
@@ -209,6 +230,108 @@ paths:
             $ref: '#/definitions/ErrorResponse'
 
 definitions:
+  ModuleList:
+    type: object
+    properties:
+      modules:
+        type: array
+        items:
+          $ref: '#/definitions/ModuleDetails'
+    required:
+      - modules
+  ModuleDetails:
+    type: object
+    properties:
+      id:
+        type: string
+        description: System generated unique identitier.
+        example: happy_hawking
+      name:
+        type: string
+        description: The name of the module.
+        example: edgeHub
+      type:
+        type: string
+        description: The type of a module.
+        example: docker
+      config:
+        $ref: '#/definitions/Config'
+      status:
+        $ref: '#/definitions/Status'
+    required:
+      - id
+      - name
+      - type
+      - config
+      - status
+  Config:
+    type: object
+    properties:
+      settings:
+        type: object
+        example:
+          image: 'microsoft/azureiotedge-hub:1.0'
+          createOptions:
+            HostConfig:
+              PortBindings:
+                '22/tcp':
+                  - HostPort: '11022'
+      env:
+        type: array
+        items:
+          $ref: '#/definitions/EnvVar'
+    required:
+      - settings
+  Status:
+    type: object
+    properties:
+      startTime:
+        type: string
+        format: date-time
+      exitStatus:
+        $ref: '#/definitions/ExitStatus'
+      runtimeStatus:
+        $ref: '#/definitions/RuntimeStatus'
+    required:
+      - runtimeStatus
+  EnvVar:
+    type: object
+    properties:
+      key:
+        type: string
+        example: the_key
+      value:
+        type: string
+        example: the_value
+    required:
+      - key
+      - value
+  ExitStatus:
+    type: object
+    properties:
+      exitTime:
+        type: string
+        format: date-time
+      statusCode:
+        type: string
+    required:
+      - exitTime
+      - statusCode
+    example:
+      exitTime: '2018-04-03T09:31:00.000Z'
+      statusCode: '101'
+  RuntimeStatus:
+    type: object
+    properties:
+      status:
+        type: string
+      description:
+        type: string
+    required:
+      - status
+    example:
+      status: the status
+      description: the description
   SignRequest:
     type: object
     properties:
