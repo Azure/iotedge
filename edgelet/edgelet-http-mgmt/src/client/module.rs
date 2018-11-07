@@ -48,7 +48,7 @@ impl ModuleClient {
 
 fn get_base_path(url: &Url) -> Result<PathBuf, Error> {
     match url.scheme() {
-        "unix" => url.to_uds_file_path().map_err(Error::from),
+        "unix" => Ok(url.to_uds_file_path()?),
         _ => Ok(url.as_str().into()),
     }
 }
