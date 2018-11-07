@@ -104,6 +104,8 @@ MOCKABLE_FUNCTION(, EC_KEY*, EVP_PKEY_get1_EC_KEY, EVP_PKEY*, pkey);
 MOCKABLE_FUNCTION(, const EC_GROUP*, EC_KEY_get0_group, const EC_KEY*, key);
 MOCKABLE_FUNCTION(, int, EC_GROUP_get_curve_name, const EC_GROUP*, group);
 
+//https://www.openssl.org/docs/man1.1.0/crypto/OPENSSL_VERSION_NUMBER.html
+// this checks if openssl version major minor is greater than or equal to version # 1.1.0
 #if ((OPENSSL_VERSION_NUMBER & 0xFFF00000L) >= 0x10100000L)
     MOCKABLE_FUNCTION(, int, EVP_PKEY_bits, const EVP_PKEY*, pkey);
     MOCKABLE_FUNCTION(, X509_NAME*, X509_get_subject_name, const X509*, a);
