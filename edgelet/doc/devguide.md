@@ -22,11 +22,18 @@ rustup update nightly
 
 ### Additional Dependencies
 
-#### Linux
+#### Ubuntu 16.04 (Xenial)
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y git cmake build-essential curl libcurl4-openssl-dev libssl-dev uuid-dev pkg-config
+sudo apt-get install -y build-essential cmake curl git libcurl4-openssl-dev libssl-dev libssl1.0.0 pkg-config uuid-dev
+```
+
+#### Ubuntu 18.04 (Bionic)
+
+```bash
+sudo apt-get update
+sudo apt-get install -y build-essential cmake curl git libcurl4-openssl-dev libssl1.0-dev libssl1.0.0 pkg-config uuid-dev
 ```
 
 #### Windows
