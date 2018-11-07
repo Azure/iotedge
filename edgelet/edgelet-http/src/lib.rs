@@ -70,6 +70,8 @@ use hyper::{Body, Error as HyperError, Response};
 #[cfg(unix)]
 use systemd::Socket;
 use tokio::net::TcpListener;
+#[cfg(unix)]
+use tokio_uds::UnixListener;
 use url::Url;
 
 pub mod authorization;

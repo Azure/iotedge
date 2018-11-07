@@ -30,7 +30,7 @@ pub fn listener<P: AsRef<Path>>(path: P) -> Result<Incoming, Error> {
         debug!("unlinked {}", path.as_ref().display());
 
         #[cfg(unix)]
-        let prev = set_umask(metadata);
+        let prev = set_umask(&metadata, path.as_ref());
         #[cfg(unix)]
         defer! {{ umask(prev); }}
 
@@ -48,7 +48,7 @@ pub fn listener<P: AsRef<Path>>(path: P) -> Result<Incoming, Error> {
 }
 
 #[cfg(unix)]
-fn set_umask(metadata: &Metadata) -> Mode {
+fn set_umask(metadata: &fs::Metadata, path: &Path) -> Mode {
     let mode = Mode::from_bits_truncate(metadata.mode());
     let mut mask = Mode::all();
     mask.toggle(mode);
@@ -56,7 +56,7 @@ fn set_umask(metadata: &Metadata) -> Mode {
     debug!(
         "settings permissions {:#o} for {}...",
         mode,
-        path.as_ref().display()
+        path.display()
     );
 
     umask(mask)
