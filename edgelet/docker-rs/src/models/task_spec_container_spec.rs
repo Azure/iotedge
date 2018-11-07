@@ -390,8 +390,8 @@ impl TaskSpecContainerSpec {
         self
     }
 
-    pub fn stop_grace_period(&self) -> Option<&i64> {
-        self.stop_grace_period.as_ref()
+    pub fn stop_grace_period(&self) -> Option<i64> {
+        self.stop_grace_period
     }
 
     pub fn reset_stop_grace_period(&mut self) {

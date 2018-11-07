@@ -181,8 +181,8 @@ impl ContainerSummaryInner {
         self
     }
 
-    pub fn created(&self) -> Option<&i64> {
-        self.created.as_ref()
+    pub fn created(&self) -> Option<i64> {
+        self.created
     }
 
     pub fn reset_created(&mut self) {
@@ -215,8 +215,8 @@ impl ContainerSummaryInner {
         self
     }
 
-    pub fn size_rw(&self) -> Option<&i64> {
-        self.size_rw.as_ref()
+    pub fn size_rw(&self) -> Option<i64> {
+        self.size_rw
     }
 
     pub fn reset_size_rw(&mut self) {
@@ -232,8 +232,8 @@ impl ContainerSummaryInner {
         self
     }
 
-    pub fn size_root_fs(&self) -> Option<&i64> {
-        self.size_root_fs.as_ref()
+    pub fn size_root_fs(&self) -> Option<i64> {
+        self.size_root_fs
     }
 
     pub fn reset_size_root_fs(&mut self) {

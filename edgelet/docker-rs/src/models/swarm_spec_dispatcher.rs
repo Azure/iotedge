@@ -40,8 +40,8 @@ impl SwarmSpecDispatcher {
         self
     }
 
-    pub fn heartbeat_period(&self) -> Option<&i64> {
-        self.heartbeat_period.as_ref()
+    pub fn heartbeat_period(&self) -> Option<i64> {
+        self.heartbeat_period
     }
 
     pub fn reset_heartbeat_period(&mut self) {

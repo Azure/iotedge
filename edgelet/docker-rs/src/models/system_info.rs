@@ -955,8 +955,8 @@ impl SystemInfo {
         self
     }
 
-    pub fn mem_total(&self) -> Option<&i64> {
-        self.mem_total.as_ref()
+    pub fn mem_total(&self) -> Option<i64> {
+        self.mem_total
     }
 
     pub fn reset_mem_total(&mut self) {

@@ -80,8 +80,8 @@ impl ModuleRuntimeState {
         self
     }
 
-    pub fn exit_code(&self) -> Option<&i64> {
-        self.exit_code.as_ref()
+    pub fn exit_code(&self) -> Option<i64> {
+        self.exit_code
     }
 
     pub fn with_exit_code(mut self, exit_code: Option<i64>) -> Self {

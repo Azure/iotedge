@@ -31,8 +31,8 @@ impl ServiceSpecModeReplicated {
         self
     }
 
-    pub fn replicas(&self) -> Option<&i64> {
-        self.replicas.as_ref()
+    pub fn replicas(&self) -> Option<i64> {
+        self.replicas
     }
 
     pub fn reset_replicas(&mut self) {

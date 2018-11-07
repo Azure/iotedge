@@ -72,8 +72,8 @@ impl TaskSpecRestartPolicy {
         self
     }
 
-    pub fn delay(&self) -> Option<&i64> {
-        self.delay.as_ref()
+    pub fn delay(&self) -> Option<i64> {
+        self.delay
     }
 
     pub fn reset_delay(&mut self) {
@@ -89,8 +89,8 @@ impl TaskSpecRestartPolicy {
         self
     }
 
-    pub fn max_attempts(&self) -> Option<&i64> {
-        self.max_attempts.as_ref()
+    pub fn max_attempts(&self) -> Option<i64> {
+        self.max_attempts
     }
 
     pub fn reset_max_attempts(&mut self) {
@@ -106,8 +106,8 @@ impl TaskSpecRestartPolicy {
         self
     }
 
-    pub fn window(&self) -> Option<&i64> {
-        self.window.as_ref()
+    pub fn window(&self) -> Option<i64> {
+        self.window
     }
 
     pub fn reset_window(&mut self) {

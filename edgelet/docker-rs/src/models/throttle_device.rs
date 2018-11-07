@@ -55,8 +55,8 @@ impl ThrottleDevice {
         self
     }
 
-    pub fn rate(&self) -> Option<&i64> {
-        self.rate.as_ref()
+    pub fn rate(&self) -> Option<i64> {
+        self.rate
     }
 
     pub fn reset_rate(&mut self) {

@@ -206,8 +206,8 @@ impl InlineResponse200State {
         self
     }
 
-    pub fn exit_code(&self) -> Option<&i64> {
-        self.exit_code.as_ref()
+    pub fn exit_code(&self) -> Option<i64> {
+        self.exit_code
     }
 
     pub fn reset_exit_code(&mut self) {

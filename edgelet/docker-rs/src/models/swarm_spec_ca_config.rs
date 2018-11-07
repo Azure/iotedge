@@ -68,8 +68,8 @@ impl SwarmSpecCaConfig {
         self
     }
 
-    pub fn node_cert_expiry(&self) -> Option<&i64> {
-        self.node_cert_expiry.as_ref()
+    pub fn node_cert_expiry(&self) -> Option<i64> {
+        self.node_cert_expiry
     }
 
     pub fn reset_node_cert_expiry(&mut self) {

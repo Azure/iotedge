@@ -48,8 +48,8 @@ impl InlineResponse20013 {
         self
     }
 
-    pub fn layers_size(&self) -> Option<&i64> {
-        self.layers_size.as_ref()
+    pub fn layers_size(&self) -> Option<i64> {
+        self.layers_size
     }
 
     pub fn reset_layers_size(&mut self) {

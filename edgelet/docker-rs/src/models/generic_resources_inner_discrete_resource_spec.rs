@@ -53,8 +53,8 @@ impl GenericResourcesInnerDiscreteResourceSpec {
         self
     }
 
-    pub fn value(&self) -> Option<&i64> {
-        self.value.as_ref()
+    pub fn value(&self) -> Option<i64> {
+        self.value
     }
 
     pub fn reset_value(&mut self) {

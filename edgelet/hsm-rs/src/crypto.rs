@@ -2,13 +2,9 @@
 
 use chrono::{DateTime, NaiveDateTime, Utc};
 use std::convert::AsRef;
-#[cfg(feature = "hsm_feature_certificate_san")]
-use std::ffi::NulError;
-use std::ffi::{CStr, CString};
+use std::ffi::{CStr, CString, NulError};
 use std::ops::{Deref, Drop};
-#[cfg(feature = "hsm_feature_certificate_san")]
-use std::os::raw::c_char;
-use std::os::raw::{c_uchar, c_void};
+use std::os::raw::{c_char, c_uchar, c_void};
 use std::slice;
 use std::str;
 
@@ -200,29 +196,27 @@ fn make_certification_props(props: &CertificateProperties) -> Result<CERT_PROPS_
             ErrorKind::CertProps
         })?;
 
-    #[cfg(feature = "hsm_feature_certificate_san")]
-    {
-        if !props.san_entries.is_empty() {
-            let result: Result<Vec<CString>, NulError> = props
-                .san_entries
-                .iter()
-                .map(|s: &String| CString::new(s.clone()))
-                .collect();
+    if !props.san_entries.is_empty() {
+        let result: Result<Vec<CString>, NulError> = props
+            .san_entries
+            .iter()
+            .map(|s: &String| CString::new(s.clone()))
+            .collect();
 
-            let result: Vec<CString> = result.map_err(|_| {
-                unsafe { cert_properties_destroy(handle) };
-                ErrorKind::CertProps
-            })?;
+        let result: Vec<CString> = result.map_err(|_| {
+            unsafe { cert_properties_destroy(handle) };
+            ErrorKind::CertProps
+        })?;
 
-            let result: Vec<*const c_char> = result.iter().map(|s| s.as_ptr()).collect();
+        let result: Vec<*const c_char> = result.iter().map(|s| s.as_ptr()).collect();
 
-            let result = unsafe { set_san_entries(handle, result.as_ptr(), result.len()) };
-            if result != 0 {
-                unsafe { cert_properties_destroy(handle) };
-                return Err(ErrorKind::CertProps)?;
-            }
+        let result = unsafe { set_san_entries(handle, result.as_ptr(), result.len()) };
+        if result != 0 {
+            unsafe { cert_properties_destroy(handle) };
+            return Err(ErrorKind::CertProps)?;
         }
     }
+
     Ok(handle)
 }
 
@@ -772,40 +766,37 @@ mod tests {
             );
         };
 
-        #[cfg(feature = "hsm_feature_certificate_san")]
-        {
-            // san get/set test
-            let test_strings: Vec<CString> = vec![
-                CString::new("He Who Must Not Be Named").unwrap(),
-                CString::new("The Dark Lord").unwrap(),
-                CString::new("You know who").unwrap(),
-            ];
+        // san get/set test
+        let test_strings: Vec<CString> = vec![
+            CString::new("He Who Must Not Be Named").unwrap(),
+            CString::new("The Dark Lord").unwrap(),
+            CString::new("You know who").unwrap(),
+        ];
 
-            let san_ptrs: Vec<*const c_char> = test_strings.iter().map(|s| s.as_ptr()).collect();
+        let san_ptrs: Vec<*const c_char> = test_strings.iter().map(|s| s.as_ptr()).collect();
 
-            let set_result = unsafe { set_san_entries(handle, san_ptrs.as_ptr(), san_ptrs.len()) };
-            assert_eq!(0, set_result);
-            unsafe {
-                let mut num_entries: usize = 0;
-                let get_result = get_san_entries(handle, &mut num_entries);
-                assert_eq!(num_entries, san_ptrs.len());
-                let result: *const *const c_char = get_result;
-                let mut current = result;
-                for _ in 0..num_entries {
-                    let mut matched = false;
-                    for i in 0..num_entries {
-                        if test_strings[i].to_bytes_with_nul()
-                            == CStr::from_ptr(*current).to_bytes_with_nul()
-                        {
-                            matched = true;
-                            break;
-                        }
+        let set_result = unsafe { set_san_entries(handle, san_ptrs.as_ptr(), san_ptrs.len()) };
+        assert_eq!(0, set_result);
+        unsafe {
+            let mut num_entries: usize = 0;
+            let get_result = get_san_entries(handle, &mut num_entries);
+            assert_eq!(num_entries, san_ptrs.len());
+            let result: *const *const c_char = get_result;
+            let mut current = result;
+            for _ in 0..num_entries {
+                let mut matched = false;
+                for test_string in &test_strings {
+                    if test_string.to_bytes_with_nul()
+                        == CStr::from_ptr(*current).to_bytes_with_nul()
+                    {
+                        matched = true;
+                        break;
                     }
-                    assert_eq!(true, matched);
-                    current = current.offset(1);
                 }
-            };
-        }
+                assert_eq!(true, matched);
+                current = current.offset(1);
+            }
+        };
 
         unsafe { cert_properties_destroy(handle) };
     }

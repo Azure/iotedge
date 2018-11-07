@@ -66,8 +66,8 @@ impl ServiceSpecUpdateConfig {
         self
     }
 
-    pub fn parallelism(&self) -> Option<&i64> {
-        self.parallelism.as_ref()
+    pub fn parallelism(&self) -> Option<i64> {
+        self.parallelism
     }
 
     pub fn reset_parallelism(&mut self) {
@@ -83,8 +83,8 @@ impl ServiceSpecUpdateConfig {
         self
     }
 
-    pub fn delay(&self) -> Option<&i64> {
-        self.delay.as_ref()
+    pub fn delay(&self) -> Option<i64> {
+        self.delay
     }
 
     pub fn reset_delay(&mut self) {
@@ -117,8 +117,8 @@ impl ServiceSpecUpdateConfig {
         self
     }
 
-    pub fn monitor(&self) -> Option<&i64> {
-        self.monitor.as_ref()
+    pub fn monitor(&self) -> Option<i64> {
+        self.monitor
     }
 
     pub fn reset_monitor(&mut self) {
@@ -134,8 +134,8 @@ impl ServiceSpecUpdateConfig {
         self
     }
 
-    pub fn max_failure_ratio(&self) -> Option<&f32> {
-        self.max_failure_ratio.as_ref()
+    pub fn max_failure_ratio(&self) -> Option<f32> {
+        self.max_failure_ratio
     }
 
     pub fn reset_max_failure_ratio(&mut self) {

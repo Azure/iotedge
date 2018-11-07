@@ -73,14 +73,14 @@ impl<C: 'static + Connect> Module for DockerModule<C> {
                                         Some(ModuleStatus::Stopped)
                                     }
                                     "removing" | "dead" | "exited" => {
-                                        status_from_exit_code(state.exit_code().cloned())
+                                        status_from_exit_code(state.exit_code())
                                     }
                                     "running" => Some(ModuleStatus::Running),
                                     _ => Some(ModuleStatus::Unknown),
                                 }).unwrap_or_else(|| ModuleStatus::Unknown);
                             ModuleRuntimeState::default()
                                 .with_status(status)
-                                .with_exit_code(state.exit_code().cloned())
+                                .with_exit_code(state.exit_code())
                                 .with_status_description(state.status().map(ToOwned::to_owned))
                                 .with_started_at(
                                     state
@@ -233,7 +233,7 @@ mod tests {
             .block_on(docker_module.runtime_state())
             .unwrap();
         assert_eq!(ModuleStatus::Running, *runtime_state.status());
-        assert_eq!(10, *runtime_state.exit_code().unwrap());
+        assert_eq!(10, runtime_state.exit_code().unwrap());
         assert_eq!(&"running", &runtime_state.status_description().unwrap());
         assert_eq!(started_at, runtime_state.started_at().unwrap().to_rfc3339());
         assert_eq!(
@@ -267,7 +267,7 @@ mod tests {
             .block_on(docker_module.runtime_state())
             .unwrap();
         assert_eq!(ModuleStatus::Failed, *runtime_state.status());
-        assert_eq!(10, *runtime_state.exit_code().unwrap());
+        assert_eq!(10, runtime_state.exit_code().unwrap());
         assert_eq!(&"dead", &runtime_state.status_description().unwrap());
         assert_eq!(started_at, runtime_state.started_at().unwrap().to_rfc3339());
         assert_eq!(

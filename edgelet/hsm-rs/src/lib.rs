@@ -9,7 +9,7 @@
 #![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
 #![cfg_attr(
     feature = "cargo-clippy",
-    allow(similar_names, shadow_unrelated, stutter, use_self)
+    allow(cyclomatic_complexity, similar_names, shadow_unrelated, stutter, use_self)
 )]
 
 extern crate chrono;

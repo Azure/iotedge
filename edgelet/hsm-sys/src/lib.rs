@@ -44,7 +44,7 @@ fn bindgen_test_supported_hsm_version() {
             .to_string_lossy()
             .into_owned()
     };
-    assert_eq!(String::from("1.0.0"), result);
+    assert_eq!(String::from("1.0.1"), result);
 }
 
 pub type HSM_CLIENT_HANDLE = *mut c_void;
@@ -340,7 +340,6 @@ extern "C" {
     pub fn get_alias(handle: CERT_PROPS_HANDLE) -> *const c_char;
 }
 
-#[cfg(feature = "hsm_feature_certificate_san")]
 extern "C" {
     pub fn set_san_entries(
         handle: CERT_PROPS_HANDLE,
@@ -349,7 +348,6 @@ extern "C" {
     ) -> c_int;
 }
 
-#[cfg(feature = "hsm_feature_certificate_san")]
 extern "C" {
     pub fn get_san_entries(
         handle: CERT_PROPS_HANDLE,

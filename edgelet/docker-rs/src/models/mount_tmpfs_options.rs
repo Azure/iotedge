@@ -44,8 +44,8 @@ impl MountTmpfsOptions {
         self
     }
 
-    pub fn size_bytes(&self) -> Option<&i64> {
-        self.size_bytes.as_ref()
+    pub fn size_bytes(&self) -> Option<i64> {
+        self.size_bytes
     }
 
     pub fn reset_size_bytes(&mut self) {

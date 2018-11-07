@@ -61,8 +61,8 @@ impl InlineResponse20016 {
         self
     }
 
-    pub fn space_reclaimed(&self) -> Option<&i64> {
-        self.space_reclaimed.as_ref()
+    pub fn space_reclaimed(&self) -> Option<i64> {
+        self.space_reclaimed
     }
 
     pub fn reset_space_reclaimed(&mut self) {

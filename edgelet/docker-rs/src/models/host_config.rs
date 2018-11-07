@@ -441,8 +441,8 @@ impl HostConfig {
         self
     }
 
-    pub fn memory(&self) -> Option<&i64> {
-        self.memory.as_ref()
+    pub fn memory(&self) -> Option<i64> {
+        self.memory
     }
 
     pub fn reset_memory(&mut self) {
@@ -607,8 +607,8 @@ impl HostConfig {
         self
     }
 
-    pub fn cpu_period(&self) -> Option<&i64> {
-        self.cpu_period.as_ref()
+    pub fn cpu_period(&self) -> Option<i64> {
+        self.cpu_period
     }
 
     pub fn reset_cpu_period(&mut self) {
@@ -624,8 +624,8 @@ impl HostConfig {
         self
     }
 
-    pub fn cpu_quota(&self) -> Option<&i64> {
-        self.cpu_quota.as_ref()
+    pub fn cpu_quota(&self) -> Option<i64> {
+        self.cpu_quota
     }
 
     pub fn reset_cpu_quota(&mut self) {
@@ -641,8 +641,8 @@ impl HostConfig {
         self
     }
 
-    pub fn cpu_realtime_period(&self) -> Option<&i64> {
-        self.cpu_realtime_period.as_ref()
+    pub fn cpu_realtime_period(&self) -> Option<i64> {
+        self.cpu_realtime_period
     }
 
     pub fn reset_cpu_realtime_period(&mut self) {
@@ -658,8 +658,8 @@ impl HostConfig {
         self
     }
 
-    pub fn cpu_realtime_runtime(&self) -> Option<&i64> {
-        self.cpu_realtime_runtime.as_ref()
+    pub fn cpu_realtime_runtime(&self) -> Option<i64> {
+        self.cpu_realtime_runtime
     }
 
     pub fn reset_cpu_realtime_runtime(&mut self) {
@@ -743,8 +743,8 @@ impl HostConfig {
         self
     }
 
-    pub fn disk_quota(&self) -> Option<&i64> {
-        self.disk_quota.as_ref()
+    pub fn disk_quota(&self) -> Option<i64> {
+        self.disk_quota
     }
 
     pub fn reset_disk_quota(&mut self) {
@@ -760,8 +760,8 @@ impl HostConfig {
         self
     }
 
-    pub fn kernel_memory(&self) -> Option<&i64> {
-        self.kernel_memory.as_ref()
+    pub fn kernel_memory(&self) -> Option<i64> {
+        self.kernel_memory
     }
 
     pub fn reset_kernel_memory(&mut self) {
@@ -777,8 +777,8 @@ impl HostConfig {
         self
     }
 
-    pub fn memory_reservation(&self) -> Option<&i64> {
-        self.memory_reservation.as_ref()
+    pub fn memory_reservation(&self) -> Option<i64> {
+        self.memory_reservation
     }
 
     pub fn reset_memory_reservation(&mut self) {
@@ -794,8 +794,8 @@ impl HostConfig {
         self
     }
 
-    pub fn memory_swap(&self) -> Option<&i64> {
-        self.memory_swap.as_ref()
+    pub fn memory_swap(&self) -> Option<i64> {
+        self.memory_swap
     }
 
     pub fn reset_memory_swap(&mut self) {
@@ -811,8 +811,8 @@ impl HostConfig {
         self
     }
 
-    pub fn memory_swappiness(&self) -> Option<&i64> {
-        self.memory_swappiness.as_ref()
+    pub fn memory_swappiness(&self) -> Option<i64> {
+        self.memory_swappiness
     }
 
     pub fn reset_memory_swappiness(&mut self) {
@@ -828,8 +828,8 @@ impl HostConfig {
         self
     }
 
-    pub fn nano_cp_us(&self) -> Option<&i64> {
-        self.nano_cp_us.as_ref()
+    pub fn nano_cp_us(&self) -> Option<i64> {
+        self.nano_cp_us
     }
 
     pub fn reset_nano_cp_us(&mut self) {
@@ -862,8 +862,8 @@ impl HostConfig {
         self
     }
 
-    pub fn pids_limit(&self) -> Option<&i64> {
-        self.pids_limit.as_ref()
+    pub fn pids_limit(&self) -> Option<i64> {
+        self.pids_limit
     }
 
     pub fn reset_pids_limit(&mut self) {
@@ -896,8 +896,8 @@ impl HostConfig {
         self
     }
 
-    pub fn cpu_count(&self) -> Option<&i64> {
-        self.cpu_count.as_ref()
+    pub fn cpu_count(&self) -> Option<i64> {
+        self.cpu_count
     }
 
     pub fn reset_cpu_count(&mut self) {
@@ -913,8 +913,8 @@ impl HostConfig {
         self
     }
 
-    pub fn cpu_percent(&self) -> Option<&i64> {
-        self.cpu_percent.as_ref()
+    pub fn cpu_percent(&self) -> Option<i64> {
+        self.cpu_percent
     }
 
     pub fn reset_cpu_percent(&mut self) {
@@ -930,8 +930,8 @@ impl HostConfig {
         self
     }
 
-    pub fn io_maximum_i_ops(&self) -> Option<&i64> {
-        self.io_maximum_i_ops.as_ref()
+    pub fn io_maximum_i_ops(&self) -> Option<i64> {
+        self.io_maximum_i_ops
     }
 
     pub fn reset_io_maximum_i_ops(&mut self) {
@@ -947,8 +947,8 @@ impl HostConfig {
         self
     }
 
-    pub fn io_maximum_bandwidth(&self) -> Option<&i64> {
-        self.io_maximum_bandwidth.as_ref()
+    pub fn io_maximum_bandwidth(&self) -> Option<i64> {
+        self.io_maximum_bandwidth
     }
 
     pub fn reset_io_maximum_bandwidth(&mut self) {

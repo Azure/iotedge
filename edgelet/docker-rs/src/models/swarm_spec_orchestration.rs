@@ -40,8 +40,8 @@ impl SwarmSpecOrchestration {
         self
     }
 
-    pub fn task_history_retention_limit(&self) -> Option<&i64> {
-        self.task_history_retention_limit.as_ref()
+    pub fn task_history_retention_limit(&self) -> Option<i64> {
+        self.task_history_retention_limit
     }
 
     pub fn reset_task_history_retention_limit(&mut self) {

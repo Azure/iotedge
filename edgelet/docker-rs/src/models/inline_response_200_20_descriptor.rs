@@ -65,8 +65,8 @@ impl InlineResponse20020Descriptor {
         self
     }
 
-    pub fn size(&self) -> Option<&i64> {
-        self.size.as_ref()
+    pub fn size(&self) -> Option<i64> {
+        self.size
     }
 
     pub fn reset_size(&mut self) {

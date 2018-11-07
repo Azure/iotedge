@@ -486,8 +486,8 @@ impl InlineResponse200 {
         self
     }
 
-    pub fn size_rw(&self) -> Option<&i64> {
-        self.size_rw.as_ref()
+    pub fn size_rw(&self) -> Option<i64> {
+        self.size_rw
     }
 
     pub fn reset_size_rw(&mut self) {
@@ -503,8 +503,8 @@ impl InlineResponse200 {
         self
     }
 
-    pub fn size_root_fs(&self) -> Option<&i64> {
-        self.size_root_fs.as_ref()
+    pub fn size_root_fs(&self) -> Option<i64> {
+        self.size_root_fs
     }
 
     pub fn reset_size_root_fs(&mut self) {

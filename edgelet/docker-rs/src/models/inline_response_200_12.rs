@@ -117,8 +117,8 @@ impl InlineResponse20012 {
         self
     }
 
-    pub fn time_nano(&self) -> Option<&i64> {
-        self.time_nano.as_ref()
+    pub fn time_nano(&self) -> Option<i64> {
+        self.time_nano
     }
 
     pub fn reset_time_nano(&mut self) {

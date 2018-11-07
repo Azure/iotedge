@@ -282,8 +282,8 @@ impl EndpointSettings {
         self
     }
 
-    pub fn global_i_pv6_prefix_len(&self) -> Option<&i64> {
-        self.global_i_pv6_prefix_len.as_ref()
+    pub fn global_i_pv6_prefix_len(&self) -> Option<i64> {
+        self.global_i_pv6_prefix_len
     }
 
     pub fn reset_global_i_pv6_prefix_len(&mut self) {
