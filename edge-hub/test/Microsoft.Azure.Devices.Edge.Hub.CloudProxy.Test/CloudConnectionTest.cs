@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
             var transportSettings = new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
             var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter> { [typeof(TwinCollection)] = Mock.Of<IMessageConverter>() });
-            await Assert.ThrowsAsync<AggregateException>(() => CloudConnection.Create(
+            await Assert.ThrowsAsync<TimeoutException>(() => CloudConnection.Create(
                 identity,
                 (_, __) => { },
                 transportSettings,

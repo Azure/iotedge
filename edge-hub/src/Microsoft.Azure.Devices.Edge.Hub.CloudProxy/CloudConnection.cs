@@ -104,10 +104,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         protected virtual bool CallbacksEnabled { get; } = true;
 
-        async Task<IClient> ConnectToIoTHub(ITokenProvider newTokenProviders)
+        async Task<IClient> ConnectToIoTHub(ITokenProvider newTokenProvider)
         {
-            Events.AttemptingConnectionWithTransport(this.transportSettingsList, newCredentials.Identity);Events.AttemptingConnectionWithTransport(this.transportSettingsList, newCredentials.Identity);                            Events.AttemptingConnectionWithTransport(this.transportSettingsList, newCredentials.Identity);Events.AttemptingConnectionWithTransport(this.transportSettingsList, newCredentials.Identity);
-            IClient client = await this.CreateDeviceClient(newTokenProviders, this.transportSettingsList);
+            Events.AttemptingConnectionWithTransport(this.transportSettingsList, this.Identity);
+            IClient client = this.clientProvider.Create(this.Identity, newTokenProvider, this.transportSettingsList);
 
             client.SetOperationTimeoutInMilliseconds(OperationTimeoutMilliseconds);
             client.SetConnectionStatusChangedHandler(this.InternalConnectionStatusChangesHandler);
@@ -119,7 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             //}
 
             await client.OpenAsync();
-            Events.CreateDeviceClientSuccess(transportSettings.GetTransportType(), OperationTimeoutMilliseconds, this.Identity);
+            Events.CreateDeviceClientSuccess(this.transportSettingsList, OperationTimeoutMilliseconds, this.Identity);
             return client;
         }
 
