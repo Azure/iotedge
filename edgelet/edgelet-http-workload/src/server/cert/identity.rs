@@ -57,9 +57,10 @@ where
                             .context(ErrorKind::BadBody)
                             .map_err(Error::from)
                             .and_then(|cert_req| {
-                                cert_req
-                                    .expiration()
-                                    .map_or_else(|| Ok(max_duration), |exp| compute_validity(exp, max_duration).map_err(Error::from))
+                                cert_req.expiration().map_or_else(
+                                    || Ok(max_duration),
+                                    |exp| compute_validity(exp, max_duration).map_err(Error::from),
+                                )
                             }).and_then(move |expiration| {
                                 let sans = vec![module_uri];
                                 #[cfg_attr(feature = "cargo-clippy", allow(cast_sign_loss))]
@@ -75,7 +76,7 @@ where
                     .or_else(|e| future::ok(e.into_response()));
 
                 future::Either::A(result)
-            },
+            }
 
             None => future::Either::B(future::ok(Error::from(ErrorKind::BadParam).into_response())),
         };
@@ -143,7 +144,10 @@ mod tests {
     }
 
     impl Default for TestWorkloadConfig {
-        #[cfg_attr(feature = "cargo-clippy", allow(cast_possible_wrap, cast_sign_loss))]
+        #[cfg_attr(
+            feature = "cargo-clippy",
+            allow(cast_possible_wrap, cast_sign_loss)
+        )]
         fn default() -> Self {
             assert!(MAX_DURATION_SEC < (i64::max_value() as u64));
 
@@ -242,10 +246,7 @@ mod tests {
             .wait()
             .unwrap();
         assert_eq!("key", cert_resp.private_key().type_());
-        assert_eq!(
-            Some("Betelgeuse"),
-            cert_resp.private_key().bytes()
-        );
+        assert_eq!(Some("Betelgeuse"), cert_resp.private_key().bytes());
     }
 
     #[test]
@@ -283,10 +284,7 @@ mod tests {
             .wait()
             .unwrap();
         assert_eq!("ref", cert_resp.private_key().type_());
-        assert_eq!(
-            Some("Betelgeuse"),
-            cert_resp.private_key().ref_()
-        );
+        assert_eq!(Some("Betelgeuse"), cert_resp.private_key().ref_());
     }
 
     #[test]
@@ -324,10 +322,7 @@ mod tests {
             .wait()
             .unwrap();
         assert_eq!("key", cert_resp.private_key().type_());
-        assert_eq!(
-            Some("Betelgeuse"),
-            cert_resp.private_key().bytes()
-        );
+        assert_eq!(Some("Betelgeuse"), cert_resp.private_key().bytes());
     }
 
     #[test]
@@ -366,10 +361,7 @@ mod tests {
             .wait()
             .unwrap();
         assert_eq!("key", cert_resp.private_key().type_());
-        assert_eq!(
-            Some("Betelgeuse"),
-            cert_resp.private_key().bytes()
-        );
+        assert_eq!(Some("Betelgeuse"), cert_resp.private_key().bytes());
     }
 
     #[test]
