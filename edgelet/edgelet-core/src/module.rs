@@ -16,7 +16,7 @@ use serde_json;
 
 use error::{Error, Result};
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ModuleStatus {
     Unknown,
@@ -57,7 +57,7 @@ pub struct ModuleRuntimeState {
 }
 
 impl Default for ModuleRuntimeState {
-    fn default() -> ModuleRuntimeState {
+    fn default() -> Self {
         ModuleRuntimeState {
             status: ModuleStatus::Unknown,
             exit_code: None,
@@ -75,28 +75,25 @@ impl ModuleRuntimeState {
         &self.status
     }
 
-    pub fn with_status(mut self, status: ModuleStatus) -> ModuleRuntimeState {
+    pub fn with_status(mut self, status: ModuleStatus) -> Self {
         self.status = status;
         self
     }
 
-    pub fn exit_code(&self) -> Option<&i64> {
-        self.exit_code.as_ref()
+    pub fn exit_code(&self) -> Option<i64> {
+        self.exit_code
     }
 
-    pub fn with_exit_code(mut self, exit_code: Option<i64>) -> ModuleRuntimeState {
+    pub fn with_exit_code(mut self, exit_code: Option<i64>) -> Self {
         self.exit_code = exit_code;
         self
     }
 
-    pub fn status_description(&self) -> Option<&String> {
-        self.status_description.as_ref()
+    pub fn status_description(&self) -> Option<&str> {
+        self.status_description.as_ref().map(AsRef::as_ref)
     }
 
-    pub fn with_status_description(
-        mut self,
-        status_description: Option<String>,
-    ) -> ModuleRuntimeState {
+    pub fn with_status_description(mut self, status_description: Option<String>) -> Self {
         self.status_description = status_description;
         self
     }
@@ -105,7 +102,7 @@ impl ModuleRuntimeState {
         self.started_at.as_ref()
     }
 
-    pub fn with_started_at(mut self, started_at: Option<DateTime<Utc>>) -> ModuleRuntimeState {
+    pub fn with_started_at(mut self, started_at: Option<DateTime<Utc>>) -> Self {
         self.started_at = started_at;
         self
     }
@@ -114,26 +111,26 @@ impl ModuleRuntimeState {
         self.finished_at.as_ref()
     }
 
-    pub fn with_finished_at(mut self, finished_at: Option<DateTime<Utc>>) -> ModuleRuntimeState {
+    pub fn with_finished_at(mut self, finished_at: Option<DateTime<Utc>>) -> Self {
         self.finished_at = finished_at;
         self
     }
 
-    pub fn image_id(&self) -> Option<&String> {
-        self.image_id.as_ref()
+    pub fn image_id(&self) -> Option<&str> {
+        self.image_id.as_ref().map(AsRef::as_ref)
     }
 
-    pub fn with_image_id(mut self, image_id: Option<String>) -> ModuleRuntimeState {
+    pub fn with_image_id(mut self, image_id: Option<String>) -> Self {
         self.image_id = image_id;
         self
     }
 
-    pub fn pid(&self) -> &Pid {
-        &self.pid
+    pub fn pid(&self) -> Pid {
+        self.pid
     }
 
-    pub fn with_pid(mut self, pid: &Pid) -> ModuleRuntimeState {
-        self.pid = pid.clone();
+    pub fn with_pid(mut self, pid: Pid) -> Self {
+        self.pid = pid;
         self
     }
 }
@@ -163,12 +160,7 @@ where
 }
 
 impl<T> ModuleSpec<T> {
-    pub fn new(
-        name: &str,
-        type_: &str,
-        config: T,
-        env: HashMap<String, String>,
-    ) -> Result<ModuleSpec<T>> {
+    pub fn new(name: &str, type_: &str, config: T, env: HashMap<String, String>) -> Result<Self> {
         Ok(ModuleSpec {
             name: ensure_not_empty!(name).to_string(),
             type_: ensure_not_empty!(type_).to_string(),
@@ -222,7 +214,7 @@ impl<T> ModuleSpec<T> {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum LogTail {
     All,
     Num(u64),
@@ -418,10 +410,10 @@ mod tests {
 
     #[test]
     fn module_config_empty_name_fails() {
-        match ModuleSpec::new("", "docker", 10i32, HashMap::new()) {
+        match ModuleSpec::new("", "docker", 10_i32, HashMap::new()) {
             Ok(_) => panic!("Expected error"),
-            Err(err) => match err.kind() {
-                &ErrorKind::Utils => (),
+            Err(err) => match *err.kind() {
+                ErrorKind::Utils => (),
                 _ => panic!("Expected utils error. Got some other error."),
             },
         }
@@ -429,10 +421,10 @@ mod tests {
 
     #[test]
     fn module_config_white_space_name_fails() {
-        match ModuleSpec::new("    ", "docker", 10i32, HashMap::new()) {
+        match ModuleSpec::new("    ", "docker", 10_i32, HashMap::new()) {
             Ok(_) => panic!("Expected error"),
-            Err(err) => match err.kind() {
-                &ErrorKind::Utils => (),
+            Err(err) => match *err.kind() {
+                ErrorKind::Utils => (),
                 _ => panic!("Expected utils error. Got some other error."),
             },
         }
@@ -440,10 +432,10 @@ mod tests {
 
     #[test]
     fn module_config_empty_type_fails() {
-        match ModuleSpec::new("m1", "", 10i32, HashMap::new()) {
+        match ModuleSpec::new("m1", "", 10_i32, HashMap::new()) {
             Ok(_) => panic!("Expected error"),
-            Err(err) => match err.kind() {
-                &ErrorKind::Utils => (),
+            Err(err) => match *err.kind() {
+                ErrorKind::Utils => (),
                 _ => panic!("Expected utils error. Got some other error."),
             },
         }
@@ -451,10 +443,10 @@ mod tests {
 
     #[test]
     fn module_config_white_space_type_fails() {
-        match ModuleSpec::new("m1", "     ", 10i32, HashMap::new()) {
+        match ModuleSpec::new("m1", "     ", 10_i32, HashMap::new()) {
             Ok(_) => panic!("Expected error"),
-            Err(err) => match err.kind() {
-                &ErrorKind::Utils => (),
+            Err(err) => match *err.kind() {
+                ErrorKind::Utils => (),
                 _ => panic!("Expected utils error. Got some other error."),
             },
         }

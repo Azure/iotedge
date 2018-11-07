@@ -23,7 +23,7 @@ pub struct ModuleSpec {
 }
 
 impl ModuleSpec {
-    pub fn new(name: String, type_: String, config: ::models::Config) -> ModuleSpec {
+    pub fn new(name: String, type_: String, config: ::models::Config) -> Self {
         ModuleSpec {
             name,
             type_,
@@ -35,7 +35,7 @@ impl ModuleSpec {
         self.name = name;
     }
 
-    pub fn with_name(mut self, name: String) -> ModuleSpec {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = name;
         self
     }
@@ -48,7 +48,7 @@ impl ModuleSpec {
         self.type_ = type_;
     }
 
-    pub fn with_type(mut self, type_: String) -> ModuleSpec {
+    pub fn with_type(mut self, type_: String) -> Self {
         self.type_ = type_;
         self
     }
@@ -61,7 +61,7 @@ impl ModuleSpec {
         self.config = config;
     }
 
-    pub fn with_config(mut self, config: ::models::Config) -> ModuleSpec {
+    pub fn with_config(mut self, config: ::models::Config) -> Self {
         self.config = config;
         self
     }

@@ -29,7 +29,7 @@ impl Identity {
         managed_by: String,
         generation_id: String,
         auth_type: String,
-    ) -> Identity {
+    ) -> Self {
         Identity {
             module_id,
             managed_by,
@@ -42,7 +42,7 @@ impl Identity {
         self.module_id = module_id;
     }
 
-    pub fn with_module_id(mut self, module_id: String) -> Identity {
+    pub fn with_module_id(mut self, module_id: String) -> Self {
         self.module_id = module_id;
         self
     }
@@ -55,7 +55,7 @@ impl Identity {
         self.managed_by = managed_by;
     }
 
-    pub fn with_managed_by(mut self, managed_by: String) -> Identity {
+    pub fn with_managed_by(mut self, managed_by: String) -> Self {
         self.managed_by = managed_by;
         self
     }
@@ -68,7 +68,7 @@ impl Identity {
         self.generation_id = generation_id;
     }
 
-    pub fn with_generation_id(mut self, generation_id: String) -> Identity {
+    pub fn with_generation_id(mut self, generation_id: String) -> Self {
         self.generation_id = generation_id;
         self
     }
@@ -81,7 +81,7 @@ impl Identity {
         self.auth_type = auth_type;
     }
 
-    pub fn with_auth_type(mut self, auth_type: String) -> Identity {
+    pub fn with_auth_type(mut self, auth_type: String) -> Self {
         self.auth_type = auth_type;
         self
     }

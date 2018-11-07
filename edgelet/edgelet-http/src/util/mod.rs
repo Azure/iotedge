@@ -38,6 +38,7 @@ pub enum StreamSelector {
 }
 
 impl StreamSelector {
+    #[cfg_attr(feature = "cargo-clippy", allow(match_same_arms))]
     pub fn pid(&self) -> io::Result<Pid> {
         match *self {
             StreamSelector::Tcp(_) => Ok(Pid::Any),

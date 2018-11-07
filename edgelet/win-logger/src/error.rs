@@ -13,7 +13,7 @@ pub struct Error {
     inner: Context<ErrorKind>,
 }
 
-#[derive(Debug, Fail)]
+#[derive(Clone, Copy, Debug, Fail)]
 pub enum ErrorKind {
     #[fail(display = "Edgelet utils error")]
     Utils,
@@ -48,7 +48,7 @@ impl Error {
 }
 
 impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Error {
+    fn from(kind: ErrorKind) -> Self {
         Error {
             inner: Context::new(kind),
         }
@@ -56,13 +56,13 @@ impl From<ErrorKind> for Error {
 }
 
 impl From<Context<ErrorKind>> for Error {
-    fn from(inner: Context<ErrorKind>) -> Error {
+    fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
     }
 }
 
 impl From<IoError> for Error {
-    fn from(err: IoError) -> Error {
+    fn from(err: IoError) -> Self {
         Error {
             inner: err.context(ErrorKind::Io),
         }
@@ -70,7 +70,7 @@ impl From<IoError> for Error {
 }
 
 impl From<UtilsError> for Error {
-    fn from(err: UtilsError) -> Error {
+    fn from(err: UtilsError) -> Self {
         Error {
             inner: err.context(ErrorKind::Utils),
         }
@@ -78,13 +78,13 @@ impl From<UtilsError> for Error {
 }
 
 impl From<ParseLevelError> for Error {
-    fn from(_: ParseLevelError) -> Error {
+    fn from(_: ParseLevelError) -> Self {
         Error::from(ErrorKind::ParseLevel)
     }
 }
 
 impl From<SetLoggerError> for Error {
-    fn from(_: SetLoggerError) -> Error {
+    fn from(_: SetLoggerError) -> Self {
         Error::from(ErrorKind::SetLogger)
     }
 }

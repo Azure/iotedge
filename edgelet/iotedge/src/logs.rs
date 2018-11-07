@@ -47,10 +47,10 @@ where
                 LogDecode::new(chunked)
                     .for_each(|chunk| {
                         match chunk {
-                            LogChunk::Stdin(b) => io::stdout().write(&b)?,
-                            LogChunk::Stdout(b) => io::stdout().write(&b)?,
-                            LogChunk::Stderr(b) => io::stderr().write(&b)?,
-                            LogChunk::Unknown(b) => io::stdout().write(&b)?,
+                            LogChunk::Stdin(b)
+                            | LogChunk::Stdout(b)
+                            | LogChunk::Stderr(b)
+                            | LogChunk::Unknown(b) => io::stdout().write(&b)?,
                         };
                         Ok(())
                     }).map_err(|_| Error::from(ErrorKind::ModuleRuntime))
@@ -70,10 +70,10 @@ where
 ///         │        └ 0x0000001f = log message is 31 bytes
 ///       unused
 ///
-/// The following set of structs converts a Stream<&[u8]> into a Stream<LogChunk>
-/// by implementing AsyncRead on Stream<&[u8]> and then using the length_delimited
-/// decoder in tokio to emit BytesMut with complete frames. The LogChunk
-/// is then constructed from these BytesMuts
+/// The following set of structs converts a `Stream<&[u8]>` into a `Stream<LogChunk>`
+/// by implementing [`AsyncRead`] on `Stream<&[u8]>` and then using the `length_delimited`
+/// decoder in tokio to emit [`BytesMut`] with complete frames. The [`LogChunk`]
+/// is then constructed from these [`BytesMut`]s
 
 #[derive(Debug, PartialEq)]
 enum LogChunk {
@@ -228,12 +228,12 @@ mod tests {
     #[test]
     fn smoke_test() {
         let chunks = vec![
-            &[0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0d, 0x52, 0x6f][..],
-            &[0x73, 0x65, 0x73, 0x20, 0x61, 0x72, 0x65][..],
-            &[0x20, 0x72, 0x65, 0x64, 0x02, 0x00][..],
+            &[0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0d, b'R', b'o'][..],
+            &b"ses are"[..],
+            &[b' ', b'r', b'e', b'd', 0x02, 0x00][..],
             &[0x00, 0x00, 0x00, 0x00, 0x00, 0x10][..],
-            &[0x76, 0x69, 0x6f, 0x6c, 0x65, 0x74, 0x73][..],
-            &[0x20, 0x61, 0x72, 0x65, 0x20, 0x62, 0x6c, 0x75, 0x65][..],
+            &b"violets"[..],
+            &b" are blue"[..],
         ];
 
         let stream = iter_ok::<Vec<&[u8]>, io::Error>(chunks);
@@ -252,19 +252,19 @@ mod tests {
     #[test]
     fn test_read() {
         let chunks = vec![
-            &[0x52, 0x6f][..],
-            &[0x73, 0x65, 0x73, 0x20, 0x61, 0x72, 0x65][..],
-            &[0x20, 0x72, 0x65, 0x64][..],
-            &[0x20, 0x76, 0x69, 0x6f, 0x6c, 0x65, 0x74, 0x73][..],
-            &[0x20, 0x61, 0x72, 0x65, 0x20, 0x62, 0x6c, 0x75, 0x65][..],
+            &b"Ro"[..],
+            &b"ses are"[..],
+            &b" red"[..],
+            &b" violets"[..],
+            &b" are blue"[..],
         ];
 
         let mut stream = Chunked::new(iter_ok::<Vec<&[u8]>, io::Error>(chunks));
-        let read_buffer = &mut [0u8; 30];
+        let read_buffer = &mut [0_u8; 30];
 
         for slice in &mut read_buffer.chunks_mut(2) {
-            stream.read(slice).unwrap();
+            stream.read_exact(slice).unwrap();
         }
-        assert_eq!("Roses are red violets are blue".as_bytes(), read_buffer);
+        assert_eq!(b"Roses are red violets are blue", read_buffer);
     }
 }

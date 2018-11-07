@@ -37,7 +37,7 @@ pub struct TaskSpecRestartPolicy {
 
 impl TaskSpecRestartPolicy {
     /// Specification for the restart policy which applies to containers created as part of this service.
-    pub fn new() -> TaskSpecRestartPolicy {
+    pub fn new() -> Self {
         TaskSpecRestartPolicy {
             condition: None,
             delay: None,
@@ -50,13 +50,13 @@ impl TaskSpecRestartPolicy {
         self.condition = Some(condition);
     }
 
-    pub fn with_condition(mut self, condition: String) -> TaskSpecRestartPolicy {
+    pub fn with_condition(mut self, condition: String) -> Self {
         self.condition = Some(condition);
         self
     }
 
-    pub fn condition(&self) -> Option<&String> {
-        self.condition.as_ref()
+    pub fn condition(&self) -> Option<&str> {
+        self.condition.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_condition(&mut self) {
@@ -67,13 +67,13 @@ impl TaskSpecRestartPolicy {
         self.delay = Some(delay);
     }
 
-    pub fn with_delay(mut self, delay: i64) -> TaskSpecRestartPolicy {
+    pub fn with_delay(mut self, delay: i64) -> Self {
         self.delay = Some(delay);
         self
     }
 
-    pub fn delay(&self) -> Option<&i64> {
-        self.delay.as_ref()
+    pub fn delay(&self) -> Option<i64> {
+        self.delay
     }
 
     pub fn reset_delay(&mut self) {
@@ -84,13 +84,13 @@ impl TaskSpecRestartPolicy {
         self.max_attempts = Some(max_attempts);
     }
 
-    pub fn with_max_attempts(mut self, max_attempts: i64) -> TaskSpecRestartPolicy {
+    pub fn with_max_attempts(mut self, max_attempts: i64) -> Self {
         self.max_attempts = Some(max_attempts);
         self
     }
 
-    pub fn max_attempts(&self) -> Option<&i64> {
-        self.max_attempts.as_ref()
+    pub fn max_attempts(&self) -> Option<i64> {
+        self.max_attempts
     }
 
     pub fn reset_max_attempts(&mut self) {
@@ -101,13 +101,13 @@ impl TaskSpecRestartPolicy {
         self.window = Some(window);
     }
 
-    pub fn with_window(mut self, window: i64) -> TaskSpecRestartPolicy {
+    pub fn with_window(mut self, window: i64) -> Self {
         self.window = Some(window);
         self
     }
 
-    pub fn window(&self) -> Option<&i64> {
-        self.window.as_ref()
+    pub fn window(&self) -> Option<i64> {
+        self.window
     }
 
     pub fn reset_window(&mut self) {

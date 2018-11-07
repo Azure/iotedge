@@ -11,7 +11,7 @@ use std::str;
 use super::*;
 use error::{Error, ErrorKind};
 
-/// Enumerator for CERTIFICATE_TYPE
+/// Enumerator for [`CERTIFICATE_TYPE`]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum CertificateType {
     Unknown,
@@ -24,12 +24,12 @@ pub enum CertificateType {
 /// create an instance of this to use the HSM common interfaces needed for Edge
 ///
 /// This structure implements traits:
-/// - MakeRandom
-/// - CreateMasterEncryptionKey
-/// - DestroyMasterEncryptionKey
-/// - CreateCertificate
-/// - Encrypt
-/// - Decrypt
+/// - [`MakeRandom`]
+/// - [`CreateMasterEncryptionKey`]
+/// - [`DestroyMasterEncryptionKey`]
+/// - [`CreateCertificate`]
+/// - [`Encrypt`]
+/// - [`Decrypt`]
 ///
 #[derive(Clone, Debug)]
 pub struct Crypto {
@@ -53,7 +53,7 @@ impl Drop for Crypto {
 
 impl Crypto {
     /// Create a new Cryptography implementation for the HSM API.
-    pub fn new() -> Result<Crypto, Error> {
+    pub fn new() -> Result<Self, Error> {
         let result = unsafe { hsm_client_crypto_init() as isize };
         if result != 0 {
             Err(result)?
@@ -402,7 +402,7 @@ impl CertificateProperties {
         &self.validity_in_secs
     }
 
-    pub fn with_validity_in_secs(mut self, validity_in_secs: u64) -> CertificateProperties {
+    pub fn with_validity_in_secs(mut self, validity_in_secs: u64) -> Self {
         self.validity_in_secs = validity_in_secs;
         self
     }
@@ -411,7 +411,7 @@ impl CertificateProperties {
         &self.common_name
     }
 
-    pub fn with_common_name(mut self, common_name: String) -> CertificateProperties {
+    pub fn with_common_name(mut self, common_name: String) -> Self {
         self.common_name = common_name;
         self
     }
@@ -420,55 +420,52 @@ impl CertificateProperties {
         &self.certificate_type
     }
 
-    pub fn with_certificate_type(
-        mut self,
-        certificate_type: CertificateType,
-    ) -> CertificateProperties {
+    pub fn with_certificate_type(mut self, certificate_type: CertificateType) -> Self {
         self.certificate_type = certificate_type;
         self
     }
 
-    pub fn country(&self) -> Option<&String> {
-        self.country.as_ref()
+    pub fn country(&self) -> Option<&str> {
+        self.country.as_ref().map(AsRef::as_ref)
     }
 
-    pub fn with_country(mut self, country: String) -> CertificateProperties {
+    pub fn with_country(mut self, country: String) -> Self {
         self.country = Some(country);
         self
     }
 
-    pub fn state(&self) -> Option<&String> {
-        self.state.as_ref()
+    pub fn state(&self) -> Option<&str> {
+        self.state.as_ref().map(AsRef::as_ref)
     }
 
-    pub fn with_state(mut self, state: String) -> CertificateProperties {
+    pub fn with_state(mut self, state: String) -> Self {
         self.state = Some(state);
         self
     }
 
-    pub fn locality(&self) -> Option<&String> {
-        self.locality.as_ref()
+    pub fn locality(&self) -> Option<&str> {
+        self.locality.as_ref().map(AsRef::as_ref)
     }
 
-    pub fn with_locality(mut self, locality: String) -> CertificateProperties {
+    pub fn with_locality(mut self, locality: String) -> Self {
         self.locality = Some(locality);
         self
     }
 
-    pub fn organization(&self) -> Option<&String> {
-        self.organization.as_ref()
+    pub fn organization(&self) -> Option<&str> {
+        self.organization.as_ref().map(AsRef::as_ref)
     }
 
-    pub fn with_organization(mut self, organization: String) -> CertificateProperties {
+    pub fn with_organization(mut self, organization: String) -> Self {
         self.organization = Some(organization);
         self
     }
 
-    pub fn organization_unit(&self) -> Option<&String> {
-        self.organization_unit.as_ref()
+    pub fn organization_unit(&self) -> Option<&str> {
+        self.organization_unit.as_ref().map(AsRef::as_ref)
     }
 
-    pub fn with_organization_unit(mut self, organization_unit: String) -> CertificateProperties {
+    pub fn with_organization_unit(mut self, organization_unit: String) -> Self {
         self.organization_unit = Some(organization_unit);
         self
     }
@@ -477,7 +474,7 @@ impl CertificateProperties {
         &self.issuer_alias
     }
 
-    pub fn with_issuer_alias(mut self, issuer_alias: String) -> CertificateProperties {
+    pub fn with_issuer_alias(mut self, issuer_alias: String) -> Self {
         self.issuer_alias = issuer_alias;
         self
     }
@@ -486,16 +483,16 @@ impl CertificateProperties {
         &self.alias
     }
 
-    pub fn with_alias(mut self, alias: String) -> CertificateProperties {
+    pub fn with_alias(mut self, alias: String) -> Self {
         self.alias = alias;
         self
     }
 
-    pub fn san_entries(&self) -> &Vec<String> {
+    pub fn san_entries(&self) -> &[String] {
         &self.san_entries
     }
 
-    pub fn with_san_entries(mut self, entries: Vec<String>) -> CertificateProperties {
+    pub fn with_san_entries(mut self, entries: Vec<String>) -> Self {
         self.san_entries = entries;
         self
     }
@@ -514,7 +511,7 @@ impl Default for CertificateProperties {
             locality: None,
             organization: None,
             organization_unit: None,
-            san_entries: Vec::new(),
+            san_entries: vec![],
         }
     }
 }
@@ -788,8 +785,8 @@ mod tests {
             let mut current = result;
             for _ in 0..num_entries {
                 let mut matched = false;
-                for i in 0..num_entries {
-                    if test_strings[i].to_bytes_with_nul()
+                for test_string in &test_strings {
+                    if test_string.to_bytes_with_nul()
                         == CStr::from_ptr(*current).to_bytes_with_nul()
                     {
                         matched = true;
@@ -806,16 +803,16 @@ mod tests {
 
     #[test]
     fn certificate_props_get_set_default_test() {
-        let input_sans: Vec<String> = Vec::new();
+        let input_sans: &[String] = &[];
         let props = CertificateProperties::default();
-        assert_eq!(input_sans, *props.san_entries());
+        assert_eq!(input_sans, props.san_entries());
     }
 
     #[test]
     fn certificate_props_get_set_test() {
-        let input_sans: Vec<String> = vec![String::from("aa"), String::from("bb")];
+        let input_sans = vec![String::from("aa"), String::from("bb")];
         let props = CertificateProperties::default().with_san_entries(input_sans.clone());
-        assert_eq!(input_sans, *props.san_entries());
+        assert_eq!(&*input_sans, props.san_entries());
     }
 
     #[test]
@@ -855,7 +852,7 @@ mod tests {
     }
 
     unsafe extern "C" fn fake_handle_create_good() -> HSM_CLIENT_HANDLE {
-        0_isize as *mut c_void
+        ::std::ptr::null_mut()
     }
     unsafe extern "C" fn fake_handle_create_bad() -> HSM_CLIENT_HANDLE {
         1_isize as *mut c_void
@@ -971,25 +968,25 @@ mod tests {
     #[should_panic(expected = "HSM API Not Implemented")]
     fn no_random_bytes_api_fail() {
         let hsm_crypto = fake_no_if_hsm_crypto();
-        let mut test_array = [0u8; 4];
-        let limits = hsm_crypto.get_random_bytes(&mut test_array).unwrap();
-        println!("You should never see this print {:?}", limits);
+        let mut test_array = [0_u8; 4];
+        hsm_crypto.get_random_bytes(&mut test_array).unwrap();
+        println!("You should never see this print");
     }
 
     #[test]
     #[should_panic(expected = "HSM API Not Implemented")]
     fn no_create_master_key_api_fail() {
         let hsm_crypto = fake_no_if_hsm_crypto();
-        let result = hsm_crypto.create_master_encryption_key().unwrap();
-        println!("You should never see this print {:?}", result);
+        hsm_crypto.create_master_encryption_key().unwrap();
+        println!("You should never see this print");
     }
 
     #[test]
     #[should_panic(expected = "HSM API Not Implemented")]
     fn no_destroy_master_key_api_fail() {
         let hsm_crypto = fake_no_if_hsm_crypto();
-        let result = hsm_crypto.destroy_master_encryption_key().unwrap();
-        println!("You should never see this print {:?}", result);
+        hsm_crypto.destroy_master_encryption_key().unwrap();
+        println!("You should never see this print");
     }
 
     #[test]
@@ -1057,25 +1054,25 @@ mod tests {
     #[should_panic(expected = "HSM API failure occurred")]
     fn hsm_get_random_bytes_errors() {
         let hsm_crypto = fake_bad_hsm_crypto();
-        let mut test_array = [0u8; 4];
-        let result = hsm_crypto.get_random_bytes(&mut test_array).unwrap();
-        println!("You should never see this print {:?}", result);
+        let mut test_array = [0_u8; 4];
+        hsm_crypto.get_random_bytes(&mut test_array).unwrap();
+        println!("You should never see this print");
     }
 
     #[test]
     #[should_panic(expected = "HSM API failure occurred")]
     fn hsm_create_master_encryption_key_errors() {
         let hsm_crypto = fake_bad_hsm_crypto();
-        let result = hsm_crypto.create_master_encryption_key().unwrap();
-        println!("You should never see this print {:?}", result);
+        hsm_crypto.create_master_encryption_key().unwrap();
+        println!("You should never see this print");
     }
 
     #[test]
     #[should_panic(expected = "HSM API failure occurred")]
     fn hsm_destroy_master_encryption_key_errors() {
         let hsm_crypto = fake_bad_hsm_crypto();
-        let result = hsm_crypto.destroy_master_encryption_key().unwrap();
-        println!("You should never see this print {:?}", result);
+        hsm_crypto.destroy_master_encryption_key().unwrap();
+        println!("You should never see this print");
     }
 
     #[test]
@@ -1135,21 +1132,16 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(feature = "cargo-clippy", allow(let_unit_value))]
     fn hsm_success() {
         let hsm_crypto = fake_good_hsm_crypto();
 
-        let mut test_array = [0u8, 4];
-        let result_random_bytes = hsm_crypto.get_random_bytes(&mut test_array).unwrap();
+        let mut test_array = [0_u8, 4];
+        let _result_random_bytes: () = hsm_crypto.get_random_bytes(&mut test_array).unwrap();
 
-        assert_eq!(result_random_bytes, ());
+        let _master_key: () = hsm_crypto.create_master_encryption_key().unwrap();
 
-        let master_key = hsm_crypto.create_master_encryption_key().unwrap();
-
-        assert_eq!(master_key, ());
-
-        let destroy_key = hsm_crypto.destroy_master_encryption_key().unwrap();
-
-        assert_eq!(destroy_key, ());
+        let _destroy_key: () = hsm_crypto.destroy_master_encryption_key().unwrap();
 
         let props = CertificateProperties::default();
         let _new_cert = hsm_crypto.create_certificate(&props).unwrap();

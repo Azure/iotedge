@@ -25,7 +25,7 @@ pub struct ConfigSpec {
 }
 
 impl ConfigSpec {
-    pub fn new() -> ConfigSpec {
+    pub fn new() -> Self {
         ConfigSpec {
             name: None,
             labels: None,
@@ -37,13 +37,13 @@ impl ConfigSpec {
         self.name = Some(name);
     }
 
-    pub fn with_name(mut self, name: String) -> ConfigSpec {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
     }
 
-    pub fn name(&self) -> Option<&String> {
-        self.name.as_ref()
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_name(&mut self) {
@@ -54,10 +54,7 @@ impl ConfigSpec {
         self.labels = Some(labels);
     }
 
-    pub fn with_labels(
-        mut self,
-        labels: ::std::collections::HashMap<String, String>,
-    ) -> ConfigSpec {
+    pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
         self.labels = Some(labels);
         self
     }
@@ -74,13 +71,13 @@ impl ConfigSpec {
         self.data = Some(data);
     }
 
-    pub fn with_data(mut self, data: String) -> ConfigSpec {
+    pub fn with_data(mut self, data: String) -> Self {
         self.data = Some(data);
         self
     }
 
-    pub fn data(&self) -> Option<&String> {
-        self.data.as_ref()
+    pub fn data(&self) -> Option<&str> {
+        self.data.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_data(&mut self) {

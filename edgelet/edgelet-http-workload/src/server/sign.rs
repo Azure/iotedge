@@ -57,7 +57,7 @@ where
         req: Request<Body>,
         params: Parameters,
     ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
-        let response = params
+        let response = match params
             .name("name")
             .ok_or_else(|| Error::from(ErrorKind::BadParam))
             .and_then(|name| {
@@ -65,7 +65,8 @@ where
                     .name("genid")
                     .ok_or_else(|| Error::from(ErrorKind::BadParam))
                     .map(|genid| (name, genid))
-            }).map(|(name, genid)| {
+            }) {
+            Ok((name, genid)) => {
                 let id = name.to_string();
                 let genid = genid.to_string();
                 let key_store = self.key_store.clone();
@@ -90,7 +91,9 @@ where
                         }).unwrap_or_else(|e| e.into_response())
                 });
                 future::Either::A(ok)
-            }).unwrap_or_else(|e| future::Either::B(future::ok(e.into_response())));
+            }
+            Err(e) => future::Either::B(future::ok(e.into_response())),
+        };
         Box::new(response)
     }
 }
@@ -140,12 +143,15 @@ mod tests {
         type Key = MemoryKey;
 
         fn get(&self, identity: &KeyIdentity, key_name: &str) -> Result<Self::Key, CoreError> {
-            let state = &mut *self.state.lock().unwrap();
-            state.last_id = match identity {
-                KeyIdentity::Device => "".to_string(),
-                KeyIdentity::Module(ref m) => m.to_string(),
-            };
-            state.last_key_name = key_name.to_string();
+            let mut state = self.state.lock().unwrap();
+            {
+                let state = &mut *state;
+                state.last_id = match identity {
+                    KeyIdentity::Device => "".to_string(),
+                    KeyIdentity::Module(ref m) => m.to_string(),
+                };
+                state.last_key_name = key_name.to_string();
+            }
             drop(state);
             Ok(self.key.clone())
         }

@@ -23,7 +23,7 @@ impl DockerConfig {
         image: &str,
         create_options: ContainerCreateBody,
         auth: Option<AuthConfig>,
-    ) -> Result<DockerConfig> {
+    ) -> Result<Self> {
         let config = DockerConfig {
             image: ensure_not_empty!(image.to_string()),
             image_id: None,
@@ -46,8 +46,8 @@ impl DockerConfig {
         self
     }
 
-    pub fn image_id(&self) -> Option<&String> {
-        self.image_id.as_ref()
+    pub fn image_id(&self) -> Option<&str> {
+        self.image_id.as_ref().map(AsRef::as_ref)
     }
 
     pub fn with_image_id(mut self, image_id: String) -> Self {

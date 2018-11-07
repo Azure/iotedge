@@ -23,11 +23,11 @@ use url::Url;
 use error::{Error, ErrorKind};
 
 pub struct ModuleClient {
-    client: Arc<APIClient<UrlConnector>>,
+    client: Arc<APIClient>,
 }
 
 impl ModuleClient {
-    pub fn new(url: &Url) -> Result<ModuleClient, Error> {
+    pub fn new(url: &Url) -> Result<Self, Error> {
         let client = Client::builder().build(UrlConnector::new(url)?);
 
         let base_path = get_base_path(url)?;
@@ -102,7 +102,11 @@ impl Module for ModuleDetails {
 
 fn runtime_status(details: &HttpModuleDetails) -> Result<ModuleRuntimeState, Error> {
     let status = ModuleStatus::from_str(details.status().runtime_status().status())?;
-    let description = details.status().runtime_status().description().cloned();
+    let description = details
+        .status()
+        .runtime_status()
+        .description()
+        .map(ToOwned::to_owned);
     let exit_code = details
         .status()
         .exit_status()

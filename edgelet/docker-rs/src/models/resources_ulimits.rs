@@ -25,7 +25,7 @@ pub struct ResourcesUlimits {
 }
 
 impl ResourcesUlimits {
-    pub fn new() -> ResourcesUlimits {
+    pub fn new() -> Self {
         ResourcesUlimits {
             name: None,
             soft: None,
@@ -37,13 +37,13 @@ impl ResourcesUlimits {
         self.name = Some(name);
     }
 
-    pub fn with_name(mut self, name: String) -> ResourcesUlimits {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
     }
 
-    pub fn name(&self) -> Option<&String> {
-        self.name.as_ref()
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_name(&mut self) {
@@ -54,13 +54,13 @@ impl ResourcesUlimits {
         self.soft = Some(soft);
     }
 
-    pub fn with_soft(mut self, soft: i32) -> ResourcesUlimits {
+    pub fn with_soft(mut self, soft: i32) -> Self {
         self.soft = Some(soft);
         self
     }
 
-    pub fn soft(&self) -> Option<&i32> {
-        self.soft.as_ref()
+    pub fn soft(&self) -> Option<i32> {
+        self.soft
     }
 
     pub fn reset_soft(&mut self) {
@@ -71,13 +71,13 @@ impl ResourcesUlimits {
         self.hard = Some(hard);
     }
 
-    pub fn with_hard(mut self, hard: i32) -> ResourcesUlimits {
+    pub fn with_hard(mut self, hard: i32) -> Self {
         self.hard = Some(hard);
         self
     }
 
-    pub fn hard(&self) -> Option<&i32> {
-        self.hard.as_ref()
+    pub fn hard(&self) -> Option<i32> {
+        self.hard
     }
 
     pub fn reset_hard(&mut self) {

@@ -25,7 +25,7 @@ pub struct JoinTokens {
 
 impl JoinTokens {
     /// JoinTokens contains the tokens workers and managers need to join the swarm.
-    pub fn new() -> JoinTokens {
+    pub fn new() -> Self {
         JoinTokens {
             worker: None,
             manager: None,
@@ -36,13 +36,13 @@ impl JoinTokens {
         self.worker = Some(worker);
     }
 
-    pub fn with_worker(mut self, worker: String) -> JoinTokens {
+    pub fn with_worker(mut self, worker: String) -> Self {
         self.worker = Some(worker);
         self
     }
 
-    pub fn worker(&self) -> Option<&String> {
-        self.worker.as_ref()
+    pub fn worker(&self) -> Option<&str> {
+        self.worker.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_worker(&mut self) {
@@ -53,13 +53,13 @@ impl JoinTokens {
         self.manager = Some(manager);
     }
 
-    pub fn with_manager(mut self, manager: String) -> JoinTokens {
+    pub fn with_manager(mut self, manager: String) -> Self {
         self.manager = Some(manager);
         self
     }
 
-    pub fn manager(&self) -> Option<&String> {
-        self.manager.as_ref()
+    pub fn manager(&self) -> Option<&str> {
+        self.manager.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_manager(&mut self) {

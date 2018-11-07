@@ -101,7 +101,7 @@ fn parse_req<'a>(
 
 fn read_to_end<T: Read>(source: &mut T) -> Vec<u8> {
     let mut buf = [0; 256];
-    let mut buffer = Vec::new();
+    let mut buffer = vec![];
     loop {
         match source.read(&mut buf) {
             Ok(0) => break,

@@ -54,17 +54,17 @@ fn socket_file_exists(path: &Path) -> bool {
 }
 
 impl UrlConnector {
-    pub fn new(url: &Url) -> Result<UrlConnector, Error> {
+    pub fn new(url: &Url) -> Result<Self, Error> {
         match url.scheme() {
             #[cfg(windows)]
             PIPE_SCHEME => Ok(UrlConnector::Pipe(PipeConnector)),
 
             UNIX_SCHEME => {
                 let file_path = url.to_uds_file_path()?;
-                if !socket_file_exists(&file_path) {
-                    Err(ErrorKind::InvalidUri(url.to_string()))?
-                } else {
+                if socket_file_exists(&file_path) {
                     Ok(UrlConnector::Unix(UnixConnector::new()))
+                } else {
+                    Err(ErrorKind::InvalidUri(url.to_string()))?
                 }
             }
 
@@ -97,6 +97,7 @@ impl Connect for UrlConnector {
     type Future = Box<Future<Item = (Self::Transport, Connected), Error = Self::Error> + Send>;
 
     fn connect(&self, dst: Destination) -> Self::Future {
+        #[cfg_attr(feature = "cargo-clippy", allow(match_same_arms))]
         match (self, dst.scheme()) {
             (UrlConnector::Http(_), HTTP_SCHEME) => (),
 

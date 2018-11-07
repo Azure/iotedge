@@ -27,7 +27,7 @@ pub struct Container {
 }
 
 impl Container {
-    pub fn new() -> Container {
+    pub fn new() -> Self {
         Container {
             container: None,
             endpoint_config: None,
@@ -38,13 +38,13 @@ impl Container {
         self.container = Some(container);
     }
 
-    pub fn with_container(mut self, container: String) -> Container {
+    pub fn with_container(mut self, container: String) -> Self {
         self.container = Some(container);
         self
     }
 
-    pub fn container(&self) -> Option<&String> {
-        self.container.as_ref()
+    pub fn container(&self) -> Option<&str> {
+        self.container.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_container(&mut self) {
@@ -55,10 +55,7 @@ impl Container {
         self.endpoint_config = Some(endpoint_config);
     }
 
-    pub fn with_endpoint_config(
-        mut self,
-        endpoint_config: ::models::EndpointSettings,
-    ) -> Container {
+    pub fn with_endpoint_config(mut self, endpoint_config: ::models::EndpointSettings) -> Self {
         self.endpoint_config = Some(endpoint_config);
         self
     }

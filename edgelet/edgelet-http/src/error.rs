@@ -97,7 +97,7 @@ impl Error {
 }
 
 impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Error {
+    fn from(kind: ErrorKind) -> Self {
         Error {
             inner: Context::new(kind),
         }
@@ -105,13 +105,13 @@ impl From<ErrorKind> for Error {
 }
 
 impl From<Context<ErrorKind>> for Error {
-    fn from(inner: Context<ErrorKind>) -> Error {
+    fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
     }
 }
 
 impl From<http::Error> for Error {
-    fn from(error: http::Error) -> Error {
+    fn from(error: http::Error) -> Self {
         Error {
             inner: error.context(ErrorKind::Http),
         }
@@ -119,7 +119,7 @@ impl From<http::Error> for Error {
 }
 
 impl From<HyperError> for Error {
-    fn from(error: HyperError) -> Error {
+    fn from(error: HyperError) -> Self {
         Error {
             inner: error.context(ErrorKind::Hyper),
         }
@@ -127,13 +127,13 @@ impl From<HyperError> for Error {
 }
 
 impl From<Error> for CoreError {
-    fn from(_err: Error) -> CoreError {
+    fn from(_err: Error) -> Self {
         CoreError::from(CoreErrorKind::Http)
     }
 }
 
 impl From<CoreError> for Error {
-    fn from(error: CoreError) -> Error {
+    fn from(error: CoreError) -> Self {
         Error {
             inner: error.context(ErrorKind::NotFound),
         }
@@ -141,7 +141,7 @@ impl From<CoreError> for Error {
 }
 
 impl From<io::Error> for Error {
-    fn from(error: io::Error) -> Error {
+    fn from(error: io::Error) -> Self {
         Error {
             inner: error.context(ErrorKind::Io),
         }
@@ -150,7 +150,7 @@ impl From<io::Error> for Error {
 
 #[cfg(windows)]
 impl From<PipeError> for Error {
-    fn from(err: PipeError) -> Error {
+    fn from(err: PipeError) -> Self {
         Error {
             inner: err.context(ErrorKind::HyperPipe),
         }
@@ -205,7 +205,7 @@ impl IntoResponse for Context<ErrorKind> {
 }
 
 impl From<ParseError> for Error {
-    fn from(error: ParseError) -> Error {
+    fn from(error: ParseError) -> Self {
         Error {
             inner: error.context(ErrorKind::Parse),
         }
@@ -213,7 +213,7 @@ impl From<ParseError> for Error {
 }
 
 impl From<SerdeError> for Error {
-    fn from(error: SerdeError) -> Error {
+    fn from(error: SerdeError) -> Self {
         Error {
             inner: error.context(ErrorKind::Serde),
         }
@@ -221,7 +221,7 @@ impl From<SerdeError> for Error {
 }
 
 impl From<UtilsError> for Error {
-    fn from(error: UtilsError) -> Error {
+    fn from(error: UtilsError) -> Self {
         Error {
             inner: error.context(ErrorKind::Utils),
         }
@@ -229,7 +229,7 @@ impl From<UtilsError> for Error {
 }
 
 impl From<SystemdError> for Error {
-    fn from(error: SystemdError) -> Error {
+    fn from(error: SystemdError) -> Self {
         Error {
             inner: error.context(ErrorKind::Systemd),
         }
@@ -237,7 +237,7 @@ impl From<SystemdError> for Error {
 }
 
 impl From<ParseIntError> for Error {
-    fn from(error: ParseIntError) -> Error {
+    fn from(error: ParseIntError) -> Self {
         Error {
             inner: error.context(ErrorKind::Parse),
         }
@@ -246,7 +246,7 @@ impl From<ParseIntError> for Error {
 
 #[cfg(unix)]
 impl From<NixError> for Error {
-    fn from(error: NixError) -> Error {
+    fn from(error: NixError) -> Self {
         Error {
             inner: error.context(ErrorKind::Nix),
         }
@@ -254,7 +254,7 @@ impl From<NixError> for Error {
 }
 
 impl From<HyperTlsError> for Error {
-    fn from(error: HyperTlsError) -> Error {
+    fn from(error: HyperTlsError) -> Self {
         Error {
             inner: error.context(ErrorKind::HyperTls),
         }
@@ -262,7 +262,7 @@ impl From<HyperTlsError> for Error {
 }
 
 impl From<Utf8Error> for Error {
-    fn from(error: Utf8Error) -> Error {
+    fn from(error: Utf8Error) -> Self {
         Error {
             inner: error.context(ErrorKind::Utf8),
         }
@@ -270,7 +270,7 @@ impl From<Utf8Error> for Error {
 }
 
 impl From<TypedHeadersError> for Error {
-    fn from(error: TypedHeadersError) -> Error {
+    fn from(error: TypedHeadersError) -> Self {
         Error {
             inner: error.context(ErrorKind::TypedHeaders),
         }

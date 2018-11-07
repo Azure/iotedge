@@ -31,7 +31,7 @@ pub struct Error {
     inner: Context<ErrorKind>,
 }
 
-#[derive(Debug, Fail, PartialEq)]
+#[derive(Clone, Copy, Debug, Fail, PartialEq)]
 pub enum ErrorKind {
     #[fail(display = "Invalid configuration file")]
     Settings,
@@ -107,7 +107,7 @@ impl Display for Error {
 }
 
 impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Error {
+    fn from(kind: ErrorKind) -> Self {
         Error {
             inner: Context::new(kind),
         }
@@ -115,13 +115,13 @@ impl From<ErrorKind> for Error {
 }
 
 impl From<Context<ErrorKind>> for Error {
-    fn from(inner: Context<ErrorKind>) -> Error {
+    fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
     }
 }
 
 impl From<SettingsError> for Error {
-    fn from(error: SettingsError) -> Error {
+    fn from(error: SettingsError) -> Self {
         Error {
             inner: error.context(ErrorKind::Settings),
         }
@@ -146,7 +146,7 @@ impl Display for ServiceError {
 
 #[cfg(target_os = "windows")]
 impl From<ServiceError> for Error {
-    fn from(error: ServiceError) -> Error {
+    fn from(error: ServiceError) -> Self {
         Error {
             inner: error.context(ErrorKind::WindowsService),
         }
@@ -155,13 +155,13 @@ impl From<ServiceError> for Error {
 
 #[cfg(target_os = "windows")]
 impl From<WindowsServiceError> for Error {
-    fn from(error: WindowsServiceError) -> Error {
+    fn from(error: WindowsServiceError) -> Self {
         Error::from(ServiceError(Mutex::new(error)))
     }
 }
 
 impl From<JsonError> for Error {
-    fn from(error: JsonError) -> Error {
+    fn from(error: JsonError) -> Self {
         Error {
             inner: error.context(ErrorKind::Json),
         }
@@ -169,7 +169,7 @@ impl From<JsonError> for Error {
 }
 
 impl From<CoreError> for Error {
-    fn from(err: CoreError) -> Error {
+    fn from(err: CoreError) -> Self {
         Error {
             inner: err.context(ErrorKind::Core),
         }
@@ -177,7 +177,7 @@ impl From<CoreError> for Error {
 }
 
 impl From<io::Error> for Error {
-    fn from(error: io::Error) -> Error {
+    fn from(error: io::Error) -> Self {
         Error {
             inner: error.context(ErrorKind::Io),
         }
@@ -185,7 +185,7 @@ impl From<io::Error> for Error {
 }
 
 impl From<DecodeError> for Error {
-    fn from(error: DecodeError) -> Error {
+    fn from(error: DecodeError) -> Self {
         Error {
             inner: error.context(ErrorKind::DecodeError),
         }
@@ -193,7 +193,7 @@ impl From<DecodeError> for Error {
 }
 
 impl From<DockerError> for Error {
-    fn from(error: DockerError) -> Error {
+    fn from(error: DockerError) -> Self {
         Error {
             inner: error.context(ErrorKind::Docker),
         }
@@ -201,7 +201,7 @@ impl From<DockerError> for Error {
 }
 
 impl From<HyperError> for Error {
-    fn from(error: HyperError) -> Error {
+    fn from(error: HyperError) -> Self {
         Error {
             inner: error.context(ErrorKind::Hyper),
         }
@@ -209,7 +209,7 @@ impl From<HyperError> for Error {
 }
 
 impl From<HyperTlsError> for Error {
-    fn from(error: HyperTlsError) -> Error {
+    fn from(error: HyperTlsError) -> Self {
         Error {
             inner: error.context(ErrorKind::HyperTls),
         }
@@ -217,7 +217,7 @@ impl From<HyperTlsError> for Error {
 }
 
 impl From<IotHubError> for Error {
-    fn from(error: IotHubError) -> Error {
+    fn from(error: IotHubError) -> Self {
         Error {
             inner: error.context(ErrorKind::IotHub),
         }
@@ -225,7 +225,7 @@ impl From<IotHubError> for Error {
 }
 
 impl From<AddrParseError> for Error {
-    fn from(error: AddrParseError) -> Error {
+    fn from(error: AddrParseError) -> Self {
         Error {
             inner: error.context(ErrorKind::Parse),
         }
@@ -233,7 +233,7 @@ impl From<AddrParseError> for Error {
 }
 
 impl From<ParseError> for Error {
-    fn from(error: ParseError) -> Error {
+    fn from(error: ParseError) -> Self {
         Error {
             inner: error.context(ErrorKind::Parse),
         }
@@ -241,7 +241,7 @@ impl From<ParseError> for Error {
 }
 
 impl From<http::uri::InvalidUri> for Error {
-    fn from(error: http::uri::InvalidUri) -> Error {
+    fn from(error: http::uri::InvalidUri) -> Self {
         Error {
             inner: error.context(ErrorKind::Parse),
         }
@@ -249,7 +249,7 @@ impl From<http::uri::InvalidUri> for Error {
 }
 
 impl From<HttpError> for Error {
-    fn from(error: HttpError) -> Error {
+    fn from(error: HttpError) -> Self {
         Error {
             inner: error.context(ErrorKind::Http),
         }
@@ -257,7 +257,7 @@ impl From<HttpError> for Error {
 }
 
 impl From<ProvisioningError> for Error {
-    fn from(error: ProvisioningError) -> Error {
+    fn from(error: ProvisioningError) -> Self {
         Error {
             inner: error.context(ErrorKind::Provisioning),
         }
@@ -265,7 +265,7 @@ impl From<ProvisioningError> for Error {
 }
 
 impl From<HardHsmError> for Error {
-    fn from(error: HardHsmError) -> Error {
+    fn from(error: HardHsmError) -> Self {
         Error {
             inner: error.context(ErrorKind::HardHsm),
         }
@@ -273,7 +273,7 @@ impl From<HardHsmError> for Error {
 }
 
 impl From<SoftHsmError> for Error {
-    fn from(error: SoftHsmError) -> Error {
+    fn from(error: SoftHsmError) -> Self {
         Error {
             inner: error.context(ErrorKind::SoftHsm),
         }
@@ -281,7 +281,7 @@ impl From<SoftHsmError> for Error {
 }
 
 impl From<VarError> for Error {
-    fn from(error: VarError) -> Error {
+    fn from(error: VarError) -> Self {
         Error {
             inner: error.context(ErrorKind::Var),
         }

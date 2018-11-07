@@ -18,7 +18,7 @@ pub struct IdentityList {
 }
 
 impl IdentityList {
-    pub fn new(identities: Vec<::models::Identity>) -> IdentityList {
+    pub fn new(identities: Vec<::models::Identity>) -> Self {
         IdentityList { identities }
     }
 
@@ -26,12 +26,12 @@ impl IdentityList {
         self.identities = identities;
     }
 
-    pub fn with_identities(mut self, identities: Vec<::models::Identity>) -> IdentityList {
+    pub fn with_identities(mut self, identities: Vec<::models::Identity>) -> Self {
         self.identities = identities;
         self
     }
 
-    pub fn identities(&self) -> &Vec<::models::Identity> {
+    pub fn identities(&self) -> &[::models::Identity] {
         &self.identities
     }
 }

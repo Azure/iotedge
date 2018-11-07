@@ -18,7 +18,7 @@ pub struct PidService<T> {
 }
 
 impl<T> PidService<T> {
-    pub fn new(pid: Pid, inner: T) -> PidService<T> {
+    pub fn new(pid: Pid, inner: T) -> Self {
         PidService { pid, inner }
     }
 }
@@ -36,7 +36,7 @@ where
 
     fn call(&mut self, req: Request<Self::ReqBody>) -> Self::Future {
         let mut req = req;
-        req.extensions_mut().insert(self.pid.clone());
+        req.extensions_mut().insert(self.pid);
         self.inner.call(req)
     }
 }
@@ -79,6 +79,7 @@ mod impl_unix {
         assert!(mem::size_of::<u32>() <= mem::size_of::<usize>());
         assert!(ucred_size <= u32::max_value() as usize);
 
+        #[cfg_attr(feature = "cargo-clippy", allow(cast_possible_truncation))]
         let mut ucred_size = ucred_size as u32;
 
         let ret = unsafe {

@@ -32,7 +32,7 @@ pub struct Port {
 
 impl Port {
     /// An open port on a container
-    pub fn new(private_port: i32, _type: String) -> Port {
+    pub fn new(private_port: i32, _type: String) -> Self {
         Port {
             IP: None,
             private_port: private_port,
@@ -45,13 +45,13 @@ impl Port {
         self.IP = Some(IP);
     }
 
-    pub fn with_IP(mut self, IP: String) -> Port {
+    pub fn with_IP(mut self, IP: String) -> Self {
         self.IP = Some(IP);
         self
     }
 
-    pub fn IP(&self) -> Option<&String> {
-        self.IP.as_ref()
+    pub fn IP(&self) -> Option<&str> {
+        self.IP.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_IP(&mut self) {
@@ -62,7 +62,7 @@ impl Port {
         self.private_port = private_port;
     }
 
-    pub fn with_private_port(mut self, private_port: i32) -> Port {
+    pub fn with_private_port(mut self, private_port: i32) -> Self {
         self.private_port = private_port;
         self
     }
@@ -75,13 +75,13 @@ impl Port {
         self.public_port = Some(public_port);
     }
 
-    pub fn with_public_port(mut self, public_port: i32) -> Port {
+    pub fn with_public_port(mut self, public_port: i32) -> Self {
         self.public_port = Some(public_port);
         self
     }
 
-    pub fn public_port(&self) -> Option<&i32> {
-        self.public_port.as_ref()
+    pub fn public_port(&self) -> Option<i32> {
+        self.public_port
     }
 
     pub fn reset_public_port(&mut self) {
@@ -92,7 +92,7 @@ impl Port {
         self._type = _type;
     }
 
-    pub fn with__type(mut self, _type: String) -> Port {
+    pub fn with__type(mut self, _type: String) -> Self {
         self._type = _type;
         self
     }
