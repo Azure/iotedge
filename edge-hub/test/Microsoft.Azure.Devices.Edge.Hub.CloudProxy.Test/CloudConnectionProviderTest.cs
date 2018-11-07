@@ -95,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             // Assert
             Assert.False(cloudProxy.Success);
-            Assert.IsType<AggregateException>(cloudProxy.Exception);
+            Assert.IsType<TimeoutException>(cloudProxy.Exception);
         }
 
         [Fact]
