@@ -108,7 +108,7 @@ mod tests {
     }
 
     impl TestHsm {
-        fn with_on_create<F>(mut self, on_create: F) -> TestHsm
+        fn with_on_create<F>(mut self, on_create: F) -> Self
         where
             F: Fn(&CertificateProperties) -> StdResult<TestCert, CoreError> + Send + Sync + 'static,
         {
@@ -123,7 +123,7 @@ mod tests {
         fn create_certificate(
             &self,
             properties: &CertificateProperties,
-        ) -> StdResult<TestCert, CoreError> {
+        ) -> StdResult<Self::Certificate, CoreError> {
             let callback = self.on_create.as_ref().unwrap();
             callback(properties)
         }
