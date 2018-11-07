@@ -351,7 +351,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     .Map(c => Task.FromResult(Try.Success(c)))
                     .GetOrElse(async () =>
                     {
-                        return await this.cloudConnectionCreateTask.Filter(c => c.IsCompleted)
+                        return await this.cloudConnectionCreateTask.Filter(c => !c.IsCompleted)
                             .GetOrElse(
                                 async () =>
                                 {
@@ -361,7 +361,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                                             .Map(c => Task.FromResult(Try.Success(c)))
                                             .GetOrElse(async () =>
                                             {
-                                                return await this.cloudConnectionCreateTask.Filter(c => c.IsCompleted)
+                                                return await this.cloudConnectionCreateTask.Filter(c => !c.IsCompleted)
                                                     .GetOrElse(
                                                         async () =>
                                                         {
