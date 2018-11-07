@@ -15,7 +15,7 @@ pub use error::{Error, ErrorKind};
 const ROOT_KEY_NAME: &str = "primary";
 
 /// Represents a key which can sign data.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct TpmKey {
     tpm: Arc<Mutex<Tpm>>,
     identity: KeyIdentity,
@@ -30,12 +30,12 @@ pub struct TpmKeyStore {
 }
 
 impl TpmKeyStore {
-    pub fn new() -> Result<TpmKeyStore, Error> {
+    pub fn new() -> Result<Self, Error> {
         let hsm = Tpm::new()?;
         TpmKeyStore::from_hsm(hsm)
     }
 
-    pub fn from_hsm(tpm: Tpm) -> Result<TpmKeyStore, Error> {
+    pub fn from_hsm(tpm: Tpm) -> Result<Self, Error> {
         Ok(TpmKeyStore {
             tpm: Arc::new(Mutex::new(tpm)),
         })

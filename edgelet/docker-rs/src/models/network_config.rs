@@ -55,7 +55,7 @@ pub struct NetworkConfig {
 }
 
 impl NetworkConfig {
-    pub fn new(name: String) -> NetworkConfig {
+    pub fn new(name: String) -> Self {
         NetworkConfig {
             name: name,
             check_duplicate: None,
@@ -74,7 +74,7 @@ impl NetworkConfig {
         self.name = name;
     }
 
-    pub fn with_name(mut self, name: String) -> NetworkConfig {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = name;
         self
     }
@@ -87,7 +87,7 @@ impl NetworkConfig {
         self.check_duplicate = Some(check_duplicate);
     }
 
-    pub fn with_check_duplicate(mut self, check_duplicate: bool) -> NetworkConfig {
+    pub fn with_check_duplicate(mut self, check_duplicate: bool) -> Self {
         self.check_duplicate = Some(check_duplicate);
         self
     }
@@ -104,13 +104,13 @@ impl NetworkConfig {
         self.driver = Some(driver);
     }
 
-    pub fn with_driver(mut self, driver: String) -> NetworkConfig {
+    pub fn with_driver(mut self, driver: String) -> Self {
         self.driver = Some(driver);
         self
     }
 
-    pub fn driver(&self) -> Option<&String> {
-        self.driver.as_ref()
+    pub fn driver(&self) -> Option<&str> {
+        self.driver.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_driver(&mut self) {
@@ -121,7 +121,7 @@ impl NetworkConfig {
         self.internal = Some(internal);
     }
 
-    pub fn with_internal(mut self, internal: bool) -> NetworkConfig {
+    pub fn with_internal(mut self, internal: bool) -> Self {
         self.internal = Some(internal);
         self
     }
@@ -138,7 +138,7 @@ impl NetworkConfig {
         self.attachable = Some(attachable);
     }
 
-    pub fn with_attachable(mut self, attachable: bool) -> NetworkConfig {
+    pub fn with_attachable(mut self, attachable: bool) -> Self {
         self.attachable = Some(attachable);
         self
     }
@@ -155,7 +155,7 @@ impl NetworkConfig {
         self.ingress = Some(ingress);
     }
 
-    pub fn with_ingress(mut self, ingress: bool) -> NetworkConfig {
+    pub fn with_ingress(mut self, ingress: bool) -> Self {
         self.ingress = Some(ingress);
         self
     }
@@ -172,7 +172,7 @@ impl NetworkConfig {
         self.IPAM = Some(IPAM);
     }
 
-    pub fn with_IPAM(mut self, IPAM: ::models::Ipam) -> NetworkConfig {
+    pub fn with_IPAM(mut self, IPAM: ::models::Ipam) -> Self {
         self.IPAM = Some(IPAM);
         self
     }
@@ -189,7 +189,7 @@ impl NetworkConfig {
         self.enable_i_pv6 = Some(enable_i_pv6);
     }
 
-    pub fn with_enable_i_pv6(mut self, enable_i_pv6: bool) -> NetworkConfig {
+    pub fn with_enable_i_pv6(mut self, enable_i_pv6: bool) -> Self {
         self.enable_i_pv6 = Some(enable_i_pv6);
         self
     }
@@ -206,10 +206,7 @@ impl NetworkConfig {
         self.options = Some(options);
     }
 
-    pub fn with_options(
-        mut self,
-        options: ::std::collections::HashMap<String, String>,
-    ) -> NetworkConfig {
+    pub fn with_options(mut self, options: ::std::collections::HashMap<String, String>) -> Self {
         self.options = Some(options);
         self
     }
@@ -226,10 +223,7 @@ impl NetworkConfig {
         self.labels = Some(labels);
     }
 
-    pub fn with_labels(
-        mut self,
-        labels: ::std::collections::HashMap<String, String>,
-    ) -> NetworkConfig {
+    pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
         self.labels = Some(labels);
         self
     }

@@ -37,7 +37,7 @@ pub struct InlineResponse20020Platforms {
 }
 
 impl InlineResponse20020Platforms {
-    pub fn new() -> InlineResponse20020Platforms {
+    pub fn new() -> Self {
         InlineResponse20020Platforms {
             architecture: None,
             OS: None,
@@ -52,13 +52,13 @@ impl InlineResponse20020Platforms {
         self.architecture = Some(architecture);
     }
 
-    pub fn with_architecture(mut self, architecture: String) -> InlineResponse20020Platforms {
+    pub fn with_architecture(mut self, architecture: String) -> Self {
         self.architecture = Some(architecture);
         self
     }
 
-    pub fn architecture(&self) -> Option<&String> {
-        self.architecture.as_ref()
+    pub fn architecture(&self) -> Option<&str> {
+        self.architecture.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_architecture(&mut self) {
@@ -69,13 +69,13 @@ impl InlineResponse20020Platforms {
         self.OS = Some(OS);
     }
 
-    pub fn with_OS(mut self, OS: String) -> InlineResponse20020Platforms {
+    pub fn with_OS(mut self, OS: String) -> Self {
         self.OS = Some(OS);
         self
     }
 
-    pub fn OS(&self) -> Option<&String> {
-        self.OS.as_ref()
+    pub fn OS(&self) -> Option<&str> {
+        self.OS.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_OS(&mut self) {
@@ -86,13 +86,13 @@ impl InlineResponse20020Platforms {
         self.os_version = Some(os_version);
     }
 
-    pub fn with_os_version(mut self, os_version: String) -> InlineResponse20020Platforms {
+    pub fn with_os_version(mut self, os_version: String) -> Self {
         self.os_version = Some(os_version);
         self
     }
 
-    pub fn os_version(&self) -> Option<&String> {
-        self.os_version.as_ref()
+    pub fn os_version(&self) -> Option<&str> {
+        self.os_version.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_os_version(&mut self) {
@@ -103,13 +103,13 @@ impl InlineResponse20020Platforms {
         self.os_features = Some(os_features);
     }
 
-    pub fn with_os_features(mut self, os_features: Vec<String>) -> InlineResponse20020Platforms {
+    pub fn with_os_features(mut self, os_features: Vec<String>) -> Self {
         self.os_features = Some(os_features);
         self
     }
 
-    pub fn os_features(&self) -> Option<&Vec<String>> {
-        self.os_features.as_ref()
+    pub fn os_features(&self) -> Option<&[String]> {
+        self.os_features.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_os_features(&mut self) {
@@ -120,13 +120,13 @@ impl InlineResponse20020Platforms {
         self.variant = Some(variant);
     }
 
-    pub fn with_variant(mut self, variant: String) -> InlineResponse20020Platforms {
+    pub fn with_variant(mut self, variant: String) -> Self {
         self.variant = Some(variant);
         self
     }
 
-    pub fn variant(&self) -> Option<&String> {
-        self.variant.as_ref()
+    pub fn variant(&self) -> Option<&str> {
+        self.variant.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_variant(&mut self) {
@@ -137,13 +137,13 @@ impl InlineResponse20020Platforms {
         self.features = Some(features);
     }
 
-    pub fn with_features(mut self, features: Vec<String>) -> InlineResponse20020Platforms {
+    pub fn with_features(mut self, features: Vec<String>) -> Self {
         self.features = Some(features);
         self
     }
 
-    pub fn features(&self) -> Option<&Vec<String>> {
-        self.features.as_ref()
+    pub fn features(&self) -> Option<&[String]> {
+        self.features.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_features(&mut self) {

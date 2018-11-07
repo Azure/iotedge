@@ -45,17 +45,17 @@ pub enum UrlConnector {
 }
 
 impl UrlConnector {
-    pub fn new(url: &Url) -> Result<UrlConnector, Error> {
+    pub fn new(url: &Url) -> Result<Self, Error> {
         match url.scheme() {
             #[cfg(windows)]
             PIPE_SCHEME => Ok(UrlConnector::Pipe(PipeConnector)),
 
             #[cfg(unix)]
             UNIX_SCHEME => {
-                if !Path::new(url.path()).exists() {
-                    Err(ErrorKind::InvalidUri(url.to_string()))?
-                } else {
+                if Path::new(url.path()).exists() {
                     Ok(UrlConnector::Unix(UnixConnector::new()))
+                } else {
+                    Err(ErrorKind::InvalidUri(url.to_string()))?
                 }
             }
 
@@ -89,6 +89,7 @@ impl Connect for UrlConnector {
     type Future = Box<Future<Item = (Self::Transport, Connected), Error = Self::Error> + Send>;
 
     fn connect(&self, dst: Destination) -> Self::Future {
+        #[cfg_attr(feature = "cargo-clippy", allow(match_same_arms))]
         match (self, dst.scheme()) {
             (UrlConnector::Http(_), HTTP_SCHEME) => (),
 

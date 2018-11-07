@@ -52,10 +52,8 @@ where
         params: Parameters,
     ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
         let id_manager = self.id_manager.clone();
-        let response = params
-            .name("name")
-            .ok_or_else(|| Error::from(ErrorKind::BadParam))
-            .map(|name| {
+        let response = match params.name("name") {
+            Some(name) => {
                 let result = read_request(name, req)
                     .and_then(move |spec| {
                         let mut rid = id_manager.lock().unwrap();
@@ -67,7 +65,10 @@ where
                     });
 
                 Either::A(result)
-            }).unwrap_or_else(|e| Either::B(future::ok(e.into_response())));
+            }
+
+            None => Either::B(future::ok(Error::from(ErrorKind::BadParam).into_response())),
+        };
 
         Box::new(response)
     }
@@ -84,16 +85,15 @@ where
         identity.auth_type().to_string(),
     );
 
-    serde_json::to_string(&identity)
-        .context(ErrorKind::Serde)
-        .map(|b| {
-            Response::builder()
-                .status(StatusCode::OK)
-                .header(CONTENT_TYPE, "application/json")
-                .header(CONTENT_LENGTH, b.len().to_string().as_str())
-                .body(b.into())
-                .unwrap_or_else(|e| e.into_response())
-        }).unwrap_or_else(|e| e.into_response())
+    match serde_json::to_string(&identity).context(ErrorKind::Serde) {
+        Ok(b) => Response::builder()
+            .status(StatusCode::OK)
+            .header(CONTENT_TYPE, "application/json")
+            .header(CONTENT_LENGTH, b.len().to_string().as_str())
+            .body(b.into())
+            .unwrap_or_else(|e| e.into_response()),
+        Err(e) => e.into_response(),
+    }
 }
 
 fn read_request(name: &str, req: Request<Body>) -> impl Future<Item = IdentitySpec, Error = Error> {

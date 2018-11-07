@@ -75,7 +75,7 @@ impl Error {
 }
 
 impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Error {
+    fn from(kind: ErrorKind) -> Self {
         Error {
             inner: Context::new(kind),
         }
@@ -83,13 +83,13 @@ impl From<ErrorKind> for Error {
 }
 
 impl From<Context<ErrorKind>> for Error {
-    fn from(inner: Context<ErrorKind>) -> Error {
+    fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
     }
 }
 
 impl From<CoreError> for Error {
-    fn from(error: CoreError) -> Error {
+    fn from(error: CoreError) -> Self {
         Error {
             inner: error.context(ErrorKind::Core),
         }
@@ -97,7 +97,7 @@ impl From<CoreError> for Error {
 }
 
 impl From<serde_json::Error> for Error {
-    fn from(error: serde_json::Error) -> Error {
+    fn from(error: serde_json::Error) -> Self {
         Error {
             inner: error.context(ErrorKind::Serde),
         }
@@ -105,7 +105,7 @@ impl From<serde_json::Error> for Error {
 }
 
 impl From<HyperError> for Error {
-    fn from(error: HyperError) -> Error {
+    fn from(error: HyperError) -> Self {
         Error {
             inner: error.context(ErrorKind::Hyper),
         }
@@ -113,7 +113,7 @@ impl From<HyperError> for Error {
 }
 
 impl From<HttpError> for Error {
-    fn from(error: HttpError) -> Error {
+    fn from(error: HttpError) -> Self {
         Error {
             inner: error.context(ErrorKind::Http),
         }
@@ -121,7 +121,7 @@ impl From<HttpError> for Error {
 }
 
 impl From<EdgeletHttpError> for Error {
-    fn from(error: EdgeletHttpError) -> Error {
+    fn from(error: EdgeletHttpError) -> Self {
         Error {
             inner: error.context(ErrorKind::Http),
         }
@@ -129,20 +129,20 @@ impl From<EdgeletHttpError> for Error {
 }
 
 impl From<MgmtError<serde_json::Value>> for Error {
-    fn from(error: MgmtError<serde_json::Value>) -> Error {
+    fn from(error: MgmtError<serde_json::Value>) -> Self {
         match error {
             MgmtError::Hyper(h) => From::from(h),
             MgmtError::Serde(s) => From::from(s),
-            MgmtError::ApiError(ref e) if e.code == HyperStatusCode::NOT_MODIFIED => {
+            MgmtError::Api(ref e) if e.code == HyperStatusCode::NOT_MODIFIED => {
                 From::from(ErrorKind::NotModified)
             }
-            MgmtError::ApiError(_) => From::from(ErrorKind::Client(error)),
+            MgmtError::Api(_) => From::from(ErrorKind::Client(error)),
         }
     }
 }
 
 impl From<IoTHubError> for Error {
-    fn from(error: IoTHubError) -> Error {
+    fn from(error: IoTHubError) -> Self {
         Error {
             inner: error.context(ErrorKind::IoTHub),
         }
@@ -150,7 +150,7 @@ impl From<IoTHubError> for Error {
 }
 
 impl From<ParseBoolError> for Error {
-    fn from(error: ParseBoolError) -> Error {
+    fn from(error: ParseBoolError) -> Self {
         Error {
             inner: error.context(ErrorKind::Parse),
         }
@@ -167,9 +167,9 @@ impl IntoResponse for Error {
         }
 
         let status_code = match *self.kind() {
-            ErrorKind::BadParam => StatusCode::BAD_REQUEST,
-            ErrorKind::BadBody => StatusCode::BAD_REQUEST,
-            ErrorKind::InvalidApiVersion => StatusCode::BAD_REQUEST,
+            ErrorKind::BadParam | ErrorKind::BadBody | ErrorKind::InvalidApiVersion => {
+                StatusCode::BAD_REQUEST
+            }
             _ => {
                 error!("Internal server error: {}", message);
                 StatusCode::INTERNAL_SERVER_ERROR

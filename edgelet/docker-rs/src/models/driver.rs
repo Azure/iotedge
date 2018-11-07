@@ -25,7 +25,7 @@ pub struct Driver {
 
 impl Driver {
     /// Driver represents a driver (network, logging, secrets).
-    pub fn new(name: String) -> Driver {
+    pub fn new(name: String) -> Self {
         Driver {
             name: name,
             options: None,
@@ -36,7 +36,7 @@ impl Driver {
         self.name = name;
     }
 
-    pub fn with_name(mut self, name: String) -> Driver {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = name;
         self
     }
@@ -49,7 +49,7 @@ impl Driver {
         self.options = Some(options);
     }
 
-    pub fn with_options(mut self, options: ::std::collections::HashMap<String, String>) -> Driver {
+    pub fn with_options(mut self, options: ::std::collections::HashMap<String, String>) -> Self {
         self.options = Some(options);
         self
     }

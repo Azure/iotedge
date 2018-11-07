@@ -27,7 +27,7 @@ pub struct TaskSpecContainerSpecSecrets {
 }
 
 impl TaskSpecContainerSpecSecrets {
-    pub fn new() -> TaskSpecContainerSpecSecrets {
+    pub fn new() -> Self {
         TaskSpecContainerSpecSecrets {
             file: None,
             secret_id: None,
@@ -39,10 +39,7 @@ impl TaskSpecContainerSpecSecrets {
         self.file = Some(file);
     }
 
-    pub fn with_file(
-        mut self,
-        file: ::models::TaskSpecContainerSpecFile,
-    ) -> TaskSpecContainerSpecSecrets {
+    pub fn with_file(mut self, file: ::models::TaskSpecContainerSpecFile) -> Self {
         self.file = Some(file);
         self
     }
@@ -59,13 +56,13 @@ impl TaskSpecContainerSpecSecrets {
         self.secret_id = Some(secret_id);
     }
 
-    pub fn with_secret_id(mut self, secret_id: String) -> TaskSpecContainerSpecSecrets {
+    pub fn with_secret_id(mut self, secret_id: String) -> Self {
         self.secret_id = Some(secret_id);
         self
     }
 
-    pub fn secret_id(&self) -> Option<&String> {
-        self.secret_id.as_ref()
+    pub fn secret_id(&self) -> Option<&str> {
+        self.secret_id.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_secret_id(&mut self) {
@@ -76,13 +73,13 @@ impl TaskSpecContainerSpecSecrets {
         self.secret_name = Some(secret_name);
     }
 
-    pub fn with_secret_name(mut self, secret_name: String) -> TaskSpecContainerSpecSecrets {
+    pub fn with_secret_name(mut self, secret_name: String) -> Self {
         self.secret_name = Some(secret_name);
         self
     }
 
-    pub fn secret_name(&self) -> Option<&String> {
-        self.secret_name.as_ref()
+    pub fn secret_name(&self) -> Option<&str> {
+        self.secret_name.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_secret_name(&mut self) {

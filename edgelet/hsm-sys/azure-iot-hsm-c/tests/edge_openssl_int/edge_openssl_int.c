@@ -335,11 +335,16 @@ static void test_helper_validate_extension
 )
 {
     size_t nid_match = 0, match_count = 0;
-    X509_CINF *cert_inf = NULL;
-    STACK_OF(X509_EXTENSION) *ext_list;
 
-    cert_inf = input_test_cert->cert_info;
-    ext_list = cert_inf->extensions;
+//https://www.openssl.org/docs/man1.1.0/crypto/OPENSSL_VERSION_NUMBER.html
+// this checks if openssl version major minor is greater than or equal to version # 1.1.0
+#if ((OPENSSL_VERSION_NUMBER & 0xFFF00000L) >= 0x10100000L)
+    const STACK_OF(X509_EXTENSION) *ext_list = X509_get0_extensions(input_test_cert);
+#else
+    X509_CINF *cert_inf = input_test_cert->cert_info;
+    STACK_OF(X509_EXTENSION) *ext_list = cert_inf->extensions;
+#endif
+
     ASSERT_IS_TRUE_WITH_MSG((sk_X509_EXTENSION_num(ext_list) > 0), "Found zero extensions");
 
     for (int ext_idx=0; ext_idx < sk_X509_EXTENSION_num(ext_list); ext_idx++)

@@ -8,6 +8,18 @@
 //! $ cargo run --example device -- -h HUB_NAME -d DEVICE_ID -s "$sas_token" get -m MODULE_ID
 //! ```
 
+#![deny(unused_extern_crates, warnings)]
+// Remove this when clippy stops warning about old-style `allow()`,
+// which can only be silenced by enabling a feature and thus requires nightly
+//
+// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
+#![allow(renamed_and_removed_lints)]
+#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
+#![cfg_attr(feature = "cargo-clippy", allow(
+    doc_markdown, // clippy want the "IoT" of "IoT Hub" in a code fence
+    use_self,
+))]
+
 extern crate chrono;
 extern crate clap;
 extern crate hyper;
@@ -70,23 +82,23 @@ fn main() {
 
     let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
 
-    if let Some(_) = matches.subcommand_matches("list") {
-        list_modules(&mut tokio_runtime, device_client);
+    if matches.subcommand_matches("list").is_some() {
+        list_modules(&mut tokio_runtime, &device_client);
     } else if let Some(create) = matches.subcommand_matches("create") {
         let module_id = create.value_of("module-id").unwrap();
-        create_module(&mut tokio_runtime, device_client, module_id);
+        create_module(&mut tokio_runtime, &device_client, module_id);
     } else if let Some(delete) = matches.subcommand_matches("delete") {
         let module_id = delete.value_of("module-id").unwrap();
-        delete_module(&mut tokio_runtime, device_client, module_id);
+        delete_module(&mut tokio_runtime, &device_client, module_id);
     } else if let Some(get) = matches.subcommand_matches("get") {
         let module_id = get.value_of("module-id").unwrap();
-        get_module(&mut tokio_runtime, device_client, module_id);
+        get_module(&mut tokio_runtime, &device_client, module_id);
     }
 }
 
 fn list_modules<C, T>(
     tokio_runtime: &mut tokio::runtime::Runtime,
-    device_client: DeviceClient<C, T>,
+    device_client: &DeviceClient<C, T>,
 ) where
     C: 'static + ClientImpl,
     T: 'static + TokenSource + Clone,
@@ -100,7 +112,7 @@ fn list_modules<C, T>(
 
 fn get_module<C, T>(
     tokio_runtime: &mut tokio::runtime::Runtime,
-    device_client: DeviceClient<C, T>,
+    device_client: &DeviceClient<C, T>,
     module_id: &str,
 ) where
     C: 'static + ClientImpl,
@@ -115,7 +127,7 @@ fn get_module<C, T>(
 
 fn create_module<C, T>(
     tokio_runtime: &mut tokio::runtime::Runtime,
-    device_client: DeviceClient<C, T>,
+    device_client: &DeviceClient<C, T>,
     module_id: &str,
 ) where
     C: 'static + ClientImpl,
@@ -130,7 +142,7 @@ fn create_module<C, T>(
 
 fn delete_module<C, T>(
     tokio_runtime: &mut tokio::runtime::Runtime,
-    device_client: DeviceClient<C, T>,
+    device_client: &DeviceClient<C, T>,
     module_id: &str,
 ) where
     C: 'static + ClientImpl,

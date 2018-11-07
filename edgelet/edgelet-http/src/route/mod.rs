@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-/// This is inspired by ubnu-intrepid's hyper router (https://github.com/ubnt-intrepid/hyper-router)
+/// This is inspired by [ubnu-intrepid's hyper router](https://github.com/ubnt-intrepid/hyper-router)
 /// with some changes to improve usability of the captured parameters
 /// when using regex based routes.
 use std::clone::Clone;
@@ -151,17 +151,16 @@ where
     fn call(&mut self, req: Request<Body>) -> Self::Future {
         let method = req.method().clone();
         let path = req.uri().path().to_owned();
-        self.inner
-            .recognize(&method, &path)
-            .map(|(handler, params)| handler.handle(req, params))
-            .unwrap_or_else(|code| {
-                Box::new(future::ok(
-                    Response::builder()
-                        .status(code)
-                        .body(Body::empty())
-                        .expect("hyper::Response with empty body should not fail to build"),
-                ))
-            })
+        match self.inner.recognize(&method, &path) {
+            Ok((handler, params)) => handler.handle(req, params),
+
+            Err(code) => Box::new(future::ok(
+                Response::builder()
+                    .status(code)
+                    .body(Body::empty())
+                    .expect("hyper::Response with empty body should not fail to build"),
+            )),
+        }
     }
 }
 

@@ -18,7 +18,7 @@ pub struct Reachability {}
 
 impl Reachability {
     /// Reachability represents the reachability of a node.
-    pub fn new() -> Reachability {
+    pub fn new() -> Self {
         Reachability {}
     }
 }

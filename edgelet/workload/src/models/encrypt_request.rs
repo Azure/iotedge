@@ -22,7 +22,7 @@ pub struct EncryptRequest {
 }
 
 impl EncryptRequest {
-    pub fn new(plaintext: String, initialization_vector: String) -> EncryptRequest {
+    pub fn new(plaintext: String, initialization_vector: String) -> Self {
         EncryptRequest {
             plaintext,
             initialization_vector,
@@ -33,7 +33,7 @@ impl EncryptRequest {
         self.plaintext = plaintext;
     }
 
-    pub fn with_plaintext(mut self, plaintext: String) -> EncryptRequest {
+    pub fn with_plaintext(mut self, plaintext: String) -> Self {
         self.plaintext = plaintext;
         self
     }
@@ -46,7 +46,7 @@ impl EncryptRequest {
         self.initialization_vector = initialization_vector;
     }
 
-    pub fn with_initialization_vector(mut self, initialization_vector: String) -> EncryptRequest {
+    pub fn with_initialization_vector(mut self, initialization_vector: String) -> Self {
         self.initialization_vector = initialization_vector;
         self
     }

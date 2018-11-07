@@ -25,7 +25,7 @@ pub struct InlineResponse20010 {
 }
 
 impl InlineResponse20010 {
-    pub fn new(status: String) -> InlineResponse20010 {
+    pub fn new(status: String) -> Self {
         InlineResponse20010 {
             status: status,
             identity_token: None,
@@ -36,7 +36,7 @@ impl InlineResponse20010 {
         self.status = status;
     }
 
-    pub fn with_status(mut self, status: String) -> InlineResponse20010 {
+    pub fn with_status(mut self, status: String) -> Self {
         self.status = status;
         self
     }
@@ -49,13 +49,13 @@ impl InlineResponse20010 {
         self.identity_token = Some(identity_token);
     }
 
-    pub fn with_identity_token(mut self, identity_token: String) -> InlineResponse20010 {
+    pub fn with_identity_token(mut self, identity_token: String) -> Self {
         self.identity_token = Some(identity_token);
         self
     }
 
-    pub fn identity_token(&self) -> Option<&String> {
-        self.identity_token.as_ref()
+    pub fn identity_token(&self) -> Option<&str> {
+        self.identity_token.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_identity_token(&mut self) {

@@ -25,7 +25,7 @@ pub struct Commit {
 
 impl Commit {
     /// Commit holds the Git-commit (SHA1) that a binary was built from, as reported in the version-string of external tools, such as `containerd`, or `runC`.
-    pub fn new() -> Commit {
+    pub fn new() -> Self {
         Commit {
             ID: None,
             expected: None,
@@ -36,13 +36,13 @@ impl Commit {
         self.ID = Some(ID);
     }
 
-    pub fn with_ID(mut self, ID: String) -> Commit {
+    pub fn with_ID(mut self, ID: String) -> Self {
         self.ID = Some(ID);
         self
     }
 
-    pub fn ID(&self) -> Option<&String> {
-        self.ID.as_ref()
+    pub fn ID(&self) -> Option<&str> {
+        self.ID.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_ID(&mut self) {
@@ -53,13 +53,13 @@ impl Commit {
         self.expected = Some(expected);
     }
 
-    pub fn with_expected(mut self, expected: String) -> Commit {
+    pub fn with_expected(mut self, expected: String) -> Self {
         self.expected = Some(expected);
         self
     }
 
-    pub fn expected(&self) -> Option<&String> {
-        self.expected.as_ref()
+    pub fn expected(&self) -> Option<&str> {
+        self.expected.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_expected(&mut self) {

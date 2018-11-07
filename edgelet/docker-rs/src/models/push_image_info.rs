@@ -27,7 +27,7 @@ pub struct PushImageInfo {
 }
 
 impl PushImageInfo {
-    pub fn new() -> PushImageInfo {
+    pub fn new() -> Self {
         PushImageInfo {
             error: None,
             status: None,
@@ -40,13 +40,13 @@ impl PushImageInfo {
         self.error = Some(error);
     }
 
-    pub fn with_error(mut self, error: String) -> PushImageInfo {
+    pub fn with_error(mut self, error: String) -> Self {
         self.error = Some(error);
         self
     }
 
-    pub fn error(&self) -> Option<&String> {
-        self.error.as_ref()
+    pub fn error(&self) -> Option<&str> {
+        self.error.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_error(&mut self) {
@@ -57,13 +57,13 @@ impl PushImageInfo {
         self.status = Some(status);
     }
 
-    pub fn with_status(mut self, status: String) -> PushImageInfo {
+    pub fn with_status(mut self, status: String) -> Self {
         self.status = Some(status);
         self
     }
 
-    pub fn status(&self) -> Option<&String> {
-        self.status.as_ref()
+    pub fn status(&self) -> Option<&str> {
+        self.status.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_status(&mut self) {
@@ -74,13 +74,13 @@ impl PushImageInfo {
         self.progress = Some(progress);
     }
 
-    pub fn with_progress(mut self, progress: String) -> PushImageInfo {
+    pub fn with_progress(mut self, progress: String) -> Self {
         self.progress = Some(progress);
         self
     }
 
-    pub fn progress(&self) -> Option<&String> {
-        self.progress.as_ref()
+    pub fn progress(&self) -> Option<&str> {
+        self.progress.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_progress(&mut self) {
@@ -91,10 +91,7 @@ impl PushImageInfo {
         self.progress_detail = Some(progress_detail);
     }
 
-    pub fn with_progress_detail(
-        mut self,
-        progress_detail: ::models::ProgressDetail,
-    ) -> PushImageInfo {
+    pub fn with_progress_detail(mut self, progress_detail: ::models::ProgressDetail) -> Self {
         self.progress_detail = Some(progress_detail);
         self
     }

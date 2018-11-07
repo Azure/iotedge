@@ -20,7 +20,7 @@ pub struct ResourcesBlkioWeightDevice {
 }
 
 impl ResourcesBlkioWeightDevice {
-    pub fn new() -> ResourcesBlkioWeightDevice {
+    pub fn new() -> Self {
         ResourcesBlkioWeightDevice {
             path: None,
             weight: None,
@@ -31,13 +31,13 @@ impl ResourcesBlkioWeightDevice {
         self.path = Some(path);
     }
 
-    pub fn with_path(mut self, path: String) -> ResourcesBlkioWeightDevice {
+    pub fn with_path(mut self, path: String) -> Self {
         self.path = Some(path);
         self
     }
 
-    pub fn path(&self) -> Option<&String> {
-        self.path.as_ref()
+    pub fn path(&self) -> Option<&str> {
+        self.path.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_path(&mut self) {
@@ -48,13 +48,13 @@ impl ResourcesBlkioWeightDevice {
         self.weight = Some(weight);
     }
 
-    pub fn with_weight(mut self, weight: i32) -> ResourcesBlkioWeightDevice {
+    pub fn with_weight(mut self, weight: i32) -> Self {
         self.weight = Some(weight);
         self
     }
 
-    pub fn weight(&self) -> Option<&i32> {
-        self.weight.as_ref()
+    pub fn weight(&self) -> Option<i32> {
+        self.weight
     }
 
     pub fn reset_weight(&mut self) {

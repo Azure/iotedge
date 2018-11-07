@@ -18,7 +18,7 @@ pub struct ServiceSpecModeReplicated {
 }
 
 impl ServiceSpecModeReplicated {
-    pub fn new() -> ServiceSpecModeReplicated {
+    pub fn new() -> Self {
         ServiceSpecModeReplicated { replicas: None }
     }
 
@@ -26,13 +26,13 @@ impl ServiceSpecModeReplicated {
         self.replicas = Some(replicas);
     }
 
-    pub fn with_replicas(mut self, replicas: i64) -> ServiceSpecModeReplicated {
+    pub fn with_replicas(mut self, replicas: i64) -> Self {
         self.replicas = Some(replicas);
         self
     }
 
-    pub fn replicas(&self) -> Option<&i64> {
-        self.replicas.as_ref()
+    pub fn replicas(&self) -> Option<i64> {
+        self.replicas
     }
 
     pub fn reset_replicas(&mut self) {

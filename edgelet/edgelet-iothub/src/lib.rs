@@ -1,6 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 #![deny(unused_extern_crates, warnings)]
+// Remove this when clippy stops warning about old-style `allow()`,
+// which can only be silenced by enabling a feature and thus requires nightly
+//
+// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
+#![allow(renamed_and_removed_lints)]
+#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
+#![cfg_attr(feature = "cargo-clippy", allow(stutter, use_self))]
 
 extern crate base64;
 #[cfg(test)]
@@ -75,36 +82,26 @@ impl HubIdentity {
 
 impl Identity for HubIdentity {
     fn module_id(&self) -> &str {
-        self.hub_module
-            .module_id()
-            .map(|s| s.as_str())
-            .unwrap_or("")
+        self.hub_module.module_id().unwrap_or("")
     }
 
     fn managed_by(&self) -> &str {
-        self.hub_module
-            .managed_by()
-            .map(|s| s.as_str())
-            .unwrap_or("")
+        self.hub_module.managed_by().unwrap_or("")
     }
 
     fn generation_id(&self) -> &str {
-        self.hub_module
-            .generation_id()
-            .map(|s| s.as_str())
-            .unwrap_or("")
+        self.hub_module.generation_id().unwrap_or("")
     }
 
     fn auth_type(&self) -> AuthType {
         self.hub_module
             .authentication()
-            .and_then(|auth_mechanism| auth_mechanism._type())
-            .map(convert_auth_type)
-            .unwrap_or(AuthType::None)
+            .and_then(|auth_mechanism| auth_mechanism.type_())
+            .map_or(AuthType::None, convert_auth_type)
     }
 }
 
-fn convert_auth_type(hub_auth_type: &HubAuthType) -> AuthType {
+fn convert_auth_type(hub_auth_type: HubAuthType) -> AuthType {
     match hub_auth_type {
         HubAuthType::None => AuthType::None,
         HubAuthType::Sas => AuthType::Sas,
@@ -308,8 +305,8 @@ where
 
     fn update(&mut self, id: IdentitySpec) -> Self::UpdateFuture {
         let result = if let Some(generation_id) = id.generation_id() {
-            self.get_key_pair(id.module_id(), generation_id.as_str())
-                .map(|(primary_key, secondary_key)| {
+            match self.get_key_pair(id.module_id(), generation_id) {
+                Ok((primary_key, secondary_key)) => {
                     let auth = AuthMechanism::default()
                         .with_type(HubAuthType::Sas)
                         .with_symmetric_key(
@@ -325,7 +322,10 @@ where
                             .map_err(Error::from)
                             .map(HubIdentity::new),
                     )
-                }).unwrap_or_else(|err| Either::B(future::err(err)))
+                }
+
+                Err(err) => Either::B(future::err(err)),
+            }
         } else {
             Either::B(future::err(Error::from(ErrorKind::MissingGenerationId)))
         };
@@ -838,7 +838,7 @@ mod tests {
         let mut identity_manager = HubIdentityManager::new(key_store, device_client);
         let task = identity_manager
             .delete(IdentitySpec::new("m1"))
-            .then(|result| Ok(assert_eq!(result.unwrap(), ())) as Result<(), Error>);
+            .then(|result: Result<(), _>| result);
 
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
