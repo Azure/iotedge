@@ -34,11 +34,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
             return new X509CertCredentials(identity, productInfo);
         }
 
-        public IClientCredentials GetWithSasToken(string deviceId, string moduleId, string deviceClientType, string token)
+        public IClientCredentials GetWithSasToken(string deviceId, string moduleId, string deviceClientType, string token, bool updatable)
         {
             string productInfo = string.Join(" ", this.callerProductInfo, deviceClientType).Trim();
             IIdentity identity = this.GetIdentity(deviceId, moduleId);
-            return new TokenCredentials(identity, token, productInfo);
+            return new TokenCredentials(identity, token, productInfo, updatable);
         }
 
         public IClientCredentials GetWithConnectionString(string connectionString)

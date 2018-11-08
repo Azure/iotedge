@@ -206,7 +206,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     if (this.persistTokens)
                     {
                         IKeyValueStore<string, string> encryptedStore = await GetEncryptedStore(c, "CredentialsCache");
-                        return new TokenCredentialsCache(encryptedStore);
+                        return new PersistedTokenCredentialsCache(encryptedStore);
                     }
                     else
                     {
