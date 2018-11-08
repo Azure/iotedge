@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 {
     using System;
+    using System.Threading;
     using System.Threading.Tasks;
     using App.Metrics;
     using App.Metrics.Timer;
@@ -12,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
     class ColumnFamilyDbStore : IDbStore
     {
+        static readonly TimeSpan OperationCheckPeriod = TimeSpan.FromSeconds(1);
         readonly IRocksDb db;
         
         public ColumnFamilyDbStore(IRocksDb db, ColumnFamilyHandle handle)
@@ -22,39 +24,38 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
         internal ColumnFamilyHandle Handle { get; }        
 
-        public Task<Option<byte[]>> Get(byte[] key)
+        public async Task<Option<byte[]>> Get(byte[] key, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(key, nameof(key));
 
             Option<byte[]> returnValue;
             using (Metrics.DbGetLatency("all"))
             {
-                byte[] value = this.db.Get(key, this.Handle);
+
+                byte[] value = await ExecuteUntilCancelled(() => this.db.Get(key, this.Handle), cancellationToken);
                 returnValue = value != null ? Option.Some(value) : Option.None<byte[]>();
             }
-            return Task.FromResult(returnValue);
+            return returnValue;
         }
 
-        public Task Put(byte[] key, byte[] value)
+        public Task Put(byte[] key, byte[] value, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(key, nameof(key));
             Preconditions.CheckNotNull(value, nameof(value));
 
             using (Metrics.DbPutLatency("all"))
             {
-                this.db.Put(key, value, this.Handle);
+                return ExecuteUntilCancelled(() => this.db.Put(key, value, this.Handle), cancellationToken);
             }
-            return Task.CompletedTask;
         }
 
-        public Task Remove(byte[] key)
+        public Task Remove(byte[] key, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(key, nameof(key));
-            this.db.Remove(key, this.Handle);
-            return Task.CompletedTask;
+            return ExecuteUntilCancelled(() => this.db.Remove(key, this.Handle), cancellationToken);
         }        
 
-        public Task<Option<(byte[] key, byte[] value)>> GetLastEntry()
+        public Task<Option<(byte[] key, byte[] value)>> GetLastEntry(CancellationToken cancellationToken)
         {
             using (Iterator iterator = this.db.NewIterator(this.Handle))
             {
@@ -72,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             }
         }
 
-        public Task<Option<(byte[] key, byte[] value)>> GetFirstEntry()
+        public Task<Option<(byte[] key, byte[] value)>> GetFirstEntry(CancellationToken cancellationToken)
         {
             using (Iterator iterator = this.db.NewIterator(this.Handle))
             {
@@ -90,31 +91,31 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             }
         }
 
-        public Task<bool> Contains(byte[] key)
+        public async Task<bool> Contains(byte[] key, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(key, nameof(key));
-            byte[] value = this.db.Get(key, this.Handle);
-            return Task.FromResult(value != null);
+            byte[] value = await ExecuteUntilCancelled(() => this.db.Get(key, this.Handle), cancellationToken);
+            return value != null;
         }
 
-        public Task IterateBatch(byte[] startKey, int batchSize, Func<byte[], byte[], Task> callback)
+        public Task IterateBatch(byte[] startKey, int batchSize, Func<byte[], byte[], Task> callback, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(startKey, nameof(startKey));
             Preconditions.CheckRange(batchSize, 1, nameof(batchSize));
             Preconditions.CheckNotNull(callback, nameof(callback));
 
-            return this.IterateBatch(iterator => iterator.Seek(startKey), batchSize, callback);
+            return this.IterateBatch(iterator => iterator.Seek(startKey), batchSize, callback, cancellationToken);
         }
 
-        public Task IterateBatch(int batchSize, Func<byte[], byte[], Task> callback)
+        public Task IterateBatch(int batchSize, Func<byte[], byte[], Task> callback, CancellationToken cancellationToken)
         {
             Preconditions.CheckRange(batchSize, 1, nameof(batchSize));
             Preconditions.CheckNotNull(callback, nameof(callback));
 
-            return this.IterateBatch(iterator => iterator.SeekToFirst(), batchSize, callback);
+            return this.IterateBatch(iterator => iterator.SeekToFirst(), batchSize, callback, cancellationToken);
         }
 
-        async Task IterateBatch(Action<Iterator> seeker, int batchSize, Func<byte[], byte[], Task> callback)
+        async Task IterateBatch(Action<Iterator> seeker, int batchSize, Func<byte[], byte[], Task> callback, CancellationToken cancellationToken)
         {
             // Use tailing iterator to prevent creating a snapshot. 
             var readOptions = new ReadOptions();
@@ -130,6 +131,34 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
                     await callback(key, value);
                 } 
             }
+        }
+
+        public static async Task<T> ExecuteUntilCancelled<T>(Func<T> func, CancellationToken cancellationToken)
+        {
+            Task<T> task = Task.Run(func);
+            while (!task.IsCompleted)
+            {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    throw new TaskCanceledException(task);
+                }
+                await Task.Delay(OperationCheckPeriod, cancellationToken);
+            }
+            return await task;
+        }
+
+        public static async Task ExecuteUntilCancelled(Action action, CancellationToken cancellationToken)
+        {
+            Task task = Task.Run(action);
+            while (!task.IsCompleted)
+            {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    throw new TaskCanceledException(task);
+                }
+                await Task.Delay(OperationCheckPeriod, cancellationToken);
+            }
+            await task;
         }
 
         static class Metrics
