@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using Moq;
     using Xunit;
 
-    public class TokenCredentialsStoreTest
+    public class PersistedTokenCredentialsCacheTest
     {
         [Fact]
         [Unit]
