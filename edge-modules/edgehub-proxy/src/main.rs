@@ -48,8 +48,10 @@ fn run() -> Result<(), Error> {
     let matches = App::new(crate_name!())
         .version(crate_version!())
         .about(crate_description!())
+        .setting(AppSettings::SubcommandRequired)
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .setting(AppSettings::ArgRequiredElseHelp)
+        .setting(AppSettings::TrailingVarArg)
         .arg(
             Arg::with_name("host")
                 .help("Workload socket to connect to")
@@ -128,6 +130,12 @@ fn run() -> Result<(), Error> {
                         .takes_value(true)
                         .value_name("COMBINED_FILE"),
                 ),
+        ).arg(
+            Arg::with_name("cmd")
+                .help("Command to run after retrieving certificate")
+                .multiple(true)
+                .global(true)
+                .value_name("CMD"),
         ).get_matches();
 
     let mut tokio_runtime = tokio::runtime::current_thread::Runtime::new()?;
@@ -182,6 +190,13 @@ fn run() -> Result<(), Error> {
                     format!("{}{}", response.certificate(), bytes),
                 )?;
             }
+        }
+    }
+
+    if let Some(mut cmd) = matches.values_of("cmd") {
+        if let Some(process) = cmd.next() {
+            let mut child = process::Command::new(process).args(cmd).spawn()?;
+            child.wait()?;
         }
     }
     Ok(())

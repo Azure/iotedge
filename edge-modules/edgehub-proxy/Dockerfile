@@ -8,6 +8,5 @@ COPY haproxy.cfg /usr/local/etc/haproxy/haproxy.cfg
 
 EXPOSE 8883 5671 443
 
-COPY entrypoint.sh /
-ENTRYPOINT ["/entrypoint.sh"]
-CMD ["haproxy", "-f", "/usr/local/etc/haproxy/haproxy.cfg"]
+COPY docker-entrypoint.sh /
+COPY target/x86_64-unknown-linux-musl/release/edgehub-proxy /usr/bin

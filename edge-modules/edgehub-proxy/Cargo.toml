@@ -15,3 +15,6 @@ url = "1.7"
 
 edgelet-http = { path = "../../edgelet/edgelet-http" }
 workload = { path = "../../edgelet/workload" }
+
+[profile.release]
+lto = true
