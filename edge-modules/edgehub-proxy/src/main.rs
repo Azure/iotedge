@@ -1,9 +1,14 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 #[macro_use]
 extern crate clap;
 extern crate edgelet_http;
+extern crate edgelet_utils;
+extern crate env_logger;
 extern crate failure;
 extern crate failure_derive;
-extern crate futures;
+#[macro_use]
+extern crate log;
 extern crate hyper;
 extern crate serde_json;
 extern crate tokio;
@@ -11,10 +16,9 @@ extern crate url;
 extern crate workload;
 
 mod error;
+mod logging;
 
 use std::fs;
-use std::io;
-use std::io::Write;
 use std::process;
 
 use clap::{App, AppSettings, Arg, SubCommand};
@@ -29,17 +33,9 @@ use workload::models::ServerCertificateRequest;
 use error::Error;
 
 fn main() {
-    if let Err(ref error) = run() {
-        let stderr = &mut io::stderr();
-        let errmsg = "Error writing to stderr";
-
-        let mut fail: &Fail = error;
-        writeln!(stderr, "{}", error.to_string()).unwrap_or_else(|_| panic!(errmsg));
-        while let Some(cause) = fail.cause() {
-            writeln!(stderr, "\tcaused by: {}", cause.to_string())
-                .unwrap_or_else(|_| panic!(errmsg));
-            fail = cause;
-        }
+    logging::init();
+    if let Err(e) = run() {
+        logging::log_error(&e);
         process::exit(1);
     }
 }
@@ -163,6 +159,7 @@ fn run() -> Result<(), Error> {
         let expiration = args
             .value_of("expiration")
             .expect("no value for required EXPIRATION");
+        info!("Retrieving server certificate with common name \"{}\" and expiration \"{}\" from {}...", common_name, expiration, url);
 
         let cert_request =
             ServerCertificateRequest::new(common_name.to_string(), expiration.to_string());
@@ -172,6 +169,7 @@ fn run() -> Result<(), Error> {
                 .create_server_certificate(api_version, module, gen, cert_request);
 
         let response = tokio_runtime.block_on(request)?;
+        info!("Retrieved server certificate.");
 
         if let Some(crt_path) = args.value_of("crt file") {
             fs::write(crt_path, response.certificate())?;
@@ -194,6 +192,14 @@ fn run() -> Result<(), Error> {
     }
 
     if let Some(mut cmd) = matches.values_of("cmd") {
+        info!(
+            "Executing: {}",
+            matches
+                .values_of("cmd")
+                .expect("cmd")
+                .collect::<Vec<&str>>()
+                .join(" ")
+        );
         if let Some(process) = cmd.next() {
             let mut child = process::Command::new(process).args(cmd).spawn()?;
             child.wait()?;

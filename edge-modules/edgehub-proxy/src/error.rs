@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 use std::fmt::{self, Display};
 use std::io;
 
