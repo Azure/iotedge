@@ -1,12 +1,11 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Query.Types
 {
     using System;
     using System.Diagnostics;
     using System.Globalization;
+
     using Newtonsoft.Json.Linq;
 
     public class QueryValue : IComparable, IComparable<QueryValue>
@@ -15,15 +14,15 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Types
 
         public static readonly QueryValue Null = new QueryValue(Query.Null.Instance, QueryValueType.Null);
 
-        public QueryValueType ValueType { get; set; }
-
-        public object Value { get; set; }
-
         public QueryValue(object value, QueryValueType valueType)
         {
             this.Value = value;
             this.ValueType = valueType;
         }
+
+        public object Value { get; set; }
+
+        public QueryValueType ValueType { get; set; }
 
         public static QueryValue Create(JValue jsonValue)
         {
@@ -71,6 +70,69 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Types
             }
         }
 
+        public static bool IsSupportedType(Type t)
+        {
+            return t == typeof(Null) ||
+                   t == typeof(double) ||
+                   t == typeof(string) ||
+                   t == typeof(Bool);
+        }
+
+        public static QueryValue operator +(QueryValue v1, QueryValue v2)
+        {
+            if (v1.ValueType == QueryValueType.Double && v2.ValueType == QueryValueType.Double)
+            {
+                return new QueryValue((double)v1.Value + (double)v2.Value, QueryValueType.Double);
+            }
+
+            return Undefined;
+        }
+
+        // Used for logical operators with Bool (e.g. &&)
+        public static QueryValue operator &(QueryValue x, QueryValue y)
+        {
+            if (x.ValueType == QueryValueType.Bool && y.ValueType == QueryValueType.Bool)
+            {
+                return ((Bool)x.Value) & ((Bool)y.Value);
+            }
+
+            return Undefined;
+        }
+
+        // Used for logical operators with Bool e.g. ||)
+        public static QueryValue operator |(QueryValue x, QueryValue y)
+        {
+            if (x.ValueType == QueryValueType.Bool && y.ValueType == QueryValueType.Bool)
+            {
+                return ((Bool)x.Value) | ((Bool)y.Value);
+            }
+
+            return Undefined;
+        }
+
+        public static QueryValue operator /(QueryValue v1, QueryValue v2)
+        {
+            if (v1.ValueType == QueryValueType.Double && v2.ValueType == QueryValueType.Double)
+            {
+                return new QueryValue((double)v1.Value / (double)v2.Value, QueryValueType.Double);
+            }
+
+            return Undefined;
+        }
+
+        public static explicit operator Bool(QueryValue x)
+        {
+            if (x?.ValueType == QueryValueType.Bool)
+            {
+                return (Bool)x.Value;
+            }
+
+            return Bool.Undefined;
+        }
+
+        // Used for logical operators with Bool
+        public static bool operator false(QueryValue x) => x.ValueType == QueryValueType.Bool && (Bool)x.Value;
+
         // Conversions
         public static implicit operator QueryValue(Bool x)
         {
@@ -108,31 +170,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Types
 
         public static implicit operator QueryValue(Undefined x) => Undefined;
 
-        public static explicit operator Bool(QueryValue x)
+        public static QueryValue operator !(QueryValue v1)
         {
-            if (x?.ValueType == QueryValueType.Bool)
+            if (v1.ValueType == QueryValueType.Bool)
             {
-                return (Bool)x.Value;
-            }
-
-            return Bool.Undefined;
-        }
-
-        public static QueryValue operator +(QueryValue v1, QueryValue v2)
-        {
-            if (v1.ValueType == QueryValueType.Double && v2.ValueType == QueryValueType.Double)
-            {
-                return new QueryValue((double)v1.Value + (double)v2.Value, QueryValueType.Double);
-            }
-
-            return Undefined;
-        }
-
-        public static QueryValue operator -(QueryValue v1, QueryValue v2)
-        {
-            if (v1.ValueType == QueryValueType.Double && v2.ValueType == QueryValueType.Double)
-            {
-                return new QueryValue((double)v1.Value - (double)v2.Value, QueryValueType.Double);
+                return new QueryValue(!((Bool)v1.Value), QueryValueType.Bool);
             }
 
             return Undefined;
@@ -148,43 +190,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Types
             return Undefined;
         }
 
-        public static QueryValue operator /(QueryValue v1, QueryValue v2)
+        public static QueryValue operator -(QueryValue v1, QueryValue v2)
         {
             if (v1.ValueType == QueryValueType.Double && v2.ValueType == QueryValueType.Double)
             {
-                return new QueryValue((double)v1.Value / (double)v2.Value, QueryValueType.Double);
-            }
-
-            return Undefined;
-        }
-
-        public static QueryValue operator !(QueryValue v1)
-        {
-            if (v1.ValueType == QueryValueType.Bool)
-            {
-                return new QueryValue(!((Bool)v1.Value), QueryValueType.Bool);
-            }
-
-            return Undefined;
-        }
-
-        // Used for logical operators with Bool (e.g. &&)
-        public static QueryValue operator &(QueryValue x, QueryValue y)
-        {
-            if (x.ValueType == QueryValueType.Bool && y.ValueType == QueryValueType.Bool)
-            {
-                return ((Bool)x.Value) & ((Bool)y.Value);
-            }
-
-            return Undefined;
-        }
-
-        // Used for logical operators with Bool e.g. ||) 
-        public static QueryValue operator |(QueryValue x, QueryValue y)
-        {
-            if (x.ValueType == QueryValueType.Bool && y.ValueType == QueryValueType.Bool)
-            {
-                return ((Bool)x.Value) | ((Bool)y.Value);
+                return new QueryValue((double)v1.Value - (double)v2.Value, QueryValueType.Double);
             }
 
             return Undefined;
@@ -192,9 +202,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Types
 
         // Used for logical operators with Bool
         public static bool operator true(QueryValue x) => x.ValueType == QueryValueType.Bool && (Bool)x.Value;
-
-        // Used for logical operators with Bool
-        public static bool operator false(QueryValue x) => x.ValueType == QueryValueType.Bool && (Bool)x.Value;
 
         public int CompareTo(object obj)
         {
@@ -219,11 +226,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Types
             }
 
             Debug.Assert(value1 != null, nameof(value1) + " != null");
+
             // ReSharper disable once PossibleNullReferenceException
             if (value1.ValueType == QueryValueType.None || value2.ValueType == QueryValueType.None)
             {
-                return ReferenceEquals(value1, value2) ? -1 :
-                    value1.GetHashCode().CompareTo(value2.GetHashCode());
+                return ReferenceEquals(value1, value2) ? -1 : value1.GetHashCode().CompareTo(value2.GetHashCode());
             }
 
             if (value1.ValueType != value2.ValueType)
@@ -255,20 +262,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Types
                 case QueryValueType.Object:
 
                     // We do not support value based comparisons on object. Just return based on reference equals.
-                    return ReferenceEquals(value1.Value, value2.Value) ? 0 :
-                        value1.Value.GetHashCode().CompareTo(value2.Value.GetHashCode());
+                    return ReferenceEquals(value1.Value, value2.Value) ? 0 : value1.Value.GetHashCode().CompareTo(value2.Value.GetHashCode());
 
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-        }
-
-        public static bool IsSupportedType(Type t)
-        {
-            return t == typeof(Null) ||
-                t == typeof(double) ||
-                t == typeof(string) ||
-                t == typeof(Bool);
         }
     }
 }

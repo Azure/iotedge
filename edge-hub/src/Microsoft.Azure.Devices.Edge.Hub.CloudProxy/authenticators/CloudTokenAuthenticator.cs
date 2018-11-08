@@ -1,8 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
 {
     using System;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Common.Security;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
@@ -51,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
 
             // Only check if the token is expired.
             bool isAuthenticated = this.TryGetSharedAccessSignature(tokenCredentials.Token, clientCredentials.Identity, out SharedAccessSignature sharedAccessSignature) &&
-                !sharedAccessSignature.IsExpired();
+                                   !sharedAccessSignature.IsExpired();
 
             Events.ReauthResult(clientCredentials, isAuthenticated);
             return Task.FromResult(isAuthenticated);
@@ -74,8 +76,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<CloudTokenAuthenticator>();
             const int IdStart = CloudProxyEventIds.CloudTokenAuthenticator;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<CloudTokenAuthenticator>();
 
             enum EventIds
             {
@@ -90,25 +92,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
                 Log.LogInformation((int)EventIds.AuthenticatedWithCloud, $"Authenticated {identity.Id} with IotHub");
             }
 
-            public static void ErrorValidatingTokenWithIoTHub(IIdentity identity, Exception ex)
-            {
-                Log.LogWarning((int)EventIds.ErrorValidatingToken, ex, $"Error validating token for {identity.Id} with IoTHub");
-            }
-
             public static void ErrorGettingCloudProxy(IIdentity identity, Exception ex)
             {
                 Log.LogWarning((int)EventIds.ErrorGettingCloudProxy, ex, $"Error getting cloud proxy for {identity.Id}");
+            }
+
+            public static void ErrorParsingToken(IIdentity identity, Exception exception)
+            {
+                Log.LogDebug((int)EventIds.ErrorParsingToken, exception, $"Error parsing token for client {identity.Id} while re-authenticating");
+            }
+
+            public static void ErrorValidatingTokenWithIoTHub(IIdentity identity, Exception ex)
+            {
+                Log.LogWarning((int)EventIds.ErrorValidatingToken, ex, $"Error validating token for {identity.Id} with IoTHub");
             }
 
             public static void ReauthResult(IClientCredentials clientCredentials, bool isAuthenticated)
             {
                 string operation = isAuthenticated ? "succeeded" : "failed";
                 Log.LogDebug((int)EventIds.AuthenticatedWithCloud, $"Reauthenticating {clientCredentials.Identity.Id} with IotHub {operation}");
-            }
-
-            public static void ErrorParsingToken(IIdentity identity, Exception exception)
-            {
-                Log.LogDebug((int)EventIds.ErrorParsingToken, exception, $"Error parsing token for client {identity.Id} while re-authenticating");
             }
         }
     }

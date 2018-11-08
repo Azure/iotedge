@@ -1,14 +1,80 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 {
     using System;
     using System.Collections.Generic;
+
     using DotNetty.Buffers;
+
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+
     using Xunit;
 
     public class ByteBufferConverterTest
     {
+        [Theory]
+        [Unit]
+        [MemberData(nameof(GetInvalidTestByteArrays))]
+        public void ByteArrayConversionErrorTest_Pooled(byte[] input, Type expectedException)
+        {
+            IByteBufferConverter converter = new ByteBufferConverter(PooledByteBufferAllocator.Default);
+            Assert.Throws(expectedException, () => converter.ToByteBuffer(input));
+        }
+
+        [Theory]
+        [Unit]
+        [MemberData(nameof(GetInvalidTestByteArrays))]
+        public void ByteArrayConversionErrorTest_Unpooled(byte[] input, Type expectedException)
+        {
+            IByteBufferConverter converter = new ByteBufferConverter(UnpooledByteBufferAllocator.Default);
+            Assert.Throws(expectedException, () => converter.ToByteBuffer(input));
+        }
+
+        [Theory]
+        [Unit]
+        [MemberData(nameof(GetInvalidTestByteBuffer))]
+        public void ByteBufferConversionErrorTest_Pooled(IByteBuffer input, Type expectedException)
+        {
+            IByteBufferConverter converter = new ByteBufferConverter(PooledByteBufferAllocator.Default);
+            Assert.Throws(expectedException, () => converter.ToByteArray(input));
+        }
+
+        [Theory]
+        [Unit]
+        [MemberData(nameof(GetInvalidTestByteBuffer))]
+        public void ByteBufferConversionErrorTest_Unpooled(IByteBuffer input, Type expectedException)
+        {
+            IByteBufferConverter converter = new ByteBufferConverter(UnpooledByteBufferAllocator.Default);
+            Assert.Throws(expectedException, () => converter.ToByteArray(input));
+        }
+
+        [Theory]
+        [Unit]
+        [MemberData(nameof(GetTestByteArrays))]
+        public void ByteBufferRoundtripTest_Pooled(byte[] input)
+        {
+            IByteBufferConverter converter = new ByteBufferConverter(PooledByteBufferAllocator.Default);
+            IByteBuffer byteBuffer = converter.ToByteBuffer(input);
+            Assert.NotNull(byteBuffer);
+            byte[] convertedBytes = converter.ToByteArray(byteBuffer);
+            Assert.NotNull(convertedBytes);
+            Assert.Equal(input, convertedBytes);
+        }
+
+        [Theory]
+        [Unit]
+        [MemberData(nameof(GetTestByteArrays))]
+        public void ByteBufferRoundtripTest_Unpooled(byte[] input)
+        {
+            IByteBufferConverter converter = new ByteBufferConverter(UnpooledByteBufferAllocator.Default);
+            IByteBuffer byteBuffer = converter.ToByteBuffer(input);
+            Assert.NotNull(byteBuffer);
+            byte[] convertedBytes = converter.ToByteArray(byteBuffer);
+            Assert.NotNull(convertedBytes);
+            Assert.Equal(input, convertedBytes);
+        }
+
         static IEnumerable<object[]> GetInvalidTestByteArrays()
         {
             yield return new object[] { null, typeof(ArgumentNullException) };
@@ -38,68 +104,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             bytes = new byte[64];
             rand.NextBytes(bytes);
             yield return new object[] { bytes };
-        }
-
-        [Theory]
-        [Unit]
-        [MemberData(nameof(GetTestByteArrays))]
-        public void ByteBufferRoundtripTest_Pooled(byte[] input)
-        {
-            IByteBufferConverter converter = new ByteBufferConverter(PooledByteBufferAllocator.Default);
-            IByteBuffer byteBuffer = converter.ToByteBuffer(input);
-            Assert.NotNull(byteBuffer);
-            byte[] convertedBytes = converter.ToByteArray(byteBuffer);
-            Assert.NotNull(convertedBytes);
-            Assert.Equal(input, convertedBytes);
-        }
-
-        [Theory]
-        [Unit]
-        [MemberData(nameof(GetInvalidTestByteArrays))]
-        public void ByteArrayConversionErrorTest_Pooled(byte[] input, Type expectedException)
-        {
-            IByteBufferConverter converter = new ByteBufferConverter(PooledByteBufferAllocator.Default);
-            Assert.Throws(expectedException, () => converter.ToByteBuffer(input));
-        }
-
-        [Theory]
-        [Unit]
-        [MemberData(nameof(GetInvalidTestByteBuffer))]
-        public void ByteBufferConversionErrorTest_Pooled(IByteBuffer input, Type expectedException)
-        {
-            IByteBufferConverter converter = new ByteBufferConverter(PooledByteBufferAllocator.Default);
-            Assert.Throws(expectedException, () => converter.ToByteArray(input));
-        }
-
-        [Theory]
-        [Unit]
-        [MemberData(nameof(GetTestByteArrays))]
-        public void ByteBufferRoundtripTest_Unpooled(byte[] input)
-        {
-            IByteBufferConverter converter = new ByteBufferConverter(UnpooledByteBufferAllocator.Default);
-            IByteBuffer byteBuffer = converter.ToByteBuffer(input);
-            Assert.NotNull(byteBuffer);
-            byte[] convertedBytes = converter.ToByteArray(byteBuffer);
-            Assert.NotNull(convertedBytes);
-            Assert.Equal(input, convertedBytes);
-        }
-
-        [Theory]
-        [Unit]
-        [MemberData(nameof(GetInvalidTestByteArrays))]
-        public void ByteArrayConversionErrorTest_Unpooled(byte[] input, Type expectedException)
-        {
-            IByteBufferConverter converter = new ByteBufferConverter(UnpooledByteBufferAllocator.Default);
-            Assert.Throws(expectedException, () => converter.ToByteBuffer(input));
-        }
-
-        [Theory]
-        [Unit]
-        [MemberData(nameof(GetInvalidTestByteBuffer))]
-        public void ByteBufferConversionErrorTest_Unpooled(IByteBuffer input, Type expectedException)
-        {
-            IByteBufferConverter converter = new ByteBufferConverter(UnpooledByteBufferAllocator.Default);
-            Assert.Throws(expectedException, () => converter.ToByteArray(input));
         }
     }
 }

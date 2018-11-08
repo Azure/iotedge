@@ -1,7 +1,5 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
 {
     using System;
@@ -9,41 +7,21 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
     using System.Diagnostics.CodeAnalysis;
     using System.Linq;
     using System.Linq.Expressions;
+
     using Antlr4.Runtime;
     using Antlr4.Runtime.Tree;
-    using Microsoft.Azure.Devices.Routing.Core;
-    using Microsoft.Azure.Devices.Routing.Core.Query;
+
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
+    using Microsoft.Azure.Devices.Routing.Core.Query;
+
     using Xunit;
 
     [ExcludeFromCodeCoverage]
     public class ConditionVisitorTest : RoutingUnitTestBase
     {
-        [Theory, Unit]
-        [InlineData("100", 100D)]
-        [InlineData("0100", 100D)]
-        [InlineData("(((3)))", 3D)]
-        [InlineData("12.34", 12.34D)]
-        [InlineData("12.34", 12.34D)]
-        [InlineData("1.234e1", 12.34D)]
-        [InlineData("1.234e+1", 12.34D)]
-        [InlineData("1.234e-1", 0.1234D)]
-        [InlineData("0xDEADBEEF", 3735928559D)]
-        [InlineData("0xDeadBeef", 3735928559D)]
-        [InlineData("\"\" ", "")]
-        [InlineData("\"Hello! \" ", "Hello! ")]
-        [InlineData("'Hello! ' ", "Hello! ")]
-        [InlineData(@"""he said, \""Hello!\""""", "he said, \"Hello!\"")]
-        [InlineData(@"""he said, \""Tch\u00FCss!\""""", "he said, \"Tchüss!\"")]
-        public void TestLiteral(string condition, object value)
-        {
-            Expression expression = ToExpression(condition);
-            Assert.IsType<ConstantExpression>(expression);
-            Assert.Equal(value, ((ConstantExpression)expression).Value);
-        }
-
-        [Theory, Unit]
+        [Theory]
+        [Unit]
         [InlineData("3 + 4", 7)]
         [InlineData("3 + 4 * 5", 23)]
         [InlineData("3 + 4 / 4", 4)]
@@ -67,7 +45,32 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Equal(expected, rule());
         }
 
-        [Theory, Unit]
+        [Theory]
+        [Unit]
+        [InlineData("100", 100D)]
+        [InlineData("0100", 100D)]
+        [InlineData("(((3)))", 3D)]
+        [InlineData("12.34", 12.34D)]
+        [InlineData("12.34", 12.34D)]
+        [InlineData("1.234e1", 12.34D)]
+        [InlineData("1.234e+1", 12.34D)]
+        [InlineData("1.234e-1", 0.1234D)]
+        [InlineData("0xDEADBEEF", 3735928559D)]
+        [InlineData("0xDeadBeef", 3735928559D)]
+        [InlineData("\"\" ", "")]
+        [InlineData("\"Hello! \" ", "Hello! ")]
+        [InlineData("'Hello! ' ", "Hello! ")]
+        [InlineData(@"""he said, \""Hello!\""""", "he said, \"Hello!\"")]
+        [InlineData(@"""he said, \""Tch\u00FCss!\""""", "he said, \"Tchüss!\"")]
+        public void TestLiteral(string condition, object value)
+        {
+            Expression expression = ToExpression(condition);
+            Assert.IsType<ConstantExpression>(expression);
+            Assert.Equal(value, ((ConstantExpression)expression).Value);
+        }
+
+        [Theory]
+        [Unit]
         [InlineData("\"unterminated = 'unterminated'", "Syntax error: unterminated string")]
         [InlineData("@32 = 32", "Syntax error: invalid symbol '@'")]
         [InlineData("32 = [32]", "Syntax error.")]
@@ -93,7 +96,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
 
             ParameterExpression parameter = Expression.Parameter(typeof(IMessage), "message");
 
-            var testRoute = new Route(Guid.NewGuid().ToString(),
+            var testRoute = new Route(
+                Guid.NewGuid().ToString(),
                 "true",
                 nameof(ConditionVisitorTest),
                 TelemetryMessageSource.Instance,

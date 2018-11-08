@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
     using System;
@@ -7,8 +7,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using System.Diagnostics.Tracing;
     using System.IO;
     using System.Security.Cryptography.X509Certificates;
+
     using Autofac;
+
     using DotNetty.Common.Internal.Logging;
+
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
@@ -71,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     var eventListener = new LoggerEventListener(loggerFactory.CreateLogger("ProtocolGateway"));
                     eventListener.EnableEvents(CommonEventSource.Log, EventLevel.Informational);
                 });
-            
+
             bool optimizeForPerformance = this.configuration.GetValue("OptimizeForPerformance", true);
             (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward = this.GetStoreAndForwardConfiguration();
 
@@ -82,59 +85,52 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             builder.RegisterModule(new HttpModule());
         }
 
+        internal static Option<UpstreamProtocol> GetUpstreamProtocol(IConfigurationRoot configuration) =>
+            Enum.TryParse(configuration.GetValue("UpstreamProtocol", string.Empty), true, out UpstreamProtocol upstreamProtocol)
+                ? Option.Some(upstreamProtocol)
+                : Option.None<UpstreamProtocol>();
+
+        Option<T> GetConfigurationValueIfExists<T>(string key)
+            where T : class
+        {
+            var value = this.configuration.GetValue<T>(key);
+            return EqualityComparer<T>.Default.Equals(value, default(T)) ? Option.None<T>() : Option.Some(value);
+        }
+
+        string GetStoragePath()
+        {
+            string baseStoragePath = this.configuration.GetValue<string>("storageFolder");
+            if (string.IsNullOrWhiteSpace(baseStoragePath) || !Directory.Exists(baseStoragePath))
+            {
+                baseStoragePath = Path.GetTempPath();
+            }
+
+            string storagePath = Path.Combine(baseStoragePath, Constants.EdgeHubStorageFolder);
+            Directory.CreateDirectory(storagePath);
+            return storagePath;
+        }
+
+        (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) GetStoreAndForwardConfiguration()
+        {
+            int defaultTtl = -1;
+            bool usePersistentStorage = this.configuration.GetValue<bool>("usePersistentStorage");
+            int timeToLiveSecs = defaultTtl;
+            string storagePath = this.GetStoragePath();
+            bool storeAndForwardEnabled = this.configuration.GetValue<bool>("storeAndForwardEnabled");
+            if (storeAndForwardEnabled)
+            {
+                IConfiguration storeAndForwardConfigurationSection = this.configuration.GetSection("storeAndForward");
+                timeToLiveSecs = storeAndForwardConfigurationSection.GetValue("timeToLiveSecs", defaultTtl);
+            }
+
+            var storeAndForwardConfiguration = new StoreAndForwardConfiguration(timeToLiveSecs);
+            return (storeAndForwardEnabled, usePersistentStorage, storeAndForwardConfiguration, storagePath);
+        }
+
         void RegisterAmqpModule(ContainerBuilder builder)
         {
             IConfiguration amqpSettings = this.configuration.GetSection("amqpSettings");
             builder.RegisterModule(new AmqpModule(amqpSettings["scheme"], amqpSettings.GetValue<ushort>("port"), this.serverCertificate, this.iotHubHostname));
-        }
-
-        void RegisterMqttModule(ContainerBuilder builder, (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward, bool optimizeForPerformance)
-        {
-            var topics = new MessageAddressConversionConfiguration(
-                this.configuration.GetSection(Constants.TopicNameConversionSectionName + ":InboundTemplates").Get<List<string>>(),
-                this.configuration.GetSection(Constants.TopicNameConversionSectionName + ":OutboundTemplates").Get<Dictionary<string, string>>());
-            string caChainPath = this.configuration.GetValue(Constants.ConfigKey.EdgeHubServerCAChainCertificateFile, string.Empty);
-
-            // TODO: We don't want to make enabling Cert Auth configurable right now. Turn off Cert auth. 
-            //bool clientCertAuthEnabled = this.Configuration.GetValue("ClientCertAuthEnabled", false);
-            bool clientCertAuthEnabled = false;
-
-            IConfiguration mqttSettingsConfiguration = this.configuration.GetSection("mqttSettings");
-            builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, this.serverCertificate, storeAndForward.isEnabled, clientCertAuthEnabled, caChainPath, optimizeForPerformance));
-        }
-
-        void RegisterRoutingModule(ContainerBuilder builder, (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward)
-        {
-            var routes = this.configuration.GetSection("routes").Get<Dictionary<string, string>>();
-            int connectionPoolSize = this.configuration.GetValue<int>("IotHubConnectionPoolSize");
-            string configSource = this.configuration.GetValue<string>("configSource");
-            bool useTwinConfig = !string.IsNullOrWhiteSpace(configSource) && configSource.Equals("twin", StringComparison.OrdinalIgnoreCase);
-            Option<UpstreamProtocol> upstreamProtocolOption = GetUpstreamProtocol(this.configuration);
-            int connectivityCheckFrequencySecs = this.configuration.GetValue("ConnectivityCheckFrequencySecs", 300);
-            TimeSpan connectivityCheckFrequency = connectivityCheckFrequencySecs < 0 ? TimeSpan.MaxValue : TimeSpan.FromSeconds(connectivityCheckFrequencySecs);
-            // n Clients + 1 Edgehub
-            int maxConnectedClients = this.configuration.GetValue("MaxConnectedClients", 100) + 1;
-            int cloudConnectionIdleTimeoutSecs = this.configuration.GetValue("CloudConnectionIdleTimeoutSecs", 3600);
-            TimeSpan cloudConnectionIdleTimeout = TimeSpan.FromSeconds(cloudConnectionIdleTimeoutSecs);
-            bool closeCloudConnectionOnIdleTimeout = this.configuration.GetValue("CloseCloudConnectionOnIdleTimeout", true);
-
-            builder.RegisterModule(
-                new RoutingModule(
-                    this.iotHubHostname,
-                    this.edgeDeviceId,
-                    this.edgeModuleId,
-                    this.connectionString,
-                    routes,
-                    storeAndForward.isEnabled,
-                    storeAndForward.config,
-                    connectionPoolSize,
-                    useTwinConfig,
-                    this.versionInfo,
-                    upstreamProtocolOption,
-                    connectivityCheckFrequency,
-                    maxConnectedClients,
-                    cloudConnectionIdleTimeout,
-                    closeCloudConnectionOnIdleTimeout));
         }
 
         void RegisterCommonModule(ContainerBuilder builder, bool optimizeForPerformance, (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward)
@@ -171,46 +167,54 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     cacheTokens));
         }
 
-        internal static Option<UpstreamProtocol> GetUpstreamProtocol(IConfigurationRoot configuration) =>
-            Enum.TryParse(configuration.GetValue("UpstreamProtocol", string.Empty), true, out UpstreamProtocol upstreamProtocol)
-                ? Option.Some(upstreamProtocol)
-                : Option.None<UpstreamProtocol>();
-
-        (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) GetStoreAndForwardConfiguration()
+        void RegisterMqttModule(ContainerBuilder builder, (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward, bool optimizeForPerformance)
         {
-            int defaultTtl = -1;            
-            bool usePersistentStorage = this.configuration.GetValue<bool>("usePersistentStorage");
-            int timeToLiveSecs = defaultTtl;
-            string storagePath = this.GetStoragePath();
-            bool storeAndForwardEnabled = this.configuration.GetValue<bool>("storeAndForwardEnabled");
-            if (storeAndForwardEnabled)
-            {
-                IConfiguration storeAndForwardConfigurationSection = this.configuration.GetSection("storeAndForward");
-                timeToLiveSecs = storeAndForwardConfigurationSection.GetValue("timeToLiveSecs", defaultTtl);
-            }
+            var topics = new MessageAddressConversionConfiguration(
+                this.configuration.GetSection(Constants.TopicNameConversionSectionName + ":InboundTemplates").Get<List<string>>(),
+                this.configuration.GetSection(Constants.TopicNameConversionSectionName + ":OutboundTemplates").Get<Dictionary<string, string>>());
+            string caChainPath = this.configuration.GetValue(Constants.ConfigKey.EdgeHubServerCAChainCertificateFile, string.Empty);
 
-            var storeAndForwardConfiguration = new StoreAndForwardConfiguration(timeToLiveSecs);
-            return (storeAndForwardEnabled, usePersistentStorage, storeAndForwardConfiguration, storagePath);
+            // TODO: We don't want to make enabling Cert Auth configurable right now. Turn off Cert auth.
+            // bool clientCertAuthEnabled = this.Configuration.GetValue("ClientCertAuthEnabled", false);
+            bool clientCertAuthEnabled = false;
+
+            IConfiguration mqttSettingsConfiguration = this.configuration.GetSection("mqttSettings");
+            builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, this.serverCertificate, storeAndForward.isEnabled, clientCertAuthEnabled, caChainPath, optimizeForPerformance));
         }
 
-        string GetStoragePath()
+        void RegisterRoutingModule(ContainerBuilder builder, (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward)
         {
-            string baseStoragePath = this.configuration.GetValue<string>("storageFolder");
-            if (string.IsNullOrWhiteSpace(baseStoragePath) || !Directory.Exists(baseStoragePath))
-            {
-                baseStoragePath = Path.GetTempPath();
-            }
+            var routes = this.configuration.GetSection("routes").Get<Dictionary<string, string>>();
+            int connectionPoolSize = this.configuration.GetValue<int>("IotHubConnectionPoolSize");
+            string configSource = this.configuration.GetValue<string>("configSource");
+            bool useTwinConfig = !string.IsNullOrWhiteSpace(configSource) && configSource.Equals("twin", StringComparison.OrdinalIgnoreCase);
+            Option<UpstreamProtocol> upstreamProtocolOption = GetUpstreamProtocol(this.configuration);
+            int connectivityCheckFrequencySecs = this.configuration.GetValue("ConnectivityCheckFrequencySecs", 300);
+            TimeSpan connectivityCheckFrequency = connectivityCheckFrequencySecs < 0 ? TimeSpan.MaxValue : TimeSpan.FromSeconds(connectivityCheckFrequencySecs);
 
-            string storagePath = Path.Combine(baseStoragePath, Constants.EdgeHubStorageFolder);
-            Directory.CreateDirectory(storagePath);
-            return storagePath;
-        }
+            // n Clients + 1 Edgehub
+            int maxConnectedClients = this.configuration.GetValue("MaxConnectedClients", 100) + 1;
+            int cloudConnectionIdleTimeoutSecs = this.configuration.GetValue("CloudConnectionIdleTimeoutSecs", 3600);
+            TimeSpan cloudConnectionIdleTimeout = TimeSpan.FromSeconds(cloudConnectionIdleTimeoutSecs);
+            bool closeCloudConnectionOnIdleTimeout = this.configuration.GetValue("CloseCloudConnectionOnIdleTimeout", true);
 
-        Option<T> GetConfigurationValueIfExists<T>(string key)
-            where T : class
-        {
-            var value = this.configuration.GetValue<T>(key);
-            return EqualityComparer<T>.Default.Equals(value, default(T)) ? Option.None<T>() : Option.Some(value);
+            builder.RegisterModule(
+                new RoutingModule(
+                    this.iotHubHostname,
+                    this.edgeDeviceId,
+                    this.edgeModuleId,
+                    this.connectionString,
+                    routes,
+                    storeAndForward.isEnabled,
+                    storeAndForward.config,
+                    connectionPoolSize,
+                    useTwinConfig,
+                    this.versionInfo,
+                    upstreamProtocolOption,
+                    connectivityCheckFrequency,
+                    maxConnectedClients,
+                    cloudConnectionIdleTimeout,
+                    closeCloudConnectionOnIdleTimeout));
         }
     }
 }

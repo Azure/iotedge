@@ -1,12 +1,17 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 {
     using System;
+
     using Microsoft.Azure.Devices.Edge.Hub.Core.Routing;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core;
+
     using Moq;
+
     using Xunit;
+
     using IRoutingMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
 
     [Unit]
@@ -19,31 +24,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var connectionManager = new Mock<IConnectionManager>();
             var messageConverter = new Mock<Core.IMessageConverter<IRoutingMessage>>();
             this.endpointFactory = new EndpointFactory(connectionManager.Object, messageConverter.Object, "Device1");
-        }
-
-        [Fact]
-        public void TestCreateSystemEndpoint()
-        {
-            Endpoint endpoint = this.endpointFactory.CreateSystemEndpoint("$upstream");
-            Assert.NotNull(endpoint);
-            Assert.IsType<CloudEndpoint>(endpoint);
-
-            Endpoint endpoint2 = this.endpointFactory.CreateSystemEndpoint("$upstream");
-            Assert.NotNull(endpoint2);
-            Assert.IsType<CloudEndpoint>(endpoint2);
-            Assert.Equal(endpoint, endpoint2);
-        }
-
-        [Fact]
-        public void TestCreateFunctionEndpoint()
-        {
-            Endpoint endpoint = this.endpointFactory.CreateFunctionEndpoint("BrokeredEndpoint", "/modules/alertLogic/inputs/in1");
-            Assert.NotNull(endpoint);
-
-            var moduleEndpoint = endpoint as ModuleEndpoint;
-            Assert.NotNull(moduleEndpoint);
-            Assert.Equal("Device1/alertLogic/in1", moduleEndpoint.Id);
-            Assert.Equal("in1", moduleEndpoint.Input);
         }
 
         [Fact]
@@ -87,14 +67,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.NotEqual(endpoint3, endpoint4);
         }
 
-        [Theory]
-        [InlineData("upstream")]
-        [InlineData("PascalCase")]
-        [InlineData("")]
-        [InlineData(null)]
-        public void TestCreateSystemEndpointInvalidCases(string systemEndpoint)
+        [Fact]
+        public void TestCreateFunctionEndpoint()
         {
-            Assert.Throws<InvalidOperationException>(() =>this.endpointFactory.CreateSystemEndpoint(systemEndpoint));
+            Endpoint endpoint = this.endpointFactory.CreateFunctionEndpoint("BrokeredEndpoint", "/modules/alertLogic/inputs/in1");
+            Assert.NotNull(endpoint);
+
+            var moduleEndpoint = endpoint as ModuleEndpoint;
+            Assert.NotNull(moduleEndpoint);
+            Assert.Equal("Device1/alertLogic/in1", moduleEndpoint.Id);
+            Assert.Equal("in1", moduleEndpoint.Input);
         }
 
         [Theory]
@@ -109,6 +91,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         public void TestCreateFunctionEndpointInvalidCases(string function, string endpointAddress)
         {
             Assert.Throws<InvalidOperationException>(() => this.endpointFactory.CreateFunctionEndpoint(function, endpointAddress));
+        }
+
+        [Fact]
+        public void TestCreateSystemEndpoint()
+        {
+            Endpoint endpoint = this.endpointFactory.CreateSystemEndpoint("$upstream");
+            Assert.NotNull(endpoint);
+            Assert.IsType<CloudEndpoint>(endpoint);
+
+            Endpoint endpoint2 = this.endpointFactory.CreateSystemEndpoint("$upstream");
+            Assert.NotNull(endpoint2);
+            Assert.IsType<CloudEndpoint>(endpoint2);
+            Assert.Equal(endpoint, endpoint2);
+        }
+
+        [Theory]
+        [InlineData("upstream")]
+        [InlineData("PascalCase")]
+        [InlineData("")]
+        [InlineData(null)]
+        public void TestCreateSystemEndpointInvalidCases(string systemEndpoint)
+        {
+            Assert.Throws<InvalidOperationException>(() => this.endpointFactory.CreateSystemEndpoint(systemEndpoint));
         }
     }
 }

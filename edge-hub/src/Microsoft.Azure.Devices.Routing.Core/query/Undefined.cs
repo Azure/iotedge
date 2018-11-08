@@ -1,56 +1,24 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Query
 {
     using Microsoft.Azure.Devices.Routing.Core.Query.Types;
 
     public struct Undefined
     {
-        public static Undefined Instance { get; } = new Undefined();
-
         static readonly string UndefinedString = new string(new[] { 'u', 'n', 'd', 'e', 'f', 'i', 'n', 'e', 'd' });
         static readonly Bool UndefinedBool = Bool.Undefined;
         static readonly double UndefinedDouble = double.NaN;
 
-        // Equal
-        public static Bool operator ==(Undefined x, Undefined y) => Bool.Undefined;
+        public static Undefined Instance { get; } = new Undefined();
 
-        public static Bool operator ==(Bool x, Undefined y) => Bool.Undefined;
+        public static Bool IsDefined(string input) => (Bool)!ReferenceEquals(input, UndefinedString);
 
-        public static Bool operator ==(Undefined x, Bool y) => Bool.Undefined;
+        public static Bool IsDefined(double input) => (Bool)!double.IsNaN(input);
 
-        public static Bool operator ==(double x, Undefined y) => Bool.Undefined;
+        public static Bool IsDefined(Bool input) => (Bool)!input.Equals(UndefinedBool);
 
-        public static Bool operator ==(Undefined x, double y) => Bool.Undefined;
-
-        public static Bool operator ==(string x, Undefined y) => Bool.Undefined;
-
-        public static Bool operator ==(Undefined x, string y) => Bool.Undefined;
-
-        public static Bool operator ==(Null x, Undefined y) => Bool.Undefined;
-
-        public static Bool operator ==(Undefined x, Null y) => Bool.Undefined;
-
-        // Not Equal
-        public static Bool operator !=(Undefined x, Undefined y) => Bool.Undefined;
-
-        public static Bool operator !=(Bool x, Undefined y) => Bool.Undefined;
-
-        public static Bool operator !=(Undefined x, Bool y) => Bool.Undefined;
-
-        public static Bool operator !=(double x, Undefined y) => Bool.Undefined;
-
-        public static Bool operator !=(Undefined x, double y) => Bool.Undefined;
-
-        public static Bool operator !=(string x, Undefined y) => Bool.Undefined;
-
-        public static Bool operator !=(Undefined x, string y) => Bool.Undefined;
-
-        public static Bool operator !=(Null x, Undefined y) => Bool.Undefined;
-
-        public static Bool operator !=(Undefined x, Null y) => Bool.Undefined;
+        public static Bool IsDefined(QueryValue input) => (Bool)(input.ValueType != QueryValueType.None);
 
         // Add
         public static Undefined operator +(Undefined x, Undefined y) => Instance;
@@ -70,164 +38,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
         public static Undefined operator +(Undefined x, Null y) => Instance;
 
         public static Undefined operator +(Null x, Undefined y) => Instance;
-
-        // Subtract
-        public static Undefined operator -(Undefined x, Undefined y) => Instance;
-
-        public static Undefined operator -(Undefined x, double y) => Instance;
-
-        public static Undefined operator -(double x, Undefined y) => Instance;
-
-        public static Undefined operator -(Undefined x, bool y) => Instance;
-
-        public static Undefined operator -(Bool x, Undefined y) => Instance;
-
-        public static Undefined operator -(Undefined x, string y) => Instance;
-
-        public static Undefined operator -(string x, Undefined y) => Instance;
-
-        public static Undefined operator -(Undefined x, Null y) => Instance;
-
-        public static Undefined operator -(Null x, Undefined y) => Instance;
-
-        // Multiply
-        public static Undefined operator *(Undefined x, Undefined y) => Instance;
-
-        public static Undefined operator *(Undefined x, double y) => Instance;
-
-        public static Undefined operator *(double x, Undefined y) => Instance;
-
-        public static Undefined operator *(Undefined x, Bool y) => Instance;
-
-        public static Undefined operator *(Bool x, Undefined y) => Instance;
-
-        public static Undefined operator *(Undefined x, string y) => Instance;
-
-        public static Undefined operator *(string x, Undefined y) => Instance;
-
-        public static Undefined operator *(Undefined x, Null y) => Instance;
-
-        public static Undefined operator *(Null x, Undefined y) => Instance;
-
-        // Divide
-        public static Undefined operator /(Undefined x, Undefined y) => Instance;
-
-        public static Undefined operator /(Undefined x, double y) => Instance;
-
-        public static Undefined operator /(double x, Undefined y) => Instance;
-
-        public static Undefined operator /(Undefined x, Bool y) => Instance;
-
-        public static Undefined operator /(Bool x, Undefined y) => Instance;
-
-        public static Undefined operator /(Undefined x, string y) => Instance;
-
-        public static Undefined operator /(string x, Undefined y) => Instance;
-
-        public static Undefined operator /(Undefined x, Null y) => Instance;
-
-        public static Undefined operator /(Null x, Undefined y) => Instance;
-
-        // Modulo
-        public static Undefined operator %(Undefined x, Undefined y) => Instance;
-
-        public static Undefined operator %(Undefined x, double y) => Instance;
-
-        public static Undefined operator %(double x, Undefined y) => Instance;
-
-        public static Undefined operator %(Undefined x, Bool y) => Instance;
-
-        public static Undefined operator %(Bool x, Undefined y) => Instance;
-
-        public static Undefined operator %(Undefined x, string y) => Instance;
-
-        public static Undefined operator %(string x, Undefined y) => Instance;
-
-        public static Undefined operator %(Undefined x, Null y) => Instance;
-
-        public static Undefined operator %(Null x, Undefined y) => Instance;
-
-        // Unary Minus
-        public static Undefined operator -(Undefined x) => Instance;
-
-        // LessThan
-        public static Bool operator <(Undefined x, Undefined y) => Bool.Undefined;
-
-        public static Bool operator <(Undefined x, double y) => Bool.Undefined;
-
-        public static Bool operator <(double x, Undefined y) => Bool.Undefined;
-
-        public static Bool operator <(Undefined x, string y) => Bool.Undefined;
-
-        public static Bool operator <(string x, Undefined y) => Bool.Undefined;
-
-        public static Bool operator <(Undefined x, Bool y) => Bool.Undefined;
-
-        public static Bool operator <(Bool x, Undefined y) => Bool.Undefined;
-
-        public static Bool operator <(Undefined x, Null y) => Bool.Undefined;
-
-        public static Bool operator <(Null x, Undefined y) => Bool.Undefined;
-
-        // GreaterThan
-        public static Bool operator >(Undefined x, Undefined y) => Bool.Undefined;
-
-        public static Bool operator >(Undefined x, double y) => Bool.Undefined;
-
-        public static Bool operator >(double x, Undefined y) => Bool.Undefined;
-
-        public static Bool operator >(Undefined x, string y) => Bool.Undefined;
-
-        public static Bool operator >(string x, Undefined y) => Bool.Undefined;
-
-        public static Bool operator >(Undefined x, Bool y) => Bool.Undefined;
-
-        public static Bool operator >(Bool x, Undefined y) => Bool.Undefined;
-
-        public static Bool operator >(Undefined x, Null y) => Bool.Undefined;
-
-        public static Bool operator >(Null x, Undefined y) => Bool.Undefined;
-
-        // LessThanOrEqual
-        public static Bool operator <=(Undefined x, Undefined y) => Bool.Undefined;
-
-        public static Bool operator <=(Undefined x, double y) => Bool.Undefined;
-
-        public static Bool operator <=(double x, Undefined y) => Bool.Undefined;
-
-        public static Bool operator <=(Undefined x, string y) => Bool.Undefined;
-
-        public static Bool operator <=(string x, Undefined y) => Bool.Undefined;
-
-        public static Bool operator <=(Undefined x, Bool y) => Bool.Undefined;
-
-        public static Bool operator <=(Bool x, Undefined y) => Bool.Undefined;
-
-        public static Bool operator <=(Undefined x, Null y) => Bool.Undefined;
-
-        public static Bool operator <=(Null x, Undefined y) => Bool.Undefined;
-
-        // GreaterThanOrEqual
-        public static Bool operator >=(Undefined x, Undefined y) => Bool.Undefined;
-
-        public static Bool operator >=(Undefined x, double y) => Bool.Undefined;
-
-        public static Bool operator >=(double x, Undefined y) => Bool.Undefined;
-
-        public static Bool operator >=(Undefined x, string y) => Bool.Undefined;
-
-        public static Bool operator >=(string x, Undefined y) => Bool.Undefined;
-
-        public static Bool operator >=(Undefined x, Bool y) => Bool.Undefined;
-
-        public static Bool operator >=(Bool x, Undefined y) => Bool.Undefined;
-
-        public static Bool operator >=(Undefined x, Null y) => Bool.Undefined;
-
-        public static Bool operator >=(Null x, Undefined y) => Bool.Undefined;
-
-        // Not
-        public static Bool operator !(Undefined x) => Bool.Undefined;
 
         // And
         public static Bool operator &(Undefined x, Undefined y) => Bool.Undefined;
@@ -259,6 +69,82 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
 
         public static Bool operator |(Undefined x, string y) => Bool.Undefined;
 
+        // Divide
+        public static Undefined operator /(Undefined x, Undefined y) => Instance;
+
+        public static Undefined operator /(Undefined x, double y) => Instance;
+
+        public static Undefined operator /(double x, Undefined y) => Instance;
+
+        public static Undefined operator /(Undefined x, Bool y) => Instance;
+
+        public static Undefined operator /(Bool x, Undefined y) => Instance;
+
+        public static Undefined operator /(Undefined x, string y) => Instance;
+
+        public static Undefined operator /(string x, Undefined y) => Instance;
+
+        public static Undefined operator /(Undefined x, Null y) => Instance;
+
+        public static Undefined operator /(Null x, Undefined y) => Instance;
+
+        // Equal
+        public static Bool operator ==(Undefined x, Undefined y) => Bool.Undefined;
+
+        public static Bool operator ==(Bool x, Undefined y) => Bool.Undefined;
+
+        public static Bool operator ==(Undefined x, Bool y) => Bool.Undefined;
+
+        public static Bool operator ==(double x, Undefined y) => Bool.Undefined;
+
+        public static Bool operator ==(Undefined x, double y) => Bool.Undefined;
+
+        public static Bool operator ==(string x, Undefined y) => Bool.Undefined;
+
+        public static Bool operator ==(Undefined x, string y) => Bool.Undefined;
+
+        public static Bool operator ==(Null x, Undefined y) => Bool.Undefined;
+
+        public static Bool operator ==(Undefined x, Null y) => Bool.Undefined;
+
+        // GreaterThan
+        public static Bool operator >(Undefined x, Undefined y) => Bool.Undefined;
+
+        public static Bool operator >(Undefined x, double y) => Bool.Undefined;
+
+        public static Bool operator >(double x, Undefined y) => Bool.Undefined;
+
+        public static Bool operator >(Undefined x, string y) => Bool.Undefined;
+
+        public static Bool operator >(string x, Undefined y) => Bool.Undefined;
+
+        public static Bool operator >(Undefined x, Bool y) => Bool.Undefined;
+
+        public static Bool operator >(Bool x, Undefined y) => Bool.Undefined;
+
+        public static Bool operator >(Undefined x, Null y) => Bool.Undefined;
+
+        public static Bool operator >(Null x, Undefined y) => Bool.Undefined;
+
+        // GreaterThanOrEqual
+        public static Bool operator >=(Undefined x, Undefined y) => Bool.Undefined;
+
+        public static Bool operator >=(Undefined x, double y) => Bool.Undefined;
+
+        public static Bool operator >=(double x, Undefined y) => Bool.Undefined;
+
+        public static Bool operator >=(Undefined x, string y) => Bool.Undefined;
+
+        public static Bool operator >=(string x, Undefined y) => Bool.Undefined;
+
+        public static Bool operator >=(Undefined x, Bool y) => Bool.Undefined;
+
+        public static Bool operator >=(Bool x, Undefined y) => Bool.Undefined;
+
+        public static Bool operator >=(Undefined x, Null y) => Bool.Undefined;
+
+        public static Bool operator >=(Null x, Undefined y) => Bool.Undefined;
+
         // Conversions
         public static implicit operator double(Undefined x) => UndefinedDouble;
 
@@ -266,12 +152,125 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
 
         public static implicit operator string(Undefined x) => UndefinedString;
 
-        public static Bool IsDefined(string input) => (Bool)!ReferenceEquals(input, UndefinedString);
+        // Not Equal
+        public static Bool operator !=(Undefined x, Undefined y) => Bool.Undefined;
 
-        public static Bool IsDefined(double input) => (Bool)!double.IsNaN(input);
+        public static Bool operator !=(Bool x, Undefined y) => Bool.Undefined;
 
-        public static Bool IsDefined(Bool input) => (Bool)!input.Equals(UndefinedBool);
-        public static Bool IsDefined(QueryValue input) => (Bool)(input.ValueType != QueryValueType.None);
+        public static Bool operator !=(Undefined x, Bool y) => Bool.Undefined;
+
+        public static Bool operator !=(double x, Undefined y) => Bool.Undefined;
+
+        public static Bool operator !=(Undefined x, double y) => Bool.Undefined;
+
+        public static Bool operator !=(string x, Undefined y) => Bool.Undefined;
+
+        public static Bool operator !=(Undefined x, string y) => Bool.Undefined;
+
+        public static Bool operator !=(Null x, Undefined y) => Bool.Undefined;
+
+        public static Bool operator !=(Undefined x, Null y) => Bool.Undefined;
+
+        // LessThan
+        public static Bool operator <(Undefined x, Undefined y) => Bool.Undefined;
+
+        public static Bool operator <(Undefined x, double y) => Bool.Undefined;
+
+        public static Bool operator <(double x, Undefined y) => Bool.Undefined;
+
+        public static Bool operator <(Undefined x, string y) => Bool.Undefined;
+
+        public static Bool operator <(string x, Undefined y) => Bool.Undefined;
+
+        public static Bool operator <(Undefined x, Bool y) => Bool.Undefined;
+
+        public static Bool operator <(Bool x, Undefined y) => Bool.Undefined;
+
+        public static Bool operator <(Undefined x, Null y) => Bool.Undefined;
+
+        public static Bool operator <(Null x, Undefined y) => Bool.Undefined;
+
+        // LessThanOrEqual
+        public static Bool operator <=(Undefined x, Undefined y) => Bool.Undefined;
+
+        public static Bool operator <=(Undefined x, double y) => Bool.Undefined;
+
+        public static Bool operator <=(double x, Undefined y) => Bool.Undefined;
+
+        public static Bool operator <=(Undefined x, string y) => Bool.Undefined;
+
+        public static Bool operator <=(string x, Undefined y) => Bool.Undefined;
+
+        public static Bool operator <=(Undefined x, Bool y) => Bool.Undefined;
+
+        public static Bool operator <=(Bool x, Undefined y) => Bool.Undefined;
+
+        public static Bool operator <=(Undefined x, Null y) => Bool.Undefined;
+
+        public static Bool operator <=(Null x, Undefined y) => Bool.Undefined;
+
+        // Not
+        public static Bool operator !(Undefined x) => Bool.Undefined;
+
+        // Modulo
+        public static Undefined operator %(Undefined x, Undefined y) => Instance;
+
+        public static Undefined operator %(Undefined x, double y) => Instance;
+
+        public static Undefined operator %(double x, Undefined y) => Instance;
+
+        public static Undefined operator %(Undefined x, Bool y) => Instance;
+
+        public static Undefined operator %(Bool x, Undefined y) => Instance;
+
+        public static Undefined operator %(Undefined x, string y) => Instance;
+
+        public static Undefined operator %(string x, Undefined y) => Instance;
+
+        public static Undefined operator %(Undefined x, Null y) => Instance;
+
+        public static Undefined operator %(Null x, Undefined y) => Instance;
+
+        // Multiply
+        public static Undefined operator *(Undefined x, Undefined y) => Instance;
+
+        public static Undefined operator *(Undefined x, double y) => Instance;
+
+        public static Undefined operator *(double x, Undefined y) => Instance;
+
+        public static Undefined operator *(Undefined x, Bool y) => Instance;
+
+        public static Undefined operator *(Bool x, Undefined y) => Instance;
+
+        public static Undefined operator *(Undefined x, string y) => Instance;
+
+        public static Undefined operator *(string x, Undefined y) => Instance;
+
+        public static Undefined operator *(Undefined x, Null y) => Instance;
+
+        public static Undefined operator *(Null x, Undefined y) => Instance;
+
+        // Subtract
+        public static Undefined operator -(Undefined x, Undefined y) => Instance;
+
+        public static Undefined operator -(Undefined x, double y) => Instance;
+
+        public static Undefined operator -(double x, Undefined y) => Instance;
+
+        public static Undefined operator -(Undefined x, bool y) => Instance;
+
+        public static Undefined operator -(Bool x, Undefined y) => Instance;
+
+        public static Undefined operator -(Undefined x, string y) => Instance;
+
+        public static Undefined operator -(string x, Undefined y) => Instance;
+
+        public static Undefined operator -(Undefined x, Null y) => Instance;
+
+        public static Undefined operator -(Null x, Undefined y) => Instance;
+
+        // Unary Minus
+        public static Undefined operator -(Undefined x) => Instance;
 
         public bool Equals(Undefined other) => true;
 

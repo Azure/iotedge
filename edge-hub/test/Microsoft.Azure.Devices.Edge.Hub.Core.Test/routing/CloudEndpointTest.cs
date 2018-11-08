@@ -1,23 +1,42 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 {
     using System;
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Routing;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core;
+
     using Moq;
+
     using Xunit;
+
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
     using IRoutingMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
 
     [Unit]
     public class CloudEndpointTest
     {
+        [Fact]
+        public void CloudEndpoint_CreateProcessorTest()
+        {
+            Core.IMessageConverter<IRoutingMessage> routingMessageConverter = new RoutingMessageConverter();
+            var cloudProxy = Mock.Of<ICloudProxy>();
+            string cloudEndpointId = Guid.NewGuid().ToString();
+
+            var cloudEndpoint = new CloudEndpoint(cloudEndpointId, id => Task.FromResult(Option.Some(cloudProxy)), routingMessageConverter);
+
+            IProcessor processor = cloudEndpoint.CreateProcessor();
+            Assert.NotNull(processor);
+            Assert.Equal(cloudEndpoint, processor.Endpoint);
+        }
+
         [Fact]
         public void CloudEndpoint_MembersTest()
         {
@@ -31,20 +50,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.Equal("CloudEndpoint", cloudEndpoint.Type);
             Assert.Equal(cloudEndpointId, cloudEndpoint.Name);
             Assert.Equal(string.Empty, cloudEndpoint.IotHubName);
-
-            IProcessor processor = cloudEndpoint.CreateProcessor();
-            Assert.NotNull(processor);
-            Assert.Equal(cloudEndpoint, processor.Endpoint);
-        }
-
-        [Fact]
-        public void CloudEndpoint_CreateProcessorTest()
-        {
-            Core.IMessageConverter<IRoutingMessage> routingMessageConverter = new RoutingMessageConverter();
-            var cloudProxy = Mock.Of<ICloudProxy>();
-            string cloudEndpointId = Guid.NewGuid().ToString();
-
-            var cloudEndpoint = new CloudEndpoint(cloudEndpointId, id => Task.FromResult(Option.Some(cloudProxy)), routingMessageConverter);
 
             IProcessor processor = cloudEndpoint.CreateProcessor();
             Assert.NotNull(processor);

@@ -1,18 +1,25 @@
-﻿// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 {
     using System;
     using System.Collections.Generic;
+
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Extensions.Primitives;
+
     using Xunit;
 
     [Unit]
     public class TwinAddressHelperTests
     {
+        [Theory]
+        [InlineData("123", "test", "$iothub/methods/POST/test/?$rid=123")]
+        public void TwinFormatDirectRequestTopic(string correlationId, string methodName, string expectedResult)
+        {
+            Assert.Equal(expectedResult, TwinAddressHelper.FormatDeviceMethodRequestAddress(correlationId, methodName));
+        }
+
         [Theory]
         [InlineData("$iothub/twin/GET/?$rid=6f2c8", true, TwinAddressHelper.Operation.TwinGetState, "", new[] { "$rid", "6f2c8" })]
         [InlineData("$iothub/twin/PATCH/properties/reported/?$rid=5de34", true, TwinAddressHelper.Operation.TwinPatchReportedState, "", new[] { "$rid", "5de34" })]
@@ -26,8 +33,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         [InlineData("$iothub/methods/res/200/?$rid=1&", true, TwinAddressHelper.Operation.DirectMethodResponse, "200", new[] { "$rid", "1" })]
         [InlineData("$iothub/methods/res/200/?$rid=1&=", true, TwinAddressHelper.Operation.DirectMethodResponse, "200", new[] { "$rid", "1", "", "" })]
         [InlineData("$iothub/methods/res/200/?$rid=1&=value", true, TwinAddressHelper.Operation.DirectMethodResponse, "200", new[] { "$rid", "1", "", "value" })]
-        public void TwinTryParseOperationTests(string input, bool expectedOutcome, TwinAddressHelper.Operation expectedOperation,
-            string expectedSubresource, string[] expectedProperties)
+        public void TwinTryParseOperationTests(
+            string input,
+            bool expectedOutcome,
+            TwinAddressHelper.Operation expectedOperation,
+            string expectedSubresource,
+            string[] expectedProperties)
         {
             var properties = new Dictionary<StringSegment, StringSegment>();
             TwinAddressHelper.Operation operation;
@@ -44,13 +55,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.Equal(expectedPropertyMap, properties);
         }
 
-        [Theory]
-        [InlineData("123", "test", "$iothub/methods/POST/test/?$rid=123")]
-        public void TwinFormatDirectRequestTopic(string correlationId, string methodName, string expectedResult)
-        {
-            Assert.Equal(expectedResult, TwinAddressHelper.FormatDeviceMethodRequestAddress(correlationId, methodName));
-        }
-
         static Dictionary<TKey, TValue> ComposeMapFromPairs<T, TKey, TValue>(T[] pairs, Func<T, TKey> keyFunc, Func<T, TValue> valueFunc)
         {
             var expectedPropertyMap = new Dictionary<TKey, TValue>();
@@ -58,6 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             {
                 expectedPropertyMap.Add(keyFunc(pairs[i]), valueFunc(pairs[i + 1]));
             }
+
             return expectedPropertyMap;
         }
     }

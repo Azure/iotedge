@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 {
     using Microsoft.Azure.Devices.Common;
@@ -13,9 +13,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
         public const string DeviceIdTemplateParameterName = "deviceid";
         public const string ModuleIdTemplateParameterName = "moduleid";
-
-        const string TelemetryEventHubReceiveRedirectPrefix = "/messages/events";
-        const string OperationMonitoringEventHubReceiveRedirectPrefix = "/messages/operationsMonitoringEvents";
 
         public const string DeviceTelemetryStreamUriFormat = "/devices/{0}/messages/events";
         public const string ModuleTelemetryStreamUriFormat = "/devices/{0}/modules/{1}/messages/events";
@@ -35,6 +32,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         public static readonly UriPathTemplate FileNotificationTemplate = new UriPathTemplate("/messages/serviceBound/filenotifications");
         public static readonly UriPathTemplate EventHubReceiveRedirectTemplate = new UriPathTemplate(TelemetryEventHubReceiveRedirectPrefix + "/*");
         public static readonly UriPathTemplate OperationMonitoringEventHubReceiveRedirectTemplate = new UriPathTemplate(OperationMonitoringEventHubReceiveRedirectPrefix + "/*");
+
+        const string TelemetryEventHubReceiveRedirectPrefix = "/messages/events";
+        const string OperationMonitoringEventHubReceiveRedirectPrefix = "/messages/operationsMonitoringEvents";
 
         public static class Twin
         {

@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System;
@@ -14,10 +14,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.Content = content;
         }
 
-        public HttpStatusCode StatusCode { get; }
-
         public string Content { get; }
 
         public override string Message => $"Message: {base.Message}, HttpStatusCode: {this.StatusCode}, Content: {this.Content}";
+
+        public HttpStatusCode StatusCode { get; }
     }
 }

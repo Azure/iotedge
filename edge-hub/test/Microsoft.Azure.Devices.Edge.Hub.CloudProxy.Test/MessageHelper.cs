@@ -1,17 +1,40 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Text;
+
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.EventHubs;
+
     using Newtonsoft.Json;
 
     public static class MessageHelper
     {
+        /// <summary>
+        /// Checks if the events have items corresponding to all messages, and
+        /// returns false if it doesn't.
+        /// </summary>
+        public static bool CompareMessagesAndEventData(IList<IMessage> messages, IList<EventData> events)
+        {
+            foreach (IMessage message in messages)
+            {
+                EventData eventData = events.FirstOrDefault(
+                    m =>
+                        m.Properties.ContainsKey("id") &&
+                        m.Properties["id"] as string == message.Properties["id"]);
+                if (eventData == null || !message.Body.SequenceEqual(eventData.Body.Array))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         /// <summary>
         /// Generates dummy messages for testing.
         /// </summary>
@@ -44,27 +67,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 var message = new EdgeMessage(messageBytes, properties, systemProperties);
                 messages.Add(message);
             }
+
             return messages;
         }
-
-        /// <summary>
-        /// Checks if the events have items corresponding to all messages, and
-        /// returns false if it doesn't.
-        /// </summary>
-        public static bool CompareMessagesAndEventData(IList<IMessage> messages, IList<EventData> events)
-        {
-            foreach (IMessage message in messages)
-            {
-                EventData eventData = events.FirstOrDefault(m =>
-                    m.Properties.ContainsKey("id") &&
-                    m.Properties["id"] as string == message.Properties["id"]);
-                if (eventData == null || !message.Body.SequenceEqual(eventData.Body.Array))
-                {
-                    return false;
-                }
-            }
-            return true;
-        }
-
     }
 }

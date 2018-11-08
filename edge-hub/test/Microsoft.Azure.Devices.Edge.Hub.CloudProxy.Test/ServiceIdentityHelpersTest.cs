@@ -1,20 +1,74 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Text;
+
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+
     using Newtonsoft.Json;
+
     using Xunit;
 
     [Unit]
     public class ServiceIdentityHelpersTest
     {
+        [Theory]
+        [MemberData(nameof(GetDeviceJson))]
+        public void DeviceToServiceIdentityTest(string deviceJson)
+        {
+            // Arrange
+            var device = JsonConvert.DeserializeObject<Device>(deviceJson);
+
+            // Act
+            ServiceIdentity serviceIdentity = device.ToServiceIdentity();
+
+            // Assert
+            Assert.NotNull(serviceIdentity);
+            Assert.Equal(device.Id, serviceIdentity.DeviceId);
+            Assert.False(serviceIdentity.IsModule);
+            Assert.False(serviceIdentity.ModuleId.HasValue);
+            Assert.Equal(device.GenerationId, serviceIdentity.GenerationId);
+            if (device.Capabilities.IotEdge)
+            {
+                Assert.True(serviceIdentity.Capabilities.Contains(Constants.IotEdgeIdentityCapability));
+            }
+            else
+            {
+                Assert.False(serviceIdentity.Capabilities.Any());
+            }
+
+            Assert.Equal(device.Status == DeviceStatus.Enabled ? ServiceIdentityStatus.Enabled : ServiceIdentityStatus.Disabled, serviceIdentity.Status);
+
+            ValidateAuthentication(device.Authentication, serviceIdentity.Authentication);
+        }
+
+        [Theory]
+        [MemberData(nameof(GetModuleJson))]
+        public void ModuleToServiceIdentityTest(string moduleJson)
+        {
+            // Arrange
+            var module = JsonConvert.DeserializeObject<Module>(moduleJson);
+
+            // Act
+            ServiceIdentity serviceIdentity = module.ToServiceIdentity();
+
+            // Assert
+            Assert.NotNull(serviceIdentity);
+            Assert.Equal(module.DeviceId, serviceIdentity.DeviceId);
+            Assert.Equal(module.Id, serviceIdentity.ModuleId.OrDefault());
+            Assert.True(serviceIdentity.IsModule);
+            Assert.Equal(module.GenerationId, serviceIdentity.GenerationId);
+            Assert.False(serviceIdentity.Capabilities.Any());
+            Assert.Equal(ServiceIdentityStatus.Enabled, serviceIdentity.Status);
+            ValidateAuthentication(module.Authentication, serviceIdentity.Authentication);
+        }
+
         static IEnumerable<object[]> GetDeviceJson()
         {
             yield return new object[]
@@ -142,6 +196,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             };
         }
 
+        static string GetKey() => Convert.ToBase64String(Encoding.UTF8.GetBytes(Guid.NewGuid().ToString()));
+
         static IEnumerable<object[]> GetModuleJson()
         {
             yield return new object[]
@@ -257,57 +313,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             };
         }
 
-        [Theory]
-        [MemberData(nameof(GetDeviceJson))]
-        public void DeviceToServiceIdentityTest(string deviceJson)
-        {
-            // Arrange
-            var device = JsonConvert.DeserializeObject<Device>(deviceJson);
-
-            // Act
-            ServiceIdentity serviceIdentity = device.ToServiceIdentity();
-
-            // Assert
-            Assert.NotNull(serviceIdentity);
-            Assert.Equal(device.Id, serviceIdentity.DeviceId);
-            Assert.False(serviceIdentity.IsModule);
-            Assert.False(serviceIdentity.ModuleId.HasValue);
-            Assert.Equal(device.GenerationId, serviceIdentity.GenerationId);
-            if (device.Capabilities.IotEdge)
-            {
-                Assert.True(serviceIdentity.Capabilities.Contains(Constants.IotEdgeIdentityCapability));
-            }
-            else
-            {
-                Assert.False(serviceIdentity.Capabilities.Any());
-            }
-
-            Assert.Equal(device.Status == DeviceStatus.Enabled ? ServiceIdentityStatus.Enabled : ServiceIdentityStatus.Disabled, serviceIdentity.Status);
-
-            ValidateAuthentication(device.Authentication, serviceIdentity.Authentication);
-        }
-
-        [Theory]
-        [MemberData(nameof(GetModuleJson))]
-        public void ModuleToServiceIdentityTest(string moduleJson)
-        {
-            // Arrange
-            var module = JsonConvert.DeserializeObject<Module>(moduleJson);
-
-            // Act
-            ServiceIdentity serviceIdentity = module.ToServiceIdentity();
-
-            // Assert
-            Assert.NotNull(serviceIdentity);
-            Assert.Equal(module.DeviceId, serviceIdentity.DeviceId);
-            Assert.Equal(module.Id, serviceIdentity.ModuleId.OrDefault());
-            Assert.True(serviceIdentity.IsModule);
-            Assert.Equal(module.GenerationId, serviceIdentity.GenerationId);
-            Assert.False(serviceIdentity.Capabilities.Any());
-            Assert.Equal(ServiceIdentityStatus.Enabled, serviceIdentity.Status);
-            ValidateAuthentication(module.Authentication, serviceIdentity.Authentication);
-        }
-
         static void ValidateAuthentication(AuthenticationMechanism authenticationMechanism, ServiceAuthentication serviceIdentityAuthentication)
         {
             Assert.NotNull(serviceIdentityAuthentication);
@@ -342,7 +347,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                     break;
             }
         }
-
-        static string GetKey() => Convert.ToBase64String(Encoding.UTF8.GetBytes(Guid.NewGuid().ToString()));
     }
 }

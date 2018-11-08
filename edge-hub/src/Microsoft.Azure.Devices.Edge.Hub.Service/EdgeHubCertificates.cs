@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
     using System;
@@ -9,21 +9,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using System.Runtime.InteropServices;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
 
     public class EdgeHubCertificates
     {
-
-        public X509Certificate2 ServerCertificate { get; }
-
-        public IList<X509Certificate2> CertificateChain { get; }
-
         EdgeHubCertificates(X509Certificate2 serverCertificate, IList<X509Certificate2> certificateChain)
         {
             this.ServerCertificate = Preconditions.CheckNotNull(serverCertificate, nameof(serverCertificate));
             this.CertificateChain = Preconditions.CheckNotNull(certificateChain, nameof(certificateChain));
         }
+
+        public IList<X509Certificate2> CertificateChain { get; }
+
+        public X509Certificate2 ServerCertificate { get; }
 
         public static async Task<EdgeHubCertificates> LoadAsync(IConfigurationRoot configuration)
         {

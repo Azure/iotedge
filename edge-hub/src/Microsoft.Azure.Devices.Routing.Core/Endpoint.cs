@@ -1,22 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core
 {
     using System;
+
     using Microsoft.Azure.Devices.Routing.Core.Util;
 
     public abstract class Endpoint : IEquatable<Endpoint>
     {
-        /// <summary>
-        /// Endpoint identifier. This must be globally unique
-        /// </summary>
-        public virtual string Id { get; }
-
-        public string Name { get; }
-
-        public string IotHubName { get; }
-
-        public abstract string Type { get; }
-
         protected Endpoint(string id)
             : this(id, id, string.Empty)
         {
@@ -29,9 +20,18 @@ namespace Microsoft.Azure.Devices.Routing.Core
             this.IotHubName = Preconditions.CheckNotNull(iotHubName);
         }
 
-        public abstract IProcessor CreateProcessor();
+        /// <summary>
+        /// Gets endpoint identifier. This must be globally unique.
+        /// </summary>
+        public virtual string Id { get; }
 
-        public abstract void LogUserMetrics(long messageCount, long latencyInMs);
+        public string IotHubName { get; }
+
+        public string Name { get; }
+
+        public abstract string Type { get; }
+
+        public abstract IProcessor CreateProcessor();
 
         public bool Equals(Endpoint other)
         {
@@ -39,6 +39,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
             {
                 return false;
             }
+
             // Name is intentionally left out of equality because it can be updated on the
             // endpoint without changing the endpoint's functionality
             return ReferenceEquals(this, other) || string.Equals(this.Id, other.Id);
@@ -63,5 +64,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
         {
             return this.Id.GetHashCode();
         }
+
+        public abstract void LogUserMetrics(long messageCount, long latencyInMs);
     }
 }

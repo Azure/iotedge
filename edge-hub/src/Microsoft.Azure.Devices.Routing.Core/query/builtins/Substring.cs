@@ -1,11 +1,10 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
 {
     using System.Linq.Expressions;
     using System.Reflection;
+
     using Microsoft.Azure.Devices.Routing.Core.Query.Types;
 
     public class Substring : Builtin
@@ -19,6 +18,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
                 IsQueryValueSupported = true,
                 ExecutorFunc = CreateStart
             },
+
             // substring(string, number, number)
             new BuiltinExecutor
             {
@@ -66,8 +66,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
             double lengthValue = (double)length.Value;
 
             bool isValid = !inputString.IsNullOrUndefined() &&
-                startIndex.IsDefined() && startIndex < inputString.Length && startIndex >= 0 &&
-                lengthValue.IsDefined() && lengthValue >= 0 && lengthValue <= (inputString.Length - startIndex);
+                           startIndex.IsDefined() && startIndex < inputString.Length && startIndex >= 0 &&
+                           lengthValue.IsDefined() && lengthValue >= 0 && lengthValue <= (inputString.Length - startIndex);
 
             return isValid ? inputString.Substring((int)startIndex, (int)lengthValue) : Undefined.Instance;
         }

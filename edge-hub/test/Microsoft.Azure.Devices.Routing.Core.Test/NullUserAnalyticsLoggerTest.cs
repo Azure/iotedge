@@ -1,17 +1,18 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Test
 {
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.Azure.Devices.Routing.Core;
+
     using Xunit;
 
     [Unit]
     public class NullUserAnalyticsLoggerTest
     {
         [Fact]
-        public void LogOrphanedMessage()
+        public void LogDeadEndpoint()
         {
-            NullUserAnalyticsLogger.Instance.LogOrphanedMessage(null, null);
+            NullUserAnalyticsLogger.Instance.LogDeadEndpoint(null, null);
         }
 
         [Fact]
@@ -21,27 +22,27 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         }
 
         [Fact]
+        public void LogHealthyEndpoint()
+        {
+            NullUserAnalyticsLogger.Instance.LogHealthyEndpoint(null, null);
+        }
+
+        [Fact]
         public void LogInvalidMessage()
         {
             NullUserAnalyticsLogger.Instance.LogInvalidMessage(null, null, FailureKind.None);
         }
 
         [Fact]
-        public void LogUnhealthyEndpoint()
+        public void LogOrphanedMessage()
         {
-            NullUserAnalyticsLogger.Instance.LogUnhealthyEndpoint(null, null, FailureKind.None);
+            NullUserAnalyticsLogger.Instance.LogOrphanedMessage(null, null);
         }
 
         [Fact]
-        public void LogDeadEndpoint()
+        public void LogRouteEvaluationError()
         {
-            NullUserAnalyticsLogger.Instance.LogDeadEndpoint(null, null);
-        }
-
-        [Fact]
-        public void LogHealthyEndpoint()
-        {
-            NullUserAnalyticsLogger.Instance.LogHealthyEndpoint(null, null);
+            NullUserAnalyticsLogger.Instance.LogRouteEvaluationError(null, null, null);
         }
 
         [Fact]
@@ -51,9 +52,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         }
 
         [Fact]
-        public void LogRouteEvaluationError()
+        public void LogUnhealthyEndpoint()
         {
-            NullUserAnalyticsLogger.Instance.LogRouteEvaluationError(null, null, null);
+            NullUserAnalyticsLogger.Instance.LogUnhealthyEndpoint(null, null, FailureKind.None);
         }
     }
 }

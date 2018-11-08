@@ -1,13 +1,14 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+
     using Xunit;
 
     [Integration]
@@ -16,11 +17,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     {
         [Theory]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
-        async Task SendTelemetryTest(ITransportSettings[] transportSettings)
+        async Task SendLargeMessageHandleExceptionTest(ITransportSettings[] transportSettings)
         {
-            int messagesCount = 10;
             TestModule sender = null;
-            TestModule receiver = null;
 
             string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
@@ -29,19 +28,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             try
             {
                 sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1", transportSettings);
-                receiver = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver1", transportSettings);
 
-                await receiver.SetupReceiveMessageHandler();
+                Exception ex = null;
+                try
+                {
+                    // create a large message
+                    var message = new Message(new byte[400 * 1000]);
+                    await sender.SendMessageAsync("output1", message);
+                }
+                catch (Exception e)
+                {
+                    ex = e;
+                }
 
-                Task<int> task1 = sender.SendMessagesByCountAsync("output1", 0, messagesCount, TimeSpan.FromMinutes(2));
-
-                int sentMessagesCount = await task1;
-                Assert.Equal(messagesCount, sentMessagesCount);
-
-                await Task.Delay(TimeSpan.FromSeconds(20));
-                ISet<int> receivedMessages = receiver.GetReceivedMessageIndices();
-
-                Assert.Equal(messagesCount, receivedMessages.Count);
+                Assert.NotNull(ex);
             }
             finally
             {
@@ -49,15 +49,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 {
                     await rm.CloseAsync();
                 }
-                if (sender != null)
-                {
-                    await sender.Disconnect();
-                }
-                if (receiver != null)
-                {
-                    await receiver.Disconnect();
-                }
             }
+
             // wait for the connection to be closed on the Edge side
             await Task.Delay(TimeSpan.FromSeconds(10));
         }
@@ -102,25 +95,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 {
                     await rm.CloseAsync();
                 }
+
                 if (sender != null)
                 {
                     await sender.Disconnect();
                 }
+
                 if (receiver != null)
                 {
                     await receiver.Disconnect();
                 }
             }
+
             // wait for the connection to be closed on the Edge side
             await Task.Delay(TimeSpan.FromSeconds(10));
         }
 
         [Theory]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
-        async Task SendLargeMessageHandleExceptionTest(ITransportSettings[] transportSettings)
+        async Task SendTelemetryTest(ITransportSettings[] transportSettings)
         {
+            int messagesCount = 10;
             TestModule sender = null;
-            
+            TestModule receiver = null;
+
             string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
@@ -128,28 +126,38 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             try
             {
                 sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1", transportSettings);
+                receiver = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver1", transportSettings);
 
-                Exception ex = null;
-                try
-                {
-                    // create a large message
-                    var message = new Message(new byte[400 * 1000]);
-                    await sender.SendMessageAsync("output1", message);
-                }
-                catch (Exception e)
-                {
-                    ex = e;
-                }
+                await receiver.SetupReceiveMessageHandler();
 
-                Assert.NotNull(ex);
+                Task<int> task1 = sender.SendMessagesByCountAsync("output1", 0, messagesCount, TimeSpan.FromMinutes(2));
+
+                int sentMessagesCount = await task1;
+                Assert.Equal(messagesCount, sentMessagesCount);
+
+                await Task.Delay(TimeSpan.FromSeconds(20));
+                ISet<int> receivedMessages = receiver.GetReceivedMessageIndices();
+
+                Assert.Equal(messagesCount, receivedMessages.Count);
             }
             finally
             {
                 if (rm != null)
                 {
                     await rm.CloseAsync();
-                }                
+                }
+
+                if (sender != null)
+                {
+                    await sender.Disconnect();
+                }
+
+                if (receiver != null)
+                {
+                    await receiver.Disconnect();
+                }
             }
+
             // wait for the connection to be closed on the Edge side
             await Task.Delay(TimeSpan.FromSeconds(10));
         }

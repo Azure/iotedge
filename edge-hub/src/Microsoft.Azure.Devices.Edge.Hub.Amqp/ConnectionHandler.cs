@@ -1,10 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 {
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using System.Web;
+
     using Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
@@ -16,24 +18,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     /// <summary>
     /// This class helps maintain the links on an Amqp connection, and it also acts as a common interface for all links.
     /// It maintains the IIdentity and the IDeviceListener for the connection, and provides it to the link handlers.
-    /// It also maintains a registry of the links open on that connection, and makes sure duplicate/invalid links are not opened. 
+    /// It also maintains a registry of the links open on that connection, and makes sure duplicate/invalid links are not opened.
     /// </summary>
     class ConnectionHandler : IConnectionHandler
     {
         readonly IDictionary<LinkType, ILinkHandler> registry = new Dictionary<LinkType, ILinkHandler>();
-        bool isInitialized;
-        IDeviceListener deviceListener;
-        AmqpAuthentication amqpAuthentication;
-
         readonly AsyncLock initializationLock = new AsyncLock();
         readonly AsyncLock registryUpdateLock = new AsyncLock();
         readonly IAmqpConnection connection;
         readonly IConnectionProvider connectionProvider;
 
+        bool isInitialized;
+        IDeviceListener deviceListener;
+        AmqpAuthentication amqpAuthentication;
+
         public ConnectionHandler(IAmqpConnection connection, IConnectionProvider connectionProvider)
         {
             this.connection = Preconditions.CheckNotNull(connection, nameof(connection));
             this.connectionProvider = Preconditions.CheckNotNull(connectionProvider, nameof(connectionProvider));
+        }
+
+        public async Task<AmqpAuthentication> GetAmqpAuthentication()
+        {
+            await this.EnsureInitialized();
+            return this.amqpAuthentication;
         }
 
         public async Task<IDeviceListener> GetDeviceListener()
@@ -42,10 +50,83 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             return this.deviceListener;
         }
 
-        public async Task<AmqpAuthentication> GetAmqpAuthentication()
+        public async Task RegisterLinkHandler(ILinkHandler linkHandler)
         {
-            await this.EnsureInitialized();
-            return this.amqpAuthentication;
+            using (await this.registryUpdateLock.LockAsync())
+            {
+                if (this.registry.TryGetValue(linkHandler.Type, out ILinkHandler currentLinkHandler))
+                {
+                    await currentLinkHandler.CloseAsync(Constants.DefaultTimeout);
+                }
+
+                ILinkHandler nonCorrelatedLinkHandler = null;
+                switch (linkHandler.Type)
+                {
+                    case LinkType.MethodReceiving:
+                        if (this.registry.TryGetValue(LinkType.MethodSending, out ILinkHandler methodSendingLinkHandler)
+                            && methodSendingLinkHandler.CorrelationId != linkHandler.CorrelationId)
+                        {
+                            nonCorrelatedLinkHandler = methodSendingLinkHandler;
+                        }
+
+                        break;
+
+                    case LinkType.MethodSending:
+                        if (this.registry.TryGetValue(LinkType.MethodReceiving, out ILinkHandler methodReceivingLinkHandler)
+                            && methodReceivingLinkHandler.CorrelationId != linkHandler.CorrelationId)
+                        {
+                            nonCorrelatedLinkHandler = methodReceivingLinkHandler;
+                        }
+
+                        break;
+
+                    case LinkType.TwinReceiving:
+                        if (this.registry.TryGetValue(LinkType.TwinSending, out ILinkHandler twinSendingLinkHandler)
+                            && twinSendingLinkHandler.CorrelationId != linkHandler.CorrelationId)
+                        {
+                            nonCorrelatedLinkHandler = twinSendingLinkHandler;
+                        }
+
+                        break;
+
+                    case LinkType.TwinSending:
+                        if (this.registry.TryGetValue(LinkType.TwinReceiving, out ILinkHandler twinReceivingLinkHandler)
+                            && twinReceivingLinkHandler.CorrelationId != linkHandler.CorrelationId)
+                        {
+                            nonCorrelatedLinkHandler = twinReceivingLinkHandler;
+                        }
+
+                        break;
+                }
+
+                await (nonCorrelatedLinkHandler?.CloseAsync(Constants.DefaultTimeout) ?? Task.CompletedTask);
+                this.registry[linkHandler.Type] = linkHandler;
+            }
+        }
+
+        public async Task RemoveLinkHandler(ILinkHandler linkHandler)
+        {
+            Preconditions.CheckNotNull(linkHandler);
+            using (await this.registryUpdateLock.LockAsync())
+            {
+                if (this.registry.ContainsKey(linkHandler.Type))
+                {
+                    this.registry.Remove(linkHandler.Type);
+                    if (this.registry.Count == 0)
+                    {
+                        await this.CloseConnection();
+                    }
+                }
+            }
+        }
+
+        async Task CloseConnection()
+        {
+            using (await this.initializationLock.LockAsync())
+            {
+                this.isInitialized = false;
+                await (this.deviceListener?.CloseAsync() ?? Task.CompletedTask);
+            }
         }
 
         async Task EnsureInitialized()
@@ -57,6 +138,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                     if (!this.isInitialized)
                     {
                         AmqpAuthentication amqpAuth;
+
                         // Check if Principal is SaslPrincipal
                         if (this.connection.Principal is SaslPrincipal saslPrincipal)
                         {
@@ -64,7 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                         }
                         else
                         {
-                            // Else the connection uses CBS authentication. Get AmqpAuthentication from the CbsNode                    
+                            // Else the connection uses CBS authentication. Get AmqpAuthentication from the CbsNode
                             var cbsNode = this.connection.FindExtension<ICbsNode>();
                             if (cbsNode == null)
                             {
@@ -102,81 +184,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                     return updatedAmqpAuthentication.ClientCredentials;
                 }
             }
+
             return Option.None<IClientCredentials>();
-        }
-
-        public async Task RegisterLinkHandler(ILinkHandler linkHandler)
-        {
-            using (await this.registryUpdateLock.LockAsync())
-            {
-                if (this.registry.TryGetValue(linkHandler.Type, out ILinkHandler currentLinkHandler))
-                {
-                    await currentLinkHandler.CloseAsync(Constants.DefaultTimeout);
-                }
-
-                ILinkHandler nonCorrelatedLinkHandler = null;
-                switch (linkHandler.Type)
-                {
-                    case LinkType.MethodReceiving:
-                        if (this.registry.TryGetValue(LinkType.MethodSending, out ILinkHandler methodSendingLinkHandler)
-                            && methodSendingLinkHandler.CorrelationId != linkHandler.CorrelationId)
-                        {
-                            nonCorrelatedLinkHandler = methodSendingLinkHandler;
-                        }
-                        break;
-
-                    case LinkType.MethodSending:
-                        if (this.registry.TryGetValue(LinkType.MethodReceiving, out ILinkHandler methodReceivingLinkHandler)
-                            && methodReceivingLinkHandler.CorrelationId != linkHandler.CorrelationId)
-                        {
-                            nonCorrelatedLinkHandler = methodReceivingLinkHandler;
-                        }
-                        break;
-
-                    case LinkType.TwinReceiving:
-                        if (this.registry.TryGetValue(LinkType.TwinSending, out ILinkHandler twinSendingLinkHandler)
-                            && twinSendingLinkHandler.CorrelationId != linkHandler.CorrelationId)
-                        {
-                            nonCorrelatedLinkHandler = twinSendingLinkHandler;
-                        }
-                        break;
-
-                    case LinkType.TwinSending:
-                        if (this.registry.TryGetValue(LinkType.TwinReceiving, out ILinkHandler twinReceivingLinkHandler)
-                            && twinReceivingLinkHandler.CorrelationId != linkHandler.CorrelationId)
-                        {
-                            nonCorrelatedLinkHandler = twinReceivingLinkHandler;
-                        }
-                        break;
-                }
-                await (nonCorrelatedLinkHandler?.CloseAsync(Constants.DefaultTimeout) ?? Task.CompletedTask);
-                this.registry[linkHandler.Type] = linkHandler;
-            }
-        }
-
-        public async Task RemoveLinkHandler(ILinkHandler linkHandler)
-        {
-            Preconditions.CheckNotNull(linkHandler);
-            using (await this.registryUpdateLock.LockAsync())
-            {
-                if (this.registry.ContainsKey(linkHandler.Type))
-                {
-                    this.registry.Remove(linkHandler.Type);
-                    if (this.registry.Count == 0)
-                    {
-                        await this.CloseConnection();
-                    }
-                }
-            }
-        }
-
-        async Task CloseConnection()
-        {
-            using (await this.initializationLock.LockAsync())
-            {
-                this.isInitialized = false;                
-                await (this.deviceListener?.CloseAsync() ?? Task.CompletedTask);
-            }
         }
 
         public class DeviceProxy : IDeviceProxy
@@ -190,6 +199,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 this.Identity = identity;
             }
 
+            public IIdentity Identity { get; }
+
+            public bool IsActive => this.isActive;
+
             public Task CloseAsync(Exception ex)
             {
                 if (this.isActive.GetAndSet(false))
@@ -197,7 +210,45 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                     Events.ClosingProxy(this.Identity, ex);
                     return this.connectionHandler.connection.Close();
                 }
+
                 return Task.CompletedTask;
+            }
+
+            public Task<Option<IClientCredentials>> GetUpdatedIdentity() => this.connectionHandler.GetUpdatedAuthenticatedIdentity();
+
+            public async Task<DirectMethodResponse> InvokeMethodAsync(DirectMethodRequest request)
+            {
+                if (!this.connectionHandler.registry.TryGetValue(LinkType.MethodSending, out ILinkHandler linkHandler))
+                {
+                    Events.LinkNotFound(LinkType.ModuleMessages, this.Identity, "method request");
+                    return default(DirectMethodResponse);
+                }
+
+                IMessage message = new EdgeMessage.Builder(request.Data)
+                    .SetProperties(
+                        new Dictionary<string, string>
+                        {
+                            [Constants.MessagePropertiesMethodNameKey] = request.Name
+                        })
+                    .SetSystemProperties(
+                        new Dictionary<string, string>
+                        {
+                            [SystemProperties.CorrelationId] = request.CorrelationId
+                        })
+                    .Build();
+                await ((ISendingLinkHandler)linkHandler).SendMessage(message);
+                return default(DirectMethodResponse);
+            }
+
+            public Task OnDesiredPropertyUpdates(IMessage desiredProperties)
+            {
+                if (!this.connectionHandler.registry.TryGetValue(LinkType.TwinSending, out ILinkHandler linkHandler))
+                {
+                    Events.LinkNotFound(LinkType.ModuleMessages, this.Identity, "desired properties update");
+                    return Task.CompletedTask;
+                }
+
+                return ((ISendingLinkHandler)linkHandler).SendMessage(desiredProperties);
             }
 
             public Task SendC2DMessageAsync(IMessage message)
@@ -207,6 +258,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                     Events.LinkNotFound(LinkType.ModuleMessages, this.Identity, "C2D message");
                     return Task.CompletedTask;
                 }
+
                 message.SystemProperties[SystemProperties.To] = this.Identity is IModuleIdentity moduleIdentity
                     ? $"/devices/{HttpUtility.UrlEncode(moduleIdentity.DeviceId)}/modules/{HttpUtility.UrlEncode(moduleIdentity.ModuleId)}"
                     : $"/devices/{HttpUtility.UrlEncode(this.Identity.Id)}";
@@ -220,40 +272,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                     Events.LinkNotFound(LinkType.ModuleMessages, this.Identity, "message");
                     return Task.CompletedTask;
                 }
+
                 message.SystemProperties[SystemProperties.InputName] = input;
                 return ((ISendingLinkHandler)linkHandler).SendMessage(message);
-            }
-
-            public async Task<DirectMethodResponse> InvokeMethodAsync(DirectMethodRequest request)
-            {
-                if (!this.connectionHandler.registry.TryGetValue(LinkType.MethodSending, out ILinkHandler linkHandler))
-                {
-                    Events.LinkNotFound(LinkType.ModuleMessages, this.Identity, "method request");
-                    return default(DirectMethodResponse);
-                }
-
-                IMessage message = new EdgeMessage.Builder(request.Data)
-                    .SetProperties(new Dictionary<string, string>
-                    {
-                        [Constants.MessagePropertiesMethodNameKey] = request.Name
-                    })
-                    .SetSystemProperties(new Dictionary<string, string>
-                    {
-                        [SystemProperties.CorrelationId] = request.CorrelationId
-                    })
-                    .Build();
-                await ((ISendingLinkHandler)linkHandler).SendMessage(message);
-                return default(DirectMethodResponse);
-            }
-
-            public Task OnDesiredPropertyUpdates(IMessage desiredProperties)
-            {
-                if (!this.connectionHandler.registry.TryGetValue(LinkType.TwinSending, out ILinkHandler linkHandler))
-                {
-                    Events.LinkNotFound(LinkType.ModuleMessages, this.Identity, "desired properties update");
-                    return Task.CompletedTask;
-                }
-                return ((ISendingLinkHandler)linkHandler).SendMessage(desiredProperties);
             }
 
             public Task SendTwinUpdate(IMessage twin)
@@ -263,26 +284,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                     Events.LinkNotFound(LinkType.ModuleMessages, this.Identity, "twin update");
                     return Task.CompletedTask;
                 }
+
                 return ((ISendingLinkHandler)linkHandler).SendMessage(twin);
             }
-
-            public bool IsActive => this.isActive;
-
-            public IIdentity Identity { get; }
 
             public void SetInactive()
             {
                 Events.SettingProxyInactive(this.Identity);
                 this.isActive.Set(false);
             }
-
-            public Task<Option<IClientCredentials>> GetUpdatedIdentity() => this.connectionHandler.GetUpdatedAuthenticatedIdentity();
         }
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<ConnectionHandler>();
             const int IdStart = AmqpEventIds.ConnectionHandler;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<ConnectionHandler>();
 
             enum EventIds
             {
@@ -297,6 +313,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 Log.LogInformation((int)EventIds.ClosingProxy, ex, $"Closing AMQP device proxy for {identity.Id} because no handler was registered.");
             }
 
+            internal static void InitializedConnectionHandler(IIdentity identity)
+            {
+                Log.LogInformation((int)EventIds.InitializedConnectionHandler, $"Initialized AMQP connection handler for {identity.Id}");
+            }
+
             internal static void LinkNotFound(LinkType linkType, IIdentity identity, string operation)
             {
                 Log.LogWarning((int)EventIds.LinkNotFound, $"Unable to send {operation} to {identity.Id} because {linkType} link was not found.");
@@ -305,11 +326,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             internal static void SettingProxyInactive(IIdentity identity)
             {
                 Log.LogInformation((int)EventIds.SettingProxyInactive, $"Setting proxy inactive for {identity.Id}.");
-            }
-
-            internal static void InitializedConnectionHandler(IIdentity identity)
-            {
-                Log.LogInformation((int)EventIds.InitializedConnectionHandler, $"Initialized AMQP connection handler for {identity.Id}");
             }
         }
     }

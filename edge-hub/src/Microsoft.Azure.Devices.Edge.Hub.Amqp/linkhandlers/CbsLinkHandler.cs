@@ -1,9 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 {
     using System;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Common;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
@@ -19,9 +20,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             this.Link = Preconditions.CheckNotNull(link, nameof(link));
         }
 
-        public Uri LinkUri { get; }
+        public string CorrelationId { get; } = Guid.NewGuid().ToString();
 
         public IAmqpLink Link { get; }
+
+        public Uri LinkUri { get; }
 
         public LinkType Type => LinkType.Cbs;
 
@@ -45,28 +48,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             return Task.CompletedTask;
         }
 
-        public string CorrelationId { get; } = Guid.NewGuid().ToString();
-
         public Task OpenAsync(TimeSpan timeout) => Task.CompletedTask;
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<CbsLinkHandler>();
             const int IdStart = AmqpEventIds.CbsLinkHandler;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<CbsLinkHandler>();
 
             enum EventIds
             {
                 Closing = IdStart
             }
 
-            public static void Created(IAmqpLink amqpLink)
-            {
-                Log.LogDebug((int)EventIds.Closing, "New CBS {0} link created".FormatInvariant(amqpLink.IsReceiver ? "receiver" : "sender"));
-            }
-
             public static void Closing(IAmqpLink amqpLink)
             {
                 Log.LogDebug((int)EventIds.Closing, "Closing CBS {0} link".FormatInvariant(amqpLink.IsReceiver ? "receiver" : "sender"));
+            }
+
+            public static void Created(IAmqpLink amqpLink)
+            {
+                Log.LogDebug((int)EventIds.Closing, "New CBS {0} link created".FormatInvariant(amqpLink.IsReceiver ? "receiver" : "sender"));
             }
         }
     }

@@ -1,14 +1,17 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Routing.Core.Test.sources
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+namespace Microsoft.Azure.Devices.Routing.Core.Test.Sources
 {
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
     using System.Threading;
     using System.Threading.Tasks;
+
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
     using Microsoft.Azure.Devices.Routing.Core.Sources;
     using Microsoft.Azure.Devices.Routing.Core.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+
     using Xunit;
 
     [ExcludeFromCodeCoverage]
@@ -16,7 +19,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.sources
     {
         static readonly IEndpointExecutorFactory ExecutorFactory = new AsyncEndpointExecutorFactory(TestConstants.DefaultConfig, TestConstants.DefaultOptions);
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task SmokeTest()
         {
             Router router = await Router.CreateAsync("router1", "hub", new RouterConfig(new HashSet<Endpoint>(), new HashSet<Route>(), Option.None<Route>()), ExecutorFactory);

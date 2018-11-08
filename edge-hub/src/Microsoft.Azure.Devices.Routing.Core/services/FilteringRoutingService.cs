@@ -1,6 +1,5 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Services
 {
     using System;
@@ -11,6 +10,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Services
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Routing.Core.Query;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
@@ -29,10 +29,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Services
         readonly IRouteStore routeStore;
         readonly AsyncLock sync;
         readonly IRoutingService underlying;
-
-        ImmutableDictionary<string, Evaluator> Evaluators => this.evaluators;
-
-        ImmutableDictionary<string, INotifier> Notifiers => this.notifiers;
 
         public FilteringRoutingService(IRoutingService underlying, IRouteStore routeStore, INotifierFactory notifierFactory)
             : this(underlying, routeStore, notifierFactory, RouteCompiler.Instance)
@@ -53,24 +49,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Services
             this.sync = new AsyncLock();
         }
 
-        public Task RouteAsync(string hubName, IMessage message) => this.RouteAsync(hubName, new[] { message });
+        ImmutableDictionary<string, Evaluator> Evaluators => this.evaluators;
 
-        public async Task RouteAsync(string hubName, IEnumerable<IMessage> messages)
-        {
-            this.CheckClosed();
-
-            Evaluator evaluator = await this.GetEvaluatorAsync(hubName);
-            IList<IMessage> filtered = messages.Where(msg => evaluator.Evaluate(msg).Any()).ToList();
-
-            if (filtered.Any())
-            {
-                await this.underlying.RouteAsync(hubName, filtered);
-            }
-        }
-
-        public Task<IEnumerable<EndpointHealthData>> GetEndpointHealthAsync(string hubName) => this.underlying.GetEndpointHealthAsync(hubName);
-
-        public Task StartAsync() => this.underlying.StartAsync();
+        ImmutableDictionary<string, INotifier> Notifiers => this.notifiers;
 
         public async Task CloseAsync(CancellationToken token)
         {
@@ -89,9 +70,27 @@ namespace Microsoft.Azure.Devices.Routing.Core.Services
 
         public void Dispose() => this.Dispose(true);
 
+        public Task<IEnumerable<EndpointHealthData>> GetEndpointHealthAsync(string hubName) => this.underlying.GetEndpointHealthAsync(hubName);
+
+        public Task RouteAsync(string hubName, IMessage message) => this.RouteAsync(hubName, new[] { message });
+
+        public async Task RouteAsync(string hubName, IEnumerable<IMessage> messages)
+        {
+            this.CheckClosed();
+
+            Evaluator evaluator = await this.GetEvaluatorAsync(hubName);
+            IList<IMessage> filtered = messages.Where(msg => evaluator.Evaluate(msg).Any()).ToList();
+
+            if (filtered.Any())
+            {
+                await this.underlying.RouteAsync(hubName, filtered);
+            }
+        }
+
+        public Task StartAsync() => this.underlying.StartAsync();
+
         protected virtual void Dispose(bool disposing)
         {
-            //Debug.Assert(this.closed);
             if (disposing)
             {
                 this.cts.Dispose();
@@ -104,14 +103,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Services
             }
         }
 
-        void CheckClosed()
-        {
-            if (this.closed)
-            {
-                throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, "{0} is closed.", nameof(FilteringRoutingService)));
-            }
-        }
-
         static async Task CloseEvaluatorAsync(Evaluator evaluator, CancellationToken token)
         {
             try
@@ -121,6 +112,26 @@ namespace Microsoft.Azure.Devices.Routing.Core.Services
             catch (Exception ex)
             {
                 Events.EvaluatorCloseFailed(ex);
+            }
+        }
+
+        static async Task CloseNotifierAsync(INotifier notifier, CancellationToken token)
+        {
+            try
+            {
+                await notifier.CloseAsync(token);
+            }
+            catch (Exception ex)
+            {
+                Events.NotifierCloseFailed(ex);
+            }
+        }
+
+        void CheckClosed()
+        {
+            if (this.closed)
+            {
+                throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, "{0} is closed.", nameof(FilteringRoutingService)));
             }
         }
 
@@ -139,7 +150,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Services
                         RouterConfig config = await this.routeStore.GetRouterConfigAsync(hubName, this.cts.Token);
                         evaluator = new Evaluator(config, this.compiler);
                         bool evaluatorIsSet = this.evaluators.CompareAndSet(snapshot, snapshot.Add(hubName, evaluator));
-                        Debug.Assert(evaluatorIsSet);
+                        Debug.Assert(evaluatorIsSet, "evaluatorIsSet");
 
                         // Setup to be notified of changes to the hub for this evaluator
                         INotifier notifier;
@@ -148,42 +159,13 @@ namespace Microsoft.Azure.Devices.Routing.Core.Services
                             notifier = this.notifierFactory.Create(hubName);
                             await notifier.SubscribeAsync(nameof(FilteringRoutingService), this.UpdateEvaluatorAsync, this.RemoveEvaluatorAsync, this.cts.Token);
                             bool notifierIsSet = this.notifiers.CompareAndSet(this.Notifiers, this.Notifiers.Add(hubName, notifier));
-                            Debug.Assert(notifierIsSet);
+                            Debug.Assert(notifierIsSet, "notifierIsSet");
                         }
                     }
                 }
             }
+
             return evaluator;
-        }
-
-        async Task UpdateEvaluatorAsync(string hubName)
-        {
-            try
-            {
-                bool shouldClose;
-                Evaluator oldEvaluator;
-                using (await this.sync.LockAsync(this.cts.Token))
-                {
-                    ImmutableDictionary<string, Evaluator> snapshot = this.Evaluators;
-                    RouterConfig config = await this.routeStore.GetRouterConfigAsync(hubName, this.cts.Token);
-
-                    // Close the current evaluator
-                    shouldClose = snapshot.TryGetValue(hubName, out oldEvaluator);
-
-                    var newEvaluator = new Evaluator(config);
-                    bool evaluatorIsSet = this.evaluators.CompareAndSet(snapshot, snapshot.SetItem(hubName, newEvaluator));
-                    Debug.Assert(evaluatorIsSet);
-                }
-
-                if (shouldClose)
-                {
-                    await oldEvaluator.CloseAsync(this.cts.Token);
-                }
-            }
-            catch (Exception ex) when (!ex.IsFatal())
-            {
-                Events.EvaluatorUpdateFailed(ex);
-            }
         }
 
         async Task RemoveEvaluatorAsync(string hubName)
@@ -202,13 +184,13 @@ namespace Microsoft.Azure.Devices.Routing.Core.Services
                     if (evaluatorSnapshot.TryGetValue(hubName, out evaluator))
                     {
                         bool evaluatorIsSet = this.evaluators.CompareAndSet(evaluatorSnapshot, evaluatorSnapshot.Remove(hubName));
-                        Debug.Assert(evaluatorIsSet);
+                        Debug.Assert(evaluatorIsSet, "evaluatorIsSet");
 
                         // Close and remove the current notifier
                         if (notifierSnapshot.TryGetValue(hubName, out notifier))
                         {
                             bool notifierIsSet = this.notifiers.CompareAndSet(notifierSnapshot, notifierSnapshot.Remove(hubName));
-                            Debug.Assert(notifierIsSet);
+                            Debug.Assert(notifierIsSet, "notifierIsSet");
                         }
                     }
                 }
@@ -233,22 +215,40 @@ namespace Microsoft.Azure.Devices.Routing.Core.Services
             }
         }
 
-        static async Task CloseNotifierAsync(INotifier notifier, CancellationToken token)
+        async Task UpdateEvaluatorAsync(string hubName)
         {
             try
             {
-                await notifier.CloseAsync(token);
+                bool shouldClose;
+                Evaluator oldEvaluator;
+                using (await this.sync.LockAsync(this.cts.Token))
+                {
+                    ImmutableDictionary<string, Evaluator> snapshot = this.Evaluators;
+                    RouterConfig config = await this.routeStore.GetRouterConfigAsync(hubName, this.cts.Token);
+
+                    // Close the current evaluator
+                    shouldClose = snapshot.TryGetValue(hubName, out oldEvaluator);
+
+                    var newEvaluator = new Evaluator(config);
+                    bool evaluatorIsSet = this.evaluators.CompareAndSet(snapshot, snapshot.SetItem(hubName, newEvaluator));
+                    Debug.Assert(evaluatorIsSet, "evaluatorIsSet");
+                }
+
+                if (shouldClose)
+                {
+                    await oldEvaluator.CloseAsync(this.cts.Token);
+                }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!ex.IsFatal())
             {
-                Events.NotifierCloseFailed(ex);
+                Events.EvaluatorUpdateFailed(ex);
             }
         }
 
         static class Events
         {
-            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<FilteringRoutingService>();
             const int IdStart = Routing.EventIds.FilteringRoutingService;
+            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<FilteringRoutingService>();
 
             enum EventIds
             {
@@ -263,14 +263,14 @@ namespace Microsoft.Azure.Devices.Routing.Core.Services
                 Log.LogWarning((int)EventIds.EvaluatorCloseFailed, exception, "[EvaluatorCloseFailed] Evaluator close failed.");
             }
 
-            public static void EvaluatorUpdateFailed(Exception exception)
-            {
-                Log.LogWarning((int)EventIds.EvaluatorUpdateFailed, exception, "[EvaluatorUpdateFailed] Evaluator update failed.");
-            }
-
             public static void EvaluatorRemoveFailed(Exception exception)
             {
                 Log.LogWarning((int)EventIds.EvaluatorRemoveFailed, exception, "[EvaluatorRemoveFailed] Evaluator remove failed.");
+            }
+
+            public static void EvaluatorUpdateFailed(Exception exception)
+            {
+                Log.LogWarning((int)EventIds.EvaluatorUpdateFailed, exception, "[EvaluatorUpdateFailed] Evaluator update failed.");
             }
 
             public static void NotifierCloseFailed(Exception exception)

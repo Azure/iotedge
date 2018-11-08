@@ -1,10 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -19,9 +21,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
     using Microsoft.Azure.Devices.Shared;
+
     using Moq;
+
     using Newtonsoft.Json;
+
     using Xunit;
+
+    using IotHubConnectionStringBuilder = Microsoft.Azure.Devices.IotHubConnectionStringBuilder;
+    using Message = Microsoft.Azure.Devices.Client.Message;
 
     [Integration]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
@@ -38,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             var messageConverterProvider = new MessageConverterProvider(
                 new Dictionary<Type, IMessageConverter>()
                 {
-                    { typeof(Client.Message), new DeviceClientMessageConverter() },
+                    { typeof(Message), new DeviceClientMessageConverter() },
                     { typeof(Twin), twinMessageConverter },
                     { typeof(TwinCollection), twinCollectionMessageConverter }
                 });
@@ -47,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             var connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache);
 
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
-            Devices.IotHubConnectionStringBuilder iotHubConnectionStringBuilder = Devices.IotHubConnectionStringBuilder.Create(iotHubConnectionString);
+            IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
             RegistryManager registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
             await registryManager.OpenAsync();
 
@@ -95,8 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     twinCollectionMessageConverter,
                     twinMessageConverter,
                     versionInfo,
-                    new NullDeviceScopeIdentitiesCache()
-                );
+                    new NullDeviceScopeIdentitiesCache());
                 await Task.Delay(TimeSpan.FromMinutes(1));
 
                 // Get and Validate EdgeHubConfig
@@ -150,7 +157,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 Assert.Equal(versionInfo, reportedProperties.VersionInfo);
 
                 // Simulate a module and a downstream device that connects to Edge Hub.
-
                 string moduleId = "module1";
                 string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/{edgeDeviceId}/modules/{moduleId}");
                 string moduleConnectionstring = $"HostName={iothubHostName};DeviceId={edgeDeviceId};ModuleId={moduleId};SharedAccessSignature={sasToken}";
@@ -254,14 +260,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 Assert.Equal(versionInfo, reportedProperties.VersionInfo);
 
                 // If the edge hub restarts, clear out the connected devices in the reported properties.
-                await EdgeHubConnection.Create(edgeHubCredentials.Identity, edgeHub, twinManager, connectionManager, routeFactory, twinCollectionMessageConverter, twinMessageConverter, versionInfo,
+                await EdgeHubConnection.Create(
+                    edgeHubCredentials.Identity,
+                    edgeHub,
+                    twinManager,
+                    connectionManager,
+                    routeFactory,
+                    twinCollectionMessageConverter,
+                    twinMessageConverter,
+                    versionInfo,
                     new NullDeviceScopeIdentitiesCache());
                 await Task.Delay(TimeSpan.FromMinutes(1));
                 reportedProperties = await this.GetReportedProperties(registryManager, edgeDeviceId);
                 Assert.Null(reportedProperties.Clients);
                 Assert.Equal("1.0", reportedProperties.SchemaVersion);
                 Assert.Equal(versionInfo, reportedProperties.VersionInfo);
-
             }
             finally
             {
@@ -309,7 +322,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     ["$edgeHub"] = new Dictionary<string, object>
                     {
                         ["properties.desired"] = desiredProperties
-
                     },
                     ["$edgeAgent"] = new Dictionary<string, object>
                     {
@@ -346,7 +358,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     ["$edgeHub"] = new Dictionary<string, object>
                     {
                         ["properties.desired"] = desiredProperties
-
                     },
                     ["$edgeAgent"] = new Dictionary<string, object>
                     {

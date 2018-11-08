@@ -1,13 +1,12 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 {
     using System.Collections.Generic;
     using System.Globalization;
     using System.Threading;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Routing.Core.Util;
 
@@ -37,14 +36,16 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
         {
             readonly NullEndpoint endpoint;
 
-            public Endpoint Endpoint => this.endpoint;
-
-            public ITransientErrorDetectionStrategy ErrorDetectionStrategy => new ErrorDetectionStrategy(_ => true);
-
             public Processor(NullEndpoint endpoint)
             {
                 this.endpoint = Preconditions.CheckNotNull(endpoint);
             }
+
+            public Endpoint Endpoint => this.endpoint;
+
+            public ITransientErrorDetectionStrategy ErrorDetectionStrategy => new ErrorDetectionStrategy(_ => true);
+
+            public Task CloseAsync(CancellationToken token) => TaskEx.Done;
 
             public Task<ISinkResult<IMessage>> ProcessAsync(IMessage message, CancellationToken token) =>
                 this.ProcessAsync(new[] { message }, token);
@@ -54,8 +55,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                 ISinkResult<IMessage> result = new SinkResult<IMessage>(messages);
                 return Task.FromResult(result);
             }
-
-            public Task CloseAsync(CancellationToken token) => TaskEx.Done;
         }
     }
 }

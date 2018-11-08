@@ -1,10 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
+
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Http;
     using Microsoft.Azure.Devices.Common.Security;
@@ -14,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Primitives;
     using Microsoft.Net.Http.Headers;
+
     using static System.FormattableString;
 
     public class AuthenticationMiddleware
@@ -61,15 +64,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
 
         internal async Task<(bool, string)> AuthenticateRequest(HttpContext context)
         {
-            // Authorization header may be present in the QueryNameValuePairs as per Azure standards,           
-            // So check in the query parameters first.             
+            // Authorization header may be present in the QueryNameValuePairs as per Azure standards,
+            // So check in the query parameters first.
             List<string> authorizationQueryParameters = context.Request.Query
                 .Where(p => p.Key.Equals(HeaderNames.Authorization, StringComparison.OrdinalIgnoreCase))
                 .SelectMany(p => p.Value)
                 .ToList();
 
             if (!(context.Request.Headers.TryGetValue(HeaderNames.Authorization, out StringValues authorizationHeaderValues)
-                && authorizationQueryParameters.Count == 0))
+                  && authorizationQueryParameters.Count == 0))
             {
                 return LogAndReturnFailure("Authorization header missing");
             }
@@ -104,12 +107,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
             {
                 return LogAndReturnFailure("Request header does not contain ModuleId");
             }
+
             string clientId = clientIds.First();
             string[] clientIdParts = clientId.Split(new[] { '/' }, 2, StringSplitOptions.RemoveEmptyEntries);
             if (clientIdParts.Length != 2)
             {
                 return LogAndReturnFailure("Id header doesn't contain device Id and module Id as expected.");
             }
+
             string deviceId = clientIdParts[0];
             string moduleId = clientIdParts[1];
 
@@ -148,14 +153,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<AuthenticationMiddleware>();
             const int IdStart = HttpEventIds.AuthenticationMiddleware;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<AuthenticationMiddleware>();
 
             enum EventIds
             {
                 AuthenticationFailed = IdStart,
                 AuthenticationError,
                 AuthenticationSuccess
+            }
+
+            public static void AuthenticationError(Exception ex, HttpContext context)
+            {
+                // TODO - Check if it is okay to put request headers in logs.
+                Log.LogError((int)EventIds.AuthenticationError, ex, Invariant($"Unknown error occurred during authentication, for request with headers - {context.Request.Headers}"));
             }
 
             public static void AuthenticationFailed(string message, Exception ex)
@@ -168,12 +179,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
                 {
                     Log.LogWarning((int)EventIds.AuthenticationFailed, ex, Invariant($"Http Authentication failed due to following issue - {message}"));
                 }
-            }
-
-            public static void AuthenticationError(Exception ex, HttpContext context)
-            {
-                // TODO - Check if it is okay to put request headers in logs.
-                Log.LogError((int)EventIds.AuthenticationError, ex, Invariant($"Unknown error occurred during authentication, for request with headers - {context.Request.Headers}"));
             }
 
             public static void AuthenticationSucceeded(IIdentity identity)

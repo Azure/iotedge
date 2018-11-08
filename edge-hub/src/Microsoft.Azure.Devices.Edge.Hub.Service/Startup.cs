@@ -1,10 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
     using System;
+
     using Autofac;
     using Autofac.Extensions.DependencyInjection;
+
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Mvc;
@@ -33,27 +35,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
         internal IContainer Container { get; private set; }
 
-        // This method gets called by the runtime. Use this method to add services to the container.
-        public IServiceProvider ConfigureServices(IServiceCollection services)
-        {
-            services.AddMemoryCache();
-            services.AddMvc(options => options.Filters.Add(typeof(ExceptionFilter)));
-            services.Configure<MvcOptions>(options => { options.Filters.Add(new RequireHttpsAttribute()); });
-            this.Container = this.BuildContainer(services);
-            
-            return new AutofacServiceProvider(this.Container);
-        }
-
-        IContainer BuildContainer(IServiceCollection services)
-        {
-            var builder = new ContainerBuilder();
-            builder.Populate(services);
-            this.dependencyManager.Register(builder);
-            builder.RegisterInstance<IStartup>(this);
-
-            return builder.Build();
-        }
-
         public void Configure(IApplicationBuilder app)
         {
             app.UseWebSockets();
@@ -79,6 +60,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             app.UseAuthenticationMiddleware(iotHubHostname, edgeDeviceId);
 
             app.UseMvc();
+        }
+
+        // This method gets called by the runtime. Use this method to add services to the container.
+        public IServiceProvider ConfigureServices(IServiceCollection services)
+        {
+            services.AddMemoryCache();
+            services.AddMvc(options => options.Filters.Add(typeof(ExceptionFilter)));
+            services.Configure<MvcOptions>(options => { options.Filters.Add(new RequireHttpsAttribute()); });
+            this.Container = this.BuildContainer(services);
+
+            return new AutofacServiceProvider(this.Container);
+        }
+
+        IContainer BuildContainer(IServiceCollection services)
+        {
+            var builder = new ContainerBuilder();
+            builder.Populate(services);
+            this.dependencyManager.Register(builder);
+            builder.RegisterInstance<IStartup>(this);
+
+            return builder.Build();
         }
     }
 }

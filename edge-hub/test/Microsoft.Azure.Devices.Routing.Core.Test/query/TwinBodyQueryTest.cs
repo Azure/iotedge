@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+/*
 //// ---------------------------------------------------------------
 //// Copyright (c) Microsoft Corporation. All rights reserved.
 //// ---------------------------------------------------------------
@@ -15,7 +18,7 @@
 //    using Xunit;
 
 //    public class TwinBodyQueryTest: RoutingUnitTestBase
-//    {        
+//    {
 //        public TwinBodyQueryTest()
 //        {
 //            Message1 = GenerateDefaultTwinMessage();
@@ -29,7 +32,6 @@
 //            twinInfo.DesiredProperties = new DeviceTwinProperties();
 //            twinInfo.ReportedProperties = new DeviceTwinProperties();
 //            var weather = new DataObject();
-            
 //            weather["Temperature"] = 50;
 //            weather["FreezingTemperature"] = -50.4;
 //            weather["PreciseTemperature"] = 50.4;
@@ -56,7 +58,6 @@
 
 //            weather["HistoricalData_0"] = histori0;
 //            weather["HistoricalData_1"] = histori1;
-            
 //            weather["Location"] = location;
 //            twinInfo.Tags["Weather"] = weather;
 
@@ -79,7 +80,6 @@
 //            return twinMessage;
 //        }
 
-        
 //        [Theory, Unit]
 //        [InlineData("50 >= $body.tags.Weather.Temperature")]
 //        [InlineData("$body.tags.Weather.Temperature >= 50")]
@@ -290,3 +290,4 @@
 //        }
 //    }
 //}
+*/

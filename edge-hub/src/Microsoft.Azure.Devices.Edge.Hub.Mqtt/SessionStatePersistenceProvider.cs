@@ -1,18 +1,21 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
-    using Microsoft.Azure.Devices.Edge.Hub.Core;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
-    using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.ProtocolGateway.Mqtt.Persistence;
-    using Microsoft.Extensions.Logging;
     using System;
     using System.Collections.Generic;
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
+
+    using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Azure.Devices.ProtocolGateway.Mqtt.Persistence;
+    using Microsoft.Extensions.Logging;
+
     using static System.FormattableString;
+
     using IDeviceIdentity = Microsoft.Azure.Devices.ProtocolGateway.Identity.IDeviceIdentity;
 
     public class SessionStatePersistenceProvider : ISessionStatePersistenceProvider
@@ -33,6 +36,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public ISessionState Create(bool transient) => new SessionState(transient);
 
+        public virtual Task DeleteAsync(IDeviceIdentity identity, ISessionState sessionState) => Task.CompletedTask;
+
         public virtual Task<ISessionState> GetAsync(IDeviceIdentity identity)
         {
             // This class does not store the session state, so return null to Protocol gateway
@@ -40,9 +45,36 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         }
 
         public virtual Task SetAsync(IDeviceIdentity identity, ISessionState sessionState) =>
-            sessionState is SessionState registrationSessionState ?
-            this.ProcessSessionSubscriptions(identity.Id, registrationSessionState) :
-            Task.CompletedTask;
+            sessionState is SessionState registrationSessionState ? this.ProcessSessionSubscriptions(identity.Id, registrationSessionState) : Task.CompletedTask;
+
+        internal static DeviceSubscription GetDeviceSubscription(string topicName)
+        {
+            Preconditions.CheckNonWhiteSpace(topicName, nameof(topicName));
+            if (topicName.StartsWith(MethodSubscriptionTopicPrefix))
+            {
+                return DeviceSubscription.Methods;
+            }
+            else if (topicName.StartsWith(TwinSubscriptionTopicPrefix))
+            {
+                return DeviceSubscription.DesiredPropertyUpdates;
+            }
+            else if (topicName.EndsWith(C2DSubscriptionTopicPrefix))
+            {
+                return DeviceSubscription.C2D;
+            }
+            else if (topicName.Equals(TwinResponseTopicFilter))
+            {
+                return DeviceSubscription.TwinResponse;
+            }
+            else if (ModuleMessageTopicRegex.IsMatch(topicName))
+            {
+                return DeviceSubscription.ModuleMessages;
+            }
+            else
+            {
+                return DeviceSubscription.Unknown;
+            }
+        }
 
         protected async Task ProcessSessionSubscriptions(string id, SessionState sessionState)
         {
@@ -79,55 +111,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     }
                 }
             }
+
             // Don't clear subscriptions here. That way the subscriptions are set every time the connection
-            // is re-established. Setting subscriptions is an idempotent operation.             
-        }
-
-        public virtual Task DeleteAsync(IDeviceIdentity identity, ISessionState sessionState) => Task.CompletedTask;
-
-        internal static DeviceSubscription GetDeviceSubscription(string topicName)
-        {
-            Preconditions.CheckNonWhiteSpace(topicName, nameof(topicName));
-            if (topicName.StartsWith(MethodSubscriptionTopicPrefix))
-            {
-                return DeviceSubscription.Methods;
-            }
-            else if (topicName.StartsWith(TwinSubscriptionTopicPrefix))
-            {
-                return DeviceSubscription.DesiredPropertyUpdates;
-            }
-            else if (topicName.EndsWith(C2DSubscriptionTopicPrefix))
-            {
-                return DeviceSubscription.C2D;
-            }
-            else if (topicName.Equals(TwinResponseTopicFilter))
-            {
-                return DeviceSubscription.TwinResponse;
-            }
-            else if (ModuleMessageTopicRegex.IsMatch(topicName))
-            {
-                return DeviceSubscription.ModuleMessages;
-            }
-            else
-            {
-                return DeviceSubscription.Unknown;
-            }
+            // is re-established. Setting subscriptions is an idempotent operation.
         }
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<SessionStatePersistenceProvider>();
             const int IdStart = MqttEventIds.SessionStatePersistenceProvider;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<SessionStatePersistenceProvider>();
 
             enum EventIds
             {
                 UnknownSubscription = IdStart,
                 ErrorHandlingSubscription
-            }
-
-            public static void UnknownTopicSubscription(string topicName, string id)
-            {
-                Log.LogInformation((int)EventIds.UnknownSubscription, Invariant($"Ignoring unknown subscription to topic {topicName} for client {id}."));
             }
 
             public static void ErrorHandlingSubscription(string id, string topicName, bool addSubscription, Exception exception)
@@ -140,6 +137,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             {
                 string action = addSubscription ? "Adding" : "Removing";
                 Log.LogDebug((int)EventIds.ErrorHandlingSubscription, Invariant($"{action} subscription {topicName} for client {id}."));
+            }
+
+            public static void UnknownTopicSubscription(string topicName, string id)
+            {
+                Log.LogInformation((int)EventIds.UnknownSubscription, Invariant($"Ignoring unknown subscription to topic {topicName} for client {id}."));
             }
         }
     }

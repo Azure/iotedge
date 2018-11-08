@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
     using System;
@@ -8,17 +8,228 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using System.Net;
     using System.Text;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+
     using Moq;
+
     using Newtonsoft.Json;
+
     using Xunit;
 
     [Unit]
     public class ServiceProxyTest
     {
+        [Fact]
+        public async Task GetServiceIdentitiy_BadRequest_DeviceTest()
+        {
+            // Arrange
+            var deviceScopeApiClient = new Mock<IDeviceScopeApiClient>();
+            deviceScopeApiClient.Setup(d => d.GetIdentity("d1", null)).ThrowsAsync(new DeviceScopeApiException("bad request", HttpStatusCode.BadRequest, string.Empty));
+            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClient.Object);
+
+            // Act
+            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1");
+
+            // Assert
+            Assert.False(serviceIdentity.HasValue);
+        }
+
+        [Fact]
+        public async Task GetServiceIdentitiy_BadRequest_ModuleTest()
+        {
+            // Arrange
+            var deviceScopeApiClient = new Mock<IDeviceScopeApiClient>();
+            deviceScopeApiClient.Setup(d => d.GetIdentity("d1", "m1")).ThrowsAsync(new DeviceScopeApiException("bad request", HttpStatusCode.BadRequest, string.Empty));
+            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClient.Object);
+
+            // Act
+            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "m1");
+
+            // Assert
+            Assert.False(serviceIdentity.HasValue);
+        }
+
+        [Fact]
+        public async Task GetServiceIdentitiy_Device_InvalidTest_EmptyResult()
+        {
+            // Arrange
+            IEnumerable<Device> devices1 = new Device[0];
+            IEnumerable<Module> modules1 = null;
+            string continuationToken1 = null;
+            var scopeResult1 = new ScopeResult(devices1, modules1, continuationToken1);
+            var deviceScopeApiResult = new Mock<IDeviceScopeApiClient>();
+            deviceScopeApiResult.Setup(d => d.GetIdentity("d1", null)).ReturnsAsync(scopeResult1);
+            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiResult.Object);
+
+            // Act
+            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1");
+
+            // Assert
+            Assert.False(serviceIdentity.HasValue);
+        }
+
+        [Fact]
+        public async Task GetServiceIdentitiy_Device_InvalidTest_MultipleResults()
+        {
+            // Arrange
+            IEnumerable<Device> devices1 = new[] { GetDevice("d1"), GetDevice("d1") };
+            IEnumerable<Module> modules1 = null;
+            string continuationToken1 = null;
+            var scopeResult1 = new ScopeResult(devices1, modules1, continuationToken1);
+            var deviceScopeApiResult = new Mock<IDeviceScopeApiClient>();
+            deviceScopeApiResult.Setup(d => d.GetIdentity("d1", null)).ReturnsAsync(scopeResult1);
+            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiResult.Object);
+
+            // Act
+            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1");
+
+            // Assert
+            Assert.False(serviceIdentity.HasValue);
+        }
+
+        [Fact]
+        public async Task GetServiceIdentitiy_Device_InvalidTest_NullResult()
+        {
+            // Arrange
+            ScopeResult scopeResult1 = null;
+            var deviceScopeApiResult = new Mock<IDeviceScopeApiClient>();
+            deviceScopeApiResult.Setup(d => d.GetIdentity("d1", null)).ReturnsAsync(scopeResult1);
+            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiResult.Object);
+
+            // Act
+            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1");
+
+            // Assert
+            Assert.False(serviceIdentity.HasValue);
+        }
+
+        [Fact]
+        public async Task GetServiceIdentitiy_DeviceTest()
+        {
+            // Arrange
+            IEnumerable<Device> devices1 = new[] { GetDevice("d1") };
+            IEnumerable<Module> modules1 = null;
+            string continuationToken1 = null;
+            var scopeResult1 = new ScopeResult(devices1, modules1, continuationToken1);
+            var deviceScopeApiResult = new Mock<IDeviceScopeApiClient>();
+            deviceScopeApiResult.Setup(d => d.GetIdentity("d1", null)).ReturnsAsync(scopeResult1);
+            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiResult.Object);
+
+            // Act
+            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1");
+
+            // Assert
+            Assert.True(serviceIdentity.HasValue);
+            Assert.Equal("d1", serviceIdentity.OrDefault().Id);
+        }
+
+        [Fact]
+        public async Task GetServiceIdentitiy_Exception_DeviceTest()
+        {
+            // Arrange
+            var exception = new InvalidOperationException();
+            var deviceScopeApiClient = new Mock<IDeviceScopeApiClient>();
+            deviceScopeApiClient.Setup(d => d.GetIdentity("d1", null)).ThrowsAsync(exception);
+            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClient.Object);
+
+            // Act / Assert
+            await Assert.ThrowsAsync<InvalidOperationException>(() => serviceProxy.GetServiceIdentity("d1"));
+        }
+
+        [Fact]
+        public async Task GetServiceIdentitiy_Exception_ModuleTest()
+        {
+            // Arrange
+            var exception = new InvalidOperationException();
+            var deviceScopeApiClient = new Mock<IDeviceScopeApiClient>();
+            deviceScopeApiClient.Setup(d => d.GetIdentity("d1", "m1")).ThrowsAsync(exception);
+            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClient.Object);
+
+            // Act / Assert
+            await Assert.ThrowsAsync<InvalidOperationException>(() => serviceProxy.GetServiceIdentity("d1", "m1"));
+        }
+
+        [Fact]
+        public async Task GetServiceIdentitiy_Module_InvalidTest_EmptyResult()
+        {
+            // Arrange
+            IEnumerable<Device> devices1 = null;
+            IEnumerable<Module> modules1 = new Module[0];
+
+            string continuationToken1 = null;
+            var scopeResult1 = new ScopeResult(devices1, modules1, continuationToken1);
+            var deviceScopeApiResult = new Mock<IDeviceScopeApiClient>();
+            deviceScopeApiResult.Setup(d => d.GetIdentity("d1", "m1")).ReturnsAsync(scopeResult1);
+            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiResult.Object);
+
+            // Act
+            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "m1");
+
+            // Assert
+            Assert.False(serviceIdentity.HasValue);
+        }
+
+        [Fact]
+        public async Task GetServiceIdentitiy_Module_InvalidTest_MultipleResults()
+        {
+            // Arrange
+            IEnumerable<Device> devices1 = null;
+            IEnumerable<Module> modules1 = new[] { GetModule("d1", "m1"), GetModule("d1", "m1") };
+
+            string continuationToken1 = null;
+            var scopeResult1 = new ScopeResult(devices1, modules1, continuationToken1);
+            var deviceScopeApiResult = new Mock<IDeviceScopeApiClient>();
+            deviceScopeApiResult.Setup(d => d.GetIdentity("d1", "m1")).ReturnsAsync(scopeResult1);
+            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiResult.Object);
+
+            // Act
+            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "m1");
+
+            // Assert
+            Assert.False(serviceIdentity.HasValue);
+        }
+
+        [Fact]
+        public async Task GetServiceIdentitiy_Module_InvalidTest_NullResult()
+        {
+            // Arrange
+            ScopeResult scopeResult1 = null;
+            var deviceScopeApiResult = new Mock<IDeviceScopeApiClient>();
+            deviceScopeApiResult.Setup(d => d.GetIdentity("d1", "m1")).ReturnsAsync(scopeResult1);
+            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiResult.Object);
+
+            // Act
+            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "m1");
+
+            // Assert
+            Assert.False(serviceIdentity.HasValue);
+        }
+
+        [Fact]
+        public async Task GetServiceIdentitiy_ModuleTest()
+        {
+            // Arrange
+            IEnumerable<Device> devices1 = null;
+            IEnumerable<Module> modules1 = new[] { GetModule("d1", "m1") };
+
+            string continuationToken1 = null;
+            var scopeResult1 = new ScopeResult(devices1, modules1, continuationToken1);
+            var deviceScopeApiResult = new Mock<IDeviceScopeApiClient>();
+            deviceScopeApiResult.Setup(d => d.GetIdentity("d1", "m1")).ReturnsAsync(scopeResult1);
+            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiResult.Object);
+
+            // Act
+            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "m1");
+
+            // Assert
+            Assert.True(serviceIdentity.HasValue);
+            Assert.Equal("d1/m1", serviceIdentity.OrDefault().Id);
+        }
+
         [Fact]
         public async Task IteratorTest()
         {
@@ -69,210 +280,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             serviceIdentities = await iterator.GetNext();
             Assert.Equal(0, serviceIdentities.Count());
-        }
-
-        [Fact]
-        public async Task GetServiceIdentitiy_DeviceTest()
-        {
-            // Arrange
-            IEnumerable<Device> devices1 = new[] { GetDevice("d1") };
-            IEnumerable<Module> modules1 = null;
-            string continuationToken1 = null;
-            var scopeResult1 = new ScopeResult(devices1, modules1, continuationToken1);
-            var deviceScopeApiResult = new Mock<IDeviceScopeApiClient>();
-            deviceScopeApiResult.Setup(d => d.GetIdentity("d1", null)).ReturnsAsync(scopeResult1);
-            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiResult.Object);
-
-            // Act
-            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1");
-
-            // Assert
-            Assert.True(serviceIdentity.HasValue);
-            Assert.Equal("d1", serviceIdentity.OrDefault().Id);
-        }
-
-        [Fact]
-        public async Task GetServiceIdentitiy_Device_InvalidTest_MultipleResults()
-        {
-            // Arrange
-            IEnumerable<Device> devices1 = new[] { GetDevice("d1"), GetDevice("d1") };
-            IEnumerable<Module> modules1 = null;
-            string continuationToken1 = null;
-            var scopeResult1 = new ScopeResult(devices1, modules1, continuationToken1);
-            var deviceScopeApiResult = new Mock<IDeviceScopeApiClient>();
-            deviceScopeApiResult.Setup(d => d.GetIdentity("d1", null)).ReturnsAsync(scopeResult1);
-            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiResult.Object);
-
-            // Act
-            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1");
-
-            // Assert
-            Assert.False(serviceIdentity.HasValue);
-        }
-
-        [Fact]
-        public async Task GetServiceIdentitiy_Device_InvalidTest_EmptyResult()
-        {
-            // Arrange
-            IEnumerable<Device> devices1 = new Device[0];
-            IEnumerable<Module> modules1 = null;
-            string continuationToken1 = null;
-            var scopeResult1 = new ScopeResult(devices1, modules1, continuationToken1);
-            var deviceScopeApiResult = new Mock<IDeviceScopeApiClient>();
-            deviceScopeApiResult.Setup(d => d.GetIdentity("d1", null)).ReturnsAsync(scopeResult1);
-            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiResult.Object);
-
-            // Act
-            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1");
-
-            // Assert
-            Assert.False(serviceIdentity.HasValue);
-        }
-
-        [Fact]
-        public async Task GetServiceIdentitiy_Device_InvalidTest_NullResult()
-        {
-            // Arrange
-            ScopeResult scopeResult1 = null;
-            var deviceScopeApiResult = new Mock<IDeviceScopeApiClient>();
-            deviceScopeApiResult.Setup(d => d.GetIdentity("d1", null)).ReturnsAsync(scopeResult1);
-            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiResult.Object);
-
-            // Act
-            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1");
-
-            // Assert
-            Assert.False(serviceIdentity.HasValue);
-        }
-
-        [Fact]
-        public async Task GetServiceIdentitiy_BadRequest_DeviceTest()
-        {
-            // Arrange
-            var deviceScopeApiClient = new Mock<IDeviceScopeApiClient>();
-            deviceScopeApiClient.Setup(d => d.GetIdentity("d1", null)).ThrowsAsync(new DeviceScopeApiException("bad request", HttpStatusCode.BadRequest, string.Empty));
-            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClient.Object);
-
-            // Act
-            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1");
-
-            // Assert
-            Assert.False(serviceIdentity.HasValue);            
-        }
-
-        [Fact]
-        public async Task GetServiceIdentitiy_Exception_DeviceTest()
-        {
-            // Arrange
-            var exception = new InvalidOperationException();
-            var deviceScopeApiClient = new Mock<IDeviceScopeApiClient>();
-            deviceScopeApiClient.Setup(d => d.GetIdentity("d1", null)).ThrowsAsync(exception);
-            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClient.Object);
-
-            // Act / Assert
-            await Assert.ThrowsAsync<InvalidOperationException>(() => serviceProxy.GetServiceIdentity("d1"));
-        }
-
-        [Fact]
-        public async Task GetServiceIdentitiy_BadRequest_ModuleTest()
-        {
-            // Arrange
-            var deviceScopeApiClient = new Mock<IDeviceScopeApiClient>();
-            deviceScopeApiClient.Setup(d => d.GetIdentity("d1", "m1")).ThrowsAsync(new DeviceScopeApiException("bad request", HttpStatusCode.BadRequest, string.Empty));
-            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClient.Object);
-
-            // Act
-            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "m1");
-
-            // Assert
-            Assert.False(serviceIdentity.HasValue);
-        }
-
-        [Fact]
-        public async Task GetServiceIdentitiy_Exception_ModuleTest()
-        {
-            // Arrange
-            var exception = new InvalidOperationException();
-            var deviceScopeApiClient = new Mock<IDeviceScopeApiClient>();
-            deviceScopeApiClient.Setup(d => d.GetIdentity("d1", "m1")).ThrowsAsync(exception);
-            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClient.Object);
-
-            // Act / Assert
-            await Assert.ThrowsAsync<InvalidOperationException>(() => serviceProxy.GetServiceIdentity("d1", "m1"));
-        }
-
-        [Fact]
-        public async Task GetServiceIdentitiy_ModuleTest()
-        {
-            // Arrange
-            IEnumerable<Device> devices1 = null;
-            IEnumerable<Module> modules1 = new[] { GetModule("d1", "m1") }; ;
-            string continuationToken1 = null;
-            var scopeResult1 = new ScopeResult(devices1, modules1, continuationToken1);
-            var deviceScopeApiResult = new Mock<IDeviceScopeApiClient>();
-            deviceScopeApiResult.Setup(d => d.GetIdentity("d1", "m1")).ReturnsAsync(scopeResult1);
-            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiResult.Object);
-
-            // Act
-            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "m1");
-
-            // Assert
-            Assert.True(serviceIdentity.HasValue);
-            Assert.Equal("d1/m1", serviceIdentity.OrDefault().Id);
-        }
-
-        [Fact]
-        public async Task GetServiceIdentitiy_Module_InvalidTest_MultipleResults()
-        {
-            // Arrange
-            IEnumerable<Device> devices1 = null;
-            IEnumerable<Module> modules1 = new[] { GetModule("d1", "m1"), GetModule("d1", "m1") }; ;
-            string continuationToken1 = null;
-            var scopeResult1 = new ScopeResult(devices1, modules1, continuationToken1);
-            var deviceScopeApiResult = new Mock<IDeviceScopeApiClient>();
-            deviceScopeApiResult.Setup(d => d.GetIdentity("d1", "m1")).ReturnsAsync(scopeResult1);
-            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiResult.Object);
-
-            // Act
-            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "m1");
-
-            // Assert
-            Assert.False(serviceIdentity.HasValue);
-        }
-
-        [Fact]
-        public async Task GetServiceIdentitiy_Module_InvalidTest_EmptyResult()
-        {
-            // Arrange
-            IEnumerable<Device> devices1 = null;
-            IEnumerable<Module> modules1 = new Module[0]; ;
-            string continuationToken1 = null;
-            var scopeResult1 = new ScopeResult(devices1, modules1, continuationToken1);
-            var deviceScopeApiResult = new Mock<IDeviceScopeApiClient>();
-            deviceScopeApiResult.Setup(d => d.GetIdentity("d1", "m1")).ReturnsAsync(scopeResult1);
-            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiResult.Object);
-
-            // Act
-            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "m1");
-
-            // Assert
-            Assert.False(serviceIdentity.HasValue);
-        }
-
-        [Fact]
-        public async Task GetServiceIdentitiy_Module_InvalidTest_NullResult()
-        {
-            // Arrange
-            ScopeResult scopeResult1 = null;
-            var deviceScopeApiResult = new Mock<IDeviceScopeApiClient>();
-            deviceScopeApiResult.Setup(d => d.GetIdentity("d1", "m1")).ReturnsAsync(scopeResult1);
-            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiResult.Object);
-
-            // Act
-            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "m1");
-
-            // Assert
-            Assert.False(serviceIdentity.HasValue);
         }
 
         static bool Compare(IEnumerable<ServiceIdentity> serviceIdentities, ScopeResult scopeResult)
@@ -336,6 +343,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             return device;
         }
 
+        static string GetKey() => Convert.ToBase64String(Encoding.UTF8.GetBytes(Guid.NewGuid().ToString()));
+
         static Module GetModule(string deviceId, string moduleId)
         {
             string moduleJson = @"{                        
@@ -365,7 +374,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var module = JsonConvert.DeserializeObject<Module>(moduleJson);
             return module;
         }
-
-        static string GetKey() => Convert.ToBase64String(Encoding.UTF8.GetBytes(Guid.NewGuid().ToString()));
     }
 }

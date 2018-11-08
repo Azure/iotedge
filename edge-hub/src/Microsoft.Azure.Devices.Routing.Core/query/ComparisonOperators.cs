@@ -1,10 +1,9 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Query
 {
     using System;
+
     using Microsoft.Azure.Devices.Routing.Core.Query.Types;
 
     public static class ComparisonOperators
@@ -42,6 +41,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
                 default:
                     throw new ArgumentOutOfRangeException(nameof(op), op, null);
             }
+
             return result;
         }
 
@@ -80,6 +80,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
                 default:
                     throw new ArgumentOutOfRangeException(nameof(op), op, null);
             }
+
             return result;
         }
 
@@ -118,6 +119,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
                 default:
                     throw new ArgumentOutOfRangeException(nameof(op), op, null);
             }
+
             return result;
         }
 
@@ -156,6 +158,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
                 default:
                     throw new ArgumentOutOfRangeException(nameof(op), op, null);
             }
+
             return result;
         }
 
@@ -181,6 +184,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
                 default:
                     throw new ArgumentOutOfRangeException(nameof(op), op, null);
             }
+
             return result;
         }
 
@@ -204,6 +208,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
                 default:
                     throw new ArgumentOutOfRangeException(nameof(op), op, null);
             }
+
             return result;
         }
 

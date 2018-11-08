@@ -1,7 +1,5 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
 {
     using System;
@@ -12,11 +10,12 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.Util;
+    using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
     using Microsoft.Extensions.Logging;
-    using AsyncLock = Microsoft.Azure.Devices.Routing.Core.Util.Concurrency.AsyncLock;
 
     public class EndpointExecutorFsm : IDisposable
     {
@@ -25,94 +24,31 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
         static readonly TimeSpan LogUserAnalyticsErrorOnUnhealthySince = TimeSpan.FromMinutes(10);
         static readonly ICollection<IMessage> EmptyMessages = ImmutableList<IMessage>.Empty;
 
+        readonly EndpointExecutorConfig config;
+        readonly Timer retryTimer;
+        readonly AsyncLock sync = new AsyncLock();
+        readonly ISystemTime systemTime;
+
         volatile State state;
         volatile int retryAttempts;
-        readonly EndpointExecutorConfig config;
+
         SendMessage currentSendCommand;
         Checkpoint currentCheckpointCommand;
         Option<DateTime> lastFailedRevivalTime;
         Option<DateTime> unhealthySince;
         volatile IProcessor processor;
         TimeSpan retryPeriod;
-        readonly Timer retryTimer;
-        readonly AsyncLock sync = new AsyncLock();
-        readonly ISystemTime systemTime;
-
-        public Endpoint Endpoint => this.processor.Endpoint;
-
-        public ICheckpointer Checkpointer { get; }
-
-        public EndpointExecutorStatus Status =>
-            new EndpointExecutorStatus(this.Endpoint.Id, this.state, this.retryAttempts, this.retryPeriod, this.lastFailedRevivalTime, this.unhealthySince, new CheckpointerStatus(this.Checkpointer.Id, this.Checkpointer.Offset, this.Checkpointer.Proposed));
-
-        public EndpointExecutorFsm(Endpoint endpoint, ICheckpointer checkpointer, EndpointExecutorConfig config)
-            : this(endpoint, checkpointer, config, SystemTime.Instance)
-        {
-        }
-
-        public EndpointExecutorFsm(Endpoint endpoint, ICheckpointer checkpointer, EndpointExecutorConfig config, ISystemTime systemTime)
-        {
-            this.processor = Preconditions.CheckNotNull(endpoint).CreateProcessor();
-            this.Checkpointer = Preconditions.CheckNotNull(checkpointer);
-            this.config = Preconditions.CheckNotNull(config);
-            this.systemTime = Preconditions.CheckNotNull(systemTime);
-            this.retryTimer = new Timer(this.RetryAsync, null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
-            this.retryPeriod = Timeout.InfiniteTimeSpan;
-            this.lastFailedRevivalTime = checkpointer.LastFailedRevivalTime;
-            this.unhealthySince = checkpointer.UnhealthySince;
-
-            if (checkpointer.LastFailedRevivalTime.HasValue)
-            {
-                this.state = State.DeadIdle;
-                this.retryAttempts = short.MaxValue; // setting to some big value
-            }
-            else
-            {
-                this.state = State.Idle;
-            }
-        }
-
-        public async Task RunAsync(ICommand command)
-        {
-            using (await this.sync.LockAsync())
-            {
-                await RunInternalAsync(this, command);
-            }
-        }
-
-        public Task CloseAsync() => this.RunAsync(Commands.Close);
-
-        public void Dispose() => this.Dispose(true);
-
-        protected virtual void Dispose(bool disposing)
-        {
-            //Debug.Assert(this.state == State.Closed);
-            if (disposing)
-            {
-                this.Checkpointer.Dispose();
-                this.retryTimer.Dispose();
-                this.sync.Dispose();
-            }
-        }
-
-        bool ShouldRetry(Exception exception, out TimeSpan retryAfter)
-        {
-            retryAfter = TimeSpan.Zero;
-            ITransientErrorDetectionStrategy detectionStrategy = this.processor.ErrorDetectionStrategy;
-            ShouldRetry shouldRetry = this.config.RetryStrategy.GetShouldRetry();
-            return detectionStrategy.IsTransient(exception) && shouldRetry(this.retryAttempts, exception, out retryAfter);
-        }
 
         static readonly IReadOnlyDictionary<State, StateActions> Actions = new Dictionary<State, StateActions>
         {
-            { State.Idle,               new StateActions(EnterIdleAsync,              StateActions.NullAction) },
-            { State.Sending,            new StateActions(EnterSendingAsync,           StateActions.NullAction) },
-            { State.Checkpointing,      new StateActions(EnterCheckpointingAsync,     StateActions.NullAction) },
-            { State.Failing,            new StateActions(EnterFailingAsync,           ExitFailingAsync) },
-            { State.DeadCheckpointing,  new StateActions(EnterDeadCheckpointingAsync, ExitDeadCheckpointingAsync) },
-            { State.DeadIdle,           new StateActions(StateActions.NullAction,     StateActions.NullAction) },
-            { State.DeadProcess,        new StateActions(EnterProcessDeadAsync,       StateActions.NullAction) },
-            { State.Closed,             new StateActions(EnterClosedAsync,            StateActions.NullAction) }
+            { State.Idle, new StateActions(EnterIdleAsync, StateActions.NullAction) },
+            { State.Sending, new StateActions(EnterSendingAsync, StateActions.NullAction) },
+            { State.Checkpointing, new StateActions(EnterCheckpointingAsync, StateActions.NullAction) },
+            { State.Failing, new StateActions(EnterFailingAsync, ExitFailingAsync) },
+            { State.DeadCheckpointing, new StateActions(EnterDeadCheckpointingAsync, ExitDeadCheckpointingAsync) },
+            { State.DeadIdle, new StateActions(StateActions.NullAction, StateActions.NullAction) },
+            { State.DeadProcess, new StateActions(EnterProcessDeadAsync, StateActions.NullAction) },
+            { State.Closed, new StateActions(EnterClosedAsync, StateActions.NullAction) }
         };
 
         static readonly IReadOnlyDictionary<StateCommandPair, StateTransition> Transitions = new Dictionary<StateCommandPair, StateTransition>
@@ -155,133 +91,61 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
 
             // Closed
             { new StateCommandPair(State.Closed, CommandType.SendMessage), new StateTransition(State.Closed, SendMessageClosedAsync) },
-
         };
 
-        static Task PrepareForSendAsync(EndpointExecutorFsm thisPtr, ICommand command)
+        public EndpointExecutorFsm(Endpoint endpoint, ICheckpointer checkpointer, EndpointExecutorConfig config)
+            : this(endpoint, checkpointer, config, SystemTime.Instance)
         {
-            Preconditions.CheckNotNull(thisPtr);
-            Preconditions.CheckNotNull(command);
-            Preconditions.CheckArgument(command is SendMessage);
-
-            var send = (SendMessage)command;
-            thisPtr.currentSendCommand = send;
-            return TaskEx.Done;
         }
 
-        static Task PrepareForCheckpointAsync(EndpointExecutorFsm thisPtr, ICommand command)
+        public EndpointExecutorFsm(Endpoint endpoint, ICheckpointer checkpointer, EndpointExecutorConfig config, ISystemTime systemTime)
         {
-            Preconditions.CheckNotNull(thisPtr);
-            Preconditions.CheckNotNull(command);
-            Preconditions.CheckArgument(command is Checkpoint);
+            this.processor = Preconditions.CheckNotNull(endpoint).CreateProcessor();
+            this.Checkpointer = Preconditions.CheckNotNull(checkpointer);
+            this.config = Preconditions.CheckNotNull(config);
+            this.systemTime = Preconditions.CheckNotNull(systemTime);
+            this.retryTimer = new Timer(this.RetryAsync, null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+            this.retryPeriod = Timeout.InfiniteTimeSpan;
+            this.lastFailedRevivalTime = checkpointer.LastFailedRevivalTime;
+            this.unhealthySince = checkpointer.UnhealthySince;
 
-            var checkpoint = (Checkpoint)command;
-            thisPtr.currentCheckpointCommand = checkpoint;
-            return TaskEx.Done;
-        }
-
-        static Task SucceedCompleteAsync(EndpointExecutorFsm thisPtr, ICommand command)
-        {
-            Preconditions.CheckNotNull(thisPtr);
-            Preconditions.CheckNotNull(command);
-            Preconditions.CheckArgument(command is Succeed);
-
-            thisPtr.currentSendCommand.Complete();
-            thisPtr.currentSendCommand = null;
-            thisPtr.currentCheckpointCommand = null;
-            return TaskEx.Done;
-        }
-
-        static Task ExitDeadCheckpointingAsync(EndpointExecutorFsm thisPtr)
-        {
-            Preconditions.CheckNotNull(thisPtr);
-
-            thisPtr.currentSendCommand.Complete();
-            thisPtr.currentSendCommand = null;
-            thisPtr.currentCheckpointCommand = null;
-            return TaskEx.Done;
-        }
-
-        static Task ThrowCompleteAsync(EndpointExecutorFsm thisPtr, ICommand command)
-        {
-            Preconditions.CheckNotNull(thisPtr);
-            Preconditions.CheckNotNull(command);
-            Preconditions.CheckArgument(command is Throw);
-
-            var @throw = (Throw)command;
-            thisPtr.currentSendCommand.Complete(@throw.Exception);
-            thisPtr.currentSendCommand = null;
-            thisPtr.currentCheckpointCommand = null;
-            return TaskEx.Done;
-        }
-
-        static Task SendMessageClosedAsync(EndpointExecutorFsm thisPtr, ICommand command)
-        {
-            Preconditions.CheckNotNull(thisPtr);
-            Preconditions.CheckNotNull(command);
-            Preconditions.CheckArgument(command is SendMessage);
-
-            var send = (SendMessage)command;
-            send.Complete();
-            return TaskEx.Done;
-        }
-
-        static async Task UpdateEndpointAsync(EndpointExecutorFsm thisPtr, ICommand command)
-        {
-            Preconditions.CheckNotNull(thisPtr);
-            Preconditions.CheckNotNull(command);
-            Preconditions.CheckArgument(command is UpdateEndpoint);
-            thisPtr.retryAttempts = 0;
-
-            Events.UpdateEndpoint(thisPtr);
-
-            try
+            if (checkpointer.LastFailedRevivalTime.HasValue)
             {
-                var update = (UpdateEndpoint)command;
-                await thisPtr.processor.CloseAsync(CancellationToken.None);
-                thisPtr.processor = update.Endpoint.CreateProcessor();
-                Events.UpdateEndpointSuccess(thisPtr);
+                this.state = State.DeadIdle;
+                this.retryAttempts = short.MaxValue; // setting to some big value
             }
-            catch (Exception ex)
+            else
             {
-                Events.UpdateEndpointFailure(thisPtr, ex);
-
-                // TODO(manusr): If this throws, it will break the state machine
-                throw;
+                this.state = State.Idle;
             }
         }
 
-        static Task PrepareForReviveAsync(EndpointExecutorFsm thisPtr, ICommand command)
+        public ICheckpointer Checkpointer { get; }
+
+        public Endpoint Endpoint => this.processor.Endpoint;
+
+        public EndpointExecutorStatus Status =>
+            new EndpointExecutorStatus(this.Endpoint.Id, this.state, this.retryAttempts, this.retryPeriod, this.lastFailedRevivalTime, this.unhealthySince, new CheckpointerStatus(this.Checkpointer.Id, this.Checkpointer.Offset, this.Checkpointer.Proposed));
+
+        public Task CloseAsync() => this.RunAsync(Commands.Close);
+
+        public void Dispose() => this.Dispose(true);
+
+        public async Task RunAsync(ICommand command)
         {
-            Preconditions.CheckNotNull(thisPtr);
-            Preconditions.CheckNotNull(command);
-            Preconditions.CheckArgument(command is Revive);
-
-            Events.PrepareForRevive(thisPtr);
-            return TaskEx.Done;
-        }
-
-        static Task FailAsync(EndpointExecutorFsm thisPtr, ICommand command)
-        {
-            Preconditions.CheckNotNull(thisPtr);
-            Preconditions.CheckNotNull(command);
-            Preconditions.CheckArgument(command is Fail);
-
-            var fail = (Fail)command;
-            thisPtr.retryPeriod = fail.RetryAfter;
-            return TaskEx.Done;
-        }
-
-        async void RetryAsync(object obj)
-        {
-            try
+            using (await this.sync.LockAsync())
             {
-                this.retryTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
-                await this.RunAsync(Commands.Retry);
+                await RunInternalAsync(this, command);
             }
-            catch (Exception ex)
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
             {
-                Events.RetryFailed(this, ex);
+                this.Checkpointer.Dispose();
+                this.retryTimer.Dispose();
+                this.sync.Dispose();
             }
         }
 
@@ -296,11 +160,155 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             return TaskEx.Done;
         }
 
+        static async Task EnterCheckpointingAsync(EndpointExecutorFsm thisPtr)
+        {
+            ICommand next;
+            try
+            {
+                Preconditions.CheckNotNull(thisPtr.currentCheckpointCommand);
+                using (var cts = new CancellationTokenSource(thisPtr.config.Timeout))
+                {
+                    ISinkResult<IMessage> result = thisPtr.currentCheckpointCommand.Result;
+
+                    if (result.Succeeded.Any() || result.InvalidDetailsList.Any())
+                    {
+                        ICollection<IMessage> toCheckpoint = result.InvalidDetailsList.Count > 0
+                            ? result.Succeeded.Concat(result.InvalidDetailsList.Select(i => i.Item)).ToList()
+                            : result.Succeeded;
+                        ICollection<IMessage> remaining = result.Failed;
+
+                        Events.Checkpoint(thisPtr, result);
+                        await thisPtr.Checkpointer.CommitAsync(toCheckpoint, remaining, Option.None<DateTime>(), thisPtr.unhealthySince, cts.Token);
+                        Events.CheckpointSuccess(thisPtr, result);
+                    }
+                }
+
+                next = EnterCheckpointingHelper(thisPtr);
+            }
+            catch (Exception ex)
+            {
+                Events.CheckpointFailure(thisPtr, ex);
+                next = thisPtr.config.ThrowOnDead
+                    ? Commands.Throw(ex)
+                    : EnterCheckpointingHelper(thisPtr);
+            }
+
+            await RunInternalAsync(thisPtr, next);
+        }
+
+        static ICommand EnterCheckpointingHelper(EndpointExecutorFsm thisPtr)
+        {
+            ICommand next;
+
+            // If there was a partial failure, try to resend the failed messages
+            // Copy the initial send message command to keep the uncompleted TaskCompletionSource
+            if (thisPtr.currentCheckpointCommand.Result.Failed.Count > 0)
+            {
+                TimeSpan retryAfter;
+
+                // PartialFailures should always have an exception object filled out
+                Exception innerException = thisPtr.currentCheckpointCommand.Result.SendFailureDetails.GetOrElse(DefaultSendFailureDetails).RawException;
+
+                // 1. Change Messages to be sent to failedMessages
+                // 2. Change the Command type to Fail or Dead depending on retry
+                thisPtr.currentSendCommand = thisPtr.currentSendCommand.Copy(thisPtr.currentCheckpointCommand.Result.Failed);
+
+                bool shouldRetry = thisPtr.ShouldRetry(innerException, out retryAfter);
+                Events.CheckRetryInnerException(innerException, shouldRetry);
+                if (shouldRetry)
+                {
+                    next = Commands.Fail(retryAfter);
+                }
+                else
+                {
+                    next = thisPtr.config.ThrowOnDead ? (ICommand)Commands.Throw(innerException) : Commands.Die;
+                }
+            }
+            else
+            {
+                next = Commands.Succeed;
+            }
+
+            return next;
+        }
+
+        static Task EnterClosedAsync(EndpointExecutorFsm thisPtr)
+        {
+            thisPtr.currentSendCommand?.Complete();
+            Reset(thisPtr);
+            return Task.WhenAll(thisPtr.processor.CloseAsync(CancellationToken.None), thisPtr.Checkpointer.CloseAsync(CancellationToken.None));
+        }
+
+        static async Task EnterDeadCheckpointingAsync(EndpointExecutorFsm thisPtr)
+        {
+            ICommand next;
+            try
+            {
+                Preconditions.CheckNotNull(thisPtr.currentCheckpointCommand);
+                using (var cts = new CancellationTokenSource(thisPtr.config.Timeout))
+                {
+                    ISinkResult<IMessage> result = thisPtr.currentCheckpointCommand.Result;
+                    Events.Checkpoint(thisPtr, result);
+                    await thisPtr.Checkpointer.CommitAsync(result.Succeeded, EmptyMessages, thisPtr.lastFailedRevivalTime, thisPtr.unhealthySince, cts.Token);
+                    Events.CheckpointSuccess(thisPtr, result);
+                }
+
+                next = Commands.DeadSucceed;
+                Events.DeadSuccess(thisPtr, thisPtr.currentCheckpointCommand.Result.Succeeded);
+            }
+            catch (Exception ex)
+            {
+                Events.CheckpointFailure(thisPtr, ex);
+                next = thisPtr.config.ThrowOnDead
+                    ? (ICommand)Commands.Throw(ex)
+                    : Commands.DeadSucceed;
+            }
+
+            await RunInternalAsync(thisPtr, next);
+        }
+
+        static Task EnterFailingAsync(EndpointExecutorFsm thisPtr)
+        {
+            thisPtr.retryAttempts++;
+            thisPtr.retryTimer.Change(thisPtr.retryPeriod, Timeout.InfiniteTimeSpan);
+            Events.RetryDelay(thisPtr);
+            return TaskEx.Done;
+        }
+
         static Task EnterIdleAsync(EndpointExecutorFsm thisPtr)
         {
             // initialize the machine
             Reset(thisPtr);
             return TaskEx.Done;
+        }
+
+        static async Task EnterProcessDeadAsync(EndpointExecutorFsm thisPtr)
+        {
+            Preconditions.CheckArgument(thisPtr.lastFailedRevivalTime.HasValue);
+
+            TimeSpan deadFor = thisPtr.systemTime.UtcNow - thisPtr.lastFailedRevivalTime.GetOrElse(thisPtr.systemTime.UtcNow);
+
+            if (deadFor >= thisPtr.config.RevivePeriod)
+            {
+                await RunInternalAsync(thisPtr, Commands.Revive);
+            }
+            else
+            {
+                try
+                {
+                    // In the dead state, checkpoint all "sent" messages
+                    // This effectively drops the messages, allowing the other endpoints in
+                    // this router to make progress.
+                    ICollection<IMessage> tocheckpoint = thisPtr.currentSendCommand.Messages;
+                    Events.Dead(thisPtr, tocheckpoint);
+                    SendFailureDetails persistingFailureDetails = thisPtr.currentCheckpointCommand?.Result?.SendFailureDetails.GetOrElse(null);
+                    await RunInternalAsync(thisPtr, Commands.Checkpoint(new SinkResult<IMessage>(tocheckpoint, persistingFailureDetails)));
+                }
+                catch (Exception ex)
+                {
+                    Events.DeadFailure(thisPtr, ex);
+                }
+            }
         }
 
         static async Task EnterSendingAsync(EndpointExecutorFsm thisPtr)
@@ -345,6 +353,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                             : thisPtr.unhealthySince;
                         Events.SendFailure(thisPtr, result, stopwatch);
                     }
+
                     next = Commands.Checkpoint(result);
                 }
                 else
@@ -369,112 +378,17 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                     : thisPtr.unhealthySince;
                 next = thisPtr.config.ThrowOnDead ? (ICommand)Commands.Throw(ex) : Commands.Die;
             }
-            await RunInternalAsync(thisPtr, next);
-        }
-
-        static async Task EnterDeadCheckpointingAsync(EndpointExecutorFsm thisPtr)
-        {
-            ICommand next;
-            try
-            {
-                Preconditions.CheckNotNull(thisPtr.currentCheckpointCommand);
-                using (var cts = new CancellationTokenSource(thisPtr.config.Timeout))
-                {
-                    ISinkResult<IMessage> result = thisPtr.currentCheckpointCommand.Result;
-                    Events.Checkpoint(thisPtr, result);
-                    await thisPtr.Checkpointer.CommitAsync(result.Succeeded, EmptyMessages, thisPtr.lastFailedRevivalTime, thisPtr.unhealthySince, cts.Token);
-                    Events.CheckpointSuccess(thisPtr, result);
-                }
-
-                next = Commands.DeadSucceed;
-                Events.DeadSuccess(thisPtr, thisPtr.currentCheckpointCommand.Result.Succeeded);
-            }
-            catch (Exception ex)
-            {
-                Events.CheckpointFailure(thisPtr, ex);
-                next = thisPtr.config.ThrowOnDead
-                    ? (ICommand)Commands.Throw(ex)
-                    : Commands.DeadSucceed;
-            }
 
             await RunInternalAsync(thisPtr, next);
         }
 
-        static async Task EnterCheckpointingAsync(EndpointExecutorFsm thisPtr)
+        static Task ExitDeadCheckpointingAsync(EndpointExecutorFsm thisPtr)
         {
-            ICommand next;
-            try
-            {
-                Preconditions.CheckNotNull(thisPtr.currentCheckpointCommand);
-                using (var cts = new CancellationTokenSource(thisPtr.config.Timeout))
-                {
-                    ISinkResult<IMessage> result = thisPtr.currentCheckpointCommand.Result;
+            Preconditions.CheckNotNull(thisPtr);
 
-                    if (result.Succeeded.Any() || result.InvalidDetailsList.Any())
-                    {
-                        ICollection<IMessage> toCheckpoint = result.InvalidDetailsList.Count > 0
-                            ? result.Succeeded.Concat(result.InvalidDetailsList.Select(i => i.Item)).ToList()
-                            : result.Succeeded;
-                        ICollection<IMessage> remaining = result.Failed;
-
-                        Events.Checkpoint(thisPtr, result);
-                        await thisPtr.Checkpointer.CommitAsync(toCheckpoint, remaining, Option.None<DateTime>(), thisPtr.unhealthySince, cts.Token);
-                        Events.CheckpointSuccess(thisPtr, result);
-                    }
-                }
-
-                next = EnterCheckpointingHelper(thisPtr);
-            }
-            catch (Exception ex)
-            {
-                Events.CheckpointFailure(thisPtr, ex);
-                next = thisPtr.config.ThrowOnDead
-                    ? Commands.Throw(ex)
-                    : EnterCheckpointingHelper(thisPtr);
-            }
-            await RunInternalAsync(thisPtr, next);
-        }
-
-        static ICommand EnterCheckpointingHelper(EndpointExecutorFsm thisPtr)
-        {
-            ICommand next;
-
-            // If there was a partial failure, try to resend the failed messages
-            // Copy the initial send message command to keep the uncompleted TaskCompletionSource
-            if (thisPtr.currentCheckpointCommand.Result.Failed.Count > 0)
-            {
-                TimeSpan retryAfter;
-                // PartialFailures should always have an exception object filled out
-                Exception innerException = thisPtr.currentCheckpointCommand.Result.SendFailureDetails.GetOrElse(DefaultSendFailureDetails).RawException;
-
-                // 1. Change Messages to be sent to failedMessages
-                // 2. Change the Command type to Fail or Dead depending on retry
-                thisPtr.currentSendCommand = thisPtr.currentSendCommand.Copy(thisPtr.currentCheckpointCommand.Result.Failed);
-
-                bool shouldRetry = thisPtr.ShouldRetry(innerException, out retryAfter);
-                Events.CheckRetryInnerException(innerException, shouldRetry);
-                if (shouldRetry)
-                {
-                    next = Commands.Fail(retryAfter);
-                }
-                else
-                {
-                    next = thisPtr.config.ThrowOnDead ? (ICommand)Commands.Throw(innerException) : Commands.Die;
-                }
-            }
-            else
-            {
-                next = Commands.Succeed;
-            }
-
-            return next;
-        }
-
-        static Task EnterFailingAsync(EndpointExecutorFsm thisPtr)
-        {
-            thisPtr.retryAttempts++;
-            thisPtr.retryTimer.Change(thisPtr.retryPeriod, Timeout.InfiniteTimeSpan);
-            Events.RetryDelay(thisPtr);
+            thisPtr.currentSendCommand.Complete();
+            thisPtr.currentSendCommand = null;
+            thisPtr.currentCheckpointCommand = null;
             return TaskEx.Done;
         }
 
@@ -486,40 +400,47 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             return TaskEx.Done;
         }
 
-        static async Task EnterProcessDeadAsync(EndpointExecutorFsm thisPtr)
+        static Task FailAsync(EndpointExecutorFsm thisPtr, ICommand command)
         {
-            Preconditions.CheckArgument(thisPtr.lastFailedRevivalTime.HasValue);
+            Preconditions.CheckNotNull(thisPtr);
+            Preconditions.CheckNotNull(command);
+            Preconditions.CheckArgument(command is Fail);
 
-            TimeSpan deadFor = thisPtr.systemTime.UtcNow - thisPtr.lastFailedRevivalTime.GetOrElse(thisPtr.systemTime.UtcNow);
-
-            if (deadFor >= thisPtr.config.RevivePeriod)
-            {
-                await RunInternalAsync(thisPtr, Commands.Revive);
-            }
-            else
-            {
-                try
-                {
-                    // In the dead state, checkpoint all "sent" messages
-                    // This effectively drops the messages, allowing the other endpoints in
-                    // this router to make progress.
-                    ICollection<IMessage> tocheckpoint = thisPtr.currentSendCommand.Messages;
-                    Events.Dead(thisPtr, tocheckpoint);
-                    SendFailureDetails persistingFailureDetails = thisPtr.currentCheckpointCommand?.Result?.SendFailureDetails.GetOrElse(null);
-                    await RunInternalAsync(thisPtr, Commands.Checkpoint(new SinkResult<IMessage>(tocheckpoint, persistingFailureDetails)));
-                }
-                catch (Exception ex)
-                {
-                    Events.DeadFailure(thisPtr, ex);
-                }
-            }
+            var fail = (Fail)command;
+            thisPtr.retryPeriod = fail.RetryAfter;
+            return TaskEx.Done;
         }
 
-        static Task EnterClosedAsync(EndpointExecutorFsm thisPtr)
+        static Task PrepareForCheckpointAsync(EndpointExecutorFsm thisPtr, ICommand command)
         {
-            thisPtr.currentSendCommand?.Complete();
-            Reset(thisPtr);
-            return Task.WhenAll(thisPtr.processor.CloseAsync(CancellationToken.None), thisPtr.Checkpointer.CloseAsync(CancellationToken.None));
+            Preconditions.CheckNotNull(thisPtr);
+            Preconditions.CheckNotNull(command);
+            Preconditions.CheckArgument(command is Checkpoint);
+
+            var checkpoint = (Checkpoint)command;
+            thisPtr.currentCheckpointCommand = checkpoint;
+            return TaskEx.Done;
+        }
+
+        static Task PrepareForReviveAsync(EndpointExecutorFsm thisPtr, ICommand command)
+        {
+            Preconditions.CheckNotNull(thisPtr);
+            Preconditions.CheckNotNull(command);
+            Preconditions.CheckArgument(command is Revive);
+
+            Events.PrepareForRevive(thisPtr);
+            return TaskEx.Done;
+        }
+
+        static Task PrepareForSendAsync(EndpointExecutorFsm thisPtr, ICommand command)
+        {
+            Preconditions.CheckNotNull(thisPtr);
+            Preconditions.CheckNotNull(command);
+            Preconditions.CheckArgument(command is SendMessage);
+
+            var send = (SendMessage)command;
+            thisPtr.currentSendCommand = send;
+            return TaskEx.Done;
         }
 
         static void Reset(EndpointExecutorFsm thisPtr)
@@ -550,6 +471,88 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             thisPtr.state = transition.NextState;
             await nextActions.Enter(thisPtr);
             Events.StateEnter(thisPtr);
+        }
+
+        static Task SendMessageClosedAsync(EndpointExecutorFsm thisPtr, ICommand command)
+        {
+            Preconditions.CheckNotNull(thisPtr);
+            Preconditions.CheckNotNull(command);
+            Preconditions.CheckArgument(command is SendMessage);
+
+            var send = (SendMessage)command;
+            send.Complete();
+            return TaskEx.Done;
+        }
+
+        static Task SucceedCompleteAsync(EndpointExecutorFsm thisPtr, ICommand command)
+        {
+            Preconditions.CheckNotNull(thisPtr);
+            Preconditions.CheckNotNull(command);
+            Preconditions.CheckArgument(command is Succeed);
+
+            thisPtr.currentSendCommand.Complete();
+            thisPtr.currentSendCommand = null;
+            thisPtr.currentCheckpointCommand = null;
+            return TaskEx.Done;
+        }
+
+        static Task ThrowCompleteAsync(EndpointExecutorFsm thisPtr, ICommand command)
+        {
+            Preconditions.CheckNotNull(thisPtr);
+            Preconditions.CheckNotNull(command);
+            Preconditions.CheckArgument(command is Throw);
+
+            var @throw = (Throw)command;
+            thisPtr.currentSendCommand.Complete(@throw.Exception);
+            thisPtr.currentSendCommand = null;
+            thisPtr.currentCheckpointCommand = null;
+            return TaskEx.Done;
+        }
+
+        static async Task UpdateEndpointAsync(EndpointExecutorFsm thisPtr, ICommand command)
+        {
+            Preconditions.CheckNotNull(thisPtr);
+            Preconditions.CheckNotNull(command);
+            Preconditions.CheckArgument(command is UpdateEndpoint);
+            thisPtr.retryAttempts = 0;
+
+            Events.UpdateEndpoint(thisPtr);
+
+            try
+            {
+                var update = (UpdateEndpoint)command;
+                await thisPtr.processor.CloseAsync(CancellationToken.None);
+                thisPtr.processor = update.Endpoint.CreateProcessor();
+                Events.UpdateEndpointSuccess(thisPtr);
+            }
+            catch (Exception ex)
+            {
+                Events.UpdateEndpointFailure(thisPtr, ex);
+
+                // TODO(manusr): If this throws, it will break the state machine
+                throw;
+            }
+        }
+
+        async void RetryAsync(object obj)
+        {
+            try
+            {
+                this.retryTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+                await this.RunAsync(Commands.Retry);
+            }
+            catch (Exception ex)
+            {
+                Events.RetryFailed(this, ex);
+            }
+        }
+
+        bool ShouldRetry(Exception exception, out TimeSpan retryAfter)
+        {
+            retryAfter = TimeSpan.Zero;
+            ITransientErrorDetectionStrategy detectionStrategy = this.processor.ErrorDetectionStrategy;
+            ShouldRetry shouldRetry = this.config.RetryStrategy.GetShouldRetry();
+            return detectionStrategy.IsTransient(exception) && shouldRetry(this.retryAttempts, exception, out retryAfter);
         }
 
         static class Events
@@ -589,51 +592,179 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                 CheckRetryInnerException
             }
 
-            public static void StateEnter(EndpointExecutorFsm fsm)
+            public static void Checkpoint(EndpointExecutorFsm fsm, ISinkResult<IMessage> result)
             {
-                Log.LogTrace((int)EventIds.StateEnter, "[StateEnter] Entered state <{0}>. {1}", fsm.state, GetContextString(fsm));
+                Log.LogDebug(
+                    (int)EventIds.Checkpoint,
+                    "[Checkpoint] Checkpointing began. CheckpointOffset: {0}, SuccessfulSize: {1}, RemainingSize: {2}, {3}",
+                    fsm.Status.CheckpointerStatus.Offset,
+                    result.Succeeded.Count + result.InvalidDetailsList.Count,
+                    result.Failed.Count,
+                    GetContextString(fsm));
             }
 
-            public static void StateExit(EndpointExecutorFsm fsm)
+            public static void CheckpointFailure(EndpointExecutorFsm fsm, Exception ex)
             {
-                Log.LogTrace((int)EventIds.StateExit, "[StateExit] Exited state <{0}>. {1}", fsm.state, GetContextString(fsm));
+                Log.LogError(
+                    (int)EventIds.CheckpointFailure,
+                    ex,
+                    "[CheckpointFailure] Checkpointing failed. CheckpointOffset: {0}, {1}",
+                    fsm.Status.CheckpointerStatus.Offset,
+                    GetContextString(fsm));
             }
 
-            public static void StateTransition(EndpointExecutorFsm fsm, State from, State to)
+            public static void CheckpointSuccess(EndpointExecutorFsm fsm, ISinkResult<IMessage> result)
             {
-                Log.LogTrace((int)EventIds.StateTransition, "[StateTransition] Transitioned from <{0}> to <{1}>. {2}", from, to, GetContextString(fsm));
+                Log.LogInformation(
+                    (int)EventIds.CheckpointSuccess,
+                    "[CheckpointSuccess] Checkpointing succeeded. CheckpointOffset: {0}, {1}",
+                    fsm.Status.CheckpointerStatus.Offset,
+                    GetContextString(fsm));
+
+                IList<IMessage> invalidMessages = result.InvalidDetailsList.Select(d => d.Item).ToList();
+
+                SetProcessingInternalCounters(fsm, "Success", result.Succeeded);
+                SetProcessingInternalCounters(fsm, "Failure", result.Failed);
+                SetProcessingInternalCounters(fsm, "Invalid", invalidMessages);
+
+                SetSuccessfulEgressUserMetricCounter(fsm, result.Succeeded);
+                SetInvalidEgressUserMetricCounter(fsm, invalidMessages);
+            }
+
+            public static void CheckRetryInnerException(Exception ex, bool retry)
+            {
+                Log.LogDebug((int)EventIds.CheckRetryInnerException, ex, $"[CheckRetryInnerException] Decision to retry exception of type {ex.GetType()} is {retry}");
+            }
+
+            public static void Dead(EndpointExecutorFsm fsm, ICollection<IMessage> messages)
+            {
+                Preconditions.CheckArgument(fsm.Status.LastFailedRevivalTime.HasValue);
+                DateTime reviveAt = fsm.Status.LastFailedRevivalTime.GetOrElse(fsm.systemTime.UtcNow).SafeAdd(fsm.config.RevivePeriod);
+
+                Log.LogWarning(
+                    (int)EventIds.Dead,
+                    "[Dead] Dropping {0} messages. BatchSize: {1}, LastFailedRevivalTime: {2}, UnhealthySince: {3}, ReviveAt: {4}, {5}",
+                    messages.Count,
+                    messages.Count,
+                    fsm.Status.LastFailedRevivalTime.GetOrElse(Checkpointers.Checkpointer.DateTimeMinValue).ToString(DateTimeFormat),
+                    fsm.Status.UnhealthySince.GetOrElse(Checkpointers.Checkpointer.DateTimeMinValue).ToString(DateTimeFormat),
+                    reviveAt.ToString(DateTimeFormat),
+                    GetContextString(fsm));
+            }
+
+            public static void DeadFailure(EndpointExecutorFsm fsm, Exception ex)
+            {
+                Preconditions.CheckArgument(fsm.Status.LastFailedRevivalTime.HasValue);
+
+                CultureInfo culture = CultureInfo.InvariantCulture;
+                DateTime reviveAt = fsm.Status.LastFailedRevivalTime.GetOrElse(fsm.systemTime.UtcNow).SafeAdd(fsm.config.RevivePeriod);
+
+                Log.LogError(
+                    (int)EventIds.DeadFailure,
+                    ex,
+                    "[DeadFailure] Dropping messages failed. LastFailedRevivalTime: {0}, UnhealthySince: {1}, DeadTime:{2}, ReviveAt: {3}, {4}",
+                    fsm.Status.LastFailedRevivalTime.ToString(),
+                    fsm.Status.LastFailedRevivalTime.GetOrElse(Checkpointers.Checkpointer.DateTimeMinValue).ToString(DateTimeFormat, culture),
+                    fsm.Status.UnhealthySince.GetOrElse(Checkpointers.Checkpointer.DateTimeMinValue).ToString(DateTimeFormat, culture),
+                    reviveAt.ToString(DateTimeFormat, culture),
+                    GetContextString(fsm));
+            }
+
+            public static void DeadSuccess(EndpointExecutorFsm fsm, ICollection<IMessage> messages)
+            {
+                Preconditions.CheckArgument(fsm.Status.LastFailedRevivalTime.HasValue);
+
+                CultureInfo culture = CultureInfo.InvariantCulture;
+                DateTime reviveAt = fsm.Status.LastFailedRevivalTime.GetOrElse(fsm.systemTime.UtcNow).SafeAdd(fsm.config.RevivePeriod);
+
+                Log.LogWarning(
+                    (int)EventIds.DeadSuccess,
+                    "[DeadSuccess] Dropped {0} messages. BatchSize: {1}, LastFailedRevivalTime: {2}, UnhealthySince: {3}, ReviveAt: {4}, {5}",
+                    messages.Count,
+                    messages.Count,
+                    fsm.Status.LastFailedRevivalTime.GetOrElse(Checkpointers.Checkpointer.DateTimeMinValue).ToString(DateTimeFormat, culture),
+                    fsm.Status.UnhealthySince.GetOrElse(Checkpointers.Checkpointer.DateTimeMinValue).ToString(DateTimeFormat, culture),
+                    reviveAt.ToString(DateTimeFormat, culture),
+                    GetContextString(fsm));
+
+                SetProcessingInternalCounters(fsm, "Dropped", messages);
+                SetDroppedEgressUserMetricCounter(fsm, messages);
+
+                FailureKind failureKind = fsm.currentCheckpointCommand?.Result?.SendFailureDetails.GetOrElse(DefaultFailureDetails).FailureKind ?? FailureKind.InternalError;
+
+                foreach (IMessage message in messages)
+                {
+                    Routing.UserAnalyticsLogger.LogDroppedMessage(fsm.Endpoint.IotHubName, message, fsm.Endpoint.Name, failureKind);
+                }
+            }
+
+            public static void Die(EndpointExecutorFsm fsm)
+            {
+                Log.LogInformation((int)EventIds.Die, "[Die] Endpoint died. {0}", GetContextString(fsm));
+                Routing.UserAnalyticsLogger.LogDeadEndpoint(fsm.Endpoint.IotHubName, fsm.Endpoint.Name);
+            }
+
+            public static void PrepareForRevive(EndpointExecutorFsm fsm)
+            {
+                Preconditions.CheckArgument(fsm.Status.LastFailedRevivalTime.HasValue);
+                CultureInfo culture = CultureInfo.InvariantCulture;
+                DateTime reviveAt = fsm.Status.LastFailedRevivalTime.GetOrElse(fsm.systemTime.UtcNow).SafeAdd(fsm.config.RevivePeriod);
+
+                Log.LogInformation(
+                    (int)EventIds.PrepareForRevive,
+                    "[PrepareForRevive] Attempting to bring endpoint back. LastFailedRevivalTime: {0}, UnhealthySince: {1},  ReviveAt: {2}, {3}",
+                    fsm.Status.LastFailedRevivalTime.GetOrElse(Checkpointers.Checkpointer.DateTimeMinValue).ToString(DateTimeFormat, culture),
+                    fsm.Status.UnhealthySince.GetOrElse(Checkpointers.Checkpointer.DateTimeMinValue).ToString(DateTimeFormat, culture),
+                    reviveAt.ToString(DateTimeFormat, culture),
+                    GetContextString(fsm));
+            }
+
+            public static void Retry(EndpointExecutorFsm fsm)
+            {
+                DateTime next = fsm.systemTime.UtcNow.SafeAdd(fsm.Status.RetryPeriod);
+
+                Log.LogDebug(
+                    (int)EventIds.Retry,
+                    "[Retry] Retrying. Retry.Attempts: {0}, Retry.Period: {1}, Retry.Next: {2}, {3}",
+                    fsm.Status.RetryAttempts,
+                    fsm.Status.RetryPeriod.ToString(TimeSpanFormat),
+                    next.ToString(DateTimeFormat),
+                    GetContextString(fsm));
+            }
+
+            public static void RetryDelay(EndpointExecutorFsm fsm)
+            {
+                DateTime next = fsm.systemTime.UtcNow.SafeAdd(fsm.Status.RetryPeriod);
+
+                Log.LogDebug(
+                    (int)EventIds.RetryDelay,
+                    "[RetryDelay] Waiting to retry. Retry.Attempts: {0}, Retry.Period: {1}, Retry.Next: {2}, {3}",
+                    fsm.Status.RetryAttempts,
+                    fsm.Status.RetryPeriod.ToString(TimeSpanFormat),
+                    next.ToString(DateTimeFormat),
+                    GetContextString(fsm));
+            }
+
+            public static void RetryFailed(EndpointExecutorFsm fsm, Exception exception)
+            {
+                Log.LogError((int)EventIds.RetryFailed, exception, "[RetryFailed] Failed to retry. {0}", GetContextString(fsm));
+            }
+
+            public static void Revived(EndpointExecutorFsm fsm)
+            {
+                Log.LogInformation((int)EventIds.Revived, "[Revived] Endpoint revived, {0}", GetContextString(fsm));
+                Routing.UserAnalyticsLogger.LogHealthyEndpoint(fsm.Endpoint.IotHubName, fsm.Endpoint.Name);
             }
 
             public static void Send(EndpointExecutorFsm fsm, ICollection<IMessage> messages, ICollection<IMessage> admitted)
             {
-                Log.LogDebug((int)EventIds.Send, "[Send Sending began. BatchSize: {0}, AdmittedSize: {1}, MaxAdmittedOffset: {2}, {3}",
-                    messages.Count, admitted.Count, admitted.Max(m => m.Offset), GetContextString(fsm));
-            }
-
-            public static void SendSuccess(EndpointExecutorFsm fsm, ICollection<IMessage> admitted, ISinkResult<IMessage> result, Stopwatch stopwatch)
-            {
-                long latencyInMs = stopwatch.ElapsedMilliseconds;
-
-                if (!Routing.PerfCounter.LogExternalWriteLatency(fsm.Endpoint.IotHubName, fsm.Endpoint.Name, fsm.Endpoint.Type, true, latencyInMs, out string error))
-                {
-                    Log.LogError((int)EventIds.CounterFailure, "[LogExternalWriteLatencyCounterFailed] {0}", error);
-                }
-
-                Log.LogDebug((int)EventIds.SendSuccess, "[SendSuccess] Sending succeeded. AdmittedSize: {0}, SuccessfulSize: {1}, FailedSize: {2}, InvalidSize: {3}, {4}",
-                    admitted.Count, result.Succeeded.Count, result.Failed.Count, result.InvalidDetailsList.Count, GetContextString(fsm));
-            }
-
-            public static void SendFailureUnhandledException(EndpointExecutorFsm fsm, ICollection<IMessage> messages, Stopwatch stopwatch, Exception exception)
-            {
-                long latencyInMs = stopwatch.ElapsedMilliseconds;
-
-                if (!Routing.PerfCounter.LogExternalWriteLatency(fsm.Endpoint.IotHubName, fsm.Endpoint.Name, fsm.Endpoint.Type, false, latencyInMs, out string error))
-                {
-                    Log.LogError((int)EventIds.CounterFailure, "[LogExternalWriteLatencyCounterFailed] {0}", error);
-                }
-
-                Log.LogError((int)EventIds.SendFailureUnhandledException, exception, "[SendFailureUnhandledException] Unhandled exception.  FailedSize: {0}, {1}", messages.Count, GetContextString(fsm));
-                LogUnhealthyEndpointOpMonError(fsm, FailureKind.InternalError);
+                Log.LogDebug(
+                    (int)EventIds.Send,
+                    "[Send Sending began. BatchSize: {0}, AdmittedSize: {1}, MaxAdmittedOffset: {2}, {3}",
+                    messages.Count,
+                    admitted.Count,
+                    admitted.Max(m => m.Offset),
+                    GetContextString(fsm));
             }
 
             public static void SendFailure(EndpointExecutorFsm fsm, ISinkResult<IMessage> result, Stopwatch stopwatch)
@@ -652,10 +783,29 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                     Routing.UserAnalyticsLogger.LogInvalidMessage(fsm.Endpoint.IotHubName, invalidDetails.Item, invalidDetails.FailureKind);
                 }
 
-                Log.LogWarning((int)EventIds.SendFailure, failureDetails.RawException, "[SendFailure] Sending failed. SuccessfulSize: {0}, FailedSize: {1}, InvalidSize: {2}, {3}",
-                    result.Succeeded.Count, result.Failed.Count, result.InvalidDetailsList.Count, GetContextString(fsm));
+                Log.LogWarning(
+                    (int)EventIds.SendFailure,
+                    failureDetails.RawException,
+                    "[SendFailure] Sending failed. SuccessfulSize: {0}, FailedSize: {1}, InvalidSize: {2}, {3}",
+                    result.Succeeded.Count,
+                    result.Failed.Count,
+                    result.InvalidDetailsList.Count,
+                    GetContextString(fsm));
 
                 LogUnhealthyEndpointOpMonError(fsm, failureDetails.FailureKind);
+            }
+
+            public static void SendFailureUnhandledException(EndpointExecutorFsm fsm, ICollection<IMessage> messages, Stopwatch stopwatch, Exception exception)
+            {
+                long latencyInMs = stopwatch.ElapsedMilliseconds;
+
+                if (!Routing.PerfCounter.LogExternalWriteLatency(fsm.Endpoint.IotHubName, fsm.Endpoint.Name, fsm.Endpoint.Type, false, latencyInMs, out string error))
+                {
+                    Log.LogError((int)EventIds.CounterFailure, "[LogExternalWriteLatencyCounterFailed] {0}", error);
+                }
+
+                Log.LogError((int)EventIds.SendFailureUnhandledException, exception, "[SendFailureUnhandledException] Unhandled exception.  FailedSize: {0}, {1}", messages.Count, GetContextString(fsm));
+                LogUnhealthyEndpointOpMonError(fsm, FailureKind.InternalError);
             }
 
             public static void SendNone(EndpointExecutorFsm fsm)
@@ -663,127 +813,38 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                 Log.LogDebug((int)EventIds.SendNone, "[SendNone] Admitted no messages. {0}", GetContextString(fsm));
             }
 
-            public static void Checkpoint(EndpointExecutorFsm fsm, ISinkResult<IMessage> result)
+            public static void SendSuccess(EndpointExecutorFsm fsm, ICollection<IMessage> admitted, ISinkResult<IMessage> result, Stopwatch stopwatch)
             {
-                Log.LogDebug((int)EventIds.Checkpoint, "[Checkpoint] Checkpointing began. CheckpointOffset: {0}, SuccessfulSize: {1}, RemainingSize: {2}, {3}",
-                    fsm.Status.CheckpointerStatus.Offset, result.Succeeded.Count + result.InvalidDetailsList.Count, result.Failed.Count, GetContextString(fsm));
-            }
+                long latencyInMs = stopwatch.ElapsedMilliseconds;
 
-            public static void CheckpointSuccess(EndpointExecutorFsm fsm, ISinkResult<IMessage> result)
-            {
-                Log.LogInformation((int)EventIds.CheckpointSuccess, "[CheckpointSuccess] Checkpointing succeeded. CheckpointOffset: {0}, {1}",
-                    fsm.Status.CheckpointerStatus.Offset, GetContextString(fsm));
-
-                IList<IMessage> invalidMessages = result.InvalidDetailsList.Select(d => d.Item).ToList();
-
-                SetProcessingInternalCounters(fsm, "Success", result.Succeeded);
-                SetProcessingInternalCounters(fsm, "Failure", result.Failed);
-                SetProcessingInternalCounters(fsm, "Invalid", invalidMessages);
-
-                SetSuccessfulEgressUserMetricCounter(fsm, result.Succeeded);
-                SetInvalidEgressUserMetricCounter(fsm, invalidMessages);
-            }
-
-            public static void CheckpointFailure(EndpointExecutorFsm fsm, Exception ex)
-            {
-                Log.LogError((int)EventIds.CheckpointFailure, ex, "[CheckpointFailure] Checkpointing failed. CheckpointOffset: {0}, {1}",
-                    fsm.Status.CheckpointerStatus.Offset, GetContextString(fsm));
-            }
-
-            public static void CheckRetryInnerException(Exception ex, bool retry)
-            {
-                Log.LogDebug((int)EventIds.CheckRetryInnerException, ex, $"[CheckRetryInnerException] Decision to retry exception of type {ex.GetType()} is {retry}");
-            }
-
-            public static void Retry(EndpointExecutorFsm fsm)
-            {
-                DateTime next = fsm.systemTime.UtcNow.SafeAdd(fsm.Status.RetryPeriod);
-
-                Log.LogDebug((int)EventIds.Retry, "[Retry] Retrying. Retry.Attempts: {0}, Retry.Period: {1}, Retry.Next: {2}, {3}",
-                    fsm.Status.RetryAttempts, fsm.Status.RetryPeriod.ToString(TimeSpanFormat), next.ToString(DateTimeFormat), GetContextString(fsm));
-            }
-
-            public static void RetryDelay(EndpointExecutorFsm fsm)
-            {
-                DateTime next = fsm.systemTime.UtcNow.SafeAdd(fsm.Status.RetryPeriod);
-
-                Log.LogDebug((int)EventIds.RetryDelay, "[RetryDelay] Waiting to retry. Retry.Attempts: {0}, Retry.Period: {1}, Retry.Next: {2}, {3}",
-                    fsm.Status.RetryAttempts, fsm.Status.RetryPeriod.ToString(TimeSpanFormat), next.ToString(DateTimeFormat), GetContextString(fsm));
-            }
-
-            public static void RetryFailed(EndpointExecutorFsm fsm, Exception exception)
-            {
-                Log.LogError((int)EventIds.RetryFailed, exception, "[RetryFailed] Failed to retry. {0}", GetContextString(fsm));
-            }
-
-            public static void Dead(EndpointExecutorFsm fsm, ICollection<IMessage> messages)
-            {
-                Preconditions.CheckArgument(fsm.Status.LastFailedRevivalTime.HasValue);
-                DateTime reviveAt = fsm.Status.LastFailedRevivalTime.GetOrElse(fsm.systemTime.UtcNow).SafeAdd(fsm.config.RevivePeriod);
-
-                Log.LogWarning((int)EventIds.Dead, "[Dead] Dropping {0} messages. BatchSize: {1}, LastFailedRevivalTime: {2}, UnhealthySince: {3}, ReviveAt: {4}, {5}",
-                    messages.Count, messages.Count, fsm.Status.LastFailedRevivalTime.GetOrElse(Checkpointers.Checkpointer.DateTimeMinValue).ToString(DateTimeFormat),
-                    fsm.Status.UnhealthySince.GetOrElse(Checkpointers.Checkpointer.DateTimeMinValue).ToString(DateTimeFormat), reviveAt.ToString(DateTimeFormat), GetContextString(fsm));
-            }
-
-            public static void DeadSuccess(EndpointExecutorFsm fsm, ICollection<IMessage> messages)
-            {
-                Preconditions.CheckArgument(fsm.Status.LastFailedRevivalTime.HasValue);
-
-                CultureInfo culture = CultureInfo.InvariantCulture;
-                DateTime reviveAt = fsm.Status.LastFailedRevivalTime.GetOrElse(fsm.systemTime.UtcNow).SafeAdd(fsm.config.RevivePeriod);
-
-                Log.LogWarning((int)EventIds.DeadSuccess, "[DeadSuccess] Dropped {0} messages. BatchSize: {1}, LastFailedRevivalTime: {2}, UnhealthySince: {3}, ReviveAt: {4}, {5}",
-                    messages.Count, messages.Count, fsm.Status.LastFailedRevivalTime.GetOrElse(Checkpointers.Checkpointer.DateTimeMinValue).ToString(DateTimeFormat, culture),
-                    fsm.Status.UnhealthySince.GetOrElse(Checkpointers.Checkpointer.DateTimeMinValue).ToString(DateTimeFormat, culture), reviveAt.ToString(DateTimeFormat, culture),
-                    GetContextString(fsm));
-
-                SetProcessingInternalCounters(fsm, "Dropped", messages);
-                SetDroppedEgressUserMetricCounter(fsm, messages);
-
-                FailureKind failureKind = fsm.currentCheckpointCommand?.Result?.SendFailureDetails.GetOrElse(DefaultFailureDetails).FailureKind ?? FailureKind.InternalError;
-
-                foreach (IMessage message in messages)
+                if (!Routing.PerfCounter.LogExternalWriteLatency(fsm.Endpoint.IotHubName, fsm.Endpoint.Name, fsm.Endpoint.Type, true, latencyInMs, out string error))
                 {
-                    Routing.UserAnalyticsLogger.LogDroppedMessage(fsm.Endpoint.IotHubName, message, fsm.Endpoint.Name, failureKind);
+                    Log.LogError((int)EventIds.CounterFailure, "[LogExternalWriteLatencyCounterFailed] {0}", error);
                 }
-            }
 
-            public static void DeadFailure(EndpointExecutorFsm fsm, Exception ex)
-            {
-                Preconditions.CheckArgument(fsm.Status.LastFailedRevivalTime.HasValue);
-
-                CultureInfo culture = CultureInfo.InvariantCulture;
-                DateTime reviveAt = fsm.Status.LastFailedRevivalTime.GetOrElse(fsm.systemTime.UtcNow).SafeAdd(fsm.config.RevivePeriod);
-
-                Log.LogError((int)EventIds.DeadFailure, ex, "[DeadFailure] Dropping messages failed. LastFailedRevivalTime: {0}, UnhealthySince: {1}, DeadTime:{2}, ReviveAt: {3}, {4}",
-                    fsm.Status.LastFailedRevivalTime.ToString(), fsm.Status.LastFailedRevivalTime.GetOrElse(Checkpointers.Checkpointer.DateTimeMinValue).ToString(DateTimeFormat, culture),
-                    fsm.Status.UnhealthySince.GetOrElse(Checkpointers.Checkpointer.DateTimeMinValue).ToString(DateTimeFormat, culture), reviveAt.ToString(DateTimeFormat, culture),
+                Log.LogDebug(
+                    (int)EventIds.SendSuccess,
+                    "[SendSuccess] Sending succeeded. AdmittedSize: {0}, SuccessfulSize: {1}, FailedSize: {2}, InvalidSize: {3}, {4}",
+                    admitted.Count,
+                    result.Succeeded.Count,
+                    result.Failed.Count,
+                    result.InvalidDetailsList.Count,
                     GetContextString(fsm));
             }
 
-            public static void Die(EndpointExecutorFsm fsm)
+            public static void StateEnter(EndpointExecutorFsm fsm)
             {
-                Log.LogInformation((int)EventIds.Die, "[Die] Endpoint died. {0}", GetContextString(fsm));
-                Routing.UserAnalyticsLogger.LogDeadEndpoint(fsm.Endpoint.IotHubName, fsm.Endpoint.Name);
+                Log.LogTrace((int)EventIds.StateEnter, "[StateEnter] Entered state <{0}>. {1}", fsm.state, GetContextString(fsm));
             }
 
-            public static void PrepareForRevive(EndpointExecutorFsm fsm)
+            public static void StateExit(EndpointExecutorFsm fsm)
             {
-                Preconditions.CheckArgument(fsm.Status.LastFailedRevivalTime.HasValue);
-                CultureInfo culture = CultureInfo.InvariantCulture;
-                DateTime reviveAt = fsm.Status.LastFailedRevivalTime.GetOrElse(fsm.systemTime.UtcNow).SafeAdd(fsm.config.RevivePeriod);
-
-                Log.LogInformation((int)EventIds.PrepareForRevive, "[PrepareForRevive] Attempting to bring endpoint back. LastFailedRevivalTime: {0}, UnhealthySince: {1},  ReviveAt: {2}, {3}",
-                    fsm.Status.LastFailedRevivalTime.GetOrElse(Checkpointers.Checkpointer.DateTimeMinValue).ToString(DateTimeFormat, culture),
-                    fsm.Status.UnhealthySince.GetOrElse(Checkpointers.Checkpointer.DateTimeMinValue).ToString(DateTimeFormat, culture),
-                    reviveAt.ToString(DateTimeFormat, culture), GetContextString(fsm));
+                Log.LogTrace((int)EventIds.StateExit, "[StateExit] Exited state <{0}>. {1}", fsm.state, GetContextString(fsm));
             }
 
-            public static void Revived(EndpointExecutorFsm fsm)
+            public static void StateTransition(EndpointExecutorFsm fsm, State from, State to)
             {
-                Log.LogInformation((int)EventIds.Revived, "[Revived] Endpoint revived, {0}", GetContextString(fsm));
-                Routing.UserAnalyticsLogger.LogHealthyEndpoint(fsm.Endpoint.IotHubName, fsm.Endpoint.Name);
+                Log.LogTrace((int)EventIds.StateTransition, "[StateTransition] Transitioned from <{0}> to <{1}>. {2}", from, to, GetContextString(fsm));
             }
 
             public static void UpdateEndpoint(EndpointExecutorFsm fsm)
@@ -791,14 +852,25 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                 Log.LogInformation((int)EventIds.UpdateEndpoint, "[UpdateEndpoint] Updating endpoint began. {0}", GetContextString(fsm));
             }
 
+            public static void UpdateEndpointFailure(EndpointExecutorFsm fsm, Exception ex)
+            {
+                Log.LogError((int)EventIds.UpdateEndpointFailure, ex, "[UpdateEndpointFailure] Updating endpoint failed. {0}", GetContextString(fsm));
+            }
+
             public static void UpdateEndpointSuccess(EndpointExecutorFsm fsm)
             {
                 Log.LogInformation((int)EventIds.UpdateEndpointSuccess, "[UpdateEndpointSuccess] Updating endpoint succeeded. {0}", GetContextString(fsm));
             }
 
-            public static void UpdateEndpointFailure(EndpointExecutorFsm fsm, Exception ex)
+            static string GetContextString(EndpointExecutorFsm fsm)
             {
-                Log.LogError((int)EventIds.UpdateEndpointFailure, ex, "[UpdateEndpointFailure] Updating endpoint failed. {0}", GetContextString(fsm));
+                return string.Format(
+                    CultureInfo.InvariantCulture,
+                    "EndpointId: {0}, EndpointName: {1}, CheckpointerId: {2}, State: {3}",
+                    fsm.Status.Id,
+                    fsm.Endpoint.Name,
+                    fsm.Status.CheckpointerStatus.Id,
+                    fsm.state);
             }
 
             static void LogUnhealthyEndpointOpMonError(EndpointExecutorFsm fsm, FailureKind failureKind)
@@ -810,10 +882,22 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                 }
             }
 
-            static string GetContextString(EndpointExecutorFsm fsm)
+            static void SetDroppedEgressUserMetricCounter(EndpointExecutorFsm fsm, IEnumerable<IMessage> messages)
             {
-                return string.Format(CultureInfo.InvariantCulture, "EndpointId: {0}, EndpointName: {1}, CheckpointerId: {2}, State: {3}",
-                    fsm.Status.Id, fsm.Endpoint.Name, fsm.Status.CheckpointerStatus.Id, fsm.state);
+                foreach (IGrouping<Type, IMessage> group in messages.GroupBy(m => m.MessageSource.GetType()).Where(g => g.Any()))
+                {
+                    int count = group.Count();
+                    Routing.UserMetricLogger.LogEgressMetric(count, fsm.Endpoint.IotHubName, MessageRoutingStatus.Dropped, count > 0 ? group.First().ToString() : group.Key.Name);
+                }
+            }
+
+            static void SetInvalidEgressUserMetricCounter(EndpointExecutorFsm fsm, IEnumerable<IMessage> messages)
+            {
+                foreach (IGrouping<Type, IMessage> group in messages.GroupBy(m => m.MessageSource.GetType()).Where(g => g.Any()))
+                {
+                    int count = group.Count();
+                    Routing.UserMetricLogger.LogEgressMetric(count, fsm.Endpoint.IotHubName, MessageRoutingStatus.Invalid, count > 0 ? group.First().ToString() : group.Key.Name);
+                }
             }
 
             static void SetProcessingInternalCounters(EndpointExecutorFsm fsm, string status, ICollection<IMessage> messages)
@@ -863,24 +947,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                 long averageLatencyInMs = totalTime < TimeSpan.Zero ? 0L : (long)(totalTime.TotalMilliseconds / messages.Count);
 
                 fsm.Endpoint.LogUserMetrics(messages.Count, averageLatencyInMs);
-            }
-
-            static void SetInvalidEgressUserMetricCounter(EndpointExecutorFsm fsm, IEnumerable<IMessage> messages)
-            {
-                foreach (IGrouping<Type, IMessage> group in messages.GroupBy(m => m.MessageSource.GetType()).Where(g => g.Any()))
-                {
-                    int count = group.Count();
-                    Routing.UserMetricLogger.LogEgressMetric(count, fsm.Endpoint.IotHubName, MessageRoutingStatus.Invalid, count > 0 ? group.First().ToString() : group.Key.Name);
-                }
-            }
-
-            static void SetDroppedEgressUserMetricCounter(EndpointExecutorFsm fsm, IEnumerable<IMessage> messages)
-            {
-                foreach (IGrouping<Type, IMessage> group in messages.GroupBy(m => m.MessageSource.GetType()).Where(g => g.Any()))
-                {
-                    int count = group.Count();
-                    Routing.UserMetricLogger.LogEgressMetric(count, fsm.Endpoint.IotHubName, MessageRoutingStatus.Dropped, count > 0 ? group.First().ToString() : group.Key.Name);
-                }
             }
         }
     }

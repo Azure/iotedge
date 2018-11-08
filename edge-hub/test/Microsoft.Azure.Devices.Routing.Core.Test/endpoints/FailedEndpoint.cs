@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
 {
     using System;
@@ -6,18 +7,16 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
     using System.Diagnostics.CodeAnalysis;
     using System.Threading;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Routing.Core.Util;
+
     using Xunit;
 
     public class FailedEndpoint : Endpoint
     {
         readonly ErrorDetectionStrategy detectionStrategy;
-
-        public Exception Exception { get; }
-
-        public override string Type => nameof(FailedEndpoint);
 
         public FailedEndpoint(string id)
             : this(id, new Exception())
@@ -41,6 +40,10 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             this.detectionStrategy = detectionStrategy;
         }
 
+        public Exception Exception { get; }
+
+        public override string Type => nameof(FailedEndpoint);
+
         public override IProcessor CreateProcessor() => new Processor(this);
 
         public override void LogUserMetrics(long messageCount, long latencyInMs)
@@ -51,14 +54,16 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
         {
             readonly FailedEndpoint endpoint;
 
-            public Endpoint Endpoint => this.endpoint;
-
-            public ITransientErrorDetectionStrategy ErrorDetectionStrategy => this.endpoint.detectionStrategy;
-
             public Processor(FailedEndpoint endpoint)
             {
                 this.endpoint = endpoint;
             }
+
+            public Endpoint Endpoint => this.endpoint;
+
+            public ITransientErrorDetectionStrategy ErrorDetectionStrategy => this.endpoint.detectionStrategy;
+
+            public Task CloseAsync(CancellationToken token) => TaskEx.Done;
 
             public Task<ISinkResult<IMessage>> ProcessAsync(IMessage message, CancellationToken token) =>
                 this.ProcessAsync(new[] { message }, token);
@@ -68,15 +73,14 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
                 ISinkResult<IMessage> result = new SinkResult<IMessage>(new IMessage[0], messages, new SendFailureDetails(FailureKind.InternalError, this.endpoint.Exception));
                 return Task.FromResult(result);
             }
-
-            public Task CloseAsync(CancellationToken token) => TaskEx.Done;
         }
     }
 
     [ExcludeFromCodeCoverage]
     public class FailedEndpointTest : RoutingUnitTestBase
     {
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task SmokeTest()
         {
             var cts = new CancellationTokenSource();

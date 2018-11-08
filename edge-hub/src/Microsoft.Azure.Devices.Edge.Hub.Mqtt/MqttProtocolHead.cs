@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
     using System;
@@ -9,12 +10,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using System.Security.Cryptography.X509Certificates;
     using System.Threading;
     using System.Threading.Tasks;
+
     using DotNetty.Buffers;
     using DotNetty.Codecs.Mqtt;
     using DotNetty.Handlers.Tls;
     using DotNetty.Transport.Bootstrapping;
     using DotNetty.Transport.Channels;
     using DotNetty.Transport.Channels.Sockets;
+
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.ProtocolGateway;
@@ -25,6 +28,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
     public class MqttProtocolHead : IProtocolHead
     {
+        const int MqttsPort = 8883;
+        const int DefaultListenBacklogSize = 200; // connections allowed pending accept
+        const int DefaultParentEventLoopCount = 1;
+        const int DefaultMaxInboundMessageSize = 256 * 1024;
+        const int DefaultThreadCount = 200;
+        const bool AutoRead = false;
+
         readonly ILogger logger = Logger.Factory.CreateLogger<MqttProtocolHead>();
         readonly ISettingsProvider settingsProvider;
         readonly X509Certificate tlsCertificate;
@@ -36,16 +46,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         readonly Option<IList<X509Certificate2>> caCertChain;
         readonly bool clientCertAuthAllowed;
 
-        const int MqttsPort = 8883;
-        const int DefaultListenBacklogSize = 200; // connections allowed pending accept
-        const int DefaultParentEventLoopCount = 1;
-        const int DefaultMaxInboundMessageSize = 256 * 1024;
-        const int DefaultThreadCount = 200;
-        const bool AutoRead = false;
         IChannel serverChannel;
         IEventLoopGroup eventLoopGroup;
 
-        public MqttProtocolHead(ISettingsProvider settingsProvider,
+        public MqttProtocolHead(
+            ISettingsProvider settingsProvider,
             X509Certificate tlsCertificate,
             IMqttConnectionProvider mqttConnectionProvider,
             IDeviceIdentityProvider identityProvider,
@@ -70,6 +75,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public string Name => "MQTT";
 
+        public async Task CloseAsync(CancellationToken token)
+        {
+            try
+            {
+                this.logger.LogInformation("Stopping");
+
+                await (this.serverChannel?.CloseAsync() ?? TaskEx.Done);
+                await (this.eventLoopGroup?.ShutdownGracefullyAsync() ?? TaskEx.Done);
+
+                // TODO: gracefully shutdown the MultithreadEventLoopGroup in MqttWebSocketListener?
+                // TODO: this.webSocketListenerRegistry.TryUnregister("mqtts")?
+                this.logger.LogInformation("Stopped");
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError("Failed to stop cleanly", ex);
+            }
+        }
+
+        public void Dispose()
+        {
+            this.mqttConnectionProvider.Dispose();
+            this.CloseAsync(CancellationToken.None).Wait();
+        }
+
         public async Task StartAsync()
         {
             try
@@ -91,30 +121,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             }
         }
 
-
-        public async Task CloseAsync(CancellationToken token)
+        Option<IList<X509Certificate2>> GetCaChainCerts(string caChainPath)
         {
-            try
+            if (!string.IsNullOrWhiteSpace(caChainPath))
             {
-                this.logger.LogInformation("Stopping");
-
-                await (this.serverChannel?.CloseAsync() ?? TaskEx.Done);
-                await (this.eventLoopGroup?.ShutdownGracefullyAsync() ?? TaskEx.Done);
-                // TODO: gracefully shutdown the MultithreadEventLoopGroup in MqttWebSocketListener?
-                // TODO: this.webSocketListenerRegistry.TryUnregister("mqtts")?
-
-                this.logger.LogInformation("Stopped");
+                (Option<IList<X509Certificate2>> caChainCerts, Option<string> errors) = CertificateHelper.GetCertsAtPath(caChainPath);
+                errors.ForEach(v => this.logger.LogWarning(v));
+                return caChainCerts;
             }
-            catch (Exception ex)
-            {
-                this.logger.LogError("Failed to stop cleanly", ex);
-            }
-        }
 
-        public void Dispose()
-        {
-            this.mqttConnectionProvider.Dispose();
-            this.CloseAsync(CancellationToken.None).Wait();
+            return Option.None<IList<X509Certificate2>>();
         }
 
         ServerBootstrap SetupServerBootstrap()
@@ -128,47 +144,55 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             MessagingBridgeFactoryFunc bridgeFactory = this.mqttConnectionProvider.Connect;
 
             var bootstrap = new ServerBootstrap();
+
             // multithreaded event loop that handles the incoming connection
             IEventLoopGroup parentEventLoopGroup = new MultithreadEventLoopGroup(parentEventLoopCount);
+
             // multithreaded event loop (worker) that handles the traffic of the accepted connections
             this.eventLoopGroup = new MultithreadEventLoopGroup(threadCount);
 
             bootstrap.Group(parentEventLoopGroup, this.eventLoopGroup)
                 .Option(ChannelOption.SoBacklog, listenBacklogSize)
+
                 // Allow listening socket to force bind to port if previous socket is still in TIME_WAIT
                 // Fixes "address is already in use" errors
                 .Option(ChannelOption.SoReuseaddr, true)
                 .ChildOption(ChannelOption.Allocator, this.byteBufferAllocator)
                 .ChildOption(ChannelOption.AutoRead, AutoRead)
+
                 // channel that accepts incoming connections
                 .Channel<TcpServerSocketChannel>()
+
                 // Channel initializer, it is handler that is purposed to help configure a new channel
-                .ChildHandler(new ActionChannelInitializer<ISocketChannel>(channel =>
-                {
-                    // configure the channel pipeline of the new Channel by adding handlers
-                    TlsSettings serverSettings = new ServerTlsSettings(
-                            certificate: this.tlsCertificate,
-                            negotiateClientCertificate: this.clientCertAuthAllowed
-                        );
+                .ChildHandler(
+                    new ActionChannelInitializer<ISocketChannel>(
+                        channel =>
+                        {
+                            // configure the channel pipeline of the new Channel by adding handlers
+                            TlsSettings serverSettings = new ServerTlsSettings(
+                                certificate: this.tlsCertificate,
+                                negotiateClientCertificate: this.clientCertAuthAllowed);
 
-                    channel.Pipeline.AddLast(new TlsHandler(stream =>
-                        new SslStream(stream,
-                                      true,
-                                      (sender, remoteCertificate, remoteChain, sslPolicyErrors) =>
-                                      this.clientCertAuthAllowed ?
-                                          CertificateHelper.ValidateClientCert(remoteCertificate, remoteChain, this.caCertChain, this.logger) : true),
-                                      serverSettings));
+                            channel.Pipeline.AddLast(
+                                new TlsHandler(
+                                    stream =>
+                                        new SslStream(
+                                            stream,
+                                            true,
+                                            (sender, remoteCertificate, remoteChain, sslPolicyErrors) =>
+                                                this.clientCertAuthAllowed ? CertificateHelper.ValidateClientCert(remoteCertificate, remoteChain, this.caCertChain, this.logger) : true),
+                                    serverSettings));
 
-                    channel.Pipeline.AddLast(
-                        MqttEncoder.Instance,
-                        new MqttDecoder(true, maxInboundMessageSize),
-                        new MqttAdapter(
-                            settings,
-                            this.sessionProvider,
-                            this.identityProvider,
-                            null,
-                            bridgeFactory));
-                }));
+                            channel.Pipeline.AddLast(
+                                MqttEncoder.Instance,
+                                new MqttDecoder(true, maxInboundMessageSize),
+                                new MqttAdapter(
+                                    settings,
+                                    this.sessionProvider,
+                                    this.identityProvider,
+                                    null,
+                                    bridgeFactory));
+                        }));
 
             var mqttWebSocketListener = new MqttWebSocketListener(
                 settings,
@@ -183,17 +207,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             this.webSocketListenerRegistry.TryRegister(mqttWebSocketListener);
 
             return bootstrap;
-        }
-
-        Option<IList<X509Certificate2>> GetCaChainCerts(string caChainPath)
-        {
-            if (!string.IsNullOrWhiteSpace(caChainPath))
-            {
-                (Option<IList<X509Certificate2>> caChainCerts, Option<string> errors) = CertificateHelper.GetCertsAtPath(caChainPath);
-                errors.ForEach(v => this.logger.LogWarning(v));
-                return caChainCerts;
-            }
-            return Option.None<IList<X509Certificate2>>();
         }
     }
 }

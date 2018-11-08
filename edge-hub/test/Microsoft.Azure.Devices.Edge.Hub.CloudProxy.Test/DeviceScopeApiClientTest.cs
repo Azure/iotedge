@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
     using System;
@@ -7,53 +7,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using System.Net;
     using System.Net.Http;
     using System.Net.Sockets;
+
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+
     using Moq;
+
     using Xunit;
 
     [Unit]
     public class DeviceScopeApiClientTest
     {
-        [Fact]
-        public void GetServiceUriTest()
+        [Theory]
+        [MemberData(nameof(GetErrorDetectionData))]
+        public void ErrorDetectionStrategyTest(Exception ex, bool isTransient)
         {
             // Arrange
-            string iothubHostName = "foo.azure-devices.net";
-            string deviceId = "d1";
-            string moduleId = "$edgeHub";
-            int batchSize = 10;
-            var tokenProvider = Mock.Of<ITokenProvider>();
-            var deviceScopeApiClient = new DeviceScopeApiClient(iothubHostName, deviceId, moduleId, batchSize, tokenProvider);
-            string expectedUri = "https://foo.azure-devices.net/devices/d1/modules/$edgeHub/devicesAndModulesInDeviceScope?deviceCount=10&continuationToken=&api-version=2018-08-30-preview";
+            var errorDetectionStrategy = new DeviceScopeApiClient.ErrorDetectionStrategy();
 
             // Act
-            Uri uri = deviceScopeApiClient.GetServiceUri(Option.None<string>());
+            bool isTransientResponse = errorDetectionStrategy.IsTransient(ex);
 
             // Assert
-            Assert.NotNull(uri);
-            Assert.Equal(expectedUri, uri.ToString());
-        }
-
-        [Fact]
-        public void GetServiceUriWithContinuationTokenTest()
-        {
-            // Arrange
-            string iothubHostName = "foo.azure-devices.net";
-            string deviceId = "d1";
-            string moduleId = "$edgeHub";
-            int batchSize = 10;
-            var tokenProvider = Mock.Of<ITokenProvider>();
-            var deviceScopeApiClient = new DeviceScopeApiClient(iothubHostName, deviceId, moduleId, batchSize, tokenProvider);
-            string continuationToken = "/devices/d301/modules/%24edgeHub/devicesAndModulesInDeviceScope?deviceCount=10&continuationToken=cccccDDDDDRRRRRsssswJmxhc3Q9bGQyXzE1&api-version=2018-08-30-preview";
-            string expectedToken = "https://foo.azure-devices.net/devices/d301/modules/%24edgeHub/devicesAndModulesInDeviceScope?deviceCount=10&continuationToken=cccccDDDDDRRRRRsssswJmxhc3Q9bGQyXzE1&api-version=2018-08-30-preview";
-
-            // Act
-            Uri uri = deviceScopeApiClient.GetServiceUri(Option.Some(continuationToken));
-
-            // Assert
-            Assert.NotNull(uri);
-            Assert.Equal(expectedToken, uri.ToString());
+            Assert.Equal(isTransientResponse, isTransient);
         }
 
         [Fact]
@@ -100,6 +76,47 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.Equal(expectedToken, uri.ToString());
         }
 
+        [Fact]
+        public void GetServiceUriTest()
+        {
+            // Arrange
+            string iothubHostName = "foo.azure-devices.net";
+            string deviceId = "d1";
+            string moduleId = "$edgeHub";
+            int batchSize = 10;
+            var tokenProvider = Mock.Of<ITokenProvider>();
+            var deviceScopeApiClient = new DeviceScopeApiClient(iothubHostName, deviceId, moduleId, batchSize, tokenProvider);
+            string expectedUri = "https://foo.azure-devices.net/devices/d1/modules/$edgeHub/devicesAndModulesInDeviceScope?deviceCount=10&continuationToken=&api-version=2018-08-30-preview";
+
+            // Act
+            Uri uri = deviceScopeApiClient.GetServiceUri(Option.None<string>());
+
+            // Assert
+            Assert.NotNull(uri);
+            Assert.Equal(expectedUri, uri.ToString());
+        }
+
+        [Fact]
+        public void GetServiceUriWithContinuationTokenTest()
+        {
+            // Arrange
+            string iothubHostName = "foo.azure-devices.net";
+            string deviceId = "d1";
+            string moduleId = "$edgeHub";
+            int batchSize = 10;
+            var tokenProvider = Mock.Of<ITokenProvider>();
+            var deviceScopeApiClient = new DeviceScopeApiClient(iothubHostName, deviceId, moduleId, batchSize, tokenProvider);
+            string continuationToken = "/devices/d301/modules/%24edgeHub/devicesAndModulesInDeviceScope?deviceCount=10&continuationToken=cccccDDDDDRRRRRsssswJmxhc3Q9bGQyXzE1&api-version=2018-08-30-preview";
+            string expectedToken = "https://foo.azure-devices.net/devices/d301/modules/%24edgeHub/devicesAndModulesInDeviceScope?deviceCount=10&continuationToken=cccccDDDDDRRRRRsssswJmxhc3Q9bGQyXzE1&api-version=2018-08-30-preview";
+
+            // Act
+            Uri uri = deviceScopeApiClient.GetServiceUri(Option.Some(continuationToken));
+
+            // Assert
+            Assert.NotNull(uri);
+            Assert.Equal(expectedToken, uri.ToString());
+        }
+
         static IEnumerable<object[]> GetErrorDetectionData()
         {
             yield return new object[] { new ArgumentException(), false };
@@ -116,20 +133,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             yield return new object[] { new DeviceScopeApiException("foo", HttpStatusCode.InternalServerError, "bar"), true };
             yield return new object[] { new DeviceScopeApiException("foo", HttpStatusCode.ServiceUnavailable, "bar"), true };
             yield return new object[] { new DeviceScopeApiException("foo", HttpStatusCode.NotImplemented, "bar"), true };
-        }
-
-        [Theory]
-        [MemberData(nameof(GetErrorDetectionData))]
-        public void ErrorDetectionStrategyTest(Exception ex, bool isTransient)
-        {
-            // Arrange
-            var errorDetectionStrategy = new DeviceScopeApiClient.ErrorDetectionStrategy();
-
-            // Act
-            bool isTransientResponse = errorDetectionStrategy.IsTransient(ex);
-
-            // Assert
-            Assert.Equal(isTransientResponse, isTransient);
         }
     }
 }

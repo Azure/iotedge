@@ -1,11 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System.Collections.Generic;
     using System.Linq;
     using System.Net;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -38,36 +39,39 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             Option<ServiceIdentity> serviceIdentityResult =
                 scopeResult
-                    .Map(sc =>
-                    {
-                        if (sc.Devices != null)
+                    .Map(
+                        sc =>
                         {
-                            int count = sc.Devices.Count();
-                            if (count == 1)
+                            if (sc.Devices != null)
                             {
-                                ServiceIdentity serviceIdentity = sc.Devices.First().ToServiceIdentity();
-                                return Option.Some(serviceIdentity);
+                                int count = sc.Devices.Count();
+                                if (count == 1)
+                                {
+                                    ServiceIdentity serviceIdentity = sc.Devices.First().ToServiceIdentity();
+                                    return Option.Some(serviceIdentity);
+                                }
+                                else
+                                {
+                                    Events.UnexpectedResult(count, 1, "devices", deviceId);
+                                }
                             }
                             else
                             {
-                                Events.UnexpectedResult(count, 1, "devices", deviceId);
+                                Events.NullDevicesResult(deviceId);
                             }
-                        }
-                        else
+
+                            return Option.None<ServiceIdentity>();
+                        })
+                    .GetOrElse(
+                        () =>
                         {
-                            Events.NullDevicesResult(deviceId);
-                        }
-                        return Option.None<ServiceIdentity>();
-                    })
-                    .GetOrElse(() =>
-                    {
-                        Events.NullResult(deviceId);
-                        return Option.None<ServiceIdentity>();
-                    });
+                            Events.NullResult(deviceId);
+                            return Option.None<ServiceIdentity>();
+                        });
 
             return serviceIdentityResult;
         }
-        
+
         public async Task<Option<ServiceIdentity>> GetServiceIdentity(string deviceId, string moduleId)
         {
             string id = $"{deviceId}/{moduleId}";
@@ -105,6 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                             {
                                 Events.NullDevicesResult(id);
                             }
+
                             return Option.None<ServiceIdentity>();
                         })
                     .GetOrElse(
@@ -166,6 +171,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         this.HasNext = false;
                     }
                 }
+
                 return serviceIdentities;
             }
 
@@ -174,8 +180,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<ServiceProxy>();
             const int IdStart = CloudProxyEventIds.ServiceProxy;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<ServiceProxy>();
 
             enum EventIds
             {

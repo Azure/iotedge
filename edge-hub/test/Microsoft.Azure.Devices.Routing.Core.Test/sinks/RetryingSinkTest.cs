@@ -1,7 +1,5 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Test.Sinks
 {
     using System;
@@ -9,16 +7,20 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Sinks
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Routing.Core.Sinks;
     using Microsoft.Azure.Devices.Routing.Core.Util;
+
     using Moq;
+
     using Xunit;
 
     public class RetryingSinkTest
     {
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task SmokeTask()
         {
             var factory = new RetryingSinkFactory<int>(new TestSinkFactory<int>(), RetryPolicy.NoRetry);
@@ -33,36 +35,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Sinks
             await sink.CloseAsync(CancellationToken.None);
         }
 
-        [Fact, Unit]
-        public async Task TestSendCompletes()
-        {
-            var retryPolicy = new RetryPolicy(new ErrorDetectionStrategy(_ => true), new FixedInterval(3, TimeSpan.FromMilliseconds(10)));
-            var items = new[] { 1, 2, 3, 4, 5, 6 };
-            var testSink = new PartialFailureSink<int>(new Exception());
-            var sink = new RetryingSink<int>(testSink, retryPolicy);
-            ISinkResult<int> result = await sink.ProcessAsync(items, CancellationToken.None);
-            await sink.CloseAsync(CancellationToken.None);
-
-            Assert.True(result.IsSuccessful);
-            Assert.Equal(new List<int>(items), result.Succeeded);
-        }
-
-        [Fact, Unit]
-        public async Task TestFailure()
-        {
-            var retryPolicy = new RetryPolicy(new ErrorDetectionStrategy(_ => true), new FixedInterval(2, TimeSpan.FromMilliseconds(10)));
-            var items = new[] { 1, 2, 3, 4, 5, 6 };
-            var testSink = new PartialFailureSink<int>(new Exception());
-            var sink = new RetryingSink<int>(testSink, retryPolicy);
-            ISinkResult<int> result = await sink.ProcessAsync(items, CancellationToken.None);
-
-            Assert.False(result.IsSuccessful);
-            Assert.Equal(new List<int> { 1, 2, 3, 4, 5 }, result.Succeeded);
-            Assert.Equal(new List<int> { 6 }, result.Failed);
-            Assert.Equal(new List<InvalidDetails<int>>(), result.InvalidDetailsList);
-        }
-
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestCancellation()
         {
             var cts = new CancellationTokenSource();
@@ -84,7 +58,34 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Sinks
             result.SendFailureDetails.ForEach(sfd => Assert.IsType<TaskCanceledException>(sfd.RawException));
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
+        public async Task TestClose()
+        {
+            var underlying = new Mock<ISink<int>>();
+            var sink = new RetryingSink<int>(underlying.Object, RetryPolicy.NoRetry);
+            await sink.CloseAsync(CancellationToken.None);
+            underlying.Verify(s => s.CloseAsync(It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        [Unit]
+        public async Task TestFailure()
+        {
+            var retryPolicy = new RetryPolicy(new ErrorDetectionStrategy(_ => true), new FixedInterval(2, TimeSpan.FromMilliseconds(10)));
+            var items = new[] { 1, 2, 3, 4, 5, 6 };
+            var testSink = new PartialFailureSink<int>(new Exception());
+            var sink = new RetryingSink<int>(testSink, retryPolicy);
+            ISinkResult<int> result = await sink.ProcessAsync(items, CancellationToken.None);
+
+            Assert.False(result.IsSuccessful);
+            Assert.Equal(new List<int> { 1, 2, 3, 4, 5 }, result.Succeeded);
+            Assert.Equal(new List<int> { 6 }, result.Failed);
+            Assert.Equal(new List<InvalidDetails<int>>(), result.InvalidDetailsList);
+        }
+
+        [Fact]
+        [Unit]
         public async Task TestNonTransient()
         {
             var retryPolicy = new RetryPolicy(new ErrorDetectionStrategy(_ => false), new FixedInterval(int.MaxValue, TimeSpan.FromMilliseconds(10)));
@@ -107,13 +108,19 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Sinks
             }
         }
 
-        [Fact, Unit]
-        public async Task TestClose()
+        [Fact]
+        [Unit]
+        public async Task TestSendCompletes()
         {
-            var underlying = new Mock<ISink<int>>();
-            var sink = new RetryingSink<int>(underlying.Object, RetryPolicy.NoRetry);
+            var retryPolicy = new RetryPolicy(new ErrorDetectionStrategy(_ => true), new FixedInterval(3, TimeSpan.FromMilliseconds(10)));
+            var items = new[] { 1, 2, 3, 4, 5, 6 };
+            var testSink = new PartialFailureSink<int>(new Exception());
+            var sink = new RetryingSink<int>(testSink, retryPolicy);
+            ISinkResult<int> result = await sink.ProcessAsync(items, CancellationToken.None);
             await sink.CloseAsync(CancellationToken.None);
-            underlying.Verify(s => s.CloseAsync(It.IsAny<CancellationToken>()), Times.Once);
+
+            Assert.True(result.IsSuccessful);
+            Assert.Equal(new List<int>(items), result.Succeeded);
         }
     }
 }

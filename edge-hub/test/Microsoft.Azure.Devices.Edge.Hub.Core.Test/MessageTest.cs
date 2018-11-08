@@ -1,25 +1,39 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 {
     using System;
     using System.Collections.Generic;
+
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+
     using Xunit;
-    using Message = Microsoft.Azure.Devices.Edge.Hub.Core.EdgeMessage;
+
+    using Message = EdgeMessage;
 
     public class MessageTest
     {
-        static readonly Message Message1 = new Message.Builder(new byte[] { 1, 2, 3 }).SetProperties(new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }).Build();
-        static readonly Message Message2 = new Message.Builder(new byte[] { 1, 2, 3 }).SetProperties(new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }).Build();
-        static readonly Message Message3 = new Message.Builder(new byte[] { 2, 3, 1 }).SetProperties(new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }).Build();
-        static readonly Message Message4 = new Message.Builder(new byte[] { 1, 2, 3 }).SetProperties(new Dictionary<string, string> { { "key", "value" }, { "key2", "value2" } }).Build();
-        static readonly Message Message5 = new Message.Builder(new byte[] { 1, 2, 3 }).SetProperties(new Dictionary<string, string> { { "key", "value" } }).Build();
-        static readonly Message Message6 = new Message.Builder(new byte[] { 1, 2, 3 })
+        static readonly Message Message1 = new EdgeMessage.Builder(new byte[] { 1, 2, 3 }).SetProperties(new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }).Build();
+        static readonly Message Message2 = new EdgeMessage.Builder(new byte[] { 1, 2, 3 }).SetProperties(new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }).Build();
+        static readonly Message Message3 = new EdgeMessage.Builder(new byte[] { 2, 3, 1 }).SetProperties(new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }).Build();
+        static readonly Message Message4 = new EdgeMessage.Builder(new byte[] { 1, 2, 3 }).SetProperties(new Dictionary<string, string> { { "key", "value" }, { "key2", "value2" } }).Build();
+        static readonly Message Message5 = new EdgeMessage.Builder(new byte[] { 1, 2, 3 }).SetProperties(new Dictionary<string, string> { { "key", "value" } }).Build();
+
+        static readonly Message Message6 = new EdgeMessage.Builder(new byte[] { 1, 2, 3 })
             .SetProperties(new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } })
             .SetSystemProperties(new Dictionary<string, string> { { "sys1", "value1" } }).Build();
+
         static readonly Message Message7 = new Message(new byte[] { 1, 2, 3 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }, new Dictionary<string, string> { { "sys1", "value1" } });
         static readonly Message Message8 = new Message(new byte[] { 1, 2, 3 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }, new Dictionary<string, string> { { "sys1", "value2" } });
+
+        [Fact]
+        [Unit]
+        public void TestCaseSensitivity()
+        {
+            var message1 = new Message(new byte[] { 1, 2, 3 }, new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { { "KEY1", "value1" }, { "key2", "value2" } }, new Dictionary<string, string>());
+            Assert.Equal("value1", message1.Properties["key1"]);
+            Assert.Equal("value2", message1.Properties["key2"]);
+        }
 
         [Fact]
         [Unit]
@@ -53,15 +67,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(Message1.Equals((object)Message1));
             Assert.False(Message1.Equals((object)Message3));
             Assert.False(Message1.Equals(new object()));
-        }
-
-        [Fact]
-        [Unit]
-        public void TestCaseSensitivity()
-        {
-            var message1 = new Message(new byte[] { 1, 2, 3 }, new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { { "KEY1", "value1" }, { "key2", "value2" } }, new Dictionary<string, string>());
-            Assert.Equal("value1", message1.Properties["key1"]);
-            Assert.Equal("value2", message1.Properties["key2"]);
         }
 
         [Fact]

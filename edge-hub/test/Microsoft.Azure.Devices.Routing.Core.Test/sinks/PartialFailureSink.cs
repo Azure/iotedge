@@ -1,7 +1,5 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Test.Sinks
 {
     using System;
@@ -9,16 +7,19 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Sinks
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Routing.Core.Util;
 
     public class PartialFailureSink<T> : ISink<T>
     {
-        public Exception Exception { get; }
-
         public PartialFailureSink(Exception exception)
         {
             this.Exception = exception;
         }
+
+        public Exception Exception { get; }
+
+        public Task CloseAsync(CancellationToken token) => TaskEx.Done;
 
         public Task<ISinkResult<T>> ProcessAsync(T t, CancellationToken token) =>
             this.ProcessAsync(new[] { t }, token);
@@ -37,9 +38,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Sinks
                 T[] failed = ts.Skip(ts.Count / 2).ToArray();
                 result = new SinkResult<T>(successful, failed, new SendFailureDetails(FailureKind.InternalError, this.Exception));
             }
+
             return Task.FromResult(result);
         }
-
-        public Task CloseAsync(CancellationToken token) => TaskEx.Done;
     }
 }

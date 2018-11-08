@@ -1,20 +1,20 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
 {
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
-    using static System.FormattableString;
     using System.Globalization;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
     using Microsoft.Extensions.Logging;
+
+    using static System.FormattableString;
 
     public class Checkpointer : ICheckpointer
     {
@@ -23,18 +23,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
 
         readonly AtomicBoolean closed;
         readonly ICheckpointStore store;
-
-        public string Id { get; }
-
-        public long Offset { get; private set; }
-
-        public Option<DateTime> LastFailedRevivalTime { get; private set; }
-
-        public Option<DateTime> UnhealthySince { get; private set; }
-
-        public long Proposed { get; private set; }
-
-        public bool HasOutstanding => this.Offset < this.Proposed;
 
         Checkpointer(string id, ICheckpointStore store, CheckpointData checkpointData)
         {
@@ -46,6 +34,18 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
             this.Proposed = checkpointData.Offset;
             this.closed = new AtomicBoolean(false);
         }
+
+        public bool HasOutstanding => this.Offset < this.Proposed;
+
+        public string Id { get; }
+
+        public Option<DateTime> LastFailedRevivalTime { get; private set; }
+
+        public long Offset { get; private set; }
+
+        public long Proposed { get; private set; }
+
+        public Option<DateTime> UnhealthySince { get; private set; }
 
         public static async Task<Checkpointer> CreateAsync(string id, ICheckpointStore store)
         {
@@ -61,14 +61,29 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
             return checkpointer;
         }
 
-        public void Propose(IMessage message)
-        {
-            this.Proposed = Math.Max(message.Offset, this.Proposed);
-        }
-
         public bool Admit(IMessage message)
         {
             return !this.closed && message.Offset > this.Offset;
+        }
+
+        public async Task CloseAsync(CancellationToken token)
+        {
+            if (!this.closed.GetAndSet(true))
+            {
+                // Store the cached offset on closed to handle case where stores to the store are
+                // throttled, but a clean shutdown is needed
+                try
+                {
+                    if (this.Offset != InvalidOffset)
+                    {
+                        await this.store.SetCheckpointDataAsync(this.Id, new CheckpointData(this.Offset, this.LastFailedRevivalTime, this.UnhealthySince), token);
+                        Events.Close(this);
+                    }
+                }
+                catch (TaskCanceledException)
+                {
+                }
+            }
         }
 
         public async Task CommitAsync(ICollection<IMessage> successful, ICollection<IMessage> remaining, Option<DateTime> lastFailedRevivalTime, Option<DateTime> unhealthySince, CancellationToken token)
@@ -96,7 +111,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
                     .Aggregate(this.Offset, (acc, m) => Math.Max(acc, m.Offset));
             }
 
-            Debug.Assert(offset >= this.Offset);
+            Debug.Assert(offset >= this.Offset, "Validate offset");
             if (offset > this.Offset)
             {
                 this.Offset = offset;
@@ -108,27 +123,12 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
             Events.CommitFinished(this);
         }
 
-        public async Task CloseAsync(CancellationToken token)
-        {
-            if (!this.closed.GetAndSet(true))
-            {
-                // Store the cached offset on closed to handle case where stores to the store are
-                // throttled, but a clean shutdown is needed
-                try
-                {
-                    if (this.Offset != InvalidOffset)
-                    {
-                        await this.store.SetCheckpointDataAsync(this.Id, new CheckpointData(this.Offset, this.LastFailedRevivalTime, this.UnhealthySince), token);
-                        Events.Close(this);
-                    }
-                }
-                catch (TaskCanceledException)
-                {
-                }
-            }
-        }
-
         public void Dispose() => this.Dispose(true);
+
+        public void Propose(IMessage message)
+        {
+            this.Proposed = Math.Max(message.Offset, this.Proposed);
+        }
 
         protected virtual void Dispose(bool disposing)
         {
@@ -144,8 +144,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
 
         static class Events
         {
-            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<Checkpointer>();
             const int IdStart = Routing.EventIds.Checkpointer;
+            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<Checkpointer>();
 
             enum EventIds
             {
@@ -156,19 +156,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
                 Close,
             }
 
-            public static void CreateStart(string id)
+            public static void Close(Checkpointer checkpointer)
             {
-                Log.LogInformation((int)EventIds.CreateStart, "[CheckpointerCreateStart] CheckpointerId: {id}", id);
-            }
-
-            public static void CreateFinished(Checkpointer checkpointer)
-            {
-                Log.LogInformation((int)EventIds.CreateFinished, "[CheckpointerCreateFinished] {context}", GetContextString(checkpointer));
-            }
-
-            public static void CommitStarted(Checkpointer checkpointer, int successfulCount, int remainingCount)
-            {
-                Log.LogInformation((int)EventIds.CommitStarted, "[CheckpointerCommitStarted] SuccessfulCount: {0}, RemainingCount: {1}, {2}", successfulCount, remainingCount, GetContextString(checkpointer));
+                Log.LogInformation((int)EventIds.Close, "[CheckpointerClose] {conetxt}", GetContextString(checkpointer));
             }
 
             public static void CommitFinished(Checkpointer checkpointer)
@@ -176,9 +166,19 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
                 Log.LogInformation((int)EventIds.CommitFinished, "[CheckpointerCommitFinishedo] {context}", GetContextString(checkpointer));
             }
 
-            public static void Close(Checkpointer checkpointer)
+            public static void CommitStarted(Checkpointer checkpointer, int successfulCount, int remainingCount)
             {
-                Log.LogInformation((int)EventIds.Close, "[CheckpointerClose] {conetxt}", GetContextString(checkpointer));
+                Log.LogInformation((int)EventIds.CommitStarted, "[CheckpointerCommitStarted] SuccessfulCount: {0}, RemainingCount: {1}, {2}", successfulCount, remainingCount, GetContextString(checkpointer));
+            }
+
+            public static void CreateFinished(Checkpointer checkpointer)
+            {
+                Log.LogInformation((int)EventIds.CreateFinished, "[CheckpointerCreateFinished] {context}", GetContextString(checkpointer));
+            }
+
+            public static void CreateStart(string id)
+            {
+                Log.LogInformation((int)EventIds.CreateStart, "[CheckpointerCreateStart] CheckpointerId: {id}", id);
             }
 
             static string GetContextString(Checkpointer checkpointer)

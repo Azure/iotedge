@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 {
     using System;
@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     using System.Net.Sockets;
     using System.Threading;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Amqp.Framing;
     using Microsoft.Azure.Amqp.Transport;
@@ -46,7 +47,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             {
                 ContainerId = "DeviceGateway_" + Guid.NewGuid().ToString("N"),
                 HostName = transportSettings.HostName,
-                // 'IdleTimeOut' on connection settings will be used to close connection if server hasn't 
+
+                // 'IdleTimeOut' on connection settings will be used to close connection if server hasn't
                 // received any packet for 'IdleTimeout'
                 // Open frame send to client will have the IdleTimeout set and the client will do heart beat
                 // every 'IdleTimeout * 7 / 8'
@@ -59,11 +61,35 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
         public string Name => "AMQP";
 
+        public async Task CloseAsync(CancellationToken token)
+        {
+            if (this.amqpTransportListener != null)
+            {
+                using (await this.syncLock.LockAsync(token))
+                {
+                    if (this.amqpTransportListener != null)
+                    {
+                        this.amqpTransportListener.Close();
+                        this.amqpTransportListener = null;
+                    }
+                }
+            }
+
+            // Close all existing connections
+            this.SafeCloseExistingConnections();
+        }
+
+        public void Dispose()
+        {
+            this.CloseAsync(CancellationToken.None).Wait();
+        }
+
         public async Task StartAsync()
         {
             Events.Starting();
 
             var amqpWebSocketListener = new AmqpWebSocketListener();
+
             // This transport settings object sets up a listener for TLS over TCP and a listener for WebSockets.
             TransportListener[] listeners = { this.transportSettings.Settings.CreateListener(), amqpWebSocketListener };
 
@@ -89,24 +115,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             Events.Started();
         }
 
-        public async Task CloseAsync(CancellationToken token)
-        {
-            if (this.amqpTransportListener != null)
-            {
-                using (await this.syncLock.LockAsync(token))
-                {
-                    if (this.amqpTransportListener != null)
-                    {
-                        this.amqpTransportListener.Close();
-                        this.amqpTransportListener = null;
-                    }
-                }
-            }
-
-            // Close all existing connections
-            this.SafeCloseExistingConnections();
-        }
-
         void OnAcceptTransport(TransportListener transportListener, TransportAsyncCallbackArgs args)
         {
             if (args.Exception != null)
@@ -124,18 +132,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                     (ProtocolHeader)args.UserToken,
                     false,
                     this.amqpSettings.Clone(),
-                    this.connectionSettings.Clone()
-                );
+                    this.connectionSettings.Clone());
 
                 // Open the connection async but don't block waiting on it.
                 this.OpenAmqpConnectionAsync(connection, AmqpConstants.DefaultTimeout)
-                    .ContinueWith(task =>
-                    {
-                        if (task.Exception != null)
+                    .ContinueWith(
+                        task =>
                         {
-                            Events.OpenConnectionError(task.Exception);
-                        }
-                    }, TaskContinuationOptions.OnlyOnFaulted);
+                            if (task.Exception != null)
+                            {
+                                Events.OpenConnectionError(task.Exception);
+                            }
+                        },
+                        TaskContinuationOptions.OnlyOnFaulted);
             }
             catch (Exception ex) when (ex.IsFatal() == false)
             {
@@ -215,15 +224,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             connectionSnapShot.ForEach(conn => conn.SafeClose(new AmqpException(AmqpErrorCode.DetachForced, "Server busy, please retry operation")));
         }
 
-        public void Dispose()
-        {
-            this.CloseAsync(CancellationToken.None).Wait();
-        }
-
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<AmqpProtocolHead>();
             const int IdStart = AmqpEventIds.AmqpProtocolHead;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<AmqpProtocolHead>();
 
             enum EventIds
             {
@@ -237,23 +241,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 WebSocketsRegisterFail
             }
 
-            internal static void AcceptTransportInputError(Exception ex) => Log.LogError((int)EventIds.AcceptTransportInputError, ex, $"Received a new transport connection with an error.");
-
             internal static void AcceptTransportError(Exception ex) => Log.LogError((int)EventIds.AcceptTransportError, ex, $"An error occurred while accepting a connection.");
 
-            internal static void OpenConnectionError(Exception ex) => Log.LogError((int)EventIds.AcceptTransportInputError, ex, $"An error occurred while opening a connection.");
+            internal static void AcceptTransportInputError(Exception ex) => Log.LogError((int)EventIds.AcceptTransportInputError, ex, $"Received a new transport connection with an error.");
 
             internal static void AmqpConnectionOpenAsyncFailed(Exception ex) => Log.LogError((int)EventIds.AmqpConnectionOpenAsyncFailed, ex, $"An error occurred while opening AMQP connection.");
 
             internal static void ConnectionContextAddFailed(uint id) => Log.LogError((int)EventIds.ConnectionContextAddFailed, $"Failed to add to map for sequence # {id}");
 
-            internal static void Starting() => Log.LogInformation((int)EventIds.Starting, $"Starting AMQP head");
-
-            internal static void Started() => Log.LogInformation((int)EventIds.Started, $"Started AMQP head");
+            internal static void OpenConnectionError(Exception ex) => Log.LogError((int)EventIds.AcceptTransportInputError, ex, $"An error occurred while opening a connection.");
 
             internal static void RegisteredWebSocketListener() => Log.LogDebug((int)EventIds.WebSocketsRegistered, "WebSockets listener registered.");
 
             internal static void RegisterWebSocketListenerFailed() => Log.LogDebug((int)EventIds.WebSocketsRegisterFail, "WebSockets listener failed to register.");
+
+            internal static void Started() => Log.LogInformation((int)EventIds.Started, $"Started AMQP head");
+
+            internal static void Starting() => Log.LogInformation((int)EventIds.Starting, $"Starting AMQP head");
         }
     }
 }

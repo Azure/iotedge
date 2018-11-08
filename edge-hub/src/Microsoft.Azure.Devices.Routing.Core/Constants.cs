@@ -1,7 +1,5 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core
 {
     using System;
@@ -12,7 +10,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
     {
         public static class SystemPropertyValues
         {
-            public static Dictionary<string, Encoding> ContentEncodings = new Dictionary<string, Encoding>(StringComparer.OrdinalIgnoreCase)
+            public static readonly Dictionary<string, Encoding> ContentEncodings = new Dictionary<string, Encoding>(StringComparer.OrdinalIgnoreCase)
             {
                 { "utf-8", Encoding.UTF8 },
                 { "utf-16", Encoding.Unicode },

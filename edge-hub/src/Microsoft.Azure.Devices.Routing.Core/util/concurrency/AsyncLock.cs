@@ -1,9 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Util.Concurrency
 {
-    //
     // Code ported from http://blogs.msdn.com/b/pfxteam/archive/2012/02/12/10266988.aspx
-    //
     using System;
     using System.Threading;
     using System.Threading.Tasks;
@@ -13,7 +12,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Util.Concurrency
         readonly Task<Releaser> releaser;
         readonly SemaphoreSlim semaphore;
 
-        public AsyncLock() : this(1)
+        public AsyncLock()
+            : this(1)
         {
         }
 
@@ -23,21 +23,25 @@ namespace Microsoft.Azure.Devices.Routing.Core.Util.Concurrency
             this.semaphore = new SemaphoreSlim(maximumConcurrency, maximumConcurrency);
         }
 
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            this.semaphore.Dispose();
+        }
+
         public Task<Releaser> LockAsync() => this.LockAsync(CancellationToken.None);
 
         public Task<Releaser> LockAsync(CancellationToken token)
         {
             Task wait = this.semaphore.WaitAsync(token);
-            return wait.Status == TaskStatus.RanToCompletion ? this.releaser :
-                wait.ContinueWith((_, state) => new Releaser((AsyncLock)state),
-                    this, CancellationToken.None,
-                    TaskContinuationOptions.ExecuteSynchronously | TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Default);
-        }
-
-        /// <inheritdoc />
-        public void Dispose()
-        {
-            this.semaphore.Dispose();
+            return wait.Status == TaskStatus.RanToCompletion
+                ? this.releaser
+                : wait.ContinueWith(
+                    (_, state) => new Releaser((AsyncLock)state),
+                    this,
+                    CancellationToken.None,
+                    TaskContinuationOptions.ExecuteSynchronously | TaskContinuationOptions.OnlyOnRanToCompletion,
+                    TaskScheduler.Default);
         }
 
         public struct Releaser : IDisposable
@@ -54,7 +58,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Util.Concurrency
 
             public void Dispose()
             {
-                if (0 == Interlocked.Exchange(ref this.disposed, 1))
+                if (Interlocked.Exchange(ref this.disposed, 1) == 0)
                 {
                     this.toRelease.semaphore.Release();
                 }

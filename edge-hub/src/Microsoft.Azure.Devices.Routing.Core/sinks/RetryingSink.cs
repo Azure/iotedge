@@ -1,15 +1,13 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Sinks
 {
     using System;
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
-    using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.Util;
 
     public class RetryingSink<T> : ISink<T>
@@ -22,6 +20,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Sinks
             this.underlying = Preconditions.CheckNotNull(underlying, nameof(underlying));
             this.retryPolicy = Preconditions.CheckNotNull(retryPolicy, nameof(retryPolicy));
         }
+
+        public Task CloseAsync(CancellationToken token) => this.underlying.CloseAsync(token);
 
         public Task<ISinkResult<T>> ProcessAsync(T t, CancellationToken token) =>
             this.ProcessAsync(new[] { t }, token);
@@ -75,6 +75,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Sinks
                         }
                     }
                 }
+
                 rv = new SinkResult<T>(succeeded, failed, invalid, failureDetails);
             }
             catch (OperationCanceledException ex)
@@ -87,9 +88,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Sinks
                 failed.AddRange(messages);
                 rv = new SinkResult<T>(succeeded, failed, invalid, new SendFailureDetails(FailureKind.InternalError, ex));
             }
+
             return rv;
         }
-
-        public Task CloseAsync(CancellationToken token) => this.underlying.CloseAsync(token);
     }
 }

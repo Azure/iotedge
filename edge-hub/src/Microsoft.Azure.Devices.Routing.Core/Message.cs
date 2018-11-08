@@ -1,7 +1,5 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core
 {
     using System;
@@ -10,29 +8,18 @@ namespace Microsoft.Azure.Devices.Routing.Core
     using System.Globalization;
     using System.Linq;
     using System.Text;
+
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Azure.Devices.Routing.Core.Query.Types;
     using Microsoft.Azure.Devices.Routing.Core.Util;
+
     using Newtonsoft.Json;
-    using SystemPropertiesList = Microsoft.Azure.Devices.Routing.Core.SystemProperties;
+
+    using SystemPropertiesList = SystemProperties;
 
     public class Message : IMessage
     {
         readonly Lazy<IMessageQueryValueProvider> messageQueryProvider;
-
-        public IMessageSource MessageSource { get; }
-
-        public byte[] Body { get; }
-
-        public IReadOnlyDictionary<string, string> Properties { get; }
-
-        public IReadOnlyDictionary<string, string> SystemProperties { get; }
-
-        public long Offset { get; }
-
-        public DateTime EnqueuedTime { get; }
-
-        public DateTime DequeuedTime { get; }
 
         public Message(IMessageSource messageSource, byte[] body, IDictionary<string, string> properties)
             : this(messageSource, body, properties, new Dictionary<string, string>())
@@ -73,15 +60,29 @@ namespace Microsoft.Azure.Devices.Routing.Core
         }
 
         [JsonConstructor]
-        // ReSharper disable once UnusedMember.Local
         Message(CustomMessageSource messageSource, byte[] body, IDictionary<string, string> properties, IDictionary<string, string> systemProperties, long offset, DateTime enqueuedTime, DateTime dequeuedTime)
             : this((IMessageSource)messageSource, body, properties, systemProperties, offset, enqueuedTime, dequeuedTime)
         {
         }
 
-        public QueryValue GetQueryValue(string queryString)
+        public byte[] Body { get; }
+
+        public DateTime DequeuedTime { get; }
+
+        public DateTime EnqueuedTime { get; }
+
+        public IMessageSource MessageSource { get; }
+
+        public long Offset { get; }
+
+        public IReadOnlyDictionary<string, string> Properties { get; }
+
+        public IReadOnlyDictionary<string, string> SystemProperties { get; }
+
+        public void Dispose()
         {
-            return this.messageQueryProvider.Value.GetQueryValue(queryString);
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         public bool Equals(Message other)
@@ -97,12 +98,13 @@ namespace Microsoft.Azure.Devices.Routing.Core
             }
 
             return this.MessageSource.Equals(other.MessageSource) &&
-                this.Offset == other.Offset &&
-                this.Body.SequenceEqual(other.Body) &&
-                this.Properties.Keys.Count() == other.Properties.Keys.Count() &&
-                this.Properties.Keys.All(key => other.Properties.ContainsKey(key) && Equals(this.Properties[key], other.Properties[key]) &&
-                    this.SystemProperties.Keys.Count() == other.SystemProperties.Keys.Count() &&
-                    this.SystemProperties.Keys.All(skey => other.SystemProperties.ContainsKey(skey) && Equals(this.SystemProperties[skey], other.SystemProperties[skey])));
+                   this.Offset == other.Offset &&
+                   this.Body.SequenceEqual(other.Body) &&
+                   this.Properties.Keys.Count() == other.Properties.Keys.Count() &&
+                   this.Properties.Keys.All(
+                       key => other.Properties.ContainsKey(key) && Equals(this.Properties[key], other.Properties[key]) &&
+                              this.SystemProperties.Keys.Count() == other.SystemProperties.Keys.Count() &&
+                              this.SystemProperties.Keys.All(skey => other.SystemProperties.ContainsKey(skey) && Equals(this.SystemProperties[skey], other.SystemProperties[skey])));
         }
 
         public override bool Equals(object obj)
@@ -128,27 +130,22 @@ namespace Microsoft.Azure.Devices.Routing.Core
             }
         }
 
-        public void Dispose()
+        public QueryValue GetQueryValue(string queryString)
         {
-            this.Dispose(true);
-            GC.SuppressFinalize(this);
+            return this.messageQueryProvider.Value.GetQueryValue(queryString);
+        }
+
+        public long Size()
+        {
+            long size = 0L;
+            size += this.Properties.Aggregate(0, (acc, pair) => (acc + pair.Key.Length + pair.Value.Length));
+            size += this.SystemProperties.Aggregate(0, (acc, pair) => (acc + pair.Key.Length + pair.Value.Length));
+            size += this.Body.Length;
+            return size;
         }
 
         protected virtual void Dispose(bool disposing)
         {
-        }
-
-        IMessageQueryValueProvider GetMessageQueryProvider()
-        {
-            Encoding messageEncoding = this.GetMessageEncoding();
-            string contentType;
-
-            if (this.SystemProperties.TryGetValue(SystemPropertiesList.ContentType, out contentType))
-            {
-                return MessageQueryValueProviderFactory.Create(contentType, messageEncoding, this.Body);
-            }
-
-            throw new InvalidOperationException("Content type is not specified in system properties.");
         }
 
         Encoding GetMessageEncoding()
@@ -163,20 +160,27 @@ namespace Microsoft.Azure.Devices.Routing.Core
                     return encoding;
                 }
 
-                throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture,
-                    "Content encoding '{0}' is not supported.", encodingPropertyValue));
+                throw new InvalidOperationException(
+                    string.Format(
+                        CultureInfo.InvariantCulture,
+                        "Content encoding '{0}' is not supported.",
+                        encodingPropertyValue));
             }
 
             throw new InvalidOperationException("Content encoding is not specified in system properties.");
         }
 
-        public long Size()
+        IMessageQueryValueProvider GetMessageQueryProvider()
         {
-            long size = 0L;
-            size += this.Properties.Aggregate(0, (acc, pair) => (acc + pair.Key.Length + pair.Value.Length));
-            size += this.SystemProperties.Aggregate(0, (acc, pair) => (acc + pair.Key.Length + pair.Value.Length));
-            size += this.Body.Length;
-            return size;
+            Encoding messageEncoding = this.GetMessageEncoding();
+            string contentType;
+
+            if (this.SystemProperties.TryGetValue(SystemPropertiesList.ContentType, out contentType))
+            {
+                return MessageQueryValueProviderFactory.Create(contentType, messageEncoding, this.Body);
+            }
+
+            throw new InvalidOperationException("Content type is not specified in system properties.");
         }
     }
 }

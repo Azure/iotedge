@@ -1,17 +1,40 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test
 {
     using System.Collections.Generic;
+
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Extensions.Configuration;
+
     using Xunit;
 
     [Unit]
     public class DependencyManagerTest
     {
+        [Theory]
+        [MemberData(nameof(GetUpstreamProtocolData))]
+        public void ParseUpstreamProtocolTest(string input, Option<UpstreamProtocol> expectedValue)
+        {
+            // Arrange
+            IConfigurationRoot configRoot = new ConfigurationBuilder()
+                .AddInMemoryCollection(
+                    new Dictionary<string, string>
+                    {
+                        { "UpstreamProtocol", input }
+                    })
+                .Build();
+
+            // Act
+            Option<UpstreamProtocol> upstreamProtocol = DependencyManager.GetUpstreamProtocol(configRoot);
+
+            // Assert
+            Assert.Equal(expectedValue.HasValue, upstreamProtocol.HasValue);
+            Assert.Equal(expectedValue.OrDefault(), upstreamProtocol.OrDefault());
+        }
+
         static IEnumerable<object[]> GetUpstreamProtocolData()
         {
             yield return new object[] { "Mqtt", Option.Some(UpstreamProtocol.Mqtt) };
@@ -35,30 +58,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test
             yield return new object[] { "amqPwS", Option.Some(UpstreamProtocol.AmqpWs) };
 
             yield return new object[] { "amqPwSt", Option.None<UpstreamProtocol>() };
-            yield return new object[] { "", Option.None<UpstreamProtocol>() };
+            yield return new object[] { string.Empty, Option.None<UpstreamProtocol>() };
             yield return new object[] { "  ", Option.None<UpstreamProtocol>() };
             yield return new object[] { "mqttwebsockets", Option.None<UpstreamProtocol>() };
-        }
-
-        [Theory]
-        [MemberData(nameof(GetUpstreamProtocolData))]
-        public void ParseUpstreamProtocolTest(string input, Option<UpstreamProtocol> expectedValue)
-        {
-            // Arrange
-            IConfigurationRoot configRoot = new ConfigurationBuilder()
-                .AddInMemoryCollection(
-                    new Dictionary<string, string>
-                    {
-                        { "UpstreamProtocol", input }
-                    })
-                .Build();
-
-            // Act
-            Option<UpstreamProtocol> upstreamProtocol = DependencyManager.GetUpstreamProtocol(configRoot);
-
-            // Assert
-            Assert.Equal(expectedValue.HasValue, upstreamProtocol.HasValue);
-            Assert.Equal(expectedValue.OrDefault(), upstreamProtocol.OrDefault());
         }
     }
 }

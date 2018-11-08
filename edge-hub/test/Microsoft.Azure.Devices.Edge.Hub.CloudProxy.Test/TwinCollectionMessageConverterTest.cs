@@ -1,13 +1,15 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
     using System;
     using System.Collections.Generic;
     using System.Globalization;
+
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Shared;
+
     using Xunit;
 
     [Unit]
@@ -71,31 +73,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             };
         }
 
-        [Theory]
-        [MemberData(nameof(GetTwinCollectionData))]
-        public void ConvertsTwinCollectionsToMqttMessages(TwinCollection collection, string expectedJson)
-        {
-            EdgeMessage expectedMessage = new EdgeMessage.Builder(expectedJson.ToBody())
-                .SetSystemProperties(new Dictionary<string, string>()
-                {
-                    [SystemProperties.EnqueuedTime] = "",
-                    [SystemProperties.Version] = collection.Version.ToString()
-                })
-                .Build();
-            IMessage actualMessage = new TwinCollectionMessageConverter().ToMessage(collection);
-            Assert.Equal(expectedMessage.Body, actualMessage.Body);
-            Assert.Equal(expectedMessage.Properties, actualMessage.Properties);
-            Assert.Equal(expectedMessage.SystemProperties.Keys, actualMessage.SystemProperties.Keys);
-            Assert.Equal(expectedMessage.SystemProperties[SystemProperties.Version], actualMessage.SystemProperties[SystemProperties.Version]);
-        }
-
         [Fact]
         public void ConvertedMessageHasAnEnqueuedTimeProperty()
         {
             IMessage actualMessage = new TwinCollectionMessageConverter().ToMessage(new TwinCollection());
             Assert.InRange(
                 DateTime.Parse(actualMessage.SystemProperties[SystemProperties.EnqueuedTime], null, DateTimeStyles.RoundtripKind),
-                DateTime.UtcNow.Subtract(new TimeSpan(0, 1, 0)), DateTime.UtcNow);
+                DateTime.UtcNow.Subtract(new TimeSpan(0, 1, 0)),
+                DateTime.UtcNow);
+        }
+
+        [Theory]
+        [MemberData(nameof(GetTwinCollectionData))]
+        public void ConvertsTwinCollectionsToMqttMessages(TwinCollection collection, string expectedJson)
+        {
+            EdgeMessage expectedMessage = new EdgeMessage.Builder(expectedJson.ToBody())
+                .SetSystemProperties(
+                    new Dictionary<string, string>()
+                    {
+                        [SystemProperties.EnqueuedTime] = string.Empty,
+                        [SystemProperties.Version] = collection.Version.ToString()
+                    })
+                .Build();
+            IMessage actualMessage = new TwinCollectionMessageConverter().ToMessage(collection);
+            Assert.Equal(expectedMessage.Body, actualMessage.Body);
+            Assert.Equal(expectedMessage.Properties, actualMessage.Properties);
+            Assert.Equal(expectedMessage.SystemProperties.Keys, actualMessage.SystemProperties.Keys);
+            Assert.Equal(expectedMessage.SystemProperties[SystemProperties.Version], actualMessage.SystemProperties[SystemProperties.Version]);
         }
     }
 }

@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core
 {
     using System;
@@ -8,6 +9,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
@@ -23,19 +25,6 @@ namespace Microsoft.Azure.Devices.Routing.Core
         readonly AsyncLock sync = new AsyncLock();
         readonly string iotHubName;
 
-        public string Id { get; }
-
-        public ISet<Route> Routes
-        {
-            get
-            {
-                ImmutableDictionary<string, Route> snapshot = this.routes;
-                return new HashSet<Route>(snapshot.Values);
-            }
-        }
-
-        public Option<long> Offset => this.dispatcher.Offset;
-
         Router(string id, string iotHubName, Evaluator evaluator, Dispatcher dispatcher)
         {
             this.Id = Preconditions.CheckNotNull(id);
@@ -49,6 +38,19 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
             this.closed = new AtomicBoolean(false);
             this.cts = new CancellationTokenSource();
+        }
+
+        public string Id { get; }
+
+        public Option<long> Offset => this.dispatcher.Offset;
+
+        public ISet<Route> Routes
+        {
+            get
+            {
+                ImmutableDictionary<string, Route> snapshot = this.routes;
+                return new HashSet<Route>(snapshot.Values);
+            }
         }
 
         public static async Task<Router> CreateAsync(string id, string iotHubName, RouterConfig config, IEndpointExecutorFactory executorFactory)
@@ -74,68 +76,26 @@ namespace Microsoft.Azure.Devices.Routing.Core
             return new Router(id, iotHubName, evaluator, dispatcher);
         }
 
-        static ISet<Endpoint> GetEndpoints(RouterConfig config)
+        public async Task CloseAsync(CancellationToken token)
         {
-            var endpoints = new HashSet<Endpoint>(config.Routes.SelectMany(r => r.Endpoints));
-            config.Fallback.ForEach(f => endpoints.UnionWith(f.Endpoints));
-            return endpoints;
-        }
-
-        public Task RouteAsync(IMessage message)
-        {
-            this.CheckClosed();
-
-            // This doesn't need to take the lock.
-            // The dispatcher can handle sending to a closed endpoint executor.
-            // In fact, we can't take the lock because we need to support the case where an executor
-            // blocks accepting messages (buffer is full) but we want to swap out the endpoint
-            // to fix whatever is causing the full buffer.
-            return this.RouteInternalAsync(message);
-        }
-
-        public async Task RouteAsync(IEnumerable<IMessage> messages)
-        {
-            this.CheckClosed();
-
-            // This doesn't need to take the lock.
-            // The dispatcher can handle sending to a closed endpoint executor.
-            // In fact, we can't take the lock because we need to support the case where an executor
-            // blocks accepting messages (buffer is full) but we want to swap out the endpoint
-            // to fix whatever is causing the full buffer.
-            foreach (IMessage message in messages)
+            if (!this.closed.GetAndSet(true))
             {
-                await this.RouteInternalAsync(message);
+                this.cts.Cancel();
+                using (await this.sync.LockAsync(CancellationToken.None))
+                {
+                    await this.evaluator.CloseAsync(token);
+                    await this.dispatcher.CloseAsync(token);
+                }
             }
         }
 
-        Task RouteInternalAsync(IMessage message)
-        {
-            ISet<Endpoint> endpoints = this.evaluator.Evaluate(message);
-
-            Events.MessageEvaluation(this.iotHubName, message, endpoints);
-
-            return this.dispatcher.DispatchAsync(message, endpoints);
-        }
+        public void Dispose() => this.Dispose(true);
 
         public Option<Route> GetRoute(string id)
         {
             Route route;
             ImmutableDictionary<string, Route> snapshot = this.routes;
             return snapshot.TryGetValue(id, out route) ? Option.Some(route) : Option.None<Route>();
-        }
-
-        public async Task SetRoute(Route route)
-        {
-            this.CheckClosed();
-
-            using (await this.sync.LockAsync(this.cts.Token))
-            {
-                this.CheckClosed();
-                ImmutableDictionary<string, Route> snapshot = this.routes;
-                this.routes.GetAndSet(snapshot.SetItem(route.Id, route));
-                this.evaluator.SetRoute(route);
-                await this.dispatcher.SetEndpoints(route.Endpoints);
-            }
         }
 
         public async Task RemoveRoute(string id)
@@ -171,32 +131,51 @@ namespace Microsoft.Azure.Devices.Routing.Core
             }
         }
 
-        void CheckClosed()
+        public Task RouteAsync(IMessage message)
         {
-            if (this.closed)
+            this.CheckClosed();
+
+            // This doesn't need to take the lock.
+            // The dispatcher can handle sending to a closed endpoint executor.
+            // In fact, we can't take the lock because we need to support the case where an executor
+            // blocks accepting messages (buffer is full) but we want to swap out the endpoint
+            // to fix whatever is causing the full buffer.
+            return this.RouteInternalAsync(message);
+        }
+
+        public async Task RouteAsync(IEnumerable<IMessage> messages)
+        {
+            this.CheckClosed();
+
+            // This doesn't need to take the lock.
+            // The dispatcher can handle sending to a closed endpoint executor.
+            // In fact, we can't take the lock because we need to support the case where an executor
+            // blocks accepting messages (buffer is full) but we want to swap out the endpoint
+            // to fix whatever is causing the full buffer.
+            foreach (IMessage message in messages)
             {
-                throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, "Router {0} is closed.", this));
+                await this.RouteInternalAsync(message);
             }
         }
 
-        public async Task CloseAsync(CancellationToken token)
+        public async Task SetRoute(Route route)
         {
-            if (!this.closed.GetAndSet(true))
+            this.CheckClosed();
+
+            using (await this.sync.LockAsync(this.cts.Token))
             {
-                this.cts.Cancel();
-                using (await this.sync.LockAsync(CancellationToken.None))
-                {
-                    await this.evaluator.CloseAsync(token);
-                    await this.dispatcher.CloseAsync(token);
-                }
+                this.CheckClosed();
+                ImmutableDictionary<string, Route> snapshot = this.routes;
+                this.routes.GetAndSet(snapshot.SetItem(route.Id, route));
+                this.evaluator.SetRoute(route);
+                await this.dispatcher.SetEndpoints(route.Endpoints);
             }
         }
 
-        public void Dispose() => this.Dispose(true);
+        public override string ToString() => string.Format(CultureInfo.InvariantCulture, "Router({0})", this.Id);
 
         protected virtual void Dispose(bool disposing)
         {
-            //Debug.Assert(this.closed);
             if (disposing)
             {
                 this.cts.Dispose();
@@ -205,12 +184,34 @@ namespace Microsoft.Azure.Devices.Routing.Core
             }
         }
 
-        public override string ToString() => string.Format(CultureInfo.InvariantCulture, "Router({0})", this.Id);
+        static ISet<Endpoint> GetEndpoints(RouterConfig config)
+        {
+            var endpoints = new HashSet<Endpoint>(config.Routes.SelectMany(r => r.Endpoints));
+            config.Fallback.ForEach(f => endpoints.UnionWith(f.Endpoints));
+            return endpoints;
+        }
+
+        void CheckClosed()
+        {
+            if (this.closed)
+            {
+                throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, "Router {0} is closed.", this));
+            }
+        }
+
+        Task RouteInternalAsync(IMessage message)
+        {
+            ISet<Endpoint> endpoints = this.evaluator.Evaluate(message);
+
+            Events.MessageEvaluation(this.iotHubName, message, endpoints);
+
+            return this.dispatcher.DispatchAsync(message, endpoints);
+        }
 
         static class Events
         {
-            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<Router>();
             const int IdStart = Routing.EventIds.Router;
+            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<Router>();
 
             enum EventIds
             {

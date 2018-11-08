@@ -1,12 +1,11 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core
 {
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Linq;
+
     using Microsoft.Azure.Devices.Routing.Core.Util;
 
     public class SinkResult<T> : ISinkResult<T>
@@ -15,18 +14,6 @@ namespace Microsoft.Azure.Devices.Routing.Core
         static readonly Option<SendFailureDetails> NoSendFailure = Option.None<SendFailureDetails>();
         static readonly ICollection<T> EmptyItems = ImmutableList<T>.Empty;
         static readonly ICollection<InvalidDetails<T>> EmptyInvalidDetailsList = ImmutableList<InvalidDetails<T>>.Empty;
-
-        public static ISinkResult<T> Empty { get; } = new SinkResult<T>(EmptyItems);
-
-        public ICollection<T> Succeeded { get; }
-
-        public ICollection<T> Failed { get; }
-
-        public ICollection<InvalidDetails<T>> InvalidDetailsList { get; }
-
-        public Option<SendFailureDetails> SendFailureDetails { get; }
-
-        public bool IsSuccessful => !this.Failed.Any();
 
         public SinkResult(ICollection<T> succeeded)
             : this(succeeded, EmptyItems, null)
@@ -50,5 +37,17 @@ namespace Microsoft.Azure.Devices.Routing.Core
             this.InvalidDetailsList = Preconditions.CheckNotNull(invalid);
             this.SendFailureDetails = sendFailureDetails == null ? NoSendFailure : Option.Some(sendFailureDetails);
         }
+
+        public static ISinkResult<T> Empty { get; } = new SinkResult<T>(EmptyItems);
+
+        public ICollection<T> Failed { get; }
+
+        public ICollection<InvalidDetails<T>> InvalidDetailsList { get; }
+
+        public bool IsSuccessful => !this.Failed.Any();
+
+        public Option<SendFailureDetails> SendFailureDetails { get; }
+
+        public ICollection<T> Succeeded { get; }
     }
 }

@@ -1,10 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 {
     public static class AmqpEventIds
     {
-        const int EventIdStart = 5000;
         public const int SaslPlainAuthenticator = EventIdStart;
         public const int AmqpProtocolHead = EventIdStart + 100;
         public const int CbsLinkHandler = EventIdStart + 200;
@@ -18,5 +17,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         public const int LinkHandler = EventIdStart + 700;
         public const int AmqpWebSocketListener = EventIdStart + 800;
         public const int ServerWebSocketTransport = EventIdStart + 900;
+        const int EventIdStart = 5000;
     }
 }

@@ -1,40 +1,26 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 {
     using System;
     using System.Collections.Generic;
     using System.Text;
+
     using Microsoft.Azure.Devices.Edge.Hub.Core.Routing;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
+
     using Moq;
+
     using Newtonsoft.Json;
+
     using Xunit;
-    using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
+
     using IRoutingMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
     using RoutingMessage = Microsoft.Azure.Devices.Routing.Core.Message;
-    using SystemProperties = Microsoft.Azure.Devices.Edge.Hub.Core.SystemProperties;
 
     public class RoutingMessageConverterTest
     {
-        public static IEnumerable<object[]> GetInvalidHubMessages()
-        {
-            yield return new object[] { null, typeof(ArgumentNullException) };
-
-            var messageMock = new Mock<IMessage>();
-            messageMock.Setup(m => m.Body).Returns((byte[])null);
-            yield return new object[] { messageMock.Object, typeof(ArgumentNullException) };
-        }
-
-        public static IEnumerable<object[]> GetInvalidRoutingMessages()
-        {
-            yield return new object[] { null, typeof(ArgumentNullException) };
-
-            var messageMock = new Mock<IRoutingMessage>();
-            messageMock.Setup(m => m.Body).Returns((byte[])null);
-            yield return new object[] { messageMock.Object, typeof(ArgumentNullException) };
-        }
-
         public static IEnumerable<object[]> GetHubMessagesData()
         {
             var data = new
@@ -62,6 +48,80 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var emptyProperties = new Dictionary<string, string>();
             var emptySystemProperties = new Dictionary<string, string>();
             yield return new object[] { messageBytes, emptyProperties, emptySystemProperties };
+        }
+
+        public static IEnumerable<object[]> GetInvalidHubMessages()
+        {
+            yield return new object[] { null, typeof(ArgumentNullException) };
+
+            var messageMock = new Mock<IMessage>();
+            messageMock.Setup(m => m.Body).Returns((byte[])null);
+            yield return new object[] { messageMock.Object, typeof(ArgumentNullException) };
+        }
+
+        public static IEnumerable<object[]> GetInvalidRoutingMessages()
+        {
+            yield return new object[] { null, typeof(ArgumentNullException) };
+
+            var messageMock = new Mock<IRoutingMessage>();
+            messageMock.Setup(m => m.Body).Returns((byte[])null);
+            yield return new object[] { messageMock.Object, typeof(ArgumentNullException) };
+        }
+
+        public static IEnumerable<object[]> GetMessageSourceSystemProperties()
+        {
+            var theoryData = new List<object[]>();
+
+            theoryData.Add(
+                new object[]
+                {
+                    new Dictionary<string, string>
+                    {
+                        [SystemProperties.MessageType] = Constants.TwinChangeNotificationMessageType
+                    },
+                    TwinChangeEventMessageSource.Instance
+                });
+
+            theoryData.Add(
+                new object[]
+                {
+                    new Dictionary<string, string>
+                    {
+                        [SystemProperties.ConnectionModuleId] = "module1",
+                        [SystemProperties.OutputName] = "output1"
+                    },
+                    ModuleMessageSource.Create("module1", "output1")
+                });
+
+            theoryData.Add(
+                new object[]
+                {
+                    new Dictionary<string, string>
+                    {
+                        [SystemProperties.ConnectionModuleId] = "module1",
+                        [SystemProperties.OutputName] = "output1"
+                    },
+                    ModuleMessageSource.Create("module1", "output1")
+                });
+
+            theoryData.Add(
+                new object[]
+                {
+                    new Dictionary<string, string>
+                    {
+                        [SystemProperties.ConnectionModuleId] = "module1",
+                    },
+                    ModuleMessageSource.Create("module1")
+                });
+
+            theoryData.Add(
+                new object[]
+                {
+                    new Dictionary<string, string>(),
+                    TelemetryMessageSource.Instance
+                });
+
+            return theoryData;
         }
 
         public static IEnumerable<object[]> GetRoutingMessages()
@@ -92,7 +152,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var routingMessage1 = new RoutingMessage(TelemetryMessageSource.Instance, messageBytes, properties, systemProperties);
             routingMessages.Add(new object[] { routingMessage1 });
 
-            var routingMessage2 = new RoutingMessage(TwinChangeEventMessageSource.Instance,
+            var routingMessage2 = new RoutingMessage(
+                TwinChangeEventMessageSource.Instance,
                 messageBytes,
                 properties,
                 systemProperties,
@@ -109,73 +170,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             return routingMessages;
         }
 
-        public static IEnumerable<object[]> GetMessageSourceSystemProperties()
-        {
-            var theoryData = new List<object[]>();
-
-            theoryData.Add(new object[] {
-                new Dictionary<string, string>
-                {
-                    [SystemProperties.MessageType] = Constants.TwinChangeNotificationMessageType
-                },
-                TwinChangeEventMessageSource.Instance});
-
-            theoryData.Add(new object[] {
-                new Dictionary<string, string>
-                {
-                    [SystemProperties.ConnectionModuleId] = "module1",
-                    [SystemProperties.OutputName] = "output1"
-                },
-                ModuleMessageSource.Create("module1", "output1")});
-
-            theoryData.Add(new object[] {
-                new Dictionary<string, string>
-                {
-                    [SystemProperties.ConnectionModuleId] = "module1",
-                    [SystemProperties.OutputName] = "output1"
-                },
-                ModuleMessageSource.Create("module1", "output1")});
-
-            theoryData.Add(new object[] {
-                new Dictionary<string, string>
-                {
-                    [SystemProperties.ConnectionModuleId] = "module1",
-                },
-                ModuleMessageSource.Create("module1")});
-
-            theoryData.Add(new object[] {
-                new Dictionary<string, string>(),
-                TelemetryMessageSource.Instance});
-
-            return theoryData;
-        }
-
-        [Theory]
-        [Unit]
-        [MemberData(nameof(GetInvalidHubMessages))]
-        public void TestFromMessageErrorCases(IMessage inputMessage, Type exceptionType)
-        {
-            Core.IMessageConverter<IRoutingMessage> messageConverter = new RoutingMessageConverter();
-            Assert.Throws(exceptionType, () => messageConverter.FromMessage(inputMessage));
-        }
-
-        [Theory]
-        [Unit]
-        [MemberData(nameof(GetInvalidRoutingMessages))]
-        public void TestToMessageErrorCases(IRoutingMessage inputMessage, Type exceptionType)
-        {
-            Core.IMessageConverter<IRoutingMessage> messageConverter = new RoutingMessageConverter();
-            Assert.Throws(exceptionType, () => messageConverter.ToMessage(inputMessage));
-        }
-
         [Theory]
         [Unit]
         [MemberData(nameof(GetHubMessagesData))]
-        public void TestFromMessageCases(byte[] messageBytes,
+        public void TestFromMessageCases(
+            byte[] messageBytes,
             IDictionary<string, string> properties,
             IDictionary<string, string> systemProperties)
         {
-            Core.IMessageConverter<IRoutingMessage> messageConverter = new RoutingMessageConverter();
+            IMessageConverter<IRoutingMessage> messageConverter = new RoutingMessageConverter();
             IMessage inputMessage = new EdgeMessage(messageBytes, properties, systemProperties);
             IRoutingMessage routingMessage = messageConverter.FromMessage(inputMessage);
 
@@ -199,10 +202,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
         [Theory]
         [Unit]
+        [MemberData(nameof(GetInvalidHubMessages))]
+        public void TestFromMessageErrorCases(IMessage inputMessage, Type exceptionType)
+        {
+            IMessageConverter<IRoutingMessage> messageConverter = new RoutingMessageConverter();
+            Assert.Throws(exceptionType, () => messageConverter.FromMessage(inputMessage));
+        }
+
+        [Theory]
+        [Unit]
+        [MemberData(nameof(GetMessageSourceSystemProperties))]
+        public void TestGetMessageSource(IDictionary<string, string> systemProperties, BaseMessageSource expectedMessageSource)
+        {
+            var routingMessageConverter = new RoutingMessageConverter();
+            IMessageSource messageSource = routingMessageConverter.GetMessageSource(systemProperties);
+            Assert.NotNull(messageSource);
+            Assert.IsType(expectedMessageSource.GetType(), messageSource);
+            var baseMessageSource = messageSource as BaseMessageSource;
+            Assert.True(expectedMessageSource.Equals(baseMessageSource));
+        }
+
+        [Theory]
+        [Unit]
         [MemberData(nameof(GetRoutingMessages))]
         public void TestToMessageCases(IRoutingMessage routingMessage)
         {
-            Core.IMessageConverter<IRoutingMessage> messageConverter = new RoutingMessageConverter();
+            IMessageConverter<IRoutingMessage> messageConverter = new RoutingMessageConverter();
             IMessage message = messageConverter.ToMessage(routingMessage);
 
             Assert.Equal(routingMessage.Body, message.Body);
@@ -223,15 +248,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
         [Theory]
         [Unit]
-        [MemberData(nameof(GetMessageSourceSystemProperties))]
-        public void TestGetMessageSource(IDictionary<string, string> systemProperties, BaseMessageSource expectedMessageSource)
+        [MemberData(nameof(GetInvalidRoutingMessages))]
+        public void TestToMessageErrorCases(IRoutingMessage inputMessage, Type exceptionType)
         {
-            var routingMessageConverter = new RoutingMessageConverter();
-            IMessageSource messageSource = routingMessageConverter.GetMessageSource(systemProperties);
-            Assert.NotNull(messageSource);
-            Assert.IsType(expectedMessageSource.GetType(), messageSource);
-            var baseMessageSource = messageSource as BaseMessageSource;
-            Assert.True(expectedMessageSource.Equals(baseMessageSource));
+            IMessageConverter<IRoutingMessage> messageConverter = new RoutingMessageConverter();
+            Assert.Throws(exceptionType, () => messageConverter.ToMessage(inputMessage));
         }
     }
 }

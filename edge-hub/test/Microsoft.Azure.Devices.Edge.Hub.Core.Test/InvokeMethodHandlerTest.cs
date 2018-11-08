@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 {
     using System;
@@ -6,49 +7,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using System.Collections.ObjectModel;
     using System.Net;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+
     using Moq;
+
     using Xunit;
 
     [Unit]
     public class InvokeMethodHandlerTest
     {
-        [Fact]        
-        public async Task InvokeMethodTest()
-        {
-            // Arrange
-            var request = new DirectMethodRequest("d1", "poke", null, TimeSpan.FromSeconds(10));
-
-            var deviceProxy = new Mock<IDeviceProxy>();
-            deviceProxy.Setup(d => d.InvokeMethodAsync(It.IsAny<DirectMethodRequest>()))
-                .ReturnsAsync(() => new DirectMethodResponse(request.CorrelationId, null, 200));
-
-            var deviceSubscriptions = new Dictionary<DeviceSubscription, bool>
-            {
-                [DeviceSubscription.Methods] = true
-            };
-
-            var connectionManager = new Mock<IConnectionManager>();
-            connectionManager.Setup(c => c.GetDeviceConnection(It.IsAny<string>())).Returns(Option.Some(deviceProxy.Object));
-            connectionManager.Setup(c => c.GetSubscriptions(It.IsAny<string>()))
-                .Returns(Option.Some(new ReadOnlyDictionary<DeviceSubscription, bool>(deviceSubscriptions) as IReadOnlyDictionary<DeviceSubscription, bool>));
-
-            IInvokeMethodHandler invokeMethodHandler = new InvokeMethodHandler(connectionManager.Object);
-
-            // Act
-            DirectMethodResponse response = await invokeMethodHandler.InvokeMethod(request);
-
-            // Assert
-            Assert.NotNull(response);
-            Assert.Equal(response.CorrelationId, request.CorrelationId);
-            Assert.Equal(response.HttpStatusCode, HttpStatusCode.OK);            
-            Assert.Null(response.Data);
-            Assert.Equal(response.Status, 200);
-            Assert.False(response.Exception.HasValue);
-        }
-
         [Fact]
         public async Task InvokeMethodClientTimesOutTest()
         {
@@ -111,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Task<DirectMethodResponse> invokeMethodTask = invokeMethodHandler.InvokeMethod(request);
             await Task.Delay(TimeSpan.FromSeconds(2));
 
-            // Assert            
+            // Assert
             Assert.False(invokeMethodTask.IsCompleted);
 
             // Act
@@ -155,12 +125,46 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Task<DirectMethodResponse> invokeMethodTask = invokeMethodHandler.InvokeMethod(request);
             await Task.Delay(TimeSpan.FromSeconds(2));
 
-            // Assert            
+            // Assert
             Assert.False(invokeMethodTask.IsCompleted);
 
             // Act
             await invokeMethodHandler.ProcessInvokeMethodSubscription("d1");
             DirectMethodResponse response = await invokeMethodTask;
+
+            // Assert
+            Assert.NotNull(response);
+            Assert.Equal(response.CorrelationId, request.CorrelationId);
+            Assert.Equal(response.HttpStatusCode, HttpStatusCode.OK);
+            Assert.Null(response.Data);
+            Assert.Equal(response.Status, 200);
+            Assert.False(response.Exception.HasValue);
+        }
+
+        [Fact]
+        public async Task InvokeMethodTest()
+        {
+            // Arrange
+            var request = new DirectMethodRequest("d1", "poke", null, TimeSpan.FromSeconds(10));
+
+            var deviceProxy = new Mock<IDeviceProxy>();
+            deviceProxy.Setup(d => d.InvokeMethodAsync(It.IsAny<DirectMethodRequest>()))
+                .ReturnsAsync(() => new DirectMethodResponse(request.CorrelationId, null, 200));
+
+            var deviceSubscriptions = new Dictionary<DeviceSubscription, bool>
+            {
+                [DeviceSubscription.Methods] = true
+            };
+
+            var connectionManager = new Mock<IConnectionManager>();
+            connectionManager.Setup(c => c.GetDeviceConnection(It.IsAny<string>())).Returns(Option.Some(deviceProxy.Object));
+            connectionManager.Setup(c => c.GetSubscriptions(It.IsAny<string>()))
+                .Returns(Option.Some(new ReadOnlyDictionary<DeviceSubscription, bool>(deviceSubscriptions) as IReadOnlyDictionary<DeviceSubscription, bool>));
+
+            IInvokeMethodHandler invokeMethodHandler = new InvokeMethodHandler(connectionManager.Object);
+
+            // Act
+            DirectMethodResponse response = await invokeMethodHandler.InvokeMethod(request);
 
             // Assert
             Assert.NotNull(response);

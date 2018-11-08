@@ -1,8 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 {
     using System;
+
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Amqp.Framing;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -27,17 +28,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             throw new NotImplementedException();
         }
 
-        protected override void OnProcessTransfer(Delivery delivery, Transfer transfer, Frame rawFrame)
-        {
-            throw new NotImplementedException();
-        }
-
         protected override void OnCreditAvailable(int session, uint link, bool drain, ArraySegment<byte> txnId)
         {
             throw new NotImplementedException();
         }
 
         protected override void OnDisposeDeliveryInternal(Delivery delivery)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override void OnProcessTransfer(Delivery delivery, Transfer transfer, Frame rawFrame)
         {
             throw new NotImplementedException();
         }

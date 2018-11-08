@@ -1,10 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 {
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
@@ -16,18 +17,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
     /// </summary>
     public class TwinSendingLinkHandler : SendingLinkHandler
     {
-        public TwinSendingLinkHandler(ISendingAmqpLink link, Uri requestUri, IDictionary<string, string> boundVariables,
+        public TwinSendingLinkHandler(
+            ISendingAmqpLink link,
+            Uri requestUri,
+            IDictionary<string, string> boundVariables,
             IMessageConverter<AmqpMessage> messageConverter)
             : base(link, requestUri, boundVariables, messageConverter)
         {
         }
 
-        protected override QualityOfService QualityOfService => QualityOfService.AtMostOnce;
+        public override string CorrelationId =>
+            AmqpConnectionUtils.GetCorrelationId(this.Link);
 
         public override LinkType Type => LinkType.TwinSending;
 
-        public override string CorrelationId =>
-            AmqpConnectionUtils.GetCorrelationId(this.Link);
+        protected override QualityOfService QualityOfService => QualityOfService.AtMostOnce;
 
         protected override async Task OnOpenAsync(TimeSpan timeout)
         {

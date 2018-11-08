@@ -1,15 +1,18 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
 {
     using System;
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Edge.Hub.Core.Storage;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.Util;
+
     using Xunit;
 
     [Unit]
@@ -45,28 +48,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
         }
 
         [Fact]
-        public void GetCheckpointEntityTest()
-        {
-            var checkpointData1 = new CheckpointData(100);
-            CheckpointStore.CheckpointEntity checkpointEntity1 = CheckpointStore.GetCheckpointEntity(checkpointData1);
-            Assert.NotNull(checkpointEntity1);
-            Assert.Equal(100, checkpointEntity1.Offset);
-            Assert.False(checkpointEntity1.LastFailedRevivalTime.HasValue);
-            Assert.False(checkpointEntity1.UnhealthySince.HasValue);
-
-            DateTime lastFailedRevivalTime = DateTime.UtcNow;
-            DateTime unhealthySinceTime = DateTime.Parse("2008-05-01 7:34:42Z");
-            var checkpointData2 = new CheckpointData(100, Option.Some(lastFailedRevivalTime), Option.Some(unhealthySinceTime));
-            CheckpointStore.CheckpointEntity checkpointEntity2 = CheckpointStore.GetCheckpointEntity(checkpointData2);
-            Assert.NotNull(checkpointEntity2);
-            Assert.Equal(100, checkpointEntity2.Offset);
-            Assert.True(checkpointEntity2.LastFailedRevivalTime.HasValue);
-            Assert.Equal(lastFailedRevivalTime, checkpointEntity2.LastFailedRevivalTime.Value);
-            Assert.True(checkpointEntity2.UnhealthySince.HasValue);
-            Assert.Equal(unhealthySinceTime, checkpointEntity2.UnhealthySince.Value);
-        }
-
-        [Fact]
         public void GetCheckpointDataTest()
         {
             var checkpointEntity1 = new CheckpointStore.CheckpointEntity(100, null, null);
@@ -86,6 +67,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
             Assert.Equal(lastFailedRevivalTime, checkpointData2.LastFailedRevivalTime.OrDefault());
             Assert.True(checkpointData2.UnhealthySince.HasValue);
             Assert.Equal(unhealthySinceTime, checkpointData2.UnhealthySince.OrDefault());
+        }
+
+        [Fact]
+        public void GetCheckpointEntityTest()
+        {
+            var checkpointData1 = new CheckpointData(100);
+            CheckpointStore.CheckpointEntity checkpointEntity1 = CheckpointStore.GetCheckpointEntity(checkpointData1);
+            Assert.NotNull(checkpointEntity1);
+            Assert.Equal(100, checkpointEntity1.Offset);
+            Assert.False(checkpointEntity1.LastFailedRevivalTime.HasValue);
+            Assert.False(checkpointEntity1.UnhealthySince.HasValue);
+
+            DateTime lastFailedRevivalTime = DateTime.UtcNow;
+            DateTime unhealthySinceTime = DateTime.Parse("2008-05-01 7:34:42Z");
+            var checkpointData2 = new CheckpointData(100, Option.Some(lastFailedRevivalTime), Option.Some(unhealthySinceTime));
+            CheckpointStore.CheckpointEntity checkpointEntity2 = CheckpointStore.GetCheckpointEntity(checkpointData2);
+            Assert.NotNull(checkpointEntity2);
+            Assert.Equal(100, checkpointEntity2.Offset);
+            Assert.True(checkpointEntity2.LastFailedRevivalTime.HasValue);
+            Assert.Equal(lastFailedRevivalTime, checkpointEntity2.LastFailedRevivalTime.Value);
+            Assert.True(checkpointEntity2.UnhealthySince.HasValue);
+            Assert.Equal(unhealthySinceTime, checkpointEntity2.UnhealthySince.Value);
         }
     }
 }

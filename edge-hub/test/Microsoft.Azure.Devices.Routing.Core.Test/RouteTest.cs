@@ -1,19 +1,22 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Test
 {
     using System;
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
-    using Microsoft.Azure.Devices.Routing.Core.Query;
-    using Microsoft.Azure.Devices.Routing.Core.Test.Endpoints;
+
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
+    using Microsoft.Azure.Devices.Routing.Core.Query;
+    using Microsoft.Azure.Devices.Routing.Core.Test.Endpoints;
+
     using Xunit;
 
     [ExcludeFromCodeCoverage]
     public class RouteTest : RoutingUnitTestBase
     {
-        static readonly IMessage Message1 = new Message(TelemetryMessageSource.Instance, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} });
+        static readonly IMessage Message1 = new Message(TelemetryMessageSource.Instance, new byte[] { 1, 2, 3 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } });
 
         static readonly Endpoint Endpoint1 = new TestEndpoint("id1");
         static readonly Endpoint Endpoint2 = new TestEndpoint("id2");
@@ -27,7 +30,17 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         static readonly Route Route6 = new Route("id3", "rule3", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
         static readonly Route Route7 = new Route("id2", "rule1", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { Endpoint1 });
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
+        public void SmokeTest()
+        {
+            var route = new Route("id", "true", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { new TestEndpoint("id1") });
+            Func<IMessage, Bool> evaluate = RouteCompiler.Instance.Compile(route);
+            Assert.True(evaluate(Message1));
+        }
+
+        [Fact]
+        [Unit]
         public void TestConstructor()
         {
             Assert.Throws(typeof(ArgumentNullException), () => new Route(null, "condition", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>()));
@@ -36,24 +49,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             Assert.Throws(typeof(ArgumentNullException), () => new Route("id", "condition", "hub", TelemetryMessageSource.Instance, null));
         }
 
-        [Fact, Unit]
-        public void SmokeTest()
-        {
-            var route = new Route("id", "true", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> {new TestEndpoint("id1")});
-            Func<IMessage, Bool> evaluate = RouteCompiler.Instance.Compile(route);
-            Assert.True(evaluate(Message1));
-        }
-
-        [Fact, Unit]
-        public void TestShow()
-        {
-            var route = new Route("id1", "select *", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> {new TestEndpoint("id1"), new TestEndpoint("id2")});
-            string expected1 = "Route(\"id1\", TelemetryMessageSource, \"select *\" => (TestEndpoint(id1), TestEndpoint(id2))";
-            string expected2 = "Route(\"id1\", TelemetryMessageSource, \"select *\" => (TestEndpoint(id2), TestEndpoint(id1))";
-            Assert.True(expected1.Equals(route.ToString()) || expected2.Equals(route.ToString()));
-        }
-
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestEquals()
         {
             Assert.Equal(Route1, Route1);
@@ -76,7 +73,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             Assert.False(Route1.Equals(new object()));
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestHashCode()
         {
             ISet<Route> routes = new HashSet<Route>
@@ -95,7 +93,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             Assert.Contains(Route5, routes);
         }
 
-        [Theory, Unit]
+        [Theory]
+        [Unit]
         [InlineData("appKey", 1)]
         [InlineData("true", 1)]
         [InlineData("$body.Value = 3", 3)]
@@ -107,14 +106,28 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         [InlineData("is_defined(x) and power(as_number(x),as_number(y))", 17)]
         public void TestRouteComplexity(string condition, int expected)
         {
-            var testRoute = new Route("id1", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>
-            {
-                Endpoint1
-            });
+            var testRoute = new Route(
+                "id1",
+                condition,
+                "hub",
+                TelemetryMessageSource.Instance,
+                new HashSet<Endpoint>
+                {
+                    Endpoint1
+                });
 
             int complexity = RouteCompiler.Instance.GetComplexity(testRoute);
             Assert.Equal(expected, complexity);
         }
 
+        [Fact]
+        [Unit]
+        public void TestShow()
+        {
+            var route = new Route("id1", "select *", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { new TestEndpoint("id1"), new TestEndpoint("id2") });
+            string expected1 = "Route(\"id1\", TelemetryMessageSource, \"select *\" => (TestEndpoint(id1), TestEndpoint(id2))";
+            string expected2 = "Route(\"id1\", TelemetryMessageSource, \"select *\" => (TestEndpoint(id2), TestEndpoint(id1))";
+            Assert.True(expected1.Equals(route.ToString()) || expected2.Equals(route.ToString()));
+        }
     }
 }

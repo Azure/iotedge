@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
 {
     using System;
@@ -7,30 +8,27 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
     using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Routing.Core.Endpoints;
+
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.Endpoints;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
+
     using Xunit;
 
     [ExcludeFromCodeCoverage]
     public class ConsoleEndpointTest : RoutingUnitTestBase
     {
-        static readonly IMessage Message1 = new Message(TelemetryMessageSource.Instance, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} });
+        static readonly IMessage Message1 = new Message(TelemetryMessageSource.Instance, new byte[] { 1, 2, 3 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } });
 
-        [Fact, Unit]
-        public void TestConstructor()
-        {
-            Assert.Throws(typeof(ArgumentNullException), () => new ConsoleEndpoint(null));
-        }
-
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task SmokeTest()
         {
             using (var sw = new StringWriter())
             {
                 Console.SetOut(sw);
                 var console = new ConsoleEndpoint("id1");
-                IMessage[] messages = new [] { Message1 };
+                IMessage[] messages = new[] { Message1 };
                 IProcessor processor = console.CreateProcessor();
                 await processor.ProcessAsync(new IMessage[0], CancellationToken.None);
                 await processor.ProcessAsync(messages, CancellationToken.None);
@@ -38,7 +36,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
 
                 string expectedWindows = $"(0) ConsoleEndpoint(id1): {Message1}\r\n";
                 string expectedLinux = $"(0) ConsoleEndpoint(id1): {Message1}\n";
-                Assert.True(expectedWindows.Equals(sw.ToString(), StringComparison.OrdinalIgnoreCase) ||
+                Assert.True(
+                    expectedWindows.Equals(sw.ToString(), StringComparison.OrdinalIgnoreCase) ||
                     expectedLinux.Equals(sw.ToString(), StringComparison.OrdinalIgnoreCase));
                 Assert.Equal(console, processor.Endpoint);
                 Assert.True(processor.ErrorDetectionStrategy.IsTransient(new Exception()));
@@ -48,6 +47,13 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
                 Assert.Equal("name1", console2.Name);
                 Assert.Equal("hub1", console2.IotHubName);
             }
+        }
+
+        [Fact]
+        [Unit]
+        public void TestConstructor()
+        {
+            Assert.Throws(typeof(ArgumentNullException), () => new ConsoleEndpoint(null));
         }
     }
 }

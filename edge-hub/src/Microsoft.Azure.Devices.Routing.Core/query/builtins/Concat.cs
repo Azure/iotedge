@@ -1,12 +1,11 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
 {
     using System.Linq;
     using System.Linq.Expressions;
     using System.Reflection;
+
     using Microsoft.Azure.Devices.Routing.Core.Query.Types;
 
     public class Concat : Builtin
@@ -31,8 +30,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
         // ReSharper disable once UnusedMember.Local
         static string Runtime(QueryValue[] input)
         {
-            return input.All(s => s?.ValueType == QueryValueType.String && Undefined.IsDefined((string)s.Value)) ?
-                string.Concat(input.Select(_ => _.Value))
+            return input.All(s => s?.ValueType == QueryValueType.String && Undefined.IsDefined((string)s.Value))
+                ? string.Concat(input.Select(_ => _.Value))
                 : Undefined.Instance;
         }
     }

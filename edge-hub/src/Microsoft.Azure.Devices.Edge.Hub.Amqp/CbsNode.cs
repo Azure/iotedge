@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 {
     using System;
@@ -6,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Amqp.Framing;
     using Microsoft.Azure.Devices.Common;
@@ -17,8 +19,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     using Microsoft.Extensions.Logging;
 
     /// <summary>
-    /// This class is used to get tokens from the Client on the CBS link. It generates 
-    /// an identity from the received token and authenticates it. 
+    /// This class is used to get tokens from the Client on the CBS link. It generates
+    /// an identity from the received token and authenticates it.
     /// </summary>
     class CbsNode : ICbsNode
     {
@@ -51,6 +53,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             this.authenticationUpdateTask = Task.FromResult(AmqpAuthentication.Unauthenticated);
         }
 
+        public void Dispose()
+        {
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
         public Task<AmqpAuthentication> GetAmqpAuthentication() => this.authenticationUpdateTask;
 
         public void RegisterLink(IAmqpLink link)
@@ -70,69 +78,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                     this.sendingLink = (EdgeSendingAmqpLink)link;
                 }
             }
+
             Events.LinkRegistered(link);
         }
 
-        void OnMessageReceived(AmqpMessage message)
+        internal static (string deviceId, string moduleId) ParseIds(string audience)
         {
-            Events.NewTokenReceived();
-            this.authenticationUpdateTask = this.UpdateAmqpAuthentication(message);
-        }
+            string audienceUri = audience.StartsWith("amqps://", StringComparison.CurrentCultureIgnoreCase) ? audience : "amqps://" + audience;
 
-        async Task<AmqpAuthentication> UpdateAmqpAuthentication(AmqpMessage message)
-        {
-            using (await this.identitySyncLock.LockAsync())
+            foreach (UriPathTemplate template in ResourceTemplates)
             {
-                try
+                (bool success, IList<KeyValuePair<string, string>> boundVariables) = template.Match(new Uri(audienceUri));
+                if (success)
                 {
-                    (AmqpAuthentication amqpAuth, AmqpResponseStatusCode statusCode, string description) = await this.UpdateCbsToken(message);
-                    await this.SendResponseAsync(message, statusCode, description);
-                    this.amqpAuthentication = amqpAuth;
-                    return this.amqpAuthentication;
-                }
-                catch (Exception e)
-                {
-                    await this.SendResponseAsync(message, AmqpResponseStatusCode.InternalServerError, e.Message);
-                    Events.ErrorUpdatingToken(e);
-                    return AmqpAuthentication.Unauthenticated;
+                    IDictionary<string, string> boundVariablesDictionary = boundVariables.ToDictionary();
+                    string deviceId = boundVariablesDictionary[Templates.DeviceIdTemplateParameterName];
+                    string moduleId = boundVariablesDictionary.ContainsKey(Templates.ModuleIdTemplateParameterName)
+                        ? boundVariablesDictionary[Templates.ModuleIdTemplateParameterName]
+                        : null;
+                    return (deviceId, moduleId);
                 }
             }
-        }
 
-        // Note: This method accesses this.amqpAuthentication, and should be invoked only within this.identitySyncLock
-        internal async Task<(AmqpAuthentication, AmqpResponseStatusCode, string)> UpdateCbsToken(AmqpMessage message)
-        {
-            IClientCredentials identity;
-            try
-            {
-                identity = this.GetClientCredentials(message);
-            }
-            catch (Exception e) when (!ExceptionEx.IsFatal(e))
-            {
-                Events.ErrorGettingIdentity(e);
-                return (AmqpAuthentication.Unauthenticated, AmqpResponseStatusCode.BadRequest, e.Message);
-            }
-
-            if ((this.amqpAuthentication == null || !this.amqpAuthentication.IsAuthenticated)
-                && !await this.authenticator.AuthenticateAsync(identity))
-            {
-                Events.ErrorAuthenticatingIdentity(identity.Identity);
-                return (AmqpAuthentication.Unauthenticated, AmqpResponseStatusCode.BadRequest, $"Unable to authenticate {identity.Identity.Id}");
-            }
-            else
-            {
-                Events.CbsTokenUpdated(identity.Identity);
-                await this.credentialsCache.Add(identity);
-                return (new AmqpAuthentication(true, Option.Some(identity)), AmqpResponseStatusCode.OK, AmqpResponseStatusCode.OK.ToString());
-            }
-        }
-
-        internal IClientCredentials GetClientCredentials(AmqpMessage message)
-        {
-            (string token, string audience) = ValidateAndParseMessage(this.iotHubHostName, message);
-            (string deviceId, string moduleId) = ParseIds(audience);
-            IClientCredentials clientCredentials = this.clientCredentialsFactory.GetWithSasToken(deviceId, moduleId, string.Empty, token);
-            return clientCredentials;
+            throw new InvalidOperationException($"Matching template not found for audience {audienceUri}");
         }
 
         internal static (string token, string audience) ValidateAndParseMessage(string iotHubHostName, AmqpMessage message)
@@ -171,6 +139,72 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             }
         }
 
+        internal IClientCredentials GetClientCredentials(AmqpMessage message)
+        {
+            (string token, string audience) = ValidateAndParseMessage(this.iotHubHostName, message);
+            (string deviceId, string moduleId) = ParseIds(audience);
+            IClientCredentials clientCredentials = this.clientCredentialsFactory.GetWithSasToken(deviceId, moduleId, string.Empty, token);
+            return clientCredentials;
+        }
+
+        internal ArraySegment<byte> GetDeliveryTag()
+        {
+            int deliveryId = Interlocked.Increment(ref this.deliveryCount);
+            return new ArraySegment<byte>(BitConverter.GetBytes(deliveryId));
+        }
+
+        // Note: This method accesses this.amqpAuthentication, and should be invoked only within this.identitySyncLock
+        internal async Task<(AmqpAuthentication, AmqpResponseStatusCode, string)> UpdateCbsToken(AmqpMessage message)
+        {
+            IClientCredentials identity;
+            try
+            {
+                identity = this.GetClientCredentials(message);
+            }
+            catch (Exception e) when (!ExceptionEx.IsFatal(e))
+            {
+                Events.ErrorGettingIdentity(e);
+                return (AmqpAuthentication.Unauthenticated, AmqpResponseStatusCode.BadRequest, e.Message);
+            }
+
+            if ((this.amqpAuthentication == null || !this.amqpAuthentication.IsAuthenticated)
+                && !await this.authenticator.AuthenticateAsync(identity))
+            {
+                Events.ErrorAuthenticatingIdentity(identity.Identity);
+                return (AmqpAuthentication.Unauthenticated, AmqpResponseStatusCode.BadRequest, $"Unable to authenticate {identity.Identity.Id}");
+            }
+            else
+            {
+                Events.CbsTokenUpdated(identity.Identity);
+                await this.credentialsCache.Add(identity);
+                return (new AmqpAuthentication(true, Option.Some(identity)), AmqpResponseStatusCode.OK, AmqpResponseStatusCode.OK.ToString());
+            }
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!this.disposed)
+            {
+                this.disposed = true;
+            }
+        }
+
+        static AmqpMessage GetAmqpResponse(AmqpMessage requestMessage, AmqpResponseStatusCode statusCode, string statusDescription)
+        {
+            AmqpMessage response = AmqpMessage.Create();
+            response.Properties.CorrelationId = requestMessage.Properties.MessageId;
+            response.ApplicationProperties = new ApplicationProperties();
+            response.ApplicationProperties.Map[CbsConstants.PutToken.StatusCode] = (int)statusCode;
+            response.ApplicationProperties.Map[CbsConstants.PutToken.StatusDescription] = statusDescription;
+            return response;
+        }
+
+        void OnMessageReceived(AmqpMessage message)
+        {
+            Events.NewTokenReceived();
+            this.authenticationUpdateTask = this.UpdateAmqpAuthentication(message);
+        }
+
         Task SendResponseAsync(AmqpMessage requestMessage, AmqpResponseStatusCode statusCode, string statusDescription)
         {
             try
@@ -185,61 +219,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             }
         }
 
-        static AmqpMessage GetAmqpResponse(AmqpMessage requestMessage, AmqpResponseStatusCode statusCode, string statusDescription)
+        async Task<AmqpAuthentication> UpdateAmqpAuthentication(AmqpMessage message)
         {
-            AmqpMessage response = AmqpMessage.Create();
-            response.Properties.CorrelationId = requestMessage.Properties.MessageId;
-            response.ApplicationProperties = new ApplicationProperties();
-            response.ApplicationProperties.Map[CbsConstants.PutToken.StatusCode] = (int)statusCode;
-            response.ApplicationProperties.Map[CbsConstants.PutToken.StatusDescription] = statusDescription;
-            return response;
-        }
-
-        internal static (string deviceId, string moduleId) ParseIds(string audience)
-        {
-            string audienceUri = audience.StartsWith("amqps://", StringComparison.CurrentCultureIgnoreCase) ? audience : "amqps://" + audience;
-
-            foreach (UriPathTemplate template in ResourceTemplates)
+            using (await this.identitySyncLock.LockAsync())
             {
-                (bool success, IList<KeyValuePair<string, string>> boundVariables) = template.Match(new Uri(audienceUri));
-                if (success)
+                try
                 {
-                    IDictionary<string, string> boundVariablesDictionary = boundVariables.ToDictionary();
-                    string deviceId = boundVariablesDictionary[Templates.DeviceIdTemplateParameterName];
-                    string moduleId = boundVariablesDictionary.ContainsKey(Templates.ModuleIdTemplateParameterName)
-                        ? boundVariablesDictionary[Templates.ModuleIdTemplateParameterName]
-                        : null;
-                    return (deviceId, moduleId);
+                    (AmqpAuthentication amqpAuth, AmqpResponseStatusCode statusCode, string description) = await this.UpdateCbsToken(message);
+                    await this.SendResponseAsync(message, statusCode, description);
+                    this.amqpAuthentication = amqpAuth;
+                    return this.amqpAuthentication;
                 }
-            }
-
-            throw new InvalidOperationException($"Matching template not found for audience {audienceUri}");
-        }
-
-        internal ArraySegment<byte> GetDeliveryTag()
-        {
-            int deliveryId = Interlocked.Increment(ref this.deliveryCount);
-            return new ArraySegment<byte>(BitConverter.GetBytes(deliveryId));
-        }
-
-        public void Dispose()
-        {
-            this.Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!this.disposed)
-            {
-                this.disposed = true;
+                catch (Exception e)
+                {
+                    await this.SendResponseAsync(message, AmqpResponseStatusCode.InternalServerError, e.Message);
+                    Events.ErrorUpdatingToken(e);
+                    return AmqpAuthentication.Unauthenticated;
+                }
             }
         }
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<CbsNode>();
             const int IdStart = AmqpEventIds.CbsNode;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<CbsNode>();
 
             enum EventIds
             {
@@ -251,6 +254,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 ErrorSendingResponse
             }
 
+            public static void CbsTokenUpdated(IIdentity identity)
+            {
+                Log.LogInformation((int)EventIds.TokenUpdated, $"Token updated for {identity.Id}");
+            }
+
+            public static void ErrorAuthenticatingIdentity(IIdentity identity)
+            {
+                Log.LogWarning((int)EventIds.ErrorGettingIdentity, $"Error authenticating token received on the Cbs link for {identity.Id}");
+            }
+
+            public static void ErrorGettingIdentity(Exception exception)
+            {
+                Log.LogWarning((int)EventIds.ErrorGettingIdentity, exception, "Error getting identity from the token received on the Cbs link");
+            }
+
+            public static void ErrorSendingResponse(Exception exception)
+            {
+                Log.LogWarning((int)EventIds.ErrorSendingResponse, exception, "Error sending response message");
+            }
+
+            public static void ErrorUpdatingToken(Exception exception)
+            {
+                Log.LogWarning((int)EventIds.ErrorUpdatingToken, exception, "Error updating token received on the Cbs link");
+            }
+
             public static void LinkRegistered(IAmqpLink link)
             {
                 Log.LogDebug((int)EventIds.LinkRegistered, "Cbs {0} link registered".FormatInvariant(link.IsReceiver ? "receiver" : "sender"));
@@ -259,31 +287,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             public static void NewTokenReceived()
             {
                 Log.LogInformation((int)EventIds.TokenReceived, "New token received on the Cbs link");
-            }
-
-            public static void ErrorUpdatingToken(Exception exception)
-            {
-                Log.LogWarning((int)EventIds.ErrorUpdatingToken, exception, "Error updating token received on the Cbs link");
-            }
-
-            public static void ErrorGettingIdentity(Exception exception)
-            {
-                Log.LogWarning((int)EventIds.ErrorGettingIdentity, exception, "Error getting identity from the token received on the Cbs link");
-            }
-
-            public static void ErrorAuthenticatingIdentity(IIdentity identity)
-            {
-                Log.LogWarning((int)EventIds.ErrorGettingIdentity, $"Error authenticating token received on the Cbs link for {identity.Id}");
-            }
-
-            public static void CbsTokenUpdated(IIdentity identity)
-            {
-                Log.LogInformation((int)EventIds.TokenUpdated, $"Token updated for {identity.Id}");
-            }
-
-            public static void ErrorSendingResponse(Exception exception)
-            {
-                Log.LogWarning((int)EventIds.ErrorSendingResponse, exception, "Error sending response message");
             }
         }
     }

@@ -1,42 +1,32 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core
 {
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
-    using static System.FormattableString;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Azure.Devices.Routing.Core.Query;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
     using Microsoft.Extensions.Logging;
 
+    using static System.FormattableString;
+
     public class Evaluator
     {
         static readonly ISet<Endpoint> NoEndpoints = ImmutableHashSet<Endpoint>.Empty;
 
         readonly object sync = new object();
+
         // ReSharper disable once InconsistentlySynchronizedField - compiledRoutes is immutable
         readonly AtomicReference<ImmutableDictionary<string, CompiledRoute>> compiledRoutes;
         readonly IRouteCompiler compiler;
         readonly Option<CompiledRoute> fallback;
-
-        // Because we are only reading here, it doesn't matter that it is under a lock
-        // ReSharper disable once InconsistentlySynchronizedField - compiledRoutes is immutable
-        public ISet<Route> Routes
-        {
-            get
-            {
-                ImmutableDictionary<string, CompiledRoute> snapshot = this.compiledRoutes;
-                return new HashSet<Route>(snapshot.Values.Select(c => c.Route));
-            }
-        }
 
         public Evaluator(RouterConfig config)
             : this(config, RouteCompiler.Instance)
@@ -54,6 +44,19 @@ namespace Microsoft.Azure.Devices.Routing.Core
                 .ToImmutableDictionary(r => r.Id, r => this.Compile(r));
             this.compiledRoutes = new AtomicReference<ImmutableDictionary<string, CompiledRoute>>(routesDict);
         }
+
+        // Because we are only reading here, it doesn't matter that it is under a lock
+        // ReSharper disable once InconsistentlySynchronizedField - compiledRoutes is immutable
+        public ISet<Route> Routes
+        {
+            get
+            {
+                ImmutableDictionary<string, CompiledRoute> snapshot = this.compiledRoutes;
+                return new HashSet<Route>(snapshot.Values.Select(c => c.Route));
+            }
+        }
+
+        public Task CloseAsync(CancellationToken token) => TaskEx.Done;
 
         public ISet<Endpoint> Evaluate(IMessage message)
         {
@@ -92,35 +95,6 @@ namespace Microsoft.Azure.Devices.Routing.Core
             }
         }
 
-        static bool EvaluateInternal(CompiledRoute compiledRoute, IMessage message)
-        {
-            try
-            {
-                Bool evaluation = compiledRoute.Evaluate(message);
-
-                if (evaluation.Equals(Bool.Undefined))
-                {
-                    Routing.UserAnalyticsLogger.LogUndefinedRouteEvaluation(message, compiledRoute.Route);
-                }
-
-                return evaluation;
-            }
-            catch (Exception ex)
-            {
-                Events.EvaluateFailure(compiledRoute.Route, ex);
-                throw;
-            }
-        }
-
-        public void SetRoute(Route route)
-        {
-            lock (this.sync)
-            {
-                ImmutableDictionary<string, CompiledRoute> snapshot = this.compiledRoutes;
-                this.compiledRoutes.GetAndSet(snapshot.SetItem(route.Id, this.Compile(route)));
-            }
-        }
-
         public void RemoveRoute(string id)
         {
             lock (this.sync)
@@ -140,7 +114,34 @@ namespace Microsoft.Azure.Devices.Routing.Core
             }
         }
 
-        public Task CloseAsync(CancellationToken token) => TaskEx.Done;
+        public void SetRoute(Route route)
+        {
+            lock (this.sync)
+            {
+                ImmutableDictionary<string, CompiledRoute> snapshot = this.compiledRoutes;
+                this.compiledRoutes.GetAndSet(snapshot.SetItem(route.Id, this.Compile(route)));
+            }
+        }
+
+        static bool EvaluateInternal(CompiledRoute compiledRoute, IMessage message)
+        {
+            try
+            {
+                Bool evaluation = compiledRoute.Evaluate(message);
+
+                if (evaluation.Equals(Bool.Undefined))
+                {
+                    Routing.UserAnalyticsLogger.LogUndefinedRouteEvaluation(message, compiledRoute.Route);
+                }
+
+                return evaluation;
+            }
+            catch (Exception ex)
+            {
+                Events.EvaluateFailure(compiledRoute.Route, ex);
+                throw;
+            }
+        }
 
         CompiledRoute Compile(Route route)
         {
@@ -163,21 +164,21 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
         class CompiledRoute
         {
-            public Route Route { get; }
-
-            public Func<IMessage, Bool> Evaluate { get; }
-
             public CompiledRoute(Route route, Func<IMessage, Bool> evaluate)
             {
                 this.Route = Preconditions.CheckNotNull(route);
                 this.Evaluate = Preconditions.CheckNotNull(evaluate);
             }
+
+            public Func<IMessage, Bool> Evaluate { get; }
+
+            public Route Route { get; }
         }
 
         static class Events
         {
-            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<Evaluator>();
             const int IdStart = Routing.EventIds.Evaluator;
+            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<Evaluator>();
 
             enum EventIds
             {
@@ -192,14 +193,14 @@ namespace Microsoft.Azure.Devices.Routing.Core
                 Log.LogInformation((int)EventIds.Compile, "[Compile] {0}", GetMessage("Compile began.", route));
             }
 
-            public static void CompileSuccess(Route route)
-            {
-                Log.LogInformation((int)EventIds.CompileSuccess, "[CompileSuccess] {0}", GetMessage("Compile succeeded.", route));
-            }
-
             public static void CompileFailure(Route route, Exception ex)
             {
                 Log.LogError((int)EventIds.CompileFailure, ex, "[CompileFailure] {0}", GetMessage("Compile failed.", route));
+            }
+
+            public static void CompileSuccess(Route route)
+            {
+                Log.LogInformation((int)EventIds.CompileSuccess, "[CompileSuccess] {0}", GetMessage("Compile succeeded.", route));
             }
 
             public static void EvaluateFailure(Route route, Exception ex)

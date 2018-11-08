@@ -118,7 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         }
 
         // This method is not used, but it has important logic and this will be useful for offline scenarios.
-        // So do not delete this method. 
+        // So do not delete this method.
         public async Task<Try<ICloudProxy>> GetOrCreateCloudConnectionAsync(IClientCredentials credentials)
         {
             Preconditions.CheckNotNull(credentials, nameof(credentials));
@@ -337,6 +337,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 Func<ConnectedDevice, Task<Try<ICloudConnection>>> cloudConnectionUpdater)
             {
                 Preconditions.CheckNotNull(cloudConnectionUpdater, nameof(cloudConnectionUpdater));
+
                 // Lock in case multiple connections are created to the cloud for the same device at the same time
                 using (await this.cloudConnectionLock.LockAsync())
                 {
@@ -354,6 +355,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 Func<ConnectedDevice, Task<Try<ICloudConnection>>> cloudConnectionUpdater)
             {
                 Preconditions.CheckNotNull(cloudConnectionUpdater, nameof(cloudConnectionUpdater));
+
                 // Lock in case multiple connections are created to the cloud for the same device at the same time
                 using (await this.cloudConnectionLock.LockAsync())
                 {
@@ -393,8 +395,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<ConnectionManager>();
             const int IdStart = HubCoreEventIds.ConnectionManager;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<ConnectionManager>();
 
             enum EventIds
             {
@@ -485,6 +487,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 int connectedClients = connectionManager.GetConnectedClients().Count() - 1;
                 Util.Metrics.SetGauge(ConnectedClientGaugeOptions, connectedClients);
             }
-        };
+        }
     }
 }

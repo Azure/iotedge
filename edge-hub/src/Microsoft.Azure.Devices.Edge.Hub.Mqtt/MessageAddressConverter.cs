@@ -1,16 +1,19 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+
     using Microsoft.Azure.Devices.Client.Common;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.ProtocolGateway;
     using Microsoft.Extensions.Logging;
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
+
     using static System.FormattableString;
+
     using IProtocolGatewayMessage = Microsoft.Azure.Devices.ProtocolGateway.Messaging.IMessage;
 
     /// <summary>
@@ -21,7 +24,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     /// MQTT protocol head however we transform these names into MQTT topic names. This
     /// class, in conjunction with the <see cref="MessageAddressConversionConfiguration"/>
     /// class, handles this task.
-    /// 
     /// See documentation for <see cref="TryBuildProtocolAddressFromEdgeHubMessage"/> and
     /// <see cref="TryParseProtocolMessagePropsFromAddress"/> for additional detail on how
     /// this transformation works.
@@ -56,6 +58,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         /// <c>devices/{deviceId}/messages/devicebound</c> where <c>{deviceId}</c> is a place
         /// holder for the identifier of the device that is receiving the C2D message.
         /// </summary>
+        /// <param name="endPointUri">Endpoint Uri</param>
+        /// <param name="message">Message</param>
+        /// <param name="messagePropertiesToSend">Message properties to send</param>
+        /// <param name="address">Address</param>
+        /// <returns>Returns true if succeeds, otherwise false.</returns>
         public bool TryBuildProtocolAddressFromEdgeHubMessage(string endPointUri, IMessage message, IDictionary<string, string> messagePropertiesToSend, out string address)
         {
             address = null;
@@ -63,7 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             {
                 try
                 {
-                    address = template.Bind(message.SystemProperties);                    
+                    address = template.Bind(message.SystemProperties);
                     if (!string.IsNullOrWhiteSpace(address) && messagePropertiesToSend != null && messagePropertiesToSend.Count > 0)
                     {
                         address = Invariant($"{address.TrimEnd('/')}/{UrlEncodedDictionarySerializer.Serialize(messagePropertiesToSend)}");
@@ -88,6 +95,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         /// property.
         /// Note: In case of multiple matches, this method uses the first topic. So the order in which the topics are defined matters.
         /// </summary>
+        /// <param name="message">Message</param>
+        /// <returns>Returns true if parse successfully, otherwise false.</returns>
         public bool TryParseProtocolMessagePropsFromAddress(IProtocolGatewayMessage message)
         {
             string address = message.Address;
@@ -110,8 +119,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
                 foreach (KeyValuePair<string, string> match in matches[0])
                 {
-                    // If the template has a key called "params" then it contains all the properties set by the user on 
-                    // the sent message in query string format. So get the value and parse it. 
+                    // If the template has a key called "params" then it contains all the properties set by the user on
+                    // the sent message in query string format. So get the value and parse it.
                     if (match.Key == "params")
                     {
                         if (!string.IsNullOrWhiteSpace(match.Value))

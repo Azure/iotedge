@@ -1,8 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
     using System;
     using System.Collections.Generic;
+
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -11,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     {
         public static readonly ITransportSettings[] MqttTransportSettings =
         {
-            new MqttTransportSettings(Client.TransportType.Mqtt_Tcp_Only)
+            new MqttTransportSettings(TransportType.Mqtt_Tcp_Only)
             {
                 RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
             }
@@ -19,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         public static readonly ITransportSettings[] AmqpTransportSettings =
         {
-            new AmqpTransportSettings(Client.TransportType.Amqp_Tcp_Only)
+            new AmqpTransportSettings(TransportType.Amqp_Tcp_Only)
             {
                 RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
             }
@@ -35,9 +37,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only)
         };
 
-        public static IList<object[]> TransportSettings => TransportSettingsLazy.Value;
-
         static readonly Lazy<IList<object[]>> TransportSettingsLazy = new Lazy<IList<object[]>>(() => GetTransportSettings(), true);
+
+        public static IList<object[]> TransportSettings => TransportSettingsLazy.Value;
 
         static IList<object[]> GetTransportSettings()
         {
@@ -45,7 +47,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             {
                 new object[] { AmqpTransportSettings },
                 new object[] { MqttTransportSettings },
-
             };
 
             if (bool.TryParse(ConfigHelper.TestConfig["enableWebSocketsTests"], out bool enableWebSocketsTests) && enableWebSocketsTests)

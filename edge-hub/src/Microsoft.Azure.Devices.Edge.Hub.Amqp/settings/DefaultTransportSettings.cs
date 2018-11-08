@@ -1,9 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Settings
 {
     using System;
     using System.Security.Cryptography.X509Certificates;
+
     using Microsoft.Azure.Amqp.Transport;
     using Microsoft.Azure.Devices.Edge.Util;
 
@@ -37,6 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Settings
             {
                 TargetHost = address.Host,
                 Certificate = Preconditions.CheckNotNull(tlsCertificate, nameof(tlsCertificate)),
+
                 // NOTE: The following property doesn't appear to be used by the AMQP library.
                 //       Not sure that setting this to true/false makes any difference!
                 CheckCertificateRevocation = false

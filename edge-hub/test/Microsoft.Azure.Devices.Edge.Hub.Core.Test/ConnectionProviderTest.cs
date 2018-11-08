@@ -1,28 +1,19 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 {
     using System;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Hub.Core;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
+
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
-    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+
     using Moq;
+
     using Xunit;
 
     public class ConnectionProviderTest
     {
-        [Fact]
-        [Unit]
-        public void ConnectionProviderConstructorTest()
-        {
-            var connectionManager = Mock.Of<IConnectionManager>();
-            var edgeHub = Mock.Of<IEdgeHub>();
-
-            Assert.NotNull(new ConnectionProvider(connectionManager, edgeHub));
-        }
-
         [Fact]
         [Unit]
         public void ConnectionProviderConstructor_NullConnectionManagerTest()
@@ -39,6 +30,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var connectionManager = Mock.Of<IConnectionManager>();
 
             Assert.Throws<ArgumentNullException>(() => new ConnectionProvider(connectionManager, null));
+        }
+
+        [Fact]
+        [Unit]
+        public void ConnectionProviderConstructorTest()
+        {
+            var connectionManager = Mock.Of<IConnectionManager>();
+            var edgeHub = Mock.Of<IEdgeHub>();
+
+            Assert.NotNull(new ConnectionProvider(connectionManager, edgeHub));
+        }
+
+        [Fact]
+        [Unit]
+        public async Task GetDeviceListener_NullIdentityTest()
+        {
+            var connectionManager = Mock.Of<IConnectionManager>();
+            var edgeHub = Mock.Of<IEdgeHub>();
+
+            var connectionProvider = new ConnectionProvider(connectionManager, edgeHub);
+            await Assert.ThrowsAsync<ArgumentNullException>(() => connectionProvider.GetDeviceListenerAsync(null));
         }
 
         [Fact]
@@ -63,17 +75,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var connectionProvider = new ConnectionProvider(connectionManager, edgeHub);
             Assert.NotNull(await connectionProvider.GetDeviceListenerAsync(moduleCredentials));
-        }
-
-        [Fact]
-        [Unit]
-        public async Task GetDeviceListener_NullIdentityTest()
-        {
-            var connectionManager = Mock.Of<IConnectionManager>();
-            var edgeHub = Mock.Of<IEdgeHub>();
-
-            var connectionProvider = new ConnectionProvider(connectionManager, edgeHub);
-            await Assert.ThrowsAsync<ArgumentNullException>(() => connectionProvider.GetDeviceListenerAsync(null));
         }
     }
 }

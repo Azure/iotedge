@@ -1,11 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
@@ -23,12 +24,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
         public string Name => $"({string.Join(", ", this.underlyingProtocolHeads.Select(ph => ph.Name))})";
 
-        public Task StartAsync()
-        {
-            this.logger.LogInformation($"Starting protocol heads - {this.Name}");
-            return Task.WhenAll(this.underlyingProtocolHeads.Select(protocolHead => protocolHead.StartAsync()));
-        }
-
         public Task CloseAsync(CancellationToken token)
         {
             this.logger.LogInformation($"Closing protocol heads - {this.Name}");
@@ -41,6 +36,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             {
                 protocolHead.Dispose();
             }
+        }
+
+        public Task StartAsync()
+        {
+            this.logger.LogInformation($"Starting protocol heads - {this.Name}");
+            return Task.WhenAll(this.underlyingProtocolHeads.Select(protocolHead => protocolHead.StartAsync()));
         }
     }
 }

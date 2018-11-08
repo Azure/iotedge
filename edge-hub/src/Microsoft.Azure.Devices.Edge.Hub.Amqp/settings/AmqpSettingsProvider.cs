@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Settings
 {
     using Microsoft.Azure.Amqp;
@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Settings
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
+
     using Constants = Microsoft.Azure.Devices.Edge.Hub.Amqp.Constants;
 
     public static class AmqpSettingsProvider
@@ -53,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Settings
                 //       needs (i.e. old clients that are still using EXTERNAL for CBS).
                 // saslProvider.AddHandler(new SaslExternalHandler());
 
-                // CBS 
+                // CBS
                 saslProvider.AddHandler(new SaslAnonymousHandler());
 
                 // CBS - used by some SDKs like C

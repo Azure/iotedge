@@ -1,105 +1,25 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 {
+    using System.Collections.Generic;
+    using System.Threading.Tasks;
+
     using DotNetty.Codecs.Mqtt.Packets;
+
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt.Persistence;
+
     using Moq;
-    using System.Collections.Generic;
-    using System.Threading.Tasks;
+
     using Xunit;
+
     using IProtocolgatewayDeviceIdentity = Microsoft.Azure.Devices.ProtocolGateway.Identity.IDeviceIdentity;
 
     public class SessionStatePersistenceProviderTest
     {
-        [Fact]
-        [Unit]
-        public void TestCreate_ShouldReturn_Session()
-        {
-            var sessionProvider = new SessionStatePersistenceProvider(Mock.Of<IEdgeHub>());
-            ISessionState session = sessionProvider.Create(true);
-
-            Assert.NotNull(session);
-            Assert.False(session.IsTransient);
-        }
-
-        [Fact]
-        [Unit]
-        public void TestSetAsync_AddedMethodSubscription_ShouldComplete()
-        {
-            var edgeHub = new Mock<IEdgeHub>();
-            var identity = Mock.Of<IProtocolgatewayDeviceIdentity>(i => i.Id == "d1");
-            var sessionProvider = new SessionStatePersistenceProvider(edgeHub.Object);
-            ISessionState sessionState = new SessionState(false);
-            sessionState.AddOrUpdateSubscription(SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix, QualityOfService.AtLeastOnce);
-            Task setTask = sessionProvider.SetAsync(identity, sessionState);
-
-            Assert.True(setTask.IsCompleted);
-            edgeHub.Verify(x => x.AddSubscription("d1", DeviceSubscription.Methods), Times.Once);
-        }
-
-        [Fact]
-        [Unit]
-        public void TestSetAsync_RemovedSubscription_ShouldComplete()
-        {
-            var edgeHub = new Mock<IEdgeHub>();
-            var identity = Mock.Of<IProtocolgatewayDeviceIdentity>(i => i.Id == "d1");
-            var sessionProvider = new SessionStatePersistenceProvider(edgeHub.Object);
-            ISessionState sessionState = new SessionState(false);
-            sessionState.RemoveSubscription(SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix);
-            Task setTask = sessionProvider.SetAsync(identity, sessionState);
-
-            Assert.True(setTask.IsCompleted);
-            edgeHub.Verify(x => x.RemoveSubscription("d1", DeviceSubscription.Methods), Times.Once);
-        }
-
-        [Fact]
-        [Unit]
-        public void TestGetAsync_NoSessionFound_ShouldReturnNull()
-        {
-            var identity = new Mock<IProtocolgatewayDeviceIdentity>();
-            identity.Setup(p => p.Id).Returns("device-id");
-
-            var sessionProvider = new SessionStatePersistenceProvider(Mock.Of<IEdgeHub>());
-
-            Task<ISessionState> task = sessionProvider.GetAsync(identity.Object);
-
-            Assert.Null(task.Result);
-        }
-
-        [Fact]
-        [Unit]
-        public void TestGetAsync_DeleteSession()
-        {
-            var identity = new Mock<IProtocolgatewayDeviceIdentity>();
-            identity.Setup(p => p.Id).Returns("device-id");
-
-            var sessionProvider = new SessionStatePersistenceProvider(Mock.Of<IEdgeHub>());
-            Task task = sessionProvider.DeleteAsync(identity.Object, It.IsAny<ISessionState>());
-
-            Assert.True(task.IsCompleted);
-        }
-
-        [Fact]
-        [Unit]
-        public void TestSetAsync_SetMultipleSubscriptions_ShouldComplete()
-        {
-            var edgeHub = new Mock<IEdgeHub>();
-            var identity = Mock.Of<IProtocolgatewayDeviceIdentity>(i => i.Id == "d1");
-            var sessionProvider = new SessionStatePersistenceProvider(edgeHub.Object);
-
-            ISessionState sessionState = new SessionState(false);
-            sessionState.AddOrUpdateSubscription(SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix, QualityOfService.AtLeastOnce);
-            sessionState.AddOrUpdateSubscription(SessionStatePersistenceProvider.TwinResponseTopicFilter, QualityOfService.AtLeastOnce);
-            Task setTask = sessionProvider.SetAsync(identity, sessionState);
-
-            Assert.True(setTask.IsCompleted);
-            edgeHub.Verify(x => x.AddSubscription("d1", DeviceSubscription.Methods), Times.Once);
-        }
-
         public static IEnumerable<object[]> GetSubscriptionTopics()
         {
             var theoryData = new List<object[]>();
@@ -141,6 +61,91 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         {
             var subscriptionTopic = (DeviceSubscription)subscriptionTopicObject;
             Assert.Equal(SessionStatePersistenceProvider.GetDeviceSubscription(topicName), subscriptionTopic);
+        }
+
+        [Fact]
+        [Unit]
+        public void TestCreate_ShouldReturn_Session()
+        {
+            var sessionProvider = new SessionStatePersistenceProvider(Mock.Of<IEdgeHub>());
+            ISessionState session = sessionProvider.Create(true);
+
+            Assert.NotNull(session);
+            Assert.False(session.IsTransient);
+        }
+
+        [Fact]
+        [Unit]
+        public void TestGetAsync_DeleteSession()
+        {
+            var identity = new Mock<IProtocolgatewayDeviceIdentity>();
+            identity.Setup(p => p.Id).Returns("device-id");
+
+            var sessionProvider = new SessionStatePersistenceProvider(Mock.Of<IEdgeHub>());
+            Task task = sessionProvider.DeleteAsync(identity.Object, It.IsAny<ISessionState>());
+
+            Assert.True(task.IsCompleted);
+        }
+
+        [Fact]
+        [Unit]
+        public void TestGetAsync_NoSessionFound_ShouldReturnNull()
+        {
+            var identity = new Mock<IProtocolgatewayDeviceIdentity>();
+            identity.Setup(p => p.Id).Returns("device-id");
+
+            var sessionProvider = new SessionStatePersistenceProvider(Mock.Of<IEdgeHub>());
+
+            Task<ISessionState> task = sessionProvider.GetAsync(identity.Object);
+
+            Assert.Null(task.Result);
+        }
+
+        [Fact]
+        [Unit]
+        public void TestSetAsync_AddedMethodSubscription_ShouldComplete()
+        {
+            var edgeHub = new Mock<IEdgeHub>();
+            var identity = Mock.Of<IProtocolgatewayDeviceIdentity>(i => i.Id == "d1");
+            var sessionProvider = new SessionStatePersistenceProvider(edgeHub.Object);
+            ISessionState sessionState = new SessionState(false);
+            sessionState.AddOrUpdateSubscription(SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix, QualityOfService.AtLeastOnce);
+            Task setTask = sessionProvider.SetAsync(identity, sessionState);
+
+            Assert.True(setTask.IsCompleted);
+            edgeHub.Verify(x => x.AddSubscription("d1", DeviceSubscription.Methods), Times.Once);
+        }
+
+        [Fact]
+        [Unit]
+        public void TestSetAsync_RemovedSubscription_ShouldComplete()
+        {
+            var edgeHub = new Mock<IEdgeHub>();
+            var identity = Mock.Of<IProtocolgatewayDeviceIdentity>(i => i.Id == "d1");
+            var sessionProvider = new SessionStatePersistenceProvider(edgeHub.Object);
+            ISessionState sessionState = new SessionState(false);
+            sessionState.RemoveSubscription(SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix);
+            Task setTask = sessionProvider.SetAsync(identity, sessionState);
+
+            Assert.True(setTask.IsCompleted);
+            edgeHub.Verify(x => x.RemoveSubscription("d1", DeviceSubscription.Methods), Times.Once);
+        }
+
+        [Fact]
+        [Unit]
+        public void TestSetAsync_SetMultipleSubscriptions_ShouldComplete()
+        {
+            var edgeHub = new Mock<IEdgeHub>();
+            var identity = Mock.Of<IProtocolgatewayDeviceIdentity>(i => i.Id == "d1");
+            var sessionProvider = new SessionStatePersistenceProvider(edgeHub.Object);
+
+            ISessionState sessionState = new SessionState(false);
+            sessionState.AddOrUpdateSubscription(SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix, QualityOfService.AtLeastOnce);
+            sessionState.AddOrUpdateSubscription(SessionStatePersistenceProvider.TwinResponseTopicFilter, QualityOfService.AtLeastOnce);
+            Task setTask = sessionProvider.SetAsync(identity, sessionState);
+
+            Assert.True(setTask.IsCompleted);
+            edgeHub.Verify(x => x.AddSubscription("d1", DeviceSubscription.Methods), Times.Once);
         }
     }
 }

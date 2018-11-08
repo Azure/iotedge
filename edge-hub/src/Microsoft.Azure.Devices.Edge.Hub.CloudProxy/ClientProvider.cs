@@ -1,9 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -22,6 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 DeviceClient deviceClient = DeviceClient.Create(identity.IotHubHostName, authenticationMethod, transportSettings);
                 return new DeviceClientWrapper(deviceClient);
             }
+
             throw new InvalidOperationException($"Invalid client identity type {identity.GetType()}");
         }
 
@@ -37,6 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(connectionString, transportSettings);
                 return new DeviceClientWrapper(deviceClient);
             }
+
             throw new InvalidOperationException($"Invalid client identity type {identity.GetType()}");
         }
 

@@ -1,14 +1,18 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 {
     using System;
     using System.Collections.Generic;
+
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Amqp.Framing;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+
     using Xunit;
+
+    using Constants = Microsoft.Azure.Devices.Edge.Hub.Amqp.Constants;
 
     [Unit]
     public class AmqpDirectMethodMessageConverterTest
@@ -21,14 +25,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             string correlationId = Guid.NewGuid().ToString();
             var data = new byte[] { 0, 1, 2 };
             IMessage message = new EdgeMessage.Builder(data)
-                .SetSystemProperties(new Dictionary<string, string>
-                {
-                    [SystemProperties.CorrelationId] = correlationId
-                })
-                .SetProperties(new Dictionary<string, string>
-                {
-                    [Amqp.Constants.MessagePropertiesMethodNameKey] = inputName
-                })
+                .SetSystemProperties(
+                    new Dictionary<string, string>
+                    {
+                        [SystemProperties.CorrelationId] = correlationId
+                    })
+                .SetProperties(
+                    new Dictionary<string, string>
+                    {
+                        [Constants.MessagePropertiesMethodNameKey] = inputName
+                    })
                 .Build();
             IMessageConverter<AmqpMessage> messageConverter = new AmqpDirectMethodMessageConverter();
 
@@ -39,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             Assert.NotNull(amqpMessage);
             Assert.Equal(data, amqpMessage.GetPayloadBytes());
             Assert.Equal(correlationId, amqpMessage.Properties.CorrelationId.ToString());
-            Assert.Equal(inputName, amqpMessage.ApplicationProperties.Map[Amqp.Constants.MessagePropertiesMethodNameKey]);
+            Assert.Equal(inputName, amqpMessage.ApplicationProperties.Map[Constants.MessagePropertiesMethodNameKey]);
         }
 
         [Fact]
@@ -50,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var data = new byte[] { 0, 1, 2 };
             AmqpMessage amqpMessage = AmqpMessage.Create(new Data { Value = new ArraySegment<byte>(data) });
             amqpMessage.Properties.CorrelationId = correlationId;
-            amqpMessage.ApplicationProperties.Map[Amqp.Constants.MessagePropertiesStatusKey] = 200;
+            amqpMessage.ApplicationProperties.Map[Constants.MessagePropertiesStatusKey] = 200;
             IMessageConverter<AmqpMessage> messageConverter = new AmqpDirectMethodMessageConverter();
 
             // Act

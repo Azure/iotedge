@@ -1,12 +1,11 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Util.Concurrency
 {
     using System.Threading;
 
-    public class AtomicReference<T> where T : class
+    public class AtomicReference<T>
+        where T : class
     {
         T val;
 
@@ -15,14 +14,14 @@ namespace Microsoft.Azure.Devices.Routing.Core.Util.Concurrency
             this.val = value;
         }
 
+        public static implicit operator T(AtomicReference<T> reference)
+        {
+            return reference.Get();
+        }
+
         public bool CompareAndSet(T expect, T update)
         {
             return Interlocked.CompareExchange(ref this.val, update, expect) == expect;
-        }
-
-        public T GetAndSet(T t)
-        {
-            return Interlocked.Exchange(ref this.val, t);
         }
 
         public T Get()
@@ -30,9 +29,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Util.Concurrency
             return this.val;
         }
 
-        public static implicit operator T(AtomicReference<T> reference)
+        public T GetAndSet(T t)
         {
-            return reference.Get();
+            return Interlocked.Exchange(ref this.val, t);
         }
     }
 }

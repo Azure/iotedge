@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 {
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Amqp;
-    using Microsoft.Azure.Devices.Edge.Hub.Amqp;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -17,14 +17,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
     {
         IDeviceListener deviceListener;
 
-        protected LinkHandler(IAmqpLink link, Uri requestUri,
-            IDictionary<string, string> boundVariables, IMessageConverter<AmqpMessage> messageConverter)
+        protected LinkHandler(
+            IAmqpLink link,
+            Uri requestUri,
+            IDictionary<string, string> boundVariables,
+            IMessageConverter<AmqpMessage> messageConverter)
         {
             // TODO: IoT Hub periodically validates that the authorization is still valid in this
             // class using a timer (except when the concrete sub-class is CbsLinkHandler or EventHubReceiveRedirectLinkHandler.
             // We need to evaluate whether it makes sense to do that in Edge Hub too. See the implementation in
             // AmqpGatewayProtocolHead.LinkHandler.IotHubStatusTimerCallback in service code.
-
             this.MessageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
             this.BoundVariables = Preconditions.CheckNotNull(boundVariables, nameof(boundVariables));
             this.Link = Preconditions.CheckNotNull(link, nameof(link));
@@ -35,21 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             this.ModuleId = this.BoundVariables.ContainsKey(Templates.ModuleIdTemplateParameterName) ? this.BoundVariables[Templates.ModuleIdTemplateParameterName] : string.Empty;
         }
 
-        protected string DeviceId { get; }
-
-        protected string ModuleId { get; }
-
-        protected string ClientId => this.DeviceId + (!string.IsNullOrWhiteSpace(this.ModuleId) ? $"/{this.ModuleId}" : string.Empty);
-
-        protected IMessageConverter<AmqpMessage> MessageConverter { get; }
-
-        protected IDeviceListener DeviceListener => this.deviceListener;
-
-        protected IDictionary<string, string> BoundVariables { get; }
-
-        protected IIdentity Identity => this.deviceListener?.Identity;
-
-        protected IConnectionHandler ConnectionHandler { get; }
+        public virtual string CorrelationId { get; } = Guid.NewGuid().ToString();
 
         public IAmqpLink Link { get; }
 
@@ -57,7 +45,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 
         public abstract LinkType Type { get; }
 
-        public virtual string CorrelationId { get; } = Guid.NewGuid().ToString();
+        protected IDictionary<string, string> BoundVariables { get; }
+
+        protected string ClientId => this.DeviceId + (!string.IsNullOrWhiteSpace(this.ModuleId) ? $"/{this.ModuleId}" : string.Empty);
+
+        protected IConnectionHandler ConnectionHandler { get; }
+
+        protected string DeviceId { get; }
+
+        protected IDeviceListener DeviceListener => this.deviceListener;
+
+        protected IIdentity Identity => this.deviceListener?.Identity;
+
+        protected IMessageConverter<AmqpMessage> MessageConverter { get; }
+
+        protected string ModuleId { get; }
+
+        public async Task CloseAsync(TimeSpan timeout)
+        {
+            await this.Link.CloseAsync(timeout);
+            Events.Closed(this);
+        }
 
         public async Task OpenAsync(TimeSpan timeout)
         {
@@ -70,12 +78,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 
                 this.deviceListener = await this.ConnectionHandler.GetDeviceListener();
             }
+
             await this.OnOpenAsync(timeout);
             await this.ConnectionHandler.RegisterLinkHandler(this);
             Events.Opened(this);
         }
-
-        protected abstract Task OnOpenAsync(TimeSpan timeout);
 
         protected async Task<bool> Authenticate() => (await this.ConnectionHandler.GetAmqpAuthentication()).IsAuthenticated;
 
@@ -85,16 +92,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             this.ConnectionHandler.RemoveLinkHandler(this);
         }
 
-        public async Task CloseAsync(TimeSpan timeout)
-        {
-            await this.Link.CloseAsync(timeout);
-            Events.Closed(this);
-        }
+        protected abstract Task OnOpenAsync(TimeSpan timeout);
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<LinkHandler>();
             const int IdStart = AmqpEventIds.LinkHandler;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<LinkHandler>();
 
             enum EventIds
             {

@@ -1,11 +1,14 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core
 {
     using System.Collections.Generic;
     using System.Linq;
+
     using Antlr4.Runtime;
     using Antlr4.Runtime.Misc;
     using Antlr4.Runtime.Tree;
+
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Azure.Devices.Routing.Core.Query;
     using Microsoft.Azure.Devices.Routing.Core.Util;
@@ -23,12 +26,10 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
         public abstract string IotHubName { get; }
 
-        public abstract string GetNextRouteId();
-
         public Route Create(string routeString)
         {
             // Parse route into constituents
-            this.ParseRoute(Preconditions.CheckNotNull(routeString, nameof(routeString)), out IMessageSource messageSource, out string condition, out Endpoint endpoint);            
+            this.ParseRoute(Preconditions.CheckNotNull(routeString, nameof(routeString)), out IMessageSource messageSource, out string condition, out Endpoint endpoint);
             var route = new Route(this.GetNextRouteId(), condition, this.IotHubName, messageSource, new HashSet<Endpoint> { endpoint });
             return route;
         }
@@ -38,6 +39,8 @@ namespace Microsoft.Azure.Devices.Routing.Core
             return Preconditions.CheckNotNull(routes, nameof(routes))
                 .Select(r => this.Create(r));
         }
+
+        public abstract string GetNextRouteId();
 
         internal void ParseRoute(string routeString, out IMessageSource messageSource, out string condition, out Endpoint endpoint)
         {
@@ -60,24 +63,27 @@ namespace Microsoft.Azure.Devices.Routing.Core
             endpoint = listener.Endpoint;
         }
 
-        private class RouteParserListener : RouteBaseListener
+        class RouteParserListener : RouteBaseListener
         {
             readonly IEndpointFactory endpointFactory;
-            
+
             public RouteParserListener(IEndpointFactory endpointFactory)
             {
                 this.endpointFactory = endpointFactory;
             }
 
-            public string Source { get; private set; }
+            public string Condition { get; private set; }
 
             public Endpoint Endpoint { get; private set; }
 
-            public string Condition { get; private set; }
+            public string Source { get; private set; }
 
-            public override void ExitSource(RouteParser.SourceContext context)
+            public override void ExitFuncEndpoint(RouteParser.FuncEndpointContext context)
             {
-                this.Source = context.GetText();
+                string funcName = context.func.Text;
+                string address = context.endpoint.Text.Trim('"');
+                Endpoint endpoint = this.endpointFactory.CreateFunctionEndpoint(funcName, address);
+                this.Endpoint = endpoint;
             }
 
             public override void ExitRoutecondition(RouteParser.RouteconditionContext context)
@@ -90,18 +96,15 @@ namespace Microsoft.Azure.Devices.Routing.Core
                 this.Condition = stream.GetText(interval);
             }
 
+            public override void ExitSource(RouteParser.SourceContext context)
+            {
+                this.Source = context.GetText();
+            }
+
             public override void ExitSystemEndpoint(RouteParser.SystemEndpointContext context)
             {
                 string systemEndpoint = context.GetText();
                 Endpoint endpoint = this.endpointFactory.CreateSystemEndpoint(systemEndpoint);
-                this.Endpoint = endpoint;
-            }
-
-            public override void ExitFuncEndpoint(RouteParser.FuncEndpointContext context)
-            {                
-                string funcName = context.func.Text;
-                string address = context.endpoint.Text.Trim('"'); 
-                Endpoint endpoint = this.endpointFactory.CreateFunctionEndpoint(funcName, address);
                 this.Endpoint = endpoint;
             }
         }

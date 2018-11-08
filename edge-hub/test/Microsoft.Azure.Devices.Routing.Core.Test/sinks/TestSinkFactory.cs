@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Test.Sinks
 {
     using System.Collections.Immutable;
@@ -6,8 +7,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Sinks
 
     public class TestSinkFactory<T> : ISinkFactory<T>
     {
-        volatile ImmutableDictionary<string, TestSink<T>> sinks = ImmutableDictionary<string, TestSink<T>>.Empty;
         readonly object sync = new object();
+        volatile ImmutableDictionary<string, TestSink<T>> sinks = ImmutableDictionary<string, TestSink<T>>.Empty;
 
         public Task<ISink<T>> CreateAsync(string hubName)
         {
@@ -20,6 +21,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Sinks
                     this.sinks = this.sinks.Add(hubName, sink);
                 }
             }
+
             return Task.FromResult<ISink<T>>(sink);
         }
     }

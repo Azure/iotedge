@@ -1,7 +1,5 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Test.Services
 {
     using System;
@@ -9,12 +7,15 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Services
     using System.Diagnostics.CodeAnalysis;
     using System.Threading;
     using System.Threading.Tasks;
+
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Azure.Devices.Routing.Core.Services;
     using Microsoft.Azure.Devices.Routing.Core.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
+
     using Moq;
+
     using Xunit;
 
     [ExcludeFromCodeCoverage]
@@ -33,13 +34,15 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Services
 
         static FilteringRoutingServiceTest()
         {
-            RouteStore = new RouteStore(new Dictionary<string, RouterConfig>
-            {
-                { "hub1", new RouterConfig(AllEndpoints, AllRoutes)}
-            });
+            RouteStore = new RouteStore(
+                new Dictionary<string, RouterConfig>
+                {
+                    { "hub1", new RouterConfig(AllEndpoints, AllRoutes) }
+                });
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task SmokeTest()
         {
             var underlying = new Mock<IRoutingService>();
@@ -61,38 +64,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Services
             underlying.Verify(s => s.RouteAsync("hub2", It.IsAny<IEnumerable<IMessage>>()), Times.Never);
         }
 
-        [Fact, Unit]
-        public async Task TestRules()
-        {
-            var store = new RouteStore(new Dictionary<string, RouterConfig>
-            {
-                { "hub1", new RouterConfig(AllEndpoints, new List<Route> { Route1 }) }
-            });
-            var underlying = new Mock<IRoutingService>();
-            var client = new FilteringRoutingService(underlying.Object, store, NullNotifierFactory.Instance);
-
-            await client.RouteAsync("hub1", new[] { Message1, Message2 });
-            underlying.Verify(s => s.RouteAsync("hub1", new[] { Message1 }), Times.Once);
-        }
-
-        [Fact, Unit]
-        public async Task TestClose()
-        {
-            var underlying = new Mock<IRoutingService>();
-            using (var client = new FilteringRoutingService(underlying.Object, RouteStore, NullNotifierFactory.Instance))
-            {
-                // Create at least one evaluator
-                await client.RouteAsync("hub1", Message1);
-
-                await client.CloseAsync(CancellationToken.None);
-                // can close twice
-                await client.CloseAsync(CancellationToken.None);
-
-                await Assert.ThrowsAsync<InvalidOperationException>(() => client.RouteAsync("hub1", Message1));
-            }
-        }
-
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestChangingHub()
         {
             var notifier = new TestNotifier();
@@ -128,6 +101,41 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Services
             await client.RouteAsync("hub2", new[] { Message1, Message2, Message3 });
             underlying.Verify(s => s.RouteAsync("hub1", new[] { Message2 }), Times.Once);
             underlying.Verify(s => s.RouteAsync("hub2", new[] { Message3 }), Times.Once);
+        }
+
+        [Fact]
+        [Unit]
+        public async Task TestClose()
+        {
+            var underlying = new Mock<IRoutingService>();
+            using (var client = new FilteringRoutingService(underlying.Object, RouteStore, NullNotifierFactory.Instance))
+            {
+                // Create at least one evaluator
+                await client.RouteAsync("hub1", Message1);
+
+                await client.CloseAsync(CancellationToken.None);
+
+                // can close twice
+                await client.CloseAsync(CancellationToken.None);
+
+                await Assert.ThrowsAsync<InvalidOperationException>(() => client.RouteAsync("hub1", Message1));
+            }
+        }
+
+        [Fact]
+        [Unit]
+        public async Task TestRules()
+        {
+            var store = new RouteStore(
+                new Dictionary<string, RouterConfig>
+                {
+                    { "hub1", new RouterConfig(AllEndpoints, new List<Route> { Route1 }) }
+                });
+            var underlying = new Mock<IRoutingService>();
+            var client = new FilteringRoutingService(underlying.Object, store, NullNotifierFactory.Instance);
+
+            await client.RouteAsync("hub1", new[] { Message1, Message2 });
+            underlying.Verify(s => s.RouteAsync("hub1", new[] { Message1 }), Times.Once);
         }
     }
 }

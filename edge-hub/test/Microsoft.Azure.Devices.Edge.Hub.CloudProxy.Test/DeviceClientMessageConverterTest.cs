@@ -1,16 +1,20 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
     using System;
     using System.Collections.Generic;
     using System.Globalization;
     using System.Text;
+
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+
     using Moq;
+
     using Newtonsoft.Json;
+
     using Xunit;
 
     public class DeviceClientMessageConverterTest
@@ -60,56 +64,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             IMessageConverter<Message> messageConverter = new DeviceClientMessageConverter();
             Assert.Throws(exceptionType, () => messageConverter.FromMessage(inputMessage));
-        }
-
-        [Theory]
-        [Unit]
-        [MemberData(nameof(GetValidMessagesData))]
-        public void TestValidCases(byte[] messageBytes,
-            IDictionary<string, string> properties,
-            IDictionary<string, string> systemProperties)
-        {
-            IMessageConverter<Message> messageConverter = new DeviceClientMessageConverter();
-            IMessage inputMessage = new EdgeMessage(messageBytes, properties, systemProperties);
-            Message proxyMessage = messageConverter.FromMessage(inputMessage);
-
-            Assert.Equal(inputMessage.Body, proxyMessage.GetBytes());
-            foreach (KeyValuePair<string, string> property in properties)
-            {
-                Assert.True(proxyMessage.Properties.ContainsKey(property.Key));
-                Assert.Equal(property.Value, proxyMessage.Properties[property.Key]);
-            }
-
-            Assert.Equal(
-                systemProperties.ContainsKey(SystemProperties.MessageId) ? systemProperties[SystemProperties.MessageId] : null,
-                proxyMessage.MessageId);
-
-            Assert.Equal(
-                systemProperties.ContainsKey(SystemProperties.UserId) ? systemProperties[SystemProperties.UserId] : null,
-                proxyMessage.UserId);
-
-            Assert.Equal(
-                systemProperties.ContainsKey(SystemProperties.MsgCorrelationId) ? systemProperties[SystemProperties.MsgCorrelationId] : null,
-                proxyMessage.CorrelationId);
-
-            Assert.Equal(DateTime.MinValue, proxyMessage.ExpiryTimeUtc);
-            Assert.Equal(DateTime.MinValue, proxyMessage.EnqueuedTimeUtc);
-            Assert.True(proxyMessage.SequenceNumber == 0);
-            Assert.Null(proxyMessage.To);
-        }
-
-        [Theory]
-        [Unit]
-        [MemberData(nameof(GetValidMessagesData))]
-        public void TestValidCasesToMessage(byte[] messageBytes,
-            IDictionary<string, string> properties,
-            IDictionary<string, string> systemProperties)
-        {
-            IMessageConverter<Message> messageConverter = new DeviceClientMessageConverter();
-            var inputMessage = new Message(messageBytes);
-            IMessage mqttMessage = messageConverter.ToMessage(inputMessage);
-
-            Assert.Equal(inputMessage.GetBytes(), mqttMessage.Body);
         }
 
         [Unit]
@@ -195,6 +149,58 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.Equal(creationTime.ToString("o"), message.SystemProperties[SystemProperties.CreationTime]);
             Assert.Equal(DateTime.Parse(message.SystemProperties[SystemProperties.CreationTime], null, DateTimeStyles.RoundtripKind), creationTime);
             Assert.Equal("0", message.SystemProperties[SystemProperties.DeliveryCount]);
+        }
+
+        [Theory]
+        [Unit]
+        [MemberData(nameof(GetValidMessagesData))]
+        public void TestValidCases(
+            byte[] messageBytes,
+            IDictionary<string, string> properties,
+            IDictionary<string, string> systemProperties)
+        {
+            IMessageConverter<Message> messageConverter = new DeviceClientMessageConverter();
+            IMessage inputMessage = new EdgeMessage(messageBytes, properties, systemProperties);
+            Message proxyMessage = messageConverter.FromMessage(inputMessage);
+
+            Assert.Equal(inputMessage.Body, proxyMessage.GetBytes());
+            foreach (KeyValuePair<string, string> property in properties)
+            {
+                Assert.True(proxyMessage.Properties.ContainsKey(property.Key));
+                Assert.Equal(property.Value, proxyMessage.Properties[property.Key]);
+            }
+
+            Assert.Equal(
+                systemProperties.ContainsKey(SystemProperties.MessageId) ? systemProperties[SystemProperties.MessageId] : null,
+                proxyMessage.MessageId);
+
+            Assert.Equal(
+                systemProperties.ContainsKey(SystemProperties.UserId) ? systemProperties[SystemProperties.UserId] : null,
+                proxyMessage.UserId);
+
+            Assert.Equal(
+                systemProperties.ContainsKey(SystemProperties.MsgCorrelationId) ? systemProperties[SystemProperties.MsgCorrelationId] : null,
+                proxyMessage.CorrelationId);
+
+            Assert.Equal(DateTime.MinValue, proxyMessage.ExpiryTimeUtc);
+            Assert.Equal(DateTime.MinValue, proxyMessage.EnqueuedTimeUtc);
+            Assert.True(proxyMessage.SequenceNumber == 0);
+            Assert.Null(proxyMessage.To);
+        }
+
+        [Theory]
+        [Unit]
+        [MemberData(nameof(GetValidMessagesData))]
+        public void TestValidCasesToMessage(
+            byte[] messageBytes,
+            IDictionary<string, string> properties,
+            IDictionary<string, string> systemProperties)
+        {
+            IMessageConverter<Message> messageConverter = new DeviceClientMessageConverter();
+            var inputMessage = new Message(messageBytes);
+            IMessage mqttMessage = messageConverter.ToMessage(inputMessage);
+
+            Assert.Equal(inputMessage.GetBytes(), mqttMessage.Body);
         }
     }
 }

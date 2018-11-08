@@ -1,8 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
 {
     using System;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Routing.Core.Util;
 
     /// <summary>
@@ -11,10 +13,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
     /// </summary>
     class StateTransition
     {
-        public State NextState { get; }
-
-        public Func<EndpointExecutorFsm, ICommand, Task> TransitionAction { get; }
-
         public StateTransition(State nextState)
             : this(nextState, NullAction)
         {
@@ -25,6 +23,10 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             this.NextState = nextState;
             this.TransitionAction = transitionAction;
         }
+
+        public State NextState { get; }
+
+        public Func<EndpointExecutorFsm, ICommand, Task> TransitionAction { get; }
 
         public static Task NullAction(EndpointExecutorFsm machine, ICommand command) => TaskEx.Done;
     }

@@ -1,9 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System.Collections.Generic;
     using System.Linq;
+
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -11,6 +12,39 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
     public static class ServiceIdentityHelpers
     {
+        public static ServiceAuthentication ToServiceAuthentication(this AuthenticationMechanism authenticationMechanism)
+        {
+            Preconditions.CheckNotNull(authenticationMechanism, nameof(authenticationMechanism));
+            switch (authenticationMechanism.Type)
+            {
+                case AuthenticationType.CertificateAuthority:
+                    return new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority);
+
+                case AuthenticationType.SelfSigned:
+                    return new ServiceAuthentication(
+                        new X509ThumbprintAuthentication(authenticationMechanism.X509Thumbprint.PrimaryThumbprint, authenticationMechanism.X509Thumbprint.SecondaryThumbprint));
+
+                case AuthenticationType.Sas:
+                    return new ServiceAuthentication(
+                        new SymmetricKeyAuthentication(authenticationMechanism.SymmetricKey.PrimaryKey, authenticationMechanism.SymmetricKey.SecondaryKey));
+
+                default:
+                    return new ServiceAuthentication(ServiceAuthenticationType.None);
+            }
+        }
+
+        public static IEnumerable<string> ToServiceCapabilities(this DeviceCapabilities capabilities)
+        {
+            Preconditions.CheckNotNull(capabilities, nameof(capabilities));
+            var serviceCapabilities = new List<string>();
+            if (capabilities.IotEdge)
+            {
+                serviceCapabilities.Add(Constants.IotEdgeIdentityCapability);
+            }
+
+            return serviceCapabilities;
+        }
+
         public static ServiceIdentity ToServiceIdentity(this Device device)
         {
             Preconditions.CheckNotNull(device, nameof(device));
@@ -35,27 +69,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 ServiceIdentityStatus.Enabled);
         }
 
-        public static ServiceAuthentication ToServiceAuthentication(this AuthenticationMechanism authenticationMechanism)
-        {
-            Preconditions.CheckNotNull(authenticationMechanism, nameof(authenticationMechanism));
-            switch (authenticationMechanism.Type)
-            {
-                case AuthenticationType.CertificateAuthority:
-                    return new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority);
-
-                case AuthenticationType.SelfSigned:
-                    return new ServiceAuthentication(
-                        new X509ThumbprintAuthentication(authenticationMechanism.X509Thumbprint.PrimaryThumbprint, authenticationMechanism.X509Thumbprint.SecondaryThumbprint));
-
-                case AuthenticationType.Sas:
-                    return new ServiceAuthentication(
-                        new SymmetricKeyAuthentication(authenticationMechanism.SymmetricKey.PrimaryKey, authenticationMechanism.SymmetricKey.SecondaryKey));
-
-                default:
-                    return new ServiceAuthentication(ServiceAuthenticationType.None);
-            }
-        }
-
         public static ServiceIdentityStatus ToServiceIdentityStatus(this DeviceStatus status)
         {
             switch (status)
@@ -65,17 +78,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 default:
                     return ServiceIdentityStatus.Disabled;
             }
-        }
-
-        public static IEnumerable<string> ToServiceCapabilities(this DeviceCapabilities capabilities)
-        {
-            Preconditions.CheckNotNull(capabilities, nameof(capabilities));
-            var serviceCapabilities = new List<string>();
-            if (capabilities.IotEdge)
-            {
-                serviceCapabilities.Add(Constants.IotEdgeIdentityCapability);
-            }
-            return serviceCapabilities;
         }
     }
 }

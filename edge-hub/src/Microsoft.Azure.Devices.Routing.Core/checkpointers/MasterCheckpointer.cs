@@ -1,21 +1,20 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
 {
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Diagnostics;
-    using static System.FormattableString;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
     using Microsoft.Extensions.Logging;
-    using AsyncLock = Microsoft.Azure.Devices.Routing.Core.Util.Concurrency.AsyncLock;
+
+    using static System.FormattableString;
 
     public class MasterCheckpointer : ICheckpointer, ICheckpointerFactory
     {
@@ -27,20 +26,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
         readonly AtomicReference<ImmutableDictionary<string, ICheckpointer>> childCheckpointers;
         readonly AsyncLock sync;
 
-        public string Id { get; }
-
-        public long Offset { get; private set; }
-
-        public Option<DateTime> LastFailedRevivalTime => Option.None<DateTime>();
-
-        public Option<DateTime> UnhealthySince => Option.None<DateTime>();
-
-        public long Proposed { get; }
-
-        public bool HasOutstanding => false;
-
-        ImmutableDictionary<string, ICheckpointer> ChildCheckpointers => this.childCheckpointers;
-
         MasterCheckpointer(string id, ICheckpointStore store, long offset)
         {
             this.Id = Preconditions.CheckNotNull(id);
@@ -51,6 +36,20 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
             this.childCheckpointers = new AtomicReference<ImmutableDictionary<string, ICheckpointer>>(ImmutableDictionary<string, ICheckpointer>.Empty);
             this.sync = new AsyncLock();
         }
+
+        public bool HasOutstanding => false;
+
+        public string Id { get; }
+
+        public Option<DateTime> LastFailedRevivalTime => Option.None<DateTime>();
+
+        public long Offset { get; private set; }
+
+        public long Proposed { get; }
+
+        public Option<DateTime> UnhealthySince => Option.None<DateTime>();
+
+        ImmutableDictionary<string, ICheckpointer> ChildCheckpointers => this.childCheckpointers;
 
         public static async Task<MasterCheckpointer> CreateAsync(string id, ICheckpointStore store)
         {
@@ -68,6 +67,41 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
             return masterCheckpointer;
         }
 
+        public bool Admit(IMessage message)
+        {
+            Events.Admit(this, message.Offset, this.closed);
+
+            return !this.closed && message.Offset > this.Offset;
+        }
+
+        public async Task CloseAsync(CancellationToken token)
+        {
+            if (!this.closed.GetAndSet(true))
+            {
+                // Store the cached offset on closed to handle case where stores to the store are
+                // throttled, but a clean shutdown is needed
+                try
+                {
+                    if (this.Offset != Checkpointer.InvalidOffset)
+                    {
+                        await this.store.SetCheckpointDataAsync(this.Id, new CheckpointData(this.Offset), CancellationToken.None);
+                        Events.Close(this);
+                    }
+                }
+                catch (TaskCanceledException)
+                {
+                }
+            }
+        }
+
+        public async Task CommitAsync(ICollection<IMessage> successful, ICollection<IMessage> remaining, Option<DateTime> lastFailedRevivalTime, Option<DateTime> unhealthySince, CancellationToken token)
+        {
+            using (await this.sync.LockAsync(token))
+            {
+                await this.CommitInternalAsync(successful, remaining, token);
+            }
+        }
+
         public async Task<ICheckpointer> CreateAsync(string id)
         {
             Events.CreateChildStart(this, id);
@@ -81,23 +115,26 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
             return child;
         }
 
+        public void Dispose() => this.Dispose(true);
+
         public void Propose(IMessage message)
         {
             throw new NotSupportedException();
         }
 
-        public bool Admit(IMessage message)
+        protected virtual void Dispose(bool disposing)
         {
-            Events.Admit(this, message.Offset, this.closed);
-
-            return !this.closed && message.Offset > this.Offset;
+            if (disposing)
+            {
+                this.sync.Dispose();
+            }
         }
 
-        public async Task CommitAsync(ICollection<IMessage> successful, ICollection<IMessage> remaining, Option<DateTime> lastFailedRevivalTime, Option<DateTime> unhealthySince, CancellationToken token)
+        async Task AddChild(ICheckpointer checkpointer)
         {
-            using (await this.sync.LockAsync(token))
+            using (await this.sync.LockAsync())
             {
-                await this.CommitInternalAsync(successful, remaining, token);
+                this.childCheckpointers.GetAndSet(this.ChildCheckpointers.SetItem(checkpointer.Id, checkpointer));
             }
         }
 
@@ -143,7 +180,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
                 offset = this.OffsetFromMessages(successful, remaining);
             }
 
-            Debug.Assert(offset >= this.Offset);
+            Debug.Assert(offset >= this.Offset, "offset >= this.Offset");
             if (offset > this.Offset)
             {
                 this.Offset = offset;
@@ -178,45 +215,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
                     .Where(m => m.Offset < minOffsetRemaining)
                     .Aggregate(this.Offset, (acc, m) => Math.Max(acc, m.Offset));
             }
+
             return offset;
-        }
-
-        public async Task CloseAsync(CancellationToken token)
-        {
-            if (!this.closed.GetAndSet(true))
-            {
-                // Store the cached offset on closed to handle case where stores to the store are
-                // throttled, but a clean shutdown is needed
-                try
-                {
-                    if (this.Offset != Checkpointer.InvalidOffset)
-                    {
-                        await this.store.SetCheckpointDataAsync(this.Id, new CheckpointData(this.Offset), CancellationToken.None);
-                        Events.Close(this);
-                    }
-                }
-                catch (TaskCanceledException)
-                {
-                }
-            }
-        }
-
-        public void Dispose() => this.Dispose(true);
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                this.sync.Dispose();
-            }
-        }
-
-        async Task AddChild(ICheckpointer checkpointer)
-        {
-            using (await this.sync.LockAsync())
-            {
-                this.childCheckpointers.GetAndSet(this.ChildCheckpointers.SetItem(checkpointer.Id, checkpointer));
-            }
         }
 
         async Task RemoveChild(string id)
@@ -238,17 +238,36 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
                 this.underlying = Preconditions.CheckNotNull(underlying);
             }
 
-            public string Id => this.underlying.Id;
+            public bool HasOutstanding => this.underlying.HasOutstanding;
 
-            public long Offset => this.underlying.Offset;
+            public string Id => this.underlying.Id;
 
             public Option<DateTime> LastFailedRevivalTime => this.underlying.LastFailedRevivalTime;
 
-            public Option<DateTime> UnhealthySince => this.underlying.UnhealthySince;
+            public long Offset => this.underlying.Offset;
 
             public long Proposed => this.underlying.Proposed;
 
-            public bool HasOutstanding => this.underlying.HasOutstanding;
+            public Option<DateTime> UnhealthySince => this.underlying.UnhealthySince;
+
+            public bool Admit(IMessage message) => this.underlying.Admit(message);
+
+            public async Task CloseAsync(CancellationToken token)
+            {
+                await this.master.RemoveChild(this.underlying.Id);
+                await this.underlying.CloseAsync(token);
+            }
+
+            public async Task CommitAsync(ICollection<IMessage> messages, ICollection<IMessage> remaining, Option<DateTime> lastFailedRevivalTime, Option<DateTime> unhealthySince, CancellationToken token)
+            {
+                using (await this.master.sync.LockAsync(token))
+                {
+                    await this.underlying.CommitAsync(messages, remaining, lastFailedRevivalTime, unhealthySince, token);
+                    await this.master.CommitInternalAsync(messages, Empty, token);
+                }
+            }
+
+            public void Dispose() => this.underlying.Dispose();
 
             public async void Propose(IMessage message)
             {
@@ -269,31 +288,12 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
                     Events.ProposeFailed(this.master, this.Id, ex);
                 }
             }
-
-            public bool Admit(IMessage message) => this.underlying.Admit(message);
-
-            public async Task CommitAsync(ICollection<IMessage> messages, ICollection<IMessage> remaining, Option<DateTime> lastFailedRevivalTime, Option<DateTime> unhealthySince, CancellationToken token)
-            {
-                using (await this.master.sync.LockAsync(token))
-                {
-                    await this.underlying.CommitAsync(messages, remaining, lastFailedRevivalTime, unhealthySince, token);
-                    await this.master.CommitInternalAsync(messages, Empty, token);
-                }
-            }
-
-            public async Task CloseAsync(CancellationToken token)
-            {
-                await this.master.RemoveChild(this.underlying.Id);
-                await this.underlying.CloseAsync(token);
-            }
-
-            public void Dispose() => this.underlying.Dispose();
         }
 
         static class Events
         {
-            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<MasterCheckpointer>();
             const int IdStart = Routing.EventIds.MasterCheckpointer;
+            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<MasterCheckpointer>();
 
             enum EventIds
             {
@@ -308,39 +308,14 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
                 Close,
             }
 
-            public static void CreateStart(string id)
-            {
-                Log.LogDebug((int)EventIds.CreateStart, "[MasterCheckpointerCreateStart] MasterCheckpointerId: {0}", id);
-            }
-
-            public static void CreateFinished(MasterCheckpointer masterCheckpointer)
-            {
-                Log.LogDebug((int)EventIds.CreateFinished, "[MasterCheckpointerCreateFinished] {0}", GetContextString(masterCheckpointer));
-            }
-
-            public static void CreateChildStart(MasterCheckpointer masterCheckpointer, string id)
-            {
-                Log.LogDebug((int)EventIds.CreateChildStart, "[ChildCheckpointerCreateStart] ChildCheckpointerId: {0}, {1}", id, GetContextString(masterCheckpointer));
-            }
-
-            public static void CreateChildFinished(MasterCheckpointer masterCheckpointer, string id)
-            {
-                Log.LogDebug((int)EventIds.CreateChildFinished, "[ChildCheckpointerCreateFinished] ChildCheckpointerId: {0}, {1}", id, GetContextString(masterCheckpointer));
-            }
-
-            public static void ProposeFailed(MasterCheckpointer masterCheckpointer, string id, Exception exception)
-            {
-                Log.LogError((int)EventIds.ProposeFailed, exception, "[ChildCheckpointerProposeFailed] ChildCheckpointId: {0}, {1}", id, GetContextString(masterCheckpointer));
-            }
-
             public static void Admit(MasterCheckpointer masterCheckpointer, long messageOffset, bool isClosed)
             {
                 Log.LogDebug((int)EventIds.Admit, "[MasterCheckpointerAdmit] jMessageOffset: {0}, IsClosed: {1}, {2}", messageOffset, isClosed, GetContextString(masterCheckpointer));
             }
 
-            public static void CommitStarted(MasterCheckpointer masterCheckpointer, int successfulCount, int remainingCount)
+            public static void Close(MasterCheckpointer masterCheckpointer)
             {
-                Log.LogDebug((int)EventIds.CommitStarted, "[MasterCheckpointerCommitStarted] SuccessfulCount: {0}, RemainingCount: {1}, {2}", successfulCount, remainingCount, GetContextString(masterCheckpointer));
+                Log.LogInformation((int)EventIds.Close, "[MasterCheckpointerClose] {0}", GetContextString(masterCheckpointer));
             }
 
             public static void CommitFinished(MasterCheckpointer masterCheckpointer)
@@ -348,9 +323,34 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
                 Log.LogDebug((int)EventIds.CommitFinished, "[MasterCheckpointerCommitFinished] {0}", GetContextString(masterCheckpointer));
             }
 
-            public static void Close(MasterCheckpointer masterCheckpointer)
+            public static void CommitStarted(MasterCheckpointer masterCheckpointer, int successfulCount, int remainingCount)
             {
-                Log.LogInformation((int)EventIds.Close, "[MasterCheckpointerClose] {0}", GetContextString(masterCheckpointer));
+                Log.LogDebug((int)EventIds.CommitStarted, "[MasterCheckpointerCommitStarted] SuccessfulCount: {0}, RemainingCount: {1}, {2}", successfulCount, remainingCount, GetContextString(masterCheckpointer));
+            }
+
+            public static void CreateChildFinished(MasterCheckpointer masterCheckpointer, string id)
+            {
+                Log.LogDebug((int)EventIds.CreateChildFinished, "[ChildCheckpointerCreateFinished] ChildCheckpointerId: {0}, {1}", id, GetContextString(masterCheckpointer));
+            }
+
+            public static void CreateChildStart(MasterCheckpointer masterCheckpointer, string id)
+            {
+                Log.LogDebug((int)EventIds.CreateChildStart, "[ChildCheckpointerCreateStart] ChildCheckpointerId: {0}, {1}", id, GetContextString(masterCheckpointer));
+            }
+
+            public static void CreateFinished(MasterCheckpointer masterCheckpointer)
+            {
+                Log.LogDebug((int)EventIds.CreateFinished, "[MasterCheckpointerCreateFinished] {0}", GetContextString(masterCheckpointer));
+            }
+
+            public static void CreateStart(string id)
+            {
+                Log.LogDebug((int)EventIds.CreateStart, "[MasterCheckpointerCreateStart] MasterCheckpointerId: {0}", id);
+            }
+
+            public static void ProposeFailed(MasterCheckpointer masterCheckpointer, string id, Exception exception)
+            {
+                Log.LogError((int)EventIds.ProposeFailed, exception, "[ChildCheckpointerProposeFailed] ChildCheckpointId: {0}, {1}", id, GetContextString(masterCheckpointer));
             }
 
             static string GetContextString(MasterCheckpointer masterCheckpointer)

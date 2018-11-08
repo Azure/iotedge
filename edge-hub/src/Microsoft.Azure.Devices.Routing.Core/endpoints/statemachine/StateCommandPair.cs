@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
 {
     using System;
@@ -19,6 +20,16 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             this.command = command;
         }
 
+        public static bool operator ==(StateCommandPair pair1, StateCommandPair pair2)
+        {
+            return pair1.Equals(pair2);
+        }
+
+        public static bool operator !=(StateCommandPair pair1, StateCommandPair pair2)
+        {
+            return !pair1.Equals(pair2);
+        }
+
         public bool Equals(StateCommandPair other)
         {
             return this.state == other.state && this.command == other.command;
@@ -35,16 +46,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             {
                 return ((int)this.state * 397) ^ (int)this.command;
             }
-        }
-
-        public static bool operator ==(StateCommandPair pair1, StateCommandPair pair2)
-        {
-            return pair1.Equals(pair2);
-        }
-
-        public static bool operator !=(StateCommandPair pair1, StateCommandPair pair2)
-        {
-            return !pair1.Equals(pair2);
         }
 
         public override string ToString() =>

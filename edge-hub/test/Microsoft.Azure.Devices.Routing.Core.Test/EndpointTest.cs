@@ -1,11 +1,14 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Test
 {
     using System;
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
-    using Microsoft.Azure.Devices.Routing.Core.Test.Endpoints;
+
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.Test.Endpoints;
+
     using Xunit;
 
     [ExcludeFromCodeCoverage]
@@ -15,7 +18,15 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         static readonly Endpoint Endpoint2 = new TestEndpoint("id2");
         static readonly Endpoint Endpoint3 = new TestEndpoint("id1");
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
+        public void TestConstructor()
+        {
+            Assert.Throws(typeof(ArgumentNullException), () => new TestEndpoint(null));
+        }
+
+        [Fact]
+        [Unit]
         public void TestEquality()
         {
             Assert.NotEqual(new TestEndpoint("id1"), new TestEndpoint("id2"));
@@ -34,7 +45,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             Assert.False(Endpoint1.Equals(new object()));
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestHashCode()
         {
             ISet<Endpoint> endpoints = new HashSet<Endpoint>
@@ -46,12 +58,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             Assert.Equal(2, endpoints.Count);
             Assert.Contains(Endpoint1, endpoints);
             Assert.Contains(Endpoint2, endpoints);
-        }
-
-        [Fact, Unit]
-        public void TestConstructor()
-        {
-            Assert.Throws(typeof(ArgumentNullException), () => new TestEndpoint(null));
         }
     }
 }

@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
     using System;
@@ -6,12 +7,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
+
     using JetBrains.Annotations;
+
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util.Test;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+
     using Xunit;
+
     using Message = Microsoft.Azure.Devices.Message;
 
     [Integration]
@@ -19,14 +24,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     [TestCaseOrderer("Microsoft.Azure.Devices.Edge.Util.Test.PriorityOrderer", "Microsoft.Azure.Devices.Edge.Util.Test")]
     public class Cloud2DeviceTest : IClassFixture<ProtocolHeadFixture>
     {
-        static readonly TimeSpan ClockSkewAdjustment = TimeSpan.FromSeconds(35);
         const string MessagePropertyName = "property1";
         const string DeviceNamePrefix = "E2E_c2d_";
+        static readonly TimeSpan ClockSkewAdjustment = TimeSpan.FromSeconds(35);
 
-        [Theory, TestPriority(101)]
-        [InlineData(TransportType.Mqtt_Tcp_Only)]
-        //[InlineData(TransportType.Mqtt_WebSocket_Only)] // Disabled: need a valid server cert for WebSocket to work
-        public async void Receive_C2D_SingleMessage_ShouldSucceed(TransportType transportType)
+        [Fact]
+        [TestPriority(104)]
+        public async void Receive_C2D_NotSubscribed_OfflineSingleMessage_ShouldThrow()
         {
             // Arrange
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
@@ -40,17 +44,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 serviceClient = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
                 await serviceClient.OpenAsync();
 
-                ITransportSettings[] settings = this.GetTransportSettings(transportType);
-                deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, settings);
-                // Dummy ReceiveAsync to ensure mqtt subscription registration before SendAsync() is called on service client.
-                await deviceClient.ReceiveAsync(TimeSpan.FromSeconds(2));
-
                 // Act
+                // Send message before device is listening
                 Message message = this.CreateMessage(out string payload);
                 await serviceClient.SendAsync(deviceName, message);
 
+                // Wait to make sure message is not received because of ClockSkewAdjustment
+                await Task.Delay(ClockSkewAdjustment);
+
+                ITransportSettings[] settings = this.GetTransportSettings();
+                deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, settings);
+                await deviceClient.OpenAsync();
+
                 // Assert
-                await this.VerifyReceivedC2DMessage(deviceClient, payload, message.Properties[MessagePropertyName]);
+                await Assert.ThrowsAsync<TimeoutException>(() => this.VerifyReceivedC2DMessage(deviceClient, payload, message.Properties[MessagePropertyName]));
             }
             finally
             {
@@ -58,7 +65,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             }
         }
 
-        [Fact, TestPriority(102)]
+        [Fact]
+        [TestPriority(102)]
         public async void Receive_C2D_OfflineSingleMessage_ShouldSucceed()
         {
             // Arrange
@@ -75,14 +83,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
                 ITransportSettings[] settings = this.GetTransportSettings();
                 deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, settings);
+
                 // Dummy ReceiveAsync to ensure mqtt subscription registration before SendAsync() is called on service client.
                 await deviceClient.ReceiveAsync(TimeSpan.FromSeconds(1));
                 await deviceClient.CloseAsync();
+
                 // wait for the connection to be closed on the Edge side
                 await Task.Delay(TimeSpan.FromSeconds(20));
 
                 // Act
-                //Send message before device is listening
+                // Send message before device is listening
                 Message message = this.CreateMessage(out string payload);
                 await serviceClient.SendAsync(deviceName, message);
 
@@ -98,7 +108,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             }
         }
 
-        [Fact, TestPriority(103)]
+        [Fact]
+        [TestPriority(103)]
         public async void Receive_C2D_SingleMessage_AfterOfflineMessage_ShouldSucceed()
         {
             // Arrange
@@ -115,14 +126,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
                 ITransportSettings[] settings = this.GetTransportSettings();
                 deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, settings);
+
                 // Dummy ReceiveAsync to ensure mqtt subscription registration before SendAsync() is called on service client.
                 await deviceClient.ReceiveAsync(TimeSpan.FromSeconds(1));
                 await deviceClient.CloseAsync();
+
                 // wait for the connection to be closed on the Edge side
                 await Task.Delay(TimeSpan.FromSeconds(30));
 
                 // Act
-                //Send message before device is listening
+                // Send message before device is listening
                 Message message = this.CreateMessage(out string payload);
                 await serviceClient.SendAsync(deviceName, message);
 
@@ -145,8 +158,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             }
         }
 
-        [Fact, TestPriority(104)]
-        public async void Receive_C2D_NotSubscribed_OfflineSingleMessage_ShouldThrow()
+        // [InlineData(TransportType.Mqtt_WebSocket_Only)] // Disabled: need a valid server cert for WebSocket to work
+        [Theory]
+        [TestPriority(101)]
+        [InlineData(TransportType.Mqtt_Tcp_Only)]
+        public async void Receive_C2D_SingleMessage_ShouldSucceed(TransportType transportType)
         {
             // Arrange
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
@@ -160,20 +176,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 serviceClient = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
                 await serviceClient.OpenAsync();
 
+                ITransportSettings[] settings = this.GetTransportSettings(transportType);
+                deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, settings);
+
+                // Dummy ReceiveAsync to ensure mqtt subscription registration before SendAsync() is called on service client.
+                await deviceClient.ReceiveAsync(TimeSpan.FromSeconds(2));
+
                 // Act
-                //Send message before device is listening
                 Message message = this.CreateMessage(out string payload);
                 await serviceClient.SendAsync(deviceName, message);
 
-                // Wait to make sure message is not received because of ClockSkewAdjustment
-                await Task.Delay(ClockSkewAdjustment);
-
-                ITransportSettings[] settings = this.GetTransportSettings();
-                deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, settings);
-                await deviceClient.OpenAsync();
-
                 // Assert
-                await Assert.ThrowsAsync<TimeoutException>(() => this.VerifyReceivedC2DMessage(deviceClient, payload, message.Properties[MessagePropertyName]));
+                await this.VerifyReceivedC2DMessage(deviceClient, payload, message.Properties[MessagePropertyName]);
             }
             finally
             {
@@ -181,14 +195,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             }
         }
 
-        ITransportSettings[] GetTransportSettings(TransportType transportType = TransportType.Mqtt_Tcp_Only)
+        async Task Cleanup(DeviceClient deviceClient, ServiceClient serviceClient, RegistryManager rm, string deviceName)
         {
-            var mqttSetting = new MqttTransportSettings(transportType)
+            if (deviceClient != null)
             {
-                RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
-            };
-            ITransportSettings[] settings = { mqttSetting };
-            return settings;
+                await deviceClient.CloseAsync();
+            }
+
+            if (serviceClient != null)
+            {
+                await serviceClient.CloseAsync();
+            }
+
+            // wait for the connection to be closed on the Edge side
+            await Task.Delay(TimeSpan.FromSeconds(20));
+
+            if (rm != null)
+            {
+                await RegistryManagerHelper.RemoveDevice(deviceName, rm);
+                await rm.CloseAsync();
+            }
         }
 
         Message CreateMessage(out string payload)
@@ -206,6 +232,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 }
             };
             return message;
+        }
+
+        ITransportSettings[] GetTransportSettings(TransportType transportType = TransportType.Mqtt_Tcp_Only)
+        {
+            var mqttSetting = new MqttTransportSettings(transportType)
+            {
+                RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
+            };
+            ITransportSettings[] settings = { mqttSetting };
+            return settings;
         }
 
         [AssertionMethod]
@@ -227,27 +263,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             else
             {
                 throw new TimeoutException("Test is running longer than expected.");
-            }
-        }
-
-        async Task Cleanup(DeviceClient deviceClient, ServiceClient serviceClient, RegistryManager rm, string deviceName)
-        {
-            if (deviceClient != null)
-            {
-                await deviceClient.CloseAsync();
-            }
-            if (serviceClient != null)
-            {
-                await serviceClient.CloseAsync();
-            }
-
-            // wait for the connection to be closed on the Edge side
-            await Task.Delay(TimeSpan.FromSeconds(20));
-
-            if (rm != null)
-            {
-                await RegistryManagerHelper.RemoveDevice(deviceName, rm);
-                await rm.CloseAsync();
             }
         }
     }

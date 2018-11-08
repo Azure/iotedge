@@ -2,10 +2,17 @@
 <RuleSet Name="Azure IoT Edge StyleCop Ruleset" Description="These StyleCop rules are customized for Azure IoT Edge projects." ToolsVersion="15.0">
   <Rules AnalyzerId="StyleCop.Analyzers" RuleNamespace="StyleCop.Analyzers">
     <Rule Id="SA0001" Action="None" />
+    <Rule Id="SA1108" Action="None" />
 	<Rule Id="SA1118" Action="None" />
+	<Rule Id="SA1124" Action="None" />
+	<Rule Id="SA1129" Action="None" />
+	<Rule Id="SA1131" Action="None" />
+	<Rule Id="SA1201" Action="None" />
 	<Rule Id="SA1204" Action="None" />
 	<Rule Id="SA1210" Action="None" />
+	<Rule Id="SA1313" Action="None" />
     <Rule Id="SA1400" Action="None" />
+    <Rule Id="SA1402" Action="None" />
     <Rule Id="SA1407" Action="None" />
     <Rule Id="SA1413" Action="None" />
     <Rule Id="SA1503" Action="None" />

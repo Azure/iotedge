@@ -1,9 +1,12 @@
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 {
     using System.Net;
     using System.Text;
     using System.Threading.Tasks;
+
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.AspNetCore.Mvc.Filters;
@@ -11,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
 
@@ -19,20 +23,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
         readonly Task<IEdgeHub> edgeHubGetter;
         readonly IValidator<MethodRequest> validator;
         IIdentity identity;
-        
+
         public TwinsController(Task<IEdgeHub> edgeHub, IValidator<MethodRequest> validator)
         {
             this.edgeHubGetter = Preconditions.CheckNotNull(edgeHub, nameof(edgeHub));
             this.validator = Preconditions.CheckNotNull(validator, nameof(validator));
-        }
-
-        public override void OnActionExecuting(ActionExecutingContext context)
-        {
-            if (context.HttpContext.Items.TryGetValue(HttpConstants.IdentityKey, out object contextIdentity))
-            {
-                this.identity = contextIdentity as IIdentity;
-            }
-            base.OnActionExecuting(context);
         }
 
         [HttpPost]
@@ -58,26 +53,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             return this.InvokeMethodAsync(directMethodRequest);
         }
 
-        async Task<IActionResult> InvokeMethodAsync(DirectMethodRequest directMethodRequest)
+        public override void OnActionExecuting(ActionExecutingContext context)
         {
-            Events.ReceivedMethodCall(directMethodRequest, this.identity);
-            IEdgeHub edgeHub = await this.edgeHubGetter;
-            DirectMethodResponse directMethodResponse = await edgeHub.InvokeMethodAsync(this.identity.Id, directMethodRequest);
-            Events.ReceivedMethodCallResponse(directMethodRequest, this.identity);
-
-            MethodResult methodResult = GetMethodResult(directMethodResponse);
-            HttpResponse response = this.Request?.HttpContext?.Response;
-            if (response != null)
+            if (context.HttpContext.Items.TryGetValue(HttpConstants.IdentityKey, out object contextIdentity))
             {
-                response.ContentLength = GetContentLength(methodResult);
+                this.identity = contextIdentity as IIdentity;
             }
-            return this.StatusCode((int)directMethodResponse.HttpStatusCode, methodResult);
-        }
 
-        static int GetContentLength(MethodResult methodResult)
-        {
-            string json = JsonConvert.SerializeObject(methodResult);
-            return json.Length;
+            base.OnActionExecuting(context);
         }
 
         internal static MethodResult GetMethodResult(DirectMethodResponse directMethodResponse) =>
@@ -95,10 +78,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             return new JRaw(json);
         }
 
+        static int GetContentLength(MethodResult methodResult)
+        {
+            string json = JsonConvert.SerializeObject(methodResult);
+            return json.Length;
+        }
+
+        async Task<IActionResult> InvokeMethodAsync(DirectMethodRequest directMethodRequest)
+        {
+            Events.ReceivedMethodCall(directMethodRequest, this.identity);
+            IEdgeHub edgeHub = await this.edgeHubGetter;
+            DirectMethodResponse directMethodResponse = await edgeHub.InvokeMethodAsync(this.identity.Id, directMethodRequest);
+            Events.ReceivedMethodCallResponse(directMethodRequest, this.identity);
+
+            MethodResult methodResult = GetMethodResult(directMethodResponse);
+            HttpResponse response = this.Request?.HttpContext?.Response;
+            if (response != null)
+            {
+                response.ContentLength = GetContentLength(methodResult);
+            }
+
+            return this.StatusCode((int)directMethodResponse.HttpStatusCode, methodResult);
+        }
+
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<TwinsController>();
             const int IdStart = HttpEventIds.TwinsController;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<TwinsController>();
 
             enum EventIds
             {

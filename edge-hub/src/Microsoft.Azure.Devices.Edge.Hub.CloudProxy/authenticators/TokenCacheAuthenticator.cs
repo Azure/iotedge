@@ -1,8 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
 {
     using System;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Common.Security;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -37,7 +39,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
 
             Option<IClientCredentials> validatedCredentials = await this.credentialsCache.Get(tokenCredentials.Identity);
             bool isAuthenticated = await validatedCredentials.Map(
-                    v => Task.FromResult(v is ITokenCredentials validatedTokenCredentials &&
+                    v => Task.FromResult(
+                        v is ITokenCredentials validatedTokenCredentials &&
                         this.IsValid(clientCredentials, validatedTokenCredentials.Token) &&
                         validatedTokenCredentials.Token.Equals(tokenCredentials.Token)))
                 .GetOrElse(Task.FromResult(false));
@@ -78,8 +81,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<TokenCacheAuthenticator>();
             const int IdStart = CloudProxyEventIds.TokenCredentialsAuthenticator;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<TokenCacheAuthenticator>();
 
             enum EventIds
             {

@@ -1,16 +1,34 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Test.Util
 {
     using System.Diagnostics.CodeAnalysis;
     using System.Linq;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
+
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.Util;
+
     using Xunit;
 
     [ExcludeFromCodeCoverage]
     public class OptionTest
     {
-        [Fact, Unit]
+        [Fact]
+        [Unit]
+        public void TestContains()
+        {
+            Option<int> some = Option.Some(3);
+            Option<int> none = Option.None<int>();
+            Option<object> some2 = Option.Some<object>(null);
+
+            Assert.True(some.Contains(3));
+            Assert.False(some.Contains(2));
+            Assert.False(none.Contains(3));
+            Assert.True(some2.Contains(null));
+        }
+
+        [Fact]
+        [Unit]
         public void TestCreate()
         {
             Option<int> some = Option.Some(2);
@@ -20,7 +38,48 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util
             Assert.False(none.HasValue);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
+        public void TestElse()
+        {
+            Option<int> some = Option.Some(3);
+            Option<int> none = Option.None<int>();
+
+            Assert.Equal(some, some.Else(Option.Some(4)));
+            Assert.Equal(Option.Some(2), none.Else(Option.Some(2)));
+        }
+
+        [Fact]
+        [Unit]
+        public void TestEnumerable()
+        {
+            Option<int> some = Option.Some(6);
+            Option<int> none = Option.None<int>();
+
+            int i = 0;
+            foreach (int value in some)
+            {
+                i += value;
+            }
+
+            Assert.Equal(6, i);
+
+            int count = 0;
+
+            // ReSharper disable once UnusedVariable
+            foreach (int value in none)
+            {
+                count++;
+            }
+
+            Assert.Equal(0, count);
+
+            Assert.Equal(1, some.ToEnumerable().Count());
+            Assert.Equal(0, none.ToEnumerable().Count());
+        }
+
+        [Fact]
+        [Unit]
         public void TestEquals()
         {
             Option<int> some1 = Option.Some(1);
@@ -45,7 +104,73 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util
             Assert.Equal(none1, none2);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
+        public void TestExists()
+        {
+            Option<int> some = Option.Some(3);
+            Option<int> none = Option.None<int>();
+
+            Assert.True(some.Exists(v => v * 2 == 6));
+            Assert.False(some.Exists(v => v * 2 == 7));
+            Assert.False(none.Exists(_ => true));
+        }
+
+        [Fact]
+        [Unit]
+        public void TestFilter()
+        {
+            Option<int> some = Option.Some(3);
+            Option<int> none = Option.None<int>();
+
+            Assert.Equal(Option.Some(3), some.Filter(_ => true));
+            Assert.Equal(Option.None<int>(), some.Filter(_ => false));
+            Assert.Equal(Option.None<int>(), none.Filter(_ => false));
+        }
+
+        [Fact]
+        [Unit]
+        public void TestFlatMap()
+        {
+            Option<int> some = Option.Some(3);
+            Option<int> none = Option.None<int>();
+
+            Assert.Equal(Option.Some(6), some.FlatMap(v => Option.Some(v * 2)));
+            Assert.Equal(Option.None<int>(), none.FlatMap(v => Option.Some(v * 2)));
+        }
+
+        [Fact]
+        [Unit]
+        public void TestForEach()
+        {
+            Option<int> some = Option.Some(3);
+            Option<int> none = Option.None<int>();
+
+            int i = 2;
+
+            // ReSharper disable once AccessToModifiedClosure
+            // Need to test the side effect
+            some.ForEach(v => i *= v);
+            Assert.Equal(6, i);
+
+            i = 2;
+            none.ForEach(v => i *= v);
+            Assert.Equal(2, i);
+        }
+
+        [Fact]
+        [Unit]
+        public void TestGetOrElse()
+        {
+            Option<int> some = Option.Some(3);
+            Option<int> none = Option.None<int>();
+
+            Assert.Equal(3, some.GetOrElse(4));
+            Assert.Equal(2, none.GetOrElse(2));
+        }
+
+        [Fact]
+        [Unit]
         public void TestHashCode()
         {
             Option<int> some1 = Option.Some(1);
@@ -58,88 +183,19 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util
             Assert.NotEqual(some1.GetHashCode(), some2.GetHashCode());
         }
 
-        [Fact, Unit]
-        public void TestToString()
-        {
-            Option<int> some1 = Option.Some(1);
-            Option<object> some2 = Option.Some<object>(null);
-            Option<int> none = Option.None<int>();
-
-            Assert.Equal("Some(1)", some1.ToString());
-            Assert.Equal("Some(null)", some2.ToString());
-            Assert.Equal("None", none.ToString());
-        }
-
-        [Fact, Unit]
-        public void TestEnumerable()
-        {
-            Option<int> some = Option.Some(6);
-            Option<int> none = Option.None<int>();
-
-            int i = 0;
-            foreach (int value in some)
-            {
-                i += value;
-            }
-            Assert.Equal(6, i);
-
-            int count = 0;
-            // ReSharper disable once UnusedVariable
-            foreach (int value in none)
-            {
-                count++;
-            }
-            Assert.Equal(0, count);
-
-            Assert.Equal(1, some.ToEnumerable().Count());
-            Assert.Equal(0, none.ToEnumerable().Count());
-        }
-
-        [Fact, Unit]
-        public void TestContains()
-        {
-            Option<int> some = Option.Some(3);
-            Option<int> none = Option.None<int>();
-            Option<object> some2 = Option.Some<object>(null);
-
-            Assert.True(some.Contains(3));
-            Assert.False(some.Contains(2));
-            Assert.False(none.Contains(3));
-            Assert.True(some2.Contains(null));
-        }
-
-        [Fact, Unit]
-        public void TestExists()
+        [Fact]
+        [Unit]
+        public void TestMap()
         {
             Option<int> some = Option.Some(3);
             Option<int> none = Option.None<int>();
 
-            Assert.True(some.Exists(v => v * 2 == 6));
-            Assert.False(some.Exists(v => v * 2 == 7));
-            Assert.False(none.Exists(_ => true));
+            Assert.Equal(Option.Some(6), some.Map(v => v * 2));
+            Assert.Equal(Option.None<int>(), none.Map(v => v * 2));
         }
 
-        [Fact, Unit]
-        public void TestGetOrElse()
-        {
-            Option<int> some = Option.Some(3);
-            Option<int> none = Option.None<int>();
-
-            Assert.Equal(3, some.GetOrElse(4));
-            Assert.Equal(2, none.GetOrElse(2));
-        }
-
-        [Fact, Unit]
-        public void TestElse()
-        {
-            Option<int> some = Option.Some(3);
-            Option<int> none = Option.None<int>();
-
-            Assert.Equal(some, some.Else(Option.Some(4)));
-            Assert.Equal(Option.Some(2), none.Else(Option.Some(2)));
-        }
-
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestOrDefault()
         {
             Option<int> some = Option.Some(3);
@@ -151,52 +207,17 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util
             Assert.Equal(null, none2.OrDefault());
         }
 
-        [Fact, Unit]
-        public void TestMap()
+        [Fact]
+        [Unit]
+        public void TestToString()
         {
-            Option<int> some = Option.Some(3);
+            Option<int> some1 = Option.Some(1);
+            Option<object> some2 = Option.Some<object>(null);
             Option<int> none = Option.None<int>();
 
-            Assert.Equal(Option.Some(6), some.Map(v => v * 2));
-            Assert.Equal(Option.None<int>(), none.Map(v => v * 2));
-        }
-
-        [Fact, Unit]
-        public void TestFlatMap()
-        {
-            Option<int> some = Option.Some(3);
-            Option<int> none = Option.None<int>();
-
-            Assert.Equal(Option.Some(6), some.FlatMap(v => Option.Some(v * 2)));
-            Assert.Equal(Option.None<int>(), none.FlatMap(v => Option.Some(v * 2)));
-        }
-
-        [Fact, Unit]
-        public void TestFilter()
-        {
-            Option<int> some = Option.Some(3);
-            Option<int> none = Option.None<int>();
-
-            Assert.Equal(Option.Some(3), some.Filter(_ => true));
-            Assert.Equal(Option.None<int>(), some.Filter(_ => false));
-            Assert.Equal(Option.None<int>(), none.Filter(_ => false));
-        }
-
-        [Fact, Unit]
-        public void TestForEach()
-        {
-            Option<int> some = Option.Some(3);
-            Option<int> none = Option.None<int>();
-
-            int i = 2;
-            // ReSharper disable once AccessToModifiedClosure
-            // Need to test the side effect
-            some.ForEach(v => i *= v);
-            Assert.Equal(6, i);
-
-            i = 2;
-            none.ForEach(v => i *= v);
-            Assert.Equal(2, i);
+            Assert.Equal("Some(1)", some1.ToString());
+            Assert.Equal("Some(null)", some2.ToString());
+            Assert.Equal("None", none.ToString());
         }
     }
 }

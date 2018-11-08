@@ -1,13 +1,13 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
 {
     using System;
+
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core.Query;
     using Microsoft.Azure.Devices.Routing.Core.Query.Types;
-    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+
     using Xunit;
 
     public class QueryValueTest
@@ -22,42 +22,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         static readonly QueryValue StringQueryValue = new QueryValue(DefaultRandomString, QueryValueType.String);
         static readonly QueryValue ObjectQueryValue = new QueryValue(DefaultEmptyObject, QueryValueType.Object);
 
-        [Fact, Unit]
-        public void QueryValue_Undefined()
-        {
-            Assert.True(UndefinedQueryValue.CompareTo(QueryValue.Undefined) != 0);
-
-            Assert.True(UndefinedQueryValue.CompareTo(BoolQueryValue) != 0);
-            Assert.True(UndefinedQueryValue.CompareTo(NullQueryValue) != 0);
-            Assert.True(UndefinedQueryValue.CompareTo(DoubleQueryValue) != 0);
-            Assert.True(UndefinedQueryValue.CompareTo(StringQueryValue) != 0);
-            Assert.True(UndefinedQueryValue.CompareTo(ObjectQueryValue) != 0);
-
-            // Different object type comparisons
-            Assert.True(UndefinedQueryValue.CompareTo(Guid.NewGuid()) != 0);
-            Assert.True(UndefinedQueryValue.CompareTo(DateTime.UtcNow) != 0);
-            Assert.True(UndefinedQueryValue.CompareTo(new InvalidOperationException()) != 0);
-        }
-
-        [Fact, Unit]
-        public void QueryValue_Null()
-        {
-            Assert.Equal(NullQueryValue, QueryValue.Null);
-            Assert.True(NullQueryValue.CompareTo(QueryValue.Null) == 0);
-
-            Assert.True(NullQueryValue.CompareTo(UndefinedQueryValue) != 0);
-            Assert.True(NullQueryValue.CompareTo(BoolQueryValue) != 0);
-            Assert.True(NullQueryValue.CompareTo(DoubleQueryValue) != 0);
-            Assert.True(NullQueryValue.CompareTo(StringQueryValue) != 0);
-            Assert.True(NullQueryValue.CompareTo(ObjectQueryValue) != 0);
-
-            // Different object type comparisons
-            Assert.True(NullQueryValue.CompareTo(Guid.NewGuid()) != 0);
-            Assert.True(NullQueryValue.CompareTo(DateTime.UtcNow) != 0);
-            Assert.True(NullQueryValue.CompareTo(new InvalidOperationException()) != 0);
-        }
-
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void QueryValue_Bool()
         {
             Assert.True(BoolQueryValue.CompareTo(Bool.True) == 0);
@@ -76,7 +42,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.True(BoolQueryValue.CompareTo(new InvalidOperationException()) != 0);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void QueryValue_Double()
         {
             Assert.True(DoubleQueryValue.CompareTo(15.0) < 0);
@@ -97,35 +64,47 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.True(longDoubleQueryValue.CompareTo(123) != 0);
         }
 
-        [Fact, Unit]
-        public void QueryValue_String()
+        [Fact]
+        [Unit]
+        public void QueryValue_None()
         {
-            string stringToCompare = Guid.NewGuid().ToString();
+            var noneQueryValue = new QueryValue(null, QueryValueType.None);
 
-            Assert.True(StringQueryValue.CompareTo(DefaultRandomString) == 0);
-            Assert.Equal(StringQueryValue.CompareTo(stringToCompare),
-                string.Compare(DefaultRandomString, stringToCompare, StringComparison.Ordinal));
+            // Check Undefined to Undefined comparison always returns -1
+            Assert.Equal(QueryValue.Undefined.CompareTo(QueryValue.Undefined), -1);
 
-            Assert.True(StringQueryValue.CompareTo(BoolQueryValue) != 0);
-            Assert.True(StringQueryValue.CompareTo(UndefinedQueryValue) != 0);
-            Assert.True(StringQueryValue.CompareTo(NullQueryValue) != 0);
-            Assert.True(StringQueryValue.CompareTo(DoubleQueryValue) != 0);
-            Assert.True(StringQueryValue.CompareTo(ObjectQueryValue) != 0);
-
-            // Different object type comparisons
-            Assert.True(StringQueryValue.CompareTo(Guid.NewGuid()) != 0);
-            Assert.True(StringQueryValue.CompareTo(DateTime.UtcNow) != 0);
-            Assert.True(StringQueryValue.CompareTo(new InvalidOperationException()) != 0);
+            // Check any other None comparisons are reflexive.
+            Assert.Equal(QueryValue.Undefined.CompareTo(noneQueryValue), -1 * noneQueryValue.CompareTo(QueryValue.Undefined));
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
+        public void QueryValue_Null()
+        {
+            Assert.Equal(NullQueryValue, QueryValue.Null);
+            Assert.True(NullQueryValue.CompareTo(QueryValue.Null) == 0);
+
+            Assert.True(NullQueryValue.CompareTo(UndefinedQueryValue) != 0);
+            Assert.True(NullQueryValue.CompareTo(BoolQueryValue) != 0);
+            Assert.True(NullQueryValue.CompareTo(DoubleQueryValue) != 0);
+            Assert.True(NullQueryValue.CompareTo(StringQueryValue) != 0);
+            Assert.True(NullQueryValue.CompareTo(ObjectQueryValue) != 0);
+
+            // Different object type comparisons
+            Assert.True(NullQueryValue.CompareTo(Guid.NewGuid()) != 0);
+            Assert.True(NullQueryValue.CompareTo(DateTime.UtcNow) != 0);
+            Assert.True(NullQueryValue.CompareTo(new InvalidOperationException()) != 0);
+        }
+
+        [Fact]
+        [Unit]
         public void QueryValue_Object()
         {
             var objectToCompare = new object();
 
             Assert.True(ObjectQueryValue.CompareTo(ObjectQueryValue) == 0);
             Assert.True(ObjectQueryValue.CompareTo(objectToCompare) != 0);
-            Assert.True(ObjectQueryValue.CompareTo(DefaultEmptyObject) != 0); //Fail because comparison is not on a QueryValue object.
+            Assert.True(ObjectQueryValue.CompareTo(DefaultEmptyObject) != 0); // Fail because comparison is not on a QueryValue object.
 
             Assert.True(ObjectQueryValue.CompareTo(BoolQueryValue) != 0);
             Assert.True(ObjectQueryValue.CompareTo(UndefinedQueryValue) != 0);
@@ -143,16 +122,45 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.True(ObjectQueryValue.CompareTo(new InvalidOperationException()) != 0);
         }
 
-        [Fact, Unit]
-        public void QueryValue_None()
+        [Fact]
+        [Unit]
+        public void QueryValue_String()
         {
-            var noneQueryValue = new QueryValue(null, QueryValueType.None);
+            string stringToCompare = Guid.NewGuid().ToString();
 
-            // Check Undefined to Undefined comparison always returns -1
-            Assert.Equal(QueryValue.Undefined.CompareTo(QueryValue.Undefined), -1);
+            Assert.True(StringQueryValue.CompareTo(DefaultRandomString) == 0);
+            Assert.Equal(
+                StringQueryValue.CompareTo(stringToCompare),
+                string.Compare(DefaultRandomString, stringToCompare, StringComparison.Ordinal));
 
-            // Check any other None comparisons are reflexive.
-            Assert.Equal(QueryValue.Undefined.CompareTo(noneQueryValue), -1 * noneQueryValue.CompareTo(QueryValue.Undefined));
+            Assert.True(StringQueryValue.CompareTo(BoolQueryValue) != 0);
+            Assert.True(StringQueryValue.CompareTo(UndefinedQueryValue) != 0);
+            Assert.True(StringQueryValue.CompareTo(NullQueryValue) != 0);
+            Assert.True(StringQueryValue.CompareTo(DoubleQueryValue) != 0);
+            Assert.True(StringQueryValue.CompareTo(ObjectQueryValue) != 0);
+
+            // Different object type comparisons
+            Assert.True(StringQueryValue.CompareTo(Guid.NewGuid()) != 0);
+            Assert.True(StringQueryValue.CompareTo(DateTime.UtcNow) != 0);
+            Assert.True(StringQueryValue.CompareTo(new InvalidOperationException()) != 0);
+        }
+
+        [Fact]
+        [Unit]
+        public void QueryValue_Undefined()
+        {
+            Assert.True(UndefinedQueryValue.CompareTo(QueryValue.Undefined) != 0);
+
+            Assert.True(UndefinedQueryValue.CompareTo(BoolQueryValue) != 0);
+            Assert.True(UndefinedQueryValue.CompareTo(NullQueryValue) != 0);
+            Assert.True(UndefinedQueryValue.CompareTo(DoubleQueryValue) != 0);
+            Assert.True(UndefinedQueryValue.CompareTo(StringQueryValue) != 0);
+            Assert.True(UndefinedQueryValue.CompareTo(ObjectQueryValue) != 0);
+
+            // Different object type comparisons
+            Assert.True(UndefinedQueryValue.CompareTo(Guid.NewGuid()) != 0);
+            Assert.True(UndefinedQueryValue.CompareTo(DateTime.UtcNow) != 0);
+            Assert.True(UndefinedQueryValue.CompareTo(new InvalidOperationException()) != 0);
         }
     }
 }

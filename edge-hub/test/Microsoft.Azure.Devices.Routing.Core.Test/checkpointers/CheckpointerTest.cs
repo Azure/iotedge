@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Test.Checkpointers
 {
     using System;
@@ -7,15 +8,153 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Checkpointers
     using System.Linq.Expressions;
     using System.Threading;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Azure.Devices.Routing.Core.Util;
+
     using Moq;
+
     using Xunit;
 
     public class CheckpointerTest : RoutingUnitTestBase
     {
+        [Theory]
+        [Unit]
+        [MemberData(nameof(TestAdmitDataSource.TestData), MemberType = typeof(TestAdmitDataSource))]
+        public async Task TestAdmit(Message message, long offset, bool expected)
+        {
+            var store = new Mock<ICheckpointStore>();
+            store.Setup(d => d.GetCheckpointDataAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(offset));
+
+            using (ICheckpointer checkpointer = await Checkpointer.CreateAsync("id1", store.Object))
+            {
+                bool result = checkpointer.Admit(message);
+                Assert.Equal(expected, result);
+                await checkpointer.CloseAsync(CancellationToken.None);
+            }
+        }
+
+        [Fact]
+        [Unit]
+        public async Task TestCancellation()
+        {
+            var store = new Mock<ICheckpointStore>();
+            store.Setup(d => d.GetCheckpointDataAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(10));
+
+            using (var cts = new CancellationTokenSource())
+            using (ICheckpointer checkpointer1 = await Checkpointer.CreateAsync("id1", store.Object))
+            {
+                var tcs = new TaskCompletionSource<bool>();
+                cts.Token.Register(() => tcs.SetCanceled());
+
+                store.Setup(d => d.SetCheckpointDataAsync(It.IsAny<string>(), It.IsAny<CheckpointData>(), It.IsAny<CancellationToken>())).Returns(tcs.Task);
+
+                Task result = checkpointer1.CommitAsync(new[] { MessageWithOffset(20) }, new IMessage[] { }, Option.None<DateTime>(), Option.None<DateTime>(), CancellationToken.None);
+
+                cts.Cancel();
+                await Assert.ThrowsAsync<TaskCanceledException>(() => result);
+                Assert.Equal(20, checkpointer1.Offset);
+
+                await checkpointer1.CloseAsync(CancellationToken.None);
+            }
+        }
+
+        [Fact]
+        [Unit]
+        public async Task TestClose()
+        {
+            var store = new Mock<ICheckpointStore>();
+            store.Setup(d => d.GetCheckpointDataAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(10));
+
+            using (ICheckpointer checkpointer1 = await Checkpointer.CreateAsync("id1", store.Object))
+            {
+                await checkpointer1.CommitAsync(new[] { MessageWithOffset(20) }, new IMessage[] { }, Option.None<DateTime>(), Option.None<DateTime>(), CancellationToken.None);
+                Assert.Equal(20, checkpointer1.Offset);
+
+                await checkpointer1.CloseAsync(CancellationToken.None);
+                await Assert.ThrowsAsync<InvalidOperationException>(() => checkpointer1.CommitAsync(new[] { MessageWithOffset(30) }, new IMessage[] { }, Option.None<DateTime>(), Option.None<DateTime>(), CancellationToken.None));
+
+                // close a second time
+                await checkpointer1.CloseAsync(CancellationToken.None);
+                await Assert.ThrowsAsync<InvalidOperationException>(() => checkpointer1.CommitAsync(new[] { MessageWithOffset(40) }, new IMessage[] { }, Option.None<DateTime>(), Option.None<DateTime>(), CancellationToken.None));
+                Assert.Equal(20, checkpointer1.Offset);
+
+                bool result = checkpointer1.Admit(MessageWithOffset(30));
+                Assert.Equal(false, result);
+            }
+        }
+
+        [Theory]
+        [Unit]
+        [MemberData(nameof(TestCommitDataSource.TestData), MemberType = typeof(TestCommitDataSource))]
+        public async Task TestCommit(Message message, long offset, long expected)
+        {
+            var store = new Mock<ICheckpointStore>();
+            store.Setup(d => d.GetCheckpointDataAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(offset));
+
+            using (ICheckpointer checkpointer1 = await Checkpointer.CreateAsync("id1", store.Object))
+            {
+                await checkpointer1.CommitAsync(new IMessage[] { message }, new IMessage[] { }, Option.None<DateTime>(), Option.None<DateTime>(), CancellationToken.None);
+                Assert.Equal(expected, checkpointer1.Offset);
+                Expression<Func<CheckpointData, bool>> expr = obj => obj.Offset == expected;
+                if (message.Offset == expected && message.Offset != offset)
+                {
+                    // this is a valid commit and the store should update
+                    store.Verify(d => d.SetCheckpointDataAsync("id1", It.Is(expr), It.IsAny<CancellationToken>()), Times.Exactly(1));
+                }
+                else
+                {
+                    store.Verify(d => d.SetCheckpointDataAsync(It.IsAny<string>(), new CheckpointData(It.IsAny<long>()), It.IsAny<CancellationToken>()), Times.Never);
+                }
+
+                await checkpointer1.CloseAsync(CancellationToken.None);
+            }
+        }
+
+        [Fact]
+        [Unit]
+        public async Task TestCommitMultiple()
+        {
+            var store = new Mock<ICheckpointStore>();
+            store.Setup(d => d.GetCheckpointDataAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(10));
+
+            using (ICheckpointer checkpointer1 = await Checkpointer.CreateAsync("id1", store.Object))
+            {
+                IMessage[] tocheckpoint = new[] { MessageWithOffset(13), MessageWithOffset(12), MessageWithOffset(11), MessageWithOffset(10), MessageWithOffset(9) };
+                await checkpointer1.CommitAsync(tocheckpoint, new IMessage[] { }, Option.None<DateTime>(), Option.None<DateTime>(), CancellationToken.None);
+                Assert.Equal(13, checkpointer1.Offset);
+                await checkpointer1.CloseAsync(CancellationToken.None);
+            }
+        }
+
+        [Theory]
+        [Unit]
+        [MemberData(nameof(TestCommitRemainingDataSource.TestData), MemberType = typeof(TestCommitRemainingDataSource))]
+        public async Task TestCommitWithRemaining(IMessage[] successful, IMessage[] remaining)
+        {
+            var store = new Mock<ICheckpointStore>();
+            store.Setup(d => d.GetCheckpointDataAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(-1));
+
+            ICheckpointer checkpointer = await Checkpointer.CreateAsync("id1", store.Object);
+            await checkpointer.CommitAsync(successful, remaining, Option.None<DateTime>(), Option.None<DateTime>(), CancellationToken.None);
+
+            Assert.True(remaining.All(m => checkpointer.Admit(m)));
+        }
+
+        [Fact]
+        [Unit]
+        public async Task TestConstructor()
+        {
+            var store = new Mock<ICheckpointStore>();
+            store.Setup(d => d.GetCheckpointDataAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(10));
+
+            await Assert.ThrowsAsync<ArgumentNullException>(() => Checkpointer.CreateAsync(null, store.Object));
+            await Assert.ThrowsAsync<ArgumentNullException>(() => Checkpointer.CreateAsync("id", null));
+            await Assert.ThrowsAsync<ArgumentNullException>(() => Checkpointer.CreateAsync(null, null));
+        }
+
         static IMessage MessageWithOffset(long offset) =>
             new Message(TelemetryMessageSource.Instance, new byte[] { 1, 2, 3 }, new Dictionary<string, string>(), offset);
 
@@ -39,21 +178,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Checkpointers
             public static IEnumerable<object[]> TestData => Data;
         }
 
-        [Theory, Unit]
-        [MemberData(nameof(TestAdmitDataSource.TestData), MemberType = typeof(TestAdmitDataSource))]
-        public async Task TestAdmit(Message message, long offset, bool expected)
-        {
-            var store = new Mock<ICheckpointStore>();
-            store.Setup(d => d.GetCheckpointDataAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(offset));
-
-            using (ICheckpointer checkpointer = await Checkpointer.CreateAsync("id1", store.Object))
-            {
-                bool result = checkpointer.Admit(message);
-                Assert.Equal(expected, result);
-                await checkpointer.CloseAsync(CancellationToken.None);
-            }
-        }
-
         static class TestCommitDataSource
         {
             static readonly IList<object[]> Data = new List<object[]>
@@ -66,46 +190,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Checkpointers
             };
 
             public static IEnumerable<object[]> TestData => Data;
-        }
-
-        [Theory, Unit]
-        [MemberData(nameof(TestCommitDataSource.TestData), MemberType = typeof(TestCommitDataSource))]
-        public async Task TestCommit(Message message, long offset, long expected)
-        {
-            var store = new Mock<ICheckpointStore>();
-            store.Setup(d => d.GetCheckpointDataAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(offset));
-
-            using (ICheckpointer checkpointer1 = await Checkpointer.CreateAsync("id1", store.Object))
-            {
-                await checkpointer1.CommitAsync(new IMessage[] { message }, new IMessage[] { }, Option.None<DateTime>(), Option.None<DateTime>(), CancellationToken.None);
-                Assert.Equal(expected, checkpointer1.Offset);
-                Expression<Func<CheckpointData, bool>> expr = obj => obj.Offset == expected;
-                if (message.Offset == expected && message.Offset != offset)
-                {
-                    // this is a valid commit and the store should update
-                    store.Verify(d => d.SetCheckpointDataAsync("id1", It.Is(expr), It.IsAny<CancellationToken>()), Times.Exactly(1));
-                }
-                else
-                {
-                    store.Verify(d => d.SetCheckpointDataAsync(It.IsAny<string>(), new CheckpointData(It.IsAny<long>()), It.IsAny<CancellationToken>()), Times.Never);
-                }
-                await checkpointer1.CloseAsync(CancellationToken.None);
-            }
-        }
-
-        [Fact, Unit]
-        public async Task TestCommitMultiple()
-        {
-            var store = new Mock<ICheckpointStore>();
-            store.Setup(d => d.GetCheckpointDataAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(10));
-
-            using (ICheckpointer checkpointer1 = await Checkpointer.CreateAsync("id1", store.Object))
-            {
-                IMessage[] tocheckpoint = new[] { MessageWithOffset(13), MessageWithOffset(12), MessageWithOffset(11), MessageWithOffset(10), MessageWithOffset(9) };
-                await checkpointer1.CommitAsync(tocheckpoint, new IMessage[] { }, Option.None<DateTime>(), Option.None<DateTime>(), CancellationToken.None);
-                Assert.Equal(13, checkpointer1.Offset);
-                await checkpointer1.CloseAsync(CancellationToken.None);
-            }
         }
 
         static class TestCommitRemainingDataSource
@@ -122,78 +206,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Checkpointers
             };
 
             public static IEnumerable<object[]> TestData => Data;
-        }
-
-        [Theory, Unit]
-        [MemberData(nameof(TestCommitRemainingDataSource.TestData), MemberType = typeof(TestCommitRemainingDataSource))]
-        public async Task TestCommitWithRemaining(IMessage[] successful, IMessage[] remaining)
-        {
-            var store = new Mock<ICheckpointStore>();
-            store.Setup(d => d.GetCheckpointDataAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(- 1));
-
-            ICheckpointer checkpointer = await Checkpointer.CreateAsync("id1", store.Object);
-            await checkpointer.CommitAsync(successful, remaining, Option.None<DateTime>(), Option.None<DateTime>(), CancellationToken.None);
-
-            Assert.True(remaining.All(m => checkpointer.Admit(m)));
-        }
-
-        [Fact, Unit]
-        public async Task TestConstructor()
-        {
-            var store = new Mock<ICheckpointStore>();
-            store.Setup(d => d.GetCheckpointDataAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(10));
-
-            await Assert.ThrowsAsync<ArgumentNullException>(() => Checkpointer.CreateAsync(null, store.Object));
-            await Assert.ThrowsAsync<ArgumentNullException>(() => Checkpointer.CreateAsync("id", null));
-            await Assert.ThrowsAsync<ArgumentNullException>(() => Checkpointer.CreateAsync(null, null));
-        }
-
-        [Fact, Unit]
-        public async Task TestClose()
-        {
-            var store = new Mock<ICheckpointStore>();
-            store.Setup(d => d.GetCheckpointDataAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(10));
-
-            using (ICheckpointer checkpointer1 = await Checkpointer.CreateAsync("id1", store.Object))
-            {
-                await checkpointer1.CommitAsync(new [] { MessageWithOffset(20) }, new IMessage[] { }, Option.None<DateTime>(), Option.None<DateTime>(), CancellationToken.None);
-                Assert.Equal(20, checkpointer1.Offset);
-
-                await checkpointer1.CloseAsync(CancellationToken.None);
-                await Assert.ThrowsAsync<InvalidOperationException>(() => checkpointer1.CommitAsync(new [] { MessageWithOffset(30) }, new IMessage[] { }, Option.None<DateTime>(), Option.None<DateTime>(), CancellationToken.None));
-
-                // close a second time
-                await checkpointer1.CloseAsync(CancellationToken.None);
-                await Assert.ThrowsAsync<InvalidOperationException>(() => checkpointer1.CommitAsync(new [] { MessageWithOffset(40) }, new IMessage[] { }, Option.None<DateTime>(), Option.None<DateTime>(), CancellationToken.None));
-                Assert.Equal(20, checkpointer1.Offset);
-
-                bool result = checkpointer1.Admit(MessageWithOffset(30));
-                Assert.Equal(false, result);
-            }
-        }
-
-        [Fact, Unit]
-        public async Task TestCancellation()
-        {
-            var store = new Mock<ICheckpointStore>();
-            store.Setup(d => d.GetCheckpointDataAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(10));
-
-            using (var cts = new CancellationTokenSource())
-            using (ICheckpointer checkpointer1 = await Checkpointer.CreateAsync("id1", store.Object))
-            {
-                var tcs = new TaskCompletionSource<bool>();
-                cts.Token.Register(() => tcs.SetCanceled());
-
-                store.Setup(d => d.SetCheckpointDataAsync(It.IsAny<string>(), It.IsAny<CheckpointData>(), It.IsAny<CancellationToken>())).Returns(tcs.Task);
-
-                Task result = checkpointer1.CommitAsync(new [] { MessageWithOffset(20) }, new IMessage[] { }, Option.None<DateTime>(), Option.None<DateTime>(), CancellationToken.None);
-
-                cts.Cancel();
-                await Assert.ThrowsAsync<TaskCanceledException>(() => result);
-                Assert.Equal(20, checkpointer1.Offset);
-
-                await checkpointer1.CloseAsync(CancellationToken.None);
-            }
         }
     }
 }

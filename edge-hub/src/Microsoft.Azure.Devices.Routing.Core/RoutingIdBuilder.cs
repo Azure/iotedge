@@ -1,11 +1,10 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core
 {
     using System;
     using System.Globalization;
+
     using Microsoft.Azure.Devices.Routing.Core.Util;
 
     public class RoutingIdBuilder
@@ -15,16 +14,9 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
         readonly string cachedId;
 
-        public string IotHubName { get; }
-
-        public long RouterNumber { get; }
-
-        public Option<string> EndpointId { get; }
-
         public RoutingIdBuilder(string iotHubName, long routerNumber)
             : this(iotHubName, routerNumber, Option.None<string>())
         {
-
         }
 
         public RoutingIdBuilder(string iotHubName, long routerNumber, Option<string> endpointId)
@@ -42,6 +34,12 @@ namespace Microsoft.Azure.Devices.Routing.Core
                 this.cachedId = string.Join(Delimiter, this.cachedId, endpointId.OrDefault());
             }
         }
+
+        public Option<string> EndpointId { get; }
+
+        public string IotHubName { get; }
+
+        public long RouterNumber { get; }
 
         public static Option<RoutingIdBuilder> Parse(string id)
         {
@@ -66,22 +64,23 @@ namespace Microsoft.Azure.Devices.Routing.Core
                     {
                         return Option.Some(new RoutingIdBuilder(iotHubName, routerNumber, endpointId));
                     }
+
                     break;
             }
 
             return Option.None<RoutingIdBuilder>();
         }
 
-        public string GetId() => this.cachedId;
-
-        public override string ToString() => this.GetId();
-
-        public override int GetHashCode() => this.cachedId.GetHashCode();
-
         public override bool Equals(object obj)
         {
             var other = obj as RoutingIdBuilder;
             return other?.cachedId == this.cachedId;
         }
+
+        public override int GetHashCode() => this.cachedId.GetHashCode();
+
+        public string GetId() => this.cachedId;
+
+        public override string ToString() => this.GetId();
     }
 }

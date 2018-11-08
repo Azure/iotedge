@@ -1,10 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Shared;
@@ -28,10 +29,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             ? this.underlyingModuleClient.CloseAsync()
             : Task.CompletedTask;
 
-        public Task RejectAsync(string messageId) => throw new InvalidOperationException("Reject is not supported for modules.");
-
-        public Task<Message> ReceiveAsync(TimeSpan receiveMessageTimeout) => throw new InvalidOperationException("C2D messages are not supported for modules.");
-
         public Task CompleteAsync(string messageId) => this.underlyingModuleClient.CompleteAsync(messageId);
 
         public void Dispose()
@@ -48,12 +45,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 await this.underlyingModuleClient.OpenAsync();
             }
-            catch(Exception)
+            catch (Exception)
             {
                 this.isActive.Set(false);
                 throw;
             }
         }
+
+        public Task<Message> ReceiveAsync(TimeSpan receiveMessageTimeout) => throw new InvalidOperationException("C2D messages are not supported for modules.");
+
+        public Task RejectAsync(string messageId) => throw new InvalidOperationException("Reject is not supported for modules.");
 
         public Task SendEventAsync(Message message) => this.underlyingModuleClient.SendEventAsync(message);
 

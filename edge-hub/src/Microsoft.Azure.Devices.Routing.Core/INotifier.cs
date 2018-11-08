@@ -1,7 +1,5 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core
 {
     using System;
@@ -14,9 +12,16 @@ namespace Microsoft.Azure.Devices.Routing.Core
     public interface INotifier : IDisposable
     {
         /// <summary>
-        /// Name of the iot hub connected to this notifier. Notifiers are created per hub.
+        /// Gets name of the iot hub connected to this notifier. Notifiers are created per hub.
         /// </summary>
         string IotHubName { get; }
+
+        /// <summary>
+        /// Cleanup resources associated with any subscriptions on this notifier.
+        /// </summary>
+        /// <param name="token">Cancellation token</param>
+        /// <returns>Task</returns>
+        Task CloseAsync(CancellationToken token);
 
         /// <summary>
         /// Subscribe to changes for this hub.
@@ -25,17 +30,10 @@ namespace Microsoft.Azure.Devices.Routing.Core
         /// Secondary key to use for subscription (in addition to hub name).
         /// For instance, this is set as the partition id in the service fabric replica.
         /// </param>
-        /// <param name="onChange"></param>
-        /// <param name="onDelete"></param>
-        /// <param name="token"></param>
-        /// <returns></returns>
+        /// <param name="onChange">OnChange delegate</param>
+        /// <param name="onDelete">OnDelete delegate</param>
+        /// <param name="token">Cancellation token</param>
+        /// <returns>Task</returns>
         Task SubscribeAsync(string key, Func<string, Task> onChange, Func<string, Task> onDelete, CancellationToken token);
-
-        /// <summary>
-        /// Cleanup resources associated with any subscriptions on this notifier.
-        /// </summary>
-        /// <param name="token"></param>
-        /// <returns></returns>
-        Task CloseAsync(CancellationToken token);
     }
 }

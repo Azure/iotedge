@@ -1,11 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 {
     using System;
     using System.Security.Cryptography.X509Certificates;
+
     using Microsoft.Azure.Devices.Edge.Hub.Amqp.Settings;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+
     using Xunit;
 
     public class DefaultTransportSettingsTest
@@ -20,10 +22,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             X509Certificate2 tlsCertificate = CertificateHelper.GenerateSelfSignedCert("TestCert");
 
             Assert.Throws<ArgumentException>(() => new DefaultTransportSettings(null, HostName, Port, tlsCertificate));
-            Assert.Throws<ArgumentException>(() => new DefaultTransportSettings("", HostName, Port, tlsCertificate));
+            Assert.Throws<ArgumentException>(() => new DefaultTransportSettings(string.Empty, HostName, Port, tlsCertificate));
             Assert.Throws<ArgumentException>(() => new DefaultTransportSettings("    ", HostName, Port, tlsCertificate));
             Assert.Throws<ArgumentException>(() => new DefaultTransportSettings(Scheme, null, Port, tlsCertificate));
-            Assert.Throws<ArgumentException>(() => new DefaultTransportSettings(Scheme, "", Port, tlsCertificate));
+            Assert.Throws<ArgumentException>(() => new DefaultTransportSettings(Scheme, string.Empty, Port, tlsCertificate));
             Assert.Throws<ArgumentException>(() => new DefaultTransportSettings(Scheme, "   ", Port, tlsCertificate));
             Assert.Throws<ArgumentOutOfRangeException>(() => new DefaultTransportSettings(Scheme, HostName, -1, tlsCertificate));
             Assert.Throws<ArgumentOutOfRangeException>(() => new DefaultTransportSettings(Scheme, HostName, 70000, tlsCertificate));

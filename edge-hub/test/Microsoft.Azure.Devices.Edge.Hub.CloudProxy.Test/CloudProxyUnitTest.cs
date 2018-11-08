@@ -1,14 +1,17 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
     using System;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+
     using Moq;
+
     using Xunit;
 
     [Unit]
@@ -24,14 +27,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 .Callback(() => isClientActive = false)
                 .Returns(Task.CompletedTask);
             client.SetupGet(c => c.IsActive).Returns(() => isClientActive);
-            client.Setup(c => c.SendEventAsync(It.IsAny<Client.Message>())).Returns(Task.CompletedTask);
+            client.Setup(c => c.SendEventAsync(It.IsAny<Message>())).Returns(Task.CompletedTask);
 
-            var messageConverter = new Mock<IMessageConverter<Client.Message>>();
+            var messageConverter = new Mock<IMessageConverter<Message>>();
             messageConverter.Setup(m => m.FromMessage(It.IsAny<IMessage>()))
-                .Returns(new Client.Message());
+                .Returns(new Message());
 
             var messageConverterProvider = new Mock<IMessageConverterProvider>();
-            messageConverterProvider.Setup(m => m.Get<Client.Message>())
+            messageConverterProvider.Setup(m => m.Get<Message>())
                 .Returns(messageConverter.Object);
 
             var cloudListener = new Mock<ICloudListener>();
@@ -75,20 +78,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 .Callback(() => isClientActive = false)
                 .Returns(Task.CompletedTask);
             client.SetupGet(c => c.IsActive).Returns(() => isClientActive);
-            client.Setup(c => c.SendEventAsync(It.IsAny<Client.Message>())).Returns(Task.CompletedTask);
+            client.Setup(c => c.SendEventAsync(It.IsAny<Message>())).Returns(Task.CompletedTask);
 
-            var messageConverter = new Mock<IMessageConverter<Client.Message>>();
+            var messageConverter = new Mock<IMessageConverter<Message>>();
             messageConverter.Setup(m => m.FromMessage(It.IsAny<IMessage>()))
-                .Returns(new Client.Message());
+                .Returns(new Message());
 
             var messageConverterProvider = new Mock<IMessageConverterProvider>();
-            messageConverterProvider.Setup(m => m.Get<Client.Message>())
+            messageConverterProvider.Setup(m => m.Get<Message>())
                 .Returns(messageConverter.Object);
 
             var cloudListener = new Mock<ICloudListener>();
             TimeSpan idleTimeout = TimeSpan.FromSeconds(5);
             ICloudProxy cloudProxy = new CloudProxy(client.Object, messageConverterProvider.Object, "device1", null, cloudListener.Object, idleTimeout, false);
-            
+
             // Act
             await Task.Delay(TimeSpan.FromSeconds(6));
 
@@ -149,15 +152,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 .Callback(() => isClientActive = false)
                 .Returns(Task.CompletedTask);
             client.SetupGet(c => c.IsActive).Returns(() => isClientActive);
-            client.Setup(c => c.SendEventAsync(It.IsAny<Client.Message>())).Returns(Task.CompletedTask);
+            client.Setup(c => c.SendEventAsync(It.IsAny<Message>())).Returns(Task.CompletedTask);
             client.Setup(c => c.SetMethodDefaultHandlerAsync(It.IsAny<MethodCallback>(), It.IsAny<object>())).Returns(Task.CompletedTask);
 
-            var messageConverter = new Mock<IMessageConverter<Client.Message>>();
+            var messageConverter = new Mock<IMessageConverter<Message>>();
             messageConverter.Setup(m => m.FromMessage(It.IsAny<IMessage>()))
-                .Returns(new Client.Message());
+                .Returns(new Message());
 
             var messageConverterProvider = new Mock<IMessageConverterProvider>();
-            messageConverterProvider.Setup(m => m.Get<Client.Message>())
+            messageConverterProvider.Setup(m => m.Get<Message>())
                 .Returns(messageConverter.Object);
 
             var cloudListener = new Mock<ICloudListener>();
@@ -190,16 +193,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 .Callback(() => isClientActive = false)
                 .Returns(Task.CompletedTask);
             client.SetupGet(c => c.IsActive).Returns(() => isClientActive);
-            client.Setup(c => c.ReceiveAsync(It.IsAny<TimeSpan>()))
-                //.Callback<TimeSpan>(t => Task.Yield())
+            client.Setup(c => c.ReceiveAsync(It.IsAny<TimeSpan>())) // .Callback<TimeSpan>(t => Task.Yield())
                 .Returns(Task.FromResult<Message>(new Message()));
 
-            var messageConverter = new Mock<IMessageConverter<Client.Message>>();
+            var messageConverter = new Mock<IMessageConverter<Message>>();
             messageConverter.Setup(m => m.FromMessage(It.IsAny<IMessage>()))
-                .Returns(new Client.Message());
+                .Returns(new Message());
 
             var messageConverterProvider = new Mock<IMessageConverterProvider>();
-            messageConverterProvider.Setup(m => m.Get<Client.Message>())
+            messageConverterProvider.Setup(m => m.Get<Message>())
                 .Returns(messageConverter.Object);
 
             var cloudListener = new Mock<ICloudListener>();

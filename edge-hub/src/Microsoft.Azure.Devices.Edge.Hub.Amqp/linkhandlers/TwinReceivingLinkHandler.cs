@@ -1,10 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 {
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -22,7 +23,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
         public const string TwinPut = "PUT";
         public const string TwinDelete = "DELETE";
 
-        public TwinReceivingLinkHandler(IReceivingAmqpLink link,
+        public TwinReceivingLinkHandler(
+            IReceivingAmqpLink link,
             Uri requestUri,
             IDictionary<string, string> boundVariables,
             IMessageConverter<AmqpMessage> messageConverter)
@@ -30,12 +32,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
         {
         }
 
+        public override string CorrelationId =>
+            AmqpConnectionUtils.GetCorrelationId(this.Link);
+
         public override LinkType Type => LinkType.TwinReceiving;
 
         protected override QualityOfService QualityOfService => QualityOfService.AtMostOnce;
-
-        public override string CorrelationId =>
-            AmqpConnectionUtils.GetCorrelationId(this.Link);
 
         protected override async Task OnMessageReceived(AmqpMessage amqpMessage)
         {
@@ -96,8 +98,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<TwinReceivingLinkHandler>();
             const int IdStart = AmqpEventIds.TwinReceivingLinkHandler;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<TwinReceivingLinkHandler>();
 
             enum EventIds
             {
@@ -108,9 +110,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
                 ProcessedDesiredPropertyUpdatesSubscriptionRemovalRequest
             }
 
+            public static void InvalidCorrelationId(TwinReceivingLinkHandler handler)
+            {
+                Log.LogWarning((int)EventIds.InvalidOperation, $"Cannot process message on link {handler.LinkUri} because no correlation ID was specified");
+            }
+
             public static void InvalidOperation(TwinReceivingLinkHandler handler)
             {
                 Log.LogWarning((int)EventIds.InvalidOperation, $"Cannot process message on link {handler.LinkUri} because a valid operation was not specified in message annotations");
+            }
+
+            public static void InvalidOperation(TwinReceivingLinkHandler handler, string operation)
+            {
+                Log.LogWarning((int)EventIds.InvalidOperation, $"Cannot process message on link {handler.LinkUri} because an invalid operation value '{operation}' was specified in message annotations");
+            }
+
+            public static void ProcessedDesiredPropertyUpdatesSubscriptionRemovalRequest(TwinReceivingLinkHandler handler, string correlationId)
+            {
+                Log.LogDebug((int)EventIds.ProcessedDesiredPropertyUpdatesSubscriptionRemovalRequest, $"Processed removing Twin desired properties subscription for {handler.ClientId} on request {correlationId}");
+            }
+
+            public static void ProcessedDesiredPropertyUpdatesSubscriptionRequest(TwinReceivingLinkHandler handler, string correlationId)
+            {
+                Log.LogDebug((int)EventIds.ProcessedDesiredPropertyUpdatesSubscriptionRequest, $"Processed Twin desired properties subscription for {handler.ClientId} on request {correlationId}");
             }
 
             public static void ProcessedTwinGetRequest(TwinReceivingLinkHandler handler)
@@ -121,26 +143,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             public static void ProcessedTwinReportedPropertiesUpdate(TwinReceivingLinkHandler handler)
             {
                 Log.LogDebug((int)EventIds.ProcessedTwinReportedPropertiesUpdate, $"Processed Twin reported properties update for {handler.ClientId}");
-            }
-
-            public static void InvalidOperation(TwinReceivingLinkHandler handler, string operation)
-            {
-                Log.LogWarning((int)EventIds.InvalidOperation, $"Cannot process message on link {handler.LinkUri} because an invalid operation value '{operation}' was specified in message annotations");
-            }
-
-            public static void InvalidCorrelationId(TwinReceivingLinkHandler handler)
-            {
-                Log.LogWarning((int)EventIds.InvalidOperation, $"Cannot process message on link {handler.LinkUri} because no correlation ID was specified");
-            }
-
-            public static void ProcessedDesiredPropertyUpdatesSubscriptionRequest(TwinReceivingLinkHandler handler, string correlationId)
-            {
-                Log.LogDebug((int)EventIds.ProcessedDesiredPropertyUpdatesSubscriptionRequest, $"Processed Twin desired properties subscription for {handler.ClientId} on request {correlationId}");
-            }
-
-            public static void ProcessedDesiredPropertyUpdatesSubscriptionRemovalRequest(TwinReceivingLinkHandler handler, string correlationId)
-            {
-                Log.LogDebug((int)EventIds.ProcessedDesiredPropertyUpdatesSubscriptionRemovalRequest, $"Processed removing Twin desired properties subscription for {handler.ClientId} on request {correlationId}");
             }
         }
     }

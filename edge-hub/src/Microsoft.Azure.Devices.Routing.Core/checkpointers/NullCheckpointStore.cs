@@ -1,12 +1,11 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
 {
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Routing.Core.Util;
 
     /// <summary>
@@ -15,8 +14,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
     /// </summary>
     public class NullCheckpointStore : ICheckpointStore
     {
-        public static NullCheckpointStore Instance { get; } = new NullCheckpointStore();
-
         readonly Task<CheckpointData> initialCheckpointData;
         readonly Task<IDictionary<string, CheckpointData>> initialCheckpointDataMap;
 
@@ -29,10 +26,21 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
         {
             var data = new CheckpointData(offset);
             this.initialCheckpointData = Task.FromResult(data);
-            this.initialCheckpointDataMap = Task.FromResult(new Dictionary<string, CheckpointData>()
-            {
-                { "NullCheckpoint", data }
-            } as IDictionary<string, CheckpointData>);
+            this.initialCheckpointDataMap = Task.FromResult(
+                new Dictionary<string, CheckpointData>()
+                    {
+                        { "NullCheckpoint", data }
+                    }
+                    as IDictionary<string, CheckpointData>);
+        }
+
+        public static NullCheckpointStore Instance { get; } = new NullCheckpointStore();
+
+        public Task CloseAsync(CancellationToken token) => TaskEx.Done;
+
+        public Task<IDictionary<string, CheckpointData>> GetAllCheckpointDataAsync(CancellationToken token)
+        {
+            return this.initialCheckpointDataMap;
         }
 
         public Task<CheckpointData> GetCheckpointDataAsync(string id, CancellationToken token)
@@ -40,13 +48,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
             return this.initialCheckpointData;
         }
 
-        public Task<IDictionary<string, CheckpointData>> GetAllCheckpointDataAsync(CancellationToken token)
-        {
-            return this.initialCheckpointDataMap;
-        }
-
         public Task SetCheckpointDataAsync(string id, CheckpointData checkpointData, CancellationToken token) => TaskEx.Done;
-
-        public Task CloseAsync(CancellationToken token) => TaskEx.Done;
     }
 }

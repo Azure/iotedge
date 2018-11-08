@@ -1,50 +1,20 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Query
 {
     using System.Diagnostics;
 
     public struct Bool
     {
-        readonly int value;
-
         public static readonly Bool Undefined = new Bool(0);
         public static readonly Bool False = new Bool(-1);
         public static readonly Bool True = new Bool(1);
+        readonly int value;
 
         Bool(int value)
         {
-            Debug.Assert(value >= -1 && value <= 1);
+            Debug.Assert(value >= -1 && value <= 1, "Bool value should be either -1, 0, or 1.");
             this.value = value;
-        }
-
-        public static explicit operator Bool(bool x) => x ? True : False;
-
-        public static implicit operator bool(Bool x) => x.value > 0;
-
-        public static Bool operator ==(Bool x, Bool y)
-        {
-            if (x.value == 0 || y.value == 0)
-            {
-                return Undefined;
-            }
-            return x.value == y.value ? True : False;
-        }
-
-        public static Bool operator !=(Bool x, Bool y)
-        {
-            if (x.value == 0 || y.value == 0)
-            {
-                return Undefined;
-            }
-            return x.value != y.value ? True : False;
-        }
-
-        public static Bool operator !(Bool x)
-        {
-            return x.value == 0 ? Undefined : x.value == -1 ? True : False;
         }
 
         public static Bool operator &(Bool x, Bool y)
@@ -57,6 +27,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
             {
                 return x.value == -1 ? False : Undefined;
             }
+
             return x.value == -1 || y.value == -1 ? False : True;
         }
 
@@ -70,17 +41,47 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
             {
                 return x.value == 1 ? True : Undefined;
             }
+
             return x.value == 1 || y.value == 1 ? True : False;
         }
 
-        public static bool operator true(Bool x) => x.value > 0;
+        public static Bool operator ==(Bool x, Bool y)
+        {
+            if (x.value == 0 || y.value == 0)
+            {
+                return Undefined;
+            }
+
+            return x.value == y.value ? True : False;
+        }
+
+        public static explicit operator Bool(bool x) => x ? True : False;
 
         public static bool operator false(Bool x) => x.value <= 0;
+
+        public static implicit operator bool(Bool x) => x.value > 0;
 
         // Conversions
         public static implicit operator Bool(double x) => Undefined;
 
         public static implicit operator Bool(string x) => Undefined;
+
+        public static Bool operator !=(Bool x, Bool y)
+        {
+            if (x.value == 0 || y.value == 0)
+            {
+                return Undefined;
+            }
+
+            return x.value != y.value ? True : False;
+        }
+
+        public static Bool operator !(Bool x)
+        {
+            return x.value == 0 ? Undefined : x.value == -1 ? True : False;
+        }
+
+        public static bool operator true(Bool x) => x.value > 0;
 
         public int CompareTo(Bool other) => this.value - other.value;
 

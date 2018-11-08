@@ -1,11 +1,10 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
 {
     using System.Linq.Expressions;
     using System.Reflection;
+
     using Microsoft.Azure.Devices.Routing.Core.Query.Types;
 
     public class IsNull : Builtin
@@ -18,18 +17,21 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
                 InputArgs = new Args(typeof(string)),
                 ExecutorFunc = CreateString
             },
+
             // is_null(QueryValue)
             new BuiltinExecutor
             {
                 InputArgs = new Args(typeof(QueryValue)),
                 ExecutorFunc = CreateQueryValue
             },
+
             // is_null(null)
             new BuiltinExecutor
             {
                 InputArgs = new Args(typeof(Null)),
                 ExecutorFunc = (args, contextArgs) => True
             },
+
             // is_null(_)
             new BuiltinExecutor
             {
@@ -38,18 +40,15 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
             },
         };
 
-        static Expression CreateString(Expression[] args, Expression[] contextArgs)
-        {
-            return Expression.Call(typeof(IsNull).GetMethod("RuntimeString", BindingFlags.NonPublic | BindingFlags.Static), args);
-        }
-
         static Expression CreateQueryValue(Expression[] args, Expression[] contextArgs)
         {
             return Expression.Call(typeof(IsNull).GetMethod("RuntimeQueryValue", BindingFlags.NonPublic | BindingFlags.Static), args);
         }
 
-        // ReSharper disable once UnusedMember.Local
-        static Bool RuntimeString(string input) => (Bool)(input == null);
+        static Expression CreateString(Expression[] args, Expression[] contextArgs)
+        {
+            return Expression.Call(typeof(IsNull).GetMethod("RuntimeString", BindingFlags.NonPublic | BindingFlags.Static), args);
+        }
 
         // ReSharper disable once UnusedMember.Local
         static Bool RuntimeQueryValue(QueryValue input)
@@ -61,5 +60,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
 
             return Bool.Undefined;
         }
+
+        // ReSharper disable once UnusedMember.Local
+        static Bool RuntimeString(string input) => (Bool)(input == null);
     }
 }

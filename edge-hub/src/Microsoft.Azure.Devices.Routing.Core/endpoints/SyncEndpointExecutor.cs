@@ -1,18 +1,18 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 {
     using System;
-    using static System.FormattableString;
     using System.Threading;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
     using Microsoft.Extensions.Logging;
+
+    using static System.FormattableString;
 
     public class SyncEndpointExecutor : IEndpointExecutor
     {
@@ -26,10 +26,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
         readonly CancellationTokenSource cts;
         readonly EndpointExecutorFsm machine;
         readonly AsyncLock sync;
-
-        public Endpoint Endpoint => this.machine.Endpoint;
-
-        public EndpointExecutorStatus Status => this.machine.Status;
 
         public SyncEndpointExecutor(Endpoint endpoint, ICheckpointer checkpointer)
             : this(endpoint, checkpointer, DefaultConfig)
@@ -47,6 +43,33 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             this.closed = new AtomicBoolean();
             this.sync = new AsyncLock();
         }
+
+        public Endpoint Endpoint => this.machine.Endpoint;
+
+        public EndpointExecutorStatus Status => this.machine.Status;
+
+        public async Task CloseAsync()
+        {
+            Events.Close(this);
+
+            try
+            {
+                if (!this.closed.GetAndSet(true))
+                {
+                    this.cts.Cancel();
+                    await this.machine.RunAsync(Commands.Close);
+                }
+
+                Events.CloseSuccess(this);
+            }
+            catch (Exception ex)
+            {
+                Events.CloseFailure(this, ex);
+                throw;
+            }
+        }
+
+        public void Dispose() => this.Dispose(true);
 
         public async Task Invoke(IMessage message)
         {
@@ -69,6 +92,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                     await this.machine.RunAsync(command);
                     await command.Completion;
                 }
+
                 Events.InvokeSuccess(this);
             }
             catch (OperationCanceledException) when (this.cts.IsCancellationRequested)
@@ -106,31 +130,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             }
         }
 
-        public async Task CloseAsync()
-        {
-            Events.Close(this);
-
-            try
-            {
-                if (!this.closed.GetAndSet(true))
-                {
-                    this.cts.Cancel();
-                    await this.machine.RunAsync(Commands.Close);
-                }
-                Events.CloseSuccess(this);
-            }
-            catch (Exception ex)
-            {
-                Events.CloseFailure(this, ex);
-                throw;
-            }
-        }
-
-        public void Dispose() => this.Dispose(true);
-
         protected virtual void Dispose(bool disposing)
         {
-            //Debug.Assert(this.closed);
             if (disposing)
             {
                 this.cts.Dispose();
@@ -141,8 +142,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 
         static class Events
         {
-            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<SyncEndpointExecutor>();
             const int IdStart = Routing.EventIds.SyncEndpointExecutor;
+            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<SyncEndpointExecutor>();
 
             enum EventIds
             {
@@ -157,39 +158,14 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                 CloseFailure,
             }
 
-            public static void Invoke(SyncEndpointExecutor executor)
-            {
-                Log.LogDebug((int)EventIds.Invoke, "[Invoke] Invoke began." + GetContextString(executor.Endpoint));
-            }
-
-            public static void InvokeSuccess(SyncEndpointExecutor executor)
-            {
-                Log.LogDebug((int)EventIds.InvokeSuccess, "[InvokeSuccess] Invoke succeeded." + GetContextString(executor.Endpoint));
-            }
-
-            public static void InvokeFailure(SyncEndpointExecutor executor, Exception ex)
-            {
-                Log.LogError((int)EventIds.InvokeFailure, ex, "[InvokeFailure] Invoke failed." + GetContextString(executor.Endpoint));
-            }
-
-            public static void SetEndpoint(SyncEndpointExecutor executor)
-            {
-                Log.LogInformation((int)EventIds.SetEndpoint, "[SetEndpoint] Set endpoint began." + GetContextString(executor.Endpoint));
-            }
-
-            public static void SetEndpointSuccess(SyncEndpointExecutor executor)
-            {
-                Log.LogInformation((int)EventIds.SetEndpointSuccess, "[SetEndpointSuccess] Set endpoint succeeded." + GetContextString(executor.Endpoint));
-            }
-
-            public static void SetEndpointFailure(SyncEndpointExecutor executor, Exception ex)
-            {
-                Log.LogError((int)EventIds.SetEndpointFailure, ex, "[SetEndpointFailure] Set endpoint failed." + GetContextString(executor.Endpoint));
-            }
-
             public static void Close(SyncEndpointExecutor executor)
             {
                 Log.LogInformation((int)EventIds.Close, "[Close] Close began." + GetContextString(executor.Endpoint));
+            }
+
+            public static void CloseFailure(SyncEndpointExecutor executor, Exception ex)
+            {
+                Log.LogError((int)EventIds.CloseFailure, ex, "[CloseFailure] Close failed." + GetContextString(executor.Endpoint));
             }
 
             public static void CloseSuccess(SyncEndpointExecutor executor)
@@ -197,9 +173,34 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                 Log.LogInformation((int)EventIds.CloseSuccess, "[CloseSuccess] Close succeeded." + GetContextString(executor.Endpoint));
             }
 
-            public static void CloseFailure(SyncEndpointExecutor executor, Exception ex)
+            public static void Invoke(SyncEndpointExecutor executor)
             {
-                Log.LogError((int)EventIds.CloseFailure, ex, "[CloseFailure] Close failed." + GetContextString(executor.Endpoint));
+                Log.LogDebug((int)EventIds.Invoke, "[Invoke] Invoke began." + GetContextString(executor.Endpoint));
+            }
+
+            public static void InvokeFailure(SyncEndpointExecutor executor, Exception ex)
+            {
+                Log.LogError((int)EventIds.InvokeFailure, ex, "[InvokeFailure] Invoke failed." + GetContextString(executor.Endpoint));
+            }
+
+            public static void InvokeSuccess(SyncEndpointExecutor executor)
+            {
+                Log.LogDebug((int)EventIds.InvokeSuccess, "[InvokeSuccess] Invoke succeeded." + GetContextString(executor.Endpoint));
+            }
+
+            public static void SetEndpoint(SyncEndpointExecutor executor)
+            {
+                Log.LogInformation((int)EventIds.SetEndpoint, "[SetEndpoint] Set endpoint began." + GetContextString(executor.Endpoint));
+            }
+
+            public static void SetEndpointFailure(SyncEndpointExecutor executor, Exception ex)
+            {
+                Log.LogError((int)EventIds.SetEndpointFailure, ex, "[SetEndpointFailure] Set endpoint failed." + GetContextString(executor.Endpoint));
+            }
+
+            public static void SetEndpointSuccess(SyncEndpointExecutor executor)
+            {
+                Log.LogInformation((int)EventIds.SetEndpointSuccess, "[SetEndpointSuccess] Set endpoint succeeded." + GetContextString(executor.Endpoint));
             }
 
             static string GetContextString(Endpoint endpoint)

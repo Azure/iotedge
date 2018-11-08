@@ -1,15 +1,17 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
 {
     using System;
     using System.Net;
     using System.Net.WebSockets;
     using System.Threading.Tasks;
-    using AspNetCore.Http;
-    using Microsoft.AspNetCore.Builder;
+
+    using Microsoft.AspNetCore.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+
     using static System.FormattableString;
 
     class WebSocketHandlingMiddleware
@@ -65,6 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
             {
                 localEndPoint = Option.Some<EndPoint>(new IPEndPoint(context.Connection.LocalIpAddress, context.Connection.LocalPort));
             }
+
             var remoteEndPoint = new IPEndPoint(context.Connection.RemoteIpAddress, context.Connection.RemotePort);
             await listener.ProcessWebSocketRequestAsync(webSocket, localEndPoint, remoteEndPoint, correlationId);
 
@@ -73,8 +76,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<WebSocketHandlingMiddleware>();
             const int IdStart = HttpEventIds.WebSocketHandlingMiddleware;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<WebSocketHandlingMiddleware>();
 
             enum EventIds
             {
@@ -82,16 +85,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
                 RequestCompleted,
                 BadRequest,
                 SubProtocolSelected
-            }
-
-            public static void WebSocketRequestReceived(string traceId, string correlationId)
-            {
-                Log.LogDebug((int)EventIds.RequestReceived, Invariant($"Request {traceId} received. CorrelationId {correlationId}"));
-            }
-
-            public static void WebSocketSubProtocolSelected(string traceId, string subProtocol, string correlationId)
-            {
-                Log.LogDebug((int)EventIds.SubProtocolSelected, Invariant($"Request {traceId} SubProtocol: {subProtocol} CorrelationId: {correlationId}"));
             }
 
             public static void WebSocketRequestCompleted(string traceId, string correlationId)
@@ -103,14 +96,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
             {
                 Log.LogDebug((int)EventIds.BadRequest, Invariant($"No listener found for request {traceId}. CorrelationId {correlationId}"));
             }
-        }
-    }
 
-    public static class WebSocketHandlingMiddlewareExtensions
-    {
-        public static IApplicationBuilder UseWebSocketHandlingMiddleware(this IApplicationBuilder builder, IWebSocketListenerRegistry webSocketListenerRegistry)
-        {
-            return builder.UseMiddleware<WebSocketHandlingMiddleware>(webSocketListenerRegistry);
+            public static void WebSocketRequestReceived(string traceId, string correlationId)
+            {
+                Log.LogDebug((int)EventIds.RequestReceived, Invariant($"Request {traceId} received. CorrelationId {correlationId}"));
+            }
+
+            public static void WebSocketSubProtocolSelected(string traceId, string subProtocol, string correlationId)
+            {
+                Log.LogDebug((int)EventIds.SubProtocolSelected, Invariant($"Request {traceId} SubProtocol: {subProtocol} CorrelationId: {correlationId}"));
+            }
         }
     }
 }

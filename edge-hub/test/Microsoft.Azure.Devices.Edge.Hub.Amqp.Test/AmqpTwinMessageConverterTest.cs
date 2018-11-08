@@ -1,15 +1,17 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 {
     using System;
     using System.Collections.Generic;
     using System.Text;
+
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Amqp.Framing;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Shared;
+
     using Xunit;
 
     [Unit]
@@ -27,10 +29,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             string correlationId = Guid.NewGuid().ToString();
             byte[] data = Encoding.UTF8.GetBytes(collection.ToJson());
             IMessage message = new EdgeMessage.Builder(data)
-                .SetSystemProperties(new Dictionary<string, string>
-                {
-                    [SystemProperties.CorrelationId] = correlationId
-                })
+                .SetSystemProperties(
+                    new Dictionary<string, string>
+                    {
+                        [SystemProperties.CorrelationId] = correlationId
+                    })
                 .Build();
             IMessageConverter<AmqpMessage> messageConverter = new AmqpTwinMessageConverter();
 

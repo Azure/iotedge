@@ -1,10 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 {
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using System.Threading.Tasks.Dataflow;
+
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Amqp.Framing;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -18,7 +20,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
     {
         readonly ActionBlock<AmqpMessage> sendMessageProcessor;
 
-        protected ReceivingLinkHandler(IReceivingAmqpLink link, Uri requestUri, IDictionary<string, string> boundVariables,
+        protected ReceivingLinkHandler(
+            IReceivingAmqpLink link,
+            Uri requestUri,
+            IDictionary<string, string> boundVariables,
             IMessageConverter<AmqpMessage> messageConverter)
             : base(link, requestUri, boundVariables, messageConverter)
         {
@@ -27,50 +32,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             this.sendMessageProcessor = new ActionBlock<AmqpMessage>(s => this.ProcessMessageAsync(s));
         }
 
-        protected IReceivingAmqpLink ReceivingLink { get; }
-
         protected abstract QualityOfService QualityOfService { get; }
 
-        protected override Task OnOpenAsync(TimeSpan timeout)
-        {
-            switch (this.QualityOfService)
-            {
-                case QualityOfService.ExactlyOnce:
-                    // The receiver will only settle after sending the disposition to the sender and receiving a disposition indicating settlement of the delivery from the sender.
-                    this.ReceivingLink.Settings.RcvSettleMode = (byte)ReceiverSettleMode.Second;
-                    // SenderSettleMode.Unsettled (null as it is the default and to avoid bytes on the wire)
-                    this.ReceivingLink.Settings.SndSettleMode = null;                    
-                    break;
-
-                case QualityOfService.AtLeastOnce:
-                    // The Receiver will spontaneously settle all incoming transfers.
-                    this.ReceivingLink.Settings.RcvSettleMode = null;// Default ReceiverSettleMode.First;
-                    // The Sender will send all deliveries unsettled to the receiver.
-                    this.ReceivingLink.Settings.SndSettleMode = null; // Default SenderSettleMode.Unettled;
-                    break;
-
-                case QualityOfService.AtMostOnce:
-                    // The Receiver will spontaneously settle all incoming transfers.
-                    this.ReceivingLink.Settings.RcvSettleMode = null;// Default ReceiverSettleMode.First;
-                    // The Sender will send all deliveries unsettled to the receiver.
-                    this.ReceivingLink.Settings.SndSettleMode = (byte)SenderSettleMode.Settled;
-                    break;
-            }
-
-            this.ReceivingLink.RegisterMessageListener(m => this.sendMessageProcessor.Post(m));
-            this.ReceivingLink.SafeAddClosed((s, e) => this.OnReceiveLinkClosed()
-                .ContinueWith(t => Events.ErrorClosingLink(t.Exception, this), TaskContinuationOptions.OnlyOnFaulted));
-
-            return Task.CompletedTask;
-        }
-
-        Task OnReceiveLinkClosed()
-        {
-            this.sendMessageProcessor.Complete();
-            return Task.CompletedTask;
-        }
-
-        protected abstract Task OnMessageReceived(AmqpMessage amqpMessage);
+        protected IReceivingAmqpLink ReceivingLink { get; }
 
         internal async Task ProcessMessageAsync(AmqpMessage amqpMessage)
         {
@@ -96,10 +60,55 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             }
         }
 
+        protected abstract Task OnMessageReceived(AmqpMessage amqpMessage);
+
+        protected override Task OnOpenAsync(TimeSpan timeout)
+        {
+            switch (this.QualityOfService)
+            {
+                case QualityOfService.ExactlyOnce:
+                    // The receiver will only settle after sending the disposition to the sender and receiving a disposition indicating settlement of the delivery from the sender.
+                    this.ReceivingLink.Settings.RcvSettleMode = (byte)ReceiverSettleMode.Second;
+
+                    // SenderSettleMode.Unsettled (null as it is the default and to avoid bytes on the wire)
+                    this.ReceivingLink.Settings.SndSettleMode = null;
+                    break;
+
+                case QualityOfService.AtLeastOnce:
+                    // The Receiver will spontaneously settle all incoming transfers.
+                    this.ReceivingLink.Settings.RcvSettleMode = null; // Default ReceiverSettleMode.First;
+
+                    // The Sender will send all deliveries unsettled to the receiver.
+                    this.ReceivingLink.Settings.SndSettleMode = null; // Default SenderSettleMode.Unettled;
+                    break;
+
+                case QualityOfService.AtMostOnce:
+                    // The Receiver will spontaneously settle all incoming transfers.
+                    this.ReceivingLink.Settings.RcvSettleMode = null; // Default ReceiverSettleMode.First;
+
+                    // The Sender will send all deliveries unsettled to the receiver.
+                    this.ReceivingLink.Settings.SndSettleMode = (byte)SenderSettleMode.Settled;
+                    break;
+            }
+
+            this.ReceivingLink.RegisterMessageListener(m => this.sendMessageProcessor.Post(m));
+            this.ReceivingLink.SafeAddClosed(
+                (s, e) => this.OnReceiveLinkClosed()
+                    .ContinueWith(t => Events.ErrorClosingLink(t.Exception, this), TaskContinuationOptions.OnlyOnFaulted));
+
+            return Task.CompletedTask;
+        }
+
+        Task OnReceiveLinkClosed()
+        {
+            this.sendMessageProcessor.Complete();
+            return Task.CompletedTask;
+        }
+
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<ReceivingLinkHandler>();
             const int IdStart = AmqpEventIds.ReceivingLinkHandler;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<ReceivingLinkHandler>();
 
             enum EventIds
             {
@@ -108,14 +117,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
                 ErrorProcessing
             }
 
-            public static void InvalidLinkState(ReceivingLinkHandler handler)
-            {
-                Log.LogWarning((int)EventIds.InvalidLinkState, $"Cannot send messages when link state is {handler.Link.State} for {handler.ClientId}");
-            }
-
             public static void ErrorClosingLink(AggregateException e, ReceivingLinkHandler handler)
             {
                 Log.LogWarning((int)EventIds.ErrorClosing, e, $"Error closing events link for {handler.ClientId}");
+            }
+
+            public static void InvalidLinkState(ReceivingLinkHandler handler)
+            {
+                Log.LogWarning((int)EventIds.InvalidLinkState, $"Cannot send messages when link state is {handler.Link.State} for {handler.ClientId}");
             }
 
             internal static void ErrorProcessingMessage(Exception e, ReceivingLinkHandler handler)

@@ -1,24 +1,25 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 {
     using System;
     using System.Net;
     using System.Net.WebSockets;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Extensions.Logging;
+
     using Microsoft.Azure.Amqp.Transport;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
 
     class AmqpWebSocketListener : TransportListener, IWebSocketListener
     {
-        public string SubProtocol => Constants.WebSocketSubProtocol;
-
         public AmqpWebSocketListener()
             : base(Constants.WebSocketListenerName)
         {
         }
+
+        public string SubProtocol => Constants.WebSocketSubProtocol;
 
         public async Task ProcessWebSocketRequestAsync(WebSocket webSocket, Option<EndPoint> localEndPoint, EndPoint remoteEndPoint, string correlationId)
         {
@@ -35,15 +36,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
                 Events.EstablishedConnection(correlationId);
 
-                transport.Closed += (sender, eventArgs) =>
-                {
-                    taskCompletion.SetResult(true);
-                };
+                transport.Closed += (sender, eventArgs) => { taskCompletion.SetResult(true); };
 
-                //wait until websocket is closed
+                // wait until websocket is closed
                 await taskCompletion.Task;
             }
-            catch (Exception ex) when(!ex.IsFatal())
+            catch (Exception ex) when (!ex.IsFatal())
             {
                 Events.FailedAcceptWebSocket(correlationId, ex);
                 throw;
@@ -52,13 +50,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
         protected override void OnListen()
         {
-            
         }
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<AmqpWebSocketListener>();
             const int IdStart = AmqpEventIds.AmqpWebSocketListener;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<AmqpWebSocketListener>();
 
             enum EventIds
             {
@@ -77,5 +74,4 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             }
         }
     }
-
 }

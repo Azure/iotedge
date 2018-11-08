@@ -1,22 +1,57 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
-    using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Edge.Hub.Core;
-    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.Azure.Devices.Shared;
-    using Moq;
     using System;
     using System.Threading;
     using System.Threading.Tasks;
+
+    using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Shared;
+
+    using Moq;
+
     using Xunit;
 
     [Unit]
     public class DeviceConnectivityManagerTest
     {
+        [Fact]
+        public async Task ConnectivityTestFailedTest()
+        {
+            // Arrange / act
+            var deviceIdentity = Mock.Of<IIdentity>(i => i.Id == "d2");
+            var edgeHubIdentity = Mock.Of<IIdentity>(i => i.Id == "d1/m1");
+            var deviceConnectivityManager = new DeviceConnectivityManager(TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(3), edgeHubIdentity);
+
+            var client = new Mock<IClient>();
+            client.SetupSequence(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
+                .Returns(Task.CompletedTask)
+                .Throws<TimeoutException>()
+                .Returns(Task.CompletedTask)
+                .Throws<TimeoutException>()
+                .Returns(Task.CompletedTask);
+            IClient connectivityAwareClient = new ConnectivityAwareClient(client.Object, deviceConnectivityManager, deviceIdentity);
+            ICloudProxy cloudProxy = new CloudProxy(connectivityAwareClient, Mock.Of<IMessageConverterProvider>(), "d1/m1", null, Mock.Of<ICloudListener>(), TimeSpan.FromHours(1), true);
+            var connectionManager = Mock.Of<IConnectionManager>(c => c.GetCloudConnection("d1/m1") == Task.FromResult(Option.Some(cloudProxy)));
+            deviceConnectivityManager.SetConnectionManager(connectionManager);
+
+            int connected = 0;
+            int disconnected = 0;
+            deviceConnectivityManager.DeviceConnected += (_, __) => Interlocked.Increment(ref connected);
+            deviceConnectivityManager.DeviceDisconnected += (_, __) => Interlocked.Increment(ref disconnected);
+
+            // Assert
+            await Task.Delay(TimeSpan.FromSeconds(15));
+            Assert.Equal(1, connected);
+            Assert.Equal(0, disconnected);
+        }
+
         [Fact]
         public async Task NoEventsTest()
         {
@@ -48,37 +83,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             await Task.Delay(TimeSpan.FromSeconds(4));
             Assert.True(connected);
-        }
-
-        [Fact]
-        public async Task ConnectivityTestFailedTest()
-        {
-            // Arrange / act
-            var deviceIdentity = Mock.Of<IIdentity>(i => i.Id == "d2");
-            var edgeHubIdentity = Mock.Of<IIdentity>(i => i.Id == "d1/m1");
-            var deviceConnectivityManager = new DeviceConnectivityManager(TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(3), edgeHubIdentity);
-
-            var client = new Mock<IClient>();
-            client.SetupSequence(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
-                .Returns(Task.CompletedTask)
-                .Throws<TimeoutException>()
-                .Returns(Task.CompletedTask)
-                .Throws<TimeoutException>()
-                .Returns(Task.CompletedTask);
-            IClient connectivityAwareClient = new ConnectivityAwareClient(client.Object, deviceConnectivityManager, deviceIdentity);
-            ICloudProxy cloudProxy = new CloudProxy(connectivityAwareClient, Mock.Of<IMessageConverterProvider>(), "d1/m1", null, Mock.Of<ICloudListener>(), TimeSpan.FromHours(1), true);
-            var connectionManager = Mock.Of<IConnectionManager>(c => c.GetCloudConnection("d1/m1") == Task.FromResult(Option.Some(cloudProxy)));
-            deviceConnectivityManager.SetConnectionManager(connectionManager);
-
-            int connected = 0;
-            int disconnected = 0;
-            deviceConnectivityManager.DeviceConnected += (_, __) => Interlocked.Increment(ref connected);
-            deviceConnectivityManager.DeviceDisconnected += (_, __) => Interlocked.Increment(ref disconnected);
-
-            // Assert
-            await Task.Delay(TimeSpan.FromSeconds(15));
-            Assert.Equal(1, connected);
-            Assert.Equal(0, disconnected);
         }
 
         [Fact]
@@ -168,6 +172,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                         catch (TimeoutException)
                         {
                         }
+
                         if (!cts2.IsCancellationRequested)
                         {
                             await Task.Delay(TimeSpan.FromSeconds(1));
@@ -193,7 +198,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             edgeHubUnderlyingClient.Verify(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()), Times.Once);
             Assert.Equal(6, connectedCallbackCount);
             Assert.Equal(3, disconnectedCallbackCount);
-
         }
     }
 }

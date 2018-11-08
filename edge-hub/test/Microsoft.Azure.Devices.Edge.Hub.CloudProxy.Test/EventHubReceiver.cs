@@ -1,10 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.EventHubs;
 
     public class EventHubReceiver
@@ -16,6 +17,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             this.eventHubClient = EventHubClient.CreateFromConnectionString(eventHubConnectionString);
         }
 
+        public async Task Close()
+        {
+            await this.eventHubClient.CloseAsync();
+        }
+
         public async Task<IList<EventData>> GetMessagesFromAllPartitions(DateTime startTime, int maxPerPartition = 10, int waitTimeSecs = 5)
         {
             var messages = new List<EventData>();
@@ -23,9 +29,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             foreach (string partition in rtInfo.PartitionIds)
             {
                 PartitionReceiver partitionReceiver = this.eventHubClient.CreateReceiver(
-                        PartitionReceiver.DefaultConsumerGroupName,
-                        partition,
-                        startTime);
+                    PartitionReceiver.DefaultConsumerGroupName,
+                    partition,
+                    startTime);
 
                 // Retry a few times to make sure we get all expected messages.
                 for (int i = 0; i < 3; i++)
@@ -41,14 +47,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                         await Task.Delay(TimeSpan.FromSeconds(5));
                     }
                 }
+
                 await partitionReceiver.CloseAsync();
             }
-            return messages;
-        }
 
-        public async Task Close()
-        {
-            await this.eventHubClient.CloseAsync();
+            return messages;
         }
     }
 }

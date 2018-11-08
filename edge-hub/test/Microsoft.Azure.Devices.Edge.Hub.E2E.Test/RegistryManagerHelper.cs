@@ -1,9 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
     using System;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Shared;
 
@@ -13,11 +14,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         {
             string deviceName = devicePrefix + Guid.NewGuid();
             var device = new Device(deviceName)
-            {                
+            {
                 Authentication = new AuthenticationMechanism() { Type = AuthenticationType.Sas }
             };
 
-            if(iotEdgeCapable)
+            if (iotEdgeCapable)
             {
                 device.Capabilities = new DeviceCapabilities { IotEdge = true };
             }
@@ -43,19 +44,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             return moduleConnectionString;
         }
 
-        static string GetDeviceConnectionString(Device device, string hostName, bool appendGatewayHostName = true)
-        {            
-            string connectionString = $"HostName={hostName};DeviceId={device.Id};SharedAccessKey={device.Authentication.SymmetricKey.PrimaryKey}";
-            if(appendGatewayHostName)
-            {
-                string gatewayHostname = ConfigHelper.TestConfig["GatewayHostname"];
-                connectionString = $"{connectionString};GatewayHostName={gatewayHostname}";
-            }
-            return connectionString;
-        }
-
         public static string GetModuleConnectionString(Module module, string hostName)
         {
+            string gatewayHostname = ConfigHelper.TestConfig["GatewayHostname"];
+            return $"HostName={hostName};DeviceId={module.DeviceId};ModuleId={module.Id};SharedAccessKey={module.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={gatewayHostname}";
+        }
+
+        public static async Task<string> GetOrCreateModule(RegistryManager registryManager, string hostName, string deviceId, string moduleId)
+        {
+            Module module = await registryManager.GetModuleAsync(deviceId, moduleId);
+            if (module == null)
+            {
+                module = await registryManager.AddModuleAsync(new Module(deviceId, moduleId));
+            }
+
             string gatewayHostname = ConfigHelper.TestConfig["GatewayHostname"];
             return $"HostName={hostName};DeviceId={module.DeviceId};ModuleId={module.Id};SharedAccessKey={module.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={gatewayHostname}";
         }
@@ -69,16 +71,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             }
         }
 
-        public static async Task<string> GetOrCreateModule(RegistryManager registryManager, string hostName, string deviceId, string moduleId)
+        static string GetDeviceConnectionString(Device device, string hostName, bool appendGatewayHostName = true)
         {
-            Module module = await registryManager.GetModuleAsync(deviceId, moduleId);
-            if (module == null)
+            string connectionString = $"HostName={hostName};DeviceId={device.Id};SharedAccessKey={device.Authentication.SymmetricKey.PrimaryKey}";
+            if (appendGatewayHostName)
             {
-                module = await registryManager.AddModuleAsync(new Module(deviceId, moduleId));
+                string gatewayHostname = ConfigHelper.TestConfig["GatewayHostname"];
+                connectionString = $"{connectionString};GatewayHostName={gatewayHostname}";
             }
 
-            string gatewayHostname = ConfigHelper.TestConfig["GatewayHostname"];
-            return $"HostName={hostName};DeviceId={module.DeviceId};ModuleId={module.Id};SharedAccessKey={module.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={gatewayHostname}";
+            return connectionString;
         }
     }
 }

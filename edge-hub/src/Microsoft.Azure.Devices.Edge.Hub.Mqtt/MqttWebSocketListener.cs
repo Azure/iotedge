@@ -1,23 +1,27 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
     using System;
     using System.Net;
     using System.Net.WebSockets;
     using System.Threading.Tasks;
+
     using DotNetty.Buffers;
     using DotNetty.Codecs.Mqtt;
     using DotNetty.Transport.Channels;
+
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.ProtocolGateway.Identity;
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt;
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt.Persistence;
     using Microsoft.Extensions.Logging;
+
     using static System.FormattableString;
 
     class MqttWebSocketListener : IWebSocketListener
-    { 
+    {
         readonly Settings settings;
         readonly MessagingBridgeFactoryFunc messagingBridgeFactoryFunc;
         readonly IDeviceIdentityProvider identityProvider;
@@ -35,8 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             IEventLoopGroup workerGroup,
             IByteBufferAllocator byteBufferAllocator,
             bool autoRead,
-            int mqttDecoderMaxMessageSize
-            )
+            int mqttDecoderMaxMessageSize)
         {
             this.settings = Preconditions.CheckNotNull(settings, nameof(settings));
             this.messagingBridgeFactoryFunc = Preconditions.CheckNotNull(messagingBridgeFactoryFunc, nameof(messagingBridgeFactoryFunc));
@@ -54,10 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         {
             try
             {
-                var serverChannel = new ServerWebSocketChannel(
-                    webSocket,
-                    remoteEndPoint
-                );
+                var serverChannel = new ServerWebSocketChannel(webSocket, remoteEndPoint);
 
                 serverChannel
                     .Option(ChannelOption.Allocator, this.byteBufferAllocator)
@@ -78,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
                 Events.Established(correlationId);
 
-                await serverChannel.WebSocketClosed.Task;  // This will wait until the websocket is closed 
+                await serverChannel.WebSocketClosed.Task; // This will wait until the websocket is closed
             }
             catch (Exception ex) when (!ex.IsFatal())
             {
@@ -89,8 +89,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<MqttWebSocketListener>();
             const int IdStart = MqttEventIds.MqttWebSocketListener;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<MqttWebSocketListener>();
 
             enum EventIds
             {
@@ -100,12 +100,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
             public static void Established(string correlationId)
             {
-                Log.LogInformation((int)Events.EventIds.Established, Invariant($"CorrelationId {correlationId}"));
+                Log.LogInformation((int)EventIds.Established, Invariant($"CorrelationId {correlationId}"));
             }
 
             public static void Exception(string correlationId, Exception ex)
             {
-                Log.LogWarning((int)Events.EventIds.Exception, ex, Invariant($"CorrelationId {correlationId}"));
+                Log.LogWarning((int)EventIds.Exception, ex, Invariant($"CorrelationId {correlationId}"));
             }
         }
     }

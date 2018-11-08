@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System;
@@ -7,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -14,7 +16,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
+
     using Newtonsoft.Json;
+
     using static System.FormattableString;
 
     class CloudProxy : ICloudProxy
@@ -28,7 +32,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly ResettableTimer timer;
         readonly bool closeOnIdleTimeout;
 
-        public CloudProxy(IClient client,
+        public CloudProxy(
+            IClient client,
             IMessageConverterProvider messageConverterProvider,
             string clientId,
             Action<string, CloudConnectionStatus> connectionStatusChangedHandler,
@@ -47,18 +52,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 this.connectionStatusChangedHandler = connectionStatusChangedHandler;
             }
+
             Events.Initialized(this);
-        }
-
-        Task HandleIdleTimeout()
-        {
-            if (this.closeOnIdleTimeout)
-            {
-                Events.TimedOutClosing(this);
-                return this.CloseAsync();
-            }
-
-            return Task.CompletedTask;
         }
 
         public bool IsActive => this.client.IsActive;
@@ -91,6 +86,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
+        public async Task<IMessage> GetTwinAsync()
+        {
+            this.timer.Reset();
+            Twin twin = await this.client.GetTwinAsync();
+            Events.GetTwin(this);
+            IMessageConverter<Twin> converter = this.messageConverterProvider.Get<Twin>();
+            return converter.ToMessage(twin);
+        }
+
         public async Task<bool> OpenAsync()
         {
             try
@@ -106,13 +110,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        public async Task<IMessage> GetTwinAsync()
+        public Task RemoveCallMethodAsync() =>
+            this.EnsureCloudReceiver(nameof(this.RemoveCallMethodAsync)) ? this.cloudReceiver.RemoveCallMethodAsync() : Task.CompletedTask;
+
+        public Task RemoveDesiredPropertyUpdatesAsync() =>
+            this.EnsureCloudReceiver(nameof(this.RemoveDesiredPropertyUpdatesAsync)) ? this.cloudReceiver.RemoveDesiredPropertyUpdatesAsync() : Task.CompletedTask;
+
+        public Task SendFeedbackMessageAsync(string messageId, FeedbackStatus feedbackStatus)
         {
+            Preconditions.CheckNonWhiteSpace(messageId, nameof(messageId));
+            Events.SendFeedbackMessage(this);
             this.timer.Reset();
-            Twin twin = await this.client.GetTwinAsync();
-            Events.GetTwin(this);
-            IMessageConverter<Twin> converter = this.messageConverterProvider.Get<Twin>();
-            return converter.ToMessage(twin);
+            switch (feedbackStatus)
+            {
+                case FeedbackStatus.Complete:
+                    return this.client.CompleteAsync(messageId);
+                case FeedbackStatus.Abandon:
+                    return this.client.AbandonAsync(messageId);
+                case FeedbackStatus.Reject:
+                    return this.client.RejectAsync(messageId);
+                default:
+                    throw new InvalidOperationException("Feedback status type is not supported");
+            }
         }
 
         public async Task SendMessageAsync(IMessage inputMessage)
@@ -153,44 +172,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        public async Task UpdateReportedPropertiesAsync(IMessage reportedPropertiesMessage)
-        {
-            string reportedPropertiesString = Encoding.UTF8.GetString(reportedPropertiesMessage.Body);
-            var reported = JsonConvert.DeserializeObject<TwinCollection>(reportedPropertiesString);
-            this.timer.Reset();
-            await this.client.UpdateReportedPropertiesAsync(reported);
-            Events.UpdateReportedProperties(this);
-        }
-
-        public Task SendFeedbackMessageAsync(string messageId, FeedbackStatus feedbackStatus)
-        {
-            Preconditions.CheckNonWhiteSpace(messageId, nameof(messageId));
-            Events.SendFeedbackMessage(this);
-            this.timer.Reset();
-            switch (feedbackStatus)
-            {
-                case FeedbackStatus.Complete:
-                    return this.client.CompleteAsync(messageId);
-                case FeedbackStatus.Abandon:
-                    return this.client.AbandonAsync(messageId);
-                case FeedbackStatus.Reject:
-                    return this.client.RejectAsync(messageId);
-                default:
-                    throw new InvalidOperationException("Feedback status type is not supported");
-            }
-        }
-
         public Task SetupCallMethodAsync() =>
             this.EnsureCloudReceiver(nameof(this.SetupCallMethodAsync)) ? this.cloudReceiver.SetupCallMethodAsync() : Task.CompletedTask;
 
-        public Task RemoveCallMethodAsync() =>
-            this.EnsureCloudReceiver(nameof(this.RemoveCallMethodAsync)) ? this.cloudReceiver.RemoveCallMethodAsync() : Task.CompletedTask;
-
         public Task SetupDesiredPropertyUpdatesAsync() =>
             this.EnsureCloudReceiver(nameof(this.SetupDesiredPropertyUpdatesAsync)) ? this.cloudReceiver.SetupDesiredPropertyUpdatesAsync() : Task.CompletedTask;
-
-        public Task RemoveDesiredPropertyUpdatesAsync() =>
-            this.EnsureCloudReceiver(nameof(this.RemoveDesiredPropertyUpdatesAsync)) ? this.cloudReceiver.RemoveDesiredPropertyUpdatesAsync() : Task.CompletedTask;
 
         public void StartListening()
         {
@@ -198,6 +184,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 this.cloudReceiver.StartListening();
             }
+        }
+
+        public async Task UpdateReportedPropertiesAsync(IMessage reportedPropertiesMessage)
+        {
+            string reportedPropertiesString = Encoding.UTF8.GetString(reportedPropertiesMessage.Body);
+            var reported = JsonConvert.DeserializeObject<TwinCollection>(reportedPropertiesString);
+            this.timer.Reset();
+            await this.client.UpdateReportedPropertiesAsync(reported);
+            Events.UpdateReportedProperties(this);
         }
 
         // This API is to be used for Tests only.
@@ -210,6 +205,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Events.CloudReceiverNull(this.clientId, operation);
                 return false;
             }
+
             this.timer.Disable();
             return true;
         }
@@ -227,6 +223,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 Events.ExceptionInHandleException(this, ex, e);
             }
+
+            return Task.CompletedTask;
+        }
+
+        Task HandleIdleTimeout()
+        {
+            if (this.closeOnIdleTimeout)
+            {
+                Events.TimedOutClosing(this);
+                return this.CloseAsync();
+            }
+
             return Task.CompletedTask;
         }
 
@@ -241,6 +249,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             // IotHub has max timeout set to 5 minutes, add 30 seconds to make sure it doesn't timeout before IotHub
             static readonly TimeSpan DeviceMethodMaxResponseTimeout = TimeSpan.FromSeconds(5 * 60 + 30);
+
             // Timeout for receive message because the default timeout is too long (4 minutes) for the case when the connection is closed
             static readonly TimeSpan ReceiveC2DMessageTimeout = TimeSpan.FromSeconds(20);
 
@@ -250,8 +259,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 this.cloudListener = Preconditions.CheckNotNull(cloudListener, nameof(cloudListener));
                 IMessageConverter<TwinCollection> converter = cloudProxy.messageConverterProvider.Get<TwinCollection>();
                 this.desiredUpdateHandler = new DesiredPropertyUpdateHandler(cloudListener, converter, cloudProxy);
-
             }
+
+            public Task CloseAsync()
+            {
+                Events.Closing(this.cloudProxy);
+                this.cancellationTokenSource.Cancel();
+                return this.receiveMessageTask.GetOrElse(Task.CompletedTask);
+            }
+
+            public Task RemoveCallMethodAsync() => this.cloudProxy.client.SetMethodDefaultHandlerAsync(null, null);
+
+            public Task RemoveDesiredPropertyUpdatesAsync()
+            {
+                // return this.deviceClient.SetDesiredPropertyUpdateCallback(null, null);
+                // TODO: update device SDK to unregister callback for desired properties by passing null
+                return Task.CompletedTask;
+            }
+
+            public Task SetupCallMethodAsync() => this.cloudProxy.client.SetMethodDefaultHandlerAsync(this.MethodCallHandler, null);
+
+            public Task SetupDesiredPropertyUpdatesAsync() => this.cloudProxy.client.SetDesiredPropertyUpdateCallbackAsync(OnDesiredPropertyUpdates, this.desiredUpdateHandler);
 
             public void StartListening()
             {
@@ -266,7 +294,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         }
                     }
                 }
+            }
 
+            internal async Task<MethodResponse> MethodCallHandler(MethodRequest methodrequest, object usercontext)
+            {
+                Preconditions.CheckNotNull(methodrequest, nameof(methodrequest));
+
+                Events.MethodCallReceived(this.cloudProxy.clientId);
+                var direceMethodRequest = new DirectMethodRequest(this.cloudProxy.clientId, methodrequest.Name, methodrequest.Data, DeviceMethodMaxResponseTimeout);
+                DirectMethodResponse directMethodResponse = await this.cloudListener.CallMethodAsync(direceMethodRequest);
+                MethodResponse methodResponse = directMethodResponse.Data == null ? new MethodResponse(directMethodResponse.Status) : new MethodResponse(directMethodResponse.Data, directMethodResponse.Status);
+                return methodResponse;
+            }
+
+            static Task OnDesiredPropertyUpdates(TwinCollection desiredProperties, object userContext)
+            {
+                var handler = (DesiredPropertyUpdateHandler)userContext;
+                return handler.OnDesiredPropertyUpdates(desiredProperties);
             }
 
             async Task C2DMessagesLoop(IClient deviceClient)
@@ -284,6 +328,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                                 Events.MessageReceived(this.cloudProxy.clientId);
                                 IMessageConverter<Message> converter = this.cloudProxy.messageConverterProvider.Get<Message>();
                                 IMessage message = converter.ToMessage(clientMessage);
+
                                 // TODO: check if message delivery count exceeds the limit?
                                 await this.cloudListener.ProcessMessageAsync(message);
                             }
@@ -300,6 +345,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                             Events.ErrorReceivingMessage(this.cloudProxy, e);
                         }
                     }
+
                     Events.ReceiverStopped(this.cloudProxy);
                 }
                 catch (Exception ex)
@@ -312,43 +358,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 {
                     clientMessage?.Dispose();
                 }
-            }
-
-            public Task CloseAsync()
-            {
-                Events.Closing(this.cloudProxy);
-                this.cancellationTokenSource.Cancel();
-                return this.receiveMessageTask.GetOrElse(Task.CompletedTask);
-            }
-
-            public Task SetupCallMethodAsync() => this.cloudProxy.client.SetMethodDefaultHandlerAsync(this.MethodCallHandler, null);
-
-            public Task RemoveCallMethodAsync() => this.cloudProxy.client.SetMethodDefaultHandlerAsync(null, null);
-
-            internal async Task<MethodResponse> MethodCallHandler(MethodRequest methodrequest, object usercontext)
-            {
-                Preconditions.CheckNotNull(methodrequest, nameof(methodrequest));
-
-                Events.MethodCallReceived(this.cloudProxy.clientId);
-                var direceMethodRequest = new Core.DirectMethodRequest(this.cloudProxy.clientId, methodrequest.Name, methodrequest.Data, DeviceMethodMaxResponseTimeout);
-                DirectMethodResponse directMethodResponse = await this.cloudListener.CallMethodAsync(direceMethodRequest);
-                MethodResponse methodResponse = directMethodResponse.Data == null ? new MethodResponse(directMethodResponse.Status) : new MethodResponse(directMethodResponse.Data, directMethodResponse.Status);
-                return methodResponse;
-            }
-
-            public Task SetupDesiredPropertyUpdatesAsync() => this.cloudProxy.client.SetDesiredPropertyUpdateCallbackAsync(OnDesiredPropertyUpdates, this.desiredUpdateHandler);
-
-            public Task RemoveDesiredPropertyUpdatesAsync()
-            {
-                // return this.deviceClient.SetDesiredPropertyUpdateCallback(null, null);
-                // TODO: update device SDK to unregister callback for desired properties by passing null
-                return Task.CompletedTask;
-            }
-
-            static Task OnDesiredPropertyUpdates(TwinCollection desiredProperties, object userContext)
-            {
-                var handler = (DesiredPropertyUpdateHandler)userContext;
-                return handler.OnDesiredPropertyUpdates(desiredProperties);
             }
 
             class DesiredPropertyUpdateHandler
@@ -409,84 +418,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Log.LogInformation((int)EventIds.Close, Invariant($"Closed cloud proxy {cloudProxy.id} for {cloudProxy.clientId}"));
             }
 
-            public static void ErrorClosing(CloudProxy cloudProxy, Exception ex)
-            {
-                Log.LogError((int)EventIds.CloseError, ex, Invariant($"Error closing cloud proxy {cloudProxy.id} for device {cloudProxy.clientId}"));
-            }
-
-            public static void GetTwin(CloudProxy cloudProxy)
-            {
-                Log.LogDebug((int)EventIds.GetTwin, Invariant($"Getting twin for device {cloudProxy.clientId}"));
-            }
-
-            public static void SendMessage(CloudProxy cloudProxy)
-            {
-                Log.LogDebug((int)EventIds.SendMessage, Invariant($"Sending message for device {cloudProxy.clientId}"));
-            }
-
-            public static void ErrorSendingMessage(CloudProxy cloudProxy, Exception ex)
-            {
-                Log.LogDebug((int)EventIds.SendMessageError, ex, Invariant($"Error sending message for device {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
-            }
-
-            public static void ErrorSendingBatchMessage(CloudProxy cloudProxy, Exception ex)
-            {
-                Log.LogDebug((int)EventIds.SendMessageBatchError, ex, Invariant($"Error sending message batch for device {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
-            }
-
-            public static void UpdateReportedProperties(CloudProxy cloudProxy)
-            {
-                Log.LogDebug((int)EventIds.UpdateReportedProperties, Invariant($"Updating reported properties for device {cloudProxy.clientId}"));
-            }
-
-            public static void SendFeedbackMessage(CloudProxy cloudProxy)
-            {
-                Log.LogDebug((int)EventIds.SendFeedbackMessage, Invariant($"Sending feedback message for device {cloudProxy.clientId}"));
-            }
-
-            internal static void ExceptionInHandleException(CloudProxy cloudProxy, Exception handlingException, Exception caughtException)
-            {
-                Log.LogDebug((int)EventIds.ExceptionInHandleException, Invariant($"Cloud proxy {cloudProxy.id} got exception {caughtException} while handling exception {handlingException}"));
-            }
-
-            public static void MessageReceived(string clientId)
-            {
-                Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received message from cloud for device {clientId}"));
-            }
-
             public static void Closing(CloudProxy cloudProxy)
             {
                 Log.LogInformation((int)EventIds.ClosingReceiver, Invariant($"Closing receiver in cloud proxy {cloudProxy.id} for {cloudProxy.clientId}"));
             }
 
-            public static void ErrorReceivingMessage(CloudProxy cloudProxy, Exception ex)
+            public static void ErrorClosing(CloudProxy cloudProxy, Exception ex)
             {
-                Log.LogDebug((int)EventIds.ReceiveError, ex, Invariant($"Error receiving message for device {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
+                Log.LogError((int)EventIds.CloseError, ex, Invariant($"Error closing cloud proxy {cloudProxy.id} for device {cloudProxy.clientId}"));
             }
 
-            public static void ReceiverStopped(CloudProxy cloudProxy)
+            public static void ErrorClosingClient(string clientId, Exception ex)
             {
-                Log.LogInformation((int)EventIds.ReceiverStopped, Invariant($"Cloud message receiver stopped for device {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
-            }
-
-            public static void MethodCallReceived(string clientId)
-            {
-                Log.LogDebug((int)EventIds.MethodReceived, Invariant($"Received call method from cloud for device {clientId}"));
-            }
-
-            public static void StartListening(string clientId)
-            {
-                Log.LogInformation((int)EventIds.StartListening, Invariant($"Start listening for C2D messages for device {clientId}"));
-            }
-
-            internal static void TerminatingErrorReceivingMessage(CloudProxy cloudProxy, Exception e)
-            {
-                Log.LogInformation((int)EventIds.ReceiveError, e, Invariant($"Error receiving C2D messages for device {cloudProxy.clientId} in cloud proxy {cloudProxy.id}. Closing receive loop."));
-            }
-
-            internal static void CloudReceiverNull(string clientId, string operation)
-            {
-                Log.LogWarning((int)EventIds.CloudReceiverNull, Invariant($"Cannot complete operation {operation} for device {clientId} because cloud receiver is null"));
+                Log.LogDebug((int)EventIds.ErrorClosingClient, ex, Invariant($"Error closing client for {clientId}"));
             }
 
             public static void ErrorOpening(string clientId, Exception ex)
@@ -494,9 +438,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Log.LogWarning((int)EventIds.ErrorOpening, ex, Invariant($"Error opening IotHub connection for device {clientId}"));
             }
 
-            public static void TimedOutClosing(CloudProxy cloudProxy)
+            public static void ErrorReceivingMessage(CloudProxy cloudProxy, Exception ex)
             {
-                Log.LogInformation((int)EventIds.TimedOutClosing, Invariant($"Closing cloud proxy {cloudProxy.id} for {cloudProxy.clientId} because of inactivity"));
+                Log.LogDebug((int)EventIds.ReceiveError, ex, Invariant($"Error receiving message for device {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
+            }
+
+            public static void ErrorSendingBatchMessage(CloudProxy cloudProxy, Exception ex)
+            {
+                Log.LogDebug((int)EventIds.SendMessageBatchError, ex, Invariant($"Error sending message batch for device {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
+            }
+
+            public static void ErrorSendingMessage(CloudProxy cloudProxy, Exception ex)
+            {
+                Log.LogDebug((int)EventIds.SendMessageError, ex, Invariant($"Error sending message for device {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
+            }
+
+            public static void GetTwin(CloudProxy cloudProxy)
+            {
+                Log.LogDebug((int)EventIds.GetTwin, Invariant($"Getting twin for device {cloudProxy.clientId}"));
             }
 
             public static void Initialized(CloudProxy cloudProxy)
@@ -504,9 +463,59 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Log.LogInformation((int)EventIds.Initialized, Invariant($"Initialized cloud proxy {cloudProxy.id} for {cloudProxy.clientId}"));
             }
 
-            public static void ErrorClosingClient(string clientId, Exception ex)
+            public static void MessageReceived(string clientId)
             {
-                Log.LogDebug((int)EventIds.ErrorClosingClient, ex, Invariant($"Error closing client for {clientId}"));
+                Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received message from cloud for device {clientId}"));
+            }
+
+            public static void MethodCallReceived(string clientId)
+            {
+                Log.LogDebug((int)EventIds.MethodReceived, Invariant($"Received call method from cloud for device {clientId}"));
+            }
+
+            public static void ReceiverStopped(CloudProxy cloudProxy)
+            {
+                Log.LogInformation((int)EventIds.ReceiverStopped, Invariant($"Cloud message receiver stopped for device {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
+            }
+
+            public static void SendFeedbackMessage(CloudProxy cloudProxy)
+            {
+                Log.LogDebug((int)EventIds.SendFeedbackMessage, Invariant($"Sending feedback message for device {cloudProxy.clientId}"));
+            }
+
+            public static void SendMessage(CloudProxy cloudProxy)
+            {
+                Log.LogDebug((int)EventIds.SendMessage, Invariant($"Sending message for device {cloudProxy.clientId}"));
+            }
+
+            public static void StartListening(string clientId)
+            {
+                Log.LogInformation((int)EventIds.StartListening, Invariant($"Start listening for C2D messages for device {clientId}"));
+            }
+
+            public static void TimedOutClosing(CloudProxy cloudProxy)
+            {
+                Log.LogInformation((int)EventIds.TimedOutClosing, Invariant($"Closing cloud proxy {cloudProxy.id} for {cloudProxy.clientId} because of inactivity"));
+            }
+
+            public static void UpdateReportedProperties(CloudProxy cloudProxy)
+            {
+                Log.LogDebug((int)EventIds.UpdateReportedProperties, Invariant($"Updating reported properties for device {cloudProxy.clientId}"));
+            }
+
+            internal static void CloudReceiverNull(string clientId, string operation)
+            {
+                Log.LogWarning((int)EventIds.CloudReceiverNull, Invariant($"Cannot complete operation {operation} for device {clientId} because cloud receiver is null"));
+            }
+
+            internal static void ExceptionInHandleException(CloudProxy cloudProxy, Exception handlingException, Exception caughtException)
+            {
+                Log.LogDebug((int)EventIds.ExceptionInHandleException, Invariant($"Cloud proxy {cloudProxy.id} got exception {caughtException} while handling exception {handlingException}"));
+            }
+
+            internal static void TerminatingErrorReceivingMessage(CloudProxy cloudProxy, Exception e)
+            {
+                Log.LogInformation((int)EventIds.ReceiveError, e, Invariant($"Error receiving C2D messages for device {cloudProxy.clientId} in cloud proxy {cloudProxy.id}. Closing receive loop."));
             }
         }
     }

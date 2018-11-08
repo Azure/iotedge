@@ -1,7 +1,5 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Test
 {
     using Autofac;
@@ -22,29 +20,32 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         protected override void Load(ContainerBuilder builder)
         {
             // IRoutingPerfCounter
-            builder.Register(c =>
-                {
-                    Routing.PerfCounter = NullRoutingPerfCounter.Instance;
-                    return Routing.PerfCounter;
-                })
+            builder.Register(
+                    c =>
+                    {
+                        Routing.PerfCounter = NullRoutingPerfCounter.Instance;
+                        return Routing.PerfCounter;
+                    })
                 .As<IRoutingPerfCounter>()
                 .SingleInstance();
 
             // IRoutingUserMetricLogger
-            builder.Register(c =>
-                {
-                    Routing.UserMetricLogger = NullRoutingUserMetricLogger.Instance;
-                    return Routing.UserMetricLogger;
-                })
+            builder.Register(
+                    c =>
+                    {
+                        Routing.UserMetricLogger = NullRoutingUserMetricLogger.Instance;
+                        return Routing.UserMetricLogger;
+                    })
                 .As<IRoutingUserMetricLogger>()
                 .SingleInstance();
 
             // IRoutingUserAnalyticsLogger
-            builder.Register(c =>
-                {
-                    Routing.UserAnalyticsLogger = NullUserAnalyticsLogger.Instance;
-                    return Routing.UserAnalyticsLogger;
-                })
+            builder.Register(
+                    c =>
+                    {
+                        Routing.UserAnalyticsLogger = NullUserAnalyticsLogger.Instance;
+                        return Routing.UserAnalyticsLogger;
+                    })
                 .As<IRoutingUserAnalyticsLogger>()
                 .SingleInstance();
         }

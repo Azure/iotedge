@@ -1,10 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Amqp.Framing;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -19,7 +21,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
     {
         static readonly long MaxBatchedMessageSize = 600 * 1024;
 
-        public EventsLinkHandler(IReceivingAmqpLink link, Uri requestUri, IDictionary<string, string> boundVariables,
+        public EventsLinkHandler(
+            IReceivingAmqpLink link,
+            Uri requestUri,
+            IDictionary<string, string> boundVariables,
             IMessageConverter<AmqpMessage> messageConverter)
             : base(link, requestUri, boundVariables, messageConverter)
         {
@@ -28,6 +33,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
         public override LinkType Type => LinkType.Events;
 
         protected override QualityOfService QualityOfService => QualityOfService.AtLeastOnce;
+
+        internal static IList<AmqpMessage> ExpandBatchedMessage(AmqpMessage message)
+        {
+            var outputMessages = new List<AmqpMessage>();
+
+            if (message.DataBody != null)
+            {
+                foreach (Data data in message.DataBody)
+                {
+                    var payload = (ArraySegment<byte>)data.Value;
+                    AmqpMessage debatchedMessage = AmqpMessage.CreateAmqpStreamMessage(
+                        new BufferListStream(
+                            new List<ArraySegment<byte>>()
+                            {
+                                payload
+                            }));
+                    outputMessages.Add(debatchedMessage);
+                }
+            }
+
+            return outputMessages;
+        }
 
         protected override async Task OnMessageReceived(AmqpMessage amqpMessage)
         {
@@ -74,29 +101,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             }
         }
 
-        internal static IList<AmqpMessage> ExpandBatchedMessage(AmqpMessage message)
-        {
-            var outputMessages = new List<AmqpMessage>();
-
-            if (message.DataBody != null)
-            {
-                foreach (Data data in message.DataBody)
-                {
-                    var payload = (ArraySegment<byte>)data.Value;
-                    AmqpMessage debatchedMessage = AmqpMessage.CreateAmqpStreamMessage(new BufferListStream(new List<ArraySegment<byte>>()
-                    {
-                        payload
-                    }));
-                    outputMessages.Add(debatchedMessage);
-                }
-            }
-
-            return outputMessages;
-        }
-
         void HandleException(Exception ex, AmqpMessage incoming, IList<AmqpMessage> outgoing)
         {
-            // Get AmqpException 
+            // Get AmqpException
             AmqpException amqpException = AmqpExceptionsHelper.GetAmqpException(ex);
             var rejected = new Rejected { Error = amqpException.Error };
             ((IReceivingAmqpLink)this.Link).DisposeMessage(incoming, rejected, true, true);
@@ -115,8 +122,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<EventsLinkHandler>();
             const int IdStart = AmqpEventIds.EventsLinkHandler;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<EventsLinkHandler>();
 
             enum EventIds
             {

@@ -1,12 +1,15 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core;
+
     using Xunit;
 
     [Unit]
@@ -15,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         [Fact]
         public void ConstructorHappyPath()
         {
-            // Arrange            
+            // Arrange
             IEnumerable<(string Name, string Value, Route route)> routes = Enumerable.Empty<(string Name, string Value, Route route)>();
             var snfConfig = new StoreAndForwardConfiguration(1000);
 

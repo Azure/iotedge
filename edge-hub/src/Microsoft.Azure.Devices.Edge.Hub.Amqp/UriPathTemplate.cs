@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 {
     using System;
@@ -7,10 +7,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     using System.Diagnostics.Contracts;
     using System.Text;
     using System.Text.RegularExpressions;
+
     using Microsoft.Azure.Devices.Edge.Util;
 
     public class UriPathTemplate
     {
+        public static readonly char[] PathSegmentTerminationCharacters = { PathSeparator };
         const char PathSeparator = '/';
         const char VariableNameValueSeparator = '=';
         const char WildcardCharacter = '*';
@@ -18,8 +20,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         const char VariablePlaceholderEndCharacter = '}';
         const char PeriodCharacter = '.';
         const int EstimatedVariableValueLength = 20;
-
-        public static readonly char[] PathSegmentTerminationCharacters = { PathSeparator };
 
         TemplatePart[] parts;
         int projectedLength;
@@ -47,6 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 {
                     continue;
                 }
+
                 if (result.Length > 0 && result[result.Length - 1] == PathSeparator && partValue[0] == PathSeparator)
                 {
                     result.Append(partValue, 1, partValue.Length - 1);
@@ -56,6 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                     result.Append(partValue);
                 }
             }
+
             return result.ToString();
         }
 
@@ -115,12 +117,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                         {
                             throw new InvalidOperationException("Wildcard variable can only be used at the end of the template.");
                         }
+
                         nameOffset = 1;
                     }
                     else
                     {
                         nameOffset = 0;
                     }
+
                     string varName;
                     if (eqIndex == -1)
                     {
@@ -130,6 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                     {
                         varName = varDefinition.Substring(nameOffset, eqIndex);
                     }
+
                     string varDefaultValue = eqIndex == -1 ? null : varDefinition.Substring(eqIndex + 1);
 
                     if (varStartIndex > index)
@@ -139,6 +144,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                         patternStringBuilder.Append(Regex.Escape(template.Substring(index, partLength)));
                         initialCapacity += partLength;
                     }
+
                     templateParts.Add(new TemplatePart(varName, varDefaultValue));
                     this.variablesName.Add(varName);
                     patternStringBuilder.Append("([^/]*)");
@@ -150,6 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                     int partLength = length - index;
                     string part = template.Substring(index, partLength);
                     templateParts.Add(new TemplatePart(part));
+
                     // don't escape wildcard if it is at the end of the template
                     if (part.EndsWith(WildcardCharacter.ToString()) && index + partLength == length)
                     {
@@ -174,10 +181,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
         struct TemplatePart
         {
-            string VariableName { get; }
-
-            string Value { get; }
-
             public TemplatePart(string value)
             {
                 Preconditions.CheckNotNull(value, nameof(value));
@@ -194,6 +197,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 this.Value = defaultValue;
             }
 
+            string Value { get; }
+
+            string VariableName { get; }
+
             public string Bind(IDictionary<string, string> variables)
             {
                 if (this.VariableName == null)
@@ -204,12 +211,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 {
                     if (!variables.TryGetValue(this.VariableName, out string variableValue))
                     {
-                        if (this.Value == null) // comparison to null is correct. empty string is allowed as a default value.
+                        // comparison to null is correct. empty string is allowed as a default value.
+                        if (this.Value == null)
                         {
                             throw new InvalidOperationException("Variable was not provided and has no default value to fallback to.");
                         }
+
                         return this.Value;
                     }
+
                     return variableValue;
                 }
             }

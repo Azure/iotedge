@@ -1,10 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -35,7 +36,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly bool closeOnIdleTimeout;
         Option<IEdgeHub> edgeHub;
 
-        public CloudConnectionProvider(IMessageConverterProvider messageConverterProvider,
+        public CloudConnectionProvider(
+            IMessageConverterProvider messageConverterProvider,
             int connectionPoolSize,
             IClientProvider clientProvider,
             Option<UpstreamProtocol> upstreamProtocol,
@@ -58,6 +60,35 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public void BindEdgeHub(IEdgeHub edgeHubInstance)
         {
             this.edgeHub = Option.Some(Preconditions.CheckNotNull(edgeHubInstance, nameof(edgeHubInstance)));
+        }
+
+        public async Task<Try<ICloudConnection>> Connect(IClientCredentials identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
+        {
+            Preconditions.CheckNotNull(identity, nameof(identity));
+
+            try
+            {
+                var cloudListener = new CloudListener(this.edgeHub.Expect(() => new InvalidOperationException("EdgeHub reference should not be null")), identity.Identity.Id);
+                var cloudConnection = new CloudConnection(
+                    connectionStatusChangedHandler,
+                    this.transportSettings,
+                    this.messageConverterProvider,
+                    this.clientProvider,
+                    cloudListener,
+                    this.edgeHubTokenProvider,
+                    this.deviceScopeIdentitiesCache,
+                    this.idleTimeout,
+                    this.closeOnIdleTimeout);
+
+                await cloudConnection.CreateOrUpdateAsync(identity);
+                Events.SuccessCreatingCloudConnection(identity.Identity);
+                return Try.Success<ICloudConnection>(cloudConnection);
+            }
+            catch (Exception ex)
+            {
+                Events.ErrorCreatingCloudConnection(identity.Identity, ex);
+                return Try<ICloudConnection>.Failure(ex);
+            }
         }
 
         internal static ITransportSettings[] GetTransportSettings(Option<UpstreamProtocol> upstreamProtocol, int connectionPoolSize)
@@ -96,52 +127,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         }
                     })
                 .GetOrElse(
-                    () => new ITransportSettings[] {
-                            new AmqpTransportSettings(TransportType.Amqp_Tcp_Only)
+                    () => new ITransportSettings[]
+                    {
+                        new AmqpTransportSettings(TransportType.Amqp_Tcp_Only)
+                        {
+                            AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings
                             {
-                                AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings
-                                {
-                                    Pooling = true,
-                                    MaxPoolSize = (uint)connectionPoolSize,
-                                    ConnectionIdleTimeout = MinAmqpConnectionMuxIdleTimeout
-                                }
+                                Pooling = true,
+                                MaxPoolSize = (uint)connectionPoolSize,
+                                ConnectionIdleTimeout = MinAmqpConnectionMuxIdleTimeout
                             }
-                        });
-        }
-
-        public async Task<Try<ICloudConnection>> Connect(IClientCredentials identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
-        {
-            Preconditions.CheckNotNull(identity, nameof(identity));
-
-            try
-            {
-                var cloudListener = new CloudListener(this.edgeHub.Expect(() => new InvalidOperationException("EdgeHub reference should not be null")), identity.Identity.Id);
-                var cloudConnection = new CloudConnection(
-                    connectionStatusChangedHandler,
-                    this.transportSettings,
-                    this.messageConverterProvider,
-                    this.clientProvider,
-                    cloudListener,
-                    this.edgeHubTokenProvider,
-                    this.deviceScopeIdentitiesCache,
-                    this.idleTimeout,
-                    this.closeOnIdleTimeout);
-
-                await cloudConnection.CreateOrUpdateAsync(identity);
-                Events.SuccessCreatingCloudConnection(identity.Identity);
-                return Try.Success<ICloudConnection>(cloudConnection);
-            }
-            catch (Exception ex)
-            {
-                Events.ErrorCreatingCloudConnection(identity.Identity, ex);
-                return Try<ICloudConnection>.Failure(ex);
-            }
+                        }
+                    });
         }
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<CloudConnection>();
             const int IdStart = CloudProxyEventIds.CloudConnectionProvider;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<CloudConnection>();
 
             enum EventIds
             {
@@ -149,14 +152,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 CloudConnectSuccess
             }
 
-            public static void SuccessCreatingCloudConnection(IIdentity identity)
-            {
-                Log.LogInformation((int)EventIds.CloudConnectSuccess, $"Created cloud connection for client {identity.Id}");
-            }
-
             public static void ErrorCreatingCloudConnection(IIdentity identity, Exception exception)
             {
                 Log.LogWarning((int)EventIds.CloudConnectError, exception, $"Error creating cloud connection for client {identity.Id}");
+            }
+
+            public static void SuccessCreatingCloudConnection(IIdentity identity)
+            {
+                Log.LogInformation((int)EventIds.CloudConnectSuccess, $"Created cloud connection for client {identity.Id}");
             }
         }
     }

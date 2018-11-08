@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
 {
     using System;
@@ -7,33 +8,34 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
     using System.Linq.Expressions;
     using System.Threading;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine;
-    using Microsoft.Azure.Devices.Routing.Core.Test.Checkpointers;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
+    using Microsoft.Azure.Devices.Routing.Core.Test.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.Test.Util;
+    using Microsoft.Azure.Devices.Routing.Core.Util;
+
     using Moq;
+
     using Xunit;
 
     [ExcludeFromCodeCoverage]
     public class EndpointExecutorFsmTest : RoutingUnitTestBase
     {
-        static readonly IMessage Message1 = new Message(TelemetryMessageSource.Instance, new byte[] {1, 2, 3, 4}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, 1);
-        static readonly IMessage Message2 = new Message(TelemetryMessageSource.Instance, new byte[] {2, 3, 4, 1}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, 2);
-        static readonly IMessage Message3 = new Message(TelemetryMessageSource.Instance, new byte[] {3, 4, 1, 2}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, 3);
-        static readonly IMessage Message4 = new Message(TelemetryMessageSource.Instance, new byte[] {4, 1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, 4);
+        static readonly IMessage Message1 = new Message(TelemetryMessageSource.Instance, new byte[] { 1, 2, 3, 4 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }, 1);
+        static readonly IMessage Message2 = new Message(TelemetryMessageSource.Instance, new byte[] { 2, 3, 4, 1 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }, 2);
+        static readonly IMessage Message3 = new Message(TelemetryMessageSource.Instance, new byte[] { 3, 4, 1, 2 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }, 3);
+        static readonly IMessage Message4 = new Message(TelemetryMessageSource.Instance, new byte[] { 4, 1, 2, 3 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }, 4);
 
         static readonly RetryStrategy MaxRetryStrategy = new FixedInterval(int.MaxValue, TimeSpan.FromMilliseconds(int.MaxValue));
         static readonly EndpointExecutorConfig MaxConfig = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, MaxRetryStrategy, TimeSpan.FromMinutes(5));
 
-        static IMessage MessageWithOffset(long offset) =>
-            new Message(TelemetryMessageSource.Instance, new byte[] { 1, 2, 3 }, new Dictionary<string, string>(), offset);
-
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestCheckpoint()
         {
             // Test checkpoint
@@ -45,7 +47,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
 
             var machine1 = new EndpointExecutorFsm(endpoint1, checkpointer.Object, MaxConfig);
             await machine1.RunAsync(Commands.SendMessage(Message1, Message2));
-            checkpointer.Verify(c => c.CommitAsync(new [] { Message1, Message2 }, new IMessage[0], Option.None<DateTime>(), Option.None<DateTime>(), It.IsAny<CancellationToken>()), Times.Exactly(1));
+            checkpointer.Verify(c => c.CommitAsync(new[] { Message1, Message2 }, new IMessage[0], Option.None<DateTime>(), Option.None<DateTime>(), It.IsAny<CancellationToken>()), Times.Exactly(1));
             await machine1.CloseAsync();
 
             // Test no checkpoint
@@ -61,7 +63,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             await machine2.CloseAsync();
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestCheckpointAdmit()
         {
             var endpoint = new TestEndpoint("id1");
@@ -88,7 +91,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             }
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestCheckpointDead()
         {
             var endpoint = new FailedEndpoint("id1", new Exception());
@@ -124,7 +128,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             }
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestCheckpointException()
         {
             // Test no throw
@@ -182,7 +187,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             await machine3.CloseAsync();
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestCheckpointPartialFailureToDead()
         {
             var endpoint1 = new PartialFailureEndpoint("id1", new InvalidOperationException("test"));
@@ -206,8 +212,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             }
         }
 
-
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestCheckpointPartialFailureToSuccess()
         {
             var endpoint1 = new PartialFailureEndpoint("id1", new InvalidOperationException("test"));
@@ -229,48 +235,148 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             }
         }
 
-        [Fact, Unit]
-        public async Task TestSetEndpoint()
+        [Fact]
+        [Unit]
+        public async Task TestDead()
         {
-            var endpoint1 = new TestEndpoint("id1");
-            var endpoint2 = new TestEndpoint("id1");
-            var endpoint3 = new TestEndpoint("id3");
+            var endpoint1 = new FailedEndpoint("id1", new Exception("endpoint failed"));
+            var checkpointer = new Mock<ICheckpointer>();
+            checkpointer.Setup(c => c.Admit(It.IsAny<IMessage>())).Returns(true);
+            checkpointer.Setup(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>())).Returns(TaskEx.Done);
 
-            using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), MaxConfig))
+            var retryStrategy = new FixedInterval(5, TimeSpan.FromMinutes(5));
+            var config = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.FromMinutes(5));
+
+            var machine = new EndpointExecutorFsm(endpoint1, checkpointer.Object, config);
+            EndpointExecutorStatus status = machine.Status;
+            Assert.Equal(State.Idle, status.State);
+            Assert.Equal(0, status.RetryAttempts);
+
+            await machine.RunAsync(Commands.SendMessage(Message1));
+            status = machine.Status;
+            Assert.Equal(State.Failing, status.State);
+            Assert.Equal(1, status.RetryAttempts);
+
+            await machine.RunAsync(Commands.Retry);
+            await machine.RunAsync(Commands.Retry);
+            await machine.RunAsync(Commands.Retry);
+            await machine.RunAsync(Commands.Retry);
+
+            // Test no checkpoint
+            checkpointer.Verify(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>()), Times.Never);
+
+            await machine.RunAsync(Commands.Retry);
+
+            checkpointer.Verify(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>()), Times.Exactly(1));
+
+            await machine.RunAsync(Commands.SendMessage(Message1));
+            await machine.RunAsync(Commands.SendMessage(Message2));
+
+            checkpointer.Verify(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>()), Times.Exactly(3));
+
+            await machine.RunAsync(Commands.SendMessage());
+            checkpointer.Verify(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>()), Times.Exactly(4));
+
+            await machine.CloseAsync();
+        }
+
+        [Fact]
+        [Unit]
+        public async Task TestDeadCheckpointException()
+        {
+            // Test operation canceled exception - no throw
+            var endpoint1 = new FailedEndpoint("id2");
+            var checkpointer1 = new Mock<ICheckpointer>();
+            checkpointer1.Setup(c => c.Admit(It.IsAny<IMessage>())).Returns(true);
+            checkpointer1.Setup(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>())).Throws(new OperationCanceledException());
+
+            var retryStrategy = new FixedInterval(1, TimeSpan.FromMilliseconds(int.MaxValue));
+            var config = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.FromMinutes(5));
+
+            using (var machine1 = new EndpointExecutorFsm(endpoint1, checkpointer1.Object, config))
             {
-                await Assert.ThrowsAsync<ArgumentNullException>(() => machine.RunAsync(Commands.UpdateEndpoint(null)));
+                await machine1.RunAsync(Commands.SendMessage(Message1));
+                await machine1.RunAsync(Commands.Retry);
+                Assert.Equal(State.DeadIdle, machine1.Status.State);
+                checkpointer1.Verify(c => c.CommitAsync(new[] { Message1 }, It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>()), Times.Exactly(1));
+                await machine1.CloseAsync();
+            }
 
-                Assert.Equal(new List<Message>(), endpoint1.Processed);
-                Assert.Equal(new List<Message>(), endpoint2.Processed);
-                Assert.Equal(new List<Message>(), endpoint3.Processed);
+            // Test exception throws
+            var endpoint2 = new FailedEndpoint("id2");
+            var checkpointer2 = new Mock<ICheckpointer>();
+            checkpointer2.Setup(c => c.Admit(It.IsAny<IMessage>())).Returns(true);
+            checkpointer2.Setup(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>())).Throws(new Exception());
 
-                await machine.RunAsync(Commands.SendMessage(Message1));
-                await machine.RunAsync(Commands.SendMessage(Message1));
+            var machine2 = new EndpointExecutorFsm(endpoint2, checkpointer2.Object, config);
+            SendMessage command2 = Commands.SendMessage(Message1);
+            await machine2.RunAsync(command2);
+            await machine2.RunAsync(Commands.Retry);
+            await command2.Completion;
+            Assert.Equal(State.DeadIdle, machine2.Status.State);
+            checkpointer2.Verify(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>()), Times.Exactly(1));
 
-                await machine.RunAsync(Commands.UpdateEndpoint(endpoint2));
+            await machine2.RunAsync(Commands.SendMessage(Message1));
+            checkpointer2.Verify(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+            await machine2.CloseAsync();
+        }
 
-                await machine.RunAsync(Commands.SendMessage(Message2));
-                await machine.RunAsync(Commands.SendMessage(Message3));
+        [Fact]
+        [Unit]
+        public async Task TestDeadStatus()
+        {
+            var checkpointerStore = new Mock<ICheckpointStore>();
+            DateTime dateTimeNow = DateTime.UtcNow;
+            checkpointerStore.Setup(c => c.GetCheckpointDataAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(0L));
+            checkpointerStore.Setup(c => c.SetCheckpointDataAsync(It.IsAny<string>(), new CheckpointData(It.IsAny<long>(), Option.Some(dateTimeNow), Option.None<DateTime>()), It.IsAny<CancellationToken>())).Returns(TaskEx.Done);
+            checkpointerStore.Setup(c => c.GetCheckpointDataAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult(new CheckpointData(It.IsAny<long>(), Option.Some(dateTimeNow), Option.None<DateTime>())));
 
-                Assert.Equal(State.Idle, machine.Status.State);
+            var retryStrategy = new FixedInterval(5, TimeSpan.FromMilliseconds(5));
+            var config = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.FromSeconds(5));
 
+            ICheckpointer checkpointer = await Checkpointer.CreateAsync("checkpoint.id1", checkpointerStore.Object);
+
+            var endpoint = new TestEndpoint("endpoint1");
+
+            using (var machine = new EndpointExecutorFsm(endpoint, checkpointer, config))
+            {
+                /*
+                // TODO find a way to test this without a delay
+                //await machine.RunAsync(Commands.SendMessage(Message1));
+                //// checkpoint should have dropped and moved the offset
+                //Assert.Equal(0, endpoint.N); // endpoint should not get the message as it is dead
+                //EndpointExecutorStatus status = machine.Status;
+                //Assert.Equal("endpoint1", status.Id);
+                //Assert.Equal(short.MaxValue, status.RetryAttempts);
+                //Assert.Equal(State.DeadIdle, status.State);
+                //Assert.NotEqual(DateTime.UtcNow, status.LastFailedRevivalTime.GetOrElse(DateTime.MinValue));
+                //Assert.True(DateTime.UtcNow > status.LastFailedRevivalTime.GetOrElse(DateTime.MinValue));
+                //Assert.Equal("checkpoint.id1", status.CheckpointerStatus.Id);
+                //Assert.Equal(1, status.CheckpointerStatus.Offset);
+
+                //await Task.Delay(TimeSpan.FromSeconds(5));
+                //await machine.RunAsync(Commands.SendMessage(Message2));
+
+                // Check with revival now
+                //Assert.Equal(1, endpoint.N); // endpoint gets the message with revival
+                //status = machine.Status;
+                //Assert.Equal("endpoint1", status.Id);
+                //Assert.Equal(0, status.RetryAttempts);
+                //Assert.Equal(State.Idle, status.State);
+                //Assert.Equal(Checkpointer.DateTimeMinValue, status.LastFailedRevivalTime.GetOrElse(Checkpointer.DateTimeMinValue));
+                //Assert.Equal("checkpoint.id1", status.CheckpointerStatus.Id);
+                //Assert.Equal(2, status.CheckpointerStatus.Offset);
+                */
                 await machine.CloseAsync();
-                Assert.Equal(State.Closed, machine.Status.State);
-
-                var expected1 = new List<IMessage> { Message1, Message1 };
-                var expected2 = new List<IMessage> { Message2, Message3 };
-                Assert.Equal(expected1, endpoint1.Processed);
-                Assert.Equal(expected2, endpoint2.Processed);
-                Assert.Equal(new List<IMessage>(), endpoint3.Processed);
-                await Assert.ThrowsAsync<InvalidOperationException>(() => machine.RunAsync(Commands.UpdateEndpoint(endpoint1)));
             }
         }
 
-        [Fact, Unit]
-        public async Task TestFailingEndpoint()
+        [Fact]
+        [Unit]
+        public async Task TestDie()
         {
             var endpoint1 = new FailedEndpoint("id1", new Exception("endpoint failed"));
-            var retryStrategy = new Incremental(int.MaxValue, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+            var retryStrategy = new FixedInterval(5, TimeSpan.FromMilliseconds(5));
             var config = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.FromMinutes(5));
 
             using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), config))
@@ -279,123 +385,69 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
                 Assert.Equal(State.Idle, status.State);
                 Assert.Equal(0, status.RetryAttempts);
 
-                await machine.RunAsync(Commands.SendMessage(Message1));
-                status = machine.Status;
-                Assert.Equal(State.Failing, status.State);
-                Assert.Equal(1, status.RetryAttempts);
-                Assert.Equal(TimeSpan.FromSeconds(1), machine.Status.RetryPeriod);
-
-                for (int i = 2; i < 10; i++)
-                {
-                    await machine.RunAsync(Commands.Retry);
-                    status = machine.Status;
-                    Assert.Equal(State.Failing, status.State);
-                    Assert.Equal(i, status.RetryAttempts);
-                    Assert.Equal(TimeSpan.FromSeconds(i), machine.Status.RetryPeriod);
-                }
-
-                await Assert.ThrowsAsync<InvalidOperationException>(() => machine.RunAsync(Commands.SendMessage(Message2)));
-                await Assert.ThrowsAsync<InvalidOperationException>(() => machine.RunAsync(Commands.Succeed));
-                await Assert.ThrowsAsync<InvalidOperationException>(() => machine.RunAsync(Commands.Fail(TimeSpan.FromMilliseconds(int.MaxValue))));
-
-                await machine.CloseAsync();
-                status = machine.Status;
-                Assert.Equal(State.Closed, status.State);
-            }
-        }
-
-        [Fact, Unit]
-        public async Task TestFailingEndpointUpdate()
-        {
-            var endpoint1 = new FailedEndpoint("id1", new Exception("endpoint failed"));
-            var endpoint2 = new FailedEndpoint("id1", new Exception("endpoint failed"));
-            var endpoint3 = new TestEndpoint("id1");
-
-            using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), MaxConfig))
-            {
-                EndpointExecutorStatus status = machine.Status;
-                Assert.Equal(State.Idle, status.State);
-                Assert.Equal(0, status.RetryAttempts);
-
-                // Send message on failing endpoint
                 SendMessage command = Commands.SendMessage(Message1);
                 await machine.RunAsync(command);
                 status = machine.Status;
                 Assert.Equal(State.Failing, status.State);
                 Assert.Equal(1, status.RetryAttempts);
 
-                // Replace with another failing endpoint
-                // attempts should be reset to zero (and then increment after the retry fails)
-                await machine.RunAsync(Commands.UpdateEndpoint(endpoint2));
-                status = machine.Status;
-                Assert.Equal(State.Failing, status.State);
-                Assert.Equal(1, status.RetryAttempts);
-
-                // Replace with healthy endpoint
-                // Message1 should be delivered and attempts reset
-                await machine.RunAsync(Commands.UpdateEndpoint(endpoint3));
-                status = machine.Status;
+                await machine.RunAsync(Commands.Retry);
+                await machine.RunAsync(Commands.Retry);
+                await machine.RunAsync(Commands.Retry);
+                await machine.RunAsync(Commands.Retry);
+                await machine.RunAsync(Commands.Retry);
 
                 await command.Completion;
 
-                Assert.Equal(State.Idle, status.State);
-                Assert.Equal(0, status.RetryAttempts);
-                Assert.Equal(new List<IMessage> { Message1 }, endpoint3.Processed);
+                status = machine.Status;
+                Assert.Equal(State.DeadIdle, status.State);
+                Assert.Equal(5, status.RetryAttempts);
+                Assert.True(DateTime.Now - status.LastFailedRevivalTime.GetOrElse(DateTime.MinValue) < TimeSpan.FromSeconds(0.5));
+                Assert.True(DateTime.Now - status.UnhealthySince.GetOrElse(DateTime.MinValue) < TimeSpan.FromSeconds(0.5));
 
                 await machine.CloseAsync();
             }
         }
 
-        [Fact, Unit]
-        public async Task TestFailingEndpointClose()
+        [Fact]
+        [Unit]
+        public async Task TestDieToThrow()
         {
             var endpoint1 = new FailedEndpoint("id1", new Exception("endpoint failed"));
+            var retryStrategy = new FixedInterval(5, TimeSpan.FromMinutes(5));
+            var config = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.FromMinutes(5), true);
 
-            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1)))
-            using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), MaxConfig))
+            using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), config))
             {
                 EndpointExecutorStatus status = machine.Status;
                 Assert.Equal(State.Idle, status.State);
                 Assert.Equal(0, status.RetryAttempts);
 
-                // Send message on failing endpoint
                 SendMessage command = Commands.SendMessage(Message1);
                 await machine.RunAsync(command);
                 status = machine.Status;
                 Assert.Equal(State.Failing, status.State);
                 Assert.Equal(1, status.RetryAttempts);
 
-                // Send close command. Should drop message and close
-                await machine.RunAsync(Commands.Close);
+                await machine.RunAsync(Commands.Retry);
+                await machine.RunAsync(Commands.Retry);
+                await machine.RunAsync(Commands.Retry);
+                await machine.RunAsync(Commands.Retry);
+                await machine.RunAsync(Commands.Retry);
 
-                await Task.WhenAny(command.Completion, Task.Delay(Timeout.InfiniteTimeSpan, cts.Token));
+                Exception exception = await Assert.ThrowsAsync<Exception>(() => command.Completion);
+                Assert.Equal("endpoint failed", exception.Message);
 
                 status = machine.Status;
-                Assert.Equal(State.Closed, status.State);
+                Assert.Equal(State.Idle, status.State);
                 Assert.Equal(0, status.RetryAttempts);
-            }
-        }
-
-        [Fact, Unit]
-        public async Task TestTimeoutIsFail()
-        {
-            var endpoint = new StalledEndpoint("id1");
-            var retryStrategy = new FixedInterval(5, TimeSpan.FromMinutes(1));
-            var config = new EndpointExecutorConfig(TimeSpan.FromMilliseconds(1), retryStrategy, TimeSpan.FromMinutes(5));
-
-            using (var machine = new EndpointExecutorFsm(endpoint, new NullCheckpointer(), config))
-            {
-                await machine.RunAsync(Commands.SendMessage(Message1));
-
-                EndpointExecutorStatus status = machine.Status;
-                Assert.Equal(State.Failing, status.State);
-                Assert.Equal(1, status.RetryAttempts);
 
                 await machine.CloseAsync();
             }
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestDying()
         {
             var endpoint1 = new RevivableEndpoint("id1", new Exception("endpoint failed"));
@@ -450,11 +502,51 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             }
         }
 
-        [Fact, Unit]
-        public async Task TestDie()
+        [Fact]
+        [Unit]
+        public async Task TestErrorDetectionStrategy()
+        {
+            var detectionStrategy = new ErrorDetectionStrategy(ex => ex.GetType() != typeof(InvalidOperationException));
+            var endpoint1 = new FailedEndpoint("id1", "endpoint1", "hub1", new InvalidOperationException("endpoint failed"), detectionStrategy);
+            var checkpointer = new Mock<ICheckpointer>();
+            checkpointer.Setup(c => c.Admit(It.IsAny<IMessage>())).Returns(true);
+            checkpointer.Setup(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>())).Returns(TaskEx.Done);
+
+            var retryStrategy = new FixedInterval(5, TimeSpan.FromMilliseconds(5));
+            var config = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.FromMinutes(5));
+
+            using (var machine = new EndpointExecutorFsm(endpoint1, checkpointer.Object, config))
+            {
+                EndpointExecutorStatus status = machine.Status;
+                Assert.Equal(State.Idle, status.State);
+                Assert.Equal(0, status.RetryAttempts);
+
+                await machine.RunAsync(Commands.SendMessage(Message1));
+                status = machine.Status;
+                Assert.Equal(State.DeadIdle, status.State);
+                Assert.Equal(0, status.RetryAttempts);
+
+                var endpoint2 = new FailedEndpoint("id1", new Exception("endpoint failed"));
+                await machine.RunAsync(Commands.UpdateEndpoint(endpoint2));
+                status = machine.Status;
+                Assert.Equal(State.Idle, status.State);
+                Assert.Equal(0, status.RetryAttempts);
+
+                await machine.RunAsync(Commands.SendMessage(Message1));
+                status = machine.Status;
+                Assert.Equal(State.Failing, status.State);
+                Assert.Equal(1, status.RetryAttempts);
+
+                await machine.CloseAsync();
+            }
+        }
+
+        [Fact]
+        [Unit]
+        public async Task TestFailingEndpoint()
         {
             var endpoint1 = new FailedEndpoint("id1", new Exception("endpoint failed"));
-            var retryStrategy = new FixedInterval(5, TimeSpan.FromMilliseconds(5));
+            var retryStrategy = new Incremental(int.MaxValue, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
             var config = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.FromMinutes(5));
 
             using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), config))
@@ -463,67 +555,166 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
                 Assert.Equal(State.Idle, status.State);
                 Assert.Equal(0, status.RetryAttempts);
 
-                SendMessage command = Commands.SendMessage(Message1);
-                await machine.RunAsync(command);
+                await machine.RunAsync(Commands.SendMessage(Message1));
                 status = machine.Status;
                 Assert.Equal(State.Failing, status.State);
                 Assert.Equal(1, status.RetryAttempts);
+                Assert.Equal(TimeSpan.FromSeconds(1), machine.Status.RetryPeriod);
 
-                await machine.RunAsync(Commands.Retry);
-                await machine.RunAsync(Commands.Retry);
-                await machine.RunAsync(Commands.Retry);
-                await machine.RunAsync(Commands.Retry);
-                await machine.RunAsync(Commands.Retry);
+                for (int i = 2; i < 10; i++)
+                {
+                    await machine.RunAsync(Commands.Retry);
+                    status = machine.Status;
+                    Assert.Equal(State.Failing, status.State);
+                    Assert.Equal(i, status.RetryAttempts);
+                    Assert.Equal(TimeSpan.FromSeconds(i), machine.Status.RetryPeriod);
+                }
 
-                await command.Completion;
-
-                status = machine.Status;
-                Assert.Equal(State.DeadIdle, status.State);
-                Assert.Equal(5, status.RetryAttempts);
-                Assert.True(DateTime.Now - status.LastFailedRevivalTime.GetOrElse(DateTime.MinValue) < TimeSpan.FromSeconds(0.5));
-                Assert.True(DateTime.Now - status.UnhealthySince.GetOrElse(DateTime.MinValue) < TimeSpan.FromSeconds(0.5));
+                await Assert.ThrowsAsync<InvalidOperationException>(() => machine.RunAsync(Commands.SendMessage(Message2)));
+                await Assert.ThrowsAsync<InvalidOperationException>(() => machine.RunAsync(Commands.Succeed));
+                await Assert.ThrowsAsync<InvalidOperationException>(() => machine.RunAsync(Commands.Fail(TimeSpan.FromMilliseconds(int.MaxValue))));
 
                 await machine.CloseAsync();
+                status = machine.Status;
+                Assert.Equal(State.Closed, status.State);
             }
         }
 
-        [Fact, Unit]
-        public async Task TestDieToThrow()
+        [Fact]
+        [Unit]
+        public async Task TestFailingEndpointClose()
         {
             var endpoint1 = new FailedEndpoint("id1", new Exception("endpoint failed"));
-            var retryStrategy = new FixedInterval(5, TimeSpan.FromMinutes(5));
-            var config = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.FromMinutes(5), true);
 
-            using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), config))
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1)))
+            using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), MaxConfig))
             {
                 EndpointExecutorStatus status = machine.Status;
                 Assert.Equal(State.Idle, status.State);
                 Assert.Equal(0, status.RetryAttempts);
 
+                // Send message on failing endpoint
                 SendMessage command = Commands.SendMessage(Message1);
                 await machine.RunAsync(command);
                 status = machine.Status;
                 Assert.Equal(State.Failing, status.State);
                 Assert.Equal(1, status.RetryAttempts);
 
-                await machine.RunAsync(Commands.Retry);
-                await machine.RunAsync(Commands.Retry);
-                await machine.RunAsync(Commands.Retry);
-                await machine.RunAsync(Commands.Retry);
-                await machine.RunAsync(Commands.Retry);
+                // Send close command. Should drop message and close
+                await machine.RunAsync(Commands.Close);
 
-                Exception exception = await Assert.ThrowsAsync<Exception>(() => command.Completion);
-                Assert.Equal("endpoint failed", exception.Message);
+                await Task.WhenAny(command.Completion, Task.Delay(Timeout.InfiniteTimeSpan, cts.Token));
 
                 status = machine.Status;
+                Assert.Equal(State.Closed, status.State);
+                Assert.Equal(0, status.RetryAttempts);
+            }
+        }
+
+        [Fact]
+        [Unit]
+        public async Task TestFailingEndpointUpdate()
+        {
+            var endpoint1 = new FailedEndpoint("id1", new Exception("endpoint failed"));
+            var endpoint2 = new FailedEndpoint("id1", new Exception("endpoint failed"));
+            var endpoint3 = new TestEndpoint("id1");
+
+            using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), MaxConfig))
+            {
+                EndpointExecutorStatus status = machine.Status;
                 Assert.Equal(State.Idle, status.State);
                 Assert.Equal(0, status.RetryAttempts);
+
+                // Send message on failing endpoint
+                SendMessage command = Commands.SendMessage(Message1);
+                await machine.RunAsync(command);
+                status = machine.Status;
+                Assert.Equal(State.Failing, status.State);
+                Assert.Equal(1, status.RetryAttempts);
+
+                // Replace with another failing endpoint
+                // attempts should be reset to zero (and then increment after the retry fails)
+                await machine.RunAsync(Commands.UpdateEndpoint(endpoint2));
+                status = machine.Status;
+                Assert.Equal(State.Failing, status.State);
+                Assert.Equal(1, status.RetryAttempts);
+
+                // Replace with healthy endpoint
+                // Message1 should be delivered and attempts reset
+                await machine.RunAsync(Commands.UpdateEndpoint(endpoint3));
+                status = machine.Status;
+
+                await command.Completion;
+
+                Assert.Equal(State.Idle, status.State);
+                Assert.Equal(0, status.RetryAttempts);
+                Assert.Equal(new List<IMessage> { Message1 }, endpoint3.Processed);
 
                 await machine.CloseAsync();
             }
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
+        public async Task TestInvalidMessages()
+        {
+            // Check that all successful and invalid messages are checkpointed
+            Checkpointer checkpointer = await Checkpointer.CreateAsync("checkpointer", new NullCheckpointStore(0L));
+
+            var result = new SinkResult<IMessage>(new List<IMessage> { Message2 }, new List<IMessage>(), new List<InvalidDetails<IMessage>> { new InvalidDetails<IMessage>(Message3, FailureKind.MaxMessageSizeExceeded), new InvalidDetails<IMessage>(Message1, FailureKind.MaxMessageSizeExceeded) }, new SendFailureDetails(FailureKind.InternalError, new Exception()));
+            var processor = new Mock<IProcessor>();
+            processor.Setup(p => p.ErrorDetectionStrategy).Returns(new ErrorDetectionStrategy(_ => true));
+            processor.Setup(p => p.ProcessAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<CancellationToken>())).ReturnsAsync(result);
+            var endpoint = new InvalidEndpoint("id1", () => processor.Object);
+            processor.Setup(p => p.Endpoint).Returns(endpoint);
+
+            var machine = new EndpointExecutorFsm(endpoint, checkpointer, MaxConfig);
+            Assert.Equal(State.Idle, machine.Status.State);
+            await machine.RunAsync(Commands.SendMessage(Message1, Message2, Message3));
+
+            Assert.Equal(State.Idle, machine.Status.State);
+            Assert.Equal(3L, checkpointer.Offset);
+        }
+
+        [Fact]
+        [Unit]
+        public async Task TestReliableDeadStatus()
+        {
+            var checkpointerStore = new Mock<ICheckpointStore>();
+            DateTime dateTimeNow = DateTime.UtcNow;
+            checkpointerStore.Setup(c => c.GetCheckpointDataAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(0L, Option.Some(dateTimeNow), Option.None<DateTime>()));
+            checkpointerStore.Setup(c => c.GetCheckpointDataAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult(new CheckpointData(It.IsAny<long>(), Option.Some(dateTimeNow), Option.None<DateTime>())));
+
+            ICheckpointer checkpointer = await Checkpointer.CreateAsync("checkpoint.id1", checkpointerStore.Object);
+            var retryStrategy = new FixedInterval(5, TimeSpan.FromMilliseconds(5));
+            var config = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.FromMinutes(5));
+            var endpoint = new TestEndpoint("endpoint1");
+
+            using (var machine = new EndpointExecutorFsm(endpoint, checkpointer, config))
+            {
+                await machine.RunAsync(Commands.SendMessage(Message1));
+                Assert.Equal(0, endpoint.N); // endpoint should not get the message as it is dead
+                EndpointExecutorStatus status = machine.Status;
+                Assert.Equal("endpoint1", status.Id);
+                Assert.Equal(short.MaxValue, status.RetryAttempts);
+                Assert.Equal(State.DeadIdle, status.State);
+                Assert.Equal(dateTimeNow, status.LastFailedRevivalTime.GetOrElse(DateTime.MinValue));
+                Assert.Equal("checkpoint.id1", status.CheckpointerStatus.Id);
+                Assert.Equal(1, status.CheckpointerStatus.Offset);
+                await machine.CloseAsync();
+            }
+
+            // restart executor and still we should be in dead state
+            using (var machine1 = new EndpointExecutorFsm(endpoint, checkpointer, config))
+            {
+                Assert.Equal(machine1.Status.LastFailedRevivalTime.GetOrElse(DateTime.MinValue), dateTimeNow);
+                Assert.Equal(State.DeadIdle, machine1.Status.State);
+                await machine1.CloseAsync();
+            }
+        }
+
+        [Fact]
+        [Unit]
         public async Task TestRetryTimer()
         {
             var endpoint1 = new FailedEndpoint("id1", new Exception("endpoint failed"));
@@ -550,7 +741,60 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             }
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
+        public async Task TestReviveToFail()
+        {
+            var endpoint1 = new RevivableEndpoint("id1", new Exception("endpoint failed"));
+            var retryStrategy = new FixedInterval(5, TimeSpan.FromMilliseconds(int.MaxValue));
+            var config = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.FromMilliseconds(50));
+
+            using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), config))
+            {
+                EndpointExecutorStatus status = machine.Status;
+                Assert.Equal(State.Idle, status.State);
+                Assert.Equal(0, status.RetryAttempts);
+
+                await machine.RunAsync(Commands.SendMessage(Message2));
+                status = machine.Status;
+                Assert.Equal(State.Idle, status.State);
+                Assert.Equal(0, status.RetryAttempts);
+                Assert.Equal(new List<IMessage> { Message2 }, endpoint1.Processed);
+
+                // Fail the endpoint
+                endpoint1.Failing = true;
+
+                await machine.RunAsync(Commands.SendMessage(Message1));
+                status = machine.Status;
+                Assert.Equal(State.Failing, status.State);
+                Assert.Equal(1, status.RetryAttempts);
+
+                await machine.RunAsync(Commands.Retry);
+                await machine.RunAsync(Commands.Retry);
+                await machine.RunAsync(Commands.Retry);
+                await machine.RunAsync(Commands.Retry);
+                await machine.RunAsync(Commands.Retry);
+
+                status = machine.Status;
+                Assert.Equal(State.DeadIdle, status.State);
+                Assert.Equal(5, status.RetryAttempts);
+
+                // Wait for the revive period to expire
+                await Task.Delay(100);
+
+                // Send another message, after the revive period but with a still failing endpoint
+                await machine.RunAsync(Commands.SendMessage(Message1));
+
+                status = machine.Status;
+                Assert.Equal(State.DeadIdle, status.State);
+                Assert.Equal(5, status.RetryAttempts);
+
+                await machine.CloseAsync();
+            }
+        }
+
+        [Fact]
+        [Unit]
         public async Task TestReviveToSuccess()
         {
             var endpoint1 = new RevivableEndpoint("id1", new Exception("endpoint failed"));
@@ -606,58 +850,66 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             }
         }
 
-        [Fact, Unit]
-        public async Task TestReviveToFail()
+        [Fact]
+        [Unit]
+        public async Task TestSetEndpoint()
         {
-            var endpoint1 = new RevivableEndpoint("id1", new Exception("endpoint failed"));
-            var retryStrategy = new FixedInterval(5, TimeSpan.FromMilliseconds(int.MaxValue));
-            var config = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.FromMilliseconds(50));
+            var endpoint1 = new TestEndpoint("id1");
+            var endpoint2 = new TestEndpoint("id1");
+            var endpoint3 = new TestEndpoint("id3");
 
-            using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), config))
+            using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), MaxConfig))
             {
-                EndpointExecutorStatus status = machine.Status;
-                Assert.Equal(State.Idle, status.State);
-                Assert.Equal(0, status.RetryAttempts);
+                await Assert.ThrowsAsync<ArgumentNullException>(() => machine.RunAsync(Commands.UpdateEndpoint(null)));
+
+                Assert.Equal(new List<Message>(), endpoint1.Processed);
+                Assert.Equal(new List<Message>(), endpoint2.Processed);
+                Assert.Equal(new List<Message>(), endpoint3.Processed);
+
+                await machine.RunAsync(Commands.SendMessage(Message1));
+                await machine.RunAsync(Commands.SendMessage(Message1));
+
+                await machine.RunAsync(Commands.UpdateEndpoint(endpoint2));
 
                 await machine.RunAsync(Commands.SendMessage(Message2));
-                status = machine.Status;
-                Assert.Equal(State.Idle, status.State);
-                Assert.Equal(0, status.RetryAttempts);
-                Assert.Equal(new List<IMessage> { Message2 }, endpoint1.Processed);
+                await machine.RunAsync(Commands.SendMessage(Message3));
 
-                // Fail the endpoint
-                endpoint1.Failing = true;
+                Assert.Equal(State.Idle, machine.Status.State);
 
+                await machine.CloseAsync();
+                Assert.Equal(State.Closed, machine.Status.State);
+
+                var expected1 = new List<IMessage> { Message1, Message1 };
+                var expected2 = new List<IMessage> { Message2, Message3 };
+                Assert.Equal(expected1, endpoint1.Processed);
+                Assert.Equal(expected2, endpoint2.Processed);
+                Assert.Equal(new List<IMessage>(), endpoint3.Processed);
+                await Assert.ThrowsAsync<InvalidOperationException>(() => machine.RunAsync(Commands.UpdateEndpoint(endpoint1)));
+            }
+        }
+
+        [Fact]
+        [Unit]
+        public async Task TestTimeoutIsFail()
+        {
+            var endpoint = new StalledEndpoint("id1");
+            var retryStrategy = new FixedInterval(5, TimeSpan.FromMinutes(1));
+            var config = new EndpointExecutorConfig(TimeSpan.FromMilliseconds(1), retryStrategy, TimeSpan.FromMinutes(5));
+
+            using (var machine = new EndpointExecutorFsm(endpoint, new NullCheckpointer(), config))
+            {
                 await machine.RunAsync(Commands.SendMessage(Message1));
-                status = machine.Status;
+
+                EndpointExecutorStatus status = machine.Status;
                 Assert.Equal(State.Failing, status.State);
                 Assert.Equal(1, status.RetryAttempts);
-
-                await machine.RunAsync(Commands.Retry);
-                await machine.RunAsync(Commands.Retry);
-                await machine.RunAsync(Commands.Retry);
-                await machine.RunAsync(Commands.Retry);
-                await machine.RunAsync(Commands.Retry);
-
-                status = machine.Status;
-                Assert.Equal(State.DeadIdle, status.State);
-                Assert.Equal(5, status.RetryAttempts);
-
-                // Wait for the revive period to expire
-                await Task.Delay(100);
-
-                // Send another message, after the revive period but with a still failing endpoint
-                await machine.RunAsync(Commands.SendMessage(Message1));
-
-                status = machine.Status;
-                Assert.Equal(State.DeadIdle, status.State);
-                Assert.Equal(5, status.RetryAttempts);
 
                 await machine.CloseAsync();
             }
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestToDeadOnNonTransient()
         {
             var endpoint1 = new FailedEndpoint("id1", new Exception("nontransient"));
@@ -680,244 +932,20 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             }
         }
 
-        [Fact, Unit]
-        public async Task TestDead()
-        {
-            var endpoint1 = new FailedEndpoint("id1", new Exception("endpoint failed"));
-            var checkpointer = new Mock<ICheckpointer>();
-            checkpointer.Setup(c => c.Admit(It.IsAny<IMessage>())).Returns(true);
-            checkpointer.Setup(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>())).Returns(TaskEx.Done);
-
-            var retryStrategy = new FixedInterval(5, TimeSpan.FromMinutes(5));
-            var config = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.FromMinutes(5));
-
-            var machine = new EndpointExecutorFsm(endpoint1, checkpointer.Object, config);
-            EndpointExecutorStatus status = machine.Status;
-            Assert.Equal(State.Idle, status.State);
-            Assert.Equal(0, status.RetryAttempts);
-
-            await machine.RunAsync(Commands.SendMessage(Message1));
-            status = machine.Status;
-            Assert.Equal(State.Failing, status.State);
-            Assert.Equal(1, status.RetryAttempts);
-
-            await machine.RunAsync(Commands.Retry);
-            await machine.RunAsync(Commands.Retry);
-            await machine.RunAsync(Commands.Retry);
-            await machine.RunAsync(Commands.Retry);
-
-            // Test no checkpoint
-            checkpointer.Verify(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>()), Times.Never);
-
-            await machine.RunAsync(Commands.Retry);
-
-            checkpointer.Verify(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>()), Times.Exactly(1));
-
-            await machine.RunAsync(Commands.SendMessage(Message1));
-            await machine.RunAsync(Commands.SendMessage(Message2));
-
-            checkpointer.Verify(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>()), Times.Exactly(3));
-
-            await machine.RunAsync(Commands.SendMessage());
-            checkpointer.Verify(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>()), Times.Exactly(4));
-
-            await machine.CloseAsync();
-        }
-
-        [Fact, Unit]
-        public async Task TestDeadCheckpointException()
-        {
-            // Test operation canceled exception - no throw
-            var endpoint1 = new FailedEndpoint("id2");
-            var checkpointer1 = new Mock<ICheckpointer>();
-            checkpointer1.Setup(c => c.Admit(It.IsAny<IMessage>())).Returns(true);
-            checkpointer1.Setup(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>())).Throws(new OperationCanceledException());
-
-            var retryStrategy = new FixedInterval(1, TimeSpan.FromMilliseconds(int.MaxValue));
-            var config = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.FromMinutes(5));
-
-            using (var machine1 = new EndpointExecutorFsm(endpoint1, checkpointer1.Object, config))
-            {
-                await machine1.RunAsync(Commands.SendMessage(Message1));
-                await machine1.RunAsync(Commands.Retry);
-                Assert.Equal(State.DeadIdle, machine1.Status.State);
-                checkpointer1.Verify(c => c.CommitAsync(new [] { Message1 }, It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>()), Times.Exactly(1));
-                await machine1.CloseAsync();
-            }
-
-            // Test exception throws
-            var endpoint2 = new FailedEndpoint("id2");
-            var checkpointer2 = new Mock<ICheckpointer>();
-            checkpointer2.Setup(c => c.Admit(It.IsAny<IMessage>())).Returns(true);
-            checkpointer2.Setup(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>())).Throws(new Exception());
-
-            var machine2 = new EndpointExecutorFsm(endpoint2, checkpointer2.Object, config);
-            SendMessage command2 = Commands.SendMessage(Message1);
-            await machine2.RunAsync(command2);
-            await machine2.RunAsync(Commands.Retry);
-            await command2.Completion;
-            Assert.Equal(State.DeadIdle, machine2.Status.State);
-            checkpointer2.Verify(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>()), Times.Exactly(1));
-
-            await machine2.RunAsync(Commands.SendMessage(Message1));
-            checkpointer2.Verify(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
-            await machine2.CloseAsync();
-        }
-
-        [Fact, Unit]
-        public async Task TestErrorDetectionStrategy()
-        {
-            var detectionStrategy = new ErrorDetectionStrategy(ex => ex.GetType() != typeof(InvalidOperationException));
-            var endpoint1 = new FailedEndpoint("id1", "endpoint1", "hub1", new InvalidOperationException("endpoint failed"), detectionStrategy);
-            var checkpointer = new Mock<ICheckpointer>();
-            checkpointer.Setup(c => c.Admit(It.IsAny<IMessage>())).Returns(true);
-            checkpointer.Setup(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>())).Returns(TaskEx.Done);
-
-            var retryStrategy = new FixedInterval(5, TimeSpan.FromMilliseconds(5));
-            var config = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.FromMinutes(5));
-
-            using (var machine = new EndpointExecutorFsm(endpoint1, checkpointer.Object, config))
-            {
-                EndpointExecutorStatus status = machine.Status;
-                Assert.Equal(State.Idle, status.State);
-                Assert.Equal(0, status.RetryAttempts);
-
-                await machine.RunAsync(Commands.SendMessage(Message1));
-                status = machine.Status;
-                Assert.Equal(State.DeadIdle, status.State);
-                Assert.Equal(0, status.RetryAttempts);
-
-                var endpoint2 = new FailedEndpoint("id1", new Exception("endpoint failed"));
-                await machine.RunAsync(Commands.UpdateEndpoint(endpoint2));
-                status = machine.Status;
-                Assert.Equal(State.Idle, status.State);
-                Assert.Equal(0, status.RetryAttempts);
-
-                await machine.RunAsync(Commands.SendMessage(Message1));
-                status = machine.Status;
-                Assert.Equal(State.Failing, status.State);
-                Assert.Equal(1, status.RetryAttempts);
-
-                await machine.CloseAsync();
-            }
-        }
-
-        [Fact, Unit]
-        public async Task TestDeadStatus()
-        {
-            var checkpointerStore = new Mock<ICheckpointStore>();
-            DateTime dateTimeNow = DateTime.UtcNow;
-            checkpointerStore.Setup(c => c.GetCheckpointDataAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(0L));
-            checkpointerStore.Setup(c => c.SetCheckpointDataAsync(It.IsAny<string>(), new CheckpointData(It.IsAny<long>(), Option.Some(dateTimeNow), Option.None<DateTime>()), It.IsAny<CancellationToken>())).Returns(TaskEx.Done);
-            checkpointerStore.Setup(c => c.GetCheckpointDataAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult(new CheckpointData(It.IsAny<long>(), Option.Some(dateTimeNow), Option.None<DateTime>())));
-
-            var retryStrategy = new FixedInterval(5, TimeSpan.FromMilliseconds(5));
-            var config = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.FromSeconds(5));
-
-            ICheckpointer checkpointer = await Checkpointer.CreateAsync("checkpoint.id1", checkpointerStore.Object);
-
-            var endpoint = new TestEndpoint("endpoint1");
-
-            using (var machine = new EndpointExecutorFsm(endpoint, checkpointer, config))
-            {
-                // TODO find a way to test this without a delay
-                //await machine.RunAsync(Commands.SendMessage(Message1));
-                //// checkpoint should have dropped and moved the offset
-                //Assert.Equal(0, endpoint.N); // endpoint should not get the message as it is dead
-                //EndpointExecutorStatus status = machine.Status;
-                //Assert.Equal("endpoint1", status.Id);
-                //Assert.Equal(short.MaxValue, status.RetryAttempts);
-                //Assert.Equal(State.DeadIdle, status.State);
-                //Assert.NotEqual(DateTime.UtcNow, status.LastFailedRevivalTime.GetOrElse(DateTime.MinValue));
-                //Assert.True(DateTime.UtcNow > status.LastFailedRevivalTime.GetOrElse(DateTime.MinValue));
-                //Assert.Equal("checkpoint.id1", status.CheckpointerStatus.Id);
-                //Assert.Equal(1, status.CheckpointerStatus.Offset);
-
-                //await Task.Delay(TimeSpan.FromSeconds(5));
-                //await machine.RunAsync(Commands.SendMessage(Message2));
-
-                // Check with revival now
-                //Assert.Equal(1, endpoint.N); // endpoint gets the message with revival
-                //status = machine.Status;
-                //Assert.Equal("endpoint1", status.Id);
-                //Assert.Equal(0, status.RetryAttempts);
-                //Assert.Equal(State.Idle, status.State);
-                //Assert.Equal(Checkpointer.DateTimeMinValue, status.LastFailedRevivalTime.GetOrElse(Checkpointer.DateTimeMinValue));
-                //Assert.Equal("checkpoint.id1", status.CheckpointerStatus.Id);
-                //Assert.Equal(2, status.CheckpointerStatus.Offset);
-
-                await machine.CloseAsync();
-            }
-        }
-
-        [Fact, Unit]
-        public async Task TestReliableDeadStatus()
-        {
-            var checkpointerStore = new Mock<ICheckpointStore>();
-            DateTime dateTimeNow = DateTime.UtcNow;
-            checkpointerStore.Setup(c => c.GetCheckpointDataAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(0L, Option.Some(dateTimeNow), Option.None<DateTime>()));
-            checkpointerStore.Setup(c => c.GetCheckpointDataAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult(new CheckpointData(It.IsAny<long>(), Option.Some(dateTimeNow), Option.None<DateTime>())));
-
-            ICheckpointer checkpointer = await Checkpointer.CreateAsync("checkpoint.id1", checkpointerStore.Object);
-            var retryStrategy = new FixedInterval(5, TimeSpan.FromMilliseconds(5));
-            var config = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.FromMinutes(5));
-            var endpoint = new TestEndpoint("endpoint1");
-
-            using (var machine = new EndpointExecutorFsm(endpoint, checkpointer, config))
-            {
-                await machine.RunAsync(Commands.SendMessage(Message1));
-                Assert.Equal(0, endpoint.N); // endpoint should not get the message as it is dead
-                EndpointExecutorStatus status = machine.Status;
-                Assert.Equal("endpoint1", status.Id);
-                Assert.Equal(short.MaxValue, status.RetryAttempts);
-                Assert.Equal(State.DeadIdle, status.State);
-                Assert.Equal(dateTimeNow, status.LastFailedRevivalTime.GetOrElse(DateTime.MinValue));
-                Assert.Equal("checkpoint.id1", status.CheckpointerStatus.Id);
-                Assert.Equal(1, status.CheckpointerStatus.Offset);
-                await machine.CloseAsync();
-            }
-
-            // restart executor and still we should be in dead state
-            using (var machine1 = new EndpointExecutorFsm(endpoint, checkpointer, config))
-            {
-                Assert.Equal(machine1.Status.LastFailedRevivalTime.GetOrElse(DateTime.MinValue), dateTimeNow);
-                Assert.Equal(State.DeadIdle, machine1.Status.State);
-                await machine1.CloseAsync();
-            }
-        }
-
-        [Fact, Unit]
-        public async Task TestInvalidMessages()
-        {
-            // Check that all successful and invalid messages are checkpointed
-            Checkpointer checkpointer = await Checkpointer.CreateAsync("checkpointer", new NullCheckpointStore(0L));
-
-            var result = new SinkResult<IMessage>(new List<IMessage> { Message2 }, new List<IMessage>(), new List<InvalidDetails<IMessage>> { new InvalidDetails<IMessage>(Message3, FailureKind.MaxMessageSizeExceeded), new InvalidDetails<IMessage>(Message1, FailureKind.MaxMessageSizeExceeded)}, new SendFailureDetails(FailureKind.InternalError, new Exception()));
-            var processor = new Mock<IProcessor>();
-            processor.Setup(p => p.ErrorDetectionStrategy).Returns(new ErrorDetectionStrategy(_ => true));
-            processor.Setup(p => p.ProcessAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<CancellationToken>())).ReturnsAsync(result);
-            var endpoint = new InvalidEndpoint("id1", () => processor.Object);
-            processor.Setup(p => p.Endpoint).Returns(endpoint);
-
-            var machine = new EndpointExecutorFsm(endpoint, checkpointer, MaxConfig);
-            Assert.Equal(State.Idle, machine.Status.State);
-            await machine.RunAsync(Commands.SendMessage(Message1, Message2, Message3));
-
-            Assert.Equal(State.Idle, machine.Status.State);
-            Assert.Equal(3L, checkpointer.Offset);
-        }
+        static IMessage MessageWithOffset(long offset) =>
+            new Message(TelemetryMessageSource.Instance, new byte[] { 1, 2, 3 }, new Dictionary<string, string>(), offset);
 
         class InvalidEndpoint : Endpoint
         {
             readonly Func<IProcessor> processorFactory;
-
-            public override string Type => "InvalidEndpoint";
 
             public InvalidEndpoint(string id, Func<IProcessor> processorFactory)
                 : base(id)
             {
                 this.processorFactory = processorFactory;
             }
+
+            public override string Type => "InvalidEndpoint";
 
             public override IProcessor CreateProcessor() => this.processorFactory();
 

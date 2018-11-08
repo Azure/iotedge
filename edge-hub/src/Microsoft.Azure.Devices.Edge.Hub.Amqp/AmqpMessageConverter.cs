@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 {
     using System;
@@ -6,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     using System.Globalization;
     using System.IO;
     using System.Text;
+
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Amqp.Encoding;
     using Microsoft.Azure.Amqp.Framing;
@@ -17,82 +19,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     /// </summary>
     public class AmqpMessageConverter : IMessageConverter<AmqpMessage>
     {
-        public IMessage ToMessage(AmqpMessage sourceMessage)
-        {
-            byte[] GetMessageBody()
-            {
-                using (var ms = new MemoryStream())
-                {
-                    sourceMessage.BodyStream.CopyTo(ms);
-                    return ms.ToArray();
-                }
-            }
-
-            var systemProperties = new Dictionary<string, string>();
-            var properties = new Dictionary<string, string>();
-
-            systemProperties.AddIfNonEmpty(SystemProperties.MessageId, sourceMessage.Properties.MessageId?.ToString());
-            systemProperties.AddIfNonEmpty(SystemProperties.MsgCorrelationId, sourceMessage.Properties.CorrelationId?.ToString());
-            systemProperties.AddIfNonEmpty(SystemProperties.ContentType, sourceMessage.Properties.ContentType.Value);
-            systemProperties.AddIfNonEmpty(SystemProperties.ContentEncoding, sourceMessage.Properties.ContentEncoding.Value);
-            systemProperties.AddIfNonEmpty(SystemProperties.To, sourceMessage.Properties.To?.ToString());
-            systemProperties.AddIfNonEmpty(SystemProperties.UserId, sourceMessage.Properties.UserId.Count > 0 ? Encoding.UTF8.GetString(sourceMessage.Properties.UserId.Array) : null);
-            systemProperties.AddIfNonEmpty(SystemProperties.ExpiryTimeUtc, sourceMessage.Properties.AbsoluteExpiryTime?.ToString("o"));
-
-            if (sourceMessage.MessageAnnotations.Map.TryGetValue(Constants.MessageAnnotationsEnqueuedTimeKey, out DateTime enqueuedTime))
-            {
-                systemProperties[SystemProperties.EnqueuedTime] = enqueuedTime.ToString("o");
-            }
-
-            if (sourceMessage.MessageAnnotations.Map.TryGetValue(Constants.MessageAnnotationsDeliveryCountKey, out byte deliveryCount))
-            {
-                systemProperties[SystemProperties.DeliveryCount] = deliveryCount.ToString();
-            }
-
-            if (sourceMessage.MessageAnnotations.Map.TryGetValue(Constants.MessageAnnotationsSequenceNumberName, out ulong sequenceNumber) && sequenceNumber > 0)
-            {
-                systemProperties[SystemProperties.SequenceNumber] = sequenceNumber.ToString();
-            }
-
-            if (sourceMessage.MessageAnnotations.Map.TryGetValue(Constants.MessageAnnotationsLockTokenName, out string lockToken))
-            {
-                systemProperties.AddIfNonEmpty(SystemProperties.LockToken, lockToken);
-            }
-
-            if(sourceMessage.ApplicationProperties != null)
-            {
-                foreach (KeyValuePair<MapKey, object> property in sourceMessage.ApplicationProperties.Map)
-                {
-                    string key = property.Key.ToString();
-                    string value = property.Value as string;
-                    switch (key)
-                    {
-                        case Constants.MessagePropertiesMessageSchemaKey:
-                            systemProperties[SystemProperties.MessageSchema] = value;
-                            break;
-
-                        case Constants.MessagePropertiesCreationTimeKey:
-                            systemProperties[SystemProperties.CreationTime] = value;
-                            break;
-
-                        case Constants.MessagePropertiesOperationKey:
-                            systemProperties[SystemProperties.Operation] = value;
-                            break;
-
-                        case Constants.MessagePropertiesOutputNameKey:
-                            systemProperties[SystemProperties.OutputName] = value;
-                            break;
-
-                        default:
-                            properties[key] = value;
-                            break;
-                    }
-                }
-            }
-
-            return new EdgeMessage(GetMessageBody(), properties, systemProperties);
-        }
-
         public AmqpMessage FromMessage(IMessage message)
         {
             AmqpMessage amqpMessage = AmqpMessage.Create(
@@ -200,6 +126,82 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 : new ArraySegment<byte>(Guid.NewGuid().ToByteArray());
 
             return amqpMessage;
+        }
+
+        public IMessage ToMessage(AmqpMessage sourceMessage)
+        {
+            byte[] GetMessageBody()
+            {
+                using (var ms = new MemoryStream())
+                {
+                    sourceMessage.BodyStream.CopyTo(ms);
+                    return ms.ToArray();
+                }
+            }
+
+            var systemProperties = new Dictionary<string, string>();
+            var properties = new Dictionary<string, string>();
+
+            systemProperties.AddIfNonEmpty(SystemProperties.MessageId, sourceMessage.Properties.MessageId?.ToString());
+            systemProperties.AddIfNonEmpty(SystemProperties.MsgCorrelationId, sourceMessage.Properties.CorrelationId?.ToString());
+            systemProperties.AddIfNonEmpty(SystemProperties.ContentType, sourceMessage.Properties.ContentType.Value);
+            systemProperties.AddIfNonEmpty(SystemProperties.ContentEncoding, sourceMessage.Properties.ContentEncoding.Value);
+            systemProperties.AddIfNonEmpty(SystemProperties.To, sourceMessage.Properties.To?.ToString());
+            systemProperties.AddIfNonEmpty(SystemProperties.UserId, sourceMessage.Properties.UserId.Count > 0 ? Encoding.UTF8.GetString(sourceMessage.Properties.UserId.Array) : null);
+            systemProperties.AddIfNonEmpty(SystemProperties.ExpiryTimeUtc, sourceMessage.Properties.AbsoluteExpiryTime?.ToString("o"));
+
+            if (sourceMessage.MessageAnnotations.Map.TryGetValue(Constants.MessageAnnotationsEnqueuedTimeKey, out DateTime enqueuedTime))
+            {
+                systemProperties[SystemProperties.EnqueuedTime] = enqueuedTime.ToString("o");
+            }
+
+            if (sourceMessage.MessageAnnotations.Map.TryGetValue(Constants.MessageAnnotationsDeliveryCountKey, out byte deliveryCount))
+            {
+                systemProperties[SystemProperties.DeliveryCount] = deliveryCount.ToString();
+            }
+
+            if (sourceMessage.MessageAnnotations.Map.TryGetValue(Constants.MessageAnnotationsSequenceNumberName, out ulong sequenceNumber) && sequenceNumber > 0)
+            {
+                systemProperties[SystemProperties.SequenceNumber] = sequenceNumber.ToString();
+            }
+
+            if (sourceMessage.MessageAnnotations.Map.TryGetValue(Constants.MessageAnnotationsLockTokenName, out string lockToken))
+            {
+                systemProperties.AddIfNonEmpty(SystemProperties.LockToken, lockToken);
+            }
+
+            if (sourceMessage.ApplicationProperties != null)
+            {
+                foreach (KeyValuePair<MapKey, object> property in sourceMessage.ApplicationProperties.Map)
+                {
+                    string key = property.Key.ToString();
+                    string value = property.Value as string;
+                    switch (key)
+                    {
+                        case Constants.MessagePropertiesMessageSchemaKey:
+                            systemProperties[SystemProperties.MessageSchema] = value;
+                            break;
+
+                        case Constants.MessagePropertiesCreationTimeKey:
+                            systemProperties[SystemProperties.CreationTime] = value;
+                            break;
+
+                        case Constants.MessagePropertiesOperationKey:
+                            systemProperties[SystemProperties.Operation] = value;
+                            break;
+
+                        case Constants.MessagePropertiesOutputNameKey:
+                            systemProperties[SystemProperties.OutputName] = value;
+                            break;
+
+                        default:
+                            properties[key] = value;
+                            break;
+                    }
+                }
+            }
+
+            return new EdgeMessage(GetMessageBody(), properties, systemProperties);
         }
     }
 }

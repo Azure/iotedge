@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 {
     using System;
@@ -6,30 +7,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
     using System.Net.WebSockets;
     using System.Threading;
     using System.Threading.Tasks;
+
     using DotNetty.Transport.Channels;
+
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+
     using Moq;
+
     using Xunit;
 
     [Unit]
     public class ServerWebSocketChannelTest
     {
-        [Fact]
-        public void CtorThrowsWhenWebSocketIsNull()
-        {
-            Assert.Throws<ArgumentNullException>(() =>
-                new ServerWebSocketChannel(null, Mock.Of<EndPoint>())
-                );
-        }
-
-        [Fact]
-        public void CtorThrowsWhenEndpointIsNull()
-        {
-            Assert.Throws<ArgumentNullException>(() =>
-                new ServerWebSocketChannel(Mock.Of<WebSocket>(), null)
-                );
-        }
-
         [Fact]
         public async Task CanCloseTheChannel()
         {
@@ -41,9 +30,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             await channel.CloseAsync();
 
             Assert.False(channel.Active);
-            Mock.Get(webSocket).Verify(ws =>
-                ws.CloseAsync(WebSocketCloseStatus.NormalClosure, It.IsAny<string>(), It.IsAny<CancellationToken>())
-                );
+            Mock.Get(webSocket).Verify(
+                ws =>
+                    ws.CloseAsync(WebSocketCloseStatus.NormalClosure, It.IsAny<string>(), It.IsAny<CancellationToken>()));
+        }
+
+        [Fact]
+        public void CtorThrowsWhenEndpointIsNull()
+        {
+            Assert.Throws<ArgumentNullException>(
+                () =>
+                    new ServerWebSocketChannel(Mock.Of<WebSocket>(), null));
+        }
+
+        [Fact]
+        public void CtorThrowsWhenWebSocketIsNull()
+        {
+            Assert.Throws<ArgumentNullException>(
+                () =>
+                    new ServerWebSocketChannel(null, Mock.Of<EndPoint>()));
         }
 
         [Fact]

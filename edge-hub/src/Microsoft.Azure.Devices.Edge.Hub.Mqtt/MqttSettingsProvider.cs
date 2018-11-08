@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
     using Microsoft.Azure.Devices.Edge.Util;
@@ -11,8 +11,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         readonly IConfiguration mqttSettings;
 
         public MqttSettingsProvider(IConfiguration mqttSettings)
-        {            
-            this.mqttSettings = Preconditions.CheckNotNull(mqttSettings, nameof(mqttSettings));            
+        {
+            this.mqttSettings = Preconditions.CheckNotNull(mqttSettings, nameof(mqttSettings));
         }
 
         public bool TryGetSetting(string name, out string value)

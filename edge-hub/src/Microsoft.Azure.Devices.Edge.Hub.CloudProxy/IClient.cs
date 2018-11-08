@@ -1,10 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Shared;
 
@@ -12,34 +13,34 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     {
         bool IsActive { get; }
 
+        Task AbandonAsync(string messageId);
+
+        Task CloseAsync();
+
+        Task CompleteAsync(string messageId);
+
         Task<Twin> GetTwinAsync();
+
+        Task OpenAsync();
+
+        Task<Message> ReceiveAsync(TimeSpan receiveMessageTimeout);
+
+        Task RejectAsync(string messageId);
 
         Task SendEventAsync(Message message);
 
         Task SendEventBatchAsync(IEnumerable<Message> messages);
 
-        Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties);
-
-        Task CompleteAsync(string messageId);
-
-        Task AbandonAsync(string messageId);
-
-        Task SetMethodDefaultHandlerAsync(MethodCallback methodHandler, object userContext);
+        void SetConnectionStatusChangedHandler(ConnectionStatusChangesHandler handler);
 
         Task SetDesiredPropertyUpdateCallbackAsync(DesiredPropertyUpdateCallback onDesiredPropertyUpdates1, object userContext);
 
-        void SetOperationTimeoutInMilliseconds(uint defaultOperationTimeoutMilliseconds);
+        Task SetMethodDefaultHandlerAsync(MethodCallback methodHandler, object userContext);
 
-        void SetConnectionStatusChangedHandler(ConnectionStatusChangesHandler handler);
+        void SetOperationTimeoutInMilliseconds(uint defaultOperationTimeoutMilliseconds);
 
         void SetProductInfo(string productInfo);
 
-        Task OpenAsync();
-
-        Task CloseAsync();
-
-        Task RejectAsync(string messageId);
-
-        Task<Message> ReceiveAsync(TimeSpan receiveMessageTimeout);
+        Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties);
     }
 }

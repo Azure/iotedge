@@ -31,8 +31,9 @@
   </ItemGroup>
   <PropertyGroup>
     <CodeAnalysisRuleSet>..\..\..\stylecop.ruleset</CodeAnalysisRuleSet>
-  </PropertyGroup>  
-  
+  </PropertyGroup>
+  <Import Project="..\..\..\stylecop.props" />
+
   <ItemGroup>
     <PackageReference Include="App.Metrics" Version="3.0.0-alpha-0780" />
     <PackageReference Include="JetBrains.Annotations" Version="11.1.0" />
@@ -40,8 +41,6 @@
     <PackageReference Include="Nito.AsyncEx" Version="5.0.0-pre-05" />
     <PackageReference Include="System.ValueTuple" Version="4.5.0" />
   </ItemGroup>
-
-  <Import Project="..\..\..\stylecop.props" />
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Storage\Microsoft.Azure.Devices.Edge.Storage.csproj" />

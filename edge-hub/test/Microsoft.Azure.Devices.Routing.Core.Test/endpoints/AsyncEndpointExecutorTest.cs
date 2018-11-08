@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
 {
     using System;
@@ -6,38 +7,34 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
     using System.Diagnostics.CodeAnalysis;
     using System.Threading;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
+    using Microsoft.Azure.Devices.Routing.Core.Util;
+
     using Moq;
+
     using Xunit;
 
     [ExcludeFromCodeCoverage]
     public class AsyncEndpointExecutorTest : RoutingUnitTestBase
     {
         static readonly IMessage Default = new Message(TelemetryMessageSource.Instance, new byte[0], new Dictionary<string, string>());
-        static readonly IMessage Message1 = new Message(TelemetryMessageSource.Instance, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, 1);
-        static readonly IMessage Message2 = new Message(TelemetryMessageSource.Instance, new byte[] {2, 3, 1}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, 2);
-        static readonly IMessage Message3 = new Message(TelemetryMessageSource.Instance, new byte[] {3, 1, 2}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, 3);
+        static readonly IMessage Message1 = new Message(TelemetryMessageSource.Instance, new byte[] { 1, 2, 3 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }, 1);
+        static readonly IMessage Message2 = new Message(TelemetryMessageSource.Instance, new byte[] { 2, 3, 1 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }, 2);
+        static readonly IMessage Message3 = new Message(TelemetryMessageSource.Instance, new byte[] { 3, 1, 2 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }, 3);
 
         static readonly RetryStrategy MaxRetryStrategy = new FixedInterval(int.MaxValue, TimeSpan.FromMilliseconds(int.MaxValue));
         static readonly EndpointExecutorConfig MaxConfig = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, MaxRetryStrategy, TimeSpan.FromMinutes(5));
 
         static readonly AsyncEndpointExecutorFactory Factory = new AsyncEndpointExecutorFactory(TestConstants.DefaultConfig, TestConstants.DefaultOptions);
 
-        [Fact, Unit]
-        public void TestConstructor()
-        {
-            Assert.Throws(typeof(ArgumentNullException), () => new AsyncEndpointExecutor(null, null, null, null));
-            Assert.Throws(typeof(ArgumentNullException), () => new AsyncEndpointExecutor(null, new NullCheckpointer(), null, null));
-            Assert.Throws(typeof(ArgumentNullException), () => new AsyncEndpointExecutor(new TestEndpoint("id"), null, null, null));
-        }
-
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task SmokeTest()
         {
             var endpoint = new TestEndpoint("id");
@@ -53,6 +50,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             {
                 await executor.Invoke(msg);
             }
+
             await Task.Delay(30);
             await executor.CloseAsync();
             Assert.Equal(3, endpoint.N);
@@ -61,53 +59,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             Assert.Equal(3, executor.Status.CheckpointerStatus.Proposed);
         }
 
-        [Fact, Unit]
-        public async Task TestClose()
-        {
-            var endpoint = new TestEndpoint("id");
-            IEndpointExecutor executor = await Factory.CreateAsync(endpoint);
-            Task running = executor.Invoke(Default);
-
-            await executor.CloseAsync();
-            await running;
-            Assert.True(running.IsCompleted);
-
-            // ensure this doesn't throw
-            await executor.CloseAsync();
-        }
-
-        [Fact, Unit]
-        public async Task TestCancellation()
-        {
-            var endpoint = new StalledEndpoint("id");
-            IEndpointExecutor executor = await Factory.CreateAsync(endpoint);
-            Task running = executor.Invoke(Default);
-
-            await executor.CloseAsync();
-            await running;
-            Assert.True(running.IsCompleted);
-        }
-
-        [Fact, Unit]
-        public async Task TestSetEndpoint()
-        {
-            var endpoint1 = new TestEndpoint("id");
-            var endpoint2 = new NullEndpoint("id");
-            var endpoint3 = new TestEndpoint("id1");
-            IEndpointExecutor executor = await Factory.CreateAsync(endpoint1);
-
-            Assert.Equal(endpoint1, executor.Endpoint);
-            await Assert.ThrowsAsync<ArgumentNullException>(() => executor.SetEndpoint(null));
-            await Assert.ThrowsAsync<ArgumentException>(() => executor.SetEndpoint(endpoint3));
-
-            await executor.SetEndpoint(endpoint2);
-            Assert.Equal(endpoint2, executor.Endpoint);
-
-            await executor.CloseAsync();
-            await Assert.ThrowsAsync<InvalidOperationException>(() => executor.SetEndpoint(endpoint1));
-        }
-
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestBatchTimeout()
         {
             var endpoint1 = new TestEndpoint("id1");
@@ -136,7 +89,66 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             await executor.CloseAsync();
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
+        public async Task TestCancellation()
+        {
+            var endpoint = new StalledEndpoint("id");
+            IEndpointExecutor executor = await Factory.CreateAsync(endpoint);
+            Task running = executor.Invoke(Default);
+
+            await executor.CloseAsync();
+            await running;
+            Assert.True(running.IsCompleted);
+        }
+
+        [Fact]
+        [Unit]
+        public async Task TestClose()
+        {
+            var endpoint = new TestEndpoint("id");
+            IEndpointExecutor executor = await Factory.CreateAsync(endpoint);
+            Task running = executor.Invoke(Default);
+
+            await executor.CloseAsync();
+            await running;
+            Assert.True(running.IsCompleted);
+
+            // ensure this doesn't throw
+            await executor.CloseAsync();
+        }
+
+        [Fact]
+        [Unit]
+        public void TestConstructor()
+        {
+            Assert.Throws(typeof(ArgumentNullException), () => new AsyncEndpointExecutor(null, null, null, null));
+            Assert.Throws(typeof(ArgumentNullException), () => new AsyncEndpointExecutor(null, new NullCheckpointer(), null, null));
+            Assert.Throws(typeof(ArgumentNullException), () => new AsyncEndpointExecutor(new TestEndpoint("id"), null, null, null));
+        }
+
+        [Fact]
+        [Unit]
+        public async Task TestSetEndpoint()
+        {
+            var endpoint1 = new TestEndpoint("id");
+            var endpoint2 = new NullEndpoint("id");
+            var endpoint3 = new TestEndpoint("id1");
+            IEndpointExecutor executor = await Factory.CreateAsync(endpoint1);
+
+            Assert.Equal(endpoint1, executor.Endpoint);
+            await Assert.ThrowsAsync<ArgumentNullException>(() => executor.SetEndpoint(null));
+            await Assert.ThrowsAsync<ArgumentException>(() => executor.SetEndpoint(endpoint3));
+
+            await executor.SetEndpoint(endpoint2);
+            Assert.Equal(endpoint2, executor.Endpoint);
+
+            await executor.CloseAsync();
+            await Assert.ThrowsAsync<InvalidOperationException>(() => executor.SetEndpoint(endpoint1));
+        }
+
+        [Fact]
+        [Unit]
         public async Task TestStatus()
         {
             var checkpointerStore = new Mock<ICheckpointStore>();

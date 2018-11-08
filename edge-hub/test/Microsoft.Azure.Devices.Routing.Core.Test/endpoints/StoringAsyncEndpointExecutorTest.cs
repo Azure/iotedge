@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
 {
     using System;
@@ -6,12 +7,14 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
+
     using Xunit;
 
     [Integration]
@@ -37,7 +40,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
                 await storingAsyncEndpointExecutor.Invoke(message);
             }
 
-            // Assert - Check that the message store received the messages sent to invoke. 
+            // Assert - Check that the message store received the messages sent to invoke.
             List<IMessage> storeMessages = messageStore.GetReceivedMessagesForEndpoint(EndpointId);
             Assert.NotNull(storeMessages);
             Assert.Equal(MessagesCount, storeMessages.Count);
@@ -48,19 +51,19 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
                 Assert.Equal($"value{i}", message.Properties[$"key{i}"]);
             }
 
-            // Assert - Make sure no additional / duplicate messages were sent. 
+            // Assert - Make sure no additional / duplicate messages were sent.
             storeMessages = messageStore.GetReceivedMessagesForEndpoint(EndpointId);
             Assert.NotNull(storeMessages);
             Assert.Equal(10, storeMessages.Count);
 
-            // Act - Send messages again to Invoke. 
+            // Act - Send messages again to Invoke.
             messages = GetNewMessages(MessagesCount, MessagesCount);
             foreach (IMessage message in messages)
             {
                 await storingAsyncEndpointExecutor.Invoke(message);
             }
 
-            // Assert - Make sure the store now has the old and the new messages. 
+            // Assert - Make sure the store now has the old and the new messages.
             storeMessages = messageStore.GetReceivedMessagesForEndpoint(EndpointId);
             Assert.NotNull(storeMessages);
             Assert.Equal(MessagesCount * 2, storeMessages.Count);
@@ -94,7 +97,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
 
             await Task.Delay(TimeSpan.FromSeconds(10));
 
-            // Assert - Make sure the endpoint received all the messages. 
+            // Assert - Make sure the endpoint received all the messages.
             Assert.Equal(MessagesCount, endpoint.N);
             for (int i = 0; i < MessagesCount; i++)
             {
@@ -127,7 +130,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
 
             await Task.Delay(TimeSpan.FromSeconds(10));
 
-            // Assert - Make sure the endpoint received all the messages. 
+            // Assert - Make sure the endpoint received all the messages.
             Assert.Equal(MessagesCount, endpoint.N);
             for (int i = 0; i < MessagesCount; i++)
             {
@@ -175,15 +178,32 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             }
         }
 
+        class CheckpointStore : ICheckpointStore
+        {
+            readonly Dictionary<string, CheckpointData> checkpointDatas = new Dictionary<string, CheckpointData>();
+
+            public Task CloseAsync(CancellationToken token) => Task.CompletedTask;
+
+            public Task<IDictionary<string, CheckpointData>> GetAllCheckpointDataAsync(CancellationToken token) => Task.FromResult((IDictionary<string, CheckpointData>)this.checkpointDatas);
+
+            public Task<CheckpointData> GetCheckpointDataAsync(string id, CancellationToken token)
+            {
+                CheckpointData checkpointData = this.checkpointDatas.ContainsKey(id)
+                    ? this.checkpointDatas[id]
+                    : new CheckpointData(Checkpointer.InvalidOffset);
+                return Task.FromResult(checkpointData);
+            }
+
+            public Task SetCheckpointDataAsync(string id, CheckpointData checkpointData, CancellationToken token)
+            {
+                this.checkpointDatas[id] = checkpointData;
+                return Task.CompletedTask;
+            }
+        }
+
         class TestMessageStore : IMessageStore
         {
             readonly ConcurrentDictionary<string, TestMessageQueue> endpointQueues = new ConcurrentDictionary<string, TestMessageQueue>();
-
-            TestMessageQueue GetQueue(string endpointId) => this.endpointQueues.GetOrAdd(endpointId, new TestMessageQueue());
-
-            public void Dispose()
-            {
-            }
 
             public Task<long> Add(string endpointId, IMessage message)
             {
@@ -191,15 +211,21 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
                 return queue.Add(message);
             }
 
-            public IMessageIterator GetMessageIterator(string endpointId, long startingOffset) => this.GetQueue(endpointId);
-
-            public IMessageIterator GetMessageIterator(string endpointId) => this.GetQueue(endpointId);
-
             public Task AddEndpoint(string endpointId)
             {
                 this.endpointQueues[endpointId] = new TestMessageQueue();
                 return Task.CompletedTask;
             }
+
+            public void Dispose()
+            {
+            }
+
+            public IMessageIterator GetMessageIterator(string endpointId, long startingOffset) => this.GetQueue(endpointId);
+
+            public IMessageIterator GetMessageIterator(string endpointId) => this.GetQueue(endpointId);
+
+            public List<IMessage> GetReceivedMessagesForEndpoint(string endpointId) => this.GetQueue(endpointId).Queue;
 
             public Task RemoveEndpoint(string endpointId)
             {
@@ -209,13 +235,13 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
 
             public void SetTimeToLive(TimeSpan timeToLive) => throw new NotImplementedException();
 
-            public List<IMessage> GetReceivedMessagesForEndpoint(string endpointId) => this.GetQueue(endpointId).Queue;
+            TestMessageQueue GetQueue(string endpointId) => this.endpointQueues.GetOrAdd(endpointId, new TestMessageQueue());
 
             class TestMessageQueue : IMessageIterator
             {
-                int index;
                 readonly List<IMessage> queue = new List<IMessage>();
                 readonly AsyncLock queueLock = new AsyncLock();
+                int index;
 
                 public List<IMessage> Queue => this.queue;
 
@@ -237,33 +263,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
                         {
                             batch.Add(this.queue[this.index]);
                         }
+
                         return batch;
                     }
                 }
             }
-        }
-
-        class CheckpointStore : ICheckpointStore
-        {
-            readonly Dictionary<string, CheckpointData> checkpointDatas = new Dictionary<string, CheckpointData>();
-
-            public Task<CheckpointData> GetCheckpointDataAsync(string id, CancellationToken token)
-            {
-                CheckpointData checkpointData = this.checkpointDatas.ContainsKey(id)
-                    ? this.checkpointDatas[id]
-                    : new CheckpointData(Checkpointer.InvalidOffset);
-                return Task.FromResult(checkpointData);
-            }
-
-            public Task<IDictionary<string, CheckpointData>> GetAllCheckpointDataAsync(CancellationToken token) => Task.FromResult((IDictionary<string, CheckpointData>)this.checkpointDatas);
-
-            public Task SetCheckpointDataAsync(string id, CheckpointData checkpointData, CancellationToken token)
-            {
-                this.checkpointDatas[id] = checkpointData;
-                return Task.CompletedTask;
-            }
-
-            public Task CloseAsync(CancellationToken token) => Task.CompletedTask;
         }
     }
 }

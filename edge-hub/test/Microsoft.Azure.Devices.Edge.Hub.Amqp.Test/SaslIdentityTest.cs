@@ -1,34 +1,41 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 {
     using System;
     using System.Collections.Generic;
-    using Microsoft.Azure.Devices.Edge.Hub.Amqp;
+
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+
     using Xunit;
 
     public class SaslIdentityTest
     {
-        static IEnumerable<object[]> GetInvalidParseInputs() => new[]
-        {
-                new object[] { string.Empty, typeof(ArgumentException) },
-                new object[] { "    ", typeof(ArgumentException) },
-                new object[] { "boo", typeof(EdgeHubConnectionException) },
-            };
-
         [Theory]
         [Unit]
         [MemberData(nameof(GetInvalidParseInputs))]
         public void TestInvalidParseInputs(string input, Type exceptionType) =>
             Assert.Throws(exceptionType, () => SaslIdentity.Parse(input));
 
+        [Theory]
+        [Unit]
+        [MemberData(nameof(GetValidParseInputs))]
+        public void TestValidParseInputs(string input) => Assert.NotNull(SaslIdentity.Parse(input));
+
+        static IEnumerable<object[]> GetInvalidParseInputs() => new[]
+        {
+            new object[] { string.Empty, typeof(ArgumentException) },
+            new object[] { "    ", typeof(ArgumentException) },
+            new object[] { "boo", typeof(EdgeHubConnectionException) },
+        };
+
         static IEnumerable<object[]> GetValidParseInputs() => new[]
         {
             // DeviceSasIdentityRegex
             new object[] { "dev1/modules/mod1@sas.hub1" },
             new object[] { "dev1@sas.hub1" },
+
             // should the following expression pass?! we're using an arbitrary symbol after the "@sas" token
             new object[] { "dev1/modules/mod1@sasXhub1" },
 
@@ -36,10 +43,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             new object[] { "dev1/modules/mod1@boo" },
             new object[] { "dev1@boo" }
         };
-
-        [Theory]
-        [Unit]
-        [MemberData(nameof(GetValidParseInputs))]
-        public void TestValidParseInputs(string input) => Assert.NotNull(SaslIdentity.Parse(input));
     }
 }

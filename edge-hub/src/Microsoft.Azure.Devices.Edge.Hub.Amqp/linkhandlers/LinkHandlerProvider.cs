@@ -1,9 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 {
     using System;
     using System.Collections.Generic;
+
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -14,19 +15,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
         {
             { (Templates.CbsReceiveTemplate, true), LinkType.Cbs },
             { (Templates.CbsReceiveTemplate, false), LinkType.Cbs },
-            { ( Templates.DeviceEventsTemplate, true), LinkType.Events },
-            { ( Templates.ModuleEventsTemplate, true), LinkType.Events },
-            { ( Templates.ModuleEventsTemplate, false), LinkType.ModuleMessages },
-            { ( Templates.DeviceFromDeviceBoundTemplate, false), LinkType.C2D },
-            { ( Templates.ModuleFromDeviceBoundTemplate, false), LinkType.C2D },
-            { ( Templates.Twin.DeviceBoundMethodCallTemplate, true), LinkType.MethodReceiving },
-            { ( Templates.Twin.ModuleDeviceBoundMethodCallTemplate, true), LinkType.MethodReceiving },
-            { ( Templates.Twin.DeviceBoundMethodCallTemplate, false), LinkType.MethodSending },
-            { ( Templates.Twin.ModuleDeviceBoundMethodCallTemplate, false), LinkType.MethodSending },
-            { ( Templates.Twin.TwinStreamTemplate, true), LinkType.TwinReceiving },
-            { ( Templates.Twin.ModuleTwinStreamTemplate, true), LinkType.TwinReceiving },
-            { ( Templates.Twin.TwinStreamTemplate, false), LinkType.TwinSending },
-            { ( Templates.Twin.ModuleTwinStreamTemplate, false), LinkType.TwinSending },
+            { (Templates.DeviceEventsTemplate, true), LinkType.Events },
+            { (Templates.ModuleEventsTemplate, true), LinkType.Events },
+            { (Templates.ModuleEventsTemplate, false), LinkType.ModuleMessages },
+            { (Templates.DeviceFromDeviceBoundTemplate, false), LinkType.C2D },
+            { (Templates.ModuleFromDeviceBoundTemplate, false), LinkType.C2D },
+            { (Templates.Twin.DeviceBoundMethodCallTemplate, true), LinkType.MethodReceiving },
+            { (Templates.Twin.ModuleDeviceBoundMethodCallTemplate, true), LinkType.MethodReceiving },
+            { (Templates.Twin.DeviceBoundMethodCallTemplate, false), LinkType.MethodSending },
+            { (Templates.Twin.ModuleDeviceBoundMethodCallTemplate, false), LinkType.MethodSending },
+            { (Templates.Twin.TwinStreamTemplate, true), LinkType.TwinReceiving },
+            { (Templates.Twin.ModuleTwinStreamTemplate, true), LinkType.TwinReceiving },
+            { (Templates.Twin.TwinStreamTemplate, false), LinkType.TwinSending },
+            { (Templates.Twin.ModuleTwinStreamTemplate, false), LinkType.TwinSending },
         };
 
         readonly IMessageConverter<AmqpMessage> messageConverter;
@@ -34,13 +35,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
         readonly IMessageConverter<AmqpMessage> methodMessageConverter;
         readonly IDictionary<(UriPathTemplate Template, bool IsReceiver), LinkType> templatesList;
 
-        public LinkHandlerProvider(IMessageConverter<AmqpMessage> messageConverter,
+        public LinkHandlerProvider(
+            IMessageConverter<AmqpMessage> messageConverter,
             IMessageConverter<AmqpMessage> twinMessageConverter,
             IMessageConverter<AmqpMessage> methodMessageConverter)
             : this(messageConverter, twinMessageConverter, methodMessageConverter, DefaultTemplatesList)
-        { }
+        {
+        }
 
-        public LinkHandlerProvider(IMessageConverter<AmqpMessage> messageConverter,
+        public LinkHandlerProvider(
+            IMessageConverter<AmqpMessage> messageConverter,
             IMessageConverter<AmqpMessage> twinMessageConverter,
             IMessageConverter<AmqpMessage> methodMessageConverter,
             IDictionary<(UriPathTemplate Template, bool IsReceiver), LinkType> templatesList)
@@ -103,6 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
                     return (this.templatesList[key], boundVariables.ToDictionary());
                 }
             }
+
             throw new InvalidOperationException($"Matching template not found for uri {uri}");
         }
 

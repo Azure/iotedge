@@ -1,16 +1,21 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
+
     using DotNetty.Buffers;
+
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt;
+
     using IProtocolGatewayMessage = Microsoft.Azure.Devices.ProtocolGateway.Messaging.IMessage;
 
     public class ProtocolGatewayMessageConverter : IMessageConverter<IProtocolGatewayMessage>
-    {        
+    {
         readonly MessageAddressConverter addressConvertor;
         readonly IByteBufferConverter byteBufferConverter;
 
@@ -18,6 +23,50 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         {
             this.addressConvertor = Preconditions.CheckNotNull(addressConvertor, nameof(addressConvertor));
             this.byteBufferConverter = Preconditions.CheckNotNull(byteBufferConverter, nameof(byteBufferConverter));
+        }
+
+        public IProtocolGatewayMessage FromMessage(IMessage message)
+        {
+            message.SystemProperties.TryGetValue(SystemProperties.LockToken, out string lockToken);
+
+            DateTime createdTimeUtc = DateTime.UtcNow;
+            if (message.SystemProperties.TryGetValue(SystemProperties.EnqueuedTime, out string createdTime))
+            {
+                createdTimeUtc = DateTime.Parse(createdTime, null, DateTimeStyles.RoundtripKind);
+            }
+
+            if (!message.SystemProperties.TryGetValue(SystemProperties.OutboundUri, out string uriTemplateKey))
+            {
+                throw new InvalidOperationException("Could not find key " + SystemProperties.OutboundUri + " in message system properties.");
+            }
+
+            IDictionary<string, string> properties = new Dictionary<string, string>();
+            foreach (KeyValuePair<string, string> property in message.Properties)
+            {
+                properties.Add(property);
+            }
+
+            foreach (KeyValuePair<string, string> systemProperty in message.SystemProperties)
+            {
+                if (SystemProperties.OutgoingSystemPropertiesMap.TryGetValue(systemProperty.Key, out string onWirePropertyName))
+                {
+                    properties[onWirePropertyName] = systemProperty.Value;
+                }
+            }
+
+            if (!this.addressConvertor.TryBuildProtocolAddressFromEdgeHubMessage(uriTemplateKey, message, properties, out string address))
+            {
+                throw new InvalidOperationException("Could not derive destination address using message system properties");
+            }
+
+            IByteBuffer payload = this.byteBufferConverter.ToByteBuffer(message.Body);
+            ProtocolGatewayMessage pgMessage = new ProtocolGatewayMessage.Builder(payload, address)
+                .WithId(lockToken)
+                .WithCreatedTimeUtc(createdTimeUtc)
+                .WithProperties(properties)
+                .Build();
+
+            return pgMessage;
         }
 
         public IMessage ToMessage(IProtocolGatewayMessage sourceMessage)
@@ -28,7 +77,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             byte[] payloadBytes = this.byteBufferConverter.ToByteArray(sourceMessage.Payload);
 
             // TODO - What about the other properties (like sequence number, etc)? Ignoring for now, as they are not used anyways.
-
             var systemProperties = new Dictionary<string, string>();
             var properties = new Dictionary<string, string>();
             if (sourceMessage.Properties.TryGetValue(TemplateParameters.DeviceIdTemplateParam, out string deviceIdValue))
@@ -60,50 +108,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 .SetSystemProperties(systemProperties)
                 .Build();
             return hubMessage;
-        }
-
-        public IProtocolGatewayMessage FromMessage(IMessage message)
-        {
-            message.SystemProperties.TryGetValue(SystemProperties.LockToken, out string lockToken);
-
-            DateTime createdTimeUtc = DateTime.UtcNow;
-            if (message.SystemProperties.TryGetValue(SystemProperties.EnqueuedTime, out string createdTime))
-            {
-                createdTimeUtc = DateTime.Parse(createdTime, null, System.Globalization.DateTimeStyles.RoundtripKind);
-            }
-
-            if (!message.SystemProperties.TryGetValue(SystemProperties.OutboundUri, out string uriTemplateKey))
-            {
-                throw new InvalidOperationException("Could not find key " + SystemProperties.OutboundUri + " in message system properties.");
-            }
-
-            IDictionary<string, string> properties = new Dictionary<string, string>();
-            foreach (KeyValuePair<string, string> property in message.Properties)
-            {
-                properties.Add(property);
-            }
-
-            foreach(KeyValuePair<string, string> systemProperty in message.SystemProperties)
-            {
-                if (SystemProperties.OutgoingSystemPropertiesMap.TryGetValue(systemProperty.Key, out string onWirePropertyName))
-                {
-                    properties[onWirePropertyName] = systemProperty.Value;
-                }
-            }
-
-            if (!this.addressConvertor.TryBuildProtocolAddressFromEdgeHubMessage(uriTemplateKey, message, properties, out string address))
-            {
-                throw new InvalidOperationException("Could not derive destination address using message system properties");
-            }
-
-            IByteBuffer payload = this.byteBufferConverter.ToByteBuffer(message.Body);
-            ProtocolGatewayMessage pgMessage = new ProtocolGatewayMessage.Builder(payload, address)
-                .WithId(lockToken)
-                .WithCreatedTimeUtc(createdTimeUtc)
-                .WithProperties(properties)
-                .Build();
-
-            return pgMessage;
         }
     }
 }

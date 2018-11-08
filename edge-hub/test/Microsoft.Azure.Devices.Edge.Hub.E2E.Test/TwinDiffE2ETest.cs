@@ -1,13 +1,17 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
     using System;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Shared;
+
     using Newtonsoft.Json.Linq;
+
     using Xunit;
 
     [Integration]
@@ -57,6 +61,104 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         [Theory]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
+        public async Task NonexistantRemovePropertySuccess(ITransportSettings[] transportSettings)
+        {
+            await this.RunTestCase(
+                transportSettings,
+                async (deviceClient, deviceName, registryManager) =>
+                {
+                    var twinPatch = new Twin();
+                    twinPatch.Properties.Desired = new TwinCollection()
+                    {
+                        ["105"] = new TwinCollection()
+                        {
+                            ["object"] = new TwinCollection()
+                            {
+                                ["object"] = new TwinCollection()
+                                {
+                                    ["105"] = "value"
+                                }
+                            }
+                        }
+                    };
+
+                    (TwinCollection, TwinCollection) results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
+
+                    Assert.True(
+                        JToken.DeepEquals(
+                            JToken.Parse(results.Item1.ToJson()),
+                            JToken.Parse(results.Item2.ToJson())));
+
+                    twinPatch.Properties.Desired = new TwinCollection()
+                    {
+                        ["105"] = new TwinCollection()
+                        {
+                            ["object"] = new TwinCollection()
+                            {
+                                ["object"] = new TwinCollection()
+                                {
+                                    ["105"] = "value",
+                                    ["nonexistant"] = null
+                                }
+                            }
+                        }
+                    };
+
+                    results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
+
+                    Assert.True(
+                        JToken.DeepEquals(
+                            JToken.Parse(results.Item1.ToJson()),
+                            JToken.Parse(results.Item2.ToJson())));
+                });
+        }
+
+        [Theory]
+        [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
+        public async Task OverwriteObjectWithValueSuccess(ITransportSettings[] transportSettings)
+        {
+            await this.RunTestCase(
+                transportSettings,
+                async (deviceClient, deviceName, registryManager) =>
+                {
+                    var twinPatch = new Twin();
+                    twinPatch.Properties.Desired = new TwinCollection()
+                    {
+                        ["107"] = new TwinCollection()
+                        {
+                            ["object"] = new TwinCollection()
+                            {
+                                ["object"] = new TwinCollection()
+                                {
+                                    ["107"] = "value"
+                                }
+                            }
+                        }
+                    };
+
+                    (TwinCollection, TwinCollection) results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
+
+                    Assert.True(
+                        JToken.DeepEquals(
+                            JToken.Parse(results.Item1.ToJson()),
+                            JToken.Parse(results.Item2.ToJson())));
+
+                    twinPatch.Properties.Desired = new TwinCollection()
+                    {
+                        ["107"] = "value"
+                    };
+
+                    results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
+
+                    Assert.True(
+                        JToken.DeepEquals(
+                            JToken.Parse(results.Item1.ToJson()),
+                            JToken.Parse(results.Item2.ToJson())));
+                });
+        }
+
+        [Theory]
+        [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
         public async Task OverwritePropertySuccess(ITransportSettings[] transportSettings)
         {
             await this.RunTestCase(
@@ -92,7 +194,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         [Theory]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
-        public async Task UnchangedPropertySuccess(ITransportSettings[] transportSettings)
+        public async Task OverwriteValueWithObjectSuccess(ITransportSettings[] transportSettings)
         {
             await this.RunTestCase(
                 transportSettings,
@@ -101,16 +203,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     var twinPatch = new Twin();
                     twinPatch.Properties.Desired = new TwinCollection()
                     {
-                        ["103"] = new TwinCollection()
-                        {
-                            ["object"] = new TwinCollection()
-                            {
-                                ["object"] = new TwinCollection()
-                                {
-                                    ["103"] = "value"
-                                }
-                            }
-                        }
+                        ["106"] = "value"
                     };
 
                     (TwinCollection, TwinCollection) results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
@@ -122,13 +215,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
                     twinPatch.Properties.Desired = new TwinCollection()
                     {
-                        ["103"] = new TwinCollection()
+                        ["106"] = new TwinCollection()
                         {
                             ["object"] = new TwinCollection()
                             {
                                 ["object"] = new TwinCollection()
                                 {
-                                    ["103"] = "value",
+                                    ["106"] = "value"
                                 }
                             }
                         }
@@ -198,7 +291,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         [Theory]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
-        public async Task NonexistantRemovePropertySuccess(ITransportSettings[] transportSettings)
+        public async Task UnchangedPropertySuccess(ITransportSettings[] transportSettings)
         {
             await this.RunTestCase(
                 transportSettings,
@@ -207,13 +300,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     var twinPatch = new Twin();
                     twinPatch.Properties.Desired = new TwinCollection()
                     {
-                        ["105"] = new TwinCollection()
+                        ["103"] = new TwinCollection()
                         {
                             ["object"] = new TwinCollection()
                             {
                                 ["object"] = new TwinCollection()
                                 {
-                                    ["105"] = "value"
+                                    ["103"] = "value"
                                 }
                             }
                         }
@@ -228,105 +321,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
                     twinPatch.Properties.Desired = new TwinCollection()
                     {
-                        ["105"] = new TwinCollection()
+                        ["103"] = new TwinCollection()
                         {
                             ["object"] = new TwinCollection()
                             {
                                 ["object"] = new TwinCollection()
                                 {
-                                    ["105"] = "value",
-                                    ["nonexistant"] = null
+                                    ["103"] = "value",
                                 }
                             }
                         }
-                    };
-
-                    results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
-
-                    Assert.True(
-                        JToken.DeepEquals(
-                            JToken.Parse(results.Item1.ToJson()),
-                            JToken.Parse(results.Item2.ToJson())));
-                });
-        }
-
-        [Theory]
-        [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
-        public async Task OverwriteValueWithObjectSuccess(ITransportSettings[] transportSettings)
-        {
-            await this.RunTestCase(
-                transportSettings,
-                async (deviceClient, deviceName, registryManager) =>
-                {
-                    var twinPatch = new Twin();
-                    twinPatch.Properties.Desired = new TwinCollection()
-                    {
-                        ["106"] = "value"
-                    };
-
-                    (TwinCollection, TwinCollection) results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
-
-                    Assert.True(
-                        JToken.DeepEquals(
-                            JToken.Parse(results.Item1.ToJson()),
-                            JToken.Parse(results.Item2.ToJson())));
-
-                    twinPatch.Properties.Desired = new TwinCollection()
-                    {
-                        ["106"] = new TwinCollection()
-                        {
-                            ["object"] = new TwinCollection()
-                            {
-                                ["object"] = new TwinCollection()
-                                {
-                                    ["106"] = "value"
-                                }
-                            }
-                        }
-                    };
-
-                    results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
-
-                    Assert.True(
-                        JToken.DeepEquals(
-                            JToken.Parse(results.Item1.ToJson()),
-                            JToken.Parse(results.Item2.ToJson())));
-                });
-        }
-
-        [Theory]
-        [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
-        public async Task OverwriteObjectWithValueSuccess(ITransportSettings[] transportSettings)
-        {
-            await this.RunTestCase(
-                transportSettings,
-                async (deviceClient, deviceName, registryManager) =>
-                {
-                    var twinPatch = new Twin();
-                    twinPatch.Properties.Desired = new TwinCollection()
-                    {
-                        ["107"] = new TwinCollection()
-                        {
-                            ["object"] = new TwinCollection()
-                            {
-                                ["object"] = new TwinCollection()
-                                {
-                                    ["107"] = "value"
-                                }
-                            }
-                        }
-                    };
-
-                    (TwinCollection, TwinCollection) results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
-
-                    Assert.True(
-                        JToken.DeepEquals(
-                            JToken.Parse(results.Item1.ToJson()),
-                            JToken.Parse(results.Item2.ToJson())));
-
-                    twinPatch.Properties.Desired = new TwinCollection()
-                    {
-                        ["107"] = "value"
                     };
 
                     results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
@@ -356,9 +360,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     {
                         throw;
                     }
+
                     await Task.Delay(TimeSpan.FromSeconds(5));
                 }
             }
+
             return (deviceClient, deviceName);
         }
 
@@ -379,10 +385,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             }
         }
 
-        async Task<(TwinCollection, TwinCollection)> TestTwinUpdate(DeviceClient deviceClient, string deviceName,
-            RegistryManager rm, Twin twinPatch)
+        async Task<(TwinCollection, TwinCollection)> TestTwinUpdate(
+            DeviceClient deviceClient,
+            string deviceName,
+            RegistryManager rm,
+            Twin twinPatch)
         {
             var receivedDesiredProperties = new TwinCollection();
+
             Task DesiredPropertiesUpdateCallback(TwinCollection desiredproperties, object usercontext)
             {
                 receivedDesiredProperties = desiredproperties;

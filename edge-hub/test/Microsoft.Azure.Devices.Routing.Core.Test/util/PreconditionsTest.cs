@@ -1,16 +1,29 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Test.Util
 {
     using System;
     using System.Diagnostics.CodeAnalysis;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
+
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.Util;
+
     using Xunit;
 
     [ExcludeFromCodeCoverage]
     public class PreconditionsTest
     {
-        [Fact, Unit]
+        [Fact]
+        [Unit]
+        public void TestCheckArgument()
+        {
+            Assert.Throws(typeof(ArgumentException), () => Preconditions.CheckArgument(false));
+            Assert.Throws(typeof(ArgumentException), () => Preconditions.CheckArgument(false, "message"));
+            Preconditions.CheckArgument(true);
+        }
+
+        [Fact]
+        [Unit]
         public void TestCheckNotNull()
         {
             Assert.Throws(typeof(ArgumentNullException), () => Preconditions.CheckNotNull<string>(null, "param"));
@@ -27,15 +40,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util
             Assert.Equal("my message", message);
         }
 
-        [Fact, Unit]
-        public void TestCheckArgument()
-        {
-            Assert.Throws(typeof(ArgumentException), () => Preconditions.CheckArgument(false));
-            Assert.Throws(typeof(ArgumentException), () => Preconditions.CheckArgument(false, "message"));
-            Preconditions.CheckArgument(true);
-        }
-
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestCheckRange()
         {
             int item = Preconditions.CheckRange(6, 5);

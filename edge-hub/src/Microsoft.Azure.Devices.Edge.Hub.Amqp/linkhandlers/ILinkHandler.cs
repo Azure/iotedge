@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 {
     using System;
@@ -7,16 +7,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 
     public interface ILinkHandler
     {
-        Uri LinkUri { get; }
+        string CorrelationId { get; }
 
         IAmqpLink Link { get; }
 
-        Task OpenAsync(TimeSpan timeout);
+        Uri LinkUri { get; }
+
+        LinkType Type { get; }
 
         Task CloseAsync(TimeSpan timeout);
 
-        string CorrelationId { get; }
-
-        LinkType Type { get; }
+        Task OpenAsync(TimeSpan timeout);
     }
 }

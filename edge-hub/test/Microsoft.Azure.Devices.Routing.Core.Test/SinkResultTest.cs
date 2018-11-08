@@ -1,17 +1,18 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Test
 {
     using System;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
+
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.Util;
+
     using Xunit;
 
     public class SinkResultTest : RoutingUnitTestBase
     {
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestConstructor()
         {
             var result1 = new SinkResult<int>(new[] { 1 }, new[] { 2 }, null);

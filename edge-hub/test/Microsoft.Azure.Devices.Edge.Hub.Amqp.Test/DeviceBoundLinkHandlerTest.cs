@@ -1,9 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 {
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Amqp.Encoding;
     using Microsoft.Azure.Amqp.Framing;
@@ -13,7 +15,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+
     using Moq;
+
     using Xunit;
 
     [Unit]
@@ -69,8 +73,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                 .Callback<string, FeedbackStatus>((m, s) => feedbackStatus = s)
                 .Returns(Task.CompletedTask);
             AmqpMessage receivedAmqpMessage = null;
-            var connectionHandler = Mock.Of<IConnectionHandler>(c => c.GetDeviceListener() == Task.FromResult(deviceListener.Object)
-                && c.GetAmqpAuthentication() == Task.FromResult(new AmqpAuthentication(true, Option.Some(Mock.Of<IClientCredentials>()))));
+            var connectionHandler = Mock.Of<IConnectionHandler>(
+                c => c.GetDeviceListener() == Task.FromResult(deviceListener.Object)
+                     && c.GetAmqpAuthentication() == Task.FromResult(new AmqpAuthentication(true, Option.Some(Mock.Of<IClientCredentials>()))));
             var amqpConnection = Mock.Of<IAmqpConnection>(c => c.FindExtension<IConnectionHandler>() == connectionHandler);
             var amqpSession = Mock.Of<IAmqpSession>(s => s.Connection == amqpConnection);
             var sendingLink = Mock.Of<ISendingAmqpLink>(l => l.Session == amqpSession && !l.IsReceiver && l.Settings == new AmqpLinkSettings() && l.State == AmqpObjectState.Opened);
@@ -84,9 +89,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var sendingLinkHandler = new DeviceBoundLinkHandler(sendingLink, requestUri, boundVariables, messageConverter);
             var body = new byte[] { 0, 1, 2, 3 };
             IMessage message = new EdgeMessage.Builder(body).Build();
-            var deliveryState = new Mock<DeliveryState>(new AmqpSymbol(""), AmqpConstants.AcceptedOutcome.DescriptorCode);
-            var delivery = Mock.Of<Delivery>(d => d.State == deliveryState.Object
-                && d.DeliveryTag == new ArraySegment<byte>(Guid.NewGuid().ToByteArray()));
+            var deliveryState = new Mock<DeliveryState>(new AmqpSymbol(string.Empty), AmqpConstants.AcceptedOutcome.DescriptorCode);
+            var delivery = Mock.Of<Delivery>(
+                d => d.State == deliveryState.Object
+                     && d.DeliveryTag == new ArraySegment<byte>(Guid.NewGuid().ToByteArray()));
 
             // Act
             await sendingLinkHandler.OpenAsync(TimeSpan.FromSeconds(5));

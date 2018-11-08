@@ -1,14 +1,16 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 {
     using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
+
     using Autofac;
+
     using DotNetty.Buffers;
+
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
-    using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -16,14 +18,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Azure.Devices.ProtocolGateway.Identity;
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt.Persistence;
     using Microsoft.Extensions.Configuration;
+
+    using Constants = Microsoft.Azure.Devices.Edge.Hub.Core.Constants;
     using IProtocolGatewayMessage = Microsoft.Azure.Devices.ProtocolGateway.Messaging.IMessage;
 
     public class MqttModule : Module
     {
         readonly MessageAddressConversionConfiguration conversionConfiguration;
         readonly IConfiguration mqttSettingsConfiguration;
-        //TODO: This causes reSharperWarning. Remove this TODO once code below are uncommented. 
-        // ReSharper disable once NotAccessedField.Local
         readonly bool isStoreAndForwardEnabled;
         readonly X509Certificate2 tlsCertificate;
         readonly bool clientCertAuthAllowed;
@@ -51,11 +53,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         protected override void Load(ContainerBuilder builder)
         {
             // IByteBufferAllocator
-            builder.Register(c =>
-                {
-                    // TODO - We should probably also use some heuristics to make this determination, like how much memory does the system have. 
-                    return this.optimizeForPerformance ? PooledByteBufferAllocator.Default : UnpooledByteBufferAllocator.Default as IByteBufferAllocator;
-                })
+            builder.Register(
+                    c =>
+                    {
+                        // TODO - We should probably also use some heuristics to make this determination, like how much memory does the system have.
+                        return this.optimizeForPerformance ? PooledByteBufferAllocator.Default : UnpooledByteBufferAllocator.Default as IByteBufferAllocator;
+                    })
                 .As<IByteBufferAllocator>()
                 .SingleInstance();
 
@@ -80,23 +83,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 
             // Task<IMqttConnectionProvider>
             builder.Register(
-                async c =>
-                {
-                    var pgMessageConverter = c.Resolve<IMessageConverter<IProtocolGatewayMessage>>();
-                    var byteBufferConverter = c.Resolve<IByteBufferConverter>();
-                    IConnectionProvider connectionProvider = await c.Resolve<Task<IConnectionProvider>>();
-                    IMqttConnectionProvider mqtt = new MqttConnectionProvider(connectionProvider, pgMessageConverter, byteBufferConverter);
-                    return mqtt;
-                })
+                    async c =>
+                    {
+                        var pgMessageConverter = c.Resolve<IMessageConverter<IProtocolGatewayMessage>>();
+                        var byteBufferConverter = c.Resolve<IByteBufferConverter>();
+                        IConnectionProvider connectionProvider = await c.Resolve<Task<IConnectionProvider>>();
+                        IMqttConnectionProvider mqtt = new MqttConnectionProvider(connectionProvider, pgMessageConverter, byteBufferConverter);
+                        return mqtt;
+                    })
                 .As<Task<IMqttConnectionProvider>>()
                 .SingleInstance();
 
             // IIdentityProvider
-            builder.Register(async c =>
-                {
-                    IAuthenticator authenticator = await c.Resolve<Task<IAuthenticator>>();
-                    return new DeviceIdentityProvider(authenticator, c.Resolve<IClientCredentialsFactory>(), this.clientCertAuthAllowed) as IDeviceIdentityProvider;
-                })
+            builder.Register(
+                    async c =>
+                    {
+                        IAuthenticator authenticator = await c.Resolve<Task<IAuthenticator>>();
+                        return new DeviceIdentityProvider(authenticator, c.Resolve<IClientCredentialsFactory>(), this.clientCertAuthAllowed) as IDeviceIdentityProvider;
+                    })
                 .As<Task<IDeviceIdentityProvider>>()
                 .SingleInstance();
 
@@ -106,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     {
                         if (this.isStoreAndForwardEnabled)
                         {
-                            IEntityStore<string, SessionState> entityStore = new StoreProvider(c.Resolve<IDbStoreProvider>()).GetEntityStore<string, SessionState>(Core.Constants.SessionStorePartitionKey);
+                            IEntityStore<string, SessionState> entityStore = new StoreProvider(c.Resolve<IDbStoreProvider>()).GetEntityStore<string, SessionState>(Constants.SessionStorePartitionKey);
                             IEdgeHub edgeHub = await c.Resolve<Task<IEdgeHub>>();
                             return new SessionStateStoragePersistenceProvider(edgeHub, entityStore) as ISessionStatePersistenceProvider;
                         }
@@ -121,19 +125,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 
             // MqttProtocolHead
             builder.Register(
-                async c =>
-                {
-                    var settingsProvider = c.Resolve<ISettingsProvider>();
-                    var websocketListenerRegistry = c.Resolve<IWebSocketListenerRegistry>();
-                    var byteBufferAllocator = c.Resolve<IByteBufferAllocator>();
-                    var mqttConnectionProviderTask = c.Resolve<Task<IMqttConnectionProvider>>();
-                    var deviceIdentityProviderTask = c.Resolve<Task<IDeviceIdentityProvider>>();
-                    var sessionStatePersistenceProviderTask = c.Resolve<Task<ISessionStatePersistenceProvider>>();
-                    IMqttConnectionProvider mqttConnectionProvider = await mqttConnectionProviderTask;
-                    IDeviceIdentityProvider deviceIdentityProvider = await deviceIdentityProviderTask;
-                    ISessionStatePersistenceProvider sessionStatePersistenceProvider = await sessionStatePersistenceProviderTask;
-                    return new MqttProtocolHead(
-                        settingsProvider,
+                    async c =>
+                    {
+                        var settingsProvider = c.Resolve<ISettingsProvider>();
+                        var websocketListenerRegistry = c.Resolve<IWebSocketListenerRegistry>();
+                        var byteBufferAllocator = c.Resolve<IByteBufferAllocator>();
+                        var mqttConnectionProviderTask = c.Resolve<Task<IMqttConnectionProvider>>();
+                        var deviceIdentityProviderTask = c.Resolve<Task<IDeviceIdentityProvider>>();
+                        var sessionStatePersistenceProviderTask = c.Resolve<Task<ISessionStatePersistenceProvider>>();
+                        IMqttConnectionProvider mqttConnectionProvider = await mqttConnectionProviderTask;
+                        IDeviceIdentityProvider deviceIdentityProvider = await deviceIdentityProviderTask;
+                        ISessionStatePersistenceProvider sessionStatePersistenceProvider = await sessionStatePersistenceProviderTask;
+                        return new MqttProtocolHead(
+                            settingsProvider,
                             this.tlsCertificate,
                             mqttConnectionProvider,
                             deviceIdentityProvider,
@@ -142,7 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             byteBufferAllocator,
                             this.clientCertAuthAllowed,
                             this.caChainPath);
-                })
+                    })
                 .As<Task<MqttProtocolHead>>()
                 .SingleInstance();
 

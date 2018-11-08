@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
     using System;
@@ -7,7 +7,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using System.Globalization;
     using System.Threading;
     using System.Threading.Tasks;
+
     using Autofac;
+
     using Microsoft.Azure.Devices.Edge.Hub.Amqp;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -34,6 +36,56 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 .Build();
 
             return MainAsync(configuration).Result;
+        }
+
+        static async Task<EdgeHubProtocolHead> GetEdgeHubProtocolHeadAsync(ILogger logger, IConfigurationRoot configuration, IContainer container, Hosting hosting)
+        {
+            var protocolHeads = new List<IProtocolHead>();
+            if (configuration.GetValue("mqttSettings:enabled", true))
+            {
+                protocolHeads.Add(await container.Resolve<Task<MqttProtocolHead>>());
+            }
+
+            if (configuration.GetValue("amqpSettings:enabled", true))
+            {
+                protocolHeads.Add(await container.Resolve<Task<AmqpProtocolHead>>());
+            }
+
+            if (configuration.GetValue("httpSettings:enabled", true))
+            {
+                protocolHeads.Add(new HttpProtocolHead(hosting.WebHost));
+            }
+
+            return new EdgeHubProtocolHead(protocolHeads, logger);
+        }
+
+        static void LogLogo(ILogger logger)
+        {
+            logger.LogInformation(
+                @"
+        █████╗ ███████╗██╗   ██╗██████╗ ███████╗
+       ██╔══██╗╚══███╔╝██║   ██║██╔══██╗██╔════╝
+       ███████║  ███╔╝ ██║   ██║██████╔╝█████╗
+       ██╔══██║ ███╔╝  ██║   ██║██╔══██╗██╔══╝
+       ██║  ██║███████╗╚██████╔╝██║  ██║███████╗
+       ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝
+
+ ██╗ ██████╗ ████████╗    ███████╗██████╗  ██████╗ ███████╗
+ ██║██╔═══██╗╚══██╔══╝    ██╔════╝██╔══██╗██╔════╝ ██╔════╝
+ ██║██║   ██║   ██║       █████╗  ██║  ██║██║  ███╗█████╗
+ ██║██║   ██║   ██║       ██╔══╝  ██║  ██║██║   ██║██╔══╝
+ ██║╚██████╔╝   ██║       ███████╗██████╔╝╚██████╔╝███████╗
+ ╚═╝ ╚═════╝    ╚═╝       ╚══════╝╚═════╝  ╚═════╝ ╚══════╝
+");
+        }
+
+        static void LogVersionInfo(ILogger logger)
+        {
+            VersionInfo versionInfo = VersionInfo.Get(Constants.VersionInfoFileName);
+            if (versionInfo != VersionInfo.Empty)
+            {
+                logger.LogInformation($"Version - {versionInfo.ToString(true)}");
+            }
         }
 
         static async Task<int> MainAsync(IConfigurationRoot configuration)
@@ -105,56 +157,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             handler.ForEach(h => GC.KeepAlive(h));
             logger.LogInformation("Shutdown complete.");
             return 0;
-        }
-
-        static void LogVersionInfo(ILogger logger)
-        {
-            VersionInfo versionInfo = VersionInfo.Get(Constants.VersionInfoFileName);
-            if (versionInfo != VersionInfo.Empty)
-            {
-                logger.LogInformation($"Version - {versionInfo.ToString(true)}");
-            }
-        }
-
-        static async Task<EdgeHubProtocolHead> GetEdgeHubProtocolHeadAsync(ILogger logger, IConfigurationRoot configuration, IContainer container, Hosting hosting)
-        {
-            var protocolHeads = new List<IProtocolHead>();
-            if (configuration.GetValue("mqttSettings:enabled", true))
-            {
-                protocolHeads.Add(await container.Resolve<Task<MqttProtocolHead>>());
-            }
-
-            if (configuration.GetValue("amqpSettings:enabled", true))
-            {
-                protocolHeads.Add(await container.Resolve<Task<AmqpProtocolHead>>());
-            }
-
-            if (configuration.GetValue("httpSettings:enabled", true))
-            {
-                protocolHeads.Add(new HttpProtocolHead(hosting.WebHost));
-            }
-
-            return new EdgeHubProtocolHead(protocolHeads, logger);
-        }
-
-        static void LogLogo(ILogger logger)
-        {
-            logger.LogInformation(
-                @"
-        █████╗ ███████╗██╗   ██╗██████╗ ███████╗
-       ██╔══██╗╚══███╔╝██║   ██║██╔══██╗██╔════╝
-       ███████║  ███╔╝ ██║   ██║██████╔╝█████╗
-       ██╔══██║ ███╔╝  ██║   ██║██╔══██╗██╔══╝
-       ██║  ██║███████╗╚██████╔╝██║  ██║███████╗
-       ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝
-
- ██╗ ██████╗ ████████╗    ███████╗██████╗  ██████╗ ███████╗
- ██║██╔═══██╗╚══██╔══╝    ██╔════╝██╔══██╗██╔════╝ ██╔════╝
- ██║██║   ██║   ██║       █████╗  ██║  ██║██║  ███╗█████╗
- ██║██║   ██║   ██║       ██╔══╝  ██║  ██║██║   ██║██╔══╝
- ██║╚██████╔╝   ██║       ███████╗██████╔╝╚██████╔╝███████╗
- ╚═╝ ╚═════╝    ╚═╝       ╚══════╝╚═════╝  ╚═════╝ ╚══════╝
-");
         }
     }
 }

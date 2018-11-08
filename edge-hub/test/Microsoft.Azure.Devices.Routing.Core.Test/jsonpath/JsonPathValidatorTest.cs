@@ -1,31 +1,27 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Test.JsonPath
 {
-    using Microsoft.Azure.Devices.Routing.Core.Query.JsonPath;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.Query.JsonPath;
+
     using Xunit;
 
     public class JsonPathValidatorTest
     {
-        [Theory, Unit]
-        [InlineData("root")]
-        [InlineData("ROOT")]
-        [InlineData("root.level1")]
-        [InlineData("ROOT.LEVEL1")]
-        [InlineData("root.level1.level2.level3.level4")]
-        [InlineData("root.level1[0]")]
-        [InlineData("root.level1[0].level2[1].level3[3].level4[5]")]
-        [InlineData("root[10000]")]
-        [InlineData("123abc")]
-        public void JsonPathValidator_Success(string jsonPath)
+        [Fact]
+        [Unit]
+        public void JsonPathValidator_Debug()
         {
-            Assert.True(JsonPathValidator.IsSupportedJsonPath(jsonPath, out _));
+            string jsonPath = "message.Weather.HistoricalData[0].Temperature[1]";
+
+            bool isSupported = JsonPathValidator.IsSupportedJsonPath(jsonPath, out _);
+
+            Assert.True(isSupported);
         }
 
-        [Theory, Unit]
+        [Theory]
+        [Unit]
         [InlineData("")]
         [InlineData("root.")]
         [InlineData("ROOT[")]
@@ -47,14 +43,20 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.JsonPath
             Assert.NotEmpty(errorDetails);
         }
 
-        [Fact, Unit]
-        public void JsonPathValidator_Debug()
+        [Theory]
+        [Unit]
+        [InlineData("root")]
+        [InlineData("ROOT")]
+        [InlineData("root.level1")]
+        [InlineData("ROOT.LEVEL1")]
+        [InlineData("root.level1.level2.level3.level4")]
+        [InlineData("root.level1[0]")]
+        [InlineData("root.level1[0].level2[1].level3[3].level4[5]")]
+        [InlineData("root[10000]")]
+        [InlineData("123abc")]
+        public void JsonPathValidator_Success(string jsonPath)
         {
-            string jsonPath = "message.Weather.HistoricalData[0].Temperature[1]";
-
-            bool isSupported = JsonPathValidator.IsSupportedJsonPath(jsonPath, out _);
-
-            Assert.True(isSupported);
+            Assert.True(JsonPathValidator.IsSupportedJsonPath(jsonPath, out _));
         }
     }
 }

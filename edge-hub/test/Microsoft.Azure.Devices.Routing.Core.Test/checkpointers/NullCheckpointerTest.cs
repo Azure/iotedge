@@ -1,18 +1,46 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Test.Checkpointers
 {
     using System;
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
+
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
+    using Microsoft.Azure.Devices.Routing.Core.Util;
+
     using Xunit;
 
     public class NullCheckpointerTest : RoutingUnitTestBase
     {
+        [Theory]
+        [Unit]
+        [MemberData(nameof(TestAdmitDataSource.TestData), MemberType = typeof(TestAdmitDataSource))]
+        public void TestAdmit(IMessage message, long offset, bool expected)
+        {
+            using (var checkpointer = new NullCheckpointer())
+            {
+                bool result = checkpointer.Admit(message);
+                Assert.Equal(expected, result);
+            }
+        }
+
+        [Theory]
+        [Unit]
+        [MemberData(nameof(TestCommitDataSource.TestData), MemberType = typeof(TestCommitDataSource))]
+        public async Task TestCommit(IMessage message)
+        {
+            using (var checkpointer1 = new NullCheckpointer())
+            {
+                await checkpointer1.CommitAsync(new[] { message }, new IMessage[] { }, Option.None<DateTime>(), Option.None<DateTime>(), CancellationToken.None);
+                Assert.Equal(Checkpointer.InvalidOffset, checkpointer1.Offset);
+                await checkpointer1.CloseAsync(CancellationToken.None);
+            }
+        }
+
         static IMessage MessageWithOffset(long offset) =>
             new Message(TelemetryMessageSource.Instance, new byte[] { 1, 2, 3 }, new Dictionary<string, string>(), new Dictionary<string, string>(), offset);
 
@@ -36,17 +64,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Checkpointers
             public static IEnumerable<object[]> TestData => Data;
         }
 
-        [Theory, Unit]
-        [MemberData(nameof(TestAdmitDataSource.TestData), MemberType = typeof(TestAdmitDataSource))]
-        public void TestAdmit(IMessage message, long offset, bool expected)
-        {
-            using (var checkpointer = new NullCheckpointer())
-            {
-                bool result = checkpointer.Admit(message);
-                Assert.Equal(expected, result);
-            }
-        }
-
         static class TestCommitDataSource
         {
             static readonly IList<object[]> Data = new List<object[]>
@@ -59,18 +76,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Checkpointers
             };
 
             public static IEnumerable<object[]> TestData => Data;
-        }
-
-        [Theory, Unit]
-        [MemberData(nameof(TestCommitDataSource.TestData), MemberType = typeof(TestCommitDataSource))]
-        public async Task TestCommit(IMessage message)
-        {
-            using (var checkpointer1 = new NullCheckpointer())
-            {
-                await checkpointer1.CommitAsync(new[] { message }, new IMessage[] {}, Option.None<DateTime>(), Option.None<DateTime>(), CancellationToken.None);
-                Assert.Equal(Checkpointer.InvalidOffset, checkpointer1.Offset);
-                await checkpointer1.CloseAsync(CancellationToken.None);
-            }
         }
     }
 }

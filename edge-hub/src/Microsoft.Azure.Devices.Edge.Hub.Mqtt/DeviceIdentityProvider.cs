@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
     using System;
@@ -6,11 +7,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using System.Linq;
     using System.Net;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.ProtocolGateway.Identity;
     using Microsoft.Extensions.Logging;
+
     using static System.FormattableString;
 
     public class DeviceIdentityProvider : IDeviceIdentityProvider
@@ -37,6 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
                 (string deviceId, string moduleId, string deviceClientType) = ParseUserName(username);
                 IClientCredentials deviceCredentials;
+
                 // This is a very weak check for now. In the future, we need to save client certs in a dictionary of
                 // module name to client cert. We would then retrieve the cert here. We also will need to handle
                 // revocation of certs.
@@ -59,6 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     Events.Error(clientId, username);
                     return UnauthenticatedDeviceIdentity.Instance;
                 }
+
                 Events.Success(clientId, username);
                 return new ProtocolGatewayIdentity(deviceCredentials);
             }
@@ -88,7 +93,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             // "iotHub1/device1/module1/foo?bar=b1&api-version=2010-01-01&DeviceClientType=customDeviceClient1"
             // "iotHub1/device1?&api-version=2010-01-01&DeviceClientType=customDeviceClient1"
             // "iotHub1/device1/module1?&api-version=2010-01-01&DeviceClientType=customDeviceClient1"
-
             string deviceId;
             string moduleId = string.Empty;
             IDictionary<string, string> queryParameters;
@@ -102,6 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     deviceId = usernameSegments[1].Trim();
                     queryParameters = ParseDeviceClientType(usernameSegments[2].Substring(1).Trim());
                 }
+
                 // edgeHubHostName/device1/module1/?apiVersion=10-2-3&DeviceClientType=foo
                 else if (usernameSegments.Length == 4)
                 {
@@ -122,6 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     deviceId = usernameSegments[1].Trim();
                     queryParameters = ParseDeviceClientType(usernameSegments[2].Trim());
                 }
+
                 // edgeHubHostName/device1/module1/apiVersion=10-2-3&DeviceClientType=foo
                 else if (usernameSegments.Length == 4 && usernameSegments[3].Contains("api-version="))
                 {
@@ -129,6 +135,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     moduleId = usernameSegments[2].Trim();
                     queryParameters = ParseDeviceClientType(usernameSegments[3].Trim());
                 }
+
                 // The Azure ML container is using an older client that returns a device client with the following format -
                 // username = edgeHubHostName/deviceId/moduleId/api-version=2017-06-30/DeviceClientType=Microsoft.Azure.Devices.Client/1.5.1-preview-003
                 // Notice how the DeviceClientType parameter is separated by a '/' instead of a '&', giving a usernameSegments.Length of 6 instead of the expected 4
@@ -164,22 +171,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             {
                 deviceClientType = string.Empty;
             }
-            return (deviceId, moduleId, deviceClientType);
 
+            return (deviceId, moduleId, deviceClientType);
         }
 
         static IDictionary<string, string> ParseDeviceClientType(string queryParameterString)
         {
             // example input: "api-version=version&DeviceClientType=url-escaped-string&other-prop=value&some-other-prop"
-
             var kvsep = new[] { '=' };
 
             Dictionary<string, string> queryParameters = queryParameterString
-                .Split('&')                             // split input string into params
-                .Select(s => s.Split(kvsep, 2))         // split each param into a key/value pair
-                .GroupBy(s => s[0])                     // group duplicates (by key) together...
-                .Select(s => s.First())                 // ...and keep only the first one
-                .ToDictionary(                          // convert to Dictionary<string, string>
+                .Split('&') // split input string into params
+                .Select(s => s.Split(kvsep, 2)) // split each param into a key/value pair
+                .GroupBy(s => s[0]) // group duplicates (by key) together...
+                .Select(s => s.First()) // ...and keep only the first one
+                .ToDictionary( // convert to Dictionary<string, string>
                     s => s[0],
                     s => Uri.UnescapeDataString(s.ElementAtOrEmpty(1)));
             return queryParameters;
@@ -187,8 +193,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<DeviceIdentityProvider>();
             const int IdStart = MqttEventIds.SasTokenDeviceIdentityProvider;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<DeviceIdentityProvider>();
 
             enum EventIds
             {
@@ -196,14 +202,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 CreateFailure
             }
 
-            public static void Success(string clientId, string username)
-            {
-                Log.LogInformation((int)EventIds.CreateSuccess, Invariant($"Successfully generated identity for clientId {clientId} and username {username}"));
-            }
-
             public static void Error(string clientId, string username)
             {
                 Log.LogError((int)EventIds.CreateFailure, Invariant($"Unable to generate identity for clientId {clientId} and username {username}"));
+            }
+
+            public static void Success(string clientId, string username)
+            {
+                Log.LogInformation((int)EventIds.CreateSuccess, Invariant($"Successfully generated identity for clientId {clientId} and username {username}"));
             }
         }
     }

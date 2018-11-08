@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 {
     using System;
@@ -6,14 +7,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Routing;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
+
     using Moq;
+
     using Xunit;
+
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
     using IRoutingMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
     using RoutingMessage = Microsoft.Azure.Devices.Routing.Core.Message;
@@ -34,18 +39,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             IProcessor cloudMessageProcessor = cloudEndpoint.CreateProcessor();
 
             Assert.Equal(cloudEndpoint, cloudMessageProcessor.Endpoint);
-            Assert.False(cloudMessageProcessor.ErrorDetectionStrategy.IsTransient(new Exception()));            
+            Assert.False(cloudMessageProcessor.ErrorDetectionStrategy.IsTransient(new Exception()));
         }
 
         [Fact]
         [Unit]
         public async Task ProcessAsyncTest()
         {
-            Core.IMessageConverter<IRoutingMessage> routingMessageConverter = new RoutingMessageConverter();            
+            Core.IMessageConverter<IRoutingMessage> routingMessageConverter = new RoutingMessageConverter();
             string cloudEndpointId = Guid.NewGuid().ToString();
 
             var cloudProxyMock = new Mock<ICloudProxy>();
-            cloudProxyMock.Setup(c => c.SendMessageAsync(It.IsAny<IMessage>()))                
+            cloudProxyMock.Setup(c => c.SendMessageAsync(It.IsAny<IMessage>()))
                 .Returns(Task.CompletedTask);
             cloudProxyMock.SetupGet(p => p.IsActive).Returns(true);
 
@@ -74,9 +79,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             Task<Option<ICloudProxy>> GetCloudProxy(string id)
             {
-                return Task.FromResult(id.Equals(device1Id)
-                    ? Option.Some(cloudProxyMock.Object)
-                    : Option.None<ICloudProxy>());
+                return Task.FromResult(
+                    id.Equals(device1Id)
+                        ? Option.Some(cloudProxyMock.Object)
+                        : Option.None<ICloudProxy>());
             }
 
             var cloudEndpoint = new CloudEndpoint(cloudEndpointId, GetCloudProxy, routingMessageConverter);

@@ -1,7 +1,5 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
 {
     using System.Collections.Concurrent;
@@ -9,6 +7,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Routing.Core.Util;
 
     /// <summary>
@@ -34,14 +33,16 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
             }
         }
 
-        public Task<CheckpointData> GetCheckpointDataAsync(string id, CancellationToken token)
-        {
-            return Task.FromResult(!this.checkpointDataMap.ContainsKey(id) ? new CheckpointData(Checkpointer.InvalidOffset) : this.checkpointDataMap[id]);
-        }
+        public Task CloseAsync(CancellationToken token) => TaskEx.Done;
 
         public Task<IDictionary<string, CheckpointData>> GetAllCheckpointDataAsync(CancellationToken token)
         {
-            return Task.FromResult((IDictionary <string, CheckpointData>)this.checkpointDataMap.ToDictionary(keySelector => keySelector.Key, valueSelector => valueSelector.Value));
+            return Task.FromResult((IDictionary<string, CheckpointData>)this.checkpointDataMap.ToDictionary(keySelector => keySelector.Key, valueSelector => valueSelector.Value));
+        }
+
+        public Task<CheckpointData> GetCheckpointDataAsync(string id, CancellationToken token)
+        {
+            return Task.FromResult(!this.checkpointDataMap.ContainsKey(id) ? new CheckpointData(Checkpointer.InvalidOffset) : this.checkpointDataMap[id]);
         }
 
         public Task SetCheckpointDataAsync(string id, CheckpointData checkpointData, CancellationToken token)
@@ -49,7 +50,5 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
             this.checkpointDataMap[id] = checkpointData;
             return TaskEx.Done;
         }
-
-        public Task CloseAsync(CancellationToken token) => TaskEx.Done;
     }
 }

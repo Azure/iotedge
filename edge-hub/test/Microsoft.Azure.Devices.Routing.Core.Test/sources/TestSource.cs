@@ -1,12 +1,11 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
-namespace Microsoft.Azure.Devices.Routing.Core.Test.sources
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+namespace Microsoft.Azure.Devices.Routing.Core.Test.Sources
 {
     using System.Diagnostics.CodeAnalysis;
     using System.Threading;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
 
@@ -16,8 +15,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.sources
         readonly AtomicBoolean closed;
         readonly CancellationTokenSource cts;
 
-        public bool Closed => this.closed;
-
         public TestSource(Router router)
             : base(router)
         {
@@ -25,16 +22,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.sources
             this.cts = new CancellationTokenSource();
         }
 
-        public Task SendAsync(IMessage[] messages) =>
-            this.closed ? TaskEx.Done : this.Router.RouteAsync(messages);
-
-        public override async Task RunAsync()
-        {
-            while (!this.cts.IsCancellationRequested)
-            {
-                await this.cts.Token.WhenCanceled();
-            }
-        }
+        public bool Closed => this.closed;
 
         public override async Task CloseAsync(CancellationToken token)
         {
@@ -44,5 +32,16 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.sources
                 await base.CloseAsync(token);
             }
         }
+
+        public override async Task RunAsync()
+        {
+            while (!this.cts.IsCancellationRequested)
+            {
+                await this.cts.Token.WhenCanceled();
+            }
+        }
+
+        public Task SendAsync(IMessage[] messages) =>
+            this.closed ? TaskEx.Done : this.Router.RouteAsync(messages);
     }
 }

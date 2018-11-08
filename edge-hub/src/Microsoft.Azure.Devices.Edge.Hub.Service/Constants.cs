@@ -1,12 +1,17 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
-    using System;
-    using System.Globalization;
-
     public static class Constants
     {
+        public const int CertificateValidityDays = 90;
+        public const string ConfigFileName = "appsettings_hub.json";
+        public const string EdgeHubStorageFolder = "edgeHub";
+        public const string InitializationVectorFileName = "EdgeHubIV";
+        public const string TopicNameConversionSectionName = "mqttTopicNameConversion";
+        public const string VersionInfoFileName = "versionInfo.json";
+        public const string WorkloadApiVersion = "2018-06-28";
+
         public static class ConfigKey
         {
             public const string DeviceId = "IOTEDGE_DEVICEID";
@@ -21,13 +26,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             public const string EdgeHubDevServerCertificateFile = "EdgeHubDevServerCertificateFile";
             public const string EdgeHubDevServerPrivateKeyFile = "EdgeHubDevServerPrivateKeyFile";
         }
-
-        public const int CertificateValidityDays = 90;
-        public const string ConfigFileName = "appsettings_hub.json";
-        public const string EdgeHubStorageFolder = "edgeHub";
-        public const string InitializationVectorFileName = "EdgeHubIV";
-        public const string TopicNameConversionSectionName = "mqttTopicNameConversion";
-        public const string VersionInfoFileName = "versionInfo.json";
-        public const string WorkloadApiVersion = "2018-06-28";
     }
 }

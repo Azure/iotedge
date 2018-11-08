@@ -1,10 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 {
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Amqp.Framing;
     using Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers;
@@ -13,8 +14,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+
     using Moq;
+
     using Xunit;
+
+    using Constants = Microsoft.Azure.Devices.Edge.Hub.Amqp.Constants;
 
     [Unit]
     public class ReceivingLinkHandlerTest
@@ -24,8 +29,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         {
             // Arrange
             var deviceListener = new Mock<IDeviceListener>();
-            var connectionHandler = Mock.Of<IConnectionHandler>(c => c.GetDeviceListener() == Task.FromResult(deviceListener.Object)
-                && c.GetAmqpAuthentication() == Task.FromResult(new AmqpAuthentication(true, Option.Some(Mock.Of<IClientCredentials>()))));
+            var connectionHandler = Mock.Of<IConnectionHandler>(
+                c => c.GetDeviceListener() == Task.FromResult(deviceListener.Object)
+                     && c.GetAmqpAuthentication() == Task.FromResult(new AmqpAuthentication(true, Option.Some(Mock.Of<IClientCredentials>()))));
             var amqpConnection = Mock.Of<IAmqpConnection>(c => c.FindExtension<IConnectionHandler>() == connectionHandler);
             var amqpSession = Mock.Of<IAmqpSession>(s => s.Connection == amqpConnection);
             var receivingLink = Mock.Of<IReceivingAmqpLink>(l => l.Session == amqpSession && l.IsReceiver && l.Settings == new AmqpLinkSettings() && l.State == AmqpObjectState.Opened);
@@ -38,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
             // Act
             var receivingLinkHandler = new TestReceivingLinkHandler(receivingLink, requestUri, boundVariables, messageConverter);
-            await receivingLinkHandler.OpenAsync(Amqp.Constants.DefaultTimeout);
+            await receivingLinkHandler.OpenAsync(Constants.DefaultTimeout);
             await receivingLinkHandler.ProcessMessageAsync(message);
 
             // Assert
@@ -55,11 +61,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         {
         }
 
+        public IList<AmqpMessage> ReceivedMessages { get; } = new List<AmqpMessage>();
+
         public override LinkType Type => LinkType.Events;
 
         protected override QualityOfService QualityOfService => QualityOfService.AtLeastOnce;
-
-        public IList<AmqpMessage> ReceivedMessages { get; } = new List<AmqpMessage>();
 
         protected override Task OnMessageReceived(AmqpMessage amqpMessage)
         {

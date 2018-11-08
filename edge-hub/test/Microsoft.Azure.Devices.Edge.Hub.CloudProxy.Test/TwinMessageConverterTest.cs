@@ -1,13 +1,15 @@
 // Copyright (c) Microsoft. All rights reserved.
-
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
     using System;
     using System.Collections.Generic;
     using System.Globalization;
+
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Shared;
+
     using Xunit;
 
     [Unit]
@@ -107,22 +109,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             };
         }
 
-        [Theory]
-        [MemberData(nameof(GetTwinData))]
-        public void ConvertsTwinMessagesToMqttMessages(Twin twin, string expectedJson)
-        {
-            EdgeMessage expectedMessage = new EdgeMessage.Builder(expectedJson.ToBody())
-                .SetSystemProperties(new Dictionary<string, string>()
-                {
-                    [SystemProperties.EnqueuedTime] = ""
-                })
-                .Build();
-            IMessage actualMessage = new TwinMessageConverter().ToMessage(twin);
-            Assert.Equal(expectedMessage.Body, actualMessage.Body);
-            Assert.Equal(expectedMessage.Properties, actualMessage.Properties);
-            Assert.Equal(expectedMessage.SystemProperties.Keys, actualMessage.SystemProperties.Keys);
-        }
-
         [Fact]
         public void CheckVersionConvertion()
         {
@@ -140,7 +126,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             IMessage actualMessage = new TwinMessageConverter().ToMessage(new Twin());
             Assert.InRange(
                 DateTime.Parse(actualMessage.SystemProperties[SystemProperties.EnqueuedTime], null, DateTimeStyles.RoundtripKind),
-                DateTime.UtcNow.Subtract(new TimeSpan(0, 1, 0)), DateTime.UtcNow);
+                DateTime.UtcNow.Subtract(new TimeSpan(0, 1, 0)),
+                DateTime.UtcNow);
+        }
+
+        [Theory]
+        [MemberData(nameof(GetTwinData))]
+        public void ConvertsTwinMessagesToMqttMessages(Twin twin, string expectedJson)
+        {
+            EdgeMessage expectedMessage = new EdgeMessage.Builder(expectedJson.ToBody())
+                .SetSystemProperties(
+                    new Dictionary<string, string>()
+                    {
+                        [SystemProperties.EnqueuedTime] = string.Empty
+                    })
+                .Build();
+            IMessage actualMessage = new TwinMessageConverter().ToMessage(twin);
+            Assert.Equal(expectedMessage.Body, actualMessage.Body);
+            Assert.Equal(expectedMessage.Properties, actualMessage.Properties);
+            Assert.Equal(expectedMessage.SystemProperties.Keys, actualMessage.SystemProperties.Keys);
         }
     }
 }
