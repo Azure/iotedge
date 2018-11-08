@@ -62,7 +62,7 @@ pub struct Task {
 }
 
 impl Task {
-    pub fn new() -> Task {
+    pub fn new() -> Self {
         Task {
             ID: None,
             version: None,
@@ -84,13 +84,13 @@ impl Task {
         self.ID = Some(ID);
     }
 
-    pub fn with_ID(mut self, ID: String) -> Task {
+    pub fn with_ID(mut self, ID: String) -> Self {
         self.ID = Some(ID);
         self
     }
 
-    pub fn ID(&self) -> Option<&String> {
-        self.ID.as_ref()
+    pub fn ID(&self) -> Option<&str> {
+        self.ID.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_ID(&mut self) {
@@ -101,7 +101,7 @@ impl Task {
         self.version = Some(version);
     }
 
-    pub fn with_version(mut self, version: ::models::ObjectVersion) -> Task {
+    pub fn with_version(mut self, version: ::models::ObjectVersion) -> Self {
         self.version = Some(version);
         self
     }
@@ -118,13 +118,13 @@ impl Task {
         self.created_at = Some(created_at);
     }
 
-    pub fn with_created_at(mut self, created_at: String) -> Task {
+    pub fn with_created_at(mut self, created_at: String) -> Self {
         self.created_at = Some(created_at);
         self
     }
 
-    pub fn created_at(&self) -> Option<&String> {
-        self.created_at.as_ref()
+    pub fn created_at(&self) -> Option<&str> {
+        self.created_at.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_created_at(&mut self) {
@@ -135,13 +135,13 @@ impl Task {
         self.updated_at = Some(updated_at);
     }
 
-    pub fn with_updated_at(mut self, updated_at: String) -> Task {
+    pub fn with_updated_at(mut self, updated_at: String) -> Self {
         self.updated_at = Some(updated_at);
         self
     }
 
-    pub fn updated_at(&self) -> Option<&String> {
-        self.updated_at.as_ref()
+    pub fn updated_at(&self) -> Option<&str> {
+        self.updated_at.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_updated_at(&mut self) {
@@ -152,13 +152,13 @@ impl Task {
         self.name = Some(name);
     }
 
-    pub fn with_name(mut self, name: String) -> Task {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
     }
 
-    pub fn name(&self) -> Option<&String> {
-        self.name.as_ref()
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_name(&mut self) {
@@ -169,7 +169,7 @@ impl Task {
         self.labels = Some(labels);
     }
 
-    pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Task {
+    pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
         self.labels = Some(labels);
         self
     }
@@ -186,7 +186,7 @@ impl Task {
         self.spec = Some(spec);
     }
 
-    pub fn with_spec(mut self, spec: ::models::TaskSpec) -> Task {
+    pub fn with_spec(mut self, spec: ::models::TaskSpec) -> Self {
         self.spec = Some(spec);
         self
     }
@@ -203,13 +203,13 @@ impl Task {
         self.service_id = Some(service_id);
     }
 
-    pub fn with_service_id(mut self, service_id: String) -> Task {
+    pub fn with_service_id(mut self, service_id: String) -> Self {
         self.service_id = Some(service_id);
         self
     }
 
-    pub fn service_id(&self) -> Option<&String> {
-        self.service_id.as_ref()
+    pub fn service_id(&self) -> Option<&str> {
+        self.service_id.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_service_id(&mut self) {
@@ -220,13 +220,13 @@ impl Task {
         self.slot = Some(slot);
     }
 
-    pub fn with_slot(mut self, slot: i32) -> Task {
+    pub fn with_slot(mut self, slot: i32) -> Self {
         self.slot = Some(slot);
         self
     }
 
-    pub fn slot(&self) -> Option<&i32> {
-        self.slot.as_ref()
+    pub fn slot(&self) -> Option<i32> {
+        self.slot
     }
 
     pub fn reset_slot(&mut self) {
@@ -237,13 +237,13 @@ impl Task {
         self.node_id = Some(node_id);
     }
 
-    pub fn with_node_id(mut self, node_id: String) -> Task {
+    pub fn with_node_id(mut self, node_id: String) -> Self {
         self.node_id = Some(node_id);
         self
     }
 
-    pub fn node_id(&self) -> Option<&String> {
-        self.node_id.as_ref()
+    pub fn node_id(&self) -> Option<&str> {
+        self.node_id.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_node_id(&mut self) {
@@ -260,7 +260,7 @@ impl Task {
     pub fn with_assigned_generic_resources(
         mut self,
         assigned_generic_resources: ::models::GenericResources,
-    ) -> Task {
+    ) -> Self {
         self.assigned_generic_resources = Some(assigned_generic_resources);
         self
     }
@@ -277,7 +277,7 @@ impl Task {
         self.status = Some(status);
     }
 
-    pub fn with_status(mut self, status: ::models::TaskStatus) -> Task {
+    pub fn with_status(mut self, status: ::models::TaskStatus) -> Self {
         self.status = Some(status);
         self
     }
@@ -294,7 +294,7 @@ impl Task {
         self.desired_state = Some(desired_state);
     }
 
-    pub fn with_desired_state(mut self, desired_state: ::models::TaskState) -> Task {
+    pub fn with_desired_state(mut self, desired_state: ::models::TaskState) -> Self {
         self.desired_state = Some(desired_state);
         self
     }

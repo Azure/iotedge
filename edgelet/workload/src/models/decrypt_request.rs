@@ -22,7 +22,7 @@ pub struct DecryptRequest {
 }
 
 impl DecryptRequest {
-    pub fn new(ciphertext: String, initialization_vector: String) -> DecryptRequest {
+    pub fn new(ciphertext: String, initialization_vector: String) -> Self {
         DecryptRequest {
             ciphertext,
             initialization_vector,
@@ -33,7 +33,7 @@ impl DecryptRequest {
         self.ciphertext = ciphertext;
     }
 
-    pub fn with_ciphertext(mut self, ciphertext: String) -> DecryptRequest {
+    pub fn with_ciphertext(mut self, ciphertext: String) -> Self {
         self.ciphertext = ciphertext;
         self
     }
@@ -46,7 +46,7 @@ impl DecryptRequest {
         self.initialization_vector = initialization_vector;
     }
 
-    pub fn with_initialization_vector(mut self, initialization_vector: String) -> DecryptRequest {
+    pub fn with_initialization_vector(mut self, initialization_vector: String) -> Self {
         self.initialization_vector = initialization_vector;
         self
     }

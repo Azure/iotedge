@@ -9,7 +9,6 @@
  */
 
 use std::borrow::Borrow;
-use std::borrow::Cow;
 use std::sync::Arc;
 
 use futures;
@@ -25,7 +24,7 @@ pub struct ModuleApiClient<C: hyper::client::connect::Connect> {
 }
 
 impl<C: hyper::client::connect::Connect> ModuleApiClient<C> {
-    pub fn new(configuration: Arc<configuration::Configuration<C>>) -> ModuleApiClient<C> {
+    pub fn new(configuration: Arc<configuration::Configuration<C>>) -> Self {
         ModuleApiClient { configuration }
     }
 }

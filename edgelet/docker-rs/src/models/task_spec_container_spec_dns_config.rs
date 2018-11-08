@@ -31,7 +31,7 @@ pub struct TaskSpecContainerSpecDnsConfig {
 
 impl TaskSpecContainerSpecDnsConfig {
     /// Specification for DNS related configurations in resolver configuration file (`resolv.conf`).
-    pub fn new() -> TaskSpecContainerSpecDnsConfig {
+    pub fn new() -> Self {
         TaskSpecContainerSpecDnsConfig {
             nameservers: None,
             search: None,
@@ -43,13 +43,13 @@ impl TaskSpecContainerSpecDnsConfig {
         self.nameservers = Some(nameservers);
     }
 
-    pub fn with_nameservers(mut self, nameservers: Vec<String>) -> TaskSpecContainerSpecDnsConfig {
+    pub fn with_nameservers(mut self, nameservers: Vec<String>) -> Self {
         self.nameservers = Some(nameservers);
         self
     }
 
-    pub fn nameservers(&self) -> Option<&Vec<String>> {
-        self.nameservers.as_ref()
+    pub fn nameservers(&self) -> Option<&[String]> {
+        self.nameservers.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_nameservers(&mut self) {
@@ -60,13 +60,13 @@ impl TaskSpecContainerSpecDnsConfig {
         self.search = Some(search);
     }
 
-    pub fn with_search(mut self, search: Vec<String>) -> TaskSpecContainerSpecDnsConfig {
+    pub fn with_search(mut self, search: Vec<String>) -> Self {
         self.search = Some(search);
         self
     }
 
-    pub fn search(&self) -> Option<&Vec<String>> {
-        self.search.as_ref()
+    pub fn search(&self) -> Option<&[String]> {
+        self.search.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_search(&mut self) {
@@ -77,13 +77,13 @@ impl TaskSpecContainerSpecDnsConfig {
         self.options = Some(options);
     }
 
-    pub fn with_options(mut self, options: Vec<String>) -> TaskSpecContainerSpecDnsConfig {
+    pub fn with_options(mut self, options: Vec<String>) -> Self {
         self.options = Some(options);
         self
     }
 
-    pub fn options(&self) -> Option<&Vec<String>> {
-        self.options.as_ref()
+    pub fn options(&self) -> Option<&[String]> {
+        self.options.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_options(&mut self) {

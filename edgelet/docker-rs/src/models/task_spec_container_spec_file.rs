@@ -31,7 +31,7 @@ pub struct TaskSpecContainerSpecFile {
 
 impl TaskSpecContainerSpecFile {
     /// File represents a specific target that is backed by a file.
-    pub fn new() -> TaskSpecContainerSpecFile {
+    pub fn new() -> Self {
         TaskSpecContainerSpecFile {
             name: None,
             UID: None,
@@ -44,13 +44,13 @@ impl TaskSpecContainerSpecFile {
         self.name = Some(name);
     }
 
-    pub fn with_name(mut self, name: String) -> TaskSpecContainerSpecFile {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
     }
 
-    pub fn name(&self) -> Option<&String> {
-        self.name.as_ref()
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_name(&mut self) {
@@ -61,13 +61,13 @@ impl TaskSpecContainerSpecFile {
         self.UID = Some(UID);
     }
 
-    pub fn with_UID(mut self, UID: String) -> TaskSpecContainerSpecFile {
+    pub fn with_UID(mut self, UID: String) -> Self {
         self.UID = Some(UID);
         self
     }
 
-    pub fn UID(&self) -> Option<&String> {
-        self.UID.as_ref()
+    pub fn UID(&self) -> Option<&str> {
+        self.UID.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_UID(&mut self) {
@@ -78,13 +78,13 @@ impl TaskSpecContainerSpecFile {
         self.GID = Some(GID);
     }
 
-    pub fn with_GID(mut self, GID: String) -> TaskSpecContainerSpecFile {
+    pub fn with_GID(mut self, GID: String) -> Self {
         self.GID = Some(GID);
         self
     }
 
-    pub fn GID(&self) -> Option<&String> {
-        self.GID.as_ref()
+    pub fn GID(&self) -> Option<&str> {
+        self.GID.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_GID(&mut self) {
@@ -95,13 +95,13 @@ impl TaskSpecContainerSpecFile {
         self.mode = Some(mode);
     }
 
-    pub fn with_mode(mut self, mode: i32) -> TaskSpecContainerSpecFile {
+    pub fn with_mode(mut self, mode: i32) -> Self {
         self.mode = Some(mode);
         self
     }
 
-    pub fn mode(&self) -> Option<&i32> {
-        self.mode.as_ref()
+    pub fn mode(&self) -> Option<i32> {
+        self.mode
     }
 
     pub fn reset_mode(&mut self) {

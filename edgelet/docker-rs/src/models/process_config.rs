@@ -35,7 +35,7 @@ pub struct ProcessConfig {
 }
 
 impl ProcessConfig {
-    pub fn new() -> ProcessConfig {
+    pub fn new() -> Self {
         ProcessConfig {
             privileged: None,
             user: None,
@@ -49,7 +49,7 @@ impl ProcessConfig {
         self.privileged = Some(privileged);
     }
 
-    pub fn with_privileged(mut self, privileged: bool) -> ProcessConfig {
+    pub fn with_privileged(mut self, privileged: bool) -> Self {
         self.privileged = Some(privileged);
         self
     }
@@ -66,13 +66,13 @@ impl ProcessConfig {
         self.user = Some(user);
     }
 
-    pub fn with_user(mut self, user: String) -> ProcessConfig {
+    pub fn with_user(mut self, user: String) -> Self {
         self.user = Some(user);
         self
     }
 
-    pub fn user(&self) -> Option<&String> {
-        self.user.as_ref()
+    pub fn user(&self) -> Option<&str> {
+        self.user.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_user(&mut self) {
@@ -83,7 +83,7 @@ impl ProcessConfig {
         self.tty = Some(tty);
     }
 
-    pub fn with_tty(mut self, tty: bool) -> ProcessConfig {
+    pub fn with_tty(mut self, tty: bool) -> Self {
         self.tty = Some(tty);
         self
     }
@@ -100,13 +100,13 @@ impl ProcessConfig {
         self.entrypoint = Some(entrypoint);
     }
 
-    pub fn with_entrypoint(mut self, entrypoint: String) -> ProcessConfig {
+    pub fn with_entrypoint(mut self, entrypoint: String) -> Self {
         self.entrypoint = Some(entrypoint);
         self
     }
 
-    pub fn entrypoint(&self) -> Option<&String> {
-        self.entrypoint.as_ref()
+    pub fn entrypoint(&self) -> Option<&str> {
+        self.entrypoint.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_entrypoint(&mut self) {
@@ -117,13 +117,13 @@ impl ProcessConfig {
         self.arguments = Some(arguments);
     }
 
-    pub fn with_arguments(mut self, arguments: Vec<String>) -> ProcessConfig {
+    pub fn with_arguments(mut self, arguments: Vec<String>) -> Self {
         self.arguments = Some(arguments);
         self
     }
 
-    pub fn arguments(&self) -> Option<&Vec<String>> {
-        self.arguments.as_ref()
+    pub fn arguments(&self) -> Option<&[String]> {
+        self.arguments.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_arguments(&mut self) {

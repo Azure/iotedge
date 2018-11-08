@@ -20,7 +20,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(settings: Value) -> Config {
+    pub fn new(settings: Value) -> Self {
         Config {
             settings,
             env: None,
@@ -31,7 +31,7 @@ impl Config {
         self.settings = settings;
     }
 
-    pub fn with_settings(mut self, settings: Value) -> Config {
+    pub fn with_settings(mut self, settings: Value) -> Self {
         self.settings = settings;
         self
     }
@@ -44,13 +44,13 @@ impl Config {
         self.env = Some(env);
     }
 
-    pub fn with_env(mut self, env: Vec<::models::EnvVar>) -> Config {
+    pub fn with_env(mut self, env: Vec<::models::EnvVar>) -> Self {
         self.env = Some(env);
         self
     }
 
-    pub fn env(&self) -> Option<&Vec<::models::EnvVar>> {
-        self.env.as_ref()
+    pub fn env(&self) -> Option<&[::models::EnvVar]> {
+        self.env.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_env(&mut self) {

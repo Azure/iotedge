@@ -20,7 +20,7 @@ pub struct TaskSpecNetworks {
 }
 
 impl TaskSpecNetworks {
-    pub fn new() -> TaskSpecNetworks {
+    pub fn new() -> Self {
         TaskSpecNetworks {
             target: None,
             aliases: None,
@@ -31,13 +31,13 @@ impl TaskSpecNetworks {
         self.target = Some(target);
     }
 
-    pub fn with_target(mut self, target: String) -> TaskSpecNetworks {
+    pub fn with_target(mut self, target: String) -> Self {
         self.target = Some(target);
         self
     }
 
-    pub fn target(&self) -> Option<&String> {
-        self.target.as_ref()
+    pub fn target(&self) -> Option<&str> {
+        self.target.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_target(&mut self) {
@@ -48,13 +48,13 @@ impl TaskSpecNetworks {
         self.aliases = Some(aliases);
     }
 
-    pub fn with_aliases(mut self, aliases: Vec<String>) -> TaskSpecNetworks {
+    pub fn with_aliases(mut self, aliases: Vec<String>) -> Self {
         self.aliases = Some(aliases);
         self
     }
 
-    pub fn aliases(&self) -> Option<&Vec<String>> {
-        self.aliases.as_ref()
+    pub fn aliases(&self) -> Option<&[String]> {
+        self.aliases.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_aliases(&mut self) {

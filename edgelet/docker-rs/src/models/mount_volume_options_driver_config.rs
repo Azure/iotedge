@@ -25,7 +25,7 @@ pub struct MountVolumeOptionsDriverConfig {
 
 impl MountVolumeOptionsDriverConfig {
     /// Map of driver specific options
-    pub fn new() -> MountVolumeOptionsDriverConfig {
+    pub fn new() -> Self {
         MountVolumeOptionsDriverConfig {
             name: None,
             options: None,
@@ -36,13 +36,13 @@ impl MountVolumeOptionsDriverConfig {
         self.name = Some(name);
     }
 
-    pub fn with_name(mut self, name: String) -> MountVolumeOptionsDriverConfig {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
     }
 
-    pub fn name(&self) -> Option<&String> {
-        self.name.as_ref()
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_name(&mut self) {
@@ -53,10 +53,7 @@ impl MountVolumeOptionsDriverConfig {
         self.options = Some(options);
     }
 
-    pub fn with_options(
-        mut self,
-        options: ::std::collections::HashMap<String, String>,
-    ) -> MountVolumeOptionsDriverConfig {
+    pub fn with_options(mut self, options: ::std::collections::HashMap<String, String>) -> Self {
         self.options = Some(options);
         self
     }

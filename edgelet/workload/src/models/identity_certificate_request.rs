@@ -35,8 +35,8 @@ impl IdentityCertificateRequest {
         self
     }
 
-    pub fn expiration(&self) -> Option<&String> {
-        self.expiration.as_ref()
+    pub fn expiration(&self) -> Option<&str> {
+        self.expiration.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_expiration(&mut self) {

@@ -45,7 +45,7 @@ pub struct RegistryServiceConfig {
 
 impl RegistryServiceConfig {
     /// RegistryServiceConfig stores daemon registry services configuration.
-    pub fn new() -> RegistryServiceConfig {
+    pub fn new() -> Self {
         RegistryServiceConfig {
             allow_nondistributable_artifacts_cid_rs: None,
             allow_nondistributable_artifacts_hostnames: None,
@@ -66,14 +66,16 @@ impl RegistryServiceConfig {
     pub fn with_allow_nondistributable_artifacts_cid_rs(
         mut self,
         allow_nondistributable_artifacts_cid_rs: Vec<String>,
-    ) -> RegistryServiceConfig {
+    ) -> Self {
         self.allow_nondistributable_artifacts_cid_rs =
             Some(allow_nondistributable_artifacts_cid_rs);
         self
     }
 
-    pub fn allow_nondistributable_artifacts_cid_rs(&self) -> Option<&Vec<String>> {
-        self.allow_nondistributable_artifacts_cid_rs.as_ref()
+    pub fn allow_nondistributable_artifacts_cid_rs(&self) -> Option<&[String]> {
+        self.allow_nondistributable_artifacts_cid_rs
+            .as_ref()
+            .map(AsRef::as_ref)
     }
 
     pub fn reset_allow_nondistributable_artifacts_cid_rs(&mut self) {
@@ -91,14 +93,16 @@ impl RegistryServiceConfig {
     pub fn with_allow_nondistributable_artifacts_hostnames(
         mut self,
         allow_nondistributable_artifacts_hostnames: Vec<String>,
-    ) -> RegistryServiceConfig {
+    ) -> Self {
         self.allow_nondistributable_artifacts_hostnames =
             Some(allow_nondistributable_artifacts_hostnames);
         self
     }
 
-    pub fn allow_nondistributable_artifacts_hostnames(&self) -> Option<&Vec<String>> {
-        self.allow_nondistributable_artifacts_hostnames.as_ref()
+    pub fn allow_nondistributable_artifacts_hostnames(&self) -> Option<&[String]> {
+        self.allow_nondistributable_artifacts_hostnames
+            .as_ref()
+            .map(AsRef::as_ref)
     }
 
     pub fn reset_allow_nondistributable_artifacts_hostnames(&mut self) {
@@ -109,16 +113,13 @@ impl RegistryServiceConfig {
         self.insecure_registry_cid_rs = Some(insecure_registry_cid_rs);
     }
 
-    pub fn with_insecure_registry_cid_rs(
-        mut self,
-        insecure_registry_cid_rs: Vec<String>,
-    ) -> RegistryServiceConfig {
+    pub fn with_insecure_registry_cid_rs(mut self, insecure_registry_cid_rs: Vec<String>) -> Self {
         self.insecure_registry_cid_rs = Some(insecure_registry_cid_rs);
         self
     }
 
-    pub fn insecure_registry_cid_rs(&self) -> Option<&Vec<String>> {
-        self.insecure_registry_cid_rs.as_ref()
+    pub fn insecure_registry_cid_rs(&self) -> Option<&[String]> {
+        self.insecure_registry_cid_rs.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_insecure_registry_cid_rs(&mut self) {
@@ -135,7 +136,7 @@ impl RegistryServiceConfig {
     pub fn with_index_configs(
         mut self,
         index_configs: ::std::collections::HashMap<String, ::models::IndexInfo>,
-    ) -> RegistryServiceConfig {
+    ) -> Self {
         self.index_configs = Some(index_configs);
         self
     }
@@ -154,13 +155,13 @@ impl RegistryServiceConfig {
         self.mirrors = Some(mirrors);
     }
 
-    pub fn with_mirrors(mut self, mirrors: Vec<String>) -> RegistryServiceConfig {
+    pub fn with_mirrors(mut self, mirrors: Vec<String>) -> Self {
         self.mirrors = Some(mirrors);
         self
     }
 
-    pub fn mirrors(&self) -> Option<&Vec<String>> {
-        self.mirrors.as_ref()
+    pub fn mirrors(&self) -> Option<&[String]> {
+        self.mirrors.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_mirrors(&mut self) {

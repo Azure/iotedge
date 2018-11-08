@@ -22,7 +22,7 @@ pub struct InlineResponse201 {
 }
 
 impl InlineResponse201 {
-    pub fn new(id: String) -> InlineResponse201 {
+    pub fn new(id: String) -> Self {
         InlineResponse201 {
             id: id,
             warnings: None,
@@ -33,7 +33,7 @@ impl InlineResponse201 {
         self.id = id;
     }
 
-    pub fn with_id(mut self, id: String) -> InlineResponse201 {
+    pub fn with_id(mut self, id: String) -> Self {
         self.id = id;
         self
     }
@@ -46,13 +46,13 @@ impl InlineResponse201 {
         self.warnings = Some(warnings);
     }
 
-    pub fn with_warnings(mut self, warnings: Vec<String>) -> InlineResponse201 {
+    pub fn with_warnings(mut self, warnings: Vec<String>) -> Self {
         self.warnings = Some(warnings);
         self
     }
 
-    pub fn warnings(&self) -> Option<&Vec<String>> {
-        self.warnings.as_ref()
+    pub fn warnings(&self) -> Option<&[String]> {
+        self.warnings.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_warnings(&mut self) {

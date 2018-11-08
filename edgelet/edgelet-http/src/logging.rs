@@ -18,7 +18,7 @@ pub struct LoggingService<T> {
 }
 
 impl<T> LoggingService<T> {
-    pub fn new(label: String, inner: T) -> LoggingService<T> {
+    pub fn new(label: String, inner: T) -> Self {
         LoggingService { label, inner }
     }
 }
@@ -49,8 +49,7 @@ where
         let pid = self
             .pid
             .as_ref()
-            .map(|p| p.to_string())
-            .unwrap_or_else(|| "-".to_string());
+            .map_or_else(|| "-".to_string(), |p| p.to_string());
 
         info!(
             "[{}] - - - [{}] \"{}\" {} {} \"-\" \"{}\" pid({})",
@@ -76,11 +75,10 @@ where
     type Future = ResponseFuture<T::Future>;
 
     fn call(&mut self, req: Request<Self::ReqBody>) -> Self::Future {
-        let uri = req
-            .uri()
-            .query()
-            .map(|q| format!("{}?{}", req.uri().path(), q))
-            .unwrap_or_else(|| req.uri().path().to_string());
+        let uri = req.uri().query().map_or_else(
+            || req.uri().path().to_string(),
+            |q| format!("{}?{}", req.uri().path(), q),
+        );
         let request = format!("{} {} {:?}", req.method(), uri, req.version());
         let user_agent = req
             .headers()

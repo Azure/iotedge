@@ -70,8 +70,7 @@ fn syslog_level(level: Level) -> i8 {
         Level::Error => 3,
         Level::Warn => 4,
         Level::Info => 6,
-        Level::Debug => 7,
-        Level::Trace => 7,
+        Level::Debug | Level::Trace => 7,
     }
 }
 

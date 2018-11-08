@@ -41,7 +41,7 @@ pub struct MountPoint {
 
 impl MountPoint {
     /// A mount point inside a container
-    pub fn new() -> MountPoint {
+    pub fn new() -> Self {
         MountPoint {
             _type: None,
             name: None,
@@ -58,13 +58,13 @@ impl MountPoint {
         self._type = Some(_type);
     }
 
-    pub fn with__type(mut self, _type: String) -> MountPoint {
+    pub fn with__type(mut self, _type: String) -> Self {
         self._type = Some(_type);
         self
     }
 
-    pub fn _type(&self) -> Option<&String> {
-        self._type.as_ref()
+    pub fn _type(&self) -> Option<&str> {
+        self._type.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset__type(&mut self) {
@@ -75,13 +75,13 @@ impl MountPoint {
         self.name = Some(name);
     }
 
-    pub fn with_name(mut self, name: String) -> MountPoint {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
     }
 
-    pub fn name(&self) -> Option<&String> {
-        self.name.as_ref()
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_name(&mut self) {
@@ -92,13 +92,13 @@ impl MountPoint {
         self.source = Some(source);
     }
 
-    pub fn with_source(mut self, source: String) -> MountPoint {
+    pub fn with_source(mut self, source: String) -> Self {
         self.source = Some(source);
         self
     }
 
-    pub fn source(&self) -> Option<&String> {
-        self.source.as_ref()
+    pub fn source(&self) -> Option<&str> {
+        self.source.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_source(&mut self) {
@@ -109,13 +109,13 @@ impl MountPoint {
         self.destination = Some(destination);
     }
 
-    pub fn with_destination(mut self, destination: String) -> MountPoint {
+    pub fn with_destination(mut self, destination: String) -> Self {
         self.destination = Some(destination);
         self
     }
 
-    pub fn destination(&self) -> Option<&String> {
-        self.destination.as_ref()
+    pub fn destination(&self) -> Option<&str> {
+        self.destination.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_destination(&mut self) {
@@ -126,13 +126,13 @@ impl MountPoint {
         self.driver = Some(driver);
     }
 
-    pub fn with_driver(mut self, driver: String) -> MountPoint {
+    pub fn with_driver(mut self, driver: String) -> Self {
         self.driver = Some(driver);
         self
     }
 
-    pub fn driver(&self) -> Option<&String> {
-        self.driver.as_ref()
+    pub fn driver(&self) -> Option<&str> {
+        self.driver.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_driver(&mut self) {
@@ -143,13 +143,13 @@ impl MountPoint {
         self.mode = Some(mode);
     }
 
-    pub fn with_mode(mut self, mode: String) -> MountPoint {
+    pub fn with_mode(mut self, mode: String) -> Self {
         self.mode = Some(mode);
         self
     }
 
-    pub fn mode(&self) -> Option<&String> {
-        self.mode.as_ref()
+    pub fn mode(&self) -> Option<&str> {
+        self.mode.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_mode(&mut self) {
@@ -160,7 +160,7 @@ impl MountPoint {
         self.RW = Some(RW);
     }
 
-    pub fn with_RW(mut self, RW: bool) -> MountPoint {
+    pub fn with_RW(mut self, RW: bool) -> Self {
         self.RW = Some(RW);
         self
     }
@@ -177,13 +177,13 @@ impl MountPoint {
         self.propagation = Some(propagation);
     }
 
-    pub fn with_propagation(mut self, propagation: String) -> MountPoint {
+    pub fn with_propagation(mut self, propagation: String) -> Self {
         self.propagation = Some(propagation);
         self
     }
 
-    pub fn propagation(&self) -> Option<&String> {
-        self.propagation.as_ref()
+    pub fn propagation(&self) -> Option<&str> {
+        self.propagation.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_propagation(&mut self) {

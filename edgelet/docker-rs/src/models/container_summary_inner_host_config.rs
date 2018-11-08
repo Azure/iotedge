@@ -21,7 +21,7 @@ pub struct ContainerSummaryInnerHostConfig {
 }
 
 impl ContainerSummaryInnerHostConfig {
-    pub fn new() -> ContainerSummaryInnerHostConfig {
+    pub fn new() -> Self {
         ContainerSummaryInnerHostConfig { network_mode: None }
     }
 
@@ -29,13 +29,13 @@ impl ContainerSummaryInnerHostConfig {
         self.network_mode = Some(network_mode);
     }
 
-    pub fn with_network_mode(mut self, network_mode: String) -> ContainerSummaryInnerHostConfig {
+    pub fn with_network_mode(mut self, network_mode: String) -> Self {
         self.network_mode = Some(network_mode);
         self
     }
 
-    pub fn network_mode(&self) -> Option<&String> {
-        self.network_mode.as_ref()
+    pub fn network_mode(&self) -> Option<&str> {
+        self.network_mode.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_network_mode(&mut self) {

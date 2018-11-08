@@ -52,7 +52,7 @@ impl Display for Error {
 }
 
 impl Error {
-    pub fn new(inner: Context<ErrorKind>) -> Error {
+    pub fn new(inner: Context<ErrorKind>) -> Self {
         Error { inner }
     }
 
@@ -62,7 +62,7 @@ impl Error {
 }
 
 impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Error {
+    fn from(kind: ErrorKind) -> Self {
         Error {
             inner: Context::new(kind),
         }
@@ -70,13 +70,13 @@ impl From<ErrorKind> for Error {
 }
 
 impl From<Context<ErrorKind>> for Error {
-    fn from(inner: Context<ErrorKind>) -> Error {
+    fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
     }
 }
 
 impl From<UtilsError> for Error {
-    fn from(error: UtilsError) -> Error {
+    fn from(error: UtilsError) -> Self {
         Error {
             inner: error.context(ErrorKind::Utils),
         }
@@ -84,7 +84,7 @@ impl From<UtilsError> for Error {
 }
 
 impl From<HubServiceError> for Error {
-    fn from(error: HubServiceError) -> Error {
+    fn from(error: HubServiceError) -> Self {
         Error {
             inner: error.context(ErrorKind::HubService),
         }
@@ -92,13 +92,13 @@ impl From<HubServiceError> for Error {
 }
 
 impl From<Error> for HubServiceError {
-    fn from(error: Error) -> HubServiceError {
+    fn from(error: Error) -> Self {
         HubServiceError::from(error.context(HubServiceErrorKind::Token))
     }
 }
 
 impl From<CoreError> for Error {
-    fn from(error: CoreError) -> Error {
+    fn from(error: CoreError) -> Self {
         Error {
             inner: error.context(ErrorKind::Core),
         }
@@ -106,13 +106,13 @@ impl From<CoreError> for Error {
 }
 
 impl From<Error> for CoreError {
-    fn from(err: Error) -> CoreError {
+    fn from(err: Error) -> Self {
         CoreError::from(err.context(CoreErrorKind::Identity))
     }
 }
 
 impl From<Error> for HttpError {
-    fn from(err: Error) -> HttpError {
+    fn from(err: Error) -> Self {
         HttpError::from(err.context(HttpErrorKind::TokenSource))
     }
 }
