@@ -26,7 +26,7 @@ pub struct ServiceSpecMode {
 
 impl ServiceSpecMode {
     /// Scheduling mode for the service.
-    pub fn new() -> ServiceSpecMode {
+    pub fn new() -> Self {
         ServiceSpecMode {
             replicated: None,
             global: None,
@@ -37,10 +37,7 @@ impl ServiceSpecMode {
         self.replicated = Some(replicated);
     }
 
-    pub fn with_replicated(
-        mut self,
-        replicated: ::models::ServiceSpecModeReplicated,
-    ) -> ServiceSpecMode {
+    pub fn with_replicated(mut self, replicated: ::models::ServiceSpecModeReplicated) -> Self {
         self.replicated = Some(replicated);
         self
     }
@@ -57,7 +54,7 @@ impl ServiceSpecMode {
         self.global = Some(global);
     }
 
-    pub fn with_global(mut self, global: Value) -> ServiceSpecMode {
+    pub fn with_global(mut self, global: Value) -> Self {
         self.global = Some(global);
         self
     }

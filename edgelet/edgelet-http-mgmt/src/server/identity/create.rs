@@ -65,16 +65,15 @@ where
                                 identity.auth_type().to_string(),
                             );
 
-                            serde_json::to_string(&identity)
-                                .context(ErrorKind::Serde)
-                                .map(|b| {
-                                    Response::builder()
-                                        .status(StatusCode::OK)
-                                        .header(CONTENT_TYPE, "application/json")
-                                        .header(CONTENT_LENGTH, b.len().to_string().as_str())
-                                        .body(b.into())
-                                        .unwrap_or_else(|e| e.into_response())
-                                }).unwrap_or_else(|e| e.into_response())
+                            match serde_json::to_string(&identity).context(ErrorKind::Serde) {
+                                Ok(b) => Response::builder()
+                                    .status(StatusCode::OK)
+                                    .header(CONTENT_TYPE, "application/json")
+                                    .header(CONTENT_LENGTH, b.len().to_string().as_str())
+                                    .body(b.into())
+                                    .unwrap_or_else(|e| e.into_response()),
+                                Err(e) => e.into_response(),
+                            }
                         }).or_else(|e| future::ok(e.into_response()))
                 }).or_else(|e| {
                     future::ok(e.into_response()) as FutureResult<Response<Body>, HyperError>

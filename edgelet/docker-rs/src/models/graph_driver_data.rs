@@ -23,7 +23,7 @@ pub struct GraphDriverData {
 
 impl GraphDriverData {
     /// Information about a container's graph driver.
-    pub fn new(name: String) -> GraphDriverData {
+    pub fn new(name: String) -> Self {
         GraphDriverData {
             name: name,
             data: None,
@@ -34,7 +34,7 @@ impl GraphDriverData {
         self.name = name;
     }
 
-    pub fn with_name(mut self, name: String) -> GraphDriverData {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = name;
         self
     }
@@ -47,10 +47,7 @@ impl GraphDriverData {
         self.data = Some(data);
     }
 
-    pub fn with_data(
-        mut self,
-        data: ::std::collections::HashMap<String, String>,
-    ) -> GraphDriverData {
+    pub fn with_data(mut self, data: ::std::collections::HashMap<String, String>) -> Self {
         self.data = Some(data);
         self
     }

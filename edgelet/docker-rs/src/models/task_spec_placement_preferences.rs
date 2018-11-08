@@ -18,7 +18,7 @@ pub struct TaskSpecPlacementPreferences {
 }
 
 impl TaskSpecPlacementPreferences {
-    pub fn new() -> TaskSpecPlacementPreferences {
+    pub fn new() -> Self {
         TaskSpecPlacementPreferences { spread: None }
     }
 
@@ -26,10 +26,7 @@ impl TaskSpecPlacementPreferences {
         self.spread = Some(spread);
     }
 
-    pub fn with_spread(
-        mut self,
-        spread: ::models::TaskSpecPlacementSpread,
-    ) -> TaskSpecPlacementPreferences {
+    pub fn with_spread(mut self, spread: ::models::TaskSpecPlacementSpread) -> Self {
         self.spread = Some(spread);
         self
     }

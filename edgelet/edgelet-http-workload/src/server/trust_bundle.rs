@@ -83,12 +83,12 @@ mod tests {
     }
 
     impl TestHsm {
-        fn with_fail_call(mut self, fail_call: bool) -> TestHsm {
+        fn with_fail_call(mut self, fail_call: bool) -> Self {
             self.fail_call = fail_call;
             self
         }
 
-        fn with_cert(mut self, cert: TestCert) -> TestHsm {
+        fn with_cert(mut self, cert: TestCert) -> Self {
             self.cert = cert;
             self
         }
@@ -97,7 +97,7 @@ mod tests {
     impl GetTrustBundle for TestHsm {
         type Certificate = TestCert;
 
-        fn get_trust_bundle(&self) -> Result<TestCert, CoreError> {
+        fn get_trust_bundle(&self) -> Result<Self::Certificate, CoreError> {
             if self.fail_call {
                 Err(CoreError::from(CoreErrorKind::Io))
             } else {
@@ -143,7 +143,7 @@ mod tests {
     #[test]
     fn success() {
         let handler = TrustBundleHandler::new(
-            TestHsm::default().with_cert(TestCert::default().with_cert("boo".as_bytes().to_vec())),
+            TestHsm::default().with_cert(TestCert::default().with_cert(b"boo".to_vec())),
         );
         let request = Request::get("http://localhost/trust-bundle")
             .body("".into())

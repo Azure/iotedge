@@ -43,17 +43,15 @@ fn run_as_service(_: Vec<OsString>) -> Result<(), Error> {
             ServiceControl::Shutdown | ServiceControl::Stop => {
                 info!("{} service is shutting down", IOTEDGED_SERVICE_NAME);
 
-                match sender.borrow_mut().take() {
-                    Some(sender) => sender.send(()).unwrap_or_else(|err| {
+                // If sender is None, then it has already been consumed by a previous shutdown / stop notification
+                // that signaled the receiver. There's nothing more to do in that case.
+                if let Some(sender) = sender.borrow_mut().take() {
+                    sender.send(()).unwrap_or_else(|err| {
                         error!(
                             "An error occurred while raising service shutdown signal: {:?}",
                             err
                         );
-                    }),
-
-                    // sender has already been consumed by a previous shutdown / stop notification that signaled the receiver.
-                    // Nothing to do.
-                    None => (),
+                    });
                 }
 
                 ServiceControlHandlerResult::NoError

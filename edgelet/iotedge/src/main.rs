@@ -1,6 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 #![deny(unused_extern_crates, warnings)]
+// Remove this when clippy stops warning about old-style `allow()`,
+// which can only be silenced by enabling a feature and thus requires nightly
+//
+// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
+#![allow(renamed_and_removed_lints)]
+#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
 
 #[macro_use]
 extern crate clap;
@@ -94,10 +100,10 @@ fn run() -> Result<(), Error> {
         ).subcommand(SubCommand::with_name("version").about("Show the version information"))
         .get_matches();
 
-    let url = matches
-        .value_of("host")
-        .map(|h| Url::parse(h).map_err(Error::from))
-        .unwrap_or_else(|| Err(Error::from(ErrorKind::NoHost)))?;
+    let url = matches.value_of("host").map_or_else(
+        || Err(Error::from(ErrorKind::NoHost)),
+        |h| Url::parse(h).map_err(Error::from),
+    )?;
     let runtime = ModuleClient::new(&url)?;
 
     let mut tokio_runtime = tokio::runtime::Runtime::new()?;

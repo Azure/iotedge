@@ -19,7 +19,7 @@ pub struct ApiVersionService<T> {
 }
 
 impl<T> ApiVersionService<T> {
-    pub fn new(upstream: T) -> ApiVersionService<T> {
+    pub fn new(upstream: T) -> Self {
         ApiVersionService { upstream }
     }
 }

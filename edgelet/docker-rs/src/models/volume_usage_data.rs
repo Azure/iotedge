@@ -25,7 +25,7 @@ pub struct VolumeUsageData {
 
 impl VolumeUsageData {
     /// Usage details about the volume. This information is used by the `GET /system/df` endpoint, and omitted in other endpoints.
-    pub fn new(size: i32, ref_count: i32) -> VolumeUsageData {
+    pub fn new(size: i32, ref_count: i32) -> Self {
         VolumeUsageData {
             size: size,
             ref_count: ref_count,
@@ -36,7 +36,7 @@ impl VolumeUsageData {
         self.size = size;
     }
 
-    pub fn with_size(mut self, size: i32) -> VolumeUsageData {
+    pub fn with_size(mut self, size: i32) -> Self {
         self.size = size;
         self
     }
@@ -49,7 +49,7 @@ impl VolumeUsageData {
         self.ref_count = ref_count;
     }
 
-    pub fn with_ref_count(mut self, ref_count: i32) -> VolumeUsageData {
+    pub fn with_ref_count(mut self, ref_count: i32) -> Self {
         self.ref_count = ref_count;
         self
     }

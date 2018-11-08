@@ -28,7 +28,7 @@ pub struct InlineResponse20018 {
 
 impl InlineResponse20018 {
     /// Describes a permission the user has to accept upon installing the plugin.
-    pub fn new() -> InlineResponse20018 {
+    pub fn new() -> Self {
         InlineResponse20018 {
             name: None,
             description: None,
@@ -40,13 +40,13 @@ impl InlineResponse20018 {
         self.name = Some(name);
     }
 
-    pub fn with_name(mut self, name: String) -> InlineResponse20018 {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
     }
 
-    pub fn name(&self) -> Option<&String> {
-        self.name.as_ref()
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_name(&mut self) {
@@ -57,13 +57,13 @@ impl InlineResponse20018 {
         self.description = Some(description);
     }
 
-    pub fn with_description(mut self, description: String) -> InlineResponse20018 {
+    pub fn with_description(mut self, description: String) -> Self {
         self.description = Some(description);
         self
     }
 
-    pub fn description(&self) -> Option<&String> {
-        self.description.as_ref()
+    pub fn description(&self) -> Option<&str> {
+        self.description.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_description(&mut self) {
@@ -74,13 +74,13 @@ impl InlineResponse20018 {
         self.value = Some(value);
     }
 
-    pub fn with_value(mut self, value: Vec<String>) -> InlineResponse20018 {
+    pub fn with_value(mut self, value: Vec<String>) -> Self {
         self.value = Some(value);
         self
     }
 
-    pub fn value(&self) -> Option<&Vec<String>> {
-        self.value.as_ref()
+    pub fn value(&self) -> Option<&[String]> {
+        self.value.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_value(&mut self) {

@@ -72,14 +72,15 @@ where
 fn humanize_state(state: &ModuleRuntimeState) -> String {
     match *state.status() {
         ModuleStatus::Unknown => "Unknown".to_string(),
-        ModuleStatus::Stopped => state
-            .finished_at()
-            .map(|time| {
+        ModuleStatus::Stopped => state.finished_at().map_or_else(
+            || "Stopped".to_string(),
+            |time| {
                 format!(
                     "Stopped {}",
                     time_string(&HumanTime::from(Utc::now() - *time), Tense::Past)
                 )
-            }).unwrap_or_else(|| "Stopped".to_string()),
+            },
+        ),
         ModuleStatus::Failed => state
             .finished_at()
             .and_then(|time| {
@@ -91,14 +92,15 @@ fn humanize_state(state: &ModuleRuntimeState) -> String {
                     )
                 })
             }).unwrap_or_else(|| "Failed".to_string()),
-        ModuleStatus::Running => state
-            .started_at()
-            .map(|time| {
+        ModuleStatus::Running => state.started_at().map_or_else(
+            || "Up".to_string(),
+            |time| {
                 format!(
                     "Up {}",
                     time_string(&HumanTime::from(Utc::now() - *time), Tense::Present)
                 )
-            }).unwrap_or_else(|| "Up".to_string()),
+            },
+        ),
     }
 }
 

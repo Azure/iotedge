@@ -49,7 +49,7 @@ pub struct SwarmSpecRaft {
 
 impl SwarmSpecRaft {
     /// Raft configuration.
-    pub fn new() -> SwarmSpecRaft {
+    pub fn new() -> Self {
         SwarmSpecRaft {
             snapshot_interval: None,
             keep_old_snapshots: None,
@@ -63,13 +63,13 @@ impl SwarmSpecRaft {
         self.snapshot_interval = Some(snapshot_interval);
     }
 
-    pub fn with_snapshot_interval(mut self, snapshot_interval: i32) -> SwarmSpecRaft {
+    pub fn with_snapshot_interval(mut self, snapshot_interval: i32) -> Self {
         self.snapshot_interval = Some(snapshot_interval);
         self
     }
 
-    pub fn snapshot_interval(&self) -> Option<&i32> {
-        self.snapshot_interval.as_ref()
+    pub fn snapshot_interval(&self) -> Option<i32> {
+        self.snapshot_interval
     }
 
     pub fn reset_snapshot_interval(&mut self) {
@@ -80,13 +80,13 @@ impl SwarmSpecRaft {
         self.keep_old_snapshots = Some(keep_old_snapshots);
     }
 
-    pub fn with_keep_old_snapshots(mut self, keep_old_snapshots: i32) -> SwarmSpecRaft {
+    pub fn with_keep_old_snapshots(mut self, keep_old_snapshots: i32) -> Self {
         self.keep_old_snapshots = Some(keep_old_snapshots);
         self
     }
 
-    pub fn keep_old_snapshots(&self) -> Option<&i32> {
-        self.keep_old_snapshots.as_ref()
+    pub fn keep_old_snapshots(&self) -> Option<i32> {
+        self.keep_old_snapshots
     }
 
     pub fn reset_keep_old_snapshots(&mut self) {
@@ -100,13 +100,13 @@ impl SwarmSpecRaft {
     pub fn with_log_entries_for_slow_followers(
         mut self,
         log_entries_for_slow_followers: i32,
-    ) -> SwarmSpecRaft {
+    ) -> Self {
         self.log_entries_for_slow_followers = Some(log_entries_for_slow_followers);
         self
     }
 
-    pub fn log_entries_for_slow_followers(&self) -> Option<&i32> {
-        self.log_entries_for_slow_followers.as_ref()
+    pub fn log_entries_for_slow_followers(&self) -> Option<i32> {
+        self.log_entries_for_slow_followers
     }
 
     pub fn reset_log_entries_for_slow_followers(&mut self) {
@@ -117,13 +117,13 @@ impl SwarmSpecRaft {
         self.election_tick = Some(election_tick);
     }
 
-    pub fn with_election_tick(mut self, election_tick: i32) -> SwarmSpecRaft {
+    pub fn with_election_tick(mut self, election_tick: i32) -> Self {
         self.election_tick = Some(election_tick);
         self
     }
 
-    pub fn election_tick(&self) -> Option<&i32> {
-        self.election_tick.as_ref()
+    pub fn election_tick(&self) -> Option<i32> {
+        self.election_tick
     }
 
     pub fn reset_election_tick(&mut self) {
@@ -134,13 +134,13 @@ impl SwarmSpecRaft {
         self.heartbeat_tick = Some(heartbeat_tick);
     }
 
-    pub fn with_heartbeat_tick(mut self, heartbeat_tick: i32) -> SwarmSpecRaft {
+    pub fn with_heartbeat_tick(mut self, heartbeat_tick: i32) -> Self {
         self.heartbeat_tick = Some(heartbeat_tick);
         self
     }
 
-    pub fn heartbeat_tick(&self) -> Option<&i32> {
-        self.heartbeat_tick.as_ref()
+    pub fn heartbeat_tick(&self) -> Option<i32> {
+        self.heartbeat_tick
     }
 
     pub fn reset_heartbeat_tick(&mut self) {

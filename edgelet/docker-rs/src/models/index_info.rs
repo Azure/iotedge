@@ -31,7 +31,7 @@ pub struct IndexInfo {
 
 impl IndexInfo {
     /// IndexInfo contains information about a registry.
-    pub fn new() -> IndexInfo {
+    pub fn new() -> Self {
         IndexInfo {
             name: None,
             mirrors: None,
@@ -44,13 +44,13 @@ impl IndexInfo {
         self.name = Some(name);
     }
 
-    pub fn with_name(mut self, name: String) -> IndexInfo {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
     }
 
-    pub fn name(&self) -> Option<&String> {
-        self.name.as_ref()
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_name(&mut self) {
@@ -61,13 +61,13 @@ impl IndexInfo {
         self.mirrors = Some(mirrors);
     }
 
-    pub fn with_mirrors(mut self, mirrors: Vec<String>) -> IndexInfo {
+    pub fn with_mirrors(mut self, mirrors: Vec<String>) -> Self {
         self.mirrors = Some(mirrors);
         self
     }
 
-    pub fn mirrors(&self) -> Option<&Vec<String>> {
-        self.mirrors.as_ref()
+    pub fn mirrors(&self) -> Option<&[String]> {
+        self.mirrors.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_mirrors(&mut self) {
@@ -78,7 +78,7 @@ impl IndexInfo {
         self.secure = Some(secure);
     }
 
-    pub fn with_secure(mut self, secure: bool) -> IndexInfo {
+    pub fn with_secure(mut self, secure: bool) -> Self {
         self.secure = Some(secure);
         self
     }
@@ -95,7 +95,7 @@ impl IndexInfo {
         self.official = Some(official);
     }
 
-    pub fn with_official(mut self, official: bool) -> IndexInfo {
+    pub fn with_official(mut self, official: bool) -> Self {
         self.official = Some(official);
         self
     }

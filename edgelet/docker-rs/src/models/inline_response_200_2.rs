@@ -22,7 +22,7 @@ pub struct InlineResponse2002 {
 }
 
 impl InlineResponse2002 {
-    pub fn new(path: String, kind: i32) -> InlineResponse2002 {
+    pub fn new(path: String, kind: i32) -> Self {
         InlineResponse2002 {
             path: path,
             kind: kind,
@@ -33,7 +33,7 @@ impl InlineResponse2002 {
         self.path = path;
     }
 
-    pub fn with_path(mut self, path: String) -> InlineResponse2002 {
+    pub fn with_path(mut self, path: String) -> Self {
         self.path = path;
         self
     }
@@ -46,7 +46,7 @@ impl InlineResponse2002 {
         self.kind = kind;
     }
 
-    pub fn with_kind(mut self, kind: i32) -> InlineResponse2002 {
+    pub fn with_kind(mut self, kind: i32) -> Self {
         self.kind = kind;
         self
     }

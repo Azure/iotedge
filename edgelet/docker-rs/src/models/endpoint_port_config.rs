@@ -38,7 +38,7 @@ pub struct EndpointPortConfig {
 }
 
 impl EndpointPortConfig {
-    pub fn new() -> EndpointPortConfig {
+    pub fn new() -> Self {
         EndpointPortConfig {
             name: None,
             protocol: None,
@@ -52,13 +52,13 @@ impl EndpointPortConfig {
         self.name = Some(name);
     }
 
-    pub fn with_name(mut self, name: String) -> EndpointPortConfig {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
     }
 
-    pub fn name(&self) -> Option<&String> {
-        self.name.as_ref()
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_name(&mut self) {
@@ -69,13 +69,13 @@ impl EndpointPortConfig {
         self.protocol = Some(protocol);
     }
 
-    pub fn with_protocol(mut self, protocol: String) -> EndpointPortConfig {
+    pub fn with_protocol(mut self, protocol: String) -> Self {
         self.protocol = Some(protocol);
         self
     }
 
-    pub fn protocol(&self) -> Option<&String> {
-        self.protocol.as_ref()
+    pub fn protocol(&self) -> Option<&str> {
+        self.protocol.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_protocol(&mut self) {
@@ -86,13 +86,13 @@ impl EndpointPortConfig {
         self.target_port = Some(target_port);
     }
 
-    pub fn with_target_port(mut self, target_port: i32) -> EndpointPortConfig {
+    pub fn with_target_port(mut self, target_port: i32) -> Self {
         self.target_port = Some(target_port);
         self
     }
 
-    pub fn target_port(&self) -> Option<&i32> {
-        self.target_port.as_ref()
+    pub fn target_port(&self) -> Option<i32> {
+        self.target_port
     }
 
     pub fn reset_target_port(&mut self) {
@@ -103,13 +103,13 @@ impl EndpointPortConfig {
         self.published_port = Some(published_port);
     }
 
-    pub fn with_published_port(mut self, published_port: i32) -> EndpointPortConfig {
+    pub fn with_published_port(mut self, published_port: i32) -> Self {
         self.published_port = Some(published_port);
         self
     }
 
-    pub fn published_port(&self) -> Option<&i32> {
-        self.published_port.as_ref()
+    pub fn published_port(&self) -> Option<i32> {
+        self.published_port
     }
 
     pub fn reset_published_port(&mut self) {
@@ -120,13 +120,13 @@ impl EndpointPortConfig {
         self.publish_mode = Some(publish_mode);
     }
 
-    pub fn with_publish_mode(mut self, publish_mode: String) -> EndpointPortConfig {
+    pub fn with_publish_mode(mut self, publish_mode: String) -> Self {
         self.publish_mode = Some(publish_mode);
         self
     }
 
-    pub fn publish_mode(&self) -> Option<&String> {
-        self.publish_mode.as_ref()
+    pub fn publish_mode(&self) -> Option<&str> {
+        self.publish_mode.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_publish_mode(&mut self) {

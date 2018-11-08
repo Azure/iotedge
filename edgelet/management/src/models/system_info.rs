@@ -22,7 +22,7 @@ pub struct SystemInfo {
 }
 
 impl SystemInfo {
-    pub fn new(os_type: String, architecture: String, version: String) -> SystemInfo {
+    pub fn new(os_type: String, architecture: String, version: String) -> Self {
         SystemInfo {
             os_type,
             architecture,
@@ -34,7 +34,7 @@ impl SystemInfo {
         self.os_type = os_type;
     }
 
-    pub fn with_os_type(mut self, os_type: String) -> SystemInfo {
+    pub fn with_os_type(mut self, os_type: String) -> Self {
         self.os_type = os_type;
         self
     }
@@ -47,7 +47,7 @@ impl SystemInfo {
         self.architecture = architecture;
     }
 
-    pub fn with_architecture(mut self, architecture: String) -> SystemInfo {
+    pub fn with_architecture(mut self, architecture: String) -> Self {
         self.architecture = architecture;
         self
     }
@@ -60,7 +60,7 @@ impl SystemInfo {
         self.version = version;
     }
 
-    pub fn with_version(mut self, version: String) -> SystemInfo {
+    pub fn with_version(mut self, version: String) -> Self {
         self.version = version;
         self
     }

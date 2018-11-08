@@ -23,13 +23,13 @@ use error::{Error, ErrorKind};
 use hsm::TpmKey as HsmTpmKey;
 use log::Level;
 
-static DEVICEID_KEY: &'static str = "DeviceId";
-static HOSTNAME_KEY: &'static str = "HostName";
-static SHAREDACCESSKEY_KEY: &'static str = "SharedAccessKey";
+const DEVICEID_KEY: &str = "DeviceId";
+const HOSTNAME_KEY: &str = "HostName";
+const SHAREDACCESSKEY_KEY: &str = "SharedAccessKey";
 
-static DEVICEID_REGEX: &'static str = r"DeviceId=([A-Za-z0-9\-:.+%_#*?!(),=@;$']{1,128})";
-static HOSTNAME_REGEX: &'static str = r"HostName=([a-zA-Z0-9_\-\.]+)";
-static SHAREDACCESSKEY_REGEX: &'static str = r"SharedAccessKey=(.+)";
+const DEVICEID_REGEX: &str = r"DeviceId=([A-Za-z0-9\-:.+%_#*?!(),=@;$']{1,128})";
+const HOSTNAME_REGEX: &str = r"HostName=([a-zA-Z0-9_\-\.]+)";
+const SHAREDACCESSKEY_REGEX: &str = r"SharedAccessKey=(.+)";
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct ProvisioningResult {
@@ -197,15 +197,15 @@ where
         self,
         key_activator: Self::Hsm,
     ) -> Box<Future<Item = ProvisioningResult, Error = Error> + Send> {
-        let d = DpsClient::new(
+        let d = match DpsClient::new(
             self.client.clone(),
             self.scope_id.clone(),
             self.registration_id.clone(),
             Bytes::from(self.hsm_tpm_ek.as_ref()),
             Bytes::from(self.hsm_tpm_srk.as_ref()),
             key_activator,
-        ).map(|c| {
-            Either::A(
+        ) {
+            Ok(c) => Either::A(
                 c.register()
                     .map(|(device_id, hub_name)| {
                         info!(
@@ -218,8 +218,9 @@ where
                             reconfigure: false,
                         }
                     }).map_err(Error::from),
-            )
-        }).unwrap_or_else(|err| Either::B(future::err(Error::from(err))));
+            ),
+            Err(err) => Either::B(future::err(Error::from(err))),
+        };
 
         Box::new(d)
     }
@@ -283,14 +284,16 @@ where
                 .provision(key_activator)
                 .and_then(move |mut prov_result| {
                     prov_result.reconfigure = true;
-                    Self::backup(&prov_result, path)
-                        .map(|_| Either::A(future::ok(prov_result.clone())))
-                        .unwrap_or_else(|err| Either::B(future::err(err)))
+                    match Self::backup(&prov_result, path) {
+                        Ok(_) => Either::A(future::ok(prov_result.clone())),
+                        Err(err) => Either::B(future::err(err)),
+                    }
                 }).or_else(move |err| {
                     log_failure(Level::Warn, &err);
-                    Self::restore(path_on_err)
-                        .map(|prov_result| Either::A(future::ok(prov_result)))
-                        .unwrap_or_else(|err| Either::B(future::err(err)))
+                    match Self::restore(path_on_err) {
+                        Ok(prov_result) => Either::A(future::ok(prov_result)),
+                        Err(err) => Either::B(future::err(err)),
+                    }
                 }),
         )
     }
@@ -352,7 +355,7 @@ mod tests {
                     }
                     Err(err) => panic!("Unexpected {:?}", err),
                 }
-                Ok(()) as Result<(), Error>
+                Ok::<_, Error>(())
             });
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
@@ -376,14 +379,10 @@ mod tests {
             .unwrap()
             .provision(memory_hsm.clone())
             .then(|result| {
-                match result {
-                    Ok(result) => {
-                        assert_eq!(result.hub_name, "test.com".to_string());
-                        assert_eq!(result.device_id, "test".to_string());
-                    }
-                    Err(_) => panic!("Unexpected"),
-                }
-                Ok(()) as Result<(), Error>
+                let result = result.expect("Unexpected");
+                assert_eq!(result.hub_name, "test.com".to_string());
+                assert_eq!(result.device_id, "test".to_string());
+                Ok::<_, Error>(())
             });
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
@@ -397,14 +396,10 @@ mod tests {
             .unwrap()
             .provision(memory_hsm.clone())
             .then(|result| {
-                match result {
-                    Ok(result) => {
-                        assert_eq!(result.hub_name, "test.com".to_string());
-                        assert_eq!(result.device_id, "test".to_string());
-                    }
-                    Err(_) => panic!("Unexpected"),
-                }
-                Ok(()) as Result<(), Error>
+                let result = result.expect("Unexpected");
+                assert_eq!(result.hub_name, "test.com".to_string());
+                assert_eq!(result.device_id, "test".to_string());
+                Ok::<_, Error>(())
             });
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
@@ -422,14 +417,10 @@ mod tests {
         assert_eq!(test2.is_ok(), true);
         let memory_hsm = MemoryKeyStore::new();
         let task1 = test2.unwrap().provision(memory_hsm.clone()).then(|result| {
-            match result {
-                Ok(result) => {
-                    assert_eq!(result.hub_name, "test.com".to_string());
-                    assert_eq!(result.device_id, "test".to_string());
-                }
-                Err(_) => panic!("Unexpected"),
-            }
-            Ok(()) as Result<(), Error>
+            let result = result.expect("Unexpected");
+            assert_eq!(result.hub_name, "test.com".to_string());
+            assert_eq!(result.device_id, "test".to_string());
+            Ok::<_, Error>(())
         });
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
@@ -447,17 +438,12 @@ mod tests {
         let task = prov_wrapper
             .provision(MemoryKeyStore::new())
             .then(|result| {
-                match result {
-                    Ok(_) => {
-                        let result =
-                            BackupProvisioning::<ManualProvisioning>::restore(file_path_clone)
-                                .unwrap();
-                        assert_eq!(result.device_id(), "TestDevice");
-                        assert_eq!(result.hub_name(), "TestHub");
-                    }
-                    Err(_) => panic!("Unexpected"),
-                }
-                Ok(()) as Result<(), Error>
+                let _ = result.expect("Unexpected");
+                let result =
+                    BackupProvisioning::<ManualProvisioning>::restore(file_path_clone).unwrap();
+                assert_eq!(result.device_id(), "TestDevice");
+                assert_eq!(result.hub_name(), "TestHub");
+                Ok::<_, Error>(())
             });
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
@@ -483,15 +469,10 @@ mod tests {
         let task1 = prov_wrapper_err
             .provision(MemoryKeyStore::new())
             .then(|result| {
-                match result {
-                    Ok(_) => {
-                        let prov_result = result.unwrap();
-                        assert_eq!(prov_result.device_id(), "TestDevice");
-                        assert_eq!(prov_result.hub_name(), "TestHub");
-                    }
-                    Err(_) => panic!("Unexpected"),
-                }
-                Ok(()) as Result<(), Error>
+                let prov_result = result.expect("Unexpected");
+                assert_eq!(prov_result.device_id(), "TestDevice");
+                assert_eq!(prov_result.hub_name(), "TestHub");
+                Ok::<_, Error>(())
             });
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
@@ -521,7 +502,7 @@ mod tests {
                     Ok(_) => panic!("Unexpected"),
                     Err(_) => assert_eq!(1, 1),
                 }
-                Ok(()) as Result<(), Error>
+                Ok::<_, Error>(())
             });
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()

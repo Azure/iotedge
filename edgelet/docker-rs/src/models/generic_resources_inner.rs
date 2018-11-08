@@ -26,7 +26,7 @@ pub struct GenericResourcesInner {
 }
 
 impl GenericResourcesInner {
-    pub fn new() -> GenericResourcesInner {
+    pub fn new() -> Self {
         GenericResourcesInner {
             named_resource_spec: None,
             discrete_resource_spec: None,
@@ -43,7 +43,7 @@ impl GenericResourcesInner {
     pub fn with_named_resource_spec(
         mut self,
         named_resource_spec: ::models::GenericResourcesInnerNamedResourceSpec,
-    ) -> GenericResourcesInner {
+    ) -> Self {
         self.named_resource_spec = Some(named_resource_spec);
         self
     }
@@ -66,7 +66,7 @@ impl GenericResourcesInner {
     pub fn with_discrete_resource_spec(
         mut self,
         discrete_resource_spec: ::models::GenericResourcesInnerDiscreteResourceSpec,
-    ) -> GenericResourcesInner {
+    ) -> Self {
         self.discrete_resource_spec = Some(discrete_resource_spec);
         self
     }

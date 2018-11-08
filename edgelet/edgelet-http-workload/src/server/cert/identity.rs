@@ -42,10 +42,9 @@ where
         let hsm = self.hsm.clone();
         let cfg = self.config.clone();
         let max_duration = cfg.get_cert_max_duration(CertificateType::Client);
-        let response = params
-            .name("name")
-            .ok_or_else(|| Error::from(ErrorKind::BadParam))
-            .map(|module_id| {
+
+        let response = match params.name("name") {
+            Some(module_id) => {
                 let cn = module_id.to_string();
                 let alias = format!("{}identity", module_id);
                 let module_uri =
@@ -58,13 +57,13 @@ where
                             .context(ErrorKind::BadBody)
                             .map_err(Error::from)
                             .and_then(|cert_req| {
-                                cert_req
-                                    .expiration()
-                                    .map(|exp| compute_validity(exp, max_duration))
-                                    .unwrap_or_else(|| Ok(max_duration))
-                                    .map_err(Error::from)
+                                cert_req.expiration().map_or_else(
+                                    || Ok(max_duration),
+                                    |exp| compute_validity(exp, max_duration).map_err(Error::from),
+                                )
                             }).and_then(move |expiration| {
                                 let sans = vec![module_uri];
+                                #[cfg_attr(feature = "cargo-clippy", allow(cast_sign_loss))]
                                 let props = CertificateProperties::new(
                                     ensure_range!(expiration, 0, max_duration) as u64,
                                     ensure_not_empty!(cn),
@@ -77,8 +76,10 @@ where
                     .or_else(|e| future::ok(e.into_response()));
 
                 future::Either::A(result)
-            }).unwrap_or_else(|e| future::Either::B(future::ok(e.into_response())));
+            }
 
+            None => future::Either::B(future::ok(Error::from(ErrorKind::BadParam).into_response())),
+        };
         Box::new(response)
     }
 }
@@ -111,7 +112,7 @@ mod tests {
     }
 
     impl TestHsm {
-        fn with_on_create<F>(mut self, on_create: F) -> TestHsm
+        fn with_on_create<F>(mut self, on_create: F) -> Self
         where
             F: Fn(&CertificateProperties) -> StdResult<TestCert, CoreError> + Send + Sync + 'static,
         {
@@ -126,7 +127,7 @@ mod tests {
         fn create_certificate(
             &self,
             properties: &CertificateProperties,
-        ) -> StdResult<TestCert, CoreError> {
+        ) -> StdResult<Self::Certificate, CoreError> {
             let callback = self.on_create.as_ref().unwrap();
             callback(properties)
         }
@@ -143,7 +144,13 @@ mod tests {
     }
 
     impl Default for TestWorkloadConfig {
+        #[cfg_attr(
+            feature = "cargo-clippy",
+            allow(cast_possible_wrap, cast_sign_loss)
+        )]
         fn default() -> Self {
+            assert!(MAX_DURATION_SEC < (i64::max_value() as u64));
+
             TestWorkloadConfig {
                 iot_hub_name: String::from("zaphods_hub"),
                 device_id: String::from("marvins_device"),
@@ -179,8 +186,8 @@ mod tests {
         }
     }
 
-    fn test_module_uri(module_id: String) -> String {
-        prepare_cert_uri_module("zaphods_hub", "marvins_device", module_id.as_str())
+    fn test_module_uri(module_id: &str) -> String {
+        prepare_cert_uri_module("zaphods_hub", "marvins_device", module_id)
     }
 
     fn parse_error_response(response: Response<Body>) -> ErrorResponse {
@@ -211,7 +218,7 @@ mod tests {
                 assert_eq!("beeblebroxidentity", props.alias());
                 assert_eq!(CertificateType::Client, *props.certificate_type());
                 assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
-                let expected_uri = test_module_uri("beeblebrox".to_string());
+                let expected_uri = test_module_uri("beeblebrox");
                 assert!(props.san_entries().unwrap().contains(&expected_uri));
                 Ok(TestCert::default()
                     .with_private_key(PrivateKey::Key(KeyBytes::Pem("Betelgeuse".to_string()))))
@@ -239,10 +246,7 @@ mod tests {
             .wait()
             .unwrap();
         assert_eq!("key", cert_resp.private_key().type_());
-        assert_eq!(
-            Some(&"Betelgeuse".to_string()),
-            cert_resp.private_key().bytes()
-        );
+        assert_eq!(Some("Betelgeuse"), cert_resp.private_key().bytes());
     }
 
     #[test]
@@ -253,7 +257,7 @@ mod tests {
                 assert_eq!("beeblebroxidentity", props.alias());
                 assert_eq!(CertificateType::Client, *props.certificate_type());
                 assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
-                let expected_uri = test_module_uri("beeblebrox".to_string());
+                let expected_uri = test_module_uri("beeblebrox");
                 assert!(props.san_entries().unwrap().contains(&expected_uri));
                 Ok(TestCert::default().with_private_key(PrivateKey::Ref("Betelgeuse".to_string())))
             }),
@@ -280,10 +284,7 @@ mod tests {
             .wait()
             .unwrap();
         assert_eq!("ref", cert_resp.private_key().type_());
-        assert_eq!(
-            Some(&"Betelgeuse".to_string()),
-            cert_resp.private_key().ref_()
-        );
+        assert_eq!(Some("Betelgeuse"), cert_resp.private_key().ref_());
     }
 
     #[test]
@@ -294,7 +295,7 @@ mod tests {
                 assert_eq!("beeblebroxidentity", props.alias());
                 assert_eq!(CertificateType::Client, *props.certificate_type());
                 assert_eq!(MAX_DURATION_SEC, *props.validity_in_secs());
-                let expected_uri = test_module_uri("beeblebrox".to_string());
+                let expected_uri = test_module_uri("beeblebrox");
                 assert!(props.san_entries().unwrap().contains(&expected_uri));
                 Ok(TestCert::default()
                     .with_private_key(PrivateKey::Key(KeyBytes::Pem("Betelgeuse".to_string()))))
@@ -321,10 +322,7 @@ mod tests {
             .wait()
             .unwrap();
         assert_eq!("key", cert_resp.private_key().type_());
-        assert_eq!(
-            Some(&"Betelgeuse".to_string()),
-            cert_resp.private_key().bytes()
-        );
+        assert_eq!(Some("Betelgeuse"), cert_resp.private_key().bytes());
     }
 
     #[test]
@@ -335,7 +333,7 @@ mod tests {
                 assert_eq!("beeblebroxidentity", props.alias());
                 assert_eq!(CertificateType::Client, *props.certificate_type());
                 assert_eq!(MAX_DURATION_SEC, *props.validity_in_secs());
-                let expected_uri = test_module_uri("beeblebrox".to_string());
+                let expected_uri = test_module_uri("beeblebrox");
                 assert!(props.san_entries().unwrap().contains(&expected_uri));
                 Ok(TestCert::default()
                     .with_private_key(PrivateKey::Key(KeyBytes::Pem("Betelgeuse".to_string()))))
@@ -363,10 +361,7 @@ mod tests {
             .wait()
             .unwrap();
         assert_eq!("key", cert_resp.private_key().type_());
-        assert_eq!(
-            Some(&"Betelgeuse".to_string()),
-            cert_resp.private_key().bytes()
-        );
+        assert_eq!(Some("Betelgeuse"), cert_resp.private_key().bytes());
     }
 
     #[test]
@@ -448,7 +443,7 @@ mod tests {
                 assert_eq!("beeblebroxidentity", props.alias());
                 assert_eq!(CertificateType::Client, *props.certificate_type());
                 assert_eq!(MAX_DURATION_SEC, *props.validity_in_secs());
-                let expected_uri = test_module_uri("beeblebrox".to_string());
+                let expected_uri = test_module_uri("beeblebrox");
                 assert!(props.san_entries().unwrap().contains(&expected_uri));
                 Ok(TestCert::default()
                     .with_private_key(PrivateKey::Key(KeyBytes::Pem("Betelgeuse".to_string()))))
@@ -478,7 +473,7 @@ mod tests {
                 assert_eq!("beeblebroxidentity", props.alias());
                 assert_eq!(CertificateType::Client, *props.certificate_type());
                 assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
-                let expected_uri = test_module_uri("beeblebrox".to_string());
+                let expected_uri = test_module_uri("beeblebrox");
                 assert!(props.san_entries().unwrap().contains(&expected_uri));
                 Err(CoreError::from(CoreErrorKind::Io))
             }),
@@ -513,7 +508,7 @@ mod tests {
                 assert_eq!("beeblebroxidentity", props.alias());
                 assert_eq!(CertificateType::Client, *props.certificate_type());
                 assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
-                let expected_uri = test_module_uri("beeblebrox".to_string());
+                let expected_uri = test_module_uri("beeblebrox");
                 assert!(props.san_entries().unwrap().contains(&expected_uri));
                 Ok(TestCert::default().with_fail_pem(true))
             }),
@@ -548,7 +543,7 @@ mod tests {
                 assert_eq!("beeblebroxidentity", props.alias());
                 assert_eq!(CertificateType::Client, *props.certificate_type());
                 assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
-                let expected_uri = test_module_uri("beeblebrox".to_string());
+                let expected_uri = test_module_uri("beeblebrox");
                 assert!(props.san_entries().unwrap().contains(&expected_uri));
                 Ok(TestCert::default().with_fail_private_key(true))
             }),
@@ -583,7 +578,7 @@ mod tests {
                 assert_eq!("beeblebroxidentity", props.alias());
                 assert_eq!(CertificateType::Client, *props.certificate_type());
                 assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
-                let expected_uri = test_module_uri("beeblebrox".to_string());
+                let expected_uri = test_module_uri("beeblebrox");
                 assert!(props.san_entries().unwrap().contains(&expected_uri));
                 Ok(TestCert::default().with_fail_valid_to(true))
             }),

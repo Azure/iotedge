@@ -25,7 +25,7 @@ pub struct PortBinding {
 
 impl PortBinding {
     /// PortBinding represents a binding between a host IP address and a host port.
-    pub fn new() -> PortBinding {
+    pub fn new() -> Self {
         PortBinding {
             host_ip: None,
             host_port: None,
@@ -36,13 +36,13 @@ impl PortBinding {
         self.host_ip = Some(host_ip);
     }
 
-    pub fn with_host_ip(mut self, host_ip: String) -> PortBinding {
+    pub fn with_host_ip(mut self, host_ip: String) -> Self {
         self.host_ip = Some(host_ip);
         self
     }
 
-    pub fn host_ip(&self) -> Option<&String> {
-        self.host_ip.as_ref()
+    pub fn host_ip(&self) -> Option<&str> {
+        self.host_ip.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_host_ip(&mut self) {
@@ -53,13 +53,13 @@ impl PortBinding {
         self.host_port = Some(host_port);
     }
 
-    pub fn with_host_port(mut self, host_port: String) -> PortBinding {
+    pub fn with_host_port(mut self, host_port: String) -> Self {
         self.host_port = Some(host_port);
         self
     }
 
-    pub fn host_port(&self) -> Option<&String> {
-        self.host_port.as_ref()
+    pub fn host_port(&self) -> Option<&str> {
+        self.host_port.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_host_port(&mut self) {

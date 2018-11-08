@@ -35,7 +35,7 @@ impl ModuleDetails {
         type_: String,
         config: ::models::Config,
         status: ::models::Status,
-    ) -> ModuleDetails {
+    ) -> Self {
         ModuleDetails {
             id,
             name,
@@ -49,7 +49,7 @@ impl ModuleDetails {
         self.id = id;
     }
 
-    pub fn with_id(mut self, id: String) -> ModuleDetails {
+    pub fn with_id(mut self, id: String) -> Self {
         self.id = id;
         self
     }
@@ -62,7 +62,7 @@ impl ModuleDetails {
         self.name = name;
     }
 
-    pub fn with_name(mut self, name: String) -> ModuleDetails {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = name;
         self
     }
@@ -75,7 +75,7 @@ impl ModuleDetails {
         self.type_ = type_;
     }
 
-    pub fn with_type(mut self, type_: String) -> ModuleDetails {
+    pub fn with_type(mut self, type_: String) -> Self {
         self.type_ = type_;
         self
     }
@@ -88,7 +88,7 @@ impl ModuleDetails {
         self.config = config;
     }
 
-    pub fn with_config(mut self, config: ::models::Config) -> ModuleDetails {
+    pub fn with_config(mut self, config: ::models::Config) -> Self {
         self.config = config;
         self
     }
@@ -101,7 +101,7 @@ impl ModuleDetails {
         self.status = status;
     }
 
-    pub fn with_status(mut self, status: ::models::Status) -> ModuleDetails {
+    pub fn with_status(mut self, status: ::models::Status) -> Self {
         self.status = status;
         self
     }

@@ -47,7 +47,7 @@ impl ImageSummary {
         virtual_size: i32,
         labels: ::std::collections::HashMap<String, String>,
         containers: i32,
-    ) -> ImageSummary {
+    ) -> Self {
         ImageSummary {
             id: id,
             parent_id: parent_id,
@@ -66,7 +66,7 @@ impl ImageSummary {
         self.id = id;
     }
 
-    pub fn with_id(mut self, id: String) -> ImageSummary {
+    pub fn with_id(mut self, id: String) -> Self {
         self.id = id;
         self
     }
@@ -79,7 +79,7 @@ impl ImageSummary {
         self.parent_id = parent_id;
     }
 
-    pub fn with_parent_id(mut self, parent_id: String) -> ImageSummary {
+    pub fn with_parent_id(mut self, parent_id: String) -> Self {
         self.parent_id = parent_id;
         self
     }
@@ -92,12 +92,12 @@ impl ImageSummary {
         self.repo_tags = repo_tags;
     }
 
-    pub fn with_repo_tags(mut self, repo_tags: Vec<String>) -> ImageSummary {
+    pub fn with_repo_tags(mut self, repo_tags: Vec<String>) -> Self {
         self.repo_tags = repo_tags;
         self
     }
 
-    pub fn repo_tags(&self) -> &Vec<String> {
+    pub fn repo_tags(&self) -> &[String] {
         &self.repo_tags
     }
 
@@ -105,12 +105,12 @@ impl ImageSummary {
         self.repo_digests = repo_digests;
     }
 
-    pub fn with_repo_digests(mut self, repo_digests: Vec<String>) -> ImageSummary {
+    pub fn with_repo_digests(mut self, repo_digests: Vec<String>) -> Self {
         self.repo_digests = repo_digests;
         self
     }
 
-    pub fn repo_digests(&self) -> &Vec<String> {
+    pub fn repo_digests(&self) -> &[String] {
         &self.repo_digests
     }
 
@@ -118,7 +118,7 @@ impl ImageSummary {
         self.created = created;
     }
 
-    pub fn with_created(mut self, created: i32) -> ImageSummary {
+    pub fn with_created(mut self, created: i32) -> Self {
         self.created = created;
         self
     }
@@ -131,7 +131,7 @@ impl ImageSummary {
         self.size = size;
     }
 
-    pub fn with_size(mut self, size: i32) -> ImageSummary {
+    pub fn with_size(mut self, size: i32) -> Self {
         self.size = size;
         self
     }
@@ -144,7 +144,7 @@ impl ImageSummary {
         self.shared_size = shared_size;
     }
 
-    pub fn with_shared_size(mut self, shared_size: i32) -> ImageSummary {
+    pub fn with_shared_size(mut self, shared_size: i32) -> Self {
         self.shared_size = shared_size;
         self
     }
@@ -157,7 +157,7 @@ impl ImageSummary {
         self.virtual_size = virtual_size;
     }
 
-    pub fn with_virtual_size(mut self, virtual_size: i32) -> ImageSummary {
+    pub fn with_virtual_size(mut self, virtual_size: i32) -> Self {
         self.virtual_size = virtual_size;
         self
     }
@@ -170,10 +170,7 @@ impl ImageSummary {
         self.labels = labels;
     }
 
-    pub fn with_labels(
-        mut self,
-        labels: ::std::collections::HashMap<String, String>,
-    ) -> ImageSummary {
+    pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
         self.labels = labels;
         self
     }
@@ -186,7 +183,7 @@ impl ImageSummary {
         self.containers = containers;
     }
 
-    pub fn with_containers(mut self, containers: i32) -> ImageSummary {
+    pub fn with_containers(mut self, containers: i32) -> Self {
         self.containers = containers;
         self
     }

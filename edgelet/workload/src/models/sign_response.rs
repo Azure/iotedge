@@ -19,7 +19,7 @@ pub struct SignResponse {
 }
 
 impl SignResponse {
-    pub fn new(digest: String) -> SignResponse {
+    pub fn new(digest: String) -> Self {
         SignResponse { digest }
     }
 
@@ -27,7 +27,7 @@ impl SignResponse {
         self.digest = digest;
     }
 
-    pub fn with_digest(mut self, digest: String) -> SignResponse {
+    pub fn with_digest(mut self, digest: String) -> Self {
         self.digest = digest;
         self
     }

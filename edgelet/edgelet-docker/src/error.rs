@@ -95,7 +95,7 @@ impl Error {
 }
 
 impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Error {
+    fn from(kind: ErrorKind) -> Self {
         Error {
             inner: Context::new(kind),
         }
@@ -103,13 +103,13 @@ impl From<ErrorKind> for Error {
 }
 
 impl From<Context<ErrorKind>> for Error {
-    fn from(inner: Context<ErrorKind>) -> Error {
+    fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
     }
 }
 
 impl From<UtilsError> for Error {
-    fn from(error: UtilsError) -> Error {
+    fn from(error: UtilsError) -> Self {
         Error {
             inner: error.context(ErrorKind::Utils),
         }
@@ -117,7 +117,7 @@ impl From<UtilsError> for Error {
 }
 
 impl From<serde_json::Error> for Error {
-    fn from(error: serde_json::Error) -> Error {
+    fn from(error: serde_json::Error) -> Self {
         Error {
             inner: error.context(ErrorKind::Serde),
         }
@@ -125,7 +125,7 @@ impl From<serde_json::Error> for Error {
 }
 
 impl From<HyperError> for Error {
-    fn from(error: HyperError) -> Error {
+    fn from(error: HyperError) -> Self {
         Error {
             inner: error.context(ErrorKind::Transport),
         }
@@ -133,7 +133,7 @@ impl From<HyperError> for Error {
 }
 
 impl From<HttpError> for Error {
-    fn from(error: HttpError) -> Error {
+    fn from(error: HttpError) -> Self {
         Error {
             inner: error.context(ErrorKind::Http),
         }
@@ -141,7 +141,7 @@ impl From<HttpError> for Error {
 }
 
 impl From<DockerError<serde_json::Value>> for Error {
-    fn from(err: DockerError<serde_json::Value>) -> Error {
+    fn from(err: DockerError<serde_json::Value>) -> Self {
         match err {
             DockerError::Hyper(error) => Error {
                 inner: Error::from(error).context(ErrorKind::Docker),
@@ -149,32 +149,30 @@ impl From<DockerError<serde_json::Value>> for Error {
             DockerError::Serde(error) => Error {
                 inner: Error::from(error).context(ErrorKind::Docker),
             },
-            DockerError::ApiError(error) => match error.code {
-                StatusCode::NOT_FOUND => get_message(error)
-                    .map(|message| Error::from(ErrorKind::NotFound(message)))
-                    .unwrap_or_else(|e| {
-                        Error::from(ErrorKind::DockerRuntime(DockerError::ApiError(e)))
-                    }),
+            DockerError::Api(error) => match error.code {
+                StatusCode::NOT_FOUND => match get_message(error) {
+                    Ok(message) => Error::from(ErrorKind::NotFound(message)),
+                    Err(e) => Error::from(ErrorKind::DockerRuntime(DockerError::Api(e))),
+                },
                 StatusCode::CONFLICT => Error::from(ErrorKind::Conflict),
                 StatusCode::NOT_MODIFIED => Error::from(ErrorKind::NotModified),
-                _ => get_message(error)
-                    .map(|message| Error::from(ErrorKind::FormattedDockerRuntime(message)))
-                    .unwrap_or_else(|e| {
-                        Error::from(ErrorKind::DockerRuntime(DockerError::ApiError(e)))
-                    }),
+                _ => match get_message(error) {
+                    Ok(message) => Error::from(ErrorKind::FormattedDockerRuntime(message)),
+                    Err(e) => Error::from(ErrorKind::DockerRuntime(DockerError::Api(e))),
+                },
             },
         }
     }
 }
 
 impl From<ParseError> for Error {
-    fn from(_: ParseError) -> Error {
+    fn from(_: ParseError) -> Self {
         Error::from(ErrorKind::UrlParse)
     }
 }
 
 impl From<Error> for CoreError {
-    fn from(err: Error) -> CoreError {
+    fn from(err: Error) -> Self {
         CoreError::from(err.context(CoreErrorKind::ModuleRuntime))
     }
 }
