@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 }
                 catch (Exception e)
                 {
-                    Events.ErrorStoring(e, clientCredentials.Identity.Id);                    
+                    Events.ErrorStoring(e, clientCredentials.Identity.Id);
                 }
             }
         }
@@ -40,26 +40,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Option<string> tokenCredentialsDataOption = await this.encryptedStore.Get(identity.Id);
             return tokenCredentialsDataOption.FlatMap(t =>
             {
+                Events.Retrieved(identity.Id);
                 try
                 {
-                    var tokenCredentialsData = t.FromJson<TokenCredentialsData>();
-                    Events.Retrieved(identity.Id);                    
-                    return Option.Some(new TokenCredentials(identity, tokenCredentialsData.Token, string.Empty, tokenCredentialsData.IsUpdatable) as IClientCredentials);
+                    return Option.Some(ParseTokenCredentialsData(identity, t)
+                        .GetOrElse(() => new TokenCredentials(identity, t, string.Empty, false) as IClientCredentials));
                 }
                 catch (Exception e)
                 {
-                    try
-                    {
-                        Events.ErrorParsingData(identity.Id, e);
-                        return Option.Some(new TokenCredentials(identity, t, string.Empty, false) as IClientCredentials);
-                    }
-                    catch (Exception ex)
-                    {
-                        Events.ErrorGetting(ex, identity.Id);
-                        return Option.None<IClientCredentials>();
-                    }                    
-                }                
+                    Events.ErrorGetting(e, identity.Id);
+                    return Option.None<IClientCredentials>();
+                }
             });
+        }
+
+        static Option<IClientCredentials> ParseTokenCredentialsData(IIdentity identity, string json)
+        {
+            try
+            {
+                var tokenCredentialsData = json.FromJson<TokenCredentialsData>();
+                Events.Retrieved(identity.Id);
+                return Option.Some(new TokenCredentials(identity, tokenCredentialsData.Token, string.Empty, tokenCredentialsData.IsUpdatable) as IClientCredentials);
+            }
+            catch (Exception e)
+            {
+                Events.ErrorParsingData(identity.Id, e);
+                return Option.None<IClientCredentials>();
+            }
         }
 
         class TokenCredentialsData
@@ -104,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             public static void Retrieved(string id)
             {
-                Log.LogDebug((int)EventIds.Retrieved, $"Retrieved token for - {id}");
+                Log.LogDebug((int)EventIds.Retrieved, $"Retrieved token data for - {id}");
             }
 
             public static void ErrorGetting(Exception ex, string id)
