@@ -30,7 +30,7 @@ pub struct MountVolumeOptions {
 
 impl MountVolumeOptions {
     /// Optional configuration for the `volume` type.
-    pub fn new() -> MountVolumeOptions {
+    pub fn new() -> Self {
         MountVolumeOptions {
             no_copy: None,
             labels: None,
@@ -42,7 +42,7 @@ impl MountVolumeOptions {
         self.no_copy = Some(no_copy);
     }
 
-    pub fn with_no_copy(mut self, no_copy: bool) -> MountVolumeOptions {
+    pub fn with_no_copy(mut self, no_copy: bool) -> Self {
         self.no_copy = Some(no_copy);
         self
     }
@@ -59,10 +59,7 @@ impl MountVolumeOptions {
         self.labels = Some(labels);
     }
 
-    pub fn with_labels(
-        mut self,
-        labels: ::std::collections::HashMap<String, String>,
-    ) -> MountVolumeOptions {
+    pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
         self.labels = Some(labels);
         self
     }
@@ -82,7 +79,7 @@ impl MountVolumeOptions {
     pub fn with_driver_config(
         mut self,
         driver_config: ::models::MountVolumeOptionsDriverConfig,
-    ) -> MountVolumeOptions {
+    ) -> Self {
         self.driver_config = Some(driver_config);
         self
     }

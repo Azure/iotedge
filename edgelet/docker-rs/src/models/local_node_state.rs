@@ -18,7 +18,7 @@ pub struct LocalNodeState {}
 
 impl LocalNodeState {
     /// Current local status of this node.
-    pub fn new() -> LocalNodeState {
+    pub fn new() -> Self {
         LocalNodeState {}
     }
 }

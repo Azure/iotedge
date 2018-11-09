@@ -1,7 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(warnings)]
 #![cfg(windows)]
+#![deny(unused_extern_crates, warnings)]
+// Remove this when clippy stops warning about old-style `allow()`,
+// which can only be silenced by enabling a feature and thus requires nightly
+//
+// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
+#![allow(renamed_and_removed_lints)]
+#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
 
 extern crate futures;
 extern crate mio;
@@ -121,7 +127,7 @@ fn write_data() {
 
 #[test]
 fn read_async() {
-    let data = "cow say moo\nsheep say baa\n".as_bytes();
+    let data = &b"cow say moo\nsheep say baa\n"[..];
     let (mut server, path) = server();
 
     let stream = PipeStream::connect(path, None).unwrap();

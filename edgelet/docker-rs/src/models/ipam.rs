@@ -25,7 +25,7 @@ pub struct Ipam {
 }
 
 impl Ipam {
-    pub fn new() -> Ipam {
+    pub fn new() -> Self {
         Ipam {
             driver: None,
             config: None,
@@ -37,13 +37,13 @@ impl Ipam {
         self.driver = Some(driver);
     }
 
-    pub fn with_driver(mut self, driver: String) -> Ipam {
+    pub fn with_driver(mut self, driver: String) -> Self {
         self.driver = Some(driver);
         self
     }
 
-    pub fn driver(&self) -> Option<&String> {
-        self.driver.as_ref()
+    pub fn driver(&self) -> Option<&str> {
+        self.driver.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_driver(&mut self) {
@@ -54,13 +54,13 @@ impl Ipam {
         self.config = Some(config);
     }
 
-    pub fn with_config(mut self, config: Vec<::std::collections::HashMap<String, String>>) -> Ipam {
+    pub fn with_config(mut self, config: Vec<::std::collections::HashMap<String, String>>) -> Self {
         self.config = Some(config);
         self
     }
 
-    pub fn config(&self) -> Option<&Vec<::std::collections::HashMap<String, String>>> {
-        self.config.as_ref()
+    pub fn config(&self) -> Option<&[::std::collections::HashMap<String, String>]> {
+        self.config.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_config(&mut self) {
@@ -74,13 +74,13 @@ impl Ipam {
     pub fn with_options(
         mut self,
         options: Vec<::std::collections::HashMap<String, String>>,
-    ) -> Ipam {
+    ) -> Self {
         self.options = Some(options);
         self
     }
 
-    pub fn options(&self) -> Option<&Vec<::std::collections::HashMap<String, String>>> {
-        self.options.as_ref()
+    pub fn options(&self) -> Option<&[::std::collections::HashMap<String, String>]> {
+        self.options.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_options(&mut self) {

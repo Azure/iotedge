@@ -3,7 +3,7 @@
 use std::cmp;
 use std::fmt;
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub enum Pid {
     None,
     Any,

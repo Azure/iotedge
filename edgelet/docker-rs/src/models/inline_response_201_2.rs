@@ -22,7 +22,7 @@ pub struct InlineResponse2012 {
 }
 
 impl InlineResponse2012 {
-    pub fn new() -> InlineResponse2012 {
+    pub fn new() -> Self {
         InlineResponse2012 {
             ID: None,
             warning: None,
@@ -33,13 +33,13 @@ impl InlineResponse2012 {
         self.ID = Some(ID);
     }
 
-    pub fn with_ID(mut self, ID: String) -> InlineResponse2012 {
+    pub fn with_ID(mut self, ID: String) -> Self {
         self.ID = Some(ID);
         self
     }
 
-    pub fn ID(&self) -> Option<&String> {
-        self.ID.as_ref()
+    pub fn ID(&self) -> Option<&str> {
+        self.ID.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_ID(&mut self) {
@@ -50,13 +50,13 @@ impl InlineResponse2012 {
         self.warning = Some(warning);
     }
 
-    pub fn with_warning(mut self, warning: String) -> InlineResponse2012 {
+    pub fn with_warning(mut self, warning: String) -> Self {
         self.warning = Some(warning);
         self
     }
 
-    pub fn warning(&self) -> Option<&String> {
-        self.warning.as_ref()
+    pub fn warning(&self) -> Option<&str> {
+        self.warning.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_warning(&mut self) {

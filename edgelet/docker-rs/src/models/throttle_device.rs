@@ -22,7 +22,7 @@ pub struct ThrottleDevice {
 }
 
 impl ThrottleDevice {
-    pub fn new() -> ThrottleDevice {
+    pub fn new() -> Self {
         ThrottleDevice {
             path: None,
             rate: None,
@@ -33,13 +33,13 @@ impl ThrottleDevice {
         self.path = Some(path);
     }
 
-    pub fn with_path(mut self, path: String) -> ThrottleDevice {
+    pub fn with_path(mut self, path: String) -> Self {
         self.path = Some(path);
         self
     }
 
-    pub fn path(&self) -> Option<&String> {
-        self.path.as_ref()
+    pub fn path(&self) -> Option<&str> {
+        self.path.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_path(&mut self) {
@@ -50,13 +50,13 @@ impl ThrottleDevice {
         self.rate = Some(rate);
     }
 
-    pub fn with_rate(mut self, rate: i64) -> ThrottleDevice {
+    pub fn with_rate(mut self, rate: i64) -> Self {
         self.rate = Some(rate);
         self
     }
 
-    pub fn rate(&self) -> Option<&i64> {
-        self.rate.as_ref()
+    pub fn rate(&self) -> Option<i64> {
+        self.rate
     }
 
     pub fn reset_rate(&mut self) {

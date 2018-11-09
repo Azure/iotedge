@@ -128,7 +128,7 @@ pub struct ContainerConfig {
 
 impl ContainerConfig {
     /// Configuration for a container that is portable between hosts
-    pub fn new() -> ContainerConfig {
+    pub fn new() -> Self {
         ContainerConfig {
             hostname: None,
             domainname: None,
@@ -160,13 +160,13 @@ impl ContainerConfig {
         self.hostname = Some(hostname);
     }
 
-    pub fn with_hostname(mut self, hostname: String) -> ContainerConfig {
+    pub fn with_hostname(mut self, hostname: String) -> Self {
         self.hostname = Some(hostname);
         self
     }
 
-    pub fn hostname(&self) -> Option<&String> {
-        self.hostname.as_ref()
+    pub fn hostname(&self) -> Option<&str> {
+        self.hostname.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_hostname(&mut self) {
@@ -177,13 +177,13 @@ impl ContainerConfig {
         self.domainname = Some(domainname);
     }
 
-    pub fn with_domainname(mut self, domainname: String) -> ContainerConfig {
+    pub fn with_domainname(mut self, domainname: String) -> Self {
         self.domainname = Some(domainname);
         self
     }
 
-    pub fn domainname(&self) -> Option<&String> {
-        self.domainname.as_ref()
+    pub fn domainname(&self) -> Option<&str> {
+        self.domainname.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_domainname(&mut self) {
@@ -194,13 +194,13 @@ impl ContainerConfig {
         self.user = Some(user);
     }
 
-    pub fn with_user(mut self, user: String) -> ContainerConfig {
+    pub fn with_user(mut self, user: String) -> Self {
         self.user = Some(user);
         self
     }
 
-    pub fn user(&self) -> Option<&String> {
-        self.user.as_ref()
+    pub fn user(&self) -> Option<&str> {
+        self.user.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_user(&mut self) {
@@ -211,7 +211,7 @@ impl ContainerConfig {
         self.attach_stdin = Some(attach_stdin);
     }
 
-    pub fn with_attach_stdin(mut self, attach_stdin: bool) -> ContainerConfig {
+    pub fn with_attach_stdin(mut self, attach_stdin: bool) -> Self {
         self.attach_stdin = Some(attach_stdin);
         self
     }
@@ -228,7 +228,7 @@ impl ContainerConfig {
         self.attach_stdout = Some(attach_stdout);
     }
 
-    pub fn with_attach_stdout(mut self, attach_stdout: bool) -> ContainerConfig {
+    pub fn with_attach_stdout(mut self, attach_stdout: bool) -> Self {
         self.attach_stdout = Some(attach_stdout);
         self
     }
@@ -245,7 +245,7 @@ impl ContainerConfig {
         self.attach_stderr = Some(attach_stderr);
     }
 
-    pub fn with_attach_stderr(mut self, attach_stderr: bool) -> ContainerConfig {
+    pub fn with_attach_stderr(mut self, attach_stderr: bool) -> Self {
         self.attach_stderr = Some(attach_stderr);
         self
     }
@@ -265,7 +265,7 @@ impl ContainerConfig {
     pub fn with_exposed_ports(
         mut self,
         exposed_ports: ::std::collections::HashMap<String, Value>,
-    ) -> ContainerConfig {
+    ) -> Self {
         self.exposed_ports = Some(exposed_ports);
         self
     }
@@ -282,7 +282,7 @@ impl ContainerConfig {
         self.tty = Some(tty);
     }
 
-    pub fn with_tty(mut self, tty: bool) -> ContainerConfig {
+    pub fn with_tty(mut self, tty: bool) -> Self {
         self.tty = Some(tty);
         self
     }
@@ -299,7 +299,7 @@ impl ContainerConfig {
         self.open_stdin = Some(open_stdin);
     }
 
-    pub fn with_open_stdin(mut self, open_stdin: bool) -> ContainerConfig {
+    pub fn with_open_stdin(mut self, open_stdin: bool) -> Self {
         self.open_stdin = Some(open_stdin);
         self
     }
@@ -316,7 +316,7 @@ impl ContainerConfig {
         self.stdin_once = Some(stdin_once);
     }
 
-    pub fn with_stdin_once(mut self, stdin_once: bool) -> ContainerConfig {
+    pub fn with_stdin_once(mut self, stdin_once: bool) -> Self {
         self.stdin_once = Some(stdin_once);
         self
     }
@@ -333,13 +333,13 @@ impl ContainerConfig {
         self.env = Some(env);
     }
 
-    pub fn with_env(mut self, env: Vec<String>) -> ContainerConfig {
+    pub fn with_env(mut self, env: Vec<String>) -> Self {
         self.env = Some(env);
         self
     }
 
-    pub fn env(&self) -> Option<&Vec<String>> {
-        self.env.as_ref()
+    pub fn env(&self) -> Option<&[String]> {
+        self.env.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_env(&mut self) {
@@ -350,7 +350,7 @@ impl ContainerConfig {
         self.healthcheck = Some(healthcheck);
     }
 
-    pub fn with_healthcheck(mut self, healthcheck: ::models::HealthConfig) -> ContainerConfig {
+    pub fn with_healthcheck(mut self, healthcheck: ::models::HealthConfig) -> Self {
         self.healthcheck = Some(healthcheck);
         self
     }
@@ -367,7 +367,7 @@ impl ContainerConfig {
         self.args_escaped = Some(args_escaped);
     }
 
-    pub fn with_args_escaped(mut self, args_escaped: bool) -> ContainerConfig {
+    pub fn with_args_escaped(mut self, args_escaped: bool) -> Self {
         self.args_escaped = Some(args_escaped);
         self
     }
@@ -384,13 +384,13 @@ impl ContainerConfig {
         self.image = Some(image);
     }
 
-    pub fn with_image(mut self, image: String) -> ContainerConfig {
+    pub fn with_image(mut self, image: String) -> Self {
         self.image = Some(image);
         self
     }
 
-    pub fn image(&self) -> Option<&String> {
-        self.image.as_ref()
+    pub fn image(&self) -> Option<&str> {
+        self.image.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_image(&mut self) {
@@ -401,7 +401,7 @@ impl ContainerConfig {
         self.volumes = Some(volumes);
     }
 
-    pub fn with_volumes(mut self, volumes: ::models::ContainerConfigVolumes) -> ContainerConfig {
+    pub fn with_volumes(mut self, volumes: ::models::ContainerConfigVolumes) -> Self {
         self.volumes = Some(volumes);
         self
     }
@@ -418,13 +418,13 @@ impl ContainerConfig {
         self.working_dir = Some(working_dir);
     }
 
-    pub fn with_working_dir(mut self, working_dir: String) -> ContainerConfig {
+    pub fn with_working_dir(mut self, working_dir: String) -> Self {
         self.working_dir = Some(working_dir);
         self
     }
 
-    pub fn working_dir(&self) -> Option<&String> {
-        self.working_dir.as_ref()
+    pub fn working_dir(&self) -> Option<&str> {
+        self.working_dir.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_working_dir(&mut self) {
@@ -435,7 +435,7 @@ impl ContainerConfig {
         self.network_disabled = Some(network_disabled);
     }
 
-    pub fn with_network_disabled(mut self, network_disabled: bool) -> ContainerConfig {
+    pub fn with_network_disabled(mut self, network_disabled: bool) -> Self {
         self.network_disabled = Some(network_disabled);
         self
     }
@@ -452,13 +452,13 @@ impl ContainerConfig {
         self.mac_address = Some(mac_address);
     }
 
-    pub fn with_mac_address(mut self, mac_address: String) -> ContainerConfig {
+    pub fn with_mac_address(mut self, mac_address: String) -> Self {
         self.mac_address = Some(mac_address);
         self
     }
 
-    pub fn mac_address(&self) -> Option<&String> {
-        self.mac_address.as_ref()
+    pub fn mac_address(&self) -> Option<&str> {
+        self.mac_address.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_mac_address(&mut self) {
@@ -469,13 +469,13 @@ impl ContainerConfig {
         self.on_build = Some(on_build);
     }
 
-    pub fn with_on_build(mut self, on_build: Vec<String>) -> ContainerConfig {
+    pub fn with_on_build(mut self, on_build: Vec<String>) -> Self {
         self.on_build = Some(on_build);
         self
     }
 
-    pub fn on_build(&self) -> Option<&Vec<String>> {
-        self.on_build.as_ref()
+    pub fn on_build(&self) -> Option<&[String]> {
+        self.on_build.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_on_build(&mut self) {
@@ -486,10 +486,7 @@ impl ContainerConfig {
         self.labels = Some(labels);
     }
 
-    pub fn with_labels(
-        mut self,
-        labels: ::std::collections::HashMap<String, String>,
-    ) -> ContainerConfig {
+    pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
         self.labels = Some(labels);
         self
     }
@@ -506,13 +503,13 @@ impl ContainerConfig {
         self.stop_signal = Some(stop_signal);
     }
 
-    pub fn with_stop_signal(mut self, stop_signal: String) -> ContainerConfig {
+    pub fn with_stop_signal(mut self, stop_signal: String) -> Self {
         self.stop_signal = Some(stop_signal);
         self
     }
 
-    pub fn stop_signal(&self) -> Option<&String> {
-        self.stop_signal.as_ref()
+    pub fn stop_signal(&self) -> Option<&str> {
+        self.stop_signal.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_stop_signal(&mut self) {
@@ -523,13 +520,13 @@ impl ContainerConfig {
         self.stop_timeout = Some(stop_timeout);
     }
 
-    pub fn with_stop_timeout(mut self, stop_timeout: i32) -> ContainerConfig {
+    pub fn with_stop_timeout(mut self, stop_timeout: i32) -> Self {
         self.stop_timeout = Some(stop_timeout);
         self
     }
 
-    pub fn stop_timeout(&self) -> Option<&i32> {
-        self.stop_timeout.as_ref()
+    pub fn stop_timeout(&self) -> Option<i32> {
+        self.stop_timeout
     }
 
     pub fn reset_stop_timeout(&mut self) {
@@ -540,13 +537,13 @@ impl ContainerConfig {
         self.shell = Some(shell);
     }
 
-    pub fn with_shell(mut self, shell: Vec<String>) -> ContainerConfig {
+    pub fn with_shell(mut self, shell: Vec<String>) -> Self {
         self.shell = Some(shell);
         self
     }
 
-    pub fn shell(&self) -> Option<&Vec<String>> {
-        self.shell.as_ref()
+    pub fn shell(&self) -> Option<&[String]> {
+        self.shell.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_shell(&mut self) {

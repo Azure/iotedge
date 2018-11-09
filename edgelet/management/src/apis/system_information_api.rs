@@ -9,14 +9,12 @@
  */
 
 use std::borrow::Borrow;
-use std::borrow::Cow;
 use std::sync::Arc;
 
-use futures;
 use futures::{Future, Stream};
 use hyper;
 use serde_json;
-use typed_headers::{self, http, mime, HeaderMapExt};
+use typed_headers::http;
 
 use super::{configuration, Error};
 
@@ -25,9 +23,7 @@ pub struct SystemInformationApiClient<C: hyper::client::connect::Connect> {
 }
 
 impl<C: hyper::client::connect::Connect> SystemInformationApiClient<C> {
-    pub fn new(
-        configuration: Arc<configuration::Configuration<C>>,
-    ) -> SystemInformationApiClient<C> {
+    pub fn new(configuration: Arc<configuration::Configuration<C>>) -> Self {
         SystemInformationApiClient { configuration }
     }
 }

@@ -57,7 +57,7 @@ pub struct InlineResponse20011 {
 }
 
 impl InlineResponse20011 {
-    pub fn new() -> InlineResponse20011 {
+    pub fn new() -> Self {
         InlineResponse20011 {
             version: None,
             api_version: None,
@@ -76,13 +76,13 @@ impl InlineResponse20011 {
         self.version = Some(version);
     }
 
-    pub fn with_version(mut self, version: String) -> InlineResponse20011 {
+    pub fn with_version(mut self, version: String) -> Self {
         self.version = Some(version);
         self
     }
 
-    pub fn version(&self) -> Option<&String> {
-        self.version.as_ref()
+    pub fn version(&self) -> Option<&str> {
+        self.version.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_version(&mut self) {
@@ -93,13 +93,13 @@ impl InlineResponse20011 {
         self.api_version = Some(api_version);
     }
 
-    pub fn with_api_version(mut self, api_version: String) -> InlineResponse20011 {
+    pub fn with_api_version(mut self, api_version: String) -> Self {
         self.api_version = Some(api_version);
         self
     }
 
-    pub fn api_version(&self) -> Option<&String> {
-        self.api_version.as_ref()
+    pub fn api_version(&self) -> Option<&str> {
+        self.api_version.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_api_version(&mut self) {
@@ -110,13 +110,13 @@ impl InlineResponse20011 {
         self.min_api_version = Some(min_api_version);
     }
 
-    pub fn with_min_api_version(mut self, min_api_version: String) -> InlineResponse20011 {
+    pub fn with_min_api_version(mut self, min_api_version: String) -> Self {
         self.min_api_version = Some(min_api_version);
         self
     }
 
-    pub fn min_api_version(&self) -> Option<&String> {
-        self.min_api_version.as_ref()
+    pub fn min_api_version(&self) -> Option<&str> {
+        self.min_api_version.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_min_api_version(&mut self) {
@@ -127,13 +127,13 @@ impl InlineResponse20011 {
         self.git_commit = Some(git_commit);
     }
 
-    pub fn with_git_commit(mut self, git_commit: String) -> InlineResponse20011 {
+    pub fn with_git_commit(mut self, git_commit: String) -> Self {
         self.git_commit = Some(git_commit);
         self
     }
 
-    pub fn git_commit(&self) -> Option<&String> {
-        self.git_commit.as_ref()
+    pub fn git_commit(&self) -> Option<&str> {
+        self.git_commit.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_git_commit(&mut self) {
@@ -144,13 +144,13 @@ impl InlineResponse20011 {
         self.go_version = Some(go_version);
     }
 
-    pub fn with_go_version(mut self, go_version: String) -> InlineResponse20011 {
+    pub fn with_go_version(mut self, go_version: String) -> Self {
         self.go_version = Some(go_version);
         self
     }
 
-    pub fn go_version(&self) -> Option<&String> {
-        self.go_version.as_ref()
+    pub fn go_version(&self) -> Option<&str> {
+        self.go_version.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_go_version(&mut self) {
@@ -161,13 +161,13 @@ impl InlineResponse20011 {
         self.os = Some(os);
     }
 
-    pub fn with_os(mut self, os: String) -> InlineResponse20011 {
+    pub fn with_os(mut self, os: String) -> Self {
         self.os = Some(os);
         self
     }
 
-    pub fn os(&self) -> Option<&String> {
-        self.os.as_ref()
+    pub fn os(&self) -> Option<&str> {
+        self.os.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_os(&mut self) {
@@ -178,13 +178,13 @@ impl InlineResponse20011 {
         self.arch = Some(arch);
     }
 
-    pub fn with_arch(mut self, arch: String) -> InlineResponse20011 {
+    pub fn with_arch(mut self, arch: String) -> Self {
         self.arch = Some(arch);
         self
     }
 
-    pub fn arch(&self) -> Option<&String> {
-        self.arch.as_ref()
+    pub fn arch(&self) -> Option<&str> {
+        self.arch.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_arch(&mut self) {
@@ -195,13 +195,13 @@ impl InlineResponse20011 {
         self.kernel_version = Some(kernel_version);
     }
 
-    pub fn with_kernel_version(mut self, kernel_version: String) -> InlineResponse20011 {
+    pub fn with_kernel_version(mut self, kernel_version: String) -> Self {
         self.kernel_version = Some(kernel_version);
         self
     }
 
-    pub fn kernel_version(&self) -> Option<&String> {
-        self.kernel_version.as_ref()
+    pub fn kernel_version(&self) -> Option<&str> {
+        self.kernel_version.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_kernel_version(&mut self) {
@@ -212,7 +212,7 @@ impl InlineResponse20011 {
         self.experimental = Some(experimental);
     }
 
-    pub fn with_experimental(mut self, experimental: bool) -> InlineResponse20011 {
+    pub fn with_experimental(mut self, experimental: bool) -> Self {
         self.experimental = Some(experimental);
         self
     }
@@ -229,13 +229,13 @@ impl InlineResponse20011 {
         self.build_time = Some(build_time);
     }
 
-    pub fn with_build_time(mut self, build_time: String) -> InlineResponse20011 {
+    pub fn with_build_time(mut self, build_time: String) -> Self {
         self.build_time = Some(build_time);
         self
     }
 
-    pub fn build_time(&self) -> Option<&String> {
-        self.build_time.as_ref()
+    pub fn build_time(&self) -> Option<&str> {
+        self.build_time.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_build_time(&mut self) {

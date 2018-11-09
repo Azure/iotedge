@@ -22,7 +22,7 @@ pub struct InlineResponse2006 {
 }
 
 impl InlineResponse2006 {
-    pub fn new() -> InlineResponse2006 {
+    pub fn new() -> Self {
         InlineResponse2006 {
             space_reclaimed: None,
         }
@@ -32,13 +32,13 @@ impl InlineResponse2006 {
         self.space_reclaimed = Some(space_reclaimed);
     }
 
-    pub fn with_space_reclaimed(mut self, space_reclaimed: i64) -> InlineResponse2006 {
+    pub fn with_space_reclaimed(mut self, space_reclaimed: i64) -> Self {
         self.space_reclaimed = Some(space_reclaimed);
         self
     }
 
-    pub fn space_reclaimed(&self) -> Option<&i64> {
-        self.space_reclaimed.as_ref()
+    pub fn space_reclaimed(&self) -> Option<i64> {
+        self.space_reclaimed
     }
 
     pub fn reset_space_reclaimed(&mut self) {

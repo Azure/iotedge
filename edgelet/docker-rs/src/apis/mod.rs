@@ -6,7 +6,7 @@ use serde_json;
 pub enum Error<T> {
     Hyper(hyper::Error),
     Serde(serde_json::Error),
-    ApiError(ApiError<T>),
+    Api(ApiError<T>),
 }
 
 #[derive(Debug)]
@@ -21,13 +21,13 @@ where
 {
     fn from(e: (hyper::StatusCode, &'de [u8])) -> Self {
         if e.1.len() == 0 {
-            return Error::ApiError(ApiError {
+            return Error::Api(ApiError {
                 code: e.0,
                 content: None,
             });
         }
         match serde_json::from_slice::<T>(e.1) {
-            Ok(t) => Error::ApiError(ApiError {
+            Ok(t) => Error::Api(ApiError {
                 code: e.0,
                 content: Some(t),
             }),

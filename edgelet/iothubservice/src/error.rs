@@ -76,7 +76,7 @@ impl Error {
 }
 
 impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Error {
+    fn from(kind: ErrorKind) -> Self {
         Error {
             inner: Context::new(kind),
         }
@@ -84,13 +84,13 @@ impl From<ErrorKind> for Error {
 }
 
 impl From<Context<ErrorKind>> for Error {
-    fn from(inner: Context<ErrorKind>) -> Error {
+    fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
     }
 }
 
 impl From<UtilsError> for Error {
-    fn from(error: UtilsError) -> Error {
+    fn from(error: UtilsError) -> Self {
         Error {
             inner: error.context(ErrorKind::Utils),
         }
@@ -98,7 +98,7 @@ impl From<UtilsError> for Error {
 }
 
 impl From<HttpError> for Error {
-    fn from(error: HttpError) -> Error {
+    fn from(error: HttpError) -> Self {
         Error {
             inner: error.context(ErrorKind::Http),
         }
@@ -106,7 +106,7 @@ impl From<HttpError> for Error {
 }
 
 impl From<serde_json::Error> for Error {
-    fn from(error: serde_json::Error) -> Error {
+    fn from(error: serde_json::Error) -> Self {
         Error {
             inner: error.context(ErrorKind::Serde),
         }
@@ -114,7 +114,7 @@ impl From<serde_json::Error> for Error {
 }
 
 impl From<ParseError> for Error {
-    fn from(error: ParseError) -> Error {
+    fn from(error: ParseError) -> Self {
         Error {
             inner: error.context(ErrorKind::Url),
         }
@@ -122,7 +122,7 @@ impl From<ParseError> for Error {
 }
 
 impl From<HyperError> for Error {
-    fn from(error: HyperError) -> Error {
+    fn from(error: HyperError) -> Self {
         Error {
             inner: error.context(ErrorKind::Hyper),
         }
@@ -130,7 +130,7 @@ impl From<HyperError> for Error {
 }
 
 impl From<Error> for HttpError {
-    fn from(err: Error) -> HttpError {
+    fn from(err: Error) -> Self {
         HttpError::from(err.context(HttpErrorKind::TokenSource))
     }
 }

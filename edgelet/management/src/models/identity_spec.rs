@@ -23,7 +23,7 @@ pub struct IdentitySpec {
 }
 
 impl IdentitySpec {
-    pub fn new(module_id: String) -> IdentitySpec {
+    pub fn new(module_id: String) -> Self {
         IdentitySpec {
             module_id,
             managed_by: None,
@@ -34,7 +34,7 @@ impl IdentitySpec {
         self.module_id = module_id;
     }
 
-    pub fn with_module_id(mut self, module_id: String) -> IdentitySpec {
+    pub fn with_module_id(mut self, module_id: String) -> Self {
         self.module_id = module_id;
         self
     }
@@ -47,13 +47,13 @@ impl IdentitySpec {
         self.managed_by = Some(managed_by);
     }
 
-    pub fn with_managed_by(mut self, managed_by: String) -> IdentitySpec {
+    pub fn with_managed_by(mut self, managed_by: String) -> Self {
         self.managed_by = Some(managed_by);
         self
     }
 
-    pub fn managed_by(&self) -> Option<&String> {
-        self.managed_by.as_ref()
+    pub fn managed_by(&self) -> Option<&str> {
+        self.managed_by.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_managed_by(&mut self) {

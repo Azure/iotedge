@@ -58,7 +58,7 @@ pub struct ExecConfig {
 }
 
 impl ExecConfig {
-    pub fn new() -> ExecConfig {
+    pub fn new() -> Self {
         ExecConfig {
             attach_stdin: None,
             attach_stdout: None,
@@ -76,7 +76,7 @@ impl ExecConfig {
         self.attach_stdin = Some(attach_stdin);
     }
 
-    pub fn with_attach_stdin(mut self, attach_stdin: bool) -> ExecConfig {
+    pub fn with_attach_stdin(mut self, attach_stdin: bool) -> Self {
         self.attach_stdin = Some(attach_stdin);
         self
     }
@@ -93,7 +93,7 @@ impl ExecConfig {
         self.attach_stdout = Some(attach_stdout);
     }
 
-    pub fn with_attach_stdout(mut self, attach_stdout: bool) -> ExecConfig {
+    pub fn with_attach_stdout(mut self, attach_stdout: bool) -> Self {
         self.attach_stdout = Some(attach_stdout);
         self
     }
@@ -110,7 +110,7 @@ impl ExecConfig {
         self.attach_stderr = Some(attach_stderr);
     }
 
-    pub fn with_attach_stderr(mut self, attach_stderr: bool) -> ExecConfig {
+    pub fn with_attach_stderr(mut self, attach_stderr: bool) -> Self {
         self.attach_stderr = Some(attach_stderr);
         self
     }
@@ -127,13 +127,13 @@ impl ExecConfig {
         self.detach_keys = Some(detach_keys);
     }
 
-    pub fn with_detach_keys(mut self, detach_keys: String) -> ExecConfig {
+    pub fn with_detach_keys(mut self, detach_keys: String) -> Self {
         self.detach_keys = Some(detach_keys);
         self
     }
 
-    pub fn detach_keys(&self) -> Option<&String> {
-        self.detach_keys.as_ref()
+    pub fn detach_keys(&self) -> Option<&str> {
+        self.detach_keys.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_detach_keys(&mut self) {
@@ -144,7 +144,7 @@ impl ExecConfig {
         self.tty = Some(tty);
     }
 
-    pub fn with_tty(mut self, tty: bool) -> ExecConfig {
+    pub fn with_tty(mut self, tty: bool) -> Self {
         self.tty = Some(tty);
         self
     }
@@ -161,13 +161,13 @@ impl ExecConfig {
         self.env = Some(env);
     }
 
-    pub fn with_env(mut self, env: Vec<String>) -> ExecConfig {
+    pub fn with_env(mut self, env: Vec<String>) -> Self {
         self.env = Some(env);
         self
     }
 
-    pub fn env(&self) -> Option<&Vec<String>> {
-        self.env.as_ref()
+    pub fn env(&self) -> Option<&[String]> {
+        self.env.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_env(&mut self) {
@@ -178,13 +178,13 @@ impl ExecConfig {
         self.cmd = Some(cmd);
     }
 
-    pub fn with_cmd(mut self, cmd: Vec<String>) -> ExecConfig {
+    pub fn with_cmd(mut self, cmd: Vec<String>) -> Self {
         self.cmd = Some(cmd);
         self
     }
 
-    pub fn cmd(&self) -> Option<&Vec<String>> {
-        self.cmd.as_ref()
+    pub fn cmd(&self) -> Option<&[String]> {
+        self.cmd.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_cmd(&mut self) {
@@ -195,7 +195,7 @@ impl ExecConfig {
         self.privileged = Some(privileged);
     }
 
-    pub fn with_privileged(mut self, privileged: bool) -> ExecConfig {
+    pub fn with_privileged(mut self, privileged: bool) -> Self {
         self.privileged = Some(privileged);
         self
     }
@@ -212,13 +212,13 @@ impl ExecConfig {
         self.user = Some(user);
     }
 
-    pub fn with_user(mut self, user: String) -> ExecConfig {
+    pub fn with_user(mut self, user: String) -> Self {
         self.user = Some(user);
         self
     }
 
-    pub fn user(&self) -> Option<&String> {
-        self.user.as_ref()
+    pub fn user(&self) -> Option<&str> {
+        self.user.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_user(&mut self) {

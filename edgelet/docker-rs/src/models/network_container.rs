@@ -38,7 +38,7 @@ pub struct NetworkContainer {
 }
 
 impl NetworkContainer {
-    pub fn new() -> NetworkContainer {
+    pub fn new() -> Self {
         NetworkContainer {
             name: None,
             endpoint_id: None,
@@ -52,13 +52,13 @@ impl NetworkContainer {
         self.name = Some(name);
     }
 
-    pub fn with_name(mut self, name: String) -> NetworkContainer {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
     }
 
-    pub fn name(&self) -> Option<&String> {
-        self.name.as_ref()
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_name(&mut self) {
@@ -69,13 +69,13 @@ impl NetworkContainer {
         self.endpoint_id = Some(endpoint_id);
     }
 
-    pub fn with_endpoint_id(mut self, endpoint_id: String) -> NetworkContainer {
+    pub fn with_endpoint_id(mut self, endpoint_id: String) -> Self {
         self.endpoint_id = Some(endpoint_id);
         self
     }
 
-    pub fn endpoint_id(&self) -> Option<&String> {
-        self.endpoint_id.as_ref()
+    pub fn endpoint_id(&self) -> Option<&str> {
+        self.endpoint_id.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_endpoint_id(&mut self) {
@@ -86,13 +86,13 @@ impl NetworkContainer {
         self.mac_address = Some(mac_address);
     }
 
-    pub fn with_mac_address(mut self, mac_address: String) -> NetworkContainer {
+    pub fn with_mac_address(mut self, mac_address: String) -> Self {
         self.mac_address = Some(mac_address);
         self
     }
 
-    pub fn mac_address(&self) -> Option<&String> {
-        self.mac_address.as_ref()
+    pub fn mac_address(&self) -> Option<&str> {
+        self.mac_address.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_mac_address(&mut self) {
@@ -103,13 +103,13 @@ impl NetworkContainer {
         self.i_pv4_address = Some(i_pv4_address);
     }
 
-    pub fn with_i_pv4_address(mut self, i_pv4_address: String) -> NetworkContainer {
+    pub fn with_i_pv4_address(mut self, i_pv4_address: String) -> Self {
         self.i_pv4_address = Some(i_pv4_address);
         self
     }
 
-    pub fn i_pv4_address(&self) -> Option<&String> {
-        self.i_pv4_address.as_ref()
+    pub fn i_pv4_address(&self) -> Option<&str> {
+        self.i_pv4_address.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_i_pv4_address(&mut self) {
@@ -120,13 +120,13 @@ impl NetworkContainer {
         self.i_pv6_address = Some(i_pv6_address);
     }
 
-    pub fn with_i_pv6_address(mut self, i_pv6_address: String) -> NetworkContainer {
+    pub fn with_i_pv6_address(mut self, i_pv6_address: String) -> Self {
         self.i_pv6_address = Some(i_pv6_address);
         self
     }
 
-    pub fn i_pv6_address(&self) -> Option<&String> {
-        self.i_pv6_address.as_ref()
+    pub fn i_pv6_address(&self) -> Option<&str> {
+        self.i_pv6_address.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_i_pv6_address(&mut self) {

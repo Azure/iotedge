@@ -23,7 +23,7 @@ pub struct UpdateIdentity {
 }
 
 impl UpdateIdentity {
-    pub fn new(generation_id: String) -> UpdateIdentity {
+    pub fn new(generation_id: String) -> Self {
         UpdateIdentity {
             generation_id,
             managed_by: None,
@@ -34,7 +34,7 @@ impl UpdateIdentity {
         self.generation_id = generation_id;
     }
 
-    pub fn with_generation_id(mut self, generation_id: String) -> UpdateIdentity {
+    pub fn with_generation_id(mut self, generation_id: String) -> Self {
         self.generation_id = generation_id;
         self
     }
@@ -47,13 +47,13 @@ impl UpdateIdentity {
         self.managed_by = Some(managed_by);
     }
 
-    pub fn with_managed_by(mut self, managed_by: String) -> UpdateIdentity {
+    pub fn with_managed_by(mut self, managed_by: String) -> Self {
         self.managed_by = Some(managed_by);
         self
     }
 
-    pub fn managed_by(&self) -> Option<&String> {
-        self.managed_by.as_ref()
+    pub fn managed_by(&self) -> Option<&str> {
+        self.managed_by.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_managed_by(&mut self) {

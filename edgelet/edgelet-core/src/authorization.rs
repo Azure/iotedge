@@ -62,7 +62,7 @@ where
                     .into_future()
                     .then(move |result| match result {
                         Ok((Some(rs), _)) => {
-                            let authorized = rs.pid() == &pid;
+                            let authorized = rs.pid() == pid;
                             if !authorized {
                                 info!("Request not authorized - expected caller pid: {}, actual caller pid: {}", rs.pid(), pid);
                             }
@@ -100,14 +100,14 @@ mod tests {
 
     #[test]
     fn should_authorize_anonymous() {
-        let runtime = TestModuleList::new(&vec![]);
+        let runtime = TestModuleList::new(vec![]);
         let auth = Authorization::new(runtime, Policy::Anonymous);
         assert_eq!(true, auth.authorize(None, Pid::None).wait().unwrap());
     }
 
     #[test]
     fn should_authorize_caller() {
-        let runtime = TestModuleList::new(&vec![
+        let runtime = TestModuleList::new(vec![
             TestModule::new("xyz", 987),
             TestModule::new("abc", 123),
         ]);
@@ -122,7 +122,7 @@ mod tests {
 
     #[test]
     fn should_authorize_system_caller() {
-        let runtime = TestModuleList::new(&vec![
+        let runtime = TestModuleList::new(vec![
             TestModule::new("xyz", 987),
             TestModule::new("edgeAgent", 123),
         ]);
@@ -137,14 +137,14 @@ mod tests {
 
     #[test]
     fn should_reject_caller_without_name() {
-        let runtime = TestModuleList::new(&vec![TestModule::new("abc", 123)]);
+        let runtime = TestModuleList::new(vec![TestModule::new("abc", 123)]);
         let auth = Authorization::new(runtime, Policy::Caller);
         assert_eq!(false, auth.authorize(None, Pid::Value(123)).wait().unwrap());
     }
 
     #[test]
     fn should_reject_caller_with_different_name() {
-        let runtime = TestModuleList::new(&vec![TestModule::new("abc", 123)]);
+        let runtime = TestModuleList::new(vec![TestModule::new("abc", 123)]);
         let auth = Authorization::new(runtime, Policy::Caller);
         assert_eq!(
             false,
@@ -156,7 +156,7 @@ mod tests {
 
     #[test]
     fn should_reject_caller_with_different_pid() {
-        let runtime = TestModuleList::new(&vec![TestModule::new("abc", 123)]);
+        let runtime = TestModuleList::new(vec![TestModule::new("abc", 123)]);
         let auth = Authorization::new(runtime, Policy::Caller);
         assert_eq!(
             false,
@@ -168,7 +168,7 @@ mod tests {
 
     #[test]
     fn should_authorize_module() {
-        let runtime = TestModuleList::new(&vec![
+        let runtime = TestModuleList::new(vec![
             TestModule::new("xyz", 987),
             TestModule::new("abc", 123),
         ]);
@@ -178,21 +178,21 @@ mod tests {
 
     #[test]
     fn should_reject_module_whose_name_does_not_match_policy() {
-        let runtime = TestModuleList::new(&vec![TestModule::new("xyz", 123)]);
+        let runtime = TestModuleList::new(vec![TestModule::new("xyz", 123)]);
         let auth = Authorization::new(runtime, Policy::Module("abc"));
         assert_eq!(false, auth.authorize(None, Pid::Value(123)).wait().unwrap());
     }
 
     #[test]
     fn should_reject_module_with_different_pid() {
-        let runtime = TestModuleList::new(&vec![TestModule::new("abc", 123)]);
+        let runtime = TestModuleList::new(vec![TestModule::new("abc", 123)]);
         let auth = Authorization::new(runtime, Policy::Module("abc"));
         assert_eq!(false, auth.authorize(None, Pid::Value(456)).wait().unwrap());
     }
 
     #[test]
     fn should_reject_module_when_runtime_returns_no_pid() {
-        let runtime = TestModuleList::new(&vec![TestModule::new_with_behavior(
+        let runtime = TestModuleList::new(vec![TestModule::new_with_behavior(
             "abc",
             123,
             TestModuleBehavior::NoPid,
@@ -209,7 +209,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "A module runtime error occurred.")]
     fn should_fail_when_runtime_state_fails() {
-        let runtime = TestModuleList::new(&vec![TestModule::new_with_behavior(
+        let runtime = TestModuleList::new(vec![TestModule::new_with_behavior(
             "abc",
             123,
             TestModuleBehavior::FailRuntimeState,
@@ -224,7 +224,7 @@ mod tests {
     #[should_panic(expected = "A module runtime error occurred.")]
     fn should_fail_when_list_fails() {
         let runtime = TestModuleList::new_with_behavior(
-            &vec![TestModule::new("abc", 123)],
+            vec![TestModule::new("abc", 123)],
             TestModuleListBehavior::FailList,
         );
         let auth = Authorization::new(runtime, Policy::Caller);
@@ -235,7 +235,7 @@ mod tests {
 
     struct TestConfig {}
 
-    #[derive(Clone)]
+    #[derive(Clone, Copy)]
     enum TestModuleBehavior {
         Default,
         FailRuntimeState,
@@ -298,7 +298,7 @@ mod tests {
         fn runtime_state(&self) -> Self::RuntimeStateFuture {
             match self.behavior {
                 TestModuleBehavior::Default => {
-                    future::ok(ModuleRuntimeState::default().with_pid(&Pid::Value(self.pid)))
+                    future::ok(ModuleRuntimeState::default().with_pid(Pid::Value(self.pid)))
                 }
                 TestModuleBehavior::FailRuntimeState => notimpl_error!(),
                 TestModuleBehavior::NoPid => future::ok(ModuleRuntimeState::default()),
@@ -306,7 +306,7 @@ mod tests {
         }
     }
 
-    #[derive(Clone)]
+    #[derive(Clone, Copy)]
     enum TestModuleListBehavior {
         Default,
         FailList,
@@ -319,21 +319,18 @@ mod tests {
     }
 
     impl TestModuleList {
-        pub fn new(modules: &Vec<TestModule>) -> Self {
+        pub fn new(modules: Vec<TestModule>) -> Self {
             TestModuleList {
-                modules: modules.clone(),
+                modules,
                 behavior: TestModuleListBehavior::Default,
             }
         }
 
         pub fn new_with_behavior(
-            modules: &Vec<TestModule>,
+            modules: Vec<TestModule>,
             behavior: TestModuleListBehavior,
         ) -> Self {
-            TestModuleList {
-                modules: modules.clone(),
-                behavior,
-            }
+            TestModuleList { modules, behavior }
         }
     }
 

@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 }
 
                 // TODO: Figure out where the device client type parameter value should come from.
-                IClientCredentials deviceIdentity = this.clientCredentialsFactory.GetWithSasToken(deviceId, moduleId, string.Empty, password);
+                IClientCredentials deviceIdentity = this.clientCredentialsFactory.GetWithSasToken(deviceId, moduleId, string.Empty, password, false);
 
                 if (!await this.authenticator.AuthenticateAsync(deviceIdentity))
                 {

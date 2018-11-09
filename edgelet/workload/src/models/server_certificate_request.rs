@@ -22,7 +22,7 @@ pub struct ServerCertificateRequest {
 }
 
 impl ServerCertificateRequest {
-    pub fn new(common_name: String, expiration: String) -> ServerCertificateRequest {
+    pub fn new(common_name: String, expiration: String) -> Self {
         ServerCertificateRequest {
             common_name,
             expiration,
@@ -33,7 +33,7 @@ impl ServerCertificateRequest {
         self.common_name = common_name;
     }
 
-    pub fn with_common_name(mut self, common_name: String) -> ServerCertificateRequest {
+    pub fn with_common_name(mut self, common_name: String) -> Self {
         self.common_name = common_name;
         self
     }
@@ -46,7 +46,7 @@ impl ServerCertificateRequest {
         self.expiration = expiration;
     }
 
-    pub fn with_expiration(mut self, expiration: String) -> ServerCertificateRequest {
+    pub fn with_expiration(mut self, expiration: String) -> Self {
         self.expiration = expiration;
         self
     }

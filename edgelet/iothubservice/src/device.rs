@@ -39,7 +39,7 @@ where
         &self,
         module_id: &str,
         authentication: Option<AuthMechanism>,
-        managed_by: Option<&String>,
+        managed_by: Option<&str>,
     ) -> impl Future<Item = Module, Error = Error> {
         self.upsert_module(module_id, authentication, managed_by, false)
     }
@@ -48,7 +48,7 @@ where
         &self,
         module_id: &str,
         authentication: Option<AuthMechanism>,
-        managed_by: Option<&String>,
+        managed_by: Option<&str>,
     ) -> impl Future<Item = Module, Error = Error> {
         self.upsert_module(module_id, authentication, managed_by, true)
     }
@@ -57,7 +57,7 @@ where
         &self,
         module_id: &str,
         authentication: Option<AuthMechanism>,
-        managed_by: Option<&String>,
+        managed_by: Option<&str>,
         add_if_match: bool,
     ) -> impl Future<Item = Module, Error = Error> {
         if module_id.trim().is_empty() {
@@ -251,7 +251,7 @@ mod tests {
                         panic!("Wrong error kind. Expected `EmptyModuleId` found {:?}", err);
                     }
 
-                    Ok(()) as Result<(), Error>
+                    Ok::<_, Error>(())
                 }
             });
 
@@ -282,7 +282,7 @@ mod tests {
                         panic!("Wrong error kind. Expected `EmptyModuleId` found {:?}", err);
                     }
 
-                    Ok(()) as Result<(), Error>
+                    Ok::<_, Error>(())
                 }
             });
 
@@ -338,7 +338,10 @@ mod tests {
         let device_client = DeviceClient::new(client, "d1").unwrap();
         let task = device_client
             .upsert_module("m1", Some(auth), Some(&"iotedge".to_string()), false)
-            .then(|result| Ok(assert_eq!(expected_response, result.unwrap())) as Result<(), Error>);
+            .then(|result| {
+                assert_eq!(expected_response, result.unwrap());
+                Ok::<_, Error>(())
+            });
 
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
@@ -392,7 +395,10 @@ mod tests {
         let device_client = DeviceClient::new(client, "d1").unwrap();
         let task = device_client
             .upsert_module("m1", Some(auth), Some(&"iotedge".to_string()), true)
-            .then(|result| Ok(assert_eq!(expected_response, result.unwrap())) as Result<(), Error>);
+            .then(|result| {
+                assert_eq!(expected_response, result.unwrap());
+                Ok::<_, Error>(())
+            });
 
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
@@ -418,7 +424,7 @@ mod tests {
                     panic!("Wrong error kind. Expected `EmptyModuleId` found {:?}", err);
                 }
 
-                Ok(()) as Result<(), Error>
+                Ok::<_, Error>(())
             }
         });
 
@@ -449,7 +455,7 @@ mod tests {
                         panic!("Wrong error kind. Expected `EmptyModuleId` found {:?}", err);
                     }
 
-                    Ok(()) as Result<(), Error>
+                    Ok::<_, Error>(())
                 }
             });
 
@@ -476,7 +482,7 @@ mod tests {
         let device_client = DeviceClient::new(client, "d1").unwrap();
         let task = device_client
             .delete_module("m1")
-            .then(|result| Ok(assert_eq!(result.unwrap(), ())) as Result<(), Error>);
+            .then(|result: Result<(), _>| result);
 
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
@@ -531,7 +537,7 @@ mod tests {
             for i in 0..modules.len() {
                 assert_eq!(expected_modules[i], modules[i])
             }
-            Ok(()) as Result<(), Error>
+            Ok::<_, Error>(())
         });
 
         tokio::runtime::current_thread::Runtime::new()
@@ -576,7 +582,7 @@ mod tests {
         let task = device_client.get_module_by_id("m1").then(|module| {
             let module = module.unwrap();
             assert_eq!(expected_module, module);
-            Ok(()) as Result<(), Error>
+            Ok::<_, Error>(())
         });
 
         tokio::runtime::current_thread::Runtime::new()
@@ -608,7 +614,7 @@ mod tests {
             assert!(module.is_err());
             assert_eq!(ErrorKind::ModuleNotFound, *module.unwrap_err().kind());
 
-            Ok(()) as Result<(), Error>
+            Ok::<_, Error>(())
         });
 
         tokio::runtime::current_thread::Runtime::new()
