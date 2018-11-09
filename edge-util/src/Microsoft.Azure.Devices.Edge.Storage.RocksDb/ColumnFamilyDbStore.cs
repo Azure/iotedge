@@ -13,7 +13,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
     class ColumnFamilyDbStore : IDbStore
     {
-        static readonly TimeSpan OperationCheckPeriod = TimeSpan.FromSeconds(1);
         readonly IRocksDb db;
         
         public ColumnFamilyDbStore(IRocksDb db, ColumnFamilyHandle handle)
@@ -31,8 +30,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             Option<byte[]> returnValue;
             using (Metrics.DbGetLatency("all"))
             {
-
-                byte[] value = await ExecuteUntilCancelled(() => this.db.Get(key, this.Handle), cancellationToken);
+                Func<byte[]> operation = () => this.db.Get(key, this.Handle);
+                byte[] value = await operation.ExecuteUntilCancelled(cancellationToken);
                 returnValue = value != null ? Option.Some(value) : Option.None<byte[]>();
             }
             return returnValue;
@@ -45,48 +44,52 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
             using (Metrics.DbPutLatency("all"))
             {
-                return ExecuteUntilCancelled(() => this.db.Put(key, value, this.Handle), cancellationToken);
+                Action operation = () => this.db.Put(key, value, this.Handle);
+                return operation.ExecuteUntilCancelled(cancellationToken);
             }
         }
 
         public Task Remove(byte[] key, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(key, nameof(key));
-            return ExecuteUntilCancelled(() => this.db.Remove(key, this.Handle), cancellationToken);
+            Action operation = () => this.db.Remove(key, this.Handle);
+            return operation.ExecuteUntilCancelled(cancellationToken);
         }        
 
-        public Task<Option<(byte[] key, byte[] value)>> GetLastEntry(CancellationToken cancellationToken)
+        public async Task<Option<(byte[] key, byte[] value)>> GetLastEntry(CancellationToken cancellationToken)
         {
             using (Iterator iterator = this.db.NewIterator(this.Handle))
             {
-                iterator.SeekToLast();
+                Action operation = () => iterator.SeekToLast();
+                await operation.ExecuteUntilCancelled(cancellationToken);
                 if (iterator.Valid())
                 {
                     byte[] key = iterator.Key();
                     byte[] value = iterator.Value();
-                    return Task.FromResult(Option.Some((key, value)));
+                    return Option.Some((key, value));
                 }
                 else
                 {
-                    return Task.FromResult(Option.None<(byte[], byte[])>());
+                    return Option.None<(byte[], byte[])>();
                 }
             }
         }
 
-        public Task<Option<(byte[] key, byte[] value)>> GetFirstEntry(CancellationToken cancellationToken)
+        public async Task<Option<(byte[] key, byte[] value)>> GetFirstEntry(CancellationToken cancellationToken)
         {
             using (Iterator iterator = this.db.NewIterator(this.Handle))
             {
-                iterator.SeekToFirst();
+                Action operation = () => iterator.SeekToFirst();
+                await operation.ExecuteUntilCancelled(cancellationToken);
                 if (iterator.Valid())
                 {
                     byte[] key = iterator.Key();
                     byte[] value = iterator.Value();
-                    return Task.FromResult(Option.Some((key, value)));
+                    return Option.Some((key, value));
                 }
                 else
                 {
-                    return Task.FromResult(Option.None<(byte[], byte[])>());
+                    return Option.None<(byte[], byte[])>();
                 }
             }
         }
@@ -94,7 +97,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         public async Task<bool> Contains(byte[] key, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(key, nameof(key));
-            byte[] value = await ExecuteUntilCancelled(() => this.db.Get(key, this.Handle), cancellationToken);
+            Func<byte[]> operation = () => this.db.Get(key, this.Handle);
+            byte[] value = await operation.ExecuteUntilCancelled(cancellationToken);
             return value != null;
         }
 
@@ -132,35 +136,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
                 } 
             }
         }
-
-        public static async Task<T> ExecuteUntilCancelled<T>(Func<T> func, CancellationToken cancellationToken)
-        {
-            Task<T> task = Task.Run(func);
-            while (!task.IsCompleted)
-            {
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    throw new TaskCanceledException(task);
-                }
-                await Task.Delay(OperationCheckPeriod, cancellationToken);
-            }
-            return await task;
-        }
-
-        public static async Task ExecuteUntilCancelled(Action action, CancellationToken cancellationToken)
-        {
-            Task task = Task.Run(action);
-            while (!task.IsCompleted)
-            {
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    throw new TaskCanceledException(task);
-                }
-                await Task.Delay(OperationCheckPeriod, cancellationToken);
-            }
-            await task;
-        }
-
+        
         static class Metrics
         {
             static readonly TimerOptions DbPutLatencyOptions = new TimerOptions
@@ -179,7 +155,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
                 RateUnit = TimeUnit.Seconds
             };
 
-            internal static MetricTags GetTags(string id)
+            static MetricTags GetTags(string id)
             {
                 return new MetricTags("EndpointId", id);
             }

@@ -175,6 +175,38 @@ namespace Microsoft.Azure.Devices.Edge.Util
             await task;
         }
 
+        public static async Task<T> ExecuteUntilCancelled<T>(this Func<T> operation, CancellationToken cancellationToken, int checkFrequencySecs = 1)
+        {
+            Preconditions.CheckArgument(checkFrequencySecs > 0, $"{nameof(checkFrequencySecs)} should be > 0");
+            TimeSpan checkFrequency = TimeSpan.FromSeconds(checkFrequencySecs);
+            Task<T> task = Task.Run(operation, cancellationToken);
+            while (!task.IsCompleted)
+            {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    throw new TaskCanceledException(task);
+                }
+                await Task.Delay(checkFrequency, cancellationToken);
+            }
+            return await task;
+        }
+
+        public static async Task ExecuteUntilCancelled(this Action operation, CancellationToken cancellationToken, int checkFrequencySecs = 1)
+        {
+            Preconditions.CheckArgument(checkFrequencySecs > 0, $"{nameof(checkFrequencySecs)} should be > 0");
+            TimeSpan checkFrequency = TimeSpan.FromSeconds(checkFrequencySecs);
+            Task task = Task.Run(operation, cancellationToken);
+            while (!task.IsCompleted)
+            {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    throw new TaskCanceledException(task);
+                }
+                await Task.Delay(checkFrequency, cancellationToken);
+            }
+            await task;
+        }
+
         public static Task ExecuteWithTimeout(this Func<CancellationToken, Task> operation, CancellationToken cancellationToken, TimeSpan timeout)
         {
             using (var cts = new CancellationTokenSource())

@@ -29,8 +29,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             this.compactionTimer = new Timer(this.RunCompaction, null, CompactionPeriod, CompactionPeriod);
         }
 
-        private void RunCompaction(object state)
-        {
+         void RunCompaction(object state)
+         {
             Events.StartingCompaction();
             foreach (KeyValuePair<string, IDbStore> entityDbStore in this.entityDbStoreDictionary)
             {
