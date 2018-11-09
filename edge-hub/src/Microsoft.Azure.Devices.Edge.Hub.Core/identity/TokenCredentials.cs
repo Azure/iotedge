@@ -6,17 +6,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
 
     public class TokenCredentials : ITokenCredentials
     {
-        public TokenCredentials(IIdentity identity, string token, string productInfo)
+        public TokenCredentials(IIdentity identity, string token, string productInfo, bool updatable)
         {
             this.Identity = Preconditions.CheckNotNull(identity, nameof(identity));
             this.Token = Preconditions.CheckNonWhiteSpace(token, nameof(token));
             this.AuthenticationType = AuthenticationType.Token;
             this.ProductInfo = productInfo ?? string.Empty;
+            this.IsUpdatable = updatable;
         }
 
         public AuthenticationType AuthenticationType { get; }
 
         public IIdentity Identity { get; }
+
+        public bool IsUpdatable { get; }
 
         public string ProductInfo { get; }
 

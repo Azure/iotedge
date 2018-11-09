@@ -13,8 +13,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
     /// </summary>
     public class ClientCredentialsFactory : IClientCredentialsFactory
     {
-        readonly string callerProductInfo;
         readonly string iotHubHostName;
+        readonly string callerProductInfo;
 
         public ClientCredentialsFactory(string iotHubHostName)
             : this(iotHubHostName, string.Empty)
@@ -40,11 +40,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
             return new IotEdgedCredentials(this.GetIdentity(deviceId, moduleId), this.callerProductInfo);
         }
 
-        public IClientCredentials GetWithSasToken(string deviceId, string moduleId, string deviceClientType, string token)
+        public IClientCredentials GetWithSasToken(string deviceId, string moduleId, string deviceClientType, string token, bool updatable)
         {
             string productInfo = string.Join(" ", this.callerProductInfo, deviceClientType).Trim();
             IIdentity identity = this.GetIdentity(deviceId, moduleId);
-            return new TokenCredentials(identity, token, productInfo);
+            return new TokenCredentials(identity, token, productInfo, updatable);
         }
 
         public IClientCredentials GetWithX509Cert(string deviceId, string moduleId, string deviceClientType)

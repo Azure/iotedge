@@ -448,7 +448,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         static TimeSpan GetSleepTime(int baseSleepSecs = 10) => TimeSpan.FromSeconds(baseSleepSecs + Rand.Next(0, 10));
 
         static IClientCredentials SetupDeviceIdentity(string deviceId) =>
-            new TokenCredentials(new DeviceIdentity("iotHub", deviceId), Guid.NewGuid().ToString(), string.Empty);
+            new TokenCredentials(new DeviceIdentity("iotHub", deviceId), Guid.NewGuid().ToString(), string.Empty, false);
 
         static async Task<(IEdgeHub, IConnectionManager)> SetupEdgeHub(IEnumerable<string> routes, IoTHub iotHub, string edgeDeviceId)
         {
@@ -489,7 +489,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         }
 
         static IClientCredentials SetupModuleCredentials(string moduleId, string deviceId) =>
-            new TokenCredentials(new ModuleIdentity("iotHub", deviceId, moduleId), Guid.NewGuid().ToString(), string.Empty);
+            new TokenCredentials(new ModuleIdentity("iotHub", deviceId, moduleId), Guid.NewGuid().ToString(), string.Empty, false);
 
         class IoTHub
         {

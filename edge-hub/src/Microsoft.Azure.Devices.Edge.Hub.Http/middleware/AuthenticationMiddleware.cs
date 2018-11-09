@@ -118,7 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
             string deviceId = clientIdParts[0];
             string moduleId = clientIdParts[1];
 
-            IClientCredentials clientCredentials = this.identityFactory.GetWithSasToken(deviceId, moduleId, string.Empty, authHeader);
+            IClientCredentials clientCredentials = this.identityFactory.GetWithSasToken(deviceId, moduleId, string.Empty, authHeader, false);
             IIdentity identity = clientCredentials.Identity;
             IAuthenticator authenticator = await this.authenticatorTask;
 

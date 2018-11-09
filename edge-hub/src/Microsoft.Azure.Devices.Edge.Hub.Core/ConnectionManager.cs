@@ -177,28 +177,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 case CloudConnectionStatus.TokenNearExpiry:
                     Events.ProcessingTokenNearExpiryEvent(device.Identity);
-                    Option<IDeviceProxy> deviceProxy = device.DeviceConnection.Map(d => d.DeviceProxy).Filter(d => d.IsActive);
-                    if (deviceProxy.HasValue)
+                    Option<IClientCredentials> clientCredentials = await this.credentialsCache.Get(device.Identity);
+                    if (clientCredentials.HasValue)
                     {
-                        Option<IClientCredentials> token = await deviceProxy.Map(d => d.GetUpdatedIdentity())
-                            .GetOrElse(Task.FromResult(Option.None<IClientCredentials>()));
-                        if (token.HasValue)
-                        {
-                            await token.ForEachAsync(
-                                async t =>
+                        await clientCredentials.ForEachAsync(
+                            async cc =>
+                            {
+                                if (cc is ITokenCredentials tokenCredentials && tokenCredentials.IsUpdatable)
                                 {
-                                    Try<ICloudConnection> cloudConnectionTry = await device.CreateOrUpdateCloudConnection(c => this.CreateOrUpdateCloudConnection(c, t));
+                                    Try<ICloudConnection> cloudConnectionTry = await device.CreateOrUpdateCloudConnection(c => this.CreateOrUpdateCloudConnection(c, tokenCredentials));
                                     if (!cloudConnectionTry.Success)
                                     {
                                         await this.RemoveDeviceConnection(device, true);
                                         this.CloudConnectionLost?.Invoke(this, device.Identity);
                                     }
-                                });
-                        }
-                        else
-                        {
-                            await this.RemoveDeviceConnection(device, false);
-                        }
+                                }
+                                else
+                                {
+                                    await this.RemoveDeviceConnection(device, false);
+                                }
+                            });
                     }
                     else
                     {

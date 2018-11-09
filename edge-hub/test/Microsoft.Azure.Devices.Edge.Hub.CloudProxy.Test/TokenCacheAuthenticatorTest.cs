@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string callerProductInfo = "productInfo";
             string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/device1/modules/moduleId");
             var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
-            var credentials = new TokenCredentials(identity, sasToken, callerProductInfo);
+            var credentials = new TokenCredentials(identity, sasToken, callerProductInfo, false);
 
             var storedTokenCredentials = Mock.Of<ITokenCredentials>(c => c.Token == sasToken);
             var credentialsStore = new Mock<ICredentialsCache>();
@@ -73,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string callerProductInfo = "productInfo";
             string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/device1/modules/moduleId");
             var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
-            var credentials = new TokenCredentials(identity, sasToken, callerProductInfo);
+            var credentials = new TokenCredentials(identity, sasToken, callerProductInfo, false);
 
             var tokenCredentialsAuthenticator = new TokenCacheAuthenticator(new CloudTokenAuthenticator(connectionManager, iothubHostName), credentialsStore.Object, iothubHostName);
 
@@ -100,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string callerProductInfo = "productInfo";
             string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/device1/modules/moduleId", expired: true);
             var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
-            var credentials = new TokenCredentials(identity, sasToken, callerProductInfo);
+            var credentials = new TokenCredentials(identity, sasToken, callerProductInfo, false);
 
             var storedTokenCredentials = Mock.Of<ITokenCredentials>(c => c.Token == sasToken);
             var credentialsStore = new Mock<ICredentialsCache>();
@@ -133,7 +133,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string callerProductInfo = "productInfo";
             string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/device1/modules/moduleId");
             var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
-            var credentials = new TokenCredentials(identity, sasToken, callerProductInfo);
+            var credentials = new TokenCredentials(identity, sasToken, callerProductInfo, false);
 
             string sasToken2 = TokenHelper.CreateSasToken($"{iothubHostName}/devices/device1/modules/moduleId") + "a";
             var storedTokenCredentials = Mock.Of<ITokenCredentials>(c => c.Token == sasToken2);

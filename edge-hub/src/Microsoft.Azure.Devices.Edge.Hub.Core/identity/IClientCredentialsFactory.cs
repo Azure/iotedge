@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
 
         IClientCredentials GetWithIotEdged(string deviceId, string moduleId);
 
-        IClientCredentials GetWithSasToken(string deviceId, string moduleId, string deviceClientType, string token);
+        IClientCredentials GetWithSasToken(string deviceId, string moduleId, string deviceClientType, string token, bool updatable);
 
         IClientCredentials GetWithX509Cert(string deviceId, string moduleId, string deviceClientType);
     }
