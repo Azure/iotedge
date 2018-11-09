@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 edgeHubCredentials.Identity,
                 TimeSpan.FromMinutes(60),
                 true);
-            var connectionManager = new ConnectionManager(cloudConnectionProvider);
+            var connectionManager = new ConnectionManager(cloudConnectionProvider, Mock.Of<ICredentialsCache>());
 
             try
             {

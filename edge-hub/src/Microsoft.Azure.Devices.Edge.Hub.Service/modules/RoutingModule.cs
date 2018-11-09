@@ -194,9 +194,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                 async c =>
                 {
-                    ICloudConnectionProvider cloudConnectionProvider = await c.Resolve<Task<ICloudConnectionProvider>>();
+                    var cloudConnectionProviderTask = c.Resolve<Task<ICloudConnectionProvider>>();
+                    var credentialsCacheTask = c.Resolve<Task<ICredentialsCache>>();
+                    ICloudConnectionProvider cloudConnectionProvider = await cloudConnectionProviderTask;
+                    ICredentialsCache credentialsCache = await credentialsCacheTask;
                     IConnectionManager connectionManager = new ConnectionManager(
                         cloudConnectionProvider,
+                        credentialsCache,
                         this.maxConnectedClients);
                     return connectionManager;
                 })

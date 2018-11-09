@@ -25,6 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly ConcurrentDictionary<string, ConnectedDevice> devices = new ConcurrentDictionary<string, ConnectedDevice>();
         readonly ICloudConnectionProvider cloudConnectionProvider;
         readonly int maxClients;
+        readonly ICredentialsCache credentialsCache;
 
         public event EventHandler<IIdentity> CloudConnectionLost;
         public event EventHandler<IIdentity> CloudConnectionEstablished;
@@ -33,10 +34,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public ConnectionManager(
             ICloudConnectionProvider cloudConnectionProvider,
+            ICredentialsCache credentialsCache,
             int maxClients = DefaultMaxClients)
         {
             this.cloudConnectionProvider = Preconditions.CheckNotNull(cloudConnectionProvider, nameof(cloudConnectionProvider));
             this.maxClients = Preconditions.CheckRange(maxClients, 1, nameof(maxClients));
+            this.credentialsCache = Preconditions.CheckNotNull(credentialsCache, nameof(credentialsCache));
             Util.Metrics.RegisterGaugeCallback(() => Metrics.SetConnectedClientCountGauge(this));
         }
 

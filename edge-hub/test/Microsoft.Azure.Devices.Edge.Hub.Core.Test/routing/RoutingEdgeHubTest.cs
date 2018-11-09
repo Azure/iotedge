@@ -249,7 +249,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var cloudConnectionProvider = new Mock<ICloudConnectionProvider>();
             cloudConnectionProvider.Setup(c => c.Connect(It.IsAny<IClientCredentials>(), It.IsAny<Action<string, CloudConnectionStatus>>()))
                 .ReturnsAsync(Try.Success(cloudConnection));
-            var connectionManager = new ConnectionManager(cloudConnectionProvider.Object);
+            var connectionManager = new ConnectionManager(cloudConnectionProvider.Object, Mock.Of<ICredentialsCache>());
 
             IInvokeMethodHandler invokeMethodHandler = new InvokeMethodHandler(connectionManager);
 
@@ -323,7 +323,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var cloudConnectionProvider = new Mock<ICloudConnectionProvider>();
             cloudConnectionProvider.Setup(c => c.Connect(It.IsAny<IClientCredentials>(), It.IsAny<Action<string, CloudConnectionStatus>>()))
                 .ReturnsAsync(Try.Success(cloudConnection));
-            var connectionManager = new ConnectionManager(cloudConnectionProvider.Object);
+            var connectionManager = new ConnectionManager(cloudConnectionProvider.Object, Mock.Of<ICredentialsCache>());
 
             IInvokeMethodHandler invokeMethodHandler = new InvokeMethodHandler(connectionManager);
 
@@ -390,7 +390,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var cloudConnectionProvider = new Mock<ICloudConnectionProvider>();
             cloudConnectionProvider.Setup(c => c.Connect(It.IsAny<IIdentity>(), It.IsAny<Action<string, CloudConnectionStatus>>()))
                 .ReturnsAsync(Try.Success(cloudConnection));
-            var connectionManager = new ConnectionManager(cloudConnectionProvider.Object);
+            var connectionManager = new ConnectionManager(cloudConnectionProvider.Object, Mock.Of<ICredentialsCache>());
 
             IInvokeMethodHandler invokeMethodHandler = new InvokeMethodHandler(connectionManager);
 
