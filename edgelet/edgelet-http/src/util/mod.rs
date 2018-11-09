@@ -147,9 +147,10 @@ impl fmt::Display for IncomingSocketAddr {
 mod tests {
     #[cfg(windows)]
     use tempdir::TempDir;
+    #[cfg(windows)]
     use tokio::runtime::current_thread::Runtime;
     #[cfg(unix)]
-    use tokio_uds::{UnixListener, UnixStream};
+    use tokio_uds::UnixStream;
     #[cfg(windows)]
     use tokio_uds_windows::{UnixListener, UnixStream};
 

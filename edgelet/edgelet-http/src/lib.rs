@@ -46,6 +46,7 @@ extern crate serde;
 extern crate serde_json;
 extern crate systemd;
 #[cfg(test)]
+#[cfg(windows)]
 extern crate tempdir;
 #[cfg(test)]
 extern crate tempfile;
@@ -70,6 +71,8 @@ use std::net;
 use std::net::ToSocketAddrs;
 #[cfg(unix)]
 use std::os::unix::io::FromRawFd;
+#[cfg(unix)]
+use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -271,8 +274,7 @@ impl UrlExt for Url {
     #[cfg(unix)]
     fn to_uds_file_path(&self) -> Result<PathBuf, Error> {
         debug_assert_eq!(self.scheme(), UNIX_SCHEME);
-        self.to_file_path()
-            .map_err(|()| ErrorKind::InvalidUri(self.to_string()).into())
+        Ok(Path::new(self.path()).to_path_buf())
     }
 
     #[cfg(windows)]
