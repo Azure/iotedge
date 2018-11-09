@@ -104,6 +104,13 @@ hostname: "<ADD HOSTNAME HERE>"
 #     http - connect over TCP
 #     unix - connect over Unix domain socket
 #
+# If the 'unix' scheme is selected, the daemon expects that the parent
+# directory of the specified socket file already exists, and that the Windows
+# group 'NT AUTHORITY\Authenticated Users' has been given 'Modify' rights on
+# the directory. For example, if the URI "unix:///C:/path/to/sock.file" is
+# specified, then the directory "C:\path\to" must exist with the correct
+# permissions.
+#
 ###############################################################################
 
 connect:
@@ -122,6 +129,13 @@ connect:
 # The following uri schemes are supported:
 #     http - listen over TCP
 #     unix - listen over Unix domain socket
+#
+# If the 'unix' scheme is selected, the daemon expects that the parent
+# directory of the specified socket file already exists, and that the Windows
+# group 'NT AUTHORITY\Authenticated Users' has been given 'Modify' rights on
+# the directory. For example, if the URI "unix:///C:/path/to/sock.file" is
+# specified, then the directory "C:\path\to" must exist with the correct
+# permissions.
 #
 ###############################################################################
 
