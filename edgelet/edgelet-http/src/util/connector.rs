@@ -162,7 +162,7 @@ mod tests {
     fn create_uds_succeeds() {
         let file = NamedTempFile::new().unwrap();
         let mut url = Url::from_file_path(file.path()).unwrap();
-        let _ = url.set_scheme("unix").unwrap();
+        url.set_scheme("unix").unwrap();
         let _connector = UrlConnector::new(&url).unwrap();
     }
 

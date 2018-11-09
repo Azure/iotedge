@@ -97,7 +97,7 @@ fn uds_get() {
     }).map_err(|err| eprintln!("{}", err));
 
     let mut url = Url::from_file_path(file_path).unwrap();
-    let _ = url.set_scheme("unix").unwrap();
+    url.set_scheme("unix").unwrap();
     let connector = UrlConnector::new(&url).unwrap();
 
     let client = Client::builder().build::<_, Body>(connector);
@@ -230,7 +230,7 @@ fn uds_post() {
     }).map_err(|err| eprintln!("{}", err));
 
     let mut url = Url::from_file_path(file_path).unwrap();
-    let _ = url.set_scheme("unix").unwrap();
+    url.set_scheme("unix").unwrap();
     let connector = UrlConnector::new(&url).unwrap();
 
     let client = Client::builder().build::<_, Body>(connector);
