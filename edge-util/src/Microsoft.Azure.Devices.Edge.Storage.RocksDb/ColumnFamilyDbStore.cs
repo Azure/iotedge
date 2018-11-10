@@ -21,7 +21,23 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             this.Handle = Preconditions.CheckNotNull(handle, nameof(handle));
         }
 
-        internal ColumnFamilyHandle Handle { get; }        
+        internal ColumnFamilyHandle Handle { get; }
+
+        public Task Put(byte[] key, byte[] value) => this.Put(key, value, CancellationToken.None);
+
+        public Task<Option<byte[]>> Get(byte[] key) => this.Get(key, CancellationToken.None);
+
+        public Task Remove(byte[] key) => this.Remove(key, CancellationToken.None);
+
+        public Task<bool> Contains(byte[] key) => this.Contains(key, CancellationToken.None);
+
+        public Task<Option<(byte[] key, byte[] value)>> GetFirstEntry() => this.GetFirstEntry(CancellationToken.None);
+
+        public Task<Option<(byte[] key, byte[] value)>> GetLastEntry() => this.GetLastEntry(CancellationToken.None);
+
+        public Task IterateBatch(int batchSize, Func<byte[], byte[], Task> perEntityCallback) => this.IterateBatch(batchSize, perEntityCallback, CancellationToken.None);
+
+        public Task IterateBatch(byte[] startKey, int batchSize, Func<byte[], byte[], Task> perEntityCallback) => this.IterateBatch(startKey, batchSize, perEntityCallback, CancellationToken.None);
 
         public async Task<Option<byte[]>> Get(byte[] key, CancellationToken cancellationToken)
         {

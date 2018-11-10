@@ -21,11 +21,15 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         public string EntityName => this.underlyingEntityStore.EntityName;
 
+        public Task<bool> Remove(TK key, Func<TV, bool> predicate) => this.Remove(key, predicate, CancellationToken.None);
+
         public Task<bool> Remove(TK key, Func<TV, bool> predicate, CancellationToken cancellationToken)
         {
             Func<CancellationToken, Task<bool>> containsWithTimeout = cts => this.underlyingEntityStore.Contains(key, cts);
             return containsWithTimeout.ExecuteWithTimeout(cancellationToken, this.timeout);
         }
+
+        public Task<TV> Update(TK key, Func<TV, TV> updator) => this.Update(key, updator, CancellationToken.None);
 
         public Task<TV> Update(TK key, Func<TV, TV> updator, CancellationToken cancellationToken)
         {
@@ -33,11 +37,15 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             return containsWithTimeout.ExecuteWithTimeout(cancellationToken, this.timeout);
         }
 
+        public Task<TV> PutOrUpdate(TK key, TV putValue, Func<TV, TV> valueUpdator) => this.PutOrUpdate(key, putValue, valueUpdator, CancellationToken.None);
+
         public Task<TV> PutOrUpdate(TK key, TV putValue, Func<TV, TV> valueUpdator, CancellationToken cancellationToken)
         {
             Func<CancellationToken, Task<TV>> containsWithTimeout = cts => this.underlyingEntityStore.PutOrUpdate(key, putValue, valueUpdator, cts);
             return containsWithTimeout.ExecuteWithTimeout(cancellationToken, this.timeout);
         }
+
+        public Task<TV> FindOrPut(TK key, TV putValue) => this.FindOrPut(key, putValue, CancellationToken.None);
 
         public Task<TV> FindOrPut(TK key, TV putValue, CancellationToken cancellationToken)
         {
@@ -47,7 +55,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     }
 
     public class TimedKeyValueStore<TK, TV> : IKeyValueStore<TK, TV>
-
     {
         readonly IKeyValueStore<TK, TV> underlyingKeyValueStore;
         readonly TimeSpan timeout;
@@ -59,6 +66,22 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         }
 
         public void Dispose() => this.underlyingKeyValueStore.Dispose();
+
+        public Task Put(TK key, TV value) => this.Put(key, value, CancellationToken.None);
+
+        public Task<Option<TV>> Get(TK key) => this.Get(key, CancellationToken.None);
+
+        public Task Remove(TK key) => this.Remove(key, CancellationToken.None);
+
+        public Task<bool> Contains(TK key) => this.Contains(key, CancellationToken.None);
+
+        public Task<Option<(TK key, TV value)>> GetFirstEntry() => this.GetFirstEntry(CancellationToken.None);
+
+        public Task<Option<(TK key, TV value)>> GetLastEntry() => this.GetLastEntry(CancellationToken.None);
+
+        public Task IterateBatch(int batchSize, Func<TK, TV, Task> perEntityCallback) => this.IterateBatch(batchSize, perEntityCallback, CancellationToken.None);
+
+        public Task IterateBatch(TK startKey, int batchSize, Func<TK, TV, Task> perEntityCallback) => this.IterateBatch(startKey, batchSize, perEntityCallback, CancellationToken.None);
 
         public Task Put(TK key, TV value, CancellationToken cancellationToken)
         {            

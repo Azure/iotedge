@@ -16,6 +16,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     {
         string EntityName { get; }
 
+        Task<long> Append(T item);
+
+        Task<bool> RemoveFirst(Func<long, T, Task<bool>> predicate);
+
+        Task<IEnumerable<(long, T)>> GetBatch(long startingOffset, int batchSize);
+
         Task<long> Append(T item, CancellationToken cancellationToken);
 
         Task<bool> RemoveFirst(Func<long, T, Task<bool>> predicate, CancellationToken cancellationToken);

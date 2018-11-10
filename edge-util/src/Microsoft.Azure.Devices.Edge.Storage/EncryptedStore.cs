@@ -16,6 +16,21 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             this.entityStore = Preconditions.CheckNotNull(entityStore, nameof(entityStore));
             this.encryptionProvider = Preconditions.CheckNotNull(encryptionProvider, nameof(encryptionProvider));
         }
+        public Task Put(TK key, TV value) => this.Put(key, value, CancellationToken.None);
+
+        public Task<Option<TV>> Get(TK key) => this.Get(key, CancellationToken.None);
+
+        public Task Remove(TK key) => this.Remove(key, CancellationToken.None);
+
+        public Task<bool> Contains(TK key) => this.Contains(key, CancellationToken.None);
+
+        public Task<Option<(TK key, TV value)>> GetFirstEntry() => this.GetFirstEntry(CancellationToken.None);
+
+        public Task<Option<(TK key, TV value)>> GetLastEntry() => this.GetLastEntry(CancellationToken.None);
+
+        public Task IterateBatch(int batchSize, Func<TK, TV, Task> perEntityCallback) => this.IterateBatch(batchSize, perEntityCallback, CancellationToken.None);
+
+        public Task IterateBatch(TK startKey, int batchSize, Func<TK, TV, Task> perEntityCallback) => this.IterateBatch(startKey, batchSize, perEntityCallback, CancellationToken.None);
 
         public async Task Put(TK key, TV value, CancellationToken cancellationToken)
         {

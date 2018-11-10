@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
 
     /// <summary>
     /// Store for particular Key/Value pair. This provides additional functionality on top of Db Key/Value store such as -
@@ -36,6 +35,22 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             return value;
         }
 
+        public Task Put(TK key, TV value) => this.Put(key, value, CancellationToken.None);
+
+        public Task<Option<TV>> Get(TK key) => this.Get(key, CancellationToken.None);
+
+        public Task Remove(TK key) => this.Remove(key, CancellationToken.None);
+
+        public Task<bool> Contains(TK key) => this.Contains(key, CancellationToken.None);
+
+        public Task<Option<(TK key, TV value)>> GetFirstEntry() => this.GetFirstEntry(CancellationToken.None);
+
+        public Task<Option<(TK key, TV value)>> GetLastEntry() => this.GetLastEntry(CancellationToken.None);
+
+        public Task IterateBatch(int batchSize, Func<TK, TV, Task> perEntityCallback) => this.IterateBatch(batchSize, perEntityCallback, CancellationToken.None);
+
+        public Task IterateBatch(TK startKey, int batchSize, Func<TK, TV, Task> perEntityCallback) => this.IterateBatch(startKey, batchSize, perEntityCallback, CancellationToken.None);
+
         public async Task Put(TK key, TV value, CancellationToken cancellationToken)
         {
             using (await this.keyLockProvider.GetLock(key).LockAsync(cancellationToken))
@@ -48,6 +63,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         {
             return this.dbStore.Remove(key.ToBytes(), cancellationToken);
         }
+
+        public Task<bool> Remove(TK key, Func<TV, bool> predicate) =>
+            this.Remove(key, predicate, CancellationToken.None);
 
         public async Task<bool> Remove(TK key, Func<TV, bool> predicate, CancellationToken cancellationToken)
         {
@@ -65,6 +83,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             }
         }
 
+        public Task<TV> Update(TK key, Func<TV, TV> updator) =>
+            this.Update(key, updator, CancellationToken.None);
+
         public async Task<TV> Update(TK key, Func<TV, TV> updator, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(updator, nameof(updator));
@@ -79,6 +100,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 return updatedValue;
             }
         }
+
+        public Task<TV> PutOrUpdate(TK key, TV putValue, Func<TV, TV> valueUpdator) =>
+            this.PutOrUpdate(key, putValue, valueUpdator, CancellationToken.None);
 
         public async Task<TV> PutOrUpdate(TK key, TV value, Func<TV, TV> updator, CancellationToken cancellationToken)
         {
@@ -104,6 +128,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             }
         }
 
+        public Task<TV> FindOrPut(TK key, TV putValue) =>
+            this.FindOrPut(key, putValue, CancellationToken.None);
+
         public async Task<TV> FindOrPut(TK key, TV value, CancellationToken cancellationToken)
         {
             using (await this.keyLockProvider.GetLock(key).LockAsync(cancellationToken))
@@ -114,6 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 {
                     await this.dbStore.Put(keyBytes, value.ToBytes(), cancellationToken);
                 }
+
                 return existingValueBytes.Map(e => e.FromBytes<TV>()).GetOrElse(value);
             }
         }
@@ -154,7 +182,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         }
 
         public Task<bool> Contains(TK key, CancellationToken cancellationToken)
-            => this.dbStore.Contains(key.ToBytes(), cancellationToken);        
+            => this.dbStore.Contains(key.ToBytes(), cancellationToken);
 
         protected virtual void Dispose(bool disposing)
         {

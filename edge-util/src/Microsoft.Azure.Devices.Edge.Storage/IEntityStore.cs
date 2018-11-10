@@ -13,11 +13,19 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     {
         string EntityName { get; }
 
+        Task<bool> Remove(TK key, Func<TV, bool> predicate);
+
         Task<bool> Remove(TK key, Func<TV, bool> predicate, CancellationToken cancellationToken);
+
+        Task<TV> Update(TK key, Func<TV, TV> updator);
 
         Task<TV> Update(TK key, Func<TV, TV> updator, CancellationToken cancellationToken);
 
+        Task<TV> PutOrUpdate(TK key, TV putValue, Func<TV, TV> valueUpdator);
+
         Task<TV> PutOrUpdate(TK key, TV putValue, Func<TV, TV> valueUpdator, CancellationToken cancellationToken);
+
+        Task<TV> FindOrPut(TK key, TV putValue);
 
         Task<TV> FindOrPut(TK key, TV putValue, CancellationToken cancellationToken);
     }

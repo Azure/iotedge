@@ -11,6 +11,22 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     /// </summary>
     public interface IKeyValueStore<TK, TV> : IDisposable
     {
+        Task Put(TK key, TV value);
+
+        Task<Option<TV>> Get(TK key);
+
+        Task Remove(TK key);
+
+        Task<bool> Contains(TK key);
+
+        Task<Option<(TK key, TV value)>> GetFirstEntry();
+
+        Task<Option<(TK key, TV value)>> GetLastEntry();
+
+        Task IterateBatch(int batchSize, Func<TK, TV, Task> perEntityCallback);
+
+        Task IterateBatch(TK startKey, int batchSize, Func<TK, TV, Task> perEntityCallback);
+
         Task Put(TK key, TV value, CancellationToken cancellationToken);
 
         Task<Option<TV>> Get(TK key, CancellationToken cancellationToken);
@@ -25,6 +41,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         Task IterateBatch(int batchSize, Func<TK, TV, Task> perEntityCallback, CancellationToken cancellationToken);
 
-        Task IterateBatch(TK startKey, int batchSize, Func<TK, TV, Task> perEntityCallback, CancellationToken cancellationToken);        
+        Task IterateBatch(TK startKey, int batchSize, Func<TK, TV, Task> perEntityCallback, CancellationToken cancellationToken);
     }
 }

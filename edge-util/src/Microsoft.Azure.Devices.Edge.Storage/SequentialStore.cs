@@ -34,6 +34,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         public string EntityName => this.entityStore.EntityName;
 
+        public Task<long> Append(T item) => this.Append(item, CancellationToken.None);
+
+        public Task<bool> RemoveFirst(Func<long, T, Task<bool>> predicate) => this.RemoveFirst(predicate, CancellationToken.None);
+
+        public Task<IEnumerable<(long, T)>> GetBatch(long startingOffset, int batchSize) => this.GetBatch(startingOffset, batchSize, CancellationToken.None);
+
         public static async Task<ISequentialStore<T>> Create(IEntityStore<byte[], T> entityStore)
         {
             Preconditions.CheckNotNull(entityStore, nameof(entityStore));
@@ -80,6 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                                 this.headOffset++;
                                 return true;
                             }
+
                             return false;
                         },
                         () => Task.FromResult(false));
