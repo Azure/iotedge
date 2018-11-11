@@ -143,7 +143,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
         }
 
-        public static async Task<T> ExecuteUntilCancelled<T>(Task<T> task, CancellationToken cancellationToken, int checkFrequencySecs = 1)
+        public static async Task<T> ExecuteUntilCancelled<T>(this Task<T> task, CancellationToken cancellationToken, int checkFrequencySecs = 1)
         {            
             Preconditions.CheckArgument(checkFrequencySecs > 0, $"{nameof(checkFrequencySecs)} should be > 0");
             TimeSpan checkFrequency = TimeSpan.FromSeconds(checkFrequencySecs);
@@ -159,11 +159,11 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return await task;
         }
 
-        public static async Task ExecuteUntilCancelled(Task task, CancellationToken cancellationToken, int checkFrequencySecs = 1)
+        public static async Task ExecuteUntilCancelled(this Task task, CancellationToken cancellationToken, int checkFrequencySecs = 1)
         {
             Preconditions.CheckArgument(checkFrequencySecs > 0, $"{nameof(checkFrequencySecs)} should be > 0");
             TimeSpan checkFrequency = TimeSpan.FromSeconds(checkFrequencySecs);
-            while (!task.IsCompleted)
+            while (!Preconditions.CheckNotNull(task, nameof(task)).IsCompleted)
             {
                 if (cancellationToken.IsCancellationRequested)
                 {
@@ -175,36 +175,18 @@ namespace Microsoft.Azure.Devices.Edge.Util
             await task;
         }
 
-        public static async Task<T> ExecuteUntilCancelled<T>(this Func<T> operation, CancellationToken cancellationToken, int checkFrequencySecs = 1)
+        public static Task<T> ExecuteUntilCancelled<T>(this Func<T> operation, CancellationToken cancellationToken, int checkFrequencySecs = 1)
         {
-            Preconditions.CheckArgument(checkFrequencySecs > 0, $"{nameof(checkFrequencySecs)} should be > 0");
-            TimeSpan checkFrequency = TimeSpan.FromSeconds(checkFrequencySecs);
+            Preconditions.CheckNotNull(operation, nameof(operation));
             Task<T> task = Task.Run(operation, cancellationToken);
-            while (!task.IsCompleted)
-            {
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    throw new TaskCanceledException(task);
-                }
-                await Task.Delay(checkFrequency, cancellationToken);
-            }
-            return await task;
+            return task.ExecuteUntilCancelled(cancellationToken, checkFrequencySecs);
         }
 
-        public static async Task ExecuteUntilCancelled(this Action operation, CancellationToken cancellationToken, int checkFrequencySecs = 1)
+        public static Task ExecuteUntilCancelled(this Action operation, CancellationToken cancellationToken, int checkFrequencySecs = 1)
         {
-            Preconditions.CheckArgument(checkFrequencySecs > 0, $"{nameof(checkFrequencySecs)} should be > 0");
-            TimeSpan checkFrequency = TimeSpan.FromSeconds(checkFrequencySecs);
+            Preconditions.CheckNotNull(operation, nameof(operation));
             Task task = Task.Run(operation, cancellationToken);
-            while (!task.IsCompleted)
-            {
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    throw new TaskCanceledException(task);
-                }
-                await Task.Delay(checkFrequency, cancellationToken);
-            }
-            await task;
+            return task.ExecuteUntilCancelled(cancellationToken, checkFrequencySecs);
         }
 
         public static Task ExecuteWithTimeout(this Func<CancellationToken, Task> operation, CancellationToken cancellationToken, TimeSpan timeout)
