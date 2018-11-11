@@ -143,6 +143,40 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
         }
 
+        public static Task TimeoutAfter(this Func<CancellationToken, Task> operation, CancellationToken cancellationToken, TimeSpan timeout)
+        {
+            using (var cts = new CancellationTokenSource())
+            {
+                try
+                {
+                    return operation(CancellationTokenSource.CreateLinkedTokenSource(cts.Token, cancellationToken).Token)
+                        .TimeoutAfter(timeout);
+                }
+                catch (TimeoutException)
+                {
+                    cts.Cancel();
+                    throw;
+                }
+            }
+        }
+
+        public static Task<T> TimeoutAfter<T>(this Func<CancellationToken, Task<T>> operation, CancellationToken cancellationToken, TimeSpan timeout)
+        {
+            using (var cts = new CancellationTokenSource())
+            {
+                try
+                {
+                    return operation(CancellationTokenSource.CreateLinkedTokenSource(cts.Token, cancellationToken).Token)
+                        .TimeoutAfter(timeout);
+                }
+                catch (TimeoutException)
+                {
+                    cts.Cancel();
+                    throw;
+                }
+            }
+        }
+
         public static async Task<T> ExecuteUntilCancelled<T>(this Task<T> task, CancellationToken cancellationToken, int checkFrequencySecs = 1)
         {            
             Preconditions.CheckArgument(checkFrequencySecs > 0, $"{nameof(checkFrequencySecs)} should be > 0");
@@ -188,41 +222,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             Task task = Task.Run(operation, cancellationToken);
             return task.ExecuteUntilCancelled(cancellationToken, checkFrequencySecs);
         }
-
-        public static Task ExecuteWithTimeout(this Func<CancellationToken, Task> operation, CancellationToken cancellationToken, TimeSpan timeout)
-        {
-            using (var cts = new CancellationTokenSource())
-            {
-                try
-                {
-                    return operation(CancellationTokenSource.CreateLinkedTokenSource(cts.Token, cancellationToken).Token)
-                        .TimeoutAfter(timeout);
-                }
-                catch (TimeoutException)
-                {
-                    cts.Cancel();
-                    throw;
-                }
-            }
-        }
-
-        public static Task<T> ExecuteWithTimeout<T>(this Func<CancellationToken, Task<T>> operation, CancellationToken cancellationToken, TimeSpan timeout)
-        {
-            using (var cts = new CancellationTokenSource())
-            {
-                try
-                {
-                    return operation(CancellationTokenSource.CreateLinkedTokenSource(cts.Token, cancellationToken).Token)
-                        .TimeoutAfter(timeout);
-                }
-                catch (TimeoutException)
-                {
-                    cts.Cancel();
-                    throw;
-                }
-            }
-        }
-
+        
         public static IAsyncResult ToAsyncResult(this Task task, AsyncCallback callback, object state)
         {
             if (task.AsyncState == state)
