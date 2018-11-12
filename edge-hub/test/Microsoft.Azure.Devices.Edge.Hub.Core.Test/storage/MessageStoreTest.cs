@@ -209,7 +209,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
             // Arrange
             var dbStoreProvider = new InMemoryDbStoreProvider();
             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
-            ICheckpointStore checkpointStore = CheckpointStore.Create(dbStoreProvider);
+            ICheckpointStore checkpointStore = CheckpointStore.Create(storeProvider);
             IMessageStore messageStore = new MessageStore(storeProvider, checkpointStore, TimeSpan.FromHours(1));
 
             // Act
@@ -278,7 +278,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
         {
             var dbStoreProvider = new InMemoryDbStoreProvider();
             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
-            ICheckpointStore checkpointStore = CheckpointStore.Create(dbStoreProvider);
+            ICheckpointStore checkpointStore = CheckpointStore.Create(storeProvider);
             IMessageStore messageStore = new MessageStore(storeProvider, checkpointStore, TimeSpan.FromSeconds(ttlSecs));
             await messageStore.AddEndpoint("module1");
             await messageStore.AddEndpoint("module2");
