@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
     [Unit]
     public class ColumnFamilyStoreTest : IClassFixture<TestRocksDbStoreProvider>
     {
-        private readonly TestRocksDbStoreProvider rocksDbStoreProvider;
+        readonly TestRocksDbStoreProvider rocksDbStoreProvider;
 
         public ColumnFamilyStoreTest(TestRocksDbStoreProvider rocksDbStoreProvider)
         {
