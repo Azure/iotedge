@@ -12,6 +12,8 @@ namespace IotEdgeQuickstart.Details
 
     class IotedgedWindows : IBootstrapper
     {
+        const string ConfigYamlFile = @"C:\ProgramData\iotedge\config.yaml";
+
         readonly string archivePath;
         readonly Option<RegistryCredentials> credentials;
         readonly Option<string> proxy;
@@ -114,7 +116,7 @@ namespace IotEdgeQuickstart.Details
                 }
 
                 string args = $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Install-SecurityDaemon -Manual " +
-                    $"-ContainerOs Windows -DeviceConnectionString '{connectionString}' -AgentImage '{image}' -RuntimeLogLevel {runtimeLogLevel.ToString().ToLower()}";
+                    $"-ContainerOs Windows -DeviceConnectionString '{connectionString}' -AgentImage '{image}'";
 
                 foreach (RegistryCredentials c in this.credentials)
                 {
@@ -135,14 +137,34 @@ namespace IotEdgeQuickstart.Details
                 string[] result = await Process.RunAsync("powershell", args, cts.Token);
                 WriteToConsole("Output from Configure iotedge windows service", result);
 
+                UpdateConfigYamlFile(runtimeLogLevel);
+
                 // Explicitly set IOTEDGE_HOST environment variable to current process
                 SetEnvironmentVariable();
             }
         }
 
+        static void UpdateConfigYamlFile(LogLevel runtimeLogLevel)
+        {
+            string config = File.ReadAllText(ConfigYamlFile);
+            var doc = new YamlDocument(config);
+            doc.ReplaceOrAdd("agent.env.RuntimeLogLevel", runtimeLogLevel.ToString());
+
+            FileAttributes attr = 0;
+            attr = File.GetAttributes(ConfigYamlFile);
+            File.SetAttributes(ConfigYamlFile, attr & ~FileAttributes.ReadOnly);
+            
+            File.WriteAllText(ConfigYamlFile, doc.ToString());
+
+            if (attr != 0)
+            {
+                File.SetAttributes(ConfigYamlFile, attr);
+            }
+        }
+
         static void SetEnvironmentVariable()
         {
-            string config = File.ReadAllText(@"C:\ProgramData\iotedge\config.yaml");
+            string config = File.ReadAllText(ConfigYamlFile);
             var managementUriRegex = new Regex(@"connect:\s*management_uri:\s*""(.*)""");
             Match result = managementUriRegex.Match(config);
 
@@ -182,7 +204,10 @@ namespace IotEdgeQuickstart.Details
                 throw new Exception($"Error starting iotedged: {e}");
             }
 
+            // Add delay to ensure iotedge service is completely started up.
+            Task.Delay(new TimeSpan(0, 0, 0, 5));
             Console.WriteLine("iotedge service started on Windows");
+            
             return Task.CompletedTask;
         }
 

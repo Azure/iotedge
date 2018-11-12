@@ -43,9 +43,7 @@ function Install-SecurityDaemon {
         [String] $Username,
 
         # Password to pull IoT Edge Agent image
-        [SecureString] $Password,
-
-        [String] $RuntimeLogLevel
+        [SecureString] $Password
     )
 
     $ErrorActionPreference = "Stop"
@@ -91,7 +89,6 @@ function Install-SecurityDaemon {
     Set-Hostname
     Set-GatewayAddress
     Set-MobyNetwork
-    Set-AgentEnvironmentVariables
     Install-IotEdgeService
 
     Write-Host ("`nThis device is now provisioned with the IoT Edge runtime.`n" +
@@ -503,24 +500,6 @@ function Set-ProvisioningMode {
             -Force | Out-Null
 
         Write-Host "Configured device for DPS provisioning." -ForegroundColor "Green"
-    }
-}
-
-function Set-AgentEnvironmentVariables {
-    $envValue = ""
-
-    if ($RuntimeLogLevel) {
-        $envValue = "    RuntimeLogLevel: $RuntimeLogLevel"
-    }
-
-    if ($envValue)
-    {
-        $YamlPath = "C:\ProgramData\iotedge\config.yaml"
-        $ConfigurationYaml = Get-Content $YamlPath -Raw
-        $SelectionRegex = "env: {}"
-        $ReplacementContent = "env: `n$envValue"
-        ($ConfigurationYaml -replace $SelectionRegex, ($ReplacementContent -join "`n")) | Set-Content $YamlPath -Force
-        Write-Host "Configured device with agent environment `"$envValue`"." -ForegroundColor "Green"
     }
 }
 
