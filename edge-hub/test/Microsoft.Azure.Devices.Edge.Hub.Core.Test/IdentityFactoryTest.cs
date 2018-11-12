@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // device test
             string deviceId = "device1";
             string deviceClientType = "customDeviceClient1";
-            IClientCredentials identityTry1 = identityFactory.GetWithSasToken(deviceId, null, deviceClientType, sasToken);
+            IClientCredentials identityTry1 = identityFactory.GetWithSasToken(deviceId, null, deviceClientType, sasToken, false);
             Assert.IsType<DeviceIdentity>(identityTry1.Identity);
             Assert.IsType<TokenCredentials>(identityTry1);
             Assert.Equal(sasToken, (identityTry1 as ITokenCredentials)?.Token);
@@ -81,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             deviceId = "device1";
             string moduleId = "module1";
             deviceClientType = "customDeviceClient2";
-            IClientCredentials identityTry2 = identityFactory.GetWithSasToken(deviceId, moduleId, deviceClientType, sasToken);
+            IClientCredentials identityTry2 = identityFactory.GetWithSasToken(deviceId, moduleId, deviceClientType, sasToken, false);
             Assert.IsType<ModuleIdentity>(identityTry2.Identity);
             Assert.IsType<TokenCredentials>(identityTry2);
             Assert.Equal(sasToken, (identityTry2 as ITokenCredentials)?.Token);
