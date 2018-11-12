@@ -29,12 +29,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             this.compactionTimer = new Timer(this.RunCompaction, null, CompactionPeriod, CompactionPeriod);
         }
 
-         void RunCompaction(object state)
-         {
+        void RunCompaction(object state)
+        {
             Events.StartingCompaction();
             foreach (KeyValuePair<string, IDbStore> entityDbStore in this.entityDbStoreDictionary)
             {
-                if(entityDbStore.Value is ColumnFamilyDbStore cfDbStore)
+                if (entityDbStore.Value is ColumnFamilyDbStore cfDbStore)
                 {
                     Events.CompactingStore(entityDbStore.Key);
                     this.db.Compact(cfDbStore.Handle);
@@ -53,6 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
                 var dbStorePartition = new ColumnFamilyDbStore(db, handle);
                 entityDbStoreDictionary[columnFamilyName] = dbStorePartition;
             }
+
             var dbStore = new DbStoreProvider(optionsProvider, db, entityDbStoreDictionary);
             return dbStore;
         }
@@ -61,11 +62,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         {
             Preconditions.CheckNonWhiteSpace(partitionName, nameof(partitionName));
             if (!this.entityDbStoreDictionary.TryGetValue(partitionName, out IDbStore entityDbStore))
-            {                
+            {
                 ColumnFamilyHandle handle = this.db.CreateColumnFamily(this.optionsProvider.GetColumnFamilyOptions(), partitionName);
                 entityDbStore = new ColumnFamilyDbStore(this.db, handle);
                 entityDbStore = this.entityDbStoreDictionary.GetOrAdd(partitionName, entityDbStore);
             }
+
             return entityDbStore;
         }
 
@@ -102,6 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         static class Events
         {
             static readonly ILogger Log = Logger.Factory.CreateLogger<DbStoreProvider>();
+
             // Use an ID not used by other components
             const int IdStart = 4000;
 

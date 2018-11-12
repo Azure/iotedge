@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
     class ColumnFamilyDbStore : IDbStore
     {
         readonly IRocksDb db;
-        
+
         public ColumnFamilyDbStore(IRocksDb db, ColumnFamilyHandle handle)
         {
             this.db = Preconditions.CheckNotNull(db, nameof(db));
@@ -50,6 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
                 byte[] value = await operation.ExecuteUntilCancelled(cancellationToken);
                 returnValue = value != null ? Option.Some(value) : Option.None<byte[]>();
             }
+
             return returnValue;
         }
 
@@ -70,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             Preconditions.CheckNotNull(key, nameof(key));
             Action operation = () => this.db.Remove(key, this.Handle);
             return operation.ExecuteUntilCancelled(cancellationToken);
-        }        
+        }
 
         public async Task<Option<(byte[] key, byte[] value)>> GetLastEntry(CancellationToken cancellationToken)
         {
@@ -149,10 +150,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
                     byte[] key = iterator.Key();
                     byte[] value = iterator.Value();
                     await callback(key, value);
-                } 
+                }
             }
         }
-        
+
         static class Metrics
         {
             static readonly TimerOptions DbPutLatencyOptions = new TimerOptions
