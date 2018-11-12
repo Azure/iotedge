@@ -22,7 +22,10 @@ use hyper::client::HttpConnector;
 use hyper::Uri;
 #[cfg(windows)]
 use hyper_named_pipe::{PipeConnector, Uri as PipeUri};
+#[cfg(unix)]
 use hyperlocal::{UnixConnector, Uri as HyperlocalUri};
+#[cfg(windows)]
+use hyperlocal_windows::{UnixConnector, Uri as HyperlocalUri};
 use url::{ParseError, Url};
 
 use error::{Error, ErrorKind};

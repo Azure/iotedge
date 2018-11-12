@@ -14,7 +14,6 @@ http = "0.1"
 hyper = "0.12"
 hyper-proxy = "0.5"
 hyper-tls = "0.3"
-hyperlocal = { git = "https://github.com/damonbarry/hyperlocal", branch = "windows" }
 log = "0.4"
 percent-encoding = "1.0"
 regex = "0.2"
@@ -29,6 +28,7 @@ edgelet-utils = { path = "../edgelet-utils" }
 systemd = { path = "../systemd" }
 
 [target.'cfg(unix)'.dependencies]
+hyperlocal = "0.6"
 libc = "0.2"
 nix = "0.11"
 scopeguard = "0.3.3"
@@ -36,9 +36,10 @@ tokio-uds = "0.2"
 
 [target.'cfg(windows)'.dependencies]
 hyper-named-pipe = { path = "../hyper-named-pipe" }
-mio-uds-windows = { git = "https://github.com/damonbarry/mio-uds-windows.git" }
+hyperlocal-windows = { git = "https://github.com/Azure/hyperlocal-windows" }
+mio-uds-windows = { git = "https://github.com/Azure/mio-uds-windows.git" }
 tokio-named-pipe = { path = "../tokio-named-pipe" }
-tokio-uds-windows = { git = "https://github.com/damonbarry/tokio-uds-windows.git" }
+tokio-uds-windows = { git = "https://github.com/Azure/tokio-uds-windows.git" }
 winapi = { version = "0.3.5", features = ["winsock2"] }
 
 [dev-dependencies]

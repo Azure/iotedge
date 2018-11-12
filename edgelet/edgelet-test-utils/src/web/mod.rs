@@ -15,7 +15,10 @@ use futures::prelude::*;
 use hyper::server::conn::Http;
 use hyper::service::service_fn;
 use hyper::{self, Body, Request, Response};
+#[cfg(unix)]
 use hyperlocal::server::{Http as UdsHttp, Incoming as UdsIncoming};
+#[cfg(windows)]
+use hyperlocal_windows::server::{Http as UdsHttp, Incoming as UdsIncoming};
 #[cfg(windows)]
 use mio_uds_windows::net::UnixListener as StdUnixListener;
 

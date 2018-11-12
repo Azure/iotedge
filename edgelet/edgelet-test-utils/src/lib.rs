@@ -20,7 +20,10 @@ extern crate futures;
 #[cfg(windows)]
 extern crate httparse;
 extern crate hyper;
+#[cfg(linux)]
 extern crate hyperlocal;
+#[cfg(windows)]
+extern crate hyperlocal_windows;
 #[cfg(windows)]
 extern crate mio;
 #[cfg(windows)]

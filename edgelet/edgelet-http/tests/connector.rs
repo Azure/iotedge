@@ -16,7 +16,10 @@ extern crate httparse;
 extern crate hyper;
 #[cfg(windows)]
 extern crate hyper_named_pipe;
+#[cfg(linux)]
 extern crate hyperlocal;
+#[cfg(windows)]
+extern crate hyperlocal_windows;
 #[cfg(windows)]
 extern crate rand;
 extern crate tempdir;
@@ -44,7 +47,10 @@ use hyper::{
 };
 #[cfg(windows)]
 use hyper_named_pipe::Uri as PipeUri;
+#[cfg(unix)]
 use hyperlocal::Uri as HyperlocalUri;
+#[cfg(windows)]
+use hyperlocal_windows::Uri as HyperlocalUri;
 #[cfg(windows)]
 use rand::Rng;
 use tempdir::TempDir;
