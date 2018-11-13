@@ -20,7 +20,7 @@ pub struct PluginConfigRootfs {
 }
 
 impl PluginConfigRootfs {
-    pub fn new() -> PluginConfigRootfs {
+    pub fn new() -> Self {
         PluginConfigRootfs {
             _type: None,
             diff_ids: None,
@@ -31,13 +31,13 @@ impl PluginConfigRootfs {
         self._type = Some(_type);
     }
 
-    pub fn with__type(mut self, _type: String) -> PluginConfigRootfs {
+    pub fn with__type(mut self, _type: String) -> Self {
         self._type = Some(_type);
         self
     }
 
-    pub fn _type(&self) -> Option<&String> {
-        self._type.as_ref()
+    pub fn _type(&self) -> Option<&str> {
+        self._type.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset__type(&mut self) {
@@ -48,13 +48,13 @@ impl PluginConfigRootfs {
         self.diff_ids = Some(diff_ids);
     }
 
-    pub fn with_diff_ids(mut self, diff_ids: Vec<String>) -> PluginConfigRootfs {
+    pub fn with_diff_ids(mut self, diff_ids: Vec<String>) -> Self {
         self.diff_ids = Some(diff_ids);
         self
     }
 
-    pub fn diff_ids(&self) -> Option<&Vec<String>> {
-        self.diff_ids.as_ref()
+    pub fn diff_ids(&self) -> Option<&[String]> {
+        self.diff_ids.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_diff_ids(&mut self) {

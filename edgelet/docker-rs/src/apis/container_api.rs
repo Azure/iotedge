@@ -26,7 +26,7 @@ pub struct ContainerApiClient<C: hyper::client::connect::Connect> {
 }
 
 impl<C: hyper::client::connect::Connect> ContainerApiClient<C> {
-    pub fn new(configuration: Arc<configuration::Configuration<C>>) -> ContainerApiClient<C> {
+    pub fn new(configuration: Arc<configuration::Configuration<C>>) -> Self {
         ContainerApiClient {
             configuration: configuration,
         }

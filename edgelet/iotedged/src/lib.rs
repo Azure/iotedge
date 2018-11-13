@@ -6,6 +6,13 @@
 //
 // Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
 #![allow(renamed_and_removed_lints)]
+#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
+#![cfg_attr(feature = "cargo-clippy", allow(
+    doc_markdown, // clippy want the "IoT" of "IoT Hub" in a code fence
+    shadow_unrelated,
+    stutter,
+    use_self,
+))]
 
 extern crate base64;
 #[macro_use]
@@ -85,7 +92,7 @@ use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_hsm::Crypto;
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
 use edgelet_http::logging::LoggingService;
-use edgelet_http::{ApiVersionService, HyperExt, MaybeProxyClient, API_VERSION};
+use edgelet_http::{ApiVersionService, HyperExt, MaybeProxyClient, UrlExt, API_VERSION};
 use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
 use edgelet_iothub::{HubIdentityManager, SasTokenSource};
@@ -387,6 +394,8 @@ where
         reconfig_reqd = true;
     } else {
         info!("No change to configuration file detected.");
+
+        #[cfg_attr(feature = "cargo-clippy", allow(single_match_else))]
         match prepare_workload_ca(crypto) {
             Ok(()) => info!("Obtaining workload CA succeeded."),
             Err(_) => {
@@ -668,12 +677,26 @@ fn vol_mount_uri(config: &mut DockerConfig, uris: &[&Url]) -> Result<(), Error> 
         .host_config()
         .cloned()
         .unwrap_or_else(HostConfig::new);
-    let mut binds = host_config.binds().cloned().unwrap_or_else(Vec::new);
+    let mut binds = host_config.binds().map_or_else(Vec::new, ToOwned::to_owned);
 
     // if the url is a domain socket URL then vol mount it into the container
     for uri in uris {
         if uri.scheme() == UNIX_SCHEME {
-            binds.push(format!("{}:{}", uri.path(), uri.path()));
+            let path = uri.to_uds_file_path()?;
+            // On Windows we mount the parent folder because we can't mount the
+            // socket files directly
+            #[cfg(windows)]
+            let path = path
+                .parent()
+                .ok_or_else(|| ErrorKind::InvalidUri(uri.to_string()))?;
+            let path = path
+                .to_str()
+                .expect("URL points to a path that cannot be represented in UTF-8")
+                .to_string();
+            let bind = format!("{}:{}", &path, &path);
+            if !binds.contains(&bind) {
+                binds.push(bind);
+            }
         }
     }
 
@@ -812,14 +835,14 @@ mod tests {
     #[cfg(windows)]
     static SETTINGS1: &str = "test/windows/sample_settings1.yaml";
 
-    #[derive(Clone, Debug, Fail)]
+    #[derive(Clone, Copy, Debug, Fail)]
     pub enum Error {
         #[fail(display = "General error")]
         General,
     }
 
     impl From<Error> for super::Error {
-        fn from(_error: Error) -> super::Error {
+        fn from(_error: Error) -> Self {
             super::Error::from(ErrorKind::Var)
         }
     }
@@ -841,7 +864,7 @@ mod tests {
         fn create_certificate(
             &self,
             _properties: &CertificateProperties,
-        ) -> Result<TestCert, edgelet_core::Error> {
+        ) -> Result<Self::Certificate, edgelet_core::Error> {
             Ok(TestCert::default()
                 .with_cert(vec![1, 2, 3])
                 .with_private_key(PrivateKey::Key(KeyBytes::Pem("some key".to_string())))
@@ -971,9 +994,10 @@ mod tests {
 
         // restore value of HTTPS_PROXY if necessary
         #[cfg(unix)]
-        match other_val {
-            Some(val) => env::set_var("HTTPS_PROXY", val),
-            None => (),
+        {
+            if let Some(val) = other_val {
+                env::set_var("HTTPS_PROXY", val);
+            }
         }
     }
 }

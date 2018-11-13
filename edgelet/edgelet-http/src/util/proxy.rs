@@ -11,11 +11,11 @@ pub struct MaybeProxyClient {
 }
 
 impl MaybeProxyClient {
-    pub fn new(proxy_uri: Option<Uri>) -> Result<MaybeProxyClient, Error> {
+    pub fn new(proxy_uri: Option<Uri>) -> Result<Self, Error> {
         MaybeProxyClient::create(false, proxy_uri)
     }
 
-    fn create(null: bool, proxy_uri: Option<Uri>) -> Result<MaybeProxyClient, Error> {
+    fn create(null: bool, proxy_uri: Option<Uri>) -> Result<Self, Error> {
         let mut config = Client::configure();
         if null {
             config.null();
@@ -29,7 +29,7 @@ impl MaybeProxyClient {
     }
 
     #[cfg(test)]
-    pub fn new_null() -> Result<MaybeProxyClient, Error> {
+    pub fn new_null() -> Result<Self, Error> {
         MaybeProxyClient::create(true, None)
     }
 
@@ -76,7 +76,7 @@ mod tests {
     #[test]
     fn client_calls_underlying_service() {
         let client = MaybeProxyClient::new_null().unwrap();
-        let response = client.call(Request::default().into()).wait().unwrap();
+        let response = client.call(Request::default()).wait().unwrap();
         assert_eq!(
             response.status(),
             StatusCode::from_u16(234).expect("StatusCode::from_u16 should not fail")

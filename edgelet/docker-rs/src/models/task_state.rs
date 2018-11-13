@@ -15,7 +15,7 @@ use serde_json::Value;
 pub struct TaskState {}
 
 impl TaskState {
-    pub fn new() -> TaskState {
+    pub fn new() -> Self {
         TaskState {}
     }
 }

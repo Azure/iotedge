@@ -30,12 +30,12 @@ pub struct Crypto {
 }
 
 impl Crypto {
-    pub fn new() -> Result<Crypto, Error> {
+    pub fn new() -> Result<Self, Error> {
         let hsm = HsmCrypto::new()?;
         Crypto::from_hsm(hsm)
     }
 
-    pub fn from_hsm(crypto: HsmCrypto) -> Result<Crypto, Error> {
+    pub fn from_hsm(crypto: HsmCrypto) -> Result<Self, Error> {
         Ok(Crypto {
             crypto: Arc::new(Mutex::new(crypto)),
         })
@@ -140,6 +140,7 @@ impl CoreGetTrustBundle for Crypto {
     }
 }
 
+#[derive(Debug)]
 pub struct Certificate(HsmCertificate);
 
 impl CoreCertificate for Certificate {

@@ -114,7 +114,7 @@ pub struct NetworkSettings {
 
 impl NetworkSettings {
     /// NetworkSettings exposes the network settings in the API
-    pub fn new() -> NetworkSettings {
+    pub fn new() -> Self {
         NetworkSettings {
             bridge: None,
             sandbox_id: None,
@@ -141,13 +141,13 @@ impl NetworkSettings {
         self.bridge = Some(bridge);
     }
 
-    pub fn with_bridge(mut self, bridge: String) -> NetworkSettings {
+    pub fn with_bridge(mut self, bridge: String) -> Self {
         self.bridge = Some(bridge);
         self
     }
 
-    pub fn bridge(&self) -> Option<&String> {
-        self.bridge.as_ref()
+    pub fn bridge(&self) -> Option<&str> {
+        self.bridge.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_bridge(&mut self) {
@@ -158,13 +158,13 @@ impl NetworkSettings {
         self.sandbox_id = Some(sandbox_id);
     }
 
-    pub fn with_sandbox_id(mut self, sandbox_id: String) -> NetworkSettings {
+    pub fn with_sandbox_id(mut self, sandbox_id: String) -> Self {
         self.sandbox_id = Some(sandbox_id);
         self
     }
 
-    pub fn sandbox_id(&self) -> Option<&String> {
-        self.sandbox_id.as_ref()
+    pub fn sandbox_id(&self) -> Option<&str> {
+        self.sandbox_id.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_sandbox_id(&mut self) {
@@ -175,7 +175,7 @@ impl NetworkSettings {
         self.hairpin_mode = Some(hairpin_mode);
     }
 
-    pub fn with_hairpin_mode(mut self, hairpin_mode: bool) -> NetworkSettings {
+    pub fn with_hairpin_mode(mut self, hairpin_mode: bool) -> Self {
         self.hairpin_mode = Some(hairpin_mode);
         self
     }
@@ -192,16 +192,13 @@ impl NetworkSettings {
         self.link_local_i_pv6_address = Some(link_local_i_pv6_address);
     }
 
-    pub fn with_link_local_i_pv6_address(
-        mut self,
-        link_local_i_pv6_address: String,
-    ) -> NetworkSettings {
+    pub fn with_link_local_i_pv6_address(mut self, link_local_i_pv6_address: String) -> Self {
         self.link_local_i_pv6_address = Some(link_local_i_pv6_address);
         self
     }
 
-    pub fn link_local_i_pv6_address(&self) -> Option<&String> {
-        self.link_local_i_pv6_address.as_ref()
+    pub fn link_local_i_pv6_address(&self) -> Option<&str> {
+        self.link_local_i_pv6_address.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_link_local_i_pv6_address(&mut self) {
@@ -212,16 +209,13 @@ impl NetworkSettings {
         self.link_local_i_pv6_prefix_len = Some(link_local_i_pv6_prefix_len);
     }
 
-    pub fn with_link_local_i_pv6_prefix_len(
-        mut self,
-        link_local_i_pv6_prefix_len: i32,
-    ) -> NetworkSettings {
+    pub fn with_link_local_i_pv6_prefix_len(mut self, link_local_i_pv6_prefix_len: i32) -> Self {
         self.link_local_i_pv6_prefix_len = Some(link_local_i_pv6_prefix_len);
         self
     }
 
-    pub fn link_local_i_pv6_prefix_len(&self) -> Option<&i32> {
-        self.link_local_i_pv6_prefix_len.as_ref()
+    pub fn link_local_i_pv6_prefix_len(&self) -> Option<i32> {
+        self.link_local_i_pv6_prefix_len
     }
 
     pub fn reset_link_local_i_pv6_prefix_len(&mut self) {
@@ -232,7 +226,7 @@ impl NetworkSettings {
         self.ports = Some(ports);
     }
 
-    pub fn with_ports(mut self, ports: ::models::PortMap) -> NetworkSettings {
+    pub fn with_ports(mut self, ports: ::models::PortMap) -> Self {
         self.ports = Some(ports);
         self
     }
@@ -249,13 +243,13 @@ impl NetworkSettings {
         self.sandbox_key = Some(sandbox_key);
     }
 
-    pub fn with_sandbox_key(mut self, sandbox_key: String) -> NetworkSettings {
+    pub fn with_sandbox_key(mut self, sandbox_key: String) -> Self {
         self.sandbox_key = Some(sandbox_key);
         self
     }
 
-    pub fn sandbox_key(&self) -> Option<&String> {
-        self.sandbox_key.as_ref()
+    pub fn sandbox_key(&self) -> Option<&str> {
+        self.sandbox_key.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_sandbox_key(&mut self) {
@@ -269,13 +263,13 @@ impl NetworkSettings {
     pub fn with_secondary_ip_addresses(
         mut self,
         secondary_ip_addresses: Vec<::models::Address>,
-    ) -> NetworkSettings {
+    ) -> Self {
         self.secondary_ip_addresses = Some(secondary_ip_addresses);
         self
     }
 
-    pub fn secondary_ip_addresses(&self) -> Option<&Vec<::models::Address>> {
-        self.secondary_ip_addresses.as_ref()
+    pub fn secondary_ip_addresses(&self) -> Option<&[::models::Address]> {
+        self.secondary_ip_addresses.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_secondary_ip_addresses(&mut self) {
@@ -292,13 +286,13 @@ impl NetworkSettings {
     pub fn with_secondary_i_pv6_addresses(
         mut self,
         secondary_i_pv6_addresses: Vec<::models::Address>,
-    ) -> NetworkSettings {
+    ) -> Self {
         self.secondary_i_pv6_addresses = Some(secondary_i_pv6_addresses);
         self
     }
 
-    pub fn secondary_i_pv6_addresses(&self) -> Option<&Vec<::models::Address>> {
-        self.secondary_i_pv6_addresses.as_ref()
+    pub fn secondary_i_pv6_addresses(&self) -> Option<&[::models::Address]> {
+        self.secondary_i_pv6_addresses.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_secondary_i_pv6_addresses(&mut self) {
@@ -309,13 +303,13 @@ impl NetworkSettings {
         self.endpoint_id = Some(endpoint_id);
     }
 
-    pub fn with_endpoint_id(mut self, endpoint_id: String) -> NetworkSettings {
+    pub fn with_endpoint_id(mut self, endpoint_id: String) -> Self {
         self.endpoint_id = Some(endpoint_id);
         self
     }
 
-    pub fn endpoint_id(&self) -> Option<&String> {
-        self.endpoint_id.as_ref()
+    pub fn endpoint_id(&self) -> Option<&str> {
+        self.endpoint_id.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_endpoint_id(&mut self) {
@@ -326,13 +320,13 @@ impl NetworkSettings {
         self.gateway = Some(gateway);
     }
 
-    pub fn with_gateway(mut self, gateway: String) -> NetworkSettings {
+    pub fn with_gateway(mut self, gateway: String) -> Self {
         self.gateway = Some(gateway);
         self
     }
 
-    pub fn gateway(&self) -> Option<&String> {
-        self.gateway.as_ref()
+    pub fn gateway(&self) -> Option<&str> {
+        self.gateway.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_gateway(&mut self) {
@@ -343,13 +337,13 @@ impl NetworkSettings {
         self.global_i_pv6_address = Some(global_i_pv6_address);
     }
 
-    pub fn with_global_i_pv6_address(mut self, global_i_pv6_address: String) -> NetworkSettings {
+    pub fn with_global_i_pv6_address(mut self, global_i_pv6_address: String) -> Self {
         self.global_i_pv6_address = Some(global_i_pv6_address);
         self
     }
 
-    pub fn global_i_pv6_address(&self) -> Option<&String> {
-        self.global_i_pv6_address.as_ref()
+    pub fn global_i_pv6_address(&self) -> Option<&str> {
+        self.global_i_pv6_address.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_global_i_pv6_address(&mut self) {
@@ -360,13 +354,13 @@ impl NetworkSettings {
         self.global_i_pv6_prefix_len = Some(global_i_pv6_prefix_len);
     }
 
-    pub fn with_global_i_pv6_prefix_len(mut self, global_i_pv6_prefix_len: i32) -> NetworkSettings {
+    pub fn with_global_i_pv6_prefix_len(mut self, global_i_pv6_prefix_len: i32) -> Self {
         self.global_i_pv6_prefix_len = Some(global_i_pv6_prefix_len);
         self
     }
 
-    pub fn global_i_pv6_prefix_len(&self) -> Option<&i32> {
-        self.global_i_pv6_prefix_len.as_ref()
+    pub fn global_i_pv6_prefix_len(&self) -> Option<i32> {
+        self.global_i_pv6_prefix_len
     }
 
     pub fn reset_global_i_pv6_prefix_len(&mut self) {
@@ -377,13 +371,13 @@ impl NetworkSettings {
         self.ip_address = Some(ip_address);
     }
 
-    pub fn with_ip_address(mut self, ip_address: String) -> NetworkSettings {
+    pub fn with_ip_address(mut self, ip_address: String) -> Self {
         self.ip_address = Some(ip_address);
         self
     }
 
-    pub fn ip_address(&self) -> Option<&String> {
-        self.ip_address.as_ref()
+    pub fn ip_address(&self) -> Option<&str> {
+        self.ip_address.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_ip_address(&mut self) {
@@ -394,13 +388,13 @@ impl NetworkSettings {
         self.ip_prefix_len = Some(ip_prefix_len);
     }
 
-    pub fn with_ip_prefix_len(mut self, ip_prefix_len: i32) -> NetworkSettings {
+    pub fn with_ip_prefix_len(mut self, ip_prefix_len: i32) -> Self {
         self.ip_prefix_len = Some(ip_prefix_len);
         self
     }
 
-    pub fn ip_prefix_len(&self) -> Option<&i32> {
-        self.ip_prefix_len.as_ref()
+    pub fn ip_prefix_len(&self) -> Option<i32> {
+        self.ip_prefix_len
     }
 
     pub fn reset_ip_prefix_len(&mut self) {
@@ -411,13 +405,13 @@ impl NetworkSettings {
         self.i_pv6_gateway = Some(i_pv6_gateway);
     }
 
-    pub fn with_i_pv6_gateway(mut self, i_pv6_gateway: String) -> NetworkSettings {
+    pub fn with_i_pv6_gateway(mut self, i_pv6_gateway: String) -> Self {
         self.i_pv6_gateway = Some(i_pv6_gateway);
         self
     }
 
-    pub fn i_pv6_gateway(&self) -> Option<&String> {
-        self.i_pv6_gateway.as_ref()
+    pub fn i_pv6_gateway(&self) -> Option<&str> {
+        self.i_pv6_gateway.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_i_pv6_gateway(&mut self) {
@@ -428,13 +422,13 @@ impl NetworkSettings {
         self.mac_address = Some(mac_address);
     }
 
-    pub fn with_mac_address(mut self, mac_address: String) -> NetworkSettings {
+    pub fn with_mac_address(mut self, mac_address: String) -> Self {
         self.mac_address = Some(mac_address);
         self
     }
 
-    pub fn mac_address(&self) -> Option<&String> {
-        self.mac_address.as_ref()
+    pub fn mac_address(&self) -> Option<&str> {
+        self.mac_address.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_mac_address(&mut self) {
@@ -451,7 +445,7 @@ impl NetworkSettings {
     pub fn with_networks(
         mut self,
         networks: ::std::collections::HashMap<String, ::models::EndpointSettings>,
-    ) -> NetworkSettings {
+    ) -> Self {
         self.networks = Some(networks);
         self
     }

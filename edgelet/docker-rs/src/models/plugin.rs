@@ -41,7 +41,7 @@ impl Plugin {
         enabled: bool,
         settings: ::models::PluginSettings,
         config: ::models::PluginConfig,
-    ) -> Plugin {
+    ) -> Self {
         Plugin {
             id: None,
             name: name,
@@ -56,13 +56,13 @@ impl Plugin {
         self.id = Some(id);
     }
 
-    pub fn with_id(mut self, id: String) -> Plugin {
+    pub fn with_id(mut self, id: String) -> Self {
         self.id = Some(id);
         self
     }
 
-    pub fn id(&self) -> Option<&String> {
-        self.id.as_ref()
+    pub fn id(&self) -> Option<&str> {
+        self.id.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_id(&mut self) {
@@ -73,7 +73,7 @@ impl Plugin {
         self.name = name;
     }
 
-    pub fn with_name(mut self, name: String) -> Plugin {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = name;
         self
     }
@@ -86,7 +86,7 @@ impl Plugin {
         self.enabled = enabled;
     }
 
-    pub fn with_enabled(mut self, enabled: bool) -> Plugin {
+    pub fn with_enabled(mut self, enabled: bool) -> Self {
         self.enabled = enabled;
         self
     }
@@ -99,7 +99,7 @@ impl Plugin {
         self.settings = settings;
     }
 
-    pub fn with_settings(mut self, settings: ::models::PluginSettings) -> Plugin {
+    pub fn with_settings(mut self, settings: ::models::PluginSettings) -> Self {
         self.settings = settings;
         self
     }
@@ -112,13 +112,13 @@ impl Plugin {
         self.plugin_reference = Some(plugin_reference);
     }
 
-    pub fn with_plugin_reference(mut self, plugin_reference: String) -> Plugin {
+    pub fn with_plugin_reference(mut self, plugin_reference: String) -> Self {
         self.plugin_reference = Some(plugin_reference);
         self
     }
 
-    pub fn plugin_reference(&self) -> Option<&String> {
-        self.plugin_reference.as_ref()
+    pub fn plugin_reference(&self) -> Option<&str> {
+        self.plugin_reference.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_plugin_reference(&mut self) {
@@ -129,7 +129,7 @@ impl Plugin {
         self.config = config;
     }
 
-    pub fn with_config(mut self, config: ::models::PluginConfig) -> Plugin {
+    pub fn with_config(mut self, config: ::models::PluginConfig) -> Self {
         self.config = config;
         self
     }

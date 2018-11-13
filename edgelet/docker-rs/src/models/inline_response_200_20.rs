@@ -24,7 +24,7 @@ impl InlineResponse20020 {
     pub fn new(
         descriptor: ::models::InlineResponse20020Descriptor,
         platforms: Vec<::models::InlineResponse20020Platforms>,
-    ) -> InlineResponse20020 {
+    ) -> Self {
         InlineResponse20020 {
             descriptor: descriptor,
             platforms: platforms,
@@ -35,10 +35,7 @@ impl InlineResponse20020 {
         self.descriptor = descriptor;
     }
 
-    pub fn with_descriptor(
-        mut self,
-        descriptor: ::models::InlineResponse20020Descriptor,
-    ) -> InlineResponse20020 {
+    pub fn with_descriptor(mut self, descriptor: ::models::InlineResponse20020Descriptor) -> Self {
         self.descriptor = descriptor;
         self
     }
@@ -54,12 +51,12 @@ impl InlineResponse20020 {
     pub fn with_platforms(
         mut self,
         platforms: Vec<::models::InlineResponse20020Platforms>,
-    ) -> InlineResponse20020 {
+    ) -> Self {
         self.platforms = platforms;
         self
     }
 
-    pub fn platforms(&self) -> &Vec<::models::InlineResponse20020Platforms> {
+    pub fn platforms(&self) -> &[::models::InlineResponse20020Platforms] {
         &self.platforms
     }
 }

@@ -28,7 +28,7 @@ pub struct Runtime {
 
 impl Runtime {
     /// Runtime describes an [OCI compliant](https://github.com/opencontainers/runtime-spec) runtime.  The runtime is invoked by the daemon via the `containerd` daemon. OCI runtimes act as an interface to the Linux kernel namespaces, cgroups, and SELinux.
-    pub fn new() -> Runtime {
+    pub fn new() -> Self {
         Runtime {
             path: None,
             runtime_args: None,
@@ -39,13 +39,13 @@ impl Runtime {
         self.path = Some(path);
     }
 
-    pub fn with_path(mut self, path: String) -> Runtime {
+    pub fn with_path(mut self, path: String) -> Self {
         self.path = Some(path);
         self
     }
 
-    pub fn path(&self) -> Option<&String> {
-        self.path.as_ref()
+    pub fn path(&self) -> Option<&str> {
+        self.path.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_path(&mut self) {
@@ -56,13 +56,13 @@ impl Runtime {
         self.runtime_args = Some(runtime_args);
     }
 
-    pub fn with_runtime_args(mut self, runtime_args: Vec<String>) -> Runtime {
+    pub fn with_runtime_args(mut self, runtime_args: Vec<String>) -> Self {
         self.runtime_args = Some(runtime_args);
         self
     }
 
-    pub fn runtime_args(&self) -> Option<&Vec<String>> {
-        self.runtime_args.as_ref()
+    pub fn runtime_args(&self) -> Option<&[String]> {
+        self.runtime_args.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_runtime_args(&mut self) {

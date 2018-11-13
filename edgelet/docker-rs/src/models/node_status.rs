@@ -26,7 +26,7 @@ pub struct NodeStatus {
 
 impl NodeStatus {
     /// NodeStatus represents the status of a node.  It provides the current status of the node, as seen by the manager.
-    pub fn new() -> NodeStatus {
+    pub fn new() -> Self {
         NodeStatus {
             state: None,
             message: None,
@@ -38,7 +38,7 @@ impl NodeStatus {
         self.state = Some(state);
     }
 
-    pub fn with_state(mut self, state: ::models::NodeState) -> NodeStatus {
+    pub fn with_state(mut self, state: ::models::NodeState) -> Self {
         self.state = Some(state);
         self
     }
@@ -55,13 +55,13 @@ impl NodeStatus {
         self.message = Some(message);
     }
 
-    pub fn with_message(mut self, message: String) -> NodeStatus {
+    pub fn with_message(mut self, message: String) -> Self {
         self.message = Some(message);
         self
     }
 
-    pub fn message(&self) -> Option<&String> {
-        self.message.as_ref()
+    pub fn message(&self) -> Option<&str> {
+        self.message.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_message(&mut self) {
@@ -72,13 +72,13 @@ impl NodeStatus {
         self.addr = Some(addr);
     }
 
-    pub fn with_addr(mut self, addr: String) -> NodeStatus {
+    pub fn with_addr(mut self, addr: String) -> Self {
         self.addr = Some(addr);
         self
     }
 
-    pub fn addr(&self) -> Option<&String> {
-        self.addr.as_ref()
+    pub fn addr(&self) -> Option<&str> {
+        self.addr.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_addr(&mut self) {

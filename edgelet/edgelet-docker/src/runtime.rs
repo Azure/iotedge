@@ -3,6 +3,7 @@
 use std::collections::HashMap;
 use std::convert::From;
 use std::ops::Deref;
+use std::path::PathBuf;
 use std::time::Duration;
 
 use base64;
@@ -22,7 +23,7 @@ use edgelet_core::{
     LogOptions, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
     SystemInfo as CoreSystemInfo,
 };
-use edgelet_http::UrlConnector;
+use edgelet_http::{UrlConnector, UrlExt};
 use edgelet_utils::log_failure;
 
 use error::{Error, ErrorKind, Result};
@@ -35,7 +36,7 @@ static LABEL_VALUE: &str = "Microsoft.Azure.Devices.Edge.Agent";
 
 lazy_static! {
     static ref LABELS: Vec<&'static str> = {
-        let mut labels = Vec::new();
+        let mut labels = vec![];
         labels.push("net.azure-devices.edge.owner=Microsoft.Azure.Devices.Edge.Agent");
         labels
     };
@@ -48,14 +49,17 @@ pub struct DockerModuleRuntime {
 }
 
 impl DockerModuleRuntime {
-    pub fn new(docker_url: &Url) -> Result<DockerModuleRuntime> {
+    pub fn new(docker_url: &Url) -> Result<Self> {
         // build the hyper client
         let client = Client::builder().build(UrlConnector::new(docker_url)?);
 
         // extract base path - the bit that comes after the scheme
-        let base_path = get_base_path(docker_url);
+        let base_path = get_base_path(docker_url)?;
         let mut configuration = Configuration::new(client);
-        configuration.base_path = base_path.to_string();
+        configuration.base_path = base_path
+            .to_str()
+            .expect("URL points to a path that cannot be represented in UTF-8")
+            .to_string();
 
         let scheme = docker_url.scheme().to_string();
         configuration.uri_composer = Box::new(move |base_path, path| {
@@ -68,12 +72,12 @@ impl DockerModuleRuntime {
         })
     }
 
-    pub fn with_network_id(mut self, network_id: String) -> DockerModuleRuntime {
+    pub fn with_network_id(mut self, network_id: String) -> Self {
         self.network_id = Some(network_id);
         self
     }
 
-    fn merge_env(cur_env: Option<&Vec<String>>, new_env: &HashMap<String, String>) -> Vec<String> {
+    fn merge_env(cur_env: Option<&[String]>, new_env: &HashMap<String, String>) -> Vec<String> {
         // build a new merged hashmap containing string slices for keys and values
         // pointing into String instances in new_env
         let mut merged_env = HashMap::new();
@@ -84,7 +88,7 @@ impl DockerModuleRuntime {
             // only string slices pointing into strings inside cur_env)
             merged_env.extend(env.iter().filter_map(|s| {
                 let mut tokens = s.splitn(2, '=');
-                tokens.nth(0).map(|key| (key, tokens.nth(0).unwrap_or("")))
+                tokens.next().map(|key| (key, tokens.next().unwrap_or("")))
             }));
         }
 
@@ -96,10 +100,10 @@ impl DockerModuleRuntime {
     }
 }
 
-fn get_base_path(url: &Url) -> &str {
+fn get_base_path(url: &Url) -> Result<PathBuf> {
     match url.scheme() {
-        "unix" => url.path(),
-        _ => url.as_str(),
+        "unix" => Ok(url.to_uds_file_path()?),
+        _ => Ok(url.as_str().into()),
     }
 }
 
@@ -110,14 +114,18 @@ impl ModuleRegistry for DockerModuleRuntime {
     type Config = DockerConfig;
 
     fn pull(&self, config: &Self::Config) -> Self::PullFuture {
-        let response = config
-            .auth()
-            .map(|a| serde_json::to_string(a).map(|json| base64::encode(&json)))
-            .unwrap_or_else(|| Ok("".to_string()))
-            .map(|creds: String| {
+        let creds: Result<String> = config.auth().map_or_else(
+            || Ok("".to_string()),
+            |a| {
+                let json = serde_json::to_string(a)?;
+                Ok(base64::encode(&json))
+            },
+        );
+
+        let response = creds
+            .map(|creds| {
                 debug!("Pulling {}", config.image());
-                let ok = self
-                    .client
+                self.client
                     .image_api()
                     .image_create(config.image(), "", "", "", "", &creds, "")
                     .map_err(|err| {
@@ -125,9 +133,10 @@ impl ModuleRegistry for DockerModuleRuntime {
                         warn!("Attempt to pull image failed.");
                         log_failure(Level::Warn, &e);
                         e
-                    });
-                future::Either::A(ok)
-            }).unwrap_or_else(|e| future::Either::B(future::err(Error::from(e))));
+                    })
+            }).into_future()
+            .flatten();
+
         Box::new(response)
     }
 
@@ -170,11 +179,9 @@ impl ModuleRuntime for DockerModuleRuntime {
     type RemoveAllFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
 
     fn init(&self) -> Self::InitFuture {
-        let created = self
-            .network_id
-            .as_ref()
-            .map(|id| {
-                let id = id.clone();
+        let created = self.network_id.clone().map_or_else(
+            || future::Either::B(future::ok(())),
+            |id| {
                 let filter = format!(r#"{{"name":{{"{}":true}}}}"#, id);
                 let client_copy = self.client.clone();
                 let fut = self
@@ -198,7 +205,8 @@ impl ModuleRuntime for DockerModuleRuntime {
                         e
                     });
                 future::Either::A(fut)
-            }).unwrap_or_else(|| future::Either::B(future::ok(())));
+            },
+        );
 
         Box::new(created)
     }
@@ -269,14 +277,20 @@ impl ModuleRuntime for DockerModuleRuntime {
 
     fn stop(&self, id: &str, wait_before_kill: Option<Duration>) -> Self::StopFuture {
         debug!("Stopping container {}", id);
+
+        #[cfg_attr(
+            feature = "cargo-clippy",
+            allow(cast_possible_truncation, cast_sign_loss)
+        )]
         Box::new(
             self.client
                 .container_api()
                 .container_stop(
                     fensure_not_empty!(id),
-                    wait_before_kill
-                        .map(|s| s.as_secs() as i32)
-                        .unwrap_or(WAIT_BEFORE_KILL_SECONDS),
+                    wait_before_kill.map_or(WAIT_BEFORE_KILL_SECONDS, |s| match s.as_secs() {
+                        s if s > i32::max_value() as u64 => i32::max_value(),
+                        s => s as i32,
+                    }),
                 ).map_err(|err| {
                     let e = Error::from(err);
                     warn!("Attempt to stop a container failed.");
@@ -377,9 +391,8 @@ impl ModuleRuntime for DockerModuleRuntime {
                                     container
                                         .names()
                                         .iter()
-                                        .nth(0)
-                                        .map(|s| &s[1..])
-                                        .unwrap_or("Unknown"),
+                                        .next()
+                                        .map_or("Unknown", |s| &s[1..]),
                                     config,
                                 )
                             }).collect()
@@ -593,19 +606,17 @@ mod tests {
 
     #[test]
     fn merge_env_empty() {
-        let cur_env = Some(vec![]);
+        let cur_env = Some(&[][..]);
         let new_env = HashMap::new();
-        assert_eq!(
-            0,
-            DockerModuleRuntime::merge_env(cur_env.as_ref(), &new_env).len()
-        );
+        assert_eq!(0, DockerModuleRuntime::merge_env(cur_env, &new_env).len());
     }
 
     #[test]
     fn merge_env_new_empty() {
         let cur_env = Some(vec!["k1=v1".to_string(), "k2=v2".to_string()]);
         let new_env = HashMap::new();
-        let mut merged_env = DockerModuleRuntime::merge_env(cur_env.as_ref(), &new_env);
+        let mut merged_env =
+            DockerModuleRuntime::merge_env(cur_env.as_ref().map(AsRef::as_ref), &new_env);
         merged_env.sort();
         assert_eq!(vec!["k1=v1", "k2=v2"], merged_env);
     }
@@ -615,7 +626,8 @@ mod tests {
         let cur_env = Some(vec!["k1=v1".to_string(), "k2=v2".to_string()]);
         let mut new_env = HashMap::new();
         new_env.insert("k3".to_string(), "v3".to_string());
-        let mut merged_env = DockerModuleRuntime::merge_env(cur_env.as_ref(), &new_env);
+        let mut merged_env =
+            DockerModuleRuntime::merge_env(cur_env.as_ref().map(AsRef::as_ref), &new_env);
         merged_env.sort();
         assert_eq!(vec!["k1=v1", "k2=v2", "k3=v3"], merged_env);
     }
@@ -626,7 +638,8 @@ mod tests {
         let mut new_env = HashMap::new();
         new_env.insert("k2".to_string(), "v02".to_string());
         new_env.insert("k3".to_string(), "v3".to_string());
-        let mut merged_env = DockerModuleRuntime::merge_env(cur_env.as_ref(), &new_env);
+        let mut merged_env =
+            DockerModuleRuntime::merge_env(cur_env.as_ref().map(AsRef::as_ref), &new_env);
         merged_env.sort();
         assert_eq!(vec!["k1=v1", "k2=v2", "k3=v3"], merged_env);
     }
@@ -644,8 +657,8 @@ mod tests {
 
         let task = mri.create(module_config).then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                &ErrorKind::Utils => Ok(()) as Result<()>,
+            Err(err) => match *err.kind() {
+                ErrorKind::Utils => Ok::<_, Error>(()),
                 _ => panic!("Expected utils error. Got some other error."),
             },
         });
@@ -662,8 +675,8 @@ mod tests {
 
         let task = mri.start("").then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                &ErrorKind::Utils => Ok(()) as Result<()>,
+            Err(err) => match *err.kind() {
+                ErrorKind::Utils => Ok::<_, Error>(()),
                 _ => panic!("Expected utils error. Got some other error."),
             },
         });
@@ -680,8 +693,8 @@ mod tests {
 
         let task = mri.start("      ").then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                &ErrorKind::Utils => Ok(()) as Result<()>,
+            Err(err) => match *err.kind() {
+                ErrorKind::Utils => Ok::<_, Error>(()),
                 _ => panic!("Expected utils error. Got some other error."),
             },
         });
@@ -698,8 +711,8 @@ mod tests {
 
         let task = mri.stop("", None).then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                &ErrorKind::Utils => Ok(()) as Result<()>,
+            Err(err) => match *err.kind() {
+                ErrorKind::Utils => Ok::<_, Error>(()),
                 _ => panic!("Expected utils error. Got some other error."),
             },
         });
@@ -716,8 +729,8 @@ mod tests {
 
         let task = mri.stop("     ", None).then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                &ErrorKind::Utils => Ok(()) as Result<()>,
+            Err(err) => match *err.kind() {
+                ErrorKind::Utils => Ok::<_, Error>(()),
                 _ => panic!("Expected utils error. Got some other error."),
             },
         });
@@ -734,8 +747,8 @@ mod tests {
 
         let task = mri.restart("").then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                &ErrorKind::Utils => Ok(()) as Result<()>,
+            Err(err) => match *err.kind() {
+                ErrorKind::Utils => Ok::<_, Error>(()),
                 _ => panic!("Expected utils error. Got some other error."),
             },
         });
@@ -752,8 +765,8 @@ mod tests {
 
         let task = mri.restart("     ").then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                &ErrorKind::Utils => Ok(()) as Result<()>,
+            Err(err) => match *err.kind() {
+                ErrorKind::Utils => Ok::<_, Error>(()),
                 _ => panic!("Expected utils error. Got some other error."),
             },
         });
@@ -770,8 +783,8 @@ mod tests {
 
         let task = ModuleRuntime::remove(&mri, "").then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                &ErrorKind::Utils => Ok(()) as Result<()>,
+            Err(err) => match *err.kind() {
+                ErrorKind::Utils => Ok::<_, Error>(()),
                 _ => panic!("Expected utils error. Got some other error."),
             },
         });
@@ -788,8 +801,8 @@ mod tests {
 
         let task = ModuleRuntime::remove(&mri, "    ").then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                &ErrorKind::Utils => Ok(()) as Result<()>,
+            Err(err) => match *err.kind() {
+                ErrorKind::Utils => Ok::<_, Error>(()),
                 _ => panic!("Expected utils error. Got some other error."),
             },
         });
@@ -831,14 +844,14 @@ mod tests {
                         name: "a".to_string(),
                         runtime_state_behavior: TestModuleRuntimeStateBehavior::Default,
                     },
-                    ModuleRuntimeState::default().with_pid(&Pid::Any)
+                    ModuleRuntimeState::default().with_pid(Pid::Any)
                 ),
                 (
                     TestModule {
                         name: "d".to_string(),
                         runtime_state_behavior: TestModuleRuntimeStateBehavior::Default,
                     },
-                    ModuleRuntimeState::default().with_pid(&Pid::Any)
+                    ModuleRuntimeState::default().with_pid(Pid::Any)
                 ),
             ]
         );
@@ -878,7 +891,7 @@ mod tests {
         fn runtime_state(&self) -> Self::RuntimeStateFuture {
             match self.runtime_state_behavior {
                 TestModuleRuntimeStateBehavior::Default => {
-                    future::ok(ModuleRuntimeState::default().with_pid(&Pid::Any))
+                    future::ok(ModuleRuntimeState::default().with_pid(Pid::Any))
                 }
                 TestModuleRuntimeStateBehavior::NotFound => {
                     future::err(ErrorKind::NotFound(String::new()).into())

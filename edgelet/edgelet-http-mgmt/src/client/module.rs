@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::fmt;
+use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
@@ -8,7 +9,7 @@ use std::time::Duration;
 use edgelet_core::SystemInfo as CoreSystemInfo;
 use edgelet_core::*;
 use edgelet_docker::{self, DockerConfig};
-use edgelet_http::{UrlConnector, API_VERSION};
+use edgelet_http::{UrlConnector, UrlExt, API_VERSION};
 use futures::future::{self, FutureResult};
 use futures::prelude::*;
 use futures::stream;
@@ -22,16 +23,16 @@ use url::Url;
 use error::{Error, ErrorKind};
 
 pub struct ModuleClient {
-    client: Arc<APIClient<UrlConnector>>,
+    client: Arc<APIClient>,
 }
 
 impl ModuleClient {
-    pub fn new(url: &Url) -> Result<ModuleClient, Error> {
+    pub fn new(url: &Url) -> Result<Self, Error> {
         let client = Client::builder().build(UrlConnector::new(url)?);
 
-        let base_path = get_base_path(url);
+        let base_path = get_base_path(url)?;
         let mut configuration = Configuration::new(client);
-        configuration.base_path = base_path.to_string();
+        configuration.base_path = base_path.to_str().ok_or(ErrorKind::Utf8)?.to_string();
 
         let scheme = url.scheme().to_string();
         configuration.uri_composer = Box::new(move |base_path, path| {
@@ -45,10 +46,10 @@ impl ModuleClient {
     }
 }
 
-fn get_base_path(url: &Url) -> &str {
+fn get_base_path(url: &Url) -> Result<PathBuf, Error> {
     match url.scheme() {
-        "unix" => url.path(),
-        _ => url.as_str(),
+        "unix" => Ok(url.to_uds_file_path()?),
+        _ => Ok(url.as_str().into()),
     }
 }
 
@@ -101,7 +102,11 @@ impl Module for ModuleDetails {
 
 fn runtime_status(details: &HttpModuleDetails) -> Result<ModuleRuntimeState, Error> {
     let status = ModuleStatus::from_str(details.status().runtime_status().status())?;
-    let description = details.status().runtime_status().description().cloned();
+    let description = details
+        .status()
+        .runtime_status()
+        .description()
+        .map(ToOwned::to_owned);
     let exit_code = details
         .status()
         .exit_status()

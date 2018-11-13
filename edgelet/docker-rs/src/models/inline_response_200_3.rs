@@ -18,7 +18,7 @@ pub struct InlineResponse2003 {
 }
 
 impl InlineResponse2003 {
-    pub fn new() -> InlineResponse2003 {
+    pub fn new() -> Self {
         InlineResponse2003 { warnings: None }
     }
 
@@ -26,13 +26,13 @@ impl InlineResponse2003 {
         self.warnings = Some(warnings);
     }
 
-    pub fn with_warnings(mut self, warnings: Vec<String>) -> InlineResponse2003 {
+    pub fn with_warnings(mut self, warnings: Vec<String>) -> Self {
         self.warnings = Some(warnings);
         self
     }
 
-    pub fn warnings(&self) -> Option<&Vec<String>> {
-        self.warnings.as_ref()
+    pub fn warnings(&self) -> Option<&[String]> {
+        self.warnings.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_warnings(&mut self) {

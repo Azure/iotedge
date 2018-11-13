@@ -22,7 +22,7 @@ pub struct ExecStartConfig {
 }
 
 impl ExecStartConfig {
-    pub fn new() -> ExecStartConfig {
+    pub fn new() -> Self {
         ExecStartConfig {
             detach: None,
             tty: None,
@@ -33,7 +33,7 @@ impl ExecStartConfig {
         self.detach = Some(detach);
     }
 
-    pub fn with_detach(mut self, detach: bool) -> ExecStartConfig {
+    pub fn with_detach(mut self, detach: bool) -> Self {
         self.detach = Some(detach);
         self
     }
@@ -50,7 +50,7 @@ impl ExecStartConfig {
         self.tty = Some(tty);
     }
 
-    pub fn with_tty(mut self, tty: bool) -> ExecStartConfig {
+    pub fn with_tty(mut self, tty: bool) -> Self {
         self.tty = Some(tty);
         self
     }

@@ -42,7 +42,7 @@ pub struct Body1 {
 }
 
 impl Body1 {
-    pub fn new() -> Body1 {
+    pub fn new() -> Self {
         Body1 {
             listen_addr: None,
             advertise_addr: None,
@@ -56,13 +56,13 @@ impl Body1 {
         self.listen_addr = Some(listen_addr);
     }
 
-    pub fn with_listen_addr(mut self, listen_addr: String) -> Body1 {
+    pub fn with_listen_addr(mut self, listen_addr: String) -> Self {
         self.listen_addr = Some(listen_addr);
         self
     }
 
-    pub fn listen_addr(&self) -> Option<&String> {
-        self.listen_addr.as_ref()
+    pub fn listen_addr(&self) -> Option<&str> {
+        self.listen_addr.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_listen_addr(&mut self) {
@@ -73,13 +73,13 @@ impl Body1 {
         self.advertise_addr = Some(advertise_addr);
     }
 
-    pub fn with_advertise_addr(mut self, advertise_addr: String) -> Body1 {
+    pub fn with_advertise_addr(mut self, advertise_addr: String) -> Self {
         self.advertise_addr = Some(advertise_addr);
         self
     }
 
-    pub fn advertise_addr(&self) -> Option<&String> {
-        self.advertise_addr.as_ref()
+    pub fn advertise_addr(&self) -> Option<&str> {
+        self.advertise_addr.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_advertise_addr(&mut self) {
@@ -90,13 +90,13 @@ impl Body1 {
         self.data_path_addr = Some(data_path_addr);
     }
 
-    pub fn with_data_path_addr(mut self, data_path_addr: String) -> Body1 {
+    pub fn with_data_path_addr(mut self, data_path_addr: String) -> Self {
         self.data_path_addr = Some(data_path_addr);
         self
     }
 
-    pub fn data_path_addr(&self) -> Option<&String> {
-        self.data_path_addr.as_ref()
+    pub fn data_path_addr(&self) -> Option<&str> {
+        self.data_path_addr.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_data_path_addr(&mut self) {
@@ -107,7 +107,7 @@ impl Body1 {
         self.force_new_cluster = Some(force_new_cluster);
     }
 
-    pub fn with_force_new_cluster(mut self, force_new_cluster: bool) -> Body1 {
+    pub fn with_force_new_cluster(mut self, force_new_cluster: bool) -> Self {
         self.force_new_cluster = Some(force_new_cluster);
         self
     }
@@ -124,7 +124,7 @@ impl Body1 {
         self.spec = Some(spec);
     }
 
-    pub fn with_spec(mut self, spec: ::models::SwarmSpec) -> Body1 {
+    pub fn with_spec(mut self, spec: ::models::SwarmSpec) -> Self {
         self.spec = Some(spec);
         self
     }

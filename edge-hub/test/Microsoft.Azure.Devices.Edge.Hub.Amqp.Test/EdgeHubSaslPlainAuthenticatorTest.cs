@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             const string UserId = "dev1/modules/mod1@sas.hub1";
             const string Password = "pwd";
 
-            Mock.Get(clientCredentialsFactory).Setup(f => f.GetWithSasToken("dev1", "mod1", string.Empty, Password))
+            Mock.Get(clientCredentialsFactory).Setup(f => f.GetWithSasToken("dev1", "mod1", string.Empty, Password, false))
                 .Throws(new ApplicationException("Bad donut"));
 
             await Assert.ThrowsAsync<EdgeHubConnectionException>(() => saslAuthenticator.AuthenticateAsync(UserId, Password));
@@ -75,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             const string UserId = "dev1/modules/mod1@sas.hub1";
             const string Password = "pwd";
 
-            Mock.Get(clientCredentialsFactory).Setup(f => f.GetWithSasToken("dev1", "mod1", string.Empty, Password))
+            Mock.Get(clientCredentialsFactory).Setup(f => f.GetWithSasToken("dev1", "mod1", string.Empty, Password, false))
                 .Returns(clientCredentials);
             Mock.Get(authenticator).Setup(a => a.AuthenticateAsync(clientCredentials))
                 .ReturnsAsync(false);
@@ -95,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             const string UserId = "dev1/modules/mod1@sas.hub1";
             const string Password = "pwd";
 
-            Mock.Get(clientCredentialsFactory).Setup(f => f.GetWithSasToken("dev1", "mod1", string.Empty, Password))
+            Mock.Get(clientCredentialsFactory).Setup(f => f.GetWithSasToken("dev1", "mod1", string.Empty, Password, false))
                 .Returns(clientCredentials);
             Mock.Get(authenticator).Setup(a => a.AuthenticateAsync(clientCredentials))
                 .ReturnsAsync(true);

@@ -49,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 }
                 else
                 {
-                    deviceCredentials = this.clientCredentialsFactory.GetWithSasToken(deviceId, moduleId, deviceClientType, password);
+                    deviceCredentials = this.clientCredentialsFactory.GetWithSasToken(deviceId, moduleId, deviceClientType, password, false);
                 }
 
                 if (deviceCredentials == null

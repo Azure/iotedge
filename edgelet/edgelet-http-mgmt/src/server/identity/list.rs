@@ -43,9 +43,8 @@ where
         _params: Parameters,
     ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
         let response = self.id_manager.list().then(|result| {
-            result
-                .context(ErrorKind::IdentityManager)
-                .map(|identities| {
+            match result.context(ErrorKind::IdentityManager) {
+                Ok(identities) => {
                     let body = IdentityList::new(
                         identities
                             .iter()
@@ -58,19 +57,20 @@ where
                                 )
                             }).collect(),
                     );
-                    let result = serde_json::to_string(&body)
-                        .context(ErrorKind::Serde)
-                        .map(|b| {
-                            Response::builder()
-                                .status(StatusCode::OK)
-                                .header(CONTENT_TYPE, "application/json")
-                                .header(CONTENT_LENGTH, b.len().to_string().as_str())
-                                .body(b.into())
-                                .unwrap_or_else(|e| e.into_response())
-                        }).unwrap_or_else(|e| e.into_response());
+                    let result = match serde_json::to_string(&body).context(ErrorKind::Serde) {
+                        Ok(b) => Response::builder()
+                            .status(StatusCode::OK)
+                            .header(CONTENT_TYPE, "application/json")
+                            .header(CONTENT_LENGTH, b.len().to_string().as_str())
+                            .body(b.into())
+                            .unwrap_or_else(|e| e.into_response()),
+                        Err(e) => e.into_response(),
+                    };
 
                     future::ok(result)
-                }).unwrap_or_else(|e| future::ok(e.into_response()))
+                }
+                Err(e) => future::ok(e.into_response()),
+            }
         });
 
         Box::new(response)

@@ -49,7 +49,7 @@ impl Display for Error {
 }
 
 impl Error {
-    pub fn new(inner: Context<ErrorKind>) -> Error {
+    pub fn new(inner: Context<ErrorKind>) -> Self {
         Error { inner }
     }
 
@@ -59,7 +59,7 @@ impl Error {
 }
 
 impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Error {
+    fn from(kind: ErrorKind) -> Self {
         Error {
             inner: Context::new(kind),
         }
@@ -67,13 +67,13 @@ impl From<ErrorKind> for Error {
 }
 
 impl From<Context<ErrorKind>> for Error {
-    fn from(inner: Context<ErrorKind>) -> Error {
+    fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
     }
 }
 
 impl From<ParseIntError> for Error {
-    fn from(error: ParseIntError) -> Error {
+    fn from(error: ParseIntError) -> Self {
         Error {
             inner: error.context(ErrorKind::Parse),
         }
@@ -82,7 +82,7 @@ impl From<ParseIntError> for Error {
 
 #[cfg(target_os = "linux")]
 impl From<NixError> for Error {
-    fn from(error: NixError) -> Error {
+    fn from(error: NixError) -> Self {
         Error {
             inner: error.context(ErrorKind::Nix),
         }

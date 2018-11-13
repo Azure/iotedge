@@ -2,8 +2,8 @@
 
 //! Implements the daemon interface for socket activation.
 //! Provides two methods to get the resulting socket by name.
-//! Based off of [systemd_socket](https://github.com/viraptor/systemd_socket)
-//! and [systemd-daemon](https://github.com/systemd/systemd/tree/master/src/libsystemd/sd-daemon)
+//! Based off of [`systemd_socket`](https://github.com/viraptor/systemd_socket)
+//! and [`systemd-daemon`](https://github.com/systemd/systemd/tree/master/src/libsystemd/sd-daemon)
 
 use std::collections::{hash_map, HashMap};
 use std::env;
@@ -239,11 +239,11 @@ mod tests {
         fd
     }
 
-    fn close_fds<'a, I: Iterator<Item = &'a Socket>>(sockets: I) {
+    fn close_fds<I: IntoIterator<Item = Socket>>(sockets: I) {
         for socket in sockets {
             match socket {
-                Socket::Inet(n, _) => unistd::close(*n).unwrap(),
-                Socket::Unix(u) => unistd::close(*u).unwrap(),
+                Socket::Inet(n, _) => unistd::close(n).unwrap(),
+                Socket::Unix(u) => unistd::close(u).unwrap(),
                 _ => (),
             }
         }
@@ -258,7 +258,7 @@ mod tests {
         let fds = listen_fds(true, 3).unwrap();
         assert_eq!(1, fds.len());
         assert_eq!(vec![Socket::Unix(3)], fds);
-        close_fds(fds.iter());
+        close_fds(fds);
     }
 
     #[test]
@@ -277,8 +277,8 @@ mod tests {
         }
         assert_eq!(vec![Socket::Unix(4)], fds["b"]);
 
-        for socks in fds.values() {
-            close_fds(socks.iter());
+        for (_, socks) in fds {
+            close_fds(socks);
         }
     }
 

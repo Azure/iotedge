@@ -31,7 +31,7 @@ pub struct NodeSpec {
 }
 
 impl NodeSpec {
-    pub fn new() -> NodeSpec {
+    pub fn new() -> Self {
         NodeSpec {
             name: None,
             labels: None,
@@ -44,13 +44,13 @@ impl NodeSpec {
         self.name = Some(name);
     }
 
-    pub fn with_name(mut self, name: String) -> NodeSpec {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
     }
 
-    pub fn name(&self) -> Option<&String> {
-        self.name.as_ref()
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_name(&mut self) {
@@ -61,7 +61,7 @@ impl NodeSpec {
         self.labels = Some(labels);
     }
 
-    pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> NodeSpec {
+    pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
         self.labels = Some(labels);
         self
     }
@@ -78,13 +78,13 @@ impl NodeSpec {
         self.role = Some(role);
     }
 
-    pub fn with_role(mut self, role: String) -> NodeSpec {
+    pub fn with_role(mut self, role: String) -> Self {
         self.role = Some(role);
         self
     }
 
-    pub fn role(&self) -> Option<&String> {
-        self.role.as_ref()
+    pub fn role(&self) -> Option<&str> {
+        self.role.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_role(&mut self) {
@@ -95,13 +95,13 @@ impl NodeSpec {
         self.availability = Some(availability);
     }
 
-    pub fn with_availability(mut self, availability: String) -> NodeSpec {
+    pub fn with_availability(mut self, availability: String) -> Self {
         self.availability = Some(availability);
         self
     }
 
-    pub fn availability(&self) -> Option<&String> {
-        self.availability.as_ref()
+    pub fn availability(&self) -> Option<&str> {
+        self.availability.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_availability(&mut self) {

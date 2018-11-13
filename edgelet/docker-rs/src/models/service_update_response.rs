@@ -19,7 +19,7 @@ pub struct ServiceUpdateResponse {
 }
 
 impl ServiceUpdateResponse {
-    pub fn new() -> ServiceUpdateResponse {
+    pub fn new() -> Self {
         ServiceUpdateResponse { warnings: None }
     }
 
@@ -27,13 +27,13 @@ impl ServiceUpdateResponse {
         self.warnings = Some(warnings);
     }
 
-    pub fn with_warnings(mut self, warnings: Vec<String>) -> ServiceUpdateResponse {
+    pub fn with_warnings(mut self, warnings: Vec<String>) -> Self {
         self.warnings = Some(warnings);
         self
     }
 
-    pub fn warnings(&self) -> Option<&Vec<String>> {
-        self.warnings.as_ref()
+    pub fn warnings(&self) -> Option<&[String]> {
+        self.warnings.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_warnings(&mut self) {
