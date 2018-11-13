@@ -3,10 +3,13 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
 {
     using System;
+    using System.Collections.Generic;
+    using System.Runtime.InteropServices;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Extensions.Configuration;
     using Moq;
     using Xunit;
 
@@ -30,10 +33,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
             var module = new Mock<IModule<DockerConfig>>();
             module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest"));
             module.SetupGet(m => m.Name).Returns(Constants.EdgeAgentModuleName);
-
+            
             var mockAppSetting = new Mock<IAgentAppSettings>();
-            mockAppSetting.SetupGet(s => s.WorkloadUri).Returns("unix:///var/run/iotedgedworkload.sock");
-            mockAppSetting.SetupGet(s => s.ManagementUri).Returns("unix:///var/run/iotedgedmgmt.sock");
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                mockAppSetting.SetupGet(s => s.WorkloadUri).Returns("unix:///C:/path/to/workload/sock");
+                mockAppSetting.SetupGet(s => s.ManagementUri).Returns("unix:///C:/path/to/mgmt/sock");
+            }
+            else
+            {
+                mockAppSetting.SetupGet(s => s.WorkloadUri).Returns("unix:///path/to/workload.sock");
+                mockAppSetting.SetupGet(s => s.ManagementUri).Returns("unix:///path/to/mgmt.sock");
+            }
+
             var configSource = Mock.Of<IConfigSource>(s => s.AppSettings == mockAppSetting.Object);
             ICombinedConfigProvider<CombinedDockerConfig> provider = new CombinedEdgeletConfigProvider(new[] { new AuthConfig() }, configSource);
 
@@ -45,8 +57,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
             Assert.NotNull(config.CreateOptions.HostConfig);
             Assert.NotNull(config.CreateOptions.HostConfig.Binds);
             Assert.Equal(2, config.CreateOptions.HostConfig.Binds.Count);
-            Assert.Equal("/var/run/iotedgedworkload.sock:/var/run/iotedgedworkload.sock", config.CreateOptions.HostConfig.Binds[0]);
-            Assert.Equal("/var/run/iotedgedmgmt.sock:/var/run/iotedgedmgmt.sock", config.CreateOptions.HostConfig.Binds[1]);
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                Assert.Equal("C:\\path\\to\\workload:C:\\path\\to\\workload", config.CreateOptions.HostConfig.Binds[0]);
+                Assert.Equal("C:\\path\\to\\mgmt:C:\\path\\to\\mgmt", config.CreateOptions.HostConfig.Binds[1]);
+            } else {
+                Assert.Equal("/path/to/workload.sock:/path/to/workload.sock", config.CreateOptions.HostConfig.Binds[0]);
+                Assert.Equal("/path/to/mgmt.sock:/path/to/mgmt.sock", config.CreateOptions.HostConfig.Binds[1]);
+            }
         }
 
         [Fact]

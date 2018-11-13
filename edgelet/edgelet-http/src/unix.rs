@@ -1,13 +1,16 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![cfg(unix)]
-
 use std::fs;
+#[cfg(unix)]
 use std::os::unix::fs::MetadataExt;
 use std::path::Path;
 
+#[cfg(unix)]
 use nix::sys::stat::{umask, Mode};
+#[cfg(unix)]
 use tokio_uds::UnixListener;
+#[cfg(windows)]
+use tokio_uds_windows::UnixListener;
 
 use error::Error;
 use util::incoming::Incoming;
@@ -26,16 +29,9 @@ pub fn listener<P: AsRef<Path>>(path: P) -> Result<Incoming, Error> {
         fs::remove_file(&path)?;
         debug!("unlinked {}", path.as_ref().display());
 
-        let mode = Mode::from_bits_truncate(metadata.mode());
-        let mut mask = Mode::all();
-        mask.toggle(mode);
-
-        debug!(
-            "settings permissions {:#o} for {}...",
-            mode,
-            path.as_ref().display()
-        );
-        let prev = umask(mask);
+        #[cfg(unix)]
+        let prev = set_umask(&metadata, path.as_ref());
+        #[cfg(unix)]
         defer! {{ umask(prev); }}
 
         debug!("binding {}...", path.as_ref().display());
@@ -51,7 +47,19 @@ pub fn listener<P: AsRef<Path>>(path: P) -> Result<Incoming, Error> {
     Ok(listener)
 }
 
+#[cfg(unix)]
+fn set_umask(metadata: &fs::Metadata, path: &Path) -> Mode {
+    let mode = Mode::from_bits_truncate(metadata.mode());
+    let mut mask = Mode::all();
+    mask.toggle(mode);
+
+    debug!("settings permissions {:#o} for {}...", mode, path.display());
+
+    umask(mask)
+}
+
 #[cfg(test)]
+#[cfg(unix)]
 mod tests {
     use super::*;
 

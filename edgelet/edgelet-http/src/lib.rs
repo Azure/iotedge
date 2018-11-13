@@ -28,11 +28,15 @@ extern crate hyper_proxy;
 extern crate hyper_tls;
 #[cfg(unix)]
 extern crate hyperlocal;
+#[cfg(windows)]
+extern crate hyperlocal_windows;
 #[cfg(target_os = "linux")]
 #[cfg(unix)]
 extern crate libc;
 #[macro_use]
 extern crate log;
+#[cfg(windows)]
+extern crate mio_uds_windows;
 #[cfg(unix)]
 extern crate nix;
 extern crate percent_encoding;
@@ -44,7 +48,9 @@ extern crate serde;
 #[macro_use]
 extern crate serde_json;
 extern crate systemd;
-#[cfg(unix)]
+#[cfg(test)]
+#[cfg(windows)]
+extern crate tempdir;
 #[cfg(test)]
 extern crate tempfile;
 extern crate tokio;
@@ -52,8 +58,12 @@ extern crate tokio;
 extern crate tokio_named_pipe;
 #[cfg(unix)]
 extern crate tokio_uds;
+#[cfg(windows)]
+extern crate tokio_uds_windows;
 extern crate typed_headers;
 extern crate url;
+#[cfg(windows)]
+extern crate winapi;
 
 #[macro_use]
 extern crate edgelet_utils;
@@ -64,6 +74,9 @@ use std::net;
 use std::net::ToSocketAddrs;
 #[cfg(unix)]
 use std::os::unix::io::FromRawFd;
+#[cfg(unix)]
+use std::path::Path;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use futures::{future, Future, Poll, Stream};
@@ -97,7 +110,6 @@ use self::util::incoming::Incoming;
 
 const HTTP_SCHEME: &str = "http";
 const TCP_SCHEME: &str = "tcp";
-#[cfg(unix)]
 const UNIX_SCHEME: &str = "unix";
 #[cfg(unix)]
 const FD_SCHEME: &str = "fd";
@@ -219,9 +231,8 @@ impl HyperExt for Http {
                 let listener = TcpListener::bind(&addr)?;
                 Incoming::Tcp(listener)
             }
-            #[cfg(unix)]
             UNIX_SCHEME => {
-                let path = url.path();
+                let path = url.to_uds_file_path()?;
                 unix::listener(path)?
             }
             #[cfg(unix)]
@@ -255,5 +266,35 @@ impl HyperExt for Http {
             new_service,
             incoming,
         })
+    }
+}
+
+pub trait UrlExt {
+    fn to_uds_file_path(&self) -> Result<PathBuf, Error>;
+}
+
+impl UrlExt for Url {
+    #[cfg(unix)]
+    fn to_uds_file_path(&self) -> Result<PathBuf, Error> {
+        debug_assert_eq!(self.scheme(), UNIX_SCHEME);
+        Ok(Path::new(self.path()).to_path_buf())
+    }
+
+    #[cfg(windows)]
+    fn to_uds_file_path(&self) -> Result<PathBuf, Error> {
+        // We get better handling of Windows file syntax if we parse a
+        // unix:// URL as a file:// URL. Specifically:
+        // - On Unix, `Url::parse("unix:///path")?.to_file_path()` succeeds and
+        //   returns "/path".
+        // - On Windows, `Url::parse("unix:///C:/path")?.to_file_path()` fails
+        //   with Err(()).
+        // - On Windows, `Url::parse("file:///C:/path")?.to_file_path()` succeeds
+        //   and returns "C:\\path".
+        debug_assert_eq!(self.scheme(), UNIX_SCHEME);
+        let mut s = self.to_string();
+        s.replace_range(..4, "file");
+        let url = Url::parse(&s).map_err(|_| Error::from(ErrorKind::InvalidUri(s.clone())))?;
+        url.to_file_path()
+            .map_err(|()| ErrorKind::InvalidUri(s.clone()).into())
     }
 }
