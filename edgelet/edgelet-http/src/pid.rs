@@ -1,9 +1,15 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::io;
+
 use edgelet_core::pid::Pid;
 use futures::prelude::*;
 use hyper::service::Service;
 use hyper::{Body, Error as HyperError, Request};
+#[cfg(unix)]
+use tokio_uds::UnixStream;
+#[cfg(windows)]
+use tokio_uds_windows::UnixStream;
 
 #[derive(Clone)]
 pub struct PidService<T> {
@@ -35,27 +41,30 @@ where
     }
 }
 
+pub trait UnixStreamExt {
+    fn pid(&self) -> io::Result<Pid>;
+}
+
+impl UnixStreamExt for UnixStream {
+    fn pid(&self) -> io::Result<Pid> {
+        get_pid(self)
+    }
+}
+
 #[cfg(unix)]
-pub use self::impl_unix::UnixStreamExt;
+use self::impl_unix::get_pid;
 
 #[cfg(unix)]
 mod impl_unix {
     use libc::{c_void, getsockopt, ucred, SOL_SOCKET, SO_PEERCRED};
     use std::os::unix::io::AsRawFd;
     use std::{io, mem};
+    #[cfg(unix)]
     use tokio_uds::UnixStream;
+    #[cfg(windows)]
+    use tokio_uds_windows::UnixStream;
 
     use super::*;
-
-    pub trait UnixStreamExt {
-        fn pid(&self) -> io::Result<Pid>;
-    }
-
-    impl UnixStreamExt for UnixStream {
-        fn pid(&self) -> io::Result<Pid> {
-            get_pid(self)
-        }
-    }
 
     pub fn get_pid(sock: &UnixStream) -> io::Result<Pid> {
         let raw_fd = sock.as_raw_fd();
@@ -86,6 +95,41 @@ mod impl_unix {
             Ok(Pid::Value(ucred.pid))
         } else {
             Err(io::Error::last_os_error())
+        }
+    }
+}
+
+#[cfg(windows)]
+use self::impl_windows::get_pid;
+
+#[cfg(windows)]
+mod impl_windows {
+    use std::io;
+    use std::os::windows::io::AsRawSocket;
+    use winapi::ctypes::c_long;
+    use winapi::um::winsock2::{ioctlsocket, WSAGetLastError, SOCKET_ERROR};
+
+    use super::*;
+
+    // SIO_AF_UNIX_GETPEERPID is defined in the Windows header afunix.h.
+    const SIO_AF_UNIX_GETPEERPID: c_long = 0x5800_0100;
+
+    pub fn get_pid(sock: &UnixStream) -> io::Result<Pid> {
+        let raw_socket = sock.as_raw_socket();
+        let mut pid = 0_u32;
+        let ret = unsafe {
+            #[cfg_attr(feature = "cargo-clippy", allow(cast_possible_truncation))]
+            ioctlsocket(
+                raw_socket as _,
+                SIO_AF_UNIX_GETPEERPID,
+                &mut pid as *mut u32,
+            )
+        };
+        if ret == SOCKET_ERROR {
+            Err(io::Error::from_raw_os_error(unsafe { WSAGetLastError() }))
+        } else {
+            #[cfg_attr(feature = "cargo-clippy", allow(cast_possible_wrap))]
+            Ok(Pid::Value(pid as _))
         }
     }
 }
