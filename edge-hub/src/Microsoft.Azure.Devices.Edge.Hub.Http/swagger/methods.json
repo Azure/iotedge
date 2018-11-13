@@ -1,0 +1,149 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "version": "2018-06-30",
+        "title": "Method Invoke API",
+        "description": "API for methods invoke on devices and on modules."
+    },
+    "host": "hostname",
+    "schemes": [
+        "https"
+    ],
+    "paths": {
+        "/twins/{deviceId}/methods": {
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "operationId": "InvokeDeviceMethodAsync",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "deviceId",
+                        "in": "path",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "methodRequest",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/MethodRequest"
+                        }
+                    },
+                    {
+                        "$ref": "#/parameters/api-version"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/MethodResult"
+                        }
+                    }
+                }
+            }
+        },
+        "/twins/{deviceId}/modules/{moduleId}/methods": {
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "operationId": "InvokeModuleMethodAsync",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "deviceId",
+                        "in": "path",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "moduleId",
+                        "in": "path",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "methodRequest",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/MethodRequest"
+                        }
+                    },
+                    {
+                        "$ref": "#/parameters/api-version"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/MethodResult"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "MethodRequest": {
+            "required": [
+                "methodName"
+            ],
+            "type": "object",
+            "properties": {
+                "methodName": {
+                    "type": "string"
+                },
+                "payload": {
+                    "type": "object"
+                },
+                "responseTimeoutInSeconds": {
+                    "format": "int32",
+                    "type": "integer"
+                },
+                "connectTimeoutInSeconds": {
+                    "format": "int32",
+                    "type": "integer"
+                }
+            }
+        },
+        "MethodResult": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "format": "int32",
+                    "type": "integer",
+                    "readOnly": true
+                },
+                "payload": {
+                    "type": "object",
+                    "readOnly": true
+                }
+            }
+        }
+    },
+    "parameters": {
+        "api-version": {
+            "name": "api-version",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "default": "2018-06-30"
+        }
+    }
+}

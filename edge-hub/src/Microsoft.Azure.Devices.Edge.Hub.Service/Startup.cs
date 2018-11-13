@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
     using System;
+    using System.Collections.Generic;
     using Autofac;
     using Autofac.Extensions.DependencyInjection;
     using Microsoft.AspNetCore.Builder;
@@ -11,12 +12,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Http.Middleware;
+    using Microsoft.Azure.Devices.Edge.Hub.Http.Swagger;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
+    using Swashbuckle.AspNetCore.Swagger;
 
     public class Startup : IStartup
     {
+        const string MethodsApiTitle = "Method Invoke API";
+        const string MethodsApiDescription = "API for methods invoke on devices and on modules.";
         readonly IDependencyManager dependencyManager;
         readonly IConfigurationRoot configuration;
 
@@ -37,6 +42,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         {
             services.AddMemoryCache();
             services.AddMvc(options => options.Filters.Add(typeof(ExceptionFilter)));
+
+            // Register the Swagger generator, defining 1 or more Swagger documents
+            services.AddSwaggerGen(c =>
+            {
+                c.TagActionsBy(apiDesc => new List<string> { apiDesc.HttpMethod.ToString() });
+                c.SwaggerDoc("methods", new Info
+                {
+                    Version = HttpConstants.ApiVersion,
+                    Title = MethodsApiTitle,
+                    Description = MethodsApiDescription
+                });
+                c.DocumentFilter<SwaggerDocumentFilter>();
+                c.OperationFilter<SwaggerOperationFilter>();
+            });
+
             services.Configure<MvcOptions>(options => { options.Filters.Add(new RequireHttpsAttribute()); });
             this.Container = this.BuildContainer(services);
 
@@ -65,8 +85,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 edgeDeviceId = this.configuration.GetValue<string>(Constants.ConfigKey.DeviceId);
             }
 
-            app.UseAuthenticationMiddleware(iotHubHostname, edgeDeviceId);
-
             app.Use(
                 async (context, next) =>
                 {
@@ -74,7 +92,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     context.Response.Headers.Add("X-Content-Type-Options", "nosniff");
                     await next();
                 });
+            app.UseSwagger(
+                   c =>
+                   {
+                       c.RouteTemplate = "swagger/{documentName}/swagger.json";
+                       c.PreSerializeFilters.Add((swaggerDoc, httpReq) =>
+                       {
+                           swaggerDoc.Host = "hostname";
+                       });
+                   })
+               .UseSwaggerUI(
+                   c =>
+                   {
+                       c.SwaggerEndpoint("/swagger/methods/swagger.json", MethodsApiDescription);
+                   });
 
+            app.UseAuthenticationMiddleware(iotHubHostname, edgeDeviceId);
             app.UseMvc();
         }
 
