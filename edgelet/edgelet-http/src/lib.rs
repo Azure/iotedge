@@ -26,7 +26,7 @@ extern crate hyper;
 extern crate hyper_named_pipe;
 extern crate hyper_proxy;
 extern crate hyper_tls;
-#[cfg(linux)]
+#[cfg(unix)]
 extern crate hyperlocal;
 #[cfg(windows)]
 extern crate hyperlocal_windows;
