@@ -184,10 +184,11 @@ function Get-WindowsBuild {
 }
 
 function Test-UdsSupport {
-    $MinBuildForUnixDomainSockets = $Windows1809
-    $CurrentBuild = Get-WindowsBuild
-
-    return ($ContainerOs -eq "Windows" -and $CurrentBuild -ge $MinBuildForUnixDomainSockets)
+    # TODO: Enable when we have RS5-based modules in process-isolated containers
+    # $MinBuildForUnixDomainSockets = $Windows1809
+    # $CurrentBuild = Get-WindowsBuild
+    # return ($ContainerOs -eq "Windows" -and $CurrentBuild -ge $MinBuildForUnixDomainSockets)
+    return $false
 }
 
 function Test-IsKernelValid {
