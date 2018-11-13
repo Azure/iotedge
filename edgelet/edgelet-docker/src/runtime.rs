@@ -58,7 +58,7 @@ impl DockerModuleRuntime {
         let mut configuration = Configuration::new(client);
         configuration.base_path = base_path
             .to_str()
-            .expect("URL path should be percent-encoded ASCII, but was found to be invalid UTF-8")
+            .expect("URL points to a path that cannot be represented in UTF-8")
             .to_string();
 
         let scheme = docker_url.scheme().to_string();

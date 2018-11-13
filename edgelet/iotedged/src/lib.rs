@@ -691,9 +691,8 @@ fn vol_mount_uri(config: &mut DockerConfig, uris: &[&Url]) -> Result<(), Error> 
                 .ok_or_else(|| ErrorKind::InvalidUri(uri.to_string()))?;
             let path = path
                 .to_str()
-                .expect(
-                    "URL path should be percent-encoded ASCII, but was found to be invalid UTF-8",
-                ).to_string();
+                .expect("URL points to a path that cannot be represented in UTF-8")
+                .to_string();
             let bind = format!("{}:{}", &path, &path);
             if !binds.contains(&bind) {
                 binds.push(bind);
