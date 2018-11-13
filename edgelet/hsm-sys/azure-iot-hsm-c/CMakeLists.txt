@@ -88,8 +88,7 @@ else()
 endif(BUILD_SHARED)
 
 set_target_properties(iothsm PROPERTIES
-        VERSION ${iothsm_VERSION_MAJOR}.${iothsm_VERSION_MINOR}.${iothsm_VERSION_PATCH}
-        SOVERSION 1)
+        VERSION ${iothsm_VERSION_MAJOR}.${iothsm_VERSION_MINOR}.${iothsm_VERSION_PATCH})
 
 set(preinstall_iothsm_library_dll ${CMAKE_CURRENT_BINARY_DIR}/$(Configuration)/iothsm.dll)
 
