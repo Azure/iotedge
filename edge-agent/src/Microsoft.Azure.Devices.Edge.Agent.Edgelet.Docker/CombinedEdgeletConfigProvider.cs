@@ -4,6 +4,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
+    using System.Runtime.InteropServices;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
@@ -78,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
                 SetMountOptions(createOptions, workloadUri);
             }
 
-            // If Management URI is Unix domain socket, and the module is the EdgeAgent, then mount it ino the container.
+            // If Management URI is Unix domain socket, and the module is the EdgeAgent, then mount it into the container.
             var managementUri = new Uri(this.configSource.Configuration.GetValue<string>(Constants.EdgeletManagementUriVariableName));
             if (managementUri.Scheme == "unix"
                 && module.Name.Equals(Constants.EdgeAgentModuleName, StringComparison.OrdinalIgnoreCase))
@@ -91,10 +93,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
         {
             HostConfig hostConfig = createOptions.HostConfig ?? new HostConfig();
             IList<string> binds = hostConfig.Binds ?? new List<string>();
-            binds.Add($"{uri.AbsolutePath}:{uri.AbsolutePath}");
+            string path = BindPath(uri);
+            binds.Add($"{path}:{path}");
 
             hostConfig.Binds = binds;
             createOptions.HostConfig = hostConfig;
+        }
+
+        static String BindPath(Uri uri)
+        {
+            // On Windows we need to bind to the parent folder. We can't bind
+            // directly to the socket file.
+            return RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? Path.GetDirectoryName(uri.LocalPath)
+                : uri.AbsolutePath;
         }
     }
 }
