@@ -137,11 +137,13 @@ set_target_properties(iothsm PROPERTIES
         VERSION ${iothsm_VERSION_MAJOR}.${iothsm_VERSION_MINOR}.${iothsm_VERSION_PATCH}
         SOVERSION 1)
 
-if(NOT WIN32)
+if(WIN32)
+    install(TARGETS iothsm DESTINATION ${CMAKE_INSTALL_LIBDIR})
+else()
     install(TARGETS iothsm
             ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
             LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
-endif(NOT WIN32)
+endif(WIN32)
 
 # CPack
 include (InstallRequiredSystemLibraries)
