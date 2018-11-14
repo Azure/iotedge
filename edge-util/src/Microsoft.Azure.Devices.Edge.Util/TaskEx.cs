@@ -185,7 +185,6 @@ namespace Microsoft.Azure.Devices.Edge.Util
             {
                 if (cancellationToken.IsCancellationRequested)
                 {
-                    task.Dispose();
                     throw new TaskCanceledException(task);
                 }
                 await Task.Delay(checkFrequency, cancellationToken);
@@ -201,7 +200,6 @@ namespace Microsoft.Azure.Devices.Edge.Util
             {
                 if (cancellationToken.IsCancellationRequested)
                 {
-                    task.Dispose();
                     throw new TaskCanceledException(task);
                 }
                 await Task.Delay(checkFrequency, cancellationToken);
