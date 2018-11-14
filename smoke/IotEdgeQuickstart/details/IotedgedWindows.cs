@@ -165,7 +165,7 @@ namespace IotEdgeQuickstart.Details
         static void SetEnvironmentVariable()
         {
             string config = File.ReadAllText(ConfigYamlFile);
-            var managementUriRegex = new Regex(@"connect:\s*management_uri:\s*""(.*)""");
+            var managementUriRegex = new Regex(@"connect:\s*management_uri:\s*""*(.*)""*");
             Match result = managementUriRegex.Match(config);
 
             if (result.Groups.Count != 2)

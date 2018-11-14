@@ -29,7 +29,6 @@ param (
 
 Set-StrictMode -Version "Latest"
 $ErrorActionPreference = "Stop"
-$RUNTIME_IDENTIFIER="win-x64"
 
 <#
  # Prepare environment
@@ -136,7 +135,7 @@ $AppProjects = Get-ChildItem $BuildRepositoryLocalPath -Include $CSPROJ_PATTERN 
 foreach ($Project in $AppProjects) {
     Write-Host "Publishing Solution - $($Project.Filename)"
     $ProjectPublishPath = Join-Path $PUBLISH_FOLDER ($Project.Filename -replace @(".csproj", ""))
-    &$DOTNET_PATH publish -f netcoreapp2.1 -r $RUNTIME_IDENTIFIER -c $Configuration -o $ProjectPublishPath $Project.Path |
+    &$DOTNET_PATH publish -f netcoreapp2.1 -c $Configuration -o $ProjectPublishPath $Project.Path |
         Write-Host
     if ($LASTEXITCODE -ne 0) {
         throw "Failed publishing $($Project.Filename)."
@@ -146,7 +145,7 @@ foreach ($Project in $AppProjects) {
 foreach ($Project in (Get-ChildItem $BuildRepositoryLocalPath -Include $FUNCTION_BINDING_CSPROJ_PATTERN -Recurse)) {
     Write-Host "Publishing - $Project"
     $ProjectPublishPath = Join-Path $PUBLISH_FOLDER $Project.BaseName
-    &$DOTNET_PATH publish -f netstandard2.0 -r $RUNTIME_IDENTIFIER -c $Configuration -o $ProjectPublishPath $Project |
+    &$DOTNET_PATH publish -f netstandard2.0 -c $Configuration -o $ProjectPublishPath $Project |
         Write-Host
     if ($LASTEXITCODE -ne 0) {
         throw "Failed publishing $Project."
