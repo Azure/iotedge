@@ -83,13 +83,13 @@ endif(MSVC)
 # target system find the HSM library.
 if(BUILD_SHARED)
     add_library(iothsm SHARED ${source_c_files} ${source_in_mem_store_c_files} ${source_h_files})
+    set_target_properties(iothsm PROPERTIES
+            VERSION ${iothsm_VERSION_MAJOR}.${iothsm_VERSION_MINOR}.${iothsm_VERSION_PATCH}
+            SOVERSION 1)
 else()
     add_library(iothsm STATIC ${source_c_files} ${source_in_mem_store_c_files} ${source_h_files})
 endif(BUILD_SHARED)
 
-set_target_properties(iothsm PROPERTIES
-        VERSION ${iothsm_VERSION_MAJOR}.${iothsm_VERSION_MINOR}.${iothsm_VERSION_PATCH}
-        SOVERSION 1)
 
 set(preinstall_iothsm_library_dll ${CMAKE_CURRENT_BINARY_DIR}/$(Configuration)/iothsm.dll)
 
