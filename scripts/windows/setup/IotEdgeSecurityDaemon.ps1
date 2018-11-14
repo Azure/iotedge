@@ -263,6 +263,7 @@ function Get-SecurityDaemon {
             Write-Host "Downloaded security daemon." -ForegroundColor "Green"
         }
         if ((Get-Item "$ArchivePath").PSIsContainer) {
+            New-Item -Type Directory 'C:\ProgramData\iotedge' | Out-Null
             Copy-Item "$ArchivePath\*" "C:\ProgramData\iotedge" -Force
         }
         else {
@@ -279,7 +280,7 @@ function Get-SecurityDaemon {
                 # well-known group that will exist in any container so that
                 # non-privileged modules can access it.
                 $Path = "C:\ProgramData\iotedge\$Name"
-                New-Item "$Path" -ItemType "Directory" -Force
+                New-Item "$Path" -ItemType "Directory" -Force | Out-Null
                 $Rule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule(`
                     "NT AUTHORITY\Authenticated Users", 'Modify', 'ObjectInherit', 'InheritOnly', 'Allow')
                 $Acl = [System.IO.Directory]::GetAccessControl($Path)
@@ -359,19 +360,23 @@ function Remove-SecurityDaemonResources {
             -ForegroundColor "Red"
         $success = $false
     }
+    else {
+        Write-Verbose "$CmdErr"
+    }
 
     Remove-Item -Recurse $EdgeEventLogMessagesPath -ErrorAction SilentlyContinue -ErrorVariable CmdErr
     if ($?) {
         Write-Verbose "Deleted install directory '$EdgeEventLogMessagesPath'"
     }
     elseif ($CmdErr.FullyQualifiedErrorId -ne "PathNotFound,Microsoft.PowerShell.Commands.RemoveItemCommand") {
+        Write-Verbose "$CmdErr"
         Write-Warning "Could not delete '$EdgeEventLogMessagesPath'."
         Write-Warning "If you're reinstalling or updating IoT Edge, then this is safe to ignore."
         Write-Warning ("Otherwise, please close Event Viewer, or any PowerShell windows where you ran Get-WinEvent, " +
             "then run Uninstall-SecurityDaemon again with '-Force'.")
     }
     else {
-        $success = $false
+        Write-Verbose "$CmdErr"
     }
 
     $success
