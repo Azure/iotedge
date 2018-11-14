@@ -59,15 +59,32 @@ namespace IotEdgeQuickstart.Details
                     {
                         await Task.Delay(TimeSpan.FromSeconds(3), cts.Token);
 
-                        string[] result = await Process.RunAsync("iotedge", "list", cts.Token);
-                        WriteToConsole("Output of iotedge list", result);
+                        string status = string.Empty;
 
-                        string status = result
-                            .Where(ln => ln.Split(null as char[], StringSplitOptions.RemoveEmptyEntries).First() == name)
-                            .DefaultIfEmpty("name status")
-                            .Single()
-                            .Split(null as char[], StringSplitOptions.RemoveEmptyEntries)
-                            .ElementAt(1);  // second column is STATUS
+                        try
+                        {
+                            string[] result = await Process.RunAsync("iotedge", "list", cts.Token);
+                            WriteToConsole("Output of iotedge list", result);
+
+                            status = result
+                                .Where(ln => ln.Split(null as char[], StringSplitOptions.RemoveEmptyEntries).First() == name)
+                                .DefaultIfEmpty("name status")
+                                .Single()
+                                .Split(null as char[], StringSplitOptions.RemoveEmptyEntries)
+                                .ElementAt(1);  // second column is STATUS
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine(e);
+
+                            // Eat up hyper error, as this is a transient exception; need retry.
+                            if (!e.Message.Contains("Hyper error", StringComparison.OrdinalIgnoreCase))
+                            {
+                                throw;
+                            }
+                        }
+
+                        
 
                         if (status == "running") break;
 
