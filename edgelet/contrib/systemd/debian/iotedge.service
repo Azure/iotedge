@@ -1,7 +1,8 @@
 [Unit]
 Description=Azure IoT Edge daemon
-After=network-online.target iotedge.socket iotedge.mgmt.socket
-Requires=network-online.target iotedge.socket iotedge.mgmt.socket
+After=network-online.target docker.service iotedge.socket iotedge.mgmt.socket
+Requires=iotedge.socket iotedge.mgmt.socket
+Wants=network-online.target docker.service
 Documentation=man:iotedged(8)
 
 [Service]
