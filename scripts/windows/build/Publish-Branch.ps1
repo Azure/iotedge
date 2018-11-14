@@ -61,8 +61,6 @@ if (-not $BuildSourceVersion) {
 }
 
 $SLN_PATTERN = "Microsoft.Azure.*.sln"
-$CSPROJ_PATTERN = "*.csproj"
-$FUNCTION_BINDING_CSPROJ_PATTERN = "*Binding.csproj"
 $TEST_CSPROJ_PATTERN = "Microsoft.Azure*Test.csproj"
 
 $DOTNET_PATH = [IO.Path]::Combine($AgentWorkFolder, "dotnet", "dotnet.exe")
@@ -127,28 +125,55 @@ foreach ($Solution in (Get-ChildItem $BuildRepositoryLocalPath -Include $SLN_PAT
 
 Write-Host "`nPublishing .NET Core apps`n"
 
-$AppProjects = Get-ChildItem $BuildRepositoryLocalPath -Include $CSPROJ_PATTERN -Recurse |
-    Where-Object FullName -NotMatch "\\c-shared\\?" |
-    Where-Object FullName -NotMatch "\\c-utility\\?" |
-    Select-String "<OutputType>Exe</OutputType>"
+$appProjectList = New-Object 'System.Collections.Generic.List[String]'
+$appProjectList.Add("Microsoft.Azure.Devices.Edge.Agent.Service.csproj")
+$appProjectList.Add("Microsoft.Azure.Devices.Edge.Hub.Service.csproj")
+$appProjectList.Add("SimulatedTemperatureSensor.csproj")
+$appProjectList.Add("TemperatureFilter.csproj")
+$appProjectList.Add("load-gen.csproj")
+$appProjectList.Add("MessagesAnalyzer.csproj")
+$appProjectList.Add("DirectMethodSender.csproj")
+$appProjectList.Add("DirectMethodReceiver.csproj")
 
-foreach ($Project in $AppProjects) {
-    Write-Host "Publishing Solution - $($Project.Filename)"
-    $ProjectPublishPath = Join-Path $PUBLISH_FOLDER ($Project.Filename -replace @(".csproj", ""))
-    &$DOTNET_PATH publish -f netcoreapp2.1 -c $Configuration -o $ProjectPublishPath $Project.Path |
+foreach ($appProjectFileName in $appProjectList) {
+    $appProjectFilePath = Get-ChildItem -Include *.csproj -File -Recurse |Where-Object {$_.Name -eq "$appProjectFileName"}|Select-Object -first 1|Select -ExpandProperty "FullName"
+
+    if (-Not $appProjectFilePath) {
+        throw "Can't find app project with name $appProjectFileName"
+    }
+
+    Write-Host "Publishing Project - $appProjectFilePath"
+    $ProjectPublishPath = Join-Path $PUBLISH_FOLDER ($appProjectFilePath -replace @(".csproj", ""))
+    &$DOTNET_PATH publish -f netcoreapp2.1 -c $Configuration -o $ProjectPublishPath $appProjectFilePath |
         Write-Host
     if ($LASTEXITCODE -ne 0) {
-        throw "Failed publishing $($Project.Filename)."
+        throw "Failed publishing $appProjectFilePath."
     }
 }
 
-foreach ($Project in (Get-ChildItem $BuildRepositoryLocalPath -Include $FUNCTION_BINDING_CSPROJ_PATTERN -Recurse)) {
-    Write-Host "Publishing - $Project"
-    $ProjectPublishPath = Join-Path $PUBLISH_FOLDER $Project.BaseName
-    &$DOTNET_PATH publish -f netstandard2.0 -c $Configuration -o $ProjectPublishPath $Project |
+<#
+ # Publish applications
+ #>
+
+Write-Host "`nPublishing .NET Core libs`n"
+
+$libProjectList = New-Object 'System.Collections.Generic.List[String]'
+$libProjectList.Add("Microsoft.Azure.WebJobs.Extensions.EdgeHub.csproj")
+$libProjectList.Add("EdgeHubTriggerCSharp.csproj")
+
+foreach ($libProjectFileName in $libProjectList) {
+    $libProjectFilePath = Get-ChildItem -Include *.csproj -File -Recurse |Where-Object {$_.Name -eq "$libProjectFileName"}|Select-Object -first 1|Select -ExpandProperty "FullName"
+
+    if (-Not $libProjectFilePath) {
+        throw "Can't find lib project with name $libProjectFilePath"
+    }
+
+    Write-Host "Publishing Project - $libProjectFilePath"
+    $ProjectPublishPath = Join-Path $PUBLISH_FOLDER ($appProjectFilePath -replace @(".csproj", ""))
+    &$DOTNET_PATH publish -f netstandard2.0 -c $Configuration -o $ProjectPublishPath $libProjectFilePath |
         Write-Host
     if ($LASTEXITCODE -ne 0) {
-        throw "Failed publishing $Project."
+        throw "Failed publishing $libProjectFilePath."
     }
 }
 
@@ -191,4 +216,26 @@ if ($PublishTests) {
 }
 else {
     Write-Host "`nSkipping publication of .NET Core Tests`n"
+}
+
+<#
+ # Publish IoTEdgeQuickstart and LeafDevice
+ #>
+
+Write-Host "Publishing - IoTEdgeQuickstart"
+$ProjectPublishPath = Join-Path $PUBLISH_FOLDER "IoTEdgeQuickstart"
+$IoTEdgeQuickstartProjectFolder = Join-Path $BuildRepositoryLocalPath "smoke/IotEdgeQuickstart"
+&$DOTNET_PATH publish -f netcoreapp2.1 -r "win-x64" -c $Configuration -o $ProjectPublishPath $IoTEdgeQuickstartProjectFolder |
+	Write-Host
+if ($LASTEXITCODE -ne 0) {
+	throw "Failed publishing IoTEdgeQuickstart."
+}
+
+Write-Host "Publishing - LeafDevice"
+$ProjectPublishPath = Join-Path $PUBLISH_FOLDER "LeafDevice"
+$LeafDeviceProjectFolder = Join-Path $BuildRepositoryLocalPath "smoke/LeafDevice"
+&$DOTNET_PATH publish -f netcoreapp2.1 -r "win-x64" -c $Configuration -o $ProjectPublishPath $LeafDeviceProjectFolder |
+	Write-Host
+if ($LASTEXITCODE -ne 0) {
+	throw "Failed publishing LeafDevice."
 }
