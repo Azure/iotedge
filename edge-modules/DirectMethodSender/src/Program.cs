@@ -42,6 +42,7 @@ namespace DirectMethodSender
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler)
                 = ShutdownHandler.Init(TimeSpan.FromSeconds(5), null);
+            Console.WriteLine($"Target device Id = [{targetDeviceId}], Target module Id = [{targetModuleId}]");
             await CallDirectMethod(moduleClient, dmDelay, targetDeviceId, targetModuleId, cts).ConfigureAwait(false);
             await moduleClient.CloseAsync();
             completed.Set();
