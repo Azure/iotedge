@@ -88,7 +88,8 @@ else()
 endif(BUILD_SHARED)
 
 set_target_properties(iothsm PROPERTIES
-        VERSION ${iothsm_VERSION_MAJOR}.${iothsm_VERSION_MINOR}.${iothsm_VERSION_PATCH})
+        VERSION ${iothsm_VERSION_MAJOR}.${iothsm_VERSION_MINOR}.${iothsm_VERSION_PATCH}
+        SOVERSION 1)
 
 set(preinstall_iothsm_library_dll ${CMAKE_CURRENT_BINARY_DIR}/$(Configuration)/iothsm.dll)
 
@@ -158,6 +159,7 @@ endif()
 set (CPACK_DEBIAN_PACKAGE_PROVIDES "libiothsm")
 set (CPACK_DEBIAN_PACKAGE_MAINTAINER "Azure IoT Edge Devs")
 set (CPACK_DEBIAN_FILE_NAME "DEB-DEFAULT")
+set (CPACK_DEBIAN_PACKAGE_GENERATE_SHLIBS "ON")
 
 set (CPACK_RPM_FILE_NAME RPM-DEFAULT)
 set (CPACK_RPM_PACKAGE_RELEASE_DIST On)
