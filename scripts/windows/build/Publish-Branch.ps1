@@ -142,17 +142,17 @@ foreach ($appProjectFileName in $appProjectList) {
         throw "Can't find app project with name $appProjectFileName"
     }
 
-    Write-Host "Publishing Project - $appProjectFilePath"
-    $ProjectPublishPath = Join-Path $PUBLISH_FOLDER ($appProjectFilePath -replace @(".csproj", ""))
+    Write-Host "Publishing App Project - $appProjectFilePath"
+    $ProjectPublishPath = Join-Path $PUBLISH_FOLDER ($appProjectFileName -replace @(".csproj", ""))
     &$DOTNET_PATH publish -f netcoreapp2.1 -c $Configuration -o $ProjectPublishPath $appProjectFilePath |
         Write-Host
     if ($LASTEXITCODE -ne 0) {
-        throw "Failed publishing $appProjectFilePath."
+        throw "Failed app publishing $appProjectFilePath."
     }
 }
 
 <#
- # Publish applications
+ # Publish libraries
  #>
 
 Write-Host "`nPublishing .NET Core libs`n"
@@ -168,12 +168,12 @@ foreach ($libProjectFileName in $libProjectList) {
         throw "Can't find lib project with name $libProjectFilePath"
     }
 
-    Write-Host "Publishing Project - $libProjectFilePath"
-    $ProjectPublishPath = Join-Path $PUBLISH_FOLDER ($appProjectFilePath -replace @(".csproj", ""))
+    Write-Host "Publishing Lib Project - $libProjectFilePath"
+    $ProjectPublishPath = Join-Path $PUBLISH_FOLDER ($libProjectFileName -replace @(".csproj", ""))
     &$DOTNET_PATH publish -f netstandard2.0 -c $Configuration -o $ProjectPublishPath $libProjectFilePath |
         Write-Host
     if ($LASTEXITCODE -ne 0) {
-        throw "Failed publishing $libProjectFilePath."
+        throw "Failed lib publishing $libProjectFilePath."
     }
 }
 
