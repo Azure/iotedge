@@ -50,6 +50,8 @@ pub enum ErrorKind {
     NotModified,
     #[fail(display = "Parse error")]
     Parse,
+    #[fail(display = "UTF-8 encode/decode error")]
+    Utf8,
 }
 
 impl Fail for Error {

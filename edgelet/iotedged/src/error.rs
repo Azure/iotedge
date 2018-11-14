@@ -31,7 +31,7 @@ pub struct Error {
     inner: Context<ErrorKind>,
 }
 
-#[derive(Clone, Copy, Debug, Fail, PartialEq)]
+#[derive(Clone, Debug, Fail, PartialEq)]
 pub enum ErrorKind {
     #[fail(display = "Invalid configuration file")]
     Settings,
@@ -80,6 +80,8 @@ pub enum ErrorKind {
     #[cfg(target_os = "windows")]
     #[fail(display = "Windows service error")]
     WindowsService,
+    #[fail(display = "Invalid uri {}", _0)]
+    InvalidUri(String),
 }
 
 impl Error {
