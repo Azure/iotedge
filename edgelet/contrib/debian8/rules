@@ -20,7 +20,7 @@ ifeq ($(CARGO), cross)
 	dh_shlibdeps -l /usr/arm-linux-gnueabihf/lib/ -- --ignore-missing-info
 else
 ifndef SYSROOT
-	dh_shlibdeps
+	dh_shlibdeps -l $(CURDIR)/../build/hsm-sys*/out/lib -- --ignore-missing-info
 else
 	dh_shlibdeps -l $(SYSROOT)/lib/:$(SYSROOT)/usr/lib -- --ignore-missing-info
 endif
