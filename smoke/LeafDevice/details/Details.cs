@@ -62,7 +62,7 @@ namespace LeafDevice.Details
             {
                 this.serviceClientTransportType = ServiceClientTransportType.Amqp;
                 this.eventHubClientTransportType = EventHubClientTransportType.Amqp;
-                this.deviceTransportSettings = new ITransportSettings[] { new MqttTransportSettings(DeviceClientTransportType.Mqtt) };
+                this.deviceTransportSettings = new ITransportSettings[] { new MqttTransportSettings(DeviceClientTransportType.Mqtt_Tcp_Only) };
             }
         }
 
@@ -92,6 +92,7 @@ namespace LeafDevice.Details
             // For details, refer to InstallCaCertificate method
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
+                // This will hook up callback on device transport settings to validate with given certificate
                 CustomCertificateValidator.Create(new List<X509Certificate2> { this.GetCertificate() }, this.deviceTransportSettings);
             }
 
