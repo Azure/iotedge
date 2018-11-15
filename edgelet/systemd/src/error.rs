@@ -2,11 +2,12 @@
 
 use std::fmt;
 use std::fmt::Display;
-use std::num::ParseIntError;
 
 use failure::{Backtrace, Context, Fail};
 #[cfg(target_os = "linux")]
-use nix::Error as NixError;
+use nix::unistd::Pid;
+
+use Fd;
 
 #[derive(Debug)]
 pub struct Error {
@@ -15,21 +16,34 @@ pub struct Error {
 
 #[derive(Debug, Fail)]
 pub enum ErrorKind {
-    #[fail(display = "Missing required environment variable - {}.", _0)]
-    Var(String),
-    #[fail(display = "Error parsing pid.")]
-    Parse,
-    #[fail(display = "Environment variables meant for a different process.")]
-    WrongProcess,
-    #[fail(display = "Environment variable is invalid.")]
-    InvalidVar,
-    #[fail(display = "File descriptor is invalid.")]
-    InvalidFd,
     #[cfg(target_os = "linux")]
-    #[fail(display = "Syscall for socket failed.")]
-    Nix,
+    #[fail(display = "{} syscall for socket failed.", _0)]
+    Syscall(&'static str),
+
     #[fail(display = "File descriptor not found.")]
-    NotFound,
+    FdNotFound,
+
+    #[fail(display = "The number of file descriptors {} does not match the number of file descriptor names {}.", _0, _1)]
+    NumFdsDoesNotMatchNumFdNames(usize, usize),
+
+    #[fail(display = "File descriptor {} is invalid.", _0)]
+    InvalidFd(Fd),
+
+    #[fail(display = "Number of file descriptors {} from environment variable {} is not a valid value.", _1, _0)]
+    InvalidNumFds(String, Fd),
+
+    #[fail(display = "Environment variable {} is set to an invalid value.", _0)]
+    InvalidVar(String),
+
+    #[fail(display = "Could not parse process ID from environment variable {}.", _0)]
+    ParsePid(String),
+
+    #[fail(display = "Socket corresponding to {} not found.", _0)]
+    SocketNotFound(SocketLookupType),
+
+    #[cfg(target_os = "linux")]
+    #[fail(display = "Based on the environment variable {}, other environment variables meant for a different process (PID {}).", _0, _1)]
+    WrongProcess(String, Pid),
 }
 
 impl Fail for Error {
@@ -72,19 +86,17 @@ impl From<Context<ErrorKind>> for Error {
     }
 }
 
-impl From<ParseIntError> for Error {
-    fn from(error: ParseIntError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Parse),
-        }
-    }
+#[derive(Debug)]
+pub enum SocketLookupType {
+    Fd(Fd),
+    Name(String),
 }
 
-#[cfg(target_os = "linux")]
-impl From<NixError> for Error {
-    fn from(error: NixError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Nix),
+impl Display for SocketLookupType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            SocketLookupType::Fd(fd) => write!(f, "file descriptor {}", fd),
+            SocketLookupType::Name(name) => write!(f, "name {}", name),
         }
     }
 }

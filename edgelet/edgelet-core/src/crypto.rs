@@ -218,7 +218,7 @@ impl Sign for MemoryKey {
             SignatureAlgorithm::HMACSHA256 => {
                 // Create `Mac` trait implementation, namely HMAC-SHA256
                 let mut mac =
-                    Hmac::<Sha256>::new(&self.key).map_err(|_| ErrorKind::Sign(self.key.len()))?;
+                    Hmac::<Sha256>::new(&self.key).map_err(|_| ErrorKind::SignInvalidKeyLength(self.key.len()))?;
                 mac.input(data);
 
                 // `result` has type `MacResult` which is a thin wrapper around array of
@@ -326,7 +326,7 @@ impl KeyStore for MemoryKeyStore {
                 identity.clone(),
                 key_name.to_string(),
             )).cloned()
-            .ok_or_else(|| Error::from(ErrorKind::NotFound))
+            .ok_or_else(|| Error::from(ErrorKind::KeyStoreItemNotFound))
     }
 }
 
@@ -347,20 +347,12 @@ impl<K: Sign> KeyStore for DerivedKeyStore<K> {
     type Key = MemoryKey;
 
     fn get(&self, identity: &KeyIdentity, key_name: &str) -> Result<Self::Key, Error> {
-        self.root
-            .sign(
-                SignatureAlgorithm::HMACSHA256,
-                format!(
-                    "{}{}",
-                    match identity {
-                        KeyIdentity::Device => "",
-                        KeyIdentity::Module(ref m) => m,
-                    },
-                    key_name
-                ).as_bytes(),
-            ).map(|d| MemoryKey::new(d.as_bytes()))
-            .context(ErrorKind::KeyStore)
-            .map_err(Error::from)
+        let data = match identity {
+            KeyIdentity::Device => "",
+            KeyIdentity::Module(ref m) => m,
+        };
+        let signature = self.root.sign(SignatureAlgorithm::HMACSHA256, format!("{}{}", data, key_name).as_bytes()).context(ErrorKind::Sign)?;
+        Ok(MemoryKey::new(signature.as_bytes()))
     }
 }
 

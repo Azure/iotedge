@@ -1,27 +1,21 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use edgelet_core::ModuleRuntime;
+use failure::{Fail, ResultExt};
+use futures::{Future, IntoFuture};
+use hyper::{Body, Request, Response, StatusCode};
+
+use edgelet_core::{ModuleRuntime, RuntimeOperation};
 use edgelet_http::route::{Handler, Parameters};
-use futures::{future, Future};
-use http::{Request, Response, StatusCode};
-use hyper::{Body, Error as HyperError};
+use edgelet_http::Error as HttpError;
 
 use error::{Error, ErrorKind};
 use IntoResponse;
 
-pub struct RestartModule<M>
-where
-    M: 'static + ModuleRuntime,
-    <M as ModuleRuntime>::Error: IntoResponse,
-{
+pub struct RestartModule<M> {
     runtime: M,
 }
 
-impl<M> RestartModule<M>
-where
-    M: 'static + ModuleRuntime,
-    <M as ModuleRuntime>::Error: IntoResponse,
-{
+impl<M> RestartModule<M> {
     pub fn new(runtime: M) -> Self {
         RestartModule { runtime }
     }
@@ -30,29 +24,35 @@ where
 impl<M> Handler<Parameters> for RestartModule<M>
 where
     M: 'static + ModuleRuntime + Send,
-    <M as ModuleRuntime>::Error: IntoResponse,
 {
     fn handle(
         &self,
         _req: Request<Body>,
         params: Parameters,
-    ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
-        let response = match params.name("name") {
-            Some(name) => {
-                let result = self
-                    .runtime
-                    .restart(name)
-                    .map(|_| {
-                        Response::builder()
-                            .status(StatusCode::NO_CONTENT)
-                            .body(Body::default())
-                            .unwrap_or_else(|e| e.into_response())
-                    }).or_else(|e| future::ok(e.into_response()));
-                future::Either::A(result)
-            }
+    ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
+        let response =
+            params.name("name")
+            .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("name")))
+            .map(|name| {
+                let name = name.to_string();
 
-            None => future::Either::B(future::ok(Error::from(ErrorKind::BadParam).into_response())),
-        };
+                self
+                    .runtime
+                    .restart(&name)
+                    .then(|result| match result {
+                        Ok(_) => Ok(name),
+                        Err(err) => Err(Error::from(err.context(ErrorKind::RuntimeOperation(RuntimeOperation::RestartModule(name))))),
+                    })
+            })
+            .into_future()
+            .flatten()
+            .and_then(|name| {
+                Ok(Response::builder()
+                    .status(StatusCode::NO_CONTENT)
+                    .body(Body::default())
+                    .context(ErrorKind::RuntimeOperation(RuntimeOperation::RestartModule(name)))?)
+            })
+            .or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }

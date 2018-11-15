@@ -1,35 +1,27 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use edgelet_core::{Module, ModuleRegistry, ModuleRuntime, ModuleStatus};
-use edgelet_http::route::{Handler, Parameters};
 use failure::ResultExt;
 use futures::{future, Future, Stream};
-use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
-use http::{Request, Response, StatusCode};
-use hyper::{Body, Error as HyperError};
-use management::models::*;
+use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use hyper::{Body, Request, Response, StatusCode};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json;
 use url::form_urlencoded::parse as parse_query;
 
+use edgelet_core::{Module, ModuleRegistry, ModuleRuntime, ModuleStatus};
+use edgelet_http::route::{Handler, Parameters};
+use edgelet_http::Error as HttpError;
+
 use super::{spec_to_core, spec_to_details};
 use error::{Error, ErrorKind};
 use IntoResponse;
 
-pub struct UpdateModule<M>
-where
-    M: 'static + ModuleRuntime + Clone,
-    <M::Module as Module>::Config: DeserializeOwned + Serialize,
-{
+pub struct UpdateModule<M> {
     runtime: M,
 }
 
-impl<M> UpdateModule<M>
-where
-    M: 'static + ModuleRuntime + Clone,
-    <M::Module as Module>::Config: DeserializeOwned + Serialize,
-{
+impl<M> UpdateModule<M> {
     pub fn new(runtime: M) -> Self {
         UpdateModule { runtime }
     }
@@ -37,17 +29,16 @@ where
 
 impl<M> Handler<Parameters> for UpdateModule<M>
 where
-    M: 'static + ModuleRuntime + Clone + Send,
+    M: 'static + ModuleRuntime + Clone + Send + Sync,
     <M::Module as Module>::Config: DeserializeOwned + Serialize,
-    M::Error: IntoResponse,
-    <M::ModuleRegistry as ModuleRegistry>::Error: IntoResponse,
 {
     fn handle(
         &self,
         req: Request<Body>,
         _params: Parameters,
-    ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+    ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
         let runtime = self.runtime.clone();
+
         let start: bool = req
             .uri()
             .query()
@@ -58,76 +49,79 @@ where
                     .map(|_| true)
             }).unwrap_or_else(|| false);
 
-        let response = req
+        let response =
+            req
             .into_body()
             .concat2()
-            .and_then(move |b| {
-                match serde_json::from_slice::<ModuleSpec>(&b)
-                    .context(ErrorKind::BadBody)
-                    .map_err(From::from)
-                    .and_then(|spec| {
-                        spec_to_core::<M>(&spec)
-                            .context(ErrorKind::BadBody)
-                            .map_err(Error::from)
-                            .map(|core_spec| (core_spec, spec))
-                    }) {
-                    Ok((core_spec, spec)) => {
-                        let name = core_spec.name().to_string();
+            .then(|b| -> Result<_, Error> {
+                let b = b.context(ErrorKind::MalformedRequestBody)?;
+                let spec = serde_json::from_slice(&b).context(ErrorKind::MalformedRequestBody)?;
+                let core_spec = spec_to_core::<M>(&spec, ErrorKind::MalformedRequestBody)?;
+                Ok((core_spec, spec))
+            })
+            .and_then(move |(core_spec, spec)| {
+                let name = core_spec.name().to_string();
 
-                        if start {
-                            info!("Updating and starting module {}", name);
-                        } else {
-                            info!("Updating module {}", name);
-                        }
-
-                        let created = runtime
-                            .remove(&name)
-                            .and_then(move |_| {
-                                debug!("Removed existing module {}", name);
-                                runtime
-                                    .registry()
-                                    .pull(core_spec.config())
-                                    .and_then(move |_| {
-                                        debug!("Successfully pulled new image for module {}", name);
-                                        runtime.create(core_spec).and_then(move |_| {
-                                            debug!("Created module {}", name);
-                                            if start {
-                                                info!("Starting module {}", name);
-                                                future::Either::A(
-                                                    runtime
-                                                        .start(&name)
-                                                        .map(|_| ModuleStatus::Running),
-                                                )
-                                            } else {
-                                                future::Either::B(future::ok(ModuleStatus::Stopped))
-                                            }.map(
-                                                move |status| {
-                                                    let details = spec_to_details(&spec, status);
-                                                    match serde_json::to_string(&details)
-                                                        .context(ErrorKind::Serde)
-                                                    {
-                                                        Ok(b) => Response::builder()
-                                                            .status(StatusCode::OK)
-                                                            .header(
-                                                                CONTENT_TYPE,
-                                                                "application/json",
-                                                            ).header(
-                                                                CONTENT_LENGTH,
-                                                                b.len().to_string().as_str(),
-                                                            ).body(b.into())
-                                                            .unwrap_or_else(|e| e.into_response()),
-                                                        Err(e) => e.into_response(),
-                                                    }
-                                                },
-                                            )
-                                        })
-                                    })
-                            }).or_else(|e| future::ok(e.into_response()));
-                        future::Either::A(created)
-                    }
-                    Err(e) => future::Either::B(future::ok(e.into_response())),
+                if start {
+                    info!("Updating and starting module {}", name);
+                } else {
+                    info!("Updating module {}", name);
                 }
-            }).or_else(|e| future::ok(e.into_response()));
+
+                runtime
+                    .remove(&name)
+                    .then(|result| {
+                        result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
+                        Ok((core_spec, spec, name, runtime))
+                    })
+            })
+            .and_then(|(core_spec, spec, name, runtime)| {
+                debug!("Removed existing module {}", name);
+                runtime
+                    .registry()
+                    .pull(core_spec.config())
+                    .then(|result| {
+                        result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
+                        Ok((core_spec, spec, name, runtime))
+                    })
+            })
+            .and_then(|(core_spec, spec, name, runtime)| {
+                debug!("Successfully pulled new image for module {}", name);
+                runtime.create(core_spec)
+                .then(|result| {
+                    result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
+                    Ok((name, spec, runtime))
+                })
+            })
+            .and_then(move |(name, spec, runtime)| {
+                debug!("Created module {}", name);
+                if start {
+                    info!("Starting module {}", name);
+                    future::Either::A(
+                        runtime
+                            .start(&name)
+                            .then(|result| {
+                                result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
+                                Ok((ModuleStatus::Running, spec, name))
+                            }),
+                    )
+                } else {
+                    future::Either::B(future::ok((ModuleStatus::Stopped, spec, name)))
+                }
+            })
+            .and_then(|(status, spec, name)| -> Result<_, Error> {
+                let details = spec_to_details(&spec, status);
+                let b = serde_json::to_string(&details).with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
+                let response = Response::builder()
+                        .status(StatusCode::OK)
+                        .header(CONTENT_TYPE, "application/json")
+                        .header(CONTENT_LENGTH, b.len().to_string().as_str())
+                        .body(b.into())
+                        .context(ErrorKind::UpdateModule(name))?;
+                Ok(response)
+            })
+            .or_else(|e| Ok(e.into_response()));
+
         Box::new(response)
     }
 }
@@ -138,7 +132,7 @@ mod tests {
     use edgelet_core::{ModuleRuntimeState, ModuleStatus};
     use edgelet_http::route::Parameters;
     use edgelet_test_utils::module::*;
-    use management::models::{Config, ErrorResponse};
+    use management::models::{Config, ErrorResponse, ModuleDetails, ModuleSpec};
     use server::module::tests::Error;
 
     use super::*;
@@ -252,7 +246,7 @@ mod tests {
             .concat2()
             .and_then(|b| {
                 let error_response: ErrorResponse = serde_json::from_slice(&b).unwrap();
-                let expected = "Bad body\n\tcaused by: expected value at line 1 column 1";
+                let expected = "Request body is malformed\n\tcaused by: expected value at line 1 column 1";
                 assert_eq!(expected, error_response.message());
                 Ok(())
             }).wait()
@@ -279,7 +273,7 @@ mod tests {
             .concat2()
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
-                assert_eq!("General error", error.message());
+                assert_eq!("Could not update module\n\tcaused by: General error", error.message());
                 Ok(())
             }).wait()
             .unwrap();
@@ -306,7 +300,7 @@ mod tests {
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
                 assert_eq!(
-                    "Bad body\n\tcaused by: Serde error\n\tcaused by: missing field `image`",
+                    "Request body is malformed\n\tcaused by: missing field `image`",
                     error.message()
                 );
                 Ok(())

@@ -22,11 +22,13 @@ use std::io::Write;
 use std::process;
 
 use clap::{App, AppSettings, Arg, SubCommand};
+use failure::{Fail, ResultExt};
+use url::Url;
+
 use edgelet_core::{LogOptions, LogTail};
 use edgelet_http_mgmt::ModuleClient;
-use failure::Fail;
+
 use iotedge::*;
-use url::Url;
 
 #[cfg(unix)]
 const MGMT_URI: &str = "unix:///var/run/iotedge/mgmt.sock";
@@ -101,12 +103,12 @@ fn run() -> Result<(), Error> {
         .get_matches();
 
     let url = matches.value_of("host").map_or_else(
-        || Err(Error::from(ErrorKind::NoHost)),
-        |h| Url::parse(h).map_err(Error::from),
+        || Err(Error::from(ErrorKind::MissingHostParameter)),
+        |h| Url::parse(h).context(ErrorKind::BadHostParameter).map_err(Error::from),
     )?;
-    let runtime = ModuleClient::new(&url)?;
+    let runtime = ModuleClient::new(&url).context(ErrorKind::ModuleRuntime)?;
 
-    let mut tokio_runtime = tokio::runtime::Runtime::new()?;
+    let mut tokio_runtime = tokio::runtime::Runtime::new().context(ErrorKind::InitializeTokio)?;
 
     match matches.subcommand() {
         ("list", Some(_args)) => tokio_runtime.block_on(List::new(runtime, io::stdout()).execute()),

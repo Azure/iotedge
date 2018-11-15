@@ -16,6 +16,7 @@
 use std::io;
 use std::path::Path;
 
+use failure::ResultExt;
 use futures::{future, Future};
 use hyper::client::connect::{Connect, Connected, Destination};
 use hyper::client::HttpConnector;
@@ -28,7 +29,7 @@ use hyperlocal::{UnixConnector, Uri as HyperlocalUri};
 use hyperlocal_windows::{UnixConnector, Uri as HyperlocalUri};
 use url::{ParseError, Url};
 
-use error::{Error, ErrorKind};
+use error::{Error, ErrorKind, InvalidUrlReason};
 use util::StreamSelector;
 use UrlExt;
 
@@ -67,7 +68,7 @@ impl UrlConnector {
                 if socket_file_exists(&file_path) {
                     Ok(UrlConnector::Unix(UnixConnector::new()))
                 } else {
-                    Err(ErrorKind::InvalidUri(url.to_string()))?
+                    Err(ErrorKind::InvalidUrlWithReason(url.to_string(), InvalidUrlReason::FileNotFound))?
                 }
             }
 
@@ -77,19 +78,35 @@ impl UrlConnector {
                 //       this time.
                 Ok(UrlConnector::Http(HttpConnector::new(4)))
             }
-            _ => Err(ErrorKind::InvalidUri(url.to_string()))?,
+            _ => Err(ErrorKind::InvalidUrlWithReason(url.to_string(), InvalidUrlReason::InvalidScheme))?,
         }
     }
 
     pub fn build_hyper_uri(scheme: &str, base_path: &str, path: &str) -> Result<Uri, Error> {
-        match scheme {
+        match &*scheme {
             #[cfg(windows)]
-            PIPE_SCHEME => Ok(PipeUri::new(base_path, path)?.into()),
-            UNIX_SCHEME => Ok(HyperlocalUri::new(base_path, path).into()),
+            PIPE_SCHEME => Ok(
+                PipeUri::new(base_path, &path)
+                .with_context(|_| ErrorKind::MalformedUrl {
+                    scheme: scheme.to_string(),
+                    base_path: base_path.to_string(),
+                    path: path.to_string(),
+                })?
+                .into()),
+            UNIX_SCHEME => Ok(HyperlocalUri::new(base_path, &path).into()),
             HTTP_SCHEME => Ok(Url::parse(base_path)
                 .and_then(|base| base.join(path))
-                .and_then(|url| url.as_str().parse().map_err(|_| ParseError::IdnaError))?),
-            _ => Err(ErrorKind::UrlParse)?,
+                .and_then(|url| url.as_str().parse().map_err(|_| ParseError::IdnaError))
+                .with_context(|_| ErrorKind::MalformedUrl {
+                    scheme: scheme.to_string(),
+                    base_path: base_path.to_string(),
+                    path: path.to_string(),
+                })?),
+            _ => Err(ErrorKind::MalformedUrl {
+                scheme: scheme.to_string(),
+                base_path: base_path.to_string(),
+                path: path.to_string(),
+            })?,
         }
     }
 }
@@ -148,14 +165,14 @@ mod tests {
     use super::*;
 
     #[test]
-    #[should_panic(expected = "Invalid uri")]
+    #[should_panic(expected = "URL does not have a recognized scheme")]
     fn invalid_url_scheme() {
         let _connector =
             UrlConnector::new(&Url::parse("foo:///this/is/not/valid").unwrap()).unwrap();
     }
 
     #[test]
-    #[should_panic(expected = "Invalid uri")]
+    #[should_panic(expected = "Socket file could not be found")]
     fn invalid_uds_url() {
         let _connector =
             UrlConnector::new(&Url::parse("unix:///this/file/does/not/exist").unwrap()).unwrap();

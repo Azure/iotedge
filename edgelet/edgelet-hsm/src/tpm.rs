@@ -3,11 +3,12 @@
 use std::sync::{Arc, Mutex};
 
 use bytes::Bytes;
+use failure::Fail;
 
 use edgelet_core::crypto::{
     Activate, KeyIdentity, KeyStore as CoreKeyStore, Sign, SignatureAlgorithm,
 };
-use edgelet_core::Error as CoreError;
+use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind};
 use hsm::{ManageTpmKeys, SignWithTpm, Tpm, TpmDigest};
 
 pub use error::{Error, ErrorKind};
@@ -46,8 +47,7 @@ impl TpmKeyStore {
         self.tpm
             .lock()
             .expect("Lock on KeyStore TPM failed")
-            .activate_identity_key(key_value)
-            .map_err(Error::from)?;
+            .activate_identity_key(key_value)?;
         Ok(())
     }
 
@@ -67,12 +67,12 @@ impl CoreKeyStore for TpmKeyStore {
     /// Get a TPM Key which will derive and sign data.
     fn get(&self, identity: &KeyIdentity, key_name: &str) -> Result<Self::Key, CoreError> {
         match *identity {
-            KeyIdentity::Device => self.get_active_key().map_err(CoreError::from),
+            KeyIdentity::Device => self.get_active_key().map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore))),
             KeyIdentity::Module(ref m) => {
                 if key_name.is_empty() || m.is_empty() {
                     Err(ErrorKind::EmptyStrings)
-                        .map_err(Error::from)
-                        .map_err(CoreError::from)?;
+                        .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
+                        .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore)))?;
                 }
                 Ok(TpmKey {
                     tpm: Arc::clone(&self.tpm),
@@ -95,11 +95,11 @@ impl Activate for TpmKeyStore {
     ) -> Result<(), CoreError> {
         if identity != KeyIdentity::Device {
             Err(ErrorKind::NoModuleActivation)
-                .map_err(Error::from)
-                .map_err(CoreError::from)?;
+                .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
+                .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore)))?;
         }
         self.activate_key(&Bytes::from(key.as_ref()))
-            .map_err(CoreError::from)
+            .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore)))
     }
 }
 
@@ -120,8 +120,8 @@ impl Sign for TpmKey {
                 .lock()
                 .expect("Lock failed")
                 .sign_with_identity(data)
-                .map_err(Error::from)
-                .map_err(CoreError::from),
+                .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
+                .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore))),
             KeyIdentity::Module(ref _m) => self
                 .tpm
                 .lock()
@@ -136,8 +136,9 @@ impl Sign for TpmKey {
                         },
                         self.key_name
                     ).as_bytes(),
-                ).map_err(Error::from)
-                .map_err(CoreError::from),
+                )
+                .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
+                .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore))),
         }
     }
 }

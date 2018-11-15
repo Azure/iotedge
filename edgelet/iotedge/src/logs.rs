@@ -4,11 +4,13 @@ use std::cmp;
 use std::io::{self, Write};
 
 use bytes::{Buf, BufMut, Bytes, BytesMut, IntoBuf};
-use edgelet_core::{LogOptions, ModuleRuntime};
+use failure::Fail;
 use futures::prelude::*;
 use tokio::codec::length_delimited;
 use tokio::codec::FramedRead;
 use tokio::io::AsyncRead;
+
+use edgelet_core::{LogOptions, ModuleRuntime};
 
 use error::{Error, ErrorKind};
 use Command;
@@ -40,7 +42,7 @@ where
         let result = self
             .runtime
             .logs(&id, &self.options)
-            .map_err(|_| Error::from(ErrorKind::ModuleRuntime))
+            .map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)))
             .and_then(move |logs| {
                 let chunked =
                     Chunked::new(logs.map_err(|_| io::Error::new(io::ErrorKind::Other, "unknown")));
@@ -53,7 +55,8 @@ where
                             | LogChunk::Unknown(b) => io::stdout().write(&b)?,
                         };
                         Ok(())
-                    }).map_err(|_| Error::from(ErrorKind::ModuleRuntime))
+                    })
+                    .map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)))
             });
         Box::new(result)
     }

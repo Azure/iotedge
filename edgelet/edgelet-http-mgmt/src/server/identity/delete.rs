@@ -2,28 +2,22 @@
 
 use std::sync::Mutex;
 
-use edgelet_core::{IdentityManager, IdentitySpec};
+use failure::{Fail, ResultExt};
+use futures::{Future, IntoFuture};
+use hyper::{Body, Request, Response, StatusCode};
+
+use edgelet_core::{IdentityManager, IdentityOperation, IdentitySpec};
 use edgelet_http::route::{Handler, Parameters};
-use futures::{future, Future};
-use http::{Request, Response, StatusCode};
-use hyper::{Body, Error as HyperError};
+use edgelet_http::Error as HttpError;
 
 use error::{Error, ErrorKind};
 use IntoResponse;
 
-pub struct DeleteIdentity<I>
-where
-    I: 'static + IdentityManager,
-    <I as IdentityManager>::Error: IntoResponse,
-{
+pub struct DeleteIdentity<I> {
     id_manager: Mutex<I>,
 }
 
-impl<I> DeleteIdentity<I>
-where
-    I: 'static + IdentityManager,
-    <I as IdentityManager>::Error: IntoResponse,
-{
+impl<I> DeleteIdentity<I> {
     pub fn new(id_manager: I) -> Self {
         DeleteIdentity {
             id_manager: Mutex::new(id_manager),
@@ -34,31 +28,37 @@ where
 impl<I> Handler<Parameters> for DeleteIdentity<I>
 where
     I: 'static + IdentityManager + Send,
-    <I as IdentityManager>::Error: IntoResponse,
 {
     fn handle(
         &self,
         _req: Request<Body>,
         params: Parameters,
-    ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
-        let response = match params.name("name") {
-            Some(name) => {
-                let result = self
+    ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
+        let response =
+            params.name("name")
+            .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("name")))
+            .map(|name| {
+                let name = name.to_string();
+
+                self
                     .id_manager
                     .lock()
                     .unwrap()
-                    .delete(IdentitySpec::new(name))
-                    .map(|_| {
-                        Response::builder()
-                            .status(StatusCode::NO_CONTENT)
-                            .body(Body::default())
-                            .unwrap_or_else(|e| e.into_response())
-                    }).or_else(|e| future::ok(e.into_response()));
-                future::Either::A(result)
-            }
-
-            None => future::Either::B(future::ok(Error::from(ErrorKind::BadParam).into_response())),
-        };
+                    .delete(IdentitySpec::new(name.clone()))
+                    .then(|result| match result {
+                        Ok(_) => Ok(name),
+                        Err(err) => Err(Error::from(err.context(ErrorKind::IdentityOperation(IdentityOperation::DeleteIdentity(name))))),
+                    })
+            })
+            .into_future()
+            .flatten()
+            .and_then(|name| {
+                Ok(Response::builder()
+                    .status(StatusCode::NO_CONTENT)
+                    .body(Body::default())
+                    .context(ErrorKind::IdentityOperation(IdentityOperation::DeleteIdentity(name)))?)
+            })
+            .or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }
@@ -115,7 +115,7 @@ mod tests {
             .concat2()
             .and_then(|body| {
                 let error: ErrorResponse = serde_json::from_slice(&body).unwrap();
-                assert_eq!("Bad parameter", error.message());
+                assert_eq!("The request is missing required parameter `name`", error.message());
                 Ok(())
             }).wait()
             .unwrap();
@@ -137,7 +137,7 @@ mod tests {
             .concat2()
             .and_then(|body| {
                 let error: ErrorResponse = serde_json::from_slice(&body).unwrap();
-                assert_eq!("Module not found", error.message());
+                assert_eq!("Could not delete identity m1\n\tcaused by: Module not found", error.message());
                 Ok(())
             }).wait()
             .unwrap();

@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+
 //! Utility macros
 //!
 //! This module contains helper macros for implementing argument validation in
@@ -89,6 +90,12 @@
 //!     let _thing_future = do_the_thing(20);
 //! }
 //! ```
+
+use std::fmt;
+
+use failure::{Fail, Context};
+
+use error::ErrorKind;
 
 /// Exits a function early with an `Error`.
 ///
@@ -414,6 +421,17 @@ macro_rules! fensure_not_empty {
     ($val:expr) => {
         fensure_not_empty!($val, "".to_string())
     };
+}
+
+pub fn ensure_not_empty_with_context<D, F>(value: &str, context: F) -> Result<(), Context<D>> where
+    D: fmt::Display + Send + Sync,
+    F: FnOnce() -> D,
+{
+    if value.trim().is_empty() {
+        return Err(ErrorKind::ArgumentEmpty(String::new()).context(context()));
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]

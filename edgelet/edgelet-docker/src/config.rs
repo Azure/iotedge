@@ -1,9 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use docker::models::{AuthConfig, ContainerCreateBody};
-use edgelet_utils::serde_clone;
+use failure::ResultExt;
 
-use error::Result;
+use docker::models::{AuthConfig, ContainerCreateBody};
+use edgelet_utils::{ensure_not_empty_with_context, serde_clone};
+
+use error::{ErrorKind, Result};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -20,12 +22,14 @@ pub struct DockerConfig {
 
 impl DockerConfig {
     pub fn new(
-        image: &str,
+        image: String,
         create_options: ContainerCreateBody,
         auth: Option<AuthConfig>,
     ) -> Result<Self> {
+        ensure_not_empty_with_context(&image, || ErrorKind::InvalidImage(image.clone()))?;
+
         let config = DockerConfig {
-            image: ensure_not_empty!(image.to_string()),
+            image,
             image_id: None,
             create_options,
             auth,
@@ -34,7 +38,7 @@ impl DockerConfig {
     }
 
     pub fn clone_create_options(&self) -> Result<ContainerCreateBody> {
-        Ok(serde_clone(&self.create_options)?)
+        Ok(serde_clone(&self.create_options).context(ErrorKind::CloneCreateOptions)?)
     }
 
     pub fn image(&self) -> &str {
@@ -89,13 +93,13 @@ mod tests {
     #[test]
     #[should_panic]
     fn empty_image_fails() {
-        DockerConfig::new("", ContainerCreateBody::new(), None).unwrap();
+        DockerConfig::new("".to_string(), ContainerCreateBody::new(), None).unwrap();
     }
 
     #[test]
     #[should_panic]
     fn white_space_image_fails() {
-        DockerConfig::new("    ", ContainerCreateBody::new(), None).unwrap();
+        DockerConfig::new("    ".to_string(), ContainerCreateBody::new(), None).unwrap();
     }
 
     #[test]
@@ -114,7 +118,7 @@ mod tests {
             .with_host_config(HostConfig::new().with_port_bindings(port_bindings))
             .with_labels(labels);
 
-        let config = DockerConfig::new("ubuntu", create_options, None)
+        let config = DockerConfig::new("ubuntu".to_string(), create_options, None)
             .unwrap()
             .with_image_id("42".to_string());
         let actual_json = serde_json::to_string(&config).unwrap();
@@ -164,7 +168,7 @@ mod tests {
             .with_password("password".to_string())
             .with_serveraddress("repo.azurecr.io".to_string());
 
-        let config = DockerConfig::new("ubuntu", create_options, Some(auth_config)).unwrap();
+        let config = DockerConfig::new("ubuntu".to_string(), create_options, Some(auth_config)).unwrap();
         let actual_json = serde_json::to_string(&config).unwrap();
         let expected_json = json!({
             "image": "ubuntu",

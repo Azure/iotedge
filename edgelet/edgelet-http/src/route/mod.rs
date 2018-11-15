@@ -4,12 +4,14 @@
 /// with some changes to improve usability of the captured parameters
 /// when using regex based routes.
 use std::clone::Clone;
-use std::error::Error as StdError;
 use std::sync::Arc;
 
+use failure::{Compat, Fail};
 use futures::{future, Future};
 use hyper::service::{NewService, Service};
-use hyper::{self, Body, Method, Request, Response, StatusCode};
+use hyper::{Body, Method, Request, Response, StatusCode};
+
+use error::Error;
 
 pub mod macros;
 mod regex;
@@ -21,20 +23,20 @@ pub trait Handler<P>: 'static + Send {
         &self,
         req: Request<Body>,
         params: P,
-    ) -> Box<Future<Item = Response<Body>, Error = hyper::Error> + Send>;
+    ) -> Box<Future<Item = Response<Body>, Error = Error> + Send>;
 }
 
 impl<F, P> Handler<P> for F
 where
     F: 'static
-        + Fn(Request<Body>, P) -> Box<Future<Item = Response<Body>, Error = hyper::Error> + Send>
+        + Fn(Request<Body>, P) -> Box<Future<Item = Response<Body>, Error = Error> + Send>
         + Send,
 {
     fn handle(
         &self,
         req: Request<Body>,
         params: P,
-    ) -> Box<Future<Item = Response<Body>, Error = hyper::Error> + Send> {
+    ) -> Box<Future<Item = Response<Body>, Error = Error> + Send> {
         (*self)(req, params)
     }
 }
@@ -115,7 +117,7 @@ where
     type Error = <Self::Service as Service>::Error;
     type Service = RouterService<R>;
     type Future = future::FutureResult<Self::Service, Self::InitError>;
-    type InitError = Box<StdError + Send + Sync>;
+    type InitError = <Self::Service as Service>::Error;
 
     fn new_service(&self) -> Self::Future {
         future::ok(RouterService {
@@ -145,14 +147,14 @@ where
 {
     type ReqBody = Body;
     type ResBody = Body;
-    type Error = hyper::Error;
+    type Error = Compat<Error>;
     type Future = Box<Future<Item = Response<Self::ResBody>, Error = Self::Error> + Send>;
 
     fn call(&mut self, req: Request<Body>) -> Self::Future {
         let method = req.method().clone();
         let path = req.uri().path().to_owned();
         match self.inner.recognize(&method, &path) {
-            Ok((handler, params)) => handler.handle(req, params),
+            Ok((handler, params)) => Box::new(handler.handle(req, params).map_err(|err| err.compat())),
 
             Err(code) => Box::new(future::ok(
                 Response::builder()

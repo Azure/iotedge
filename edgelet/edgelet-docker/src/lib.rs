@@ -13,7 +13,6 @@ extern crate base64;
 extern crate chrono;
 #[macro_use]
 extern crate failure;
-#[macro_use]
 extern crate futures;
 extern crate hyper;
 #[macro_use]
@@ -44,7 +43,6 @@ extern crate time;
 extern crate docker;
 extern crate edgelet_core;
 extern crate edgelet_http;
-#[macro_use]
 extern crate edgelet_utils;
 
 #[cfg(test)]

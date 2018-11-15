@@ -1,15 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::fmt;
-use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 
-use edgelet_core::SystemInfo as CoreSystemInfo;
-use edgelet_core::*;
-use edgelet_docker::{self, DockerConfig};
-use edgelet_http::{UrlConnector, UrlExt, API_VERSION};
+use failure::{Fail, ResultExt};
 use futures::future::{self, FutureResult};
 use futures::prelude::*;
 use futures::stream;
@@ -20,6 +16,11 @@ use management::models::{Config, ModuleDetails as HttpModuleDetails};
 use serde_json;
 use url::Url;
 
+use edgelet_core::{ModuleOperation, RuntimeOperation, SystemInfo as CoreSystemInfo};
+use edgelet_core::*;
+use edgelet_docker::{self, DockerConfig};
+use edgelet_http::{UrlConnector, UrlExt, API_VERSION};
+
 use error::{Error, ErrorKind};
 
 pub struct ModuleClient {
@@ -28,11 +29,11 @@ pub struct ModuleClient {
 
 impl ModuleClient {
     pub fn new(url: &Url) -> Result<Self, Error> {
-        let client = Client::builder().build(UrlConnector::new(url)?);
+        let client = Client::builder().build(UrlConnector::new(url).context(ErrorKind::InitializeModuleClient)?);
 
-        let base_path = get_base_path(url)?;
+        let base_path = url.to_base_path().context(ErrorKind::InitializeModuleClient)?;
         let mut configuration = Configuration::new(client);
-        configuration.base_path = base_path.to_str().ok_or(ErrorKind::Utf8)?.to_string();
+        configuration.base_path = base_path.to_str().ok_or(ErrorKind::InitializeModuleClient)?.to_string();
 
         let scheme = url.scheme().to_string();
         configuration.uri_composer = Box::new(move |base_path, path| {
@@ -43,13 +44,6 @@ impl ModuleClient {
             client: Arc::new(APIClient::new(configuration)),
         };
         Ok(module_client)
-    }
-}
-
-fn get_base_path(url: &Url) -> Result<PathBuf, Error> {
-    match url.scheme() {
-        "unix" => Ok(url.to_uds_file_path()?),
-        _ => Ok(url.as_str().into()),
     }
 }
 
@@ -101,7 +95,7 @@ impl Module for ModuleDetails {
 }
 
 fn runtime_status(details: &HttpModuleDetails) -> Result<ModuleRuntimeState, Error> {
-    let status = ModuleStatus::from_str(details.status().runtime_status().status())?;
+    let status = ModuleStatus::from_str(details.status().runtime_status().status()).context(ErrorKind::ModuleOperation(ModuleOperation::RuntimeState))?;
     let description = details
         .status()
         .runtime_status()
@@ -175,13 +169,15 @@ impl ModuleRuntime for ModuleClient {
     }
 
     fn start(&self, id: &str) -> Self::StartFuture {
+        let id = id.to_string();
+
         let start = self
             .client
             .module_api()
-            .start_module(API_VERSION, id)
-            .map_err(Error::from)
+            .start_module(API_VERSION, &id)
+            .map_err(|err| Error::from_mgmt_error(err, ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(id))))
             .then(|result| match result {
-                Err(e) => match *e.kind() {
+                Err(e) => match e.kind() {
                     ErrorKind::NotModified => Ok(()),
                     _ => Err(e),
                 },
@@ -191,13 +187,15 @@ impl ModuleRuntime for ModuleClient {
     }
 
     fn stop(&self, id: &str, _wait_before_kill: Option<Duration>) -> Self::StopFuture {
+        let id = id.to_string();
+
         let stop = self
             .client
             .module_api()
-            .stop_module(API_VERSION, id)
-            .map_err(Error::from)
+            .stop_module(API_VERSION, &id)
+            .map_err(|err| Error::from_mgmt_error(err, ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(id))))
             .then(|result| match result {
-                Err(e) => match *e.kind() {
+                Err(e) => match e.kind() {
                     ErrorKind::NotModified => Ok(()),
                     _ => Err(e),
                 },
@@ -207,13 +205,15 @@ impl ModuleRuntime for ModuleClient {
     }
 
     fn restart(&self, id: &str) -> Self::RestartFuture {
+        let id = id.to_string();
+
         let restart = self
             .client
             .module_api()
-            .restart_module(API_VERSION, id)
-            .map_err(Error::from)
+            .restart_module(API_VERSION, &id)
+            .map_err(|err| Error::from_mgmt_error(err, ErrorKind::RuntimeOperation(RuntimeOperation::RestartModule(id))))
             .then(|result| match result {
-                Err(e) => match *e.kind() {
+                Err(e) => match e.kind() {
                     ErrorKind::NotModified => Ok(()),
                     _ => Err(e),
                 },
@@ -240,7 +240,8 @@ impl ModuleRuntime for ModuleClient {
                         let config = m.config().clone();
                         ModuleDetails(m, ModuleConfig(type_, config))
                     }).collect()
-            }).map_err(From::from);
+            })
+            .map_err(|err| Error::from_mgmt_error(err, ErrorKind::RuntimeOperation(RuntimeOperation::ListModules)));
         Box::new(modules)
     }
 
@@ -249,7 +250,7 @@ impl ModuleRuntime for ModuleClient {
             .client
             .module_api()
             .list_modules(API_VERSION)
-            .map_err(Error::from)
+            .map_err(|err| Error::from_mgmt_error(err, ErrorKind::RuntimeOperation(RuntimeOperation::ListModules)))
             .map(|list| {
                 let iter = list.modules().to_owned().into_iter().map(|m| {
                     let type_ = m.type_().clone();
@@ -265,13 +266,17 @@ impl ModuleRuntime for ModuleClient {
     }
 
     fn logs(&self, id: &str, options: &LogOptions) -> Self::LogsFuture {
+        let id = id.to_string();
+
         let tail = &options.tail().to_string();
         let result = self
             .client
             .module_api()
-            .module_logs(API_VERSION, id, options.follow(), tail)
-            .map(Logs)
-            .map_err(Error::from);
+            .module_logs(API_VERSION, &id, options.follow(), tail)
+            .then(|logs| match logs {
+                Ok(logs) => Ok(Logs(id, logs)),
+                Err(err) => Err(Error::from_mgmt_error(err, ErrorKind::RuntimeOperation(RuntimeOperation::GetModuleLogs(id)))),
+            });
         Box::new(result)
     }
 
@@ -290,22 +295,22 @@ impl ModuleRuntime for ModuleClient {
     }
 }
 
-pub struct Logs(Body);
-
-pub struct Chunk(HyperChunk);
+pub struct Logs(String, Body);
 
 impl Stream for Logs {
     type Item = Chunk;
     type Error = Error;
 
     fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
-        if let Some(c) = try_ready!(self.0.poll()) {
-            Ok(Async::Ready(Some(Chunk(c))))
-        } else {
-            Ok(Async::Ready(None))
+        match self.1.poll() {
+            Ok(Async::Ready(chunk)) => Ok(Async::Ready(chunk.map(Chunk))),
+            Ok(Async::NotReady) => Ok(Async::NotReady),
+            Err(err) => Err(Error::from(err.context(ErrorKind::RuntimeOperation(RuntimeOperation::GetModuleLogs(self.0.clone()))))),
         }
     }
 }
+
+pub struct Chunk(HyperChunk);
 
 impl AsRef<[u8]> for Chunk {
     fn as_ref(&self) -> &[u8] {

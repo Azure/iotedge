@@ -28,7 +28,6 @@ extern crate serde_json;
 extern crate sha2;
 extern crate tokio;
 
-#[macro_use]
 extern crate edgelet_utils;
 
 mod authorization;
@@ -48,10 +47,11 @@ pub use crypto::{
     KeyStore, MasterEncryptionKey, PrivateKey, Signature, IOTEDGED_CA_ALIAS,
 };
 pub use error::{Error, ErrorKind};
-pub use identity::{AuthType, Identity, IdentityManager, IdentitySpec};
+pub use identity::{AuthType, Identity, IdentityManager, IdentityOperation, IdentitySpec};
 pub use module::{
     LogOptions, LogTail, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
     ModuleStatus, SystemInfo,
+    ModuleOperation, RegistryOperation, RuntimeOperation,
 };
 pub use workload::WorkloadConfig;
 

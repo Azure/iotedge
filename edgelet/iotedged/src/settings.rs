@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 use base64;
 use config::{Config, Environment, File, FileFormat};
-use edgelet_utils::log_failure;
+use failure::{Fail, ResultExt};
 use log::Level;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -16,7 +16,9 @@ use url::Url;
 use url_serde;
 
 use edgelet_core::ModuleSpec;
-use error::Error;
+use edgelet_utils::log_failure;
+
+use error::{Error, ErrorKind, InitializeErrorReason};
 
 /// This is the name of the network created by the iotedged
 const DEFAULT_NETWORKID: &str = "azure-iot-edge";
@@ -169,14 +171,14 @@ where
 {
     pub fn new(filename: Option<&str>) -> Result<Self, Error> {
         let mut config = Config::default();
-        config.merge(File::from_str(DEFAULTS, FileFormat::Yaml))?;
+        config.merge(File::from_str(DEFAULTS, FileFormat::Yaml)).context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
         if let Some(file) = filename {
-            config.merge(File::with_name(file).required(true))?;
+            config.merge(File::with_name(file).required(true)).context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
         }
 
-        config.merge(Environment::with_prefix("iotedge"))?;
+        config.merge(Environment::with_prefix("iotedge")).context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
 
-        let settings: Self = config.try_into()?;
+        let settings: Self = config.try_into().context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
 
         Ok(settings)
     }
@@ -221,14 +223,13 @@ where
         OpenOptions::new()
             .read(true)
             .open(path)
-            .map_err(Error::from)
+            .map_err(|err| err.context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings)))
             .and_then(|mut file: FsFile| {
                 let mut buffer = String::new();
-                file.read_to_string(&mut buffer)?;
-                let encoded = serde_json::to_string(self)
-                    .map_err(Error::from)
-                    .map(|s| Sha256::digest_str(&s))
-                    .map(|s| base64::encode(&s))?;
+                file.read_to_string(&mut buffer).context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
+                let s = serde_json::to_string(self).context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
+                let s = Sha256::digest_str(&s);
+                let encoded = base64::encode(&s);
                 if encoded == buffer {
                     debug!("Config state matches supplied config.");
                     Ok(false)

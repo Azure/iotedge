@@ -1,27 +1,14 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::fmt::{self, Display};
-use std::io;
-use std::num::ParseIntError;
+use std::net::SocketAddr;
 use std::str;
-use std::str::Utf8Error;
 
-use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind};
-use failure::{Backtrace, Context, Fail};
-use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
-use http::{self, Response, StatusCode};
-use hyper::{Body, Error as HyperError, StatusCode as HyperStatusCode};
-#[cfg(windows)]
-use hyper_named_pipe::Error as PipeError;
-use hyper_tls::Error as HyperTlsError;
-#[cfg(unix)]
-use nix::Error as NixError;
-use serde_json::Error as SerdeError;
-use systemd::Error as SystemdError;
-use typed_headers::Error as TypedHeadersError;
-use url::ParseError;
-
-use edgelet_utils::Error as UtilsError;
+use failure::{Backtrace, Compat, Context, Fail};
+use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use hyper::{Body, Response, StatusCode, Uri};
+use systemd::Fd;
+use url::Url;
 
 use IntoResponse;
 
@@ -32,46 +19,54 @@ pub struct Error {
 
 #[derive(Debug, Fail, PartialEq)]
 pub enum ErrorKind {
-    #[fail(display = "IO error")]
-    Io,
-    #[fail(display = "Service error: [{}] {}", _0, _1)]
-    ServiceError(HyperStatusCode, String),
-    #[fail(display = "Http error")]
+    #[fail(display = "An error occurred while authorizing the HTTP request")]
+    Authorization,
+
+    #[fail(display = "An error occurred while binding a listener to {}", _0)]
+    BindListener(BindListenerType),
+
+    #[fail(display = "Could not perform HTTP request")]
     Http,
-    #[fail(display = "Hyper error")]
-    Hyper,
-    #[fail(display = "Utils error")]
-    Utils,
-    #[fail(display = "Url parse error")]
-    Parse,
-    #[fail(display = "Serde error")]
-    Serde,
-    #[fail(display = "Invalid or missing API version")]
-    InvalidApiVersion,
-    #[fail(display = "Empty token source")]
-    EmptyTokenSource,
-    #[fail(display = "Invalid uri {}", _0)]
-    InvalidUri(String),
-    #[fail(display = "Cannot parse uri")]
-    UrlParse,
+
+    #[fail(display = "HTTP request failed: [{}] {}", _0, _1)]
+    HttpWithErrorResponse(StatusCode, String),
+
+    #[fail(display = "Could not initialize")]
+    Initialization,
+
+    #[fail(display = "Invalid API version {:?}", _0)]
+    InvalidApiVersion(String),
+
+    #[fail(display = "Invalid URL {:?}", _0)]
+    InvalidUrl(String),
+
+    #[fail(display = "Invalid URL {:?}: {}", _0, _1)]
+    InvalidUrlWithReason(String, InvalidUrlReason),
+
+    #[fail(display = "URL parts could not be parsed into a valid URL: scheme: {:?}, base path: {:?}, path: {:?}", scheme, base_path, path)]
+    MalformedUrl {
+        scheme: String,
+        base_path: String,
+        path: String
+    },
+
+    #[fail(display = "Module not found")]
+    ModuleNotFound(String),
+
+    #[fail(display = "An error occurred for path {}", _0)]
+    Path(String),
+
+    #[fail(display = "An error occurred with the proxy {}", _0)]
+    Proxy(Uri),
+
+    #[fail(display = "An error occurred in the service")]
+    ServiceError,
+
     #[fail(display = "Token source error")]
     TokenSource,
-    #[cfg(windows)]
-    #[fail(display = "Named pipe error")]
-    HyperPipe,
-    #[fail(display = "A TLS error occurred.")]
-    HyperTls,
-    #[fail(display = "Systemd error")]
-    Systemd,
-    #[fail(display = "Module not found")]
-    NotFound,
-    #[cfg(unix)]
-    #[fail(display = "Syscall for socket failed.")]
-    Nix,
-    #[fail(display = "UTF-8 conversion error.")]
-    Utf8,
-    #[fail(display = "Error creating HTTP header")]
-    TypedHeaders,
+
+    #[fail(display = "Could not form well-formed URL by joining {:?} with {:?}", _0, _1)]
+    UrlJoin(Url, String),
 }
 
 impl Fail for Error {
@@ -94,6 +89,15 @@ impl Error {
     pub fn kind(&self) -> &ErrorKind {
         self.inner.get_context()
     }
+
+    pub fn http_with_error_response(status_code: StatusCode, body: &[u8]) -> Self {
+        let kind = match str::from_utf8(body) {
+            Ok(body) => ErrorKind::HttpWithErrorResponse(status_code, body.to_string()),
+            Err(_) => ErrorKind::HttpWithErrorResponse(status_code, "<could not parse response body as utf-8>".to_string()),
+        };
+
+        kind.into()
+    }
 }
 
 impl From<ErrorKind> for Error {
@@ -110,53 +114,6 @@ impl From<Context<ErrorKind>> for Error {
     }
 }
 
-impl From<http::Error> for Error {
-    fn from(error: http::Error) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Http),
-        }
-    }
-}
-
-impl From<HyperError> for Error {
-    fn from(error: HyperError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Hyper),
-        }
-    }
-}
-
-impl From<Error> for CoreError {
-    fn from(_err: Error) -> Self {
-        CoreError::from(CoreErrorKind::Http)
-    }
-}
-
-impl From<CoreError> for Error {
-    fn from(error: CoreError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::NotFound),
-        }
-    }
-}
-
-impl From<io::Error> for Error {
-    fn from(error: io::Error) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Io),
-        }
-    }
-}
-
-#[cfg(windows)]
-impl From<PipeError> for Error {
-    fn from(err: PipeError) -> Self {
-        Error {
-            inner: err.context(ErrorKind::HyperPipe),
-        }
-    }
-}
-
 impl IntoResponse for Error {
     fn into_response(self) -> Response<Body> {
         let mut fail: &Fail = &self;
@@ -167,8 +124,8 @@ impl IntoResponse for Error {
         }
 
         let status_code = match *self.kind() {
-            ErrorKind::InvalidApiVersion => StatusCode::BAD_REQUEST,
-            ErrorKind::NotFound => StatusCode::NOT_FOUND,
+            ErrorKind::Authorization | ErrorKind::ModuleNotFound(_) => StatusCode::NOT_FOUND,
+            ErrorKind::InvalidApiVersion(_) => StatusCode::BAD_REQUEST,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         };
 
@@ -185,94 +142,48 @@ impl IntoResponse for Error {
     }
 }
 
-impl<'a> From<(HyperStatusCode, &'a [u8])> for Error {
-    fn from(err: (HyperStatusCode, &'a [u8])) -> Self {
-        let (status_code, msg) = err;
-        Error::from(ErrorKind::ServiceError(
-            status_code,
-            str::from_utf8(msg)
-                .unwrap_or_else(|_| "Could not decode error message")
-                .to_string(),
-        ))
-    }
-}
-
-impl IntoResponse for Context<ErrorKind> {
+impl IntoResponse for Compat<Error> {
     fn into_response(self) -> Response<Body> {
-        let error: Error = Error::from(self);
-        error.into_response()
+        self.into_inner().into_response()
     }
 }
 
-impl From<ParseError> for Error {
-    fn from(error: ParseError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Parse),
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum BindListenerType {
+    Address(SocketAddr),
+    Fd(Fd),
+}
+
+impl Display for BindListenerType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            BindListenerType::Address(addr) => write!(f, "address {}", addr),
+            BindListenerType::Fd(fd) => write!(f, "fd {}", fd),
         }
     }
 }
 
-impl From<SerdeError> for Error {
-    fn from(error: SerdeError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Serde),
-        }
-    }
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum InvalidUrlReason {
+    FdNeitherNumberNorName,
+    FileNotFound,
+    InvalidScheme,
+    InvalidCredentials,
+    NoAddress,
+    NoHost,
+    UnrecognizedSocket,
 }
 
-impl From<UtilsError> for Error {
-    fn from(error: UtilsError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Utils),
-        }
-    }
-}
-
-impl From<SystemdError> for Error {
-    fn from(error: SystemdError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Systemd),
-        }
-    }
-}
-
-impl From<ParseIntError> for Error {
-    fn from(error: ParseIntError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Parse),
-        }
-    }
-}
-
-#[cfg(unix)]
-impl From<NixError> for Error {
-    fn from(error: NixError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Nix),
-        }
-    }
-}
-
-impl From<HyperTlsError> for Error {
-    fn from(error: HyperTlsError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::HyperTls),
-        }
-    }
-}
-
-impl From<Utf8Error> for Error {
-    fn from(error: Utf8Error) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Utf8),
-        }
-    }
-}
-
-impl From<TypedHeadersError> for Error {
-    fn from(error: TypedHeadersError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::TypedHeaders),
+impl Display for InvalidUrlReason {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            InvalidUrlReason::FdNeitherNumberNorName => write!(f, "URL could not be parsed as fd number nor fd name"),
+            InvalidUrlReason::FileNotFound => write!(f, "Socket file could not be found"),
+            InvalidUrlReason::InvalidScheme => write!(f, "URL does not have a recognized scheme"),
+            InvalidUrlReason::InvalidCredentials => write!(f, "Username or password could not be parsed from URL"),
+            InvalidUrlReason::NoAddress => write!(f, "URL has no address"),
+            InvalidUrlReason::NoHost => write!(f, "URL has no host"),
+            InvalidUrlReason::UnrecognizedSocket => write!(f, "URL does not correspond to a valid socket"),
         }
     }
 }

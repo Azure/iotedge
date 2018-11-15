@@ -37,9 +37,9 @@ pub struct IdentitySpec {
 }
 
 impl IdentitySpec {
-    pub fn new(module_id: &str) -> Self {
+    pub fn new(module_id: String) -> Self {
         IdentitySpec {
-            module_id: module_id.to_string(),
+            module_id,
             generation_id: None,
             managed_by: None,
         }
@@ -82,4 +82,26 @@ pub trait IdentityManager {
     fn list(&self) -> Self::ListFuture;
     fn get(&self, id: IdentitySpec) -> Self::GetFuture;
     fn delete(&mut self, id: IdentitySpec) -> Self::DeleteFuture;
+}
+
+// Useful for error contexts
+#[derive(Clone, Debug)]
+pub enum IdentityOperation {
+    CreateIdentity(String),
+    DeleteIdentity(String),
+    GetIdentity(String),
+    ListIdentities,
+    UpdateIdentity(String),
+}
+
+impl fmt::Display for IdentityOperation {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            IdentityOperation::CreateIdentity(name) => write!(f, "Could not create identity {}", name),
+            IdentityOperation::DeleteIdentity(name) => write!(f, "Could not delete identity {}", name),
+            IdentityOperation::GetIdentity(name) => write!(f, "Could not get identity {}", name),
+            IdentityOperation::ListIdentities => write!(f, "Could not list identities"),
+            IdentityOperation::UpdateIdentity(name) => write!(f, "Could not update identity {}", name),
+        }
+    }
 }

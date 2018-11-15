@@ -6,6 +6,7 @@ use std::time::{Duration, Instant};
 use base64;
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
+use failure::{Fail, ResultExt};
 use futures::future::Either;
 use futures::{future, Future};
 use hyper::{Method, StatusCode};
@@ -75,7 +76,7 @@ where
             .key
             .sign(SignatureAlgorithm::HMACSHA256, sig_data.as_bytes())
             .map(|s| base64::encode(s.as_bytes()))
-            .map_err(Error::from)?;
+            .context(ErrorKind::GetToken)?;
 
         let token = UrlSerializer::new(format!("sr={}", resource_uri))
             .append_pair("sig", &signature)
@@ -125,27 +126,15 @@ where
     }
 
     fn get_tpm_challenge_key(body: &str, key_store: &mut A) -> Result<K, Error> {
-        serde_json::from_str(body).map_err(Error::from).and_then(
-            |tpm_challenge: TpmRegistrationResult| {
-                tpm_challenge
-                    .authentication_key()
-                    .ok_or_else(|| Error::from(ErrorKind::InvalidTpmToken))
-                    .and_then(|key_str| base64::decode(key_str).map_err(Error::from))
-                    .and_then(|key_bytes| {
-                        debug!("Storing authentication key");
-                        key_store
-                            .activate_identity_key(
-                                KeyIdentity::Device,
-                                "primary".to_string(),
-                                key_bytes,
-                            ).map_err(Error::from)
-                    }).and_then(|_| {
-                        key_store
-                            .get(&KeyIdentity::Device, "primary")
-                            .map_err(Error::from)
-                    })
-            },
-        )
+        let tpm_challenge: TpmRegistrationResult = serde_json::from_str(body).context(ErrorKind::GetTpmChallengeKey)?;
+
+        let key_str = tpm_challenge.authentication_key().ok_or_else(|| ErrorKind::InvalidTpmToken)?;
+        let key_bytes = base64::decode(key_str).context(ErrorKind::GetTpmChallengeKey)?;
+
+        debug!("Storing authentication key");
+        key_store.activate_identity_key(KeyIdentity::Device, "primary".to_string(), key_bytes).context(ErrorKind::GetTpmChallengeKey)?;
+
+        Ok(key_store.get(&KeyIdentity::Device, "primary").context(ErrorKind::GetTpmChallengeKey)?)
     }
 
     fn get_operation_id(
@@ -172,7 +161,7 @@ where
                 None,
                 Some(registration.clone()),
                 false,
-            ).map_err(Error::from);
+            ).map_err(|err| Error::from(err.context(ErrorKind::GetOperationId)));
         Box::new(f)
     }
 
@@ -197,8 +186,7 @@ where
                 None,
                 None,
                 false,
-            )
-            .map_err(Error::from)
+            ).map_err(|err| Error::from(err.context(ErrorKind::GetOperationStatus)))
             .map(
                 |operation_status: Option<RegistrationOperationStatus>| ->
                 Option<DeviceRegistrationResult> {
@@ -259,7 +247,7 @@ where
             Instant::now(),
             Duration::from_secs(DPS_ASSIGNMENT_RETRY_INTERVAL_SECS),
         ).take(retry_count)
-        .map_err(|_| Error::from(ErrorKind::TimerError))
+        .map_err(|err| Error::from(err.context(ErrorKind::GetDeviceRegistrationResult)))
         .and_then(move |_instant: Instant| {
             debug!("Ask DPS for registration status");
             Self::get_operation_status(
@@ -273,8 +261,7 @@ where
         .take(1)
         .fold(
             None,
-            |_final_result: Option<DeviceRegistrationResult>,
-             result_from_service: Option<DeviceRegistrationResult>| {
+            |_final_result: Option<DeviceRegistrationResult>, result_from_service: Option<DeviceRegistrationResult>| {
                 future::ok::<Option<DeviceRegistrationResult>, Error>(result_from_service)
             },
         );
@@ -307,12 +294,12 @@ where
                 false,
             ).then(move |result| {
                 match result {
-                    Ok(_) => Either::B(future::err(Error::from(ErrorKind::Unexpected))),
+                    Ok(_) => Either::B(future::err(Error::from(ErrorKind::RegisterWithAuthUnexpectedlySucceeded))),
                     Err(err) => {
                         // If request is returned with status unauthorized, extract the tpm
                         // challenge from the payload, generate a signature and re-issue the
                         // request
-                        let body = if let HttpErrorKind::ServiceError(status, body) = err.kind() {
+                        let body = if let HttpErrorKind::HttpWithErrorResponse(status, body) = err.kind() {
                             if *status == StatusCode::UNAUTHORIZED {
                                 debug!(
                                     "Registration unauthorized, checking response for challenge {}",
@@ -329,7 +316,7 @@ where
                         };
 
                         body.map_or_else(
-                            || Either::B(future::err(Error::from(err))),
+                            || Either::B(future::err(Error::from(err.context(ErrorKind::RegisterWithAuthUnexpectedlyFailed)))),
                             move |body| match Self::get_tpm_challenge_key(
                                 body.as_str(),
                                 &mut key_store_inner,
@@ -376,7 +363,7 @@ where
                 .get(&KeyIdentity::Device, "primary")
             {
                 Ok(k) => operation_status.map_or_else(
-                    || Either::B(future::err(Error::from(ErrorKind::NotAssigned))),
+                    || Either::B(future::err(Error::from(ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned))),
                     move |s| {
                         let retry_count =
                             (DPS_ASSIGNMENT_TIMEOUT_SECS / DPS_ASSIGNMENT_RETRY_INTERVAL_SECS) + 1;
@@ -390,32 +377,17 @@ where
                         ))
                     },
                 ),
-                Err(err) => Either::B(future::err(Error::from(err))),
+                Err(err) => Either::B(future::err(Error::from(err.context(ErrorKind::RegisterWithAuthUnexpectedlyFailed)))),
             },
         ).and_then(move |operation_status: Option<DeviceRegistrationResult>| {
-            operation_status
-                .ok_or_else(|| Error::from(ErrorKind::NotAssigned))
-                .and_then(|s| -> Result<(String, String), Error> {
-                    let tpm_result_inner = s.clone();
-                    let tpm_result = s.tpm();
-                    tpm_result
-                        .ok_or_else(|| Error::from(ErrorKind::NotAssigned))
-                        .and_then(|r| -> Result<(), Error> {
-                            r.authentication_key()
-                                .ok_or_else(|| Error::from(ErrorKind::NotAssigned))
-                                .and_then(|ks| base64::decode(ks).map_err(Error::from))
-                                .and_then(|kb| -> Result<(), Error> {
-                                    key_store_status
-                                        .activate_identity_key(
-                                            KeyIdentity::Device,
-                                            "primary".to_string(),
-                                            kb,
-                                        ).map_err(Error::from)
-                                })
-                        }).and_then(|_| -> Result<(String, String), Error> {
-                            get_device_info(&tpm_result_inner)
-                        })
-                })
+            let s = operation_status.ok_or_else(|| Error::from(ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned))?;
+            let tpm_result_inner = s.clone();
+            let tpm_result = s.tpm();
+            let r = tpm_result.ok_or_else(|| Error::from(ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned))?;
+            let ks = r.authentication_key().ok_or_else(|| Error::from(ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned))?;
+            let kb = base64::decode(ks).context(ErrorKind::RegisterWithAuthUnexpectedlyFailed)?;
+            key_store_status.activate_identity_key(KeyIdentity::Device, "primary".to_string(), kb).context(ErrorKind::RegisterWithAuthUnexpectedlyFailed)?;
+            get_device_info(&tpm_result_inner)
         });
         Box::new(r)
     }
@@ -427,12 +399,12 @@ fn get_device_info(
     Ok((
         registration_result
             .device_id()
-            .map(ToOwned::to_owned)
-            .ok_or_else(|| Error::from(ErrorKind::NotAssigned))?,
+            .ok_or_else(|| Error::from(ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned))?
+            .to_string(),
         registration_result
             .assigned_hub()
-            .map(ToOwned::to_owned)
-            .ok_or_else(|| Error::from(ErrorKind::NotAssigned))?,
+            .ok_or_else(|| Error::from(ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned))?
+            .to_string(),
     ))
 }
 
@@ -440,7 +412,6 @@ fn get_device_info(
 mod tests {
     use super::*;
 
-    use std::mem;
     use std::sync::Mutex;
 
     use http;
@@ -491,7 +462,7 @@ mod tests {
             Client::new(
                 handler,
                 None,
-                "2017-11-15",
+                "2017-11-15".to_string(),
                 Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
             ).unwrap(),
         ));
@@ -528,7 +499,7 @@ mod tests {
         let client = Client::new(
             handler,
             None,
-            "2017-11-15",
+            "2017-11-15".to_string(),
             Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
         ).unwrap();
         let dps = DpsClient::new(
@@ -542,13 +513,11 @@ mod tests {
         let task = dps.register().then(|result| {
             match result {
                 Ok(_) => panic!("Excepted err got success"),
-                Err(err) => {
-                    if mem::discriminant(err.kind()) != mem::discriminant(&ErrorKind::Http) {
-                        panic!("Wrong error kind. Expected `Http` found {:?}", err);
-                    }
+                Err(err) => match err.kind() {
+                    ErrorKind::RegisterWithAuthUnexpectedlyFailed => Ok::<_, Error>(()),
+                    _ => panic!("Wrong error kind. Expected `RegisterWithAuthUnexpectedlyFailed` found {:?}", err),
                 }
             }
-            Ok::<_, Error>(())
         });
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
@@ -583,7 +552,7 @@ mod tests {
         let client = Client::new(
             handler,
             None,
-            "2017-11-15",
+            "2017-11-15".to_string(),
             Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
         ).unwrap();
         let dps = DpsClient::new(
@@ -597,13 +566,11 @@ mod tests {
         let task = dps.register().then(|result| {
             match result {
                 Ok(_) => panic!("Excepted err got success"),
-                Err(err) => {
-                    if mem::discriminant(err.kind()) != mem::discriminant(&ErrorKind::Http) {
-                        panic!("Wrong error kind. Expected `Http` found {:?}", err);
-                    }
+                Err(err) => match err.kind() {
+                    ErrorKind::GetOperationId => Ok::<_, Error>(()),
+                    _ => panic!("Wrong error kind. Expected `GetOperationId` found {:?}", err),
                 }
             }
-            Ok::<_, Error>(())
         });
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
@@ -631,7 +598,7 @@ mod tests {
         let stream = Mutex::new(stream::iter_result(vec![
             Ok(reg_op_status_vanilla),
             Ok(reg_op_status_final),
-            Err(Error::from(ErrorKind::Unexpected)),
+            Err(Error::from(ErrorKind::RegisterWithAuthUnexpectedlySucceeded)),
         ]));
         let handler = move |_req: Request<Body>| {
             if let Async::Ready(opt) = stream.lock().unwrap().poll().unwrap() {
@@ -645,7 +612,7 @@ mod tests {
             Client::new(
                 handler,
                 None,
-                "2017-11-15",
+                "2017-11-15".to_string(),
                 Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
             ).unwrap()
             .with_token_source(DpsTokenSource::new(
@@ -689,7 +656,7 @@ mod tests {
             Client::new(
                 handler,
                 None,
-                "2017-11-15",
+                "2017-11-15".to_string(),
                 Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
             ).unwrap()
             .with_token_source(DpsTokenSource::new(
@@ -740,7 +707,7 @@ mod tests {
         let client = Client::new(
             handler,
             None,
-            "2017-11-15",
+            "2017-11-15".to_string(),
             Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
         ).unwrap();
         let dps_operation = DpsClient::<_, _, MemoryKeyStore>::get_operation_status(
@@ -776,7 +743,7 @@ mod tests {
         let client = Client::new(
             handler,
             None,
-            "2017-11-15",
+            "2017-11-15".to_string(),
             Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
         ).unwrap();
         let dps_operation = DpsClient::<_, _, MemoryKeyStore>::get_operation_status(
@@ -789,13 +756,11 @@ mod tests {
         let task = dps_operation.then(|result| {
             match result {
                 Ok(_) => panic!("Excepted err got success"),
-                Err(err) => {
-                    if mem::discriminant(err.kind()) != mem::discriminant(&ErrorKind::Http) {
-                        panic!("Wrong error kind. Expected `Http` found {:?}", err);
-                    }
+                Err(err) => match err.kind() {
+                    ErrorKind::GetOperationStatus => Ok::<_, Error>(()),
+                    _ => panic!("Wrong error kind. Expected `GetOperationStatus` found {:?}", err),
                 }
             }
-            Ok::<_, Error>(())
         });
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()

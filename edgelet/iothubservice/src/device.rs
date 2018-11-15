@@ -1,19 +1,17 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use failure::{Fail, ResultExt};
 use futures::future::{self, Either};
 use futures::Future;
 use hyper::{Method, StatusCode};
 
 use edgelet_http::client::{Client, ClientImpl, TokenSource};
-use edgelet_http::error::{Error as HttpError, ErrorKind as HttpErrorKind};
-use error::{Error, ErrorKind};
+use edgelet_http::error::{ErrorKind as HttpErrorKind};
+use edgelet_utils::ensure_not_empty_with_context;
+use error::{Error, ErrorKind, Reason};
 use model::{AuthMechanism, Module};
 
-pub struct DeviceClient<C, T>
-where
-    C: ClientImpl,
-    T: TokenSource + Clone,
-{
+pub struct DeviceClient<C, T> {
     client: Client<C, T>,
     device_id: String,
 }
@@ -22,12 +20,14 @@ impl<C, T> DeviceClient<C, T>
 where
     C: ClientImpl,
     T: 'static + TokenSource + Clone,
-    T::Error: Into<HttpError>,
+    <T as TokenSource>::Error: Fail,
 {
-    pub fn new(client: Client<C, T>, device_id: &str) -> Result<Self, Error> {
+    pub fn new(client: Client<C, T>, device_id: String) -> Result<Self, Error> {
+        ensure_not_empty_with_context(&device_id, || ErrorKind::InvalidDeviceId(device_id.clone()))?;
+
         Ok(DeviceClient {
             client,
-            device_id: ensure_not_empty!(device_id).to_string(),
+            device_id,
         })
     }
 
@@ -37,7 +37,7 @@ where
 
     pub fn create_module(
         &self,
-        module_id: &str,
+        module_id: String,
         authentication: Option<AuthMechanism>,
         managed_by: Option<&str>,
     ) -> impl Future<Item = Module, Error = Error> {
@@ -46,7 +46,7 @@ where
 
     pub fn update_module(
         &self,
-        module_id: &str,
+        module_id: String,
         authentication: Option<AuthMechanism>,
         managed_by: Option<&str>,
     ) -> impl Future<Item = Module, Error = Error> {
@@ -55,17 +55,17 @@ where
 
     fn upsert_module(
         &self,
-        module_id: &str,
+        module_id: String,
         authentication: Option<AuthMechanism>,
         managed_by: Option<&str>,
         add_if_match: bool,
     ) -> impl Future<Item = Module, Error = Error> {
         if module_id.trim().is_empty() {
-            Either::B(future::err(Error::from(ErrorKind::EmptyModuleId)))
+            Either::B(future::err(Error::from(ErrorKind::UpsertModuleWithReason(module_id, Reason::EmptyModuleId))))
         } else {
             let mut module = Module::default()
                 .with_device_id(self.device_id.clone())
-                .with_module_id(module_id.to_string());
+                .with_module_id(module_id.clone());
 
             if let Some(authentication) = authentication {
                 module = module.with_authentication(authentication);
@@ -83,16 +83,20 @@ where
                     None,
                     Some(module),
                     add_if_match,
-                ).map_err(Error::from)
-                .and_then(|module| module.ok_or_else(|| Error::from(ErrorKind::ModuleNotFound)));
+                )
+                .then(|module| {
+                    let module = module.with_context(|_| ErrorKind::UpsertModule(module_id.clone()))?;
+                    let module = module.ok_or_else(|| Error::from(ErrorKind::UpsertModuleWithReason(module_id, Reason::ModuleNotFound)))?;
+                    Ok(module)
+                });
 
             Either::A(res)
         }
     }
 
-    pub fn get_module_by_id(&self, module_id: &str) -> impl Future<Item = Module, Error = Error> {
+    pub fn get_module_by_id(&self, module_id: String) -> impl Future<Item = Module, Error = Error> {
         if module_id.trim().is_empty() {
-            Either::B(future::err(Error::from(ErrorKind::EmptyModuleId)))
+            Either::B(future::err(Error::from(ErrorKind::GetModuleWithReason(module_id, Reason::EmptyModuleId))))
         } else {
             let res = self
                 .client
@@ -102,15 +106,22 @@ where
                     None,
                     None,
                     false,
-                ).map_err(|err| {
-                    if let HttpErrorKind::ServiceError(code, _) = err.kind() {
-                        if *code == StatusCode::NOT_FOUND {
-                            return Error::from(ErrorKind::ModuleNotFound);
-                        }
-                    }
+                ).then(|module| match module {
+                    Ok(Some(module)) => Ok(module),
 
-                    Error::from(err)
-                }).and_then(|module| module.ok_or_else(|| Error::from(ErrorKind::ModuleNotFound)));
+                    Ok(None) => {
+                        Err(Error::from(ErrorKind::GetModuleWithReason(module_id, Reason::ModuleNotFound)))
+                    },
+
+                    Err(err) => Err({
+                        if let HttpErrorKind::HttpWithErrorResponse(StatusCode::NOT_FOUND, _) = err.kind() {
+                            Error::from(ErrorKind::GetModuleWithReason(module_id, Reason::ModuleNotFound))
+                        }
+                        else {
+                            Error::from(err.context(ErrorKind::GetModule(module_id)))
+                        }
+                    }),
+                });
 
             Either::A(res)
         }
@@ -124,13 +135,13 @@ where
                 None,
                 None,
                 false,
-            ).map_err(Error::from)
-            .and_then(|modules| modules.ok_or_else(|| Error::from(ErrorKind::EmptyResponse)))
+            ).map_err(|err| Error::from(err.context(ErrorKind::ListModules)))
+            .and_then(|modules| modules.ok_or_else(|| Error::from(ErrorKind::ListModulesWithReason(Reason::EmptyResponse))))
     }
 
     pub fn delete_module(&self, module_id: &str) -> impl Future<Item = (), Error = Error> {
         if module_id.trim().is_empty() {
-            Either::B(future::err(Error::from(ErrorKind::EmptyModuleId)))
+            Either::B(future::err(Error::from(ErrorKind::DeleteModuleWithReason(module_id.to_string(), Reason::EmptyModuleId))))
         } else {
             let res = self
                 .client
@@ -140,7 +151,7 @@ where
                     None,
                     None,
                     true,
-                ).map_err(Error::from)
+                ).map_err(|err| Error::from(err.context(ErrorKind::DeleteModule)))
                 .and_then(|_| Ok(()));
 
             Either::A(res)
@@ -164,7 +175,6 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::mem;
 
     use chrono::{DateTime, Utc};
     use futures::Stream;
@@ -174,7 +184,7 @@ mod tests {
     use typed_headers::{mime, ContentType, HeaderMapExt};
     use url::Url;
 
-    use error::ErrorKind;
+    use error::{ErrorKind, Reason};
     use model::{AuthType, SymmetricKey};
 
     struct NullTokenSource;
@@ -198,15 +208,13 @@ mod tests {
         let client = Client::new(
             hyper_client,
             Some(NullTokenSource),
-            "2018-04-11",
+            "2018-04-11".to_string(),
             Url::parse("http://localhost").unwrap(),
         ).unwrap();
-        match DeviceClient::new(client, "") {
-            Ok(_) => panic!("Expected error but got a result."),
-            Err(err) => {
-                if mem::discriminant(err.kind()) != mem::discriminant(&ErrorKind::Utils) {
-                    panic!("Wrong error kind. Expected `ArgumentEmpty` found {:?}", err);
-                }
+        match DeviceClient::new(client, "".to_string()) {
+            Ok(_) => panic!("Excepted err got success"),
+            Err(err) => if let ErrorKind::DeleteModule = err.kind() {
+                panic!("Wrong error kind. Expected `Http` found {:?}", err);
             }
         };
     }
@@ -217,15 +225,13 @@ mod tests {
         let client = Client::new(
             hyper_client,
             Some(NullTokenSource),
-            "2018-04-11",
+            "2018-04-11".to_string(),
             Url::parse("http://localhost").unwrap(),
         ).unwrap();
-        match DeviceClient::new(client, "       ") {
-            Ok(_) => panic!("Expected error but got a result."),
-            Err(err) => {
-                if mem::discriminant(err.kind()) != mem::discriminant(&ErrorKind::Utils) {
-                    panic!("Wrong error kind. Expected `ArgumentEmpty` found {:?}", err);
-                }
+        match DeviceClient::new(client, "       ".to_string()) {
+            Ok(_) => panic!("Excepted err got success"),
+            Err(err) => if let ErrorKind::DeleteModule = err.kind() {
+                panic!("Wrong error kind. Expected `Http` found {:?}", err);
             }
         };
     }
@@ -236,22 +242,19 @@ mod tests {
         let client = Client::new(
             hyper_client,
             Some(NullTokenSource),
-            "2018-04-11",
+            "2018-04-11".to_string(),
             Url::parse("http://localhost").unwrap(),
         ).unwrap();
-        let device_client = DeviceClient::new(client, "d1").unwrap();
+        let device_client = DeviceClient::new(client, "d1".to_string()).unwrap();
+        let name = "";
 
         let task = device_client
-            .upsert_module("", None, None, false)
+            .upsert_module(name.to_string(), None, None, false)
             .then(|result| match result {
-                Ok(_) => panic!("Expected error but got a result."),
-                Err(err) => {
-                    if mem::discriminant(err.kind()) != mem::discriminant(&ErrorKind::EmptyModuleId)
-                    {
-                        panic!("Wrong error kind. Expected `EmptyModuleId` found {:?}", err);
-                    }
-
-                    Ok::<_, Error>(())
+                Ok(_) => panic!("Excepted err got success"),
+                Err(err) => match err.kind() {
+                    ErrorKind::UpsertModuleWithReason(s, Reason::EmptyModuleId) if s == name => Ok::<_, Error>(()),
+                    _ => panic!("Wrong error kind. Expected `UpsertModuleWithReason(EmptyModuleId)` found {:?}", err),
                 }
             });
 
@@ -267,22 +270,19 @@ mod tests {
         let client = Client::new(
             hyper_client,
             Some(NullTokenSource),
-            "2018-04-11",
+            "2018-04-11".to_string(),
             Url::parse("http://localhost").unwrap(),
         ).unwrap();
-        let device_client = DeviceClient::new(client, "d1").unwrap();
+        let device_client = DeviceClient::new(client, "d1".to_string()).unwrap();
+        let name = "     ";
 
         let task = device_client
-            .upsert_module("     ", None, None, false)
+            .upsert_module(name.to_string(), None, None, false)
             .then(|result| match result {
-                Ok(_) => panic!("Expected error but got a result."),
-                Err(err) => {
-                    if mem::discriminant(err.kind()) != mem::discriminant(&ErrorKind::EmptyModuleId)
-                    {
-                        panic!("Wrong error kind. Expected `EmptyModuleId` found {:?}", err);
-                    }
-
-                    Ok::<_, Error>(())
+                Ok(_) => panic!("Excepted err got success"),
+                Err(err) => match err.kind() {
+                    ErrorKind::UpsertModuleWithReason(s, Reason::EmptyModuleId) if s == name => Ok::<_, Error>(()),
+                    _ => panic!("Wrong error kind. Expected `UpsertModuleWithReason(EmptyModuleId)` found {:?}", err),
                 }
             });
 
@@ -294,7 +294,7 @@ mod tests {
 
     #[test]
     fn module_upsert_adds_module_body_without_if_match() {
-        let api_version = "2018-04-10";
+        let api_version = "2018-04-10".to_string();
         let host_name = Url::parse("http://localhost").unwrap();
         let auth = AuthMechanism::default()
             .with_type(AuthType::Sas)
@@ -335,9 +335,9 @@ mod tests {
         };
         let client = Client::new(handler, Some(NullTokenSource), api_version, host_name).unwrap();
 
-        let device_client = DeviceClient::new(client, "d1").unwrap();
+        let device_client = DeviceClient::new(client, "d1".to_string()).unwrap();
         let task = device_client
-            .upsert_module("m1", Some(auth), Some(&"iotedge".to_string()), false)
+            .upsert_module("m1".to_string(), Some(auth), Some(&"iotedge".to_string()), false)
             .then(|result| {
                 assert_eq!(expected_response, result.unwrap());
                 Ok::<_, Error>(())
@@ -351,7 +351,7 @@ mod tests {
 
     #[test]
     fn module_upsert_adds_module_body_with_if_match() {
-        let api_version = "2018-04-10";
+        let api_version = "2018-04-10".to_string();
         let host_name = Url::parse("http://localhost").unwrap();
         let auth = AuthMechanism::default()
             .with_type(AuthType::Sas)
@@ -392,9 +392,9 @@ mod tests {
         };
         let client = Client::new(handler, Some(NullTokenSource), api_version, host_name).unwrap();
 
-        let device_client = DeviceClient::new(client, "d1").unwrap();
+        let device_client = DeviceClient::new(client, "d1".to_string()).unwrap();
         let task = device_client
-            .upsert_module("m1", Some(auth), Some(&"iotedge".to_string()), true)
+            .upsert_module("m1".to_string(), Some(auth), Some(&"iotedge".to_string()), true)
             .then(|result| {
                 assert_eq!(expected_response, result.unwrap());
                 Ok::<_, Error>(())
@@ -412,20 +412,18 @@ mod tests {
         let client = Client::new(
             hyper_client,
             Some(NullTokenSource),
-            "2018-04-11",
+            "2018-04-11".to_string(),
             Url::parse("http://localhost").unwrap(),
         ).unwrap();
-        let device_client = DeviceClient::new(client, "d1").unwrap();
+        let device_client = DeviceClient::new(client, "d1".to_string()).unwrap();
+        let name = "";
 
-        let task = device_client.delete_module("").then(|result| match result {
-            Ok(_) => panic!("Expected error but got a result."),
-            Err(err) => {
-                if mem::discriminant(err.kind()) != mem::discriminant(&ErrorKind::EmptyModuleId) {
-                    panic!("Wrong error kind. Expected `EmptyModuleId` found {:?}", err);
+        let task = device_client.delete_module(name).then(|result| match result {
+                Ok(_) => panic!("Excepted err got success"),
+                Err(err) => match err.kind() {
+                    ErrorKind::DeleteModuleWithReason(s, Reason::EmptyModuleId) if s == name => Ok::<_, Error>(()),
+                    _ => panic!("Wrong error kind. Expected `DeleteModuleWithReason(EmptyModuleId)` found {:?}", err),
                 }
-
-                Ok::<_, Error>(())
-            }
         });
 
         tokio::runtime::current_thread::Runtime::new()
@@ -440,22 +438,19 @@ mod tests {
         let client = Client::new(
             hyper_client,
             Some(NullTokenSource),
-            "2018-04-11",
+            "2018-04-11".to_string(),
             Url::parse("http://localhost").unwrap(),
         ).unwrap();
-        let device_client = DeviceClient::new(client, "d1").unwrap();
+        let device_client = DeviceClient::new(client, "d1".to_string()).unwrap();
+        let name = "     ";
 
         let task = device_client
-            .delete_module("     ")
+            .delete_module(name)
             .then(|result| match result {
-                Ok(_) => panic!("Expected error but got a result."),
-                Err(err) => {
-                    if mem::discriminant(err.kind()) != mem::discriminant(&ErrorKind::EmptyModuleId)
-                    {
-                        panic!("Wrong error kind. Expected `EmptyModuleId` found {:?}", err);
-                    }
-
-                    Ok::<_, Error>(())
+                Ok(_) => panic!("Excepted err got success"),
+                Err(err) => match err.kind() {
+                    ErrorKind::DeleteModuleWithReason(s, Reason::EmptyModuleId) if s == name => Ok::<_, Error>(()),
+                    _ => panic!("Wrong error kind. Expected `DeleteModuleWithReason(EmptyModuleId)` found {:?}", err),
                 }
             });
 
@@ -467,7 +462,7 @@ mod tests {
 
     #[test]
     fn module_delete_request() {
-        let api_version = "2018-04-10";
+        let api_version = "2018-04-10".to_string();
         let host_name = Url::parse("http://localhost").unwrap();
 
         let handler = move |req: Request<Body>| {
@@ -479,7 +474,7 @@ mod tests {
         };
         let client = Client::new(handler, Some(NullTokenSource), api_version, host_name).unwrap();
 
-        let device_client = DeviceClient::new(client, "d1").unwrap();
+        let device_client = DeviceClient::new(client, "d1".to_string()).unwrap();
         let task = device_client
             .delete_module("m1")
             .then(|result: Result<(), _>| result);
@@ -492,7 +487,7 @@ mod tests {
 
     #[test]
     fn modules_list_request() {
-        let api_version = "2018-04-10";
+        let api_version = "2018-04-10".to_string();
         let host_name = Url::parse("http://localhost").unwrap();
         let auth = AuthMechanism::default()
             .with_type(AuthType::Sas)
@@ -530,7 +525,7 @@ mod tests {
         };
         let client = Client::new(handler, Some(NullTokenSource), api_version, host_name).unwrap();
 
-        let device_client = DeviceClient::new(client, "d1").unwrap();
+        let device_client = DeviceClient::new(client, "d1".to_string()).unwrap();
         let task = device_client.list_modules().then(|modules| {
             let modules = modules.unwrap();
             assert_eq!(expected_modules.len(), modules.len());
@@ -548,7 +543,7 @@ mod tests {
 
     #[test]
     fn modules_get_request() {
-        let api_version = "2018-04-10";
+        let api_version = "2018-04-10".to_string();
         let host_name = Url::parse("http://localhost").unwrap();
         let auth = AuthMechanism::default()
             .with_type(AuthType::Sas)
@@ -578,8 +573,8 @@ mod tests {
         };
         let client = Client::new(handler, Some(NullTokenSource), api_version, host_name).unwrap();
 
-        let device_client = DeviceClient::new(client, "d1").unwrap();
-        let task = device_client.get_module_by_id("m1").then(|module| {
+        let device_client = DeviceClient::new(client, "d1".to_string()).unwrap();
+        let task = device_client.get_module_by_id("m1".to_string()).then(|module| {
             let module = module.unwrap();
             assert_eq!(expected_module, module);
             Ok::<_, Error>(())
@@ -593,7 +588,7 @@ mod tests {
 
     #[test]
     fn modules_get_not_found() {
-        let api_version = "2018-04-10";
+        let api_version = "2018-04-10".to_string();
         let host_name = Url::parse("http://localhost").unwrap();
 
         let handler = move |req: Request<Body>| {
@@ -609,11 +604,9 @@ mod tests {
         };
         let client = Client::new(handler, Some(NullTokenSource), api_version, host_name).unwrap();
 
-        let device_client = DeviceClient::new(client, "d1").unwrap();
-        let task = device_client.get_module_by_id("m1").then(|module| {
-            assert!(module.is_err());
-            assert_eq!(ErrorKind::ModuleNotFound, *module.unwrap_err().kind());
-
+        let device_client = DeviceClient::new(client, "d1".to_string()).unwrap();
+        let task = device_client.get_module_by_id("m1".to_string()).then(|module| {
+            assert_eq!(ErrorKind::GetModuleWithReason("m1".to_string(), Reason::ModuleNotFound), *module.unwrap_err().kind());
             Ok::<_, Error>(())
         });
 

@@ -3,13 +3,7 @@
 use std::fmt;
 use std::fmt::Display;
 
-use std::str::Utf8Error;
-
 use failure::{Backtrace, Context, Fail};
-use hex::FromHexError;
-use url::ParseError;
-
-use edgelet_utils::Error as UtilsError;
 
 pub type Result<T> = ::std::result::Result<T, Error>;
 
@@ -18,22 +12,16 @@ pub struct Error {
     inner: Context<ErrorKind>,
 }
 
-#[derive(Clone, Copy, Debug, Fail)]
+#[derive(Debug, Fail)]
 pub enum ErrorKind {
-    #[fail(display = "URL scheme is missing or is not npipe")]
-    InvalidUrlScheme,
-    #[fail(display = "URL host name has not been specified")]
-    MissingUrlHost,
-    #[fail(display = "Named pipe URL is not well formed")]
-    MalformedNamedPipeUrl,
-    #[fail(display = "Invalid URL")]
-    UrlParse,
-    #[fail(display = "Edgelet utils error")]
-    Utils,
-    #[fail(display = "Hex encode/decode error")]
-    Hex,
-    #[fail(display = "UTF-8 encode/decode error")]
-    Utf8,
+    #[fail(display = "invalid base path {:?}", _0)]
+    BadBasePath(String),
+
+    #[fail(display = "URL {:?} is invalid - {}", _0, _1)]
+    InvalidUrl(String, InvalidUrlReason),
+
+    #[fail(display = "Could not construct named pipe URL")]
+    ConstructUrlForHyper,
 }
 
 impl Fail for Error {
@@ -72,34 +60,21 @@ impl From<Context<ErrorKind>> for Error {
     }
 }
 
-impl From<ParseError> for Error {
-    fn from(err: ParseError) -> Self {
-        Error {
-            inner: err.context(ErrorKind::UrlParse),
-        }
-    }
+#[derive(Debug)]
+pub enum InvalidUrlReason {
+    BadHost(String),
+    MissingHost,
+    Path(String),
+    Scheme(String),
 }
 
-impl From<UtilsError> for Error {
-    fn from(err: UtilsError) -> Self {
-        Error {
-            inner: err.context(ErrorKind::Utils),
-        }
-    }
-}
-
-impl From<FromHexError> for Error {
-    fn from(err: FromHexError) -> Self {
-        Error {
-            inner: err.context(ErrorKind::Hex),
-        }
-    }
-}
-
-impl From<Utf8Error> for Error {
-    fn from(err: Utf8Error) -> Self {
-        Error {
-            inner: err.context(ErrorKind::Utf8),
+impl fmt::Display for InvalidUrlReason {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            InvalidUrlReason::BadHost(s) => write!(f, "could not decode host {:?} into valid pipe path", s),
+            InvalidUrlReason::MissingHost => write!(f, "no host"),
+            InvalidUrlReason::Path(s) => write!(f, "path {:?} is not well-formed", s),
+            InvalidUrlReason::Scheme(s) => write!(f, "scheme is {:?} but must be {:?}", s, super::NAMED_PIPE_SCHEME),
         }
     }
 }

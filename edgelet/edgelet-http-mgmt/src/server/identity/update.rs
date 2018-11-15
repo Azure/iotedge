@@ -2,37 +2,26 @@
 
 use std::sync::{Arc, Mutex};
 
-use failure::ResultExt;
-use futures::future::{self, Either, FutureResult};
-use futures::{Future, Stream};
-use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
-use http::{Request, Response, StatusCode};
-use hyper::{Body, Error as HyperError};
+use failure::{Fail, ResultExt};
+use futures::{Future, IntoFuture, Stream};
+use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use hyper::{Body, Request, Response, StatusCode};
 use serde::Serialize;
 use serde_json;
 
-use edgelet_core::{Identity as CoreIdentity, IdentityManager, IdentitySpec};
+use edgelet_core::{Identity as CoreIdentity, IdentityManager, IdentityOperation, IdentitySpec};
 use edgelet_http::route::{Handler, Parameters};
+use edgelet_http::Error as HttpError;
 use management::models::{Identity, UpdateIdentity as UpdateIdentityRequest};
 
 use error::{Error, ErrorKind};
 use IntoResponse;
 
-pub struct UpdateIdentity<I>
-where
-    I: 'static + IdentityManager,
-    I::Identity: Serialize,
-    <I as IdentityManager>::Error: IntoResponse,
-{
+pub struct UpdateIdentity<I> {
     id_manager: Arc<Mutex<I>>,
 }
 
-impl<I> UpdateIdentity<I>
-where
-    I: 'static + IdentityManager,
-    I::Identity: Serialize,
-    <I as IdentityManager>::Error: IntoResponse,
-{
+impl<I> UpdateIdentity<I> {
     pub fn new(id_manager: I) -> Self {
         UpdateIdentity {
             id_manager: Arc::new(Mutex::new(id_manager)),
@@ -44,31 +33,31 @@ impl<I> Handler<Parameters> for UpdateIdentity<I>
 where
     I: 'static + IdentityManager + Send,
     I::Identity: CoreIdentity + Serialize,
-    <I as IdentityManager>::Error: IntoResponse,
 {
     fn handle(
         &self,
         req: Request<Body>,
         params: Parameters,
-    ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+    ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
         let id_manager = self.id_manager.clone();
-        let response = match params.name("name") {
-            Some(name) => {
-                let result = read_request(name, req)
-                    .and_then(move |spec| {
-                        let mut rid = id_manager.lock().unwrap();
-                        rid.update(spec)
-                            .map(|id| write_response(&id))
-                            .or_else(|e| future::ok(e.into_response()))
-                    }).or_else(|e| {
-                        future::ok(e.into_response()) as FutureResult<Response<Body>, HyperError>
-                    });
 
-                Either::A(result)
-            }
-
-            None => Either::B(future::ok(Error::from(ErrorKind::BadParam).into_response())),
-        };
+        let response =
+            params.name("name")
+            .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("name")))
+            .map(|name| {
+                let name = name.to_string();
+                read_request(name.clone(), req).map(|spec| (spec, name))
+            })
+            .into_future()
+            .flatten()
+            .and_then(move |(spec, name)| {
+                let mut rid = id_manager.lock().unwrap();
+                rid.update(spec).map_err(|err| Error::from(err.context(ErrorKind::IdentityOperation(IdentityOperation::UpdateIdentity(name)))))
+            })
+            .and_then(|id| {
+                Ok(write_response(&id))
+            })
+            .or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }
@@ -78,40 +67,39 @@ fn write_response<I>(identity: &I) -> Response<Body>
 where
     I: 'static + CoreIdentity + Serialize,
 {
+    let module_id = identity.module_id().to_string();
     let identity = Identity::new(
-        identity.module_id().to_string(),
+        module_id.clone(),
         identity.managed_by().to_string(),
         identity.generation_id().to_string(),
         identity.auth_type().to_string(),
     );
 
-    match serde_json::to_string(&identity).context(ErrorKind::Serde) {
-        Ok(b) => Response::builder()
+    serde_json::to_string(&identity).with_context(|_| ErrorKind::IdentityOperation(IdentityOperation::UpdateIdentity(module_id.clone())))
+    .map_err(Error::from)
+    .and_then(|b| {
+        Ok(Response::builder()
             .status(StatusCode::OK)
             .header(CONTENT_TYPE, "application/json")
             .header(CONTENT_LENGTH, b.len().to_string().as_str())
             .body(b.into())
-            .unwrap_or_else(|e| e.into_response()),
-        Err(e) => e.into_response(),
-    }
+            .context(ErrorKind::IdentityOperation(IdentityOperation::UpdateIdentity(module_id)))?)
+    })
+    .unwrap_or_else(|e| e.into_response())
 }
 
-fn read_request(name: &str, req: Request<Body>) -> impl Future<Item = IdentitySpec, Error = Error> {
-    let name = name.to_string();
+fn read_request(name: String, req: Request<Body>) -> impl Future<Item = IdentitySpec, Error = Error> {
     req.into_body()
         .concat2()
-        .map_err(Error::from)
-        .and_then(|b| {
-            serde_json::from_slice::<UpdateIdentityRequest>(&b)
-                .context(ErrorKind::BadBody)
-                .map_err(Error::from)
-        }).map(move |update_req| {
+        .then(move |b| {
+            let b = b.context(ErrorKind::MalformedRequestBody)?;
+            let update_req = serde_json::from_slice::<UpdateIdentityRequest>(&b).context(ErrorKind::MalformedRequestBody)?;
             let mut spec =
-                IdentitySpec::new(&name).with_generation_id(update_req.generation_id().to_string());
+                IdentitySpec::new(name).with_generation_id(update_req.generation_id().to_string());
             if let Some(m) = update_req.managed_by() {
                 spec = spec.with_managed_by(m.to_string());
             }
-            spec
+            Ok(spec)
         })
 }
 
@@ -198,7 +186,7 @@ mod tests {
             .concat2()
             .and_then(|body| {
                 let error: ErrorResponse = serde_json::from_slice(&body).unwrap();
-                assert_eq!("Bad parameter", error.message());
+                assert_eq!("The request is missing required parameter `name`", error.message());
                 Ok(())
             }).wait()
             .unwrap();
@@ -228,7 +216,7 @@ mod tests {
             .concat2()
             .and_then(|body| {
                 let error: ErrorResponse = serde_json::from_slice(&body).unwrap();
-                assert_ne!(None, error.message().find("Bad body"));
+                assert_eq!("Request body is malformed\n\tcaused by: EOF while parsing a value at line 1 column 0", error.message());
                 Ok(())
             }).wait()
             .unwrap();

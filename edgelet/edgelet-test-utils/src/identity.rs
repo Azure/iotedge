@@ -3,7 +3,7 @@
 use futures::future::{self, FutureResult, IntoFuture};
 
 use edgelet_core::{
-    AuthType, Error as CoreError, ErrorKind as CoreErrorKind, Identity, IdentityManager,
+    AuthType, Identity, IdentityManager,
     IdentitySpec,
 };
 
@@ -17,12 +17,6 @@ pub enum Error {
 
     #[fail(display = "Module generation ID was not provided")]
     MissingGenerationId,
-}
-
-impl From<Error> for CoreError {
-    fn from(_err: Error) -> Self {
-        CoreError::from(CoreErrorKind::Identity)
-    }
 }
 
 #[derive(Clone, Deserialize, Serialize)]

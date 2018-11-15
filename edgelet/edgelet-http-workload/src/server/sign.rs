@@ -1,17 +1,18 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use base64;
-use edgelet_core::crypto::{KeyIdentity, KeyStore, Sign, Signature, SignatureAlgorithm};
-use edgelet_http::route::{Handler, Parameters};
 use failure::ResultExt;
-use futures::{future, Future, Stream};
-use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
-use http::{Request, Response, StatusCode};
-use hyper::{Body, Error as HyperError};
+use futures::{Future, IntoFuture, Stream};
+use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use hyper::{Body, Request, Response, StatusCode};
 use serde_json;
 use workload::models::{SignRequest, SignResponse};
 
-use error::{Error, ErrorKind};
+use edgelet_core::crypto::{KeyIdentity, KeyStore, Sign, Signature, SignatureAlgorithm};
+use edgelet_http::route::{Handler, Parameters};
+use edgelet_http::Error as HttpError;
+
+use error::{EncryptionOperation, Error, ErrorKind};
 use IntoResponse;
 
 pub struct SignHandler<K>
@@ -30,22 +31,16 @@ where
     }
 }
 
-#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
 pub fn sign<K: KeyStore>(
-    key_store: K,
+    key_store: &K,
     id: String,
-    request: SignRequest,
+    request: &SignRequest,
 ) -> Result<SignResponse, Error> {
-    key_store
-        .get(&KeyIdentity::Module(id), request.key_id())
-        .context(ErrorKind::NotFound)
-        .map_err(Error::from)
-        .and_then(|k| {
-            let data: Vec<u8> = base64::decode(request.data())?;
-            let signature = k.sign(SignatureAlgorithm::HMACSHA256, &data)?;
-            let encoded = base64::encode(signature.as_bytes());
-            Ok(SignResponse::new(encoded))
-        })
+    let k = key_store.get(&KeyIdentity::Module(id.clone()), request.key_id()).context(ErrorKind::ModuleNotFound(id))?;
+    let data: Vec<u8> = base64::decode(request.data()).context(ErrorKind::MalformedRequestBody)?;
+    let signature = k.sign(SignatureAlgorithm::HMACSHA256, &data).context(ErrorKind::EncryptionOperation(EncryptionOperation::Sign))?;
+    let encoded = base64::encode(signature.as_bytes());
+    Ok(SignResponse::new(encoded))
 }
 
 impl<K> Handler<Parameters> for SignHandler<K>
@@ -56,44 +51,45 @@ where
         &self,
         req: Request<Body>,
         params: Parameters,
-    ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
-        let response = match params
-            .name("name")
-            .ok_or_else(|| Error::from(ErrorKind::BadParam))
+    ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
+        let response =
+            params.name("name")
+            .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("name")))
             .and_then(|name| {
-                params
-                    .name("genid")
-                    .ok_or_else(|| Error::from(ErrorKind::BadParam))
-                    .map(|genid| (name, genid))
-            }) {
-            Ok((name, genid)) => {
+                let genid = params.name("genid").ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("genid")))?;
+                Ok((name, genid))
+            })
+            .map(|(name, genid)| {
                 let id = name.to_string();
                 let genid = genid.to_string();
                 let key_store = self.key_store.clone();
-                let ok = req.into_body().concat2().map(move |b| {
-                    serde_json::from_slice::<SignRequest>(&b)
-                        .context(ErrorKind::BadBody)
-                        .map_err(From::from)
-                        .and_then(|request| {
-                            let key_id = format!("{}{}", request.key_id(), genid);
-                            sign(key_store, id, request.with_key_id(key_id))
-                        }).and_then(|r| {
-                            serde_json::to_string(&r)
-                                .context(ErrorKind::Serde)
-                                .map_err(From::from)
-                        }).and_then(|b| {
-                            Response::builder()
-                                .status(StatusCode::OK)
-                                .header(CONTENT_TYPE, "application/json")
-                                .header(CONTENT_LENGTH, b.len().to_string().as_str())
-                                .body(b.into())
-                                .map_err(From::from)
-                        }).unwrap_or_else(|e| e.into_response())
-                });
-                future::Either::A(ok)
-            }
-            Err(e) => future::Either::B(future::ok(e.into_response())),
-        };
+
+                req
+                    .into_body()
+                    .concat2()
+                    .then(|body| {
+                        let body = body.context(ErrorKind::EncryptionOperation(EncryptionOperation::Encrypt))?;
+                        Ok((id, genid, key_store, body))
+                    })
+            })
+            .into_future()
+            .flatten()
+            .and_then(|(id, genid, key_store, body)| -> Result<_, Error> {
+                let request: SignRequest = serde_json::from_slice(&body).context(ErrorKind::MalformedRequestBody)?;
+                let key_id = format!("{}{}", request.key_id(), genid);
+                let response = sign(&key_store, id, &request.with_key_id(key_id))?;
+                let body = serde_json::to_string(&response).context(ErrorKind::EncryptionOperation(EncryptionOperation::Sign))?;
+                let response =
+                    Response::builder()
+                        .status(StatusCode::OK)
+                        .header(CONTENT_TYPE, "application/json")
+                        .header(CONTENT_LENGTH, body.len().to_string().as_str())
+                        .body(body.into())
+                        .context(ErrorKind::EncryptionOperation(EncryptionOperation::Sign))?;
+                Ok(response)
+            })
+            .or_else(|e| Ok(e.into_response()));
+
         Box::new(response)
     }
 }
@@ -170,7 +166,7 @@ mod tests {
         type Key = MemoryKey;
 
         fn get(&self, _identity: &KeyIdentity, _key_name: &str) -> Result<Self::Key, CoreError> {
-            Err(CoreError::from(CoreErrorKind::NotFound))
+            Err(CoreError::from(CoreErrorKind::KeyStoreItemNotFound))
         }
     }
 
@@ -335,14 +331,14 @@ mod tests {
         let response = handler.handle(request, parameters).wait().unwrap();
 
         // assert
-        assert_eq!(StatusCode::UNPROCESSABLE_ENTITY, response.status());
+        assert_eq!(StatusCode::BAD_REQUEST, response.status());
         response
             .into_body()
             .concat2()
             .and_then(|b| {
                 let error_response: ErrorResponse = serde_json::from_slice(&b).unwrap();
                 assert_eq!(
-                  "Invalid base64 string\n\tcaused by: Encoded text cannot have a 6-bit remainder.",
+                  "Request body is malformed\n\tcaused by: Encoded text cannot have a 6-bit remainder.",
                   error_response.message());
                 Ok(())
             }).wait()
@@ -376,7 +372,7 @@ mod tests {
             .concat2()
             .and_then(|b| {
                 let error_response: ErrorResponse = serde_json::from_slice(&b).unwrap();
-                let expected = "Bad body\n\tcaused by: expected value at line 1 column 1";
+                let expected = "Request body is malformed\n\tcaused by: expected value at line 1 column 1";
                 assert_eq!(expected, error_response.message());
                 Ok(())
             }).wait()

@@ -1,12 +1,16 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use edgelet_core::pid::Pid;
-use edgelet_core::{Authorization as CoreAuth, Error as CoreError, Module, ModuleRuntime, Policy};
-use error::{Error, ErrorKind};
-use futures::{future, Future};
-use hyper::{self, Body, Request, Response};
-use route::{Handler, Parameters};
 use std::sync::Arc;
+
+use failure::ResultExt;
+use futures::{future, Future};
+use hyper::{Body, Request, Response};
+
+use edgelet_core::pid::Pid;
+use edgelet_core::{Authorization as CoreAuth, ModuleRuntime, Policy};
+
+use error::{Error, ErrorKind};
+use route::{Handler, Parameters};
 use IntoResponse;
 
 pub struct Authorization<H, M>
@@ -22,8 +26,6 @@ impl<H, M> Authorization<H, M>
 where
     H: Handler<Parameters>,
     M: 'static + ModuleRuntime,
-    M::Error: Into<CoreError>,
-    <M::Module as Module>::Error: Into<CoreError>,
 {
     pub fn new(inner: H, policy: Policy, runtime: M) -> Self {
         Authorization {
@@ -37,14 +39,12 @@ impl<H, M> Handler<Parameters> for Authorization<H, M>
 where
     H: Handler<Parameters> + Sync,
     M: 'static + ModuleRuntime + Send,
-    M::Error: Into<CoreError>,
-    <M::Module as Module>::Error: Into<CoreError>,
 {
     fn handle(
         &self,
         req: Request<Body>,
         params: Parameters,
-    ) -> Box<Future<Item = Response<Body>, Error = hyper::Error> + Send> {
+    ) -> Box<Future<Item = Response<Body>, Error = Error> + Send> {
         let (name, pid) = (
             params.name("name").map(|n| n.to_string()),
             req.extensions()
@@ -56,13 +56,15 @@ where
 
         let response = self
             .auth
-            .authorize(name, pid)
-            .map_err(Error::from)
+            .authorize(name.clone(), pid)
+            .then(|authorized| authorized.context(ErrorKind::Authorization).map_err(Error::from))
             .and_then(move |authorized| {
                 if authorized {
-                    future::Either::A(inner.handle(req, params).map_err(Error::from))
+                    future::Either::A(
+                        inner.handle(req, params)
+                        .then(|resp| resp.context(ErrorKind::Authorization).map_err(Error::from)))
                 } else {
-                    future::Either::B(future::err(Error::from(ErrorKind::NotFound)))
+                    future::Either::B(future::err(Error::from(ErrorKind::ModuleNotFound(name.unwrap_or_else(String::new)))))
                 }
             }).or_else(|e| future::ok(e.into_response()));
 
@@ -74,13 +76,15 @@ where
 mod tests {
     use std::time::Duration;
 
-    use super::*;
-    use edgelet_core::{LogOptions, ModuleRegistry, ModuleRuntimeState, ModuleSpec, SystemInfo};
     use futures::future::FutureResult;
     use futures::stream::Empty;
     use futures::{stream, Stream};
-    use http::{Request, Response, StatusCode};
-    use hyper::{Body, Error as HyperError};
+    use hyper::{Body, Request, Response, StatusCode};
+
+    use edgelet_core::{LogOptions, Module, ModuleRegistry, ModuleRuntimeState, ModuleSpec, SystemInfo};
+
+    use super::*;
+    use error::Error as HttpError;
 
     #[test]
     fn handler_calls_inner_handler() {
@@ -167,7 +171,7 @@ mod tests {
             &self,
             _req: Request<Body>,
             _params: Parameters,
-        ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+        ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
             let response = Response::builder()
                 .status(StatusCode::OK)
                 .body("from TestHandler".into())
@@ -213,7 +217,7 @@ mod tests {
 
     macro_rules! notimpl_error {
         () => {
-            future::err(Error::from(ErrorKind::InvalidApiVersion))
+            future::err(Error::from(ErrorKind::InvalidApiVersion("foo".to_string())))
         };
     }
 

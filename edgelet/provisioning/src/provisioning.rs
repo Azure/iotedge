@@ -8,9 +8,10 @@ use std::path::PathBuf;
 use base64;
 use bytes::Bytes;
 
+use failure::{Fail, ResultExt};
 use futures::future::Either;
-use futures::{future, Future};
-use regex::RegexSet;
+use futures::{future, Future, IntoFuture};
+use regex::Regex;
 use serde_json;
 use url::Url;
 
@@ -18,7 +19,7 @@ use dps::registration::{DpsClient, DpsTokenSource};
 use edgelet_core::crypto::{Activate, KeyIdentity, KeyStore, MemoryKey, MemoryKeyStore};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
-use edgelet_utils::log_failure;
+use edgelet_utils::{ensure_not_empty_with_context, log_failure};
 use error::{Error, ErrorKind};
 use hsm::TpmKey as HsmTpmKey;
 use log::Level;
@@ -27,9 +28,9 @@ const DEVICEID_KEY: &str = "DeviceId";
 const HOSTNAME_KEY: &str = "HostName";
 const SHAREDACCESSKEY_KEY: &str = "SharedAccessKey";
 
-const DEVICEID_REGEX: &str = r"DeviceId=([A-Za-z0-9\-:.+%_#*?!(),=@;$']{1,128})";
-const HOSTNAME_REGEX: &str = r"HostName=([a-zA-Z0-9_\-\.]+)";
-const SHAREDACCESSKEY_REGEX: &str = r"SharedAccessKey=(.+)";
+const DEVICEID_REGEX: &str = r"^[A-Za-z0-9\-:.+%_#*?!(),=@;$']{1,128}$";
+const HOSTNAME_REGEX: &str = r"^[a-zA-Z0-9_\-\.]+$";
+const SHAREDACCESSKEY_REGEX: &str = r"^.+$";
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct ProvisioningResult {
@@ -71,22 +72,34 @@ pub struct ManualProvisioning {
 
 impl ManualProvisioning {
     pub fn new(conn_string: &str) -> Result<Self, Error> {
-        ensure_not_empty!(conn_string, "The Connection String is empty or invalid. Please update the config.yaml and provide the IoTHub connection information.");
-        let hash_map = ManualProvisioning::parse_conn_string(conn_string)?;
+        ensure_not_empty_with_context(&conn_string, || ErrorKind::InvalidConnString)?;
 
-        let key_str = hash_map
+        let hash_map = ManualProvisioning::parse_conn_string(&conn_string)?;
+
+        let key = hash_map
             .get(SHAREDACCESSKEY_KEY)
-            .map(|s| s.as_str())
-            .ok_or_else(|| Error::from(ErrorKind::NotFound))?;
-        let key = MemoryKey::new(base64::decode(key_str)?);
+            .ok_or(ErrorKind::ConnStringMissingRequiredParameter(SHAREDACCESSKEY_KEY))?;
+        let key_regex = Regex::new(SHAREDACCESSKEY_REGEX).expect("This hard-coded regex is expected to be valid.");
+        if !key_regex.is_match(&key) {
+            return Err(Error::from(ErrorKind::ConnStringMalformedParameter(SHAREDACCESSKEY_REGEX)));
+        }
+        let key = MemoryKey::new(base64::decode(&key).context(ErrorKind::ConnStringMalformedParameter(SHAREDACCESSKEY_REGEX))?);
 
         let device_id = hash_map
             .get(DEVICEID_KEY)
-            .ok_or_else(|| Error::from(ErrorKind::NotFound))?;
+            .ok_or(ErrorKind::ConnStringMissingRequiredParameter(DEVICEID_KEY))?;
+        let device_id_regex = Regex::new(DEVICEID_REGEX).expect("This hard-coded regex is expected to be valid.");
+        if !device_id_regex.is_match(&device_id) {
+            return Err(Error::from(ErrorKind::ConnStringMalformedParameter(DEVICEID_KEY)));
+        }
 
         let hub = hash_map
             .get(HOSTNAME_KEY)
-            .ok_or_else(|| Error::from(ErrorKind::NotFound))?;
+            .ok_or(ErrorKind::ConnStringMissingRequiredParameter(HOSTNAME_KEY))?;
+        let hub_regex = Regex::new(HOSTNAME_REGEX).expect("This hard-coded regex is expected to be valid.");
+        if !hub_regex.is_match(&hub) {
+            return Err(Error::from(ErrorKind::ConnStringMalformedParameter(HOSTNAME_KEY)));
+        }
 
         let result = ManualProvisioning {
             key,
@@ -99,19 +112,14 @@ impl ManualProvisioning {
     fn parse_conn_string(conn_string: &str) -> Result<HashMap<String, String>, Error> {
         let mut hash_map = HashMap::new();
         let parts: Vec<&str> = conn_string.split(';').collect();
-        let set = RegexSet::new(&[DEVICEID_REGEX, HOSTNAME_REGEX, SHAREDACCESSKEY_REGEX])?;
-        let matches: Vec<_> = set.matches(conn_string).into_iter().collect();
-        if matches != vec![0, 1, 2] {
-            // Error if all three components are not provided
-            return Err(Error::from(ErrorKind::Provision(
-                "Invalid connection string".to_string(),
-            )));
-        }
         for p in parts {
             let s: Vec<&str> = p.split('=').collect();
-            if set.is_match(p) {
-                hash_map.insert(s[0].to_string(), s[1].to_string());
-            } // Ignore extraneous component in the connection string
+            match s[0] {
+                SHAREDACCESSKEY_KEY | DEVICEID_KEY | HOSTNAME_KEY => {
+                    hash_map.insert(s[0].to_string(), s[1].to_string());
+                },
+                _ => (), // Ignore extraneous component in the connection string
+            }
         }
         Ok(hash_map)
     }
@@ -140,8 +148,8 @@ impl Provision for ManualProvisioning {
                 device_id,
                 hub_name: hub,
                 reconfigure: false,
-            }).map_err(Error::from);
-        Box::new(future::result(result))
+            }).map_err(|err| Error::from(err.context(ErrorKind::Provision)));
+        Box::new(result.into_future())
     }
 }
 
@@ -165,16 +173,16 @@ where
         endpoint: Url,
         scope_id: String,
         registration_id: String,
-        api_version: &str,
+        api_version: String,
         hsm_tpm_ek: HsmTpmKey,
         hsm_tpm_srk: HsmTpmKey,
     ) -> Result<Self, Error> {
         let client = HttpClient::new(
             client_impl,
             None as Option<DpsTokenSource<TpmKey>>,
-            &api_version,
+            api_version,
             endpoint,
-        )?;
+        ).context(ErrorKind::DpsInitialization)?;
 
         let result = DpsProvisioning {
             client,
@@ -197,14 +205,16 @@ where
         self,
         key_activator: Self::Hsm,
     ) -> Box<Future<Item = ProvisioningResult, Error = Error> + Send> {
-        let d = match DpsClient::new(
+        let c = DpsClient::new(
             self.client.clone(),
             self.scope_id.clone(),
             self.registration_id.clone(),
             Bytes::from(self.hsm_tpm_ek.as_ref()),
             Bytes::from(self.hsm_tpm_srk.as_ref()),
             key_activator,
-        ) {
+        );
+
+        let d = match c {
             Ok(c) => Either::A(
                 c.register()
                     .map(|(device_id, hub_name)| {
@@ -217,9 +227,9 @@ where
                             hub_name,
                             reconfigure: false,
                         }
-                    }).map_err(Error::from),
+                    }).map_err(|err| Error::from(err.context(ErrorKind::Provision))),
             ),
-            Err(err) => Either::B(future::err(Error::from(err))),
+            Err(err) => Either::B(future::err(Error::from(err.context(ErrorKind::Provision)))),
         };
 
         Box::new(d)
@@ -247,23 +257,19 @@ where
 
     fn backup(prov_result: &ProvisioningResult, path: PathBuf) -> Result<(), Error> {
         // create a file if it doesn't exist, else open it for writing
-        let mut file = File::create(path)?;
-        let buffer = serde_json::to_string(&prov_result)?;
-        file.write_all(buffer.as_bytes())?;
+        let mut file = File::create(path).context(ErrorKind::CouldNotBackup)?;
+        let buffer = serde_json::to_string(&prov_result).context(ErrorKind::CouldNotBackup)?;
+        file.write_all(buffer.as_bytes()).context(ErrorKind::CouldNotBackup)?;
         Ok(())
     }
 
     fn restore(path: PathBuf) -> Result<ProvisioningResult, Error> {
-        let mut file = File::open(path)?;
+        let mut file = File::open(path).context(ErrorKind::CouldNotRestore)?;
         let mut buffer = String::new();
-        file.read_to_string(&mut buffer)
-            .map(|_| {
-                info!("Restoring device credentials from backup");
-                serde_json::from_str(&buffer).map_err(Error::from)
-            }).map_err(|err| {
-                log_failure(Level::Warn, &err);
-                err
-            })?
+        let _ = file.read_to_string(&mut buffer).context(ErrorKind::CouldNotRestore)?;
+        info!("Restoring device credentials from backup");
+        let prov_result = serde_json::from_str(&buffer).context(ErrorKind::CouldNotRestore)?;
+        Ok(prov_result)
     }
 }
 
@@ -334,7 +340,7 @@ mod tests {
             self,
             _key_activator: Self::Hsm,
         ) -> Box<Future<Item = ProvisioningResult, Error = Error> + Send> {
-            Box::new(future::err(Error::from(ErrorKind::Dps)))
+            Box::new(future::err(Error::from(ErrorKind::Provision)))
         }
     }
 
@@ -352,10 +358,10 @@ mod tests {
                     Ok(result) => {
                         assert_eq!(result.hub_name, "test.com".to_string());
                         assert_eq!(result.device_id, "test".to_string());
+                        Ok::<_, Error>(())
                     }
                     Err(err) => panic!("Unexpected {:?}", err),
                 }
-                Ok::<_, Error>(())
             });
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
