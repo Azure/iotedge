@@ -17,11 +17,13 @@ override_dh_systemd_start:
 
 override_dh_shlibdeps:
 ifeq ($(CARGO), cross)
-	dh_shlibdeps -l /usr/arm-linux-gnueabihf/lib/:$(CURDIR)/../build/hsm-sys*/out/lib -- --ignore-missing-info
+	cp $(CURDIR)/../build/hsm-sys*/out/lib/libiothsm.so* $(CURDIR)
+	dh_shlibdeps -l /usr/arm-linux-gnueabihf/lib/:$(CURDIR) -- --ignore-missing-info
 else
 ifndef SYSROOT
 	dh_shlibdeps -l $(CURDIR)/../build/hsm-sys*/out/lib -- --ignore-missing-info
 else
-	dh_shlibdeps -l $(SYSROOT)/lib/:$(SYSROOT)/usr/lib:$(CURDIR)/../build/hsm-sys*/out/lib -- --ignore-missing-info
+	cp $(CURDIR)/../build/hsm-sys*/out/lib/libiothsm.so* $(CURDIR)
+	dh_shlibdeps -l $(CURDIR):$(SYSROOT)/lib/:$(SYSROOT)/usr/lib -- --ignore-missing-info
 endif
 endif
