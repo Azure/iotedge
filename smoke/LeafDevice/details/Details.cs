@@ -3,19 +3,22 @@
 namespace LeafDevice.Details
 {
     using System;
+    using System.Net;
+    using System.Runtime.InteropServices;
     using System.Security.Cryptography.X509Certificates;
     using System.Text;
-    using Microsoft.Azure.Devices.Client;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Common;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Azure.EventHubs;
-    using System.Net;
-    using Microsoft.Azure.Devices.Edge.Util;
     using DeviceClientTransportType = Microsoft.Azure.Devices.Client.TransportType;
     using EventHubClientTransportType = Microsoft.Azure.EventHubs.TransportType;
+    using IotHubConnectionStringBuilder = Microsoft.Azure.Devices.IotHubConnectionStringBuilder;
+    using Message = Microsoft.Azure.Devices.Client.Message;
     using ServiceClientTransportType = Microsoft.Azure.Devices.TransportType;
 
     public class Details
@@ -60,24 +63,142 @@ namespace LeafDevice.Details
             }
         }
 
-        protected Task InstallCaCertificate()
+        protected async Task ManageCaCertificate()
         {
-            var store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
-            store.Open(OpenFlags.ReadWrite);
-            store.Add(new X509Certificate2(X509Certificate.CreateFromCertFile(this.certificateFileName)));
-            store.Close();
-            return Task.CompletedTask;
+            var certificate = new X509Certificate2(X509Certificate.CreateFromCertFile(this.certificateFileName));
+            // Remove all existing certificate with same subject name
+            await RemoveCertificatesFromUserRootStoreAsync(certificate.Subject.Split("=")[1]).ConfigureAwait(false);
+            await AddCertificateToUserRootStore(certificate).ConfigureAwait(false);
         }
+
+        static async Task AddCertificateToUserRootStore(X509Certificate2 certificate)
+        {
+            using (var store = new X509Store(StoreName.Root, StoreLocation.CurrentUser))
+            {
+                try
+                {
+                    store.Open(OpenFlags.ReadWrite);
+
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                    {
+                        bool isCompleted = false;
+
+                        Task confirmTask = Task.Factory.StartNew(
+                            async () =>
+                            {
+                                await Task.Delay(TimeSpan.FromSeconds(3));
+                                ConfirmUserCertificateSecurityWarning();
+                            });
+
+                        Task verificationTask = Task.Factory.StartNew(
+                            async () =>
+                            {
+                                await Task.Delay(TimeSpan.FromSeconds(5));
+
+                                if (!isCompleted)
+                                {
+                                    Environment.Exit(-1);
+                                }
+                            });
+
+                        store.Add(certificate);
+                        isCompleted = true;
+                        await confirmTask.ConfigureAwait(false);
+                        await verificationTask.ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        store.Add(certificate);
+                    }
+
+                    Console.WriteLine($"Add certificate '{certificate.Subject}' to user root store is done.");
+                }
+                finally
+                {
+                    store.Close();
+                }
+            }
+        }
+
+        static async Task RemoveCertificatesFromUserRootStoreAsync(string certificateSubject)
+        {
+            using (var store = new X509Store(StoreName.Root, StoreLocation.CurrentUser))
+            {
+                try
+                {
+                    store.Open(OpenFlags.ReadWrite);
+                    X509Certificate2Collection certs = store.Certificates.Find(X509FindType.FindBySubjectName, certificateSubject, false);
+
+                    if (certs.Count > 0)
+                    {
+                        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                        {
+                            bool isCompleted = false;
+
+                            Task confirmTask = Task.Factory.StartNew(
+                                async () =>
+                                {
+                                    await Task.Delay(TimeSpan.FromSeconds(3));
+                                    ConfirmUserCertificateSecurityWarning();
+                                });
+
+                            Task verificationTask = Task.Factory.StartNew(
+                                async () =>
+                                {
+                                    await Task.Delay(TimeSpan.FromSeconds(5));
+
+                                    if (!isCompleted)
+                                    {
+                                        Console.WriteLine("Remove certificates from user root store can't be done.");
+                                        Environment.Exit(-1);
+                                    }
+                                });
+
+                            store.RemoveRange(certs);
+                            isCompleted = true;
+                            await confirmTask.ConfigureAwait(false);
+                            await verificationTask.ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            store.RemoveRange(certs);
+                        }
+
+                        Console.WriteLine($"Certificates with subject name '{certificateSubject}' are removed.");
+                    }
+                }
+                finally
+                {
+                    store.Close();
+                }
+            }
+        }
+
+        static void ConfirmUserCertificateSecurityWarning()
+        {
+            System.Diagnostics.Process p = System.Diagnostics.Process.GetCurrentProcess();
+            IntPtr h = p.MainWindowHandle;
+            SetForegroundWindow(h);
+
+            // Click "Yes" button on certificate security warning dialog
+            KeyStrokeSimulator.SendKeyDown(KeyCode.ALT);
+            KeyStrokeSimulator.SendKeyDown(KeyCode.KEY_Y);
+            KeyStrokeSimulator.SendKeyUp(KeyCode.KEY_Y);
+            KeyStrokeSimulator.SendKeyUp(KeyCode.ALT);
+        }
+
+        [DllImport("User32.dll")]
+        static extern int SetForegroundWindow(IntPtr point);
 
         protected async Task ConnectToEdgeAndSendData()
         {
-            Microsoft.Azure.Devices.IotHubConnectionStringBuilder builder = Microsoft.Azure.Devices.IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
+            IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
             string leafDeviceConnectionString = $"HostName={builder.HostName};DeviceId={this.deviceId};SharedAccessKey={this.context.Device.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={this.edgeHostName}";
-            
+
             this.context.DeviceClientInstance = Option.Some(DeviceClient.CreateFromConnectionString(leafDeviceConnectionString, this.deviceClientTransportType));
             Console.WriteLine("Leaf Device client created.");
-            
-            var message = new Microsoft.Azure.Devices.Client.Message(Encoding.ASCII.GetBytes($"Message from Leaf Device. MsgGUID: {this.context.MessageGuid}"));
+
+            var message = new Message(Encoding.ASCII.GetBytes($"Message from Leaf Device. MsgGUID: {this.context.MessageGuid}"));
             Console.WriteLine($"Trying to send the message to '{this.edgeHostName}'");
 
             await this.context.DeviceClientInstance.ForEachAsync(
@@ -91,7 +212,7 @@ namespace LeafDevice.Details
 
         protected async Task GetOrCreateDeviceIdentity()
         {
-            Microsoft.Azure.Devices.IotHubConnectionStringBuilder builder = Microsoft.Azure.Devices.IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
+            IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(builder.ToString());
 
             Device device = await rm.GetDeviceAsync(this.deviceId);
@@ -123,7 +244,7 @@ namespace LeafDevice.Details
                 Capabilities = new DeviceCapabilities() { IotEdge = false }
             };
 
-            Microsoft.Azure.Devices.IotHubConnectionStringBuilder builder = Microsoft.Azure.Devices.IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
+            IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
             Console.WriteLine($"Registering device '{device.Id}' on IoT hub '{builder.HostName}'");
 
             device = await rm.AddDeviceAsync(device);
@@ -196,21 +317,22 @@ namespace LeafDevice.Details
             //User Service SDK to invoke Direct Method on the device.
             ServiceClient serviceClient =
                 ServiceClient.CreateFromConnectionString(this.context.IotHubConnectionString, this.serviceClientTransportType);
-            
+
             //Call a direct method
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(300)))
             {
                 CloudToDeviceMethod cloudToDeviceMethod = new CloudToDeviceMethod("DirectMethod").SetPayloadJson("{\"TestKey\" : \"TestValue\"}");
 
                 CloudToDeviceMethodResult result = await serviceClient.InvokeDeviceMethodAsync(
-                this.context.Device.Id,
-                cloudToDeviceMethod,
-                cts.Token);
+                    this.context.Device.Id,
+                    cloudToDeviceMethod,
+                    cts.Token);
 
                 if (result.Status != 200)
                 {
                     throw new Exception("Could not invoke Direct Method on Device.");
-                } else if (!result.GetPayloadAsJson().Equals("{\"TestKey\":\"TestValue\"}"))
+                }
+                else if (!result.GetPayloadAsJson().Equals("{\"TestKey\":\"TestValue\"}"))
                 {
                     throw new Exception($"Payload doesn't match with Sent Payload. Received payload: {result.GetPayloadAsJson()}. Expected: {{\"TestKey\":\"TestValue\"}}");
                 }
@@ -248,9 +370,13 @@ namespace LeafDevice.Details
         public Device Device { get; set; }
 
         public Option<DeviceClient> DeviceClientInstance { get; set; }
+
         public string IotHubConnectionString { get; set; }
+
         public RegistryManager RegistryManager { get; set; }
+
         public bool RemoveDevice { get; set; }
+
         public string MessageGuid { get; set; } //used to identify exactly which message got sent.
     }
 }
