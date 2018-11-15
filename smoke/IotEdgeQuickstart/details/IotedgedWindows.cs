@@ -77,7 +77,7 @@ namespace IotEdgeQuickstart.Details
                         {
                             Console.WriteLine(e);
 
-                            // Eat up hyper error, as this is a transient exception; need retry.
+                            // Hyper error is treated as a transient exception in this case; therefore need to retry.
                             if (!e.ToString().Contains("Hyper error", StringComparison.OrdinalIgnoreCase))
                             {
                                 throw;
