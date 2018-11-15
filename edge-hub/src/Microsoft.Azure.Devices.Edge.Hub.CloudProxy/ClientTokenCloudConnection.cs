@@ -22,7 +22,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         static readonly TimeSpan TokenRetryWaitTime = TimeSpan.FromSeconds(20);
 
         readonly AsyncLock identityUpdateLock = new AsyncLock();
-        readonly AsyncLock tokenUpdateLock = new AsyncLock();
 
         bool callbacksEnabled = true;
         Option<TaskCompletionSource<string>> tokenGetter;
@@ -239,6 +238,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         class ClientTokenBasedTokenProvider : ITokenProvider
         {
             readonly ClientTokenCloudConnection cloudConnection;
+            readonly AsyncLock tokenUpdateLock = new AsyncLock();
             string token;
 
             public ClientTokenBasedTokenProvider(ITokenCredentials tokenCredentials, ClientTokenCloudConnection cloudConnection)
@@ -249,7 +249,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public async Task<string> GetTokenAsync(Option<TimeSpan> ttl)
             {
-                using (await this.cloudConnection.tokenUpdateLock.LockAsync())
+                using (await this.tokenUpdateLock.LockAsync())
                 {
                     try
                     {

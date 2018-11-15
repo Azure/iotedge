@@ -69,15 +69,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             Preconditions.CheckNotNull(transportSettings, nameof(transportSettings));
             Preconditions.CheckNotNull(tokenProvider, nameof(tokenProvider));
 
-            if (identity is IModuleIdentity moduleIdentity)
+            switch (identity)
             {
-                return this.Create(identity, new ModuleAuthentication(tokenProvider, moduleIdentity.DeviceId, moduleIdentity.ModuleId), transportSettings);
+                case IModuleIdentity moduleIdentity:
+                    return this.Create(identity, new ModuleAuthentication(tokenProvider, moduleIdentity.DeviceId, moduleIdentity.ModuleId), transportSettings);
+
+                case IDeviceIdentity deviceIdentity:
+                    return this.Create(identity, new DeviceAuthentication(tokenProvider, deviceIdentity.DeviceId), transportSettings);
+
+                default:
+                    throw new InvalidOperationException($"Invalid client identity type {identity.GetType()}");
             }
-            else if (identity is IDeviceIdentity deviceIdentity)
-            {
-                return this.Create(identity, new DeviceAuthentication(tokenProvider, deviceIdentity.DeviceId), transportSettings);
-            }
-            throw new InvalidOperationException($"Invalid client identity type {identity.GetType()}");
         }
     }
 }
