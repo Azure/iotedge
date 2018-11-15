@@ -24,7 +24,7 @@ namespace LeafDevice
             // This test assumes that there is an edge deployment running as transparent gateway.
             try
             {
-                await this.ManageCaCertificate();
+                await this.InstallCaCertificate();
                 await GetOrCreateDeviceIdentity();
                 await ConnectToEdgeAndSendData();
                 await this.VerifyDataOnIoTHub();

@@ -3,14 +3,17 @@
 namespace LeafDevice.Details
 {
     using System;
+    using System.Collections.Generic;
     using System.Net;
     using System.Runtime.InteropServices;
     using System.Security.Cryptography.X509Certificates;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
+    using global::LeafDevice.details;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Common;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
@@ -30,7 +33,7 @@ namespace LeafDevice.Details
         readonly string edgeHostName;
         readonly ServiceClientTransportType serviceClientTransportType;
         readonly EventHubClientTransportType eventHubClientTransportType;
-        readonly DeviceClientTransportType deviceClientTransportType;
+        readonly ITransportSettings[] deviceTransportSettings;
 
         DeviceContext context;
 
@@ -53,149 +56,47 @@ namespace LeafDevice.Details
             {
                 this.serviceClientTransportType = ServiceClientTransportType.Amqp_WebSocket_Only;
                 this.eventHubClientTransportType = EventHubClientTransportType.AmqpWebSockets;
-                this.deviceClientTransportType = DeviceClientTransportType.Mqtt_WebSocket_Only;
+                this.deviceTransportSettings = new ITransportSettings[] { new MqttTransportSettings(DeviceClientTransportType.Mqtt_WebSocket_Only) };
             }
             else
             {
                 this.serviceClientTransportType = ServiceClientTransportType.Amqp;
                 this.eventHubClientTransportType = EventHubClientTransportType.Amqp;
-                this.deviceClientTransportType = DeviceClientTransportType.Mqtt;
+                this.deviceTransportSettings = new ITransportSettings[] { new MqttTransportSettings(DeviceClientTransportType.Mqtt) };
             }
         }
 
-        protected async Task ManageCaCertificate()
+        protected Task InstallCaCertificate()
         {
-            var certificate = new X509Certificate2(X509Certificate.CreateFromCertFile(this.certificateFileName));
-            // Remove all existing certificate with same subject name
-            await RemoveCertificatesFromUserRootStoreAsync(certificate.Subject.Split("=")[1]).ConfigureAwait(false);
-            await AddCertificateToUserRootStore(certificate).ConfigureAwait(false);
-        }
-
-        static async Task AddCertificateToUserRootStore(X509Certificate2 certificate)
-        {
-            using (var store = new X509Store(StoreName.Root, StoreLocation.CurrentUser))
+            // Since Windows will pop up security warning when add certificate to current user store location;
+            // Therefore we will use CustomCertificateValidator instead.
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                try
-                {
-                    store.Open(OpenFlags.ReadWrite);
-
-                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                    {
-                        bool isCompleted = false;
-
-                        Task confirmTask = Task.Factory.StartNew(
-                            async () =>
-                            {
-                                await Task.Delay(TimeSpan.FromSeconds(3));
-                                ConfirmUserCertificateSecurityWarning();
-                            });
-
-                        Task verificationTask = Task.Factory.StartNew(
-                            async () =>
-                            {
-                                await Task.Delay(TimeSpan.FromSeconds(5));
-
-                                if (!isCompleted)
-                                {
-                                    Environment.Exit(-1);
-                                }
-                            });
-
-                        store.Add(certificate);
-                        isCompleted = true;
-                        await confirmTask.ConfigureAwait(false);
-                        await verificationTask.ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        store.Add(certificate);
-                    }
-
-                    Console.WriteLine($"Add certificate '{certificate.Subject}' to user root store is done.");
-                }
-                finally
-                {
-                    store.Close();
-                }
+                var store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
+                store.Open(OpenFlags.ReadWrite);
+                store.Add(this.GetCertificate());
+                store.Close();
             }
+
+            return Task.CompletedTask;
         }
 
-        static async Task RemoveCertificatesFromUserRootStoreAsync(string certificateSubject)
-        {
-            using (var store = new X509Store(StoreName.Root, StoreLocation.CurrentUser))
-            {
-                try
-                {
-                    store.Open(OpenFlags.ReadWrite);
-                    X509Certificate2Collection certs = store.Certificates.Find(X509FindType.FindBySubjectName, certificateSubject, false);
-
-                    if (certs.Count > 0)
-                    {
-                        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                        {
-                            bool isCompleted = false;
-
-                            Task confirmTask = Task.Factory.StartNew(
-                                async () =>
-                                {
-                                    await Task.Delay(TimeSpan.FromSeconds(3));
-                                    ConfirmUserCertificateSecurityWarning();
-                                });
-
-                            Task verificationTask = Task.Factory.StartNew(
-                                async () =>
-                                {
-                                    await Task.Delay(TimeSpan.FromSeconds(5));
-
-                                    if (!isCompleted)
-                                    {
-                                        Console.WriteLine("Remove certificates from user root store can't be done.");
-                                        Environment.Exit(-1);
-                                    }
-                                });
-
-                            store.RemoveRange(certs);
-                            isCompleted = true;
-                            await confirmTask.ConfigureAwait(false);
-                            await verificationTask.ConfigureAwait(false);
-                        }
-                        else
-                        {
-                            store.RemoveRange(certs);
-                        }
-
-                        Console.WriteLine($"Certificates with subject name '{certificateSubject}' are removed.");
-                    }
-                }
-                finally
-                {
-                    store.Close();
-                }
-            }
-        }
-
-        static void ConfirmUserCertificateSecurityWarning()
-        {
-            System.Diagnostics.Process p = System.Diagnostics.Process.GetCurrentProcess();
-            IntPtr h = p.MainWindowHandle;
-            SetForegroundWindow(h);
-
-            // Click "Yes" button on certificate security warning dialog
-            KeyStrokeSimulator.SendKeyDown(KeyCode.ALT);
-            KeyStrokeSimulator.SendKeyDown(KeyCode.KEY_Y);
-            KeyStrokeSimulator.SendKeyUp(KeyCode.KEY_Y);
-            KeyStrokeSimulator.SendKeyUp(KeyCode.ALT);
-        }
-
-        [DllImport("User32.dll")]
-        static extern int SetForegroundWindow(IntPtr point);
+        X509Certificate2 GetCertificate() => new X509Certificate2(X509Certificate.CreateFromCertFile(this.certificateFileName));
 
         protected async Task ConnectToEdgeAndSendData()
         {
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
             string leafDeviceConnectionString = $"HostName={builder.HostName};DeviceId={this.deviceId};SharedAccessKey={this.context.Device.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={this.edgeHostName}";
 
-            this.context.DeviceClientInstance = Option.Some(DeviceClient.CreateFromConnectionString(leafDeviceConnectionString, this.deviceClientTransportType));
+            // Need to use CustomCertificateValidator since we can't automate to install certificate on Windows
+            // For details, refer to InstallCaCertificate method
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                CustomCertificateValidator.Create(new List<X509Certificate2> { this.GetCertificate() }, this.deviceTransportSettings);
+            }
+
+            this.context.DeviceClientInstance = Option.Some(DeviceClient.CreateFromConnectionString(leafDeviceConnectionString, this.deviceTransportSettings));
+
             Console.WriteLine("Leaf Device client created.");
 
             var message = new Message(Encoding.ASCII.GetBytes($"Message from Leaf Device. MsgGUID: {this.context.MessageGuid}"));
