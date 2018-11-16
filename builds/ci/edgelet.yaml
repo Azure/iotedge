@@ -1,11 +1,17 @@
-phases:
+trigger:
+  batch: true
+  branches:
+    include:
+      - master
+pr: none
+jobs:
 
 ################################################################################
-  - phase: linux_amd64
+  - job: linux_amd64
 ################################################################################
     displayName: Linux amd64
-    queue:
-      name: Hosted Linux Preview
+    pool:
+      vmImage: 'ubuntu-16.04'
     steps:
       - script: echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
         displayName: Set env variables
@@ -27,11 +33,11 @@ phases:
           filePath: edgelet/build/linux/test.sh
 
 ################################################################################
-  - phase: linux_arm32v7
+  - job: linux_arm32v7
 ################################################################################
     displayName: Linux arm32v7
-    queue:
-      name: Hosted Linux Preview
+    pool:
+      vmImage: 'ubuntu-16.04'
     steps:
       - script: |
           echo "##vso[task.setvariable variable=RUSTUP_HOME;]$VSTS_WORK/rustup"
@@ -59,8 +65,8 @@ phases:
   - phase: windows_amd64
 ################################################################################
     displayName: Windows amd64
-    queue:
-      name: Hosted VS2017
+    pool:
+      vmImage: 'vs2017-win2016'
     steps:
       - powershell: Write-Host ("##vso[task.setvariable variable=NO_VALGRIND;]true")
         displayName: Set env variables
@@ -81,8 +87,8 @@ phases:
   - phase: style_check
 ################################################################################
     displayName: Style Check
-    queue:
-      name: Hosted Linux Preview
+    pool:
+      vmImage: 'ubuntu-16.04'
     steps:
       - script: |
           echo "##vso[task.setvariable variable=NO_VALGRIND;]true"

@@ -1,15 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::fmt::{self, Display};
-use std::str::ParseBoolError;
 
-use edgelet_core::Error as CoreError;
-use edgelet_http::Error as EdgeletHttpError;
+use edgelet_core::{IdentityOperation, ModuleOperation, RuntimeOperation};
+use edgelet_docker::{Error as DockerError, ErrorKind as DockerErrorKind};
 use edgelet_iothub::Error as IoTHubError;
 use failure::{Backtrace, Context, Fail};
-use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
-use http::{Error as HttpError, Response, StatusCode};
-use hyper::{Body, Error as HyperError, StatusCode as HyperStatusCode};
+use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use hyper::{Body, Response, StatusCode};
 use serde_json;
 
 use management::apis::Error as MgmtError;
@@ -24,34 +22,48 @@ pub struct Error {
 
 #[derive(Debug, Fail)]
 pub enum ErrorKind {
-    #[fail(display = "Core error")]
-    Core,
-    #[fail(display = "Module runtime error")]
-    ModuleRuntime,
-    #[fail(display = "Identity manager error")]
-    IdentityManager,
-    #[fail(display = "Serde error")]
-    Serde,
-    #[fail(display = "Hyper error")]
-    Hyper,
-    #[fail(display = "Http error")]
-    Http,
-    #[fail(display = "Bad parameter")]
-    BadParam,
-    #[fail(display = "Bad body")]
-    BadBody,
-    #[fail(display = "IoT Hub error")]
-    IoTHub,
-    #[fail(display = "Invalid or missing API version")]
-    InvalidApiVersion,
+    // Note: This errorkind is always wrapped in another errorkind context
     #[fail(display = "Client error")]
     Client(MgmtError<serde_json::Value>),
+
+    #[fail(display = "{}", _0)]
+    IdentityOperation(IdentityOperation),
+
+    #[fail(display = "Could not initialize module client")]
+    InitializeModuleClient,
+
+    #[fail(display = "Invalid API version {:?}", _0)]
+    InvalidApiVersion(String),
+
+    #[fail(display = "A request to Azure IoT Hub failed")]
+    IotHub,
+
+    #[fail(display = "Request body is malformed")]
+    MalformedRequestBody,
+
+    #[fail(display = "The request parameter `{}` is malformed", _0)]
+    MalformedRequestParameter(&'static str),
+
+    #[fail(
+        display = "The request is missing required parameter `{}`",
+        _0
+    )]
+    MissingRequiredParameter(&'static str),
+
+    #[fail(display = "{}", _0)]
+    ModuleOperation(ModuleOperation),
+
     #[fail(display = "State not modified")]
     NotModified,
-    #[fail(display = "Parse error")]
-    Parse,
-    #[fail(display = "UTF-8 encode/decode error")]
-    Utf8,
+
+    #[fail(display = "{}", _0)]
+    RuntimeOperation(RuntimeOperation),
+
+    #[fail(display = "Could not start management service")]
+    StartService,
+
+    #[fail(display = "Could not update module")]
+    UpdateModule(String),
 }
 
 impl Fail for Error {
@@ -74,6 +86,17 @@ impl Error {
     pub fn kind(&self) -> &ErrorKind {
         self.inner.get_context()
     }
+
+    pub fn from_mgmt_error(error: MgmtError<serde_json::Value>, context: ErrorKind) -> Self {
+        match error {
+            MgmtError::Hyper(h) => Error::from(h.context(context)),
+            MgmtError::Serde(s) => Error::from(s.context(context)),
+            MgmtError::Api(ref e) if e.code == StatusCode::NOT_MODIFIED => {
+                Error::from(ErrorKind::NotModified)
+            }
+            MgmtError::Api(_) => Error::from(ErrorKind::Client(error).context(context)),
+        }
+    }
 }
 
 impl From<ErrorKind> for Error {
@@ -90,127 +113,59 @@ impl From<Context<ErrorKind>> for Error {
     }
 }
 
-impl From<CoreError> for Error {
-    fn from(error: CoreError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Core),
-        }
-    }
-}
-
-impl From<serde_json::Error> for Error {
-    fn from(error: serde_json::Error) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Serde),
-        }
-    }
-}
-
-impl From<HyperError> for Error {
-    fn from(error: HyperError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Hyper),
-        }
-    }
-}
-
-impl From<HttpError> for Error {
-    fn from(error: HttpError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Http),
-        }
-    }
-}
-
-impl From<EdgeletHttpError> for Error {
-    fn from(error: EdgeletHttpError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Http),
-        }
-    }
-}
-
-impl From<MgmtError<serde_json::Value>> for Error {
-    fn from(error: MgmtError<serde_json::Value>) -> Self {
-        match error {
-            MgmtError::Hyper(h) => From::from(h),
-            MgmtError::Serde(s) => From::from(s),
-            MgmtError::Api(ref e) if e.code == HyperStatusCode::NOT_MODIFIED => {
-                From::from(ErrorKind::NotModified)
-            }
-            MgmtError::Api(_) => From::from(ErrorKind::Client(error)),
-        }
-    }
-}
-
-impl From<IoTHubError> for Error {
-    fn from(error: IoTHubError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::IoTHub),
-        }
-    }
-}
-
-impl From<ParseBoolError> for Error {
-    fn from(error: ParseBoolError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Parse),
-        }
-    }
-}
-
 impl IntoResponse for Error {
     fn into_response(self) -> Response<Body> {
-        let mut fail: &Fail = &self;
+        let fail: &Fail = &self;
         let mut message = self.to_string();
-        while let Some(cause) = fail.cause() {
-            message.push_str(&format!("\n\tcaused by: {}", cause.to_string()));
-            fail = cause;
+        for cause in fail.iter_causes() {
+            message.push_str(&format!("\n\tcaused by: {}", cause));
         }
 
-        let status_code = match *self.kind() {
-            ErrorKind::BadParam | ErrorKind::BadBody | ErrorKind::InvalidApiVersion => {
-                StatusCode::BAD_REQUEST
-            }
-            _ => {
-                error!("Internal server error: {}", message);
-                StatusCode::INTERNAL_SERVER_ERROR
-            }
+        // Specialize status code based on the underlying docker runtime error, if any
+        let status_code =
+            if let Some(cause) = self.cause().and_then(Fail::downcast_ref::<DockerError>) {
+                match cause.kind() {
+                    DockerErrorKind::NotFound(_) => StatusCode::NOT_FOUND,
+                    DockerErrorKind::Conflict => StatusCode::CONFLICT,
+                    DockerErrorKind::NotModified => StatusCode::NOT_MODIFIED,
+                    _ => StatusCode::INTERNAL_SERVER_ERROR,
+                }
+            } else {
+                match self.kind() {
+                    ErrorKind::InvalidApiVersion(_)
+                    | ErrorKind::MalformedRequestBody
+                    | ErrorKind::MalformedRequestParameter(_)
+                    | ErrorKind::MissingRequiredParameter(_) => StatusCode::BAD_REQUEST,
+                    _ => {
+                        error!("Internal server error: {}", message);
+                        StatusCode::INTERNAL_SERVER_ERROR
+                    }
+                }
+            };
+
+        // Per the RFC, status code NotModified should not have a body
+        let body = if status_code == StatusCode::NOT_MODIFIED {
+            String::new()
+        } else {
+            serde_json::to_string(&ErrorResponse::new(message))
+                .expect("serialization of ErrorResponse failed.")
         };
 
-        let body = serde_json::to_string(&ErrorResponse::new(message))
-            .expect("serialization of ErrorResponse failed.");
-
-        Response::builder()
+        let mut response = Response::builder();
+        response
             .status(status_code)
-            .header(CONTENT_TYPE, "application/json")
-            .header(CONTENT_LENGTH, body.len().to_string().as_str())
+            .header(CONTENT_LENGTH, body.len().to_string().as_str());
+        if !body.is_empty() {
+            response.header(CONTENT_TYPE, "application/json");
+        }
+        response
             .body(body.into())
             .expect("response builder failure")
     }
 }
 
-impl IntoResponse for Context<ErrorKind> {
-    fn into_response(self) -> Response<Body> {
-        let error: Error = Error::from(self);
-        error.into_response()
-    }
-}
-
-impl IntoResponse for HyperError {
-    fn into_response(self) -> Response<Body> {
-        Error::from(self).into_response()
-    }
-}
-
-impl IntoResponse for HttpError {
-    fn into_response(self) -> Response<Body> {
-        Error::from(self).into_response()
-    }
-}
-
 impl IntoResponse for IoTHubError {
     fn into_response(self) -> Response<Body> {
-        Error::from(self).into_response()
+        Error::from(self.context(ErrorKind::IotHub)).into_response()
     }
 }
