@@ -7,6 +7,8 @@ pr:
     include:
       - builds/*
       - edgelet/*
+    exclude:
+      - edgelet/hsm-sys/azure-iot-hsm-c/*
 jobs:
 
 ################################################################################
