@@ -30,7 +30,7 @@ impl Uri {
         if url.scheme() != NAMED_PIPE_SCHEME {
             return Err(Error::from(ErrorKind::InvalidUrl(
                 url.to_string(),
-                InvalidUrlReason::Scheme(url.to_string()),
+                InvalidUrlReason::Scheme(url.scheme().to_string()),
             )));
         }
 
