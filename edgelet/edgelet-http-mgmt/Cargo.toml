@@ -6,7 +6,7 @@ publish = false
 
 [dependencies]
 failure = "0.1"
-futures = "0.1"
+futures = "0.1.2"
 hyper = "0.12"
 lazy_static = "1.0"
 log = "0.4"
