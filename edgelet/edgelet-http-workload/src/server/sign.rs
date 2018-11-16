@@ -36,9 +36,13 @@ pub fn sign<K: KeyStore>(
     id: String,
     request: &SignRequest,
 ) -> Result<SignResponse, Error> {
-    let k = key_store.get(&KeyIdentity::Module(id.clone()), request.key_id()).context(ErrorKind::ModuleNotFound(id))?;
+    let k = key_store
+        .get(&KeyIdentity::Module(id.clone()), request.key_id())
+        .context(ErrorKind::ModuleNotFound(id))?;
     let data: Vec<u8> = base64::decode(request.data()).context(ErrorKind::MalformedRequestBody)?;
-    let signature = k.sign(SignatureAlgorithm::HMACSHA256, &data).context(ErrorKind::EncryptionOperation(EncryptionOperation::Sign))?;
+    let signature = k
+        .sign(SignatureAlgorithm::HMACSHA256, &data)
+        .context(ErrorKind::EncryptionOperation(EncryptionOperation::Sign))?;
     let encoded = base64::encode(signature.as_bytes());
     Ok(SignResponse::new(encoded))
 }
@@ -52,43 +56,41 @@ where
         req: Request<Body>,
         params: Parameters,
     ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
-        let response =
-            params.name("name")
+        let response = params
+            .name("name")
             .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("name")))
             .and_then(|name| {
-                let genid = params.name("genid").ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("genid")))?;
+                let genid = params
+                    .name("genid")
+                    .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("genid")))?;
                 Ok((name, genid))
-            })
-            .map(|(name, genid)| {
+            }).map(|(name, genid)| {
                 let id = name.to_string();
                 let genid = genid.to_string();
                 let key_store = self.key_store.clone();
 
-                req
-                    .into_body()
-                    .concat2()
-                    .then(|body| {
-                        let body = body.context(ErrorKind::EncryptionOperation(EncryptionOperation::Encrypt))?;
-                        Ok((id, genid, key_store, body))
-                    })
-            })
-            .into_future()
+                req.into_body().concat2().then(|body| {
+                    let body =
+                        body.context(ErrorKind::EncryptionOperation(EncryptionOperation::Encrypt))?;
+                    Ok((id, genid, key_store, body))
+                })
+            }).into_future()
             .flatten()
             .and_then(|(id, genid, key_store, body)| -> Result<_, Error> {
-                let request: SignRequest = serde_json::from_slice(&body).context(ErrorKind::MalformedRequestBody)?;
+                let request: SignRequest =
+                    serde_json::from_slice(&body).context(ErrorKind::MalformedRequestBody)?;
                 let key_id = format!("{}{}", request.key_id(), genid);
                 let response = sign(&key_store, id, &request.with_key_id(key_id))?;
-                let body = serde_json::to_string(&response).context(ErrorKind::EncryptionOperation(EncryptionOperation::Sign))?;
-                let response =
-                    Response::builder()
-                        .status(StatusCode::OK)
-                        .header(CONTENT_TYPE, "application/json")
-                        .header(CONTENT_LENGTH, body.len().to_string().as_str())
-                        .body(body.into())
-                        .context(ErrorKind::EncryptionOperation(EncryptionOperation::Sign))?;
+                let body = serde_json::to_string(&response)
+                    .context(ErrorKind::EncryptionOperation(EncryptionOperation::Sign))?;
+                let response = Response::builder()
+                    .status(StatusCode::OK)
+                    .header(CONTENT_TYPE, "application/json")
+                    .header(CONTENT_LENGTH, body.len().to_string().as_str())
+                    .body(body.into())
+                    .context(ErrorKind::EncryptionOperation(EncryptionOperation::Sign))?;
                 Ok(response)
-            })
-            .or_else(|e| Ok(e.into_response()));
+            }).or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }
@@ -372,7 +374,8 @@ mod tests {
             .concat2()
             .and_then(|b| {
                 let error_response: ErrorResponse = serde_json::from_slice(&b).unwrap();
-                let expected = "Request body is malformed\n\tcaused by: expected value at line 1 column 1";
+                let expected =
+                    "Request body is malformed\n\tcaused by: expected value at line 1 column 1";
                 assert_eq!(expected, error_response.message());
                 Ok(())
             }).wait()

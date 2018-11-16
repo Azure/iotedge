@@ -38,40 +38,51 @@ where
         _params: Parameters,
     ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
         let runtime = self.runtime.clone();
-        let response = req
-            .into_body()
-            .concat2()
-            .then(|b| {
-                let b = b.context(ErrorKind::MalformedRequestBody)?;
-                let spec = serde_json::from_slice::<ModuleSpec>(&b).context(ErrorKind::MalformedRequestBody)?;
-                let core_spec = spec_to_core::<M>(&spec, ErrorKind::MalformedRequestBody)?;
-                Ok((spec, core_spec))
-            })
-            .and_then(move |(spec, core_spec)| {
-                let module_name = spec.name().to_string();
-                runtime
-                    .registry()
-                    .pull(core_spec.config())
-                    .then(move |result| match result {
-                        Ok(_) => Ok(runtime
-                            .create(core_spec)
-                            .then(move |result| -> Result<_, Error> {
-                                let _ = result.with_context(|_| ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(module_name.clone())))?;
-                                let details = spec_to_details(&spec, ModuleStatus::Stopped);
-                                let b = serde_json::to_string(&details).with_context(|_| ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(module_name.clone())))?;
-                                let response = Response::builder()
-                                    .status(StatusCode::CREATED)
-                                    .header(CONTENT_TYPE, "application/json")
-                                    .header(CONTENT_LENGTH, b.len().to_string().as_str())
-                                    .body(b.into())
-                                    .context(ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(module_name)))?;
-                                Ok(response)
-                            })),
-                        Err(err) => Err(Error::from(err.context(ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(module_name))))),
-                    })
-            })
-            .flatten()
-            .or_else(|e| Ok(e.into_response()));
+        let response =
+            req.into_body()
+                .concat2()
+                .then(|b| {
+                    let b = b.context(ErrorKind::MalformedRequestBody)?;
+                    let spec = serde_json::from_slice::<ModuleSpec>(&b)
+                        .context(ErrorKind::MalformedRequestBody)?;
+                    let core_spec = spec_to_core::<M>(&spec, ErrorKind::MalformedRequestBody)?;
+                    Ok((spec, core_spec))
+                }).and_then(move |(spec, core_spec)| {
+                    let module_name = spec.name().to_string();
+                    runtime
+                        .registry()
+                        .pull(core_spec.config())
+                        .then(move |result| match result {
+                            Ok(_) => Ok(runtime.create(core_spec).then(
+                                move |result| -> Result<_, Error> {
+                                    let _ = result.with_context(|_| {
+                                        ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
+                                            module_name.clone(),
+                                        ))
+                                    })?;
+                                    let details = spec_to_details(&spec, ModuleStatus::Stopped);
+                                    let b = serde_json::to_string(&details).with_context(|_| {
+                                        ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
+                                            module_name.clone(),
+                                        ))
+                                    })?;
+                                    let response = Response::builder()
+                                        .status(StatusCode::CREATED)
+                                        .header(CONTENT_TYPE, "application/json")
+                                        .header(CONTENT_LENGTH, b.len().to_string().as_str())
+                                        .body(b.into())
+                                        .context(ErrorKind::RuntimeOperation(
+                                            RuntimeOperation::CreateModule(module_name),
+                                        ))?;
+                                    Ok(response)
+                                },
+                            )),
+                            Err(err) => Err(Error::from(err.context(ErrorKind::RuntimeOperation(
+                                RuntimeOperation::CreateModule(module_name),
+                            )))),
+                        })
+                }).flatten()
+                .or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }
@@ -160,7 +171,8 @@ mod tests {
             .concat2()
             .and_then(|b| {
                 let error_response: ErrorResponse = serde_json::from_slice(&b).unwrap();
-                let expected = "Request body is malformed\n\tcaused by: expected value at line 1 column 1";
+                let expected =
+                    "Request body is malformed\n\tcaused by: expected value at line 1 column 1";
                 assert_eq!(expected, error_response.message());
                 Ok(())
             }).wait()
@@ -187,7 +199,10 @@ mod tests {
             .concat2()
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
-                assert_eq!("Could not create module image-id\n\tcaused by: General error", error.message());
+                assert_eq!(
+                    "Could not create module image-id\n\tcaused by: General error",
+                    error.message()
+                );
                 Ok(())
             }).wait()
             .unwrap();

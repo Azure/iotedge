@@ -7,9 +7,7 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json;
 
-use edgelet_core::{
-    Module, ModuleRuntime, ModuleSpec as CoreModuleSpec, ModuleStatus,
-};
+use edgelet_core::{Module, ModuleRuntime, ModuleSpec as CoreModuleSpec, ModuleStatus};
 use management::models::*;
 
 use error::{Error, ErrorKind};
@@ -117,9 +115,13 @@ pub mod tests {
     #[test]
     fn not_found() {
         // arrange
-        let error = MgmtError::from(DockerError::from(DockerErrorKind::NotFound(
-            "manifest for image:latest not found".to_string(),
-        )).context(ErrorKind::RuntimeOperation(RuntimeOperation::StartModule("m1".to_string()))));
+        let error = MgmtError::from(
+            DockerError::from(DockerErrorKind::NotFound(
+                "manifest for image:latest not found".to_string(),
+            )).context(ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(
+                "m1".to_string(),
+            ))),
+        );
 
         // act
         let response = error.into_response();
@@ -131,7 +133,10 @@ pub mod tests {
             .concat2()
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
-                assert_eq!("Could not start module m1\n\tcaused by: manifest for image:latest not found", error.message());
+                assert_eq!(
+                    "Could not start module m1\n\tcaused by: manifest for image:latest not found",
+                    error.message()
+                );
                 Ok(())
             }).wait()
             .unwrap();
@@ -140,7 +145,9 @@ pub mod tests {
     #[test]
     fn conflict() {
         // arrange
-        let error = MgmtError::from(DockerError::from(DockerErrorKind::Conflict).context(ErrorKind::RuntimeOperation(RuntimeOperation::StartModule("m1".to_string()))));
+        let error = MgmtError::from(DockerError::from(DockerErrorKind::Conflict).context(
+            ErrorKind::RuntimeOperation(RuntimeOperation::StartModule("m1".to_string())),
+        ));
 
         // act
         let response = error.into_response();
@@ -152,7 +159,10 @@ pub mod tests {
             .concat2()
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
-                assert_eq!("Could not start module m1\n\tcaused by: Conflict with current operation", error.message());
+                assert_eq!(
+                    "Could not start module m1\n\tcaused by: Conflict with current operation",
+                    error.message()
+                );
                 Ok(())
             }).wait()
             .unwrap();
@@ -161,7 +171,9 @@ pub mod tests {
     #[test]
     fn internal_server() {
         // arrange
-        let error = MgmtError::from(DockerError::from(DockerErrorKind::Docker).context(ErrorKind::RuntimeOperation(RuntimeOperation::StartModule("m1".to_string()))));
+        let error = MgmtError::from(DockerError::from(DockerErrorKind::Docker).context(
+            ErrorKind::RuntimeOperation(RuntimeOperation::StartModule("m1".to_string())),
+        ));
 
         // act
         let response = error.into_response();
@@ -173,7 +185,10 @@ pub mod tests {
             .concat2()
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
-                assert_eq!("Could not start module m1\n\tcaused by: Container runtime error", error.message());
+                assert_eq!(
+                    "Could not start module m1\n\tcaused by: Container runtime error",
+                    error.message()
+                );
                 Ok(())
             }).wait()
             .unwrap();
@@ -182,9 +197,13 @@ pub mod tests {
     #[test]
     fn formatted_docker_runtime() {
         // arrange
-        let error = MgmtError::from(DockerError::from(DockerErrorKind::FormattedDockerRuntime(
-            "manifest for image:latest not found".to_string(),
-        )).context(ErrorKind::RuntimeOperation(RuntimeOperation::StartModule("m1".to_string()))));
+        let error = MgmtError::from(
+            DockerError::from(DockerErrorKind::FormattedDockerRuntime(
+                "manifest for image:latest not found".to_string(),
+            )).context(ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(
+                "m1".to_string(),
+            ))),
+        );
 
         // act
         let response = error.into_response();
@@ -196,7 +215,10 @@ pub mod tests {
             .concat2()
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
-                assert_eq!("Could not start module m1\n\tcaused by: manifest for image:latest not found", error.message());
+                assert_eq!(
+                    "Could not start module m1\n\tcaused by: manifest for image:latest not found",
+                    error.message()
+                );
                 Ok(())
             }).wait()
             .unwrap();

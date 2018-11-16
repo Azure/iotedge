@@ -28,7 +28,12 @@ where
     type ReqBody = T::ReqBody;
     type ResBody = T::ResBody;
     type Error = T::Error;
-    type Future = Box<Future<Item = <<T as Service>::Future as Future>::Item, Error = <<T as Service>::Future as Future>::Error> + Send>;
+    type Future = Box<
+        Future<
+                Item = <<T as Service>::Future as Future>::Item,
+                Error = <<T as Service>::Future as Future>::Error,
+            > + Send,
+    >;
 
     fn call(&mut self, req: Request<Self::ReqBody>) -> Self::Future {
         let label = self.label.clone();
@@ -43,7 +48,10 @@ where
             .and_then(|ua| ua.to_str().ok())
             .unwrap_or_else(|| "-")
             .to_string();
-        let pid = req.extensions().get::<Pid>().map_or_else(|| "-".to_string(), |p| p.to_string());
+        let pid = req
+            .extensions()
+            .get::<Pid>()
+            .map_or_else(|| "-".to_string(), |p| p.to_string());
 
         let inner = self.inner.call(req);
 
@@ -86,9 +94,10 @@ where
 
     fn new_service(&self) -> Self::Future {
         let label = self.label.clone();
-        Box::new(self.inner.new_service().map(|inner| LoggingService {
-            label,
-            inner,
-        }))
+        Box::new(
+            self.inner
+                .new_service()
+                .map(|inner| LoggingService { label, inner }),
+        )
     }
 }

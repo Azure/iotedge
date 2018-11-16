@@ -23,26 +23,44 @@ pub enum ErrorKind {
     #[fail(display = "File descriptor not found.")]
     FdNotFound,
 
-    #[fail(display = "The number of file descriptors {} does not match the number of file descriptor names {}.", _0, _1)]
+    #[fail(
+        display = "The number of file descriptors {} does not match the number of file descriptor names {}.",
+        _0,
+        _1
+    )]
     NumFdsDoesNotMatchNumFdNames(usize, usize),
 
     #[fail(display = "File descriptor {} is invalid.", _0)]
     InvalidFd(Fd),
 
-    #[fail(display = "Number of file descriptors {} from environment variable {} is not a valid value.", _1, _0)]
+    #[fail(
+        display = "Number of file descriptors {} from environment variable {} is not a valid value.",
+        _1,
+        _0
+    )]
     InvalidNumFds(String, Fd),
 
-    #[fail(display = "Environment variable {} is set to an invalid value.", _0)]
+    #[fail(
+        display = "Environment variable {} is set to an invalid value.",
+        _0
+    )]
     InvalidVar(String),
 
-    #[fail(display = "Could not parse process ID from environment variable {}.", _0)]
+    #[fail(
+        display = "Could not parse process ID from environment variable {}.",
+        _0
+    )]
     ParsePid(String),
 
     #[fail(display = "Socket corresponding to {} not found.", _0)]
     SocketNotFound(SocketLookupType),
 
     #[cfg(target_os = "linux")]
-    #[fail(display = "Based on the environment variable {}, other environment variables meant for a different process (PID {}).", _0, _1)]
+    #[fail(
+        display = "Based on the environment variable {}, other environment variables meant for a different process (PID {}).",
+        _0,
+        _1
+    )]
     WrongProcess(String, Pid),
 }
 

@@ -71,10 +71,17 @@ pub enum InvalidUrlReason {
 impl fmt::Display for InvalidUrlReason {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            InvalidUrlReason::BadHost(s) => write!(f, "could not decode host {:?} into valid pipe path", s),
+            InvalidUrlReason::BadHost(s) => {
+                write!(f, "could not decode host {:?} into valid pipe path", s)
+            }
             InvalidUrlReason::MissingHost => write!(f, "no host"),
             InvalidUrlReason::Path(s) => write!(f, "path {:?} is not well-formed", s),
-            InvalidUrlReason::Scheme(s) => write!(f, "scheme is {:?} but must be {:?}", s, super::NAMED_PIPE_SCHEME),
+            InvalidUrlReason::Scheme(s) => write!(
+                f,
+                "scheme is {:?} but must be {:?}",
+                s,
+                super::NAMED_PIPE_SCHEME
+            ),
         }
     }
 }

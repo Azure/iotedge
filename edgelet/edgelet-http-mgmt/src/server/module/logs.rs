@@ -34,27 +34,30 @@ where
     ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
         let runtime = self.runtime.clone();
 
-        let response =
-            params.name("name")
+        let response = params
+            .name("name")
             .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("name")))
             .and_then(|name| {
                 let name = name.to_string();
-                let options = req.uri().query().map_or_else(|| Ok(LogOptions::default()), parse_options)?;
+                let options = req
+                    .uri()
+                    .query()
+                    .map_or_else(|| Ok(LogOptions::default()), parse_options)?;
                 Ok((name, options))
-            })
-            .map(move |(name, options)| {
-                runtime
-                    .logs(&name, &options)
-                    .then(|s| -> Result<_, Error> {
-                        let s = s.with_context(|_| ErrorKind::RuntimeOperation(RuntimeOperation::GetModuleLogs(name.clone())))?;
-                        let response = Response::builder()
-                            .status(StatusCode::OK)
-                            .body(s.into())
-                            .context(ErrorKind::RuntimeOperation(RuntimeOperation::GetModuleLogs(name)))?;
-                        Ok(response)
-                    })
-            })
-            .into_future()
+            }).map(move |(name, options)| {
+                runtime.logs(&name, &options).then(|s| -> Result<_, Error> {
+                    let s = s.with_context(|_| {
+                        ErrorKind::RuntimeOperation(RuntimeOperation::GetModuleLogs(name.clone()))
+                    })?;
+                    let response = Response::builder()
+                        .status(StatusCode::OK)
+                        .body(s.into())
+                        .context(ErrorKind::RuntimeOperation(
+                            RuntimeOperation::GetModuleLogs(name),
+                        ))?;
+                    Ok(response)
+                })
+            }).into_future()
             .flatten()
             .or_else(|e| future::ok(e.into_response()));
 
@@ -111,7 +114,10 @@ mod tests {
         let query = "follow=34&tail=6";
         let options = parse_options(&query);
         assert!(options.is_err());
-        assert_eq!("The request parameter `follow` is malformed", options.err().unwrap().to_string());
+        assert_eq!(
+            "The request parameter `follow` is malformed",
+            options.err().unwrap().to_string()
+        );
     }
 
     #[test]
@@ -119,7 +125,10 @@ mod tests {
         let query = "follow=false&tail=adsaf";
         let options = parse_options(&query);
         assert!(options.is_err());
-        assert_eq!("The request parameter `tail` is malformed", options.err().unwrap().to_string());
+        assert_eq!(
+            "The request parameter `tail` is malformed",
+            options.err().unwrap().to_string()
+        );
     }
 
     #[test]
@@ -177,7 +186,10 @@ mod tests {
             .concat2()
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
-                assert_eq!("Could not get logs of module mod1\n\tcaused by: General error", error.message());
+                assert_eq!(
+                    "Could not get logs of module mod1\n\tcaused by: General error",
+                    error.message()
+                );
                 Ok(())
             }).wait()
             .unwrap();

@@ -41,7 +41,8 @@ where
             .runtime
             .system_info()
             .then(|system_info| -> Result<_, Error> {
-                let system_info = system_info.context(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo))?;
+                let system_info = system_info
+                    .context(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo))?;
 
                 let body = SystemInfo::new(
                     system_info.os_type().to_string(),
@@ -49,18 +50,17 @@ where
                     system_info.version().to_string(),
                 );
 
-                let b = serde_json::to_string(&body).context(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo))?;
+                let b = serde_json::to_string(&body)
+                    .context(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo))?;
 
-                let response =
-                    Response::builder()
-                        .status(StatusCode::OK)
-                        .header(CONTENT_TYPE, "application/json")
-                        .header(CONTENT_LENGTH, b.len().to_string().as_str())
-                        .body(b.into())
-                        .context(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo))?;
+                let response = Response::builder()
+                    .status(StatusCode::OK)
+                    .header(CONTENT_TYPE, "application/json")
+                    .header(CONTENT_LENGTH, b.len().to_string().as_str())
+                    .body(b.into())
+                    .context(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo))?;
                 Ok(response)
-            })
-            .or_else(|e| Ok(e.into_response()));
+            }).or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }
@@ -129,7 +129,10 @@ mod tests {
             .concat2()
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
-                assert_eq!("Could not query system info\n\tcaused by: General error", error.message());
+                assert_eq!(
+                    "Could not query system info\n\tcaused by: General error",
+                    error.message()
+                );
                 Ok(())
             }).wait()
             .unwrap();

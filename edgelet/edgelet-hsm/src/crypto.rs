@@ -8,8 +8,9 @@ use failure::Fail;
 use edgelet_core::{
     Certificate as CoreCertificate, CertificateProperties as CoreCertificateProperties,
     CreateCertificate as CoreCreateCertificate, Decrypt as CoreDecrypt, Encrypt as CoreEncrypt,
-    Error as CoreError, ErrorKind as CoreErrorKind, GetTrustBundle as CoreGetTrustBundle, KeyBytes as CoreKeyBytes,
-    MasterEncryptionKey as CoreMasterEncryptionKey, PrivateKey as CorePrivateKey,
+    Error as CoreError, ErrorKind as CoreErrorKind, GetTrustBundle as CoreGetTrustBundle,
+    KeyBytes as CoreKeyBytes, MasterEncryptionKey as CoreMasterEncryptionKey,
+    PrivateKey as CorePrivateKey,
 };
 
 use certificate_properties::convert_properties;
@@ -150,9 +151,10 @@ impl CoreCertificate for Certificate {
     type KeyBuffer = Vec<u8>;
 
     fn pem(&self) -> Result<Self::Buffer, CoreError> {
-        self.0.pem()
-        .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
-        .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore)))
+        self.0
+            .pem()
+            .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
+            .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore)))
     }
 
     fn get_private_key(&self) -> Result<Option<CorePrivateKey<Self::KeyBuffer>>, CoreError> {
@@ -164,8 +166,7 @@ impl CoreCertificate for Certificate {
                 }
                 Some(HsmPrivateKey::Ref(key_string)) => Some(CorePrivateKey::Ref(key_string)),
                 None => None,
-            })
-            .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
+            }).map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
             .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore)))
     }
 

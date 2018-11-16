@@ -18,8 +18,8 @@ use edgelet_http::route::{Builder, Parameters, Router};
 use edgelet_http::{Error as HttpError, HyperExt};
 use futures::{future, Future};
 use hyper::header::CONTENT_TYPE;
-use hyper::{Body, Request, Response, StatusCode};
 use hyper::server::conn::Http;
+use hyper::{Body, Request, Response, StatusCode};
 
 #[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
 fn index(

@@ -35,13 +35,11 @@ where
     fn call(&mut self, req: Request<Self::ReqBody>) -> Self::Future {
         let response = {
             let query = req.uri().query();
-            let api_version =
-                query
-                .and_then(|query| {
-                    let mut query = parse_query(query.as_bytes());
-                    let (_, api_version) = query.find(|&(ref key, _)| key == "api-version")?;
-                    Some(api_version)
-                });
+            let api_version = query.and_then(|query| {
+                let mut query = parse_query(query.as_bytes());
+                let (_, api_version) = query.find(|&(ref key, _)| key == "api-version")?;
+                Some(api_version)
+            });
 
             match api_version {
                 Some(ref api_version) if api_version == API_VERSION => Ok(()),
@@ -51,9 +49,11 @@ where
         };
 
         match response {
-            Ok(()) => Box::new(self.upstream
+            Ok(()) => Box::new(
+                self.upstream
                     .call(req)
-                    .or_else(|e| future::ok(e.into_response()))),
+                    .or_else(|e| future::ok(e.into_response())),
+            ),
             Err(kind) => Box::new(future::ok(Error::from(kind).into_response())),
         }
     }
@@ -73,9 +73,11 @@ where
     type InitError = <T as NewService>::InitError;
 
     fn new_service(&self) -> Self::Future {
-        Box::new(self.upstream.new_service().map(|upstream| ApiVersionService {
-            upstream,
-        }))
+        Box::new(
+            self.upstream
+                .new_service()
+                .map(|upstream| ApiVersionService { upstream }),
+        )
     }
 }
 

@@ -16,7 +16,10 @@ pub struct Error {
 
 #[derive(Clone, Debug, Fail, PartialEq)]
 pub enum ErrorKind {
-    #[fail(display = "The daemon could not start up successfully: {}", _0)]
+    #[fail(
+        display = "The daemon could not start up successfully: {}",
+        _0
+    )]
     Initialize(InitializeErrorReason),
 
     #[fail(display = "The management service encountered an error")]
@@ -100,15 +103,23 @@ pub enum InitializeErrorReason {
 impl fmt::Display for InitializeErrorReason {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            InitializeErrorReason::CreateMasterEncryptionKey => write!(f, "Could not create master encryption key"),
+            InitializeErrorReason::CreateMasterEncryptionKey => {
+                write!(f, "Could not create master encryption key")
+            }
 
-            InitializeErrorReason::CreateSettingsDirectory => write!(f, "Could not create settings directory"),
+            InitializeErrorReason::CreateSettingsDirectory => {
+                write!(f, "Could not create settings directory")
+            }
 
-            InitializeErrorReason::DestroyWorkloadCa => write!(f, "Could not destroy workload CA certificate"),
+            InitializeErrorReason::DestroyWorkloadCa => {
+                write!(f, "Could not destroy workload CA certificate")
+            }
 
             InitializeErrorReason::DeviceClient => write!(f, "Could not initialize device client"),
 
-            InitializeErrorReason::DpsProvisioningClient => write!(f, "Could not initialize DPS provisioning client"),
+            InitializeErrorReason::DpsProvisioningClient => {
+                write!(f, "Could not initialize DPS provisioning client")
+            }
 
             InitializeErrorReason::EdgeRuntime => write!(f, "Could not initialize edge runtime"),
 
@@ -122,30 +133,49 @@ impl fmt::Display for InitializeErrorReason {
 
             InitializeErrorReason::LoadSettings => write!(f, "Could not load settings"),
 
-            InitializeErrorReason::ManagementService => write!(f, "Could not start management service"),
+            InitializeErrorReason::ManagementService => {
+                write!(f, "Could not start management service")
+            }
 
-            InitializeErrorReason::ManualProvisioningClient => write!(f, "Could not initialize manual provisioning client"),
+            InitializeErrorReason::ManualProvisioningClient => {
+                write!(f, "Could not initialize manual provisioning client")
+            }
 
-            InitializeErrorReason::ModuleRuntime => write!(f, "Could not initialize module runtime"),
+            InitializeErrorReason::ModuleRuntime => {
+                write!(f, "Could not initialize module runtime")
+            }
 
-            InitializeErrorReason::NotConfigured =>
-                write!(f,
+            InitializeErrorReason::NotConfigured => write!(
+                f,
                 "Edge device information is required.\n\
-                Please update the config.yaml and provide the IoTHub connection information.\n\
-                See {} for more details.",
-                if cfg!(windows) { "https://aka.ms/iot-edge-configure-windows" } else { "https://aka.ms/iot-edge-configure-linux" }),
+                 Please update the config.yaml and provide the IoTHub connection information.\n\
+                 See {} for more details.",
+                if cfg!(windows) {
+                    "https://aka.ms/iot-edge-configure-windows"
+                } else {
+                    "https://aka.ms/iot-edge-configure-linux"
+                }
+            ),
 
-            InitializeErrorReason::PrepareWorkloadCa => write!(f, "Could not prepare workload CA certificate"),
+            InitializeErrorReason::PrepareWorkloadCa => {
+                write!(f, "Could not prepare workload CA certificate")
+            }
 
             #[cfg(windows)]
-            InitializeErrorReason::RegisterWindowsService => write!(f, "Could not register Windows Service control handle"),
+            InitializeErrorReason::RegisterWindowsService => {
+                write!(f, "Could not register Windows Service control handle")
+            }
 
-            InitializeErrorReason::RemoveExistingModules => write!(f, "Could not remove existing modules"),
+            InitializeErrorReason::RemoveExistingModules => {
+                write!(f, "Could not remove existing modules")
+            }
 
             InitializeErrorReason::SaveSettings => write!(f, "Could not save settings file"),
 
             #[cfg(windows)]
-            InitializeErrorReason::StartWindowsService => write!(f, "Could not start as Windows Service"),
+            InitializeErrorReason::StartWindowsService => {
+                write!(f, "Could not start as Windows Service")
+            }
 
             InitializeErrorReason::Tokio => write!(f, "Could not initialize tokio runtime"),
 

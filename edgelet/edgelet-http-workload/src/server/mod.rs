@@ -7,8 +7,8 @@ mod sign;
 mod trust_bundle;
 
 use edgelet_core::{
-    CreateCertificate, Decrypt, Encrypt, GetTrustBundle, KeyStore, Module,
-    ModuleRuntime, Policy, WorkloadConfig,
+    CreateCertificate, Decrypt, Encrypt, GetTrustBundle, KeyStore, Module, ModuleRuntime, Policy,
+    WorkloadConfig,
 };
 use edgelet_http::authorization::Authorization;
 use edgelet_http::route::*;
@@ -20,11 +20,11 @@ use hyper::{Body, Request};
 use serde::Serialize;
 
 use self::cert::{IdentityCertHandler, ServerCertHandler};
-use error::{Error, ErrorKind};
 use self::decrypt::DecryptHandler;
 use self::encrypt::EncryptHandler;
 use self::sign::SignHandler;
 use self::trust_bundle::TrustBundleHandler;
+use error::{Error, ErrorKind};
 
 #[derive(Clone)]
 pub struct WorkloadService {
@@ -59,12 +59,10 @@ impl WorkloadService {
             get    "/trust-bundle" => Authorization::new(TrustBundleHandler::new(hsm), Policy::Anonymous, runtime.clone()),
         );
 
-        router
-            .new_service()
-            .then(|inner| {
-                let inner = inner.context(ErrorKind::StartService)?;
-                Ok(WorkloadService { inner })
-            })
+        router.new_service().then(|inner| {
+            let inner = inner.context(ErrorKind::StartService)?;
+            Ok(WorkloadService { inner })
+        })
     }
 }
 

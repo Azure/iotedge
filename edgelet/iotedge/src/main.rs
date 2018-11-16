@@ -104,7 +104,11 @@ fn run() -> Result<(), Error> {
 
     let url = matches.value_of("host").map_or_else(
         || Err(Error::from(ErrorKind::MissingHostParameter)),
-        |h| Url::parse(h).context(ErrorKind::BadHostParameter).map_err(Error::from),
+        |h| {
+            Url::parse(h)
+                .context(ErrorKind::BadHostParameter)
+                .map_err(Error::from)
+        },
     )?;
     let runtime = ModuleClient::new(&url).context(ErrorKind::ModuleRuntime)?;
 

@@ -10,8 +10,8 @@ use typed_headers::Credentials;
 use url::percent_encoding::percent_decode;
 use url::Url;
 
-use error::{Error, ErrorKind, InvalidUrlReason};
 use super::super::client::ClientImpl;
+use error::{Error, ErrorKind, InvalidUrlReason};
 
 const DNS_WORKER_THREADS: usize = 4;
 
@@ -37,13 +37,13 @@ impl Config {
             Ok(Client::Null)
         } else {
             let config = self.clone();
-            let https = HttpsConnector::new(DNS_WORKER_THREADS).context(ErrorKind::Initialization)?;
+            let https =
+                HttpsConnector::new(DNS_WORKER_THREADS).context(ErrorKind::Initialization)?;
             match config.proxy_uri {
                 None => Ok(Client::NoProxy(HyperClient::builder().build(https))),
                 Some(uri) => {
                     let proxy = uri_to_proxy(uri.clone())?;
-                    let conn =
-                        ProxyConnector::from_proxy(https, proxy)
+                    let conn = ProxyConnector::from_proxy(https, proxy)
                         .with_context(|_| ErrorKind::Proxy(uri))
                         .context(ErrorKind::Initialization)?;
                     Ok(Client::Proxy(HyperClient::builder().build(conn)))
@@ -58,25 +58,43 @@ fn uri_to_proxy(uri: Uri) -> Result<Proxy, Error> {
     let mut proxy = Proxy::new(Intercept::All, uri.clone());
 
     if !url.username().is_empty() {
-        let username = percent_decode(url.username().as_bytes()).decode_utf8()
-            .with_context(|_| ErrorKind::InvalidUrlWithReason(url.to_string(), InvalidUrlReason::InvalidCredentials))
-            .with_context(|_| ErrorKind::Proxy(uri.clone()))
+        let username = percent_decode(url.username().as_bytes())
+            .decode_utf8()
+            .with_context(|_| {
+                ErrorKind::InvalidUrlWithReason(
+                    url.to_string(),
+                    InvalidUrlReason::InvalidCredentials,
+                )
+            }).with_context(|_| ErrorKind::Proxy(uri.clone()))
             .context(ErrorKind::Initialization)?;
         let credentials = match url.password() {
             Some(password) => {
-                let password = percent_decode(password.as_bytes()).decode_utf8()
-                .with_context(|_| ErrorKind::InvalidUrlWithReason(url.to_string(), InvalidUrlReason::InvalidCredentials))
-                .with_context(|_| ErrorKind::Proxy(uri.clone()))
-                .context(ErrorKind::Initialization)?;
+                let password = percent_decode(password.as_bytes())
+                    .decode_utf8()
+                    .with_context(|_| {
+                        ErrorKind::InvalidUrlWithReason(
+                            url.to_string(),
+                            InvalidUrlReason::InvalidCredentials,
+                        )
+                    }).with_context(|_| ErrorKind::Proxy(uri.clone()))
+                    .context(ErrorKind::Initialization)?;
 
                 Credentials::basic(&username, &password)
-                .with_context(|_| ErrorKind::InvalidUrlWithReason(url.to_string(), InvalidUrlReason::InvalidCredentials))
-                .with_context(|_| ErrorKind::Proxy(uri))
-                .context(ErrorKind::Initialization)?
+                    .with_context(|_| {
+                        ErrorKind::InvalidUrlWithReason(
+                            url.to_string(),
+                            InvalidUrlReason::InvalidCredentials,
+                        )
+                    }).with_context(|_| ErrorKind::Proxy(uri))
+                    .context(ErrorKind::Initialization)?
             }
             None => Credentials::basic(&username, "")
-            .with_context(|_| ErrorKind::InvalidUrlWithReason(url.to_string(), InvalidUrlReason::InvalidCredentials))
-                .with_context(|_| ErrorKind::Proxy(uri))
+                .with_context(|_| {
+                    ErrorKind::InvalidUrlWithReason(
+                        url.to_string(),
+                        InvalidUrlReason::InvalidCredentials,
+                    )
+                }).with_context(|_| ErrorKind::Proxy(uri))
                 .context(ErrorKind::Initialization)?,
         };
         proxy.set_authorization(credentials);

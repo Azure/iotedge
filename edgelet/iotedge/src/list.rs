@@ -51,7 +51,8 @@ where
             .collect()
             .and_then(move |result| {
                 let mut w = write.lock().unwrap();
-                writeln!(w, "NAME\tSTATUS\tDESCRIPTION\tCONFIG").context(ErrorKind::WriteToStdout)?;
+                writeln!(w, "NAME\tSTATUS\tDESCRIPTION\tCONFIG")
+                    .context(ErrorKind::WriteToStdout)?;
                 for (module, state) in result {
                     writeln!(
                         w,

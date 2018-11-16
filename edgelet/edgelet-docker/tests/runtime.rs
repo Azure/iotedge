@@ -115,8 +115,11 @@ fn image_pull_with_invalid_image_name_fails() {
         .with_password("bleh".to_string())
         .with_email("u1@bleh.com".to_string())
         .with_serveraddress("svr1".to_string());
-    let config =
-        DockerConfig::new(INVALID_IMAGE_NAME.to_string(), ContainerCreateBody::new(), Some(auth)).unwrap();
+    let config = DockerConfig::new(
+        INVALID_IMAGE_NAME.to_string(),
+        ContainerCreateBody::new(),
+        Some(auth),
+    ).unwrap();
 
     let task = mri.pull(&config);
 
@@ -129,14 +132,24 @@ fn image_pull_with_invalid_image_name_fails() {
         .expect_err("Expected runtime pull method to fail due to invalid image name.");
 
     match (err.kind(), err.cause().and_then(Fail::downcast_ref)) {
-        (edgelet_docker::ErrorKind::RegistryOperation(edgelet_core::RegistryOperation::PullImage(name)), Some(edgelet_docker::ErrorKind::NotFound(message))) if name == INVALID_IMAGE_NAME => {
+        (
+            edgelet_docker::ErrorKind::RegistryOperation(
+                edgelet_core::RegistryOperation::PullImage(name),
+            ),
+            Some(edgelet_docker::ErrorKind::NotFound(message)),
+        )
+            if name == INVALID_IMAGE_NAME =>
+        {
             assert_eq!(
                 &format!("manifest for {} not found", INVALID_IMAGE_NAME),
                 message
             );
-        },
+        }
 
-        _ => panic!("Specific docker runtime message is expected for invalid image name. Got {:?}", err.kind()),
+        _ => panic!(
+            "Specific docker runtime message is expected for invalid image name. Got {:?}",
+            err.kind()
+        ),
     }
 }
 
@@ -198,8 +211,11 @@ fn image_pull_with_invalid_image_host_fails() {
         .with_password("bleh".to_string())
         .with_email("u1@bleh.com".to_string())
         .with_serveraddress("svr1".to_string());
-    let config =
-        DockerConfig::new(INVALID_IMAGE_HOST.to_string(), ContainerCreateBody::new(), Some(auth)).unwrap();
+    let config = DockerConfig::new(
+        INVALID_IMAGE_HOST.to_string(),
+        ContainerCreateBody::new(),
+        Some(auth),
+    ).unwrap();
 
     let task = mri.pull(&config);
 
@@ -212,7 +228,14 @@ fn image_pull_with_invalid_image_host_fails() {
         .expect_err("Expected runtime pull method to fail due to invalid image host.");
 
     match (err.kind(), err.cause().and_then(Fail::downcast_ref)) {
-        (edgelet_docker::ErrorKind::RegistryOperation(edgelet_core::RegistryOperation::PullImage(name)), Some(edgelet_docker::ErrorKind::FormattedDockerRuntime(message))) if name == INVALID_IMAGE_HOST => {
+        (
+            edgelet_docker::ErrorKind::RegistryOperation(
+                edgelet_core::RegistryOperation::PullImage(name),
+            ),
+            Some(edgelet_docker::ErrorKind::FormattedDockerRuntime(message)),
+        )
+            if name == INVALID_IMAGE_HOST =>
+        {
             assert_eq!(
                 &format!(
                     "Get https://invalidhost.com: dial tcp: lookup {} on X.X.X.X: no such host",
@@ -220,9 +243,12 @@ fn image_pull_with_invalid_image_host_fails() {
                 ),
                 message
             );
-        },
+        }
 
-        _ => panic!("Specific docker runtime message is expected for invalid image host. Got {:?}", err.kind()),
+        _ => panic!(
+            "Specific docker runtime message is expected for invalid image host. Got {:?}",
+            err.kind()
+        ),
     }
 }
 
@@ -296,7 +322,11 @@ fn image_pull_with_invalid_creds_fails() {
         .with_password("wrong_password".to_string())
         .with_email("u1@bleh.com".to_string())
         .with_serveraddress("svr1".to_string());
-    let config = DockerConfig::new(IMAGE_NAME.to_string(), ContainerCreateBody::new(), Some(auth)).unwrap();
+    let config = DockerConfig::new(
+        IMAGE_NAME.to_string(),
+        ContainerCreateBody::new(),
+        Some(auth),
+    ).unwrap();
 
     let task = mri.pull(&config);
 
@@ -309,7 +339,14 @@ fn image_pull_with_invalid_creds_fails() {
         .expect_err("Expected runtime pull method to fail due to unauthentication.");
 
     match (err.kind(), err.cause().and_then(Fail::downcast_ref)) {
-        (edgelet_docker::ErrorKind::RegistryOperation(edgelet_core::RegistryOperation::PullImage(name)), Some(edgelet_docker::ErrorKind::FormattedDockerRuntime(message))) if name == IMAGE_NAME => {
+        (
+            edgelet_docker::ErrorKind::RegistryOperation(
+                edgelet_core::RegistryOperation::PullImage(name),
+            ),
+            Some(edgelet_docker::ErrorKind::FormattedDockerRuntime(message)),
+        )
+            if name == IMAGE_NAME =>
+        {
             assert_eq!(
                 &format!(
                     "Get {}: unauthorized: authentication required",
@@ -317,9 +354,12 @@ fn image_pull_with_invalid_creds_fails() {
                 ),
                 message
             );
-        },
+        }
 
-        _ => panic!("Specific docker runtime message is expected for unauthentication. Got {:?}", err.kind()),
+        _ => panic!(
+            "Specific docker runtime message is expected for unauthentication. Got {:?}",
+            err.kind()
+        ),
     }
 }
 
@@ -375,7 +415,11 @@ fn image_pull_succeeds() {
         .with_password("bleh".to_string())
         .with_email("u1@bleh.com".to_string())
         .with_serveraddress("svr1".to_string());
-    let config = DockerConfig::new(IMAGE_NAME.to_string(), ContainerCreateBody::new(), Some(auth)).unwrap();
+    let config = DockerConfig::new(
+        IMAGE_NAME.to_string(),
+        ContainerCreateBody::new(),
+        Some(auth),
+    ).unwrap();
 
     let task = mri.pull(&config);
 
@@ -451,7 +495,11 @@ fn image_pull_with_creds_succeeds() {
         .with_password("bleh".to_string())
         .with_email("u1@bleh.com".to_string())
         .with_serveraddress("svr1".to_string());
-    let config = DockerConfig::new(IMAGE_NAME.to_string(), ContainerCreateBody::new(), Some(auth)).unwrap();
+    let config = DockerConfig::new(
+        IMAGE_NAME.to_string(),
+        ContainerCreateBody::new(),
+        Some(auth),
+    ).unwrap();
 
     let task = mri.pull(&config);
 

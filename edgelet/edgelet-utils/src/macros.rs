@@ -93,7 +93,7 @@
 
 use std::fmt;
 
-use failure::{Fail, Context};
+use failure::{Context, Fail};
 
 use error::ErrorKind;
 
@@ -423,7 +423,8 @@ macro_rules! fensure_not_empty {
     };
 }
 
-pub fn ensure_not_empty_with_context<D, F>(value: &str, context: F) -> Result<(), Context<D>> where
+pub fn ensure_not_empty_with_context<D, F>(value: &str, context: F) -> Result<(), Context<D>>
+where
     D: fmt::Display + Send + Sync,
     F: FnOnce() -> D,
 {

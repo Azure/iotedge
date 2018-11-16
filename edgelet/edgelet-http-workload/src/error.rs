@@ -34,7 +34,10 @@ pub enum ErrorKind {
     #[fail(display = "The request parameter `{}` is malformed", _0)]
     MalformedRequestParameter(&'static str),
 
-    #[fail(display = "The request is missing required parameter `{}`", _0)]
+    #[fail(
+        display = "The request is missing required parameter `{}`",
+        _0
+    )]
     MissingRequiredParameter(&'static str),
 
     #[fail(display = "Module not found")]
@@ -91,7 +94,9 @@ impl IntoResponse for Error {
 
         let status_code = match *self.kind() {
             ErrorKind::ModuleNotFound(_) => StatusCode::NOT_FOUND,
-            ErrorKind::MalformedRequestBody | ErrorKind::MalformedRequestParameter(_) | ErrorKind::MissingRequiredParameter(_) => StatusCode::BAD_REQUEST,
+            ErrorKind::MalformedRequestBody
+            | ErrorKind::MalformedRequestParameter(_)
+            | ErrorKind::MissingRequiredParameter(_) => StatusCode::BAD_REQUEST,
             _ => {
                 error!("Internal server error: {}", message);
                 StatusCode::INTERNAL_SERVER_ERROR
@@ -115,7 +120,9 @@ impl IntoResponse for Error {
             response.header(CONTENT_TYPE, "application/json");
         }
 
-        response.body(body.into()).expect("response builder failure")
+        response
+            .body(body.into())
+            .expect("response builder failure")
     }
 }
 

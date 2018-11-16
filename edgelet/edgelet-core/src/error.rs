@@ -19,7 +19,9 @@ pub enum ErrorKind {
     #[fail(display = "Identity error")]
     Certificate,
 
-    #[fail(display = "Edge runtime module has not been created in IoT Hub. Please make sure this device is an IoT Edge capable device.")]
+    #[fail(
+        display = "Edge runtime module has not been created in IoT Hub. Please make sure this device is an IoT Edge capable device."
+    )]
     EdgeRuntimeIdentityNotFound,
 
     #[fail(display = "The timer that checks the edge runtime status encountered an error.")]
@@ -49,7 +51,10 @@ pub enum ErrorKind {
     #[fail(display = "Signing error occurred.")]
     Sign,
 
-    #[fail(display = "Signing error occurred. Invalid key length: {}", _0)]
+    #[fail(
+        display = "Signing error occurred. Invalid key length: {}",
+        _0
+    )]
     SignInvalidKeyLength(usize),
 }
 

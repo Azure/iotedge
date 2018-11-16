@@ -154,7 +154,9 @@ where
         let method = req.method().clone();
         let path = req.uri().path().to_owned();
         match self.inner.recognize(&method, &path) {
-            Ok((handler, params)) => Box::new(handler.handle(req, params).map_err(|err| err.compat())),
+            Ok((handler, params)) => {
+                Box::new(handler.handle(req, params).map_err(|err| err.compat()))
+            }
 
             Err(code) => Box::new(future::ok(
                 Response::builder()

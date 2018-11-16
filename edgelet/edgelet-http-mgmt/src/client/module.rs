@@ -16,8 +16,8 @@ use management::models::{Config, ModuleDetails as HttpModuleDetails};
 use serde_json;
 use url::Url;
 
-use edgelet_core::{ModuleOperation, RuntimeOperation, SystemInfo as CoreSystemInfo};
 use edgelet_core::*;
+use edgelet_core::{ModuleOperation, RuntimeOperation, SystemInfo as CoreSystemInfo};
 use edgelet_docker::{self, DockerConfig};
 use edgelet_http::{UrlConnector, UrlExt, API_VERSION};
 
@@ -29,11 +29,17 @@ pub struct ModuleClient {
 
 impl ModuleClient {
     pub fn new(url: &Url) -> Result<Self, Error> {
-        let client = Client::builder().build(UrlConnector::new(url).context(ErrorKind::InitializeModuleClient)?);
+        let client = Client::builder()
+            .build(UrlConnector::new(url).context(ErrorKind::InitializeModuleClient)?);
 
-        let base_path = url.to_base_path().context(ErrorKind::InitializeModuleClient)?;
+        let base_path = url
+            .to_base_path()
+            .context(ErrorKind::InitializeModuleClient)?;
         let mut configuration = Configuration::new(client);
-        configuration.base_path = base_path.to_str().ok_or(ErrorKind::InitializeModuleClient)?.to_string();
+        configuration.base_path = base_path
+            .to_str()
+            .ok_or(ErrorKind::InitializeModuleClient)?
+            .to_string();
 
         let scheme = url.scheme().to_string();
         configuration.uri_composer = Box::new(move |base_path, path| {
@@ -95,7 +101,8 @@ impl Module for ModuleDetails {
 }
 
 fn runtime_status(details: &HttpModuleDetails) -> Result<ModuleRuntimeState, Error> {
-    let status = ModuleStatus::from_str(details.status().runtime_status().status()).context(ErrorKind::ModuleOperation(ModuleOperation::RuntimeState))?;
+    let status = ModuleStatus::from_str(details.status().runtime_status().status())
+        .context(ErrorKind::ModuleOperation(ModuleOperation::RuntimeState))?;
     let description = details
         .status()
         .runtime_status()
@@ -175,8 +182,12 @@ impl ModuleRuntime for ModuleClient {
             .client
             .module_api()
             .start_module(API_VERSION, &id)
-            .map_err(|err| Error::from_mgmt_error(err, ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(id))))
-            .then(|result| match result {
+            .map_err(|err| {
+                Error::from_mgmt_error(
+                    err,
+                    ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(id)),
+                )
+            }).then(|result| match result {
                 Err(e) => match e.kind() {
                     ErrorKind::NotModified => Ok(()),
                     _ => Err(e),
@@ -193,8 +204,12 @@ impl ModuleRuntime for ModuleClient {
             .client
             .module_api()
             .stop_module(API_VERSION, &id)
-            .map_err(|err| Error::from_mgmt_error(err, ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(id))))
-            .then(|result| match result {
+            .map_err(|err| {
+                Error::from_mgmt_error(
+                    err,
+                    ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(id)),
+                )
+            }).then(|result| match result {
                 Err(e) => match e.kind() {
                     ErrorKind::NotModified => Ok(()),
                     _ => Err(e),
@@ -211,8 +226,12 @@ impl ModuleRuntime for ModuleClient {
             .client
             .module_api()
             .restart_module(API_VERSION, &id)
-            .map_err(|err| Error::from_mgmt_error(err, ErrorKind::RuntimeOperation(RuntimeOperation::RestartModule(id))))
-            .then(|result| match result {
+            .map_err(|err| {
+                Error::from_mgmt_error(
+                    err,
+                    ErrorKind::RuntimeOperation(RuntimeOperation::RestartModule(id)),
+                )
+            }).then(|result| match result {
                 Err(e) => match e.kind() {
                     ErrorKind::NotModified => Ok(()),
                     _ => Err(e),
@@ -240,8 +259,12 @@ impl ModuleRuntime for ModuleClient {
                         let config = m.config().clone();
                         ModuleDetails(m, ModuleConfig(type_, config))
                     }).collect()
-            })
-            .map_err(|err| Error::from_mgmt_error(err, ErrorKind::RuntimeOperation(RuntimeOperation::ListModules)));
+            }).map_err(|err| {
+                Error::from_mgmt_error(
+                    err,
+                    ErrorKind::RuntimeOperation(RuntimeOperation::ListModules),
+                )
+            });
         Box::new(modules)
     }
 
@@ -250,8 +273,12 @@ impl ModuleRuntime for ModuleClient {
             .client
             .module_api()
             .list_modules(API_VERSION)
-            .map_err(|err| Error::from_mgmt_error(err, ErrorKind::RuntimeOperation(RuntimeOperation::ListModules)))
-            .map(|list| {
+            .map_err(|err| {
+                Error::from_mgmt_error(
+                    err,
+                    ErrorKind::RuntimeOperation(RuntimeOperation::ListModules),
+                )
+            }).map(|list| {
                 let iter = list.modules().to_owned().into_iter().map(|m| {
                     let type_ = m.type_().clone();
                     let config = m.config().clone();
@@ -275,7 +302,10 @@ impl ModuleRuntime for ModuleClient {
             .module_logs(API_VERSION, &id, options.follow(), tail)
             .then(|logs| match logs {
                 Ok(logs) => Ok(Logs(id, logs)),
-                Err(err) => Err(Error::from_mgmt_error(err, ErrorKind::RuntimeOperation(RuntimeOperation::GetModuleLogs(id)))),
+                Err(err) => Err(Error::from_mgmt_error(
+                    err,
+                    ErrorKind::RuntimeOperation(RuntimeOperation::GetModuleLogs(id)),
+                )),
             });
         Box::new(result)
     }
@@ -305,7 +335,9 @@ impl Stream for Logs {
         match self.1.poll() {
             Ok(Async::Ready(chunk)) => Ok(Async::Ready(chunk.map(Chunk))),
             Ok(Async::NotReady) => Ok(Async::NotReady),
-            Err(err) => Err(Error::from(err.context(ErrorKind::RuntimeOperation(RuntimeOperation::GetModuleLogs(self.0.clone()))))),
+            Err(err) => Err(Error::from(err.context(ErrorKind::RuntimeOperation(
+                RuntimeOperation::GetModuleLogs(self.0.clone()),
+            )))),
         }
     }
 }

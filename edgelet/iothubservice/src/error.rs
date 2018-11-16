@@ -91,7 +91,10 @@ impl Display for Reason {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Reason::EmptyModuleId => write!(f, "Module ID is empty"),
-            Reason::EmptyResponse => write!(f, "IoT Hub returned an empty response when a value was expected"),
+            Reason::EmptyResponse => write!(
+                f,
+                "IoT Hub returned an empty response when a value was expected"
+            ),
             Reason::ModuleNotFound => write!(f, "Module not found"),
         }
     }

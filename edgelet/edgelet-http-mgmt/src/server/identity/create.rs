@@ -10,8 +10,8 @@ use serde::Serialize;
 use serde_json;
 
 use edgelet_core::{Identity as CoreIdentity, IdentityManager, IdentityOperation, IdentitySpec};
-use edgelet_http::Error as HttpError;
 use edgelet_http::route::{Handler, Parameters};
+use edgelet_http::Error as HttpError;
 use management::models::{Identity, IdentitySpec as CreateIdentitySpec};
 
 use error::{Error, ErrorKind};
@@ -40,54 +40,60 @@ where
         _params: Parameters,
     ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
         let id_mgr = self.id_manager.clone();
-        let response =
-            read_request(req)
-                .and_then(move |spec| {
-                    let mut rid = id_mgr.lock().unwrap();
+        let response = read_request(req)
+            .and_then(move |spec| {
+                let mut rid = id_mgr.lock().unwrap();
 
-                    let module_id = spec.module_id().to_string();
+                let module_id = spec.module_id().to_string();
 
-                    rid.create(spec)
-                        .then(|identity| -> Result<_, Error> {
-                            let identity = identity.with_context(|_| ErrorKind::IdentityOperation(IdentityOperation::CreateIdentity(module_id)))?;
+                rid.create(spec).then(|identity| -> Result<_, Error> {
+                    let identity = identity.with_context(|_| {
+                        ErrorKind::IdentityOperation(IdentityOperation::CreateIdentity(module_id))
+                    })?;
 
-                            let module_id = identity.module_id().to_string();
+                    let module_id = identity.module_id().to_string();
 
-                            let identity = Identity::new(
-                                module_id.clone(),
-                                identity.managed_by().to_string(),
-                                identity.generation_id().to_string(),
-                                identity.auth_type().to_string(),
-                            );
+                    let identity = Identity::new(
+                        module_id.clone(),
+                        identity.managed_by().to_string(),
+                        identity.generation_id().to_string(),
+                        identity.auth_type().to_string(),
+                    );
 
-                            let b = serde_json::to_string(&identity).with_context(|_| ErrorKind::IdentityOperation(IdentityOperation::CreateIdentity(module_id.clone())))?;
-                            let response =
-                                Response::builder()
-                                    .status(StatusCode::OK)
-                                    .header(CONTENT_TYPE, "application/json")
-                                    .header(CONTENT_LENGTH, b.len().to_string().as_str())
-                                    .body(b.into())
-                                    .with_context(|_| ErrorKind::IdentityOperation(IdentityOperation::CreateIdentity(module_id)))?;
-                            Ok(response)
-                        })
-                }).or_else(|e| Ok(e.into_response()));
+                    let b = serde_json::to_string(&identity).with_context(|_| {
+                        ErrorKind::IdentityOperation(IdentityOperation::CreateIdentity(
+                            module_id.clone(),
+                        ))
+                    })?;
+                    let response = Response::builder()
+                        .status(StatusCode::OK)
+                        .header(CONTENT_TYPE, "application/json")
+                        .header(CONTENT_LENGTH, b.len().to_string().as_str())
+                        .body(b.into())
+                        .with_context(|_| {
+                            ErrorKind::IdentityOperation(IdentityOperation::CreateIdentity(
+                                module_id,
+                            ))
+                        })?;
+                    Ok(response)
+                })
+            }).or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }
 }
 
 fn read_request(req: Request<Body>) -> impl Future<Item = IdentitySpec, Error = Error> {
-    req.into_body()
-        .concat2()
-        .then(|b| {
-            let b = b.context(ErrorKind::MalformedRequestBody)?;
-            let create_req = serde_json::from_slice::<CreateIdentitySpec>(&b).context(ErrorKind::MalformedRequestBody)?;
-            let mut spec = IdentitySpec::new(create_req.module_id().to_string());
-            if let Some(m) = create_req.managed_by() {
-                spec = spec.with_managed_by(m.to_string());
-            }
-            Ok(spec)
-        })
+    req.into_body().concat2().then(|b| {
+        let b = b.context(ErrorKind::MalformedRequestBody)?;
+        let create_req = serde_json::from_slice::<CreateIdentitySpec>(&b)
+            .context(ErrorKind::MalformedRequestBody)?;
+        let mut spec = IdentitySpec::new(create_req.module_id().to_string());
+        if let Some(m) = create_req.managed_by() {
+            spec = spec.with_managed_by(m.to_string());
+        }
+        Ok(spec)
+    })
 }
 
 #[cfg(test)]
@@ -222,7 +228,10 @@ mod tests {
             .concat2()
             .and_then(|body| {
                 let error: ErrorResponse = serde_json::from_slice(&body).unwrap();
-                assert_eq!("Could not create identity m1\n\tcaused by: General error", error.message());
+                assert_eq!(
+                    "Could not create identity m1\n\tcaused by: General error",
+                    error.message()
+                );
                 Ok(())
             }).wait()
             .unwrap();

@@ -19,7 +19,10 @@ pub enum ErrorKind {
     #[fail(display = "Log name {:?} is invalid", _0)]
     InvalidLogName(String),
 
-    #[fail(display = "Registering event source failed with Windows error 0x{:08X}", _0)]
+    #[fail(
+        display = "Registering event source failed with Windows error 0x{:08X}",
+        _0
+    )]
     RegisterEventSource(DWORD),
 
     #[fail(display = "Could not register global logger")]

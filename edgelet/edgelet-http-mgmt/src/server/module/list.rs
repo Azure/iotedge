@@ -48,15 +48,16 @@ where
                     .map(|(module, state)| core_to_details(&module, &state))
                     .collect();
                 let body = ModuleList::new(details?);
-                let b = serde_json::to_string(&body).context(ErrorKind::RuntimeOperation(RuntimeOperation::ListModules))?;
+                let b = serde_json::to_string(&body)
+                    .context(ErrorKind::RuntimeOperation(RuntimeOperation::ListModules))?;
                 let response = Response::builder()
                     .status(StatusCode::OK)
                     .header(CONTENT_TYPE, "application/json")
                     .header(CONTENT_LENGTH, b.len().to_string().as_str())
-                    .body(b.into()).context(ErrorKind::RuntimeOperation(RuntimeOperation::ListModules))?;
+                    .body(b.into())
+                    .context(ErrorKind::RuntimeOperation(RuntimeOperation::ListModules))?;
                 Ok(response)
-            })
-            .or_else(|e| Ok(e.into_response()));
+            }).or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }
@@ -67,7 +68,8 @@ where
     M: 'static + Module + Send,
     M::Config: Serialize,
 {
-    let settings = serde_json::to_value(module.config()).context(ErrorKind::RuntimeOperation(RuntimeOperation::ListModules))?;
+    let settings = serde_json::to_value(module.config())
+        .context(ErrorKind::RuntimeOperation(RuntimeOperation::ListModules))?;
     let config = Config::new(settings).with_env(vec![]);
     let mut runtime_status = RuntimeStatus::new(state.status().to_string());
     if let Some(description) = state.status_description() {

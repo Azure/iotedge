@@ -41,22 +41,22 @@ where
     ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
         let id_manager = self.id_manager.clone();
 
-        let response =
-            params.name("name")
+        let response = params
+            .name("name")
             .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("name")))
             .map(|name| {
                 let name = name.to_string();
                 read_request(name.clone(), req).map(|spec| (spec, name))
-            })
-            .into_future()
+            }).into_future()
             .flatten()
             .and_then(move |(spec, name)| {
                 let mut rid = id_manager.lock().unwrap();
-                rid.update(spec).map_err(|err| Error::from(err.context(ErrorKind::IdentityOperation(IdentityOperation::UpdateIdentity(name)))))
-            })
-            .and_then(|id| {
-                Ok(write_response(&id))
-            })
+                rid.update(spec).map_err(|err| {
+                    Error::from(err.context(ErrorKind::IdentityOperation(
+                        IdentityOperation::UpdateIdentity(name),
+                    )))
+                })
+            }).and_then(|id| Ok(write_response(&id)))
             .or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
@@ -75,32 +75,37 @@ where
         identity.auth_type().to_string(),
     );
 
-    serde_json::to_string(&identity).with_context(|_| ErrorKind::IdentityOperation(IdentityOperation::UpdateIdentity(module_id.clone())))
-    .map_err(Error::from)
-    .and_then(|b| {
-        Ok(Response::builder()
-            .status(StatusCode::OK)
-            .header(CONTENT_TYPE, "application/json")
-            .header(CONTENT_LENGTH, b.len().to_string().as_str())
-            .body(b.into())
-            .context(ErrorKind::IdentityOperation(IdentityOperation::UpdateIdentity(module_id)))?)
-    })
-    .unwrap_or_else(|e| e.into_response())
+    serde_json::to_string(&identity)
+        .with_context(|_| {
+            ErrorKind::IdentityOperation(IdentityOperation::UpdateIdentity(module_id.clone()))
+        }).map_err(Error::from)
+        .and_then(|b| {
+            Ok(Response::builder()
+                .status(StatusCode::OK)
+                .header(CONTENT_TYPE, "application/json")
+                .header(CONTENT_LENGTH, b.len().to_string().as_str())
+                .body(b.into())
+                .context(ErrorKind::IdentityOperation(
+                    IdentityOperation::UpdateIdentity(module_id),
+                ))?)
+        }).unwrap_or_else(|e| e.into_response())
 }
 
-fn read_request(name: String, req: Request<Body>) -> impl Future<Item = IdentitySpec, Error = Error> {
-    req.into_body()
-        .concat2()
-        .then(move |b| {
-            let b = b.context(ErrorKind::MalformedRequestBody)?;
-            let update_req = serde_json::from_slice::<UpdateIdentityRequest>(&b).context(ErrorKind::MalformedRequestBody)?;
-            let mut spec =
-                IdentitySpec::new(name).with_generation_id(update_req.generation_id().to_string());
-            if let Some(m) = update_req.managed_by() {
-                spec = spec.with_managed_by(m.to_string());
-            }
-            Ok(spec)
-        })
+fn read_request(
+    name: String,
+    req: Request<Body>,
+) -> impl Future<Item = IdentitySpec, Error = Error> {
+    req.into_body().concat2().then(move |b| {
+        let b = b.context(ErrorKind::MalformedRequestBody)?;
+        let update_req = serde_json::from_slice::<UpdateIdentityRequest>(&b)
+            .context(ErrorKind::MalformedRequestBody)?;
+        let mut spec =
+            IdentitySpec::new(name).with_generation_id(update_req.generation_id().to_string());
+        if let Some(m) = update_req.managed_by() {
+            spec = spec.with_managed_by(m.to_string());
+        }
+        Ok(spec)
+    })
 }
 
 #[cfg(test)]
@@ -186,7 +191,10 @@ mod tests {
             .concat2()
             .and_then(|body| {
                 let error: ErrorResponse = serde_json::from_slice(&body).unwrap();
-                assert_eq!("The request is missing required parameter `name`", error.message());
+                assert_eq!(
+                    "The request is missing required parameter `name`",
+                    error.message()
+                );
                 Ok(())
             }).wait()
             .unwrap();

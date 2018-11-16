@@ -49,8 +49,7 @@ where
                     .map(|_| true)
             }).unwrap_or_else(|| false);
 
-        let response =
-            req
+        let response = req
             .into_body()
             .concat2()
             .then(|b| -> Result<_, Error> {
@@ -58,8 +57,7 @@ where
                 let spec = serde_json::from_slice(&b).context(ErrorKind::MalformedRequestBody)?;
                 let core_spec = spec_to_core::<M>(&spec, ErrorKind::MalformedRequestBody)?;
                 Ok((core_spec, spec))
-            })
-            .and_then(move |(core_spec, spec)| {
+            }).and_then(move |(core_spec, spec)| {
                 let name = core_spec.name().to_string();
 
                 if start {
@@ -68,59 +66,45 @@ where
                     info!("Updating module {}", name);
                 }
 
-                runtime
-                    .remove(&name)
-                    .then(|result| {
-                        result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
-                        Ok((core_spec, spec, name, runtime))
-                    })
-            })
-            .and_then(|(core_spec, spec, name, runtime)| {
+                runtime.remove(&name).then(|result| {
+                    result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
+                    Ok((core_spec, spec, name, runtime))
+                })
+            }).and_then(|(core_spec, spec, name, runtime)| {
                 debug!("Removed existing module {}", name);
-                runtime
-                    .registry()
-                    .pull(core_spec.config())
-                    .then(|result| {
-                        result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
-                        Ok((core_spec, spec, name, runtime))
-                    })
-            })
-            .and_then(|(core_spec, spec, name, runtime)| {
+                runtime.registry().pull(core_spec.config()).then(|result| {
+                    result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
+                    Ok((core_spec, spec, name, runtime))
+                })
+            }).and_then(|(core_spec, spec, name, runtime)| {
                 debug!("Successfully pulled new image for module {}", name);
-                runtime.create(core_spec)
-                .then(|result| {
+                runtime.create(core_spec).then(|result| {
                     result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
                     Ok((name, spec, runtime))
                 })
-            })
-            .and_then(move |(name, spec, runtime)| {
+            }).and_then(move |(name, spec, runtime)| {
                 debug!("Created module {}", name);
                 if start {
                     info!("Starting module {}", name);
-                    future::Either::A(
-                        runtime
-                            .start(&name)
-                            .then(|result| {
-                                result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
-                                Ok((ModuleStatus::Running, spec, name))
-                            }),
-                    )
+                    future::Either::A(runtime.start(&name).then(|result| {
+                        result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
+                        Ok((ModuleStatus::Running, spec, name))
+                    }))
                 } else {
                     future::Either::B(future::ok((ModuleStatus::Stopped, spec, name)))
                 }
-            })
-            .and_then(|(status, spec, name)| -> Result<_, Error> {
+            }).and_then(|(status, spec, name)| -> Result<_, Error> {
                 let details = spec_to_details(&spec, status);
-                let b = serde_json::to_string(&details).with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
+                let b = serde_json::to_string(&details)
+                    .with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
                 let response = Response::builder()
-                        .status(StatusCode::OK)
-                        .header(CONTENT_TYPE, "application/json")
-                        .header(CONTENT_LENGTH, b.len().to_string().as_str())
-                        .body(b.into())
-                        .context(ErrorKind::UpdateModule(name))?;
+                    .status(StatusCode::OK)
+                    .header(CONTENT_TYPE, "application/json")
+                    .header(CONTENT_LENGTH, b.len().to_string().as_str())
+                    .body(b.into())
+                    .context(ErrorKind::UpdateModule(name))?;
                 Ok(response)
-            })
-            .or_else(|e| Ok(e.into_response()));
+            }).or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }
@@ -246,7 +230,8 @@ mod tests {
             .concat2()
             .and_then(|b| {
                 let error_response: ErrorResponse = serde_json::from_slice(&b).unwrap();
-                let expected = "Request body is malformed\n\tcaused by: expected value at line 1 column 1";
+                let expected =
+                    "Request body is malformed\n\tcaused by: expected value at line 1 column 1";
                 assert_eq!(expected, error_response.message());
                 Ok(())
             }).wait()
@@ -273,7 +258,10 @@ mod tests {
             .concat2()
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
-                assert_eq!("Could not update module\n\tcaused by: General error", error.message());
+                assert_eq!(
+                    "Could not update module\n\tcaused by: General error",
+                    error.message()
+                );
                 Ok(())
             }).wait()
             .unwrap();

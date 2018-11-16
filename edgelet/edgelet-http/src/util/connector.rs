@@ -68,7 +68,10 @@ impl UrlConnector {
                 if socket_file_exists(&file_path) {
                     Ok(UrlConnector::Unix(UnixConnector::new()))
                 } else {
-                    Err(ErrorKind::InvalidUrlWithReason(url.to_string(), InvalidUrlReason::FileNotFound))?
+                    Err(ErrorKind::InvalidUrlWithReason(
+                        url.to_string(),
+                        InvalidUrlReason::FileNotFound,
+                    ))?
                 }
             }
 
@@ -78,21 +81,22 @@ impl UrlConnector {
                 //       this time.
                 Ok(UrlConnector::Http(HttpConnector::new(4)))
             }
-            _ => Err(ErrorKind::InvalidUrlWithReason(url.to_string(), InvalidUrlReason::InvalidScheme))?,
+            _ => Err(ErrorKind::InvalidUrlWithReason(
+                url.to_string(),
+                InvalidUrlReason::InvalidScheme,
+            ))?,
         }
     }
 
     pub fn build_hyper_uri(scheme: &str, base_path: &str, path: &str) -> Result<Uri, Error> {
         match &*scheme {
             #[cfg(windows)]
-            PIPE_SCHEME => Ok(
-                PipeUri::new(base_path, &path)
+            PIPE_SCHEME => Ok(PipeUri::new(base_path, &path)
                 .with_context(|_| ErrorKind::MalformedUrl {
                     scheme: scheme.to_string(),
                     base_path: base_path.to_string(),
                     path: path.to_string(),
-                })?
-                .into()),
+                })?.into()),
             UNIX_SCHEME => Ok(HyperlocalUri::new(base_path, &path).into()),
             HTTP_SCHEME => Ok(Url::parse(base_path)
                 .and_then(|base| base.join(path))

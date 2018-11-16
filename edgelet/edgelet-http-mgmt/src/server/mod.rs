@@ -4,9 +4,7 @@ mod identity;
 mod module;
 mod system_info;
 
-use edgelet_core::{
-    IdentityManager, Module, ModuleRuntime, Policy,
-};
+use edgelet_core::{IdentityManager, Module, ModuleRuntime, Policy};
 use edgelet_http::authorization::Authorization;
 use edgelet_http::route::*;
 use failure::{Compat, ResultExt};
@@ -16,10 +14,10 @@ use hyper::{Body, Request};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
-use error::{Error, ErrorKind};
 use self::identity::*;
 pub use self::module::*;
 use self::system_info::*;
+use error::{Error, ErrorKind};
 
 lazy_static! {
     static ref AGENT_NAME: String = "edgeAgent".to_string();
@@ -60,12 +58,10 @@ impl ManagementService {
             get    "/systeminfo"                      => Authorization::new(GetSystemInfo::new(runtime.clone()), Policy::Anonymous, runtime.clone()),
         );
 
-        router
-            .new_service()
-            .then(|inner| {
-                let inner = inner.context(ErrorKind::StartService)?;
-                Ok(ManagementService { inner })
-            })
+        router.new_service().then(|inner| {
+            let inner = inner.context(ErrorKind::StartService)?;
+            Ok(ManagementService { inner })
+        })
     }
 }
 

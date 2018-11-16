@@ -61,7 +61,10 @@ fn run_as_service(_: Vec<OsString>) -> Result<(), Error> {
             ServiceControl::Interrogate => ServiceControlHandlerResult::NoError,
             _ => ServiceControlHandlerResult::NotImplemented,
         },
-    ).map_err(ServiceError::from).context(ErrorKind::Initialize(InitializeErrorReason::RegisterWindowsService))?;
+    ).map_err(ServiceError::from)
+    .context(ErrorKind::Initialize(
+        InitializeErrorReason::RegisterWindowsService,
+    ))?;
 
     // initialize iotedged
     info!("Initializing {} service.", IOTEDGED_SERVICE_NAME);
@@ -110,7 +113,11 @@ pub fn run() -> Result<(), Error> {
         Ok(())
     } else {
         // kick-off the Windows service dance
-        service_dispatcher::start(IOTEDGED_SERVICE_NAME, ffi_service_main).map_err(ServiceError::from).context(ErrorKind::Initialize(InitializeErrorReason::StartWindowsService))?;
+        service_dispatcher::start(IOTEDGED_SERVICE_NAME, ffi_service_main)
+            .map_err(ServiceError::from)
+            .context(ErrorKind::Initialize(
+                InitializeErrorReason::StartWindowsService,
+            ))?;
         Ok(())
     }
 }
@@ -119,13 +126,14 @@ fn update_service_state(
     status_handle: ServiceStatusHandle,
     current_state: ServiceState,
 ) -> Result<(), Error> {
-    status_handle.set_service_status(ServiceStatus {
-        service_type: ServiceType::OwnProcess,
-        current_state,
-        controls_accepted: ServiceControlAccept::STOP | ServiceControlAccept::SHUTDOWN,
-        exit_code: ServiceExitCode::Win32(0),
-        checkpoint: 0,
-        wait_hint: Duration::default(),
-    }).context(ErrorKind::UpdateWindowsServiceState)?;
+    status_handle
+        .set_service_status(ServiceStatus {
+            service_type: ServiceType::OwnProcess,
+            current_state,
+            controls_accepted: ServiceControlAccept::STOP | ServiceControlAccept::SHUTDOWN,
+            exit_code: ServiceExitCode::Win32(0),
+            checkpoint: 0,
+            wait_hint: Duration::default(),
+        }).context(ErrorKind::UpdateWindowsServiceState)?;
     Ok(())
 }

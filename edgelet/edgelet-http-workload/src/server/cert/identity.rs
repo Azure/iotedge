@@ -43,8 +43,8 @@ where
         let cfg = self.config.clone();
         let max_duration = cfg.get_cert_max_duration(CertificateType::Client);
 
-        let response =
-            params.name("name")
+        let response = params
+            .name("name")
             .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("name")))
             .map(|module_id| {
                 let cn = module_id.to_string();
@@ -52,18 +52,16 @@ where
                 let module_uri =
                     prepare_cert_uri_module(cfg.iot_hub_name(), cfg.device_id(), module_id);
 
-                req
-                    .into_body()
-                    .concat2()
-                    .then(|body| {
-                        let body = body.context(ErrorKind::CertOperation(CertOperation::CreateIdentityCert))?;
-                        Ok((cn, alias, module_uri, body))
-                    })
-            })
-            .into_future()
+                req.into_body().concat2().then(|body| {
+                    let body =
+                        body.context(ErrorKind::CertOperation(CertOperation::CreateIdentityCert))?;
+                    Ok((cn, alias, module_uri, body))
+                })
+            }).into_future()
             .flatten()
             .and_then(move |(cn, alias, module_uri, body)| {
-                let cert_req: IdentityCertificateRequest = serde_json::from_slice(&body).context(ErrorKind::MalformedRequestBody)?;
+                let cert_req: IdentityCertificateRequest =
+                    serde_json::from_slice(&body).context(ErrorKind::MalformedRequestBody)?;
 
                 let expiration = cert_req.expiration().map_or_else(
                     || Ok(max_duration),
@@ -71,11 +69,15 @@ where
                 )?;
                 #[cfg_attr(feature = "cargo-clippy", allow(cast_sign_loss))]
                 let expiration = match expiration {
-                    expiration if expiration < 0 || expiration > max_duration => return Err(Error::from(ErrorKind::MalformedRequestBody)),
+                    expiration if expiration < 0 || expiration > max_duration => {
+                        return Err(Error::from(ErrorKind::MalformedRequestBody))
+                    }
                     expiration => expiration as u64,
                 };
 
-                ensure_not_empty_with_context(&cn, || ErrorKind::MalformedRequestParameter("name"))?;
+                ensure_not_empty_with_context(&cn, || {
+                    ErrorKind::MalformedRequestParameter("name")
+                })?;
 
                 let sans = vec![module_uri];
                 let props = CertificateProperties::new(
@@ -84,9 +86,13 @@ where
                     CertificateType::Client,
                     alias.clone(),
                 ).with_san_entries(sans);
-                refresh_cert(&hsm, alias, &props, ErrorKind::CertOperation(CertOperation::CreateIdentityCert))
-            })
-            .or_else(|e| Ok(e.into_response()));
+                refresh_cert(
+                    &hsm,
+                    alias,
+                    &props,
+                    ErrorKind::CertOperation(CertOperation::CreateIdentityCert),
+                )
+            }).or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }
@@ -215,7 +221,10 @@ mod tests {
             .unwrap();
         let response = handler.handle(request, Parameters::new()).wait().unwrap();
         assert_eq!(StatusCode::BAD_REQUEST, response.status());
-        assert_eq!("The request is missing required parameter `name`", parse_error_response(response).message());
+        assert_eq!(
+            "The request is missing required parameter `name`",
+            parse_error_response(response).message()
+        );
     }
 
     #[test]
@@ -529,8 +538,7 @@ mod tests {
         assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
         assert_eq!(
             "Could not create identity cert\n\tcaused by: A error occurred in the key store.",
-            parse_error_response(response)
-                .message(),
+            parse_error_response(response).message(),
         );
     }
 
@@ -563,8 +571,7 @@ mod tests {
         assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
         assert_eq!(
             "Could not create identity cert\n\tcaused by: A error occurred in the key store.",
-            parse_error_response(response)
-                .message(),
+            parse_error_response(response).message(),
         );
     }
 
@@ -597,8 +604,7 @@ mod tests {
         assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
         assert_eq!(
             "Could not create identity cert\n\tcaused by: A error occurred in the key store.",
-            parse_error_response(response)
-                .message(),
+            parse_error_response(response).message(),
         );
     }
 }

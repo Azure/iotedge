@@ -7,7 +7,7 @@ use hyper::{Body, Request, Response, StatusCode};
 use serde::Serialize;
 use serde_json;
 
-use edgelet_core::{Identity as CoreIdentity, IdentityOperation, IdentityManager};
+use edgelet_core::{Identity as CoreIdentity, IdentityManager, IdentityOperation};
 use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
 use management::models::{Identity, IdentityList};
@@ -35,10 +35,13 @@ where
         _req: Request<Body>,
         _params: Parameters,
     ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
-        let response =
-            self.id_manager.list()
+        let response = self
+            .id_manager
+            .list()
             .then(|result| -> Result<_, Error> {
-                let identities = result.context(ErrorKind::IdentityOperation(IdentityOperation::ListIdentities))?;
+                let identities = result.context(ErrorKind::IdentityOperation(
+                    IdentityOperation::ListIdentities,
+                ))?;
                 let body = IdentityList::new(
                     identities
                         .iter()
@@ -49,17 +52,21 @@ where
                                 identity.generation_id().to_string(),
                                 identity.auth_type().to_string(),
                             )
-                        }).collect());
-                let b = serde_json::to_string(&body).context(ErrorKind::IdentityOperation(IdentityOperation::ListIdentities))?;
+                        }).collect(),
+                );
+                let b = serde_json::to_string(&body).context(ErrorKind::IdentityOperation(
+                    IdentityOperation::ListIdentities,
+                ))?;
                 let response = Response::builder()
                     .status(StatusCode::OK)
                     .header(CONTENT_TYPE, "application/json")
                     .header(CONTENT_LENGTH, b.len().to_string().as_str())
                     .body(b.into())
-                    .context(ErrorKind::IdentityOperation(IdentityOperation::ListIdentities))?;
+                    .context(ErrorKind::IdentityOperation(
+                        IdentityOperation::ListIdentities,
+                    ))?;
                 Ok(response)
-            })
-            .or_else(|e| Ok(e.into_response()));
+            }).or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }

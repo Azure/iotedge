@@ -34,31 +34,32 @@ where
         _req: Request<Body>,
         params: Parameters,
     ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
-        let response =
-            params.name("name")
+        let response = params
+            .name("name")
             .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("name")))
             .map(|name| {
                 let name = name.to_string();
 
-                self
-                    .id_manager
+                self.id_manager
                     .lock()
                     .unwrap()
                     .delete(IdentitySpec::new(name.clone()))
                     .then(|result| match result {
                         Ok(_) => Ok(name),
-                        Err(err) => Err(Error::from(err.context(ErrorKind::IdentityOperation(IdentityOperation::DeleteIdentity(name))))),
+                        Err(err) => Err(Error::from(err.context(ErrorKind::IdentityOperation(
+                            IdentityOperation::DeleteIdentity(name),
+                        )))),
                     })
-            })
-            .into_future()
+            }).into_future()
             .flatten()
             .and_then(|name| {
                 Ok(Response::builder()
                     .status(StatusCode::NO_CONTENT)
                     .body(Body::default())
-                    .context(ErrorKind::IdentityOperation(IdentityOperation::DeleteIdentity(name)))?)
-            })
-            .or_else(|e| Ok(e.into_response()));
+                    .context(ErrorKind::IdentityOperation(
+                        IdentityOperation::DeleteIdentity(name),
+                    ))?)
+            }).or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }
@@ -115,7 +116,10 @@ mod tests {
             .concat2()
             .and_then(|body| {
                 let error: ErrorResponse = serde_json::from_slice(&body).unwrap();
-                assert_eq!("The request is missing required parameter `name`", error.message());
+                assert_eq!(
+                    "The request is missing required parameter `name`",
+                    error.message()
+                );
                 Ok(())
             }).wait()
             .unwrap();
@@ -137,7 +141,10 @@ mod tests {
             .concat2()
             .and_then(|body| {
                 let error: ErrorResponse = serde_json::from_slice(&body).unwrap();
-                assert_eq!("Could not delete identity m1\n\tcaused by: Module not found", error.message());
+                assert_eq!(
+                    "Could not delete identity m1\n\tcaused by: Module not found",
+                    error.message()
+                );
                 Ok(())
             }).wait()
             .unwrap();

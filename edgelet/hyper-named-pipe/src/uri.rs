@@ -24,18 +24,28 @@ impl Uri {
         // "host" is the name of the machine which should be "." for localhost
         // and "path" will be "/pipe/<name>" where <name> is the pipe name
         ensure_not_empty_with_context(base_path, || ErrorKind::BadBasePath(base_path.to_string()))?;
-        let url = Url::parse(base_path).with_context(|_| ErrorKind::BadBasePath(base_path.to_string()))?;
+        let url = Url::parse(base_path)
+            .with_context(|_| ErrorKind::BadBasePath(base_path.to_string()))?;
 
         if url.scheme() != NAMED_PIPE_SCHEME {
-            return Err(Error::from(ErrorKind::InvalidUrl(url.to_string(), InvalidUrlReason::Scheme(url.to_string()))));
+            return Err(Error::from(ErrorKind::InvalidUrl(
+                url.to_string(),
+                InvalidUrlReason::Scheme(url.to_string()),
+            )));
         }
 
         if url.host_str().map_or("", |h| h.trim()) == "" {
-            return Err(Error::from(ErrorKind::InvalidUrl(url.to_string(), InvalidUrlReason::MissingHost)));
+            return Err(Error::from(ErrorKind::InvalidUrl(
+                url.to_string(),
+                InvalidUrlReason::MissingHost,
+            )));
         }
 
         if !url.path().starts_with("/pipe/") || url.path().len() < "/pipe/".len() + 1 {
-            return Err(Error::from(ErrorKind::InvalidUrl(url.to_string(), InvalidUrlReason::Path(url.path().to_string()))));
+            return Err(Error::from(ErrorKind::InvalidUrl(
+                url.to_string(),
+                InvalidUrlReason::Path(url.path().to_string()),
+            )));
         }
 
         let pipe_path = format!(
@@ -45,7 +55,10 @@ impl Uri {
         );
 
         Ok(Uri {
-            url: Url::parse(&format!("npipe://{}", encode(pipe_path))).context(ErrorKind::ConstructUrlForHyper)?.join(path).context(ErrorKind::ConstructUrlForHyper)?,
+            url: Url::parse(&format!("npipe://{}", encode(pipe_path)))
+                .context(ErrorKind::ConstructUrlForHyper)?
+                .join(path)
+                .context(ErrorKind::ConstructUrlForHyper)?,
         })
     }
 
@@ -55,17 +68,33 @@ impl Uri {
 
     fn get_pipe_path_from_parts(scheme: &str, host: &str) -> Result<String> {
         if scheme != NAMED_PIPE_SCHEME {
-            return Err(Error::from(ErrorKind::InvalidUrl(format!("{}://{}", scheme, host), InvalidUrlReason::Scheme(scheme.to_string()))));
+            return Err(Error::from(ErrorKind::InvalidUrl(
+                format!("{}://{}", scheme, host),
+                InvalidUrlReason::Scheme(scheme.to_string()),
+            )));
         }
 
         let host = host.trim();
         if host.is_empty() {
-            return Err(Error::from(ErrorKind::InvalidUrl(format!("{}://{}", scheme, host), InvalidUrlReason::MissingHost)));
+            return Err(Error::from(ErrorKind::InvalidUrl(
+                format!("{}://{}", scheme, host),
+                InvalidUrlReason::MissingHost,
+            )));
         }
 
-        let bytes = decode(host).with_context(|_| ErrorKind::InvalidUrl(format!("{}://{}", scheme, host), InvalidUrlReason::BadHost(host.to_string())))?;
+        let bytes = decode(host).with_context(|_| {
+            ErrorKind::InvalidUrl(
+                format!("{}://{}", scheme, host),
+                InvalidUrlReason::BadHost(host.to_string()),
+            )
+        })?;
 
-        let s = str::from_utf8(bytes.as_slice()).with_context(|_| ErrorKind::InvalidUrl(format!("{}://{}", scheme, host), InvalidUrlReason::BadHost(host.to_string())))?;
+        let s = str::from_utf8(bytes.as_slice()).with_context(|_| {
+            ErrorKind::InvalidUrl(
+                format!("{}://{}", scheme, host),
+                InvalidUrlReason::BadHost(host.to_string()),
+            )
+        })?;
         Ok(s.to_owned())
     }
 }

@@ -75,7 +75,9 @@ where
         api_version: String,
         host_name: Url,
     ) -> Result<Self, Error> {
-        ensure_not_empty_with_context(&api_version, || ErrorKind::InvalidApiVersion(api_version.clone()))?;
+        ensure_not_empty_with_context(&api_version, || {
+            ErrorKind::InvalidApiVersion(api_version.clone())
+        })?;
 
         let client = Client {
             inner: Arc::new(inner),
@@ -158,7 +160,8 @@ where
 
         // build the full url
         let path_query = format!("{}?{}", path, query);
-        self.host_name.join(&path_query)
+        self.host_name
+            .join(&path_query)
             .with_context(|_| ErrorKind::UrlJoin(self.host_name.clone(), path_query))
             .context(ErrorKind::Http)
             .map_err(Error::from)
@@ -200,12 +203,10 @@ where
                     .then(|resp| resp.context(ErrorKind::Http).map_err(Error::from))
                     .and_then(|resp| {
                         let (http::response::Parts { status, .. }, body) = resp.into_parts();
-                        body
-                            .concat2()
-                            .then(move |res| {
-                                let body = res.context(ErrorKind::Http)?;
-                                Ok((status, body))
-                            })
+                        body.concat2().then(move |res| {
+                            let body = res.context(ErrorKind::Http)?;
+                            Ok((status, body))
+                        })
                     }).and_then(|(status, body)| {
                         if status.is_success() {
                             Ok(body)
@@ -216,7 +217,10 @@ where
                         if body.len() == 0 {
                             Ok(None)
                         } else {
-                            Ok(Some(serde_json::from_slice::<ResponseT>(&body).context(ErrorKind::Http)?))
+                            Ok(Some(
+                                serde_json::from_slice::<ResponseT>(&body)
+                                    .context(ErrorKind::Http)?,
+                            ))
                         }
                     })
             }).into_future()
@@ -292,13 +296,14 @@ mod tests {
         );
         match client {
             Ok(_) => panic!("Expected error but got a result."),
-            Err(err) =>
-                if let ErrorKind::InvalidApiVersion(s) = err.kind() {
-                    assert_eq!(s, &api_version);
-                }
-                else {
-                    panic!("Wrong error kind. Expected `InvalidApiVersion` found {:?}", err);
-                },
+            Err(err) => if let ErrorKind::InvalidApiVersion(s) = err.kind() {
+                assert_eq!(s, &api_version);
+            } else {
+                panic!(
+                    "Wrong error kind. Expected `InvalidApiVersion` found {:?}",
+                    err
+                );
+            },
         }
     }
 
@@ -315,13 +320,14 @@ mod tests {
         );
         match client {
             Ok(_) => panic!("Expected error but got a result."),
-            Err(err) =>
-                if let ErrorKind::InvalidApiVersion(s) = err.kind() {
-                    assert_eq!(s, &api_version);
-                }
-                else {
-                    panic!("Wrong error kind. Expected `InvalidApiVersion` found {:?}", err);
-                },
+            Err(err) => if let ErrorKind::InvalidApiVersion(s) = err.kind() {
+                assert_eq!(s, &api_version);
+            } else {
+                panic!(
+                    "Wrong error kind. Expected `InvalidApiVersion` found {:?}",
+                    err
+                );
+            },
         }
     }
 

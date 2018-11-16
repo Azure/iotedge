@@ -101,7 +101,12 @@ impl<C: 'static + Connect> Module for DockerModule<C> {
                                 ).with_image_id(resp.id().map(ToOwned::to_owned))
                                 .with_pid(state.pid().map_or(Pid::None, Pid::Value))
                         })
-                }).map_err(|err| Error::from_docker_error(err, ErrorKind::ModuleOperation(ModuleOperation::RuntimeState))),
+                }).map_err(|err| {
+                    Error::from_docker_error(
+                        err,
+                        ErrorKind::ModuleOperation(ModuleOperation::RuntimeState),
+                    )
+                }),
         )
     }
 }

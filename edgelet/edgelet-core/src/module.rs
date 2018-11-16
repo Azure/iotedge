@@ -162,7 +162,12 @@ where
 }
 
 impl<T> ModuleSpec<T> {
-    pub fn new(name: String, type_: String, config: T, env: HashMap<String, String>) -> Result<Self> {
+    pub fn new(
+        name: String,
+        type_: String,
+        config: T,
+        env: HashMap<String, String>,
+    ) -> Result<Self> {
         ensure_not_empty_with_context(&name, || ErrorKind::InvalidModuleName(name.clone()))?;
         ensure_not_empty_with_context(&type_, || ErrorKind::InvalidModuleType(type_.clone()))?;
 
@@ -238,7 +243,9 @@ impl FromStr for LogTail {
         let tail = if s == "all" {
             LogTail::All
         } else {
-            let num = s.parse::<u64>().with_context(|_| ErrorKind::InvalidLogTail(s.to_string()))?;
+            let num = s
+                .parse::<u64>()
+                .with_context(|_| ErrorKind::InvalidLogTail(s.to_string()))?;
             LogTail::Num(num)
         };
         Ok(tail)
@@ -426,7 +433,9 @@ impl fmt::Display for RuntimeOperation {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             RuntimeOperation::CreateModule(name) => write!(f, "Could not create module {}", name),
-            RuntimeOperation::GetModuleLogs(name) => write!(f, "Could not get logs of module {}", name),
+            RuntimeOperation::GetModuleLogs(name) => {
+                write!(f, "Could not get logs of module {}", name)
+            }
             RuntimeOperation::Init => write!(f, "Could not initialize module runtime"),
             RuntimeOperation::ListModules => write!(f, "Could not list modules"),
             RuntimeOperation::RemoveModule(name) => write!(f, "Could not remove module {}", name),
@@ -480,8 +489,7 @@ mod tests {
             Ok(_) => panic!("Expected error"),
             Err(err) => if let ErrorKind::InvalidModuleName(s) = err.kind() {
                 assert_eq!(s, &name);
-            }
-            else {
+            } else {
                 panic!("Expected `InvalidModuleName` but got {:?}", err);
             },
         }
@@ -494,8 +502,7 @@ mod tests {
             Ok(_) => panic!("Expected error"),
             Err(err) => if let ErrorKind::InvalidModuleName(s) = err.kind() {
                 assert_eq!(s, &name);
-            }
-            else {
+            } else {
                 panic!("Expected `InvalidModuleName` but got {:?}", err);
             },
         }
@@ -508,8 +515,7 @@ mod tests {
             Ok(_) => panic!("Expected error"),
             Err(err) => if let ErrorKind::InvalidModuleType(s) = err.kind() {
                 assert_eq!(s, &type_);
-            }
-            else {
+            } else {
                 panic!("Expected `InvalidModuleType` but got {:?}", err);
             },
         }
@@ -522,8 +528,7 @@ mod tests {
             Ok(_) => panic!("Expected error"),
             Err(err) => if let ErrorKind::InvalidModuleType(s) = err.kind() {
                 assert_eq!(s, &type_);
-            }
-            else {
+            } else {
                 panic!("Expected `InvalidModuleType` but got {:?}", err);
             },
         }

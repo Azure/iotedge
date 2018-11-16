@@ -97,11 +97,17 @@ pub enum IdentityOperation {
 impl fmt::Display for IdentityOperation {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            IdentityOperation::CreateIdentity(name) => write!(f, "Could not create identity {}", name),
-            IdentityOperation::DeleteIdentity(name) => write!(f, "Could not delete identity {}", name),
+            IdentityOperation::CreateIdentity(name) => {
+                write!(f, "Could not create identity {}", name)
+            }
+            IdentityOperation::DeleteIdentity(name) => {
+                write!(f, "Could not delete identity {}", name)
+            }
             IdentityOperation::GetIdentity(name) => write!(f, "Could not get identity {}", name),
             IdentityOperation::ListIdentities => write!(f, "Could not list identities"),
-            IdentityOperation::UpdateIdentity(name) => write!(f, "Could not update identity {}", name),
+            IdentityOperation::UpdateIdentity(name) => {
+                write!(f, "Could not update identity {}", name)
+            }
         }
     }
 }

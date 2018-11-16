@@ -42,32 +42,37 @@ where
         let cfg = self.config.clone();
         let max_duration = cfg.get_cert_max_duration(CertificateType::Server);
 
-        let response =
-            params.name("name")
+        let response = params
+            .name("name")
             .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("name")))
             .and_then(|name| {
-                let genid = params.name("genid").ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("genid")))?;
+                let genid = params
+                    .name("genid")
+                    .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("genid")))?;
                 Ok((name, genid))
-            })
-            .map(|(module_id, genid)| {
+            }).map(|(module_id, genid)| {
                 let alias = format!("{}{}server", module_id.to_string(), genid.to_string());
-                req
-                    .into_body()
-                    .concat2()
-                    .then(|body| {
-                        let body = body.context(ErrorKind::CertOperation(CertOperation::GetServerCert))?;
-                        Ok((alias, body))
-                    })
-            })
-            .into_future()
+                req.into_body().concat2().then(|body| {
+                    let body =
+                        body.context(ErrorKind::CertOperation(CertOperation::GetServerCert))?;
+                    Ok((alias, body))
+                })
+            }).into_future()
             .flatten()
             .and_then(move |(alias, body)| {
-                let cert_req: ServerCertificateRequest = serde_json::from_slice(&body).context(ErrorKind::MalformedRequestBody)?;
+                let cert_req: ServerCertificateRequest =
+                    serde_json::from_slice(&body).context(ErrorKind::MalformedRequestBody)?;
 
-                let expiration = compute_validity(cert_req.expiration(), max_duration, ErrorKind::MalformedRequestBody)?;
+                let expiration = compute_validity(
+                    cert_req.expiration(),
+                    max_duration,
+                    ErrorKind::MalformedRequestBody,
+                )?;
                 #[cfg_attr(feature = "cargo-clippy", allow(cast_sign_loss))]
                 let expiration = match expiration {
-                    expiration if expiration < 0 || expiration > max_duration => return Err(Error::from(ErrorKind::MalformedRequestBody)),
+                    expiration if expiration < 0 || expiration > max_duration => {
+                        return Err(Error::from(ErrorKind::MalformedRequestBody))
+                    }
                     expiration => expiration as u64,
                 };
 
@@ -81,10 +86,14 @@ where
                     CertificateType::Server,
                     alias.clone(),
                 );
-                let body = refresh_cert(&hsm, alias, &props, ErrorKind::CertOperation(CertOperation::GetServerCert))?;
+                let body = refresh_cert(
+                    &hsm,
+                    alias,
+                    &props,
+                    ErrorKind::CertOperation(CertOperation::GetServerCert),
+                )?;
                 Ok(body)
-            })
-            .or_else(|e| future::ok(e.into_response()));
+            }).or_else(|e| future::ok(e.into_response()));
 
         Box::new(response)
     }
@@ -208,7 +217,10 @@ mod tests {
             .unwrap();
         let response = handler.handle(request, Parameters::new()).wait().unwrap();
         assert_eq!(StatusCode::BAD_REQUEST, response.status());
-        assert_eq!("The request is missing required parameter `name`", parse_error_response(response).message());
+        assert_eq!(
+            "The request is missing required parameter `name`",
+            parse_error_response(response).message()
+        );
     }
 
     #[test]
@@ -219,7 +231,10 @@ mod tests {
             .unwrap();
         let response = handler.handle(request, Parameters::new()).wait().unwrap();
         assert_eq!(StatusCode::BAD_REQUEST, response.status());
-        assert_eq!("The request is missing required parameter `name`", parse_error_response(response).message());
+        assert_eq!(
+            "The request is missing required parameter `name`",
+            parse_error_response(response).message()
+        );
     }
 
     #[test]
@@ -281,8 +296,7 @@ mod tests {
         assert_eq!(StatusCode::BAD_REQUEST, response.status());
         assert_eq!(
             "Request body is malformed\n\tcaused by: Argument is empty or only has whitespace - []",
-            parse_error_response(response)
-                .message(),
+            parse_error_response(response).message(),
         );
     }
 
@@ -305,8 +319,7 @@ mod tests {
         assert_eq!(StatusCode::BAD_REQUEST, response.status());
         assert_eq!(
             "Request body is malformed\n\tcaused by: Argument is empty or only has whitespace - []",
-            parse_error_response(response)
-                .message(),
+            parse_error_response(response).message(),
         );
     }
 
@@ -330,8 +343,7 @@ mod tests {
         assert_eq!(StatusCode::BAD_REQUEST, response.status());
         assert_eq!(
             "Request body is malformed\n\tcaused by: input contains invalid characters",
-            parse_error_response(response)
-                .message(),
+            parse_error_response(response).message(),
         );
     }
 
@@ -355,8 +367,7 @@ mod tests {
         assert_eq!(StatusCode::BAD_REQUEST, response.status());
         assert_eq!(
             "Request body is malformed",
-            parse_error_response(response)
-                .message(),
+            parse_error_response(response).message(),
         );
     }
 
@@ -383,8 +394,7 @@ mod tests {
         assert_eq!(StatusCode::BAD_REQUEST, response.status());
         assert_eq!(
             "Request body is malformed\n\tcaused by: Argument is empty or only has whitespace - []",
-            parse_error_response(response)
-                .message(),
+            parse_error_response(response).message(),
         );
     }
 
@@ -411,8 +421,7 @@ mod tests {
         assert_eq!(StatusCode::BAD_REQUEST, response.status());
         assert_eq!(
             "Request body is malformed\n\tcaused by: Argument is empty or only has whitespace - []",
-            parse_error_response(response)
-                .message(),
+            parse_error_response(response).message(),
         );
     }
 
@@ -448,8 +457,7 @@ mod tests {
         assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
         assert_eq!(
             "Could not get server cert\n\tcaused by: A error occurred in the key store.",
-            parse_error_response(response)
-                .message(),
+            parse_error_response(response).message(),
         );
     }
 
@@ -485,8 +493,7 @@ mod tests {
         assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
         assert_eq!(
             "Could not get server cert\n\tcaused by: A error occurred in the key store.",
-            parse_error_response(response)
-                .message(),
+            parse_error_response(response).message(),
         );
     }
 
@@ -522,8 +529,7 @@ mod tests {
         assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
         assert_eq!(
             "Could not get server cert\n\tcaused by: A error occurred in the key store.",
-            parse_error_response(response)
-                .message(),
+            parse_error_response(response).message(),
         );
     }
 
@@ -684,8 +690,7 @@ mod tests {
         assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
         assert_eq!(
             "Could not get server cert\n\tcaused by: A error occurred in the key store.",
-            parse_error_response(response)
-                .message(),
+            parse_error_response(response).message(),
         );
     }
 }

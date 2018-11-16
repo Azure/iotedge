@@ -217,8 +217,8 @@ impl Sign for MemoryKey {
         let signature = match signature_algorithm {
             SignatureAlgorithm::HMACSHA256 => {
                 // Create `Mac` trait implementation, namely HMAC-SHA256
-                let mut mac =
-                    Hmac::<Sha256>::new(&self.key).map_err(|_| ErrorKind::SignInvalidKeyLength(self.key.len()))?;
+                let mut mac = Hmac::<Sha256>::new(&self.key)
+                    .map_err(|_| ErrorKind::SignInvalidKeyLength(self.key.len()))?;
                 mac.input(data);
 
                 // `result` has type `MacResult` which is a thin wrapper around array of
@@ -351,7 +351,12 @@ impl<K: Sign> KeyStore for DerivedKeyStore<K> {
             KeyIdentity::Device => "",
             KeyIdentity::Module(ref m) => m,
         };
-        let signature = self.root.sign(SignatureAlgorithm::HMACSHA256, format!("{}{}", data, key_name).as_bytes()).context(ErrorKind::Sign)?;
+        let signature = self
+            .root
+            .sign(
+                SignatureAlgorithm::HMACSHA256,
+                format!("{}{}", data, key_name).as_bytes(),
+            ).context(ErrorKind::Sign)?;
         Ok(MemoryKey::new(signature.as_bytes()))
     }
 }

@@ -50,8 +50,8 @@ use edgelet_core::crypto::{KeyIdentity, KeyStore, Sign, Signature, SignatureAlgo
 use edgelet_core::{AuthType, Identity, IdentityManager, IdentityOperation, IdentitySpec};
 use edgelet_http::client::{ClientImpl, TokenSource};
 use iothubservice::{
-    AuthMechanism, AuthType as HubAuthType, DeviceClient, ErrorKind as HubErrorKind, Module, Reason as HubReason,
-    SymmetricKey,
+    AuthMechanism, AuthType as HubAuthType, DeviceClient, ErrorKind as HubErrorKind, Module,
+    Reason as HubReason, SymmetricKey,
 };
 
 pub use error::{Error, ErrorKind, Reason};
@@ -273,16 +273,26 @@ where
                     module_id.clone(),
                     Some(AuthMechanism::default().with_type(HubAuthType::None)),
                     id.managed_by(),
-                )
-                .then(|module| {
-                    let module = module.with_context(|_| ErrorKind::IdentityOperation(IdentityOperation::CreateIdentity(module_id.clone())))?;
+                ).then(|module| {
+                    let module = module.with_context(|_| {
+                        ErrorKind::IdentityOperation(IdentityOperation::CreateIdentity(
+                            module_id.clone(),
+                        ))
+                    })?;
 
                     if let (Some(module_id2), Some(generation_id)) =
                         (module.module_id(), module.generation_id())
                     {
-                        idman.get_key_pair(module_id2, generation_id).map(|(primary_key, secondary_key)| (primary_key, secondary_key, idman, module_id))
+                        idman.get_key_pair(module_id2, generation_id).map(
+                            |(primary_key, secondary_key)| {
+                                (primary_key, secondary_key, idman, module_id)
+                            },
+                        )
                     } else {
-                        Err(Error::from(ErrorKind::CreateIdentityWithReason(module_id, Reason::InvalidHubResponse)))
+                        Err(Error::from(ErrorKind::CreateIdentityWithReason(
+                            module_id,
+                            Reason::InvalidHubResponse,
+                        )))
                     }
                 }).and_then(move |(primary_key, secondary_key, idman, module_id)| {
                     let auth = AuthMechanism::default()
@@ -297,8 +307,12 @@ where
                         .state
                         .client
                         .update_module(id.module_id().to_string(), Some(auth), id.managed_by())
-                        .map_err(|err| Error::from(err.context(ErrorKind::CreateIdentityWithReason(module_id, Reason::InvalidHubResponse))))
-                        .map(HubIdentity::new)
+                        .map_err(|err| {
+                            Error::from(err.context(ErrorKind::CreateIdentityWithReason(
+                                module_id,
+                                Reason::InvalidHubResponse,
+                            )))
+                        }).map(HubIdentity::new)
                 }),
         )
     }
@@ -321,15 +335,20 @@ where
                         self.state
                             .client
                             .update_module(module_id.clone(), Some(auth), id.managed_by())
-                            .map_err(|err| Error::from(err.context(ErrorKind::IdentityOperation(IdentityOperation::UpdateIdentity(module_id)))))
-                            .map(HubIdentity::new),
+                            .map_err(|err| {
+                                Error::from(err.context(ErrorKind::IdentityOperation(
+                                    IdentityOperation::UpdateIdentity(module_id),
+                                )))
+                            }).map(HubIdentity::new),
                     )
                 }
 
                 Err(err) => Either::B(future::err(err)),
             }
         } else {
-            Either::B(future::err(Error::from(ErrorKind::UpdateIdentityWithReason(module_id, Reason::MissingGenerationId))))
+            Either::B(future::err(Error::from(
+                ErrorKind::UpdateIdentityWithReason(module_id, Reason::MissingGenerationId),
+            )))
         };
 
         Box::new(result)
@@ -340,41 +359,43 @@ where
             self.state
                 .client
                 .list_modules()
-                .map_err(|err| Error::from(err.context(ErrorKind::IdentityOperation(IdentityOperation::ListIdentities))))
-                .map(|modules| modules.into_iter().map(HubIdentity::new).collect()),
+                .map_err(|err| {
+                    Error::from(err.context(ErrorKind::IdentityOperation(
+                        IdentityOperation::ListIdentities,
+                    )))
+                }).map(|modules| modules.into_iter().map(HubIdentity::new).collect()),
         )
     }
 
     fn get(&self, id: IdentitySpec) -> Self::GetFuture {
         let module_id = id.module_id().to_string();
 
-        Box::new(
-            self.state
-                .client
-                .get_module_by_id(module_id.clone())
-                .then(|module| match module {
-                    Ok(module) => Ok(Some(HubIdentity::new(module))),
-                    Err(err) => {
-                        if let HubErrorKind::GetModuleWithReason(_, HubReason::ModuleNotFound) = err.kind() {
-                            Ok(None)
-                        }
-                        else {
-                            Err(Error::from(err.context(ErrorKind::IdentityOperation(IdentityOperation::GetIdentity(module_id)))))
-                        }
-                    },
-                })
-        )
+        Box::new(self.state.client.get_module_by_id(module_id.clone()).then(
+            |module| match module {
+                Ok(module) => Ok(Some(HubIdentity::new(module))),
+                Err(err) => {
+                    if let HubErrorKind::GetModuleWithReason(_, HubReason::ModuleNotFound) =
+                        err.kind()
+                    {
+                        Ok(None)
+                    } else {
+                        Err(Error::from(err.context(ErrorKind::IdentityOperation(
+                            IdentityOperation::GetIdentity(module_id),
+                        ))))
+                    }
+                }
+            },
+        ))
     }
 
     fn delete(&mut self, id: IdentitySpec) -> Self::DeleteFuture {
         let module_id = id.module_id().to_string();
 
-        Box::new(
-            self.state
-                .client
-                .delete_module(&module_id)
-                .map_err(|err| Error::from(err.context(ErrorKind::IdentityOperation(IdentityOperation::DeleteIdentity(module_id))))),
-        )
+        Box::new(self.state.client.delete_module(&module_id).map_err(|err| {
+            Error::from(err.context(ErrorKind::IdentityOperation(
+                IdentityOperation::DeleteIdentity(module_id),
+            )))
+        }))
     }
 }
 

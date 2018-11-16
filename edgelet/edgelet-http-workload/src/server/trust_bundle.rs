@@ -41,22 +41,30 @@ where
         let response = self
             .hsm
             .get_trust_bundle()
-            .context(ErrorKind::EncryptionOperation(EncryptionOperation::GetTrustBundle))
-            .map_err(Error::from)
+            .context(ErrorKind::EncryptionOperation(
+                EncryptionOperation::GetTrustBundle,
+            )).map_err(Error::from)
             .and_then(|cert| -> Result<_, Error> {
-                let cert = cert.pem().context(ErrorKind::EncryptionOperation(EncryptionOperation::GetTrustBundle))?;
-                let cert = str::from_utf8(cert.as_ref()).context(ErrorKind::EncryptionOperation(EncryptionOperation::GetTrustBundle))?.to_string();
-                let body = serde_json::to_string(&TrustBundleResponse::new(cert)).context(ErrorKind::EncryptionOperation(EncryptionOperation::GetTrustBundle))?;
-                let response =
-                    Response::builder()
-                        .status(StatusCode::OK)
-                        .header(CONTENT_TYPE, "application/json")
-                        .header(CONTENT_LENGTH, body.len().to_string().as_str())
-                        .body(body.into())
-                        .context(ErrorKind::EncryptionOperation(EncryptionOperation::GetTrustBundle))?;
+                let cert = cert.pem().context(ErrorKind::EncryptionOperation(
+                    EncryptionOperation::GetTrustBundle,
+                ))?;
+                let cert = str::from_utf8(cert.as_ref())
+                    .context(ErrorKind::EncryptionOperation(
+                        EncryptionOperation::GetTrustBundle,
+                    ))?.to_string();
+                let body = serde_json::to_string(&TrustBundleResponse::new(cert)).context(
+                    ErrorKind::EncryptionOperation(EncryptionOperation::GetTrustBundle),
+                )?;
+                let response = Response::builder()
+                    .status(StatusCode::OK)
+                    .header(CONTENT_TYPE, "application/json")
+                    .header(CONTENT_LENGTH, body.len().to_string().as_str())
+                    .body(body.into())
+                    .context(ErrorKind::EncryptionOperation(
+                        EncryptionOperation::GetTrustBundle,
+                    ))?;
                 Ok(response)
-            })
-            .or_else(|e| Ok(e.into_response()))
+            }).or_else(|e| Ok(e.into_response()))
             .into_future();
 
         Box::new(response)

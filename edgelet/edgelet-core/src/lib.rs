@@ -49,9 +49,8 @@ pub use crypto::{
 pub use error::{Error, ErrorKind};
 pub use identity::{AuthType, Identity, IdentityManager, IdentityOperation, IdentitySpec};
 pub use module::{
-    LogOptions, LogTail, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
-    ModuleStatus, SystemInfo,
-    ModuleOperation, RegistryOperation, RuntimeOperation,
+    LogOptions, LogTail, Module, ModuleOperation, ModuleRegistry, ModuleRuntime,
+    ModuleRuntimeState, ModuleSpec, ModuleStatus, RegistryOperation, RuntimeOperation, SystemInfo,
 };
 pub use workload::WorkloadConfig;
 

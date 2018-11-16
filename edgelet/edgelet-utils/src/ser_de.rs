@@ -62,11 +62,9 @@ pub fn serde_clone<T>(inp: &T) -> Result<T>
 where
     T: Serialize + DeserializeOwned,
 {
-    Ok(
-        serde_json::to_string(inp)
+    Ok(serde_json::to_string(inp)
         .and_then(|s| serde_json::from_str(&s))
-        .context(ErrorKind::SerdeClone)?
-    )
+        .context(ErrorKind::SerdeClone)?)
 }
 
 #[cfg(test)]

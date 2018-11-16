@@ -44,7 +44,10 @@ pub enum ErrorKind {
     #[fail(display = "The request parameter `{}` is malformed", _0)]
     MalformedRequestParameter(&'static str),
 
-    #[fail(display = "The request is missing required parameter `{}`", _0)]
+    #[fail(
+        display = "The request is missing required parameter `{}`",
+        _0
+    )]
     MissingRequiredParameter(&'static str),
 
     #[fail(display = "{}", _0)]
@@ -88,7 +91,9 @@ impl Error {
         match error {
             MgmtError::Hyper(h) => Error::from(h.context(context)),
             MgmtError::Serde(s) => Error::from(s.context(context)),
-            MgmtError::Api(ref e) if e.code == StatusCode::NOT_MODIFIED => Error::from(ErrorKind::NotModified),
+            MgmtError::Api(ref e) if e.code == StatusCode::NOT_MODIFIED => {
+                Error::from(ErrorKind::NotModified)
+            }
             MgmtError::Api(_) => Error::from(ErrorKind::Client(error).context(context)),
         }
     }
@@ -117,32 +122,30 @@ impl IntoResponse for Error {
         }
 
         // Specialize status code based on the underlying docker runtime error, if any
-        let status_code = if let Some(cause) = self.cause().and_then(Fail::downcast_ref::<DockerError>) {
-            let status_code = match cause.kind() {
-                DockerErrorKind::NotFound(_) => StatusCode::NOT_FOUND,
-                DockerErrorKind::Conflict => StatusCode::CONFLICT,
-                DockerErrorKind::NotModified => StatusCode::NOT_MODIFIED,
-                _ => StatusCode::INTERNAL_SERVER_ERROR,
-            };
+        let status_code =
+            if let Some(cause) = self.cause().and_then(Fail::downcast_ref::<DockerError>) {
+                let status_code = match cause.kind() {
+                    DockerErrorKind::NotFound(_) => StatusCode::NOT_FOUND,
+                    DockerErrorKind::Conflict => StatusCode::CONFLICT,
+                    DockerErrorKind::NotModified => StatusCode::NOT_MODIFIED,
+                    _ => StatusCode::INTERNAL_SERVER_ERROR,
+                };
 
-            status_code
-        }
-        else {
-            let status_code = match self.kind() {
-                ErrorKind::InvalidApiVersion(_) |
-                ErrorKind::MalformedRequestBody |
-                ErrorKind::MalformedRequestParameter(_) |
-                ErrorKind::MissingRequiredParameter(_) => {
-                    StatusCode::BAD_REQUEST
-                }
-                _ => {
-                    error!("Internal server error: {}", message);
-                    StatusCode::INTERNAL_SERVER_ERROR
-                }
-            };
+                status_code
+            } else {
+                let status_code = match self.kind() {
+                    ErrorKind::InvalidApiVersion(_)
+                    | ErrorKind::MalformedRequestBody
+                    | ErrorKind::MalformedRequestParameter(_)
+                    | ErrorKind::MissingRequiredParameter(_) => StatusCode::BAD_REQUEST,
+                    _ => {
+                        error!("Internal server error: {}", message);
+                        StatusCode::INTERNAL_SERVER_ERROR
+                    }
+                };
 
-            status_code
-        };
+                status_code
+            };
 
         // Per the RFC, status code NotModified should not have a body
         let body = if status_code == StatusCode::NOT_MODIFIED {
@@ -154,8 +157,8 @@ impl IntoResponse for Error {
 
         let mut response = Response::builder();
         response
-                .status(status_code)
-                .header(CONTENT_LENGTH, body.len().to_string().as_str());
+            .status(status_code)
+            .header(CONTENT_LENGTH, body.len().to_string().as_str());
         if !body.is_empty() {
             response.header(CONTENT_TYPE, "application/json");
         }

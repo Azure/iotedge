@@ -76,29 +76,40 @@ impl ManualProvisioning {
 
         let hash_map = ManualProvisioning::parse_conn_string(&conn_string)?;
 
-        let key = hash_map
-            .get(SHAREDACCESSKEY_KEY)
-            .ok_or(ErrorKind::ConnStringMissingRequiredParameter(SHAREDACCESSKEY_KEY))?;
-        let key_regex = Regex::new(SHAREDACCESSKEY_REGEX).expect("This hard-coded regex is expected to be valid.");
+        let key = hash_map.get(SHAREDACCESSKEY_KEY).ok_or(
+            ErrorKind::ConnStringMissingRequiredParameter(SHAREDACCESSKEY_KEY),
+        )?;
+        let key_regex = Regex::new(SHAREDACCESSKEY_REGEX)
+            .expect("This hard-coded regex is expected to be valid.");
         if !key_regex.is_match(&key) {
-            return Err(Error::from(ErrorKind::ConnStringMalformedParameter(SHAREDACCESSKEY_REGEX)));
+            return Err(Error::from(ErrorKind::ConnStringMalformedParameter(
+                SHAREDACCESSKEY_REGEX,
+            )));
         }
-        let key = MemoryKey::new(base64::decode(&key).context(ErrorKind::ConnStringMalformedParameter(SHAREDACCESSKEY_REGEX))?);
+        let key = MemoryKey::new(base64::decode(&key).context(
+            ErrorKind::ConnStringMalformedParameter(SHAREDACCESSKEY_REGEX),
+        )?);
 
         let device_id = hash_map
             .get(DEVICEID_KEY)
             .ok_or(ErrorKind::ConnStringMissingRequiredParameter(DEVICEID_KEY))?;
-        let device_id_regex = Regex::new(DEVICEID_REGEX).expect("This hard-coded regex is expected to be valid.");
+        let device_id_regex =
+            Regex::new(DEVICEID_REGEX).expect("This hard-coded regex is expected to be valid.");
         if !device_id_regex.is_match(&device_id) {
-            return Err(Error::from(ErrorKind::ConnStringMalformedParameter(DEVICEID_KEY)));
+            return Err(Error::from(ErrorKind::ConnStringMalformedParameter(
+                DEVICEID_KEY,
+            )));
         }
 
         let hub = hash_map
             .get(HOSTNAME_KEY)
             .ok_or(ErrorKind::ConnStringMissingRequiredParameter(HOSTNAME_KEY))?;
-        let hub_regex = Regex::new(HOSTNAME_REGEX).expect("This hard-coded regex is expected to be valid.");
+        let hub_regex =
+            Regex::new(HOSTNAME_REGEX).expect("This hard-coded regex is expected to be valid.");
         if !hub_regex.is_match(&hub) {
-            return Err(Error::from(ErrorKind::ConnStringMalformedParameter(HOSTNAME_KEY)));
+            return Err(Error::from(ErrorKind::ConnStringMalformedParameter(
+                HOSTNAME_KEY,
+            )));
         }
 
         let result = ManualProvisioning {
@@ -117,7 +128,7 @@ impl ManualProvisioning {
             match s[0] {
                 SHAREDACCESSKEY_KEY | DEVICEID_KEY | HOSTNAME_KEY => {
                     hash_map.insert(s[0].to_string(), s[1].to_string());
-                },
+                }
                 _ => (), // Ignore extraneous component in the connection string
             }
         }
@@ -259,14 +270,17 @@ where
         // create a file if it doesn't exist, else open it for writing
         let mut file = File::create(path).context(ErrorKind::CouldNotBackup)?;
         let buffer = serde_json::to_string(&prov_result).context(ErrorKind::CouldNotBackup)?;
-        file.write_all(buffer.as_bytes()).context(ErrorKind::CouldNotBackup)?;
+        file.write_all(buffer.as_bytes())
+            .context(ErrorKind::CouldNotBackup)?;
         Ok(())
     }
 
     fn restore(path: PathBuf) -> Result<ProvisioningResult, Error> {
         let mut file = File::open(path).context(ErrorKind::CouldNotRestore)?;
         let mut buffer = String::new();
-        let _ = file.read_to_string(&mut buffer).context(ErrorKind::CouldNotRestore)?;
+        let _ = file
+            .read_to_string(&mut buffer)
+            .context(ErrorKind::CouldNotRestore)?;
         info!("Restoring device credentials from backup");
         let prov_result = serde_json::from_str(&buffer).context(ErrorKind::CouldNotRestore)?;
         Ok(prov_result)
@@ -350,19 +364,18 @@ mod tests {
             ManualProvisioning::new("HostName=test.com;DeviceId=test;SharedAccessKey=test");
         assert_eq!(provisioning.is_ok(), true);
         let memory_hsm = MemoryKeyStore::new();
-        let task = provisioning
-            .unwrap()
-            .provision(memory_hsm.clone())
-            .then(|result| {
-                match result {
+        let task =
+            provisioning
+                .unwrap()
+                .provision(memory_hsm.clone())
+                .then(|result| match result {
                     Ok(result) => {
                         assert_eq!(result.hub_name, "test.com".to_string());
                         assert_eq!(result.device_id, "test".to_string());
                         Ok::<_, Error>(())
                     }
                     Err(err) => panic!("Unexpected {:?}", err),
-                }
-            });
+                });
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
             .block_on(task)

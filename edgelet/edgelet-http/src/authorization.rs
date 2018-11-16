@@ -54,19 +54,24 @@ where
         );
         let inner = self.inner.clone();
 
-        let response = self
-            .auth
-            .authorize(name.clone(), pid)
-            .then(|authorized| authorized.context(ErrorKind::Authorization).map_err(Error::from))
-            .and_then(move |authorized| {
-                if authorized {
-                    future::Either::A(
-                        inner.handle(req, params)
-                        .then(|resp| resp.context(ErrorKind::Authorization).map_err(Error::from)))
-                } else {
-                    future::Either::B(future::err(Error::from(ErrorKind::ModuleNotFound(name.unwrap_or_else(String::new)))))
-                }
-            }).or_else(|e| future::ok(e.into_response()));
+        let response =
+            self.auth
+                .authorize(name.clone(), pid)
+                .then(|authorized| {
+                    authorized
+                        .context(ErrorKind::Authorization)
+                        .map_err(Error::from)
+                }).and_then(move |authorized| {
+                    if authorized {
+                        future::Either::A(inner.handle(req, params).then(|resp| {
+                            resp.context(ErrorKind::Authorization).map_err(Error::from)
+                        }))
+                    } else {
+                        future::Either::B(future::err(Error::from(ErrorKind::ModuleNotFound(
+                            name.unwrap_or_else(String::new),
+                        ))))
+                    }
+                }).or_else(|e| future::ok(e.into_response()));
 
         Box::new(response)
     }
@@ -81,7 +86,9 @@ mod tests {
     use futures::{stream, Stream};
     use hyper::{Body, Request, Response, StatusCode};
 
-    use edgelet_core::{LogOptions, Module, ModuleRegistry, ModuleRuntimeState, ModuleSpec, SystemInfo};
+    use edgelet_core::{
+        LogOptions, Module, ModuleRegistry, ModuleRuntimeState, ModuleSpec, SystemInfo,
+    };
 
     use super::*;
     use error::Error as HttpError;

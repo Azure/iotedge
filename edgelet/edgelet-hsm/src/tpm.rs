@@ -67,7 +67,9 @@ impl CoreKeyStore for TpmKeyStore {
     /// Get a TPM Key which will derive and sign data.
     fn get(&self, identity: &KeyIdentity, key_name: &str) -> Result<Self::Key, CoreError> {
         match *identity {
-            KeyIdentity::Device => self.get_active_key().map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore))),
+            KeyIdentity::Device => self
+                .get_active_key()
+                .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore))),
             KeyIdentity::Module(ref m) => {
                 if key_name.is_empty() || m.is_empty() {
                     Err(ErrorKind::EmptyStrings)
@@ -136,8 +138,7 @@ impl Sign for TpmKey {
                         },
                         self.key_name
                     ).as_bytes(),
-                )
-                .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
+                ).map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
                 .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore))),
         }
     }

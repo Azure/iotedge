@@ -223,12 +223,19 @@ impl HyperExt for Http {
     {
         let incoming = match url.scheme() {
             HTTP_SCHEME | TCP_SCHEME => {
-                let addr =
-                    url.to_socket_addrs().context(ErrorKind::InvalidUrl(url.to_string()))?
+                let addr = url
+                    .to_socket_addrs()
+                    .context(ErrorKind::InvalidUrl(url.to_string()))?
                     .next()
-                    .ok_or_else(|| ErrorKind::InvalidUrlWithReason(url.to_string(), InvalidUrlReason::NoAddress))?;
+                    .ok_or_else(|| {
+                        ErrorKind::InvalidUrlWithReason(
+                            url.to_string(),
+                            InvalidUrlReason::NoAddress,
+                        )
+                    })?;
 
-                let listener = TcpListener::bind(&addr).with_context(|_| ErrorKind::BindListener(BindListenerType::Address(addr)))?;
+                let listener = TcpListener::bind(&addr)
+                    .with_context(|_| ErrorKind::BindListener(BindListenerType::Address(addr)))?;
                 Incoming::Tcp(listener)
             }
             UNIX_SCHEME => {
@@ -239,30 +246,54 @@ impl HyperExt for Http {
             FD_SCHEME => {
                 let host = match url.host_str() {
                     Some(host) => host,
-                    None => return Err(ErrorKind::InvalidUrlWithReason(url.to_string(), InvalidUrlReason::NoHost).into()),
+                    None => {
+                        return Err(ErrorKind::InvalidUrlWithReason(
+                            url.to_string(),
+                            InvalidUrlReason::NoHost,
+                        ).into())
+                    }
                 };
 
                 // Try to parse the host as an FD number, then as an FD name
-                let socket =
-                    host.parse().map_err(|_| ())
+                let socket = host
+                    .parse()
+                    .map_err(|_| ())
                     .and_then(|num| systemd::listener(num).map_err(|_| ()))
                     .or_else(|_| systemd::listener_name(host))
-                    .with_context(|_| ErrorKind::InvalidUrlWithReason(url.to_string(), InvalidUrlReason::FdNeitherNumberNorName))?;
+                    .with_context(|_| {
+                        ErrorKind::InvalidUrlWithReason(
+                            url.to_string(),
+                            InvalidUrlReason::FdNeitherNumberNorName,
+                        )
+                    })?;
 
                 match socket {
                     Socket::Inet(fd, _addr) => {
                         let l = unsafe { net::TcpListener::from_raw_fd(fd) };
-                        Incoming::Tcp(TcpListener::from_std(l, &Default::default()).with_context(|_| ErrorKind::BindListener(BindListenerType::Fd(fd)))?)
+                        Incoming::Tcp(
+                            TcpListener::from_std(l, &Default::default()).with_context(|_| {
+                                ErrorKind::BindListener(BindListenerType::Fd(fd))
+                            })?,
+                        )
                     }
                     Socket::Unix(fd) => {
                         let l = unsafe { ::std::os::unix::net::UnixListener::from_raw_fd(fd) };
-                        Incoming::Unix(UnixListener::from_std(l, &Default::default()).with_context(|_| ErrorKind::BindListener(BindListenerType::Fd(fd)))?)
+                        Incoming::Unix(
+                            UnixListener::from_std(l, &Default::default()).with_context(|_| {
+                                ErrorKind::BindListener(BindListenerType::Fd(fd))
+                            })?,
+                        )
                     }
-                    Socket::Unknown => Err(ErrorKind::InvalidUrlWithReason(url.to_string(), InvalidUrlReason::UnrecognizedSocket))?,
-
+                    Socket::Unknown => Err(ErrorKind::InvalidUrlWithReason(
+                        url.to_string(),
+                        InvalidUrlReason::UnrecognizedSocket,
+                    ))?,
                 }
             }
-            _ => Err(Error::from(ErrorKind::InvalidUrlWithReason(url.to_string(), InvalidUrlReason::InvalidScheme)))?,
+            _ => Err(Error::from(ErrorKind::InvalidUrlWithReason(
+                url.to_string(),
+                InvalidUrlReason::InvalidScheme,
+            )))?,
         };
 
         Ok(Server {
@@ -295,10 +326,11 @@ impl UrlExt for Url {
             let mut s = self.to_string();
             s.replace_range(..4, "file");
             let url = Url::parse(&s).with_context(|_| ErrorKind::InvalidUrl(s.clone()))?;
-            let path = url.to_file_path().map_err(|()| ErrorKind::InvalidUrl(url.to_string()))?;
+            let path = url
+                .to_file_path()
+                .map_err(|()| ErrorKind::InvalidUrl(url.to_string()))?;
             Ok(path)
-        }
-        else {
+        } else {
             Ok(Path::new(self.path()).to_path_buf())
         }
     }

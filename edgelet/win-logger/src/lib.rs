@@ -52,12 +52,16 @@ impl EventLogger {
 
         let handle = unsafe { RegisterEventSourceW(ptr::null(), wide_name.as_ptr()) };
         if handle.is_null() {
-            Err(Error::from(ErrorKind::RegisterEventSource(unsafe { GetLastError() })))
+            Err(Error::from(ErrorKind::RegisterEventSource(unsafe {
+                GetLastError()
+            })))
         } else {
             Ok(EventLogger {
                 name,
                 handle: Handle::new(handle),
-                min_level: min_level.parse::<Level>().with_context(|_| ErrorKind::InvalidLogLevel(min_level.to_string()))?,
+                min_level: min_level
+                    .parse::<Level>()
+                    .with_context(|_| ErrorKind::InvalidLogLevel(min_level.to_string()))?,
             })
         }
     }

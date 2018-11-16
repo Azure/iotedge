@@ -133,8 +133,12 @@ where
 {
     let module = spec.name().to_string();
     get_edge_runtime_mod(&runtime, module.clone())
-        .and_then(|m| m.map(|m| m.runtime_state().map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime)))))
-        .and_then(move |state| match state {
+        .and_then(|m| {
+            m.map(|m| {
+                m.runtime_state()
+                    .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime)))
+            })
+        }).and_then(move |state| match state {
             Some(state) => {
                 let res = if *state.status() == ModuleStatus::Running {
                     info!("Edge runtime is running.");
@@ -144,7 +148,11 @@ where
                         "Edge runtime status is {}, starting module now...",
                         *state.status(),
                     );
-                    future::Either::B(runtime.start(&module).map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime))))
+                    future::Either::B(
+                        runtime
+                            .start(&module)
+                            .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime))),
+                    )
                 };
                 Either::A(res)
             }
@@ -426,7 +434,9 @@ mod tests {
         let mut manager = TestIdentityManager::new(vec![]).with_fail_get(true);
         assert_eq!(
             true,
-            update_identity(&mut manager, "$edgeAgent".to_string()).wait().is_err()
+            update_identity(&mut manager, "$edgeAgent".to_string())
+                .wait()
+                .is_err()
         );
     }
 
@@ -441,7 +451,9 @@ mod tests {
 
         assert_eq!(
             true,
-            update_identity(&mut manager, "$edgeAgent".to_string()).wait().is_err()
+            update_identity(&mut manager, "$edgeAgent".to_string())
+                .wait()
+                .is_err()
         );
         assert_eq!(true, manager.state.borrow().update_called);
     }
@@ -457,7 +469,9 @@ mod tests {
 
         assert_eq!(
             false,
-            update_identity(&mut manager, "$edgeAgent".to_string()).wait().is_err()
+            update_identity(&mut manager, "$edgeAgent".to_string())
+                .wait()
+                .is_err()
         );
         assert_eq!(true, manager.state.borrow().update_called);
         assert_eq!(

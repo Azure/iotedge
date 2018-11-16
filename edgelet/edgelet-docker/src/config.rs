@@ -168,7 +168,8 @@ mod tests {
             .with_password("password".to_string())
             .with_serveraddress("repo.azurecr.io".to_string());
 
-        let config = DockerConfig::new("ubuntu".to_string(), create_options, Some(auth_config)).unwrap();
+        let config =
+            DockerConfig::new("ubuntu".to_string(), create_options, Some(auth_config)).unwrap();
         let actual_json = serde_json::to_string(&config).unwrap();
         let expected_json = json!({
             "image": "ubuntu",

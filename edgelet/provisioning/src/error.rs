@@ -12,10 +12,16 @@ pub struct Error {
 
 #[derive(Clone, Copy, Debug, Fail)]
 pub enum ErrorKind {
-    #[fail(display = "The Connection String is missing required parameter {}", _0)]
+    #[fail(
+        display = "The Connection String is missing required parameter {}",
+        _0
+    )]
     ConnStringMissingRequiredParameter(&'static str),
 
-    #[fail(display = "The Connection String has a malformed value for parameter {}.", _0)]
+    #[fail(
+        display = "The Connection String has a malformed value for parameter {}.",
+        _0
+    )]
     ConnStringMalformedParameter(&'static str),
 
     #[fail(display = "Could not backup provisioning result")]
@@ -27,7 +33,9 @@ pub enum ErrorKind {
     #[fail(display = "Could not initialize DPS provisioning client")]
     DpsInitialization,
 
-    #[fail(display = "The Connection String is empty or invalid. Please update the config.yaml and provide the IoTHub connection information.")]
+    #[fail(
+        display = "The Connection String is empty or invalid. Please update the config.yaml and provide the IoTHub connection information."
+    )]
     InvalidConnString,
 
     #[fail(display = "Could not provision device")]

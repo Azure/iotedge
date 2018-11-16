@@ -126,15 +126,22 @@ where
     }
 
     fn get_tpm_challenge_key(body: &str, key_store: &mut A) -> Result<K, Error> {
-        let tpm_challenge: TpmRegistrationResult = serde_json::from_str(body).context(ErrorKind::GetTpmChallengeKey)?;
+        let tpm_challenge: TpmRegistrationResult =
+            serde_json::from_str(body).context(ErrorKind::GetTpmChallengeKey)?;
 
-        let key_str = tpm_challenge.authentication_key().ok_or_else(|| ErrorKind::InvalidTpmToken)?;
+        let key_str = tpm_challenge
+            .authentication_key()
+            .ok_or_else(|| ErrorKind::InvalidTpmToken)?;
         let key_bytes = base64::decode(key_str).context(ErrorKind::GetTpmChallengeKey)?;
 
         debug!("Storing authentication key");
-        key_store.activate_identity_key(KeyIdentity::Device, "primary".to_string(), key_bytes).context(ErrorKind::GetTpmChallengeKey)?;
+        key_store
+            .activate_identity_key(KeyIdentity::Device, "primary".to_string(), key_bytes)
+            .context(ErrorKind::GetTpmChallengeKey)?;
 
-        Ok(key_store.get(&KeyIdentity::Device, "primary").context(ErrorKind::GetTpmChallengeKey)?)
+        Ok(key_store
+            .get(&KeyIdentity::Device, "primary")
+            .context(ErrorKind::GetTpmChallengeKey)?)
     }
 
     fn get_operation_id(
@@ -261,7 +268,8 @@ where
         .take(1)
         .fold(
             None,
-            |_final_result: Option<DeviceRegistrationResult>, result_from_service: Option<DeviceRegistrationResult>| {
+            |_final_result: Option<DeviceRegistrationResult>,
+             result_from_service: Option<DeviceRegistrationResult>| {
                 future::ok::<Option<DeviceRegistrationResult>, Error>(result_from_service)
             },
         );
@@ -294,12 +302,16 @@ where
                 false,
             ).then(move |result| {
                 match result {
-                    Ok(_) => Either::B(future::err(Error::from(ErrorKind::RegisterWithAuthUnexpectedlySucceeded))),
+                    Ok(_) => Either::B(future::err(Error::from(
+                        ErrorKind::RegisterWithAuthUnexpectedlySucceeded,
+                    ))),
                     Err(err) => {
                         // If request is returned with status unauthorized, extract the tpm
                         // challenge from the payload, generate a signature and re-issue the
                         // request
-                        let body = if let HttpErrorKind::HttpWithErrorResponse(status, body) = err.kind() {
+                        let body = if let HttpErrorKind::HttpWithErrorResponse(status, body) =
+                            err.kind()
+                        {
                             if *status == StatusCode::UNAUTHORIZED {
                                 debug!(
                                     "Registration unauthorized, checking response for challenge {}",
@@ -316,7 +328,11 @@ where
                         };
 
                         body.map_or_else(
-                            || Either::B(future::err(Error::from(err.context(ErrorKind::RegisterWithAuthUnexpectedlyFailed)))),
+                            || {
+                                Either::B(future::err(Error::from(
+                                    err.context(ErrorKind::RegisterWithAuthUnexpectedlyFailed),
+                                )))
+                            },
                             move |body| match Self::get_tpm_challenge_key(
                                 body.as_str(),
                                 &mut key_store_inner,
@@ -363,7 +379,11 @@ where
                 .get(&KeyIdentity::Device, "primary")
             {
                 Ok(k) => operation_status.map_or_else(
-                    || Either::B(future::err(Error::from(ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned))),
+                    || {
+                        Either::B(future::err(Error::from(
+                            ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned,
+                        )))
+                    },
                     move |s| {
                         let retry_count =
                             (DPS_ASSIGNMENT_TIMEOUT_SECS / DPS_ASSIGNMENT_RETRY_INTERVAL_SECS) + 1;
@@ -377,16 +397,26 @@ where
                         ))
                     },
                 ),
-                Err(err) => Either::B(future::err(Error::from(err.context(ErrorKind::RegisterWithAuthUnexpectedlyFailed)))),
+                Err(err) => Either::B(future::err(Error::from(
+                    err.context(ErrorKind::RegisterWithAuthUnexpectedlyFailed),
+                ))),
             },
         ).and_then(move |operation_status: Option<DeviceRegistrationResult>| {
-            let s = operation_status.ok_or_else(|| Error::from(ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned))?;
+            let s = operation_status.ok_or_else(|| {
+                Error::from(ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned)
+            })?;
             let tpm_result_inner = s.clone();
             let tpm_result = s.tpm();
-            let r = tpm_result.ok_or_else(|| Error::from(ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned))?;
-            let ks = r.authentication_key().ok_or_else(|| Error::from(ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned))?;
+            let r = tpm_result.ok_or_else(|| {
+                Error::from(ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned)
+            })?;
+            let ks = r.authentication_key().ok_or_else(|| {
+                Error::from(ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned)
+            })?;
             let kb = base64::decode(ks).context(ErrorKind::RegisterWithAuthUnexpectedlyFailed)?;
-            key_store_status.activate_identity_key(KeyIdentity::Device, "primary".to_string(), kb).context(ErrorKind::RegisterWithAuthUnexpectedlyFailed)?;
+            key_store_status
+                .activate_identity_key(KeyIdentity::Device, "primary".to_string(), kb)
+                .context(ErrorKind::RegisterWithAuthUnexpectedlyFailed)?;
             get_device_info(&tpm_result_inner)
         });
         Box::new(r)
@@ -399,12 +429,14 @@ fn get_device_info(
     Ok((
         registration_result
             .device_id()
-            .ok_or_else(|| Error::from(ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned))?
-            .to_string(),
+            .ok_or_else(|| {
+                Error::from(ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned)
+            })?.to_string(),
         registration_result
             .assigned_hub()
-            .ok_or_else(|| Error::from(ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned))?
-            .to_string(),
+            .ok_or_else(|| {
+                Error::from(ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned)
+            })?.to_string(),
     ))
 }
 
@@ -510,14 +542,15 @@ mod tests {
             Bytes::from("srk".to_string().into_bytes()),
             MemoryKeyStore::new(),
         ).unwrap();
-        let task = dps.register().then(|result| {
-            match result {
-                Ok(_) => panic!("Excepted err got success"),
-                Err(err) => match err.kind() {
-                    ErrorKind::RegisterWithAuthUnexpectedlyFailed => Ok::<_, Error>(()),
-                    _ => panic!("Wrong error kind. Expected `RegisterWithAuthUnexpectedlyFailed` found {:?}", err),
-                }
-            }
+        let task = dps.register().then(|result| match result {
+            Ok(_) => panic!("Excepted err got success"),
+            Err(err) => match err.kind() {
+                ErrorKind::RegisterWithAuthUnexpectedlyFailed => Ok::<_, Error>(()),
+                _ => panic!(
+                    "Wrong error kind. Expected `RegisterWithAuthUnexpectedlyFailed` found {:?}",
+                    err
+                ),
+            },
         });
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
@@ -563,14 +596,15 @@ mod tests {
             Bytes::from("srk".to_string().into_bytes()),
             MemoryKeyStore::new(),
         ).unwrap();
-        let task = dps.register().then(|result| {
-            match result {
-                Ok(_) => panic!("Excepted err got success"),
-                Err(err) => match err.kind() {
-                    ErrorKind::GetOperationId => Ok::<_, Error>(()),
-                    _ => panic!("Wrong error kind. Expected `GetOperationId` found {:?}", err),
-                }
-            }
+        let task = dps.register().then(|result| match result {
+            Ok(_) => panic!("Excepted err got success"),
+            Err(err) => match err.kind() {
+                ErrorKind::GetOperationId => Ok::<_, Error>(()),
+                _ => panic!(
+                    "Wrong error kind. Expected `GetOperationId` found {:?}",
+                    err
+                ),
+            },
         });
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
@@ -598,7 +632,9 @@ mod tests {
         let stream = Mutex::new(stream::iter_result(vec![
             Ok(reg_op_status_vanilla),
             Ok(reg_op_status_final),
-            Err(Error::from(ErrorKind::RegisterWithAuthUnexpectedlySucceeded)),
+            Err(Error::from(
+                ErrorKind::RegisterWithAuthUnexpectedlySucceeded,
+            )),
         ]));
         let handler = move |_req: Request<Body>| {
             if let Async::Ready(opt) = stream.lock().unwrap().poll().unwrap() {
@@ -753,14 +789,15 @@ mod tests {
             "operation",
             MemoryKey::new("key".to_string()),
         );
-        let task = dps_operation.then(|result| {
-            match result {
-                Ok(_) => panic!("Excepted err got success"),
-                Err(err) => match err.kind() {
-                    ErrorKind::GetOperationStatus => Ok::<_, Error>(()),
-                    _ => panic!("Wrong error kind. Expected `GetOperationStatus` found {:?}", err),
-                }
-            }
+        let task = dps_operation.then(|result| match result {
+            Ok(_) => panic!("Excepted err got success"),
+            Err(err) => match err.kind() {
+                ErrorKind::GetOperationStatus => Ok::<_, Error>(()),
+                _ => panic!(
+                    "Wrong error kind. Expected `GetOperationStatus` found {:?}",
+                    err
+                ),
+            },
         });
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()

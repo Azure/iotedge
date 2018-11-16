@@ -171,14 +171,22 @@ where
 {
     pub fn new(filename: Option<&str>) -> Result<Self, Error> {
         let mut config = Config::default();
-        config.merge(File::from_str(DEFAULTS, FileFormat::Yaml)).context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
+        config
+            .merge(File::from_str(DEFAULTS, FileFormat::Yaml))
+            .context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
         if let Some(file) = filename {
-            config.merge(File::with_name(file).required(true)).context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
+            config
+                .merge(File::with_name(file).required(true))
+                .context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
         }
 
-        config.merge(Environment::with_prefix("iotedge")).context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
+        config
+            .merge(Environment::with_prefix("iotedge"))
+            .context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
 
-        let settings: Self = config.try_into().context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
+        let settings: Self = config
+            .try_into()
+            .context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
 
         Ok(settings)
     }
@@ -226,8 +234,10 @@ where
             .map_err(|err| err.context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings)))
             .and_then(|mut file: FsFile| {
                 let mut buffer = String::new();
-                file.read_to_string(&mut buffer).context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
-                let s = serde_json::to_string(self).context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
+                file.read_to_string(&mut buffer)
+                    .context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
+                let s = serde_json::to_string(self)
+                    .context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
                 let s = Sha256::digest_str(&s);
                 let encoded = base64::encode(&s);
                 if encoded == buffer {

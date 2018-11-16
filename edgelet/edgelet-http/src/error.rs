@@ -22,7 +22,10 @@ pub enum ErrorKind {
     #[fail(display = "An error occurred while authorizing the HTTP request")]
     Authorization,
 
-    #[fail(display = "An error occurred while binding a listener to {}", _0)]
+    #[fail(
+        display = "An error occurred while binding a listener to {}",
+        _0
+    )]
     BindListener(BindListenerType),
 
     #[fail(display = "Could not perform HTTP request")]
@@ -43,11 +46,16 @@ pub enum ErrorKind {
     #[fail(display = "Invalid URL {:?}: {}", _0, _1)]
     InvalidUrlWithReason(String, InvalidUrlReason),
 
-    #[fail(display = "URL parts could not be parsed into a valid URL: scheme: {:?}, base path: {:?}, path: {:?}", scheme, base_path, path)]
+    #[fail(
+        display = "URL parts could not be parsed into a valid URL: scheme: {:?}, base path: {:?}, path: {:?}",
+        scheme,
+        base_path,
+        path
+    )]
     MalformedUrl {
         scheme: String,
         base_path: String,
-        path: String
+        path: String,
     },
 
     #[fail(display = "Module not found")]
@@ -65,7 +73,11 @@ pub enum ErrorKind {
     #[fail(display = "Token source error")]
     TokenSource,
 
-    #[fail(display = "Could not form well-formed URL by joining {:?} with {:?}", _0, _1)]
+    #[fail(
+        display = "Could not form well-formed URL by joining {:?} with {:?}",
+        _0,
+        _1
+    )]
     UrlJoin(Url, String),
 }
 
@@ -93,7 +105,10 @@ impl Error {
     pub fn http_with_error_response(status_code: StatusCode, body: &[u8]) -> Self {
         let kind = match str::from_utf8(body) {
             Ok(body) => ErrorKind::HttpWithErrorResponse(status_code, body.to_string()),
-            Err(_) => ErrorKind::HttpWithErrorResponse(status_code, "<could not parse response body as utf-8>".to_string()),
+            Err(_) => ErrorKind::HttpWithErrorResponse(
+                status_code,
+                "<could not parse response body as utf-8>".to_string(),
+            ),
         };
 
         kind.into()
@@ -177,13 +192,19 @@ pub enum InvalidUrlReason {
 impl Display for InvalidUrlReason {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            InvalidUrlReason::FdNeitherNumberNorName => write!(f, "URL could not be parsed as fd number nor fd name"),
+            InvalidUrlReason::FdNeitherNumberNorName => {
+                write!(f, "URL could not be parsed as fd number nor fd name")
+            }
             InvalidUrlReason::FileNotFound => write!(f, "Socket file could not be found"),
             InvalidUrlReason::InvalidScheme => write!(f, "URL does not have a recognized scheme"),
-            InvalidUrlReason::InvalidCredentials => write!(f, "Username or password could not be parsed from URL"),
+            InvalidUrlReason::InvalidCredentials => {
+                write!(f, "Username or password could not be parsed from URL")
+            }
             InvalidUrlReason::NoAddress => write!(f, "URL has no address"),
             InvalidUrlReason::NoHost => write!(f, "URL has no host"),
-            InvalidUrlReason::UnrecognizedSocket => write!(f, "URL does not correspond to a valid socket"),
+            InvalidUrlReason::UnrecognizedSocket => {
+                write!(f, "URL does not correspond to a valid socket")
+            }
         }
     }
 }

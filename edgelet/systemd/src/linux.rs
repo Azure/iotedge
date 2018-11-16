@@ -29,8 +29,15 @@ const ENV_NAMES: &str = "LISTEN_FDNAMES";
 pub fn listener(num: usize) -> Result<Socket, Error> {
     debug!("Finding socket for number: {}", num);
     let sockets = listen_fds(false, LISTEN_FDS_START)?;
-    #[cfg_attr(feature = "cargo-clippy", allow(cast_possible_truncation, cast_possible_wrap, cast_sign_loss))]
-    let socket = *sockets.get(num).ok_or_else(|| Error::from(ErrorKind::SocketNotFound(SocketLookupType::Fd((num + (LISTEN_FDS_START as usize)) as Fd))))?;
+    #[cfg_attr(
+        feature = "cargo-clippy",
+        allow(cast_possible_truncation, cast_possible_wrap, cast_sign_loss)
+    )]
+    let socket = *sockets.get(num).ok_or_else(|| {
+        Error::from(ErrorKind::SocketNotFound(SocketLookupType::Fd(
+            (num + (LISTEN_FDS_START as usize)) as Fd,
+        )))
+    })?;
     Ok(socket)
 }
 
@@ -38,7 +45,11 @@ pub fn listener(num: usize) -> Result<Socket, Error> {
 pub fn listener_name(name: &str) -> Result<Socket, Error> {
     debug!("Finding socket for name: {}", name);
     let sockets = listeners_name(name)?;
-    let socket = sockets.into_iter().next().ok_or_else(|| Error::from(ErrorKind::SocketNotFound(SocketLookupType::Name(name.to_string()))))?;
+    let socket = sockets.into_iter().next().ok_or_else(|| {
+        Error::from(ErrorKind::SocketNotFound(SocketLookupType::Name(
+            name.to_string(),
+        )))
+    })?;
     Ok(socket)
 }
 
@@ -46,7 +57,11 @@ pub fn listener_name(name: &str) -> Result<Socket, Error> {
 pub fn listeners_name(name: &str) -> Result<Vec<Socket>, Error> {
     debug!("Finding sockets for name: {}", name);
     let sockets = listen_fds_with_names(false, LISTEN_FDS_START)?;
-    let sockets = sockets.get(name).ok_or_else(|| Error::from(ErrorKind::SocketNotFound(SocketLookupType::Name(name.to_string()))))?;
+    let sockets = sockets.get(name).ok_or_else(|| {
+        Error::from(ErrorKind::SocketNotFound(SocketLookupType::Name(
+            name.to_string(),
+        )))
+    })?;
     Ok(sockets.clone())
 }
 
@@ -63,7 +78,11 @@ fn get_env(key: &str) -> Result<String, Error> {
 fn listen_fds(unset_environment: bool, start_fd: Fd) -> Result<Vec<Socket>, Error> {
     let pid_str = get_env(ENV_PID)?;
     debug!("{} {}", ENV_PID, pid_str);
-    let pid = Pid::from_raw(pid_str.parse::<i32>().context(ErrorKind::ParsePid(ENV_PID.to_string()))?);
+    let pid = Pid::from_raw(
+        pid_str
+            .parse::<i32>()
+            .context(ErrorKind::ParsePid(ENV_PID.to_string()))?,
+    );
 
     if pid != Pid::this() {
         return Err(ErrorKind::WrongProcess(ENV_PID.to_string(), pid).into());
@@ -71,14 +90,17 @@ fn listen_fds(unset_environment: bool, start_fd: Fd) -> Result<Vec<Socket>, Erro
 
     let fds_str = get_env(ENV_FDS)?;
     debug!("{} {}", ENV_FDS, fds_str);
-    let num_fds = fds_str.parse::<Fd>().with_context(|_| ErrorKind::InvalidVar(ENV_FDS.to_string()))?;
+    let num_fds = fds_str
+        .parse::<Fd>()
+        .with_context(|_| ErrorKind::InvalidVar(ENV_FDS.to_string()))?;
     if num_fds < 0 {
         return Err(ErrorKind::InvalidNumFds(ENV_FDS.to_string(), num_fds).into());
     }
 
     // Set CLOEXEC on each FD so that they aren't inherited by child processes
     for fd in start_fd..(start_fd + num_fds) {
-        fcntl::fcntl(fd, fcntl::FcntlArg::F_SETFD(fcntl::FdFlag::FD_CLOEXEC)).context(ErrorKind::Syscall("fcntl"))?;
+        fcntl::fcntl(fd, fcntl::FcntlArg::F_SETFD(fcntl::FdFlag::FD_CLOEXEC))
+            .context(ErrorKind::Syscall("fcntl"))?;
     }
 
     if unset_environment {
@@ -109,7 +131,10 @@ fn listen_fds_with_names(
 
     let fds = listen_fds(unset_environment, start_fd)?;
     if fds.len() != names.len() {
-        return Err(Error::from(ErrorKind::NumFdsDoesNotMatchNumFdNames(fds.len(), names.len())));
+        return Err(Error::from(ErrorKind::NumFdsDoesNotMatchNumFdNames(
+            fds.len(),
+            names.len(),
+        )));
     }
 
     let mut map: HashMap<String, Vec<Socket>> = HashMap::new();
@@ -140,14 +165,16 @@ fn is_socket_internal(
     }
 
     if let Some(val) = socktype {
-        let type_ = socket::getsockopt(fd, socket::sockopt::SockType).context(ErrorKind::Syscall("getsockopt"))?;
+        let type_ = socket::getsockopt(fd, socket::sockopt::SockType)
+            .context(ErrorKind::Syscall("getsockopt"))?;
         if type_ != val {
             return Ok(false);
         }
     }
 
     if let Some(val) = listening {
-        let acc = socket::getsockopt(fd, socket::sockopt::AcceptConn).context(ErrorKind::Syscall("getsockopt"))?;
+        let acc = socket::getsockopt(fd, socket::sockopt::AcceptConn)
+            .context(ErrorKind::Syscall("getsockopt"))?;
         if acc != val {
             return Ok(false);
         }

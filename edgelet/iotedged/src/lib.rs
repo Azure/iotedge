@@ -206,21 +206,26 @@ impl Main {
     {
         let Main { settings } = self;
 
-        let mut tokio_runtime = tokio::runtime::Runtime::new().context(ErrorKind::Initialize(InitializeErrorReason::Tokio))?;
+        let mut tokio_runtime = tokio::runtime::Runtime::new()
+            .context(ErrorKind::Initialize(InitializeErrorReason::Tokio))?;
 
         if let Provisioning::Manual(ref manual) = settings.provisioning() {
             if manual.device_connection_string() == DEFAULT_CONNECTION_STRING {
-                return Err(Error::from(ErrorKind::Initialize(InitializeErrorReason::NotConfigured)));
+                return Err(Error::from(ErrorKind::Initialize(
+                    InitializeErrorReason::NotConfigured,
+                )));
             }
         }
 
-        let hyper_client = MaybeProxyClient::new(get_proxy_uri()?).context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?;
+        let hyper_client = MaybeProxyClient::new(get_proxy_uri()?)
+            .context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?;
 
         info!(
             "Using runtime network id {}",
             settings.moby_runtime().network()
         );
-        let runtime = DockerModuleRuntime::new(settings.moby_runtime().uri()).context(ErrorKind::Initialize(InitializeErrorReason::ModuleRuntime))?
+        let runtime = DockerModuleRuntime::new(settings.moby_runtime().uri())
+            .context(ErrorKind::Initialize(InitializeErrorReason::ModuleRuntime))?
             .with_network_id(settings.moby_runtime().network().to_string());
 
         init_docker_runtime(&runtime, &mut tokio_runtime)?;
@@ -334,7 +339,9 @@ pub fn get_proxy_uri() -> Result<Option<Uri>, Error> {
     let proxy_uri = match proxy_uri {
         None => None,
         Some(s) => {
-            let proxy = s.parse::<Uri>().context(ErrorKind::Initialize(InitializeErrorReason::InvalidProxyUri))?;
+            let proxy = s.parse::<Uri>().context(ErrorKind::Initialize(
+                InitializeErrorReason::InvalidProxyUri,
+            ))?;
             info!("Detected HTTPS proxy server {}", proxy.to_string());
             Some(proxy)
         }
@@ -353,7 +360,11 @@ where
         IOTEDGED_CA_ALIAS.to_string(),
     ).with_issuer(CertificateIssuer::DeviceCa);
 
-    crypto.create_certificate(&edgelet_ca_props).context(ErrorKind::Initialize(InitializeErrorReason::PrepareWorkloadCa))?;
+    crypto
+        .create_certificate(&edgelet_ca_props)
+        .context(ErrorKind::Initialize(
+            InitializeErrorReason::PrepareWorkloadCa,
+        ))?;
     Ok(())
 }
 
@@ -361,7 +372,11 @@ fn destroy_workload_ca<C>(crypto: &C) -> Result<(), Error>
 where
     C: CreateCertificate,
 {
-    crypto.destroy_certificate(IOTEDGED_CA_ALIAS.to_string()).context(ErrorKind::Initialize(InitializeErrorReason::DestroyWorkloadCa))?;
+    crypto
+        .destroy_certificate(IOTEDGED_CA_ALIAS.to_string())
+        .context(ErrorKind::Initialize(
+            InitializeErrorReason::DestroyWorkloadCa,
+        ))?;
     Ok(())
 }
 
@@ -425,7 +440,11 @@ where
 {
     // Remove all edge containers and destroy the cache (settings and dps backup)
     info!("Removing all modules...");
-    tokio_runtime.block_on(runtime.remove_all()).context(ErrorKind::Initialize(InitializeErrorReason::RemoveExistingModules))?;
+    tokio_runtime
+        .block_on(runtime.remove_all())
+        .context(ErrorKind::Initialize(
+            InitializeErrorReason::RemoveExistingModules,
+        ))?;
     info!("Finished removing modules.");
 
     // Ignore errors from this operation because we could be recovering from a previous bad
@@ -434,18 +453,28 @@ where
 
     let path = subdir.join(filename);
 
-    DirBuilder::new().recursive(true).create(subdir).context(ErrorKind::Initialize(InitializeErrorReason::CreateSettingsDirectory))?;
+    DirBuilder::new()
+        .recursive(true)
+        .create(subdir)
+        .context(ErrorKind::Initialize(
+            InitializeErrorReason::CreateSettingsDirectory,
+        ))?;
 
     // Generate a new master encryption key and save the new settings
-    crypto.create_key().context(ErrorKind::Initialize(InitializeErrorReason::CreateMasterEncryptionKey))?;
+    crypto.create_key().context(ErrorKind::Initialize(
+        InitializeErrorReason::CreateMasterEncryptionKey,
+    ))?;
     // regenerate the workload CA certificate
     destroy_workload_ca(crypto)?;
     prepare_workload_ca(crypto)?;
-    let mut file = File::create(path).context(ErrorKind::Initialize(InitializeErrorReason::SaveSettings))?;
-    let s = serde_json::to_string(settings).context(ErrorKind::Initialize(InitializeErrorReason::SaveSettings))?;
+    let mut file =
+        File::create(path).context(ErrorKind::Initialize(InitializeErrorReason::SaveSettings))?;
+    let s = serde_json::to_string(settings)
+        .context(ErrorKind::Initialize(InitializeErrorReason::SaveSettings))?;
     let s = Sha256::digest_str(&s);
     let sb = base64::encode(&s);
-    file.write_all(sb.as_bytes()).context(ErrorKind::Initialize(InitializeErrorReason::SaveSettings))?;
+    file.write_all(sb.as_bytes())
+        .context(ErrorKind::Initialize(InitializeErrorReason::SaveSettings))?;
 
     Ok(())
 }
@@ -487,7 +516,8 @@ where
         IOTHUB_API_VERSION.to_string(),
         Url::parse(&hostname).context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?,
     ).context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?;
-    let device_client = DeviceClient::new(http_client, device_id.clone()).context(ErrorKind::Initialize(InitializeErrorReason::DeviceClient))?;
+    let device_client = DeviceClient::new(http_client, device_id.clone())
+        .context(ErrorKind::Initialize(InitializeErrorReason::DeviceClient))?;
     let id_man = HubIdentityManager::new(key_store.clone(), device_client);
 
     let (mgmt_tx, mgmt_rx) = oneshot::channel();
@@ -526,12 +556,9 @@ where
         .join3(workload, edge_rt_with_cleanup)
         .then(|result| match result {
             Ok(((), (), ())) => Ok(()),
-            Err(err) => {
-                Err(err)
-            }
+            Err(err) => Err(err),
         });
-    tokio_runtime
-        .block_on(services)?;
+    tokio_runtime.block_on(services)?;
 
     Ok(())
 }
@@ -541,7 +568,9 @@ fn init_docker_runtime(
     tokio_runtime: &mut tokio::runtime::Runtime,
 ) -> Result<(), Error> {
     info!("Initializing the module runtime...");
-    tokio_runtime.block_on(runtime.init()).context(ErrorKind::Initialize(InitializeErrorReason::ModuleRuntime))?;
+    tokio_runtime
+        .block_on(runtime.init())
+        .context(ErrorKind::Initialize(InitializeErrorReason::ModuleRuntime))?;
     info!("Finished initializing the module runtime.");
     Ok(())
 }
@@ -550,16 +579,24 @@ fn manual_provision(
     provisioning: &Manual,
     tokio_runtime: &mut tokio::runtime::Runtime,
 ) -> Result<(DerivedKeyStore<MemoryKey>, ProvisioningResult, MemoryKey), Error> {
-    let manual = ManualProvisioning::new(provisioning.device_connection_string()).context(ErrorKind::Initialize(InitializeErrorReason::ManualProvisioningClient))?;
+    let manual = ManualProvisioning::new(provisioning.device_connection_string()).context(
+        ErrorKind::Initialize(InitializeErrorReason::ManualProvisioningClient),
+    )?;
     let memory_hsm = MemoryKeyStore::new();
     let provision = manual
         .provision(memory_hsm.clone())
-        .map_err(|err| Error::from(err.context(ErrorKind::Initialize(InitializeErrorReason::ManualProvisioningClient))))
-        .and_then(move |prov_result| {
+        .map_err(|err| {
+            Error::from(err.context(ErrorKind::Initialize(
+                InitializeErrorReason::ManualProvisioningClient,
+            )))
+        }).and_then(move |prov_result| {
             memory_hsm
                 .get(&KeyIdentity::Device, "primary")
-                .map_err(|err| Error::from(err.context(ErrorKind::Initialize(InitializeErrorReason::ManualProvisioningClient))))
-                .and_then(|k| {
+                .map_err(|err| {
+                    Error::from(err.context(ErrorKind::Initialize(
+                        InitializeErrorReason::ManualProvisioningClient,
+                    )))
+                }).and_then(|k| {
                     let derived_key_store = DerivedKeyStore::new(k.clone());
                     Ok((derived_key_store, prov_result, k))
                 })
@@ -578,9 +615,15 @@ where
     HC: 'static + ClientImpl,
     M: ModuleRuntime + Send + 'static,
 {
-    let tpm = Tpm::new().context(ErrorKind::Initialize(InitializeErrorReason::DpsProvisioningClient))?;
-    let ek_result = tpm.get_ek().context(ErrorKind::Initialize(InitializeErrorReason::DpsProvisioningClient))?;
-    let srk_result = tpm.get_srk().context(ErrorKind::Initialize(InitializeErrorReason::DpsProvisioningClient))?;
+    let tpm = Tpm::new().context(ErrorKind::Initialize(
+        InitializeErrorReason::DpsProvisioningClient,
+    ))?;
+    let ek_result = tpm.get_ek().context(ErrorKind::Initialize(
+        InitializeErrorReason::DpsProvisioningClient,
+    ))?;
+    let srk_result = tpm.get_srk().context(ErrorKind::Initialize(
+        InitializeErrorReason::DpsProvisioningClient,
+    ))?;
     let dps = DpsProvisioning::new(
         hyper_client,
         provisioning.global_endpoint().clone(),
@@ -589,31 +632,42 @@ where
         "2017-11-15".to_string(),
         ek_result,
         srk_result,
-    ).context(ErrorKind::Initialize(InitializeErrorReason::DpsProvisioningClient))?;
-    let tpm_hsm = TpmKeyStore::from_hsm(tpm).context(ErrorKind::Initialize(InitializeErrorReason::DpsProvisioningClient))?;
+    ).context(ErrorKind::Initialize(
+        InitializeErrorReason::DpsProvisioningClient,
+    ))?;
+    let tpm_hsm = TpmKeyStore::from_hsm(tpm).context(ErrorKind::Initialize(
+        InitializeErrorReason::DpsProvisioningClient,
+    ))?;
     let provision_with_file_backup = BackupProvisioning::new(dps, backup_path);
     let provision = provision_with_file_backup
         .provision(tpm_hsm.clone())
-        .map_err(|err| Error::from(err.context(ErrorKind::Initialize(InitializeErrorReason::DpsProvisioningClient))))
-        .and_then(|prov_result| {
+        .map_err(|err| {
+            Error::from(err.context(ErrorKind::Initialize(
+                InitializeErrorReason::DpsProvisioningClient,
+            )))
+        }).and_then(|prov_result| {
             if prov_result.reconfigure() {
                 info!("Successful DPS provisioning. This will trigger reconfiguration of modules.");
                 // Each time DPS provisions, it gets back a new device key. This results in obsolete
                 // module keys in IoTHub from the previous provisioning. We delete all containers
                 // after each DPS provisioning run so that IoTHub can be updated with new module
                 // keys when the deployment is executed by EdgeAgent.
-                let remove = runtime
-                    .remove_all()
-                    .then(|result| {
-                        result.context(ErrorKind::Initialize(InitializeErrorReason::DpsProvisioningClient))?;
-                        Ok((prov_result, runtime))
-                    });
+                let remove = runtime.remove_all().then(|result| {
+                    result.context(ErrorKind::Initialize(
+                        InitializeErrorReason::DpsProvisioningClient,
+                    ))?;
+                    Ok((prov_result, runtime))
+                });
                 Either::A(remove)
             } else {
                 Either::B(future::ok((prov_result, runtime)))
             }
         }).and_then(move |(prov_result, runtime)| {
-            let k = tpm_hsm.get(&KeyIdentity::Device, "primary").context(ErrorKind::Initialize(InitializeErrorReason::DpsProvisioningClient))?;
+            let k = tpm_hsm
+                .get(&KeyIdentity::Device, "primary")
+                .context(ErrorKind::Initialize(
+                    InitializeErrorReason::DpsProvisioningClient,
+                ))?;
             let derived_key_store = DerivedKeyStore::new(k.clone());
             Ok((derived_key_store, prov_result, k, runtime))
         });
@@ -660,7 +714,9 @@ where
 }
 
 fn vol_mount_uri(config: &mut DockerConfig, uris: &[&Url]) -> Result<(), Error> {
-    let create_options = config.clone_create_options().context(ErrorKind::Initialize(InitializeErrorReason::EdgeRuntime))?;
+    let create_options = config
+        .clone_create_options()
+        .context(ErrorKind::Initialize(InitializeErrorReason::EdgeRuntime))?;
     let host_config = create_options
         .host_config()
         .cloned()
@@ -670,7 +726,9 @@ fn vol_mount_uri(config: &mut DockerConfig, uris: &[&Url]) -> Result<(), Error> 
     // if the url is a domain socket URL then vol mount it into the container
     for uri in uris {
         if uri.scheme() == UNIX_SCHEME {
-            let path = uri.to_uds_file_path().context(ErrorKind::Initialize(InitializeErrorReason::InvalidSocketUri))?;
+            let path = uri.to_uds_file_path().context(ErrorKind::Initialize(
+                InitializeErrorReason::InvalidSocketUri,
+            ))?;
             // On Windows we mount the parent folder because we can't mount the
             // socket files directly
             #[cfg(windows)]
@@ -754,17 +812,21 @@ where
 
     ManagementService::new(mgmt, id_man)
         .then(move |service| -> Result<_, Error> {
-            let service = service.context(ErrorKind::Initialize(InitializeErrorReason::ManagementService))?;
+            let service = service.context(ErrorKind::Initialize(
+                InitializeErrorReason::ManagementService,
+            ))?;
             let service = LoggingService::new(label, ApiVersionService::new(service));
             info!("Listening on {} with 1 thread for management API.", url);
             let run = Http::new()
                 .bind_url(url.clone(), service)
-                .map_err(|err| err.context(ErrorKind::Initialize(InitializeErrorReason::ManagementService)))?
-                .run_until(shutdown.map_err(|_| ()))
+                .map_err(|err| {
+                    err.context(ErrorKind::Initialize(
+                        InitializeErrorReason::ManagementService,
+                    ))
+                })?.run_until(shutdown.map_err(|_| ()))
                 .map_err(|err| Error::from(err.context(ErrorKind::ManagementService)));
             Ok(run)
-        })
-        .flatten()
+        }).flatten()
 }
 
 fn start_workload<K, C, W>(
@@ -795,17 +857,21 @@ where
 
     WorkloadService::new(key_store, crypto.clone(), runtime, config)
         .then(move |service| -> Result<_, Error> {
-            let service = service.context(ErrorKind::Initialize(InitializeErrorReason::WorkloadService))?;
+            let service = service.context(ErrorKind::Initialize(
+                InitializeErrorReason::WorkloadService,
+            ))?;
             let service = LoggingService::new(label, ApiVersionService::new(service));
             let run = Http::new()
                 .bind_url(url.clone(), service)
-                .map_err(|err| err.context(ErrorKind::Initialize(InitializeErrorReason::WorkloadService)))?
-                .run_until(shutdown.map_err(|_| ()))
+                .map_err(|err| {
+                    err.context(ErrorKind::Initialize(
+                        InitializeErrorReason::WorkloadService,
+                    ))
+                })?.run_until(shutdown.map_err(|_| ()))
                 .map_err(|err| Error::from(err.context(ErrorKind::WorkloadService)));
             info!("Listening on {} with 1 thread for workload API.", url);
             Ok(run)
-        })
-        .flatten()
+        }).flatten()
 }
 
 #[cfg(test)]

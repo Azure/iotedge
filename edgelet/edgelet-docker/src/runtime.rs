@@ -21,7 +21,7 @@ use docker::apis::configuration::Configuration;
 use docker::models::{ContainerCreateBody, NetworkConfig};
 use edgelet_core::{
     LogOptions, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
-    SystemInfo as CoreSystemInfo, RegistryOperation, RuntimeOperation,
+    RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo,
 };
 use edgelet_http::{UrlConnector, UrlExt};
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
@@ -51,16 +51,23 @@ pub struct DockerModuleRuntime {
 impl DockerModuleRuntime {
     pub fn new(docker_url: &Url) -> Result<Self> {
         // build the hyper client
-        let client = Client::builder().build(UrlConnector::new(docker_url).context(ErrorKind::Initialization)?);
+        let client = Client::builder()
+            .build(UrlConnector::new(docker_url).context(ErrorKind::Initialization)?);
 
         // extract base path - the bit that comes after the scheme
-        let base_path = docker_url.to_base_path().context(ErrorKind::Initialization)?;
+        let base_path = docker_url
+            .to_base_path()
+            .context(ErrorKind::Initialization)?;
         let mut configuration = Configuration::new(client);
-        configuration.base_path = base_path.to_str().ok_or(ErrorKind::Initialization)?.to_string();
+        configuration.base_path = base_path
+            .to_str()
+            .ok_or(ErrorKind::Initialization)?
+            .to_string();
 
         let scheme = docker_url.scheme().to_string();
         configuration.uri_composer = Box::new(move |base_path, path| {
-            Ok(UrlConnector::build_hyper_uri(&scheme, base_path, path).context(ErrorKind::Initialization)?)
+            Ok(UrlConnector::build_hyper_uri(&scheme, base_path, path)
+                .context(ErrorKind::Initialization)?)
         });
 
         Ok(DockerModuleRuntime {
@@ -109,7 +116,9 @@ impl ModuleRegistry for DockerModuleRuntime {
         let creds: Result<String> = config.auth().map_or_else(
             || Ok("".to_string()),
             |a| {
-                let json = serde_json::to_string(a).with_context(|_| ErrorKind::RegistryOperation(RegistryOperation::PullImage(image.clone())))?;
+                let json = serde_json::to_string(a).with_context(|_| {
+                    ErrorKind::RegistryOperation(RegistryOperation::PullImage(image.clone()))
+                })?;
                 Ok(base64::encode(&json))
             },
         );
@@ -121,7 +130,10 @@ impl ModuleRegistry for DockerModuleRuntime {
                     .image_api()
                     .image_create(&image, "", "", "", "", &creds, "")
                     .map_err(|err| {
-                        let e = Error::from_docker_error(err, ErrorKind::RegistryOperation(RegistryOperation::PullImage(image)));
+                        let e = Error::from_docker_error(
+                            err,
+                            ErrorKind::RegistryOperation(RegistryOperation::PullImage(image)),
+                        );
                         warn!("Attempt to pull image failed.");
                         log_failure(Level::Warn, &e);
                         e
@@ -135,7 +147,9 @@ impl ModuleRegistry for DockerModuleRuntime {
     fn remove(&self, name: &str) -> Self::RemoveFuture {
         debug!("Removing {}", name);
 
-        if let Err(err) = ensure_not_empty_with_context(name, || ErrorKind::RegistryOperation(RegistryOperation::RemoveImage(name.to_string()))) {
+        if let Err(err) = ensure_not_empty_with_context(name, || {
+            ErrorKind::RegistryOperation(RegistryOperation::RemoveImage(name.to_string()))
+        }) {
             return Box::new(future::err(Error::from(err)));
         }
 
@@ -143,15 +157,19 @@ impl ModuleRegistry for DockerModuleRuntime {
 
         Box::new(
             self.client
-            .image_api()
-            .image_delete(&name, false, false)
-            .map(|_| ())
-            .map_err(|err| {
-                let e = Error::from_docker_error(err, ErrorKind::RegistryOperation(RegistryOperation::RemoveImage(name)));
-                warn!("Attempt to remove image failed.");
-                log_failure(Level::Warn, &e);
-                e
-            }))
+                .image_api()
+                .image_delete(&name, false, false)
+                .map(|_| ())
+                .map_err(|err| {
+                    let e = Error::from_docker_error(
+                        err,
+                        ErrorKind::RegistryOperation(RegistryOperation::RemoveImage(name)),
+                    );
+                    warn!("Attempt to remove image failed.");
+                    log_failure(Level::Warn, &e);
+                    e
+                }),
+        )
     }
 }
 
@@ -197,7 +215,10 @@ impl ModuleRuntime for DockerModuleRuntime {
                             future::Either::B(future::ok(()))
                         }
                     }).map_err(|err| {
-                        let e = Error::from_docker_error(err, ErrorKind::RuntimeOperation(RuntimeOperation::Init));
+                        let e = Error::from_docker_error(
+                            err,
+                            ErrorKind::RuntimeOperation(RuntimeOperation::Init),
+                        );
                         warn!("Module runtime init failed.");
                         log_failure(Level::Warn, &e);
                         e
@@ -212,7 +233,9 @@ impl ModuleRuntime for DockerModuleRuntime {
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
         // we only want "docker" modules
         if module.type_() != DOCKER_MODULE_TYPE {
-            return Box::new(future::err(Error::from(ErrorKind::InvalidModuleType(module.type_().to_string()))));
+            return Box::new(future::err(Error::from(ErrorKind::InvalidModuleType(
+                module.type_().to_string(),
+            ))));
         }
 
         let result = module
@@ -246,8 +269,14 @@ impl ModuleRuntime for DockerModuleRuntime {
                     .client
                     .container_api()
                     .container_create(create_options, module.name())
-                    .map_err(move |err| Error::from_docker_error(err, ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(module.name().to_string()))))
-                    .map(|_| ()))
+                    .map_err(move |err| {
+                        Error::from_docker_error(
+                            err,
+                            ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
+                                module.name().to_string(),
+                            )),
+                        )
+                    }).map(|_| ()))
             });
 
         match result {
@@ -265,7 +294,9 @@ impl ModuleRuntime for DockerModuleRuntime {
 
         let id = id.to_string();
 
-        if let Err(err) = ensure_not_empty_with_context(&id, || ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(id.clone()))) {
+        if let Err(err) = ensure_not_empty_with_context(&id, || {
+            ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(id.clone()))
+        }) {
             return Box::new(future::err(Error::from(err)));
         }
 
@@ -274,7 +305,10 @@ impl ModuleRuntime for DockerModuleRuntime {
                 .container_api()
                 .container_start(&id, "")
                 .map_err(|err| {
-                    let e = Error::from_docker_error(err, ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(id)));
+                    let e = Error::from_docker_error(
+                        err,
+                        ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(id)),
+                    );
                     warn!("Attempt to start a container failed.");
                     log_failure(Level::Warn, &e);
                     e
@@ -287,7 +321,9 @@ impl ModuleRuntime for DockerModuleRuntime {
 
         let id = id.to_string();
 
-        if let Err(err) = ensure_not_empty_with_context(&id, || ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(id.clone()))) {
+        if let Err(err) = ensure_not_empty_with_context(&id, || {
+            ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(id.clone()))
+        }) {
             return Box::new(future::err(Error::from(err)));
         }
 
@@ -305,7 +341,10 @@ impl ModuleRuntime for DockerModuleRuntime {
                         s => s as i32,
                     }),
                 ).map_err(|err| {
-                    let e = Error::from_docker_error(err, ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(id)));
+                    let e = Error::from_docker_error(
+                        err,
+                        ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(id)),
+                    );
                     warn!("Attempt to stop a container failed.");
                     log_failure(Level::Warn, &e);
                     e
@@ -330,7 +369,10 @@ impl ModuleRuntime for DockerModuleRuntime {
                             .to_string(),
                     )
                 }).map_err(|err| {
-                    let e = Error::from_docker_error(err, ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo));
+                    let e = Error::from_docker_error(
+                        err,
+                        ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo),
+                    );
                     warn!("Attempt to get system information failed.");
                     log_failure(Level::Warn, &e);
                     e
@@ -343,7 +385,9 @@ impl ModuleRuntime for DockerModuleRuntime {
 
         let id = id.to_string();
 
-        if let Err(err) = ensure_not_empty_with_context(&id, || ErrorKind::RuntimeOperation(RuntimeOperation::RestartModule(id.clone()))) {
+        if let Err(err) = ensure_not_empty_with_context(&id, || {
+            ErrorKind::RuntimeOperation(RuntimeOperation::RestartModule(id.clone()))
+        }) {
             return Box::new(future::err(Error::from(err)));
         }
 
@@ -352,7 +396,10 @@ impl ModuleRuntime for DockerModuleRuntime {
                 .container_api()
                 .container_restart(&id, WAIT_BEFORE_KILL_SECONDS)
                 .map_err(|err| {
-                    let e = Error::from_docker_error(err, ErrorKind::RuntimeOperation(RuntimeOperation::RestartModule(id)));
+                    let e = Error::from_docker_error(
+                        err,
+                        ErrorKind::RuntimeOperation(RuntimeOperation::RestartModule(id)),
+                    );
                     warn!("Attempt to restart a container failed.");
                     log_failure(Level::Warn, &e);
                     e
@@ -365,7 +412,9 @@ impl ModuleRuntime for DockerModuleRuntime {
 
         let id = id.to_string();
 
-        if let Err(err) = ensure_not_empty_with_context(&id, || ErrorKind::RuntimeOperation(RuntimeOperation::RemoveModule(id.clone()))) {
+        if let Err(err) = ensure_not_empty_with_context(&id, || {
+            ErrorKind::RuntimeOperation(RuntimeOperation::RemoveModule(id.clone()))
+        }) {
             return Box::new(future::err(Error::from(err)));
         }
 
@@ -373,12 +422,13 @@ impl ModuleRuntime for DockerModuleRuntime {
             self.client
                 .container_api()
                 .container_delete(
-                    &id,
-                    /* remove volumes */ false,
-                    /* force */ true,
+                    &id, /* remove volumes */ false, /* force */ true,
                     /* remove link */ false,
                 ).map_err(|err| {
-                    let e = Error::from_docker_error(err, ErrorKind::RuntimeOperation(RuntimeOperation::RemoveModule(id)));
+                    let e = Error::from_docker_error(
+                        err,
+                        ErrorKind::RuntimeOperation(RuntimeOperation::RemoveModule(id)),
+                    );
                     warn!("Attempt to remove a container failed.");
                     log_failure(Level::Warn, &e);
                     e
@@ -392,8 +442,7 @@ impl ModuleRuntime for DockerModuleRuntime {
 
         let client_copy = self.client.clone();
 
-        let result =
-            serde_json::to_string(&filters)
+        let result = serde_json::to_string(&filters)
             .context(ErrorKind::RuntimeOperation(RuntimeOperation::ListModules))
             .map_err(Error::from)
             .map(|filters| {
@@ -427,7 +476,12 @@ impl ModuleRuntime for DockerModuleRuntime {
                                     config,
                                 )
                             }).collect()
-                    }).map_err(|err| Error::from_docker_error(err, ErrorKind::RuntimeOperation(RuntimeOperation::ListModules)))
+                    }).map_err(|err| {
+                        Error::from_docker_error(
+                            err,
+                            ErrorKind::RuntimeOperation(RuntimeOperation::ListModules),
+                        )
+                    })
             }).into_future()
             .flatten()
             .map_err(|err| {
@@ -453,11 +507,14 @@ impl ModuleRuntime for DockerModuleRuntime {
             .then(|logs| match logs {
                 Ok(logs) => Ok(Logs(id, logs)),
                 Err(err) => {
-                    let e = Error::from_docker_error(err, ErrorKind::RuntimeOperation(RuntimeOperation::GetModuleLogs(id)));
+                    let e = Error::from_docker_error(
+                        err,
+                        ErrorKind::RuntimeOperation(RuntimeOperation::GetModuleLogs(id)),
+                    );
                     warn!("Attempt to get container logs failed.");
                     log_failure(Level::Warn, &e);
                     Err(e)
-                },
+                }
             });
         Box::new(result)
     }
@@ -488,7 +545,9 @@ impl Stream for Logs {
         match self.1.poll() {
             Ok(Async::Ready(chunk)) => Ok(Async::Ready(chunk.map(Chunk))),
             Ok(Async::NotReady) => Ok(Async::NotReady),
-            Err(err) => Err(Error::from(err.context(ErrorKind::RuntimeOperation(RuntimeOperation::GetModuleLogs(self.0.clone()))))),
+            Err(err) => Err(Error::from(err.context(ErrorKind::RuntimeOperation(
+                RuntimeOperation::GetModuleLogs(self.0.clone()),
+            )))),
         }
     }
 }
@@ -606,15 +665,21 @@ mod tests {
         let mut mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
         let name = "";
 
-        let task = <DockerModuleRuntime as ModuleRegistry>::remove(&mut mri, name).then(|res| match res {
-            Ok(_) => Err("Expected error but got a result.".to_string()),
-            Err(err) => match err.kind() {
-                ErrorKind::RegistryOperation(RegistryOperation::RemoveImage(s)) if s == name => {
-                    Ok(())
+        let task =
+            <DockerModuleRuntime as ModuleRegistry>::remove(&mut mri, name).then(|res| match res {
+                Ok(_) => Err("Expected error but got a result.".to_string()),
+                Err(err) => match err.kind() {
+                    ErrorKind::RegistryOperation(RegistryOperation::RemoveImage(s))
+                        if s == name =>
+                    {
+                        Ok(())
+                    }
+                    kind => panic!(
+                        "Expected `RegistryOperation(RemoveImage)` error but got {:?}.",
+                        kind
+                    ),
                 },
-                kind => panic!("Expected `RegistryOperation(RemoveImage)` error but got {:?}.", kind),
-            }
-        });
+            });
 
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
@@ -627,15 +692,21 @@ mod tests {
         let mut mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
         let name = "     ";
 
-        let task = <DockerModuleRuntime as ModuleRegistry>::remove(&mut mri, name).then(|res| match res {
-            Ok(_) => Err("Expected error but got a result.".to_string()),
-            Err(err) => match err.kind() {
-                ErrorKind::RegistryOperation(RegistryOperation::RemoveImage(s)) if s == name => {
-                    Ok(())
+        let task =
+            <DockerModuleRuntime as ModuleRegistry>::remove(&mut mri, name).then(|res| match res {
+                Ok(_) => Err("Expected error but got a result.".to_string()),
+                Err(err) => match err.kind() {
+                    ErrorKind::RegistryOperation(RegistryOperation::RemoveImage(s))
+                        if s == name =>
+                    {
+                        Ok(())
+                    }
+                    kind => panic!(
+                        "Expected `RegistryOperation(RemoveImage)` error but got {:?}.",
+                        kind
+                    ),
                 },
-                kind => panic!("Expected `RegistryOperation(RemoveImage)` error but got {:?}.", kind),
-            }
-        });
+            });
 
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
@@ -691,7 +762,8 @@ mod tests {
         let module_config = ModuleSpec::new(
             "m1".to_string(),
             name.clone(),
-            DockerConfig::new("nginx:latest".to_string(), ContainerCreateBody::new(), None).unwrap(),
+            DockerConfig::new("nginx:latest".to_string(), ContainerCreateBody::new(), None)
+                .unwrap(),
             HashMap::new(),
         ).unwrap();
 
@@ -717,8 +789,13 @@ mod tests {
         let task = mri.start(name).then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
             Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(s)) if s == name => Ok::<_, Error>(()),
-                kind => panic!("Expected `RuntimeOperation(StartModule)` error but got {:?}.", kind),
+                ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(s)) if s == name => {
+                    Ok::<_, Error>(())
+                }
+                kind => panic!(
+                    "Expected `RuntimeOperation(StartModule)` error but got {:?}.",
+                    kind
+                ),
             },
         });
 
@@ -736,8 +813,13 @@ mod tests {
         let task = mri.start(name).then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
             Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(s)) if s == name => Ok::<_, Error>(()),
-                kind => panic!("Expected `RuntimeOperation(StartModule)` error but got {:?}.", kind),
+                ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(s)) if s == name => {
+                    Ok::<_, Error>(())
+                }
+                kind => panic!(
+                    "Expected `RuntimeOperation(StartModule)` error but got {:?}.",
+                    kind
+                ),
             },
         });
 
@@ -755,8 +837,13 @@ mod tests {
         let task = mri.stop(name, None).then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
             Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(s)) if s == name => Ok::<_, Error>(()),
-                kind => panic!("Expected `RuntimeOperation(StopModule)` error but got {:?}.", kind),
+                ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(s)) if s == name => {
+                    Ok::<_, Error>(())
+                }
+                kind => panic!(
+                    "Expected `RuntimeOperation(StopModule)` error but got {:?}.",
+                    kind
+                ),
             },
         });
 
@@ -774,8 +861,13 @@ mod tests {
         let task = mri.stop(name, None).then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
             Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(s)) if s == name => Ok::<_, Error>(()),
-                kind => panic!("Expected `RuntimeOperation(StopModule)` error but got {:?}.", kind),
+                ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(s)) if s == name => {
+                    Ok::<_, Error>(())
+                }
+                kind => panic!(
+                    "Expected `RuntimeOperation(StopModule)` error but got {:?}.",
+                    kind
+                ),
             },
         });
 
@@ -793,8 +885,13 @@ mod tests {
         let task = mri.restart(name).then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
             Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::RestartModule(s)) if s == name => Ok::<_, Error>(()),
-                kind => panic!("Expected `RuntimeOperation(RestartModule)` error but got {:?}.", kind),
+                ErrorKind::RuntimeOperation(RuntimeOperation::RestartModule(s)) if s == name => {
+                    Ok::<_, Error>(())
+                }
+                kind => panic!(
+                    "Expected `RuntimeOperation(RestartModule)` error but got {:?}.",
+                    kind
+                ),
             },
         });
 
@@ -812,8 +909,13 @@ mod tests {
         let task = mri.restart(name).then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
             Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::RestartModule(s)) if s == name => Ok::<_, Error>(()),
-                kind => panic!("Expected `RuntimeOperation(RestartModule)` error but got {:?}.", kind),
+                ErrorKind::RuntimeOperation(RuntimeOperation::RestartModule(s)) if s == name => {
+                    Ok::<_, Error>(())
+                }
+                kind => panic!(
+                    "Expected `RuntimeOperation(RestartModule)` error but got {:?}.",
+                    kind
+                ),
             },
         });
 
@@ -831,8 +933,13 @@ mod tests {
         let task = ModuleRuntime::remove(&mri, name).then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
             Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::RemoveModule(s)) if s == name => Ok::<_, Error>(()),
-                kind => panic!("Expected `RuntimeOperation(RemoveModule)` error but got {:?}.", kind),
+                ErrorKind::RuntimeOperation(RuntimeOperation::RemoveModule(s)) if s == name => {
+                    Ok::<_, Error>(())
+                }
+                kind => panic!(
+                    "Expected `RuntimeOperation(RemoveModule)` error but got {:?}.",
+                    kind
+                ),
             },
         });
 
@@ -850,8 +957,13 @@ mod tests {
         let task = ModuleRuntime::remove(&mri, name).then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
             Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::RemoveModule(s)) if s == name => Ok::<_, Error>(()),
-                kind => panic!("Expected `RuntimeOperation(RemoveModule)` error but got {:?}.", kind),
+                ErrorKind::RuntimeOperation(RuntimeOperation::RemoveModule(s)) if s == name => {
+                    Ok::<_, Error>(())
+                }
+                kind => panic!(
+                    "Expected `RuntimeOperation(RemoveModule)` error but got {:?}.",
+                    kind
+                ),
             },
         });
 

@@ -30,28 +30,28 @@ where
         _req: Request<Body>,
         params: Parameters,
     ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
-        let response =
-            params.name("name")
+        let response = params
+            .name("name")
             .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("name")))
             .map(|name| {
                 let name = name.to_string();
 
-                self
-                    .runtime
-                    .stop(&name, None)
-                    .then(|result| match result {
-                        Ok(_) => Ok(name),
-                        Err(err) => Err(Error::from(err.context(ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(name))))),
-                    })
-            })
-            .into_future()
+                self.runtime.stop(&name, None).then(|result| match result {
+                    Ok(_) => Ok(name),
+                    Err(err) => Err(Error::from(err.context(ErrorKind::RuntimeOperation(
+                        RuntimeOperation::StopModule(name),
+                    )))),
+                })
+            }).into_future()
             .flatten()
             .and_then(|name| {
                 Ok(Response::builder()
                     .status(StatusCode::NO_CONTENT)
-                    .body(Body::default()).context(ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(name)))?)
-            })
-            .or_else(|e| Ok(e.into_response()));
+                    .body(Body::default())
+                    .context(ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(
+                        name,
+                    )))?)
+            }).or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }

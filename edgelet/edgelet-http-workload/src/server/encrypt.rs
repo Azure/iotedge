@@ -36,33 +36,37 @@ where
     ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
         let hsm = self.hsm.clone();
 
-        let response =
-            params.name("name")
+        let response = params
+            .name("name")
             .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("name")))
             .and_then(|name| {
-                let genid = params.name("genid").ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("genid")))?;
+                let genid = params
+                    .name("genid")
+                    .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("genid")))?;
                 Ok((name, genid))
-            })
-            .map(|(module_id, genid)| {
+            }).map(|(module_id, genid)| {
                 let id = format!("{}{}", module_id.to_string(), genid.to_string());
-                req
-                    .into_body()
-                    .concat2()
-                    .then(|body| {
-                        let body = body.context(ErrorKind::EncryptionOperation(EncryptionOperation::Encrypt))?;
-                        Ok((id, body))
-                    })
-            })
-            .into_future()
+                req.into_body().concat2().then(|body| {
+                    let body =
+                        body.context(ErrorKind::EncryptionOperation(EncryptionOperation::Encrypt))?;
+                    Ok((id, body))
+                })
+            }).into_future()
             .flatten()
             .and_then(move |(id, body)| -> Result<_, Error> {
-                let request: EncryptRequest = serde_json::from_slice(&body).context(ErrorKind::MalformedRequestBody)?;
-                let plaintext = base64::decode(request.plaintext()).context(ErrorKind::MalformedRequestBody)?;
-                let initialization_vector = base64::decode(request.initialization_vector()).context(ErrorKind::MalformedRequestBody)?;
-                let ciphertext = hsm.encrypt(id.as_bytes(), &plaintext, &initialization_vector).context(ErrorKind::EncryptionOperation(EncryptionOperation::Encrypt))?;
+                let request: EncryptRequest =
+                    serde_json::from_slice(&body).context(ErrorKind::MalformedRequestBody)?;
+                let plaintext =
+                    base64::decode(request.plaintext()).context(ErrorKind::MalformedRequestBody)?;
+                let initialization_vector = base64::decode(request.initialization_vector())
+                    .context(ErrorKind::MalformedRequestBody)?;
+                let ciphertext = hsm
+                    .encrypt(id.as_bytes(), &plaintext, &initialization_vector)
+                    .context(ErrorKind::EncryptionOperation(EncryptionOperation::Encrypt))?;
                 let encoded = base64::encode(&ciphertext);
                 let response = EncryptResponse::new(encoded);
-                let body = serde_json::to_string(&response).context(ErrorKind::EncryptionOperation(EncryptionOperation::Encrypt))?;
+                let body = serde_json::to_string(&response)
+                    .context(ErrorKind::EncryptionOperation(EncryptionOperation::Encrypt))?;
                 let response = Response::builder()
                     .status(StatusCode::OK)
                     .header(CONTENT_TYPE, "application/json")
@@ -70,8 +74,7 @@ where
                     .body(body.into())
                     .context(ErrorKind::EncryptionOperation(EncryptionOperation::Encrypt))?;
                 Ok(response)
-            })
-            .or_else(|e| Ok(e.into_response()));
+            }).or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }
@@ -255,7 +258,10 @@ mod tests {
         let response = handler.handle(request, params).wait().unwrap();
 
         assert_eq!(StatusCode::BAD_REQUEST, response.status());
-        assert_response_message_eq("The request is missing required parameter `genid`", response);
+        assert_response_message_eq(
+            "The request is missing required parameter `genid`",
+            response,
+        );
     }
 
     #[test]

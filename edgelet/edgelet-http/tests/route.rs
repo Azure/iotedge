@@ -13,11 +13,11 @@ extern crate futures;
 extern crate hyper;
 
 use futures::{future, Future, Stream};
-use hyper::{Body, Chunk, Request, Response, StatusCode};
 use hyper::service::{NewService, Service};
+use hyper::{Body, Chunk, Request, Response, StatusCode};
 
-use edgelet_http::Error as HttpError;
 use edgelet_http::route::{Builder, Parameters, RegexRoutesBuilder, Router};
+use edgelet_http::Error as HttpError;
 
 #[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
 fn route1(
