@@ -8,7 +8,7 @@ use hyper::{Method, StatusCode};
 use edgelet_http::client::{Client, ClientImpl, TokenSource};
 use edgelet_http::error::ErrorKind as HttpErrorKind;
 use edgelet_utils::ensure_not_empty_with_context;
-use error::{Error, ErrorKind, Reason};
+use error::{Error, ErrorKind, ModuleOperationReason};
 use model::{AuthMechanism, Module};
 
 pub struct DeviceClient<C, T> {
@@ -62,7 +62,7 @@ where
         if module_id.trim().is_empty() {
             Either::B(future::err(Error::from(ErrorKind::UpsertModuleWithReason(
                 module_id,
-                Reason::EmptyModuleId,
+                ModuleOperationReason::EmptyModuleId,
             ))))
         } else {
             let mut module = Module::default()
@@ -91,7 +91,7 @@ where
                     let module = module.ok_or_else(|| {
                         Error::from(ErrorKind::UpsertModuleWithReason(
                             module_id,
-                            Reason::ModuleNotFound,
+                            ModuleOperationReason::ModuleNotFound,
                         ))
                     })?;
                     Ok(module)
@@ -105,7 +105,7 @@ where
         if module_id.trim().is_empty() {
             Either::B(future::err(Error::from(ErrorKind::GetModuleWithReason(
                 module_id,
-                Reason::EmptyModuleId,
+                ModuleOperationReason::EmptyModuleId,
             ))))
         } else {
             let res = self
@@ -121,7 +121,7 @@ where
 
                     Ok(None) => Err(Error::from(ErrorKind::GetModuleWithReason(
                         module_id,
-                        Reason::ModuleNotFound,
+                        ModuleOperationReason::ModuleNotFound,
                     ))),
 
                     Err(err) => Err({
@@ -130,7 +130,7 @@ where
                         {
                             Error::from(ErrorKind::GetModuleWithReason(
                                 module_id,
-                                Reason::ModuleNotFound,
+                                ModuleOperationReason::ModuleNotFound,
                             ))
                         } else {
                             Error::from(err.context(ErrorKind::GetModule(module_id)))
@@ -153,7 +153,9 @@ where
             ).map_err(|err| Error::from(err.context(ErrorKind::ListModules)))
             .and_then(|modules| {
                 modules.ok_or_else(|| {
-                    Error::from(ErrorKind::ListModulesWithReason(Reason::EmptyResponse))
+                    Error::from(ErrorKind::ListModulesWithReason(
+                        ModuleOperationReason::EmptyResponse,
+                    ))
                 })
             })
     }
@@ -162,7 +164,7 @@ where
         if module_id.trim().is_empty() {
             Either::B(future::err(Error::from(ErrorKind::DeleteModuleWithReason(
                 module_id.to_string(),
-                Reason::EmptyModuleId,
+                ModuleOperationReason::EmptyModuleId,
             ))))
         } else {
             let res = self
@@ -206,7 +208,7 @@ mod tests {
     use typed_headers::{mime, ContentType, HeaderMapExt};
     use url::Url;
 
-    use error::{ErrorKind, Reason};
+    use error::{ErrorKind, ModuleOperationReason};
     use model::{AuthType, SymmetricKey};
 
     struct NullTokenSource;
@@ -275,7 +277,7 @@ mod tests {
             .then(|result| match result {
                 Ok(_) => panic!("Excepted err got success"),
                 Err(err) => match err.kind() {
-                    ErrorKind::UpsertModuleWithReason(s, Reason::EmptyModuleId) if s == name => Ok::<_, Error>(()),
+                    ErrorKind::UpsertModuleWithReason(s, ModuleOperationReason::EmptyModuleId) if s == name => Ok::<_, Error>(()),
                     _ => panic!("Wrong error kind. Expected `UpsertModuleWithReason(EmptyModuleId)` found {:?}", err),
                 }
             });
@@ -303,7 +305,7 @@ mod tests {
             .then(|result| match result {
                 Ok(_) => panic!("Excepted err got success"),
                 Err(err) => match err.kind() {
-                    ErrorKind::UpsertModuleWithReason(s, Reason::EmptyModuleId) if s == name => Ok::<_, Error>(()),
+                    ErrorKind::UpsertModuleWithReason(s, ModuleOperationReason::EmptyModuleId) if s == name => Ok::<_, Error>(()),
                     _ => panic!("Wrong error kind. Expected `UpsertModuleWithReason(EmptyModuleId)` found {:?}", err),
                 }
             });
@@ -451,7 +453,7 @@ mod tests {
         let task = device_client.delete_module(name).then(|result| match result {
                 Ok(_) => panic!("Excepted err got success"),
                 Err(err) => match err.kind() {
-                    ErrorKind::DeleteModuleWithReason(s, Reason::EmptyModuleId) if s == name => Ok::<_, Error>(()),
+                    ErrorKind::DeleteModuleWithReason(s, ModuleOperationReason::EmptyModuleId) if s == name => Ok::<_, Error>(()),
                     _ => panic!("Wrong error kind. Expected `DeleteModuleWithReason(EmptyModuleId)` found {:?}", err),
                 }
         });
@@ -479,7 +481,7 @@ mod tests {
             .then(|result| match result {
                 Ok(_) => panic!("Excepted err got success"),
                 Err(err) => match err.kind() {
-                    ErrorKind::DeleteModuleWithReason(s, Reason::EmptyModuleId) if s == name => Ok::<_, Error>(()),
+                    ErrorKind::DeleteModuleWithReason(s, ModuleOperationReason::EmptyModuleId) if s == name => Ok::<_, Error>(()),
                     _ => panic!("Wrong error kind. Expected `DeleteModuleWithReason(EmptyModuleId)` found {:?}", err),
                 }
             });
@@ -641,7 +643,10 @@ mod tests {
             .get_module_by_id("m1".to_string())
             .then(|module| {
                 assert_eq!(
-                    ErrorKind::GetModuleWithReason("m1".to_string(), Reason::ModuleNotFound),
+                    ErrorKind::GetModuleWithReason(
+                        "m1".to_string(),
+                        ModuleOperationReason::ModuleNotFound
+                    ),
                     *module.unwrap_err().kind()
                 );
                 Ok::<_, Error>(())

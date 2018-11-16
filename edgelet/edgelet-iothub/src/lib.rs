@@ -51,10 +51,10 @@ use edgelet_core::{AuthType, Identity, IdentityManager, IdentityOperation, Ident
 use edgelet_http::client::{ClientImpl, TokenSource};
 use iothubservice::{
     AuthMechanism, AuthType as HubAuthType, DeviceClient, ErrorKind as HubErrorKind, Module,
-    Reason as HubReason, SymmetricKey,
+    ModuleOperationReason as HubReason, SymmetricKey,
 };
 
-pub use error::{Error, ErrorKind, Reason};
+pub use error::{Error, ErrorKind, IdentityOperationReason};
 
 const KEY_PRIMARY: &str = "primary";
 const KEY_SECONDARY: &str = "secondary";
@@ -291,7 +291,7 @@ where
                     } else {
                         Err(Error::from(ErrorKind::CreateIdentityWithReason(
                             module_id,
-                            Reason::InvalidHubResponse,
+                            IdentityOperationReason::InvalidHubResponse,
                         )))
                     }
                 }).and_then(move |(primary_key, secondary_key, idman, module_id)| {
@@ -310,7 +310,7 @@ where
                         .map_err(|err| {
                             Error::from(err.context(ErrorKind::CreateIdentityWithReason(
                                 module_id,
-                                Reason::InvalidHubResponse,
+                                IdentityOperationReason::InvalidHubResponse,
                             )))
                         }).map(HubIdentity::new)
                 }),
@@ -347,7 +347,10 @@ where
             }
         } else {
             Either::B(future::err(Error::from(
-                ErrorKind::UpdateIdentityWithReason(module_id, Reason::MissingGenerationId),
+                ErrorKind::UpdateIdentityWithReason(
+                    module_id,
+                    IdentityOperationReason::MissingGenerationId,
+                ),
             )))
         };
 

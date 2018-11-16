@@ -33,5 +33,5 @@ pub mod error;
 mod model;
 
 pub use device::DeviceClient;
-pub use error::{Error, ErrorKind, Reason};
+pub use error::{Error, ErrorKind, ModuleOperationReason};
 pub use model::{AuthMechanism, AuthType, Module, Properties, SymmetricKey, Twin, X509Thumbprint};

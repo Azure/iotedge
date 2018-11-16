@@ -17,13 +17,13 @@ pub enum ErrorKind {
     DeleteModule,
 
     #[fail(display = "Could not delete module {}: {}", _0, _1)]
-    DeleteModuleWithReason(String, Reason),
+    DeleteModuleWithReason(String, ModuleOperationReason),
 
     #[fail(display = "Could not get module {}", _0)]
     GetModule(String),
 
     #[fail(display = "Could not get module {}: {}", _0, _1)]
-    GetModuleWithReason(String, Reason),
+    GetModuleWithReason(String, ModuleOperationReason),
 
     #[fail(display = "IoT Hub service error: [{}] {}", _0, _1)]
     HubService(StatusCode, String),
@@ -35,13 +35,13 @@ pub enum ErrorKind {
     ListModules,
 
     #[fail(display = "Could not list modules: {}", _0)]
-    ListModulesWithReason(Reason),
+    ListModulesWithReason(ModuleOperationReason),
 
     #[fail(display = "Could not upsert module {}", _0)]
     UpsertModule(String),
 
     #[fail(display = "Could not upsert module {}: {}", _0, _1)]
-    UpsertModuleWithReason(String, Reason),
+    UpsertModuleWithReason(String, ModuleOperationReason),
 }
 
 impl Fail for Error {
@@ -81,21 +81,21 @@ impl From<Context<ErrorKind>> for Error {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum Reason {
+pub enum ModuleOperationReason {
     EmptyModuleId,
     EmptyResponse,
     ModuleNotFound,
 }
 
-impl Display for Reason {
+impl Display for ModuleOperationReason {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Reason::EmptyModuleId => write!(f, "Module ID is empty"),
-            Reason::EmptyResponse => write!(
+            ModuleOperationReason::EmptyModuleId => write!(f, "Module ID is empty"),
+            ModuleOperationReason::EmptyResponse => write!(
                 f,
                 "IoT Hub returned an empty response when a value was expected"
             ),
-            Reason::ModuleNotFound => write!(f, "Module not found"),
+            ModuleOperationReason::ModuleNotFound => write!(f, "Module not found"),
         }
     }
 }

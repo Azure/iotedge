@@ -18,7 +18,7 @@ pub enum ErrorKind {
     CannotGetKey(String),
 
     #[fail(display = "Could not create identity {}: {}", _0, _1)]
-    CreateIdentityWithReason(String, Reason),
+    CreateIdentityWithReason(String, IdentityOperationReason),
 
     #[fail(display = "Could not get SAS token")]
     GetToken,
@@ -27,7 +27,7 @@ pub enum ErrorKind {
     IdentityOperation(IdentityOperation),
 
     #[fail(display = "Could not update identity {}: {}", _0, _1)]
-    UpdateIdentityWithReason(String, Reason),
+    UpdateIdentityWithReason(String, IdentityOperationReason),
 }
 
 impl Fail for Error {
@@ -71,16 +71,18 @@ impl From<Context<ErrorKind>> for Error {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub enum Reason {
+pub enum IdentityOperationReason {
     InvalidHubResponse,
     MissingGenerationId,
 }
 
-impl fmt::Display for Reason {
+impl fmt::Display for IdentityOperationReason {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Reason::InvalidHubResponse => write!(f, "Invalid IoT Hub response"),
-            Reason::MissingGenerationId => write!(f, "Generation Id was not provided"),
+            IdentityOperationReason::InvalidHubResponse => write!(f, "Invalid IoT Hub response"),
+            IdentityOperationReason::MissingGenerationId => {
+                write!(f, "Generation Id was not provided")
+            }
         }
     }
 }
