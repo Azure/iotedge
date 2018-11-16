@@ -26,6 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly ICloudConnectionProvider cloudConnectionProvider;
         readonly int maxClients;
         readonly ICredentialsCache credentialsCache;
+        readonly IIdentityProvider identityProvider;
 
         public event EventHandler<IIdentity> CloudConnectionLost;
         public event EventHandler<IIdentity> CloudConnectionEstablished;
@@ -35,11 +36,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public ConnectionManager(
             ICloudConnectionProvider cloudConnectionProvider,
             ICredentialsCache credentialsCache,
+            IIdentityProvider identityProvider,
             int maxClients = DefaultMaxClients)
         {
             this.cloudConnectionProvider = Preconditions.CheckNotNull(cloudConnectionProvider, nameof(cloudConnectionProvider));
             this.maxClients = Preconditions.CheckRange(maxClients, 1, nameof(maxClients));
             this.credentialsCache = Preconditions.CheckNotNull(credentialsCache, nameof(credentialsCache));
+            this.identityProvider = Preconditions.CheckNotNull(identityProvider, nameof(identityProvider));
             Util.Metrics.RegisterGaugeCallback(() => Metrics.SetConnectedClientCountGauge(this));
         }
 
@@ -92,13 +95,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public async Task<Option<ICloudProxy>> GetCloudConnection(string id)
         {
-            if (!this.devices.TryGetValue(Preconditions.CheckNonWhiteSpace(id, nameof(id)), out ConnectedDevice device))
-            {
-                return Option.None<ICloudProxy>();
-            }
+            IIdentity identity = this.identityProvider.Create(Preconditions.CheckNonWhiteSpace(id, nameof(id)));
+            ConnectedDevice device = this.GetOrCreateConnectedDevice(identity);
 
             Try<ICloudConnection> cloudConnectionTry = await device.GetOrCreateCloudConnection(
-                c => this.cloudConnectionProvider.Connect(c.Identity, (identity, status) => this.CloudConnectionStatusChangedHandler(identity, status)));
+                c => this.cloudConnectionProvider.Connect(c.Identity, (i, status) => this.CloudConnectionStatusChangedHandler(i, status)));
 
             Events.GetCloudConnection(device.Identity, cloudConnectionTry);
             Try<ICloudProxy> cloudProxyTry = GetCloudProxyFromCloudConnection(cloudConnectionTry, device.Identity);

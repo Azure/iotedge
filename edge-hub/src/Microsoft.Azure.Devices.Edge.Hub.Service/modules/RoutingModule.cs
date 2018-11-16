@@ -190,17 +190,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<Task<ICloudConnectionProvider>>()
                 .SingleInstance();
 
+            // IIdentityProvider
+            builder.Register(_ => new IdentityProvider(this.iotHubName))
+                .As<IIdentityProvider>()
+                .SingleInstance();
+
             // Task<IConnectionManager>
             builder.Register(
                 async c =>
                 {
                     var cloudConnectionProviderTask = c.Resolve<Task<ICloudConnectionProvider>>();
                     var credentialsCacheTask = c.Resolve<Task<ICredentialsCache>>();
+                    var identityProvider = c.Resolve<IIdentityProvider>();
                     ICloudConnectionProvider cloudConnectionProvider = await cloudConnectionProviderTask;
                     ICredentialsCache credentialsCache = await credentialsCacheTask;
                     IConnectionManager connectionManager = new ConnectionManager(
                         cloudConnectionProvider,
                         credentialsCache,
+                        identityProvider,
                         this.maxConnectedClients);
                     return connectionManager;
                 })
