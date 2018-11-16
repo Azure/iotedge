@@ -127,7 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var edgeHub = new Mock<IEdgeHub>();
             string deviceConnectionStringKey = "device2ConnStrKey";
             edgeHub.Setup(x => x.UpdateDesiredPropertiesAsync(It.IsAny<string>(), It.IsAny<IMessage>()))
-                .Callback((string _id, IMessage m) => update.TrySetResult(m))
+                .Callback((string _, IMessage m) => update.TrySetResult(m))
                 .Returns(TaskEx.Done);
 
             ICloudProxy cloudProxy = await this.GetCloudProxyWithConnectionStringKey(deviceConnectionStringKey, edgeHub.Object);
@@ -215,20 +215,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         }
 
         Task<ICloudProxy> GetCloudProxyWithConnectionStringKey(string connectionStringConfigKey) =>
-            GetCloudProxyWithConnectionStringKey(connectionStringConfigKey, Mock.Of<IEdgeHub>());
+            this.GetCloudProxyWithConnectionStringKey(connectionStringConfigKey, Mock.Of<IEdgeHub>());
 
         async Task<ICloudProxy> GetCloudProxyWithConnectionStringKey(string connectionStringConfigKey, IEdgeHub edgeHub)
         {
             const int ConnectionPoolSize = 10;
             string deviceConnectionString = await SecretsHelper.GetSecretFromConfigKey(connectionStringConfigKey);
-            var converters = new MessageConverterProvider(new Dictionary<Type, IMessageConverter>()
-            {
-                { typeof(Client.Message), new DeviceClientMessageConverter() },
-                { typeof(Twin), new TwinMessageConverter() },
-                { typeof(TwinCollection), new TwinCollectionMessageConverter() }
-            });
+            var converters = new MessageConverterProvider(
+                new Dictionary<Type, IMessageConverter>()
+                {
+                    { typeof(Client.Message), new DeviceClientMessageConverter() },
+                    { typeof(Twin), new TwinMessageConverter() },
+                    { typeof(TwinCollection), new TwinCollectionMessageConverter() }
+                });
 
-            ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(converters, ConnectionPoolSize, new ClientProvider(), Option.None<UpstreamProtocol>(), Mock.Of<ITokenProvider>(), Mock.Of<IDeviceScopeIdentitiesCache>(), TimeSpan.FromMinutes(60), true);
+            var credentialsCache = Mock.Of<ICredentialsCache>();
+            ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(
+                converters,
+                ConnectionPoolSize,
+                new ClientProvider(),
+                Option.None<UpstreamProtocol>(),
+                Mock.Of<ITokenProvider>(),
+                Mock.Of<IDeviceScopeIdentitiesCache>(),
+                credentialsCache,
+                Mock.Of<IIdentity>(),
+                TimeSpan.FromMinutes(60),
+                true);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
             var deviceIdentity = Mock.Of<IDeviceIdentity>(m => m.Id == ConnectionStringHelper.GetDeviceId(deviceConnectionString));
             var clientCredentials = new SharedKeyCredentials(deviceIdentity, deviceConnectionString, string.Empty);
@@ -255,6 +267,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 {
                     break;
                 }
+
                 await Task.Delay(TimeSpan.FromSeconds(20));
             }
 
