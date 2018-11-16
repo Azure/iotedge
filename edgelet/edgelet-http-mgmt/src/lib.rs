@@ -19,11 +19,7 @@ extern crate edgelet_iothub;
 #[cfg(test)]
 extern crate edgelet_test_utils;
 extern crate failure;
-#[macro_use]
-extern crate failure_derive;
-#[macro_use]
 extern crate futures;
-extern crate http;
 extern crate hyper;
 #[macro_use]
 extern crate lazy_static;
@@ -38,8 +34,7 @@ extern crate serde_json;
 extern crate serde_json;
 extern crate url;
 
-use http::Response;
-use hyper::Body;
+use hyper::{Body, Response};
 
 mod client;
 mod error;

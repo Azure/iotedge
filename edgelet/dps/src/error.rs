@@ -3,12 +3,8 @@
 use std::fmt;
 use std::fmt::Display;
 
-use base64::DecodeError;
 use failure::{Backtrace, Context, Fail};
-use serde_json::Error as SerdeError;
-use tokio::timer::Error as TimerError;
 
-use edgelet_core::Error as CoreError;
 use edgelet_http::{Error as HttpError, ErrorKind as HttpErrorKind};
 
 #[derive(Debug)]
@@ -16,28 +12,34 @@ pub struct Error {
     inner: Context<ErrorKind>,
 }
 
-#[derive(Debug, Fail)]
+#[derive(Clone, Copy, Debug, Fail)]
 pub enum ErrorKind {
-    #[fail(display = "Core error")]
-    Core,
-    #[fail(display = "Http error")]
-    Http,
-    #[fail(display = "Serde error")]
-    Serde,
-    #[fail(display = "DPS returned an empty response when a value was expected")]
-    Unexpected,
-    #[fail(display = "Invalid Tpm token")]
+    #[fail(display = "Could not get device registration result")]
+    GetDeviceRegistrationResult,
+
+    #[fail(display = "Could not get operation ID")]
+    GetOperationId,
+
+    #[fail(display = "Could not get operation status")]
+    GetOperationStatus,
+
+    #[fail(display = "Could not get token")]
+    GetToken,
+
+    #[fail(display = "Could not get TPM challenge key")]
+    GetTpmChallengeKey,
+
+    #[fail(display = "Could not get TPM challenge key because the TPM token is invalid")]
     InvalidTpmToken,
-    #[fail(display = "Assignment failed")]
-    AssignmentFailed,
-    #[fail(display = "Timer error")]
-    TimerError,
-    #[fail(display = "DPS operation not assigned")]
-    NotAssigned,
-    #[fail(display = "Error during keystore operation")]
-    Keystore,
-    #[fail(display = "Decode error")]
-    Decode,
+
+    #[fail(display = "DPS registration succeeded but returned an empty response")]
+    RegisterWithAuthUnexpectedlySucceeded,
+
+    #[fail(display = "DPS registration failed")]
+    RegisterWithAuthUnexpectedlyFailed,
+
+    #[fail(display = "DPS registration failed because the DPS operation is not assigned")]
+    RegisterWithAuthUnexpectedlyFailedOperationNotAssigned,
 }
 
 impl Fail for Error {
@@ -76,48 +78,8 @@ impl From<Context<ErrorKind>> for Error {
     }
 }
 
-impl From<CoreError> for Error {
-    fn from(error: CoreError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Core),
-        }
-    }
-}
-
-impl From<HttpError> for Error {
-    fn from(error: HttpError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Http),
-        }
-    }
-}
-
-impl From<SerdeError> for Error {
-    fn from(error: SerdeError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Serde),
-        }
-    }
-}
-
 impl From<Error> for HttpError {
     fn from(err: Error) -> Self {
         HttpError::from(err.context(HttpErrorKind::TokenSource))
-    }
-}
-
-impl From<TimerError> for Error {
-    fn from(error: TimerError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::TimerError),
-        }
-    }
-}
-
-impl From<DecodeError> for Error {
-    fn from(error: DecodeError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Decode),
-        }
     }
 }

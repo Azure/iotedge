@@ -5,12 +5,9 @@ use std::env;
 use std::ffi::OsString;
 use std::time::Duration;
 
-use app;
-use error::Error;
+use failure::ResultExt;
 use futures::prelude::*;
 use futures::sync::oneshot;
-use logging;
-use signal;
 use windows_service::service::{
     ServiceControl, ServiceControlAccept, ServiceExitCode, ServiceState, ServiceStatus, ServiceType,
 };
@@ -18,6 +15,11 @@ use windows_service::service_control_handler::{
     register, ServiceControlHandlerResult, ServiceStatusHandle,
 };
 use windows_service::service_dispatcher;
+
+use app;
+use error::{Error, ErrorKind, InitializeErrorReason, ServiceError};
+use logging;
+use signal;
 
 const RUN_AS_CONSOLE_KEY: &str = "IOTEDGE_RUN_AS_CONSOLE";
 const IOTEDGED_SERVICE_NAME: &str = crate_name!();
@@ -59,7 +61,10 @@ fn run_as_service(_: Vec<OsString>) -> Result<(), Error> {
             ServiceControl::Interrogate => ServiceControlHandlerResult::NoError,
             _ => ServiceControlHandlerResult::NotImplemented,
         },
-    )?;
+    ).map_err(ServiceError::from)
+    .context(ErrorKind::Initialize(
+        InitializeErrorReason::RegisterWindowsService,
+    ))?;
 
     // initialize iotedged
     info!("Initializing {} service.", IOTEDGED_SERVICE_NAME);
@@ -108,7 +113,11 @@ pub fn run() -> Result<(), Error> {
         Ok(())
     } else {
         // kick-off the Windows service dance
-        service_dispatcher::start(IOTEDGED_SERVICE_NAME, ffi_service_main)?;
+        service_dispatcher::start(IOTEDGED_SERVICE_NAME, ffi_service_main)
+            .map_err(ServiceError::from)
+            .context(ErrorKind::Initialize(
+                InitializeErrorReason::StartWindowsService,
+            ))?;
         Ok(())
     }
 }
@@ -117,13 +126,14 @@ fn update_service_state(
     status_handle: ServiceStatusHandle,
     current_state: ServiceState,
 ) -> Result<(), Error> {
-    status_handle.set_service_status(ServiceStatus {
-        service_type: ServiceType::OwnProcess,
-        current_state,
-        controls_accepted: ServiceControlAccept::STOP | ServiceControlAccept::SHUTDOWN,
-        exit_code: ServiceExitCode::Win32(0),
-        checkpoint: 0,
-        wait_hint: Duration::default(),
-    })?;
+    status_handle
+        .set_service_status(ServiceStatus {
+            service_type: ServiceType::OwnProcess,
+            current_state,
+            controls_accepted: ServiceControlAccept::STOP | ServiceControlAccept::SHUTDOWN,
+            exit_code: ServiceExitCode::Win32(0),
+            checkpoint: 0,
+            wait_hint: Duration::default(),
+        }).context(ErrorKind::UpdateWindowsServiceState)?;
     Ok(())
 }

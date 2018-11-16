@@ -12,8 +12,7 @@ pub use self::update::UpdateIdentity;
 
 #[cfg(test)]
 mod tests {
-    use http::{Response, StatusCode};
-    use hyper::Body;
+    use hyper::{Body, Response, StatusCode};
     use serde_json;
 
     use edgelet_test_utils::identity::Error;

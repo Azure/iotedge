@@ -30,13 +30,10 @@ extern crate edgelet_iothub;
 extern crate edgelet_test_utils;
 extern crate edgelet_utils;
 extern crate env_logger;
-#[macro_use]
 extern crate failure;
 extern crate futures;
 extern crate hsm;
-extern crate http;
 extern crate hyper;
-extern crate hyper_tls;
 extern crate iothubservice;
 #[macro_use]
 extern crate log;
@@ -75,8 +72,17 @@ use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::fs::{DirBuilder, File};
-use std::io::{self, Write};
+use std::io::Write;
 use std::path::{Path, PathBuf};
+
+use failure::{Fail, ResultExt};
+use futures::future::Either;
+use futures::sync::oneshot::{self, Receiver};
+use futures::{future, Future};
+use hyper::server::conn::Http;
+use hyper::Uri;
+use sha2::{Digest, Sha256};
+use url::Url;
 
 use docker::models::HostConfig;
 use edgelet_core::crypto::{
@@ -96,25 +102,17 @@ use edgelet_http::{ApiVersionService, HyperExt, MaybeProxyClient, UrlExt, API_VE
 use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
 use edgelet_iothub::{HubIdentityManager, SasTokenSource};
-use futures::future::Either;
-use futures::sync::oneshot::{self, Receiver};
-use futures::{future, Future};
 use hsm::tpm::Tpm;
 use hsm::ManageTpmKeys;
-use hyper::server::conn::Http;
-use hyper::Uri;
 use iothubservice::DeviceClient;
 use provisioning::provisioning::{
     BackupProvisioning, DpsProvisioning, ManualProvisioning, Provision, ProvisioningResult,
 };
-use sha2::{Digest, Sha256};
-use url::Url;
 
 use settings::{Dps, Manual, Provisioning, Settings, DEFAULT_CONNECTION_STRING};
-
 use workload::WorkloadData;
 
-pub use self::error::{Error, ErrorKind};
+pub use self::error::{Error, ErrorKind, InitializeErrorReason};
 
 const EDGE_RUNTIME_MODULEID: &str = "$edgeAgent";
 const EDGE_RUNTIME_MODULE_NAME: &str = "edgeAgent";
@@ -208,21 +206,26 @@ impl Main {
     {
         let Main { settings } = self;
 
-        let mut tokio_runtime = tokio::runtime::Runtime::new()?;
+        let mut tokio_runtime = tokio::runtime::Runtime::new()
+            .context(ErrorKind::Initialize(InitializeErrorReason::Tokio))?;
 
         if let Provisioning::Manual(ref manual) = settings.provisioning() {
             if manual.device_connection_string() == DEFAULT_CONNECTION_STRING {
-                Err(ErrorKind::Unconfigured)?;
+                return Err(Error::from(ErrorKind::Initialize(
+                    InitializeErrorReason::NotConfigured,
+                )));
             }
         }
 
-        let hyper_client = MaybeProxyClient::new(get_proxy_uri()?)?;
+        let hyper_client = MaybeProxyClient::new(get_proxy_uri()?)
+            .context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?;
 
         info!(
             "Using runtime network id {}",
             settings.moby_runtime().network()
         );
-        let runtime = DockerModuleRuntime::new(settings.moby_runtime().uri())?
+        let runtime = DockerModuleRuntime::new(settings.moby_runtime().uri())
+            .context(ErrorKind::Initialize(InitializeErrorReason::ModuleRuntime))?
             .with_network_id(settings.moby_runtime().network().to_string());
 
         init_docker_runtime(&runtime, &mut tokio_runtime)?;
@@ -256,7 +259,7 @@ impl Main {
         info!("Finished configuring certificates.");
 
         info!("Initializing hsm...");
-        let crypto = Crypto::new()?;
+        let crypto = Crypto::new().context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
         info!("Finished initializing hsm.");
 
         // Detect if the settings were changed and if the device needs to be reconfigured
@@ -336,7 +339,9 @@ pub fn get_proxy_uri() -> Result<Option<Uri>, Error> {
     let proxy_uri = match proxy_uri {
         None => None,
         Some(s) => {
-            let proxy = s.parse::<Uri>()?;
+            let proxy = s.parse::<Uri>().context(ErrorKind::Initialize(
+                InitializeErrorReason::InvalidProxyUri,
+            ))?;
             info!("Detected HTTPS proxy server {}", proxy.to_string());
             Some(proxy)
         }
@@ -357,7 +362,9 @@ where
 
     crypto
         .create_certificate(&edgelet_ca_props)
-        .map_err(Error::from)?;
+        .context(ErrorKind::Initialize(
+            InitializeErrorReason::PrepareWorkloadCa,
+        ))?;
     Ok(())
 }
 
@@ -367,7 +374,9 @@ where
 {
     crypto
         .destroy_certificate(IOTEDGED_CA_ALIAS.to_string())
-        .map_err(Error::from)?;
+        .context(ErrorKind::Initialize(
+            InitializeErrorReason::DestroyWorkloadCa,
+        ))?;
     Ok(())
 }
 
@@ -381,7 +390,6 @@ fn check_settings_state<M, C>(
 ) -> Result<(), Error>
 where
     M: ModuleRuntime,
-    <M as ModuleRuntime>::Error: Into<Error>,
     <M as ModuleRuntime>::RemoveAllFuture: 'static,
     C: MasterEncryptionKey + CreateCertificate,
 {
@@ -427,13 +435,16 @@ fn reconfigure<M, C>(
 ) -> Result<(), Error>
 where
     M: ModuleRuntime,
-    <M as ModuleRuntime>::Error: Into<Error>,
     <M as ModuleRuntime>::RemoveAllFuture: 'static,
     C: MasterEncryptionKey + CreateCertificate,
 {
     // Remove all edge containers and destroy the cache (settings and dps backup)
     info!("Removing all modules...");
-    tokio_runtime.block_on(runtime.remove_all().map_err(|err| err.into()))?;
+    tokio_runtime
+        .block_on(runtime.remove_all())
+        .context(ErrorKind::Initialize(
+            InitializeErrorReason::RemoveExistingModules,
+        ))?;
     info!("Finished removing modules.");
 
     // Ignore errors from this operation because we could be recovering from a previous bad
@@ -442,19 +453,30 @@ where
 
     let path = subdir.join(filename);
 
-    DirBuilder::new().recursive(true).create(subdir)?;
+    DirBuilder::new()
+        .recursive(true)
+        .create(subdir)
+        .context(ErrorKind::Initialize(
+            InitializeErrorReason::CreateSettingsDirectory,
+        ))?;
 
     // Generate a new master encryption key and save the new settings
-    crypto.create_key()?;
+    crypto.create_key().context(ErrorKind::Initialize(
+        InitializeErrorReason::CreateMasterEncryptionKey,
+    ))?;
     // regenerate the workload CA certificate
     destroy_workload_ca(crypto)?;
     prepare_workload_ca(crypto)?;
-    let mut file = File::create(path)?;
-    serde_json::to_string(settings)
-        .map_err(Error::from)
-        .map(|s| Sha256::digest_str(&s))
-        .map(|s| base64::encode(&s))
-        .and_then(|sb| file.write_all(sb.as_bytes()).map_err(Error::from))
+    let mut file =
+        File::create(path).context(ErrorKind::Initialize(InitializeErrorReason::SaveSettings))?;
+    let s = serde_json::to_string(settings)
+        .context(ErrorKind::Initialize(InitializeErrorReason::SaveSettings))?;
+    let s = Sha256::digest_str(&s);
+    let sb = base64::encode(&s);
+    file.write_all(sb.as_bytes())
+        .context(ErrorKind::Initialize(InitializeErrorReason::SaveSettings))?;
+
+    Ok(())
 }
 
 #[cfg_attr(feature = "cargo-clippy", allow(too_many_arguments))]
@@ -491,10 +513,11 @@ where
     let http_client = HttpClient::new(
         hyper_client,
         Some(token_source),
-        IOTHUB_API_VERSION,
-        Url::parse(&hostname)?,
-    )?;
-    let device_client = DeviceClient::new(http_client, &device_id)?;
+        IOTHUB_API_VERSION.to_string(),
+        Url::parse(&hostname).context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?,
+    ).context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?;
+    let device_client = DeviceClient::new(http_client, device_id.clone())
+        .context(ErrorKind::Initialize(InitializeErrorReason::DeviceClient))?;
     let id_man = HubIdentityManager::new(key_store.clone(), device_client);
 
     let (mgmt_tx, mgmt_rx) = oneshot::channel();
@@ -533,14 +556,9 @@ where
         .join3(workload, edge_rt_with_cleanup)
         .then(|result| match result {
             Ok(((), (), ())) => Ok(()),
-            Err(err) => {
-                error!("{}", err);
-                Err(())
-            }
+            Err(err) => Err(err),
         });
-    tokio_runtime
-        .block_on(services)
-        .map_err(|()| io::Error::new(io::ErrorKind::Other, "an error occurred"))?;
+    tokio_runtime.block_on(services)?;
 
     Ok(())
 }
@@ -550,7 +568,9 @@ fn init_docker_runtime(
     tokio_runtime: &mut tokio::runtime::Runtime,
 ) -> Result<(), Error> {
     info!("Initializing the module runtime...");
-    tokio_runtime.block_on(runtime.init())?;
+    tokio_runtime
+        .block_on(runtime.init())
+        .context(ErrorKind::Initialize(InitializeErrorReason::ModuleRuntime))?;
     info!("Finished initializing the module runtime.");
     Ok(())
 }
@@ -559,16 +579,24 @@ fn manual_provision(
     provisioning: &Manual,
     tokio_runtime: &mut tokio::runtime::Runtime,
 ) -> Result<(DerivedKeyStore<MemoryKey>, ProvisioningResult, MemoryKey), Error> {
-    let manual = ManualProvisioning::new(provisioning.device_connection_string())?;
+    let manual = ManualProvisioning::new(provisioning.device_connection_string()).context(
+        ErrorKind::Initialize(InitializeErrorReason::ManualProvisioningClient),
+    )?;
     let memory_hsm = MemoryKeyStore::new();
     let provision = manual
         .provision(memory_hsm.clone())
-        .map_err(Error::from)
-        .and_then(move |prov_result| {
+        .map_err(|err| {
+            Error::from(err.context(ErrorKind::Initialize(
+                InitializeErrorReason::ManualProvisioningClient,
+            )))
+        }).and_then(move |prov_result| {
             memory_hsm
                 .get(&KeyIdentity::Device, "primary")
-                .map_err(Error::from)
-                .and_then(|k| {
+                .map_err(|err| {
+                    Error::from(err.context(ErrorKind::Initialize(
+                        InitializeErrorReason::ManualProvisioningClient,
+                    )))
+                }).and_then(|k| {
                     let derived_key_store = DerivedKeyStore::new(k.clone());
                     Ok((derived_key_store, prov_result, k))
                 })
@@ -586,48 +614,62 @@ fn dps_provision<HC, M>(
 where
     HC: 'static + ClientImpl,
     M: ModuleRuntime + Send + 'static,
-    M::Error: Into<Error>,
 {
-    let tpm = Tpm::new().map_err(Error::from)?;
-    let ek_result = tpm.get_ek().map_err(Error::from)?;
-    let srk_result = tpm.get_srk().map_err(Error::from)?;
+    let tpm = Tpm::new().context(ErrorKind::Initialize(
+        InitializeErrorReason::DpsProvisioningClient,
+    ))?;
+    let ek_result = tpm.get_ek().context(ErrorKind::Initialize(
+        InitializeErrorReason::DpsProvisioningClient,
+    ))?;
+    let srk_result = tpm.get_srk().context(ErrorKind::Initialize(
+        InitializeErrorReason::DpsProvisioningClient,
+    ))?;
     let dps = DpsProvisioning::new(
         hyper_client,
         provisioning.global_endpoint().clone(),
         provisioning.scope_id().to_string(),
         provisioning.registration_id().to_string(),
-        "2017-11-15",
+        "2017-11-15".to_string(),
         ek_result,
         srk_result,
-    )?;
-    let tpm_hsm = TpmKeyStore::from_hsm(tpm)?;
+    ).context(ErrorKind::Initialize(
+        InitializeErrorReason::DpsProvisioningClient,
+    ))?;
+    let tpm_hsm = TpmKeyStore::from_hsm(tpm).context(ErrorKind::Initialize(
+        InitializeErrorReason::DpsProvisioningClient,
+    ))?;
     let provision_with_file_backup = BackupProvisioning::new(dps, backup_path);
     let provision = provision_with_file_backup
         .provision(tpm_hsm.clone())
-        .map_err(Error::from)
-        .and_then(|prov_result| {
+        .map_err(|err| {
+            Error::from(err.context(ErrorKind::Initialize(
+                InitializeErrorReason::DpsProvisioningClient,
+            )))
+        }).and_then(|prov_result| {
             if prov_result.reconfigure() {
                 info!("Successful DPS provisioning. This will trigger reconfiguration of modules.");
                 // Each time DPS provisions, it gets back a new device key. This results in obsolete
                 // module keys in IoTHub from the previous provisioning. We delete all containers
                 // after each DPS provisioning run so that IoTHub can be updated with new module
                 // keys when the deployment is executed by EdgeAgent.
-                let remove = runtime
-                    .remove_all()
-                    .map_err(|err| err.into())
-                    .map(|_| (prov_result, runtime));
+                let remove = runtime.remove_all().then(|result| {
+                    result.context(ErrorKind::Initialize(
+                        InitializeErrorReason::DpsProvisioningClient,
+                    ))?;
+                    Ok((prov_result, runtime))
+                });
                 Either::A(remove)
             } else {
                 Either::B(future::ok((prov_result, runtime)))
             }
         }).and_then(move |(prov_result, runtime)| {
-            tpm_hsm
+            let k = tpm_hsm
                 .get(&KeyIdentity::Device, "primary")
-                .map_err(Error::from)
-                .and_then(|k| {
-                    let derived_key_store = DerivedKeyStore::new(k.clone());
-                    Ok((derived_key_store, prov_result, k, runtime))
-                })
+                .context(ErrorKind::Initialize(
+                    InitializeErrorReason::DpsProvisioningClient,
+                ))?;
+            let derived_key_store = DerivedKeyStore::new(k.clone());
+            Ok((derived_key_store, prov_result, k, runtime))
         });
 
     tokio_runtime.block_on(provision)
@@ -648,11 +690,11 @@ where
     let spec = settings.agent().clone();
     let env = build_env(spec.env(), hostname, device_id, settings);
     let mut spec = ModuleSpec::<DockerConfig>::new(
-        EDGE_RUNTIME_MODULE_NAME,
-        spec.type_(),
+        EDGE_RUNTIME_MODULE_NAME.to_string(),
+        spec.type_().to_string(),
         spec.config().clone(),
         env,
-    )?;
+    ).context(ErrorKind::Initialize(InitializeErrorReason::EdgeRuntime))?;
 
     // volume mount management and workload URIs
     vol_mount_uri(
@@ -666,13 +708,15 @@ where
     let watchdog = Watchdog::new(runtime.clone(), id_man.clone());
     let runtime_future = watchdog
         .run_until(spec, EDGE_RUNTIME_MODULEID, shutdown.map_err(|_| ()))
-        .map_err(Error::from);
+        .map_err(|err| Error::from(err.context(ErrorKind::Watchdog)));
 
     Ok(runtime_future)
 }
 
 fn vol_mount_uri(config: &mut DockerConfig, uris: &[&Url]) -> Result<(), Error> {
-    let create_options = config.clone_create_options()?;
+    let create_options = config
+        .clone_create_options()
+        .context(ErrorKind::Initialize(InitializeErrorReason::EdgeRuntime))?;
     let host_config = create_options
         .host_config()
         .cloned()
@@ -682,16 +726,18 @@ fn vol_mount_uri(config: &mut DockerConfig, uris: &[&Url]) -> Result<(), Error> 
     // if the url is a domain socket URL then vol mount it into the container
     for uri in uris {
         if uri.scheme() == UNIX_SCHEME {
-            let path = uri.to_uds_file_path()?;
+            let path = uri.to_uds_file_path().context(ErrorKind::Initialize(
+                InitializeErrorReason::InvalidSocketUri,
+            ))?;
             // On Windows we mount the parent folder because we can't mount the
             // socket files directly
             #[cfg(windows)]
             let path = path
                 .parent()
-                .ok_or_else(|| ErrorKind::InvalidUri(uri.to_string()))?;
+                .ok_or_else(|| ErrorKind::Initialize(InitializeErrorReason::InvalidSocketUri))?;
             let path = path
                 .to_str()
-                .expect("URL points to a path that cannot be represented in UTF-8")
+                .ok_or_else(|| ErrorKind::Initialize(InitializeErrorReason::InvalidSocketUri))?
                 .to_string();
             let bind = format!("{}:{}", &path, &path);
             if !binds.contains(&bind) {
@@ -754,7 +800,7 @@ fn start_management<K, HC>(
     mgmt: &DockerModuleRuntime,
     id_man: &HubIdentityManager<DerivedKeyStore<K>, HC, K>,
     shutdown: Receiver<()>,
-) -> impl Future<Item = (), Error = failure::Error>
+) -> impl Future<Item = (), Error = Error>
 where
     K: 'static + Sign + Clone + Send + Sync,
     HC: 'static + ClientImpl + Send + Sync,
@@ -765,13 +811,20 @@ where
     let url = settings.listen().management_uri().clone();
 
     ManagementService::new(mgmt, id_man)
-        .map(|service| LoggingService::new(label, ApiVersionService::new(service)))
-        .and_then(move |service| {
+        .then(move |service| -> Result<_, Error> {
+            let service = service.context(ErrorKind::Initialize(
+                InitializeErrorReason::ManagementService,
+            ))?;
+            let service = LoggingService::new(label, ApiVersionService::new(service));
+            info!("Listening on {} with 1 thread for management API.", url);
             let run = Http::new()
                 .bind_url(url.clone(), service)
-                .map_err(failure::Fail::compat)?
-                .run_until(shutdown.map_err(|_| ()));
-            info!("Listening on {} with 1 thread for management API.", url);
+                .map_err(|err| {
+                    err.context(ErrorKind::Initialize(
+                        InitializeErrorReason::ManagementService,
+                    ))
+                })?.run_until(shutdown.map_err(|_| ()))
+                .map_err(|err| Error::from(err.context(ErrorKind::ManagementService)));
             Ok(run)
         }).flatten()
 }
@@ -783,7 +836,7 @@ fn start_workload<K, C, W>(
     shutdown: Receiver<()>,
     crypto: &C,
     config: W,
-) -> impl Future<Item = (), Error = failure::Error>
+) -> impl Future<Item = (), Error = Error>
 where
     K: KeyStore + Clone + Send + Sync + 'static,
     C: CreateCertificate
@@ -803,12 +856,19 @@ where
     let url = settings.listen().workload_uri().clone();
 
     WorkloadService::new(key_store, crypto.clone(), runtime, config)
-        .map(|service| LoggingService::new(label, ApiVersionService::new(service)))
-        .and_then(move |service| {
+        .then(move |service| -> Result<_, Error> {
+            let service = service.context(ErrorKind::Initialize(
+                InitializeErrorReason::WorkloadService,
+            ))?;
+            let service = LoggingService::new(label, ApiVersionService::new(service));
             let run = Http::new()
                 .bind_url(url.clone(), service)
-                .map_err(failure::Fail::compat)?
-                .run_until(shutdown.map_err(|_| ()));
+                .map_err(|err| {
+                    err.context(ErrorKind::Initialize(
+                        InitializeErrorReason::WorkloadService,
+                    ))
+                })?.run_until(shutdown.map_err(|_| ()))
+                .map_err(|err| Error::from(err.context(ErrorKind::WorkloadService)));
             info!("Listening on {} with 1 thread for workload API.", url);
             Ok(run)
         }).flatten()
@@ -816,14 +876,17 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use std::fmt;
     use std::io::Read;
+
+    use tempdir::TempDir;
 
     use edgelet_core::ModuleRuntimeState;
     use edgelet_core::{KeyBytes, PrivateKey};
     use edgelet_test_utils::cert::TestCert;
     use edgelet_test_utils::module::*;
-    use tempdir::TempDir;
+
+    use super::*;
 
     #[cfg(unix)]
     static SETTINGS: &str = "test/linux/sample_settings.yaml";
@@ -836,16 +899,19 @@ mod tests {
     static SETTINGS1: &str = "test/windows/sample_settings1.yaml";
 
     #[derive(Clone, Copy, Debug, Fail)]
-    pub enum Error {
-        #[fail(display = "General error")]
-        General,
-    }
+    pub struct Error;
 
-    impl From<Error> for super::Error {
-        fn from(_error: Error) -> Self {
-            super::Error::from(ErrorKind::Var)
+    impl fmt::Display for Error {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            write!(f, "Error")
         }
     }
+
+    // impl From<Error> for super::Error {
+    //     fn from(_error: Error) -> Self {
+    //         super::Error::from(ErrorKind::Var)
+    //     }
+    // }
 
     struct TestCrypto {}
 
@@ -883,8 +949,10 @@ mod tests {
         let main = Main::new(settings);
         let shutdown_signal = signal::shutdown();
         let result = main.run_until(shutdown_signal);
-
-        assert_eq!(ErrorKind::Unconfigured, *result.unwrap_err().kind());
+        match result.unwrap_err().kind() {
+            ErrorKind::Initialize(InitializeErrorReason::NotConfigured) => (),
+            kind => panic!("Expected `NotConfigured` but got {:?}", kind),
+        }
     }
 
     #[test]
