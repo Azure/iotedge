@@ -3,12 +3,6 @@ pr:
   branches:
     include:
       - master
-  paths:
-    include:
-      - builds/*
-      - edgelet/*
-    exclude:
-      - edgelet/hsm-sys/azure-iot-hsm-c/*
 jobs:
 
 ################################################################################
