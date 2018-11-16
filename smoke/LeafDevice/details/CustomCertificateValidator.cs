@@ -82,11 +82,12 @@ namespace LeafDevice.details
 
         bool ValidateCertificate(X509Certificate2 trustedCertificate, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
+            Console.WriteLine("CustomCertificateValidator.ValidateCertificate is called.");
             // Terminate on errors other than those caused by a chain failure
             SslPolicyErrors terminatingErrors = sslPolicyErrors & ~SslPolicyErrors.RemoteCertificateChainErrors;
             if (terminatingErrors != SslPolicyErrors.None)
             {
-                Debug.WriteLine("Discovered SSL session errors: {0}", terminatingErrors);
+                Console.WriteLine("Discovered SSL session errors: {0}", terminatingErrors);
                 return false;
             }
 
@@ -96,13 +97,13 @@ namespace LeafDevice.details
 #if NETSTANDARD2_0
             if (!chain.Build(new X509Certificate2(certificate)))
             {
-                Debug.WriteLine("Unable to build the chain using the expected root certificate.");
+                Console.WriteLine("Unable to build the chain using the expected root certificate.");
                 return false;
             }
 #else
             if (!chain.Build(new X509Certificate2(certificate.Export(X509ContentType.Cert))))
             {
-                Debug.WriteLine("Unable to build the chain using the expected root certificate.");
+                Console.WriteLine("Unable to build the chain using the expected root certificate.");
                 return false;
             }
 #endif
@@ -111,7 +112,7 @@ namespace LeafDevice.details
             X509Certificate2 actualRoot = chain.ChainElements[chain.ChainElements.Count - 1].Certificate;
             if (!trustedCertificate.Equals(actualRoot))
             {
-                Debug.WriteLine("The certificate chain was not signed by the trusted root certificate.");
+                Console.WriteLine("The certificate chain was not signed by the trusted root certificate.");
                 return false;
             }
 
