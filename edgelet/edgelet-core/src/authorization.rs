@@ -1,8 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use error::Error;
+use failure::Fail;
 use futures::future::Either;
 use futures::{future, Future, Stream};
+
+use error::{Error, ErrorKind};
 use module::{Module, ModuleRuntime};
 use pid::Pid;
 
@@ -23,8 +25,6 @@ where
 impl<M> Authorization<M>
 where
     M: 'static + ModuleRuntime,
-    M::Error: Into<Error>,
-    <M::Module as Module>::Error: Into<Error>,
 {
     pub fn new(runtime: M, policy: Policy) -> Self {
         Authorization { runtime, policy }
@@ -57,7 +57,7 @@ where
             |name| Either::B(
                 self.runtime
                     .list_with_details()
-                    .map_err(|e| e.into())
+                    .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime)))
                     .filter_map(move |(m, rs)| if m.name() == name { Some(rs) } else { None })
                     .into_future()
                     .then(move |result| match result {

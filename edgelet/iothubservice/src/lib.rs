@@ -22,10 +22,10 @@ extern crate serde_json;
 extern crate tokio;
 #[cfg(test)]
 extern crate typed_headers;
+#[cfg(test)]
 extern crate url;
 
 extern crate edgelet_http;
-#[macro_use]
 extern crate edgelet_utils;
 
 mod device;
@@ -33,5 +33,5 @@ pub mod error;
 mod model;
 
 pub use device::DeviceClient;
-pub use error::{Error, ErrorKind};
+pub use error::{Error, ErrorKind, ModuleOperationReason};
 pub use model::{AuthMechanism, AuthType, Module, Properties, SymmetricKey, Twin, X509Thumbprint};

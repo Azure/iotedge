@@ -16,11 +16,7 @@ extern crate bytes;
 extern crate chrono;
 extern crate edgelet_core;
 extern crate failure;
-#[macro_use]
-extern crate failure_derive;
-#[macro_use]
 extern crate futures;
-extern crate http;
 extern crate hyper;
 #[cfg(windows)]
 extern crate hyper_named_pipe;
@@ -65,30 +61,30 @@ extern crate url;
 #[cfg(windows)]
 extern crate winapi;
 
-#[macro_use]
 extern crate edgelet_utils;
 
-use std::io;
 #[cfg(unix)]
 use std::net;
 use std::net::ToSocketAddrs;
 #[cfg(unix)]
 use std::os::unix::io::FromRawFd;
-#[cfg(unix)]
-use std::path::Path;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use failure::{Fail, ResultExt};
 use futures::{future, Future, Poll, Stream};
 use hyper::server::conn::Http;
 use hyper::service::{NewService, Service};
-use hyper::{Body, Error as HyperError, Response};
+use hyper::{Body, Response};
+use log::Level;
 #[cfg(unix)]
 use systemd::Socket;
 use tokio::net::TcpListener;
 #[cfg(unix)]
 use tokio_uds::UnixListener;
 use url::Url;
+
+use edgelet_utils::log_failure;
 
 pub mod authorization;
 pub mod client;
@@ -100,7 +96,7 @@ mod unix;
 mod util;
 mod version;
 
-pub use self::error::{Error, ErrorKind};
+pub use self::error::{BindListenerType, Error, ErrorKind, InvalidUrlReason};
 pub use self::util::proxy::MaybeProxyClient;
 pub use self::util::UrlConnector;
 pub use self::version::{ApiVersionService, API_VERSION};
@@ -124,11 +120,11 @@ impl IntoResponse for Response<Body> {
     }
 }
 
-pub struct Run(Box<Future<Item = (), Error = failure::Error> + Send + 'static>);
+pub struct Run(Box<Future<Item = (), Error = Error> + Send + 'static>);
 
 impl Future for Run {
     type Item = ();
-    type Error = failure::Error;
+    type Error = Error;
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
         self.0.poll()
@@ -143,11 +139,12 @@ pub struct Server<S> {
 
 impl<S> Server<S>
 where
-    S: NewService<ReqBody = Body, ResBody = Body, Error = HyperError> + Send + 'static,
-    <S as NewService>::Future: Send,
-    <S as NewService>::Service: Send,
-    <S as NewService>::InitError: std::fmt::Display,
-    <<S as NewService>::Service as Service>::Future: Send,
+    S: NewService<ReqBody = Body, ResBody = Body> + Send + 'static,
+    <S as NewService>::Future: Send + 'static,
+    <S as NewService>::Service: Send + 'static,
+    // <S as NewService>::InitError: std::error::Error + Send + Sync + 'static,
+    <S as NewService>::InitError: Fail,
+    <<S as NewService>::Service as Service>::Future: Send + 'static,
 {
     pub fn run(self) -> Run {
         self.run_until(future::empty())
@@ -175,7 +172,8 @@ where
                 .then(move |srv| match srv {
                     Ok(srv) => Ok((srv, addr)),
                     Err(err) => {
-                        error!("server connection error: ({}) {}", addr, err);
+                        error!("server connection error: ({})", addr);
+                        log_failure(Level::Error, &err);
                         Err(())
                     }
                 }).and_then(move |(srv, addr)| {
@@ -185,7 +183,8 @@ where
                         .then(move |result| match result {
                             Ok(_) => Ok(()),
                             Err(err) => {
-                                error!("server connection error: ({}) {}", addr, err);
+                                error!("server connection error: ({})", addr);
+                                log_failure(Level::Error, &err);
                                 Err(())
                             }
                         })
@@ -203,8 +202,8 @@ where
         let main_execution = shutdown_signal
             .select(srv)
             .then(move |result| match result {
-                Ok(((), _incoming)) => future::ok(()),
-                Err((e, _other)) => future::err(e.into()),
+                Ok(((), _other)) => Ok(()),
+                Err((e, _other)) => Err(Error::from(e.context(ErrorKind::ServiceError))),
             });
 
         Run(Box::new(main_execution))
@@ -214,21 +213,29 @@ where
 pub trait HyperExt {
     fn bind_url<S>(&self, url: Url, new_service: S) -> Result<Server<S>, Error>
     where
-        S: NewService<ReqBody = Body> + 'static;
+        S: NewService<ReqBody = Body>;
 }
 
 impl HyperExt for Http {
     fn bind_url<S>(&self, url: Url, new_service: S) -> Result<Server<S>, Error>
     where
-        S: NewService<ReqBody = Body> + 'static,
+        S: NewService<ReqBody = Body>,
     {
         let incoming = match url.scheme() {
             HTTP_SCHEME | TCP_SCHEME => {
-                let addr = url.to_socket_addrs()?.next().ok_or_else(|| {
-                    io::Error::new(io::ErrorKind::Other, format!("Invalid url: {}", url))
-                })?;
+                let addr = url
+                    .to_socket_addrs()
+                    .context(ErrorKind::InvalidUrl(url.to_string()))?
+                    .next()
+                    .ok_or_else(|| {
+                        ErrorKind::InvalidUrlWithReason(
+                            url.to_string(),
+                            InvalidUrlReason::NoAddress,
+                        )
+                    })?;
 
-                let listener = TcpListener::bind(&addr)?;
+                let listener = TcpListener::bind(&addr)
+                    .with_context(|_| ErrorKind::BindListener(BindListenerType::Address(addr)))?;
                 Incoming::Tcp(listener)
             }
             UNIX_SCHEME => {
@@ -237,28 +244,56 @@ impl HyperExt for Http {
             }
             #[cfg(unix)]
             FD_SCHEME => {
-                let host = url
-                    .host_str()
-                    .ok_or_else(|| Error::from(ErrorKind::InvalidUri(url.to_string())))?;
+                let host = match url.host_str() {
+                    Some(host) => host,
+                    None => {
+                        return Err(ErrorKind::InvalidUrlWithReason(
+                            url.to_string(),
+                            InvalidUrlReason::NoHost,
+                        ).into())
+                    }
+                };
+
+                // Try to parse the host as an FD number, then as an FD name
                 let socket = host
-                    .parse::<usize>()
-                    .map_err(Error::from)
-                    .and_then(|num| systemd::listener(num).map_err(Error::from))
-                    .or_else(|_| systemd::listener_name(host))?;
+                    .parse()
+                    .map_err(|_| ())
+                    .and_then(|num| systemd::listener(num).map_err(|_| ()))
+                    .or_else(|_| systemd::listener_name(host))
+                    .with_context(|_| {
+                        ErrorKind::InvalidUrlWithReason(
+                            url.to_string(),
+                            InvalidUrlReason::FdNeitherNumberNorName,
+                        )
+                    })?;
 
                 match socket {
                     Socket::Inet(fd, _addr) => {
                         let l = unsafe { net::TcpListener::from_raw_fd(fd) };
-                        Incoming::Tcp(TcpListener::from_std(l, &Default::default())?)
+                        Incoming::Tcp(
+                            TcpListener::from_std(l, &Default::default()).with_context(|_| {
+                                ErrorKind::BindListener(BindListenerType::Fd(fd))
+                            })?,
+                        )
                     }
                     Socket::Unix(fd) => {
                         let l = unsafe { ::std::os::unix::net::UnixListener::from_raw_fd(fd) };
-                        Incoming::Unix(UnixListener::from_std(l, &Default::default())?)
+                        Incoming::Unix(
+                            UnixListener::from_std(l, &Default::default()).with_context(|_| {
+                                ErrorKind::BindListener(BindListenerType::Fd(fd))
+                            })?,
+                        )
                     }
-                    _ => Err(Error::from(ErrorKind::InvalidUri(url.to_string())))?,
+                    Socket::Unknown => Err(ErrorKind::InvalidUrlWithReason(
+                        url.to_string(),
+                        InvalidUrlReason::UnrecognizedSocket,
+                    ))?,
                 }
             }
-            _ => Err(Error::from(ErrorKind::InvalidUri(url.to_string())))?,
+            _ => Err(Error::from(ErrorKind::InvalidUrlWithReason(
+                url.to_string(),
+                InvalidUrlReason::InvalidScheme,
+            )))?,
         };
 
         Ok(Server {
@@ -271,30 +306,39 @@ impl HyperExt for Http {
 
 pub trait UrlExt {
     fn to_uds_file_path(&self) -> Result<PathBuf, Error>;
+    fn to_base_path(&self) -> Result<PathBuf, Error>;
 }
 
 impl UrlExt for Url {
-    #[cfg(unix)]
     fn to_uds_file_path(&self) -> Result<PathBuf, Error> {
         debug_assert_eq!(self.scheme(), UNIX_SCHEME);
-        Ok(Path::new(self.path()).to_path_buf())
+
+        if cfg!(windows) {
+            // We get better handling of Windows file syntax if we parse a
+            // unix:// URL as a file:// URL. Specifically:
+            // - On Unix, `Url::parse("unix:///path")?.to_file_path()` succeeds and
+            //   returns "/path".
+            // - On Windows, `Url::parse("unix:///C:/path")?.to_file_path()` fails
+            //   with Err(()).
+            // - On Windows, `Url::parse("file:///C:/path")?.to_file_path()` succeeds
+            //   and returns "C:\\path".
+            debug_assert_eq!(self.scheme(), UNIX_SCHEME);
+            let mut s = self.to_string();
+            s.replace_range(..4, "file");
+            let url = Url::parse(&s).with_context(|_| ErrorKind::InvalidUrl(s.clone()))?;
+            let path = url
+                .to_file_path()
+                .map_err(|()| ErrorKind::InvalidUrl(url.to_string()))?;
+            Ok(path)
+        } else {
+            Ok(Path::new(self.path()).to_path_buf())
+        }
     }
 
-    #[cfg(windows)]
-    fn to_uds_file_path(&self) -> Result<PathBuf, Error> {
-        // We get better handling of Windows file syntax if we parse a
-        // unix:// URL as a file:// URL. Specifically:
-        // - On Unix, `Url::parse("unix:///path")?.to_file_path()` succeeds and
-        //   returns "/path".
-        // - On Windows, `Url::parse("unix:///C:/path")?.to_file_path()` fails
-        //   with Err(()).
-        // - On Windows, `Url::parse("file:///C:/path")?.to_file_path()` succeeds
-        //   and returns "C:\\path".
-        debug_assert_eq!(self.scheme(), UNIX_SCHEME);
-        let mut s = self.to_string();
-        s.replace_range(..4, "file");
-        let url = Url::parse(&s).map_err(|_| Error::from(ErrorKind::InvalidUri(s.clone())))?;
-        url.to_file_path()
-            .map_err(|()| ErrorKind::InvalidUri(s.clone()).into())
+    fn to_base_path(&self) -> Result<PathBuf, Error> {
+        match self.scheme() {
+            "unix" => Ok(self.to_uds_file_path()?),
+            _ => Ok(self.as_str().into()),
+        }
     }
 }

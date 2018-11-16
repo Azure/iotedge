@@ -10,20 +10,20 @@
 
 extern crate edgelet_http;
 extern crate futures;
-extern crate http;
 extern crate hyper;
 
-use edgelet_http::route::{Builder, Parameters, RegexRoutesBuilder, Router};
 use futures::{future, Future, Stream};
-use http::{Request, Response, StatusCode};
 use hyper::service::{NewService, Service};
-use hyper::{Body, Chunk, Error as HyperError};
+use hyper::{Body, Chunk, Request, Response, StatusCode};
+
+use edgelet_http::route::{Builder, Parameters, RegexRoutesBuilder, Router};
+use edgelet_http::Error as HttpError;
 
 #[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
 fn route1(
     _req: Request<Body>,
     params: Parameters,
-) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
     let response = params.name("name").map_or_else(
         || {
             Response::builder()
@@ -45,7 +45,7 @@ fn route1(
 fn route2(
     _req: Request<Body>,
     params: Parameters,
-) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
     let response = params.name("name").map_or_else(
         || {
             Response::builder()
