@@ -6,12 +6,13 @@ use futures::{Poll, Stream};
 use tokio::net::TcpListener;
 #[cfg(unix)]
 use tokio_uds::UnixListener;
+#[cfg(windows)]
+use tokio_uds_windows::UnixListener;
 
 use util::{IncomingSocketAddr, StreamSelector};
 
 pub enum Incoming {
     Tcp(TcpListener),
-    #[cfg(unix)]
     Unix(UnixListener),
 }
 
@@ -33,7 +34,6 @@ impl Stream for Incoming {
                     Some((StreamSelector::Tcp(stream), IncomingSocketAddr::Tcp(addr)))
                 })
             }
-            #[cfg(unix)]
             Incoming::Unix(ref mut listener) => {
                 let accept = match listener.poll_accept() {
                     Ok(accept) => accept,

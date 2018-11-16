@@ -5,12 +5,15 @@ namespace IotEdgeQuickstart.Details
     using System.IO;
     using System.Linq;
     using System.ServiceProcess;
+    using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
 
     class IotedgedWindows : IBootstrapper
     {
+        const string ConfigYamlFile = @"C:\ProgramData\iotedge\config.yaml";
+
         readonly string archivePath;
         readonly Option<RegistryCredentials> credentials;
         readonly Option<string> proxy;
@@ -130,10 +133,48 @@ namespace IotEdgeQuickstart.Details
                 }
 
                 // note: ignore hostname for now
-
+                Console.WriteLine($"Run command to configure: {args}");
                 string[] result = await Process.RunAsync("powershell", args, cts.Token);
                 WriteToConsole("Output from Configure iotedge windows service", result);
+
+                UpdateConfigYamlFile(runtimeLogLevel);
+
+                // Explicitly set IOTEDGE_HOST environment variable to current process
+                SetEnvironmentVariable();
             }
+        }
+
+        static void UpdateConfigYamlFile(LogLevel runtimeLogLevel)
+        {
+            string config = File.ReadAllText(ConfigYamlFile);
+            var doc = new YamlDocument(config);
+            doc.ReplaceOrAdd("agent.env.RuntimeLogLevel", runtimeLogLevel.ToString());
+
+            FileAttributes attr = 0;
+            attr = File.GetAttributes(ConfigYamlFile);
+            File.SetAttributes(ConfigYamlFile, attr & ~FileAttributes.ReadOnly);
+            
+            File.WriteAllText(ConfigYamlFile, doc.ToString());
+
+            if (attr != 0)
+            {
+                File.SetAttributes(ConfigYamlFile, attr);
+            }
+        }
+
+        static void SetEnvironmentVariable()
+        {
+            string config = File.ReadAllText(ConfigYamlFile);
+            var managementUriRegex = new Regex(@"connect:\s*management_uri:\s*""(.*)""");
+            Match result = managementUriRegex.Match(config);
+
+            if (result.Groups.Count != 2)
+            {
+                throw new Exception("can't find management Uri in config file.");
+            }
+
+            Console.WriteLine($"Explicitly set environment variable [IOTEDGE_HOST={result.Groups[1].Value}]");
+            Environment.SetEnvironmentVariable("IOTEDGE_HOST", result.Groups[1].Value);
         }
 
         public Task Start()
@@ -163,7 +204,10 @@ namespace IotEdgeQuickstart.Details
                 throw new Exception($"Error starting iotedged: {e}");
             }
 
+            // Add delay to ensure iotedge service is completely started up.
+            Task.Delay(new TimeSpan(0, 0, 0, 5));
             Console.WriteLine("iotedge service started on Windows");
+            
             return Task.CompletedTask;
         }
 
