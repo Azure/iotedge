@@ -1,11 +1,16 @@
-phases:
+trigger: none
+pr:
+  branches:
+    include:
+      - master
+jobs:
 
 ################################################################################
-  - phase: linux_amd64
+  - job: linux_amd64
 ################################################################################
     displayName: Linux amd64
-    queue:
-      name: Hosted Linux Preview
+    pool:
+      vmImage: 'ubuntu-16.04'
     steps:
       - script: echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
         displayName: Set env variables
@@ -27,7 +32,7 @@ phases:
           filePath: edgelet/build/linux/test.sh
 
 # ################################################################################
-  # - phase: linux_arm32v7
+  # - job: linux_arm32v7
 # ################################################################################
     # displayName: Linux arm32v7
     # queue:
@@ -56,11 +61,11 @@ phases:
           # arguments: --toolchain armv7-unknown-linux-gnueabihf
 
 ################################################################################
-  - phase: windows_amd64
+  - job: windows_amd64
 ################################################################################
     displayName: Windows amd64
-    queue:
-      name: Hosted VS2017
+    pool:
+      vmImage: 'vs2017-win2016'
     steps:
       - powershell: Write-Host ("##vso[task.setvariable variable=NO_VALGRIND;]true")
         displayName: Set env variables
@@ -78,11 +83,11 @@ phases:
           filePath: edgelet/build/windows/test.ps1
 
 ################################################################################
-  - phase: style_check
+  - job: style_check
 ################################################################################
     displayName: Style Check
-    queue:
-      name: Hosted Linux Preview
+    pool:
+      vmImage: 'ubuntu-16.04'
     steps:
       - script: |
           echo "##vso[task.setvariable variable=NO_VALGRIND;]true"

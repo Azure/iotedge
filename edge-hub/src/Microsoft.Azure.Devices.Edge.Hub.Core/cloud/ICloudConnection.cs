@@ -3,7 +3,6 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 {
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public interface ICloudConnection
@@ -13,7 +12,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
         bool IsActive { get; }
 
         Task<bool> CloseAsync();
-
-        Task<ICloudProxy> CreateOrUpdateAsync(IClientCredentials newCredentials);
     }
 }

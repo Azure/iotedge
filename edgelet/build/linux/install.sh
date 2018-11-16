@@ -84,26 +84,26 @@ process_args "$@"
 install_toolchain $TOOLCHAIN true
 
 # Add trusty repo to get older version of libc6-armhf-cross
-add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ trusty main universe"
+sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ trusty main universe"
 
 # Install OpenSSL, curl and uuid and valgrind
-apt-get update && \
-apt-get install -y \
+sudo apt-get update && \
+sudo apt-get install -y \
     pkg-config \
     uuid-dev curl \
     libcurl4-openssl-dev \
     debhelper \
     dh-systemd \
     valgrind && \
-apt-get remove --yes libssl-dev && \
-apt-get install --yes --target-release xenial-updates libssl-dev
+sudo apt-get remove --yes libssl-dev && \
+sudo apt-get install --yes --target-release xenial-updates libssl-dev
 
 if [[ -n "$ARM_PACKAGE" ]]; then
     # armhf cross tools for packaging
     # These packages need to be pinned to a specific version to make
     # the package dependent on the lowest version of glibc possible
 
-    apt-get install -y \
+    sudo apt-get install -y \
         binutils-arm-linux-gnueabihf=2.24-2ubuntu3cross1.98 \
         libsfasan0-armhf-cross=4.8.2-16ubuntu4cross0.11 \
         libsfgcc-4.8-dev-armhf-cross=4.8.2-16ubuntu4cross0.11 \
