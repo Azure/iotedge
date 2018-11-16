@@ -90,26 +90,23 @@ namespace LeafDevice.Details
 
             // Need to use CustomCertificateValidator since we can't automate to install certificate on Windows
             // For details, refer to InstallCaCertificate method
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && !string.IsNullOrEmpty(this.certificateFileName))
             {
                 // This will hook up callback on device transport settings to validate with given certificate
                 CustomCertificateValidator.Create(new List<X509Certificate2> { this.GetCertificate() }, this.deviceTransportSettings);
             }
 
-            this.context.DeviceClientInstance = Option.Some(DeviceClient.CreateFromConnectionString(leafDeviceConnectionString, this.deviceTransportSettings));
-
+            DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(leafDeviceConnectionString, this.deviceTransportSettings);
+            this.context.DeviceClientInstance = Option.Some(deviceClient);
             Console.WriteLine("Leaf Device client created.");
 
             var message = new Message(Encoding.ASCII.GetBytes($"Message from Leaf Device. MsgGUID: {this.context.MessageGuid}"));
             Console.WriteLine($"Trying to send the message to '{this.edgeHostName}'");
 
-            await this.context.DeviceClientInstance.ForEachAsync(
-                async dc =>
-                {
-                    await dc.SendEventAsync(message);
-                    await dc.SetMethodHandlerAsync("DirectMethod", DirectMethod, null).ConfigureAwait(false);
-                    Console.WriteLine($"Message Sent. ");
-                });
+            await deviceClient.SendEventAsync(message);
+            Console.WriteLine("Message Sent.");
+            await deviceClient.SetMethodHandlerAsync("DirectMethod", DirectMethod, null).ConfigureAwait(false);
+            Console.WriteLine("Direct method callback is set.");
         }
 
         protected async Task GetOrCreateDeviceIdentity()
