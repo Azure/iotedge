@@ -116,6 +116,7 @@ namespace LeafDevice.details
                 return false;
             }
 
+            Console.WriteLine("CustomCertificateValidator.ValidateCertificate is passed.");
             return true;
         }
     }
