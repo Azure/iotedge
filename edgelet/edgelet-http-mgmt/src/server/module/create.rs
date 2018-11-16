@@ -55,7 +55,7 @@ where
                         .then(move |result| match result {
                             Ok(_) => Ok(runtime.create(core_spec).then(
                                 move |result| -> Result<_, Error> {
-                                    let _ = result.with_context(|_| {
+                                    result.with_context(|_| {
                                         ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
                                             module_name.clone(),
                                         ))

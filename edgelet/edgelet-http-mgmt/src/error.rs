@@ -124,16 +124,14 @@ impl IntoResponse for Error {
         // Specialize status code based on the underlying docker runtime error, if any
         let status_code =
             if let Some(cause) = self.cause().and_then(Fail::downcast_ref::<DockerError>) {
-                let status_code = match cause.kind() {
+                match cause.kind() {
                     DockerErrorKind::NotFound(_) => StatusCode::NOT_FOUND,
                     DockerErrorKind::Conflict => StatusCode::CONFLICT,
                     DockerErrorKind::NotModified => StatusCode::NOT_MODIFIED,
                     _ => StatusCode::INTERNAL_SERVER_ERROR,
-                };
-
-                status_code
+                }
             } else {
-                let status_code = match self.kind() {
+                match self.kind() {
                     ErrorKind::InvalidApiVersion(_)
                     | ErrorKind::MalformedRequestBody
                     | ErrorKind::MalformedRequestParameter(_)
@@ -142,9 +140,7 @@ impl IntoResponse for Error {
                         error!("Internal server error: {}", message);
                         StatusCode::INTERNAL_SERVER_ERROR
                     }
-                };
-
-                status_code
+                }
             };
 
         // Per the RFC, status code NotModified should not have a body

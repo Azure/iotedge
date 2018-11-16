@@ -662,24 +662,21 @@ mod tests {
 
     #[test]
     fn image_remove_with_empty_name_fails() {
-        let mut mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
+        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
         let name = "";
 
-        let task =
-            <DockerModuleRuntime as ModuleRegistry>::remove(&mut mri, name).then(|res| match res {
-                Ok(_) => Err("Expected error but got a result.".to_string()),
-                Err(err) => match err.kind() {
-                    ErrorKind::RegistryOperation(RegistryOperation::RemoveImage(s))
-                        if s == name =>
-                    {
-                        Ok(())
-                    }
-                    kind => panic!(
-                        "Expected `RegistryOperation(RemoveImage)` error but got {:?}.",
-                        kind
-                    ),
-                },
-            });
+        let task = ModuleRegistry::remove(&mri, name).then(|res| match res {
+            Ok(_) => Err("Expected error but got a result.".to_string()),
+            Err(err) => match err.kind() {
+                ErrorKind::RegistryOperation(RegistryOperation::RemoveImage(s)) if s == name => {
+                    Ok(())
+                }
+                kind => panic!(
+                    "Expected `RegistryOperation(RemoveImage)` error but got {:?}.",
+                    kind
+                ),
+            },
+        });
 
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
@@ -689,24 +686,21 @@ mod tests {
 
     #[test]
     fn image_remove_with_white_space_name_fails() {
-        let mut mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
+        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
         let name = "     ";
 
-        let task =
-            <DockerModuleRuntime as ModuleRegistry>::remove(&mut mri, name).then(|res| match res {
-                Ok(_) => Err("Expected error but got a result.".to_string()),
-                Err(err) => match err.kind() {
-                    ErrorKind::RegistryOperation(RegistryOperation::RemoveImage(s))
-                        if s == name =>
-                    {
-                        Ok(())
-                    }
-                    kind => panic!(
-                        "Expected `RegistryOperation(RemoveImage)` error but got {:?}.",
-                        kind
-                    ),
-                },
-            });
+        let task = ModuleRegistry::remove(&mri, name).then(|res| match res {
+            Ok(_) => Err("Expected error but got a result.".to_string()),
+            Err(err) => match err.kind() {
+                ErrorKind::RegistryOperation(RegistryOperation::RemoveImage(s)) if s == name => {
+                    Ok(())
+                }
+                kind => panic!(
+                    "Expected `RegistryOperation(RemoveImage)` error but got {:?}.",
+                    kind
+                ),
+            },
+        });
 
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
