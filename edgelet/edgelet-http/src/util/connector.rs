@@ -176,10 +176,17 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Socket file could not be found")]
     fn invalid_uds_url() {
-        let _connector =
-            UrlConnector::new(&Url::parse("unix:///this/file/does/not/exist").unwrap()).unwrap();
+        let err = match UrlConnector::new(&Url::parse("unix:///this/file/does/not/exist").unwrap())
+        {
+            Ok(_) => panic!("Expected UrlConnector::new to fail"),
+            Err(err) => err,
+        };
+        if cfg!(windows) {
+            assert!(err.to_string().contains("Invalid URL"));
+        } else {
+            assert!(err.to_string().contains("Socket file could not be found"));
+        }
     }
 
     #[test]
