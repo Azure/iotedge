@@ -4,8 +4,8 @@ phases:
   - phase: linux_amd64
 ################################################################################
     displayName: Linux amd64
-    queue:
-      name: Hosted Linux Preview
+    pool:
+      vmImage: 'ubuntu-16.04'
     steps:
       - script: echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
         displayName: Set env variables
@@ -81,8 +81,8 @@ phases:
   - phase: style_check
 ################################################################################
     displayName: Style Check
-    queue:
-      name: Hosted Linux Preview
+    pool:
+      vmImage: 'ubuntu-16.04'
     steps:
       - script: |
           echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
