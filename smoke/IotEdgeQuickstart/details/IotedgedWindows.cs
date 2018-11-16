@@ -154,23 +154,33 @@ namespace IotEdgeQuickstart.Details
                 string[] result = await Process.RunAsync("powershell", args, cts.Token);
                 WriteToConsole("Output from Configure iotedge windows service", result);
 
-                UpdateConfigYamlFile(runtimeLogLevel);
+                // Stop service and update config file
+                await this.Stop().ConfigureAwait(false);
+
+                UpdateConfigYamlFile(deviceCaCert, deviceCaPk, deviceCaCerts, runtimeLogLevel);
 
                 // Explicitly set IOTEDGE_HOST environment variable to current process
                 SetEnvironmentVariable();
             }
         }
 
-        static void UpdateConfigYamlFile(LogLevel runtimeLogLevel)
+        static void UpdateConfigYamlFile(string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel)
         {
             string config = File.ReadAllText(ConfigYamlFile);
             var doc = new YamlDocument(config);
             doc.ReplaceOrAdd("agent.env.RuntimeLogLevel", runtimeLogLevel.ToString());
 
+            if (!string.IsNullOrEmpty(deviceCaCert) && !string.IsNullOrEmpty(deviceCaPk) && !string.IsNullOrEmpty(deviceCaCerts))
+            {
+                doc.ReplaceOrAdd("certificates.device_ca_cert", deviceCaCert);
+                doc.ReplaceOrAdd("certificates.device_ca_pk", deviceCaPk);
+                doc.ReplaceOrAdd("certificates.trusted_ca_certs", deviceCaCerts);
+            }
+
             FileAttributes attr = 0;
             attr = File.GetAttributes(ConfigYamlFile);
             File.SetAttributes(ConfigYamlFile, attr & ~FileAttributes.ReadOnly);
-            
+
             File.WriteAllText(ConfigYamlFile, doc.ToString());
 
             if (attr != 0)
@@ -214,6 +224,10 @@ namespace IotEdgeQuickstart.Details
                     {
                         throw new Exception("Can't start up iotedge service within timeout period.");
                     }
+                }
+                else
+                {
+                    Console.WriteLine("Iotedge service is already started.");
                 }
             }
             catch (Exception e)
