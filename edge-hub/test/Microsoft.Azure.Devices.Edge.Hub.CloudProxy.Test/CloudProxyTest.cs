@@ -191,6 +191,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             client.VerifyAll();
         }
 
+        [Fact]
+        public async Task TestHandlNre()
+        {
+            // Arrange
+            var messageConverter = Mock.Of<IMessageConverter<Client.Message>>(m => m.FromMessage(It.IsAny<IMessage>()) == new Client.Message());
+            var messageConverterProvider = Mock.Of<IMessageConverterProvider>(m => m.Get<Client.Message>() == messageConverter);
+            string clientId = "d1";
+            var cloudListener = Mock.Of<ICloudListener>();
+            TimeSpan idleTimeout = TimeSpan.FromSeconds(60);
+            Action<string, CloudConnectionStatus> connectionStatusChangedHandler = (s, status) => { };
+            var client = new Mock<IClient>(MockBehavior.Strict);
+            client.Setup(c => c.SendEventAsync(It.IsAny<Client.Message>())).ThrowsAsync(new NullReferenceException());
+            client.Setup(c => c.CloseAsync()).Returns(Task.CompletedTask);
+            var cloudProxy = new CloudProxy(client.Object, messageConverterProvider, clientId, connectionStatusChangedHandler, cloudListener, idleTimeout, false);
+            IMessage message = new EdgeMessage.Builder(new byte[0]).Build();
+
+            // Act
+            await Assert.ThrowsAsync<NullReferenceException>(() => cloudProxy.SendMessageAsync(message));
+
+            // Assert.
+            client.VerifyAll();
+        }
+
         Task<ICloudProxy> GetCloudProxyWithConnectionStringKey(string connectionStringConfigKey) =>
             this.GetCloudProxyWithConnectionStringKey(connectionStringConfigKey, Mock.Of<IEdgeHub>());
 
