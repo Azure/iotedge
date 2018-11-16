@@ -3,15 +3,6 @@ pr:
   branches:
     include:
       - master
-  paths:
-    include:
-      - builds/*
-      - edge-agent/*
-      - edge-hub/*
-      - edge-modules/*
-      - edge-util/*
-      - scripts/*
-      - smoke/*
 jobs:
 
 ################################################################################

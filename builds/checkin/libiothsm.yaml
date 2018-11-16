@@ -3,10 +3,6 @@ pr:
   branches:
     include:
       - master
-  paths:
-    include:
-      - builds/*
-      - edgelet/hsm-sys/*
 jobs:
 
 ################################################################################
