@@ -13,31 +13,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
     /// </summary>
     public class ClientCredentialsFactory : IClientCredentialsFactory
     {
-        readonly string iotHubHostName;
+        readonly IIdentityProvider identityProvider;
         readonly string callerProductInfo;
 
-        public ClientCredentialsFactory(string iotHubHostName)
-            : this(iotHubHostName, string.Empty)
+        public ClientCredentialsFactory(IIdentityProvider identityProvider)
+            : this(identityProvider, string.Empty)
         {
         }
 
-        public ClientCredentialsFactory(string iotHubHostName, string callerProductInfo)
+        public ClientCredentialsFactory(IIdentityProvider identityProvider, string callerProductInfo)
         {
-            this.iotHubHostName = iotHubHostName;
+            this.identityProvider = identityProvider;
             this.callerProductInfo = callerProductInfo;
         }
 
         public IClientCredentials GetWithX509Cert(string deviceId, string moduleId, string deviceClientType)
         {
             string productInfo = string.Join(" ", this.callerProductInfo, deviceClientType).Trim();
-            IIdentity identity = this.GetIdentity(deviceId, moduleId);
+            IIdentity identity = this.identityProvider.Create(deviceId, moduleId);
             return new X509CertCredentials(identity, productInfo);
         }
 
         public IClientCredentials GetWithSasToken(string deviceId, string moduleId, string deviceClientType, string token, bool updatable)
         {
             string productInfo = string.Join(" ", this.callerProductInfo, deviceClientType).Trim();
-            IIdentity identity = this.GetIdentity(deviceId, moduleId);
+            IIdentity identity = this.identityProvider.Create(deviceId, moduleId);
             return new TokenCredentials(identity, token, productInfo, updatable);
         }
 
@@ -45,21 +45,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
         {
             Preconditions.CheckNonWhiteSpace(connectionString, nameof(connectionString));
             IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(connectionString);
-            IIdentity identity = this.GetIdentity(iotHubConnectionStringBuilder.DeviceId, iotHubConnectionStringBuilder.ModuleId);
+            IIdentity identity = this.identityProvider.Create(iotHubConnectionStringBuilder.DeviceId, iotHubConnectionStringBuilder.ModuleId);
             return new SharedKeyCredentials(identity, connectionString, this.callerProductInfo);
         }
 
-        public IClientCredentials GetWithIotEdged(string deviceId, string moduleId)
-        {
-            return new IotEdgedCredentials(this.GetIdentity(deviceId, moduleId), this.callerProductInfo);
-        }
-
-        IIdentity GetIdentity(string deviceId, string moduleId)
-        {
-            IIdentity identity = string.IsNullOrWhiteSpace(moduleId)
-                ? new DeviceIdentity(this.iotHubHostName, deviceId)
-                : new ModuleIdentity(this.iotHubHostName, deviceId, moduleId) as IIdentity;
-            return identity;
-        }
+        public IClientCredentials GetWithIotEdged(string deviceId, string moduleId) =>
+            new IotEdgedCredentials(this.identityProvider.Create(deviceId, moduleId), this.callerProductInfo);
     }
 }

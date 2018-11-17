@@ -31,7 +31,6 @@ extern crate dps;
 extern crate edgelet_core;
 extern crate edgelet_hsm;
 extern crate edgelet_http;
-#[macro_use]
 extern crate edgelet_utils;
 
 pub mod error;

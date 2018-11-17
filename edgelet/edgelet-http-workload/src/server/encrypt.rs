@@ -1,16 +1,18 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use base64;
+use failure::ResultExt;
+use futures::{Future, IntoFuture, Stream};
+use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use hyper::{Body, Request, Response, StatusCode};
+use serde_json;
+
 use edgelet_core::Encrypt;
 use edgelet_http::route::{Handler, Parameters};
-use error::{Error, ErrorKind};
-use failure::ResultExt;
-use futures::{future, Future, Stream};
-use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
-use http::{Request, Response, StatusCode};
-use hyper::{Body, Error as HyperError};
-use serde_json;
+use edgelet_http::Error as HttpError;
 use workload::models::{EncryptRequest, EncryptResponse};
+
+use error::{EncryptionOperation, Error, ErrorKind};
 use IntoResponse;
 
 pub struct EncryptHandler<T: Encrypt> {
@@ -25,53 +27,55 @@ impl<T: Encrypt> EncryptHandler<T> {
 
 impl<T> Handler<Parameters> for EncryptHandler<T>
 where
-    T: Encrypt + 'static + Clone + Send,
+    T: Encrypt + 'static + Clone + Send + Sync,
 {
     fn handle(
         &self,
         req: Request<Body>,
         params: Parameters,
-    ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+    ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
         let hsm = self.hsm.clone();
-        let response = match params
-            .name("name")
-            .ok_or_else(|| Error::from(ErrorKind::BadParam))
-            .and_then(|name| {
-                params
-                    .name("genid")
-                    .ok_or_else(|| Error::from(ErrorKind::BadParam))
-                    .map(|genid| (name, genid))
-            }) {
-            Ok((module_id, genid)) => {
-                let id = format!("{}{}", module_id.to_string(), genid.to_string());
-                let ok = req.into_body().concat2().map(move |b| {
-                    serde_json::from_slice::<EncryptRequest>(&b)
-                        .context(ErrorKind::BadBody)
-                        .map_err(Error::from)
-                        .and_then(|request| {
-                            let plaintext = base64::decode(request.plaintext())?;
-                            let initialization_vector =
-                                base64::decode(request.initialization_vector())?;
-                            hsm.encrypt(id.as_bytes(), &plaintext, &initialization_vector)
-                                .map_err(Error::from)
-                        }).and_then(|ciphertext| {
-                            let encoded = base64::encode(&ciphertext);
-                            let response = EncryptResponse::new(encoded);
-                            let body = serde_json::to_string(&response)
-                                .expect("Generated an invalid EncryptResponse object");
 
-                            Ok(Response::builder()
-                                .status(StatusCode::OK)
-                                .header(CONTENT_TYPE, "application/json")
-                                .header(CONTENT_LENGTH, body.len().to_string().as_str())
-                                .body(body.into())
-                                .expect("Generated an invalid http::Response object"))
-                        }).unwrap_or_else(|e| e.into_response())
-                });
-                future::Either::A(ok)
-            }
-            Err(e) => future::Either::B(future::ok(e.into_response())),
-        };
+        let response = params
+            .name("name")
+            .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("name")))
+            .and_then(|name| {
+                let genid = params
+                    .name("genid")
+                    .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("genid")))?;
+                Ok((name, genid))
+            }).map(|(module_id, genid)| {
+                let id = format!("{}{}", module_id.to_string(), genid.to_string());
+                req.into_body().concat2().then(|body| {
+                    let body =
+                        body.context(ErrorKind::EncryptionOperation(EncryptionOperation::Encrypt))?;
+                    Ok((id, body))
+                })
+            }).into_future()
+            .flatten()
+            .and_then(move |(id, body)| -> Result<_, Error> {
+                let request: EncryptRequest =
+                    serde_json::from_slice(&body).context(ErrorKind::MalformedRequestBody)?;
+                let plaintext =
+                    base64::decode(request.plaintext()).context(ErrorKind::MalformedRequestBody)?;
+                let initialization_vector = base64::decode(request.initialization_vector())
+                    .context(ErrorKind::MalformedRequestBody)?;
+                let ciphertext = hsm
+                    .encrypt(id.as_bytes(), &plaintext, &initialization_vector)
+                    .context(ErrorKind::EncryptionOperation(EncryptionOperation::Encrypt))?;
+                let encoded = base64::encode(&ciphertext);
+                let response = EncryptResponse::new(encoded);
+                let body = serde_json::to_string(&response)
+                    .context(ErrorKind::EncryptionOperation(EncryptionOperation::Encrypt))?;
+                let response = Response::builder()
+                    .status(StatusCode::OK)
+                    .header(CONTENT_TYPE, "application/json")
+                    .header(CONTENT_LENGTH, body.len().to_string().as_str())
+                    .body(body.into())
+                    .context(ErrorKind::EncryptionOperation(EncryptionOperation::Encrypt))?;
+                Ok(response)
+            }).or_else(|e| Ok(e.into_response()));
+
         Box::new(response)
     }
 }
@@ -82,7 +86,7 @@ mod tests {
     use edgelet_core::Error as CoreError;
     use edgelet_http::route::Parameters;
     use futures::Future;
-    use http::{Request, StatusCode};
+    use hyper::{Request, StatusCode};
     use workload::models::EncryptResponse;
     use workload::models::ErrorResponse;
 
@@ -232,7 +236,7 @@ mod tests {
         let response = handler.handle(request, params).wait().unwrap();
 
         assert_eq!(StatusCode::BAD_REQUEST, response.status());
-        assert_response_message_eq("Bad parameter", response);
+        assert_response_message_eq("The request is missing required parameter `name`", response);
     }
 
     #[test]
@@ -243,7 +247,7 @@ mod tests {
         let response = handler.handle(request, params).wait().unwrap();
 
         assert_eq!(StatusCode::BAD_REQUEST, response.status());
-        assert_response_message_eq("Bad parameter", response);
+        assert_response_message_eq("The request is missing required parameter `name`", response);
     }
 
     #[test]
@@ -254,7 +258,10 @@ mod tests {
         let response = handler.handle(request, params).wait().unwrap();
 
         assert_eq!(StatusCode::BAD_REQUEST, response.status());
-        assert_response_message_eq("Bad parameter", response);
+        assert_response_message_eq(
+            "The request is missing required parameter `genid`",
+            response,
+        );
     }
 
     #[test]
@@ -266,7 +273,7 @@ mod tests {
 
         assert_eq!(StatusCode::BAD_REQUEST, response.status());
         assert_response_message_eq(
-            "Bad body\n\tcaused by: expected value at line 1 column 1",
+            "Request body is malformed\n\tcaused by: expected value at line 1 column 1",
             response,
         );
     }
@@ -283,9 +290,9 @@ mod tests {
             let (request, params) = create_args(Some(body), params_ok!());
             let response = handler.handle(request, params).wait().unwrap();
 
-            assert_eq!(StatusCode::UNPROCESSABLE_ENTITY, response.status());
+            assert_eq!(StatusCode::BAD_REQUEST, response.status());
             assert_response_message_eq(
-                "Invalid base64 string\n\tcaused by: Encoded text cannot have a 6-bit remainder.",
+                "Request body is malformed\n\tcaused by: Encoded text cannot have a 6-bit remainder.",
                 response,
             );
         }

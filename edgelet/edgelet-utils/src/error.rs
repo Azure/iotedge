@@ -4,7 +4,6 @@ use std::fmt;
 use std::fmt::Display;
 
 use failure::{Backtrace, Context, Fail};
-use serde_json;
 
 pub type Result<T> = ::std::result::Result<T, Error>;
 
@@ -30,8 +29,8 @@ pub enum ErrorKind {
     )]
     ArgumentEmpty(String),
 
-    #[fail(display = "Serde error")]
-    Serde,
+    #[fail(display = "Could not clone value via serde")]
+    SerdeClone,
 }
 
 impl Fail for Error {
@@ -67,13 +66,5 @@ impl From<ErrorKind> for Error {
 impl From<Context<ErrorKind>> for Error {
     fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
-    }
-}
-
-impl From<serde_json::Error> for Error {
-    fn from(error: serde_json::Error) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Serde),
-        }
     }
 }
