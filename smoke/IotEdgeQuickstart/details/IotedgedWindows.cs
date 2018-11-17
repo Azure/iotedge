@@ -52,6 +52,7 @@ namespace IotEdgeQuickstart.Details
             using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5)))
             {
                 string errorMessage = null;
+                int retryCount = 5;
 
                 try
                 {
@@ -75,17 +76,16 @@ namespace IotEdgeQuickstart.Details
                         }
                         catch (Exception e)
                         {
+                            // Display error and retry for some transient exceptions such as hyper error
                             Console.WriteLine(e);
+                            retryCount--;
 
-                            // Hyper error is treated as a transient exception in this case; therefore need to retry.
-                            if (!e.ToString().Contains("Hyper error", StringComparison.OrdinalIgnoreCase))
+                            if (retryCount == 0)
                             {
                                 throw;
                             }
                         }
-
                         
-
                         if (status == "running") break;
 
                         errorMessage = "Not found";
