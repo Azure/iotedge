@@ -45,7 +45,7 @@ impl Certificate for TestCert {
 
     fn pem(&self) -> Result<Vec<u8>, CoreError> {
         if self.fail_pem {
-            Err(CoreError::from(CoreErrorKind::Io))
+            Err(CoreError::from(CoreErrorKind::KeyStore))
         } else {
             Ok(self.cert.clone())
         }
@@ -53,7 +53,7 @@ impl Certificate for TestCert {
 
     fn get_private_key(&self) -> Result<Option<PrivateKey<Self::KeyBuffer>>, CoreError> {
         if self.fail_private_key {
-            Err(CoreError::from(CoreErrorKind::Io))
+            Err(CoreError::from(CoreErrorKind::KeyStore))
         } else {
             Ok(Some(self.private_key.as_ref().cloned().unwrap()))
         }
@@ -61,7 +61,7 @@ impl Certificate for TestCert {
 
     fn get_valid_to(&self) -> Result<DateTime<Utc>, CoreError> {
         if self.fail_valid_to {
-            Err(CoreError::from(CoreErrorKind::Io))
+            Err(CoreError::from(CoreErrorKind::KeyStore))
         } else {
             Ok(Utc::now())
         }

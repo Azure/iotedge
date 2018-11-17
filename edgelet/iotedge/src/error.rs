@@ -2,11 +2,8 @@
 
 use std::fmt;
 use std::fmt::Display;
-use std::io;
 
-use edgelet_http_mgmt::Error as HttpMgmtError;
 use failure::{Backtrace, Context, Fail};
-use url::ParseError;
 
 #[derive(Debug)]
 pub struct Error {
@@ -15,16 +12,20 @@ pub struct Error {
 
 #[derive(Clone, Copy, Debug, Fail)]
 pub enum ErrorKind {
-    #[fail(display = "A module runtime error occurred.")]
+    #[fail(display = "Invalid value for --host parameter")]
+    BadHostParameter,
+
+    #[fail(display = "Missing --host parameter")]
+    MissingHostParameter,
+
+    #[fail(display = "A module runtime error occurred")]
     ModuleRuntime,
-    #[fail(display = "An IO error occurred.")]
-    Io,
-    #[fail(display = "Cannot parse uri")]
-    UrlParse,
-    #[fail(display = "An error in the management http client occurred.")]
-    HttpMgmt,
-    #[fail(display = "Missing host")]
-    NoHost,
+
+    #[fail(display = "Could not initialize tokio runtime")]
+    InitializeTokio,
+
+    #[fail(display = "Could not write to stdout")]
+    WriteToStdout,
 }
 
 impl Fail for Error {
@@ -43,16 +44,6 @@ impl Display for Error {
     }
 }
 
-impl Error {
-    pub fn new(inner: Context<ErrorKind>) -> Self {
-        Error { inner }
-    }
-
-    pub fn kind(&self) -> &ErrorKind {
-        self.inner.get_context()
-    }
-}
-
 impl From<ErrorKind> for Error {
     fn from(kind: ErrorKind) -> Self {
         Error {
@@ -64,29 +55,5 @@ impl From<ErrorKind> for Error {
 impl From<Context<ErrorKind>> for Error {
     fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
-    }
-}
-
-impl From<io::Error> for Error {
-    fn from(error: io::Error) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Io),
-        }
-    }
-}
-
-impl From<ParseError> for Error {
-    fn from(error: ParseError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::UrlParse),
-        }
-    }
-}
-
-impl From<HttpMgmtError> for Error {
-    fn from(error: HttpMgmtError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::HttpMgmt),
-        }
     }
 }

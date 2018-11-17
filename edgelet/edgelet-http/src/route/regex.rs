@@ -4,7 +4,7 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use std::default::Default;
 
-use http::{Method, StatusCode};
+use hyper::{Method, StatusCode};
 use percent_encoding::percent_decode;
 use regex::Regex;
 

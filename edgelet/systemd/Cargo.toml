@@ -5,7 +5,6 @@ authors = ["Azure IoT Edge Devs"]
 
 [dependencies]
 failure = "0.1"
-failure_derive = "0.1"
 log = "0.4"
 nix = "0.11"
 
