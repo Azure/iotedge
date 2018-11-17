@@ -335,9 +335,9 @@ function Get-SecurityDaemon {
             New-Item $Path -ItemType Directory -Force | Out-Null
             $rule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule(`
                 'NT AUTHORITY\Authenticated Users', 'Modify', 'ObjectInherit', 'InheritOnly', 'Allow')
-            $acl = [System.IO.Directory]::GetAccessControl($path)
+            $acl = Get-Acl -Path $path
             $acl.AddAccessRule($rule)
-            [System.IO.Directory]::SetAccessControl($path, $acl)
+            Set-Acl -Path $path -AclObject $acl
         }
 
         New-Item -Type Directory $EdgeEventLogInstallDirectory -ErrorAction SilentlyContinue -ErrorVariable cmdErr | Out-Null
