@@ -1,11 +1,16 @@
-phases:
+trigger: none
+pr:
+  branches:
+    include:
+      - master
+jobs:
 
 ################################################################################
-  - phase: linux_amd64
+  - job: linux_amd64
 ################################################################################
     displayName: Linux amd64
-    queue:
-      name: Hosted Linux Preview
+    pool:
+      vmImage: 'ubuntu-16.04'
     steps:
       - task: Bash@3
         displayName: Install
@@ -30,11 +35,11 @@ phases:
         condition: succeededOrFailed()
 
 ################################################################################
-  - phase: windows_amd64
+  - job: windows_amd64
 ################################################################################
     displayName: Windows amd64
-    queue:
-      name: Hosted VS2017
+    pool:
+      vmImage: 'vs2017-win2016'
     steps:
       - task: PowerShell@2
         displayName: Install

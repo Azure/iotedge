@@ -10,6 +10,8 @@
 
 #[cfg(unix)]
 extern crate base64;
+#[cfg(unix)]
+extern crate failure;
 extern crate futures;
 extern crate hyper;
 #[macro_use]
@@ -28,6 +30,8 @@ use std::str;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
+#[cfg(unix)]
+use failure::Fail;
 use futures::prelude::*;
 use futures::{future, Stream};
 use hyper::{Body, Error as HyperError, Method, Request, Response};
@@ -66,8 +70,8 @@ fn invalid_image_name_pull_handler(
         .collect();
     assert!(query_map.contains_key("fromImage"));
     assert_eq!(
-        query_map.get("fromImage"),
-        Some(&INVALID_IMAGE_NAME.to_string())
+        query_map.get("fromImage").map(AsRef::as_ref),
+        Some(INVALID_IMAGE_NAME)
     );
 
     let response = format!(
@@ -75,7 +79,7 @@ fn invalid_image_name_pull_handler(
         "message": "manifest for {} not found"
     }}
     "#,
-        &INVALID_IMAGE_NAME.to_string()
+        INVALID_IMAGE_NAME
     );
 
     let response_len = response.len();
@@ -111,8 +115,11 @@ fn image_pull_with_invalid_image_name_fails() {
         .with_password("bleh".to_string())
         .with_email("u1@bleh.com".to_string())
         .with_serveraddress("svr1".to_string());
-    let config =
-        DockerConfig::new(INVALID_IMAGE_NAME, ContainerCreateBody::new(), Some(auth)).unwrap();
+    let config = DockerConfig::new(
+        INVALID_IMAGE_NAME.to_string(),
+        ContainerCreateBody::new(),
+        Some(auth),
+    ).unwrap();
 
     let task = mri.pull(&config);
 
@@ -124,13 +131,25 @@ fn image_pull_with_invalid_image_name_fails() {
         .block_on(task)
         .expect_err("Expected runtime pull method to fail due to invalid image name.");
 
-    if let edgelet_docker::ErrorKind::NotFound(message) = err.kind() {
-        assert_eq!(
-            &format!("manifest for {} not found", &INVALID_IMAGE_NAME.to_string()),
-            message
-        );
-    } else {
-        panic!("Specific docker runtime message is expected for invalid image name.");
+    match (err.kind(), err.cause().and_then(Fail::downcast_ref)) {
+        (
+            edgelet_docker::ErrorKind::RegistryOperation(
+                edgelet_core::RegistryOperation::PullImage(name),
+            ),
+            Some(edgelet_docker::ErrorKind::NotFound(message)),
+        )
+            if name == INVALID_IMAGE_NAME =>
+        {
+            assert_eq!(
+                &format!("manifest for {} not found", INVALID_IMAGE_NAME),
+                message
+            );
+        }
+
+        _ => panic!(
+            "Specific docker runtime message is expected for invalid image name. Got {:?}",
+            err.kind()
+        ),
     }
 }
 
@@ -148,8 +167,8 @@ fn invalid_image_host_pull_handler(
         .collect();
     assert!(query_map.contains_key("fromImage"));
     assert_eq!(
-        query_map.get("fromImage"),
-        Some(&INVALID_IMAGE_HOST.to_string())
+        query_map.get("fromImage").map(AsRef::as_ref),
+        Some(INVALID_IMAGE_HOST)
     );
 
     let response = format!(
@@ -158,7 +177,7 @@ fn invalid_image_host_pull_handler(
         "message":"Get https://invalidhost.com: dial tcp: lookup {} on X.X.X.X: no such host"
     }}
     "#,
-        &INVALID_IMAGE_HOST.to_string()
+        INVALID_IMAGE_HOST
     );
     let response_len = response.len();
 
@@ -192,8 +211,11 @@ fn image_pull_with_invalid_image_host_fails() {
         .with_password("bleh".to_string())
         .with_email("u1@bleh.com".to_string())
         .with_serveraddress("svr1".to_string());
-    let config =
-        DockerConfig::new(INVALID_IMAGE_HOST, ContainerCreateBody::new(), Some(auth)).unwrap();
+    let config = DockerConfig::new(
+        INVALID_IMAGE_HOST.to_string(),
+        ContainerCreateBody::new(),
+        Some(auth),
+    ).unwrap();
 
     let task = mri.pull(&config);
 
@@ -205,16 +227,28 @@ fn image_pull_with_invalid_image_host_fails() {
         .block_on(task)
         .expect_err("Expected runtime pull method to fail due to invalid image host.");
 
-    if let edgelet_docker::ErrorKind::FormattedDockerRuntime(message) = err.kind() {
-        assert_eq!(
-            &format!(
-                "Get https://invalidhost.com: dial tcp: lookup {} on X.X.X.X: no such host",
-                &INVALID_IMAGE_HOST.to_string()
+    match (err.kind(), err.cause().and_then(Fail::downcast_ref)) {
+        (
+            edgelet_docker::ErrorKind::RegistryOperation(
+                edgelet_core::RegistryOperation::PullImage(name),
             ),
-            message
-        );
-    } else {
-        panic!("Specific docker runtime message is expected for invalid image host.");
+            Some(edgelet_docker::ErrorKind::FormattedDockerRuntime(message)),
+        )
+            if name == INVALID_IMAGE_HOST =>
+        {
+            assert_eq!(
+                &format!(
+                    "Get https://invalidhost.com: dial tcp: lookup {} on X.X.X.X: no such host",
+                    INVALID_IMAGE_HOST
+                ),
+                message
+            );
+        }
+
+        _ => panic!(
+            "Specific docker runtime message is expected for invalid image host. Got {:?}",
+            err.kind()
+        ),
     }
 }
 
@@ -288,7 +322,11 @@ fn image_pull_with_invalid_creds_fails() {
         .with_password("wrong_password".to_string())
         .with_email("u1@bleh.com".to_string())
         .with_serveraddress("svr1".to_string());
-    let config = DockerConfig::new(IMAGE_NAME, ContainerCreateBody::new(), Some(auth)).unwrap();
+    let config = DockerConfig::new(
+        IMAGE_NAME.to_string(),
+        ContainerCreateBody::new(),
+        Some(auth),
+    ).unwrap();
 
     let task = mri.pull(&config);
 
@@ -300,16 +338,28 @@ fn image_pull_with_invalid_creds_fails() {
         .block_on(task)
         .expect_err("Expected runtime pull method to fail due to unauthentication.");
 
-    if let edgelet_docker::ErrorKind::FormattedDockerRuntime(message) = err.kind() {
-        assert_eq!(
-            &format!(
-                "Get {}: unauthorized: authentication required",
-                &IMAGE_NAME.to_string()
+    match (err.kind(), err.cause().and_then(Fail::downcast_ref)) {
+        (
+            edgelet_docker::ErrorKind::RegistryOperation(
+                edgelet_core::RegistryOperation::PullImage(name),
             ),
-            message
-        );
-    } else {
-        panic!("Specific docker runtime message is expected for unauthentication.");
+            Some(edgelet_docker::ErrorKind::FormattedDockerRuntime(message)),
+        )
+            if name == IMAGE_NAME =>
+        {
+            assert_eq!(
+                &format!(
+                    "Get {}: unauthorized: authentication required",
+                    &IMAGE_NAME.to_string()
+                ),
+                message
+            );
+        }
+
+        _ => panic!(
+            "Specific docker runtime message is expected for unauthentication. Got {:?}",
+            err.kind()
+        ),
     }
 }
 
@@ -365,7 +415,11 @@ fn image_pull_succeeds() {
         .with_password("bleh".to_string())
         .with_email("u1@bleh.com".to_string())
         .with_serveraddress("svr1".to_string());
-    let config = DockerConfig::new(IMAGE_NAME, ContainerCreateBody::new(), Some(auth)).unwrap();
+    let config = DockerConfig::new(
+        IMAGE_NAME.to_string(),
+        ContainerCreateBody::new(),
+        Some(auth),
+    ).unwrap();
 
     let task = mri.pull(&config);
 
@@ -441,7 +495,11 @@ fn image_pull_with_creds_succeeds() {
         .with_password("bleh".to_string())
         .with_email("u1@bleh.com".to_string())
         .with_serveraddress("svr1".to_string());
-    let config = DockerConfig::new(IMAGE_NAME, ContainerCreateBody::new(), Some(auth)).unwrap();
+    let config = DockerConfig::new(
+        IMAGE_NAME.to_string(),
+        ContainerCreateBody::new(),
+        Some(auth),
+    ).unwrap();
 
     let task = mri.pull(&config);
 
@@ -613,9 +671,9 @@ fn container_create_succeeds() {
         .with_volumes(volumes);
 
     let module_config = ModuleSpec::new(
-        "m1",
-        "docker",
-        DockerConfig::new("nginx:latest", create_options, None).unwrap(),
+        "m1".to_string(),
+        "docker".to_string(),
+        DockerConfig::new("nginx:latest".to_string(), create_options, None).unwrap(),
         env,
     ).unwrap();
 

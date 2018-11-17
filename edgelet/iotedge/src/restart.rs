@@ -3,10 +3,12 @@
 use std::io::Write;
 use std::sync::{Arc, Mutex};
 
-use edgelet_core::ModuleRuntime;
+use failure::{Fail, ResultExt};
 use futures::Future;
 
-use error::Error;
+use edgelet_core::ModuleRuntime;
+
+use error::{Error, ErrorKind};
 use Command;
 
 pub struct Restart<M, W> {
@@ -28,7 +30,6 @@ impl<M, W> Restart<M, W> {
 impl<M, W> Command for Restart<M, W>
 where
     M: 'static + ModuleRuntime + Clone,
-    M::Error: Into<Error>,
     W: 'static + Write + Send,
 {
     type Future = Box<Future<Item = (), Error = Error> + Send>;
@@ -39,10 +40,10 @@ where
         let result = self
             .runtime
             .restart(&id)
-            .map_err(|e| e.into())
+            .map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)))
             .and_then(move |_| {
                 let mut w = write.lock().unwrap();
-                writeln!(w, "{}", id)?;
+                writeln!(w, "{}", id).context(ErrorKind::WriteToStdout)?;
                 Ok(())
             });
         Box::new(result)

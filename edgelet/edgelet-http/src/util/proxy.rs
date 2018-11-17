@@ -57,8 +57,7 @@ mod tests {
     use super::super::super::client::ClientImpl;
     use super::MaybeProxyClient;
     use futures::Future;
-    use http::Request;
-    use hyper::{StatusCode, Uri};
+    use hyper::{Request, StatusCode, Uri};
 
     #[test]
     fn can_create_client() {

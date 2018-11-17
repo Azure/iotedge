@@ -5,10 +5,7 @@ use std::fmt::Display;
 
 use failure::{Backtrace, Context, Fail};
 
-use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind};
-use edgelet_http::{Error as HttpError, ErrorKind as HttpErrorKind};
-use edgelet_utils::Error as UtilsError;
-use iothubservice::error::{Error as HubServiceError, ErrorKind as HubServiceErrorKind};
+use edgelet_core::IdentityOperation;
 
 #[derive(Debug)]
 pub struct Error {
@@ -17,22 +14,20 @@ pub struct Error {
 
 #[derive(Debug, Fail)]
 pub enum ErrorKind {
-    #[fail(display = "An IO error occurred.")]
-    Io,
-    #[fail(display = "Utils error")]
-    Utils,
-    #[fail(display = "IoT Hub service error")]
-    HubService,
     #[fail(display = "KeyStore could not fetch keys for module {}", _0)]
     CannotGetKey(String),
-    #[fail(display = "Core error occurred.")]
-    Core,
-    #[fail(display = "Failed to get sas token.")]
-    TokenSource,
-    #[fail(display = "Invalid IoT Hub response")]
-    InvalidHubResponse,
-    #[fail(display = "Generation Id was not provided")]
-    MissingGenerationId,
+
+    #[fail(display = "Could not create identity {}: {}", _0, _1)]
+    CreateIdentityWithReason(String, IdentityOperationReason),
+
+    #[fail(display = "Could not get SAS token")]
+    GetToken,
+
+    #[fail(display = "{}", _0)]
+    IdentityOperation(IdentityOperation),
+
+    #[fail(display = "Could not update identity {}: {}", _0, _1)]
+    UpdateIdentityWithReason(String, IdentityOperationReason),
 }
 
 impl Fail for Error {
@@ -75,44 +70,19 @@ impl From<Context<ErrorKind>> for Error {
     }
 }
 
-impl From<UtilsError> for Error {
-    fn from(error: UtilsError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Utils),
+#[derive(Clone, Copy, Debug)]
+pub enum IdentityOperationReason {
+    InvalidHubResponse,
+    MissingGenerationId,
+}
+
+impl fmt::Display for IdentityOperationReason {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            IdentityOperationReason::InvalidHubResponse => write!(f, "Invalid IoT Hub response"),
+            IdentityOperationReason::MissingGenerationId => {
+                write!(f, "Generation Id was not provided")
+            }
         }
-    }
-}
-
-impl From<HubServiceError> for Error {
-    fn from(error: HubServiceError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::HubService),
-        }
-    }
-}
-
-impl From<Error> for HubServiceError {
-    fn from(error: Error) -> Self {
-        HubServiceError::from(error.context(HubServiceErrorKind::Token))
-    }
-}
-
-impl From<CoreError> for Error {
-    fn from(error: CoreError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Core),
-        }
-    }
-}
-
-impl From<Error> for CoreError {
-    fn from(err: Error) -> Self {
-        CoreError::from(err.context(CoreErrorKind::Identity))
-    }
-}
-
-impl From<Error> for HttpError {
-    fn from(err: Error) -> Self {
-        HttpError::from(err.context(HttpErrorKind::TokenSource))
     }
 }
