@@ -75,10 +75,11 @@ namespace IotEdgeQuickstart.Details
                         catch (Exception e)
                         {
                             // Display error and retry for some transient exceptions such as hyper error
-                            Console.WriteLine(e);
+                            string exceptionDetails = e.ToString();
+                            Console.WriteLine(exceptionDetails);
                             retryCount--;
 
-                            if (e.ToString().Contains("Could not list modules", StringComparison.OrdinalIgnoreCase))
+                            if (exceptionDetails.Contains("Could not list modules", StringComparison.OrdinalIgnoreCase))
                             {
                                 Console.WriteLine("Workaround: restart iotedge service.");
                                 await this.Restart().ConfigureAwait(true);
