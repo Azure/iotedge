@@ -58,8 +58,6 @@ namespace IotEdgeQuickstart.Details
                 {
                     while (true)
                     {
-                        await Task.Delay(TimeSpan.FromSeconds(3), cts.Token);
-
                         string status = string.Empty;
 
                         try
@@ -80,13 +78,27 @@ namespace IotEdgeQuickstart.Details
                             Console.WriteLine(e);
                             retryCount--;
 
+                            if (e.ToString().Contains("Could not list modules", StringComparison.OrdinalIgnoreCase))
+                            {
+                                Console.WriteLine("Workaround: restart iotedge service.");
+                                await this.Restart().ConfigureAwait(true);
+                                await Task.Delay(TimeSpan.FromSeconds(10), cts.Token);
+                            }
+
                             if (retryCount == 0)
                             {
                                 throw;
                             }
                         }
-                        
-                        if (status == "running") break;
+
+                        if (status == "running")
+                        {
+                            break;
+                        }
+                        else
+                        {
+                            await Task.Delay(TimeSpan.FromSeconds(5), cts.Token);
+                        }
 
                         errorMessage = "Not found";
                     }
@@ -245,6 +257,12 @@ namespace IotEdgeQuickstart.Details
         public async Task Stop()
         {
             await Process.RunAsync("powershell", "Stop-Service -NoWait iotedge");
+            await Task.Delay(TimeSpan.FromSeconds(3));
+        }
+
+        public async Task Restart()
+        {
+            await Process.RunAsync("powershell", "Restart-Service iotedge");
             await Task.Delay(TimeSpan.FromSeconds(3));
         }
 
