@@ -8,9 +8,7 @@ publish = false
 base64 = "0.9"
 chrono = { version = "0.4", features = ["serde"] }
 failure = "0.1.2"
-failure_derive = "0.1"
 futures = "0.1"
-http = "0.1"
 hyper = "0.12"
 log = "0.4"
 serde = "1.0"

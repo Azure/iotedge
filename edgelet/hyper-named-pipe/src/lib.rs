@@ -10,12 +10,9 @@
 #![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
 #![cfg_attr(feature = "cargo-clippy", allow(stutter, use_self))]
 
+extern crate edgelet_utils;
 #[macro_use]
 extern crate failure;
-// NOTE: Import edgelet_utils after failure so that the `edgelet_utils::bail!` macro
-// is in scope, rather than `failure::bail!`
-#[macro_use]
-extern crate edgelet_utils;
 extern crate futures;
 extern crate hex;
 extern crate hyper;

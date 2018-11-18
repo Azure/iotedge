@@ -3,7 +3,6 @@
 use std::fmt;
 use std::fmt::Display;
 
-use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind};
 use failure::{Backtrace, Context, Fail};
 use hsm::Error as HsmError;
 
@@ -71,11 +70,5 @@ impl From<HsmError> for Error {
         Error {
             inner: error.context(ErrorKind::Hsm),
         }
-    }
-}
-
-impl From<Error> for CoreError {
-    fn from(error: Error) -> Self {
-        CoreError::from(error.context(CoreErrorKind::KeyStore))
     }
 }
