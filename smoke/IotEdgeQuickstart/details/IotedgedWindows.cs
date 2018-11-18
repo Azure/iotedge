@@ -72,18 +72,26 @@ namespace IotEdgeQuickstart.Details
                                 .Split(null as char[], StringSplitOptions.RemoveEmptyEntries)
                                 .ElementAt(1);  // second column is STATUS
                         }
-                        catch (Exception e)
+                        catch (Exception listOperationException)
                         {
                             // Display error and retry for some transient exceptions such as hyper error
-                            string exceptionDetails = e.ToString();
+                            string exceptionDetails = listOperationException.ToString();
                             Console.WriteLine(exceptionDetails);
                             retryCount--;
 
                             if (exceptionDetails.Contains("Could not list modules", StringComparison.OrdinalIgnoreCase))
                             {
-                                Console.WriteLine("Workaround: restart iotedge service.");
-                                await this.Restart().ConfigureAwait(true);
-                                await Task.Delay(TimeSpan.FromSeconds(10), cts.Token);
+                                try
+                                {
+                                    Console.WriteLine("Workaround: restart iotedge service.");
+                                    await this.Restart().ConfigureAwait(true);
+                                    await Task.Delay(TimeSpan.FromSeconds(10), cts.Token);
+                                }
+                                catch (Exception restartOperationException)
+                                {
+                                    // Eat it up and let it retry in next iteration
+                                    Console.WriteLine(restartOperationException);
+                                }
                             }
 
                             if (retryCount == 0)
