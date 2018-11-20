@@ -17,14 +17,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     /// </summary>
     class CloudConnection : ICloudConnection
     {
-        const uint OperationTimeoutMilliseconds = 20 * 1000; // 20 secs
-
         readonly ITransportSettings[] transportSettingsList;
         readonly IMessageConverterProvider messageConverterProvider;
         readonly IClientProvider clientProvider;
         readonly ICloudListener cloudListener;
         readonly TimeSpan idleTimeout;
         readonly bool closeOnIdleTimeout;
+        readonly TimeSpan operationTimeout;
         Option<ICloudProxy> cloudProxy;
 
         protected CloudConnection(
@@ -35,7 +34,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             IClientProvider clientProvider,
             ICloudListener cloudListener,
             TimeSpan idleTimeout,
-            bool closeOnIdleTimeout)
+            bool closeOnIdleTimeout,
+            TimeSpan operationTimeout)
         {
             this.Identity = Preconditions.CheckNotNull(identity, nameof(identity));
             this.ConnectionStatusChangedHandler = connectionStatusChangedHandler;
@@ -58,7 +58,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             ICloudListener cloudListener,
             ITokenProvider tokenProvider,
             TimeSpan idleTimeout,
-            bool closeOnIdleTimeout)
+            bool closeOnIdleTimeout,
+            TimeSpan operationTimeout)
         {
             Preconditions.CheckNotNull(tokenProvider, nameof(tokenProvider));
             var cloudConnection = new CloudConnection(
@@ -69,7 +70,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 clientProvider,
                 cloudListener,
                 idleTimeout,
-                closeOnIdleTimeout);
+                closeOnIdleTimeout,
+                operationTimeout);
             ICloudProxy cloudProxy = await cloudConnection.CreateNewCloudProxyAsync(tokenProvider);
             cloudConnection.cloudProxy = Option.Some(cloudProxy);
             return cloudConnection;
@@ -110,7 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             Events.AttemptingConnectionWithTransport(this.transportSettingsList, this.Identity);
             IClient client = this.clientProvider.Create(this.Identity, newTokenProvider, this.transportSettingsList);
 
-            client.SetOperationTimeoutInMilliseconds(OperationTimeoutMilliseconds);
+            client.SetOperationTimeoutInMilliseconds((uint)this.operationTimeout.TotalMilliseconds);
             client.SetConnectionStatusChangedHandler(this.InternalConnectionStatusChangesHandler);
 
             // TODO: Add support for ProductInfo 
@@ -120,7 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             //}
 
             await client.OpenAsync();
-            Events.CreateDeviceClientSuccess(this.transportSettingsList, OperationTimeoutMilliseconds, this.Identity);
+            Events.CreateDeviceClientSuccess(this.transportSettingsList, this.operationTimeout, this.Identity);
             return client;
         }
 
@@ -182,7 +184,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Log.LogInformation((int)EventIds.AttemptingTransport, $"Attempting to connect to IoT Hub for client {identity.Id} via {transportType}...");
             }
 
-            public static void CreateDeviceClientSuccess(ITransportSettings[] transportSettings, uint timeout, IIdentity identity)
+            public static void CreateDeviceClientSuccess(ITransportSettings[] transportSettings, TimeSpan timeout, IIdentity identity)
             {
                 string transportType = transportSettings.Length == 1
                     ? TransportName(transportSettings[0].GetTransportType())
