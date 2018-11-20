@@ -78,6 +78,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             app.UseAuthenticationMiddleware(iotHubHostname, edgeDeviceId);
 
+            app.Use(async (context, next) =>
+            {
+                // Response header is added to prevent MIME type sniffing 
+                context.Response.Headers.Add("X-Content-Type-Options", "nosniff");
+                await next();
+            });
+
             app.UseMvc();
         }
     }
