@@ -9,26 +9,48 @@ New-Module -Name IotEdgeSecurityDaemon -ScriptBlock {
 #requires -Version 5
 #requires -RunAsAdministrator
 
+Set-Variable Windows1607 -Value 14393 -Option Constant
+Set-Variable Windows1803 -Value 17134 -Option Constant
+Set-Variable Windows1809 -Value 17763 -Option Constant
+
+Set-Variable MinBuildForLinuxContainers -Value $Windows1607
+Set-Variable SupportedBuildsForWindowsContainers -Value @($Windows1809)
+
+Set-Variable DockerServiceName -Value 'docker' -Option Constant
+
+Set-Variable EdgeInstallDirectory -Value 'C:\ProgramData\iotedge' -Option Constant
+Set-Variable EdgeEventLogName -Value 'iotedged' -Option Constant
+Set-Variable EdgeEventLogInstallDirectory -Value 'C:\ProgramData\iotedge-eventlog' -Option Constant
+Set-Variable EdgeServiceName -Value 'iotedge' -Option Constant
+
+Set-Variable MobyInstallDirectory -Value 'C:\ProgramData\iotedge-moby' -Option Constant
+Set-Variable MobyNamedPipeUrl -Value 'npipe://./pipe/iotedge_moby_engine' -Option Constant
+Set-Variable MobyServiceName -Value 'iotedge-moby' -Option Constant
+
+enum ContainerOs {
+    Linux
+    Windows
+}
+
 function Install-SecurityDaemon {
     [CmdletBinding()]
     param (
-        [Parameter(ParameterSetName = "Manual")]
+        [Parameter(ParameterSetName = 'Manual')]
         [Switch] $Manual,
 
-        [Parameter(ParameterSetName = "DPS")]
+        [Parameter(ParameterSetName = 'DPS')]
         [Switch] $Dps,
 
-        [Parameter(Mandatory = $true, ParameterSetName = "Manual")]
+        [Parameter(Mandatory = $true, ParameterSetName = 'Manual')]
         [String] $DeviceConnectionString,
 
-        [Parameter(Mandatory = $true, ParameterSetName = "DPS")]
+        [Parameter(Mandatory = $true, ParameterSetName = 'DPS')]
         [String] $ScopeId,
 
-        [Parameter(Mandatory = $true, ParameterSetName = "DPS")]
+        [Parameter(Mandatory = $true, ParameterSetName = 'DPS')]
         [String] $RegistrationId,
 
-        [ValidateSet("Linux", "Windows")]
-        [String] $ContainerOs = "Linux",
+        [ContainerOs] $ContainerOs = 'Linux',
 
         # Proxy URI
         [Uri] $Proxy,
@@ -46,16 +68,18 @@ function Install-SecurityDaemon {
         [SecureString] $Password
     )
 
-    $ErrorActionPreference = "Stop"
+    $ErrorActionPreference = 'Stop'
     Set-StrictMode -Version 5
 
-    Set-Variable Windows1607 -Value 14393 -Option Constant
-    Set-Variable Windows1803 -Value 17134 -Option Constant
-    Set-Variable Windows1809 -Value 17763 -Option Constant
-
     if (Test-EdgeAlreadyInstalled) {
-        Write-Host ("`nIoT Edge is already installed. To reinstall, run 'Uninstall-SecurityDaemon' first.") `
-            -ForegroundColor "Red"
+        Write-HostRed
+        Write-HostRed 'IoT Edge is already installed. To reinstall, run `Uninstall-SecurityDaemon` first.'
+        return
+    }
+
+    if (Test-MobyAlreadyInstalled) {
+        Write-HostRed
+        Write-HostRed 'IoT Edge Moby Runtime is already installed. To reinstall, run `Uninstall-SecurityDaemon` first.'
         return
     }
 
@@ -63,10 +87,44 @@ function Install-SecurityDaemon {
         return
     }
 
-    if (-not (Test-IsDockerRunning) -or -not (Test-IsKernelValid)) {
-        Write-Host ("`nThe prerequisites for installation of the IoT Edge Security daemon are not met. " +
-            "Please fix all known issues before rerunning this script.") `
-            -ForegroundColor "Red"
+    $currentWindowsBuild = Get-WindowsBuild
+    $preRequisitesMet = switch ($ContainerOs) {
+        'Linux' {
+            if ($currentWindowsBuild -lt $MinBuildForLinuxContainers) {
+                Write-HostRed "The container host is on unsupported build version $currentWindowsBuild."
+                Write-HostRed "Please use a container host running build $MinBuildForLinuxContainers or newer for running Linux containers."
+                $false
+            }
+            elseif (-not (Test-IsDockerRunning)) {
+                $false
+            }
+            else {
+                $true
+            }
+        }
+
+        'Windows' {
+            if ($SupportedBuildsForWindowsContainers -notcontains $currentWindowsBuild) {
+                Write-HostRed "The container host is on unsupported build version $currentWindowsBuild."
+                Write-HostRed 'Please use a container host running one of the following build versions for running Windows containers:'
+                foreach ($version in $SupportedBuildsForWindowsContainers) {
+                    Write-HostRed "$version"
+                }
+
+                $false
+            }
+            else {
+                $true
+            }
+        }
+    }
+    if ($preRequisitesMet) {
+        Write-HostGreen "The container host is on supported build version $currentWindowsBuild."
+    }
+    else {
+        Write-HostRed
+        Write-HostRed ('The prerequisites for installation of the IoT Edge Security daemon are not met. ' +
+            'Please fix all known issues before rerunning this script.')
         return
     }
 
@@ -82,30 +140,30 @@ function Install-SecurityDaemon {
             [System.Net.ServicePointManager]::SecurityProtocol -bor [System.Net.SecurityProtocolType]::Tls12
     }
 
-    $usesSeparateDllForEventLogMessages = Get-SecurityDaemon
-    Set-SystemPath
+    # Download
+    Get-SecurityDaemon
     Get-VcRuntime
-    Add-FirewallExceptions
-    Add-IotEdgeRegistryKey -UsesSeparateDllForEventLogMessages:$usesSeparateDllForEventLogMessages
 
+    # Update config.yaml
     Set-ProvisioningMode
     Set-AgentImage
     Set-Hostname
-    Set-MobyNetwork
-    if (-not (Test-UdsSupport)) {
-        Set-GatewayAddress
-    }
-    Install-IotEdgeService
+    Set-MobyRuntimeParameters
 
-    Write-Host ("`nThis device is now provisioned with the IoT Edge runtime.`n" +
-        "Check the status of the IoT Edge service with `"Get-Service iotedge`"`n" +
-        "List running modules with `"iotedge list`"`n" +
-        "Display logs from the last five minutes in chronological order with`n" +
-        "    Get-WinEvent -ea SilentlyContinue -FilterHashtable @{ProviderName=`"iotedged`";LogName=`"application`";StartTime=[datetime]::Now.AddMinutes(-5)} |`n" +
-        "    Select TimeCreated, Message |`n" +
-        "    Sort-Object @{Expression=`"TimeCreated`";Descending=`$false} |`n" +
-        "    Format-Table -AutoSize -Wrap") `
-        -ForegroundColor "Green"
+    # Register services
+    Set-SystemPath
+    Add-IotEdgeRegistryKey
+    Install-Services
+
+    Write-HostGreen
+    Write-HostGreen 'This device is now provisioned with the IoT Edge runtime.'
+    Write-HostGreen 'Check the status of the IoT Edge service with `Get-Service iotedge`'
+    Write-HostGreen 'List running modules with `iotedge list`'
+    Write-HostGreen 'Display logs from the last five minutes in chronological order with'
+    Write-HostGreen '    Get-WinEvent -ea SilentlyContinue -FilterHashtable @{ProviderName=''iotedged'';LogName=''application'';StartTime=[datetime]::Now.AddMinutes(-5)} |'
+    Write-HostGreen '    Select TimeCreated, Message |'
+    Write-HostGreen '    Sort-Object @{Expression=''TimeCreated'';Descending=$false} |'
+    Write-HostGreen '    Format-Table -AutoSize -Wrap'
 }
 
 function Uninstall-SecurityDaemon {
@@ -114,561 +172,553 @@ function Uninstall-SecurityDaemon {
         [Switch] $Force
     )
 
-    $ErrorActionPreference = "Stop"
+    $ErrorActionPreference = 'Stop'
     Set-StrictMode -Version 5
 
-    if (-not $Force -and -not (Test-EdgeAlreadyInstalled)) {
-        Write-Host ("`nIoT Edge is not installed. Use '-Force' to uninstall anyway.") `
-            -ForegroundColor "Red"
+    if (-not $Force -and -not ((Test-EdgeAlreadyInstalled) -or (Test-MobyAlreadyInstalled))) {
+        Write-HostRed
+        Write-HostRed 'IoT Edge is not installed. Use `-Force` to uninstall anyway.'
         return
     }
 
-    Write-Host "Uninstalling..."
+    Write-Host 'Uninstalling...'
 
     $ContainerOs = Get-ContainerOs
 
-    Uninstall-IotEdgeService
+    Uninstall-Services
     Stop-IotEdgeContainers
     $success = Remove-SecurityDaemonResources
     Reset-SystemPath
     Remove-FirewallExceptions
 
     if ($success) {
-        Write-Host "Successfully uninstalled IoT Edge." -ForegroundColor "Green"
+        Write-HostGreen 'Successfully uninstalled IoT Edge.'
     }
 }
 
 function Test-IsDockerRunning {
-    $DockerService = Get-Service "*docker*"
-    if ($DockerService -and $DockerService.Status -eq "Running") {
-        Write-Host "Docker is running." -ForegroundColor "Green"
-        $DockerCliExe = "$env:ProgramFiles\Docker\Docker\DockerCli.exe"
-        if ($ContainerOs -eq "Windows" -and (Get-ContainerOs) -ne "Windows") {
-            if (-not (Test-Path -Path $DockerCliExe)) {
-                throw "Unable to switch to Windows containers."
+    switch ($ContainerOs) {
+        'Linux' {
+            $service = Get-Service $DockerServiceName -ErrorAction SilentlyContinue
+            if (($service -eq $null) -or ($service.Status -ne 'Running')) {
+                Write-HostRed 'Docker is not running.'
+                if (Test-IotCore) {
+                    Write-HostRed ('Please visit https://docs.microsoft.com/en-us/azure/iot-edge/how-to-install-iot-core ' +
+                        'for assistance with installing Docker on IoT Core.')
+                }
+                else {
+                    Write-HostRed ('You can use Docker for Windows for development and testing. ' +
+                        'Please visit https://www.docker.com/docker-windows for additional information.')
+                }
+
+                return $false
             }
-            Write-Host "Switching Docker to use Windows containers" -ForegroundColor "Green"
-            Invoke-Native "`"$DockerCliExe`" -SwitchDaemon"
-            if ((Get-ContainerOs) -ne "Windows") {
-                throw "Unable to switch to Windows containers."
+
+            Write-HostGreen 'Docker is running.'
+
+            $dockerCliExe = "$env:ProgramFiles\Docker\Docker\DockerCli.exe"
+
+            if ((Get-ExternalDockerServerOs) -ne 'Linux') {
+                Write-Host 'Switching Docker to use Linux containers...'
+
+                if (-not (Test-Path -Path $dockerCliExe)) {
+                    throw 'Unable to switch to Linux containers.'
+                }
+
+                Invoke-Native """$dockerCliExe"" -SwitchDaemon"
+
+                if ((Get-ExternalDockerServerOs) -ne 'Linux') {
+                    throw 'Unable to switch to Linux containers.'
+                }
+
+                Write-HostGreen 'Switched Docker to use Linux containers.'
             }
-        } elseif ($ContainerOs -eq "Linux" -and (Get-ContainerOs) -ne "Linux") {
-            if (-not (Test-Path -Path $DockerCliExe)) {
-                throw "Unable to switch to Linux containers."
-            }
-            Write-Host "Switching Docker to use Linux containers" -ForegroundColor "Green"
-            Invoke-Native "`"$DockerCliExe`" -SwitchDaemon"
-            if ((Get-ContainerOs) -ne "Linux") {
-                throw "Unable to switch to Linux containers."
-            }
+
+            return $true
         }
-    } else {
-        Write-Host "Docker is not running." -ForegroundColor "Red"
-        if (Test-IotCore) {
-            Write-Host ("Please visit https://docs.microsoft.com/en-us/azure/iot-edge/how-to-install-iot-core " +
-                "for assistance with installing Docker on IoT Core.") `
-                -ForegroundColor "Red"
+
+        'Windows' {
+            $service = Get-Service $MobyServiceName -ErrorAction SilentlyContinue
+            if (($service -eq $null) -or ($service.Status -ne 'Running')) {
+                return $false
+            }
+
+            return $true
         }
-        else {
-            Write-Host ("You can use Docker for Windows for development and testing. " +
-                "Please visit https://www.docker.com/docker-windows for additional information.") `
-                -ForegroundColor "Red"
-        }
-        return $false
     }
-    return $true
 }
 
 function Get-WindowsBuild {
-    return (Get-Item "HKLM:\Software\Microsoft\Windows NT\CurrentVersion").GetValue("CurrentBuild")
-}
-
-function Test-UdsSupport {
-    # TODO: Enable when we have RS5-based modules in process-isolated containers
-    # $MinBuildForUnixDomainSockets = $Windows1809
-    # $CurrentBuild = Get-WindowsBuild
-    # return ($ContainerOs -eq "Windows" -and $CurrentBuild -ge $MinBuildForUnixDomainSockets)
-    return $false
-}
-
-function Test-IsKernelValid {
-    $MinBuildForLinuxContainers = $Windows1607
-    $SupportedBuildsForWindowsContainers = @($Windows1803, $Windows1809)
-    $CurrentBuild = Get-WindowsBuild
-
-    if (($ContainerOs -eq "Linux" -and $CurrentBuild -ge $MinBuildForLinuxContainers) -or `
-        ($ContainerOs -eq "Windows" -and $SupportedBuildsForWindowsContainers -contains $CurrentBuild)) {
-        Write-Host "The container host is on supported build version $CurrentBuild." -ForegroundColor "Green"
-        return $true
-    } else {
-        Write-Host ("The container host is on unsupported build version $CurrentBuild. `n" +
-            "Please use a container host running build $MinBuildForLinuxContainers newer when using Linux containers" +
-            "or with one of the following supported build versions when using Windows containers:`n" +
-            ($SupportedBuildsForWindowsContainers -join "`n")) `
-            -ForegroundColor "Red"
-        return $false
-    }
+    (Get-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion').'CurrentBuild'
 }
 
 function Test-EdgeAlreadyInstalled {
-    $ServiceName = "iotedge"
-    $IotEdgePath = "C:\ProgramData\iotedge"
+    (Get-Service $EdgeServiceName -ErrorAction SilentlyContinue) -or (Test-Path -Path $EdgeInstallDirectory)
+}
 
-    if ((Get-Service $ServiceName -ErrorAction SilentlyContinue) -or (Test-Path -Path $IotEdgePath)) {
-        return $true
-    }
-    return $false
+function Test-MobyAlreadyInstalled {
+    (Get-Service $MobyServiceName -ErrorAction SilentlyContinue) -or (Test-Path -Path $MobyInstallDirectory)
 }
 
 function Test-AgentRegistryArgs {
-    $NoImageNoCreds = (-not ($AgentImage -or $Username -or $Password))
-    $ImageNoCreds = ($AgentImage -and -not ($Username -or $Password))
-    $ImageFullCreds = ($AgentImage -and $Username -and $Password)
+    $noImageNoCreds = (-not ($AgentImage -or $Username -or $Password))
+    $imageNoCreds = ($AgentImage -and -not ($Username -or $Password))
+    $imageFullCreds = ($AgentImage -and $Username -and $Password)
 
-    $Valid = ($NoImageNoCreds -or $ImageNoCreds -or $ImageFullCreds)
-    if (-not $Valid) {
-        $Message =
+    $valid = ($noImageNoCreds -or $imageNoCreds -or $imageFullCreds)
+    if (-not $valid) {
+        $message =
             if (-not $AgentImage) {
-                "Parameter 'AgentImage' is required when parameters 'Username' and 'Password' are specified."
+                'Parameter ''AgentImage'' is required when parameters ''Username'' and ''Password'' are specified.'
             }
             else {
-                "Parameters 'Username' and 'Password' must be used together. Please specify both (or neither for anonymous access)."
+                'Parameters ''Username'' and ''Password'' must be used together. Please specify both (or neither for anonymous access).'
             }
-        Write-Host $Message -ForegroundColor Red
+        Write-HostRed $Message
     }
-    return $Valid
+    return $valid
 }
 
 function Get-ContainerOs {
-    if ((Invoke-Native "docker version --format {{.Server.Os}}" -Passthru) -match "\s*windows\s*$") {
-        return "Windows"
+    if (Test-Path $MobyInstallDirectory) {
+        return 'Windows'
     }
     else {
-        return "Linux"
+        return 'Linux'
+    }
+}
+
+function Get-ExternalDockerServerOs {
+    $dockerExe = Get-DockerExePath
+    if ((Invoke-Native "$dockerExe version --format ""{{.Server.Os}}""" -Passthru) -match '\s*windows\s*$') {
+        return 'Windows'
+    }
+    else {
+        return 'Linux'
     }
 }
 
 function Get-SecurityDaemon {
     try {
-        $DeleteArchive = $false
+        # If we create the iotedge archive ourselves, then delete it when we're done
+        $deleteEdgeArchive = $false
+
+        $mobyArchivePath = "$env:TEMP\iotedge-moby.zip"
+
         if (-not "$ArchivePath") {
             $ArchivePath = "$env:TEMP\iotedged-windows.zip"
-            $DeleteArchive = $true
-            Write-Host "Downloading the latest version of IoT Edge security daemon." -ForegroundColor "Green"
+            $deleteEdgeArchive = $true
+            Write-Host 'Downloading the latest version of IoT Edge security daemon...'
             Invoke-WebRequest `
-                -Uri "https://aka.ms/iotedged-windows-latest" `
-                -OutFile "$ArchivePath" `
+                -Uri 'https://aka.ms/iotedged-windows-latest' `
+                -OutFile $ArchivePath `
                 -UseBasicParsing `
                 -Proxy $Proxy
-            Write-Host "Downloaded security daemon." -ForegroundColor "Green"
+            Write-HostGreen 'Downloaded security daemon.'
         }
-        if ((Get-Item "$ArchivePath").PSIsContainer) {
-            New-Item -Type Directory 'C:\ProgramData\iotedge' | Out-Null
-            Copy-Item "$ArchivePath\*" "C:\ProgramData\iotedge" -Force
+        if ((Get-Item $ArchivePath).PSIsContainer) {
+            New-Item -Type Directory $EdgeInstallDirectory | Out-Null
+            Copy-Item "$ArchivePath\*" $EdgeInstallDirectory -Force
         }
         else {
-            New-Item -Type Directory 'C:\ProgramData\iotedge' | Out-Null
-            Expand-Archive "$ArchivePath" "C:\ProgramData\iotedge" -Force
-            Copy-Item "C:\ProgramData\iotedge\iotedged-windows\*" "C:\ProgramData\iotedge" -Force -Recurse
+            New-Item -Type Directory $EdgeInstallDirectory | Out-Null
+            Expand-Archive $ArchivePath $EdgeInstallDirectory -Force
+            Copy-Item "$EdgeInstallDirectory\iotedged-windows\*" $EdgeInstallDirectory -Force -Recurse
         }
 
-        if (Test-UdsSupport) {
-            foreach ($Name in "mgmt", "workload")
-            {
-                # We can't bind socket files directly in Windows, so create a folder
-                # and bind to that. The folder needs to give Modify rights to a
-                # well-known group that will exist in any container so that
-                # non-privileged modules can access it.
-                $Path = "C:\ProgramData\iotedge\$Name"
-                New-Item "$Path" -ItemType "Directory" -Force | Out-Null
-                $Rule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule(`
-                    "NT AUTHORITY\Authenticated Users", 'Modify', 'ObjectInherit', 'InheritOnly', 'Allow')
-                $Acl = [System.IO.Directory]::GetAccessControl($Path)
-                $Acl.AddAccessRule($Rule)
-                [System.IO.Directory]::SetAccessControl($Path, $Acl)            
+        foreach ($name in 'mgmt', 'workload') {
+            # We can't bind socket files directly in Windows, so create a folder
+            # and bind to that. The folder needs to give Modify rights to a
+            # well-known group that will exist in any container so that
+            # non-privileged modules can access it.
+            $path = "$EdgeInstallDirectory\$name"
+            New-Item $Path -ItemType Directory -Force | Out-Null
+            $rule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule(`
+                'NT AUTHORITY\Authenticated Users', 'Modify', 'ObjectInherit', 'InheritOnly', 'Allow')
+            $acl = [System.IO.Directory]::GetAccessControl($path)
+            $acl.AddAccessRule($rule)
+            [System.IO.Directory]::SetAccessControl($path, $acl)
+        }
+
+        New-Item -Type Directory $EdgeEventLogInstallDirectory -ErrorAction SilentlyContinue -ErrorVariable cmdErr | Out-Null
+        if ($? -or ($cmdErr.FullyQualifiedErrorId -eq 'DirectoryExist,Microsoft.PowerShell.Commands.NewItemCommand')) {
+            Move-Item `
+                "$EdgeInstallDirectory\iotedged_eventlog_messages.dll" `
+                "$EdgeEventLogInstallDirectory\iotedged_eventlog_messages.dll" `
+                -Force -ErrorAction SilentlyContinue -ErrorVariable cmdErr
+            if ($?) {
+                # Copied eventlog messages DLL successfully
             }
-        }
-
-        if (Test-Path 'C:\ProgramData\iotedge\iotedged_eventlog_messages.dll') {
-            # This release uses iotedged_eventlog_messages.dll as the eventlog message file
-
-            New-Item -Type Directory 'C:\ProgramData\iotedge-eventlog' -ErrorAction SilentlyContinue -ErrorVariable CmdErr | Out-Null
-            if ($? -or ($CmdErr.FullyQualifiedErrorId -eq 'DirectoryExist,Microsoft.PowerShell.Commands.NewItemCommand')) {
-                Move-Item `
-                    'C:\ProgramData\iotedge\iotedged_eventlog_messages.dll' `
-                    'C:\ProgramData\iotedge-eventlog\iotedged_eventlog_messages.dll' `
-                    -Force -ErrorAction SilentlyContinue -ErrorVariable CmdErr
-                if ($?) {
-                    # Copied eventlog messages DLL successfully
-                }
-                elseif (
-                    ($CmdErr.Exception -is [System.IO.IOException]) -and
-                    ($CmdErr.Exception.HResult -eq 0x800700b7) # HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS)
-                ) {
-                    # ERROR_ALREADY_EXISTS despite Move-Item -Force likely means the DLL is held open by something,
-                    # probably the Windows EventLog service or some other process.
-                    #
-                    # It's not really a problem to have an old DLL from a previous installation lying around, since the message IDs
-                    # and format strings haven't changed. Even if they have changed, it just means some logs in the event log will
-                    # not display correcty.
-                    #
-                    # Don't bother warning the user about it.
-                }
-                else {
-                    throw $CmdErr
-                }
+            elseif (
+                ($cmdErr.Exception -is [System.IO.IOException]) -and
+                ($cmdErr.Exception.HResult -eq 0x800700b7) # HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS)
+            ) {
+                # ERROR_ALREADY_EXISTS despite Move-Item -Force likely means the DLL is held open by something,
+                # probably the Windows EventLog service or some other process.
+                #
+                # It's not really a problem to have an old DLL from a previous installation lying around, since the message IDs
+                # and format strings haven't changed. Even if they have changed, it just means some logs in the event log will
+                # not display correctly.
+                #
+                # Don't bother warning the user about it.
             }
             else {
-                throw $CmdErr
+                throw $cmdErr
             }
-
-            $usesSeparateDllForEventLogMessages = $true
         }
         else {
-            # This release uses iotedged.exe as the eventlog message file
-            $usesSeparateDllForEventLogMessages = $false
+            throw $cmdErr
         }
 
-        return $usesSeparateDllForEventLogMessages
+        if ($ContainerOs -eq 'Windows') {
+            # Get moby runtime
+
+            Write-Host 'Downloading the latest version of Moby runtime...'
+            Invoke-WebRequest `
+                -Uri 'https://aka.ms/iotedge-moby-win-amd64-latest' `
+                -OutFile $mobyArchivePath `
+                -UseBasicParsing `
+                -Proxy $Proxy
+            Write-HostGreen 'Downloaded moby runtime.'
+
+            New-Item -Type Directory $MobyInstallDirectory | Out-Null
+            Expand-Archive $mobyArchivePath $MobyInstallDirectory -Force
+            Copy-Item "$MobyInstallDirectory\docker\*" $MobyInstallDirectory -Force -Recurse
+        }
     }
     finally {
-        Remove-Item "C:\ProgramData\iotedge\iotedged-windows" -Recurse -Force -ErrorAction "SilentlyContinue"
-        if ($DeleteArchive) {
-            Remove-Item "$ArchivePath" -Recurse -Force -ErrorAction "SilentlyContinue"
+        Remove-Item "$EdgeInstallDirectory\iotedged-windows" -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-Item "$MobyInstallDirectory\docker" -Recurse -Force -ErrorAction SilentlyContinue
+
+        if ($deleteEdgeArchive) {
+            Remove-Item $ArchivePath -Recurse -Force -ErrorAction SilentlyContinue
         }
+
+        Remove-Item $mobyArchivePath -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
 
 function Remove-SecurityDaemonResources {
     $success = $true
 
-    $LogKey = "HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\Application\iotedged"
-    Remove-Item $LogKey -ErrorAction SilentlyContinue -ErrorVariable CmdErr
-    Write-Verbose "$(if ($?) { "Deleted registry key '$LogKey'" } else { $CmdErr })"
+    $logKey = "HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\Application\$EdgeEventLogName"
+    Remove-Item $logKey -ErrorAction SilentlyContinue -ErrorVariable cmdErr
+    Write-Verbose "$(if ($?) { "Deleted registry key '$logKey'" } else { $cmdErr })"
 
-    $EdgePath = "C:\ProgramData\iotedge"
-    $EdgeEventLogMessagesPath = "C:\ProgramData\iotedge-eventlog"
-
-    Remove-Item -Recurse $EdgePath -ErrorAction SilentlyContinue -ErrorVariable CmdErr
+    Remove-Item -Recurse $EdgeInstallDirectory -ErrorAction SilentlyContinue -ErrorVariable cmdErr
     if ($?) {
-        Write-Verbose "Deleted install directory '$EdgePath'"
+        Write-Verbose "Deleted install directory '$EdgeInstallDirectory'"
     }
-    elseif ($CmdErr.FullyQualifiedErrorId -ne "PathNotFound,Microsoft.PowerShell.Commands.RemoveItemCommand") {
-        Write-Verbose "$CmdErr"
-        Write-Host ("Could not delete install directory '$EdgePath'. Please reboot " +
-            "your device and run Uninstall-SecurityDaemon again with '-Force'.") `
-            -ForegroundColor "Red"
+    elseif ($cmdErr.FullyQualifiedErrorId -ne 'PathNotFound,Microsoft.PowerShell.Commands.RemoveItemCommand') {
+        Write-Verbose "$cmdErr"
+        Write-HostRed ("Could not delete install directory '$EdgeInstallDirectory'. Please reboot " +
+            'your device and run `Uninstall-SecurityDaemon` again with `-Force`.')
         $success = $false
     }
     else {
-        Write-Verbose "$CmdErr"
+        Write-Verbose "$cmdErr"
     }
 
-    Remove-Item -Recurse $EdgeEventLogMessagesPath -ErrorAction SilentlyContinue -ErrorVariable CmdErr
+    Remove-Item -Recurse $EdgeEventLogInstallDirectory -ErrorAction SilentlyContinue -ErrorVariable cmdErr
     if ($?) {
-        Write-Verbose "Deleted install directory '$EdgeEventLogMessagesPath'"
+        Write-Verbose "Deleted install directory '$EdgeEventLogInstallDirectory'"
     }
-    elseif ($CmdErr.FullyQualifiedErrorId -ne "PathNotFound,Microsoft.PowerShell.Commands.RemoveItemCommand") {
-        Write-Verbose "$CmdErr"
-        Write-Warning "Could not delete '$EdgeEventLogMessagesPath'."
-        Write-Warning "If you're reinstalling or updating IoT Edge, then this is safe to ignore."
-        Write-Warning ("Otherwise, please close Event Viewer, or any PowerShell windows where you ran Get-WinEvent, " +
-            "then run Uninstall-SecurityDaemon again with '-Force'.")
+    elseif ($cmdErr.FullyQualifiedErrorId -ne 'PathNotFound,Microsoft.PowerShell.Commands.RemoveItemCommand') {
+        Write-Verbose "$cmdErr"
+        Write-Warning "Could not delete '$EdgeEventLogInstallDirectory'."
+        Write-Warning 'If you''re reinstalling or updating IoT Edge, then this is safe to ignore.'
+        Write-Warning ('Otherwise, please close Event Viewer, or any PowerShell windows where you ran Get-WinEvent, ' +
+            'then run `Uninstall-SecurityDaemon` again with `-Force`.')
     }
     else {
-        Write-Verbose "$CmdErr"
+        Write-Verbose "$cmdErr"
+    }
+
+    Remove-Item -Recurse $MobyInstallDirectory -ErrorAction SilentlyContinue -ErrorVariable cmdErr
+    if ($?) {
+        Write-Verbose "Deleted install directory '$MobyInstallDirectory'"
+    }
+    elseif ($cmdErr.FullyQualifiedErrorId -ne 'PathNotFound,Microsoft.PowerShell.Commands.RemoveItemCommand') {
+        Write-Verbose "$cmdErr"
+        Write-HostRed "Could not delete install directory '$MobyInstallDirectory'. Please reboot " +
+            'your device and run `Uninstall-SecurityDaemon` again with `-Force`.')
+        $success = $false
+    }
+    else {
+        Write-Verbose "$cmdErr"
     }
 
     $success
 }
 
-function Get-SystemPathKey {
-    "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
-}
-
 function Get-SystemPath {
-    (Get-ItemProperty -Path (Get-SystemPathKey) -Name Path).Path -split ";" | Where-Object {$_.Length -gt 0}
+    [System.Environment]::GetEnvironmentVariable('PATH', [System.EnvironmentVariableTarget]::Machine) -split ';' | Where-Object { $_.Length -gt 0 }
 }
 
 function Set-SystemPath {
-    $EdgePath = "C:\ProgramData\iotedge"
-    $SystemPath = Get-SystemPath
-    if ($SystemPath -notcontains $EdgePath) {
-        Set-ItemProperty -Path (Get-SystemPathKey) -Name Path -Value (($SystemPath + $EdgePath) -join ";")
-        $env:Path += ";$EdgePath"
-        Write-Host "Updated system PATH." -ForegroundColor "Green"
+    $systemPath = Get-SystemPath
+
+    $needsModification = ($systemPath -notcontains $EdgeInstallDirectory) -or (($ContainerOs -eq 'Windows') -and ($systemPath -notcontains $MobyInstallDirectory));
+    if (-not $needsModification) {
+        Write-HostGreen 'System PATH does not require an update.'
+        return
     }
-    else {
-        Write-Host "System PATH does not require an update." -ForegroundColor "Green"
+
+    if ($systemPath -notcontains $EdgeInstallDirectory) {
+        $systemPath += $EdgeInstallDirectory
     }
+
+    if (($ContainerOs -eq 'Windows') -and ($systemPath -notcontains $MobyInstallDirectory)) {
+        $systemPath += $MobyInstallDirectory
+    }
+
+    [System.Environment]::SetEnvironmentVariable('PATH', ($systemPath -join ';'), [System.EnvironmentVariableTarget]::Machine)
+    $env:PATH += ";$EdgeInstallDirectory;$MobyInstallDirectory"
+
+    Write-HostGreen 'Updated system PATH.'
 }
 
 function Reset-SystemPath {
-    $EdgePath = "C:\ProgramData\iotedge"
-    $SystemPath = Get-SystemPath
-    if ($SystemPath -contains $EdgePath) {
-        $NewPath = $SystemPath | Where-Object { $_ -ne "C:\ProgramData\iotedge" }
-        Set-ItemProperty -Path (Get-SystemPathKey) -Name Path -Value ($NewPath -join ";")
-        Write-Verbose "Removed IoT Edge directory from system PATH"
+    $systemPath = Get-SystemPath
+
+    $needsModification = ($systemPath -contains $EdgeInstallDirectory) -or ($systemPath -contains $MobyInstallDirectory);
+    if (-not $needsModification) {
+        return
     }
+
+    $systemPath = $systemPath | Where-Object { ($_ -ne $EdgeInstallDirectory) -and ($_ -ne $MobyInstallDirectory) }
+    [System.Environment]::SetEnvironmentVariable('PATH', ($systemPath -join ';'), [System.EnvironmentVariableTarget]::Machine)
+
+    Write-Verbose 'Removed IoT Edge directories from system PATH'
 }
 
 function Get-VcRuntime {
     if (Test-IotCore) {
-        Write-Host "Skipped vcruntime download on IoT Core." -ForegroundColor "Green"
+        Write-HostGreen 'Skipped vcruntime download on IoT Core.'
         return
     }
 
     try {
-        Write-Host "Downloading vcruntime." -ForegroundColor "Green"
+        Write-Host 'Downloading vcruntime...'
         Invoke-WebRequest `
-            -Uri "https://download.microsoft.com/download/0/6/4/064F84EA-D1DB-4EAA-9A5C-CC2F0FF6A638/vc_redist.x64.exe" `
+            -Uri 'https://download.microsoft.com/download/0/6/4/064F84EA-D1DB-4EAA-9A5C-CC2F0FF6A638/vc_redist.x64.exe' `
             -OutFile "$env:TEMP\vc_redist.exe" `
             -UseBasicParsing `
             -Proxy $Proxy
-        Invoke-Native "$env:TEMP\vc_redist.exe /quiet /norestart"
-        Write-Host "Downloaded vcruntime." -ForegroundColor "Green"
+        Invoke-Native """$env:TEMP\vc_redist.exe"" /quiet /norestart"
+        Write-HostGreen 'Downloaded vcruntime.'
     }
     catch {
         if ($LASTEXITCODE -eq 1638) {
-            Write-Host "Skipping vcruntime installation because a newer version is already installed." -ForegroundColor "Green"
+            Write-HostGreen 'Skipping vcruntime installation because a newer version is already installed.'
         }
         else {
             throw $_
         }
     }
     finally {
-        Remove-Item "$env:TEMP\vc_redist.exe" -Force -Recurse -ErrorAction "SilentlyContinue"
+        Remove-Item "$env:TEMP\vc_redist.exe" -Force -Recurse -ErrorAction SilentlyContinue
     }
 }
 
-function Install-IotEdgeService {
-    New-Service -Name "iotedge" -BinaryPathName "C:\ProgramData\iotedge\iotedged.exe -c C:\ProgramData\iotedge\config.yaml" | Out-Null
-    Start-Service iotedge
-    Write-Host "Initialized the IoT Edge service." -ForegroundColor "Green"
+function Install-Services {
+    switch ($ContainerOs) {
+        'Linux' {
+            New-Service -Name $EdgeServiceName -BinaryPathName """$EdgeInstallDirectory\iotedged.exe"" -c ""$EdgeInstallDirectory\config.yaml""" | Out-Null
+        }
+
+        'Windows' {
+            # dockerd needs two more slashes after the scheme
+            $namedPipeUrl = $MobyNamedPipeUrl -replace 'npipe://\./pipe/', 'npipe:////./pipe/'
+            New-Service -Name $MobyServiceName -BinaryPathName `
+                """$MobyInstallDirectory\dockerd.exe"" -H $namedPipeUrl --exec-opt isolation=process --run-service --service-name ""$MobyServiceName""" | Out-Null
+            New-Service -Name $EdgeServiceName -BinaryPathName """$EdgeInstallDirectory\iotedged.exe"" -c ""$EdgeInstallDirectory\config.yaml""" -DependsOn $MobyServiceName | Out-Null
+        }
+    }
+
+    Start-Service $EdgeServiceName
+
+    Write-HostGreen 'Initialized the IoT Edge service.'
 }
 
-function Uninstall-IotEdgeService {
-    Stop-Service -NoWait -ErrorAction SilentlyContinue -ErrorVariable CmdErr iotedge
-    if ($?) {
-        Start-Sleep -Seconds 7
-        Write-Verbose "Stopped the IoT Edge service"
-    }
-    else {
-        Write-Verbose "$CmdErr"
+function Uninstall-Services {
+    if (Get-Service $EdgeServiceName -ErrorAction SilentlyContinue) {
+        Stop-Service -NoWait -ErrorAction SilentlyContinue -ErrorVariable cmdErr $EdgeServiceName
+        if ($?) {
+            Start-Sleep -Seconds 7
+            Write-Verbose 'Stopped the IoT Edge service'
+        }
+        else {
+            Write-Verbose "$cmdErr"
+        }
+
+        if (Invoke-Native "sc.exe delete ""$EdgeServiceName""" -ErrorAction SilentlyContinue) {
+            Write-Verbose 'Removed IoT Edge service subkey from the registry'
+        }
     }
 
-    if (Invoke-Native "sc.exe delete iotedge" -ErrorAction SilentlyContinue) {
-        Write-Verbose "Removed service subkey from the registry"
+    if (Get-Service $MobyServiceName -ErrorAction SilentlyContinue) {
+        Stop-Service -NoWait -ErrorAction SilentlyContinue -ErrorVariable cmdErr $MobyServiceName
+        if ($?) {
+            Start-Sleep -Seconds 7
+            Write-Verbose 'Stopped the IoT Edge Moby Runtime service'
+        }
+        else {
+            Write-Verbose "$cmdErr"
+        }
+
+        if (Invoke-Native "sc.exe delete ""$MobyServiceName""" -ErrorAction SilentlyContinue) {
+            Write-Verbose 'Removed IoT Edge Moby Runtime service subkey from the registry'
+        }
     }
 }
 
-function Add-FirewallExceptions {
-    New-NetFirewallRule `
-        -DisplayName "iotedged allow inbound 15580,15581" `
-        -Direction "Inbound" `
-        -Action "Allow" `
-        -Protocol "TCP" `
-        -LocalPort "15580-15581" `
-        -Program "C:\programdata\iotedge\iotedged.exe" `
-        -InterfaceType "Any" | Out-Null
-    Write-Host "Added firewall exceptions for ports used by the IoT Edge service." -ForegroundColor "Green"
-}
-
+# The daemon listens using UDS by default, so these firewall rules are no longer created.
+# However Uninstall-SecurityDaemon still calls this to remove rules created by old installs.
 function Remove-FirewallExceptions {
-    Remove-NetFirewallRule -DisplayName "iotedged allow inbound 15580,15581" -ErrorAction SilentlyContinue -ErrorVariable CmdErr
-    Write-Verbose "$(if ($?) { "Removed firewall exceptions" } else { $CmdErr })"
+    Remove-NetFirewallRule -DisplayName 'iotedged allow inbound 15580,15581' -ErrorAction SilentlyContinue -ErrorVariable cmdErr
+    Write-Verbose "$(if ($?) { 'Removed firewall exceptions' } else { $cmdErr })"
 }
 
-function Add-IotEdgeRegistryKey([switch] $UsesSeparateDllForEventLogMessages) {
-    if ($UsesSeparateDllForEventLogMessages) {
-        $messageFilePath = 'C:\ProgramData\iotedge-eventlog\iotedged_eventlog_messages.dll'
-    }
-    else {
-        $messageFilePath = 'C:\ProgramData\iotedge\iotedged.exe'
-    }
-    $RegistryContent = @(
-        "Windows Registry Editor Version 5.00",
-        "",
-        "[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\EventLog\Application\iotedged]"
-        "`"CustomSource`"=dword:00000001"
-        "`"EventMessageFile`"=`"$($messageFilePath -replace '\\', '\\')`""
-        "`"TypesSupported`"=dword:00000007")
-    try {
-        $RegistryContent | Set-Content "$env:TEMP\iotedge.reg" -Force
-        Invoke-Native "reg import $env:TEMP\iotedge.reg"
-        Write-Host "Added IoT Edge registry key." -ForegroundColor "Green"
-    }
-    finally {
-        Remove-Item "$env:TEMP\iotedge.reg" -Force -ErrorAction "SilentlyContinue"
-    }
+function Add-IotEdgeRegistryKey {
+    New-Item 'HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\Application' -Name $EdgeEventLogName -Force | Out-Null
+    New-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\Application\$EdgeEventLogName" `
+        -Name 'CustomSource' -Value 1 -PropertyType 'DWord' -Force | Out-Null
+    New-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\Application\$EdgeEventLogName" `
+        -Name 'EventMessageFile' -Value "$EdgeEventLogInstallDirectory\iotedged_eventlog_messages.dll" -PropertyType 'String' -Force | Out-Null
+    New-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\Application\$EdgeEventLogName" `
+        -Name 'TypesSupported' -Value 7 -PropertyType 'DWord' -Force | Out-Null
+
+    Write-HostGreen 'Added IoT Edge registry key.'
 }
 
 function Set-ProvisioningMode {
-    $ConfigurationYaml = Get-Content "C:\ProgramData\iotedge\config.yaml" -Raw
+    $configurationYaml = Get-Content "$EdgeInstallDirectory\config.yaml" -Raw
     if (($Manual) -or ($DeviceConnectionString)) {
-        $SelectionRegex = "(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*`".*`"\s*#?\s*device_connection_string:\s*`".*`""
-        $ReplacementContent = @(
-            "provisioning:",
-            "  source: `"manual`"",
-            "  device_connection_string: `"$DeviceConnectionString`"")
-        ($ConfigurationYaml -replace $SelectionRegex, ($ReplacementContent -join "`n")) | Set-Content "C:\ProgramData\iotedge\config.yaml" -Force
-        Write-Host "Configured device for manual provisioning." -ForegroundColor "Green"
+        $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"'
+        $replacementContent = @(
+            'provisioning:',
+            '  source: ''manual''',
+            "  device_connection_string: '$DeviceConnectionString'")
+        ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")) | Set-Content "$EdgeInstallDirectory\config.yaml" -Force
+        Write-HostGreen 'Configured device for manual provisioning.'
     }
     else {
-        $SelectionRegex = "(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*`".*`"\s*#?\s*global_endpoint:\s*`".*`"\s*#?\s*scope_id:\s*`".*`"\s*#?\s*registration_id:\s`".*`""
-        $ReplacementContent = @(
-            "provisioning:",
-            "  source: `"dps`"",
-            "  global_endpoint: `"https://global.azure-devices-provisioning.net`"",
-            "  scope_id: `"$ScopeId`"",
-            "  registration_id: `"$RegistrationId`"")
-        $ConfigurationYaml = $ConfigurationYaml -replace $SelectionRegex, ($ReplacementContent -join "`n")
+        $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*global_endpoint:\s*".*"\s*#?\s*scope_id:\s*".*"\s*#?\s*registration_id:\s".*"'
+        $replacementContent = @(
+            'provisioning:',
+            '  source: ''dps''',
+            '  global_endpoint: ''https://global.azure-devices-provisioning.net''',
+            "  scope_id: '$ScopeId'",
+            "  registration_id: '$RegistrationId'")
+        $configurationYaml = $configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")
 
-        $SelectionRegex = "(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*`".*`"\s*#?\s*device_connection_string:\s*`".*`""
-        $ReplacementContent = ""
-        ($ConfigurationYaml -replace $SelectionRegex, ($ReplacementContent -join "`n")) | Set-Content "C:\ProgramData\iotedge\config.yaml" -Force
+        $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"'
+        $replacementContent = ''
+        ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")) | Set-Content "$EdgeInstallDirectory\config.yaml" -Force
 
-        New-Item "HKLM:\SYSTEM\CurrentControlSet\Services\iotedge" -Force | Out-Null
-        New-ItemProperty `
-            -Path "HKLM:\SYSTEM\CurrentControlSet\Services\iotedge" `
-            -Name "Environment" `
-            -PropertyType "MultiString" `
-            -Value "IOTEDGE_USE_TPM_DEVICE=ON" `
-            -Force | Out-Null
+        New-Item "HKLM:\SYSTEM\CurrentControlSet\Services\$EdgeServiceName" -Force | Out-Null
+        New-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\$EdgeServiceName" `
+            -Name 'Environment' -Value 'IOTEDGE_USE_TPM_DEVICE=ON' -PropertyType 'MultiString' -Force | Out-Null
 
-        Write-Host "Configured device for DPS provisioning." -ForegroundColor "Green"
+        Write-HostGreen 'Configured device for DPS provisioning.'
     }
 }
 
 function Set-AgentImage {
     if ($AgentImage) {
-        $YamlPath = "C:\ProgramData\iotedge\config.yaml"
-        $ConfigurationYaml = Get-Content $YamlPath -Raw
-        $SelectionRegex = "image:\s*`".*`""
-        $ReplacementContent = "image: `"$AgentImage`""
+        $yamlPath = "$EdgeInstallDirectory\config.yaml"
+        $configurationYaml = Get-Content $yamlPath -Raw
+        $selectionRegex = 'image:\s*".*"'
+        $replacementContent = "image: '$AgentImage'"
         if ($Username -and $Password) {
-            $ConfigurationYaml = $ConfigurationYaml -replace $SelectionRegex, ($ReplacementContent -join "`n")
-            $SelectionRegex = "auth:\s*\{\s*\}"
-            $AgentRegistry = Get-AgentRegistry
-            $Cred = New-Object System.Management.Automation.PSCredential ($Username, $Password)
-            $ReplacementContent = @(
-                "auth:",
-                "      serveraddress: $AgentRegistry",
-                "      username: $Username",
-                "      password: $($Cred.GetNetworkCredential().Password)")
+            $configurationYaml = $configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")
+            $selectionRegex = 'auth:\s*\{\s*\}'
+            $agentRegistry = Get-AgentRegistry
+            $cred = New-Object System.Management.Automation.PSCredential ($Username, $Password)
+            $replacementContent = @(
+                'auth:',
+                "      serveraddress: '$agentRegistry'",
+                "      username: '$Username'",
+                "      password: '$($cred.GetNetworkCredential().Password)'")
         }
-        ($ConfigurationYaml -replace $SelectionRegex, ($ReplacementContent -join "`n")) | Set-Content $YamlPath -Force
-        Write-Host "Configured device with agent image `"$AgentImage`"." -ForegroundColor "Green"
+        ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")) | Set-Content $yamlPath -Force
+        Write-HostGreen "Configured device with agent image '$AgentImage'."
     }
 }
 
 function Set-Hostname {
-    $ConfigurationYaml = Get-Content "C:\ProgramData\iotedge\config.yaml" -Raw
-    $Hostname = (Invoke-Native "hostname" -Passthru).Trim()
-    $SelectionRegex = "hostname:\s*`".*`""
-    $ReplacementContent = "hostname: `"$Hostname`""
-    ($ConfigurationYaml -replace $SelectionRegex, ($ReplacementContent -join "`n")) | Set-Content "C:\ProgramData\iotedge\config.yaml" -Force
-    Write-Host "Configured device with hostname `"$Hostname`"." -ForegroundColor "Green"
+    $configurationYaml = Get-Content "$EdgeInstallDirectory\config.yaml" -Raw
+    $hostname = [System.Net.Dns]::GetHostName()
+    $selectionRegex = 'hostname:\s*".*"'
+    $replacementContent = "hostname: '$hostname'"
+    ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")) | Set-Content "$EdgeInstallDirectory\config.yaml" -Force
+    Write-HostGreen "Configured device with hostname '$hostname'."
 }
 
-function Set-GatewayAddress {
-    $ConfigurationYaml = Get-Content "C:\ProgramData\iotedge\config.yaml" -Raw
-    if ($ContainerOs -eq "Windows") {
-        $GatewayAddress = (Get-NetIpAddress |
-                Where-Object {$_.InterfaceAlias -like "*vEthernet (nat)*" -and $_.AddressFamily -like "IPv4"}).IPAddress
-    } else {
-        $GatewayAddress = (Get-NetIpAddress |
-                Where-Object {$_.InterfaceAlias -like "*vEthernet (DockerNAT)*" -and $_.AddressFamily -like "IPv4"}).IPAddress
-    }
+function Set-MobyRuntimeParameters {
+    $configurationYaml = Get-Content "$EdgeInstallDirectory\config.yaml" -Raw
+    $selectionRegex = 'moby_runtime:\s*uri:\s*".*"\s*#?\s*network:\s*".*"'
+    $replacementContentWindows = @(
+        'moby_runtime:',
+        "  uri: '$MobyNamedPipeUrl'",
+        '  network: ''nat''')
+    $replacementContentLinux = @(
+        'moby_runtime:',
+        '  uri: ''npipe://./pipe/docker_engine''',
+        '  network: ''azure-iot-edge''')
+    switch ($ContainerOs) {
+        'Linux' {
+            ($configurationYaml -replace $selectionRegex, ($replacementContentLinux -join "`n")) | Set-Content "$EdgeInstallDirectory\config.yaml" -Force
+            Write-HostGreen 'Set the Moby runtime network to ''azure-iot-edge''.'
+        }
 
-    $SelectionRegex = "connect:\s*management_uri:\s*`".*`"\s*workload_uri:\s*`".*`""
-    $ReplacementContent = @(
-        "connect:",
-        "  management_uri: `"http://${GatewayAddress}:15580`"",
-        "  workload_uri: `"http://${GatewayAddress}:15581`"")
-    $ConfigurationYaml = $ConfigurationYaml -replace $SelectionRegex, ($ReplacementContent -join "`n")
-
-    $SelectionRegex = "listen:\s*management_uri:\s*`".*`"\s*workload_uri:\s*`".*`""
-    $ReplacementContent = @(
-        "listen:",
-        "  management_uri: `"http://${GatewayAddress}:15580`"",
-        "  workload_uri: `"http://${GatewayAddress}:15581`"")
-    $ConfigurationYaml = $ConfigurationYaml -replace $SelectionRegex, ($ReplacementContent -join "`n")
-
-    [Environment]::SetEnvironmentVariable("IOTEDGE_HOST", "http://${GatewayAddress}:15580")
-    Invoke-Native "setx /M IOTEDGE_HOST `"http://${GatewayAddress}:15580`""
-
-    $ConfigurationYaml | Set-Content "C:\ProgramData\iotedge\config.yaml" -Force
-    Write-Host "Configured device with gateway address `"$GatewayAddress`"." -ForegroundColor "Green"
-}
-
-function Set-MobyNetwork {
-    $ConfigurationYaml = Get-Content "C:\ProgramData\iotedge\config.yaml" -Raw
-    $SelectionRegex = "moby_runtime:\s*uri:\s*`".*`"\s*#?\s*network:\s*`".*`""
-    $ReplacementContentWindows = @(
-        "moby_runtime:",
-        "  uri: `"npipe://./pipe/docker_engine`"",
-        "  network: `"nat`"")
-    $ReplacementContentLinux = @(
-        "moby_runtime:",
-        "  uri: `"npipe://./pipe/docker_engine`"",
-        "  network: `"azure-iot-edge`"")
-    if ($ContainerOs -eq "Windows") {
-        ($ConfigurationYaml -replace $SelectionRegex, ($ReplacementContentWindows -join "`n")) | Set-Content "C:\ProgramData\iotedge\config.yaml" -Force
-        Write-Host "Set the Moby runtime network to nat." -ForegroundColor "Green"
-    } else {
-        ($ConfigurationYaml -replace $SelectionRegex, ($ReplacementContentLinux -join "`n")) | Set-Content "C:\ProgramData\iotedge\config.yaml" -Force
-        Write-Host "Set the Moby runtime network to azure-iot-edge." -ForegroundColor "Green"
-    }
-}
-
-function Get-AgentRegistry {
-    $Parts = $AgentImage -split "/"
-    if (($Parts.Length -gt 1) -and ($Parts[0] -match "\.")) {
-        return $Parts[0]
-    }
-    return "index.docker.io"
-}
-
-function Stop-IotEdgeContainers {
-    if (Test-IsDockerRunning 6> $null) {
-        Get-RunningContainerNames | `
-        Get-ContainersWithLabel -Key "net.azure-devices.edge.owner" -Value "Microsoft.Azure.Devices.Edge.Agent" | `
-        Stop-Containers
-    }
-}
-
-function Get-RunningContainerNames {
-    $Names = Invoke-Native "docker ps --format='{{.Names}}'" -Passthru
-    return $Names -split {$_ -eq "`r" -or $_ -eq "`n" -or $_ -eq "'"} | where {$_.Length -gt 0}
-}
-
-function Get-ContainersWithLabel {
-    param(
-        [parameter(ValueFromPipeline)]
-        $ContainerNames,
-        $Key,
-        $Value
-    )
-
-    process {
-        $ContainerNames | Where-Object {
-            (Invoke-Native "docker inspect --format=""{{index (.Config.Labels) \""$Key\""}}"" $_" -Passthru).Trim() -eq $Value
+        'Windows' {
+            ($configurationYaml -replace $selectionRegex, ($replacementContentWindows -join "`n")) | Set-Content "$EdgeInstallDirectory\config.yaml" -Force
+            Write-HostGreen 'Set the Moby runtime network to ''nat''.'
         }
     }
 }
 
-function Stop-Containers {
-    param(
-        [parameter(ValueFromPipeline)]
-        $Containers
-    )
+function Get-AgentRegistry {
+    $parts = $AgentImage -split '/'
+    if (($parts.Length -gt 1) -and ($parts[0] -match '\.')) {
+        return $parts[0]
+    }
+    return 'index.docker.io'
+}
 
-    process {
-        $Containers | ForEach-Object {
-            Invoke-Native "docker stop $_"
-            Write-Verbose "Stopped container $_"
+function Stop-IotEdgeContainers {
+    $dockerExe = Get-DockerExePath
+
+    if (-not (Test-IsDockerRunning 6> $null)) {
+        return
+    }
+
+    $runningContainersString = Invoke-Native "$dockerExe ps --format ""{{.ID}}""" -Passthru
+    [string[]] $runningContainers = $runningContainersString -split {$_ -eq "`r" -or $_ -eq "`n"} | where {$_.Length -gt 0}
+
+    foreach ($containerId in $runningContainers) {
+        $inspectString = Invoke-Native "$dockerExe inspect ""$containerId""" -Passthru | ConvertFrom-Json
+        $inspectResult = ($inspectString | ConvertFrom-Json)[0]
+
+        if ($inspectResult.Config.Labels.'net.azure-devices.edge.owner' -eq 'Microsoft.Azure.Devices.Edge.Agent') {
+            Invoke-Native "$dockerExe stop ""$containerId"""
+            Write-Verbose "Stopped container $($inspectResult.Name)"
+        }
+    }
+}
+
+function Get-DockerExePath {
+    switch ($ContainerOs) {
+        'Linux' {
+            return '"docker"'
+        }
+
+        'Windows' {
+            # docker needs two more slashes after the scheme
+            $namedPipeUrl = $MobyNamedPipeUrl -replace 'npipe://\./pipe/', 'npipe:////./pipe/'
+            return """docker"" -H ""$namedPipeUrl"""
         }
     }
 }
@@ -699,6 +749,14 @@ function Invoke-Native {
 
 function Test-IotCore {
     (Get-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion').'EditionID' -eq 'IoTUAP'
+}
+
+function Write-HostGreen {
+    Write-Host -ForegroundColor Green @args
+}
+
+function Write-HostRed {
+    Write-Host -ForegroundColor Red @args
 }
 
 Export-ModuleMember -Function Install-SecurityDaemon, Uninstall-SecurityDaemon
