@@ -109,16 +109,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
         async Task<(bool isAuthenticated, bool serviceIdentityFound)> AuthenticateWithServiceIdentity(IIdentity clientIdentity, string serviceIdentityId, SharedAccessSignature sharedAccessSignature)
         {
             Option<ServiceIdentity> serviceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(serviceIdentityId);
-            (bool isAuthenticated, bool valueFound) = serviceIdentity.Map(s => (this.ValidateCredentials(sharedAccessSignature, s, clientIdentity), true)).GetOrElse((false, false));
+            (bool isAuthenticated, bool serviceIdentityFound) = serviceIdentity.Map(s => (this.ValidateCredentials(sharedAccessSignature, s, clientIdentity), true)).GetOrElse((false, false));
 
             if (!isAuthenticated)
             {
                 await this.deviceScopeIdentitiesCache.RefreshServiceIdentity(serviceIdentityId);
                 serviceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(serviceIdentityId);
-                (isAuthenticated, valueFound) = serviceIdentity.Map(s => (this.ValidateCredentials(sharedAccessSignature, s, clientIdentity), true)).GetOrElse((false, false));
+                (isAuthenticated, serviceIdentityFound) = serviceIdentity.Map(s => (this.ValidateCredentials(sharedAccessSignature, s, clientIdentity), true)).GetOrElse((false, false));
             }
 
-            return (isAuthenticated, valueFound);
+            return (isAuthenticated, serviceIdentityFound);
         }
 
         bool TryGetSharedAccessSignature(string token, IIdentity identity, out SharedAccessSignature sharedAccessSignature)
