@@ -85,13 +85,14 @@ namespace IotEdgeQuickstart.Details
                                 {
                                     Console.WriteLine("Workaround: restart iotedge service.");
                                     await this.Restart().ConfigureAwait(true);
-                                    await Task.Delay(TimeSpan.FromSeconds(10), cts.Token);
                                 }
                                 catch (Exception restartOperationException)
                                 {
                                     // Eat it up and let it retry in next iteration
                                     Console.WriteLine(restartOperationException);
                                 }
+
+                                await Task.Delay(TimeSpan.FromSeconds(10), cts.Token);
                             }
 
                             if (retryCount == 0)
