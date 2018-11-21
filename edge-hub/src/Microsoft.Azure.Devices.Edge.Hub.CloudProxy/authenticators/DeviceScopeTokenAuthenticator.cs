@@ -4,7 +4,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
 {
     using System;
     using System.Net;
-    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Common.Data;
     using Microsoft.Azure.Devices.Common.Security;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -14,14 +13,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public class DeviceScopeTokenAuthenticator : IAuthenticator
+    public class DeviceScopeTokenAuthenticator : DeviceScopeAuthenticator<ITokenCredentials>
     {
-        readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
         readonly string iothubHostName;
         readonly string edgeHubHostName;
-        readonly IAuthenticator underlyingAuthenticator;
-        readonly bool allowDeviceAuthForModule;
-        readonly bool syncServiceIdentityOnFailure;
 
         public DeviceScopeTokenAuthenticator(
             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache,
@@ -30,96 +25,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             IAuthenticator underlyingAuthenticator,
             bool allowDeviceAuthForModule,
             bool syncServiceIdentityOnFailure)
+            :
+            base(deviceScopeIdentitiesCache, underlyingAuthenticator, allowDeviceAuthForModule, syncServiceIdentityOnFailure)
         {
-            this.underlyingAuthenticator = Preconditions.CheckNotNull(underlyingAuthenticator, nameof(underlyingAuthenticator));
-            this.deviceScopeIdentitiesCache = Preconditions.CheckNotNull(deviceScopeIdentitiesCache, nameof(deviceScopeIdentitiesCache));
             this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
-            this.edgeHubHostName = Preconditions.CheckNotNull(edgeHubHostName, nameof(edgeHubHostName));
-            this.allowDeviceAuthForModule = true;
-            this.syncServiceIdentityOnFailure = true;
+            this.edgeHubHostName = Preconditions.CheckNonWhiteSpace(edgeHubHostName, nameof(edgeHubHostName));
         }
 
-        public async Task<bool> AuthenticateAsync(IClientCredentials clientCredentials)
-        {
-            if (!(clientCredentials is ITokenCredentials tokenCredentials))
-            {
-                return false;
-            }
+        protected override bool AreInputCredentialsValid(ITokenCredentials credentials) => this.TryGetSharedAccessSignature(credentials.Token, credentials.Identity, out SharedAccessSignature _);
 
-            try
-            {
-                (bool isAuthenticated, bool shouldFallback) = await this.AuthenticateInternalAsync(tokenCredentials);
-                Events.AuthenticatedInScope(clientCredentials.Identity, isAuthenticated);
-                if (!isAuthenticated && shouldFallback)
-                {
-                    isAuthenticated = await this.underlyingAuthenticator.AuthenticateAsync(clientCredentials);
-                }
-
-                return isAuthenticated;
-            }
-            catch (Exception e)
-            {
-                Events.ErrorAuthenticating(e, clientCredentials);
-                return await this.underlyingAuthenticator.AuthenticateAsync(clientCredentials);
-            }
-        }
-
-        public async Task<bool> ReauthenticateAsync(IClientCredentials clientCredentials)
-        {
-            if (!(clientCredentials is ITokenCredentials tokenCredentials))
-            {
-                return false;
-            }
-
-            try
-            {
-                (bool isAuthenticated, bool shouldFallback) = await this.AuthenticateInternalAsync(tokenCredentials);
-                Events.ReauthenticatedInScope(clientCredentials.Identity, isAuthenticated);
-                if (!isAuthenticated && shouldFallback)
-                {
-                    isAuthenticated = await this.underlyingAuthenticator.ReauthenticateAsync(clientCredentials);
-                }
-
-                return isAuthenticated;
-            }
-            catch (Exception e)
-            {
-                Events.ErrorAuthenticating(e, clientCredentials);
-                return await this.underlyingAuthenticator.ReauthenticateAsync(clientCredentials);
-            }
-        }
-
-        async Task<(bool isAuthenticated, bool shouldFallback)> AuthenticateInternalAsync(ITokenCredentials tokenCredentials)
-        {
-            if (!this.TryGetSharedAccessSignature(tokenCredentials.Token, tokenCredentials.Identity, out SharedAccessSignature sharedAccessSignature))
-            {
-                return (false, false);
-            }
-
-            (bool isAuthenticated, bool valueFound) = await this.AuthenticateWithServiceIdentity(tokenCredentials.Identity, tokenCredentials.Identity.Id, sharedAccessSignature);
-            if (!isAuthenticated && tokenCredentials.Identity is IModuleIdentity moduleIdentity)
-            {
-                // Module can use the Device key to authenticate
-                (isAuthenticated, valueFound) = await this.AuthenticateWithServiceIdentity(tokenCredentials.Identity, moduleIdentity.DeviceId, sharedAccessSignature);
-            }
-
-            return (isAuthenticated, !valueFound);
-        }
-
-        async Task<(bool isAuthenticated, bool serviceIdentityFound)> AuthenticateWithServiceIdentity(IIdentity clientIdentity, string serviceIdentityId, SharedAccessSignature sharedAccessSignature)
-        {
-            Option<ServiceIdentity> serviceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(serviceIdentityId);
-            (bool isAuthenticated, bool serviceIdentityFound) = serviceIdentity.Map(s => (this.ValidateCredentials(sharedAccessSignature, s, clientIdentity), true)).GetOrElse((false, false));
-
-            if (!isAuthenticated)
-            {
-                await this.deviceScopeIdentitiesCache.RefreshServiceIdentity(serviceIdentityId);
-                serviceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(serviceIdentityId);
-                (isAuthenticated, serviceIdentityFound) = serviceIdentity.Map(s => (this.ValidateCredentials(sharedAccessSignature, s, clientIdentity), true)).GetOrElse((false, false));
-            }
-
-            return (isAuthenticated, serviceIdentityFound);
-        }
+        protected override bool ValidateWithServiceIdentity(ServiceIdentity serviceIdentity, ITokenCredentials credentials) =>
+            this.TryGetSharedAccessSignature(credentials.Token, credentials.Identity, out SharedAccessSignature sharedAccessSignature)
+                ? this.ValidateCredentials(sharedAccessSignature, serviceIdentity, credentials.Identity)
+                : false;
 
         bool TryGetSharedAccessSignature(string token, IIdentity identity, out SharedAccessSignature sharedAccessSignature)
         {
