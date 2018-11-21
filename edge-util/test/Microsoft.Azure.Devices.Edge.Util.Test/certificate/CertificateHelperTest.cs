@@ -157,6 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
             Assert.Equal(certs.Count(), 1);
         }
 
+        [Fact]
         public void ParseTrustBundleResponseWithMultipleCertReturnsNonEmptyList()
         {
             var response = new TrustBundleResponse()
