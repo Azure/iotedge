@@ -32,11 +32,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
 
         public IConfiguration Configuration => this.underlying.Configuration;
 
-        Task<DeploymentConfigInfo> ReadFromBackup()
+        async Task<DeploymentConfigInfo> ReadFromBackup()
         {
+            DeploymentConfigInfo backedUpDeploymentConfigInfo = DeploymentConfigInfo.Empty;
+
             try
             {
-                return this.lastBackedUpConfig
+                backedUpDeploymentConfigInfo = await this.lastBackedUpConfig
                     .Map(v => Task.FromResult(v))
                     .GetOrElse(
                         async () =>
@@ -65,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
                 Events.GetBackupFailed(e, this.configFilePath);
             }
 
-            return Task.FromResult(DeploymentConfigInfo.Empty);
+            return backedUpDeploymentConfigInfo;
         }
 
         async Task BackupDeploymentConfig(DeploymentConfigInfo deploymentConfigInfo)
@@ -74,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
             {
                 // backup the config info only if there isn't an error in it
                 if (!deploymentConfigInfo.Exception.HasValue
-                    && this.lastBackedUpConfig.Filter(c => !deploymentConfigInfo.Equals(c)).HasValue)
+                    && !this.lastBackedUpConfig.Filter(c => deploymentConfigInfo.Equals(c)).HasValue)
                 {
                     string json = this.serde.Serialize(deploymentConfigInfo);
                     string encrypted = await this.encryptionProvider.EncryptAsync(json);
