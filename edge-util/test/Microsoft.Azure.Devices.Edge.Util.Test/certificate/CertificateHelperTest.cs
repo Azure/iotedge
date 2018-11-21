@@ -114,6 +114,61 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
         }
 
         [Fact]
+        public void ParseTrustedBundleFromFileRaisesExceptionWithInvalidTBFile()
+        {
+            string testFile = Path.GetRandomFileName();
+            Assert.Throws<ArgumentException>(() => CertificateHelper.ParseTrustedBundleFromFile(null));
+            Assert.Throws<ArgumentException>(() => CertificateHelper.ParseTrustedBundleFromFile(""));
+            Assert.Throws<ArgumentException>(() => CertificateHelper.ParseTrustedBundleFromFile("   "));
+            Assert.Throws<ArgumentException>(() => CertificateHelper.ParseTrustedBundleFromFile(testFile));
+        }
+
+        [Fact]
+        public void ParseTrustBundleEmptyResponseReturnsEmptyList()
+        {
+            var response = new TrustBundleResponse()
+            {
+                Certificate = "  ",
+            };
+            //Assert.Throws<InvalidOperationException>(() => CertificateHelper.ParseTrustBundleResponse(response));
+            IEnumerable<X509Certificate2> certs = CertificateHelper.ParseTrustBundleResponse(response);
+            Assert.Equal(certs.Count(), 0);
+        }
+
+        [Fact]
+        public void ParseTrustBundleInvalidResponseReturnsEmptyList()
+        {
+            var response = new TrustBundleResponse()
+            {
+                Certificate = "somewhere over the rainbow",
+            };
+            IEnumerable<X509Certificate2> certs = CertificateHelper.ParseTrustBundleResponse(response);
+            Assert.Equal(certs.Count(), 0);
+        }
+
+        [Fact]
+        public void ParseTrustBundleResponseWithOneCertReturnsNonEmptyList()
+        {
+            var response = new TrustBundleResponse()
+            {
+                Certificate = $"{TestCertificateHelper.CertificatePem}\n",
+            };
+            IEnumerable<X509Certificate2> certs = CertificateHelper.ParseTrustBundleResponse(response);
+            Assert.Equal(certs.Count(), 1);
+        }
+
+        [Fact]
+        public void ParseTrustBundleResponseWithMultipleCertReturnsNonEmptyList()
+        {
+            var response = new TrustBundleResponse()
+            {
+                Certificate = $"{TestCertificateHelper.CertificatePem}\n{TestCertificateHelper.CertificatePem}",
+            };
+            IEnumerable<X509Certificate2> certs = CertificateHelper.ParseTrustBundleResponse(response);
+            Assert.Equal(certs.Count(), 2);
+        }
+
+        [Fact]
         public void ParseCertificatesSingleShouldReturnCetificate()
         {
             IList<string> pemCerts = CertificateHelper.ParsePemCerts(TestCertificateHelper.CertificatePem);
