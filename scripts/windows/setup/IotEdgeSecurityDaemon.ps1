@@ -539,6 +539,9 @@ function Install-Services {
         }
     }
 
+    # Set service to restart after 1s if it fails
+    Invoke-Native "sc.exe failure ""$EdgeServiceName"" actions= restart/1000 reset= 0"
+
     Start-Service $EdgeServiceName
 
     Write-HostGreen 'Initialized the IoT Edge service.'
