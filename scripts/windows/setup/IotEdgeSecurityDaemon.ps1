@@ -277,7 +277,7 @@ function Test-AgentRegistryArgs {
             else {
                 'Parameters ''Username'' and ''Password'' must be used together. Please specify both (or neither for anonymous access).'
             }
-        Write-HostRed $Message
+        Write-HostRed $message
     }
     return $valid
 }
