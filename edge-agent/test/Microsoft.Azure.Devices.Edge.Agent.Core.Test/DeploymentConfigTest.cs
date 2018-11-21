@@ -1,62 +1,149 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-using System.Collections.Generic;
-using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-using Moq;
-using Xunit;
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 {
-    using System;
+    using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Moq;
+    using Xunit;
 
     [Unit]
     public class DeploymentConfigTest
     {
-        static readonly IEdgeAgentModule TestEdgeAgent1 = new TestAgentModule("edgeAgent", "docker",
-    new TestConfig("microsoft/edgeAgent:1.0"), new ConfigurationInfo(), new Dictionary<string, EnvVal>());
+        static readonly IEdgeAgentModule TestEdgeAgent1 = new TestAgentModule(
+            "edgeAgent",
+            "docker",
+            new TestConfig("microsoft/edgeAgent:1.0"),
+            new ConfigurationInfo(),
+            new Dictionary<string, EnvVal>());
 
-        static readonly IEdgeAgentModule TestEdgeAgent1_1 = new TestAgentModule("edgeAgent", "docker",
-            new TestConfig("microsoft/edgeAgent:1.0"), new ConfigurationInfo(), new Dictionary<string, EnvVal>());
+        static readonly IEdgeAgentModule TestEdgeAgent1_1 = new TestAgentModule(
+            "edgeAgent",
+            "docker",
+            new TestConfig("microsoft/edgeAgent:1.0"),
+            new ConfigurationInfo(),
+            new Dictionary<string, EnvVal>());
 
-        static readonly IEdgeAgentModule TestEdgeAgent2 = new TestAgentModule("edgeAgent", "docker",
-            new TestConfig("microsoft/edgeAgent:2.0"), new ConfigurationInfo(), new Dictionary<string, EnvVal>());
+        static readonly IEdgeAgentModule TestEdgeAgent2 = new TestAgentModule(
+            "edgeAgent",
+            "docker",
+            new TestConfig("microsoft/edgeAgent:2.0"),
+            new ConfigurationInfo(),
+            new Dictionary<string, EnvVal>());
 
-        static readonly IEdgeAgentModule TestEdgeAgent3 = new TestAgentModule("edgeAgent", "rkt",
-            new TestConfig("microsoft/edgeAgent:1.0"), new ConfigurationInfo(), new Dictionary<string, EnvVal>());
+        static readonly IEdgeAgentModule TestEdgeAgent3 = new TestAgentModule(
+            "edgeAgent",
+            "rkt",
+            new TestConfig("microsoft/edgeAgent:1.0"),
+            new ConfigurationInfo(),
+            new Dictionary<string, EnvVal>());
 
-        static readonly IEdgeHubModule TestEdgeHub1 = new TestHubModule("edgeHub", "docker", ModuleStatus.Running,
-            new TestConfig("microsoft/edgeHub:1.0"), RestartPolicy.Always, new ConfigurationInfo(), new Dictionary<string, EnvVal>());
+        static readonly IEdgeHubModule TestEdgeHub1 = new TestHubModule(
+            "edgeHub",
+            "docker",
+            ModuleStatus.Running,
+            new TestConfig("microsoft/edgeHub:1.0"),
+            RestartPolicy.Always,
+            new ConfigurationInfo(),
+            new Dictionary<string, EnvVal>());
 
-        static readonly IEdgeHubModule TestEdgeHub1_1 = new TestHubModule("edgeHub", "docker", ModuleStatus.Running,
-            new TestConfig("microsoft/edgeHub:1.0"), RestartPolicy.Always, new ConfigurationInfo(), new Dictionary<string, EnvVal>());
+        static readonly IEdgeHubModule TestEdgeHub1_1 = new TestHubModule(
+            "edgeHub",
+            "docker",
+            ModuleStatus.Running,
+            new TestConfig("microsoft/edgeHub:1.0"),
+            RestartPolicy.Always,
+            new ConfigurationInfo(),
+            new Dictionary<string, EnvVal>());
 
-        static readonly IEdgeHubModule TestEdgeHub2 = new TestHubModule("edgeHub", "docker", ModuleStatus.Running,
-            new TestConfig("microsoft/edgeHub:2.0"), RestartPolicy.Always, new ConfigurationInfo(), new Dictionary<string, EnvVal>());
+        static readonly IEdgeHubModule TestEdgeHub2 = new TestHubModule(
+            "edgeHub",
+            "docker",
+            ModuleStatus.Running,
+            new TestConfig("microsoft/edgeHub:2.0"),
+            RestartPolicy.Always,
+            new ConfigurationInfo(),
+            new Dictionary<string, EnvVal>());
 
-        static readonly IEdgeHubModule TestEdgeHub3 = new TestHubModule("edgeHub", "rkt", ModuleStatus.Running,
-            new TestConfig("microsoft/edgeHub:1.0"), RestartPolicy.Always, new ConfigurationInfo(), new Dictionary<string, EnvVal>());
+        static readonly IEdgeHubModule TestEdgeHub3 = new TestHubModule(
+            "edgeHub",
+            "rkt",
+            ModuleStatus.Running,
+            new TestConfig("microsoft/edgeHub:1.0"),
+            RestartPolicy.Always,
+            new ConfigurationInfo(),
+            new Dictionary<string, EnvVal>());
 
-        static readonly IModule TestModule1 = new TestModule("mod1", string.Empty, "docker",
-            ModuleStatus.Running, new TestConfig("mod1:v0"), RestartPolicy.Always, new ConfigurationInfo(), new Dictionary<string, EnvVal>());
+        static readonly IModule TestModule1 = new TestModule(
+            "mod1",
+            string.Empty,
+            "docker",
+            ModuleStatus.Running,
+            new TestConfig("mod1:v0"),
+            RestartPolicy.Always,
+            new ConfigurationInfo(),
+            new Dictionary<string, EnvVal>());
 
-        static readonly IModule TestModule1_1 = new TestModule("mod1", string.Empty, "docker",
-            ModuleStatus.Running, new TestConfig("mod1:v0"), RestartPolicy.Always, new ConfigurationInfo(), new Dictionary<string, EnvVal>());
+        static readonly IModule TestModule1_1 = new TestModule(
+            "mod1",
+            string.Empty,
+            "docker",
+            ModuleStatus.Running,
+            new TestConfig("mod1:v0"),
+            RestartPolicy.Always,
+            new ConfigurationInfo(),
+            new Dictionary<string, EnvVal>());
 
-        static readonly IModule TestModule1_2 = new TestModule("mod1", string.Empty, "docker",
-            ModuleStatus.Running, new TestConfig("mod1:v2"), RestartPolicy.Always, new ConfigurationInfo(), new Dictionary<string, EnvVal>());
+        static readonly IModule TestModule1_2 = new TestModule(
+            "mod1",
+            string.Empty,
+            "docker",
+            ModuleStatus.Running,
+            new TestConfig("mod1:v2"),
+            RestartPolicy.Always,
+            new ConfigurationInfo(),
+            new Dictionary<string, EnvVal>());
 
-        static readonly IModule TestModule1_3 = new TestModule("mod1", string.Empty, "docker",
-            ModuleStatus.Stopped, new TestConfig("mod1:v0"), RestartPolicy.Always, new ConfigurationInfo(), new Dictionary<string, EnvVal>());
+        static readonly IModule TestModule1_3 = new TestModule(
+            "mod1",
+            string.Empty,
+            "docker",
+            ModuleStatus.Stopped,
+            new TestConfig("mod1:v0"),
+            RestartPolicy.Always,
+            new ConfigurationInfo(),
+            new Dictionary<string, EnvVal>());
 
-        static readonly IModule TestModule1_4 = new TestModule("mod1", string.Empty, "docker",
-            ModuleStatus.Running, new TestConfig("mod1:v0"), RestartPolicy.OnFailure, new ConfigurationInfo(), new Dictionary<string, EnvVal>());
+        static readonly IModule TestModule1_4 = new TestModule(
+            "mod1",
+            string.Empty,
+            "docker",
+            ModuleStatus.Running,
+            new TestConfig("mod1:v0"),
+            RestartPolicy.OnFailure,
+            new ConfigurationInfo(),
+            new Dictionary<string, EnvVal>());
 
-        static readonly IModule TestModule2 = new TestModule("mod2", string.Empty, "docker",
-            ModuleStatus.Running, new TestConfig("mod2:v0"), RestartPolicy.Always, new ConfigurationInfo(), new Dictionary<string, EnvVal>());
+        static readonly IModule TestModule2 = new TestModule(
+            "mod2",
+            string.Empty,
+            "docker",
+            ModuleStatus.Running,
+            new TestConfig("mod2:v0"),
+            RestartPolicy.Always,
+            new ConfigurationInfo(),
+            new Dictionary<string, EnvVal>());
 
-        static readonly IModule TestModule2_1 = new TestModule("mod2", string.Empty, "docker",
-            ModuleStatus.Running, new TestConfig("mod2:v0"), RestartPolicy.Always, new ConfigurationInfo(), new Dictionary<string, EnvVal>());
+        static readonly IModule TestModule2_1 = new TestModule(
+            "mod2",
+            string.Empty,
+            "docker",
+            ModuleStatus.Running,
+            new TestConfig("mod2:v0"),
+            RestartPolicy.Always,
+            new ConfigurationInfo(),
+            new Dictionary<string, EnvVal>());
 
         static readonly DeploymentConfig Config1 = new DeploymentConfig(
             "1.0",
@@ -256,8 +343,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
         static IEnumerable<object[]> EqualityTestData()
         {
-            yield return new object[] {Config1, Config1_1, true};
-            yield return new object[] {Config1, Config2, false};
+            yield return new object[] { Config1, Config1_1, true };
+            yield return new object[] { Config1, Config2, false };
             yield return new object[] { Config1, Config3, false };
             yield return new object[] { Config1, Config4, false };
             yield return new object[] { Config1, Config5, false };
@@ -270,7 +357,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             yield return new object[] { Config1, Config12, false };
             yield return new object[] { Config1, Config13, false };
             yield return new object[] { Config1, Config14, false };
-            yield return new object[] { Config1, Config15, false };            
+            yield return new object[] { Config1, Config15, false };
         }
     }
 }
