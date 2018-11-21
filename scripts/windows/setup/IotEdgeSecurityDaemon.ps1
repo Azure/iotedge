@@ -192,6 +192,10 @@ function Uninstall-SecurityDaemon {
     Stop-IotEdgeContainers
     $success = Remove-SecurityDaemonResources
     Reset-SystemPath
+
+    [System.Environment]::SetEnvironmentVariable('IOTEDGE_HOST', $null, [System.EnvironmentVariableTarget]::Machine)
+    Remove-Item Env:\IOTEDGE_HOST -ErrorAction SilentlyContinue
+
     Remove-FirewallExceptions
 
     if ($success) {
@@ -681,7 +685,7 @@ function Set-GatewayAddress {
         "  workload_uri: 'http://${gatewayAddress}:15581'")
     $configurationYaml = $configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")
 
-    [Environment]::SetEnvironmentVariable('IOTEDGE_HOST', "http://${gatewayAddress}:15580", [System.EnvironmentVariableTarget]::Machine)
+    [System.Environment]::SetEnvironmentVariable('IOTEDGE_HOST', "http://${gatewayAddress}:15580", [System.EnvironmentVariableTarget]::Machine)
     $env:IOTEDGE_HOST = "http://${gatewayAddress}:15580"
 
     $configurationYaml | Set-Content "$EdgeInstallDirectory\config.yaml" -Force
