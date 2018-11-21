@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 )
             );
 
-        public int GetHashCode(IDictionary<TKey, TValue> obj) =>
+        public int GetHashCode(IReadOnlyDictionary<TKey, TValue> obj) =>
             obj.Aggregate(17, (acc, pair) => (acc * 31 + pair.Key.GetHashCode()) * 31 + pair.Value.GetHashCode());
     }
 
