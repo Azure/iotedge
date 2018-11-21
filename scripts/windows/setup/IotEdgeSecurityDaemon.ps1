@@ -148,6 +148,9 @@ function Install-SecurityDaemon {
     Set-ProvisioningMode
     Set-AgentImage
     Set-Hostname
+    if ($ContainerOs -eq 'Linux') {
+        Set-GatewayAddress
+    }
     Set-MobyRuntimeParameters
 
     # Register services
@@ -654,6 +657,32 @@ function Set-Hostname {
     $replacementContent = "hostname: '$hostname'"
     ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")) | Set-Content "$EdgeInstallDirectory\config.yaml" -Force
     Write-HostGreen "Configured device with hostname '$hostname'."
+}
+
+function Set-GatewayAddress {
+    $configurationYaml = Get-Content "$EdgeInstallDirectory\config.yaml" -Raw
+    $gatewayAddress = (Get-NetIpAddress |
+            Where-Object {$_.InterfaceAlias -like '*vEthernet (DockerNAT)*' -and $_.AddressFamily -eq 'IPv4'}).IPAddress
+
+    $selectionRegex = 'connect:\s*management_uri:\s*".*"\s*workload_uri:\s*".*"'
+    $replacementContent = @(
+        'connect:',
+        "  management_uri: 'http://${gatewayAddress}:15580'",
+        "  workload_uri: 'http://${gatewayAddress}:15581'")
+    $configurationYaml = $configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")
+
+    $selectionRegex = 'listen:\s*management_uri:\s*".*"\s*workload_uri:\s*".*"'
+    $replacementContent = @(
+        'listen:',
+        "  management_uri: 'http://${gatewayAddress}:15580'",
+        "  workload_uri: 'http://${gatewayAddress}:15581'")
+    $configurationYaml = $configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")
+
+    [Environment]::SetEnvironmentVariable('IOTEDGE_HOST', "http://${gatewayAddress}:15580", [System.EnvironmentVariableTarget]::Machine)
+    $env:IOTEDGE_HOST = "http://${gatewayAddress}:15580"
+
+    $configurationYaml | Set-Content "$EdgeInstallDirectory\config.yaml" -Force
+    Write-HostGreen "Configured device with gateway address '$gatewayAddress'."
 }
 
 function Set-MobyRuntimeParameters {
