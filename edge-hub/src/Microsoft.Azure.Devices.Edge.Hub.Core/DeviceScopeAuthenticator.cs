@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 return false;
             }
 
-            (bool isAuthenticated, bool shouldFallback) = await this.AuthenticateInternalAsync(tCredentials);
+            (bool isAuthenticated, bool shouldFallback) = await this.AuthenticateInternalAsync(tCredentials, false);
             Events.AuthenticatedInScope(clientCredentials.Identity, isAuthenticated);
             if (!isAuthenticated && shouldFallback)
             {
@@ -54,10 +54,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 return false;
             }
 
-            (bool isAuthenticated, bool shouldFallback) = await this.AuthenticateInternalAsync(tCredentials);
+            (bool isAuthenticated, bool shouldFallback) = await this.AuthenticateInternalAsync(tCredentials, true);
             Events.ReauthenticatedInScope(clientCredentials.Identity, isAuthenticated);
             if (!isAuthenticated && shouldFallback)
             {
+                Events.ServiceIdentityNotFound(tCredentials.Identity);
                 isAuthenticated = await this.underlyingAuthenticator.ReauthenticateAsync(clientCredentials);
             }
 
@@ -68,12 +69,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         protected abstract bool ValidateWithServiceIdentity(ServiceIdentity serviceIdentity, T credentials);
 
-        async Task<(bool isAuthenticated, bool shouldFallback)> AuthenticateInternalAsync(T tCredentials)
+        async Task<(bool isAuthenticated, bool shouldFallback)> AuthenticateInternalAsync(T tCredentials, bool reauthenticating)
         {
             try
             {
                 if (!this.AreInputCredentialsValid(tCredentials))
                 {
+                    Events.InputCredentialsNotValid(tCredentials.Identity);
                     return (false, false);
                 }
 
@@ -81,6 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 if (!isAuthenticated && this.allowDeviceAuthForModule && tCredentials.Identity is IModuleIdentity moduleIdentity)
                 {
                     // Module can use the Device key to authenticate
+                    Events.AuthenticatingWithDeviceIdentity(moduleIdentity);
                     (isAuthenticated, valueFound) = await this.AuthenticateWithServiceIdentity(tCredentials, moduleIdentity.DeviceId);
                 }
 
@@ -88,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
             catch (Exception e)
             {
-                Events.ErrorAuthenticating(e, tCredentials);
+                Events.ErrorAuthenticating(e, tCredentials, reauthenticating);
                 return (false, true);
             }
         }
@@ -100,6 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             if (!isAuthenticated && (!serviceIdentityFound || this.syncServiceIdentityOnFailure))
             {
+                Events.ResyncingServiceIdentity(credentials.Identity, serviceIdentityId);
                 await this.deviceScopeIdentitiesCache.RefreshServiceIdentity(serviceIdentityId);
                 serviceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(serviceIdentityId);
                 (isAuthenticated, serviceIdentityFound) = serviceIdentity.Map(s => (this.ValidateWithServiceIdentity(s, credentials), true)).GetOrElse((false, false));
@@ -115,68 +119,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             enum EventIds
             {
-                ErrorReauthenticating = IdStart,
-                InvalidHostName,
-                InvalidAudience,
-                IdMismatch,
-                KeysMismatch,
-                InvalidServiceIdentityType,
-                ErrorAuthenticating,
-                ServiceIdentityNotEnabled,
-                TokenExpired,
-                ErrorParsingToken,
+                ErrorAuthenticating = IdStart,
                 ServiceIdentityNotFound,
-                AuthenticatedInScope
+                AuthenticatedInScope,
+                InputCredentialsNotValid,
+                ResyncingServiceIdentity,
+                AuthenticatingWithDeviceIdentity
             }
 
-            public static void ErrorReauthenticating(Exception exception, ServiceIdentity serviceIdentity)
+            public static void ErrorAuthenticating(Exception exception, IClientCredentials credentials, bool reauthenticating)
             {
-                Log.LogWarning((int)EventIds.ErrorReauthenticating, exception, $"Error re-authenticating {serviceIdentity.Id} after the service identity was updated.");
-            }
-
-            public static void InvalidHostName(string id, string hostName, string iotHubHostName, string edgeHubHostName)
-            {
-                Log.LogWarning((int)EventIds.InvalidHostName, $"Error authenticating token for {id} because the audience hostname {hostName} does not match IoTHub hostname {iotHubHostName} or the EdgeHub hostname {edgeHubHostName}.");
-            }
-
-            public static void InvalidAudience(string audience, IIdentity identity)
-            {
-                Log.LogWarning((int)EventIds.InvalidAudience, $"Error authenticating token for {identity.Id} because the audience {audience} is invalid.");
-            }
-
-            public static void IdMismatch(string audience, IIdentity identity, string deviceId)
-            {
-                Log.LogWarning((int)EventIds.IdMismatch, $"Error authenticating token for {identity.Id} because the deviceId {deviceId} in the identity does not match the audience {audience}.");
-            }
-
-            public static void KeysMismatch(string id, Exception exception)
-            {
-                Log.LogWarning((int)EventIds.KeysMismatch, $"Error authenticating token for {id} because the token did not match the primary or the secondary key. Error - {exception.Message}");
-            }
-
-            public static void InvalidServiceIdentityType(ServiceIdentity serviceIdentity)
-            {
-                Log.LogWarning((int)EventIds.InvalidServiceIdentityType, $"Error authenticating token for {serviceIdentity.Id} because the service identity authentication type is unexpected - {serviceIdentity.Authentication.Type}");
-            }
-
-            public static void ErrorAuthenticating(Exception exception, IClientCredentials credentials)
-            {
-                Log.LogWarning((int)EventIds.ErrorAuthenticating, exception, $"Error authenticating credentials for {credentials.Identity.Id}");
-            }
-
-            public static void ServiceIdentityNotEnabled(ServiceIdentity serviceIdentity)
-            {
-                Log.LogWarning((int)EventIds.ServiceIdentityNotEnabled, $"Error authenticating token for {serviceIdentity.Id} because the service identity is not enabled");
-            }
-
-            public static void TokenExpired(IIdentity identity)
-            {
-                Log.LogWarning((int)EventIds.TokenExpired, $"Error authenticating token for {identity.Id} because the token has expired.");
-            }
-
-            public static void ErrorParsingToken(IIdentity identity, Exception exception)
-            {
-                Log.LogWarning((int)EventIds.ErrorParsingToken, exception, $"Error authenticating token for {identity.Id} because the token could not be parsed");
+                string operation = reauthenticating ? "reauthenticating" : "authenticating";
+                Log.LogWarning((int)EventIds.ErrorAuthenticating, exception, $"Error {operation} credentials for {credentials.Identity.Id}");
             }
 
             public static void ServiceIdentityNotFound(IIdentity identity)
@@ -194,6 +148,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 string authenticated = isAuthenticated ? "reauthenticated" : "not reauthenticated";
                 Log.LogDebug((int)EventIds.AuthenticatedInScope, $"Client {identity.Id} in device scope {authenticated} locally.");
+            }
+
+            public static void InputCredentialsNotValid(IIdentity identity)
+            {
+                Log.LogInformation((int)EventIds.InputCredentialsNotValid, $"Credentials for client {identity.Id} are not valid.");
+            }
+
+            public static void ResyncingServiceIdentity(IIdentity identity, string serviceIdentityId)
+            {
+                Log.LogInformation((int)EventIds.ResyncingServiceIdentity, $"Unable to authenticate client {identity.Id} with cached service identity {serviceIdentityId}. Resyncing service identity...");
+            }
+
+            public static void AuthenticatingWithDeviceIdentity(IModuleIdentity moduleIdentity)
+            {
+                Log.LogInformation((int)EventIds.AuthenticatingWithDeviceIdentity, $"Unable to authenticate client {moduleIdentity.Id} with module credentials. Attempting to authenticate using device {moduleIdentity.DeviceId} credentials.");
             }
         }
     }

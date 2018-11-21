@@ -175,23 +175,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
 
             enum EventIds
             {
-                ErrorReauthenticating = IdStart,
-                InvalidHostName,
+                InvalidHostName = IdStart,
                 InvalidAudience,
                 IdMismatch,
                 KeysMismatch,
                 InvalidServiceIdentityType,
-                ErrorAuthenticating,
                 ServiceIdentityNotEnabled,
                 TokenExpired,
-                ErrorParsingToken,
-                ServiceIdentityNotFound,
-                AuthenticatedInScope
-            }
-
-            public static void ErrorReauthenticating(Exception exception, ServiceIdentity serviceIdentity)
-            {
-                Log.LogWarning((int)EventIds.ErrorReauthenticating, exception, $"Error re-authenticating {serviceIdentity.Id} after the service identity was updated.");
+                ErrorParsingToken
             }
 
             public static void InvalidHostName(string id, string hostName, string iotHubHostName, string edgeHubHostName)
@@ -219,11 +210,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
                 Log.LogWarning((int)EventIds.InvalidServiceIdentityType, $"Error authenticating token for {serviceIdentity.Id} because the service identity authentication type is unexpected - {serviceIdentity.Authentication.Type}");
             }
 
-            public static void ErrorAuthenticating(Exception exception, IClientCredentials credentials)
-            {
-                Log.LogWarning((int)EventIds.ErrorAuthenticating, exception, $"Error authenticating credentials for {credentials.Identity.Id}");
-            }
-
             public static void ServiceIdentityNotEnabled(ServiceIdentity serviceIdentity)
             {
                 Log.LogWarning((int)EventIds.ServiceIdentityNotEnabled, $"Error authenticating token for {serviceIdentity.Id} because the service identity is not enabled");
@@ -237,23 +223,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             public static void ErrorParsingToken(IIdentity identity, Exception exception)
             {
                 Log.LogWarning((int)EventIds.ErrorParsingToken, exception, $"Error authenticating token for {identity.Id} because the token could not be parsed");
-            }
-
-            public static void ServiceIdentityNotFound(IIdentity identity)
-            {
-                Log.LogDebug((int)EventIds.ServiceIdentityNotFound, $"Service identity for {identity.Id} not found. Using underlying authenticator to authenticate");
-            }
-
-            public static void AuthenticatedInScope(IIdentity identity, bool isAuthenticated)
-            {
-                string authenticated = isAuthenticated ? "authenticated" : "not authenticated";
-                Log.LogInformation((int)EventIds.AuthenticatedInScope, $"Client {identity.Id} in device scope {authenticated} locally.");
-            }
-
-            public static void ReauthenticatedInScope(IIdentity identity, bool isAuthenticated)
-            {
-                string authenticated = isAuthenticated ? "reauthenticated" : "not reauthenticated";
-                Log.LogDebug((int)EventIds.AuthenticatedInScope, $"Client {identity.Id} in device scope {authenticated} locally.");
             }
         }
     }
