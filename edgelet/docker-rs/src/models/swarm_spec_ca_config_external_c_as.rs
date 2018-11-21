@@ -28,7 +28,7 @@ pub struct SwarmSpecCaConfigExternalCAs {
 }
 
 impl SwarmSpecCaConfigExternalCAs {
-    pub fn new() -> SwarmSpecCaConfigExternalCAs {
+    pub fn new() -> Self {
         SwarmSpecCaConfigExternalCAs {
             protocol: None,
             URL: None,
@@ -41,13 +41,13 @@ impl SwarmSpecCaConfigExternalCAs {
         self.protocol = Some(protocol);
     }
 
-    pub fn with_protocol(mut self, protocol: String) -> SwarmSpecCaConfigExternalCAs {
+    pub fn with_protocol(mut self, protocol: String) -> Self {
         self.protocol = Some(protocol);
         self
     }
 
-    pub fn protocol(&self) -> Option<&String> {
-        self.protocol.as_ref()
+    pub fn protocol(&self) -> Option<&str> {
+        self.protocol.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_protocol(&mut self) {
@@ -58,13 +58,13 @@ impl SwarmSpecCaConfigExternalCAs {
         self.URL = Some(URL);
     }
 
-    pub fn with_URL(mut self, URL: String) -> SwarmSpecCaConfigExternalCAs {
+    pub fn with_URL(mut self, URL: String) -> Self {
         self.URL = Some(URL);
         self
     }
 
-    pub fn URL(&self) -> Option<&String> {
-        self.URL.as_ref()
+    pub fn URL(&self) -> Option<&str> {
+        self.URL.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_URL(&mut self) {
@@ -75,10 +75,7 @@ impl SwarmSpecCaConfigExternalCAs {
         self.options = Some(options);
     }
 
-    pub fn with_options(
-        mut self,
-        options: ::std::collections::HashMap<String, String>,
-    ) -> SwarmSpecCaConfigExternalCAs {
+    pub fn with_options(mut self, options: ::std::collections::HashMap<String, String>) -> Self {
         self.options = Some(options);
         self
     }
@@ -95,13 +92,13 @@ impl SwarmSpecCaConfigExternalCAs {
         self.ca_cert = Some(ca_cert);
     }
 
-    pub fn with_ca_cert(mut self, ca_cert: String) -> SwarmSpecCaConfigExternalCAs {
+    pub fn with_ca_cert(mut self, ca_cert: String) -> Self {
         self.ca_cert = Some(ca_cert);
         self
     }
 
-    pub fn ca_cert(&self) -> Option<&String> {
-        self.ca_cert.as_ref()
+    pub fn ca_cert(&self) -> Option<&str> {
+        self.ca_cert.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_ca_cert(&mut self) {

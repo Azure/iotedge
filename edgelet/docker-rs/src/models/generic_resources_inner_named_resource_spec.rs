@@ -20,7 +20,7 @@ pub struct GenericResourcesInnerNamedResourceSpec {
 }
 
 impl GenericResourcesInnerNamedResourceSpec {
-    pub fn new() -> GenericResourcesInnerNamedResourceSpec {
+    pub fn new() -> Self {
         GenericResourcesInnerNamedResourceSpec {
             kind: None,
             value: None,
@@ -31,13 +31,13 @@ impl GenericResourcesInnerNamedResourceSpec {
         self.kind = Some(kind);
     }
 
-    pub fn with_kind(mut self, kind: String) -> GenericResourcesInnerNamedResourceSpec {
+    pub fn with_kind(mut self, kind: String) -> Self {
         self.kind = Some(kind);
         self
     }
 
-    pub fn kind(&self) -> Option<&String> {
-        self.kind.as_ref()
+    pub fn kind(&self) -> Option<&str> {
+        self.kind.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_kind(&mut self) {
@@ -48,13 +48,13 @@ impl GenericResourcesInnerNamedResourceSpec {
         self.value = Some(value);
     }
 
-    pub fn with_value(mut self, value: String) -> GenericResourcesInnerNamedResourceSpec {
+    pub fn with_value(mut self, value: String) -> Self {
         self.value = Some(value);
         self
     }
 
-    pub fn value(&self) -> Option<&String> {
-        self.value.as_ref()
+    pub fn value(&self) -> Option<&str> {
+        self.value.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_value(&mut self) {

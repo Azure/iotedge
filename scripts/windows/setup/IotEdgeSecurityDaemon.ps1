@@ -49,6 +49,10 @@ function Install-SecurityDaemon {
     $ErrorActionPreference = "Stop"
     Set-StrictMode -Version 5
 
+    Set-Variable Windows1607 -Value 14393 -Option Constant
+    Set-Variable Windows1803 -Value 17134 -Option Constant
+    Set-Variable Windows1809 -Value 17763 -Option Constant
+
     if (Test-EdgeAlreadyInstalled) {
         Write-Host ("`nIoT Edge is already installed. To reinstall, run 'Uninstall-SecurityDaemon' first.") `
             -ForegroundColor "Red"
@@ -87,8 +91,10 @@ function Install-SecurityDaemon {
     Set-ProvisioningMode
     Set-AgentImage
     Set-Hostname
-    Set-GatewayAddress
     Set-MobyNetwork
+    if (-not (Test-UdsSupport)) {
+        Set-GatewayAddress
+    }
     Install-IotEdgeService
 
     Write-Host ("`nThis device is now provisioned with the IoT Edge runtime.`n" +
@@ -173,18 +179,28 @@ function Test-IsDockerRunning {
     return $true
 }
 
-function Test-IsKernelValid {
-    $MinBuildForLinuxContainers = 14393
-    $SupportedBuildsForWindowsContainers = @(17134, 17763)
-    $CurrentBuild = (Get-Item "HKLM:\Software\Microsoft\Windows NT\CurrentVersion").GetValue("CurrentBuild")
+function Get-WindowsBuild {
+    return (Get-Item "HKLM:\Software\Microsoft\Windows NT\CurrentVersion").GetValue("CurrentBuild")
+}
 
-    # If using Linux containers, any Windows 10 version >14393 will suffice.
+function Test-UdsSupport {
+    # TODO: Enable when we have RS5-based modules in process-isolated containers
+    # $MinBuildForUnixDomainSockets = $Windows1809
+    # $CurrentBuild = Get-WindowsBuild
+    # return ($ContainerOs -eq "Windows" -and $CurrentBuild -ge $MinBuildForUnixDomainSockets)
+    return $false
+}
+
+function Test-IsKernelValid {
+    $MinBuildForLinuxContainers = $Windows1607
+    $SupportedBuildsForWindowsContainers = @($Windows1803, $Windows1809)
+    $CurrentBuild = Get-WindowsBuild
+
     if (($ContainerOs -eq "Linux" -and $CurrentBuild -ge $MinBuildForLinuxContainers) -or `
         ($ContainerOs -eq "Windows" -and $SupportedBuildsForWindowsContainers -contains $CurrentBuild)) {
         Write-Host "The container host is on supported build version $CurrentBuild." -ForegroundColor "Green"
         return $true
     } else {
-
         Write-Host ("The container host is on unsupported build version $CurrentBuild. `n" +
             "Please use a container host running build $MinBuildForLinuxContainers newer when using Linux containers" +
             "or with one of the following supported build versions when using Windows containers:`n" +
@@ -253,6 +269,23 @@ function Get-SecurityDaemon {
             New-Item -Type Directory 'C:\ProgramData\iotedge' | Out-Null
             Expand-Archive "$ArchivePath" "C:\ProgramData\iotedge" -Force
             Copy-Item "C:\ProgramData\iotedge\iotedged-windows\*" "C:\ProgramData\iotedge" -Force -Recurse
+        }
+
+        if (Test-UdsSupport) {
+            foreach ($Name in "mgmt", "workload")
+            {
+                # We can't bind socket files directly in Windows, so create a folder
+                # and bind to that. The folder needs to give Modify rights to a
+                # well-known group that will exist in any container so that
+                # non-privileged modules can access it.
+                $Path = "C:\ProgramData\iotedge\$Name"
+                New-Item "$Path" -ItemType "Directory" -Force
+                $Rule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule(`
+                    "NT AUTHORITY\Authenticated Users", 'Modify', 'ObjectInherit', 'InheritOnly', 'Allow')
+                $Acl = [System.IO.Directory]::GetAccessControl($Path)
+                $Acl.AddAccessRule($Rule)
+                [System.IO.Directory]::SetAccessControl($Path, $Acl)            
+            }
         }
 
         if (Test-Path 'C:\ProgramData\iotedge\iotedged_eventlog_messages.dll') {

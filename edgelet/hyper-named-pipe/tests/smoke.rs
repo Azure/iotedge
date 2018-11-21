@@ -1,7 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(warnings)]
 #![cfg(windows)]
+#![deny(unused_extern_crates, warnings)]
+// Remove this when clippy stops warning about old-style `allow()`,
+// which can only be silenced by enabling a feature and thus requires nightly
+//
+// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
+#![allow(renamed_and_removed_lints)]
+#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
 
 extern crate futures;
 extern crate httparse;
@@ -36,6 +42,7 @@ fn make_url(path: &str) -> Uri {
     Uri::new(&format!("npipe:{}", path.replace("\\", "/")), "/").unwrap()
 }
 
+#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
 fn get_handler(_req: &Request, _body: Option<Vec<u8>>) -> String {
     "HTTP/1.1 200 OK\r\n\r\n".to_string()
 }
@@ -66,6 +73,7 @@ fn get() {
 
 const GET_RESPONSE: &str = "The answer is 42";
 
+#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
 fn get_with_body_handler(_req: &Request, _body: Option<Vec<u8>>) -> String {
     format!(
         "HTTP/1.1 200 OK\r\n\

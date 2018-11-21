@@ -28,7 +28,7 @@ pub struct SecretCreateBody {
 }
 
 impl SecretCreateBody {
-    pub fn new() -> SecretCreateBody {
+    pub fn new() -> Self {
         SecretCreateBody {
             name: None,
             labels: None,
@@ -41,13 +41,13 @@ impl SecretCreateBody {
         self.name = Some(name);
     }
 
-    pub fn with_name(mut self, name: String) -> SecretCreateBody {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
     }
 
-    pub fn name(&self) -> Option<&String> {
-        self.name.as_ref()
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_name(&mut self) {
@@ -58,10 +58,7 @@ impl SecretCreateBody {
         self.labels = Some(labels);
     }
 
-    pub fn with_labels(
-        mut self,
-        labels: ::std::collections::HashMap<String, String>,
-    ) -> SecretCreateBody {
+    pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
         self.labels = Some(labels);
         self
     }
@@ -78,13 +75,13 @@ impl SecretCreateBody {
         self.data = Some(data);
     }
 
-    pub fn with_data(mut self, data: String) -> SecretCreateBody {
+    pub fn with_data(mut self, data: String) -> Self {
         self.data = Some(data);
         self
     }
 
-    pub fn data(&self) -> Option<&String> {
-        self.data.as_ref()
+    pub fn data(&self) -> Option<&str> {
+        self.data.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_data(&mut self) {
@@ -95,7 +92,7 @@ impl SecretCreateBody {
         self.driver = Some(driver);
     }
 
-    pub fn with_driver(mut self, driver: ::models::Driver) -> SecretCreateBody {
+    pub fn with_driver(mut self, driver: ::models::Driver) -> Self {
         self.driver = Some(driver);
         self
     }

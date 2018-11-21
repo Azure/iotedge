@@ -1,4 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
+
+#![deny(unused_extern_crates, warnings)]
+// Remove this when clippy stops warning about old-style `allow()`,
+// which can only be silenced by enabling a feature and thus requires nightly
+//
+// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
+#![allow(renamed_and_removed_lints)]
+#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
+
 extern crate edgelet_core;
 extern crate edgelet_hsm;
 
@@ -47,26 +56,25 @@ fn crypto_create_cert_input_fail() {
     );
 
     // act
-    match crypto.create_certificate(&props_time) {
-        Ok(_) => panic!("Expected an error from bad time"),
-        Err(_) => (),
-    }
-    match crypto.create_certificate(&props_cn) {
-        Ok(_) => panic!("Expected an error from bad common name"),
-        Err(_) => (),
-    }
-    match crypto.create_certificate(&props_type) {
-        Ok(_) => panic!("Expected an error from bad cert type"),
-        Err(_) => (),
-    }
-    match crypto.create_certificate(&props_a) {
-        Ok(_) => panic!("Expected an error from bad alias"),
-        Err(_) => (),
-    }
-    match crypto.destroy_certificate("unknown_cert_alias".to_string()) {
-        Ok(_) => (),
-        Err(_) => panic!("Expected no error when destroying a certificate that does not exist"),
-    }
+    crypto
+        .create_certificate(&props_time)
+        .expect_err("Expected an error from bad time");
+
+    crypto
+        .create_certificate(&props_cn)
+        .expect_err("Expected an error from bad common name");
+
+    crypto
+        .create_certificate(&props_type)
+        .expect_err("Expected an error from bad cert type");
+
+    crypto
+        .create_certificate(&props_a)
+        .expect_err("Expected an error from bad alias");
+
+    crypto
+        .destroy_certificate("unknown_cert_alias".to_string())
+        .expect("Expected no error when destroying a certificate that does not exist");
 
     // cleanup
     crypto

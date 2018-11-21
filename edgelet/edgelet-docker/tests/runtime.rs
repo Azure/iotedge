@@ -1,8 +1,17 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(warnings)]
+#![deny(unused_extern_crates, warnings)]
+// Remove this when clippy stops warning about old-style `allow()`,
+// which can only be silenced by enabling a feature and thus requires nightly
+//
+// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
+#![allow(renamed_and_removed_lints)]
+#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
 
+#[cfg(unix)]
 extern crate base64;
+#[cfg(unix)]
+extern crate failure;
 extern crate futures;
 extern crate hyper;
 #[macro_use]
@@ -21,6 +30,8 @@ use std::str;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
+#[cfg(unix)]
+use failure::Fail;
 use futures::prelude::*;
 use futures::{future, Stream};
 use hyper::{Body, Error as HyperError, Method, Request, Response};
@@ -59,8 +70,8 @@ fn invalid_image_name_pull_handler(
         .collect();
     assert!(query_map.contains_key("fromImage"));
     assert_eq!(
-        query_map.get("fromImage"),
-        Some(&INVALID_IMAGE_NAME.to_string())
+        query_map.get("fromImage").map(AsRef::as_ref),
+        Some(INVALID_IMAGE_NAME)
     );
 
     let response = format!(
@@ -68,7 +79,7 @@ fn invalid_image_name_pull_handler(
         "message": "manifest for {} not found"
     }}
     "#,
-        &INVALID_IMAGE_NAME.to_string()
+        INVALID_IMAGE_NAME
     );
 
     let response_len = response.len();
@@ -104,8 +115,11 @@ fn image_pull_with_invalid_image_name_fails() {
         .with_password("bleh".to_string())
         .with_email("u1@bleh.com".to_string())
         .with_serveraddress("svr1".to_string());
-    let config =
-        DockerConfig::new(INVALID_IMAGE_NAME, ContainerCreateBody::new(), Some(auth)).unwrap();
+    let config = DockerConfig::new(
+        INVALID_IMAGE_NAME.to_string(),
+        ContainerCreateBody::new(),
+        Some(auth),
+    ).unwrap();
 
     let task = mri.pull(&config);
 
@@ -117,13 +131,25 @@ fn image_pull_with_invalid_image_name_fails() {
         .block_on(task)
         .expect_err("Expected runtime pull method to fail due to invalid image name.");
 
-    if let edgelet_docker::ErrorKind::NotFound(message) = err.kind() {
-        assert_eq!(
-            &format!("manifest for {} not found", &INVALID_IMAGE_NAME.to_string()),
-            message
-        );
-    } else {
-        panic!("Specific docker runtime message is expected for invalid image name.");
+    match (err.kind(), err.cause().and_then(Fail::downcast_ref)) {
+        (
+            edgelet_docker::ErrorKind::RegistryOperation(
+                edgelet_core::RegistryOperation::PullImage(name),
+            ),
+            Some(edgelet_docker::ErrorKind::NotFound(message)),
+        )
+            if name == INVALID_IMAGE_NAME =>
+        {
+            assert_eq!(
+                &format!("manifest for {} not found", INVALID_IMAGE_NAME),
+                message
+            );
+        }
+
+        _ => panic!(
+            "Specific docker runtime message is expected for invalid image name. Got {:?}",
+            err.kind()
+        ),
     }
 }
 
@@ -141,8 +167,8 @@ fn invalid_image_host_pull_handler(
         .collect();
     assert!(query_map.contains_key("fromImage"));
     assert_eq!(
-        query_map.get("fromImage"),
-        Some(&INVALID_IMAGE_HOST.to_string())
+        query_map.get("fromImage").map(AsRef::as_ref),
+        Some(INVALID_IMAGE_HOST)
     );
 
     let response = format!(
@@ -151,7 +177,7 @@ fn invalid_image_host_pull_handler(
         "message":"Get https://invalidhost.com: dial tcp: lookup {} on X.X.X.X: no such host"
     }}
     "#,
-        &INVALID_IMAGE_HOST.to_string()
+        INVALID_IMAGE_HOST
     );
     let response_len = response.len();
 
@@ -185,8 +211,11 @@ fn image_pull_with_invalid_image_host_fails() {
         .with_password("bleh".to_string())
         .with_email("u1@bleh.com".to_string())
         .with_serveraddress("svr1".to_string());
-    let config =
-        DockerConfig::new(INVALID_IMAGE_HOST, ContainerCreateBody::new(), Some(auth)).unwrap();
+    let config = DockerConfig::new(
+        INVALID_IMAGE_HOST.to_string(),
+        ContainerCreateBody::new(),
+        Some(auth),
+    ).unwrap();
 
     let task = mri.pull(&config);
 
@@ -198,16 +227,28 @@ fn image_pull_with_invalid_image_host_fails() {
         .block_on(task)
         .expect_err("Expected runtime pull method to fail due to invalid image host.");
 
-    if let edgelet_docker::ErrorKind::FormattedDockerRuntime(message) = err.kind() {
-        assert_eq!(
-            &format!(
-                "Get https://invalidhost.com: dial tcp: lookup {} on X.X.X.X: no such host",
-                &INVALID_IMAGE_HOST.to_string()
+    match (err.kind(), err.cause().and_then(Fail::downcast_ref)) {
+        (
+            edgelet_docker::ErrorKind::RegistryOperation(
+                edgelet_core::RegistryOperation::PullImage(name),
             ),
-            message
-        );
-    } else {
-        panic!("Specific docker runtime message is expected for invalid image host.");
+            Some(edgelet_docker::ErrorKind::FormattedDockerRuntime(message)),
+        )
+            if name == INVALID_IMAGE_HOST =>
+        {
+            assert_eq!(
+                &format!(
+                    "Get https://invalidhost.com: dial tcp: lookup {} on X.X.X.X: no such host",
+                    INVALID_IMAGE_HOST
+                ),
+                message
+            );
+        }
+
+        _ => panic!(
+            "Specific docker runtime message is expected for invalid image host. Got {:?}",
+            err.kind()
+        ),
     }
 }
 
@@ -236,10 +277,10 @@ fn image_pull_with_invalid_creds_handler(
         .collect::<Vec<String>>()
         .join("");
     let auth_config: AuthConfig = serde_json::from_str(&auth_str.to_string()).unwrap();
-    assert_eq!(auth_config.username(), Some(&"u1".to_string()));
-    assert_eq!(auth_config.password(), Some(&"wrong_password".to_string()));
-    assert_eq!(auth_config.email(), Some(&"u1@bleh.com".to_string()));
-    assert_eq!(auth_config.serveraddress(), Some(&"svr1".to_string()));
+    assert_eq!(auth_config.username(), Some("u1"));
+    assert_eq!(auth_config.password(), Some("wrong_password"));
+    assert_eq!(auth_config.email(), Some("u1@bleh.com"));
+    assert_eq!(auth_config.serveraddress(), Some("svr1"));
 
     let response = format!(
         r#"
@@ -281,7 +322,11 @@ fn image_pull_with_invalid_creds_fails() {
         .with_password("wrong_password".to_string())
         .with_email("u1@bleh.com".to_string())
         .with_serveraddress("svr1".to_string());
-    let config = DockerConfig::new(IMAGE_NAME, ContainerCreateBody::new(), Some(auth)).unwrap();
+    let config = DockerConfig::new(
+        IMAGE_NAME.to_string(),
+        ContainerCreateBody::new(),
+        Some(auth),
+    ).unwrap();
 
     let task = mri.pull(&config);
 
@@ -293,16 +338,28 @@ fn image_pull_with_invalid_creds_fails() {
         .block_on(task)
         .expect_err("Expected runtime pull method to fail due to unauthentication.");
 
-    if let edgelet_docker::ErrorKind::FormattedDockerRuntime(message) = err.kind() {
-        assert_eq!(
-            &format!(
-                "Get {}: unauthorized: authentication required",
-                &IMAGE_NAME.to_string()
+    match (err.kind(), err.cause().and_then(Fail::downcast_ref)) {
+        (
+            edgelet_docker::ErrorKind::RegistryOperation(
+                edgelet_core::RegistryOperation::PullImage(name),
             ),
-            message
-        );
-    } else {
-        panic!("Specific docker runtime message is expected for unauthentication.");
+            Some(edgelet_docker::ErrorKind::FormattedDockerRuntime(message)),
+        )
+            if name == IMAGE_NAME =>
+        {
+            assert_eq!(
+                &format!(
+                    "Get {}: unauthorized: authentication required",
+                    &IMAGE_NAME.to_string()
+                ),
+                message
+            );
+        }
+
+        _ => panic!(
+            "Specific docker runtime message is expected for unauthentication. Got {:?}",
+            err.kind()
+        ),
     }
 }
 
@@ -358,7 +415,11 @@ fn image_pull_succeeds() {
         .with_password("bleh".to_string())
         .with_email("u1@bleh.com".to_string())
         .with_serveraddress("svr1".to_string());
-    let config = DockerConfig::new(IMAGE_NAME, ContainerCreateBody::new(), Some(auth)).unwrap();
+    let config = DockerConfig::new(
+        IMAGE_NAME.to_string(),
+        ContainerCreateBody::new(),
+        Some(auth),
+    ).unwrap();
 
     let task = mri.pull(&config);
 
@@ -392,10 +453,10 @@ fn image_pull_with_creds_handler(
         .collect::<Vec<String>>()
         .join("");
     let auth_config: AuthConfig = serde_json::from_str(&auth_str.to_string()).unwrap();
-    assert_eq!(auth_config.username(), Some(&"u1".to_string()));
-    assert_eq!(auth_config.password(), Some(&"bleh".to_string()));
-    assert_eq!(auth_config.email(), Some(&"u1@bleh.com".to_string()));
-    assert_eq!(auth_config.serveraddress(), Some(&"svr1".to_string()));
+    assert_eq!(auth_config.username(), Some("u1"));
+    assert_eq!(auth_config.password(), Some("bleh"));
+    assert_eq!(auth_config.email(), Some("u1@bleh.com"));
+    assert_eq!(auth_config.serveraddress(), Some("svr1"));
 
     let response = r#"
     {
@@ -434,7 +495,11 @@ fn image_pull_with_creds_succeeds() {
         .with_password("bleh".to_string())
         .with_email("u1@bleh.com".to_string())
         .with_serveraddress("svr1".to_string());
-    let config = DockerConfig::new(IMAGE_NAME, ContainerCreateBody::new(), Some(auth)).unwrap();
+    let config = DockerConfig::new(
+        IMAGE_NAME.to_string(),
+        ContainerCreateBody::new(),
+        Some(auth),
+    ).unwrap();
 
     let task = mri.pull(&config);
 
@@ -471,11 +536,11 @@ fn image_remove_succeeds() {
     let server =
         run_tcp_server("127.0.0.1", port, image_remove_handler).map_err(|err| eprintln!("{}", err));
 
-    let mut mri =
+    let mri =
         DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
             .unwrap();
 
-    let task = ModuleRegistry::remove(&mut mri, IMAGE_NAME);
+    let task = ModuleRegistry::remove(&mri, IMAGE_NAME);
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -503,15 +568,11 @@ fn container_create_handler(
 
                 assert_eq!("nginx:latest", create_options.image().unwrap());
 
-                for v in vec!["/do/the/custom/command", "with these args"].iter() {
+                for &v in &["/do/the/custom/command", "with these args"] {
                     assert!(create_options.cmd().unwrap().contains(&v.to_string()));
                 }
 
-                for v in vec![
-                    "/also/do/the/entrypoint".to_string(),
-                    "and this".to_string(),
-                ].iter()
-                {
+                for &v in &["/also/do/the/entrypoint", "and this"] {
                     assert!(
                         create_options
                             .entrypoint()
@@ -520,7 +581,7 @@ fn container_create_handler(
                     );
                 }
 
-                for v in vec!["k1=v1", "k2=v2", "k3=v3", "k4=v4", "k5=v5"].iter() {
+                for &v in &["k1=v1", "k2=v2", "k3=v3", "k4=v4", "k5=v5"] {
                     assert!(create_options.env().unwrap().contains(&v.to_string()));
                 }
 
@@ -592,7 +653,7 @@ fn container_create_succeeds() {
         "80/tcp".to_string(),
         vec![HostConfigPortBindings::new().with_host_port("8080".to_string())],
     );
-    let memory: i64 = 3221225472;
+    let memory: i64 = 3_221_225_472;
     let mut volumes = ::std::collections::HashMap::new();
     volumes.insert("test1".to_string(), json!({}));
     let create_options = ContainerCreateBody::new()
@@ -610,9 +671,9 @@ fn container_create_succeeds() {
         .with_volumes(volumes);
 
     let module_config = ModuleSpec::new(
-        "m1",
-        "docker",
-        DockerConfig::new("nginx:latest", create_options, None).unwrap(),
+        "m1".to_string(),
+        "docker".to_string(),
+        DockerConfig::new("nginx:latest".to_string(), create_options, None).unwrap(),
         env,
     ).unwrap();
 
@@ -628,6 +689,7 @@ fn container_create_succeeds() {
     runtime.block_on(task).unwrap();
 }
 
+#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
 fn container_start_handler(
     req: Request<Body>,
 ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
@@ -654,6 +716,7 @@ fn container_start_succeeds() {
     runtime.block_on(task).unwrap();
 }
 
+#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
 fn container_stop_handler(
     req: Request<Body>,
 ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
@@ -680,6 +743,7 @@ fn container_stop_succeeds() {
     runtime.block_on(task).unwrap();
 }
 
+#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
 fn container_stop_with_timeout_handler(
     req: Request<Body>,
 ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
@@ -707,6 +771,7 @@ fn container_stop_with_timeout_succeeds() {
     runtime.block_on(task).unwrap();
 }
 
+#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
 fn container_remove_handler(
     req: Request<Body>,
 ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
@@ -722,17 +787,18 @@ fn container_remove_succeeds() {
     let server = run_tcp_server("127.0.0.1", port, container_remove_handler)
         .map_err(|err| eprintln!("{}", err));
 
-    let mut mri =
+    let mri =
         DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
             .unwrap();
 
-    let task = ModuleRuntime::remove(&mut mri, "m1");
+    let task = ModuleRuntime::remove(&mri, "m1");
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
     runtime.block_on(task).unwrap();
 }
 
+#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
 fn container_list_handler(
     req: Request<Body>,
 ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
@@ -846,29 +912,30 @@ fn container_list_succeeds() {
     assert_eq!("m2", modules[1].name());
     assert_eq!("m3", modules[2].name());
 
-    assert_eq!("img1", modules[0].config().image_id().unwrap().as_str());
-    assert_eq!("img2", modules[1].config().image_id().unwrap().as_str());
-    assert_eq!("img3", modules[2].config().image_id().unwrap().as_str());
+    assert_eq!("img1", modules[0].config().image_id().unwrap());
+    assert_eq!("img2", modules[1].config().image_id().unwrap());
+    assert_eq!("img3", modules[2].config().image_id().unwrap());
 
     assert_eq!("nginx:latest", modules[0].config().image());
     assert_eq!("ubuntu:latest", modules[1].config().image());
     assert_eq!("mongo:latest", modules[2].config().image());
 
-    for i in 0..3 {
-        for j in 0..3 {
+    for module in modules {
+        for i in 0..3 {
             assert_eq!(
-                modules[i]
+                module
                     .config()
                     .create_options()
                     .labels()
                     .unwrap()
-                    .get(&format!("l{}", j + 1)),
-                Some(&format!("v{}", j + 1))
+                    .get(&format!("l{}", i + 1)),
+                Some(&format!("v{}", i + 1))
             );
         }
     }
 }
 
+#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
 fn container_logs_handler(
     req: Request<Body>,
 ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
@@ -908,9 +975,10 @@ fn container_logs_succeeds() {
     let task = mri.logs("mod1", &options);
 
     let expected_body = [
-        0x01u8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0d, 0x52, 0x6f, 0x73, 0x65, 0x73, 0x20, 0x61,
-        0x72, 0x65, 0x20, 0x72, 0x65, 0x64, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x76,
-        0x69, 0x6f, 0x6c, 0x65, 0x74, 0x73, 0x20, 0x61, 0x72, 0x65, 0x20, 0x62, 0x6c, 0x75, 0x65,
+        0x01_u8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0d, 0x52, 0x6f, 0x73, 0x65, 0x73, 0x20,
+        0x61, 0x72, 0x65, 0x20, 0x72, 0x65, 0x64, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10,
+        0x76, 0x69, 0x6f, 0x6c, 0x65, 0x74, 0x73, 0x20, 0x61, 0x72, 0x65, 0x20, 0x62, 0x6c, 0x75,
+        0x65,
     ];
 
     let assert = task.and_then(|logs| logs.concat2()).and_then(|b| {
@@ -937,8 +1005,8 @@ fn runtime_init_network_does_not_exist_create() {
 
     let server = run_tcp_server("127.0.0.1", port, move |req: Request<Body>| {
         let method = req.method();
-        match method {
-            &Method::GET => {
+        match *method {
+            Method::GET => {
                 let mut list_got_called_w = list_got_called_lock.write().unwrap();
                 *list_got_called_w = true;
 
@@ -954,10 +1022,10 @@ fn runtime_init_network_does_not_exist_create() {
                 response
                     .headers_mut()
                     .typed_insert(&ContentType(mime::APPLICATION_JSON));
-                return Box::new(future::ok(response));
+                Box::new(future::ok(response))
             }
-            &Method::POST => {
-                //Netowk create.
+            Method::POST => {
+                //Network create.
                 let mut create_got_called_w = create_got_called_lock.write().unwrap();
                 *create_got_called_w = true;
 
@@ -976,7 +1044,7 @@ fn runtime_init_network_does_not_exist_create() {
                 response
                     .headers_mut()
                     .typed_insert(&ContentType(mime::APPLICATION_JSON));
-                return Box::new(future::ok(response));
+                Box::new(future::ok(response))
             }
             _ => panic!("Method is not a get neither a post."),
         }
@@ -1013,8 +1081,8 @@ fn runtime_init_network_exist_do_not_create() {
 
     let server = run_tcp_server("127.0.0.1", port, move |req: Request<Body>| {
         let method = req.method();
-        match method {
-            &Method::GET => {
+        match *method {
+            Method::GET => {
                 let mut list_got_called_w = list_got_called_lock.write().unwrap();
                 *list_got_called_w = true;
 
@@ -1048,9 +1116,9 @@ fn runtime_init_network_exist_do_not_create() {
                 response
                     .headers_mut()
                     .typed_insert(&ContentType(mime::APPLICATION_JSON));
-                return Box::new(future::ok(response));
+                Box::new(future::ok(response))
             }
-            &Method::POST => {
+            Method::POST => {
                 //Netowk create.
                 let mut create_got_called_w = create_got_called_lock.write().unwrap();
                 *create_got_called_w = true;
@@ -1070,7 +1138,7 @@ fn runtime_init_network_exist_do_not_create() {
                 response
                     .headers_mut()
                     .typed_insert(&ContentType(mime::APPLICATION_JSON));
-                return Box::new(future::ok(response));
+                Box::new(future::ok(response))
             }
             _ => panic!("Method is not a get neither a post."),
         }
@@ -1102,8 +1170,8 @@ fn runtime_system_info_succeed() {
 
     let server = run_tcp_server("127.0.0.1", port, move |req: Request<Body>| {
         let method = req.method();
-        match method {
-            &Method::GET => {
+        match *method {
+            Method::GET => {
                 let mut system_info_got_called_w = system_info_got_called_lock.write().unwrap();
                 *system_info_got_called_w = true;
 
@@ -1124,7 +1192,7 @@ fn runtime_system_info_succeed() {
                 response
                     .headers_mut()
                     .typed_insert(&ContentType(mime::APPLICATION_JSON));
-                return Box::new(future::ok(response));
+                Box::new(future::ok(response))
             }
             _ => panic!("Method is not a get neither a post."),
         }
@@ -1156,8 +1224,8 @@ fn runtime_system_info_none_returns_unkown() {
 
     let server = run_tcp_server("127.0.0.1", port, move |req: Request<Body>| {
         let method = req.method();
-        match method {
-            &Method::GET => {
+        match *method {
+            Method::GET => {
                 let mut system_info_got_called_w = system_info_got_called_lock.write().unwrap();
                 *system_info_got_called_w = true;
 
@@ -1173,7 +1241,7 @@ fn runtime_system_info_none_returns_unkown() {
                 response
                     .headers_mut()
                     .typed_insert(&ContentType(mime::APPLICATION_JSON));
-                return Box::new(future::ok(response));
+                Box::new(future::ok(response))
             }
             _ => panic!("Method is not a get neither a post."),
         }

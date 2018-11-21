@@ -20,7 +20,7 @@ pub struct PluginConfigUser {
 }
 
 impl PluginConfigUser {
-    pub fn new() -> PluginConfigUser {
+    pub fn new() -> Self {
         PluginConfigUser {
             UID: None,
             GID: None,
@@ -31,13 +31,13 @@ impl PluginConfigUser {
         self.UID = Some(UID);
     }
 
-    pub fn with_UID(mut self, UID: i32) -> PluginConfigUser {
+    pub fn with_UID(mut self, UID: i32) -> Self {
         self.UID = Some(UID);
         self
     }
 
-    pub fn UID(&self) -> Option<&i32> {
-        self.UID.as_ref()
+    pub fn UID(&self) -> Option<i32> {
+        self.UID
     }
 
     pub fn reset_UID(&mut self) {
@@ -48,13 +48,13 @@ impl PluginConfigUser {
         self.GID = Some(GID);
     }
 
-    pub fn with_GID(mut self, GID: i32) -> PluginConfigUser {
+    pub fn with_GID(mut self, GID: i32) -> Self {
         self.GID = Some(GID);
         self
     }
 
-    pub fn GID(&self) -> Option<&i32> {
-        self.GID.as_ref()
+    pub fn GID(&self) -> Option<i32> {
+        self.GID
     }
 
     pub fn reset_GID(&mut self) {

@@ -6,6 +6,8 @@
 //
 // Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
 #![allow(renamed_and_removed_lints)]
+#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
+#![cfg_attr(feature = "cargo-clippy", allow(stutter, use_self))]
 
 #[cfg(test)]
 extern crate chrono;
@@ -17,11 +19,7 @@ extern crate edgelet_iothub;
 #[cfg(test)]
 extern crate edgelet_test_utils;
 extern crate failure;
-#[macro_use]
-extern crate failure_derive;
-#[macro_use]
 extern crate futures;
-extern crate http;
 extern crate hyper;
 #[macro_use]
 extern crate lazy_static;
@@ -36,8 +34,7 @@ extern crate serde_json;
 extern crate serde_json;
 extern crate url;
 
-use http::Response;
-use hyper::Body;
+use hyper::{Body, Response};
 
 mod client;
 mod error;

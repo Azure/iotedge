@@ -1,12 +1,16 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use edgelet_core::pid::Pid;
-use edgelet_core::{Authorization as CoreAuth, Error as CoreError, Module, ModuleRuntime, Policy};
-use error::{Error, ErrorKind};
-use futures::{future, Future};
-use hyper::{self, Body, Request, Response};
-use route::{Handler, Parameters};
 use std::sync::Arc;
+
+use failure::ResultExt;
+use futures::{future, Future};
+use hyper::{Body, Request, Response};
+
+use edgelet_core::pid::Pid;
+use edgelet_core::{Authorization as CoreAuth, ModuleRuntime, Policy};
+
+use error::{Error, ErrorKind};
+use route::{Handler, Parameters};
 use IntoResponse;
 
 pub struct Authorization<H, M>
@@ -22,8 +26,6 @@ impl<H, M> Authorization<H, M>
 where
     H: Handler<Parameters>,
     M: 'static + ModuleRuntime,
-    M::Error: Into<CoreError>,
-    <M::Module as Module>::Error: Into<CoreError>,
 {
     pub fn new(inner: H, policy: Policy, runtime: M) -> Self {
         Authorization {
@@ -37,14 +39,12 @@ impl<H, M> Handler<Parameters> for Authorization<H, M>
 where
     H: Handler<Parameters> + Sync,
     M: 'static + ModuleRuntime + Send,
-    M::Error: Into<CoreError>,
-    <M::Module as Module>::Error: Into<CoreError>,
 {
     fn handle(
         &self,
         req: Request<Body>,
         params: Parameters,
-    ) -> Box<Future<Item = Response<Body>, Error = hyper::Error> + Send> {
+    ) -> Box<Future<Item = Response<Body>, Error = Error> + Send> {
         let (name, pid) = (
             params.name("name").map(|n| n.to_string()),
             req.extensions()
@@ -54,17 +54,24 @@ where
         );
         let inner = self.inner.clone();
 
-        let response = self
-            .auth
-            .authorize(name, pid)
-            .map_err(Error::from)
-            .and_then(move |authorized| {
-                if authorized {
-                    future::Either::A(inner.handle(req, params).map_err(Error::from))
-                } else {
-                    future::Either::B(future::err(Error::from(ErrorKind::NotFound)))
-                }
-            }).or_else(|e| future::ok(e.into_response()));
+        let response =
+            self.auth
+                .authorize(name.clone(), pid)
+                .then(|authorized| {
+                    authorized
+                        .context(ErrorKind::Authorization)
+                        .map_err(Error::from)
+                }).and_then(move |authorized| {
+                    if authorized {
+                        future::Either::A(inner.handle(req, params).then(|resp| {
+                            resp.context(ErrorKind::Authorization).map_err(Error::from)
+                        }))
+                    } else {
+                        future::Either::B(future::err(Error::from(ErrorKind::ModuleNotFound(
+                            name.unwrap_or_else(String::new),
+                        ))))
+                    }
+                }).or_else(|e| future::ok(e.into_response()));
 
         Box::new(response)
     }
@@ -74,17 +81,21 @@ where
 mod tests {
     use std::time::Duration;
 
-    use super::*;
-    use edgelet_core::{LogOptions, ModuleRegistry, ModuleRuntimeState, ModuleSpec, SystemInfo};
     use futures::future::FutureResult;
     use futures::stream::Empty;
     use futures::{stream, Stream};
-    use http::{Request, Response, StatusCode};
-    use hyper::{Body, Error as HyperError};
+    use hyper::{Body, Request, Response, StatusCode};
+
+    use edgelet_core::{
+        LogOptions, Module, ModuleRegistry, ModuleRuntimeState, ModuleSpec, SystemInfo,
+    };
+
+    use super::*;
+    use error::Error as HttpError;
 
     #[test]
     fn handler_calls_inner_handler() {
-        let runtime = TestModuleList::new(&vec![TestModule::new("abc", 123)]);
+        let runtime = TestModuleList::new(vec![TestModule::new("abc", 123)]);
         let mut request = Request::default();
         request.extensions_mut().insert(Pid::Value(123));
         let params = Parameters::with_captures(vec![(Some("name".to_string()), "abc".to_string())]);
@@ -103,7 +114,7 @@ mod tests {
 
     #[test]
     fn handler_responds_with_not_found_when_not_authorized() {
-        let runtime = TestModuleList::new(&vec![TestModule::new("abc", 123)]);
+        let runtime = TestModuleList::new(vec![TestModule::new("abc", 123)]);
         let params = Parameters::with_captures(vec![(Some("name".to_string()), "xyz".to_string())]);
         let mut request = Request::default();
         request.extensions_mut().insert(Pid::Value(456));
@@ -115,7 +126,7 @@ mod tests {
 
     #[test]
     fn handler_responds_with_not_found_when_name_is_omitted() {
-        let runtime = TestModuleList::new(&vec![TestModule::new("abc", 123)]);
+        let runtime = TestModuleList::new(vec![TestModule::new("abc", 123)]);
         let params = Parameters::with_captures(vec![]);
         let mut request = Request::default();
         request.extensions_mut().insert(Pid::Value(123));
@@ -127,7 +138,7 @@ mod tests {
 
     #[test]
     fn handler_responds_with_not_found_when_pid_is_omitted() {
-        let runtime = TestModuleList::new(&vec![TestModule::new("abc", 123)]);
+        let runtime = TestModuleList::new(vec![TestModule::new("abc", 123)]);
         let params = Parameters::with_captures(vec![(Some("name".to_string()), "abc".to_string())]);
         let mut request = Request::default();
         request.extensions_mut().insert(Pid::None);
@@ -139,7 +150,7 @@ mod tests {
 
     #[test]
     fn handler_responds_with_not_found_when_authorizer_fails() {
-        let runtime = TestModuleList::new(&vec![TestModule::new_with_behavior(
+        let runtime = TestModuleList::new(vec![TestModule::new_with_behavior(
             "abc",
             123,
             TestModuleBehavior::FailRuntimeState,
@@ -167,7 +178,7 @@ mod tests {
             &self,
             _req: Request<Body>,
             _params: Parameters,
-        ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+        ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
             let response = Response::builder()
                 .status(StatusCode::OK)
                 .body("from TestHandler".into())
@@ -178,7 +189,7 @@ mod tests {
 
     struct TestConfig {}
 
-    #[derive(Clone)]
+    #[derive(Clone, Copy)]
     enum TestModuleBehavior {
         Default,
         FailRuntimeState,
@@ -213,7 +224,7 @@ mod tests {
 
     macro_rules! notimpl_error {
         () => {
-            future::err(Error::from(ErrorKind::InvalidApiVersion))
+            future::err(Error::from(ErrorKind::InvalidApiVersion("foo".to_string())))
         };
     }
 
@@ -234,7 +245,7 @@ mod tests {
         fn runtime_state(&self) -> Self::RuntimeStateFuture {
             match self.behavior {
                 TestModuleBehavior::Default => {
-                    future::ok(ModuleRuntimeState::default().with_pid(&Pid::Value(self.pid)))
+                    future::ok(ModuleRuntimeState::default().with_pid(Pid::Value(self.pid)))
                 }
                 TestModuleBehavior::FailRuntimeState => notimpl_error!(),
             }
@@ -247,10 +258,8 @@ mod tests {
     }
 
     impl TestModuleList {
-        pub fn new(modules: &Vec<TestModule>) -> Self {
-            TestModuleList {
-                modules: modules.clone(),
-            }
+        pub fn new(modules: Vec<TestModule>) -> Self {
+            TestModuleList { modules }
         }
     }
 

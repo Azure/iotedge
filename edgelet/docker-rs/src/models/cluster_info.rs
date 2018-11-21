@@ -46,7 +46,7 @@ pub struct ClusterInfo {
 
 impl ClusterInfo {
     /// ClusterInfo represents information about the swarm as is returned by the \"/info\" endpoint. Join-tokens are not included.
-    pub fn new() -> ClusterInfo {
+    pub fn new() -> Self {
         ClusterInfo {
             ID: None,
             version: None,
@@ -62,13 +62,13 @@ impl ClusterInfo {
         self.ID = Some(ID);
     }
 
-    pub fn with_ID(mut self, ID: String) -> ClusterInfo {
+    pub fn with_ID(mut self, ID: String) -> Self {
         self.ID = Some(ID);
         self
     }
 
-    pub fn ID(&self) -> Option<&String> {
-        self.ID.as_ref()
+    pub fn ID(&self) -> Option<&str> {
+        self.ID.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_ID(&mut self) {
@@ -79,7 +79,7 @@ impl ClusterInfo {
         self.version = Some(version);
     }
 
-    pub fn with_version(mut self, version: ::models::ObjectVersion) -> ClusterInfo {
+    pub fn with_version(mut self, version: ::models::ObjectVersion) -> Self {
         self.version = Some(version);
         self
     }
@@ -96,13 +96,13 @@ impl ClusterInfo {
         self.created_at = Some(created_at);
     }
 
-    pub fn with_created_at(mut self, created_at: String) -> ClusterInfo {
+    pub fn with_created_at(mut self, created_at: String) -> Self {
         self.created_at = Some(created_at);
         self
     }
 
-    pub fn created_at(&self) -> Option<&String> {
-        self.created_at.as_ref()
+    pub fn created_at(&self) -> Option<&str> {
+        self.created_at.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_created_at(&mut self) {
@@ -113,13 +113,13 @@ impl ClusterInfo {
         self.updated_at = Some(updated_at);
     }
 
-    pub fn with_updated_at(mut self, updated_at: String) -> ClusterInfo {
+    pub fn with_updated_at(mut self, updated_at: String) -> Self {
         self.updated_at = Some(updated_at);
         self
     }
 
-    pub fn updated_at(&self) -> Option<&String> {
-        self.updated_at.as_ref()
+    pub fn updated_at(&self) -> Option<&str> {
+        self.updated_at.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_updated_at(&mut self) {
@@ -130,7 +130,7 @@ impl ClusterInfo {
         self.spec = Some(spec);
     }
 
-    pub fn with_spec(mut self, spec: ::models::SwarmSpec) -> ClusterInfo {
+    pub fn with_spec(mut self, spec: ::models::SwarmSpec) -> Self {
         self.spec = Some(spec);
         self
     }
@@ -147,7 +147,7 @@ impl ClusterInfo {
         self.tls_info = Some(tls_info);
     }
 
-    pub fn with_tls_info(mut self, tls_info: ::models::TlsInfo) -> ClusterInfo {
+    pub fn with_tls_info(mut self, tls_info: ::models::TlsInfo) -> Self {
         self.tls_info = Some(tls_info);
         self
     }

@@ -18,7 +18,7 @@ pub struct NodeState {}
 
 impl NodeState {
     /// NodeState represents the state of a node.
-    pub fn new() -> NodeState {
+    pub fn new() -> Self {
         NodeState {}
     }
 }

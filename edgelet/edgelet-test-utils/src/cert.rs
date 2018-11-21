@@ -13,27 +13,27 @@ pub struct TestCert {
 }
 
 impl TestCert {
-    pub fn with_cert(mut self, cert: Vec<u8>) -> TestCert {
+    pub fn with_cert(mut self, cert: Vec<u8>) -> Self {
         self.cert = cert;
         self
     }
 
-    pub fn with_fail_pem(mut self, fail_pem: bool) -> TestCert {
+    pub fn with_fail_pem(mut self, fail_pem: bool) -> Self {
         self.fail_pem = fail_pem;
         self
     }
 
-    pub fn with_private_key(mut self, private_key: PrivateKey<String>) -> TestCert {
+    pub fn with_private_key(mut self, private_key: PrivateKey<String>) -> Self {
         self.private_key = Some(private_key);
         self
     }
 
-    pub fn with_fail_private_key(mut self, fail_private_key: bool) -> TestCert {
+    pub fn with_fail_private_key(mut self, fail_private_key: bool) -> Self {
         self.fail_private_key = fail_private_key;
         self
     }
 
-    pub fn with_fail_valid_to(mut self, fail_valid_to: bool) -> TestCert {
+    pub fn with_fail_valid_to(mut self, fail_valid_to: bool) -> Self {
         self.fail_valid_to = fail_valid_to;
         self
     }
@@ -45,7 +45,7 @@ impl Certificate for TestCert {
 
     fn pem(&self) -> Result<Vec<u8>, CoreError> {
         if self.fail_pem {
-            Err(CoreError::from(CoreErrorKind::Io))
+            Err(CoreError::from(CoreErrorKind::KeyStore))
         } else {
             Ok(self.cert.clone())
         }
@@ -53,7 +53,7 @@ impl Certificate for TestCert {
 
     fn get_private_key(&self) -> Result<Option<PrivateKey<Self::KeyBuffer>>, CoreError> {
         if self.fail_private_key {
-            Err(CoreError::from(CoreErrorKind::Io))
+            Err(CoreError::from(CoreErrorKind::KeyStore))
         } else {
             Ok(Some(self.private_key.as_ref().cloned().unwrap()))
         }
@@ -61,7 +61,7 @@ impl Certificate for TestCert {
 
     fn get_valid_to(&self) -> Result<DateTime<Utc>, CoreError> {
         if self.fail_valid_to {
-            Err(CoreError::from(CoreErrorKind::Io))
+            Err(CoreError::from(CoreErrorKind::KeyStore))
         } else {
             Ok(Utc::now())
         }

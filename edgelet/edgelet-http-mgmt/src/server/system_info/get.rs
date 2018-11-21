@@ -1,34 +1,25 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use edgelet_core::{Module, ModuleRuntime};
-use edgelet_http::route::{Handler, Parameters};
 use failure::ResultExt;
-use futures::{future, Future};
-use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
-use http::{Request, Response, StatusCode};
-use hyper::{Body, Error as HyperError};
-use management::models::*;
+use futures::Future;
+use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use hyper::{Body, Request, Response, StatusCode};
 use serde::Serialize;
 use serde_json;
 
-use error::ErrorKind;
+use edgelet_core::{Module, ModuleRuntime, RuntimeOperation};
+use edgelet_http::route::{Handler, Parameters};
+use edgelet_http::Error as HttpError;
+use management::models::*;
+
+use error::{Error, ErrorKind};
 use IntoResponse;
 
-pub struct GetSystemInfo<M>
-where
-    M: 'static + ModuleRuntime,
-    M::Error: IntoResponse,
-    <M::Module as Module>::Config: Serialize,
-{
+pub struct GetSystemInfo<M> {
     runtime: M,
 }
 
-impl<M> GetSystemInfo<M>
-where
-    M: 'static + ModuleRuntime,
-    M::Error: IntoResponse,
-    <M::Module as Module>::Config: Serialize,
-{
+impl<M> GetSystemInfo<M> {
     pub fn new(runtime: M) -> Self {
         GetSystemInfo { runtime }
     }
@@ -37,36 +28,39 @@ where
 impl<M> Handler<Parameters> for GetSystemInfo<M>
 where
     M: 'static + ModuleRuntime + Send,
-    M::Error: IntoResponse,
     <M::Module as Module>::Config: Serialize,
 {
     fn handle(
         &self,
         _req: Request<Body>,
         _params: Parameters,
-    ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+    ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
         debug!("Get System Information");
+
         let response = self
             .runtime
             .system_info()
-            .and_then(|systeminfo| {
+            .then(|system_info| -> Result<_, Error> {
+                let system_info = system_info
+                    .context(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo))?;
+
                 let body = SystemInfo::new(
-                    systeminfo.os_type().to_string(),
-                    systeminfo.architecture().to_string(),
-                    systeminfo.version().to_string(),
+                    system_info.os_type().to_string(),
+                    system_info.architecture().to_string(),
+                    system_info.version().to_string(),
                 );
-                let response = serde_json::to_string(&body)
-                    .context(ErrorKind::Serde)
-                    .map(|b| {
-                        Response::builder()
-                            .status(StatusCode::OK)
-                            .header(CONTENT_TYPE, "application/json")
-                            .header(CONTENT_LENGTH, b.len().to_string().as_str())
-                            .body(b.into())
-                            .unwrap_or_else(|e| e.into_response())
-                    }).unwrap_or_else(|e| e.into_response());
-                future::ok(response)
-            }).or_else(|e| future::ok(e.into_response()));
+
+                let b = serde_json::to_string(&body)
+                    .context(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo))?;
+
+                let response = Response::builder()
+                    .status(StatusCode::OK)
+                    .header(CONTENT_TYPE, "application/json")
+                    .header(CONTENT_LENGTH, b.len().to_string().as_str())
+                    .body(b.into())
+                    .context(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo))?;
+                Ok(response)
+            }).or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }
@@ -135,7 +129,10 @@ mod tests {
             .concat2()
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
-                assert_eq!("General error", error.message());
+                assert_eq!(
+                    "Could not query system info\n\tcaused by: General error",
+                    error.message()
+                );
                 Ok(())
             }).wait()
             .unwrap();

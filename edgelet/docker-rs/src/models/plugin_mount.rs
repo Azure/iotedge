@@ -38,7 +38,7 @@ impl PluginMount {
         destination: String,
         _type: String,
         options: Vec<String>,
-    ) -> PluginMount {
+    ) -> Self {
         PluginMount {
             name: name,
             description: description,
@@ -54,7 +54,7 @@ impl PluginMount {
         self.name = name;
     }
 
-    pub fn with_name(mut self, name: String) -> PluginMount {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = name;
         self
     }
@@ -67,7 +67,7 @@ impl PluginMount {
         self.description = description;
     }
 
-    pub fn with_description(mut self, description: String) -> PluginMount {
+    pub fn with_description(mut self, description: String) -> Self {
         self.description = description;
         self
     }
@@ -80,12 +80,12 @@ impl PluginMount {
         self.settable = settable;
     }
 
-    pub fn with_settable(mut self, settable: Vec<String>) -> PluginMount {
+    pub fn with_settable(mut self, settable: Vec<String>) -> Self {
         self.settable = settable;
         self
     }
 
-    pub fn settable(&self) -> &Vec<String> {
+    pub fn settable(&self) -> &[String] {
         &self.settable
     }
 
@@ -93,7 +93,7 @@ impl PluginMount {
         self.source = source;
     }
 
-    pub fn with_source(mut self, source: String) -> PluginMount {
+    pub fn with_source(mut self, source: String) -> Self {
         self.source = source;
         self
     }
@@ -106,7 +106,7 @@ impl PluginMount {
         self.destination = destination;
     }
 
-    pub fn with_destination(mut self, destination: String) -> PluginMount {
+    pub fn with_destination(mut self, destination: String) -> Self {
         self.destination = destination;
         self
     }
@@ -119,7 +119,7 @@ impl PluginMount {
         self._type = _type;
     }
 
-    pub fn with__type(mut self, _type: String) -> PluginMount {
+    pub fn with__type(mut self, _type: String) -> Self {
         self._type = _type;
         self
     }
@@ -132,12 +132,12 @@ impl PluginMount {
         self.options = options;
     }
 
-    pub fn with_options(mut self, options: Vec<String>) -> PluginMount {
+    pub fn with_options(mut self, options: Vec<String>) -> Self {
         self.options = options;
         self
     }
 
-    pub fn options(&self) -> &Vec<String> {
+    pub fn options(&self) -> &[String] {
         &self.options
     }
 }

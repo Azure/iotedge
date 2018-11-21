@@ -26,7 +26,7 @@ pub struct NetworkApiClient<C: hyper::client::connect::Connect> {
 }
 
 impl<C: hyper::client::connect::Connect> NetworkApiClient<C> {
-    pub fn new(configuration: Arc<configuration::Configuration<C>>) -> NetworkApiClient<C> {
+    pub fn new(configuration: Arc<configuration::Configuration<C>>) -> Self {
         NetworkApiClient {
             configuration: configuration,
         }

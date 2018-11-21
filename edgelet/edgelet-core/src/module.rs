@@ -9,14 +9,16 @@ use std::string::ToString;
 use std::time::Duration;
 
 use chrono::prelude::*;
-use failure::Fail;
+use failure::{Fail, ResultExt};
 use futures::{Future, Stream};
 use pid::Pid;
 use serde_json;
 
-use error::{Error, Result};
+use edgelet_utils::ensure_not_empty_with_context;
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+use error::{Error, ErrorKind, Result};
+
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ModuleStatus {
     Unknown,
@@ -57,7 +59,7 @@ pub struct ModuleRuntimeState {
 }
 
 impl Default for ModuleRuntimeState {
-    fn default() -> ModuleRuntimeState {
+    fn default() -> Self {
         ModuleRuntimeState {
             status: ModuleStatus::Unknown,
             exit_code: None,
@@ -75,28 +77,25 @@ impl ModuleRuntimeState {
         &self.status
     }
 
-    pub fn with_status(mut self, status: ModuleStatus) -> ModuleRuntimeState {
+    pub fn with_status(mut self, status: ModuleStatus) -> Self {
         self.status = status;
         self
     }
 
-    pub fn exit_code(&self) -> Option<&i64> {
-        self.exit_code.as_ref()
+    pub fn exit_code(&self) -> Option<i64> {
+        self.exit_code
     }
 
-    pub fn with_exit_code(mut self, exit_code: Option<i64>) -> ModuleRuntimeState {
+    pub fn with_exit_code(mut self, exit_code: Option<i64>) -> Self {
         self.exit_code = exit_code;
         self
     }
 
-    pub fn status_description(&self) -> Option<&String> {
-        self.status_description.as_ref()
+    pub fn status_description(&self) -> Option<&str> {
+        self.status_description.as_ref().map(AsRef::as_ref)
     }
 
-    pub fn with_status_description(
-        mut self,
-        status_description: Option<String>,
-    ) -> ModuleRuntimeState {
+    pub fn with_status_description(mut self, status_description: Option<String>) -> Self {
         self.status_description = status_description;
         self
     }
@@ -105,7 +104,7 @@ impl ModuleRuntimeState {
         self.started_at.as_ref()
     }
 
-    pub fn with_started_at(mut self, started_at: Option<DateTime<Utc>>) -> ModuleRuntimeState {
+    pub fn with_started_at(mut self, started_at: Option<DateTime<Utc>>) -> Self {
         self.started_at = started_at;
         self
     }
@@ -114,26 +113,26 @@ impl ModuleRuntimeState {
         self.finished_at.as_ref()
     }
 
-    pub fn with_finished_at(mut self, finished_at: Option<DateTime<Utc>>) -> ModuleRuntimeState {
+    pub fn with_finished_at(mut self, finished_at: Option<DateTime<Utc>>) -> Self {
         self.finished_at = finished_at;
         self
     }
 
-    pub fn image_id(&self) -> Option<&String> {
-        self.image_id.as_ref()
+    pub fn image_id(&self) -> Option<&str> {
+        self.image_id.as_ref().map(AsRef::as_ref)
     }
 
-    pub fn with_image_id(mut self, image_id: Option<String>) -> ModuleRuntimeState {
+    pub fn with_image_id(mut self, image_id: Option<String>) -> Self {
         self.image_id = image_id;
         self
     }
 
-    pub fn pid(&self) -> &Pid {
-        &self.pid
+    pub fn pid(&self) -> Pid {
+        self.pid
     }
 
-    pub fn with_pid(mut self, pid: &Pid) -> ModuleRuntimeState {
-        self.pid = pid.clone();
+    pub fn with_pid(mut self, pid: Pid) -> Self {
+        self.pid = pid;
         self
     }
 }
@@ -164,14 +163,17 @@ where
 
 impl<T> ModuleSpec<T> {
     pub fn new(
-        name: &str,
-        type_: &str,
+        name: String,
+        type_: String,
         config: T,
         env: HashMap<String, String>,
-    ) -> Result<ModuleSpec<T>> {
+    ) -> Result<Self> {
+        ensure_not_empty_with_context(&name, || ErrorKind::InvalidModuleName(name.clone()))?;
+        ensure_not_empty_with_context(&type_, || ErrorKind::InvalidModuleType(type_.clone()))?;
+
         Ok(ModuleSpec {
-            name: ensure_not_empty!(name).to_string(),
-            type_: ensure_not_empty!(type_).to_string(),
+            name,
+            type_,
             config,
             env,
         })
@@ -222,7 +224,7 @@ impl<T> ModuleSpec<T> {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum LogTail {
     All,
     Num(u64),
@@ -241,7 +243,9 @@ impl FromStr for LogTail {
         let tail = if s == "all" {
             LogTail::All
         } else {
-            let num = s.parse()?;
+            let num = s
+                .parse::<u64>()
+                .with_context(|_| ErrorKind::InvalidLogTail(s.to_string()))?;
             LogTail::Num(num)
         };
         Ok(tail)
@@ -381,6 +385,68 @@ pub trait ModuleRuntime {
     fn remove_all(&self) -> Self::RemoveAllFuture;
 }
 
+// Useful for error contexts
+#[derive(Clone, Copy, Debug)]
+pub enum ModuleOperation {
+    RuntimeState,
+}
+
+impl fmt::Display for ModuleOperation {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ModuleOperation::RuntimeState => write!(f, "Could not query module runtime state"),
+        }
+    }
+}
+
+// Useful for error contexts
+#[derive(Clone, Debug)]
+pub enum RegistryOperation {
+    PullImage(String),
+    RemoveImage(String),
+}
+
+impl fmt::Display for RegistryOperation {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            RegistryOperation::PullImage(name) => write!(f, "Could not pull image {}", name),
+            RegistryOperation::RemoveImage(name) => write!(f, "Could not remove image {}", name),
+        }
+    }
+}
+
+// Useful for error contexts
+#[derive(Clone, Debug)]
+pub enum RuntimeOperation {
+    CreateModule(String),
+    GetModuleLogs(String),
+    Init,
+    ListModules,
+    RemoveModule(String),
+    RestartModule(String),
+    StartModule(String),
+    StopModule(String),
+    SystemInfo,
+}
+
+impl fmt::Display for RuntimeOperation {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            RuntimeOperation::CreateModule(name) => write!(f, "Could not create module {}", name),
+            RuntimeOperation::GetModuleLogs(name) => {
+                write!(f, "Could not get logs of module {}", name)
+            }
+            RuntimeOperation::Init => write!(f, "Could not initialize module runtime"),
+            RuntimeOperation::ListModules => write!(f, "Could not list modules"),
+            RuntimeOperation::RemoveModule(name) => write!(f, "Could not remove module {}", name),
+            RuntimeOperation::RestartModule(name) => write!(f, "Could not restart module {}", name),
+            RuntimeOperation::StartModule(name) => write!(f, "Could not start module {}", name),
+            RuntimeOperation::StopModule(name) => write!(f, "Could not stop module {}", name),
+            RuntimeOperation::SystemInfo => write!(f, "Could not query system info"),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -418,44 +484,52 @@ mod tests {
 
     #[test]
     fn module_config_empty_name_fails() {
-        match ModuleSpec::new("", "docker", 10i32, HashMap::new()) {
+        let name = "".to_string();
+        match ModuleSpec::new(name.clone(), "docker".to_string(), 10_i32, HashMap::new()) {
             Ok(_) => panic!("Expected error"),
-            Err(err) => match err.kind() {
-                &ErrorKind::Utils => (),
-                _ => panic!("Expected utils error. Got some other error."),
+            Err(err) => if let ErrorKind::InvalidModuleName(s) = err.kind() {
+                assert_eq!(s, &name);
+            } else {
+                panic!("Expected `InvalidModuleName` but got {:?}", err);
             },
         }
     }
 
     #[test]
     fn module_config_white_space_name_fails() {
-        match ModuleSpec::new("    ", "docker", 10i32, HashMap::new()) {
+        let name = "    ".to_string();
+        match ModuleSpec::new(name.clone(), "docker".to_string(), 10_i32, HashMap::new()) {
             Ok(_) => panic!("Expected error"),
-            Err(err) => match err.kind() {
-                &ErrorKind::Utils => (),
-                _ => panic!("Expected utils error. Got some other error."),
+            Err(err) => if let ErrorKind::InvalidModuleName(s) = err.kind() {
+                assert_eq!(s, &name);
+            } else {
+                panic!("Expected `InvalidModuleName` but got {:?}", err);
             },
         }
     }
 
     #[test]
     fn module_config_empty_type_fails() {
-        match ModuleSpec::new("m1", "", 10i32, HashMap::new()) {
+        let type_ = "    ".to_string();
+        match ModuleSpec::new("m1".to_string(), type_.clone(), 10_i32, HashMap::new()) {
             Ok(_) => panic!("Expected error"),
-            Err(err) => match err.kind() {
-                &ErrorKind::Utils => (),
-                _ => panic!("Expected utils error. Got some other error."),
+            Err(err) => if let ErrorKind::InvalidModuleType(s) = err.kind() {
+                assert_eq!(s, &type_);
+            } else {
+                panic!("Expected `InvalidModuleType` but got {:?}", err);
             },
         }
     }
 
     #[test]
     fn module_config_white_space_type_fails() {
-        match ModuleSpec::new("m1", "     ", 10i32, HashMap::new()) {
+        let type_ = "    ".to_string();
+        match ModuleSpec::new("m1".to_string(), type_.clone(), 10_i32, HashMap::new()) {
             Ok(_) => panic!("Expected error"),
-            Err(err) => match err.kind() {
-                &ErrorKind::Utils => (),
-                _ => panic!("Expected utils error. Got some other error."),
+            Err(err) => if let ErrorKind::InvalidModuleType(s) = err.kind() {
+                assert_eq!(s, &type_);
+            } else {
+                panic!("Expected `InvalidModuleType` but got {:?}", err);
             },
         }
     }

@@ -206,7 +206,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     if (this.persistTokens)
                     {
                         IKeyValueStore<string, string> encryptedStore = await GetEncryptedStore(c, "CredentialsCache");
-                        return new TokenCredentialsCache(encryptedStore);
+                        return new PersistedTokenCredentialsCache(encryptedStore);
                     }
                     else
                     {
@@ -250,7 +250,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             // IClientCredentialsFactory
-            builder.Register(c => new ClientCredentialsFactory(this.iothubHostName, this.productInfo))
+            builder.Register(c => new ClientCredentialsFactory(c.Resolve<IIdentityProvider>(), this.productInfo))
                 .As<IClientCredentialsFactory>()
                 .SingleInstance();
 

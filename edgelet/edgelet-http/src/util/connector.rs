@@ -14,9 +14,9 @@
 //! HTTP and Unix sockets respectively.
 
 use std::io;
-#[cfg(unix)]
 use std::path::Path;
 
+use failure::ResultExt;
 use futures::{future, Future};
 use hyper::client::connect::{Connect, Connected, Destination};
 use hyper::client::HttpConnector;
@@ -25,12 +25,14 @@ use hyper::Uri;
 use hyper_named_pipe::{PipeConnector, Uri as PipeUri};
 #[cfg(unix)]
 use hyperlocal::{UnixConnector, Uri as HyperlocalUri};
+#[cfg(windows)]
+use hyperlocal_windows::{UnixConnector, Uri as HyperlocalUri};
 use url::{ParseError, Url};
 
-use error::{Error, ErrorKind};
+use error::{Error, ErrorKind, InvalidUrlReason};
 use util::StreamSelector;
+use UrlExt;
 
-#[cfg(unix)]
 const UNIX_SCHEME: &str = "unix";
 #[cfg(windows)]
 const PIPE_SCHEME: &str = "npipe";
@@ -40,22 +42,36 @@ pub enum UrlConnector {
     Http(HttpConnector),
     #[cfg(windows)]
     Pipe(PipeConnector),
-    #[cfg(unix)]
     Unix(UnixConnector),
 }
 
+fn socket_file_exists(path: &Path) -> bool {
+    if cfg!(windows) {
+        use std::fs;
+        // Unix domain socket files in Windows are reparse points, so path.exists()
+        // (which calls fs::metadata(path)) won't work. Use fs::symlink_metadata()
+        // instead.
+        fs::symlink_metadata(path).is_ok()
+    } else {
+        path.exists()
+    }
+}
+
 impl UrlConnector {
-    pub fn new(url: &Url) -> Result<UrlConnector, Error> {
+    pub fn new(url: &Url) -> Result<Self, Error> {
         match url.scheme() {
             #[cfg(windows)]
             PIPE_SCHEME => Ok(UrlConnector::Pipe(PipeConnector)),
 
-            #[cfg(unix)]
             UNIX_SCHEME => {
-                if !Path::new(url.path()).exists() {
-                    Err(ErrorKind::InvalidUri(url.to_string()))?
-                } else {
+                let file_path = url.to_uds_file_path()?;
+                if socket_file_exists(&file_path) {
                     Ok(UrlConnector::Unix(UnixConnector::new()))
+                } else {
+                    Err(ErrorKind::InvalidUrlWithReason(
+                        url.to_string(),
+                        InvalidUrlReason::FileNotFound,
+                    ))?
                 }
             }
 
@@ -65,20 +81,36 @@ impl UrlConnector {
                 //       this time.
                 Ok(UrlConnector::Http(HttpConnector::new(4)))
             }
-            _ => Err(ErrorKind::InvalidUri(url.to_string()))?,
+            _ => Err(ErrorKind::InvalidUrlWithReason(
+                url.to_string(),
+                InvalidUrlReason::InvalidScheme,
+            ))?,
         }
     }
 
     pub fn build_hyper_uri(scheme: &str, base_path: &str, path: &str) -> Result<Uri, Error> {
-        match scheme {
+        match &*scheme {
             #[cfg(windows)]
-            PIPE_SCHEME => Ok(PipeUri::new(base_path, path)?.into()),
-            #[cfg(unix)]
-            UNIX_SCHEME => Ok(HyperlocalUri::new(base_path, path).into()),
+            PIPE_SCHEME => Ok(PipeUri::new(base_path, &path)
+                .with_context(|_| ErrorKind::MalformedUrl {
+                    scheme: scheme.to_string(),
+                    base_path: base_path.to_string(),
+                    path: path.to_string(),
+                })?.into()),
+            UNIX_SCHEME => Ok(HyperlocalUri::new(base_path, &path).into()),
             HTTP_SCHEME => Ok(Url::parse(base_path)
                 .and_then(|base| base.join(path))
-                .and_then(|url| url.as_str().parse().map_err(|_| ParseError::IdnaError))?),
-            _ => Err(ErrorKind::UrlParse)?,
+                .and_then(|url| url.as_str().parse().map_err(|_| ParseError::IdnaError))
+                .with_context(|_| ErrorKind::MalformedUrl {
+                    scheme: scheme.to_string(),
+                    base_path: base_path.to_string(),
+                    path: path.to_string(),
+                })?),
+            _ => Err(ErrorKind::MalformedUrl {
+                scheme: scheme.to_string(),
+                base_path: base_path.to_string(),
+                path: path.to_string(),
+            })?,
         }
     }
 }
@@ -89,13 +121,13 @@ impl Connect for UrlConnector {
     type Future = Box<Future<Item = (Self::Transport, Connected), Error = Self::Error> + Send>;
 
     fn connect(&self, dst: Destination) -> Self::Future {
+        #[cfg_attr(feature = "cargo-clippy", allow(match_same_arms))]
         match (self, dst.scheme()) {
             (UrlConnector::Http(_), HTTP_SCHEME) => (),
 
             #[cfg(windows)]
             (UrlConnector::Pipe(_), PIPE_SCHEME) => (),
 
-            #[cfg(unix)]
             (UrlConnector::Unix(_), UNIX_SCHEME) => (),
 
             (_, scheme) => {
@@ -120,7 +152,6 @@ impl Connect for UrlConnector {
                 })) as Self::Future
             }
 
-            #[cfg(unix)]
             UrlConnector::Unix(connector) => {
                 Box::new(connector.connect(dst).and_then(|(unix_stream, connected)| {
                     Ok((StreamSelector::Unix(unix_stream), connected))
@@ -132,34 +163,38 @@ impl Connect for UrlConnector {
 
 #[cfg(test)]
 mod tests {
-    #[cfg(unix)]
     use tempfile::NamedTempFile;
     use url::Url;
 
     use super::*;
 
     #[test]
-    #[should_panic(expected = "Invalid uri")]
+    #[should_panic(expected = "URL does not have a recognized scheme")]
     fn invalid_url_scheme() {
         let _connector =
             UrlConnector::new(&Url::parse("foo:///this/is/not/valid").unwrap()).unwrap();
     }
 
-    #[cfg(unix)]
     #[test]
-    #[should_panic(expected = "Invalid uri")]
     fn invalid_uds_url() {
-        let _connector =
-            UrlConnector::new(&Url::parse("unix:///this/file/does/not/exist").unwrap()).unwrap();
+        let err = match UrlConnector::new(&Url::parse("unix:///this/file/does/not/exist").unwrap())
+        {
+            Ok(_) => panic!("Expected UrlConnector::new to fail"),
+            Err(err) => err,
+        };
+        if cfg!(windows) {
+            assert!(err.to_string().contains("Invalid URL"));
+        } else {
+            assert!(err.to_string().contains("Socket file could not be found"));
+        }
     }
 
-    #[cfg(unix)]
     #[test]
     fn create_uds_succeeds() {
         let file = NamedTempFile::new().unwrap();
-        let file_path = file.path().to_str().unwrap();
-        let _connector =
-            UrlConnector::new(&Url::parse(&format!("unix://{}", file_path)).unwrap()).unwrap();
+        let mut url = Url::from_file_path(file.path()).unwrap();
+        url.set_scheme("unix").unwrap();
+        let _connector = UrlConnector::new(&url).unwrap();
     }
 
     #[test]

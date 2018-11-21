@@ -5,7 +5,7 @@ use std::fmt;
 use failure::Fail;
 use futures::Future;
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum AuthType {
     None,
     Sas,
@@ -37,9 +37,9 @@ pub struct IdentitySpec {
 }
 
 impl IdentitySpec {
-    pub fn new(module_id: &str) -> IdentitySpec {
+    pub fn new(module_id: String) -> Self {
         IdentitySpec {
-            module_id: module_id.to_string(),
+            module_id,
             generation_id: None,
             managed_by: None,
         }
@@ -49,8 +49,8 @@ impl IdentitySpec {
         &self.module_id
     }
 
-    pub fn generation_id(&self) -> Option<&String> {
-        self.generation_id.as_ref()
+    pub fn generation_id(&self) -> Option<&str> {
+        self.generation_id.as_ref().map(AsRef::as_ref)
     }
 
     pub fn with_generation_id(mut self, generation_id: String) -> Self {
@@ -58,8 +58,8 @@ impl IdentitySpec {
         self
     }
 
-    pub fn managed_by(&self) -> Option<&String> {
-        self.managed_by.as_ref()
+    pub fn managed_by(&self) -> Option<&str> {
+        self.managed_by.as_ref().map(AsRef::as_ref)
     }
 
     pub fn with_managed_by(mut self, managed_by: String) -> Self {
@@ -82,4 +82,32 @@ pub trait IdentityManager {
     fn list(&self) -> Self::ListFuture;
     fn get(&self, id: IdentitySpec) -> Self::GetFuture;
     fn delete(&mut self, id: IdentitySpec) -> Self::DeleteFuture;
+}
+
+// Useful for error contexts
+#[derive(Clone, Debug)]
+pub enum IdentityOperation {
+    CreateIdentity(String),
+    DeleteIdentity(String),
+    GetIdentity(String),
+    ListIdentities,
+    UpdateIdentity(String),
+}
+
+impl fmt::Display for IdentityOperation {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            IdentityOperation::CreateIdentity(name) => {
+                write!(f, "Could not create identity {}", name)
+            }
+            IdentityOperation::DeleteIdentity(name) => {
+                write!(f, "Could not delete identity {}", name)
+            }
+            IdentityOperation::GetIdentity(name) => write!(f, "Could not get identity {}", name),
+            IdentityOperation::ListIdentities => write!(f, "Could not list identities"),
+            IdentityOperation::UpdateIdentity(name) => {
+                write!(f, "Could not update identity {}", name)
+            }
+        }
+    }
 }

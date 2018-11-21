@@ -7,11 +7,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public class OnBehalfOfDeviceAuthentication : DeviceAuthenticationWithTokenRefresh
+    public class DeviceAuthentication : DeviceAuthenticationWithTokenRefresh
     {
         readonly ITokenProvider tokenProvider;
 
-        public OnBehalfOfDeviceAuthentication(ITokenProvider tokenProvider, string deviceId)
+        public DeviceAuthentication(ITokenProvider tokenProvider, string deviceId)
             : base(deviceId)
         {
             this.tokenProvider = Preconditions.CheckNotNull(tokenProvider);

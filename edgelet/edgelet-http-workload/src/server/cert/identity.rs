@@ -2,19 +2,19 @@
 
 use super::{compute_validity, refresh_cert};
 use failure::ResultExt;
-use futures::{future, Future, Stream};
-use http::{Request, Response};
-use hyper::{Body, Error as HyperError};
+use futures::{Future, IntoFuture, Stream};
+use hyper::{Body, Request, Response};
 use serde_json;
 
 use edgelet_core::{
     Certificate, CertificateProperties, CertificateType, CreateCertificate, WorkloadConfig,
 };
 use edgelet_http::route::{Handler, Parameters};
-use edgelet_utils::prepare_cert_uri_module;
+use edgelet_http::Error as HttpError;
+use edgelet_utils::{ensure_not_empty_with_context, prepare_cert_uri_module};
 use workload::models::IdentityCertificateRequest;
 
-use error::{Error, ErrorKind};
+use error::{CertOperation, Error, ErrorKind};
 use IntoResponse;
 
 pub struct IdentityCertHandler<T: CreateCertificate, W: WorkloadConfig> {
@@ -38,46 +38,61 @@ where
         &self,
         req: Request<Body>,
         params: Parameters,
-    ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+    ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
         let hsm = self.hsm.clone();
         let cfg = self.config.clone();
         let max_duration = cfg.get_cert_max_duration(CertificateType::Client);
+
         let response = params
             .name("name")
-            .ok_or_else(|| Error::from(ErrorKind::BadParam))
+            .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("name")))
             .map(|module_id| {
                 let cn = module_id.to_string();
                 let alias = format!("{}identity", module_id);
                 let module_uri =
                     prepare_cert_uri_module(cfg.iot_hub_name(), cfg.device_id(), module_id);
-                let result = req
-                    .into_body()
-                    .concat2()
-                    .map(move |body| {
-                        serde_json::from_slice::<IdentityCertificateRequest>(&body)
-                            .context(ErrorKind::BadBody)
-                            .map_err(Error::from)
-                            .and_then(|cert_req| {
-                                cert_req
-                                    .expiration()
-                                    .map(|exp| compute_validity(exp, max_duration))
-                                    .unwrap_or_else(|| Ok(max_duration))
-                                    .map_err(Error::from)
-                            }).and_then(move |expiration| {
-                                let sans = vec![module_uri];
-                                let props = CertificateProperties::new(
-                                    ensure_range!(expiration, 0, max_duration) as u64,
-                                    ensure_not_empty!(cn),
-                                    CertificateType::Client,
-                                    alias.clone(),
-                                ).with_san_entries(sans);
-                                refresh_cert(&hsm, alias, &props)
-                            }).unwrap_or_else(|e| e.into_response())
-                    }).map_err(Error::from)
-                    .or_else(|e| future::ok(e.into_response()));
 
-                future::Either::A(result)
-            }).unwrap_or_else(|e| future::Either::B(future::ok(e.into_response())));
+                req.into_body().concat2().then(|body| {
+                    let body =
+                        body.context(ErrorKind::CertOperation(CertOperation::CreateIdentityCert))?;
+                    Ok((cn, alias, module_uri, body))
+                })
+            }).into_future()
+            .flatten()
+            .and_then(move |(cn, alias, module_uri, body)| {
+                let cert_req: IdentityCertificateRequest =
+                    serde_json::from_slice(&body).context(ErrorKind::MalformedRequestBody)?;
+
+                let expiration = cert_req.expiration().map_or_else(
+                    || Ok(max_duration),
+                    |exp| compute_validity(exp, max_duration, ErrorKind::MalformedRequestBody),
+                )?;
+                #[cfg_attr(feature = "cargo-clippy", allow(cast_sign_loss))]
+                let expiration = match expiration {
+                    expiration if expiration < 0 || expiration > max_duration => {
+                        return Err(Error::from(ErrorKind::MalformedRequestBody))
+                    }
+                    expiration => expiration as u64,
+                };
+
+                ensure_not_empty_with_context(&cn, || {
+                    ErrorKind::MalformedRequestParameter("name")
+                })?;
+
+                let sans = vec![module_uri];
+                let props = CertificateProperties::new(
+                    expiration,
+                    cn,
+                    CertificateType::Client,
+                    alias.clone(),
+                ).with_san_entries(sans);
+                refresh_cert(
+                    &hsm,
+                    alias,
+                    &props,
+                    ErrorKind::CertOperation(CertOperation::CreateIdentityCert),
+                )
+            }).or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }
@@ -99,7 +114,7 @@ mod tests {
     use workload::models::{CertificateResponse, ErrorResponse, IdentityCertificateRequest};
 
     use super::*;
-    use http::StatusCode;
+    use hyper::StatusCode;
 
     const MAX_DURATION_SEC: u64 = 7200;
 
@@ -111,7 +126,7 @@ mod tests {
     }
 
     impl TestHsm {
-        fn with_on_create<F>(mut self, on_create: F) -> TestHsm
+        fn with_on_create<F>(mut self, on_create: F) -> Self
         where
             F: Fn(&CertificateProperties) -> StdResult<TestCert, CoreError> + Send + Sync + 'static,
         {
@@ -126,7 +141,7 @@ mod tests {
         fn create_certificate(
             &self,
             properties: &CertificateProperties,
-        ) -> StdResult<TestCert, CoreError> {
+        ) -> StdResult<Self::Certificate, CoreError> {
             let callback = self.on_create.as_ref().unwrap();
             callback(properties)
         }
@@ -143,7 +158,13 @@ mod tests {
     }
 
     impl Default for TestWorkloadConfig {
+        #[cfg_attr(
+            feature = "cargo-clippy",
+            allow(cast_possible_wrap, cast_sign_loss)
+        )]
         fn default() -> Self {
+            assert!(MAX_DURATION_SEC < (i64::max_value() as u64));
+
             TestWorkloadConfig {
                 iot_hub_name: String::from("zaphods_hub"),
                 device_id: String::from("marvins_device"),
@@ -179,8 +200,8 @@ mod tests {
         }
     }
 
-    fn test_module_uri(module_id: String) -> String {
-        prepare_cert_uri_module("zaphods_hub", "marvins_device", module_id.as_str())
+    fn test_module_uri(module_id: &str) -> String {
+        prepare_cert_uri_module("zaphods_hub", "marvins_device", module_id)
     }
 
     fn parse_error_response(response: Response<Body>) -> ErrorResponse {
@@ -200,7 +221,10 @@ mod tests {
             .unwrap();
         let response = handler.handle(request, Parameters::new()).wait().unwrap();
         assert_eq!(StatusCode::BAD_REQUEST, response.status());
-        assert_eq!("Bad parameter", parse_error_response(response).message());
+        assert_eq!(
+            "The request is missing required parameter `name`",
+            parse_error_response(response).message()
+        );
     }
 
     #[test]
@@ -211,7 +235,7 @@ mod tests {
                 assert_eq!("beeblebroxidentity", props.alias());
                 assert_eq!(CertificateType::Client, *props.certificate_type());
                 assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
-                let expected_uri = test_module_uri("beeblebrox".to_string());
+                let expected_uri = test_module_uri("beeblebrox");
                 assert!(props.san_entries().unwrap().contains(&expected_uri));
                 Ok(TestCert::default()
                     .with_private_key(PrivateKey::Key(KeyBytes::Pem("Betelgeuse".to_string()))))
@@ -239,10 +263,7 @@ mod tests {
             .wait()
             .unwrap();
         assert_eq!("key", cert_resp.private_key().type_());
-        assert_eq!(
-            Some(&"Betelgeuse".to_string()),
-            cert_resp.private_key().bytes()
-        );
+        assert_eq!(Some("Betelgeuse"), cert_resp.private_key().bytes());
     }
 
     #[test]
@@ -253,7 +274,7 @@ mod tests {
                 assert_eq!("beeblebroxidentity", props.alias());
                 assert_eq!(CertificateType::Client, *props.certificate_type());
                 assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
-                let expected_uri = test_module_uri("beeblebrox".to_string());
+                let expected_uri = test_module_uri("beeblebrox");
                 assert!(props.san_entries().unwrap().contains(&expected_uri));
                 Ok(TestCert::default().with_private_key(PrivateKey::Ref("Betelgeuse".to_string())))
             }),
@@ -280,10 +301,7 @@ mod tests {
             .wait()
             .unwrap();
         assert_eq!("ref", cert_resp.private_key().type_());
-        assert_eq!(
-            Some(&"Betelgeuse".to_string()),
-            cert_resp.private_key().ref_()
-        );
+        assert_eq!(Some("Betelgeuse"), cert_resp.private_key().ref_());
     }
 
     #[test]
@@ -294,7 +312,7 @@ mod tests {
                 assert_eq!("beeblebroxidentity", props.alias());
                 assert_eq!(CertificateType::Client, *props.certificate_type());
                 assert_eq!(MAX_DURATION_SEC, *props.validity_in_secs());
-                let expected_uri = test_module_uri("beeblebrox".to_string());
+                let expected_uri = test_module_uri("beeblebrox");
                 assert!(props.san_entries().unwrap().contains(&expected_uri));
                 Ok(TestCert::default()
                     .with_private_key(PrivateKey::Key(KeyBytes::Pem("Betelgeuse".to_string()))))
@@ -321,10 +339,7 @@ mod tests {
             .wait()
             .unwrap();
         assert_eq!("key", cert_resp.private_key().type_());
-        assert_eq!(
-            Some(&"Betelgeuse".to_string()),
-            cert_resp.private_key().bytes()
-        );
+        assert_eq!(Some("Betelgeuse"), cert_resp.private_key().bytes());
     }
 
     #[test]
@@ -335,7 +350,7 @@ mod tests {
                 assert_eq!("beeblebroxidentity", props.alias());
                 assert_eq!(CertificateType::Client, *props.certificate_type());
                 assert_eq!(MAX_DURATION_SEC, *props.validity_in_secs());
-                let expected_uri = test_module_uri("beeblebrox".to_string());
+                let expected_uri = test_module_uri("beeblebrox");
                 assert!(props.san_entries().unwrap().contains(&expected_uri));
                 Ok(TestCert::default()
                     .with_private_key(PrivateKey::Key(KeyBytes::Pem("Betelgeuse".to_string()))))
@@ -363,10 +378,7 @@ mod tests {
             .wait()
             .unwrap();
         assert_eq!("key", cert_resp.private_key().type_());
-        assert_eq!(
-            Some(&"Betelgeuse".to_string()),
-            cert_resp.private_key().bytes()
-        );
+        assert_eq!(Some("Betelgeuse"), cert_resp.private_key().bytes());
     }
 
     #[test]
@@ -383,12 +395,10 @@ mod tests {
             Parameters::with_captures(vec![(Some("name".to_string()), "beeblebrox".to_string())]);
 
         let response = handler.handle(request, params).wait().unwrap();
-        assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
-        assert_ne!(
-            parse_error_response(response)
-                .message()
-                .find("Argument is empty or only has whitespace"),
-            None
+        assert_eq!(StatusCode::BAD_REQUEST, response.status());
+        assert_eq!(
+            "Request body is malformed\n\tcaused by: Argument is empty or only has whitespace - []",
+            parse_error_response(response).message(),
         );
     }
 
@@ -407,12 +417,10 @@ mod tests {
             Parameters::with_captures(vec![(Some("name".to_string()), "beeblebrox".to_string())]);
 
         let response = handler.handle(request, params).wait().unwrap();
-        assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
-        assert_ne!(
-            parse_error_response(response)
-                .message()
-                .find("Invalid ISO 8601 date"),
-            None
+        assert_eq!(StatusCode::BAD_REQUEST, response.status());
+        assert_eq!(
+            "Request body is malformed\n\tcaused by: input contains invalid characters",
+            parse_error_response(response).message(),
         );
     }
 
@@ -431,12 +439,10 @@ mod tests {
             Parameters::with_captures(vec![(Some("name".to_string()), "beeblebrox".to_string())]);
 
         let response = handler.handle(request, params).wait().unwrap();
-        assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
-        assert_ne!(
-            parse_error_response(response)
-                .message()
-                .find(format!("out of range [0, {})", MAX_DURATION_SEC).as_str()),
-            None
+        assert_eq!(StatusCode::BAD_REQUEST, response.status());
+        assert_eq!(
+            "Request body is malformed",
+            parse_error_response(response).message(),
         );
     }
 
@@ -448,7 +454,7 @@ mod tests {
                 assert_eq!("beeblebroxidentity", props.alias());
                 assert_eq!(CertificateType::Client, *props.certificate_type());
                 assert_eq!(MAX_DURATION_SEC, *props.validity_in_secs());
-                let expected_uri = test_module_uri("beeblebrox".to_string());
+                let expected_uri = test_module_uri("beeblebrox");
                 assert!(props.san_entries().unwrap().contains(&expected_uri));
                 Ok(TestCert::default()
                     .with_private_key(PrivateKey::Key(KeyBytes::Pem("Betelgeuse".to_string()))))
@@ -464,9 +470,9 @@ mod tests {
             Parameters::with_captures(vec![(Some("name".to_string()), "beeblebrox".to_string())]);
         let response = handler.handle(request, params).wait().unwrap();
         assert_eq!(StatusCode::BAD_REQUEST, response.status());
-        assert_ne!(
-            parse_error_response(response).message().find("Bad body"),
-            None
+        assert_eq!(
+            "Request body is malformed\n\tcaused by: EOF while parsing a value at line 1 column 0",
+            parse_error_response(response).message(),
         );
     }
 
@@ -478,9 +484,9 @@ mod tests {
                 assert_eq!("beeblebroxidentity", props.alias());
                 assert_eq!(CertificateType::Client, *props.certificate_type());
                 assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
-                let expected_uri = test_module_uri("beeblebrox".to_string());
+                let expected_uri = test_module_uri("beeblebrox");
                 assert!(props.san_entries().unwrap().contains(&expected_uri));
-                Err(CoreError::from(CoreErrorKind::Io))
+                Err(CoreError::from(CoreErrorKind::KeyStore))
             }),
             TestWorkloadData::default(),
         );
@@ -497,11 +503,9 @@ mod tests {
         let response = handler.handle(request, params).wait().unwrap();
 
         assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
-        assert_ne!(
-            parse_error_response(response)
-                .message()
-                .find("An IO error occurred"),
-            None
+        assert_eq!(
+            "Could not create identity cert\n\tcaused by: A error occurred in the key store.",
+            parse_error_response(response).message(),
         );
     }
 
@@ -513,7 +517,7 @@ mod tests {
                 assert_eq!("beeblebroxidentity", props.alias());
                 assert_eq!(CertificateType::Client, *props.certificate_type());
                 assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
-                let expected_uri = test_module_uri("beeblebrox".to_string());
+                let expected_uri = test_module_uri("beeblebrox");
                 assert!(props.san_entries().unwrap().contains(&expected_uri));
                 Ok(TestCert::default().with_fail_pem(true))
             }),
@@ -532,11 +536,9 @@ mod tests {
         let response = handler.handle(request, params).wait().unwrap();
 
         assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
-        assert_ne!(
-            parse_error_response(response)
-                .message()
-                .find("An IO error occurred"),
-            None
+        assert_eq!(
+            "Could not create identity cert\n\tcaused by: A error occurred in the key store.",
+            parse_error_response(response).message(),
         );
     }
 
@@ -548,7 +550,7 @@ mod tests {
                 assert_eq!("beeblebroxidentity", props.alias());
                 assert_eq!(CertificateType::Client, *props.certificate_type());
                 assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
-                let expected_uri = test_module_uri("beeblebrox".to_string());
+                let expected_uri = test_module_uri("beeblebrox");
                 assert!(props.san_entries().unwrap().contains(&expected_uri));
                 Ok(TestCert::default().with_fail_private_key(true))
             }),
@@ -567,11 +569,9 @@ mod tests {
         let response = handler.handle(request, params).wait().unwrap();
 
         assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
-        assert_ne!(
-            parse_error_response(response)
-                .message()
-                .find("An IO error occurred"),
-            None
+        assert_eq!(
+            "Could not create identity cert\n\tcaused by: A error occurred in the key store.",
+            parse_error_response(response).message(),
         );
     }
 
@@ -583,7 +583,7 @@ mod tests {
                 assert_eq!("beeblebroxidentity", props.alias());
                 assert_eq!(CertificateType::Client, *props.certificate_type());
                 assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
-                let expected_uri = test_module_uri("beeblebrox".to_string());
+                let expected_uri = test_module_uri("beeblebrox");
                 assert!(props.san_entries().unwrap().contains(&expected_uri));
                 Ok(TestCert::default().with_fail_valid_to(true))
             }),
@@ -602,11 +602,9 @@ mod tests {
         let response = handler.handle(request, params).wait().unwrap();
 
         assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
-        assert_ne!(
-            parse_error_response(response)
-                .message()
-                .find("An IO error occurred"),
-            None
+        assert_eq!(
+            "Could not create identity cert\n\tcaused by: A error occurred in the key store.",
+            parse_error_response(response).message(),
         );
     }
 }

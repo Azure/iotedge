@@ -59,7 +59,7 @@ pub fn init_win_log() {
         min_log_level = log_level;
     }
 
-    EventLogger::new(IOTEDGED_SERVICE_NAME, &min_log_level)
+    EventLogger::new(IOTEDGED_SERVICE_NAME.to_string(), &min_log_level)
         .expect("Could not create Windows EventLogger")
         .init()
         .expect("Could not initialize Windows EventLogger");
@@ -70,8 +70,7 @@ fn syslog_level(level: Level) -> i8 {
         Level::Error => 3,
         Level::Warn => 4,
         Level::Info => 6,
-        Level::Debug => 7,
-        Level::Trace => 7,
+        Level::Debug | Level::Trace => 7,
     }
 }
 

@@ -25,7 +25,7 @@ pub struct MountBindOptions {
 
 impl MountBindOptions {
     /// Optional configuration for the `bind` type.
-    pub fn new() -> MountBindOptions {
+    pub fn new() -> Self {
         MountBindOptions { propagation: None }
     }
 
@@ -33,13 +33,13 @@ impl MountBindOptions {
         self.propagation = Some(propagation);
     }
 
-    pub fn with_propagation(mut self, propagation: String) -> MountBindOptions {
+    pub fn with_propagation(mut self, propagation: String) -> Self {
         self.propagation = Some(propagation);
         self
     }
 
-    pub fn propagation(&self) -> Option<&String> {
-        self.propagation.as_ref()
+    pub fn propagation(&self) -> Option<&str> {
+        self.propagation.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_propagation(&mut self) {

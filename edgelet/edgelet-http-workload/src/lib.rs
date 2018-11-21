@@ -6,6 +6,11 @@
 //
 // Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
 #![allow(renamed_and_removed_lints)]
+#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
+#![cfg_attr(
+    feature = "cargo-clippy",
+    allow(stutter, type_complexity, use_self)
+)]
 
 extern crate base64;
 extern crate chrono;
@@ -15,13 +20,9 @@ extern crate edgelet_http;
 extern crate edgelet_http_mgmt;
 #[cfg(test)]
 extern crate edgelet_test_utils;
-#[macro_use]
 extern crate edgelet_utils;
 extern crate failure;
-#[macro_use]
-extern crate failure_derive;
 extern crate futures;
-extern crate http;
 extern crate hyper;
 #[macro_use]
 extern crate log;
@@ -29,8 +30,7 @@ extern crate serde;
 extern crate serde_json;
 extern crate workload;
 
-use http::Response;
-use hyper::Body;
+use hyper::{Body, Response};
 
 mod error;
 mod server;

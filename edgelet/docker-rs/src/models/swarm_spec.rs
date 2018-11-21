@@ -49,7 +49,7 @@ pub struct SwarmSpec {
 
 impl SwarmSpec {
     /// User modifiable swarm configuration.
-    pub fn new() -> SwarmSpec {
+    pub fn new() -> Self {
         SwarmSpec {
             name: None,
             labels: None,
@@ -66,13 +66,13 @@ impl SwarmSpec {
         self.name = Some(name);
     }
 
-    pub fn with_name(mut self, name: String) -> SwarmSpec {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
     }
 
-    pub fn name(&self) -> Option<&String> {
-        self.name.as_ref()
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_name(&mut self) {
@@ -83,7 +83,7 @@ impl SwarmSpec {
         self.labels = Some(labels);
     }
 
-    pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> SwarmSpec {
+    pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
         self.labels = Some(labels);
         self
     }
@@ -100,10 +100,7 @@ impl SwarmSpec {
         self.orchestration = Some(orchestration);
     }
 
-    pub fn with_orchestration(
-        mut self,
-        orchestration: ::models::SwarmSpecOrchestration,
-    ) -> SwarmSpec {
+    pub fn with_orchestration(mut self, orchestration: ::models::SwarmSpecOrchestration) -> Self {
         self.orchestration = Some(orchestration);
         self
     }
@@ -120,7 +117,7 @@ impl SwarmSpec {
         self.raft = Some(raft);
     }
 
-    pub fn with_raft(mut self, raft: ::models::SwarmSpecRaft) -> SwarmSpec {
+    pub fn with_raft(mut self, raft: ::models::SwarmSpecRaft) -> Self {
         self.raft = Some(raft);
         self
     }
@@ -137,7 +134,7 @@ impl SwarmSpec {
         self.dispatcher = Some(dispatcher);
     }
 
-    pub fn with_dispatcher(mut self, dispatcher: ::models::SwarmSpecDispatcher) -> SwarmSpec {
+    pub fn with_dispatcher(mut self, dispatcher: ::models::SwarmSpecDispatcher) -> Self {
         self.dispatcher = Some(dispatcher);
         self
     }
@@ -154,7 +151,7 @@ impl SwarmSpec {
         self.ca_config = Some(ca_config);
     }
 
-    pub fn with_ca_config(mut self, ca_config: ::models::SwarmSpecCaConfig) -> SwarmSpec {
+    pub fn with_ca_config(mut self, ca_config: ::models::SwarmSpecCaConfig) -> Self {
         self.ca_config = Some(ca_config);
         self
     }
@@ -177,7 +174,7 @@ impl SwarmSpec {
     pub fn with_encryption_config(
         mut self,
         encryption_config: ::models::SwarmSpecEncryptionConfig,
-    ) -> SwarmSpec {
+    ) -> Self {
         self.encryption_config = Some(encryption_config);
         self
     }
@@ -194,10 +191,7 @@ impl SwarmSpec {
         self.task_defaults = Some(task_defaults);
     }
 
-    pub fn with_task_defaults(
-        mut self,
-        task_defaults: ::models::SwarmSpecTaskDefaults,
-    ) -> SwarmSpec {
+    pub fn with_task_defaults(mut self, task_defaults: ::models::SwarmSpecTaskDefaults) -> Self {
         self.task_defaults = Some(task_defaults);
         self
     }
