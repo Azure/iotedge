@@ -79,12 +79,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     return (false, false);
                 }
 
-                (bool isAuthenticated, bool valueFound) = await this.AuthenticateWithServiceIdentity(tCredentials, tCredentials.Identity.Id);
+                bool syncServiceIdentity = this.syncServiceIdentityOnFailure && !reauthenticating;
+                (bool isAuthenticated, bool valueFound) = await this.AuthenticateWithServiceIdentity(tCredentials, tCredentials.Identity.Id, syncServiceIdentity);
                 if (!isAuthenticated && this.allowDeviceAuthForModule && tCredentials.Identity is IModuleIdentity moduleIdentity)
                 {
                     // Module can use the Device key to authenticate
                     Events.AuthenticatingWithDeviceIdentity(moduleIdentity);
-                    (isAuthenticated, valueFound) = await this.AuthenticateWithServiceIdentity(tCredentials, moduleIdentity.DeviceId);
+                    (isAuthenticated, valueFound) = await this.AuthenticateWithServiceIdentity(tCredentials, moduleIdentity.DeviceId, syncServiceIdentity);
                 }
 
                 return (isAuthenticated, !valueFound);
@@ -96,12 +97,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        async Task<(bool isAuthenticated, bool serviceIdentityFound)> AuthenticateWithServiceIdentity(T credentials, string serviceIdentityId)
+        async Task<(bool isAuthenticated, bool serviceIdentityFound)> AuthenticateWithServiceIdentity(T credentials, string serviceIdentityId, bool syncServiceIdentity)
         {
             Option<ServiceIdentity> serviceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(serviceIdentityId);
             (bool isAuthenticated, bool serviceIdentityFound) = serviceIdentity.Map(s => (this.ValidateWithServiceIdentity(s, credentials), true)).GetOrElse((false, false));
 
-            if (!isAuthenticated && (!serviceIdentityFound || this.syncServiceIdentityOnFailure))
+            if (!isAuthenticated && (!serviceIdentityFound || syncServiceIdentity))
             {
                 Events.ResyncingServiceIdentity(credentials.Identity, serviceIdentityId);
                 await this.deviceScopeIdentitiesCache.RefreshServiceIdentity(serviceIdentityId);

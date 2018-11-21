@@ -80,6 +80,42 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             // Assert
             Assert.True(isAuthenticated);
             Mock.Get(underlyingAuthenticator).VerifyAll();
+            deviceScopeIdentitiesCache.Verify(d => d.GetServiceIdentity(deviceId, false), Times.Exactly(2));
+            deviceScopeIdentitiesCache.Verify(d => d.RefreshServiceIdentity(deviceId), Times.Once);
+        }
+
+        [Fact]
+        public async Task ReauthenticateTest_DeviceUpdateServiceIdentity()
+        {
+            // Arrange
+            string iothubHostName = "testiothub.azure-devices.net";
+            string edgehubHostName = "edgehub1";
+            string deviceId = "d1";
+            var underlyingAuthenticator = Mock.Of<IAuthenticator>();
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
+            string key = GetKey();
+            var serviceIdentity1 = new ServiceIdentity(deviceId, "1234", new string[0], new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey())), ServiceIdentityStatus.Enabled);
+            var serviceIdentity2 = new ServiceIdentity(deviceId, "1234", new string[0], new ServiceAuthentication(new SymmetricKeyAuthentication(key, GetKey())), ServiceIdentityStatus.Enabled);
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(deviceId, false))
+                .ReturnsAsync(Option.Some(serviceIdentity1));
+            deviceScopeIdentitiesCache.Setup(d => d.RefreshServiceIdentity(deviceId))
+                .Callback<string>(id => deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(deviceId, false)).ReturnsAsync(Option.Some(serviceIdentity2)))
+                .Returns(Task.CompletedTask);
+
+            IAuthenticator authenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, edgehubHostName, underlyingAuthenticator, true, true);
+
+            var identity = Mock.Of<IDeviceIdentity>(d => d.DeviceId == deviceId && d.Id == deviceId);
+            string token = GetDeviceToken(iothubHostName, deviceId, key);
+            var tokenCredentials = Mock.Of<ITokenCredentials>(t => t.Identity == identity && t.Token == token);
+
+            // Act
+            bool isAuthenticated = await authenticator.ReauthenticateAsync(tokenCredentials);
+
+            // Assert
+            Assert.False(isAuthenticated);
+            Mock.Get(underlyingAuthenticator).VerifyAll();
+            deviceScopeIdentitiesCache.Verify(d => d.GetServiceIdentity(deviceId, false), Times.Once);
+            deviceScopeIdentitiesCache.Verify(d => d.RefreshServiceIdentity(deviceId), Times.Never);
         }
 
         [Fact]
