@@ -440,7 +440,7 @@ function Remove-SecurityDaemonResources {
     }
     elseif ($cmdErr.FullyQualifiedErrorId -ne 'PathNotFound,Microsoft.PowerShell.Commands.RemoveItemCommand') {
         Write-Verbose "$cmdErr"
-        Write-HostRed "Could not delete install directory '$MobyInstallDirectory'. Please reboot " +
+        Write-HostRed ("Could not delete install directory '$MobyInstallDirectory'. Please reboot " +
             'your device and run `Uninstall-SecurityDaemon` again with `-Force`.')
         $success = $false
     }
