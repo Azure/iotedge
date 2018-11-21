@@ -16,7 +16,7 @@ Set-Variable Windows1809 -Value 17763 -Option Constant
 Set-Variable MinBuildForLinuxContainers -Value $Windows1607
 Set-Variable SupportedBuildsForWindowsContainers -Value @($Windows1809)
 
-Set-Variable DockerServiceName -Value 'docker' -Option Constant
+Set-Variable DockerServiceName -Value 'com.docker.service' -Option Constant
 
 Set-Variable EdgeInstallDirectory -Value 'C:\ProgramData\iotedge' -Option Constant
 Set-Variable EdgeEventLogName -Value 'iotedged' -Option Constant
