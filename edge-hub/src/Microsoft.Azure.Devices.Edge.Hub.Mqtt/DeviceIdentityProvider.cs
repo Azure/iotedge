@@ -42,9 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
                 (string deviceId, string moduleId, string deviceClientType) = ParseUserName(username);
                 IClientCredentials deviceCredentials;
-                // This is a very weak check for now. In the future, we need to save client certs in a dictionary of
-                // module name to client cert. We would then retrieve the cert here. We also will need to handle
-                // revocation of certs.
+
                 if (password == null && this.clientCertAuthAllowed && this.remoteCertificate != null)
                 {
                     deviceCredentials = this.clientCredentialsFactory.GetWithX509Cert(
