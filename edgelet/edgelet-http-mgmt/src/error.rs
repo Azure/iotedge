@@ -3,7 +3,7 @@
 use std::fmt::{self, Display};
 
 use edgelet_core::{IdentityOperation, ModuleOperation, RuntimeOperation};
-use edgelet_docker::{Error as DockerError, ErrorKind as DockerErrorKind};
+use edgelet_docker::ErrorKind as DockerErrorKind;
 use edgelet_iothub::Error as IoTHubError;
 use failure::{Backtrace, Context, Fail};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
@@ -115,16 +115,15 @@ impl From<Context<ErrorKind>> for Error {
 
 impl IntoResponse for Error {
     fn into_response(self) -> Response<Body> {
-        let fail: &Fail = &self;
         let mut message = self.to_string();
-        for cause in fail.iter_causes() {
+        for cause in Fail::iter_causes(&self) {
             message.push_str(&format!("\n\tcaused by: {}", cause));
         }
 
         // Specialize status code based on the underlying docker runtime error, if any
         let status_code =
-            if let Some(cause) = self.cause().and_then(Fail::downcast_ref::<DockerError>) {
-                match cause.kind() {
+            if let Some(cause) = Fail::find_root_cause(&self).downcast_ref::<DockerErrorKind>() {
+                match cause {
                     DockerErrorKind::NotFound(_) => StatusCode::NOT_FOUND,
                     DockerErrorKind::Conflict => StatusCode::CONFLICT,
                     DockerErrorKind::NotModified => StatusCode::NOT_MODIFIED,
