@@ -284,6 +284,10 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         internal static IEnumerable<X509Certificate2> ParseTrustBundleResponse(TrustBundleResponse response)
         {
+            if (response == null)
+            {
+                throw new ArgumentException($"Null TrustBundle Response received");
+            }
             return ParseTrustedBundleCerts(response.Certificate);
         }
 
@@ -323,6 +327,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 {
                     chain.Add(new X509CertificateEntry(x509Cert));
                 }
+                // when processing certificates generated via openssl certObject type is of AsymmetricCipherKeyPair
                 if (certObject is AsymmetricCipherKeyPair)
                 {
                     certObject = ((AsymmetricCipherKeyPair)certObject).Private;
