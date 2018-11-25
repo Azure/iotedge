@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using TestCertificateHelper = Microsoft.Azure.Devices.Edge.Util.Test.Common.CertificateHelper;
     using Moq;
     using Xunit;
-    
+
     [Unit]
     public class DeviceScopeCertificateAuthenticatorTest
     {
@@ -179,7 +179,219 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         }
 
         [Fact]
-        public async Task AuthenticateAsyncWithModuleThumbprintX509InScopeCacheSucceeds()
+        public async Task AuthenticateAsyncWithDeviceCAX509InScopeCacheSucceeds()
+        {
+            var notBefore = DateTime.Now.Subtract(TimeSpan.FromDays(2));
+            var notAfter = DateTime.Now.AddYears(1);
+            var (caCert, caKeyPair) = TestCertificateHelper.GenerateSelfSignedCert("MyTestCA", notBefore, notAfter, true);
+            var (issuedClientCert, issuedClientKeyPair) = TestCertificateHelper.GenerateCertificate("MyIssuedTestClient", notBefore, notAfter, caCert, caKeyPair, false, null);
+            IList<X509Certificate2> issuedClientCertChain = new List<X509Certificate2>() { caCert };
+            IList<X509Certificate2> trustBundle = new List<X509Certificate2>() { caCert };
+            string deviceId = "MyIssuedTestClient";
+
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
+            var clientCredentials = Mock.Of<ICertificateCredentials>(c =>
+                c.Identity == Mock.Of<IDeviceIdentity>(i => i.DeviceId == deviceId && i.Id == deviceId)
+                    && c.AuthenticationType == AuthenticationType.X509Cert
+                    && c.ClientCertificate == issuedClientCert && c.ClientCertificateChain == issuedClientCertChain);
+
+            var serviceIdentity = new ServiceIdentity(deviceId, "1234", new string[0],
+                                                      new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled);
+            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, underlyingAuthenticator, trustBundle);
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId), false)).ReturnsAsync(Option.Some(serviceIdentity));
+
+
+            Assert.True(await authenticator.AuthenticateAsync(clientCredentials));
+        }
+
+        [Fact]
+        public async Task AuthenticateAsyncWithDeviceCAX509NotInScopeCacheFails()
+        {
+            var notBefore = DateTime.Now.Subtract(TimeSpan.FromDays(2));
+            var notAfter = DateTime.Now.AddYears(1);
+            var (caCert, caKeyPair) = TestCertificateHelper.GenerateSelfSignedCert("MyTestCA", notBefore, notAfter, true);
+            var (issuedClientCert, issuedClientKeyPair) = TestCertificateHelper.GenerateCertificate("MyIssuedTestClient", notBefore, notAfter, caCert, caKeyPair, false, null);
+            IList<X509Certificate2> issuedClientCertChain = new List<X509Certificate2>() { caCert };
+            IList<X509Certificate2> trustBundle = new List<X509Certificate2>() { caCert };
+            string deviceId = "MyIssuedTestClient";
+            string someOtherDeviceId = "some other device id";
+
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
+            var clientCredentials = Mock.Of<ICertificateCredentials>(c =>
+                c.Identity == Mock.Of<IDeviceIdentity>(i => i.DeviceId == deviceId && i.Id == deviceId)
+                    && c.AuthenticationType == AuthenticationType.X509Cert
+                    && c.ClientCertificate == issuedClientCert && c.ClientCertificateChain == issuedClientCertChain);
+
+            var serviceIdentity = new ServiceIdentity(someOtherDeviceId, "1234", new string[0],
+                                                      new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled);
+            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, underlyingAuthenticator, trustBundle);
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == someOtherDeviceId), false)).ReturnsAsync(Option.Some(serviceIdentity));
+
+
+            Assert.False(await authenticator.AuthenticateAsync(clientCredentials));
+        }
+
+        [Fact]
+        public async Task AuthenticateAsyncWithDeviceCAX509ExpiredCertInScopeCacheFails()
+        {
+            var notBefore = DateTime.Now.Subtract(TimeSpan.FromDays(2));
+            var notAfter = DateTime.Now.Subtract(TimeSpan.FromDays(1));
+            var (caCert, caKeyPair) = TestCertificateHelper.GenerateSelfSignedCert("MyTestCA", notBefore, notAfter, true);
+            var (issuedClientCert, issuedClientKeyPair) = TestCertificateHelper.GenerateCertificate("MyIssuedTestClient", notBefore, notAfter, caCert, caKeyPair, false, null);
+            IList<X509Certificate2> issuedClientCertChain = new List<X509Certificate2>() { caCert };
+            IList<X509Certificate2> trustBundle = new List<X509Certificate2>() { caCert };
+            string deviceId = "MyIssuedTestClient";
+
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
+            var clientCredentials = Mock.Of<ICertificateCredentials>(c =>
+                c.Identity == Mock.Of<IDeviceIdentity>(i => i.DeviceId == deviceId && i.Id == deviceId)
+                    && c.AuthenticationType == AuthenticationType.X509Cert
+                    && c.ClientCertificate == issuedClientCert && c.ClientCertificateChain == issuedClientCertChain);
+
+            var serviceIdentity = new ServiceIdentity(deviceId, "1234", new string[0],
+                                                      new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled);
+            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, underlyingAuthenticator, trustBundle);
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId), false)).ReturnsAsync(Option.Some(serviceIdentity));
+
+
+            Assert.False(await authenticator.AuthenticateAsync(clientCredentials));
+        }
+
+        [Fact]
+        public async Task AuthenticateAsyncWithDeviceCAX509FutureValidCertInScopeCacheFails()
+        {
+            var notBefore = DateTime.Now.AddYears(1);
+            var notAfter = DateTime.Now.AddYears(2);
+
+            var (caCert, caKeyPair) = TestCertificateHelper.GenerateSelfSignedCert("MyTestCA", notBefore, notAfter, true);
+            var (issuedClientCert, issuedClientKeyPair) = TestCertificateHelper.GenerateCertificate("MyIssuedTestClient", notBefore, notAfter, caCert, caKeyPair, false, null);
+            IList<X509Certificate2> issuedClientCertChain = new List<X509Certificate2>() { caCert };
+            IList<X509Certificate2> trustBundle = new List<X509Certificate2>() { caCert };
+            string deviceId = "MyIssuedTestClient";
+
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
+            var clientCredentials = Mock.Of<ICertificateCredentials>(c =>
+                c.Identity == Mock.Of<IDeviceIdentity>(i => i.DeviceId == deviceId && i.Id == deviceId)
+                    && c.AuthenticationType == AuthenticationType.X509Cert
+                    && c.ClientCertificate == issuedClientCert && c.ClientCertificateChain == issuedClientCertChain);
+
+            var serviceIdentity = new ServiceIdentity(deviceId, "1234", new string[0],
+                                                      new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled);
+            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, underlyingAuthenticator, trustBundle);
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId), false)).ReturnsAsync(Option.Some(serviceIdentity));
+
+
+            Assert.False(await authenticator.AuthenticateAsync(clientCredentials));
+        }
+
+        [Fact]
+        public async Task AuthenticateAsyncWithDeviceCAX509CATrueInScopeCacheFails()
+        {
+            var notBefore = DateTime.Now.Subtract(TimeSpan.FromDays(2));
+            var notAfter = DateTime.Now.AddYears(1);
+
+            var (caCert, caKeyPair) = TestCertificateHelper.GenerateSelfSignedCert("MyTestCA", notBefore, notAfter, true);
+            var (issuedClientCert, issuedClientKeyPair) = TestCertificateHelper.GenerateCertificate("MyIssuedTestClient", notBefore, notAfter, caCert, caKeyPair, true, null);
+            IList<X509Certificate2> issuedClientCertChain = new List<X509Certificate2>() { caCert };
+            IList<X509Certificate2> trustBundle = new List<X509Certificate2>() { caCert };
+            string deviceId = "MyIssuedTestClient";
+
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
+            var clientCredentials = Mock.Of<ICertificateCredentials>(c =>
+                c.Identity == Mock.Of<IDeviceIdentity>(i => i.DeviceId == deviceId && i.Id == deviceId)
+                    && c.AuthenticationType == AuthenticationType.X509Cert
+                    && c.ClientCertificate == issuedClientCert && c.ClientCertificateChain == issuedClientCertChain);
+
+            var serviceIdentity = new ServiceIdentity(deviceId, "1234", new string[0],
+                                                      new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled);
+            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, underlyingAuthenticator, trustBundle);
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId), false)).ReturnsAsync(Option.Some(serviceIdentity));
+
+
+            Assert.False(await authenticator.AuthenticateAsync(clientCredentials));
+        }
+
+        [Fact]
+        public async Task AuthenticateAsyncWithMismatchDeviceIDCAX509InScopeCacheFails()
+        {
+            var notBefore = DateTime.Now.Subtract(TimeSpan.FromDays(2));
+            var notAfter = DateTime.Now.AddYears(1);
+            var (caCert, caKeyPair) = TestCertificateHelper.GenerateSelfSignedCert("MyTestCA", notBefore, notAfter, true);
+            var (issuedClientCert, issuedClientKeyPair) = TestCertificateHelper.GenerateCertificate("MyIssuedTestClient", notBefore, notAfter, caCert, caKeyPair, false, null);
+            IList<X509Certificate2> issuedClientCertChain = new List<X509Certificate2>() { caCert };
+            IList<X509Certificate2> trustBundle = new List<X509Certificate2>() { caCert };
+            string deviceId = "different from CN";
+
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
+            var clientCredentials = Mock.Of<ICertificateCredentials>(c =>
+                c.Identity == Mock.Of<IDeviceIdentity>(i => i.DeviceId == deviceId && i.Id == deviceId)
+                    && c.AuthenticationType == AuthenticationType.X509Cert
+                    && c.ClientCertificate == issuedClientCert && c.ClientCertificateChain == issuedClientCertChain);
+
+            var serviceIdentity = new ServiceIdentity(deviceId, "1234", new string[0],
+                                                      new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled);
+            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, underlyingAuthenticator, trustBundle);
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId), false)).ReturnsAsync(Option.Some(serviceIdentity));
+
+
+            Assert.False(await authenticator.AuthenticateAsync(clientCredentials));
+        }
+
+        [Fact]
+        public async Task AuthenticateAsyncWithEmptyChainDeviceCAX509InScopeCacheFails()
+        {
+            var notBefore = DateTime.Now.Subtract(TimeSpan.FromDays(2));
+            var notAfter = DateTime.Now.AddYears(1);
+            var (caCert, caKeyPair) = TestCertificateHelper.GenerateSelfSignedCert("MyTestCA", notBefore, notAfter, true);
+            var (issuedClientCert, issuedClientKeyPair) = TestCertificateHelper.GenerateCertificate("MyIssuedTestClient", notBefore, notAfter, caCert, caKeyPair, false, null);
+            IList<X509Certificate2> issuedClientCertChain = new List<X509Certificate2>() {  }; // empty chain supplied
+            IList<X509Certificate2> trustBundle = new List<X509Certificate2>() { caCert };
+            string deviceId = "different from CN";
+
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
+            var clientCredentials = Mock.Of<ICertificateCredentials>(c =>
+                c.Identity == Mock.Of<IDeviceIdentity>(i => i.DeviceId == deviceId && i.Id == deviceId)
+                    && c.AuthenticationType == AuthenticationType.X509Cert
+                    && c.ClientCertificate == issuedClientCert && c.ClientCertificateChain == issuedClientCertChain);
+
+            var serviceIdentity = new ServiceIdentity(deviceId, "1234", new string[0],
+                                                      new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled);
+            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, underlyingAuthenticator, trustBundle);
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId), false)).ReturnsAsync(Option.Some(serviceIdentity));
+
+
+            Assert.False(await authenticator.AuthenticateAsync(clientCredentials));
+        }
+
+        [Fact]
+        public async Task AuthenticateAsyncWithInvalidChainDeviceCAX509InScopeCacheFails()
+        {
+            var notBefore = DateTime.Now.Subtract(TimeSpan.FromDays(2));
+            var notAfter = DateTime.Now.AddYears(1);
+            var (caCert, caKeyPair) = TestCertificateHelper.GenerateSelfSignedCert("MyTestCA", notBefore, notAfter, true);
+            var (otherCaCert, otherCaKeyPair) = TestCertificateHelper.GenerateSelfSignedCert("MyOtherTestCA", notBefore, notAfter, true);
+            var (issuedClientCert, issuedClientKeyPair) = TestCertificateHelper.GenerateCertificate("MyIssuedTestClient", notBefore, notAfter, caCert, caKeyPair, false, null);
+            IList<X509Certificate2> issuedClientCertChain = new List<X509Certificate2>() { otherCaCert }; // invalid chain supplied
+            IList<X509Certificate2> trustBundle = new List<X509Certificate2>() { caCert };
+            string deviceId = "different from CN";
+
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
+            var clientCredentials = Mock.Of<ICertificateCredentials>(c =>
+                c.Identity == Mock.Of<IDeviceIdentity>(i => i.DeviceId == deviceId && i.Id == deviceId)
+                    && c.AuthenticationType == AuthenticationType.X509Cert
+                    && c.ClientCertificate == issuedClientCert && c.ClientCertificateChain == issuedClientCertChain);
+
+            var serviceIdentity = new ServiceIdentity(deviceId, "1234", new string[0],
+                                                      new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled);
+            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, underlyingAuthenticator, trustBundle);
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId), false)).ReturnsAsync(Option.Some(serviceIdentity));
+
+
+            Assert.False(await authenticator.AuthenticateAsync(clientCredentials));
+        }
+
+        [Fact]
+        public async Task AuthenticateAsyncWithModuleThumbprintX509InScopeCacheFails()
         {
             string deviceId = "d1";
             string moduleId = "m1";
@@ -210,44 +422,37 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == identity), false)).ReturnsAsync(Option.Some(serviceIdentity));
 
             // Assert
-            Assert.True(await authenticator.AuthenticateAsync(primaryCredentials));
-            Assert.True(await authenticator.AuthenticateAsync(secondaryCredentials));
+            Assert.False(await authenticator.AuthenticateAsync(primaryCredentials));
+            Assert.False(await authenticator.AuthenticateAsync(secondaryCredentials));
         }
 
         [Fact]
-        public async Task AuthenticateAsyncWithModuleThumbprintX509NotInScopeCacheFails()
+        public async Task AuthenticateAsyncWithModuleCAX509InScopeCacheFails()
         {
+            var notBefore = DateTime.Now.Subtract(TimeSpan.FromDays(2));
+            var notAfter = DateTime.Now.AddYears(1);
+            var (caCert, caKeyPair) = TestCertificateHelper.GenerateSelfSignedCert("MyTestCA", notBefore, notAfter, true);
+            var (issuedClientCert, issuedClientKeyPair) = TestCertificateHelper.GenerateCertificate("MyIssuedTestClient", notBefore, notAfter, caCert, caKeyPair, false, null);
+            IList<X509Certificate2> issuedClientCertChain = new List<X509Certificate2>() { caCert };
+            IList<X509Certificate2> trustBundle = new List<X509Certificate2>() { caCert };
             string deviceId = "d1";
-            string moduleId = "m1";
+            string moduleId = "MyIssuedTestClient";
             string identity = FormattableString.Invariant($"{deviceId}/{moduleId}");
-            var primaryCertificate = TestCertificateHelper.GenerateSelfSignedCert("primo");
-            var primaryClientCertChain = new List<X509Certificate2>() { primaryCertificate };
-            var secondaryCertificate = TestCertificateHelper.GenerateSelfSignedCert("secondo");
-            var secondaryClientCertChain = new List<X509Certificate2>() { secondaryCertificate };
 
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
-            IList<X509Certificate2> trustBundle = new List<X509Certificate2>();
-            var primaryCredentials = Mock.Of<ICertificateCredentials>(c =>
+            var clientCredentials = Mock.Of<ICertificateCredentials>(c =>
                 c.Identity == Mock.Of<IModuleIdentity>(i => i.DeviceId == deviceId && i.ModuleId == moduleId
                     && i.Id == identity)
                     && c.AuthenticationType == AuthenticationType.X509Cert
-                    && c.ClientCertificate == primaryCertificate && c.ClientCertificateChain == primaryClientCertChain);
-
-            var secondaryCredentials = Mock.Of<ICertificateCredentials>(c =>
-                c.Identity == Mock.Of<IModuleIdentity>(i => i.DeviceId == deviceId && i.ModuleId == moduleId
-                    && i.Id == identity)
-                    && c.AuthenticationType == AuthenticationType.X509Cert
-                    && c.ClientCertificate == secondaryCertificate && c.ClientCertificateChain == secondaryClientCertChain);
+                    && c.ClientCertificate == issuedClientCert && c.ClientCertificateChain == issuedClientCertChain);
 
             var serviceIdentity = new ServiceIdentity(deviceId, moduleId, "1234", new string[0],
-                                                      new ServiceAuthentication(new X509ThumbprintAuthentication("7A57E1E55", "DECAF")),
-                                                      ServiceIdentityStatus.Enabled);
+                                                      new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled);
             var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, underlyingAuthenticator, trustBundle);
             deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == identity), false)).ReturnsAsync(Option.Some(serviceIdentity));
 
-            // Assert
-            Assert.False(await authenticator.AuthenticateAsync(primaryCredentials));
-            Assert.False(await authenticator.AuthenticateAsync(secondaryCredentials));
+
+            Assert.False(await authenticator.AuthenticateAsync(clientCredentials));
         }
 
         static string GetKey() => Convert.ToBase64String(Encoding.UTF8.GetBytes(Guid.NewGuid().ToString()));

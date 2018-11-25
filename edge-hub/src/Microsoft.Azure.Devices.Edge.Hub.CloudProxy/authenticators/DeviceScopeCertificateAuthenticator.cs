@@ -51,23 +51,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             Option<ServiceIdentity> serviceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(clientCredentials.Identity.Id, reAuthenticating);
             if (serviceIdentity.HasValue)
             {
-                try
+                // currently authenticating modules via X.509 is disabled. all the necessary pieces to authenticate
+                // modules via X.509 CA are implemented below and to enable modules to authenticate remove this check
+                if (certificateCredentials.Identity is IModuleIdentity)
                 {
-                    bool isAuthenticated = await serviceIdentity.Map(s => this.AuthenticateInternalAsync(certificateCredentials, s)).GetOrElse(Task.FromResult(false));
-                    if (reAuthenticating)
-                    {
-                        Events.ReauthenticatedInScope(clientCredentials.Identity, isAuthenticated);
-                    }
-                    else
-                    {
-                        Events.AuthenticatedInScope(clientCredentials.Identity, isAuthenticated);
-                    }
-                    return isAuthenticated;
+                    Events.UnsupportedClientIdentityType(certificateCredentials.Identity.Id);
+                    return false;
                 }
-                catch (Exception e)
+                else
                 {
-                    Events.ErrorAuthenticating(e, clientCredentials);
-                    return await this.underlyingAuthenticator.ReauthenticateAsync(clientCredentials);
+                    try
+                    {
+                        bool isAuthenticated = await serviceIdentity.Map(s => this.AuthenticateInternalAsync(certificateCredentials, s)).GetOrElse(Task.FromResult(false));
+                        if (reAuthenticating)
+                        {
+                            Events.ReauthenticatedInScope(clientCredentials.Identity, isAuthenticated);
+                        }
+                        else
+                        {
+                            Events.AuthenticatedInScope(clientCredentials.Identity, isAuthenticated);
+                        }
+                        return isAuthenticated;
+                    }
+                    catch (Exception e)
+                    {
+                        Events.ErrorAuthenticating(e, clientCredentials);
+                        return await this.underlyingAuthenticator.ReauthenticateAsync(clientCredentials);
+                    }
                 }
             }
             else
@@ -112,7 +122,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             else if (serviceIdentity.Authentication.Type == ServiceAuthenticationType.CertificateAuthority)
             {
                 if (certificateCredentials.Identity is IModuleIdentity)
-
                 {
                     result = serviceIdentity.ModuleId.Map(
                     moduleId =>
@@ -128,7 +137,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
                     if (!result) Events.InvalidCommonName(serviceIdentity.Id);
                 }
 
-                if (result && (CertificateHelper.ValidateClientCert(certificateCredentials.ClientCertificate,
+                if (result && (!CertificateHelper.ValidateClientCert(certificateCredentials.ClientCertificate,
                                                                     certificateCredentials.ClientCertificateChain,
                                                                     Option.Some(this.trustBundle), Events.Log)))
                 {
@@ -152,7 +161,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
 
             enum EventIds
             {
-                UnsupportedIdentityType = IdStart,
+                UnsupportedClientIdentityType = IdStart,
                 ThumbprintMismatch,
                 InvalidCommonName,
                 InvalidServiceIdentityType,
@@ -164,9 +173,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
                 
             }
 
-            public static void UnsupportedServiceIdentityType(ServiceIdentity serviceIdentity)
+            public static void UnsupportedClientIdentityType(string id)
             {
-                Log.LogWarning((int)EventIds.UnsupportedIdentityType, $"Error authenticating {serviceIdentity.Id} using X.509 certificates since this is identity type is unsupported.");
+                Log.LogWarning((int)EventIds.UnsupportedClientIdentityType, $"Error authenticating {id} using X.509 certificates since this is identity type is unsupported.");
             }
 
             public static void ThumbprintMismatch(string id)
