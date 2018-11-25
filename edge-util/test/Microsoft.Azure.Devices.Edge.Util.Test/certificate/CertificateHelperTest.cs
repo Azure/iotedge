@@ -122,7 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
         public void ParseTrustBundleNullResponseRaisesException()
         {
             TrustBundleResponse response = null;
-            Assert.Throws<ArgumentException>(() => CertificateHelper.ParseTrustBundleResponse(response));
+            Assert.Throws<ArgumentNullException>(() => CertificateHelper.ParseTrustBundleResponse(response));
         }
 
         [Fact]

@@ -415,22 +415,15 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         internal static IEnumerable<X509Certificate2> ParseTrustBundleResponse(TrustBundleResponse response)
         {
-            if (response == null)
-            {
-                throw new ArgumentException($"Null TrustBundle Response received");
-            }
+            Preconditions.CheckNotNull(response, nameof(response));
             return ParseTrustedBundleCerts(response.Certificate);
         }
 
-        internal static IEnumerable<X509Certificate2> ParseTrustedBundleCerts(string trustedCACerts)
-        {
-            return GetCertificatesFromPem(ParsePemCerts(trustedCACerts));
-        }
+        internal static IEnumerable<X509Certificate2> ParseTrustedBundleCerts(string trustedCACerts) =>
+            GetCertificatesFromPem(ParsePemCerts(trustedCACerts));
 
-        internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateResponse(CertificateResponse response)
-        {
-            return ParseCertificateAndKey(response.Certificate, response.PrivateKey.Bytes);
-        }
+        internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateResponse(CertificateResponse response) =>
+            ParseCertificateAndKey(response.Certificate, response.PrivateKey.Bytes);
 
         internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateAndKey(string certificateWithChain, string privateKey)
         {
