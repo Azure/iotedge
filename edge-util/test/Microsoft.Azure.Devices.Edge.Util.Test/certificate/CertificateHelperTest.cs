@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
         public void BuildCertificateListSuccess()
         {
             X509Certificate2 cert = TestCertificateHelper.GenerateSelfSignedCert("top secret");
-            (IList<X509Certificate2> certs, Option<string> errors) = CertificateHelper.BuildCertificateList(cert);
+            (IList<X509Certificate2> certs, Option<string> errors) = CertificateHelper.BuildCertificateList(cert, Option.None<IList<X509Certificate2>>());
             Assert.True(certs.Count == 1);
             Assert.False(errors.HasValue);
         }
@@ -35,16 +35,17 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
         [Fact]
         public void ValidateCertNullArgumentsThrows()
         {
-            Assert.Throws<ArgumentNullException>(() => CertificateHelper.ValidateCert(null, new X509Certificate2[] { }, new X509Certificate2[] { }));
-            Assert.Throws<ArgumentNullException>(() => CertificateHelper.ValidateCert(new X509Certificate2(), null, new X509Certificate2[] { }));
-            Assert.Throws<ArgumentNullException>(() => CertificateHelper.ValidateCert(new X509Certificate2(), new X509Certificate2[] { }, null));
+            var trustedCACerts = Option.None<IList<X509Certificate2>>();
+            Assert.Throws<ArgumentNullException>(() => CertificateHelper.ValidateCert(null, new X509Certificate2[] { }, trustedCACerts));
+            Assert.Throws<ArgumentNullException>(() => CertificateHelper.ValidateCert(new X509Certificate2(), null, trustedCACerts));
         }
 
         [Fact]
         public void ValidateCertSuccess()
         {
+            var trustedCACerts = Option.None<IList<X509Certificate2>>();
             X509Certificate2 cert = TestCertificateHelper.GenerateSelfSignedCert("top secret");
-            (bool validated, Option<string> errors) = CertificateHelper.ValidateCert(cert, new[] { cert }, new[] { cert });
+            (bool validated, Option<string> errors) = CertificateHelper.ValidateCert(cert, new[] { cert }, trustedCACerts);
             Assert.True(validated);
             Assert.False(errors.HasValue);
         }
@@ -54,7 +55,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
         {
             X509Certificate2 cert = TestCertificateHelper.GenerateSelfSignedCert("top secret");
             X509Certificate2 root = TestCertificateHelper.GenerateSelfSignedCert("root");
-            (bool validated, Option<string> errors) = CertificateHelper.ValidateCert(cert, new[] { cert }, new[] { root });
+            IList<X509Certificate2> ca = new List<X509Certificate2>() { root };
+            (bool validated, Option<string> errors) = CertificateHelper.ValidateCert(cert, new[] { cert }, Option.Some(ca));
             Assert.False(validated);
             Assert.True(errors.HasValue);
         }
@@ -62,31 +64,24 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
         [Fact]
         public void ClientCertCallbackNullArgumentThrows()
         {
+            var trustedCACerts = Option.None<IList<X509Certificate2>>();
             Assert.Throws<ArgumentNullException>(() =>
-            CertificateHelper.ValidateClientCert(null, new X509Chain(),
-                Option.Some<IList<X509Certificate2>>(new X509Certificate2[] { }), Logger.Factory.CreateLogger("something")));
+            CertificateHelper.ValidateClientCert(null, new X509Chain(), trustedCACerts, Logger.Factory.CreateLogger("something")));
             Assert.Throws<ArgumentNullException>(() =>
-            CertificateHelper.ValidateClientCert(new X509Certificate2(), null,
-                Option.Some<IList<X509Certificate2>>(new X509Certificate2[] { }), Logger.Factory.CreateLogger("something")));
+            CertificateHelper.ValidateClientCert(new X509Certificate2(), null, trustedCACerts, Logger.Factory.CreateLogger("something")));
             Assert.Throws<ArgumentNullException>(() =>
-            CertificateHelper.ValidateClientCert(new X509Certificate2(), new X509Chain(),
-                Option.Some<IList<X509Certificate2>>(new X509Certificate2[] { }), null));
+            CertificateHelper.ValidateClientCert(new X509Certificate2(), new X509Chain(), trustedCACerts, null));
         }
 
         [Fact]
         public void ClientCertCallbackNoCaCertsFails()
         {
             X509Certificate2 cert = TestCertificateHelper.GenerateSelfSignedCert("top secret");
-            Assert.False(CertificateHelper.ValidateClientCert(cert, new X509Chain(),
-                Option.None<IList<X509Certificate2>>(), Logger.Factory.CreateLogger("something")));
+            IList<X509Certificate2> ca = new List<X509Certificate2>();
+            var trustedCACerts = Option.Some(ca);
+            Assert.False(CertificateHelper.ValidateClientCert(cert, new X509Chain(), trustedCACerts, Logger.Factory.CreateLogger("something")));
         }
 
-        [Fact]
-        public void GetCertsAtPathNullArgumentFails()
-        {
-            Assert.Throws<ArgumentException>(() => CertificateHelper.GetCertsAtPath(null));
-            Assert.Throws<ArgumentException>(() => CertificateHelper.GetCertsAtPath(""));
-        }
 
         [Fact]
         public void ExtractCertsNullArgumentFails()
@@ -270,6 +265,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
             Assert.Equal(chain.Count(), 0);
         }
 
+        [Fact]
         public void ParseMultipleCertificateAndKeyShouldReturnCertAndKey()
         {
             TestCertificateHelper.GenerateSelfSignedCert("top secret").Export(X509ContentType.Cert);
@@ -281,6 +277,155 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
             Assert.True(cert.HasPrivateKey);
             Assert.Equal(chain.Count(), 1);
             Assert.Equal(expected, chain.First());
+        }
+
+        [Fact]
+        public void TestIfCACertificate()
+        {
+            var notBefore = DateTime.Now.Subtract(TimeSpan.FromDays(2));
+            var notAfter = DateTime.Now.AddYears(1);
+            var (caCert, caKeyPair) = TestCertificateHelper.GenerateSelfSignedCert("MyTestCA", notBefore, notAfter, true);
+            Assert.True(CertificateHelper.IsCACertificate(caCert));
+
+            var (clientCert, clientKeyPair) = TestCertificateHelper.GenerateSelfSignedCert("MyTestClient", notBefore, notAfter, false);
+            Assert.False(CertificateHelper.IsCACertificate(clientCert));
+
+            var (issuedClientCert, issuedClientKeyPair) = TestCertificateHelper.GenerateCertificate("MyIssuedTestClient", notBefore, notAfter, caCert, caKeyPair, false, null);
+            Assert.False(CertificateHelper.IsCACertificate(issuedClientCert));
+        }
+
+        [Fact]
+        public void TestValidateCertificateWithExpiredValidityFails()
+        {
+            var notBefore = DateTime.Now.Subtract(TimeSpan.FromDays(2));
+            var notAfter = DateTime.Now.Subtract(TimeSpan.FromDays(1));
+            var (clientCert, clientKeyPair) =  TestCertificateHelper.GenerateSelfSignedCert("MyTestClient", notBefore, notAfter, false);
+            Assert.False(CertificateHelper.ValidateClientCert(clientCert, new List<X509Certificate2>() { clientCert }, Option.None<IList<X509Certificate2>>(), Logger.Factory.CreateLogger("something")));
+        }
+
+        [Fact]
+        public void TestValidateCertificateWithFutureValidityFails()
+        {
+            var notBefore = DateTime.Now.AddYears(1);
+            var notAfter = DateTime.Now.AddYears(2);
+            var (clientCert, clientKeyPair) = TestCertificateHelper.GenerateSelfSignedCert("MyTestClient", notBefore, notAfter, false);
+
+            Assert.False(CertificateHelper.ValidateClientCert(clientCert, new List<X509Certificate2>() { clientCert }, Option.None<IList<X509Certificate2>>(), Logger.Factory.CreateLogger("something")));
+        }
+
+        [Fact]
+        public void TestValidateCertificateWithCAExtentionFails()
+        {
+            var caCert = TestCertificateHelper.GenerateSelfSignedCert("MyTestCA", true);
+
+            Assert.False(CertificateHelper.ValidateClientCert(caCert, new List<X509Certificate2>() { caCert }, Option.None<IList<X509Certificate2>>(), Logger.Factory.CreateLogger("something")));
+        }
+
+        [Fact]
+        public void TestValidateCertificateAndChainSucceeds()
+        {
+            var notBefore = DateTime.Now.Subtract(TimeSpan.FromDays(2));
+            var notAfter = DateTime.Now.AddYears(1);
+            var (caCert, caKeyPair) = TestCertificateHelper.GenerateSelfSignedCert("MyTestCA", notBefore, notAfter, true);
+            var (issuedClientCert, issuedClientKeyPair) = TestCertificateHelper.GenerateCertificate("MyIssuedTestClient", notBefore, notAfter, caCert, caKeyPair, false, null);
+
+            Assert.True(CertificateHelper.ValidateClientCert(issuedClientCert, new List<X509Certificate2>() { caCert }, Option.None<IList<X509Certificate2>>(), Logger.Factory.CreateLogger("something")));
+        }
+
+        //TODO need to discuss test failure
+        //[Fact]
+        //public void TestValidateCertificateAndChainFails()
+        //{
+        //    var notBefore = DateTime.Now.Subtract(TimeSpan.FromDays(2));
+        //    var notAfter = DateTime.Now.AddYears(1);
+        //    var (caCert, caKeyPair) = TestCertificateHelper.GenerateSelfSignedCert("MyTestCA", notBefore, notAfter, true);
+        //    var (clientCert, clientKeyPair) = TestCertificateHelper.GenerateSelfSignedCert("MyTestClient", notBefore, notAfter, false);
+        //    var (issuedClientCert, issuedClientKeyPair) = TestCertificateHelper.GenerateCertificate("MyIssuedTestClient", notBefore, notAfter, caCert, caKeyPair, false);
+
+        //    Assert.False(CertificateHelper.ValidateClientCert(issuedClientCert, new List<X509Certificate2>() { clientCert }, Option.None<IList<X509Certificate2>>(), Logger.Factory.CreateLogger("something")));
+        //}
+
+        [Fact]
+        public void TestValidateTrustedCACertificateAndChainSucceeds()
+        {
+            var notBefore = DateTime.Now.Subtract(TimeSpan.FromDays(2));
+            var notAfter = DateTime.Now.AddYears(1);
+            var (caCert, caKeyPair) = TestCertificateHelper.GenerateSelfSignedCert("MyTestCA", notBefore, notAfter, true);
+            var (issuedClientCert, issuedClientKeyPair) = TestCertificateHelper.GenerateCertificate("MyIssuedTestClient", notBefore, notAfter, caCert, caKeyPair, false, null);
+            IList<X509Certificate2> trustedCACerts = new List<X509Certificate2>() { caCert };
+
+            Assert.True(CertificateHelper.ValidateClientCert(issuedClientCert, new List<X509Certificate2>() { caCert }, Option.Some(trustedCACerts), Logger.Factory.CreateLogger("something")));
+        }
+
+        [Fact]
+        public void TestValidateTrustedCACertificateAndMistmatchChainFails()
+        {
+            var notBefore = DateTime.Now.Subtract(TimeSpan.FromDays(2));
+            var notAfter = DateTime.Now.AddYears(1);
+            var (caCert, caKeyPair) = TestCertificateHelper.GenerateSelfSignedCert("MyTestCA", notBefore, notAfter, true);
+            var (clientCert, clientKeyPair) = TestCertificateHelper.GenerateSelfSignedCert("MyTestClient", notBefore, notAfter, false);
+            var (issuedClientCert, issuedClientKeyPair) = TestCertificateHelper.GenerateCertificate("MyIssuedTestClient", notBefore, notAfter, caCert, caKeyPair, false, null);
+            IList<X509Certificate2> trustedCACerts = new List<X509Certificate2>() { caCert };
+
+            Assert.False(CertificateHelper.ValidateClientCert(issuedClientCert, new List<X509Certificate2>() { clientCert }, Option.Some(trustedCACerts), Logger.Factory.CreateLogger("something")));
+        }
+
+        [Fact]
+        public void TestValidateTrustedCACertificateAndEmptyChainFails()
+        {
+            var notBefore = DateTime.Now.Subtract(TimeSpan.FromDays(2));
+            var notAfter = DateTime.Now.AddYears(1);
+            var (caCert, caKeyPair) = TestCertificateHelper.GenerateSelfSignedCert("MyTestCA", notBefore, notAfter, true);
+            var (issuedClientCert, issuedClientKeyPair) = TestCertificateHelper.GenerateCertificate("MyIssuedTestClient", notBefore, notAfter, caCert, caKeyPair, false, null);
+            IList<X509Certificate2> trustedCACerts = new List<X509Certificate2>() { caCert };
+
+            Assert.False(CertificateHelper.ValidateClientCert(issuedClientCert, new List<X509Certificate2>() { }, Option.Some(trustedCACerts), Logger.Factory.CreateLogger("something")));
+        }
+
+        [Fact]
+        public void ParseSanUrisTest()
+        {
+            var notBefore = DateTime.Now.Subtract(TimeSpan.FromDays(2));
+            var notAfter = DateTime.Now.AddYears(1);
+            var uris = new List<string>() { "aa://bb/cc/dd", "ww://xx/yy/zz" };
+            var dnsNames = new List<string>();
+            var sans = TestCertificateHelper.PrepareSanEntries(uris, dnsNames);
+            var (clientCert, clientKeyPair) = TestCertificateHelper.GenerateCertificate("MyTestClient", notBefore, notAfter, null, null, false, sans);
+
+            IEnumerable<string> difference = uris.Except(CertificateHelper.ParseSanUris(clientCert));
+            Assert.False(difference.Any());
+        }
+
+        [Fact]
+        public void ValidateSanUriTestFails()
+        {
+            string hub = "hub";
+            string deviceId = "did";
+            string moduleId = "mid";
+            var notBefore = DateTime.Now.Subtract(TimeSpan.FromDays(2));
+            var notAfter = DateTime.Now.AddYears(1);
+            var uris = new List<string>() { "aa://bb/cc/dd", "ww://xx/yy/zz" };
+            var dnsNames = new List<string>();
+            var sans = TestCertificateHelper.PrepareSanEntries(uris, dnsNames);
+            var (clientCert, clientKeyPair) = TestCertificateHelper.GenerateCertificate("MyTestClient", notBefore, notAfter, null, null, false, sans);
+
+            Assert.False(CertificateHelper.ValidateSanUri(clientCert, hub, deviceId, moduleId));
+        }
+
+        [Fact]
+        public void ValidateSanUriTestSucceeds()
+        {
+            string hub = "hub";
+            string deviceId = "did";
+            string moduleId = "mid";
+            var notBefore = DateTime.Now.Subtract(TimeSpan.FromDays(2));
+            var notAfter = DateTime.Now.AddYears(1);
+            var uris = new List<string>() { "aa://bb/cc/dd", "ww://xx/yy/zz", $"azureiot://{hub}/devices/{deviceId}/modules/{moduleId}" };
+            var dnsNames = new List<string>();
+            var sans = TestCertificateHelper.PrepareSanEntries(uris, dnsNames);
+            var (clientCert, clientKeyPair) = TestCertificateHelper.GenerateCertificate("MyTestClient", notBefore, notAfter, null, null, false, sans);
+
+            Assert.True(CertificateHelper.ValidateSanUri(clientCert, hub, deviceId, moduleId));
         }
     }
 }
