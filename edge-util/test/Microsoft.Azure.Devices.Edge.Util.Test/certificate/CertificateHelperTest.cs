@@ -124,13 +124,19 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
         }
 
         [Fact]
+        public void ParseTrustBundleNullResponseRaisesException()
+        {
+            TrustBundleResponse response = null;
+            Assert.Throws<ArgumentException>(() => CertificateHelper.ParseTrustBundleResponse(response));
+        }
+
+        [Fact]
         public void ParseTrustBundleEmptyResponseReturnsEmptyList()
         {
             var response = new TrustBundleResponse()
             {
                 Certificate = "  ",
             };
-            //Assert.Throws<InvalidOperationException>(() => CertificateHelper.ParseTrustBundleResponse(response));
             IEnumerable<X509Certificate2> certs = CertificateHelper.ParseTrustBundleResponse(response);
             Assert.Equal(certs.Count(), 0);
         }
