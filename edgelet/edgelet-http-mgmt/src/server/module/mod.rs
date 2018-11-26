@@ -116,9 +116,13 @@ pub mod tests {
     fn not_found() {
         // arrange
         let error = MgmtError::from(
-            DockerError::from(DockerErrorKind::NotFound(
-                "manifest for image:latest not found".to_string(),
-            )).context(ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(
+            DockerError::from(
+                DockerErrorKind::NotFound("No such container: m1".to_string()).context(
+                    DockerErrorKind::RuntimeOperation(RuntimeOperation::StartModule(
+                        "m1".to_string(),
+                    )),
+                ),
+            ).context(ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(
                 "m1".to_string(),
             ))),
         );
@@ -134,7 +138,7 @@ pub mod tests {
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
                 assert_eq!(
-                    "Could not start module m1\n\tcaused by: manifest for image:latest not found",
+                    "Could not start module m1\n\tcaused by: Could not start module m1\n\tcaused by: No such container: m1",
                     error.message()
                 );
                 Ok(())
@@ -145,9 +149,13 @@ pub mod tests {
     #[test]
     fn conflict() {
         // arrange
-        let error = MgmtError::from(DockerError::from(DockerErrorKind::Conflict).context(
-            ErrorKind::RuntimeOperation(RuntimeOperation::StartModule("m1".to_string())),
-        ));
+        let error = MgmtError::from(
+            DockerError::from(DockerErrorKind::Conflict.context(
+                DockerErrorKind::RuntimeOperation(RuntimeOperation::StartModule("m1".to_string())),
+            )).context(ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(
+                "m1".to_string(),
+            ))),
+        );
 
         // act
         let response = error.into_response();
@@ -160,9 +168,35 @@ pub mod tests {
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
                 assert_eq!(
-                    "Could not start module m1\n\tcaused by: Conflict with current operation",
+                    "Could not start module m1\n\tcaused by: Could not start module m1\n\tcaused by: Conflict with current operation",
                     error.message()
                 );
+                Ok(())
+            }).wait()
+            .unwrap();
+    }
+
+    #[test]
+    fn not_modified() {
+        // arrange
+        let error = MgmtError::from(
+            DockerError::from(DockerErrorKind::NotModified.context(
+                DockerErrorKind::RuntimeOperation(RuntimeOperation::StopModule("m1".to_string())),
+            )).context(ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(
+                "m1".to_string(),
+            ))),
+        );
+
+        // act
+        let response = error.into_response();
+
+        // assert
+        assert_eq!(StatusCode::NOT_MODIFIED, response.status());
+        response
+            .into_body()
+            .concat2()
+            .and_then(|b| {
+                assert!(b.into_bytes().is_empty());
                 Ok(())
             }).wait()
             .unwrap();

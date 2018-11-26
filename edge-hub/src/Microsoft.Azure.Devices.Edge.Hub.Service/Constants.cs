@@ -20,6 +20,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             public const string WorkloadUri = "IOTEDGE_WORKLOADURI";
             public const string EdgeHubDevServerCertificateFile = "EdgeHubDevServerCertificateFile";
             public const string EdgeHubDevServerPrivateKeyFile = "EdgeHubDevServerPrivateKeyFile";
+            public const string EdgeHubDevTrustBundleFile = "EdgeHubDevTrustBundleFile";
+            public const string EdgeHubClientCertAuthEnabled = "ClientCertAuthEnabled";
         }
 
         public const int CertificateValidityDays = 90;
