@@ -5,6 +5,7 @@
     <TargetFramework>netcoreapp2.1</TargetFramework>
     <RootNamespace>load_gen</RootNamespace>
     <LangVersion>latest</LangVersion>
+    <Configurations>Debug;Release;CheckInBuild</Configurations>
   </PropertyGroup>
 
   <ItemGroup>
