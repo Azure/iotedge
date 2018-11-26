@@ -96,5 +96,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Edged
                 Assert.Equal(expected, Convert.ToBase64String(response.Digest));
             }
         }
+
+        [Fact]
+        public async Task GetTrustBundleAsyncShouldReturnCert()
+        {
+            var workloadClient = new WorkloadClient(this.serverUri, WorkloadApiVersion, ModuleId, ModulegenerationId);
+            var response = await workloadClient.GetTrustBundleAsync();
+            Assert.Equal(new X509Certificate2(Encoding.UTF8.GetBytes(TestCertificateHelper.CertificatePem)), new X509Certificate2(Encoding.UTF8.GetBytes(response.Certificate)));
+        }
     }
 }
