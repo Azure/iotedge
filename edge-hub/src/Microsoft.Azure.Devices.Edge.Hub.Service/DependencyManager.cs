@@ -23,6 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     {
         readonly IConfigurationRoot configuration;
         readonly X509Certificate2 serverCertificate;
+        readonly IList<X509Certificate2> trustBundle;
 
         readonly string iotHubHostname;
         readonly string edgeDeviceId;
@@ -31,10 +32,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         readonly Option<string> connectionString;
         readonly VersionInfo versionInfo;
 
-        public DependencyManager(IConfigurationRoot configuration, X509Certificate2 serverCertificate)
+        public DependencyManager(IConfigurationRoot configuration, X509Certificate2 serverCertificate, IList<X509Certificate2> trustBundle)
         {
             this.configuration = Preconditions.CheckNotNull(configuration, nameof(configuration));
             this.serverCertificate = Preconditions.CheckNotNull(serverCertificate, nameof(serverCertificate));
+            this.trustBundle = Preconditions.CheckNotNull(trustBundle, nameof(trustBundle));
 
             string edgeHubConnectionString = this.configuration.GetValue<string>(Constants.ConfigKey.IotHubConnectionString);
             if (!string.IsNullOrWhiteSpace(edgeHubConnectionString))
@@ -117,6 +119,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             int cloudConnectionIdleTimeoutSecs = this.configuration.GetValue("CloudConnectionIdleTimeoutSecs", 3600);
             TimeSpan cloudConnectionIdleTimeout = TimeSpan.FromSeconds(cloudConnectionIdleTimeoutSecs);
             bool closeCloudConnectionOnIdleTimeout = this.configuration.GetValue("CloseCloudConnectionOnIdleTimeout", true);
+            int cloudOperationTimeoutSecs = this.configuration.GetValue("CloudOperationTimeoutSecs", 20);
+            TimeSpan cloudOperationTimeout = TimeSpan.FromSeconds(cloudOperationTimeoutSecs); 
 
             builder.RegisterModule(
                 new RoutingModule(
@@ -134,7 +138,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     connectivityCheckFrequency,
                     maxConnectedClients,
                     cloudConnectionIdleTimeout,
-                    closeCloudConnectionOnIdleTimeout));
+                    closeCloudConnectionOnIdleTimeout,
+                    cloudOperationTimeout));
         }
 
         void RegisterCommonModule(ContainerBuilder builder, bool optimizeForPerformance, (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward)
@@ -168,7 +173,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     storeAndForward.storagePath,
                     workloadUri,
                     scopeCacheRefreshRate,
-                    cacheTokens));
+                    cacheTokens,
+                    this.trustBundle));
         }
 
         internal static Option<UpstreamProtocol> GetUpstreamProtocol(IConfigurationRoot configuration) =>
@@ -178,7 +184,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
         (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) GetStoreAndForwardConfiguration()
         {
-            int defaultTtl = -1;            
+            int defaultTtl = -1;
             bool usePersistentStorage = this.configuration.GetValue<bool>("usePersistentStorage");
             int timeToLiveSecs = defaultTtl;
             string storagePath = this.GetStoragePath();

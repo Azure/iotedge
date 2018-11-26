@@ -24,11 +24,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     {
         readonly IConfigurationRoot configuration;
         readonly X509Certificate2 serverCertificate;
+        readonly IList<X509Certificate2> trustBundle;
 
-        public DependencyManager(IConfigurationRoot configuration, X509Certificate2 serverCertificate)
+        public DependencyManager(IConfigurationRoot configuration, X509Certificate2 serverCertificate, IList<X509Certificate2> trustBundle)
         {
             this.configuration = configuration;
             this.serverCertificate = serverCertificate;
+            this.trustBundle = trustBundle;
         }
 
         public void Register(ContainerBuilder builder)
@@ -72,7 +74,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     string.Empty,
                     Option.None<string>(),
                     TimeSpan.FromHours(1),
-                    false));
+                    false,
+                    this.trustBundle));
 
             builder.RegisterModule(
                 new RoutingModule(
@@ -90,7 +93,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     TimeSpan.FromSeconds(5),
                     101,
                     TimeSpan.FromSeconds(3600),
-                    true));
+                    true,
+                    TimeSpan.FromSeconds(20)));
 
             builder.RegisterModule(new HttpModule());
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, this.serverCertificate, false, false, string.Empty, false));

@@ -6,7 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
-    public class DeploymentConfigInfo
+    public class DeploymentConfigInfo : IEquatable<DeploymentConfigInfo>
     {
         public static DeploymentConfigInfo Empty = new DeploymentConfigInfo(-1, DeploymentConfig.Empty);
 
@@ -33,5 +33,56 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         [JsonIgnore]
         public Option<Exception> Exception { get; }
+
+        public bool Equals(DeploymentConfigInfo other)
+        {
+            if (other is null)
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+
+            return this.Version == other.Version && Equals(this.DeploymentConfig, other.DeploymentConfig)
+                && this.Exception.Equals(other.Exception);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is null)
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            if (obj.GetType() != this.GetType())
+            {
+                return false;
+            }
+
+            return this.Equals((DeploymentConfigInfo)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hashCode = this.Version.GetHashCode();
+                hashCode = (hashCode * 397) ^ (this.DeploymentConfig != null ? this.DeploymentConfig.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ this.Exception.GetHashCode();
+                return hashCode;
+            }
+        }
+
+        public static bool operator ==(DeploymentConfigInfo left, DeploymentConfigInfo right) => Equals(left, right);
+
+        public static bool operator !=(DeploymentConfigInfo left, DeploymentConfigInfo right) => !Equals(left, right);
     }
 }
