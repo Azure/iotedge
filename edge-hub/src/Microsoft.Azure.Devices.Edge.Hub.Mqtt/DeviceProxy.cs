@@ -71,9 +71,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         {
             desiredProperties.SystemProperties[SystemProperties.OutboundUri] =
                 Constants.OutboundUriTwinDesiredPropertyUpdate;
-
             this.channel.Handle(this.messageConverter.FromMessage(desiredProperties));
-
+            Events.SentDesiredPropertyUpdate(this.Identity);
             return Task.FromResult(true);
         }
 
@@ -131,7 +130,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 Close = IdStart,
                 SetInactive,
                 SendMessage,
-                SentTwinUpdateToDevice
+                SentTwinUpdateToDevice,
+                SendingDesiredPropertyUpdate
             }
 
             public static void Close(IIdentity identity)
@@ -142,6 +142,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             public static void SendMessage(IIdentity identity)
             {
                 Log.LogDebug((int)EventIds.SendMessage, Invariant($"Sending message to device for device Id {identity.Id}"));
+            }
+
+            public static void SentDesiredPropertyUpdate(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.SendingDesiredPropertyUpdate, Invariant($"Sent desired properties update to {identity.Id}"));
             }
 
             public static void SentTwinUpdateToDevice(IIdentity identity)

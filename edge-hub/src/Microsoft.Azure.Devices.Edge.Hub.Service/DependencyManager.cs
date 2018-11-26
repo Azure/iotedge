@@ -26,6 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     {
         readonly IConfigurationRoot configuration;
         readonly X509Certificate2 serverCertificate;
+        readonly IList<X509Certificate2> trustBundle;
 
         readonly string iotHubHostname;
         readonly string edgeDeviceId;
@@ -34,10 +35,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         readonly Option<string> connectionString;
         readonly VersionInfo versionInfo;
 
-        public DependencyManager(IConfigurationRoot configuration, X509Certificate2 serverCertificate)
+        public DependencyManager(IConfigurationRoot configuration, X509Certificate2 serverCertificate, IList<X509Certificate2> trustBundle)
         {
             this.configuration = Preconditions.CheckNotNull(configuration, nameof(configuration));
             this.serverCertificate = Preconditions.CheckNotNull(serverCertificate, nameof(serverCertificate));
+            this.trustBundle = Preconditions.CheckNotNull(trustBundle, nameof(trustBundle));
 
             string edgeHubConnectionString = this.configuration.GetValue<string>(Constants.ConfigKey.IotHubConnectionString);
             if (!string.IsNullOrWhiteSpace(edgeHubConnectionString))
@@ -164,7 +166,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     storeAndForward.storagePath,
                     workloadUri,
                     scopeCacheRefreshRate,
-                    cacheTokens));
+                    cacheTokens,
+                    this.trustBundle));
         }
 
         void RegisterMqttModule(ContainerBuilder builder, (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward, bool optimizeForPerformance)
@@ -175,7 +178,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             string caChainPath = this.configuration.GetValue(Constants.ConfigKey.EdgeHubServerCAChainCertificateFile, string.Empty);
 
             // TODO: We don't want to make enabling Cert Auth configurable right now. Turn off Cert auth.
-            // bool clientCertAuthEnabled = this.Configuration.GetValue("ClientCertAuthEnabled", false);
+            ////bool clientCertAuthEnabled = this.Configuration.GetValue("ClientCertAuthEnabled", false);
             bool clientCertAuthEnabled = false;
 
             IConfiguration mqttSettingsConfiguration = this.configuration.GetSection("mqttSettings");
@@ -191,7 +194,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             Option<UpstreamProtocol> upstreamProtocolOption = GetUpstreamProtocol(this.configuration);
             int connectivityCheckFrequencySecs = this.configuration.GetValue("ConnectivityCheckFrequencySecs", 300);
             TimeSpan connectivityCheckFrequency = connectivityCheckFrequencySecs < 0 ? TimeSpan.MaxValue : TimeSpan.FromSeconds(connectivityCheckFrequencySecs);
-
             // n Clients + 1 Edgehub
             int maxConnectedClients = this.configuration.GetValue("MaxConnectedClients", 100) + 1;
             int cloudConnectionIdleTimeoutSecs = this.configuration.GetValue("CloudConnectionIdleTimeoutSecs", 3600);

@@ -53,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var edgeHub = new Mock<IEdgeHub>();
             string deviceConnectionStringKey = "device2ConnStrKey";
             edgeHub.Setup(x => x.UpdateDesiredPropertiesAsync(It.IsAny<string>(), It.IsAny<IMessage>()))
-                .Callback((string _id, IMessage m) => update.TrySetResult(m))
+                .Callback((string _, IMessage m) => update.TrySetResult(m))
                 .Returns(TaskEx.Done);
 
             ICloudProxy cloudProxy = await this.GetCloudProxyWithConnectionStringKey(deviceConnectionStringKey, edgeHub.Object);
@@ -196,13 +196,35 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             client.VerifyAll();
         }
 
+        [Fact]
+        public async Task TestHandlNre()
+        {
+            // Arrange
+            var messageConverter = Mock.Of<IMessageConverter<Message>>(m => m.FromMessage(It.IsAny<IMessage>()) == new Message());
+            var messageConverterProvider = Mock.Of<IMessageConverterProvider>(m => m.Get<Message>() == messageConverter);
+            string clientId = "d1";
+            var cloudListener = Mock.Of<ICloudListener>();
+            TimeSpan idleTimeout = TimeSpan.FromSeconds(60);
+            Action<string, CloudConnectionStatus> connectionStatusChangedHandler = (s, status) => { };
+            var client = new Mock<IClient>(MockBehavior.Strict);
+            client.Setup(c => c.SendEventAsync(It.IsAny<Message>())).ThrowsAsync(new NullReferenceException());
+            client.Setup(c => c.CloseAsync()).Returns(Task.CompletedTask);
+            var cloudProxy = new CloudProxy(client.Object, messageConverterProvider, clientId, connectionStatusChangedHandler, cloudListener, idleTimeout, false);
+            IMessage message = new EdgeMessage.Builder(new byte[0]).Build();
+
+            // Act
+            await Assert.ThrowsAsync<NullReferenceException>(() => cloudProxy.SendMessageAsync(message));
+
+            // Assert.
+            client.VerifyAll();
+        }
+
         static async Task CheckMessageInEventHub(IList<IMessage> sentMessages, DateTime startTime)
         {
             string eventHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("eventHubConnStrKey");
             var eventHubReceiver = new EventHubReceiver(eventHubConnectionString);
             var cloudMessages = new List<EventData>();
             bool messagesFound = false;
-
             // Add retry mechanism to make sure all the messages sent reached Event Hub. Retry 3 times.
             for (int i = 0; i < EventHubMessageReceivedRetry; i++)
             {
@@ -247,7 +269,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                     { typeof(TwinCollection), new TwinCollectionMessageConverter() }
                 });
 
-            ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(converters, ConnectionPoolSize, new ClientProvider(), Option.None<UpstreamProtocol>(), Mock.Of<ITokenProvider>(), Mock.Of<IDeviceScopeIdentitiesCache>(), TimeSpan.FromMinutes(60), true);
+            var credentialsCache = Mock.Of<ICredentialsCache>();
+            ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(
+                converters,
+                ConnectionPoolSize,
+                new ClientProvider(),
+                Option.None<UpstreamProtocol>(),
+                Mock.Of<ITokenProvider>(),
+                Mock.Of<IDeviceScopeIdentitiesCache>(),
+                credentialsCache,
+                Mock.Of<IIdentity>(),
+                TimeSpan.FromMinutes(60),
+                true);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
             var deviceIdentity = Mock.Of<IDeviceIdentity>(m => m.Id == ConnectionStringHelper.GetDeviceId(deviceConnectionString));
             var clientCredentials = new SharedKeyCredentials(deviceIdentity, deviceConnectionString, string.Empty);

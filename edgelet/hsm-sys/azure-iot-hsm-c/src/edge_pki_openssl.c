@@ -96,7 +96,8 @@ static void destroy_evp_key(EVP_PKEY *evp_key);
 #endif
 
 #if !defined(X509V3_EXT_conf_nid_HELPER)
-    #define X509V3_EXT_conf_nid_HELPER(conf, ctx, nid, value) X509V3_EXT_conf_nid((conf), (ctx), (nid), (value))
+    #define X509V3_EXT_conf_nid_HELPER(conf, ctx, nid, value) \
+        X509V3_EXT_conf_nid((conf), (ctx), (nid), (value))
 #endif
 
 extern time_t get_utc_time_from_asn_string(const unsigned char *time_value, size_t length);
@@ -571,7 +572,8 @@ static int write_private_key_file(EVP_PKEY* evp_key, const char* key_file_name)
     int fd = OPEN_HELPER(key_file_name);
     if (fd == -1)
     {
-        LOG_ERROR("Failure opening key file for writing for %s. Errno %d, %s", key_file_name, errno, strerror(errno));
+        LOG_ERROR("Failure opening key file for writing for %s. Errno %d, %s",
+                  key_file_name, errno, strerror(errno));
         result = __FAILURE__;
     }
     else
@@ -636,7 +638,29 @@ static int cert_set_core_properties
     return result;
 }
 
-static int validate_certificate_expiration(X509* x509_cert, double *exp_seconds_left, bool *is_expired)
+static int validate_subject_keyid(X509 *x509_cert)
+{
+    int result;
+
+    if (X509_get_ext_by_NID(x509_cert, NID_subject_key_identifier, -1) == -1)
+    {
+        LOG_ERROR("X.509 V3 extension NID_subject_key_identifier does not exist");
+        result = __FAILURE__;
+    }
+    else
+    {
+        result = 0;
+    }
+
+    return result;
+}
+
+static int validate_certificate_expiration
+(
+    X509* x509_cert,
+    double *exp_seconds_left,
+    bool *is_expired
+)
 {
     int result;
     time_t exp_time;
@@ -697,16 +721,19 @@ static int cert_set_expiration
             // determine max validity in seconds of issuer
             double exp_seconds_left_from_now = 0;
             bool is_expired = true;
-            int status = validate_certificate_expiration(issuer_cert, &exp_seconds_left_from_now, &is_expired);
+            int status = validate_certificate_expiration(issuer_cert,
+                                                         &exp_seconds_left_from_now,
+                                                         &is_expired);
             if ((status != 0) || (is_expired))
             {
-                LOG_ERROR("Issuer certificate expiration failure. Status %d, verify status: %d", status, is_expired);
+                LOG_ERROR("Issuer certificate expiration failure. Status %d, verify status: %d",
+                          status, is_expired);
                 result = __FAILURE__;
             }
             else
             {
                 uint64_t number_seconds_left = (uint64_t)exp_seconds_left_from_now;
-                LOG_DEBUG("Num issuer expiration seconds left: %" PRIu64 ", Request validity:%" PRIu64,
+                LOG_DEBUG("Issuer expiration seconds left: %" PRIu64 ", Request validity:%" PRIu64,
                           number_seconds_left, requested_validity);
                 requested_validity = (requested_validity == 0) ?
                                         number_seconds_left :
@@ -784,7 +811,8 @@ static int set_basic_constraints(X509 *x509_cert, CERTIFICATE_TYPE cert_type, in
         {
             result = __FAILURE__;
         }
-        else if (X509_add1_ext_i2d(x509_cert, NID_basic_constraints, bc, is_critical, X509V3_ADD_DEFAULT) != 1)
+        else if (X509_add1_ext_i2d(x509_cert, NID_basic_constraints,
+                                   bc, is_critical, X509V3_ADD_DEFAULT) != 1)
         {
             LOG_ERROR("Could not add basic constraint extension to certificate");
             result = __FAILURE__;
@@ -799,13 +827,20 @@ static int set_basic_constraints(X509 *x509_cert, CERTIFICATE_TYPE cert_type, in
     return result;
 }
 
-static int add_ext(X509 *x509_cert, int nid, const char *value, const char* nid_diagnostic)
+static int add_ext
+(
+    X509 *x509_cert,
+    X509V3_CTX *ctx,
+    int nid,
+    const char *value,
+    const char* nid_diagnostic
+)
 {
     int result;
     X509_EXTENSION *ex;
 
     // openssl API requires a non const value be passed in
-    if ((ex = X509V3_EXT_conf_nid_HELPER(NULL, NULL, nid, (char*)value)) == NULL)
+    if ((ex = X509V3_EXT_conf_nid_HELPER(NULL, ctx, nid, (char*)value)) == NULL)
     {
         LOG_ERROR("Could not obtain V3 extension by NID %#x, %s", nid, nid_diagnostic);
         result = __FAILURE__;
@@ -814,7 +849,8 @@ static int add_ext(X509 *x509_cert, int nid, const char *value, const char* nid_
     {
         if (X509_add_ext(x509_cert, ex, -1) == 0)
         {
-            LOG_ERROR("Could not add V3 extension by NID %#x, %s. Value %s", nid, nid_diagnostic, value);
+            LOG_ERROR("Could not add V3 extension by NID %#x, %s. Value %s",
+                      nid, nid_diagnostic, value);
             result = __FAILURE__;
         }
         else
@@ -848,18 +884,75 @@ static int set_key_usage
     }
     else
     {
-        usage = "critical, nonRepudiation, digitalSignature, keyEncipherment, dataEncipherment, keyAgreement";
+        usage = "critical, nonRepudiation, digitalSignature, keyEncipherment, dataEncipherment, "
+                "keyAgreement";
         ext_usage = "serverAuth";
     }
 
-    if (add_ext(x509_cert, NID_key_usage, usage, "NID_key_usage") != 0)
+    if (add_ext(x509_cert, NULL, NID_key_usage, usage, "NID_key_usage") != 0)
     {
         result = __FAILURE__;
     }
     else
     {
         if ((ext_usage != NULL) &&
-            (add_ext(x509_cert, NID_ext_key_usage, ext_usage, "NID_ext_key_usage") != 0))
+            (add_ext(x509_cert, NULL, NID_ext_key_usage, ext_usage, "NID_ext_key_usage") != 0))
+        {
+            result = __FAILURE__;
+        }
+        else
+        {
+            result = 0;
+        }
+    }
+
+    return result;
+}
+
+static int set_key_identifier_extension
+(
+    X509 *x509_cert,
+    X509 *issuer_cert,
+    int nid,
+    const char *nid_diagnostic,
+    char *value
+)
+{
+    int result;
+    X509V3_CTX ctx;
+    X509V3_set_ctx(&ctx, issuer_cert, x509_cert, NULL, NULL, 0);
+
+    if (add_ext(x509_cert, &ctx, nid, value, nid_diagnostic) != 0)
+    {
+        result = __FAILURE__;
+    }
+    else
+    {
+        result = 0;
+    }
+
+    return result;
+}
+
+static int cert_set_key_id_extensions
+(
+    X509 *x509_cert,
+    X509 *issuer_cert
+)
+{
+    int result;
+
+    if (set_key_identifier_extension(x509_cert, NULL, NID_subject_key_identifier,
+                                     "NID_subject_key_identifier", "hash") != 0)
+    {
+        result = __FAILURE__;
+    }
+    else
+    {
+        char *auth_value = "issuer:always,keyid:always";
+        issuer_cert = (issuer_cert != NULL) ? issuer_cert : x509_cert;
+        if (set_key_identifier_extension(x509_cert, issuer_cert, NID_authority_key_identifier,
+                                         "NID_authority_key_identifier", auth_value) != 0)
         {
             result = __FAILURE__;
         }
@@ -887,7 +980,8 @@ static int set_san
         for (idx = 0; idx < num_entries; idx++)
         {
             if ((sans[idx] != NULL) &&
-                (add_ext(x509_cert, NID_subject_alt_name, sans[idx], "NID_subject_alt_name") != 0))
+                (add_ext(x509_cert, NULL, NID_subject_alt_name,
+                         sans[idx], "NID_subject_alt_name") != 0))
             {
                 fail_flag = true;
                 break;
@@ -977,9 +1071,11 @@ static int cert_set_subject_field
 
     if (value_to_set != NULL)
     {
-        if (X509_NAME_add_entry_by_txt(name, field, MBSTRING_ASC, (unsigned char *)value_to_set, -1, -1, 0) != 1)
+        if (X509_NAME_add_entry_by_txt(name, field, MBSTRING_ASC,
+                                       (unsigned char *)value_to_set, -1, -1, 0) != 1)
         {
-            LOG_ERROR("Failure X509_NAME_add_entry_by_txt for field: %s using value: %s", field, value_to_set);
+            LOG_ERROR("Failure X509_NAME_add_entry_by_txt for field: %s using value: %s",
+                      field, value_to_set);
             result = __FAILURE__;
         }
     }
@@ -1149,6 +1245,11 @@ static int generate_evp_certificate
             LOG_ERROR("Failure setting certificate subject fields");
             result = __FAILURE__;
         }
+        else if (cert_set_key_id_extensions(x509_cert, issuer_certificate) != 0)
+        {
+            LOG_ERROR("Failure setting certificate subject auth key id extensions");
+            result = __FAILURE__;
+        }
         else
         {
             issuer_evp_key = (issuer_evp_key == NULL) ? evp_key : issuer_evp_key;
@@ -1157,7 +1258,8 @@ static int generate_evp_certificate
                 LOG_ERROR("Failure signing x509");
                 result = __FAILURE__;
             }
-            else if (write_certificate_file(x509_cert, cert_file_name, issuer_certificate_file) != 0)
+            else if (write_certificate_file(x509_cert, cert_file_name,
+                                            issuer_certificate_file) != 0)
             {
                 LOG_ERROR("Failure saving x509 certificate");
                 result = __FAILURE__;
@@ -1289,13 +1391,15 @@ static int generate_pki_cert_and_key_helper
             {
                 X509* x509_cert = NULL;
                 EVP_PKEY* evp_key = NULL;
-                if (generate_cert_key(cert_type, issuer_certificate, key_file_name, &evp_key, key_props) != 0)
+                if (generate_cert_key(cert_type, issuer_certificate,
+                                      key_file_name, &evp_key, key_props) != 0)
                 {
                     LOG_ERROR("Could not generate private key for certificate create request");
                     result = __FAILURE__;
                 }
-                else if (generate_evp_certificate(evp_key, cert_type, common_name_prop_value, requested_validity,
-                                                  issuer_evp_key, issuer_certificate, issuer_certificate_file,
+                else if (generate_evp_certificate(evp_key, cert_type, common_name_prop_value,
+                                                  requested_validity, issuer_evp_key,
+                                                  issuer_certificate, issuer_certificate_file,
                                                   cert_props_handle, serial_number, ca_path_len,
                                                   cert_file_name, &x509_cert) != 0)
                 {
@@ -1520,6 +1624,18 @@ static int check_certificates
                 {
                     LOG_INFO("Certificate file has expired %s", cert_file);
                 }
+                else if (validate_subject_keyid(x509_cert) != 0)
+                {
+                    // This check was added to ensure that all certificates and in particular CA
+                    // certificates contain the X509 V3 extension "Subject Key Identifier" (SKID).
+                    // As part of cert hardening, we ensure that all certificates when created have
+                    // the X509 V3 ext Authority Key Identifier (AKID) added. AKID requires
+                    // the SKID to be present or cert generation will fail.
+                    // This check essentially would fail any CA certs generated via quickstart
+                    // or transparent gateway that do not have a SKID set.
+                    LOG_ERROR("Certificate should contain a Subject Key Identifier extension %s",
+                              cert_file);
+                }
                 else if ((status = X509_verify_cert(store_ctxt)) <= 0)
                 {
                     const char *msg;
@@ -1531,7 +1647,8 @@ static int check_certificates
                     }
                     LOG_ERROR("Could not verify certificate %s using issuer certificate %s.",
                               cert_file, issuer_cert_file);
-                    LOG_ERROR("Verification status: %d, Error: %d, Msg: '%s'", status, err_code, msg);
+                    LOG_ERROR("Verification status: %d, Error: %d, Msg: '%s'",
+                              status, err_code, msg);
                 }
                 else
                 {

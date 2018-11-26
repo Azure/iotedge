@@ -89,10 +89,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public async Task<IMessage> GetTwinAsync()
         {
             this.timer.Reset();
-            Twin twin = await this.client.GetTwinAsync();
-            Events.GetTwin(this);
-            IMessageConverter<Twin> converter = this.messageConverterProvider.Get<Twin>();
-            return converter.ToMessage(twin);
+            try
+            {
+                Twin twin = await this.client.GetTwinAsync();
+                Events.GetTwin(this);
+                IMessageConverter<Twin> converter = this.messageConverterProvider.Get<Twin>();
+                return converter.ToMessage(twin);
+            }
+            catch (Exception ex)
+            {
+                Events.ErrorGettingTwin(this, ex);
+                await this.HandleException(ex);
+                throw;
+            }
         }
 
         public async Task<bool> OpenAsync()
@@ -106,6 +115,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             catch (Exception ex)
             {
                 Events.ErrorOpening(this.clientId, ex);
+                await this.HandleException(ex);
                 throw;
             }
         }
@@ -116,21 +126,36 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public Task RemoveDesiredPropertyUpdatesAsync() =>
             this.EnsureCloudReceiver(nameof(this.RemoveDesiredPropertyUpdatesAsync)) ? this.cloudReceiver.RemoveDesiredPropertyUpdatesAsync() : Task.CompletedTask;
 
-        public Task SendFeedbackMessageAsync(string messageId, FeedbackStatus feedbackStatus)
+        public async Task SendFeedbackMessageAsync(string messageId, FeedbackStatus feedbackStatus)
         {
             Preconditions.CheckNonWhiteSpace(messageId, nameof(messageId));
             Events.SendFeedbackMessage(this);
             this.timer.Reset();
-            switch (feedbackStatus)
+            try
             {
-                case FeedbackStatus.Complete:
-                    return this.client.CompleteAsync(messageId);
-                case FeedbackStatus.Abandon:
-                    return this.client.AbandonAsync(messageId);
-                case FeedbackStatus.Reject:
-                    return this.client.RejectAsync(messageId);
-                default:
-                    throw new InvalidOperationException("Feedback status type is not supported");
+                switch (feedbackStatus)
+                {
+                    case FeedbackStatus.Complete:
+                        await this.client.CompleteAsync(messageId);
+                        return;
+
+                    case FeedbackStatus.Abandon:
+                        await this.client.AbandonAsync(messageId);
+                        return;
+
+                    case FeedbackStatus.Reject:
+                        await this.client.RejectAsync(messageId);
+                        return;
+
+                    default:
+                        throw new InvalidOperationException("Feedback status type is not supported");
+                }
+            }
+            catch (Exception e)
+            {
+                Events.ErrorSendingFeedbackMessageAsync(this, e);
+                await this.HandleException(e);
+                throw;
             }
         }
 
@@ -191,8 +216,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             string reportedPropertiesString = Encoding.UTF8.GetString(reportedPropertiesMessage.Body);
             var reported = JsonConvert.DeserializeObject<TwinCollection>(reportedPropertiesString);
             this.timer.Reset();
-            await this.client.UpdateReportedPropertiesAsync(reported);
-            Events.UpdateReportedProperties(this);
+            try
+            {
+                await this.client.UpdateReportedPropertiesAsync(reported);
+                Events.UpdateReportedProperties(this);
+            }
+            catch (Exception e)
+            {
+                Events.ErrorUpdatingReportedProperties(this, e);
+                await this.HandleException(e);
+                throw;
+            }
         }
 
         // This API is to be used for Tests only.
@@ -217,6 +251,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 if (ex is UnauthorizedException)
                 {
                     this.connectionStatusChangedHandler(this.clientId, CloudConnectionStatus.DisconnectedTokenExpired);
+                }
+                else if (ex is NullReferenceException)
+                {
+                    Events.HandleNre(this);
+                    return this.CloseAsync();
                 }
             }
             catch (Exception e)
@@ -328,7 +367,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                                 Events.MessageReceived(this.cloudProxy.clientId);
                                 IMessageConverter<Message> converter = this.cloudProxy.messageConverterProvider.Get<Message>();
                                 IMessage message = converter.ToMessage(clientMessage);
-
                                 // TODO: check if message delivery count exceeds the limit?
                                 await this.cloudListener.ProcessMessageAsync(message);
                             }
@@ -410,7 +448,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 ErrorOpening,
                 TimedOutClosing,
                 Initialized,
-                ErrorClosingClient
+                ErrorClosingClient,
+                ErrorUpdatingReportedProperties,
+                ErrorSendingFeedbackMessageAsync,
+                ErrorGettingTwin,
+                HandleNre
             }
 
             public static void Closed(CloudProxy cloudProxy)
@@ -433,6 +475,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Log.LogDebug((int)EventIds.ErrorClosingClient, ex, Invariant($"Error closing client for {clientId}"));
             }
 
+            public static void ErrorGettingTwin(CloudProxy cloudProxy, Exception ex)
+            {
+                Log.LogDebug((int)EventIds.ErrorGettingTwin, ex, Invariant($"Error getting twin for {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
+            }
+
             public static void ErrorOpening(string clientId, Exception ex)
             {
                 Log.LogWarning((int)EventIds.ErrorOpening, ex, Invariant($"Error opening IotHub connection for device {clientId}"));
@@ -448,14 +495,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Log.LogDebug((int)EventIds.SendMessageBatchError, ex, Invariant($"Error sending message batch for device {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
             }
 
+            public static void ErrorSendingFeedbackMessageAsync(CloudProxy cloudProxy, Exception ex)
+            {
+                Log.LogDebug((int)EventIds.ErrorSendingFeedbackMessageAsync, ex, Invariant($"Error sending feedback message for {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
+            }
+
             public static void ErrorSendingMessage(CloudProxy cloudProxy, Exception ex)
             {
                 Log.LogDebug((int)EventIds.SendMessageError, ex, Invariant($"Error sending message for device {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
             }
 
+            public static void ErrorUpdatingReportedProperties(CloudProxy cloudProxy, Exception ex)
+            {
+                Log.LogDebug((int)EventIds.ErrorUpdatingReportedProperties, ex, Invariant($"Error sending updated reported properties for {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
+            }
+
             public static void GetTwin(CloudProxy cloudProxy)
             {
                 Log.LogDebug((int)EventIds.GetTwin, Invariant($"Getting twin for device {cloudProxy.clientId}"));
+            }
+
+            public static void HandleNre(CloudProxy cloudProxy)
+            {
+                Log.LogDebug((int)EventIds.HandleNre, Invariant($"Got a NullReferenceException from client for {cloudProxy.clientId}. Closing the cloud proxy since it may be in a bad state."));
             }
 
             public static void Initialized(CloudProxy cloudProxy)

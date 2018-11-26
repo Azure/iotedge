@@ -5,11 +5,12 @@ use std::marker::PhantomData;
 use std::result::Result as StdResult;
 use std::str::FromStr;
 
+use failure::ResultExt;
 use serde::de::{self, Deserialize, DeserializeOwned, Deserializer, MapAccess, Visitor};
 use serde::ser::Serialize;
 use serde_json;
 
-use error::Result;
+use error::{ErrorKind, Result};
 
 // This implementation has been adapted from: https://serde.rs/string-or-struct.html
 
@@ -61,7 +62,9 @@ pub fn serde_clone<T>(inp: &T) -> Result<T>
 where
     T: Serialize + DeserializeOwned,
 {
-    Ok(serde_json::from_str(&serde_json::to_string(inp)?)?)
+    Ok(serde_json::to_string(inp)
+        .and_then(|s| serde_json::from_str(&s))
+        .context(ErrorKind::SerdeClone)?)
 }
 
 #[cfg(test)]

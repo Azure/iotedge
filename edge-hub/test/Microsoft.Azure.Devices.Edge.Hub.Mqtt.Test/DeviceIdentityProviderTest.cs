@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             var authenticator = new Mock<IAuthenticator>();
             authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(authRetVal);
 
-            IDeviceIdentityProvider deviceIdentityProvider = new DeviceIdentityProvider(authenticator.Object, new ClientCredentialsFactory(iotHubHostName), false);
+            IDeviceIdentityProvider deviceIdentityProvider = new DeviceIdentityProvider(authenticator.Object, new ClientCredentialsFactory(new IdentityProvider(iotHubHostName)), false);
             IDeviceIdentity deviceIdentity = await deviceIdentityProvider.GetAsync(clientId, username, password, null);
             Assert.IsAssignableFrom(expectedType, deviceIdentity);
         }

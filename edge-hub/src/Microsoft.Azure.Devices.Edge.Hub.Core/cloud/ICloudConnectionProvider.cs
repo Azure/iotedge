@@ -13,15 +13,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
         /// <summary>
         /// Binds the IEdgeHub instance to the object
         /// </summary>
-        /// <param name="edgeHub">Edge Hub instance</param>
+        /// <param name="edgeHub"></param>
         void BindEdgeHub(IEdgeHub edgeHub);
 
         /// <summary>
-        /// Connect sets up the connection to the cloud
+        /// Creates a connection to the cloud using the provided client credentials
         /// </summary>
-        /// <param name="identity">Client credentials</param>
-        /// <param name="connectionStatusChangedHandler">Connection status change handler</param>
-        /// <returns>Try wrapped cloud connection task</returns>
-        Task<Try<ICloudConnection>> Connect(IClientCredentials identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler);
+        Task<Try<ICloudConnection>> Connect(IClientCredentials clientCredentials, Action<string, CloudConnectionStatus> connectionStatusChangedHandler);
+
+        /// <summary>
+        /// Creates a connection to the cloud for a client in device scope
+        /// </summary>
+        Task<Try<ICloudConnection>> Connect(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler);
     }
 }

@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using System;
     using System.Collections.Generic;
     using System.Net;
+    using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
 
     using Autofac;
@@ -37,6 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly TimeSpan scopeCacheRefreshRate;
         readonly Option<string> workloadUri;
         readonly bool persistTokens;
+        readonly IList<X509Certificate2> trustBundle;
 
         public CommonModule(
             string productInfo,
@@ -52,7 +54,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             string storagePath,
             Option<string> workloadUri,
             TimeSpan scopeCacheRefreshRate,
-            bool persistTokens)
+            bool persistTokens,
+            IList<X509Certificate2> trustBundle)
         {
             this.productInfo = productInfo;
             this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
@@ -68,6 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.scopeCacheRefreshRate = scopeCacheRefreshRate;
             this.workloadUri = workloadUri;
             this.persistTokens = persistTokens;
+            this.trustBundle = Preconditions.CheckNotNull(trustBundle, nameof(trustBundle));
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -261,7 +265,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             // IClientCredentialsFactory
-            builder.Register(c => new ClientCredentialsFactory(this.iothubHostName, this.productInfo))
+            builder.Register(c => new ClientCredentialsFactory(c.Resolve<IIdentityProvider>(), this.productInfo))
                 .As<IClientCredentialsFactory>()
                 .SingleInstance();
 

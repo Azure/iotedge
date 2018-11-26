@@ -50,23 +50,36 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     { typeof(Twin), twinMessageConverter },
                     { typeof(TwinCollection), twinCollectionMessageConverter }
                 });
-            var cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, new ClientProvider(), Option.None<UpstreamProtocol>(), Mock.Of<ITokenProvider>(), Mock.Of<IDeviceScopeIdentitiesCache>(), TimeSpan.FromMinutes(60), true);
-            var credentialsCache = Mock.Of<ICredentialsCache>();
-            var connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache);
 
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
             IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
             RegistryManager registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
             await registryManager.OpenAsync();
 
+            string iothubHostName = iotHubConnectionStringBuilder.HostName;
+            var identityProvider = new IdentityProvider(iothubHostName);
+            var identityFactory = new ClientCredentialsFactory(identityProvider);
+
             (string edgeDeviceId, string deviceConnStr) = await RegistryManagerHelper.CreateDevice(EdgeDeviceId, iotHubConnectionString, registryManager, true, false);
+            string edgeHubConnectionString = $"{deviceConnStr};ModuleId={EdgeHubModuleId}";
+
+            IClientCredentials edgeHubCredentials = identityFactory.GetWithConnectionString(edgeHubConnectionString);
+            var credentialsCache = Mock.Of<ICredentialsCache>();
+            var cloudConnectionProvider = new CloudConnectionProvider(
+                messageConverterProvider,
+                1,
+                new ClientProvider(),
+                Option.None<UpstreamProtocol>(),
+                Mock.Of<ITokenProvider>(),
+                Mock.Of<IDeviceScopeIdentitiesCache>(),
+                credentialsCache,
+                edgeHubCredentials.Identity,
+                TimeSpan.FromMinutes(60),
+                true);
+            var connectionManager = new ConnectionManager(cloudConnectionProvider, Mock.Of<ICredentialsCache>(), identityProvider);
 
             try
             {
-                string iothubHostName = iotHubConnectionStringBuilder.HostName;
-                var identityFactory = new ClientCredentialsFactory(iothubHostName);
-                string edgeHubConnectionString = $"{deviceConnStr};ModuleId={EdgeHubModuleId}";
-                IClientCredentials edgeHubCredentials = identityFactory.GetWithConnectionString(edgeHubConnectionString);
                 Mock.Get(credentialsCache)
                     .Setup(c => c.Get(edgeHubCredentials.Identity))
                     .ReturnsAsync(Option.Some(edgeHubCredentials));

@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public interface IClientProvider
     {
@@ -14,5 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         IClient Create(IIdentity identity, string connectionString, ITransportSettings[] transportSettings);
 
         Task<IClient> CreateAsync(IIdentity identity, ITransportSettings[] transportSettings);
+
+        IClient Create(IIdentity identity, ITokenProvider tokenProvider, ITransportSettings[] transportSettings);
     }
 }

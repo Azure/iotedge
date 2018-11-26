@@ -22,11 +22,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     /// </summary>
     class ConnectionHandler : IConnectionHandler
     {
+        readonly IAmqpConnection connection;
+        readonly IConnectionProvider connectionProvider;
         readonly IDictionary<LinkType, ILinkHandler> registry = new Dictionary<LinkType, ILinkHandler>();
         readonly AsyncLock initializationLock = new AsyncLock();
         readonly AsyncLock registryUpdateLock = new AsyncLock();
-        readonly IAmqpConnection connection;
-        readonly IConnectionProvider connectionProvider;
 
         bool isInitialized;
         IDeviceListener deviceListener;
@@ -237,6 +237,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                         })
                     .Build();
                 await ((ISendingLinkHandler)linkHandler).SendMessage(message);
+                Events.SentMethodInvocation(this.Identity);
                 return default(DirectMethodResponse);
             }
 
@@ -248,6 +249,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                     return Task.CompletedTask;
                 }
 
+                Events.SendingDeriredPropertyUpdates(this.Identity);
                 return ((ISendingLinkHandler)linkHandler).SendMessage(desiredProperties);
             }
 
@@ -262,6 +264,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 message.SystemProperties[SystemProperties.To] = this.Identity is IModuleIdentity moduleIdentity
                     ? $"/devices/{HttpUtility.UrlEncode(moduleIdentity.DeviceId)}/modules/{HttpUtility.UrlEncode(moduleIdentity.ModuleId)}"
                     : $"/devices/{HttpUtility.UrlEncode(this.Identity.Id)}";
+                Events.SendingC2DMessage(this.Identity);
                 return ((ISendingLinkHandler)linkHandler).SendMessage(message);
             }
 
@@ -274,6 +277,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 }
 
                 message.SystemProperties[SystemProperties.InputName] = input;
+                Events.SendingTelemetryMessage(this.Identity);
                 return ((ISendingLinkHandler)linkHandler).SendMessage(message);
             }
 
@@ -285,6 +289,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                     return Task.CompletedTask;
                 }
 
+                Events.SendingTwinUpdate(this.Identity);
                 return ((ISendingLinkHandler)linkHandler).SendMessage(twin);
             }
 
@@ -305,7 +310,37 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 ClosingProxy = IdStart,
                 LinkNotFound,
                 SettingProxyInactive,
-                InitializedConnectionHandler
+                InitializedConnectionHandler,
+                SendingC2DMessage,
+                SendingTelemetryMessage,
+                SentMethodInvocation,
+                SendingDeriredPropertyUpdates,
+                SendingTwinUpdate
+            }
+
+            public static void SendingC2DMessage(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.SendingC2DMessage, $"Sending C2D message to {identity.Id}");
+            }
+
+            public static void SendingDeriredPropertyUpdates(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.SendingDeriredPropertyUpdates, $"Sending desired properties update to {identity.Id}");
+            }
+
+            public static void SendingTelemetryMessage(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.SendingTelemetryMessage, $"Sending telemetry message to {identity.Id}");
+            }
+
+            public static void SendingTwinUpdate(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.SendingTwinUpdate, $"Sending twin update to {identity.Id}");
+            }
+
+            public static void SentMethodInvocation(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.SentMethodInvocation, $"Sending method invocation to {identity.Id}");
             }
 
             internal static void ClosingProxy(IIdentity identity, Exception ex)

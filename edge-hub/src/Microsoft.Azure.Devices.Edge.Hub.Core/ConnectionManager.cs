@@ -29,15 +29,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly ICloudConnectionProvider cloudConnectionProvider;
         readonly int maxClients;
         readonly ICredentialsCache credentialsCache;
+        readonly IIdentityProvider identityProvider;
 
         public ConnectionManager(
             ICloudConnectionProvider cloudConnectionProvider,
             ICredentialsCache credentialsCache,
+            IIdentityProvider identityProvider,
             int maxClients = DefaultMaxClients)
         {
             this.cloudConnectionProvider = Preconditions.CheckNotNull(cloudConnectionProvider, nameof(cloudConnectionProvider));
             this.maxClients = Preconditions.CheckRange(maxClients, 1, nameof(maxClients));
             this.credentialsCache = Preconditions.CheckNotNull(credentialsCache, nameof(credentialsCache));
+            this.identityProvider = Preconditions.CheckNotNull(identityProvider, nameof(identityProvider));
             Util.Metrics.RegisterGaugeCallback(() => Metrics.SetConnectedClientCountGauge(this));
         }
 
@@ -86,19 +89,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public async Task<Option<ICloudProxy>> GetCloudConnection(string id)
         {
-            if (!this.devices.TryGetValue(Preconditions.CheckNonWhiteSpace(id, nameof(id)), out ConnectedDevice device))
-            {
-                return Option.None<ICloudProxy>();
-            }
+            IIdentity identity = this.identityProvider.Create(Preconditions.CheckNonWhiteSpace(id, nameof(id)));
+            ConnectedDevice device = this.GetOrCreateConnectedDevice(identity);
 
             Try<ICloudConnection> cloudConnectionTry = await device.GetOrCreateCloudConnection(
-                async c =>
-                {
-                    Option<IClientCredentials> clientCredentials = await this.credentialsCache.Get(device.Identity);
-                    return await clientCredentials
-                        .Map(dc => this.CreateOrUpdateCloudConnection(c, dc))
-                        .GetOrElse(Task.FromResult(Try<ICloudConnection>.Failure(new EdgeHubConnectionException($"Could not get credentials for client {id} to connect to IoTHub"))));
-                });
+                c => this.cloudConnectionProvider.Connect(c.Identity, (i, status) => this.CloudConnectionStatusChangedHandler(i, status)));
 
             Events.GetCloudConnection(device.Identity, cloudConnectionTry);
             Try<ICloudProxy> cloudProxyTry = GetCloudProxyFromCloudConnection(cloudConnectionTry, device.Identity);
@@ -249,8 +244,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     {
                         try
                         {
-                            await c.CreateOrUpdateAsync(credentials);
-                            return Try.Success(c);
+                            if (!(credentials is ITokenCredentials tokenCredentials))
+                            {
+                                throw new InvalidOperationException($"Cannot update credentials of type {credentials.AuthenticationType} for {credentials.Identity.Id}");
+                            }
+                            else if (!(c is IClientTokenCloudConnection clientTokenCloudConnection))
+                            {
+                                throw new InvalidOperationException($"Cannot update token for an existing cloud connection that is not based on client token for {credentials.Identity.Id}");
+                            }
+                            else
+                            {
+                                await clientTokenCloudConnection.UpdateTokenAsync(tokenCredentials);
+                                return Try.Success(c);
+                            }
                         }
                         catch (Exception ex)
                         {
