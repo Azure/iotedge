@@ -28,13 +28,16 @@ pub struct HealthConfig {
     #[serde(rename = "Retries", skip_serializing_if = "Option::is_none")]
     retries: Option<i32>,
     /// Start period for the container to initialize before starting health-retries countdown in nanoseconds. It should be 0 or at least 1000000 (1 ms). 0 means inherit.
-    #[serde(rename = "StartPeriod", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "StartPeriod",
+        skip_serializing_if = "Option::is_none"
+    )]
     start_period: Option<i32>,
 }
 
 impl HealthConfig {
     /// A test to perform to check that the container is healthy.
-    pub fn new() -> HealthConfig {
+    pub fn new() -> Self {
         HealthConfig {
             test: None,
             interval: None,
@@ -48,13 +51,13 @@ impl HealthConfig {
         self.test = Some(test);
     }
 
-    pub fn with_test(mut self, test: Vec<String>) -> HealthConfig {
+    pub fn with_test(mut self, test: Vec<String>) -> Self {
         self.test = Some(test);
         self
     }
 
-    pub fn test(&self) -> Option<&Vec<String>> {
-        self.test.as_ref()
+    pub fn test(&self) -> Option<&[String]> {
+        self.test.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_test(&mut self) {
@@ -65,13 +68,13 @@ impl HealthConfig {
         self.interval = Some(interval);
     }
 
-    pub fn with_interval(mut self, interval: i32) -> HealthConfig {
+    pub fn with_interval(mut self, interval: i32) -> Self {
         self.interval = Some(interval);
         self
     }
 
-    pub fn interval(&self) -> Option<&i32> {
-        self.interval.as_ref()
+    pub fn interval(&self) -> Option<i32> {
+        self.interval
     }
 
     pub fn reset_interval(&mut self) {
@@ -82,13 +85,13 @@ impl HealthConfig {
         self.timeout = Some(timeout);
     }
 
-    pub fn with_timeout(mut self, timeout: i32) -> HealthConfig {
+    pub fn with_timeout(mut self, timeout: i32) -> Self {
         self.timeout = Some(timeout);
         self
     }
 
-    pub fn timeout(&self) -> Option<&i32> {
-        self.timeout.as_ref()
+    pub fn timeout(&self) -> Option<i32> {
+        self.timeout
     }
 
     pub fn reset_timeout(&mut self) {
@@ -99,13 +102,13 @@ impl HealthConfig {
         self.retries = Some(retries);
     }
 
-    pub fn with_retries(mut self, retries: i32) -> HealthConfig {
+    pub fn with_retries(mut self, retries: i32) -> Self {
         self.retries = Some(retries);
         self
     }
 
-    pub fn retries(&self) -> Option<&i32> {
-        self.retries.as_ref()
+    pub fn retries(&self) -> Option<i32> {
+        self.retries
     }
 
     pub fn reset_retries(&mut self) {
@@ -116,13 +119,13 @@ impl HealthConfig {
         self.start_period = Some(start_period);
     }
 
-    pub fn with_start_period(mut self, start_period: i32) -> HealthConfig {
+    pub fn with_start_period(mut self, start_period: i32) -> Self {
         self.start_period = Some(start_period);
         self
     }
 
-    pub fn start_period(&self) -> Option<&i32> {
-        self.start_period.as_ref()
+    pub fn start_period(&self) -> Option<i32> {
+        self.start_period
     }
 
     pub fn reset_start_period(&mut self) {

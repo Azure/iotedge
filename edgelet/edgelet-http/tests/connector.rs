@@ -1,6 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(warnings)]
+#![deny(unused_extern_crates, warnings)]
+// Remove this when clippy stops warning about old-style `allow()`,
+// which can only be silenced by enabling a feature and thus requires nightly
+//
+// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
+#![allow(renamed_and_removed_lints)]
+#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
 
 extern crate edgelet_http;
 extern crate edgelet_test_utils;
@@ -13,120 +19,107 @@ extern crate hyper_named_pipe;
 #[cfg(unix)]
 extern crate hyperlocal;
 #[cfg(windows)]
+extern crate hyperlocal_windows;
+#[cfg(windows)]
 extern crate rand;
-#[cfg(unix)]
-#[macro_use(defer)]
-extern crate scopeguard;
-extern crate tokio_core;
+extern crate tempdir;
+extern crate tokio;
+extern crate typed_headers;
 extern crate url;
 
+use std::io;
+#[cfg(windows)]
 use std::sync::mpsc::channel;
+#[cfg(windows)]
 use std::thread;
 
 use edgelet_http::UrlConnector;
 #[cfg(windows)]
 use edgelet_test_utils::run_pipe_server;
-#[cfg(unix)]
 use edgelet_test_utils::run_uds_server;
 use edgelet_test_utils::{get_unused_tcp_port, run_tcp_server};
 use futures::future;
 use futures::prelude::*;
 #[cfg(windows)]
 use httparse::Request as HtRequest;
-use hyper::header::{ContentLength, ContentType};
-use hyper::server::{Request, Response};
-use hyper::Error as HyperError;
-use hyper::{Client, Method, Request as ClientRequest, StatusCode};
+use hyper::{
+    Body, Client, Error as HyperError, Method, Request, Response, StatusCode, Uri as HyperUri,
+};
 #[cfg(windows)]
 use hyper_named_pipe::Uri as PipeUri;
 #[cfg(unix)]
 use hyperlocal::Uri as HyperlocalUri;
 #[cfg(windows)]
+use hyperlocal_windows::Uri as HyperlocalUri;
+#[cfg(windows)]
 use rand::Rng;
-use tokio_core::reactor::Core;
+use tempdir::TempDir;
+use typed_headers::mime;
+use typed_headers::{ContentLength, ContentType, HeaderMapExt};
 use url::Url;
 
 const GET_RESPONSE: &str = "Yo";
 
-fn hello_handler(_: Request) -> Box<Future<Item = Response, Error = HyperError>> {
-    Box::new(future::ok(
-        Response::new()
-            .with_header(ContentLength(GET_RESPONSE.len() as u64))
-            .with_body(GET_RESPONSE),
-    ))
+fn hello_handler(_: Request<Body>) -> impl Future<Item = Response<Body>, Error = HyperError> {
+    let mut response = Response::new(GET_RESPONSE.into());
+    response
+        .headers_mut()
+        .typed_insert(&ContentLength(GET_RESPONSE.len() as u64));
+    future::ok(response)
 }
 
 #[test]
 fn tcp_get() {
-    let (sender, receiver) = channel();
-
     let port = get_unused_tcp_port();
-    thread::spawn(move || {
-        run_tcp_server("127.0.0.1", port, hello_handler, &sender);
-    });
+    let server =
+        run_tcp_server("127.0.0.1", port, hello_handler).map_err(|err| eprintln!("{}", err));
 
-    // wait for server to get ready
-    receiver.recv().unwrap();
-
-    let mut core = Core::new().unwrap();
     let url = format!("http://localhost:{}", port);
-    let connector = UrlConnector::new(&Url::parse(&url).unwrap(), &core.handle()).unwrap();
+    let connector = UrlConnector::new(&Url::parse(&url).unwrap()).unwrap();
 
-    let client = Client::configure()
-        .connector(connector)
-        .build(&core.handle());
+    let client = Client::builder().build::<_, Body>(connector);
     let task = client
         .get(url.parse().unwrap())
         .and_then(|res| {
-            assert_eq!(StatusCode::Ok, res.status());
-            res.body().concat2()
-        })
-        .map(|body| {
+            assert_eq!(StatusCode::OK, res.status());
+            res.into_body().concat2()
+        }).map(|body| {
             assert_eq!(GET_RESPONSE, &String::from_utf8_lossy(body.as_ref()));
         });
 
-    core.run(task).unwrap();
+    let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+    runtime.spawn(server);
+    runtime.block_on(task).unwrap();
 }
 
-#[cfg(unix)]
 #[test]
+#[cfg_attr(windows, ignore)] // TODO: remove when windows build servers are upgraded to RS5
 fn uds_get() {
-    let (sender, receiver) = channel();
-    let file_path = "/tmp/edgelet_test_uds_get.sock";
+    let dir = TempDir::new("uds").unwrap();
+    let file_path = dir.path().join("sock");
+    let file_path = file_path.to_str().unwrap();
 
-    // make sure file gets deleted when test is done
-    defer! {{
-        ::std::fs::remove_file(&file_path).unwrap_or(());
-    }}
+    let server = run_uds_server(&file_path, |req| {
+        hello_handler(req).map_err(|err| io::Error::new(io::ErrorKind::Other, err))
+    }).map_err(|err| eprintln!("{}", err));
 
-    let path_copy = file_path.to_string();
-    thread::spawn(move || {
-        run_uds_server(&path_copy, hello_handler, &sender);
-    });
+    let mut url = Url::from_file_path(file_path).unwrap();
+    url.set_scheme("unix").unwrap();
+    let connector = UrlConnector::new(&url).unwrap();
 
-    // wait for server to get ready
-    receiver.recv().unwrap();
-
-    let mut core = Core::new().unwrap();
-    let connector = UrlConnector::new(
-        &Url::parse(&format!("unix://{}", file_path)).unwrap(),
-        &core.handle(),
-    ).unwrap();
-
-    let client = Client::configure()
-        .connector(connector)
-        .build(&core.handle());
+    let client = Client::builder().build::<_, Body>(connector);
     let task = client
         .get(HyperlocalUri::new(&file_path, "/").into())
         .and_then(|res| {
-            assert_eq!(StatusCode::Ok, res.status());
-            res.body().concat2()
-        })
-        .map(|body| {
+            assert_eq!(StatusCode::OK, res.status());
+            res.into_body().concat2()
+        }).map(|body| {
             assert_eq!(GET_RESPONSE, &String::from_utf8_lossy(body.as_ref()));
         });
 
-    core.run(task).unwrap();
+    let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+    runtime.spawn(server);
+    runtime.block_on(task).unwrap();
 }
 
 #[cfg(windows)]
@@ -140,6 +133,7 @@ fn make_url(path: &str) -> String {
 }
 
 #[cfg(windows)]
+#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
 fn pipe_get_handler(_req: &HtRequest, _body: Option<Vec<u8>>) -> String {
     format!(
         "HTTP/1.1 200 OK\r\n\
@@ -166,115 +160,108 @@ fn pipe_get() {
     // wait for server to get ready
     receiver.recv().unwrap();
 
-    let mut core = Core::new().unwrap();
-    let connector = UrlConnector::new(&Url::parse(&url).unwrap(), &core.handle()).unwrap();
+    let connector = UrlConnector::new(&Url::parse(&url).unwrap()).unwrap();
 
-    let hyper_client = Client::configure()
-        .connector(connector)
-        .build(&core.handle());
+    let client = Client::builder().build::<_, Body>(connector);
 
     // make a get request
-    let task = hyper_client
+    let task = client
         .get(PipeUri::new(&url, "/").unwrap().into())
         .and_then(|res| {
-            assert_eq!(StatusCode::Ok, res.status());
-            res.body().concat2()
-        })
-        .map(|body| {
+            assert_eq!(StatusCode::OK, res.status());
+            res.into_body().concat2()
+        }).map(|body| {
             assert_eq!(GET_RESPONSE, &String::from_utf8_lossy(body.as_ref()));
         });
 
-    core.run(task).unwrap();
+    tokio::runtime::current_thread::Runtime::new()
+        .unwrap()
+        .block_on(task)
+        .unwrap();
 }
 
 const POST_BODY: &str = r#"{"donuts":"yes"}"#;
 
-fn post_handler(req: Request) -> Box<Future<Item = Response, Error = HyperError>> {
+fn post_handler(
+    req: Request<Body>,
+) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
     // verify that the request body is what we expect
     Box::new(
-        req.body()
+        req.into_body()
             .concat2()
             .and_then(|body| {
                 assert_eq!(POST_BODY, &String::from_utf8_lossy(body.as_ref()));
                 Ok(())
-            })
-            .map(|_| Response::new().with_status(StatusCode::Ok)),
+            }).map(|_| Response::new(Body::empty())),
     )
 }
 
 #[test]
 fn tcp_post() {
-    let (sender, receiver) = channel();
-
     let port = get_unused_tcp_port();
-    thread::spawn(move || {
-        run_tcp_server("127.0.0.1", port, post_handler, &sender);
-    });
+    let server =
+        run_tcp_server("127.0.0.1", port, post_handler).map_err(|err| eprintln!("{}", err));
 
-    // wait for server to get ready
-    receiver.recv().unwrap();
-
-    let mut core = Core::new().unwrap();
     let url = format!("http://localhost:{}", port);
-    let connector = UrlConnector::new(&Url::parse(&url).unwrap(), &core.handle()).unwrap();
+    let connector = UrlConnector::new(&Url::parse(&url).unwrap()).unwrap();
 
-    let client = Client::configure()
-        .connector(connector)
-        .build(&core.handle());
+    let client = Client::builder().build::<_, Body>(connector);
 
-    let url = url.parse().unwrap();
-    let mut req = ClientRequest::new(Method::Post, url);
-    req.headers_mut().set(ContentType::json());
-    req.headers_mut().set(ContentLength(POST_BODY.len() as u64));
-    req.set_body(POST_BODY);
+    let mut req = Request::builder()
+        .method(Method::POST)
+        .uri(url)
+        .body(POST_BODY.into())
+        .expect("could not build hyper::Request");
+    req.headers_mut()
+        .typed_insert(&ContentType(mime::APPLICATION_JSON));
+    req.headers_mut()
+        .typed_insert(&ContentLength(POST_BODY.len() as u64));
 
     let task = client.request(req).map(|res| {
-        assert_eq!(StatusCode::Ok, res.status());
+        assert_eq!(StatusCode::OK, res.status());
     });
 
-    core.run(task).unwrap();
+    let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+    runtime.spawn(server);
+    runtime.block_on(task).unwrap();
 }
 
-#[cfg(unix)]
 #[test]
+#[cfg_attr(windows, ignore)] // TODO: remove when windows build servers are upgraded to RS5
 fn uds_post() {
-    let (sender, receiver) = channel();
-    let file_path = "/tmp/edgelet_test_uds_post.sock";
+    let dir = TempDir::new("uds").unwrap();
+    let file_path = dir.path().join("sock");
+    let file_path = file_path.to_str().unwrap();
 
-    // make sure file gets deleted when test is done
-    defer! {{
-        ::std::fs::remove_file(&file_path).unwrap_or(());
-    }}
+    let server = run_uds_server(&file_path, |req| {
+        hello_handler(req).map_err(|err| io::Error::new(io::ErrorKind::Other, err))
+    }).map_err(|err| eprintln!("{}", err));
 
-    let path_copy = file_path.to_string();
-    thread::spawn(move || {
-        run_uds_server(&path_copy, hello_handler, &sender);
-    });
+    let mut url = Url::from_file_path(file_path).unwrap();
+    url.set_scheme("unix").unwrap();
+    let connector = UrlConnector::new(&url).unwrap();
 
-    // wait for server to get ready
-    receiver.recv().unwrap();
+    let client = Client::builder().build::<_, Body>(connector);
 
-    let mut core = Core::new().unwrap();
-    let connector = UrlConnector::new(
-        &Url::parse(&format!("unix://{}", file_path)).unwrap(),
-        &core.handle(),
-    ).unwrap();
+    let url: HyperUri = HyperlocalUri::new(&file_path, "/").into();
 
-    let client = Client::configure()
-        .connector(connector)
-        .build(&core.handle());
-
-    let url = HyperlocalUri::new(&file_path, "/").into();
-    let mut req = ClientRequest::new(Method::Post, url);
-    req.headers_mut().set(ContentType::json());
-    req.headers_mut().set(ContentLength(POST_BODY.len() as u64));
-    req.set_body(POST_BODY);
+    let mut req = Request::builder()
+        .method(Method::POST)
+        .uri(url)
+        .body(POST_BODY.into())
+        .expect("could not build hyper::Request");
+    req.headers_mut()
+        .typed_insert(&ContentType(mime::APPLICATION_JSON));
+    req.headers_mut()
+        .typed_insert(&ContentLength(POST_BODY.len() as u64));
 
     let task = client.request(req).map(|res| {
-        assert_eq!(StatusCode::Ok, res.status());
+        assert_eq!(StatusCode::OK, res.status());
     });
 
-    core.run(task).unwrap();
+    let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+    runtime.spawn(server);
+    runtime.block_on(task).unwrap();
 }
 
 #[cfg(windows)]
@@ -301,22 +288,29 @@ fn pipe_post() {
     // wait for server to get ready
     receiver.recv().unwrap();
 
-    let mut core = Core::new().unwrap();
-    let connector = UrlConnector::new(&Url::parse(&url).unwrap(), &core.handle()).unwrap();
+    let connector = UrlConnector::new(&Url::parse(&url).unwrap()).unwrap();
 
-    let hyper_client = Client::configure()
-        .connector(connector)
-        .build(&core.handle());
+    let client = Client::builder().build::<_, Body>(connector);
+
+    let url: HyperUri = PipeUri::new(&url, "/").unwrap().into();
 
     // make a post request
-    let mut req = Request::new(Method::Post, PipeUri::new(&url, "/").unwrap().into());
-    req.headers_mut().set(ContentType::json());
-    req.headers_mut().set(ContentLength(POST_BODY.len() as u64));
-    req.set_body(POST_BODY);
+    let mut req = Request::builder()
+        .method(Method::POST)
+        .uri(url)
+        .body(POST_BODY.into())
+        .expect("could not build hyper::Request");
+    req.headers_mut()
+        .typed_insert(&ContentType(mime::APPLICATION_JSON));
+    req.headers_mut()
+        .typed_insert(&ContentLength(POST_BODY.len() as u64));
 
-    let task = hyper_client.request(req).map(|res| {
-        assert_eq!(StatusCode::Ok, res.status());
+    let task = client.request(req).map(|res| {
+        assert_eq!(StatusCode::OK, res.status());
     });
 
-    core.run(task).unwrap();
+    tokio::runtime::current_thread::Runtime::new()
+        .unwrap()
+        .block_on(task)
+        .unwrap();
 }

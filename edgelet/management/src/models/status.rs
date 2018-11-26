@@ -13,16 +13,22 @@ use serde_json::Value;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Status {
-    #[serde(rename = "startTime", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "startTime",
+        skip_serializing_if = "Option::is_none"
+    )]
     start_time: Option<String>,
-    #[serde(rename = "exitStatus", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "exitStatus",
+        skip_serializing_if = "Option::is_none"
+    )]
     exit_status: Option<::models::ExitStatus>,
     #[serde(rename = "runtimeStatus")]
     runtime_status: ::models::RuntimeStatus,
 }
 
 impl Status {
-    pub fn new(runtime_status: ::models::RuntimeStatus) -> Status {
+    pub fn new(runtime_status: ::models::RuntimeStatus) -> Self {
         Status {
             start_time: None,
             exit_status: None,
@@ -34,13 +40,13 @@ impl Status {
         self.start_time = Some(start_time);
     }
 
-    pub fn with_start_time(mut self, start_time: String) -> Status {
+    pub fn with_start_time(mut self, start_time: String) -> Self {
         self.start_time = Some(start_time);
         self
     }
 
-    pub fn start_time(&self) -> Option<&String> {
-        self.start_time.as_ref()
+    pub fn start_time(&self) -> Option<&str> {
+        self.start_time.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_start_time(&mut self) {
@@ -51,7 +57,7 @@ impl Status {
         self.exit_status = Some(exit_status);
     }
 
-    pub fn with_exit_status(mut self, exit_status: ::models::ExitStatus) -> Status {
+    pub fn with_exit_status(mut self, exit_status: ::models::ExitStatus) -> Self {
         self.exit_status = Some(exit_status);
         self
     }
@@ -68,7 +74,7 @@ impl Status {
         self.runtime_status = runtime_status;
     }
 
-    pub fn with_runtime_status(mut self, runtime_status: ::models::RuntimeStatus) -> Status {
+    pub fn with_runtime_status(mut self, runtime_status: ::models::RuntimeStatus) -> Self {
         self.runtime_status = runtime_status;
         self
     }

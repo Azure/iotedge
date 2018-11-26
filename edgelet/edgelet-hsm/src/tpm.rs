@@ -1,13 +1,14 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex};
 
 use bytes::Bytes;
+use failure::Fail;
 
 use edgelet_core::crypto::{
     Activate, KeyIdentity, KeyStore as CoreKeyStore, Sign, SignatureAlgorithm,
 };
-use edgelet_core::Error as CoreError;
+use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind};
 use hsm::{ManageTpmKeys, SignWithTpm, Tpm, TpmDigest};
 
 pub use error::{Error, ErrorKind};
@@ -15,9 +16,9 @@ pub use error::{Error, ErrorKind};
 const ROOT_KEY_NAME: &str = "primary";
 
 /// Represents a key which can sign data.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct TpmKey {
-    tpm: Arc<RwLock<Tpm>>,
+    tpm: Arc<Mutex<Tpm>>,
     identity: KeyIdentity,
     key_name: String,
 }
@@ -26,28 +27,27 @@ pub struct TpmKey {
 /// Activate a private key, and then you can use that key to sign data.
 #[derive(Clone)]
 pub struct TpmKeyStore {
-    tpm: Arc<RwLock<Tpm>>,
+    tpm: Arc<Mutex<Tpm>>,
 }
 
 impl TpmKeyStore {
-    pub fn new() -> Result<TpmKeyStore, Error> {
+    pub fn new() -> Result<Self, Error> {
         let hsm = Tpm::new()?;
         TpmKeyStore::from_hsm(hsm)
     }
 
-    pub fn from_hsm(tpm: Tpm) -> Result<TpmKeyStore, Error> {
+    pub fn from_hsm(tpm: Tpm) -> Result<Self, Error> {
         Ok(TpmKeyStore {
-            tpm: Arc::new(RwLock::new(tpm)),
+            tpm: Arc::new(Mutex::new(tpm)),
         })
     }
 
     /// Activate and store a private key in the TPM.
     pub fn activate_key(&self, key_value: &Bytes) -> Result<(), Error> {
         self.tpm
-            .read()
-            .expect("Read lock on KeyStore TPM failed")
-            .activate_identity_key(key_value)
-            .map_err(Error::from)?;
+            .lock()
+            .expect("Lock on KeyStore TPM failed")
+            .activate_identity_key(key_value)?;
         Ok(())
     }
 
@@ -67,12 +67,14 @@ impl CoreKeyStore for TpmKeyStore {
     /// Get a TPM Key which will derive and sign data.
     fn get(&self, identity: &KeyIdentity, key_name: &str) -> Result<Self::Key, CoreError> {
         match *identity {
-            KeyIdentity::Device => self.get_active_key().map_err(CoreError::from),
+            KeyIdentity::Device => self
+                .get_active_key()
+                .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore))),
             KeyIdentity::Module(ref m) => {
                 if key_name.is_empty() || m.is_empty() {
                     Err(ErrorKind::EmptyStrings)
-                        .map_err(Error::from)
-                        .map_err(CoreError::from)?;
+                        .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
+                        .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore)))?;
                 }
                 Ok(TpmKey {
                     tpm: Arc::clone(&self.tpm),
@@ -95,11 +97,11 @@ impl Activate for TpmKeyStore {
     ) -> Result<(), CoreError> {
         if identity != KeyIdentity::Device {
             Err(ErrorKind::NoModuleActivation)
-                .map_err(Error::from)
-                .map_err(CoreError::from)?;
+                .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
+                .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore)))?;
         }
         self.activate_key(&Bytes::from(key.as_ref()))
-            .map_err(CoreError::from)
+            .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore)))
     }
 }
 
@@ -117,15 +119,15 @@ impl Sign for TpmKey {
         match self.identity {
             KeyIdentity::Device => self
                 .tpm
-                .read()
-                .expect("Read lock failed")
+                .lock()
+                .expect("Lock failed")
                 .sign_with_identity(data)
-                .map_err(Error::from)
-                .map_err(CoreError::from),
+                .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
+                .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore))),
             KeyIdentity::Module(ref _m) => self
                 .tpm
-                .read()
-                .expect("Read lock failed")
+                .lock()
+                .expect("Lock failed")
                 .derive_and_sign_with_identity(
                     data,
                     format!(
@@ -136,9 +138,8 @@ impl Sign for TpmKey {
                         },
                         self.key_name
                     ).as_bytes(),
-                )
-                .map_err(Error::from)
-                .map_err(CoreError::from),
+                ).map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
+                .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore))),
         }
     }
 }

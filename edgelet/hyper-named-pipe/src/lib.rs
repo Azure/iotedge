@@ -1,20 +1,22 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(warnings)]
 #![cfg(windows)]
+#![deny(unused_extern_crates, warnings)]
+// Remove this when clippy stops warning about old-style `allow()`,
+// which can only be silenced by enabling a feature and thus requires nightly
+//
+// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
+#![allow(renamed_and_removed_lints)]
+#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
+#![cfg_attr(feature = "cargo-clippy", allow(stutter, use_self))]
 
+extern crate edgelet_utils;
 #[macro_use]
 extern crate failure;
-// NOTE: For some reason if the extern crate statement for edgelet_utils is moved
-// above the one for "failure" above then things stop compiling.
-#[macro_use]
-extern crate edgelet_utils;
 extern crate futures;
 extern crate hex;
 extern crate hyper;
-extern crate tokio_core;
 extern crate tokio_named_pipe;
-extern crate tokio_service;
 extern crate url;
 
 pub mod error;
@@ -24,9 +26,7 @@ use std::io;
 
 use futures::future::FutureResult;
 use futures::IntoFuture;
-use hyper::Uri as HyperUri;
-use tokio_core::reactor::Handle;
-use tokio_service::Service;
+use hyper::client::connect::{Connect, Connected, Destination};
 
 use tokio_named_pipe::PipeStream;
 
@@ -35,26 +35,22 @@ pub use uri::Uri;
 
 pub const NAMED_PIPE_SCHEME: &str = "npipe";
 
-pub struct PipeConnector(Handle);
+pub struct PipeConnector;
 
-impl PipeConnector {
-    pub fn new(handle: Handle) -> Self {
-        PipeConnector(handle)
-    }
-}
-
-impl Service for PipeConnector {
-    type Request = HyperUri;
-    type Response = PipeStream;
+impl Connect for PipeConnector {
+    type Transport = PipeStream;
     type Error = io::Error;
-    type Future = FutureResult<PipeStream, io::Error>;
+    type Future = FutureResult<(Self::Transport, Connected), Self::Error>;
 
-    fn call(&self, uri: HyperUri) -> Self::Future {
-        Uri::get_pipe_path(&uri)
+    fn connect(&self, dst: Destination) -> Self::Future {
+        Uri::get_pipe_path(&dst)
             .map_err(|_err| {
-                io::Error::new(io::ErrorKind::InvalidInput, format!("Invalid uri {}", uri))
-            })
-            .and_then(|path| PipeStream::connect(path, &self.0, None))
+                io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    format!("Invalid destination {:?}", dst),
+                )
+            }).and_then(|path| PipeStream::connect(path, None))
+            .map(|stream| (stream, Connected::new()))
             .into_future()
     }
 }

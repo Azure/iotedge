@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
@@ -18,8 +18,8 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Amqp" Version="2.3.2" />
-    <PackageReference Include="Microsoft.Azure.Devices" Version="1.17.0" />
+    <PackageReference Include="Microsoft.Azure.Amqp" Version="2.3.5" />
+    <PackageReference Include="Microsoft.Azure.Devices" Version="1.17.1" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj" />

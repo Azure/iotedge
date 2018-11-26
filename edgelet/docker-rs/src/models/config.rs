@@ -17,16 +17,22 @@ pub struct Config {
     ID: Option<String>,
     #[serde(rename = "Version", skip_serializing_if = "Option::is_none")]
     version: Option<::models::ObjectVersion>,
-    #[serde(rename = "CreatedAt", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "CreatedAt",
+        skip_serializing_if = "Option::is_none"
+    )]
     created_at: Option<String>,
-    #[serde(rename = "UpdatedAt", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "UpdatedAt",
+        skip_serializing_if = "Option::is_none"
+    )]
     updated_at: Option<String>,
     #[serde(rename = "Spec", skip_serializing_if = "Option::is_none")]
     spec: Option<::models::ConfigSpec>,
 }
 
 impl Config {
-    pub fn new() -> Config {
+    pub fn new() -> Self {
         Config {
             ID: None,
             version: None,
@@ -40,13 +46,13 @@ impl Config {
         self.ID = Some(ID);
     }
 
-    pub fn with_ID(mut self, ID: String) -> Config {
+    pub fn with_ID(mut self, ID: String) -> Self {
         self.ID = Some(ID);
         self
     }
 
-    pub fn ID(&self) -> Option<&String> {
-        self.ID.as_ref()
+    pub fn ID(&self) -> Option<&str> {
+        self.ID.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_ID(&mut self) {
@@ -57,7 +63,7 @@ impl Config {
         self.version = Some(version);
     }
 
-    pub fn with_version(mut self, version: ::models::ObjectVersion) -> Config {
+    pub fn with_version(mut self, version: ::models::ObjectVersion) -> Self {
         self.version = Some(version);
         self
     }
@@ -74,13 +80,13 @@ impl Config {
         self.created_at = Some(created_at);
     }
 
-    pub fn with_created_at(mut self, created_at: String) -> Config {
+    pub fn with_created_at(mut self, created_at: String) -> Self {
         self.created_at = Some(created_at);
         self
     }
 
-    pub fn created_at(&self) -> Option<&String> {
-        self.created_at.as_ref()
+    pub fn created_at(&self) -> Option<&str> {
+        self.created_at.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_created_at(&mut self) {
@@ -91,13 +97,13 @@ impl Config {
         self.updated_at = Some(updated_at);
     }
 
-    pub fn with_updated_at(mut self, updated_at: String) -> Config {
+    pub fn with_updated_at(mut self, updated_at: String) -> Self {
         self.updated_at = Some(updated_at);
         self
     }
 
-    pub fn updated_at(&self) -> Option<&String> {
-        self.updated_at.as_ref()
+    pub fn updated_at(&self) -> Option<&str> {
+        self.updated_at.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_updated_at(&mut self) {
@@ -108,7 +114,7 @@ impl Config {
         self.spec = Some(spec);
     }
 
-    pub fn with_spec(mut self, spec: ::models::ConfigSpec) -> Config {
+    pub fn with_spec(mut self, spec: ::models::ConfigSpec) -> Self {
         self.spec = Some(spec);
         self
     }

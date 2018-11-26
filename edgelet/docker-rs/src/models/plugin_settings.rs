@@ -32,7 +32,7 @@ impl PluginSettings {
         env: Vec<String>,
         args: Vec<String>,
         devices: Vec<::models::PluginDevice>,
-    ) -> PluginSettings {
+    ) -> Self {
         PluginSettings {
             mounts: mounts,
             env: env,
@@ -45,12 +45,12 @@ impl PluginSettings {
         self.mounts = mounts;
     }
 
-    pub fn with_mounts(mut self, mounts: Vec<::models::PluginMount>) -> PluginSettings {
+    pub fn with_mounts(mut self, mounts: Vec<::models::PluginMount>) -> Self {
         self.mounts = mounts;
         self
     }
 
-    pub fn mounts(&self) -> &Vec<::models::PluginMount> {
+    pub fn mounts(&self) -> &[::models::PluginMount] {
         &self.mounts
     }
 
@@ -58,12 +58,12 @@ impl PluginSettings {
         self.env = env;
     }
 
-    pub fn with_env(mut self, env: Vec<String>) -> PluginSettings {
+    pub fn with_env(mut self, env: Vec<String>) -> Self {
         self.env = env;
         self
     }
 
-    pub fn env(&self) -> &Vec<String> {
+    pub fn env(&self) -> &[String] {
         &self.env
     }
 
@@ -71,12 +71,12 @@ impl PluginSettings {
         self.args = args;
     }
 
-    pub fn with_args(mut self, args: Vec<String>) -> PluginSettings {
+    pub fn with_args(mut self, args: Vec<String>) -> Self {
         self.args = args;
         self
     }
 
-    pub fn args(&self) -> &Vec<String> {
+    pub fn args(&self) -> &[String] {
         &self.args
     }
 
@@ -84,12 +84,12 @@ impl PluginSettings {
         self.devices = devices;
     }
 
-    pub fn with_devices(mut self, devices: Vec<::models::PluginDevice>) -> PluginSettings {
+    pub fn with_devices(mut self, devices: Vec<::models::PluginDevice>) -> Self {
         self.devices = devices;
         self
     }
 
-    pub fn devices(&self) -> &Vec<::models::PluginDevice> {
+    pub fn devices(&self) -> &[::models::PluginDevice] {
         &self.devices
     }
 }

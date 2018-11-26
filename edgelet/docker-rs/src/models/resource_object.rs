@@ -17,15 +17,21 @@ use serde_json::Value;
 pub struct ResourceObject {
     #[serde(rename = "NanoCPUs", skip_serializing_if = "Option::is_none")]
     nano_cp_us: Option<i64>,
-    #[serde(rename = "MemoryBytes", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "MemoryBytes",
+        skip_serializing_if = "Option::is_none"
+    )]
     memory_bytes: Option<i64>,
-    #[serde(rename = "GenericResources", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "GenericResources",
+        skip_serializing_if = "Option::is_none"
+    )]
     generic_resources: Option<::models::GenericResources>,
 }
 
 impl ResourceObject {
     /// An object describing the resources which can be advertised by a node and requested by a task
-    pub fn new() -> ResourceObject {
+    pub fn new() -> Self {
         ResourceObject {
             nano_cp_us: None,
             memory_bytes: None,
@@ -37,13 +43,13 @@ impl ResourceObject {
         self.nano_cp_us = Some(nano_cp_us);
     }
 
-    pub fn with_nano_cp_us(mut self, nano_cp_us: i64) -> ResourceObject {
+    pub fn with_nano_cp_us(mut self, nano_cp_us: i64) -> Self {
         self.nano_cp_us = Some(nano_cp_us);
         self
     }
 
-    pub fn nano_cp_us(&self) -> Option<&i64> {
-        self.nano_cp_us.as_ref()
+    pub fn nano_cp_us(&self) -> Option<i64> {
+        self.nano_cp_us
     }
 
     pub fn reset_nano_cp_us(&mut self) {
@@ -54,13 +60,13 @@ impl ResourceObject {
         self.memory_bytes = Some(memory_bytes);
     }
 
-    pub fn with_memory_bytes(mut self, memory_bytes: i64) -> ResourceObject {
+    pub fn with_memory_bytes(mut self, memory_bytes: i64) -> Self {
         self.memory_bytes = Some(memory_bytes);
         self
     }
 
-    pub fn memory_bytes(&self) -> Option<&i64> {
-        self.memory_bytes.as_ref()
+    pub fn memory_bytes(&self) -> Option<i64> {
+        self.memory_bytes
     }
 
     pub fn reset_memory_bytes(&mut self) {
@@ -71,10 +77,7 @@ impl ResourceObject {
         self.generic_resources = Some(generic_resources);
     }
 
-    pub fn with_generic_resources(
-        mut self,
-        generic_resources: ::models::GenericResources,
-    ) -> ResourceObject {
+    pub fn with_generic_resources(mut self, generic_resources: ::models::GenericResources) -> Self {
         self.generic_resources = Some(generic_resources);
         self
     }

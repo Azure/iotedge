@@ -15,17 +15,26 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DeviceMapping {
-    #[serde(rename = "PathOnHost", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "PathOnHost",
+        skip_serializing_if = "Option::is_none"
+    )]
     path_on_host: Option<String>,
-    #[serde(rename = "PathInContainer", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "PathInContainer",
+        skip_serializing_if = "Option::is_none"
+    )]
     path_in_container: Option<String>,
-    #[serde(rename = "CgroupPermissions", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "CgroupPermissions",
+        skip_serializing_if = "Option::is_none"
+    )]
     cgroup_permissions: Option<String>,
 }
 
 impl DeviceMapping {
     /// A device mapping between the host and container
-    pub fn new() -> DeviceMapping {
+    pub fn new() -> Self {
         DeviceMapping {
             path_on_host: None,
             path_in_container: None,
@@ -37,13 +46,13 @@ impl DeviceMapping {
         self.path_on_host = Some(path_on_host);
     }
 
-    pub fn with_path_on_host(mut self, path_on_host: String) -> DeviceMapping {
+    pub fn with_path_on_host(mut self, path_on_host: String) -> Self {
         self.path_on_host = Some(path_on_host);
         self
     }
 
-    pub fn path_on_host(&self) -> Option<&String> {
-        self.path_on_host.as_ref()
+    pub fn path_on_host(&self) -> Option<&str> {
+        self.path_on_host.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_path_on_host(&mut self) {
@@ -54,13 +63,13 @@ impl DeviceMapping {
         self.path_in_container = Some(path_in_container);
     }
 
-    pub fn with_path_in_container(mut self, path_in_container: String) -> DeviceMapping {
+    pub fn with_path_in_container(mut self, path_in_container: String) -> Self {
         self.path_in_container = Some(path_in_container);
         self
     }
 
-    pub fn path_in_container(&self) -> Option<&String> {
-        self.path_in_container.as_ref()
+    pub fn path_in_container(&self) -> Option<&str> {
+        self.path_in_container.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_path_in_container(&mut self) {
@@ -71,13 +80,13 @@ impl DeviceMapping {
         self.cgroup_permissions = Some(cgroup_permissions);
     }
 
-    pub fn with_cgroup_permissions(mut self, cgroup_permissions: String) -> DeviceMapping {
+    pub fn with_cgroup_permissions(mut self, cgroup_permissions: String) -> Self {
         self.cgroup_permissions = Some(cgroup_permissions);
         self
     }
 
-    pub fn cgroup_permissions(&self) -> Option<&String> {
-        self.cgroup_permissions.as_ref()
+    pub fn cgroup_permissions(&self) -> Option<&str> {
+        self.cgroup_permissions.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_cgroup_permissions(&mut self) {

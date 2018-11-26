@@ -35,7 +35,7 @@ impl InlineResponse2007 {
         tags: Vec<String>,
         size: i64,
         comment: String,
-    ) -> InlineResponse2007 {
+    ) -> Self {
         InlineResponse2007 {
             id: id,
             created: created,
@@ -50,7 +50,7 @@ impl InlineResponse2007 {
         self.id = id;
     }
 
-    pub fn with_id(mut self, id: String) -> InlineResponse2007 {
+    pub fn with_id(mut self, id: String) -> Self {
         self.id = id;
         self
     }
@@ -63,7 +63,7 @@ impl InlineResponse2007 {
         self.created = created;
     }
 
-    pub fn with_created(mut self, created: i64) -> InlineResponse2007 {
+    pub fn with_created(mut self, created: i64) -> Self {
         self.created = created;
         self
     }
@@ -76,7 +76,7 @@ impl InlineResponse2007 {
         self.created_by = created_by;
     }
 
-    pub fn with_created_by(mut self, created_by: String) -> InlineResponse2007 {
+    pub fn with_created_by(mut self, created_by: String) -> Self {
         self.created_by = created_by;
         self
     }
@@ -89,12 +89,12 @@ impl InlineResponse2007 {
         self.tags = tags;
     }
 
-    pub fn with_tags(mut self, tags: Vec<String>) -> InlineResponse2007 {
+    pub fn with_tags(mut self, tags: Vec<String>) -> Self {
         self.tags = tags;
         self
     }
 
-    pub fn tags(&self) -> &Vec<String> {
+    pub fn tags(&self) -> &[String] {
         &self.tags
     }
 
@@ -102,7 +102,7 @@ impl InlineResponse2007 {
         self.size = size;
     }
 
-    pub fn with_size(mut self, size: i64) -> InlineResponse2007 {
+    pub fn with_size(mut self, size: i64) -> Self {
         self.size = size;
         self
     }
@@ -115,7 +115,7 @@ impl InlineResponse2007 {
         self.comment = comment;
     }
 
-    pub fn with_comment(mut self, comment: String) -> InlineResponse2007 {
+    pub fn with_comment(mut self, comment: String) -> Self {
         self.comment = comment;
         self
     }

@@ -17,12 +17,15 @@ pub struct InlineResponse2001 {
     #[serde(rename = "Titles", skip_serializing_if = "Option::is_none")]
     titles: Option<Vec<String>>,
     /// Each process running in the container, where each is process is an array of values corresponding to the titles
-    #[serde(rename = "Processes", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "Processes",
+        skip_serializing_if = "Option::is_none"
+    )]
     processes: Option<Vec<Vec<String>>>,
 }
 
 impl InlineResponse2001 {
-    pub fn new() -> InlineResponse2001 {
+    pub fn new() -> Self {
         InlineResponse2001 {
             titles: None,
             processes: None,
@@ -33,13 +36,13 @@ impl InlineResponse2001 {
         self.titles = Some(titles);
     }
 
-    pub fn with_titles(mut self, titles: Vec<String>) -> InlineResponse2001 {
+    pub fn with_titles(mut self, titles: Vec<String>) -> Self {
         self.titles = Some(titles);
         self
     }
 
-    pub fn titles(&self) -> Option<&Vec<String>> {
-        self.titles.as_ref()
+    pub fn titles(&self) -> Option<&[String]> {
+        self.titles.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_titles(&mut self) {
@@ -50,13 +53,13 @@ impl InlineResponse2001 {
         self.processes = Some(processes);
     }
 
-    pub fn with_processes(mut self, processes: Vec<Vec<String>>) -> InlineResponse2001 {
+    pub fn with_processes(mut self, processes: Vec<Vec<String>>) -> Self {
         self.processes = Some(processes);
         self
     }
 
-    pub fn processes(&self) -> Option<&Vec<Vec<String>>> {
-        self.processes.as_ref()
+    pub fn processes(&self) -> Option<&[Vec<String>]> {
+        self.processes.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_processes(&mut self) {

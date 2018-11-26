@@ -19,51 +19,93 @@ pub struct NetworkSettings {
     #[serde(rename = "Bridge", skip_serializing_if = "Option::is_none")]
     bridge: Option<String>,
     /// SandboxID uniquely represents a container's network stack.
-    #[serde(rename = "SandboxID", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "SandboxID",
+        skip_serializing_if = "Option::is_none"
+    )]
     sandbox_id: Option<String>,
     /// Indicates if hairpin NAT should be enabled on the virtual interface.
-    #[serde(rename = "HairpinMode", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "HairpinMode",
+        skip_serializing_if = "Option::is_none"
+    )]
     hairpin_mode: Option<bool>,
     /// IPv6 unicast address using the link-local prefix.
-    #[serde(rename = "LinkLocalIPv6Address", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "LinkLocalIPv6Address",
+        skip_serializing_if = "Option::is_none"
+    )]
     link_local_i_pv6_address: Option<String>,
     /// Prefix length of the IPv6 unicast address.
-    #[serde(rename = "LinkLocalIPv6PrefixLen", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "LinkLocalIPv6PrefixLen",
+        skip_serializing_if = "Option::is_none"
+    )]
     link_local_i_pv6_prefix_len: Option<i32>,
     #[serde(rename = "Ports", skip_serializing_if = "Option::is_none")]
     ports: Option<::models::PortMap>,
     /// SandboxKey identifies the sandbox
-    #[serde(rename = "SandboxKey", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "SandboxKey",
+        skip_serializing_if = "Option::is_none"
+    )]
     sandbox_key: Option<String>,
     ///
-    #[serde(rename = "SecondaryIPAddresses", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "SecondaryIPAddresses",
+        skip_serializing_if = "Option::is_none"
+    )]
     secondary_ip_addresses: Option<Vec<::models::Address>>,
     ///
-    #[serde(rename = "SecondaryIPv6Addresses", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "SecondaryIPv6Addresses",
+        skip_serializing_if = "Option::is_none"
+    )]
     secondary_i_pv6_addresses: Option<Vec<::models::Address>>,
     /// EndpointID uniquely represents a service endpoint in a Sandbox.  <p><br /></p>  > **Deprecated**: This field is only propagated when attached to the > default \"bridge\" network. Use the information from the \"bridge\" > network inside the `Networks` map instead, which contains the same > information. This field was deprecated in Docker 1.9 and is scheduled > to be removed in Docker 17.12.0
-    #[serde(rename = "EndpointID", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "EndpointID",
+        skip_serializing_if = "Option::is_none"
+    )]
     endpoint_id: Option<String>,
     /// Gateway address for the default \"bridge\" network.  <p><br /></p>  > **Deprecated**: This field is only propagated when attached to the > default \"bridge\" network. Use the information from the \"bridge\" > network inside the `Networks` map instead, which contains the same > information. This field was deprecated in Docker 1.9 and is scheduled > to be removed in Docker 17.12.0
     #[serde(rename = "Gateway", skip_serializing_if = "Option::is_none")]
     gateway: Option<String>,
     /// Global IPv6 address for the default \"bridge\" network.  <p><br /></p>  > **Deprecated**: This field is only propagated when attached to the > default \"bridge\" network. Use the information from the \"bridge\" > network inside the `Networks` map instead, which contains the same > information. This field was deprecated in Docker 1.9 and is scheduled > to be removed in Docker 17.12.0
-    #[serde(rename = "GlobalIPv6Address", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "GlobalIPv6Address",
+        skip_serializing_if = "Option::is_none"
+    )]
     global_i_pv6_address: Option<String>,
     /// Mask length of the global IPv6 address.  <p><br /></p>  > **Deprecated**: This field is only propagated when attached to the > default \"bridge\" network. Use the information from the \"bridge\" > network inside the `Networks` map instead, which contains the same > information. This field was deprecated in Docker 1.9 and is scheduled > to be removed in Docker 17.12.0
-    #[serde(rename = "GlobalIPv6PrefixLen", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "GlobalIPv6PrefixLen",
+        skip_serializing_if = "Option::is_none"
+    )]
     global_i_pv6_prefix_len: Option<i32>,
     /// IPv4 address for the default \"bridge\" network.  <p><br /></p>  > **Deprecated**: This field is only propagated when attached to the > default \"bridge\" network. Use the information from the \"bridge\" > network inside the `Networks` map instead, which contains the same > information. This field was deprecated in Docker 1.9 and is scheduled > to be removed in Docker 17.12.0
-    #[serde(rename = "IPAddress", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "IPAddress",
+        skip_serializing_if = "Option::is_none"
+    )]
     ip_address: Option<String>,
     /// Mask length of the IPv4 address.  <p><br /></p>  > **Deprecated**: This field is only propagated when attached to the > default \"bridge\" network. Use the information from the \"bridge\" > network inside the `Networks` map instead, which contains the same > information. This field was deprecated in Docker 1.9 and is scheduled > to be removed in Docker 17.12.0
-    #[serde(rename = "IPPrefixLen", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "IPPrefixLen",
+        skip_serializing_if = "Option::is_none"
+    )]
     ip_prefix_len: Option<i32>,
     /// IPv6 gateway address for this network.  <p><br /></p>  > **Deprecated**: This field is only propagated when attached to the > default \"bridge\" network. Use the information from the \"bridge\" > network inside the `Networks` map instead, which contains the same > information. This field was deprecated in Docker 1.9 and is scheduled > to be removed in Docker 17.12.0
-    #[serde(rename = "IPv6Gateway", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "IPv6Gateway",
+        skip_serializing_if = "Option::is_none"
+    )]
     i_pv6_gateway: Option<String>,
     /// MAC address for the container on the default \"bridge\" network.  <p><br /></p>  > **Deprecated**: This field is only propagated when attached to the > default \"bridge\" network. Use the information from the \"bridge\" > network inside the `Networks` map instead, which contains the same > information. This field was deprecated in Docker 1.9 and is scheduled > to be removed in Docker 17.12.0
-    #[serde(rename = "MacAddress", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "MacAddress",
+        skip_serializing_if = "Option::is_none"
+    )]
     mac_address: Option<String>,
     /// Information about all networks that the container is connected to.
     #[serde(rename = "Networks", skip_serializing_if = "Option::is_none")]
@@ -72,7 +114,7 @@ pub struct NetworkSettings {
 
 impl NetworkSettings {
     /// NetworkSettings exposes the network settings in the API
-    pub fn new() -> NetworkSettings {
+    pub fn new() -> Self {
         NetworkSettings {
             bridge: None,
             sandbox_id: None,
@@ -99,13 +141,13 @@ impl NetworkSettings {
         self.bridge = Some(bridge);
     }
 
-    pub fn with_bridge(mut self, bridge: String) -> NetworkSettings {
+    pub fn with_bridge(mut self, bridge: String) -> Self {
         self.bridge = Some(bridge);
         self
     }
 
-    pub fn bridge(&self) -> Option<&String> {
-        self.bridge.as_ref()
+    pub fn bridge(&self) -> Option<&str> {
+        self.bridge.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_bridge(&mut self) {
@@ -116,13 +158,13 @@ impl NetworkSettings {
         self.sandbox_id = Some(sandbox_id);
     }
 
-    pub fn with_sandbox_id(mut self, sandbox_id: String) -> NetworkSettings {
+    pub fn with_sandbox_id(mut self, sandbox_id: String) -> Self {
         self.sandbox_id = Some(sandbox_id);
         self
     }
 
-    pub fn sandbox_id(&self) -> Option<&String> {
-        self.sandbox_id.as_ref()
+    pub fn sandbox_id(&self) -> Option<&str> {
+        self.sandbox_id.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_sandbox_id(&mut self) {
@@ -133,7 +175,7 @@ impl NetworkSettings {
         self.hairpin_mode = Some(hairpin_mode);
     }
 
-    pub fn with_hairpin_mode(mut self, hairpin_mode: bool) -> NetworkSettings {
+    pub fn with_hairpin_mode(mut self, hairpin_mode: bool) -> Self {
         self.hairpin_mode = Some(hairpin_mode);
         self
     }
@@ -150,16 +192,13 @@ impl NetworkSettings {
         self.link_local_i_pv6_address = Some(link_local_i_pv6_address);
     }
 
-    pub fn with_link_local_i_pv6_address(
-        mut self,
-        link_local_i_pv6_address: String,
-    ) -> NetworkSettings {
+    pub fn with_link_local_i_pv6_address(mut self, link_local_i_pv6_address: String) -> Self {
         self.link_local_i_pv6_address = Some(link_local_i_pv6_address);
         self
     }
 
-    pub fn link_local_i_pv6_address(&self) -> Option<&String> {
-        self.link_local_i_pv6_address.as_ref()
+    pub fn link_local_i_pv6_address(&self) -> Option<&str> {
+        self.link_local_i_pv6_address.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_link_local_i_pv6_address(&mut self) {
@@ -170,16 +209,13 @@ impl NetworkSettings {
         self.link_local_i_pv6_prefix_len = Some(link_local_i_pv6_prefix_len);
     }
 
-    pub fn with_link_local_i_pv6_prefix_len(
-        mut self,
-        link_local_i_pv6_prefix_len: i32,
-    ) -> NetworkSettings {
+    pub fn with_link_local_i_pv6_prefix_len(mut self, link_local_i_pv6_prefix_len: i32) -> Self {
         self.link_local_i_pv6_prefix_len = Some(link_local_i_pv6_prefix_len);
         self
     }
 
-    pub fn link_local_i_pv6_prefix_len(&self) -> Option<&i32> {
-        self.link_local_i_pv6_prefix_len.as_ref()
+    pub fn link_local_i_pv6_prefix_len(&self) -> Option<i32> {
+        self.link_local_i_pv6_prefix_len
     }
 
     pub fn reset_link_local_i_pv6_prefix_len(&mut self) {
@@ -190,7 +226,7 @@ impl NetworkSettings {
         self.ports = Some(ports);
     }
 
-    pub fn with_ports(mut self, ports: ::models::PortMap) -> NetworkSettings {
+    pub fn with_ports(mut self, ports: ::models::PortMap) -> Self {
         self.ports = Some(ports);
         self
     }
@@ -207,13 +243,13 @@ impl NetworkSettings {
         self.sandbox_key = Some(sandbox_key);
     }
 
-    pub fn with_sandbox_key(mut self, sandbox_key: String) -> NetworkSettings {
+    pub fn with_sandbox_key(mut self, sandbox_key: String) -> Self {
         self.sandbox_key = Some(sandbox_key);
         self
     }
 
-    pub fn sandbox_key(&self) -> Option<&String> {
-        self.sandbox_key.as_ref()
+    pub fn sandbox_key(&self) -> Option<&str> {
+        self.sandbox_key.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_sandbox_key(&mut self) {
@@ -227,13 +263,13 @@ impl NetworkSettings {
     pub fn with_secondary_ip_addresses(
         mut self,
         secondary_ip_addresses: Vec<::models::Address>,
-    ) -> NetworkSettings {
+    ) -> Self {
         self.secondary_ip_addresses = Some(secondary_ip_addresses);
         self
     }
 
-    pub fn secondary_ip_addresses(&self) -> Option<&Vec<::models::Address>> {
-        self.secondary_ip_addresses.as_ref()
+    pub fn secondary_ip_addresses(&self) -> Option<&[::models::Address]> {
+        self.secondary_ip_addresses.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_secondary_ip_addresses(&mut self) {
@@ -250,13 +286,13 @@ impl NetworkSettings {
     pub fn with_secondary_i_pv6_addresses(
         mut self,
         secondary_i_pv6_addresses: Vec<::models::Address>,
-    ) -> NetworkSettings {
+    ) -> Self {
         self.secondary_i_pv6_addresses = Some(secondary_i_pv6_addresses);
         self
     }
 
-    pub fn secondary_i_pv6_addresses(&self) -> Option<&Vec<::models::Address>> {
-        self.secondary_i_pv6_addresses.as_ref()
+    pub fn secondary_i_pv6_addresses(&self) -> Option<&[::models::Address]> {
+        self.secondary_i_pv6_addresses.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_secondary_i_pv6_addresses(&mut self) {
@@ -267,13 +303,13 @@ impl NetworkSettings {
         self.endpoint_id = Some(endpoint_id);
     }
 
-    pub fn with_endpoint_id(mut self, endpoint_id: String) -> NetworkSettings {
+    pub fn with_endpoint_id(mut self, endpoint_id: String) -> Self {
         self.endpoint_id = Some(endpoint_id);
         self
     }
 
-    pub fn endpoint_id(&self) -> Option<&String> {
-        self.endpoint_id.as_ref()
+    pub fn endpoint_id(&self) -> Option<&str> {
+        self.endpoint_id.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_endpoint_id(&mut self) {
@@ -284,13 +320,13 @@ impl NetworkSettings {
         self.gateway = Some(gateway);
     }
 
-    pub fn with_gateway(mut self, gateway: String) -> NetworkSettings {
+    pub fn with_gateway(mut self, gateway: String) -> Self {
         self.gateway = Some(gateway);
         self
     }
 
-    pub fn gateway(&self) -> Option<&String> {
-        self.gateway.as_ref()
+    pub fn gateway(&self) -> Option<&str> {
+        self.gateway.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_gateway(&mut self) {
@@ -301,13 +337,13 @@ impl NetworkSettings {
         self.global_i_pv6_address = Some(global_i_pv6_address);
     }
 
-    pub fn with_global_i_pv6_address(mut self, global_i_pv6_address: String) -> NetworkSettings {
+    pub fn with_global_i_pv6_address(mut self, global_i_pv6_address: String) -> Self {
         self.global_i_pv6_address = Some(global_i_pv6_address);
         self
     }
 
-    pub fn global_i_pv6_address(&self) -> Option<&String> {
-        self.global_i_pv6_address.as_ref()
+    pub fn global_i_pv6_address(&self) -> Option<&str> {
+        self.global_i_pv6_address.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_global_i_pv6_address(&mut self) {
@@ -318,13 +354,13 @@ impl NetworkSettings {
         self.global_i_pv6_prefix_len = Some(global_i_pv6_prefix_len);
     }
 
-    pub fn with_global_i_pv6_prefix_len(mut self, global_i_pv6_prefix_len: i32) -> NetworkSettings {
+    pub fn with_global_i_pv6_prefix_len(mut self, global_i_pv6_prefix_len: i32) -> Self {
         self.global_i_pv6_prefix_len = Some(global_i_pv6_prefix_len);
         self
     }
 
-    pub fn global_i_pv6_prefix_len(&self) -> Option<&i32> {
-        self.global_i_pv6_prefix_len.as_ref()
+    pub fn global_i_pv6_prefix_len(&self) -> Option<i32> {
+        self.global_i_pv6_prefix_len
     }
 
     pub fn reset_global_i_pv6_prefix_len(&mut self) {
@@ -335,13 +371,13 @@ impl NetworkSettings {
         self.ip_address = Some(ip_address);
     }
 
-    pub fn with_ip_address(mut self, ip_address: String) -> NetworkSettings {
+    pub fn with_ip_address(mut self, ip_address: String) -> Self {
         self.ip_address = Some(ip_address);
         self
     }
 
-    pub fn ip_address(&self) -> Option<&String> {
-        self.ip_address.as_ref()
+    pub fn ip_address(&self) -> Option<&str> {
+        self.ip_address.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_ip_address(&mut self) {
@@ -352,13 +388,13 @@ impl NetworkSettings {
         self.ip_prefix_len = Some(ip_prefix_len);
     }
 
-    pub fn with_ip_prefix_len(mut self, ip_prefix_len: i32) -> NetworkSettings {
+    pub fn with_ip_prefix_len(mut self, ip_prefix_len: i32) -> Self {
         self.ip_prefix_len = Some(ip_prefix_len);
         self
     }
 
-    pub fn ip_prefix_len(&self) -> Option<&i32> {
-        self.ip_prefix_len.as_ref()
+    pub fn ip_prefix_len(&self) -> Option<i32> {
+        self.ip_prefix_len
     }
 
     pub fn reset_ip_prefix_len(&mut self) {
@@ -369,13 +405,13 @@ impl NetworkSettings {
         self.i_pv6_gateway = Some(i_pv6_gateway);
     }
 
-    pub fn with_i_pv6_gateway(mut self, i_pv6_gateway: String) -> NetworkSettings {
+    pub fn with_i_pv6_gateway(mut self, i_pv6_gateway: String) -> Self {
         self.i_pv6_gateway = Some(i_pv6_gateway);
         self
     }
 
-    pub fn i_pv6_gateway(&self) -> Option<&String> {
-        self.i_pv6_gateway.as_ref()
+    pub fn i_pv6_gateway(&self) -> Option<&str> {
+        self.i_pv6_gateway.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_i_pv6_gateway(&mut self) {
@@ -386,13 +422,13 @@ impl NetworkSettings {
         self.mac_address = Some(mac_address);
     }
 
-    pub fn with_mac_address(mut self, mac_address: String) -> NetworkSettings {
+    pub fn with_mac_address(mut self, mac_address: String) -> Self {
         self.mac_address = Some(mac_address);
         self
     }
 
-    pub fn mac_address(&self) -> Option<&String> {
-        self.mac_address.as_ref()
+    pub fn mac_address(&self) -> Option<&str> {
+        self.mac_address.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_mac_address(&mut self) {
@@ -409,7 +445,7 @@ impl NetworkSettings {
     pub fn with_networks(
         mut self,
         networks: ::std::collections::HashMap<String, ::models::EndpointSettings>,
-    ) -> NetworkSettings {
+    ) -> Self {
         self.networks = Some(networks);
         self
     }

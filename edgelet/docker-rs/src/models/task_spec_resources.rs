@@ -19,13 +19,16 @@ pub struct TaskSpecResources {
     #[serde(rename = "Limits", skip_serializing_if = "Option::is_none")]
     limits: Option<::models::ResourceObject>,
     /// Define resources reservation.
-    #[serde(rename = "Reservation", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "Reservation",
+        skip_serializing_if = "Option::is_none"
+    )]
     reservation: Option<::models::ResourceObject>,
 }
 
 impl TaskSpecResources {
     /// Resource requirements which apply to each individual container created as part of the service.
-    pub fn new() -> TaskSpecResources {
+    pub fn new() -> Self {
         TaskSpecResources {
             limits: None,
             reservation: None,
@@ -36,7 +39,7 @@ impl TaskSpecResources {
         self.limits = Some(limits);
     }
 
-    pub fn with_limits(mut self, limits: ::models::ResourceObject) -> TaskSpecResources {
+    pub fn with_limits(mut self, limits: ::models::ResourceObject) -> Self {
         self.limits = Some(limits);
         self
     }
@@ -53,7 +56,7 @@ impl TaskSpecResources {
         self.reservation = Some(reservation);
     }
 
-    pub fn with_reservation(mut self, reservation: ::models::ResourceObject) -> TaskSpecResources {
+    pub fn with_reservation(mut self, reservation: ::models::ResourceObject) -> Self {
         self.reservation = Some(reservation);
         self
     }

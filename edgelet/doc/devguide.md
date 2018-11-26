@@ -29,6 +29,28 @@ sudo apt-get update
 sudo apt-get install -y git cmake build-essential curl libcurl4-openssl-dev libssl-dev uuid-dev pkg-config
 ```
 
+#### Windows
+
+1. Install `vcpkg`
+
+	```powershell
+	git clone https://github.com/Microsoft/vcpkg
+	cd vcpkg
+	.\bootstrap-vcpkg.bat
+	```
+
+1. Install openssl binaries
+
+	```powershell
+	vcpkg install openssl:x64-windows
+	```
+
+1. Set `OPENSSL_ROOT_DIR`
+
+	```powershell
+	$env:OPENSSL_ROOT_DIR = "$PWD\installed\x64-windows"
+	```
+
 ### Cargo
 Cargo is the build tool for rust. You will use cargo frequently. It manages the build of the project, downloading dependencies,
 testing, etc. You can read more about cargo and it's capabilities in the [cargo book](https://doc.rust-lang.org/cargo/).
@@ -113,7 +135,10 @@ VS Code has good support for rust. Consider installing the following extensions:
 
 There is a `launch.json` configuration in this repo to setup debugging on Windows. This should work out of the box.
 
-### Other
+## Test IoT Edge daemon API endpoints on dev machine
+If you would like to know how to test IoT Edge daemon API endpoints on dev machine, please read from [here](testiotedgedapi.md).
+
+## Other
 
 * [The Book](https://doc.rust-lang.org/book/second-edition/index.html) - The Rust Programming Language
 * [RUST Api Guidelines](https://rust-lang-nursery.github.io/api-guidelines/) - Guidelines on naming conventions, organization, etc.

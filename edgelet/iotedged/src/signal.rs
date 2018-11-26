@@ -4,12 +4,11 @@
 // https://github.com/runconduit/conduit/blob/master/proxy/src/signal.rs
 
 use futures::Future;
-use tokio_core::reactor::Handle;
 
 type ShutdownSignal = Box<Future<Item = (), Error = ()> + Send>;
 
-pub fn shutdown(handle: &Handle) -> ShutdownSignal {
-    imp::shutdown(handle)
+pub fn shutdown() -> ShutdownSignal {
+    imp::shutdown()
 }
 
 #[cfg(unix)]
@@ -17,14 +16,13 @@ mod imp {
     use std::fmt;
 
     use futures::{future, Future, Stream};
-    use tokio_core::reactor::Handle;
     use tokio_signal::unix::{Signal, SIGINT, SIGTERM};
 
     use super::ShutdownSignal;
 
-    pub(super) fn shutdown(handle: &Handle) -> ShutdownSignal {
+    pub(super) fn shutdown() -> ShutdownSignal {
         let signals = [SIGINT, SIGTERM].into_iter().map(|&sig| {
-            Signal::new(sig, handle)
+            Signal::new(sig)
                 .flatten_stream()
                 .into_future()
                 .map(move |_| {
@@ -41,6 +39,7 @@ mod imp {
         Box::new(on_any_signal)
     }
 
+    #[derive(Clone, Copy)]
     struct DisplaySignal(i32);
 
     impl fmt::Display for DisplaySignal {
@@ -58,13 +57,12 @@ mod imp {
 #[cfg(not(unix))]
 mod imp {
     use futures::{Future, Stream};
-    use tokio_core::reactor::Handle;
     use tokio_signal;
 
     use super::ShutdownSignal;
 
-    pub(super) fn shutdown(handle: &Handle) -> ShutdownSignal {
-        let on_ctrl_c = tokio_signal::ctrl_c(handle)
+    pub(super) fn shutdown() -> ShutdownSignal {
+        let on_ctrl_c = tokio_signal::ctrl_c()
             .flatten_stream()
             .into_future()
             .map(|_| {
@@ -72,8 +70,7 @@ mod imp {
                     target: "iotedged::signal",
                     "Received Ctrl+C, starting shutdown",
                 );
-            })
-            .map_err(|_| unreachable!("ctrl_c never returns errors"));
+            }).map_err(|_| unreachable!("ctrl_c never returns errors"));
         Box::new(on_ctrl_c)
     }
 }

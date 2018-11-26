@@ -16,13 +16,16 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SwarmSpecEncryptionConfig {
     /// If set, generate a key and use it to lock data stored on the managers.
-    #[serde(rename = "AutoLockManagers", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "AutoLockManagers",
+        skip_serializing_if = "Option::is_none"
+    )]
     auto_lock_managers: Option<bool>,
 }
 
 impl SwarmSpecEncryptionConfig {
     /// Parameters related to encryption-at-rest.
-    pub fn new() -> SwarmSpecEncryptionConfig {
+    pub fn new() -> Self {
         SwarmSpecEncryptionConfig {
             auto_lock_managers: None,
         }
@@ -32,10 +35,7 @@ impl SwarmSpecEncryptionConfig {
         self.auto_lock_managers = Some(auto_lock_managers);
     }
 
-    pub fn with_auto_lock_managers(
-        mut self,
-        auto_lock_managers: bool,
-    ) -> SwarmSpecEncryptionConfig {
+    pub fn with_auto_lock_managers(mut self, auto_lock_managers: bool) -> Self {
         self.auto_lock_managers = Some(auto_lock_managers);
         self
     }

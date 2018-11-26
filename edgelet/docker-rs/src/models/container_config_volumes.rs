@@ -15,13 +15,16 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ContainerConfigVolumes {
-    #[serde(rename = "additionalProperties", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "additionalProperties",
+        skip_serializing_if = "Option::is_none"
+    )]
     additional_properties: Option<Value>,
 }
 
 impl ContainerConfigVolumes {
     /// An object mapping mount point paths inside the container to empty objects.
-    pub fn new() -> ContainerConfigVolumes {
+    pub fn new() -> Self {
         ContainerConfigVolumes {
             additional_properties: None,
         }
@@ -31,10 +34,7 @@ impl ContainerConfigVolumes {
         self.additional_properties = Some(additional_properties);
     }
 
-    pub fn with_additional_properties(
-        mut self,
-        additional_properties: Value,
-    ) -> ContainerConfigVolumes {
+    pub fn with_additional_properties(mut self, additional_properties: Value) -> Self {
         self.additional_properties = Some(additional_properties);
         self
     }

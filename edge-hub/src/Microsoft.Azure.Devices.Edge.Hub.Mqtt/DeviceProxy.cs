@@ -94,16 +94,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             twin.SystemProperties[SystemProperties.OutboundUri] = Constants.OutboundUriTwinEndpoint;
             IProtocolGatewayMessage pgMessage = this.messageConverter.FromMessage(twin);
             this.channel.Handle(pgMessage);
+            Events.SentTwinUpdateToDevice(this.Identity);
             return Task.CompletedTask;
         }
 
         public Task OnDesiredPropertyUpdates(IMessage desiredProperties)
         {
             desiredProperties.SystemProperties[SystemProperties.OutboundUri] =
-                Constants.OutboundUriTwinDesiredPropertyUpdate;
-
+                Constants.OutboundUriTwinDesiredPropertyUpdate;            
             this.channel.Handle(this.messageConverter.FromMessage(desiredProperties));
-
+            Events.SentDesiredPropertyUpdate(this.Identity);
             return Task.FromResult(true);
         }
 
@@ -120,7 +120,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             {
                 Close = IdStart,
                 SetInactive,
-                SendMessage
+                SendMessage,
+                SentTwinUpdateToDevice,
+                SendingDesiredPropertyUpdate
             }
 
             public static void Close(IIdentity identity)
@@ -136,6 +138,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             public static void SendMessage(IIdentity identity)
             {
                 Log.LogDebug((int)EventIds.SendMessage, Invariant($"Sending message to device for device Id {identity.Id}"));
+            }
+
+            public static void SentTwinUpdateToDevice(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.SentTwinUpdateToDevice, Invariant($"Sent twin update to {identity.Id}"));
+            }
+
+            public static void SentDesiredPropertyUpdate(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.SendingDesiredPropertyUpdate, Invariant($"Sent desired properties update to {identity.Id}"));
             }
         }
     }

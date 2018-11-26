@@ -141,12 +141,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
             var clientCredentials = Mock.Of<IClientCredentials>();
             var identityFactory = new Mock<IClientCredentialsFactory>();
-            identityFactory.Setup(i => i.GetWithSasToken(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            identityFactory.Setup(i => i.GetWithSasToken(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), true))
                 .Returns(clientCredentials);
 
             string iotHubHostName = "edgehubtest1.azure-devices.net";
             var authenticator = new Mock<IAuthenticator>();
-            var cbsNode = new CbsNode(identityFactory.Object, iotHubHostName, authenticator.Object, new NullCredentialsStore());
+            var cbsNode = new CbsNode(identityFactory.Object, iotHubHostName, authenticator.Object, new NullCredentialsCache());
 
             // Act
             IClientCredentials receivedClientCredentials = cbsNode.GetClientCredentials(validAmqpMessage);
@@ -172,13 +172,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var identity = Mock.Of<IIdentity>(i => i.Id == "device1/mod1");
             var clientCredentials = Mock.Of<IClientCredentials>(c => c.Identity == identity);
             var clientCredentialsFactory = new Mock<IClientCredentialsFactory>();
-            clientCredentialsFactory.Setup(i => i.GetWithSasToken(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            clientCredentialsFactory.Setup(i => i.GetWithSasToken(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), true))
                 .Returns(clientCredentials);
 
             string iotHubHostName = "edgehubtest1.azure-devices.net";
             var authenticator = new Mock<IAuthenticator>();
             authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(true);
-            var cbsNode = new CbsNode(clientCredentialsFactory.Object, iotHubHostName, authenticator.Object, new NullCredentialsStore());
+            var cbsNode = new CbsNode(clientCredentialsFactory.Object, iotHubHostName, authenticator.Object, new NullCredentialsCache());
 
             // Act
             (AmqpAuthentication amqpAuthentication, AmqpResponseStatusCode statusCode, string description) = await cbsNode.UpdateCbsToken(validAmqpMessage);

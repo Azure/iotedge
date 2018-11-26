@@ -16,13 +16,16 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SwarmSpecDispatcher {
     /// The delay for an agent to send a heartbeat to the dispatcher.
-    #[serde(rename = "HeartbeatPeriod", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "HeartbeatPeriod",
+        skip_serializing_if = "Option::is_none"
+    )]
     heartbeat_period: Option<i64>,
 }
 
 impl SwarmSpecDispatcher {
     /// Dispatcher configuration.
-    pub fn new() -> SwarmSpecDispatcher {
+    pub fn new() -> Self {
         SwarmSpecDispatcher {
             heartbeat_period: None,
         }
@@ -32,13 +35,13 @@ impl SwarmSpecDispatcher {
         self.heartbeat_period = Some(heartbeat_period);
     }
 
-    pub fn with_heartbeat_period(mut self, heartbeat_period: i64) -> SwarmSpecDispatcher {
+    pub fn with_heartbeat_period(mut self, heartbeat_period: i64) -> Self {
         self.heartbeat_period = Some(heartbeat_period);
         self
     }
 
-    pub fn heartbeat_period(&self) -> Option<&i64> {
-        self.heartbeat_period.as_ref()
+    pub fn heartbeat_period(&self) -> Option<i64> {
+        self.heartbeat_period
     }
 
     pub fn reset_heartbeat_period(&mut self) {

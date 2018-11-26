@@ -19,12 +19,15 @@ pub struct CreateImageInfo {
     status: Option<String>,
     #[serde(rename = "progress", skip_serializing_if = "Option::is_none")]
     progress: Option<String>,
-    #[serde(rename = "progressDetail", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "progressDetail",
+        skip_serializing_if = "Option::is_none"
+    )]
     progress_detail: Option<::models::ProgressDetail>,
 }
 
 impl CreateImageInfo {
-    pub fn new() -> CreateImageInfo {
+    pub fn new() -> Self {
         CreateImageInfo {
             error: None,
             status: None,
@@ -37,13 +40,13 @@ impl CreateImageInfo {
         self.error = Some(error);
     }
 
-    pub fn with_error(mut self, error: String) -> CreateImageInfo {
+    pub fn with_error(mut self, error: String) -> Self {
         self.error = Some(error);
         self
     }
 
-    pub fn error(&self) -> Option<&String> {
-        self.error.as_ref()
+    pub fn error(&self) -> Option<&str> {
+        self.error.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_error(&mut self) {
@@ -54,13 +57,13 @@ impl CreateImageInfo {
         self.status = Some(status);
     }
 
-    pub fn with_status(mut self, status: String) -> CreateImageInfo {
+    pub fn with_status(mut self, status: String) -> Self {
         self.status = Some(status);
         self
     }
 
-    pub fn status(&self) -> Option<&String> {
-        self.status.as_ref()
+    pub fn status(&self) -> Option<&str> {
+        self.status.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_status(&mut self) {
@@ -71,13 +74,13 @@ impl CreateImageInfo {
         self.progress = Some(progress);
     }
 
-    pub fn with_progress(mut self, progress: String) -> CreateImageInfo {
+    pub fn with_progress(mut self, progress: String) -> Self {
         self.progress = Some(progress);
         self
     }
 
-    pub fn progress(&self) -> Option<&String> {
-        self.progress.as_ref()
+    pub fn progress(&self) -> Option<&str> {
+        self.progress.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_progress(&mut self) {
@@ -88,10 +91,7 @@ impl CreateImageInfo {
         self.progress_detail = Some(progress_detail);
     }
 
-    pub fn with_progress_detail(
-        mut self,
-        progress_detail: ::models::ProgressDetail,
-    ) -> CreateImageInfo {
+    pub fn with_progress_detail(mut self, progress_detail: ::models::ProgressDetail) -> Self {
         self.progress_detail = Some(progress_detail);
         self
     }

@@ -2,9 +2,12 @@
 namespace Microsoft.Azure.Devices.Edge.Util
 {
     using System;
+    using System.Collections;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Text.RegularExpressions;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
-    using System.Linq;
 
     public static class JsonEx
     {
@@ -175,6 +178,96 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
 
             return token;
+        }
+
+        /// <summary>
+        /// Returns an ordered iterator of JTokens for a chunked field.
+        /// The field must use a sequence number suffix, excluding zero.
+        /// For example, createOptions, createOptions01, createOptions02, etc.
+        /// The iterator assumes that these fields are string sortable.
+        /// </summary>
+        /// <param name="self">The JObject</param>
+        /// <param name="name">The base name of the field. For example, createOptions</param>
+        /// <returns></returns>
+        public static IEnumerable<JToken> ChunkedValue(this JObject self, string name) => new ChunkedProperty(self, name);
+
+        /// <summary>
+        /// Returns an ordered iterator of JTokens for a chunked field.
+        /// The field must use a sequence number suffix, excluding zero.
+        /// For example, createOptions, createOptions01, createOptions02, etc.
+        /// The iterator assumes that these fields are string sortable.
+        /// </summary>
+        /// <param name="self">The JObject</param>
+        /// <param name="name">The base name of the field. For example, createOptions</param>
+        /// <param name="ignoreCase">If true, ignore case of the field name</param>
+        /// <returns></returns>
+        public static IEnumerable<JToken> ChunkedValue(this JObject self, string name, bool ignoreCase) => new ChunkedProperty(self, name, ignoreCase);
+
+        class ChunkedProperty : IEnumerable<JToken>
+        {
+            readonly JObject obj;
+            readonly string name;
+            readonly Regex regex;
+            readonly IComparer<string> comparer;
+
+            public ChunkedProperty(JObject obj, string name)
+                : this(obj, name, false)
+            {
+            }
+
+            public ChunkedProperty(JObject obj, string name, bool ignoreCase)
+            {
+                this.obj = Preconditions.CheckNotNull(obj, nameof(obj));
+                this.name = Preconditions.CheckNotNull(name, nameof(name));
+                this.comparer = ignoreCase
+                    ? StringComparer.OrdinalIgnoreCase
+                    : StringComparer.Ordinal;
+                var pattern = ignoreCase
+                    ? string.Format("(?i:{0})(?<num>[0-9]*)", this.name.ToLower())
+                    : string.Format("{0}(?<num>[0-9]*)", this.name);
+                this.regex = new Regex(pattern);
+            }
+
+            public IEnumerator<JToken> GetEnumerator()
+            {
+                var tokens = this.obj
+                    .Where<KeyValuePair<string, JToken>>(kv => this.regex.IsMatch(kv.Key))
+                    .OrderBy(kv => kv.Key, this.comparer)
+                    .Enumerate();
+
+                foreach (var (num, kv) in tokens)
+                {
+                    var strNum = this.regex.Match(kv.Key).Groups["num"].Value;
+                    this.Validate(strNum, num);
+                    yield return kv.Value;
+                }
+            }
+
+            void Validate(string strNum, uint expectedNum)
+            {
+                // The zero-th item should have an empty num
+                if (expectedNum == 0)
+                {
+                    if (strNum != string.Empty)
+                    {
+                        throw new JsonSerializationException(string.Format("Error while parsing chunked field \"{0}\", expected empty field number but found \"{1}\"", this.name, strNum));
+                    }
+                }
+                else
+                {
+                    if (!int.TryParse(strNum, out int tokenNum))
+                    {
+                        throw new JsonSerializationException(string.Format("Attempted to parse integer from {0}", strNum));
+                    }
+
+                    if (expectedNum != tokenNum)
+                    {
+                        throw new JsonSerializationException(string.Format("Error while parsing chunked field \"{0}\", expected {0}{1:D2} found {0}{2}", this.name, expectedNum, strNum));
+                    }
+                }
+            }
+
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
         }
     }
 }

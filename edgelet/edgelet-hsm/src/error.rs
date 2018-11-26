@@ -3,7 +3,6 @@
 use std::fmt;
 use std::fmt::Display;
 
-use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind};
 use failure::{Backtrace, Context, Fail};
 use hsm::Error as HsmError;
 
@@ -12,7 +11,7 @@ pub struct Error {
     inner: Context<ErrorKind>,
 }
 
-#[derive(Clone, Eq, PartialEq, Debug, Fail)]
+#[derive(Clone, Copy, Eq, PartialEq, Debug, Fail)]
 pub enum ErrorKind {
     #[fail(display = "HSM failure")]
     Hsm,
@@ -43,7 +42,7 @@ impl Display for Error {
 }
 
 impl Error {
-    pub fn new(inner: Context<ErrorKind>) -> Error {
+    pub fn new(inner: Context<ErrorKind>) -> Self {
         Error { inner }
     }
 
@@ -53,7 +52,7 @@ impl Error {
 }
 
 impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Error {
+    fn from(kind: ErrorKind) -> Self {
         Error {
             inner: Context::new(kind),
         }
@@ -61,21 +60,15 @@ impl From<ErrorKind> for Error {
 }
 
 impl From<Context<ErrorKind>> for Error {
-    fn from(inner: Context<ErrorKind>) -> Error {
+    fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
     }
 }
 
 impl From<HsmError> for Error {
-    fn from(error: HsmError) -> Error {
+    fn from(error: HsmError) -> Self {
         Error {
             inner: error.context(ErrorKind::Hsm),
         }
-    }
-}
-
-impl From<Error> for CoreError {
-    fn from(error: Error) -> CoreError {
-        CoreError::from(error.context(CoreErrorKind::KeyStore))
     }
 }

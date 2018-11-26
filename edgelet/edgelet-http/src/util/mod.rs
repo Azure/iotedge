@@ -9,14 +9,17 @@ use std::os::unix::net::SocketAddr as UnixSocketAddr;
 use bytes::{Buf, BufMut};
 use edgelet_core::pid::Pid;
 use futures::Poll;
-use tokio_core::net::TcpStream;
-use tokio_io::{AsyncRead, AsyncWrite};
+#[cfg(windows)]
+use mio_uds_windows::net::SocketAddr as UnixSocketAddr;
+use tokio::io::{AsyncRead, AsyncWrite};
+use tokio::net::TcpStream;
 #[cfg(windows)]
 use tokio_named_pipe::PipeStream;
 #[cfg(unix)]
 use tokio_uds::UnixStream;
+#[cfg(windows)]
+use tokio_uds_windows::UnixStream;
 
-#[cfg(unix)]
 use pid::UnixStreamExt;
 
 pub mod connector;
@@ -31,17 +34,16 @@ pub enum StreamSelector {
     Tcp(TcpStream),
     #[cfg(windows)]
     Pipe(PipeStream),
-    #[cfg(unix)]
     Unix(UnixStream),
 }
 
 impl StreamSelector {
+    #[cfg_attr(feature = "cargo-clippy", allow(match_same_arms))]
     pub fn pid(&self) -> io::Result<Pid> {
         match *self {
             StreamSelector::Tcp(_) => Ok(Pid::Any),
             #[cfg(windows)]
             StreamSelector::Pipe(_) => Ok(Pid::Any),
-            #[cfg(unix)]
             StreamSelector::Unix(ref stream) => stream.pid(),
         }
     }
@@ -53,7 +55,6 @@ impl Read for StreamSelector {
             StreamSelector::Tcp(ref mut stream) => stream.read(buf),
             #[cfg(windows)]
             StreamSelector::Pipe(ref mut stream) => stream.read(buf),
-            #[cfg(unix)]
             StreamSelector::Unix(ref mut stream) => stream.read(buf),
         }
     }
@@ -65,7 +66,6 @@ impl Write for StreamSelector {
             StreamSelector::Tcp(ref mut stream) => stream.write(buf),
             #[cfg(windows)]
             StreamSelector::Pipe(ref mut stream) => stream.write(buf),
-            #[cfg(unix)]
             StreamSelector::Unix(ref mut stream) => stream.write(buf),
         }
     }
@@ -75,7 +75,6 @@ impl Write for StreamSelector {
             StreamSelector::Tcp(ref mut stream) => stream.flush(),
             #[cfg(windows)]
             StreamSelector::Pipe(ref mut stream) => stream.flush(),
-            #[cfg(unix)]
             StreamSelector::Unix(ref mut stream) => stream.flush(),
         }
     }
@@ -88,7 +87,6 @@ impl AsyncRead for StreamSelector {
             StreamSelector::Tcp(ref stream) => stream.prepare_uninitialized_buffer(buf),
             #[cfg(windows)]
             StreamSelector::Pipe(ref stream) => stream.prepare_uninitialized_buffer(buf),
-            #[cfg(unix)]
             StreamSelector::Unix(ref stream) => stream.prepare_uninitialized_buffer(buf),
         }
     }
@@ -99,7 +97,6 @@ impl AsyncRead for StreamSelector {
             StreamSelector::Tcp(ref mut stream) => stream.read_buf(buf),
             #[cfg(windows)]
             StreamSelector::Pipe(ref mut stream) => stream.read_buf(buf),
-            #[cfg(unix)]
             StreamSelector::Unix(ref mut stream) => stream.read_buf(buf),
         }
     }
@@ -111,7 +108,6 @@ impl AsyncWrite for StreamSelector {
             StreamSelector::Tcp(ref mut stream) => <&TcpStream>::shutdown(&mut &*stream),
             #[cfg(windows)]
             StreamSelector::Pipe(ref mut stream) => PipeStream::shutdown(stream),
-            #[cfg(unix)]
             StreamSelector::Unix(ref mut stream) => <&UnixStream>::shutdown(&mut &*stream),
         }
     }
@@ -122,7 +118,6 @@ impl AsyncWrite for StreamSelector {
             StreamSelector::Tcp(ref mut stream) => stream.write_buf(buf),
             #[cfg(windows)]
             StreamSelector::Pipe(ref mut stream) => stream.write_buf(buf),
-            #[cfg(unix)]
             StreamSelector::Unix(ref mut stream) => stream.write_buf(buf),
         }
     }
@@ -130,7 +125,6 @@ impl AsyncWrite for StreamSelector {
 
 pub enum IncomingSocketAddr {
     Tcp(SocketAddr),
-    #[cfg(unix)]
     Unix(UnixSocketAddr),
 }
 
@@ -138,7 +132,6 @@ impl fmt::Display for IncomingSocketAddr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             IncomingSocketAddr::Tcp(ref socket) => socket.fmt(f),
-            #[cfg(unix)]
             IncomingSocketAddr::Unix(ref socket) => {
                 if let Some(path) = socket.as_pathname() {
                     write!(f, "{}", path.display())
@@ -150,24 +143,76 @@ impl fmt::Display for IncomingSocketAddr {
     }
 }
 
-#[cfg(unix)]
 #[cfg(test)]
 mod tests {
-    use tokio_core::reactor::Core;
+    #[cfg(windows)]
+    use tempdir::TempDir;
+    #[cfg(windows)]
+    use tokio::runtime::current_thread::Runtime;
+    #[cfg(unix)]
+    use tokio_uds::UnixStream;
+    #[cfg(windows)]
+    use tokio_uds_windows::{UnixListener, UnixStream};
 
     use super::*;
 
+    struct Pair {
+        #[cfg(windows)]
+        _dir: TempDir,
+        #[cfg(windows)]
+        _rt: Runtime,
+
+        a: UnixStream,
+        b: UnixStream,
+    }
+
+    #[cfg(unix)]
+    fn socket_pair() -> Pair {
+        let (a, b) = UnixStream::pair().unwrap();
+        Pair { a, b }
+    }
+
+    #[cfg(windows)]
+    fn socket_pair() -> Pair {
+        // 'pair' not implemented on Windows
+        use futures::sync::oneshot;
+        use futures::{Future, Stream};
+        let dir = TempDir::new("uds").unwrap();
+        let addr = dir.path().join("sock");
+        let mut rt = Runtime::new().unwrap();
+        let server = UnixListener::bind(&addr).unwrap();
+        let (tx, rx) = oneshot::channel();
+        rt.spawn(
+            server
+                .incoming()
+                .into_future()
+                .and_then(move |(sock, _)| {
+                    tx.send(sock.unwrap()).unwrap();
+                    Ok(())
+                }).map_err(|e| panic!("err={:?}", e)),
+        );
+
+        let a = rt.block_on(UnixStream::connect(&addr)).unwrap();
+        let b = rt.block_on(rx).unwrap();
+        Pair {
+            _dir: dir,
+            _rt: rt,
+            a,
+            b,
+        }
+    }
+
     #[test]
+    #[cfg_attr(windows, ignore)] // TODO: remove when windows build servers are upgraded to RS5
     fn test_pid() {
-        let core = Core::new().unwrap();
-        let (a, b) = UnixStream::pair(&core.handle()).unwrap();
-        assert_eq!(a.pid().unwrap(), b.pid().unwrap());
-        match a.pid().unwrap() {
+        let pair = socket_pair();
+        assert_eq!(pair.a.pid().unwrap(), pair.b.pid().unwrap());
+        match pair.a.pid().unwrap() {
             Pid::None => panic!("no pid 'a'"),
             Pid::Any => panic!("any pid 'a'"),
             Pid::Value(_) => (),
         }
-        match b.pid().unwrap() {
+        match pair.b.pid().unwrap() {
             Pid::None => panic!("no pid 'b'"),
             Pid::Any => panic!("any pid 'b'"),
             Pid::Value(_) => (),

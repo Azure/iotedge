@@ -1,50 +1,65 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+#![deny(unused_extern_crates, warnings)]
+// Remove this when clippy stops warning about old-style `allow()`,
+// which can only be silenced by enabling a feature and thus requires nightly
+//
+// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
+#![allow(renamed_and_removed_lints)]
+#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
+
 extern crate edgelet_http;
 extern crate futures;
-extern crate http;
 extern crate hyper;
-extern crate regex;
 
-use edgelet_http::route::{BoxFuture, Builder, Parameters, RegexRoutesBuilder, Router};
 use futures::{future, Future, Stream};
-use http::{Request, Response, StatusCode};
-use hyper::server::{NewService, Service};
-use hyper::{Body, Chunk, Error as HyperError};
+use hyper::service::{NewService, Service};
+use hyper::{Body, Chunk, Request, Response, StatusCode};
 
-fn route1(_req: Request<Body>, params: Parameters) -> BoxFuture<Response<Body>, HyperError> {
-    let response = params
-        .name("name")
-        .map(|name| {
+use edgelet_http::route::{Builder, Parameters, RegexRoutesBuilder, Router};
+use edgelet_http::Error as HttpError;
+
+#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
+fn route1(
+    _req: Request<Body>,
+    params: Parameters,
+) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
+    let response = params.name("name").map_or_else(
+        || {
+            Response::builder()
+                .status(StatusCode::BAD_REQUEST)
+                .body(Body::default())
+                .unwrap()
+        },
+        |name| {
             Response::builder()
                 .status(StatusCode::OK)
                 .body(format!("route1 {}", name).into())
                 .unwrap()
-        })
-        .unwrap_or_else(|| {
+        },
+    );
+    Box::new(future::ok(response))
+}
+
+#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
+fn route2(
+    _req: Request<Body>,
+    params: Parameters,
+) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
+    let response = params.name("name").map_or_else(
+        || {
             Response::builder()
                 .status(StatusCode::BAD_REQUEST)
                 .body(Body::default())
                 .unwrap()
-        });
-    Box::new(future::ok(response))
-}
-
-fn route2(_req: Request<Body>, params: Parameters) -> BoxFuture<Response<Body>, HyperError> {
-    let response = params
-        .name("name")
-        .map(|name| {
+        },
+        |name| {
             Response::builder()
                 .status(StatusCode::CREATED)
                 .body(format!("route2 {}", name).into())
                 .unwrap()
-        })
-        .unwrap_or_else(|| {
-            Response::builder()
-                .status(StatusCode::BAD_REQUEST)
-                .body(Body::default())
-                .unwrap()
-        });
+        },
+    );
     Box::new(future::ok(response))
 }
 
@@ -55,7 +70,7 @@ fn simple_route() {
         .get("/route2/(?P<name>[^/]+)", route2)
         .finish();
     let router = Router::from(recognizer);
-    let service = router.new_service().unwrap();
+    let mut service = router.new_service().wait().unwrap();
 
     let uri1 = "http://example.com/route1/thename";
     let request1 = Request::get(uri1).body(Body::default()).unwrap();
@@ -90,7 +105,7 @@ fn not_found() {
         .get("/route2/(?P<name>[^/]+)", route2)
         .finish();
     let router = Router::from(recognizer);
-    let service = router.new_service().unwrap();
+    let mut service = router.new_service().wait().unwrap();
 
     let uri1 = "http://example.com/route3/thename";
     let request1 = Request::get(uri1).body(Body::default()).unwrap();

@@ -14,15 +14,21 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InlineResponse20016 {
     /// Volumes that were deleted
-    #[serde(rename = "VolumesDeleted", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "VolumesDeleted",
+        skip_serializing_if = "Option::is_none"
+    )]
     volumes_deleted: Option<Vec<String>>,
     /// Disk space reclaimed in bytes
-    #[serde(rename = "SpaceReclaimed", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "SpaceReclaimed",
+        skip_serializing_if = "Option::is_none"
+    )]
     space_reclaimed: Option<i64>,
 }
 
 impl InlineResponse20016 {
-    pub fn new() -> InlineResponse20016 {
+    pub fn new() -> Self {
         InlineResponse20016 {
             volumes_deleted: None,
             space_reclaimed: None,
@@ -33,13 +39,13 @@ impl InlineResponse20016 {
         self.volumes_deleted = Some(volumes_deleted);
     }
 
-    pub fn with_volumes_deleted(mut self, volumes_deleted: Vec<String>) -> InlineResponse20016 {
+    pub fn with_volumes_deleted(mut self, volumes_deleted: Vec<String>) -> Self {
         self.volumes_deleted = Some(volumes_deleted);
         self
     }
 
-    pub fn volumes_deleted(&self) -> Option<&Vec<String>> {
-        self.volumes_deleted.as_ref()
+    pub fn volumes_deleted(&self) -> Option<&[String]> {
+        self.volumes_deleted.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_volumes_deleted(&mut self) {
@@ -50,13 +56,13 @@ impl InlineResponse20016 {
         self.space_reclaimed = Some(space_reclaimed);
     }
 
-    pub fn with_space_reclaimed(mut self, space_reclaimed: i64) -> InlineResponse20016 {
+    pub fn with_space_reclaimed(mut self, space_reclaimed: i64) -> Self {
         self.space_reclaimed = Some(space_reclaimed);
         self
     }
 
-    pub fn space_reclaimed(&self) -> Option<&i64> {
-        self.space_reclaimed.as_ref()
+    pub fn space_reclaimed(&self) -> Option<i64> {
+        self.space_reclaimed
     }
 
     pub fn reset_space_reclaimed(&mut self) {

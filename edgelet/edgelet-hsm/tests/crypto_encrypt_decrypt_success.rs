@@ -1,4 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
+
+#![deny(unused_extern_crates, warnings)]
+// Remove this when clippy stops warning about old-style `allow()`,
+// which can only be silenced by enabling a feature and thus requires nightly
+//
+// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
+#![allow(renamed_and_removed_lints)]
+#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
+
 extern crate edgelet_core;
 extern crate edgelet_hsm;
 
@@ -15,25 +24,20 @@ fn crypto_encrypt_decypt_success() {
     let plaintext = b"plaintext";
     let iv = b"initialization vector";
 
-    match crypto.create_key() {
-        Ok(_result) => assert!(true),
-        Err(_) => panic!("Create master key function returned error"),
-    };
+    crypto
+        .create_key()
+        .expect("Create master key function returned error");
 
     //act
-    let ciphertext = match crypto.encrypt(client_id, plaintext, iv) {
-        //assert
-        Ok(result) => result,
-        Err(_) => panic!("Encrypt function returned error"),
-    };
+    let ciphertext = crypto
+        .encrypt(client_id, plaintext, iv)
+        .expect("Encrypt function returned error");
     assert_ne!(ciphertext.as_ref().len(), 0);
 
     //act
-    let plaintext_result = match crypto.decrypt(client_id, ciphertext.as_ref(), iv) {
-        //assert
-        Ok(result) => result,
-        Err(_) => panic!("Decrypt function returned error"),
-    };
+    let plaintext_result = crypto
+        .decrypt(client_id, ciphertext.as_ref(), iv)
+        .expect("Decrypt function returned error");
     assert_eq!(
         plaintext,
         plaintext_result.as_ref(),
@@ -43,22 +47,17 @@ fn crypto_encrypt_decypt_success() {
     );
 
     let bad_client_id = b"module2";
-    match crypto.decrypt(bad_client_id, ciphertext.as_ref(), iv) {
-        //assert
-        Ok(_result) => panic!("Decrypt function returned unexpected success"),
-        Err(_) => (),
-    };
+    crypto
+        .decrypt(bad_client_id, ciphertext.as_ref(), iv)
+        .expect_err("Decrypt function returned unexpected success");
 
     let bad_iv = b"inconsistent_iv";
-    match crypto.decrypt(client_id, ciphertext.as_ref(), bad_iv) {
-        //assert
-        Ok(_result) => panic!("Decrypt function returned unexpected success"),
-        Err(_) => (),
-    };
+    crypto
+        .decrypt(client_id, ciphertext.as_ref(), bad_iv)
+        .expect_err("Decrypt function returned unexpected success");
 
     // cleanup
-    match crypto.destroy_key() {
-        Ok(_result) => assert!(true),
-        Err(_) => panic!("Destroy master key function returned error"),
-    };
+    crypto
+        .destroy_key()
+        .expect("Destroy master key function returned error");
 }

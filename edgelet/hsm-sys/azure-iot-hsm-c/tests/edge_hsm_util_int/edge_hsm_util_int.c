@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include "testrunnerswitcher.h"
+#include "test_utils.h"
 #include "umocktypes.h"
 #include "umocktypes_charptr.h"
 #include "azure_c_shared_utility/gballoc.h"
@@ -23,14 +24,29 @@
 // Test defines and data
 //#############################################################################
 
-#define TEST_FILE_ALPHA "test_alpha.txt"
-#define TEST_FILE_ALPHA_NEWLINE "test_alpha_newline.txt"
-#define TEST_FILE_NUMERIC "test_numeric.txt"
-#define TEST_FILE_NUMERIC_NEWLINE "test_numeric_newline.txt"
-#define TEST_FILE_BAD "test_bad.txt"
-#define TEST_FILE_EMPTY "test_empty.txt"
-#define TEST_WRITE_FILE "test_write_data.txt"
-#define TEST_WRITE_FILE_FOR_DELETE "test_write_data_del.txt"
+#define TEST_FILE_BAD_NAME "test_does_not_exist.txt"
+static char *TEST_FILE_BAD = NULL;
+
+#define TEST_FILE_ALPHA_NAME "test_alpha.txt"
+static char *TEST_FILE_ALPHA = NULL;
+
+#define TEST_FILE_ALPHA_NEWLINE_NAME "test_alpha_newline.txt"
+static char *TEST_FILE_ALPHA_NEWLINE = NULL;
+
+#define TEST_FILE_NUMERIC_NAME "test_numeric.txt"
+static char *TEST_FILE_NUMERIC = NULL;
+
+#define TEST_FILE_NUMERIC_NEWLINE_NAME "test_numeric_newline.txt"
+static char *TEST_FILE_NUMERIC_NEWLINE = NULL;
+
+#define TEST_FILE_EMPTY_NAME "test_empty.txt"
+static char *TEST_FILE_EMPTY = NULL;
+
+#define TEST_WRITE_FILE_NAME "test_write_data.txt"
+static char *TEST_WRITE_FILE = NULL;
+
+#define TEST_WRITE_FILE_FOR_DELETE_NAME "test_write_data_del.txt"
+static char *TEST_WRITE_FILE_FOR_DELETE = NULL;
 
 static char ALPHA[] = "ABCD";
 static char ALPHA_NEWLINE[] = "AB\nCD\n";
@@ -40,41 +56,34 @@ static unsigned char NUMERIC_NEWLINE[] = {'1', '2', '\n', '4', '5', '\n'};
 static TEST_MUTEX_HANDLE g_testByTest;
 static TEST_MUTEX_HANDLE g_dllByDll;
 
+static char* TEST_TEMP_DIR = NULL;
+static char* TEST_TEMP_DIR_GUID = NULL;
+
 //#############################################################################
 // Test helpers
 //#############################################################################
 
-static void test_helper_setup_env(const char *key, const char *val)
+static void test_helper_setup_testdir(void)
 {
-#if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
-    errno_t status = _putenv_s(key, val);
-#else
-    int status = setenv(key, val, 1);
-#endif
-    printf("Env variable %s set to %s\n", key, val);
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+    TEST_TEMP_DIR = hsm_test_util_create_temp_dir(&TEST_TEMP_DIR_GUID);
+    ASSERT_IS_NOT_NULL_WITH_MSG(TEST_TEMP_DIR_GUID, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL_WITH_MSG(TEST_TEMP_DIR, "Line:" TOSTRING(__LINE__));
+    printf("Temp dir created: [%s]\r\n", TEST_TEMP_DIR);
 }
 
-static void test_helper_unset_env(const char *key)
+static void test_helper_teardown_testdir(void)
 {
-#if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
-    errno_t status = _putenv_s(key, "");
-#else
-    int status = unsetenv(key);
-#endif
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+    if ((TEST_TEMP_DIR != NULL) && (TEST_TEMP_DIR_GUID != NULL))
+    {
+        hsm_test_util_delete_dir(TEST_TEMP_DIR_GUID);
+        free(TEST_TEMP_DIR);
+        TEST_TEMP_DIR = NULL;
+        free(TEST_TEMP_DIR_GUID);
+        TEST_TEMP_DIR_GUID = NULL;
+    }
 }
 
-static void test_helper_setup_homedir(void)
-{
-#if defined(TESTONLY_IOTEDGE_HOMEDIR)
-    test_helper_setup_env("IOTEDGE_HOMEDIR", TESTONLY_IOTEDGE_HOMEDIR);
-#else
-    #error "Could not find symbol TESTONLY_IOTEDGE_HOMEDIR"
-#endif
-}
-
-int test_helper_write_data_to_file
+static int test_helper_write_data_to_file
 (
     const char* file_name,
     const unsigned char* input_data,
@@ -110,9 +119,20 @@ int test_helper_write_data_to_file
     return result;
 }
 
-void delete_file_if_exists(const char* file_name)
+static void delete_file_if_exists(const char* file_name)
 {
     (void)remove(file_name);
+}
+
+static char* prepare_file_path(const char* base_dir, const char* file_name)
+{
+    size_t path_size = get_max_file_path_size();
+    char *file_path = calloc(path_size, 1);
+    ASSERT_IS_NOT_NULL_WITH_MSG(file_path, "Line:" TOSTRING(__LINE__));
+    int status = snprintf(file_path, path_size, "%s%s", base_dir, file_name);
+    ASSERT_IS_TRUE_WITH_MSG(((status > 0) || (status < (int)path_size)), "Line:" TOSTRING(__LINE__));
+
+    return file_path;
 }
 
 //#############################################################################
@@ -127,12 +147,26 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             g_testByTest = TEST_MUTEX_CREATE();
             ASSERT_IS_NOT_NULL(g_testByTest);
 
-            ASSERT_ARE_EQUAL(int, 0, test_helper_write_data_to_file(TEST_FILE_ALPHA, ALPHA, strlen(ALPHA)));
-            ASSERT_ARE_EQUAL(int, 0, test_helper_write_data_to_file(TEST_FILE_ALPHA_NEWLINE, ALPHA_NEWLINE, strlen(ALPHA_NEWLINE)));
-            ASSERT_ARE_EQUAL(int, 0, test_helper_write_data_to_file(TEST_FILE_NUMERIC, NUMERIC, sizeof(NUMERIC)));
-            ASSERT_ARE_EQUAL(int, 0, test_helper_write_data_to_file(TEST_FILE_NUMERIC_NEWLINE, NUMERIC_NEWLINE, sizeof(NUMERIC_NEWLINE)));
+            test_helper_setup_testdir();
+
+            TEST_FILE_ALPHA = prepare_file_path(TEST_TEMP_DIR, TEST_FILE_ALPHA_NAME);
+            ASSERT_ARE_EQUAL(int, 0, test_helper_write_data_to_file(TEST_FILE_ALPHA, (unsigned char*)ALPHA, strlen(ALPHA)));
+
+            TEST_FILE_ALPHA_NEWLINE = prepare_file_path(TEST_TEMP_DIR, TEST_FILE_ALPHA_NEWLINE_NAME);
+            ASSERT_ARE_EQUAL(int, 0, test_helper_write_data_to_file(TEST_FILE_ALPHA_NEWLINE, (unsigned char*)ALPHA_NEWLINE, strlen(ALPHA_NEWLINE)));
+
+            TEST_FILE_NUMERIC = prepare_file_path(TEST_TEMP_DIR, TEST_FILE_NUMERIC_NAME);
+            ASSERT_ARE_EQUAL(int, 0, test_helper_write_data_to_file(TEST_FILE_NUMERIC, (unsigned char*)NUMERIC, sizeof(NUMERIC)));
+
+            TEST_FILE_NUMERIC_NEWLINE = prepare_file_path(TEST_TEMP_DIR, TEST_FILE_NUMERIC_NEWLINE_NAME);
+            ASSERT_ARE_EQUAL(int, 0, test_helper_write_data_to_file(TEST_FILE_NUMERIC_NEWLINE, (unsigned char*)NUMERIC_NEWLINE, sizeof(NUMERIC_NEWLINE)));
+
+            TEST_FILE_EMPTY = prepare_file_path(TEST_TEMP_DIR, TEST_FILE_EMPTY_NAME);
             ASSERT_ARE_EQUAL(int, 0, test_helper_write_data_to_file(TEST_FILE_EMPTY, NULL, 0));
-            test_helper_setup_homedir();
+
+            TEST_FILE_BAD = prepare_file_path(TEST_TEMP_DIR, TEST_FILE_BAD_NAME);
+            TEST_WRITE_FILE = prepare_file_path(TEST_TEMP_DIR, TEST_WRITE_FILE_NAME);
+            TEST_WRITE_FILE_FOR_DELETE = prepare_file_path(TEST_TEMP_DIR, TEST_WRITE_FILE_FOR_DELETE_NAME);
         }
 
         TEST_SUITE_CLEANUP(TestClassCleanup)
@@ -142,7 +176,15 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             delete_file_if_exists(TEST_FILE_ALPHA_NEWLINE);
             delete_file_if_exists(TEST_FILE_NUMERIC_NEWLINE);
             delete_file_if_exists(TEST_FILE_EMPTY);
-
+            free(TEST_FILE_ALPHA); TEST_FILE_ALPHA = NULL;
+            free(TEST_FILE_ALPHA_NEWLINE); TEST_FILE_ALPHA_NEWLINE = NULL;
+            free(TEST_FILE_NUMERIC); TEST_FILE_NUMERIC = NULL;
+            free(TEST_FILE_NUMERIC_NEWLINE); TEST_FILE_NUMERIC_NEWLINE = NULL;
+            free(TEST_FILE_EMPTY); TEST_FILE_EMPTY = NULL;
+            free(TEST_FILE_BAD); TEST_FILE_BAD = NULL;
+            free(TEST_WRITE_FILE); TEST_WRITE_FILE = NULL;
+            free(TEST_WRITE_FILE_FOR_DELETE); TEST_WRITE_FILE_FOR_DELETE = NULL;
+            test_helper_teardown_testdir();
             TEST_MUTEX_DESTROY(g_testByTest);
             TEST_DEINITIALIZE_MEMORY_DEBUG(g_dllByDll);
         }
@@ -238,13 +280,13 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
 
             // act, assert
             output_size = 100;
-            output_string = read_file_into_cstring(NULL, &output_size);
+            output_string = (unsigned char *)read_file_into_cstring(NULL, &output_size);
             ASSERT_IS_NULL(output_string);
             ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, output_size, "Line:" TOSTRING(__LINE__));
 
             // act, assert
             output_size = 100;
-            output_string = read_file_into_cstring("", &output_size);
+            output_string = (unsigned char *)read_file_into_cstring("", &output_size);
             ASSERT_IS_NULL(output_string);
             ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, output_size, "Line:" TOSTRING(__LINE__));
 
@@ -666,7 +708,7 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             // arrange
             int status;
             char *input_data = "1234";
-            test_helper_setup_env("TEST_ENV_1", input_data);
+            hsm_test_util_setenv("TEST_ENV_1", input_data);
             char *output = NULL;
 
             // act
@@ -682,7 +724,7 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             output = NULL;
 
             // arrange
-            test_helper_unset_env("TEST_ENV_1");
+            hsm_test_util_unsetenv("TEST_ENV_1");
 
             // act
             status = hsm_get_env("TEST_ENV_1", &output);

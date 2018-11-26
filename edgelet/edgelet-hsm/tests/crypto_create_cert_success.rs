@@ -1,4 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
+
+#![deny(unused_extern_crates, warnings)]
+// Remove this when clippy stops warning about old-style `allow()`,
+// which can only be silenced by enabling a feature and thus requires nightly
+//
+// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
+#![allow(renamed_and_removed_lints)]
+#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
+
 extern crate edgelet_core;
 extern crate edgelet_hsm;
 
@@ -26,7 +35,12 @@ fn crypto_create_cert_success() {
 
     // assert (CA cert)
     let buffer = workload_ca_cert.pem().unwrap();
-    assert!(buffer.as_bytes().len() > 0);
+    assert!(!buffer.as_bytes().is_empty());
+
+    let san_entries: Vec<String> = vec![
+        "URI: bar:://pity/foo".to_string(),
+        "DNS: foo.bar".to_string(),
+    ];
 
     // act
     let props = CertificateProperties::new(
@@ -34,9 +48,11 @@ fn crypto_create_cert_success() {
         "Common Name".to_string(),
         CertificateType::Ca,
         "Alias".to_string(),
-    );
+    ).with_san_entries(san_entries);
 
     let cert_info = crypto.create_certificate(&props).unwrap();
+
+    assert!(cert_info.get_valid_to().is_ok());
 
     let buffer = cert_info.pem().unwrap();
 
@@ -46,10 +62,10 @@ fn crypto_create_cert_success() {
     };
 
     // assert
-    assert!(buffer.as_bytes().len() > 0);
+    assert!(!buffer.as_bytes().is_empty());
     match pk {
         PrivateKey::Ref(_) => panic!("did not expect reference private key"),
-        PrivateKey::Key(KeyBytes::Pem(k)) => assert!(k.as_bytes().len() > 0),
+        PrivateKey::Key(KeyBytes::Pem(k)) => assert!(!k.as_bytes().is_empty()),
     }
 
     // cleanup

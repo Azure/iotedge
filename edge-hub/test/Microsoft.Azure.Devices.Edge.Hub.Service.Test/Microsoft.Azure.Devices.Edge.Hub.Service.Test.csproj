@@ -1,0 +1,40 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+    <Configurations>Debug;Release;CodeCoverage</Configurations>
+    <HighEntropyVA>true</HighEntropyVA>
+  </PropertyGroup>
+
+  <!--
+    Normally, the 'Debug' configuration would work for code coverage, but Microsoft.CodeCoverage currently requires '<DebugType>full</DebugType>' for .NET Core.
+    See https://github.com/Microsoft/vstest-docs/blob/06f9dc0aeb47be7204dc4e1a98c110ead3e978c7/docs/analyze.md#setup-a-project.
+    That setting seems to break the "Open Test" context menu in VS IDE, so we'll use a dedicated configuration for code coverage.
+    -->
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'CodeCoverage|AnyCPU' ">
+    <IntermediateOutputPath>obj\CodeCoverage</IntermediateOutputPath>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\CodeCoverage</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.5.0" />
+    <PackageReference Include="Moq" Version="4.8.2" />
+    <PackageReference Include="xunit" Version="2.2.0" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.2.0" />
+    <PackageReference Include="Microsoft.CodeCoverage" Version="1.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\edge-util\test\Microsoft.Azure.Devices.Edge.Util.Test.Common\Microsoft.Azure.Devices.Edge.Util.Test.Common.csproj" />
+    <ProjectReference Include="..\..\src\Microsoft.Azure.Devices.Edge.Hub.Service\Microsoft.Azure.Devices.Edge.Hub.Service.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Service Include="{82a7f48d-3b50-4b1e-b82e-3ada8210c358}" />
+  </ItemGroup>
+
+</Project>

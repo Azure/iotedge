@@ -13,7 +13,10 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TaskStatus {
-    #[serde(rename = "Timestamp", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "Timestamp",
+        skip_serializing_if = "Option::is_none"
+    )]
     timestamp: Option<String>,
     #[serde(rename = "State", skip_serializing_if = "Option::is_none")]
     state: Option<::models::TaskState>,
@@ -21,12 +24,15 @@ pub struct TaskStatus {
     message: Option<String>,
     #[serde(rename = "Err", skip_serializing_if = "Option::is_none")]
     err: Option<String>,
-    #[serde(rename = "ContainerStatus", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "ContainerStatus",
+        skip_serializing_if = "Option::is_none"
+    )]
     container_status: Option<::models::TaskStatusContainerStatus>,
 }
 
 impl TaskStatus {
-    pub fn new() -> TaskStatus {
+    pub fn new() -> Self {
         TaskStatus {
             timestamp: None,
             state: None,
@@ -40,13 +46,13 @@ impl TaskStatus {
         self.timestamp = Some(timestamp);
     }
 
-    pub fn with_timestamp(mut self, timestamp: String) -> TaskStatus {
+    pub fn with_timestamp(mut self, timestamp: String) -> Self {
         self.timestamp = Some(timestamp);
         self
     }
 
-    pub fn timestamp(&self) -> Option<&String> {
-        self.timestamp.as_ref()
+    pub fn timestamp(&self) -> Option<&str> {
+        self.timestamp.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_timestamp(&mut self) {
@@ -57,7 +63,7 @@ impl TaskStatus {
         self.state = Some(state);
     }
 
-    pub fn with_state(mut self, state: ::models::TaskState) -> TaskStatus {
+    pub fn with_state(mut self, state: ::models::TaskState) -> Self {
         self.state = Some(state);
         self
     }
@@ -74,13 +80,13 @@ impl TaskStatus {
         self.message = Some(message);
     }
 
-    pub fn with_message(mut self, message: String) -> TaskStatus {
+    pub fn with_message(mut self, message: String) -> Self {
         self.message = Some(message);
         self
     }
 
-    pub fn message(&self) -> Option<&String> {
-        self.message.as_ref()
+    pub fn message(&self) -> Option<&str> {
+        self.message.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_message(&mut self) {
@@ -91,13 +97,13 @@ impl TaskStatus {
         self.err = Some(err);
     }
 
-    pub fn with_err(mut self, err: String) -> TaskStatus {
+    pub fn with_err(mut self, err: String) -> Self {
         self.err = Some(err);
         self
     }
 
-    pub fn err(&self) -> Option<&String> {
-        self.err.as_ref()
+    pub fn err(&self) -> Option<&str> {
+        self.err.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_err(&mut self) {
@@ -111,7 +117,7 @@ impl TaskStatus {
     pub fn with_container_status(
         mut self,
         container_status: ::models::TaskStatusContainerStatus,
-    ) -> TaskStatus {
+    ) -> Self {
         self.container_status = Some(container_status);
         self
     }

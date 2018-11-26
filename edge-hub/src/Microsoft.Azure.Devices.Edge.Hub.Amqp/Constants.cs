@@ -32,5 +32,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         public const string MessageAnnotationsInputNameKey = "x-opt-input-name";
         public const string MessageAnnotationsConnectionDeviceId = "iothub-connection-device-id";
         public const string MessageAnnotationsConnectionModuleId = "iothub-connection-module-id";
+        public const string WebSocketSubProtocol = "AMQPWSB10";
+        public const string WebSocketListenerName = WebSocketSubProtocol +"-listener";
+        public const string ServiceBusCbsSaslMechanismName = "MSSBCBS";
     }
 }

@@ -42,7 +42,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public Task<Twin> GetTwinAsync() => this.underlyingModuleClient.GetTwinAsync();
 
-        public Task OpenAsync() => this.underlyingModuleClient.OpenAsync();
+        public async Task OpenAsync()
+        {
+            try
+            {
+                await this.underlyingModuleClient.OpenAsync();
+            }
+            catch(Exception)
+            {
+                this.isActive.Set(false);
+                throw;
+            }
+        }
 
         public Task SendEventAsync(Message message) => this.underlyingModuleClient.SendEventAsync(message);
 

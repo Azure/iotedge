@@ -14,23 +14,35 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Body1 {
     /// Listen address used for inter-manager communication, as well as determining the networking interface used for the VXLAN Tunnel Endpoint (VTEP). This can either be an address/port combination in the form `192.168.1.1:4567`, or an interface followed by a port number, like `eth0:4567`. If the port number is omitted, the default swarm listening port is used.
-    #[serde(rename = "ListenAddr", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "ListenAddr",
+        skip_serializing_if = "Option::is_none"
+    )]
     listen_addr: Option<String>,
     /// Externally reachable address advertised to other nodes. This can either be an address/port combination in the form `192.168.1.1:4567`, or an interface followed by a port number, like `eth0:4567`. If the port number is omitted, the port number from the listen address is used. If `AdvertiseAddr` is not specified, it will be automatically detected when possible.
-    #[serde(rename = "AdvertiseAddr", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "AdvertiseAddr",
+        skip_serializing_if = "Option::is_none"
+    )]
     advertise_addr: Option<String>,
     /// Address or interface to use for data path traffic (format: `<ip|interface>`), for example,  `192.168.1.1`, or an interface, like `eth0`. If `DataPathAddr` is unspecified, the same address as `AdvertiseAddr` is used.  The `DataPathAddr` specifies the address that global scope network drivers will publish towards other nodes in order to reach the containers running on this node. Using this parameter it is possible to separate the container data traffic from the management traffic of the cluster.
-    #[serde(rename = "DataPathAddr", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "DataPathAddr",
+        skip_serializing_if = "Option::is_none"
+    )]
     data_path_addr: Option<String>,
     /// Force creation of a new swarm.
-    #[serde(rename = "ForceNewCluster", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "ForceNewCluster",
+        skip_serializing_if = "Option::is_none"
+    )]
     force_new_cluster: Option<bool>,
     #[serde(rename = "Spec", skip_serializing_if = "Option::is_none")]
     spec: Option<::models::SwarmSpec>,
 }
 
 impl Body1 {
-    pub fn new() -> Body1 {
+    pub fn new() -> Self {
         Body1 {
             listen_addr: None,
             advertise_addr: None,
@@ -44,13 +56,13 @@ impl Body1 {
         self.listen_addr = Some(listen_addr);
     }
 
-    pub fn with_listen_addr(mut self, listen_addr: String) -> Body1 {
+    pub fn with_listen_addr(mut self, listen_addr: String) -> Self {
         self.listen_addr = Some(listen_addr);
         self
     }
 
-    pub fn listen_addr(&self) -> Option<&String> {
-        self.listen_addr.as_ref()
+    pub fn listen_addr(&self) -> Option<&str> {
+        self.listen_addr.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_listen_addr(&mut self) {
@@ -61,13 +73,13 @@ impl Body1 {
         self.advertise_addr = Some(advertise_addr);
     }
 
-    pub fn with_advertise_addr(mut self, advertise_addr: String) -> Body1 {
+    pub fn with_advertise_addr(mut self, advertise_addr: String) -> Self {
         self.advertise_addr = Some(advertise_addr);
         self
     }
 
-    pub fn advertise_addr(&self) -> Option<&String> {
-        self.advertise_addr.as_ref()
+    pub fn advertise_addr(&self) -> Option<&str> {
+        self.advertise_addr.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_advertise_addr(&mut self) {
@@ -78,13 +90,13 @@ impl Body1 {
         self.data_path_addr = Some(data_path_addr);
     }
 
-    pub fn with_data_path_addr(mut self, data_path_addr: String) -> Body1 {
+    pub fn with_data_path_addr(mut self, data_path_addr: String) -> Self {
         self.data_path_addr = Some(data_path_addr);
         self
     }
 
-    pub fn data_path_addr(&self) -> Option<&String> {
-        self.data_path_addr.as_ref()
+    pub fn data_path_addr(&self) -> Option<&str> {
+        self.data_path_addr.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_data_path_addr(&mut self) {
@@ -95,7 +107,7 @@ impl Body1 {
         self.force_new_cluster = Some(force_new_cluster);
     }
 
-    pub fn with_force_new_cluster(mut self, force_new_cluster: bool) -> Body1 {
+    pub fn with_force_new_cluster(mut self, force_new_cluster: bool) -> Self {
         self.force_new_cluster = Some(force_new_cluster);
         self
     }
@@ -112,7 +124,7 @@ impl Body1 {
         self.spec = Some(spec);
     }
 
-    pub fn with_spec(mut self, spec: ::models::SwarmSpec) -> Body1 {
+    pub fn with_spec(mut self, spec: ::models::SwarmSpec) -> Self {
         self.spec = Some(spec);
         self
     }

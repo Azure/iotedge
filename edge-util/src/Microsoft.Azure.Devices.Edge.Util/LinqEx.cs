@@ -60,6 +60,24 @@ namespace Microsoft.Azure.Devices.Edge.Util
             IEnumerable<string> second,
             Func<string, string> keySelector
         ) => first.Except(second, new StringKeyComparer(keySelector));
+
+
+        /// <summary>
+        /// Converts an IEnumerable<typeparamref name="T"/> into an IEnumerable<(uint, typeparamref name="T")/>.
+        /// The uint provides the current count of items.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="self"></param>
+        /// <returns></returns>
+        public static IEnumerable<(uint, T)> Enumerate<T>(this IEnumerable<T> self)
+        {
+            uint num = 0;
+            foreach (var item in self)
+            {
+                yield return (num, item);
+                num += 1;
+            }
+        }
     }
 
     internal class StringKeyComparer : IEqualityComparer<string>

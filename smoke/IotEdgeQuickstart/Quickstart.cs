@@ -20,6 +20,7 @@ namespace IotEdgeQuickstart
             Option<RegistryCredentials> credentials,
             string iothubConnectionString,
             string eventhubCompatibleEndpointWithEntityPath,
+            UpstreamProtocolType upstreamProtocol,
             string imageTag,
             string deviceId,
             string hostname,
@@ -27,8 +28,14 @@ namespace IotEdgeQuickstart
             bool noDeployment,
             bool noVerify,
             string verifyDataFromModule,
-            Option<string> deploymentFileName) :
-            base(bootstrapper, credentials, iothubConnectionString, eventhubCompatibleEndpointWithEntityPath, imageTag, deviceId, hostname, deploymentFileName)
+            Option<string> deploymentFileName,
+            string deviceCaCert,
+            string deviceCaPk,
+            string deviceCaCerts,
+            bool optimizedForPerformance,
+            LogLevel runtimeLogLevel,
+            bool cleanUpExistingDeviceOnSuccess) :
+            base(bootstrapper, credentials, iothubConnectionString, eventhubCompatibleEndpointWithEntityPath, upstreamProtocol, imageTag, deviceId, hostname, deploymentFileName, deviceCaCert, deviceCaPk, deviceCaCerts, optimizedForPerformance, runtimeLogLevel, cleanUpExistingDeviceOnSuccess)
         {
             this.leaveRunning = leaveRunning;
             this.noDeployment = noDeployment;
@@ -62,7 +69,6 @@ namespace IotEdgeQuickstart
                         await DeployToEdgeDevice();
                         if (!this.noVerify)
                         {
-                            await VerifyTempSensorIsRunning();
                             await this.VerifyDataOnIoTHub(this.verifyDataFromModule);
                         }
 
@@ -72,9 +78,10 @@ namespace IotEdgeQuickstart
                         }
                     }
                 }
-                catch(Exception)
+                catch(Exception e)
                 {
                     Console.WriteLine("** Oops, there was a problem. We'll stop the IoT Edge runtime, but we'll leave it configured so you can investigate.");
+                    Console.WriteLine($"Exception: {e}");
                     KeepEdgeDeviceIdentity();
                     await StopBootstrapper();
                     throw;

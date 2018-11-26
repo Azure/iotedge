@@ -1,14 +1,19 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(warnings)]
 #![cfg(windows)]
+#![deny(unused_extern_crates, warnings)]
+// Remove this when clippy stops warning about old-style `allow()`,
+// which can only be silenced by enabling a feature and thus requires nightly
+//
+// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
+#![allow(renamed_and_removed_lints)]
+#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
 
 extern crate futures;
 extern crate mio;
 extern crate mio_named_pipes;
 extern crate rand;
-extern crate tokio_core;
-extern crate tokio_io;
+extern crate tokio;
 
 extern crate tokio_named_pipe;
 
@@ -21,9 +26,8 @@ use futures::Future;
 use mio::{Events, Poll, PollOpt, Ready, Token};
 use mio_named_pipes::NamedPipe;
 use rand::Rng;
-use tokio_core::reactor::Core;
-use tokio_io::codec::{FramedRead, FramedWrite, LinesCodec};
-use tokio_io::io as tio;
+use tokio::codec::{FramedRead, FramedWrite, LinesCodec};
+use tokio::io as tio;
 
 use tokio_named_pipe::PipeStream;
 
@@ -46,15 +50,13 @@ fn server() -> (NamedPipe, String) {
 #[test]
 #[should_panic(expected = "The system cannot find the file specified")]
 fn connect_invalid_path() {
-    let core = Core::new().unwrap();
-    let _stream = PipeStream::connect(r"\\.\pipe\boo", &core.handle(), None).unwrap();
+    let _stream = PipeStream::connect(r"\\.\pipe\boo", None).unwrap();
 }
 
 #[test]
 fn connect_succeeds() {
-    let core = Core::new().unwrap();
     let (_server, path) = server();
-    let _stream = PipeStream::connect(path, &core.handle(), None).unwrap();
+    let _stream = PipeStream::connect(path, None).unwrap();
 }
 
 #[test]
@@ -62,8 +64,7 @@ fn read_data() {
     let data = b"cow say moo";
     let (mut server, path) = server();
 
-    let mut core = Core::new().unwrap();
-    let stream = PipeStream::connect(path, &core.handle(), None).unwrap();
+    let stream = PipeStream::connect(path, None).unwrap();
 
     let poll = t!(Poll::new());
     t!(poll.register(
@@ -77,10 +78,12 @@ fn read_data() {
     assert_eq!(t!(server.write(data)), data.len());
 
     let buf = [0; 11];
-    let task = tio::read(stream, buf);
+    let task = tio::read_exact(stream, buf);
 
-    let (_, read_data, read_len) = core.run(task).unwrap();
-    assert_eq!(read_len, data.len());
+    let (_, read_data) = tokio::runtime::current_thread::Runtime::new()
+        .unwrap()
+        .block_on(task)
+        .unwrap();
     for i in 0..read_data.len() {
         assert_eq!(read_data[i], data[i]);
     }
@@ -89,11 +92,13 @@ fn read_data() {
 #[test]
 fn write_data() {
     let (mut server, path) = server();
-    let mut core = Core::new().unwrap();
-    let stream = PipeStream::connect(path, &core.handle(), None).unwrap();
+    let stream = PipeStream::connect(path, None).unwrap();
 
     let write_future = tio::write_all(stream, b"cow say moo");
-    core.run(write_future).unwrap();
+    tokio::runtime::current_thread::Runtime::new()
+        .unwrap()
+        .block_on(write_future)
+        .unwrap();
 
     let poll = t!(Poll::new());
     t!(poll.register(
@@ -122,11 +127,10 @@ fn write_data() {
 
 #[test]
 fn read_async() {
-    let data = "cow say moo\nsheep say baa\n".as_bytes();
+    let data = &b"cow say moo\nsheep say baa\n"[..];
     let (mut server, path) = server();
 
-    let mut core = Core::new().unwrap();
-    let stream = PipeStream::connect(path, &core.handle(), None).unwrap();
+    let stream = PipeStream::connect(path, None).unwrap();
 
     let poll = t!(Poll::new());
     t!(poll.register(
@@ -147,7 +151,10 @@ fn read_async() {
             .map(|(line2, _)| (line1.unwrap(), line2.unwrap()))
     });
 
-    let result = core.run(task).unwrap();
+    let result = tokio::runtime::current_thread::Runtime::new()
+        .unwrap()
+        .block_on(task)
+        .unwrap();
     assert_eq!(
         result,
         ("cow say moo".to_string(), "sheep say baa".to_string())
@@ -157,14 +164,16 @@ fn read_async() {
 #[test]
 fn write_async() {
     let (mut server, path) = server();
-    let mut core = Core::new().unwrap();
-    let stream = PipeStream::connect(path, &core.handle(), None).unwrap();
+    let stream = PipeStream::connect(path, None).unwrap();
 
     let framed_write = FramedWrite::new(stream, LinesCodec::new());
     let task = framed_write
         .send("cow say moo".to_string())
         .and_then(|sink| sink.send("sheep say baa".to_string()));
-    core.run(task).unwrap();
+    tokio::runtime::current_thread::Runtime::new()
+        .unwrap()
+        .block_on(task)
+        .unwrap();
 
     let poll = t!(Poll::new());
     t!(poll.register(

@@ -2,15 +2,9 @@
 
 use std::fmt;
 use std::fmt::Display;
-use std::str;
 
 use failure::{Backtrace, Context, Fail};
-use hyper::{Error as HyperError, StatusCode};
-use serde_json;
-use url::ParseError;
-
-use edgelet_http::{Error as HttpError, ErrorKind as HttpErrorKind};
-use edgelet_utils::Error as UtilsError;
+use hyper::StatusCode;
 
 #[derive(Debug)]
 pub struct Error {
@@ -19,38 +13,35 @@ pub struct Error {
 
 #[derive(Debug, Fail, PartialEq)]
 pub enum ErrorKind {
-    #[fail(display = "Utils error")]
-    Utils,
-    #[fail(display = "Core error")]
-    Http,
-    #[fail(display = "Serde error")]
-    Serde,
-    #[fail(display = "Url parse error")]
-    Url,
-    #[fail(display = "Hyper HTTP error")]
-    Hyper,
-    #[fail(display = "IoT Hub service error: [{}] {}", _0, _1)]
-    HubServiceError(StatusCode, String),
-    #[fail(display = "IoT Hub returned an empty response when a value was expected")]
-    EmptyResponse,
-    #[fail(display = "Module not found")]
-    ModuleNotFound,
-    #[fail(display = "Module ID is empty")]
-    EmptyModuleId,
-    #[fail(display = "Failed to get sas token")]
-    Token,
-}
+    #[fail(display = "Could not delete module")]
+    DeleteModule,
 
-impl<'a> From<(StatusCode, &'a [u8])> for Error {
-    fn from(err: (StatusCode, &'a [u8])) -> Self {
-        let (status_code, msg) = err;
-        Error::from(ErrorKind::HubServiceError(
-            status_code,
-            str::from_utf8(msg)
-                .unwrap_or_else(|_| "Could not decode error message")
-                .to_string(),
-        ))
-    }
+    #[fail(display = "Could not delete module {}: {}", _0, _1)]
+    DeleteModuleWithReason(String, ModuleOperationReason),
+
+    #[fail(display = "Could not get module {}", _0)]
+    GetModule(String),
+
+    #[fail(display = "Could not get module {}: {}", _0, _1)]
+    GetModuleWithReason(String, ModuleOperationReason),
+
+    #[fail(display = "IoT Hub service error: [{}] {}", _0, _1)]
+    HubService(StatusCode, String),
+
+    #[fail(display = "Invalid device ID {:?}", _0)]
+    InvalidDeviceId(String),
+
+    #[fail(display = "Could not list modules")]
+    ListModules,
+
+    #[fail(display = "Could not list modules: {}", _0)]
+    ListModulesWithReason(ModuleOperationReason),
+
+    #[fail(display = "Could not upsert module {}", _0)]
+    UpsertModule(String),
+
+    #[fail(display = "Could not upsert module {}: {}", _0, _1)]
+    UpsertModuleWithReason(String, ModuleOperationReason),
 }
 
 impl Fail for Error {
@@ -76,7 +67,7 @@ impl Error {
 }
 
 impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Error {
+    fn from(kind: ErrorKind) -> Self {
         Error {
             inner: Context::new(kind),
         }
@@ -84,53 +75,27 @@ impl From<ErrorKind> for Error {
 }
 
 impl From<Context<ErrorKind>> for Error {
-    fn from(inner: Context<ErrorKind>) -> Error {
+    fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
     }
 }
 
-impl From<UtilsError> for Error {
-    fn from(error: UtilsError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::Utils),
-        }
-    }
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum ModuleOperationReason {
+    EmptyModuleId,
+    EmptyResponse,
+    ModuleNotFound,
 }
 
-impl From<HttpError> for Error {
-    fn from(error: HttpError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::Http),
+impl Display for ModuleOperationReason {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ModuleOperationReason::EmptyModuleId => write!(f, "Module ID is empty"),
+            ModuleOperationReason::EmptyResponse => write!(
+                f,
+                "IoT Hub returned an empty response when a value was expected"
+            ),
+            ModuleOperationReason::ModuleNotFound => write!(f, "Module not found"),
         }
-    }
-}
-
-impl From<serde_json::Error> for Error {
-    fn from(error: serde_json::Error) -> Error {
-        Error {
-            inner: error.context(ErrorKind::Serde),
-        }
-    }
-}
-
-impl From<ParseError> for Error {
-    fn from(error: ParseError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::Url),
-        }
-    }
-}
-
-impl From<HyperError> for Error {
-    fn from(error: HyperError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::Hyper),
-        }
-    }
-}
-
-impl From<Error> for HttpError {
-    fn from(err: Error) -> HttpError {
-        HttpError::from(err.context(HttpErrorKind::TokenSource))
     }
 }

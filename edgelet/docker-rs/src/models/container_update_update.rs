@@ -14,79 +14,142 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ContainerUpdateUpdate {
     /// An integer value representing this container's relative CPU weight versus other containers.
-    #[serde(rename = "CpuShares", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "CpuShares",
+        skip_serializing_if = "Option::is_none"
+    )]
     cpu_shares: Option<i32>,
     /// Memory limit in bytes.
     #[serde(rename = "Memory", skip_serializing_if = "Option::is_none")]
     memory: Option<i32>,
     /// Path to `cgroups` under which the container's `cgroup` is created. If the path is not absolute, the path is considered to be relative to the `cgroups` path of the init process. Cgroups are created if they do not already exist.
-    #[serde(rename = "CgroupParent", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "CgroupParent",
+        skip_serializing_if = "Option::is_none"
+    )]
     cgroup_parent: Option<String>,
     /// Block IO weight (relative weight).
-    #[serde(rename = "BlkioWeight", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "BlkioWeight",
+        skip_serializing_if = "Option::is_none"
+    )]
     blkio_weight: Option<i32>,
     /// Block IO weight (relative device weight) in the form `[{\"Path\": \"device_path\", \"Weight\": weight}]`.
-    #[serde(rename = "BlkioWeightDevice", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "BlkioWeightDevice",
+        skip_serializing_if = "Option::is_none"
+    )]
     blkio_weight_device: Option<Vec<::models::ResourcesBlkioWeightDevice>>,
     /// Limit read rate (bytes per second) from a device, in the form `[{\"Path\": \"device_path\", \"Rate\": rate}]`.
-    #[serde(rename = "BlkioDeviceReadBps", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "BlkioDeviceReadBps",
+        skip_serializing_if = "Option::is_none"
+    )]
     blkio_device_read_bps: Option<Vec<::models::ThrottleDevice>>,
     /// Limit write rate (bytes per second) to a device, in the form `[{\"Path\": \"device_path\", \"Rate\": rate}]`.
-    #[serde(rename = "BlkioDeviceWriteBps", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "BlkioDeviceWriteBps",
+        skip_serializing_if = "Option::is_none"
+    )]
     blkio_device_write_bps: Option<Vec<::models::ThrottleDevice>>,
     /// Limit read rate (IO per second) from a device, in the form `[{\"Path\": \"device_path\", \"Rate\": rate}]`.
-    #[serde(rename = "BlkioDeviceReadIOps", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "BlkioDeviceReadIOps",
+        skip_serializing_if = "Option::is_none"
+    )]
     blkio_device_read_i_ops: Option<Vec<::models::ThrottleDevice>>,
     /// Limit write rate (IO per second) to a device, in the form `[{\"Path\": \"device_path\", \"Rate\": rate}]`.
-    #[serde(rename = "BlkioDeviceWriteIOps", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "BlkioDeviceWriteIOps",
+        skip_serializing_if = "Option::is_none"
+    )]
     blkio_device_write_i_ops: Option<Vec<::models::ThrottleDevice>>,
     /// The length of a CPU period in microseconds.
-    #[serde(rename = "CpuPeriod", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "CpuPeriod",
+        skip_serializing_if = "Option::is_none"
+    )]
     cpu_period: Option<i64>,
     /// Microseconds of CPU time that the container can get in a CPU period.
     #[serde(rename = "CpuQuota", skip_serializing_if = "Option::is_none")]
     cpu_quota: Option<i64>,
     /// The length of a CPU real-time period in microseconds. Set to 0 to allocate no time allocated to real-time tasks.
-    #[serde(rename = "CpuRealtimePeriod", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "CpuRealtimePeriod",
+        skip_serializing_if = "Option::is_none"
+    )]
     cpu_realtime_period: Option<i64>,
     /// The length of a CPU real-time runtime in microseconds. Set to 0 to allocate no time allocated to real-time tasks.
-    #[serde(rename = "CpuRealtimeRuntime", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "CpuRealtimeRuntime",
+        skip_serializing_if = "Option::is_none"
+    )]
     cpu_realtime_runtime: Option<i64>,
     /// CPUs in which to allow execution (e.g., `0-3`, `0,1`)
-    #[serde(rename = "CpusetCpus", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "CpusetCpus",
+        skip_serializing_if = "Option::is_none"
+    )]
     cpuset_cpus: Option<String>,
     /// Memory nodes (MEMs) in which to allow execution (0-3, 0,1). Only effective on NUMA systems.
-    #[serde(rename = "CpusetMems", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "CpusetMems",
+        skip_serializing_if = "Option::is_none"
+    )]
     cpuset_mems: Option<String>,
     /// A list of devices to add to the container.
     #[serde(rename = "Devices", skip_serializing_if = "Option::is_none")]
     devices: Option<Vec<::models::DeviceMapping>>,
     /// a list of cgroup rules to apply to the container
-    #[serde(rename = "DeviceCgroupRules", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "DeviceCgroupRules",
+        skip_serializing_if = "Option::is_none"
+    )]
     device_cgroup_rules: Option<Vec<String>>,
     /// Disk limit (in bytes).
-    #[serde(rename = "DiskQuota", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "DiskQuota",
+        skip_serializing_if = "Option::is_none"
+    )]
     disk_quota: Option<i64>,
     /// Kernel memory limit in bytes.
-    #[serde(rename = "KernelMemory", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "KernelMemory",
+        skip_serializing_if = "Option::is_none"
+    )]
     kernel_memory: Option<i64>,
     /// Memory soft limit in bytes.
-    #[serde(rename = "MemoryReservation", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "MemoryReservation",
+        skip_serializing_if = "Option::is_none"
+    )]
     memory_reservation: Option<i64>,
     /// Total memory limit (memory + swap). Set as `-1` to enable unlimited swap.
-    #[serde(rename = "MemorySwap", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "MemorySwap",
+        skip_serializing_if = "Option::is_none"
+    )]
     memory_swap: Option<i64>,
     /// Tune a container's memory swappiness behavior. Accepts an integer between 0 and 100.
-    #[serde(rename = "MemorySwappiness", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "MemorySwappiness",
+        skip_serializing_if = "Option::is_none"
+    )]
     memory_swappiness: Option<i64>,
     /// CPU quota in units of 10<sup>-9</sup> CPUs.
     #[serde(rename = "NanoCPUs", skip_serializing_if = "Option::is_none")]
     nano_cp_us: Option<i64>,
     /// Disable OOM Killer for the container.
-    #[serde(rename = "OomKillDisable", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "OomKillDisable",
+        skip_serializing_if = "Option::is_none"
+    )]
     oom_kill_disable: Option<bool>,
     /// Tune a container's pids limit. Set -1 for unlimited.
-    #[serde(rename = "PidsLimit", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "PidsLimit",
+        skip_serializing_if = "Option::is_none"
+    )]
     pids_limit: Option<i64>,
     /// A list of resource limits to set in the container. For example: `{\"Name\": \"nofile\", \"Soft\": 1024, \"Hard\": 2048}`\"
     #[serde(rename = "Ulimits", skip_serializing_if = "Option::is_none")]
@@ -95,20 +158,32 @@ pub struct ContainerUpdateUpdate {
     #[serde(rename = "CpuCount", skip_serializing_if = "Option::is_none")]
     cpu_count: Option<i64>,
     /// The usable percentage of the available CPUs (Windows only).  On Windows Server containers, the processor resource controls are mutually exclusive. The order of precedence is `CPUCount` first, then `CPUShares`, and `CPUPercent` last.
-    #[serde(rename = "CpuPercent", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "CpuPercent",
+        skip_serializing_if = "Option::is_none"
+    )]
     cpu_percent: Option<i64>,
     /// Maximum IOps for the container system drive (Windows only)
-    #[serde(rename = "IOMaximumIOps", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "IOMaximumIOps",
+        skip_serializing_if = "Option::is_none"
+    )]
     io_maximum_i_ops: Option<i64>,
     /// Maximum IO in bytes per second for the container system drive (Windows only)
-    #[serde(rename = "IOMaximumBandwidth", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "IOMaximumBandwidth",
+        skip_serializing_if = "Option::is_none"
+    )]
     io_maximum_bandwidth: Option<i64>,
-    #[serde(rename = "RestartPolicy", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "RestartPolicy",
+        skip_serializing_if = "Option::is_none"
+    )]
     restart_policy: Option<::models::RestartPolicy>,
 }
 
 impl ContainerUpdateUpdate {
-    pub fn new() -> ContainerUpdateUpdate {
+    pub fn new() -> Self {
         ContainerUpdateUpdate {
             cpu_shares: None,
             memory: None,
@@ -148,13 +223,13 @@ impl ContainerUpdateUpdate {
         self.cpu_shares = Some(cpu_shares);
     }
 
-    pub fn with_cpu_shares(mut self, cpu_shares: i32) -> ContainerUpdateUpdate {
+    pub fn with_cpu_shares(mut self, cpu_shares: i32) -> Self {
         self.cpu_shares = Some(cpu_shares);
         self
     }
 
-    pub fn cpu_shares(&self) -> Option<&i32> {
-        self.cpu_shares.as_ref()
+    pub fn cpu_shares(&self) -> Option<i32> {
+        self.cpu_shares
     }
 
     pub fn reset_cpu_shares(&mut self) {
@@ -165,13 +240,13 @@ impl ContainerUpdateUpdate {
         self.memory = Some(memory);
     }
 
-    pub fn with_memory(mut self, memory: i32) -> ContainerUpdateUpdate {
+    pub fn with_memory(mut self, memory: i32) -> Self {
         self.memory = Some(memory);
         self
     }
 
-    pub fn memory(&self) -> Option<&i32> {
-        self.memory.as_ref()
+    pub fn memory(&self) -> Option<i32> {
+        self.memory
     }
 
     pub fn reset_memory(&mut self) {
@@ -182,13 +257,13 @@ impl ContainerUpdateUpdate {
         self.cgroup_parent = Some(cgroup_parent);
     }
 
-    pub fn with_cgroup_parent(mut self, cgroup_parent: String) -> ContainerUpdateUpdate {
+    pub fn with_cgroup_parent(mut self, cgroup_parent: String) -> Self {
         self.cgroup_parent = Some(cgroup_parent);
         self
     }
 
-    pub fn cgroup_parent(&self) -> Option<&String> {
-        self.cgroup_parent.as_ref()
+    pub fn cgroup_parent(&self) -> Option<&str> {
+        self.cgroup_parent.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_cgroup_parent(&mut self) {
@@ -199,13 +274,13 @@ impl ContainerUpdateUpdate {
         self.blkio_weight = Some(blkio_weight);
     }
 
-    pub fn with_blkio_weight(mut self, blkio_weight: i32) -> ContainerUpdateUpdate {
+    pub fn with_blkio_weight(mut self, blkio_weight: i32) -> Self {
         self.blkio_weight = Some(blkio_weight);
         self
     }
 
-    pub fn blkio_weight(&self) -> Option<&i32> {
-        self.blkio_weight.as_ref()
+    pub fn blkio_weight(&self) -> Option<i32> {
+        self.blkio_weight
     }
 
     pub fn reset_blkio_weight(&mut self) {
@@ -222,13 +297,13 @@ impl ContainerUpdateUpdate {
     pub fn with_blkio_weight_device(
         mut self,
         blkio_weight_device: Vec<::models::ResourcesBlkioWeightDevice>,
-    ) -> ContainerUpdateUpdate {
+    ) -> Self {
         self.blkio_weight_device = Some(blkio_weight_device);
         self
     }
 
-    pub fn blkio_weight_device(&self) -> Option<&Vec<::models::ResourcesBlkioWeightDevice>> {
-        self.blkio_weight_device.as_ref()
+    pub fn blkio_weight_device(&self) -> Option<&[::models::ResourcesBlkioWeightDevice]> {
+        self.blkio_weight_device.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_blkio_weight_device(&mut self) {
@@ -245,13 +320,13 @@ impl ContainerUpdateUpdate {
     pub fn with_blkio_device_read_bps(
         mut self,
         blkio_device_read_bps: Vec<::models::ThrottleDevice>,
-    ) -> ContainerUpdateUpdate {
+    ) -> Self {
         self.blkio_device_read_bps = Some(blkio_device_read_bps);
         self
     }
 
-    pub fn blkio_device_read_bps(&self) -> Option<&Vec<::models::ThrottleDevice>> {
-        self.blkio_device_read_bps.as_ref()
+    pub fn blkio_device_read_bps(&self) -> Option<&[::models::ThrottleDevice]> {
+        self.blkio_device_read_bps.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_blkio_device_read_bps(&mut self) {
@@ -268,13 +343,13 @@ impl ContainerUpdateUpdate {
     pub fn with_blkio_device_write_bps(
         mut self,
         blkio_device_write_bps: Vec<::models::ThrottleDevice>,
-    ) -> ContainerUpdateUpdate {
+    ) -> Self {
         self.blkio_device_write_bps = Some(blkio_device_write_bps);
         self
     }
 
-    pub fn blkio_device_write_bps(&self) -> Option<&Vec<::models::ThrottleDevice>> {
-        self.blkio_device_write_bps.as_ref()
+    pub fn blkio_device_write_bps(&self) -> Option<&[::models::ThrottleDevice]> {
+        self.blkio_device_write_bps.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_blkio_device_write_bps(&mut self) {
@@ -291,13 +366,13 @@ impl ContainerUpdateUpdate {
     pub fn with_blkio_device_read_i_ops(
         mut self,
         blkio_device_read_i_ops: Vec<::models::ThrottleDevice>,
-    ) -> ContainerUpdateUpdate {
+    ) -> Self {
         self.blkio_device_read_i_ops = Some(blkio_device_read_i_ops);
         self
     }
 
-    pub fn blkio_device_read_i_ops(&self) -> Option<&Vec<::models::ThrottleDevice>> {
-        self.blkio_device_read_i_ops.as_ref()
+    pub fn blkio_device_read_i_ops(&self) -> Option<&[::models::ThrottleDevice]> {
+        self.blkio_device_read_i_ops.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_blkio_device_read_i_ops(&mut self) {
@@ -314,13 +389,13 @@ impl ContainerUpdateUpdate {
     pub fn with_blkio_device_write_i_ops(
         mut self,
         blkio_device_write_i_ops: Vec<::models::ThrottleDevice>,
-    ) -> ContainerUpdateUpdate {
+    ) -> Self {
         self.blkio_device_write_i_ops = Some(blkio_device_write_i_ops);
         self
     }
 
-    pub fn blkio_device_write_i_ops(&self) -> Option<&Vec<::models::ThrottleDevice>> {
-        self.blkio_device_write_i_ops.as_ref()
+    pub fn blkio_device_write_i_ops(&self) -> Option<&[::models::ThrottleDevice]> {
+        self.blkio_device_write_i_ops.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_blkio_device_write_i_ops(&mut self) {
@@ -331,13 +406,13 @@ impl ContainerUpdateUpdate {
         self.cpu_period = Some(cpu_period);
     }
 
-    pub fn with_cpu_period(mut self, cpu_period: i64) -> ContainerUpdateUpdate {
+    pub fn with_cpu_period(mut self, cpu_period: i64) -> Self {
         self.cpu_period = Some(cpu_period);
         self
     }
 
-    pub fn cpu_period(&self) -> Option<&i64> {
-        self.cpu_period.as_ref()
+    pub fn cpu_period(&self) -> Option<i64> {
+        self.cpu_period
     }
 
     pub fn reset_cpu_period(&mut self) {
@@ -348,13 +423,13 @@ impl ContainerUpdateUpdate {
         self.cpu_quota = Some(cpu_quota);
     }
 
-    pub fn with_cpu_quota(mut self, cpu_quota: i64) -> ContainerUpdateUpdate {
+    pub fn with_cpu_quota(mut self, cpu_quota: i64) -> Self {
         self.cpu_quota = Some(cpu_quota);
         self
     }
 
-    pub fn cpu_quota(&self) -> Option<&i64> {
-        self.cpu_quota.as_ref()
+    pub fn cpu_quota(&self) -> Option<i64> {
+        self.cpu_quota
     }
 
     pub fn reset_cpu_quota(&mut self) {
@@ -365,13 +440,13 @@ impl ContainerUpdateUpdate {
         self.cpu_realtime_period = Some(cpu_realtime_period);
     }
 
-    pub fn with_cpu_realtime_period(mut self, cpu_realtime_period: i64) -> ContainerUpdateUpdate {
+    pub fn with_cpu_realtime_period(mut self, cpu_realtime_period: i64) -> Self {
         self.cpu_realtime_period = Some(cpu_realtime_period);
         self
     }
 
-    pub fn cpu_realtime_period(&self) -> Option<&i64> {
-        self.cpu_realtime_period.as_ref()
+    pub fn cpu_realtime_period(&self) -> Option<i64> {
+        self.cpu_realtime_period
     }
 
     pub fn reset_cpu_realtime_period(&mut self) {
@@ -382,13 +457,13 @@ impl ContainerUpdateUpdate {
         self.cpu_realtime_runtime = Some(cpu_realtime_runtime);
     }
 
-    pub fn with_cpu_realtime_runtime(mut self, cpu_realtime_runtime: i64) -> ContainerUpdateUpdate {
+    pub fn with_cpu_realtime_runtime(mut self, cpu_realtime_runtime: i64) -> Self {
         self.cpu_realtime_runtime = Some(cpu_realtime_runtime);
         self
     }
 
-    pub fn cpu_realtime_runtime(&self) -> Option<&i64> {
-        self.cpu_realtime_runtime.as_ref()
+    pub fn cpu_realtime_runtime(&self) -> Option<i64> {
+        self.cpu_realtime_runtime
     }
 
     pub fn reset_cpu_realtime_runtime(&mut self) {
@@ -399,13 +474,13 @@ impl ContainerUpdateUpdate {
         self.cpuset_cpus = Some(cpuset_cpus);
     }
 
-    pub fn with_cpuset_cpus(mut self, cpuset_cpus: String) -> ContainerUpdateUpdate {
+    pub fn with_cpuset_cpus(mut self, cpuset_cpus: String) -> Self {
         self.cpuset_cpus = Some(cpuset_cpus);
         self
     }
 
-    pub fn cpuset_cpus(&self) -> Option<&String> {
-        self.cpuset_cpus.as_ref()
+    pub fn cpuset_cpus(&self) -> Option<&str> {
+        self.cpuset_cpus.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_cpuset_cpus(&mut self) {
@@ -416,13 +491,13 @@ impl ContainerUpdateUpdate {
         self.cpuset_mems = Some(cpuset_mems);
     }
 
-    pub fn with_cpuset_mems(mut self, cpuset_mems: String) -> ContainerUpdateUpdate {
+    pub fn with_cpuset_mems(mut self, cpuset_mems: String) -> Self {
         self.cpuset_mems = Some(cpuset_mems);
         self
     }
 
-    pub fn cpuset_mems(&self) -> Option<&String> {
-        self.cpuset_mems.as_ref()
+    pub fn cpuset_mems(&self) -> Option<&str> {
+        self.cpuset_mems.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_cpuset_mems(&mut self) {
@@ -433,13 +508,13 @@ impl ContainerUpdateUpdate {
         self.devices = Some(devices);
     }
 
-    pub fn with_devices(mut self, devices: Vec<::models::DeviceMapping>) -> ContainerUpdateUpdate {
+    pub fn with_devices(mut self, devices: Vec<::models::DeviceMapping>) -> Self {
         self.devices = Some(devices);
         self
     }
 
-    pub fn devices(&self) -> Option<&Vec<::models::DeviceMapping>> {
-        self.devices.as_ref()
+    pub fn devices(&self) -> Option<&[::models::DeviceMapping]> {
+        self.devices.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_devices(&mut self) {
@@ -450,16 +525,13 @@ impl ContainerUpdateUpdate {
         self.device_cgroup_rules = Some(device_cgroup_rules);
     }
 
-    pub fn with_device_cgroup_rules(
-        mut self,
-        device_cgroup_rules: Vec<String>,
-    ) -> ContainerUpdateUpdate {
+    pub fn with_device_cgroup_rules(mut self, device_cgroup_rules: Vec<String>) -> Self {
         self.device_cgroup_rules = Some(device_cgroup_rules);
         self
     }
 
-    pub fn device_cgroup_rules(&self) -> Option<&Vec<String>> {
-        self.device_cgroup_rules.as_ref()
+    pub fn device_cgroup_rules(&self) -> Option<&[String]> {
+        self.device_cgroup_rules.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_device_cgroup_rules(&mut self) {
@@ -470,13 +542,13 @@ impl ContainerUpdateUpdate {
         self.disk_quota = Some(disk_quota);
     }
 
-    pub fn with_disk_quota(mut self, disk_quota: i64) -> ContainerUpdateUpdate {
+    pub fn with_disk_quota(mut self, disk_quota: i64) -> Self {
         self.disk_quota = Some(disk_quota);
         self
     }
 
-    pub fn disk_quota(&self) -> Option<&i64> {
-        self.disk_quota.as_ref()
+    pub fn disk_quota(&self) -> Option<i64> {
+        self.disk_quota
     }
 
     pub fn reset_disk_quota(&mut self) {
@@ -487,13 +559,13 @@ impl ContainerUpdateUpdate {
         self.kernel_memory = Some(kernel_memory);
     }
 
-    pub fn with_kernel_memory(mut self, kernel_memory: i64) -> ContainerUpdateUpdate {
+    pub fn with_kernel_memory(mut self, kernel_memory: i64) -> Self {
         self.kernel_memory = Some(kernel_memory);
         self
     }
 
-    pub fn kernel_memory(&self) -> Option<&i64> {
-        self.kernel_memory.as_ref()
+    pub fn kernel_memory(&self) -> Option<i64> {
+        self.kernel_memory
     }
 
     pub fn reset_kernel_memory(&mut self) {
@@ -504,13 +576,13 @@ impl ContainerUpdateUpdate {
         self.memory_reservation = Some(memory_reservation);
     }
 
-    pub fn with_memory_reservation(mut self, memory_reservation: i64) -> ContainerUpdateUpdate {
+    pub fn with_memory_reservation(mut self, memory_reservation: i64) -> Self {
         self.memory_reservation = Some(memory_reservation);
         self
     }
 
-    pub fn memory_reservation(&self) -> Option<&i64> {
-        self.memory_reservation.as_ref()
+    pub fn memory_reservation(&self) -> Option<i64> {
+        self.memory_reservation
     }
 
     pub fn reset_memory_reservation(&mut self) {
@@ -521,13 +593,13 @@ impl ContainerUpdateUpdate {
         self.memory_swap = Some(memory_swap);
     }
 
-    pub fn with_memory_swap(mut self, memory_swap: i64) -> ContainerUpdateUpdate {
+    pub fn with_memory_swap(mut self, memory_swap: i64) -> Self {
         self.memory_swap = Some(memory_swap);
         self
     }
 
-    pub fn memory_swap(&self) -> Option<&i64> {
-        self.memory_swap.as_ref()
+    pub fn memory_swap(&self) -> Option<i64> {
+        self.memory_swap
     }
 
     pub fn reset_memory_swap(&mut self) {
@@ -538,13 +610,13 @@ impl ContainerUpdateUpdate {
         self.memory_swappiness = Some(memory_swappiness);
     }
 
-    pub fn with_memory_swappiness(mut self, memory_swappiness: i64) -> ContainerUpdateUpdate {
+    pub fn with_memory_swappiness(mut self, memory_swappiness: i64) -> Self {
         self.memory_swappiness = Some(memory_swappiness);
         self
     }
 
-    pub fn memory_swappiness(&self) -> Option<&i64> {
-        self.memory_swappiness.as_ref()
+    pub fn memory_swappiness(&self) -> Option<i64> {
+        self.memory_swappiness
     }
 
     pub fn reset_memory_swappiness(&mut self) {
@@ -555,13 +627,13 @@ impl ContainerUpdateUpdate {
         self.nano_cp_us = Some(nano_cp_us);
     }
 
-    pub fn with_nano_cp_us(mut self, nano_cp_us: i64) -> ContainerUpdateUpdate {
+    pub fn with_nano_cp_us(mut self, nano_cp_us: i64) -> Self {
         self.nano_cp_us = Some(nano_cp_us);
         self
     }
 
-    pub fn nano_cp_us(&self) -> Option<&i64> {
-        self.nano_cp_us.as_ref()
+    pub fn nano_cp_us(&self) -> Option<i64> {
+        self.nano_cp_us
     }
 
     pub fn reset_nano_cp_us(&mut self) {
@@ -572,7 +644,7 @@ impl ContainerUpdateUpdate {
         self.oom_kill_disable = Some(oom_kill_disable);
     }
 
-    pub fn with_oom_kill_disable(mut self, oom_kill_disable: bool) -> ContainerUpdateUpdate {
+    pub fn with_oom_kill_disable(mut self, oom_kill_disable: bool) -> Self {
         self.oom_kill_disable = Some(oom_kill_disable);
         self
     }
@@ -589,13 +661,13 @@ impl ContainerUpdateUpdate {
         self.pids_limit = Some(pids_limit);
     }
 
-    pub fn with_pids_limit(mut self, pids_limit: i64) -> ContainerUpdateUpdate {
+    pub fn with_pids_limit(mut self, pids_limit: i64) -> Self {
         self.pids_limit = Some(pids_limit);
         self
     }
 
-    pub fn pids_limit(&self) -> Option<&i64> {
-        self.pids_limit.as_ref()
+    pub fn pids_limit(&self) -> Option<i64> {
+        self.pids_limit
     }
 
     pub fn reset_pids_limit(&mut self) {
@@ -606,16 +678,13 @@ impl ContainerUpdateUpdate {
         self.ulimits = Some(ulimits);
     }
 
-    pub fn with_ulimits(
-        mut self,
-        ulimits: Vec<::models::ResourcesUlimits>,
-    ) -> ContainerUpdateUpdate {
+    pub fn with_ulimits(mut self, ulimits: Vec<::models::ResourcesUlimits>) -> Self {
         self.ulimits = Some(ulimits);
         self
     }
 
-    pub fn ulimits(&self) -> Option<&Vec<::models::ResourcesUlimits>> {
-        self.ulimits.as_ref()
+    pub fn ulimits(&self) -> Option<&[::models::ResourcesUlimits]> {
+        self.ulimits.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_ulimits(&mut self) {
@@ -626,13 +695,13 @@ impl ContainerUpdateUpdate {
         self.cpu_count = Some(cpu_count);
     }
 
-    pub fn with_cpu_count(mut self, cpu_count: i64) -> ContainerUpdateUpdate {
+    pub fn with_cpu_count(mut self, cpu_count: i64) -> Self {
         self.cpu_count = Some(cpu_count);
         self
     }
 
-    pub fn cpu_count(&self) -> Option<&i64> {
-        self.cpu_count.as_ref()
+    pub fn cpu_count(&self) -> Option<i64> {
+        self.cpu_count
     }
 
     pub fn reset_cpu_count(&mut self) {
@@ -643,13 +712,13 @@ impl ContainerUpdateUpdate {
         self.cpu_percent = Some(cpu_percent);
     }
 
-    pub fn with_cpu_percent(mut self, cpu_percent: i64) -> ContainerUpdateUpdate {
+    pub fn with_cpu_percent(mut self, cpu_percent: i64) -> Self {
         self.cpu_percent = Some(cpu_percent);
         self
     }
 
-    pub fn cpu_percent(&self) -> Option<&i64> {
-        self.cpu_percent.as_ref()
+    pub fn cpu_percent(&self) -> Option<i64> {
+        self.cpu_percent
     }
 
     pub fn reset_cpu_percent(&mut self) {
@@ -660,13 +729,13 @@ impl ContainerUpdateUpdate {
         self.io_maximum_i_ops = Some(io_maximum_i_ops);
     }
 
-    pub fn with_io_maximum_i_ops(mut self, io_maximum_i_ops: i64) -> ContainerUpdateUpdate {
+    pub fn with_io_maximum_i_ops(mut self, io_maximum_i_ops: i64) -> Self {
         self.io_maximum_i_ops = Some(io_maximum_i_ops);
         self
     }
 
-    pub fn io_maximum_i_ops(&self) -> Option<&i64> {
-        self.io_maximum_i_ops.as_ref()
+    pub fn io_maximum_i_ops(&self) -> Option<i64> {
+        self.io_maximum_i_ops
     }
 
     pub fn reset_io_maximum_i_ops(&mut self) {
@@ -677,13 +746,13 @@ impl ContainerUpdateUpdate {
         self.io_maximum_bandwidth = Some(io_maximum_bandwidth);
     }
 
-    pub fn with_io_maximum_bandwidth(mut self, io_maximum_bandwidth: i64) -> ContainerUpdateUpdate {
+    pub fn with_io_maximum_bandwidth(mut self, io_maximum_bandwidth: i64) -> Self {
         self.io_maximum_bandwidth = Some(io_maximum_bandwidth);
         self
     }
 
-    pub fn io_maximum_bandwidth(&self) -> Option<&i64> {
-        self.io_maximum_bandwidth.as_ref()
+    pub fn io_maximum_bandwidth(&self) -> Option<i64> {
+        self.io_maximum_bandwidth
     }
 
     pub fn reset_io_maximum_bandwidth(&mut self) {
@@ -694,10 +763,7 @@ impl ContainerUpdateUpdate {
         self.restart_policy = Some(restart_policy);
     }
 
-    pub fn with_restart_policy(
-        mut self,
-        restart_policy: ::models::RestartPolicy,
-    ) -> ContainerUpdateUpdate {
+    pub fn with_restart_policy(mut self, restart_policy: ::models::RestartPolicy) -> Self {
         self.restart_policy = Some(restart_policy);
         self
     }

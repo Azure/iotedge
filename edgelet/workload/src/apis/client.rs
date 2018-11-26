@@ -1,20 +1,21 @@
-use std::rc::Rc;
+use std::sync::Arc;
 
 use super::configuration::Configuration;
 use hyper;
 
-pub struct APIClient<C: hyper::client::Connect> {
-    configuration: Rc<Configuration<C>>,
+pub struct APIClient {
     workload_api: Box<::apis::WorkloadApi>,
 }
 
-impl<C: hyper::client::Connect> APIClient<C> {
-    pub fn new(configuration: Configuration<C>) -> APIClient<C> {
-        let rc = Rc::new(configuration);
+impl APIClient {
+    pub fn new<C>(configuration: Configuration<C>) -> Self
+    where
+        C: hyper::client::connect::Connect + 'static,
+    {
+        let configuration = Arc::new(configuration);
 
         APIClient {
-            configuration: rc.clone(),
-            workload_api: Box::new(::apis::WorkloadApiClient::new(rc.clone())),
+            workload_api: Box::new(::apis::WorkloadApiClient::new(configuration.clone())),
         }
     }
 

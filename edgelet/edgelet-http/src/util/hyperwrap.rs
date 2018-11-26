@@ -1,28 +1,27 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use error::Error;
+use failure::ResultExt;
 use futures::future;
-use hyper::client::{HttpConnector, Service};
-use hyper::{Client as HyperClient, Error as HyperError, Request, Response, StatusCode, Uri};
+use hyper::client::HttpConnector;
+use hyper::{Body, Client as HyperClient, Error as HyperError, Request, Response, StatusCode, Uri};
 use hyper_proxy::{Intercept, Proxy, ProxyConnector};
 use hyper_tls::HttpsConnector;
-use tokio_core::reactor::Handle;
+use typed_headers::Credentials;
+use url::percent_encoding::percent_decode;
+use url::Url;
+
+use super::super::client::ClientImpl;
+use error::{Error, ErrorKind, InvalidUrlReason};
 
 const DNS_WORKER_THREADS: usize = 4;
 
 #[derive(Clone, Debug)]
 pub struct Config {
-    handle: Option<Handle>,
     proxy_uri: Option<Uri>,
     null: bool,
 }
 
 impl Config {
-    pub fn handle(&mut self, handle: &Handle) -> &mut Config {
-        self.handle = Some(handle.clone());
-        self
-    }
-
     pub fn proxy(&mut self, uri: Uri) -> &mut Config {
         self.proxy_uri = Some(uri);
         self
@@ -38,24 +37,70 @@ impl Config {
             Ok(Client::Null)
         } else {
             let config = self.clone();
-            let h = &config
-                .handle
-                .expect("tokio_core::reactor::Handle expected!");
-            let https = HttpsConnector::new(DNS_WORKER_THREADS, &h)?;
+            let https =
+                HttpsConnector::new(DNS_WORKER_THREADS).context(ErrorKind::Initialization)?;
             match config.proxy_uri {
-                None => Ok(Client::NoProxy(
-                    HyperClient::configure().connector(https).build(h),
-                )),
+                None => Ok(Client::NoProxy(HyperClient::builder().build(https))),
                 Some(uri) => {
-                    let proxy = Proxy::new(Intercept::All, uri);
-                    let conn = ProxyConnector::from_proxy(https, proxy)?;
-                    Ok(Client::Proxy(
-                        HyperClient::configure().connector(conn).build(h),
-                    ))
+                    let proxy = uri_to_proxy(uri.clone())?;
+                    let conn = ProxyConnector::from_proxy(https, proxy)
+                        .with_context(|_| ErrorKind::Proxy(uri))
+                        .context(ErrorKind::Initialization)?;
+                    Ok(Client::Proxy(HyperClient::builder().build(conn)))
                 }
             }
         }
     }
+}
+
+fn uri_to_proxy(uri: Uri) -> Result<Proxy, Error> {
+    let url = Url::parse(&uri.to_string()).with_context(|_| ErrorKind::Proxy(uri.clone()))?;
+    let mut proxy = Proxy::new(Intercept::All, uri.clone());
+
+    if !url.username().is_empty() {
+        let username = percent_decode(url.username().as_bytes())
+            .decode_utf8()
+            .with_context(|_| {
+                ErrorKind::InvalidUrlWithReason(
+                    url.to_string(),
+                    InvalidUrlReason::InvalidCredentials,
+                )
+            }).with_context(|_| ErrorKind::Proxy(uri.clone()))
+            .context(ErrorKind::Initialization)?;
+        let credentials = match url.password() {
+            Some(password) => {
+                let password = percent_decode(password.as_bytes())
+                    .decode_utf8()
+                    .with_context(|_| {
+                        ErrorKind::InvalidUrlWithReason(
+                            url.to_string(),
+                            InvalidUrlReason::InvalidCredentials,
+                        )
+                    }).with_context(|_| ErrorKind::Proxy(uri.clone()))
+                    .context(ErrorKind::Initialization)?;
+
+                Credentials::basic(&username, &password)
+                    .with_context(|_| {
+                        ErrorKind::InvalidUrlWithReason(
+                            url.to_string(),
+                            InvalidUrlReason::InvalidCredentials,
+                        )
+                    }).with_context(|_| ErrorKind::Proxy(uri))
+                    .context(ErrorKind::Initialization)?
+            }
+            None => Credentials::basic(&username, "")
+                .with_context(|_| {
+                    ErrorKind::InvalidUrlWithReason(
+                        url.to_string(),
+                        InvalidUrlReason::InvalidCredentials,
+                    )
+                }).with_context(|_| ErrorKind::Proxy(uri))
+                .context(ErrorKind::Initialization)?,
+        };
+        proxy.set_authorization(credentials);
+    }
+
+    Ok(proxy)
 }
 
 #[derive(Clone, Debug)]
@@ -68,7 +113,6 @@ pub enum Client {
 impl Client {
     pub fn configure() -> Config {
         Config {
-            handle: None,
             proxy_uri: None,
             null: false,
         }
@@ -91,18 +135,19 @@ impl Client {
     }
 }
 
-impl Service for Client {
-    type Request = Request;
-    type Response = Response;
-    type Error = HyperError;
-    type Future = Box<future::Future<Item = Self::Response, Error = Self::Error>>;
+impl ClientImpl for Client {
+    type Response = Box<future::Future<Item = Response<Body>, Error = HyperError> + Send>;
 
-    fn call(&self, req: Self::Request) -> Self::Future {
+    fn call(&self, req: Request<Body>) -> Self::Response {
         match *self {
-            Client::NoProxy(ref client) => Box::new(client.call(req)) as Self::Future,
-            Client::Proxy(ref client) => Box::new(client.call(req)) as Self::Future,
+            Client::NoProxy(ref client) => Box::new(client.request(req)) as Self::Response,
+            Client::Proxy(ref client) => Box::new(client.request(req)) as Self::Response,
             Client::Null => Box::new(future::ok(
-                Response::new().with_status(StatusCode::Unregistered(234)),
+                Response::builder()
+                    .status(
+                        StatusCode::from_u16(234).expect("StatusCode::from_u16 should not fail"),
+                    ).body(Body::empty())
+                    .expect("creating empty resposne should not fail"),
             )),
         }
     }
@@ -110,9 +155,8 @@ impl Service for Client {
 
 #[cfg(test)]
 mod tests {
-    use super::Client;
+    use super::*;
     use hyper::Uri;
-    use tokio_core::reactor::Core;
 
     // test that the client builder (Config) is wired up correctly to create the
     // right enum variants
@@ -124,13 +168,6 @@ mod tests {
     }
 
     #[test]
-    fn can_create_null_client_with_handle() {
-        let h = Core::new().unwrap().handle();
-        let client = Client::configure().null().handle(&h).build().unwrap();
-        assert!(client.is_null());
-    }
-
-    #[test]
     fn can_create_null_client_with_proxy() {
         let uri = "irrelevant".parse::<Uri>().unwrap();
         let client = Client::configure().null().proxy(uri).build().unwrap();
@@ -138,37 +175,41 @@ mod tests {
     }
 
     #[test]
-    fn can_create_null_client_with_everything() {
-        let h = Core::new().unwrap().handle();
-        let uri = "irrelevant".parse::<Uri>().unwrap();
-        let client = Client::configure()
-            .null()
-            .handle(&h)
-            .proxy(uri)
-            .build()
-            .unwrap();
-        assert!(client.is_null());
-    }
-
-    #[test]
-    #[should_panic(expected = "tokio_core::reactor::Handle expected!")]
-    fn cannot_create_client_without_handle() {
-        Client::configure().build().unwrap();
-    }
-
-    #[test]
     fn can_create_client() {
-        let h = Core::new().unwrap().handle();
-        let client = Client::configure().handle(&h).build().unwrap();
+        let client = Client::configure().build().unwrap();
         assert!(!client.has_proxy() && !client.is_null());
     }
 
     #[test]
     fn can_create_client_with_proxy() {
-        let h = Core::new().unwrap().handle();
-        let uri = "irrelevant".parse::<Uri>().unwrap();
-        let client = Client::configure().handle(&h).proxy(uri).build().unwrap();
+        let uri = "http://example.com".parse::<Uri>().unwrap();
+        let client = Client::configure().proxy(uri).build().unwrap();
         assert!(client.has_proxy());
+    }
+
+    #[test]
+    fn proxy_no_username() {
+        let uri = "http://example.com".parse().unwrap();
+        let proxy = uri_to_proxy(uri).unwrap();
+        assert_eq!(None, proxy.headers().get("Authorization"));
+    }
+
+    #[test]
+    fn proxy_username() {
+        let uri = "http://user100@example.com".parse().unwrap();
+        let proxy = uri_to_proxy(uri).unwrap();
+
+        let expected = "Basic dXNlcjEwMDo=";
+        assert_eq!(&expected, proxy.headers().get("Authorization").unwrap());
+    }
+
+    #[test]
+    fn proxy_username_password() {
+        let uri = "http://user100:password123@example.com".parse().unwrap();
+        let proxy = uri_to_proxy(uri).unwrap();
+
+        let expected = "Basic dXNlcjEwMDpwYXNzd29yZDEyMw==";
+        assert_eq!(&expected, proxy.headers().get("Authorization").unwrap());
     }
 
     // TODO:

@@ -17,15 +17,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     [Unit]
     public class CloudTokenAuthenticatorTest
     {
+        const string IotHubHostName = "test.azure-devices.net";
+
         [Fact]
         public async Task AuthenticateTest()
         {
             // Arrange
             var deviceIdentity = Mock.Of<IDeviceIdentity>(d => d.Id == "d1" && d.DeviceId == "d1");
-            IClientCredentials credentials = new TokenCredentials(deviceIdentity, Guid.NewGuid().ToString(), string.Empty);
+            IClientCredentials credentials = new TokenCredentials(deviceIdentity, Guid.NewGuid().ToString(), string.Empty, false);
             var cloudProxy = Mock.Of<ICloudProxy>(c => c.OpenAsync() == Task.FromResult(true));
             var connectionManager = Mock.Of<IConnectionManager>(c => c.CreateCloudConnectionAsync(credentials) == Task.FromResult(Try.Success(cloudProxy)));
-            IAuthenticator cloudAuthenticator = new CloudTokenAuthenticator(connectionManager);
+            IAuthenticator cloudAuthenticator = new CloudTokenAuthenticator(connectionManager, IotHubHostName);
 
             // Act
             bool isAuthenticated = await cloudAuthenticator.AuthenticateAsync(credentials);
@@ -39,11 +41,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             // Arrange
             var deviceIdentity = Mock.Of<IDeviceIdentity>(d => d.Id == "d1" && d.DeviceId == "d1");
-            IClientCredentials credentials = new TokenCredentials(deviceIdentity, Guid.NewGuid().ToString(), string.Empty);
-            var cloudProxy = Mock.Of<ICloudProxy>();
-            Mock.Get(cloudProxy).Setup(c => c.OpenAsync()).ThrowsAsync(new Exception("Unauthorized"));
-            var connectionManager = Mock.Of<IConnectionManager>(c => c.CreateCloudConnectionAsync(credentials) == Task.FromResult(Try.Success(cloudProxy)));
-            IAuthenticator cloudAuthenticator = new CloudTokenAuthenticator(connectionManager);
+            IClientCredentials credentials = new TokenCredentials(deviceIdentity, Guid.NewGuid().ToString(), string.Empty, false);
+            var connectionManager = Mock.Of<IConnectionManager>(c => c.CreateCloudConnectionAsync(credentials) == Task.FromResult(Try<ICloudProxy>.Failure(new TimeoutException())));
+            IAuthenticator cloudAuthenticator = new CloudTokenAuthenticator(connectionManager, IotHubHostName);
 
             // Act
             bool isAuthenticated = await cloudAuthenticator.AuthenticateAsync(credentials);

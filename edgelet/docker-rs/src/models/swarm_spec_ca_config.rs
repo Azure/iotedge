@@ -16,25 +16,40 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SwarmSpecCaConfig {
     /// The duration node certificates are issued for.
-    #[serde(rename = "NodeCertExpiry", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "NodeCertExpiry",
+        skip_serializing_if = "Option::is_none"
+    )]
     node_cert_expiry: Option<i64>,
     /// Configuration for forwarding signing requests to an external certificate authority.
-    #[serde(rename = "ExternalCAs", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "ExternalCAs",
+        skip_serializing_if = "Option::is_none"
+    )]
     external_c_as: Option<Vec<::models::SwarmSpecCaConfigExternalCAs>>,
     /// The desired signing CA certificate for all swarm node TLS leaf certificates, in PEM format.
-    #[serde(rename = "SigningCACert", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "SigningCACert",
+        skip_serializing_if = "Option::is_none"
+    )]
     signing_ca_cert: Option<String>,
     /// The desired signing CA key for all swarm node TLS leaf certificates, in PEM format.
-    #[serde(rename = "SigningCAKey", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "SigningCAKey",
+        skip_serializing_if = "Option::is_none"
+    )]
     signing_ca_key: Option<String>,
     /// An integer whose purpose is to force swarm to generate a new signing CA certificate and key, if none have been specified in `SigningCACert` and `SigningCAKey`
-    #[serde(rename = "ForceRotate", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "ForceRotate",
+        skip_serializing_if = "Option::is_none"
+    )]
     force_rotate: Option<i32>,
 }
 
 impl SwarmSpecCaConfig {
     /// CA configuration.
-    pub fn new() -> SwarmSpecCaConfig {
+    pub fn new() -> Self {
         SwarmSpecCaConfig {
             node_cert_expiry: None,
             external_c_as: None,
@@ -48,13 +63,13 @@ impl SwarmSpecCaConfig {
         self.node_cert_expiry = Some(node_cert_expiry);
     }
 
-    pub fn with_node_cert_expiry(mut self, node_cert_expiry: i64) -> SwarmSpecCaConfig {
+    pub fn with_node_cert_expiry(mut self, node_cert_expiry: i64) -> Self {
         self.node_cert_expiry = Some(node_cert_expiry);
         self
     }
 
-    pub fn node_cert_expiry(&self) -> Option<&i64> {
-        self.node_cert_expiry.as_ref()
+    pub fn node_cert_expiry(&self) -> Option<i64> {
+        self.node_cert_expiry
     }
 
     pub fn reset_node_cert_expiry(&mut self) {
@@ -71,13 +86,13 @@ impl SwarmSpecCaConfig {
     pub fn with_external_c_as(
         mut self,
         external_c_as: Vec<::models::SwarmSpecCaConfigExternalCAs>,
-    ) -> SwarmSpecCaConfig {
+    ) -> Self {
         self.external_c_as = Some(external_c_as);
         self
     }
 
-    pub fn external_c_as(&self) -> Option<&Vec<::models::SwarmSpecCaConfigExternalCAs>> {
-        self.external_c_as.as_ref()
+    pub fn external_c_as(&self) -> Option<&[::models::SwarmSpecCaConfigExternalCAs]> {
+        self.external_c_as.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_external_c_as(&mut self) {
@@ -88,13 +103,13 @@ impl SwarmSpecCaConfig {
         self.signing_ca_cert = Some(signing_ca_cert);
     }
 
-    pub fn with_signing_ca_cert(mut self, signing_ca_cert: String) -> SwarmSpecCaConfig {
+    pub fn with_signing_ca_cert(mut self, signing_ca_cert: String) -> Self {
         self.signing_ca_cert = Some(signing_ca_cert);
         self
     }
 
-    pub fn signing_ca_cert(&self) -> Option<&String> {
-        self.signing_ca_cert.as_ref()
+    pub fn signing_ca_cert(&self) -> Option<&str> {
+        self.signing_ca_cert.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_signing_ca_cert(&mut self) {
@@ -105,13 +120,13 @@ impl SwarmSpecCaConfig {
         self.signing_ca_key = Some(signing_ca_key);
     }
 
-    pub fn with_signing_ca_key(mut self, signing_ca_key: String) -> SwarmSpecCaConfig {
+    pub fn with_signing_ca_key(mut self, signing_ca_key: String) -> Self {
         self.signing_ca_key = Some(signing_ca_key);
         self
     }
 
-    pub fn signing_ca_key(&self) -> Option<&String> {
-        self.signing_ca_key.as_ref()
+    pub fn signing_ca_key(&self) -> Option<&str> {
+        self.signing_ca_key.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_signing_ca_key(&mut self) {
@@ -122,13 +137,13 @@ impl SwarmSpecCaConfig {
         self.force_rotate = Some(force_rotate);
     }
 
-    pub fn with_force_rotate(mut self, force_rotate: i32) -> SwarmSpecCaConfig {
+    pub fn with_force_rotate(mut self, force_rotate: i32) -> Self {
         self.force_rotate = Some(force_rotate);
         self
     }
 
-    pub fn force_rotate(&self) -> Option<&i32> {
-        self.force_rotate.as_ref()
+    pub fn force_rotate(&self) -> Option<i32> {
+        self.force_rotate
     }
 
     pub fn reset_force_rotate(&mut self) {

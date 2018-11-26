@@ -2,16 +2,17 @@
 
 use std::io;
 
-use futures::{Async, Poll, Stream};
-use tokio_core::net::TcpListener;
+use futures::{Poll, Stream};
+use tokio::net::TcpListener;
 #[cfg(unix)]
 use tokio_uds::UnixListener;
+#[cfg(windows)]
+use tokio_uds_windows::UnixListener;
 
 use util::{IncomingSocketAddr, StreamSelector};
 
 pub enum Incoming {
     Tcp(TcpListener),
-    #[cfg(unix)]
     Unix(UnixListener),
 }
 
@@ -20,22 +21,31 @@ impl Stream for Incoming {
     type Error = io::Error;
 
     fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
-        match *self {
+        Ok(match *self {
             Incoming::Tcp(ref mut listener) => {
-                let (stream, addr) = try_nb!(listener.accept());
-                Ok(Async::Ready(Some((
-                    StreamSelector::Tcp(stream),
-                    IncomingSocketAddr::Tcp(addr),
-                ))))
+                let accept = match listener.poll_accept() {
+                    Ok(accept) => accept,
+                    Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
+                        return Ok(::futures::Async::NotReady)
+                    }
+                    Err(e) => return Err(e),
+                };
+                accept.map(|(stream, addr)| {
+                    Some((StreamSelector::Tcp(stream), IncomingSocketAddr::Tcp(addr)))
+                })
             }
-            #[cfg(unix)]
             Incoming::Unix(ref mut listener) => {
-                let (stream, addr) = try_nb!(listener.accept());
-                Ok(Async::Ready(Some((
-                    StreamSelector::Unix(stream),
-                    IncomingSocketAddr::Unix(addr),
-                ))))
+                let accept = match listener.poll_accept() {
+                    Ok(accept) => accept,
+                    Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
+                        return Ok(::futures::Async::NotReady)
+                    }
+                    Err(e) => return Err(e),
+                };
+                accept.map(|(stream, addr)| {
+                    Some((StreamSelector::Unix(stream), IncomingSocketAddr::Unix(addr)))
+                })
             }
-        }
+        })
     }
 }

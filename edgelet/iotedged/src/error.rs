@@ -1,29 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::env::VarError;
 use std::fmt;
 use std::fmt::Display;
-use std::io;
-use std::net::AddrParseError;
-#[cfg(target_os = "windows")]
+#[cfg(windows)]
 use std::sync::Mutex;
 
-use base64::DecodeError;
-use config::ConfigError as SettingsError;
-use edgelet_core::Error as CoreError;
-use edgelet_docker::Error as DockerError;
-use edgelet_hsm::Error as SoftHsmError;
-use edgelet_http::Error as HttpError;
 use failure::{Backtrace, Context, Fail};
-use hsm::Error as HardHsmError;
-use hyper::error::UriError;
-use hyper::Error as HyperError;
-use hyper_tls::Error as HyperTlsError;
-use iothubservice::error::Error as IotHubError;
-use provisioning::Error as ProvisioningError;
-use serde_json::Error as JsonError;
-use url::ParseError;
-#[cfg(target_os = "windows")]
+#[cfg(windows)]
 use windows_service::Error as WindowsServiceError;
 
 #[derive(Debug)]
@@ -31,55 +14,26 @@ pub struct Error {
     inner: Context<ErrorKind>,
 }
 
-#[derive(Debug, Fail, PartialEq)]
+#[derive(Clone, Debug, Fail, PartialEq)]
 pub enum ErrorKind {
-    #[fail(display = "Invalid configuration file")]
-    Settings,
-    #[fail(display = "Invalid configuration json")]
-    Json,
-    #[fail(display = "Edgelet core error")]
-    Core,
-    #[fail(display = "Base64 decode error")]
-    DecodeError,
-    #[fail(display = "An IO error occurred.")]
-    Io,
-    #[fail(display = "An HTTP server error occurred.")]
-    Hyper,
-    #[fail(display = "A TLS error occurred.")]
-    HyperTls,
-    #[fail(display = "A Docker error occurred.")]
-    Docker,
-    #[fail(display = "An IoT Hub error occurred.")]
-    IotHub,
-    #[fail(display = "A parse error occurred.")]
-    Parse,
-    #[fail(display = "An http error occurred.")]
-    Http,
-    #[cfg(target_os = "windows")]
     #[fail(
-        display = "Edge device information is required.\n\
-                   Please update the config.yaml and provide the IoTHub connection information.\n\
-                   See https://aka.ms/iot-edge-configure-windows for more details."
+        display = "The daemon could not start up successfully: {}",
+        _0
     )]
-    Unconfigured,
-    #[cfg(not(target_os = "windows"))]
-    #[fail(
-        display = "Edge device information is required.\n\
-                   Please update the config.yaml and provide the IoTHub connection information.\n\
-                   See https://aka.ms/iot-edge-configure-linux for more details"
-    )]
-    Unconfigured,
-    #[fail(display = "A provisioning error occurred.")]
-    Provisioning,
-    #[fail(display = "A hardware hsm error occurred.")]
-    HardHsm,
-    #[fail(display = "An hsm error occurred.")]
-    SoftHsm,
-    #[fail(display = "Env var error")]
-    Var,
-    #[cfg(target_os = "windows")]
-    #[fail(display = "Windows service error")]
-    WindowsService,
+    Initialize(InitializeErrorReason),
+
+    #[fail(display = "The management service encountered an error")]
+    ManagementService,
+
+    #[fail(display = "The watchdog encountered an error")]
+    Watchdog,
+
+    #[cfg(windows)]
+    #[fail(display = "The daemon encountered an error while updating its Windows Service state")]
+    UpdateWindowsServiceState,
+
+    #[fail(display = "The workload service encountered an error")]
+    WorkloadService,
 }
 
 impl Error {
@@ -105,7 +59,7 @@ impl Display for Error {
 }
 
 impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Error {
+    fn from(kind: ErrorKind) -> Self {
         Error {
             inner: Context::new(kind),
         }
@@ -113,15 +67,119 @@ impl From<ErrorKind> for Error {
 }
 
 impl From<Context<ErrorKind>> for Error {
-    fn from(inner: Context<ErrorKind>) -> Error {
+    fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
     }
 }
 
-impl From<SettingsError> for Error {
-    fn from(error: SettingsError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::Settings),
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum InitializeErrorReason {
+    CreateMasterEncryptionKey,
+    CreateSettingsDirectory,
+    DestroyWorkloadCa,
+    DeviceClient,
+    DpsProvisioningClient,
+    EdgeRuntime,
+    Hsm,
+    HttpClient,
+    InvalidProxyUri,
+    InvalidSocketUri,
+    LoadSettings,
+    ManagementService,
+    ManualProvisioningClient,
+    ModuleRuntime,
+    NotConfigured,
+    PrepareWorkloadCa,
+    #[cfg(windows)]
+    RegisterWindowsService,
+    RemoveExistingModules,
+    SaveSettings,
+    #[cfg(windows)]
+    StartWindowsService,
+    Tokio,
+    WorkloadService,
+}
+
+impl fmt::Display for InitializeErrorReason {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            InitializeErrorReason::CreateMasterEncryptionKey => {
+                write!(f, "Could not create master encryption key")
+            }
+
+            InitializeErrorReason::CreateSettingsDirectory => {
+                write!(f, "Could not create settings directory")
+            }
+
+            InitializeErrorReason::DestroyWorkloadCa => {
+                write!(f, "Could not destroy workload CA certificate")
+            }
+
+            InitializeErrorReason::DeviceClient => write!(f, "Could not initialize device client"),
+
+            InitializeErrorReason::DpsProvisioningClient => {
+                write!(f, "Could not initialize DPS provisioning client")
+            }
+
+            InitializeErrorReason::EdgeRuntime => write!(f, "Could not initialize edge runtime"),
+
+            InitializeErrorReason::Hsm => write!(f, "Could not initialize HSM"),
+
+            InitializeErrorReason::HttpClient => write!(f, "Could not initialize HTTP client"),
+
+            InitializeErrorReason::InvalidProxyUri => write!(f, "Invalid proxy URI"),
+
+            InitializeErrorReason::InvalidSocketUri => write!(f, "Invalid socket URI"),
+
+            InitializeErrorReason::LoadSettings => write!(f, "Could not load settings"),
+
+            InitializeErrorReason::ManagementService => {
+                write!(f, "Could not start management service")
+            }
+
+            InitializeErrorReason::ManualProvisioningClient => {
+                write!(f, "Could not initialize manual provisioning client")
+            }
+
+            InitializeErrorReason::ModuleRuntime => {
+                write!(f, "Could not initialize module runtime")
+            }
+
+            InitializeErrorReason::NotConfigured => write!(
+                f,
+                "Edge device information is required.\n\
+                 Please update the config.yaml and provide the IoTHub connection information.\n\
+                 See {} for more details.",
+                if cfg!(windows) {
+                    "https://aka.ms/iot-edge-configure-windows"
+                } else {
+                    "https://aka.ms/iot-edge-configure-linux"
+                }
+            ),
+
+            InitializeErrorReason::PrepareWorkloadCa => {
+                write!(f, "Could not prepare workload CA certificate")
+            }
+
+            #[cfg(windows)]
+            InitializeErrorReason::RegisterWindowsService => {
+                write!(f, "Could not register Windows Service control handle")
+            }
+
+            InitializeErrorReason::RemoveExistingModules => {
+                write!(f, "Could not remove existing modules")
+            }
+
+            InitializeErrorReason::SaveSettings => write!(f, "Could not save settings file"),
+
+            #[cfg(windows)]
+            InitializeErrorReason::StartWindowsService => {
+                write!(f, "Could not start as Windows Service")
+            }
+
+            InitializeErrorReason::Tokio => write!(f, "Could not initialize tokio runtime"),
+
+            InitializeErrorReason::WorkloadService => write!(f, "Could not start workload service"),
         }
     }
 }
@@ -131,157 +189,20 @@ impl From<SettingsError> for Error {
 // `error_chain`'s error type does not implement `Sync` unfortunately (they have
 // an open PR to address that). But `failure` requires errors to implement `Sync`.
 // So this `Mutex` helps us work around the problem.
-#[cfg(target_os = "windows")]
+#[cfg(windows)]
 #[derive(Debug, Fail)]
 pub struct ServiceError(Mutex<WindowsServiceError>);
 
-#[cfg(target_os = "windows")]
+#[cfg(windows)]
+impl From<WindowsServiceError> for ServiceError {
+    fn from(err: WindowsServiceError) -> Self {
+        ServiceError(Mutex::new(err))
+    }
+}
+
+#[cfg(windows)]
 impl Display for ServiceError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.0.lock().unwrap().fmt(f)
-    }
-}
-
-#[cfg(target_os = "windows")]
-impl From<ServiceError> for Error {
-    fn from(error: ServiceError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::WindowsService),
-        }
-    }
-}
-
-#[cfg(target_os = "windows")]
-impl From<WindowsServiceError> for Error {
-    fn from(error: WindowsServiceError) -> Error {
-        Error::from(ServiceError(Mutex::new(error)))
-    }
-}
-
-impl From<JsonError> for Error {
-    fn from(error: JsonError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::Json),
-        }
-    }
-}
-
-impl From<CoreError> for Error {
-    fn from(err: CoreError) -> Error {
-        Error {
-            inner: err.context(ErrorKind::Core),
-        }
-    }
-}
-
-impl From<io::Error> for Error {
-    fn from(error: io::Error) -> Error {
-        Error {
-            inner: error.context(ErrorKind::Io),
-        }
-    }
-}
-
-impl From<DecodeError> for Error {
-    fn from(error: DecodeError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::DecodeError),
-        }
-    }
-}
-
-impl From<DockerError> for Error {
-    fn from(error: DockerError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::Docker),
-        }
-    }
-}
-
-impl From<HyperError> for Error {
-    fn from(error: HyperError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::Hyper),
-        }
-    }
-}
-
-impl From<HyperTlsError> for Error {
-    fn from(error: HyperTlsError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::HyperTls),
-        }
-    }
-}
-
-impl From<IotHubError> for Error {
-    fn from(error: IotHubError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::IotHub),
-        }
-    }
-}
-
-impl From<AddrParseError> for Error {
-    fn from(error: AddrParseError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::Parse),
-        }
-    }
-}
-
-impl From<ParseError> for Error {
-    fn from(error: ParseError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::Parse),
-        }
-    }
-}
-
-impl From<UriError> for Error {
-    fn from(error: UriError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::Parse),
-        }
-    }
-}
-
-impl From<HttpError> for Error {
-    fn from(error: HttpError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::Http),
-        }
-    }
-}
-
-impl From<ProvisioningError> for Error {
-    fn from(error: ProvisioningError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::Provisioning),
-        }
-    }
-}
-
-impl From<HardHsmError> for Error {
-    fn from(error: HardHsmError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::HardHsm),
-        }
-    }
-}
-
-impl From<SoftHsmError> for Error {
-    fn from(error: SoftHsmError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::SoftHsm),
-        }
-    }
-}
-
-impl From<VarError> for Error {
-    fn from(error: VarError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::Var),
-        }
     }
 }

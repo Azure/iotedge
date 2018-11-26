@@ -12,14 +12,17 @@
 
 use std::default::Default;
 
-/// DeviceRegistration : Device registration.
+/// [`DeviceRegistration`] : Device registration.
 
 #[allow(unused_imports)]
 use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DeviceRegistration {
-    #[serde(rename = "registrationId", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "registrationId",
+        skip_serializing_if = "Option::is_none"
+    )]
     registration_id: Option<String>,
     #[serde(rename = "tpm", skip_serializing_if = "Option::is_none")]
     tpm: Option<TpmAttestation>,
@@ -27,7 +30,7 @@ pub struct DeviceRegistration {
 
 impl DeviceRegistration {
     /// Device registration.
-    pub fn new() -> DeviceRegistration {
+    pub fn new() -> Self {
         DeviceRegistration {
             registration_id: None,
             tpm: None,
@@ -38,13 +41,13 @@ impl DeviceRegistration {
         self.registration_id = Some(registration_id);
     }
 
-    pub fn with_registration_id(mut self, registration_id: String) -> DeviceRegistration {
+    pub fn with_registration_id(mut self, registration_id: String) -> Self {
         self.registration_id = Some(registration_id);
         self
     }
 
-    pub fn registration_id(&self) -> Option<&String> {
-        self.registration_id.as_ref()
+    pub fn registration_id(&self) -> Option<&str> {
+        self.registration_id.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_registration_id(&mut self) {
@@ -55,7 +58,7 @@ impl DeviceRegistration {
         self.tpm = Some(tpm);
     }
 
-    pub fn with_tpm(mut self, tpm: TpmAttestation) -> DeviceRegistration {
+    pub fn with_tpm(mut self, tpm: TpmAttestation) -> Self {
         self.tpm = Some(tpm);
         self
     }
@@ -75,19 +78,22 @@ impl Default for DeviceRegistration {
     }
 }
 
-/// TpmAttestation : Attestation via TPM.
+/// [`TpmAttestation`] : Attestation via TPM.
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TpmAttestation {
     #[serde(rename = "endorsementKey")]
     endorsement_key: String,
-    #[serde(rename = "storageRootKey", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "storageRootKey",
+        skip_serializing_if = "Option::is_none"
+    )]
     storage_root_key: Option<String>,
 }
 
 impl TpmAttestation {
     /// Attestation via TPM.
-    pub fn new(endorsement_key: String) -> TpmAttestation {
+    pub fn new(endorsement_key: String) -> Self {
         TpmAttestation {
             endorsement_key,
             storage_root_key: None,
@@ -98,7 +104,7 @@ impl TpmAttestation {
         self.endorsement_key = endorsement_key;
     }
 
-    pub fn with_endorsement_key(mut self, endorsement_key: String) -> TpmAttestation {
+    pub fn with_endorsement_key(mut self, endorsement_key: String) -> Self {
         self.endorsement_key = endorsement_key;
         self
     }
@@ -111,13 +117,13 @@ impl TpmAttestation {
         self.storage_root_key = Some(storage_root_key);
     }
 
-    pub fn with_storage_root_key(mut self, storage_root_key: String) -> TpmAttestation {
+    pub fn with_storage_root_key(mut self, storage_root_key: String) -> Self {
         self.storage_root_key = Some(storage_root_key);
         self
     }
 
-    pub fn storage_root_key(&self) -> Option<&String> {
-        self.storage_root_key.as_ref()
+    pub fn storage_root_key(&self) -> Option<&str> {
+        self.storage_root_key.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_storage_root_key(&mut self) {
@@ -125,17 +131,20 @@ impl TpmAttestation {
     }
 }
 
-/// TpmRegistrationResult : TPM registration result.
+/// [`TpmRegistrationResult`] : TPM registration result.
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TpmRegistrationResult {
-    #[serde(rename = "authenticationKey", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "authenticationKey",
+        skip_serializing_if = "Option::is_none"
+    )]
     authentication_key: Option<String>,
 }
 
 impl TpmRegistrationResult {
     /// TPM registration result.
-    pub fn new() -> TpmRegistrationResult {
+    pub fn new() -> Self {
         TpmRegistrationResult {
             authentication_key: None,
         }
@@ -145,13 +154,13 @@ impl TpmRegistrationResult {
         self.authentication_key = Some(authentication_key);
     }
 
-    pub fn with_authentication_key(mut self, authentication_key: String) -> TpmRegistrationResult {
+    pub fn with_authentication_key(mut self, authentication_key: String) -> Self {
         self.authentication_key = Some(authentication_key);
         self
     }
 
-    pub fn authentication_key(&self) -> Option<&String> {
-        self.authentication_key.as_ref()
+    pub fn authentication_key(&self) -> Option<&str> {
+        self.authentication_key.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_authentication_key(&mut self) {
@@ -165,7 +174,7 @@ impl Default for TpmRegistrationResult {
     }
 }
 
-/// RegistrationOperationStatus : Registration operation status.
+/// [`RegistrationOperationStatus`] : Registration operation status.
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RegistrationOperationStatus {
@@ -176,13 +185,16 @@ pub struct RegistrationOperationStatus {
     #[serde(rename = "status", skip_serializing_if = "Option::is_none")]
     status: Option<String>,
     /// Device registration status.
-    #[serde(rename = "registrationState", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "registrationState",
+        skip_serializing_if = "Option::is_none"
+    )]
     registration_state: Option<DeviceRegistrationResult>,
 }
 
 impl RegistrationOperationStatus {
     /// Registration operation status.
-    pub fn new(operation_id: String) -> RegistrationOperationStatus {
+    pub fn new(operation_id: String) -> Self {
         RegistrationOperationStatus {
             operation_id,
             status: None,
@@ -194,7 +206,7 @@ impl RegistrationOperationStatus {
         self.operation_id = operation_id;
     }
 
-    pub fn with_operation_id(mut self, operation_id: String) -> RegistrationOperationStatus {
+    pub fn with_operation_id(mut self, operation_id: String) -> Self {
         self.operation_id = operation_id;
         self
     }
@@ -207,13 +219,13 @@ impl RegistrationOperationStatus {
         self.status = Some(status);
     }
 
-    pub fn with_status(mut self, status: String) -> RegistrationOperationStatus {
+    pub fn with_status(mut self, status: String) -> Self {
         self.status = Some(status);
         self
     }
 
-    pub fn status(&self) -> Option<&String> {
-        self.status.as_ref()
+    pub fn status(&self) -> Option<&str> {
+        self.status.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_status(&mut self) {
@@ -224,10 +236,7 @@ impl RegistrationOperationStatus {
         self.registration_state = Some(registration_state);
     }
 
-    pub fn with_registration_state(
-        mut self,
-        registration_state: DeviceRegistrationResult,
-    ) -> RegistrationOperationStatus {
+    pub fn with_registration_state(mut self, registration_state: DeviceRegistrationResult) -> Self {
         self.registration_state = Some(registration_state);
         self
     }
@@ -253,10 +262,16 @@ pub struct DeviceRegistrationResult {
     #[serde(rename = "registrationId")]
     registration_id: String,
     /// Registration create date time (in UTC).
-    #[serde(rename = "createdDateTimeUtc", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "createdDateTimeUtc",
+        skip_serializing_if = "Option::is_none"
+    )]
     created_date_time_utc: Option<String>,
     /// Assigned Azure IoT Hub.
-    #[serde(rename = "assignedHub", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "assignedHub",
+        skip_serializing_if = "Option::is_none"
+    )]
     assigned_hub: Option<String>,
     /// Device ID.
     #[serde(rename = "deviceId", skip_serializing_if = "Option::is_none")]
@@ -265,13 +280,22 @@ pub struct DeviceRegistrationResult {
     #[serde(rename = "status")]
     status: String,
     /// Error code.
-    #[serde(rename = "errorCode", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "errorCode",
+        skip_serializing_if = "Option::is_none"
+    )]
     error_code: Option<i32>,
     /// Error message.
-    #[serde(rename = "errorMessage", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "errorMessage",
+        skip_serializing_if = "Option::is_none"
+    )]
     error_message: Option<String>,
     /// Last updated date time (in UTC).
-    #[serde(rename = "lastUpdatedDateTimeUtc", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "lastUpdatedDateTimeUtc",
+        skip_serializing_if = "Option::is_none"
+    )]
     last_updated_date_time_utc: Option<String>,
     /// The entity tag associated with the resource.
     #[serde(rename = "etag", skip_serializing_if = "Option::is_none")]
@@ -280,7 +304,7 @@ pub struct DeviceRegistrationResult {
 
 impl DeviceRegistrationResult {
     /// Device registration result.
-    pub fn new(registration_id: String, status: String) -> DeviceRegistrationResult {
+    pub fn new(registration_id: String, status: String) -> Self {
         DeviceRegistrationResult {
             tpm: None,
             x509: None,
@@ -300,7 +324,7 @@ impl DeviceRegistrationResult {
         self.tpm = Some(tpm);
     }
 
-    pub fn with_tpm(mut self, tpm: TpmRegistrationResult) -> DeviceRegistrationResult {
+    pub fn with_tpm(mut self, tpm: TpmRegistrationResult) -> Self {
         self.tpm = Some(tpm);
         self
     }
@@ -317,7 +341,7 @@ impl DeviceRegistrationResult {
         self.registration_id = registration_id;
     }
 
-    pub fn with_registration_id(mut self, registration_id: String) -> DeviceRegistrationResult {
+    pub fn with_registration_id(mut self, registration_id: String) -> Self {
         self.registration_id = registration_id;
         self
     }
@@ -330,16 +354,13 @@ impl DeviceRegistrationResult {
         self.created_date_time_utc = Some(created_date_time_utc);
     }
 
-    pub fn with_created_date_time_utc(
-        mut self,
-        created_date_time_utc: String,
-    ) -> DeviceRegistrationResult {
+    pub fn with_created_date_time_utc(mut self, created_date_time_utc: String) -> Self {
         self.created_date_time_utc = Some(created_date_time_utc);
         self
     }
 
-    pub fn created_date_time_utc(&self) -> Option<&String> {
-        self.created_date_time_utc.as_ref()
+    pub fn created_date_time_utc(&self) -> Option<&str> {
+        self.created_date_time_utc.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_created_date_time_utc(&mut self) {
@@ -350,13 +371,13 @@ impl DeviceRegistrationResult {
         self.assigned_hub = Some(assigned_hub);
     }
 
-    pub fn with_assigned_hub(mut self, assigned_hub: String) -> DeviceRegistrationResult {
+    pub fn with_assigned_hub(mut self, assigned_hub: String) -> Self {
         self.assigned_hub = Some(assigned_hub);
         self
     }
 
-    pub fn assigned_hub(&self) -> Option<&String> {
-        self.assigned_hub.as_ref()
+    pub fn assigned_hub(&self) -> Option<&str> {
+        self.assigned_hub.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_assigned_hub(&mut self) {
@@ -367,13 +388,13 @@ impl DeviceRegistrationResult {
         self.device_id = Some(device_id);
     }
 
-    pub fn with_device_id(mut self, device_id: String) -> DeviceRegistrationResult {
+    pub fn with_device_id(mut self, device_id: String) -> Self {
         self.device_id = Some(device_id);
         self
     }
 
-    pub fn device_id(&self) -> Option<&String> {
-        self.device_id.as_ref()
+    pub fn device_id(&self) -> Option<&str> {
+        self.device_id.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_device_id(&mut self) {
@@ -384,7 +405,7 @@ impl DeviceRegistrationResult {
         self.status = status;
     }
 
-    pub fn with_status(mut self, status: String) -> DeviceRegistrationResult {
+    pub fn with_status(mut self, status: String) -> Self {
         self.status = status;
         self
     }
@@ -397,13 +418,13 @@ impl DeviceRegistrationResult {
         self.error_code = Some(error_code);
     }
 
-    pub fn with_error_code(mut self, error_code: i32) -> DeviceRegistrationResult {
+    pub fn with_error_code(mut self, error_code: i32) -> Self {
         self.error_code = Some(error_code);
         self
     }
 
-    pub fn error_code(&self) -> Option<&i32> {
-        self.error_code.as_ref()
+    pub fn error_code(&self) -> Option<i32> {
+        self.error_code
     }
 
     pub fn reset_error_code(&mut self) {
@@ -414,13 +435,13 @@ impl DeviceRegistrationResult {
         self.error_message = Some(error_message);
     }
 
-    pub fn with_error_message(mut self, error_message: String) -> DeviceRegistrationResult {
+    pub fn with_error_message(mut self, error_message: String) -> Self {
         self.error_message = Some(error_message);
         self
     }
 
-    pub fn error_message(&self) -> Option<&String> {
-        self.error_message.as_ref()
+    pub fn error_message(&self) -> Option<&str> {
+        self.error_message.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_error_message(&mut self) {
@@ -431,16 +452,13 @@ impl DeviceRegistrationResult {
         self.last_updated_date_time_utc = Some(last_updated_date_time_utc);
     }
 
-    pub fn with_last_updated_date_time_utc(
-        mut self,
-        last_updated_date_time_utc: String,
-    ) -> DeviceRegistrationResult {
+    pub fn with_last_updated_date_time_utc(mut self, last_updated_date_time_utc: String) -> Self {
         self.last_updated_date_time_utc = Some(last_updated_date_time_utc);
         self
     }
 
-    pub fn last_updated_date_time_utc(&self) -> Option<&String> {
-        self.last_updated_date_time_utc.as_ref()
+    pub fn last_updated_date_time_utc(&self) -> Option<&str> {
+        self.last_updated_date_time_utc.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_last_updated_date_time_utc(&mut self) {
@@ -451,13 +469,13 @@ impl DeviceRegistrationResult {
         self.etag = Some(etag);
     }
 
-    pub fn with_etag(mut self, etag: String) -> DeviceRegistrationResult {
+    pub fn with_etag(mut self, etag: String) -> Self {
         self.etag = Some(etag);
         self
     }
 
-    pub fn etag(&self) -> Option<&String> {
-        self.etag.as_ref()
+    pub fn etag(&self) -> Option<&str> {
+        self.etag.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_etag(&mut self) {

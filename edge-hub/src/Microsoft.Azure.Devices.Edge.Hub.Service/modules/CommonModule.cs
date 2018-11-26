@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using System;
     using System.Collections.Generic;
     using System.Net;
+    using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
@@ -31,7 +32,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly string storagePath;
         readonly TimeSpan scopeCacheRefreshRate;
         readonly Option<string> workloadUri;
-        readonly bool cacheTokens;
+        readonly bool persistTokens;
+        readonly IList<X509Certificate2> trustBundle;
 
         public CommonModule(
             string productInfo,
@@ -47,7 +49,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             string storagePath,
             Option<string> workloadUri,
             TimeSpan scopeCacheRefreshRate,
-            bool cacheTokens)
+            bool persistTokens,
+            IList<X509Certificate2> trustBundle)
         {
             this.productInfo = productInfo;
             this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
@@ -62,7 +65,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.storagePath = storagePath;
             this.scopeCacheRefreshRate = scopeCacheRefreshRate;
             this.workloadUri = workloadUri;
-            this.cacheTokens = cacheTokens;
+            this.persistTokens = persistTokens;
+            this.trustBundle = Preconditions.CheckNotNull(trustBundle, nameof(trustBundle));
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -109,7 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     if (this.usePersistentStorage)
                     {
                         // Create partitions for messages and twins
-                        var partitionsList = new List<string> { Core.Constants.MessageStorePartitionKey, Core.Constants.TwinStorePartitionKey, Core.Constants.CheckpointStorePartitionKey };
+                        var partitionsList = new List<string> { Constants.MessageStorePartitionKey, Constants.TwinStorePartitionKey, Core.Constants.CheckpointStorePartitionKey };
                         try
                         {
                             IDbStoreProvider dbStoreprovider = Storage.RocksDb.DbStoreProvider.Create(c.Resolve<Storage.RocksDb.IRocksDbOptionsProvider>(),
@@ -132,22 +136,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<IDbStoreProvider>()
                 .SingleInstance();
 
-            // Task<IEncryptionProvider>
+            // Task<Option<IEncryptionProvider>>
             builder.Register(
                     async c =>
                     {
-                        IEncryptionProvider encryptionProvider = await this.workloadUri.Map(
-                                async uri => await EncryptionProvider.CreateAsync(
-                                    this.storagePath,
-                                    new Uri(uri),
-                                    Service.Constants.WorkloadApiVersion,
-                                    this.edgeHubModuleId,
-                                    this.edgeHubGenerationId.Expect(() => new InvalidOperationException("Missing generation ID")),
-                                    Service.Constants.InitializationVectorFileName) as IEncryptionProvider)
-                            .GetOrElse(() => Task.FromResult<IEncryptionProvider>(NullEncryptionProvider.Instance));
-                        return encryptionProvider;
+                        Option<IEncryptionProvider> encryptionProviderOption = await this.workloadUri
+                            .Map(
+                                async uri =>
+                                {
+                                    var encryptionProvider = await EncryptionProvider.CreateAsync(
+                                        this.storagePath,
+                                        new Uri(uri),
+                                        Service.Constants.WorkloadApiVersion,
+                                        this.edgeHubModuleId,
+                                        this.edgeHubGenerationId.Expect(() => new InvalidOperationException("Missing generation ID")),
+                                        Service.Constants.InitializationVectorFileName) as IEncryptionProvider;
+                                    return Option.Some(encryptionProvider);
+                                })
+                            .GetOrElse(() => Task.FromResult(Option.None<IEncryptionProvider>()));
+                        return encryptionProviderOption;
                     })
-                .As<Task<IEncryptionProvider>>()
+                .As<Task<Option<IEncryptionProvider>>>()
                 .SingleInstance();
 
             // IStoreProvider
@@ -170,20 +179,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .Named<ITokenProvider>("EdgeHubServiceAuthTokenProvider")
                 .SingleInstance();
 
-            // Task<IKeyValueStore<string, string>> - EncryptedStore
-            builder.Register(
-                    async c =>
-                    {
-                        var storeProvider = c.Resolve<IStoreProvider>();
-                        IEncryptionProvider encryptionProvider = await c.Resolve<Task<IEncryptionProvider>>();
-                        IEntityStore<string, string> entityStore = storeProvider.GetEntityStore<string, string>("SecurityScopeCache");
-                        IKeyValueStore<string, string> encryptedStore = new EncryptedStore<string, string>(entityStore, encryptionProvider);
-                        return encryptedStore;
-                    })
-                .Named<Task<IKeyValueStore<string, string>>>("EncryptedStore")
-                .SingleInstance();
-
-
             // Task<IDeviceScopeIdentitiesCache>
             builder.Register(
                     async c =>
@@ -194,7 +189,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             var edgeHubTokenProvider = c.ResolveNamed<ITokenProvider>("EdgeHubServiceAuthTokenProvider");
                             IDeviceScopeApiClient securityScopesApiClient = new DeviceScopeApiClient(this.iothubHostName, this.edgeDeviceId, this.edgeHubModuleId, 10, edgeHubTokenProvider);
                             IServiceProxy serviceProxy = new ServiceProxy(securityScopesApiClient);
-                            IKeyValueStore<string, string> encryptedStore = await c.ResolveNamed<Task<IKeyValueStore<string, string>>>("EncryptedStore");
+                            IKeyValueStore<string, string> encryptedStore = await GetEncryptedStore(c, "DeviceScopeCache");
                             deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceProxy, encryptedStore, this.scopeCacheRefreshRate);
                         }
                         else
@@ -205,52 +200,127 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         return deviceScopeIdentitiesCache;
                     })
                 .As<Task<IDeviceScopeIdentitiesCache>>()
+                .AutoActivate()
+                .SingleInstance();
+
+            // Task<ICredentialsCache>
+            builder.Register(async c =>
+                {
+                    ICredentialsCache underlyingCredentialsCache;
+                    if (this.persistTokens)
+                    {
+                        IKeyValueStore<string, string> encryptedStore = await GetEncryptedStore(c, "CredentialsCache");
+                        return new PersistedTokenCredentialsCache(encryptedStore);
+                    }
+                    else
+                    {
+                        underlyingCredentialsCache = new NullCredentialsCache();
+                    }
+                    ICredentialsCache credentialsCache = new CredentialsCache(underlyingCredentialsCache);
+                    return credentialsCache;
+                })
+                .As<Task<ICredentialsCache>>()
                 .SingleInstance();
 
             // Task<IAuthenticator>
             builder.Register(async c =>
-                {
-                    IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
+                {                    
                     IAuthenticator tokenAuthenticator;
                     IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
+                    var credentialsCacheTask = c.Resolve<Task<ICredentialsCache>>();
                     switch (this.authenticationMode)
                     {
                         case AuthenticationMode.Cloud:
-                            if (this.cacheTokens)
-                            {
-                                ICredentialsStore credentialsStore = await c.Resolve<Task<ICredentialsStore>>();
-                                IAuthenticator authenticator = new CloudTokenAuthenticator(connectionManager);
-                                tokenAuthenticator = new TokenCacheAuthenticator(authenticator, credentialsStore, this.iothubHostName);
-                            }
-                            else
-                            {
-                                tokenAuthenticator = new CloudTokenAuthenticator(connectionManager);
-                            }
+                            tokenAuthenticator = await this.GetCloudTokenAuthenticator(c);
                             break;
 
                         case AuthenticationMode.Scope:
                             deviceScopeIdentitiesCache = await c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
-                            tokenAuthenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, this.iothubHostName, this.edgeDeviceHostName, new NullAuthenticator(), connectionManager);
+                            tokenAuthenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, this.iothubHostName, this.edgeDeviceHostName, new NullAuthenticator());
                             break;
 
-                        default:
-                            deviceScopeIdentitiesCache = await c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
-                            IAuthenticator cloudAuthenticator = new CloudTokenAuthenticator(connectionManager);
-                            tokenAuthenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, this.iothubHostName, this.edgeDeviceHostName, cloudAuthenticator, connectionManager);
+                        default:                            
+                            var deviceScopeIdentitiesCacheTask = c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
+                            IAuthenticator cloudTokenAuthenticator = await this.GetCloudTokenAuthenticator(c);
+                            deviceScopeIdentitiesCache = await deviceScopeIdentitiesCacheTask;
+                            tokenAuthenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, this.iothubHostName, this.edgeDeviceHostName, cloudTokenAuthenticator);
                             break;
                     }
 
-                    return new Authenticator(tokenAuthenticator, this.edgeDeviceId, connectionManager) as IAuthenticator;
+                    ICredentialsCache credentialsCache = await credentialsCacheTask;
+                    return new Authenticator(tokenAuthenticator, this.edgeDeviceId, credentialsCache) as IAuthenticator;
                 })
                 .As<Task<IAuthenticator>>()
                 .SingleInstance();
 
             // IClientCredentialsFactory
-            builder.Register(c => new ClientCredentialsFactory(this.iothubHostName, this.productInfo))
+            builder.Register(c => new ClientCredentialsFactory(c.Resolve<IIdentityProvider>(), this.productInfo))
                 .As<IClientCredentialsFactory>()
                 .SingleInstance();
 
+            // ConnectionReauthenticator
+            builder.Register(async c =>
+                {
+                    var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
+                    var connectionManagerTask = c.Resolve<Task<IConnectionManager>>();
+                    var authenticatorTask = c.Resolve<Task<IAuthenticator>>();
+                    var credentialsCacheTask = c.Resolve<Task<ICredentialsCache>>();
+                    var deviceScopeIdentitiesCacheTask = c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
+                    var deviceConnectivityManager = c.Resolve<IDeviceConnectivityManager>();
+                    IConnectionManager connectionManager = await connectionManagerTask;
+                    IAuthenticator authenticator = await authenticatorTask;
+                    ICredentialsCache credentialsCache = await credentialsCacheTask;
+                    IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await deviceScopeIdentitiesCacheTask;
+                    var connectionReauthenticator = new ConnectionReauthenticator(
+                        connectionManager,
+                        authenticator,
+                        credentialsCache,
+                        deviceScopeIdentitiesCache,
+                        TimeSpan.FromMinutes(5),
+                        edgeHubCredentials.Identity,
+                        deviceConnectivityManager); 
+                    return connectionReauthenticator;
+                })
+                .As<Task<ConnectionReauthenticator>>()
+                .SingleInstance();
+
             base.Load(builder);
+        }
+
+        async Task<IAuthenticator> GetCloudTokenAuthenticator(IComponentContext context)
+        {
+            IAuthenticator tokenAuthenticator;
+            var connectionManagerTask = context.Resolve<Task<IConnectionManager>>();
+            var credentialsCacheTask = context.Resolve<Task<ICredentialsCache>>();
+            IConnectionManager connectionManager = await connectionManagerTask;
+            ICredentialsCache credentialsCache = await credentialsCacheTask;
+            if (this.persistTokens)
+            {
+                IAuthenticator authenticator = new CloudTokenAuthenticator(connectionManager, this.iothubHostName);
+                tokenAuthenticator = new TokenCacheAuthenticator(authenticator, credentialsCache, this.iothubHostName);
+            }
+            else
+            {
+                tokenAuthenticator = new CloudTokenAuthenticator(connectionManager, this.iothubHostName);
+            }
+
+            return tokenAuthenticator;
+        }
+
+        static async Task<IKeyValueStore<string, string>> GetEncryptedStore(IComponentContext context, string entityName)
+        {
+            var storeProvider = context.Resolve<IStoreProvider>();
+            Option<IEncryptionProvider> encryptionProvider = await context.Resolve<Task<Option<IEncryptionProvider>>>();
+            IKeyValueStore<string, string> encryptedStore = encryptionProvider
+                .Map(
+                    e =>
+                    {
+                        IEntityStore<string, string> entityStore = storeProvider.GetEntityStore<string, string>(entityName);
+                        IKeyValueStore<string, string> es = new EncryptedStore<string, string>(entityStore, e);
+                        return es;
+                    })
+                .GetOrElse(() => new NullKeyValueStore<string, string>() as IKeyValueStore<string, string>);
+            return encryptedStore;
         }
     }
 }

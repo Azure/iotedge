@@ -1,22 +1,26 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![cfg(unix)]
-
 use std::fs;
+#[cfg(unix)]
 use std::os::unix::fs::MetadataExt;
 use std::path::Path;
 
+use failure::ResultExt;
+#[cfg(unix)]
 use nix::sys::stat::{umask, Mode};
-use tokio_core::reactor::Handle;
+#[cfg(unix)]
 use tokio_uds::UnixListener;
+#[cfg(windows)]
+use tokio_uds_windows::UnixListener;
 
-use error::Error;
+use error::{Error, ErrorKind};
 use util::incoming::Incoming;
 
-pub fn listener<P: AsRef<Path>>(path: P, handle: &Handle) -> Result<Incoming, Error> {
+pub fn listener<P: AsRef<Path>>(path: P) -> Result<Incoming, Error> {
     let listener = if path.as_ref().exists() {
         // get the previous file's metadata
-        let metadata = fs::metadata(&path)?;
+        let metadata = fs::metadata(&path)
+            .with_context(|_| ErrorKind::Path(path.as_ref().display().to_string()))?;
         debug!(
             "read metadata {:?} for {}",
             metadata,
@@ -24,35 +28,43 @@ pub fn listener<P: AsRef<Path>>(path: P, handle: &Handle) -> Result<Incoming, Er
         );
 
         debug!("unlinking {}...", path.as_ref().display());
-        fs::remove_file(&path)?;
+        fs::remove_file(&path)
+            .with_context(|_| ErrorKind::Path(path.as_ref().display().to_string()))?;
         debug!("unlinked {}", path.as_ref().display());
 
-        let mode = Mode::from_bits_truncate(metadata.mode());
-        let mut mask = Mode::all();
-        mask.toggle(mode);
-
-        debug!(
-            "settings permissions {:#o} for {}...",
-            mode,
-            path.as_ref().display()
-        );
-        let prev = umask(mask);
+        #[cfg(unix)]
+        let prev = set_umask(&metadata, path.as_ref());
+        #[cfg(unix)]
         defer! {{ umask(prev); }}
 
         debug!("binding {}...", path.as_ref().display());
-        let listener = UnixListener::bind(&path, &handle)?;
+        let listener = UnixListener::bind(&path)
+            .with_context(|_| ErrorKind::Path(path.as_ref().display().to_string()))?;
         debug!("bound {}", path.as_ref().display());
 
         Incoming::Unix(listener)
     } else {
-        let listener = UnixListener::bind(path, &handle)?;
+        let listener = UnixListener::bind(&path)
+            .with_context(|_| ErrorKind::Path(path.as_ref().display().to_string()))?;
         Incoming::Unix(listener)
     };
 
     Ok(listener)
 }
 
+#[cfg(unix)]
+fn set_umask(metadata: &fs::Metadata, path: &Path) -> Mode {
+    let mode = Mode::from_bits_truncate(metadata.mode());
+    let mut mask = Mode::all();
+    mask.toggle(mode);
+
+    debug!("settings permissions {:#o} for {}...", mode, path.display());
+
+    umask(mask)
+}
+
 #[cfg(test)]
+#[cfg(unix)]
 mod tests {
     use super::*;
 
@@ -62,11 +74,9 @@ mod tests {
     use futures::Stream;
     use nix::sys::stat::stat;
     use tempfile::tempdir;
-    use tokio_core::reactor::Core;
 
     #[test]
     fn test_unlink() {
-        let core = Core::new().unwrap();
         let dir = tempdir().unwrap();
         let path = dir.path().join("unlink.sock");
         let file = OpenOptions::new()
@@ -80,7 +90,7 @@ mod tests {
         assert_eq!(0o600, file.metadata().unwrap().mode() & 0o7777);
         drop(file);
 
-        let listener = listener(&path, &core.handle()).unwrap();
+        let listener = listener(&path).unwrap();
         let _srv = listener.for_each(move |(_socket, _addr)| Ok(()));
 
         let file_stat = stat(&path).unwrap();

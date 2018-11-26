@@ -19,15 +19,30 @@ pub struct InlineResponse20014 {
     running: Option<bool>,
     #[serde(rename = "ExitCode", skip_serializing_if = "Option::is_none")]
     exit_code: Option<i32>,
-    #[serde(rename = "ProcessConfig", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "ProcessConfig",
+        skip_serializing_if = "Option::is_none"
+    )]
     process_config: Option<::models::ProcessConfig>,
-    #[serde(rename = "OpenStdin", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "OpenStdin",
+        skip_serializing_if = "Option::is_none"
+    )]
     open_stdin: Option<bool>,
-    #[serde(rename = "OpenStderr", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "OpenStderr",
+        skip_serializing_if = "Option::is_none"
+    )]
     open_stderr: Option<bool>,
-    #[serde(rename = "OpenStdout", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "OpenStdout",
+        skip_serializing_if = "Option::is_none"
+    )]
     open_stdout: Option<bool>,
-    #[serde(rename = "ContainerID", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "ContainerID",
+        skip_serializing_if = "Option::is_none"
+    )]
     container_id: Option<String>,
     /// The system process ID for the exec process.
     #[serde(rename = "Pid", skip_serializing_if = "Option::is_none")]
@@ -35,7 +50,7 @@ pub struct InlineResponse20014 {
 }
 
 impl InlineResponse20014 {
-    pub fn new() -> InlineResponse20014 {
+    pub fn new() -> Self {
         InlineResponse20014 {
             ID: None,
             running: None,
@@ -53,13 +68,13 @@ impl InlineResponse20014 {
         self.ID = Some(ID);
     }
 
-    pub fn with_ID(mut self, ID: String) -> InlineResponse20014 {
+    pub fn with_ID(mut self, ID: String) -> Self {
         self.ID = Some(ID);
         self
     }
 
-    pub fn ID(&self) -> Option<&String> {
-        self.ID.as_ref()
+    pub fn ID(&self) -> Option<&str> {
+        self.ID.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_ID(&mut self) {
@@ -70,7 +85,7 @@ impl InlineResponse20014 {
         self.running = Some(running);
     }
 
-    pub fn with_running(mut self, running: bool) -> InlineResponse20014 {
+    pub fn with_running(mut self, running: bool) -> Self {
         self.running = Some(running);
         self
     }
@@ -87,13 +102,13 @@ impl InlineResponse20014 {
         self.exit_code = Some(exit_code);
     }
 
-    pub fn with_exit_code(mut self, exit_code: i32) -> InlineResponse20014 {
+    pub fn with_exit_code(mut self, exit_code: i32) -> Self {
         self.exit_code = Some(exit_code);
         self
     }
 
-    pub fn exit_code(&self) -> Option<&i32> {
-        self.exit_code.as_ref()
+    pub fn exit_code(&self) -> Option<i32> {
+        self.exit_code
     }
 
     pub fn reset_exit_code(&mut self) {
@@ -104,10 +119,7 @@ impl InlineResponse20014 {
         self.process_config = Some(process_config);
     }
 
-    pub fn with_process_config(
-        mut self,
-        process_config: ::models::ProcessConfig,
-    ) -> InlineResponse20014 {
+    pub fn with_process_config(mut self, process_config: ::models::ProcessConfig) -> Self {
         self.process_config = Some(process_config);
         self
     }
@@ -124,7 +136,7 @@ impl InlineResponse20014 {
         self.open_stdin = Some(open_stdin);
     }
 
-    pub fn with_open_stdin(mut self, open_stdin: bool) -> InlineResponse20014 {
+    pub fn with_open_stdin(mut self, open_stdin: bool) -> Self {
         self.open_stdin = Some(open_stdin);
         self
     }
@@ -141,7 +153,7 @@ impl InlineResponse20014 {
         self.open_stderr = Some(open_stderr);
     }
 
-    pub fn with_open_stderr(mut self, open_stderr: bool) -> InlineResponse20014 {
+    pub fn with_open_stderr(mut self, open_stderr: bool) -> Self {
         self.open_stderr = Some(open_stderr);
         self
     }
@@ -158,7 +170,7 @@ impl InlineResponse20014 {
         self.open_stdout = Some(open_stdout);
     }
 
-    pub fn with_open_stdout(mut self, open_stdout: bool) -> InlineResponse20014 {
+    pub fn with_open_stdout(mut self, open_stdout: bool) -> Self {
         self.open_stdout = Some(open_stdout);
         self
     }
@@ -175,13 +187,13 @@ impl InlineResponse20014 {
         self.container_id = Some(container_id);
     }
 
-    pub fn with_container_id(mut self, container_id: String) -> InlineResponse20014 {
+    pub fn with_container_id(mut self, container_id: String) -> Self {
         self.container_id = Some(container_id);
         self
     }
 
-    pub fn container_id(&self) -> Option<&String> {
-        self.container_id.as_ref()
+    pub fn container_id(&self) -> Option<&str> {
+        self.container_id.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_container_id(&mut self) {
@@ -192,13 +204,13 @@ impl InlineResponse20014 {
         self.pid = Some(pid);
     }
 
-    pub fn with_pid(mut self, pid: i32) -> InlineResponse20014 {
+    pub fn with_pid(mut self, pid: i32) -> Self {
         self.pid = Some(pid);
         self
     }
 
-    pub fn pid(&self) -> Option<&i32> {
-        self.pid.as_ref()
+    pub fn pid(&self) -> Option<i32> {
+        self.pid
     }
 
     pub fn reset_pid(&mut self) {

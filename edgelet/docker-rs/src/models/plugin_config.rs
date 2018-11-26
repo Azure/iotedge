@@ -16,7 +16,10 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PluginConfig {
     /// Docker Version used to create the plugin
-    #[serde(rename = "DockerVersion", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "DockerVersion",
+        skip_serializing_if = "Option::is_none"
+    )]
     docker_version: Option<String>,
     #[serde(rename = "Description")]
     description: String,
@@ -66,7 +69,7 @@ impl PluginConfig {
         mounts: Vec<::models::PluginMount>,
         env: Vec<::models::PluginEnv>,
         args: ::models::PluginConfigArgs,
-    ) -> PluginConfig {
+    ) -> Self {
         PluginConfig {
             docker_version: None,
             description: description,
@@ -91,13 +94,13 @@ impl PluginConfig {
         self.docker_version = Some(docker_version);
     }
 
-    pub fn with_docker_version(mut self, docker_version: String) -> PluginConfig {
+    pub fn with_docker_version(mut self, docker_version: String) -> Self {
         self.docker_version = Some(docker_version);
         self
     }
 
-    pub fn docker_version(&self) -> Option<&String> {
-        self.docker_version.as_ref()
+    pub fn docker_version(&self) -> Option<&str> {
+        self.docker_version.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_docker_version(&mut self) {
@@ -108,7 +111,7 @@ impl PluginConfig {
         self.description = description;
     }
 
-    pub fn with_description(mut self, description: String) -> PluginConfig {
+    pub fn with_description(mut self, description: String) -> Self {
         self.description = description;
         self
     }
@@ -121,7 +124,7 @@ impl PluginConfig {
         self.documentation = documentation;
     }
 
-    pub fn with_documentation(mut self, documentation: String) -> PluginConfig {
+    pub fn with_documentation(mut self, documentation: String) -> Self {
         self.documentation = documentation;
         self
     }
@@ -134,7 +137,7 @@ impl PluginConfig {
         self.interface = interface;
     }
 
-    pub fn with_interface(mut self, interface: ::models::PluginConfigInterface) -> PluginConfig {
+    pub fn with_interface(mut self, interface: ::models::PluginConfigInterface) -> Self {
         self.interface = interface;
         self
     }
@@ -147,12 +150,12 @@ impl PluginConfig {
         self.entrypoint = entrypoint;
     }
 
-    pub fn with_entrypoint(mut self, entrypoint: Vec<String>) -> PluginConfig {
+    pub fn with_entrypoint(mut self, entrypoint: Vec<String>) -> Self {
         self.entrypoint = entrypoint;
         self
     }
 
-    pub fn entrypoint(&self) -> &Vec<String> {
+    pub fn entrypoint(&self) -> &[String] {
         &self.entrypoint
     }
 
@@ -160,7 +163,7 @@ impl PluginConfig {
         self.work_dir = work_dir;
     }
 
-    pub fn with_work_dir(mut self, work_dir: String) -> PluginConfig {
+    pub fn with_work_dir(mut self, work_dir: String) -> Self {
         self.work_dir = work_dir;
         self
     }
@@ -173,7 +176,7 @@ impl PluginConfig {
         self.user = Some(user);
     }
 
-    pub fn with_user(mut self, user: ::models::PluginConfigUser) -> PluginConfig {
+    pub fn with_user(mut self, user: ::models::PluginConfigUser) -> Self {
         self.user = Some(user);
         self
     }
@@ -190,7 +193,7 @@ impl PluginConfig {
         self.network = network;
     }
 
-    pub fn with_network(mut self, network: ::models::PluginConfigNetwork) -> PluginConfig {
+    pub fn with_network(mut self, network: ::models::PluginConfigNetwork) -> Self {
         self.network = network;
         self
     }
@@ -203,7 +206,7 @@ impl PluginConfig {
         self.linux = linux;
     }
 
-    pub fn with_linux(mut self, linux: ::models::PluginConfigLinux) -> PluginConfig {
+    pub fn with_linux(mut self, linux: ::models::PluginConfigLinux) -> Self {
         self.linux = linux;
         self
     }
@@ -216,7 +219,7 @@ impl PluginConfig {
         self.propagated_mount = propagated_mount;
     }
 
-    pub fn with_propagated_mount(mut self, propagated_mount: String) -> PluginConfig {
+    pub fn with_propagated_mount(mut self, propagated_mount: String) -> Self {
         self.propagated_mount = propagated_mount;
         self
     }
@@ -229,7 +232,7 @@ impl PluginConfig {
         self.ipc_host = ipc_host;
     }
 
-    pub fn with_ipc_host(mut self, ipc_host: bool) -> PluginConfig {
+    pub fn with_ipc_host(mut self, ipc_host: bool) -> Self {
         self.ipc_host = ipc_host;
         self
     }
@@ -242,7 +245,7 @@ impl PluginConfig {
         self.pid_host = pid_host;
     }
 
-    pub fn with_pid_host(mut self, pid_host: bool) -> PluginConfig {
+    pub fn with_pid_host(mut self, pid_host: bool) -> Self {
         self.pid_host = pid_host;
         self
     }
@@ -255,12 +258,12 @@ impl PluginConfig {
         self.mounts = mounts;
     }
 
-    pub fn with_mounts(mut self, mounts: Vec<::models::PluginMount>) -> PluginConfig {
+    pub fn with_mounts(mut self, mounts: Vec<::models::PluginMount>) -> Self {
         self.mounts = mounts;
         self
     }
 
-    pub fn mounts(&self) -> &Vec<::models::PluginMount> {
+    pub fn mounts(&self) -> &[::models::PluginMount] {
         &self.mounts
     }
 
@@ -268,12 +271,12 @@ impl PluginConfig {
         self.env = env;
     }
 
-    pub fn with_env(mut self, env: Vec<::models::PluginEnv>) -> PluginConfig {
+    pub fn with_env(mut self, env: Vec<::models::PluginEnv>) -> Self {
         self.env = env;
         self
     }
 
-    pub fn env(&self) -> &Vec<::models::PluginEnv> {
+    pub fn env(&self) -> &[::models::PluginEnv] {
         &self.env
     }
 
@@ -281,7 +284,7 @@ impl PluginConfig {
         self.args = args;
     }
 
-    pub fn with_args(mut self, args: ::models::PluginConfigArgs) -> PluginConfig {
+    pub fn with_args(mut self, args: ::models::PluginConfigArgs) -> Self {
         self.args = args;
         self
     }
@@ -294,7 +297,7 @@ impl PluginConfig {
         self.rootfs = Some(rootfs);
     }
 
-    pub fn with_rootfs(mut self, rootfs: ::models::PluginConfigRootfs) -> PluginConfig {
+    pub fn with_rootfs(mut self, rootfs: ::models::PluginConfigRootfs) -> Self {
         self.rootfs = Some(rootfs);
         self
     }

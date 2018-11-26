@@ -17,7 +17,10 @@ use serde_json::Value;
 pub struct Body {
     #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
     name: Option<String>,
-    #[serde(rename = "Description", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "Description",
+        skip_serializing_if = "Option::is_none"
+    )]
     description: Option<String>,
     #[serde(rename = "Value", skip_serializing_if = "Option::is_none")]
     value: Option<Vec<String>>,
@@ -25,7 +28,7 @@ pub struct Body {
 
 impl Body {
     /// Describes a permission accepted by the user upon installing the plugin.
-    pub fn new() -> Body {
+    pub fn new() -> Self {
         Body {
             name: None,
             description: None,
@@ -37,13 +40,13 @@ impl Body {
         self.name = Some(name);
     }
 
-    pub fn with_name(mut self, name: String) -> Body {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
     }
 
-    pub fn name(&self) -> Option<&String> {
-        self.name.as_ref()
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_name(&mut self) {
@@ -54,13 +57,13 @@ impl Body {
         self.description = Some(description);
     }
 
-    pub fn with_description(mut self, description: String) -> Body {
+    pub fn with_description(mut self, description: String) -> Self {
         self.description = Some(description);
         self
     }
 
-    pub fn description(&self) -> Option<&String> {
-        self.description.as_ref()
+    pub fn description(&self) -> Option<&str> {
+        self.description.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_description(&mut self) {
@@ -71,13 +74,13 @@ impl Body {
         self.value = Some(value);
     }
 
-    pub fn with_value(mut self, value: Vec<String>) -> Body {
+    pub fn with_value(mut self, value: Vec<String>) -> Self {
         self.value = Some(value);
         self
     }
 
-    pub fn value(&self) -> Option<&Vec<String>> {
-        self.value.as_ref()
+    pub fn value(&self) -> Option<&[String]> {
+        self.value.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_value(&mut self) {

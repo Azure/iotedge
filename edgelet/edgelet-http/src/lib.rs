@@ -1,16 +1,22 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(warnings)]
+#![deny(unused_extern_crates, warnings)]
+// Remove this when clippy stops warning about old-style `allow()`,
+// which can only be silenced by enabling a feature and thus requires nightly
+//
+// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
+#![allow(renamed_and_removed_lints)]
+#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
+#![cfg_attr(
+    feature = "cargo-clippy",
+    allow(default_trait_access, similar_names, stutter, use_self)
+)]
 
 extern crate bytes;
 extern crate chrono;
 extern crate edgelet_core;
 extern crate failure;
-#[macro_use]
-extern crate failure_derive;
-#[macro_use]
 extern crate futures;
-extern crate http;
 extern crate hyper;
 #[cfg(windows)]
 extern crate hyper_named_pipe;
@@ -18,14 +24,15 @@ extern crate hyper_proxy;
 extern crate hyper_tls;
 #[cfg(unix)]
 extern crate hyperlocal;
+#[cfg(windows)]
+extern crate hyperlocal_windows;
 #[cfg(target_os = "linux")]
-#[cfg(test)]
-#[macro_use]
-extern crate lazy_static;
 #[cfg(unix)]
 extern crate libc;
 #[macro_use]
 extern crate log;
+#[cfg(windows)]
+extern crate mio_uds_windows;
 #[cfg(unix)]
 extern crate nix;
 extern crate percent_encoding;
@@ -38,41 +45,49 @@ extern crate serde;
 extern crate serde_json;
 extern crate systemd;
 #[cfg(test)]
+#[cfg(windows)]
+extern crate tempdir;
+#[cfg(test)]
 extern crate tempfile;
-#[macro_use]
-extern crate tokio_core;
-extern crate tokio_io;
+extern crate tokio;
 #[cfg(windows)]
 extern crate tokio_named_pipe;
 #[cfg(unix)]
 extern crate tokio_uds;
+#[cfg(windows)]
+extern crate tokio_uds_windows;
+extern crate typed_headers;
 extern crate url;
+#[cfg(windows)]
+extern crate winapi;
 
-#[macro_use]
 extern crate edgelet_utils;
 
-use std::io;
 #[cfg(unix)]
 use std::net;
 use std::net::ToSocketAddrs;
 #[cfg(unix)]
 use std::os::unix::io::FromRawFd;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
+use failure::{Fail, ResultExt};
 use futures::{future, Future, Poll, Stream};
-use http::{Request, Response};
-use hyper::server::{Http, NewService};
-use hyper::{Body, Error as HyperError};
+use hyper::server::conn::Http;
+use hyper::service::{NewService, Service};
+use hyper::{Body, Response};
+use log::Level;
 #[cfg(unix)]
 use systemd::Socket;
-use tokio_core::net::TcpListener;
-use tokio_core::reactor::Handle;
+use tokio::net::TcpListener;
 #[cfg(unix)]
 use tokio_uds::UnixListener;
 use url::Url;
 
+use edgelet_utils::log_failure;
+
 pub mod authorization;
 pub mod client;
-mod compat;
 pub mod error;
 pub mod logging;
 mod pid;
@@ -81,7 +96,7 @@ mod unix;
 mod util;
 mod version;
 
-pub use self::error::{Error, ErrorKind};
+pub use self::error::{BindListenerType, Error, ErrorKind, InvalidUrlReason};
 pub use self::util::proxy::MaybeProxyClient;
 pub use self::util::UrlConnector;
 pub use self::version::{ApiVersionService, API_VERSION};
@@ -91,7 +106,6 @@ use self::util::incoming::Incoming;
 
 const HTTP_SCHEME: &str = "http";
 const TCP_SCHEME: &str = "tcp";
-#[cfg(unix)]
 const UNIX_SCHEME: &str = "unix";
 #[cfg(unix)]
 const FD_SCHEME: &str = "fd";
@@ -106,33 +120,31 @@ impl IntoResponse for Response<Body> {
     }
 }
 
-pub struct Run(Box<Future<Item = (), Error = HyperError> + 'static>);
+pub struct Run(Box<Future<Item = (), Error = Error> + Send + 'static>);
 
 impl Future for Run {
     type Item = ();
-    type Error = HyperError;
+    type Error = Error;
 
-    fn poll(&mut self) -> Poll<(), Self::Error> {
+    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
         self.0.poll()
     }
 }
 
-pub struct Server<S, B>
-where
-    B: Stream<Error = HyperError>,
-    B::Item: AsRef<[u8]>,
-{
-    protocol: Http<B::Item>,
+pub struct Server<S> {
+    protocol: Http,
     new_service: S,
-    handle: Handle,
     incoming: Incoming,
 }
 
-impl<S, B> Server<S, B>
+impl<S> Server<S>
 where
-    S: NewService<Request = Request<Body>, Response = Response<B>, Error = HyperError> + 'static,
-    B: Stream<Error = HyperError> + 'static,
-    B::Item: AsRef<[u8]>,
+    S: NewService<ReqBody = Body, ResBody = Body> + Send + 'static,
+    <S as NewService>::Future: Send + 'static,
+    <S as NewService>::Service: Send + 'static,
+    // <S as NewService>::InitError: std::error::Error + Send + Sync + 'static,
+    <S as NewService>::InitError: Fail,
+    <<S as NewService>::Service as Service>::Future: Send + 'static,
 {
     pub fn run(self) -> Run {
         self.run_until(future::empty())
@@ -140,25 +152,44 @@ where
 
     pub fn run_until<F>(self, shutdown_signal: F) -> Run
     where
-        F: Future<Item = (), Error = ()> + 'static,
+        F: Future<Item = (), Error = ()> + Send + 'static,
     {
         let Server {
             protocol,
             new_service,
-            handle,
             incoming,
         } = self;
 
+        let protocol = Arc::new(protocol);
+
         let srv = incoming.for_each(move |(socket, addr)| {
+            let protocol = protocol.clone();
+
             debug!("accepted new connection ({})", addr);
             let pid = socket.pid()?;
-            let srv = new_service.new_service()?;
-            let service = PidService::new(pid, srv);
-            let fut = protocol
-                .serve_connection(socket, self::compat::service(service))
-                .map(|_| ())
-                .map_err(move |err| error!("server connection error: ({}) {}", addr, err));
-            handle.spawn(fut);
+            let fut = new_service
+                .new_service()
+                .then(move |srv| match srv {
+                    Ok(srv) => Ok((srv, addr)),
+                    Err(err) => {
+                        error!("server connection error: ({})", addr);
+                        log_failure(Level::Error, &err);
+                        Err(())
+                    }
+                }).and_then(move |(srv, addr)| {
+                    let service = PidService::new(pid, srv);
+                    protocol
+                        .serve_connection(socket, service)
+                        .then(move |result| match result {
+                            Ok(_) => Ok(()),
+                            Err(err) => {
+                                error!("server connection error: ({})", addr);
+                                log_failure(Level::Error, &err);
+                                Err(())
+                            }
+                        })
+                });
+            tokio::spawn(fut);
             Ok(())
         });
 
@@ -171,193 +202,143 @@ where
         let main_execution = shutdown_signal
             .select(srv)
             .then(move |result| match result {
-                Ok(((), _incoming)) => future::ok(()),
-                Err((e, _other)) => future::err(e.into()),
+                Ok(((), _other)) => Ok(()),
+                Err((e, _other)) => Err(Error::from(e.context(ErrorKind::ServiceError))),
             });
 
         Run(Box::new(main_execution))
     }
 }
 
-pub trait HyperExt<B: AsRef<[u8]> + 'static> {
-    fn bind_handle<S, Bd>(
-        &self,
-        url: Url,
-        handle: Handle,
-        new_service: S,
-    ) -> Result<Server<S, Bd>, Error>
+pub trait HyperExt {
+    fn bind_url<S>(&self, url: Url, new_service: S) -> Result<Server<S>, Error>
     where
-        S: NewService<Request = Request<Body>, Response = Response<Bd>, Error = HyperError>
-            + 'static,
-        Bd: Stream<Item = B, Error = HyperError>;
+        S: NewService<ReqBody = Body>;
 }
 
-impl<B: AsRef<[u8]> + 'static> HyperExt<B> for Http<B> {
-    fn bind_handle<S, Bd>(
-        &self,
-        url: Url,
-        handle: Handle,
-        new_service: S,
-    ) -> Result<Server<S, Bd>, Error>
+impl HyperExt for Http {
+    fn bind_url<S>(&self, url: Url, new_service: S) -> Result<Server<S>, Error>
     where
-        S: NewService<Request = Request<Body>, Response = Response<Bd>, Error = HyperError>
-            + 'static,
-        Bd: Stream<Item = B, Error = HyperError>,
+        S: NewService<ReqBody = Body>,
     {
         let incoming = match url.scheme() {
             HTTP_SCHEME | TCP_SCHEME => {
-                let addr = url.to_socket_addrs()?.next().ok_or_else(|| {
-                    io::Error::new(io::ErrorKind::Other, format!("Invalid url: {}", url))
-                })?;
+                let addr = url
+                    .to_socket_addrs()
+                    .context(ErrorKind::InvalidUrl(url.to_string()))?
+                    .next()
+                    .ok_or_else(|| {
+                        ErrorKind::InvalidUrlWithReason(
+                            url.to_string(),
+                            InvalidUrlReason::NoAddress,
+                        )
+                    })?;
 
-                let listener = TcpListener::bind(&addr, &handle)?;
+                let listener = TcpListener::bind(&addr)
+                    .with_context(|_| ErrorKind::BindListener(BindListenerType::Address(addr)))?;
                 Incoming::Tcp(listener)
             }
-            #[cfg(unix)]
             UNIX_SCHEME => {
-                let path = url.path();
-                unix::listener(path, &handle)?
+                let path = url.to_uds_file_path()?;
+                unix::listener(path)?
             }
             #[cfg(unix)]
             FD_SCHEME => {
-                let host = url
-                    .host_str()
-                    .ok_or_else(|| Error::from(ErrorKind::InvalidUri(url.to_string())))?;
+                let host = match url.host_str() {
+                    Some(host) => host,
+                    None => {
+                        return Err(ErrorKind::InvalidUrlWithReason(
+                            url.to_string(),
+                            InvalidUrlReason::NoHost,
+                        ).into())
+                    }
+                };
+
+                // Try to parse the host as an FD number, then as an FD name
                 let socket = host
-                    .parse::<usize>()
-                    .map_err(Error::from)
-                    .and_then(|num| systemd::listener(num).map_err(Error::from))
-                    .or_else(|_| systemd::listener_name(host))?;
+                    .parse()
+                    .map_err(|_| ())
+                    .and_then(|num| systemd::listener(num).map_err(|_| ()))
+                    .or_else(|_| systemd::listener_name(host))
+                    .with_context(|_| {
+                        ErrorKind::InvalidUrlWithReason(
+                            url.to_string(),
+                            InvalidUrlReason::FdNeitherNumberNorName,
+                        )
+                    })?;
 
                 match socket {
-                    Socket::Inet(fd, addr) => {
+                    Socket::Inet(fd, _addr) => {
                         let l = unsafe { net::TcpListener::from_raw_fd(fd) };
-                        Incoming::Tcp(TcpListener::from_listener(l, &addr, &handle)?)
+                        Incoming::Tcp(
+                            TcpListener::from_std(l, &Default::default()).with_context(|_| {
+                                ErrorKind::BindListener(BindListenerType::Fd(fd))
+                            })?,
+                        )
                     }
                     Socket::Unix(fd) => {
                         let l = unsafe { ::std::os::unix::net::UnixListener::from_raw_fd(fd) };
-                        Incoming::Unix(UnixListener::from_listener(l, &handle)?)
+                        Incoming::Unix(
+                            UnixListener::from_std(l, &Default::default()).with_context(|_| {
+                                ErrorKind::BindListener(BindListenerType::Fd(fd))
+                            })?,
+                        )
                     }
-                    _ => Err(Error::from(ErrorKind::InvalidUri(url.to_string())))?,
+                    Socket::Unknown => Err(ErrorKind::InvalidUrlWithReason(
+                        url.to_string(),
+                        InvalidUrlReason::UnrecognizedSocket,
+                    ))?,
                 }
             }
-            _ => Err(Error::from(ErrorKind::InvalidUri(url.to_string())))?,
+            _ => Err(Error::from(ErrorKind::InvalidUrlWithReason(
+                url.to_string(),
+                InvalidUrlReason::InvalidScheme,
+            )))?,
         };
 
         Ok(Server {
             protocol: self.clone(),
             new_service,
-            handle,
             incoming,
         })
     }
 }
 
-#[cfg(target_os = "linux")]
-#[cfg(test)]
-mod linux_tests {
-    use super::*;
+pub trait UrlExt {
+    fn to_uds_file_path(&self) -> Result<PathBuf, Error>;
+    fn to_base_path(&self) -> Result<PathBuf, Error>;
+}
 
-    use std::env;
-    use std::sync::{Mutex, MutexGuard};
+impl UrlExt for Url {
+    fn to_uds_file_path(&self) -> Result<PathBuf, Error> {
+        debug_assert_eq!(self.scheme(), UNIX_SCHEME);
 
-    use http::StatusCode;
-    use hyper::server::Service;
-    use nix::sys::socket::{self, AddressFamily, SockType};
-    use nix::unistd::{self, getpid};
-    use systemd::Fd;
-    use tokio_core::reactor::Core;
-
-    lazy_static! {
-        static ref LOCK: Mutex<()> = Mutex::new(());
-    }
-
-    const ENV_FDS: &str = "LISTEN_FDS";
-    const ENV_PID: &str = "LISTEN_PID";
-
-    #[derive(Clone)]
-    struct TestService {
-        status_code: StatusCode,
-        error: bool,
-    }
-
-    impl Service for TestService {
-        type Request = Request<Body>;
-        type Response = Response<Body>;
-        type Error = HyperError;
-        type Future = Box<Future<Item = Self::Response, Error = Self::Error>>;
-
-        fn call(&self, _req: Self::Request) -> Self::Future {
-            Box::new(if self.error {
-                future::err(HyperError::TooLarge)
-            } else {
-                future::ok(
-                    Response::builder()
-                        .status(self.status_code)
-                        .body(Body::default())
-                        .unwrap(),
-                )
-            })
+        if cfg!(windows) {
+            // We get better handling of Windows file syntax if we parse a
+            // unix:// URL as a file:// URL. Specifically:
+            // - On Unix, `Url::parse("unix:///path")?.to_file_path()` succeeds and
+            //   returns "/path".
+            // - On Windows, `Url::parse("unix:///C:/path")?.to_file_path()` fails
+            //   with Err(()).
+            // - On Windows, `Url::parse("file:///C:/path")?.to_file_path()` succeeds
+            //   and returns "C:\\path".
+            debug_assert_eq!(self.scheme(), UNIX_SCHEME);
+            let mut s = self.to_string();
+            s.replace_range(..4, "file");
+            let url = Url::parse(&s).with_context(|_| ErrorKind::InvalidUrl(s.clone()))?;
+            let path = url
+                .to_file_path()
+                .map_err(|()| ErrorKind::InvalidUrl(url.to_string()))?;
+            Ok(path)
+        } else {
+            Ok(Path::new(self.path()).to_path_buf())
         }
     }
 
-    fn lock_env<'a>() -> MutexGuard<'a, ()> {
-        LOCK.lock().unwrap()
-    }
-
-    fn set_current_pid() {
-        let pid = getpid();
-        env::set_var(ENV_PID, format!("{}", pid));
-    }
-
-    fn create_fd(family: AddressFamily, type_: SockType) -> Fd {
-        let fd = socket::socket(family, type_, socket::SockFlag::empty(), None).unwrap();
-        fd
-    }
-
-    #[test]
-    fn test_fd_ok() {
-        let core = Core::new().unwrap();
-        let _l = lock_env();
-        set_current_pid();
-        let fd = create_fd(AddressFamily::Unix, SockType::Stream);
-
-        // set the env var so that it contains the created fd
-        env::set_var(ENV_FDS, format!("{}", fd - 3 + 1));
-
-        let url = Url::parse(&format!("fd://{}", fd - 3)).unwrap();
-        let run = Http::new().bind_handle(url, core.handle(), move || {
-            let service = TestService {
-                status_code: StatusCode::OK,
-                error: false,
-            };
-            Ok(service)
-        });
-
-        unistd::close(fd).unwrap();
-        assert!(run.is_ok());
-    }
-
-    #[test]
-    fn test_fd_err() {
-        let core = Core::new().unwrap();
-        let _l = lock_env();
-        set_current_pid();
-        let fd = create_fd(AddressFamily::Unix, SockType::Stream);
-
-        // set the env var so that it contains the created fd
-        env::set_var(ENV_FDS, format!("{}", fd - 3 + 1));
-
-        let url = Url::parse("fd://100").unwrap();
-        let run = Http::new().bind_handle(url, core.handle(), move || {
-            let service = TestService {
-                status_code: StatusCode::OK,
-                error: false,
-            };
-            Ok(service)
-        });
-
-        unistd::close(fd).unwrap();
-        assert!(run.is_err());
+    fn to_base_path(&self) -> Result<PathBuf, Error> {
+        match self.scheme() {
+            "unix" => Ok(self.to_uds_file_path()?),
+            _ => Ok(self.as_str().into()),
+        }
     }
 }

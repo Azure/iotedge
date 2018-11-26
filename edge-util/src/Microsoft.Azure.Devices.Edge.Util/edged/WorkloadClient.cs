@@ -44,6 +44,16 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
             }
         }
 
+        public async Task<TrustBundleResponse> GetTrustBundleAsync()
+        {
+            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.workloadUri))
+            {
+                var edgeletHttpClient = new HttpWorkloadClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.workloadUri) };
+                TrustBundleResponse result = await this.Execute(() => edgeletHttpClient.TrustBundleAsync(this.apiVersion), "TrustBundleAsync");
+                return result;
+            }
+        }
+
         public async Task<string> EncryptAsync(string initializationVector, string plainText)
         {
             var request = new EncryptRequest

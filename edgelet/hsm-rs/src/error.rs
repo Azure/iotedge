@@ -13,7 +13,7 @@ pub struct Error {
     inner: Context<ErrorKind>,
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Fail)]
+#[derive(Clone, Copy, Debug, Eq, Fail, PartialEq)]
 pub enum ErrorKind {
     #[fail(display = "HSM Init failure: {}", _0)]
     Init(isize),
@@ -31,6 +31,8 @@ pub enum ErrorKind {
     Utf8,
     #[fail(display = "Invalid private key type: {}", _0)]
     PrivateKeyType(u32),
+    #[fail(display = "Invalid certificate timestamp")]
+    ToDateTime,
 }
 
 impl Fail for Error {
@@ -50,7 +52,7 @@ impl Display for Error {
 }
 
 impl Error {
-    pub fn new(inner: Context<ErrorKind>) -> Error {
+    pub fn new(inner: Context<ErrorKind>) -> Self {
         Error { inner }
     }
 
@@ -60,7 +62,7 @@ impl Error {
 }
 
 impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Error {
+    fn from(kind: ErrorKind) -> Self {
         Error {
             inner: Context::new(kind),
         }
@@ -68,13 +70,13 @@ impl From<ErrorKind> for Error {
 }
 
 impl From<Context<ErrorKind>> for Error {
-    fn from(inner: Context<ErrorKind>) -> Error {
+    fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
     }
 }
 
 impl From<c_int> for Error {
-    fn from(result: c_int) -> Error {
+    fn from(result: c_int) -> Self {
         Error {
             inner: Context::new(ErrorKind::Api(result)),
         }
@@ -82,7 +84,7 @@ impl From<c_int> for Error {
 }
 
 impl From<isize> for Error {
-    fn from(result: isize) -> Error {
+    fn from(result: isize) -> Self {
         Error {
             inner: Context::new(ErrorKind::Init(result)),
         }
@@ -90,7 +92,7 @@ impl From<isize> for Error {
 }
 
 impl From<Utf8Error> for Error {
-    fn from(error: Utf8Error) -> Error {
+    fn from(error: Utf8Error) -> Self {
         Error {
             inner: error.context(ErrorKind::Utf8),
         }
@@ -98,7 +100,7 @@ impl From<Utf8Error> for Error {
 }
 
 impl From<FromUtf8Error> for Error {
-    fn from(error: FromUtf8Error) -> Error {
+    fn from(error: FromUtf8Error) -> Self {
         Error {
             inner: error.context(ErrorKind::Utf8),
         }

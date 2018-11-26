@@ -10,30 +10,30 @@
 
 use std::borrow::Borrow;
 use std::borrow::Cow;
-use std::rc::Rc;
+use std::sync::Arc;
 
 use futures;
 use futures::{Future, Stream};
 use hyper;
 use serde_json;
+use typed_headers::{self, http, mime, HeaderMapExt};
 
-use hyper::header::UserAgent;
-
+use super::super::utils::UserAgent;
 use super::{configuration, Error};
 
-pub struct NetworkApiClient<C: hyper::client::Connect> {
-    configuration: Rc<configuration::Configuration<C>>,
+pub struct NetworkApiClient<C: hyper::client::connect::Connect> {
+    configuration: Arc<configuration::Configuration<C>>,
 }
 
-impl<C: hyper::client::Connect> NetworkApiClient<C> {
-    pub fn new(configuration: Rc<configuration::Configuration<C>>) -> NetworkApiClient<C> {
+impl<C: hyper::client::connect::Connect> NetworkApiClient<C> {
+    pub fn new(configuration: Arc<configuration::Configuration<C>>) -> Self {
         NetworkApiClient {
             configuration: configuration,
         }
     }
 }
 
-pub trait NetworkApi {
+pub trait NetworkApi: Send + Sync {
     fn network_connect(
         &self,
         id: &str,
@@ -42,7 +42,7 @@ pub trait NetworkApi {
     fn network_create(
         &self,
         network_config: ::models::NetworkConfig,
-    ) -> Box<Future<Item = ::models::InlineResponse2011, Error = Error<serde_json::Value>>>;
+    ) -> Box<Future<Item = ::models::InlineResponse2011, Error = Error<serde_json::Value>> + Send>;
     fn network_delete(&self, id: &str) -> Box<Future<Item = (), Error = Error<serde_json::Value>>>;
     fn network_disconnect(
         &self,
@@ -58,14 +58,19 @@ pub trait NetworkApi {
     fn network_list(
         &self,
         filters: &str,
-    ) -> Box<Future<Item = Vec<::models::Network>, Error = Error<serde_json::Value>>>;
+    ) -> Box<Future<Item = Vec<::models::Network>, Error = Error<serde_json::Value>> + Send>;
     fn network_prune(
         &self,
         filters: &str,
     ) -> Box<Future<Item = ::models::InlineResponse20017, Error = Error<serde_json::Value>>>;
 }
 
-impl<C: hyper::client::Connect> NetworkApi for NetworkApiClient<C> {
+impl<C> NetworkApi for NetworkApiClient<C>
+where
+    C: hyper::client::connect::Connect + 'static,
+    <C as hyper::client::connect::Connect>::Transport: 'static,
+    <C as hyper::client::connect::Connect>::Future: 'static,
+{
     fn network_connect(
         &self,
         id: &str,
@@ -73,7 +78,7 @@ impl<C: hyper::client::Connect> NetworkApi for NetworkApiClient<C> {
     ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
-        let method = hyper::Method::Post;
+        let method = hyper::Method::POST;
 
         let uri_str = format!("/networks/{id}/connect", id = id);
 
@@ -82,18 +87,21 @@ impl<C: hyper::client::Connect> NetworkApi for NetworkApiClient<C> {
         // if let Err(e) = uri {
         //     return Box::new(futures::future::err(e));
         // }
-        let mut req = hyper::Request::new(method, uri.unwrap());
-
-        if let Some(ref user_agent) = configuration.user_agent {
-            req.headers_mut()
-                .set(UserAgent::new(Cow::Owned(user_agent.clone())));
-        }
-
         let serialized = serde_json::to_string(&container).unwrap();
-        req.headers_mut().set(hyper::header::ContentType::json());
+        let serialized_len = serialized.len();
+
+        let mut req = hyper::Request::builder();
+        req.method(method).uri(uri.unwrap());
+        if let Some(ref user_agent) = configuration.user_agent {
+            req.header(http::header::USER_AGENT, &**user_agent);
+        }
+        let mut req = req
+            .body(hyper::Body::from(serialized))
+            .expect("could not build hyper::Request");
         req.headers_mut()
-            .set(hyper::header::ContentLength(serialized.len() as u64));
-        req.set_body(serialized);
+            .typed_insert(&typed_headers::ContentType(mime::APPLICATION_JSON));
+        req.headers_mut()
+            .typed_insert(&typed_headers::ContentLength(serialized_len as u64));
 
         // send request
         Box::new(
@@ -102,30 +110,28 @@ impl<C: hyper::client::Connect> NetworkApi for NetworkApiClient<C> {
                 .request(req)
                 .map_err(|e| Error::from(e))
                 .and_then(|resp| {
-                    let status = resp.status();
-                    resp.body()
-                        .concat2()
+                    let (http::response::Parts { status, .. }, body) = resp.into_parts();
+                    body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                })
-                .and_then(|(status, body)| {
+                }).and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                })
-                .and_then(|_| futures::future::ok(())),
+                }).and_then(|_| futures::future::ok(())),
         )
     }
 
     fn network_create(
         &self,
         network_config: ::models::NetworkConfig,
-    ) -> Box<Future<Item = ::models::InlineResponse2011, Error = Error<serde_json::Value>>> {
+    ) -> Box<Future<Item = ::models::InlineResponse2011, Error = Error<serde_json::Value>> + Send>
+    {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
-        let method = hyper::Method::Post;
+        let method = hyper::Method::POST;
 
         let uri_str = format!("/networks/create");
 
@@ -134,18 +140,21 @@ impl<C: hyper::client::Connect> NetworkApi for NetworkApiClient<C> {
         // if let Err(e) = uri {
         //     return Box::new(futures::future::err(e));
         // }
-        let mut req = hyper::Request::new(method, uri.unwrap());
-
-        if let Some(ref user_agent) = configuration.user_agent {
-            req.headers_mut()
-                .set(UserAgent::new(Cow::Owned(user_agent.clone())));
-        }
-
         let serialized = serde_json::to_string(&network_config).unwrap();
-        req.headers_mut().set(hyper::header::ContentType::json());
+        let serialized_len = serialized.len();
+
+        let mut req = hyper::Request::builder();
+        req.method(method).uri(uri.unwrap());
+        if let Some(ref user_agent) = configuration.user_agent {
+            req.header(http::header::USER_AGENT, &**user_agent);
+        }
+        let mut req = req
+            .body(hyper::Body::from(serialized))
+            .expect("could not build hyper::Request");
         req.headers_mut()
-            .set(hyper::header::ContentLength(serialized.len() as u64));
-        req.set_body(serialized);
+            .typed_insert(&typed_headers::ContentType(mime::APPLICATION_JSON));
+        req.headers_mut()
+            .typed_insert(&typed_headers::ContentLength(serialized_len as u64));
 
         // send request
         Box::new(
@@ -154,20 +163,17 @@ impl<C: hyper::client::Connect> NetworkApi for NetworkApiClient<C> {
                 .request(req)
                 .map_err(|e| Error::from(e))
                 .and_then(|resp| {
-                    let status = resp.status();
-                    resp.body()
-                        .concat2()
+                    let (http::response::Parts { status, .. }, body) = resp.into_parts();
+                    body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                })
-                .and_then(|(status, body)| {
+                }).and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                })
-                .and_then(|body| {
+                }).and_then(|body| {
                     let parsed: Result<::models::InlineResponse2011, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
@@ -178,7 +184,7 @@ impl<C: hyper::client::Connect> NetworkApi for NetworkApiClient<C> {
     fn network_delete(&self, id: &str) -> Box<Future<Item = (), Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
-        let method = hyper::Method::Delete;
+        let method = hyper::Method::DELETE;
 
         let uri_str = format!("/networks/{id}", id = id);
 
@@ -187,12 +193,14 @@ impl<C: hyper::client::Connect> NetworkApi for NetworkApiClient<C> {
         // if let Err(e) = uri {
         //     return Box::new(futures::future::err(e));
         // }
-        let mut req = hyper::Request::new(method, uri.unwrap());
-
+        let mut req = hyper::Request::builder();
+        req.method(method).uri(uri.unwrap());
         if let Some(ref user_agent) = configuration.user_agent {
-            req.headers_mut()
-                .set(UserAgent::new(Cow::Owned(user_agent.clone())));
+            req.header(http::header::USER_AGENT, &**user_agent);
         }
+        let req = req
+            .body(hyper::Body::empty())
+            .expect("could not build hyper::Request");
 
         // send request
         Box::new(
@@ -201,20 +209,17 @@ impl<C: hyper::client::Connect> NetworkApi for NetworkApiClient<C> {
                 .request(req)
                 .map_err(|e| Error::from(e))
                 .and_then(|resp| {
-                    let status = resp.status();
-                    resp.body()
-                        .concat2()
+                    let (http::response::Parts { status, .. }, body) = resp.into_parts();
+                    body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                })
-                .and_then(|(status, body)| {
+                }).and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                })
-                .and_then(|_| futures::future::ok(())),
+                }).and_then(|_| futures::future::ok(())),
         )
     }
 
@@ -225,7 +230,7 @@ impl<C: hyper::client::Connect> NetworkApi for NetworkApiClient<C> {
     ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
-        let method = hyper::Method::Post;
+        let method = hyper::Method::POST;
 
         let uri_str = format!("/networks/{id}/disconnect", id = id);
 
@@ -234,18 +239,21 @@ impl<C: hyper::client::Connect> NetworkApi for NetworkApiClient<C> {
         // if let Err(e) = uri {
         //     return Box::new(futures::future::err(e));
         // }
-        let mut req = hyper::Request::new(method, uri.unwrap());
-
-        if let Some(ref user_agent) = configuration.user_agent {
-            req.headers_mut()
-                .set(UserAgent::new(Cow::Owned(user_agent.clone())));
-        }
-
         let serialized = serde_json::to_string(&container).unwrap();
-        req.headers_mut().set(hyper::header::ContentType::json());
+        let serialized_len = serialized.len();
+
+        let mut req = hyper::Request::builder();
+        req.method(method).uri(uri.unwrap());
+        if let Some(ref user_agent) = configuration.user_agent {
+            req.header(http::header::USER_AGENT, &**user_agent);
+        }
+        let mut req = req
+            .body(hyper::Body::from(serialized))
+            .expect("could not build hyper::Request");
         req.headers_mut()
-            .set(hyper::header::ContentLength(serialized.len() as u64));
-        req.set_body(serialized);
+            .typed_insert(&typed_headers::ContentType(mime::APPLICATION_JSON));
+        req.headers_mut()
+            .typed_insert(&typed_headers::ContentLength(serialized_len as u64));
 
         // send request
         Box::new(
@@ -254,20 +262,17 @@ impl<C: hyper::client::Connect> NetworkApi for NetworkApiClient<C> {
                 .request(req)
                 .map_err(|e| Error::from(e))
                 .and_then(|resp| {
-                    let status = resp.status();
-                    resp.body()
-                        .concat2()
+                    let (http::response::Parts { status, .. }, body) = resp.into_parts();
+                    body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                })
-                .and_then(|(status, body)| {
+                }).and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                })
-                .and_then(|_| futures::future::ok(())),
+                }).and_then(|_| futures::future::ok(())),
         )
     }
 
@@ -279,7 +284,7 @@ impl<C: hyper::client::Connect> NetworkApi for NetworkApiClient<C> {
     ) -> Box<Future<Item = ::models::Network, Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
-        let method = hyper::Method::Get;
+        let method = hyper::Method::GET;
 
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("verbose", &verbose.to_string())
@@ -292,12 +297,14 @@ impl<C: hyper::client::Connect> NetworkApi for NetworkApiClient<C> {
         // if let Err(e) = uri {
         //     return Box::new(futures::future::err(e));
         // }
-        let mut req = hyper::Request::new(method, uri.unwrap());
-
+        let mut req = hyper::Request::builder();
+        req.method(method).uri(uri.unwrap());
         if let Some(ref user_agent) = configuration.user_agent {
-            req.headers_mut()
-                .set(UserAgent::new(Cow::Owned(user_agent.clone())));
+            req.header(http::header::USER_AGENT, &**user_agent);
         }
+        let req = req
+            .body(hyper::Body::empty())
+            .expect("could not build hyper::Request");
 
         // send request
         Box::new(
@@ -306,20 +313,17 @@ impl<C: hyper::client::Connect> NetworkApi for NetworkApiClient<C> {
                 .request(req)
                 .map_err(|e| Error::from(e))
                 .and_then(|resp| {
-                    let status = resp.status();
-                    resp.body()
-                        .concat2()
+                    let (http::response::Parts { status, .. }, body) = resp.into_parts();
+                    body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                })
-                .and_then(|(status, body)| {
+                }).and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                })
-                .and_then(|body| {
+                }).and_then(|body| {
                     let parsed: Result<::models::Network, _> = serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
@@ -329,10 +333,10 @@ impl<C: hyper::client::Connect> NetworkApi for NetworkApiClient<C> {
     fn network_list(
         &self,
         filters: &str,
-    ) -> Box<Future<Item = Vec<::models::Network>, Error = Error<serde_json::Value>>> {
+    ) -> Box<Future<Item = Vec<::models::Network>, Error = Error<serde_json::Value>> + Send> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
-        let method = hyper::Method::Get;
+        let method = hyper::Method::GET;
 
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("filters", &filters.to_string())
@@ -344,12 +348,14 @@ impl<C: hyper::client::Connect> NetworkApi for NetworkApiClient<C> {
         // if let Err(e) = uri {
         //     return Box::new(futures::future::err(e));
         // }
-        let mut req = hyper::Request::new(method, uri.unwrap());
-
+        let mut req = hyper::Request::builder();
+        req.method(method).uri(uri.unwrap());
         if let Some(ref user_agent) = configuration.user_agent {
-            req.headers_mut()
-                .set(UserAgent::new(Cow::Owned(user_agent.clone())));
+            req.header(http::header::USER_AGENT, &**user_agent);
         }
+        let req = req
+            .body(hyper::Body::empty())
+            .expect("could not build hyper::Request");
 
         // send request
         Box::new(
@@ -358,20 +364,17 @@ impl<C: hyper::client::Connect> NetworkApi for NetworkApiClient<C> {
                 .request(req)
                 .map_err(|e| Error::from(e))
                 .and_then(|resp| {
-                    let status = resp.status();
-                    resp.body()
-                        .concat2()
+                    let (http::response::Parts { status, .. }, body) = resp.into_parts();
+                    body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                })
-                .and_then(|(status, body)| {
+                }).and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                })
-                .and_then(|body| {
+                }).and_then(|body| {
                     let parsed: Result<Vec<::models::Network>, _> = serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
@@ -384,7 +387,7 @@ impl<C: hyper::client::Connect> NetworkApi for NetworkApiClient<C> {
     ) -> Box<Future<Item = ::models::InlineResponse20017, Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
-        let method = hyper::Method::Post;
+        let method = hyper::Method::POST;
 
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("filters", &filters.to_string())
@@ -396,12 +399,14 @@ impl<C: hyper::client::Connect> NetworkApi for NetworkApiClient<C> {
         // if let Err(e) = uri {
         //     return Box::new(futures::future::err(e));
         // }
-        let mut req = hyper::Request::new(method, uri.unwrap());
-
+        let mut req = hyper::Request::builder();
+        req.method(method).uri(uri.unwrap());
         if let Some(ref user_agent) = configuration.user_agent {
-            req.headers_mut()
-                .set(UserAgent::new(Cow::Owned(user_agent.clone())));
+            req.header(http::header::USER_AGENT, &**user_agent);
         }
+        let req = req
+            .body(hyper::Body::empty())
+            .expect("could not build hyper::Request");
 
         // send request
         Box::new(
@@ -410,20 +415,17 @@ impl<C: hyper::client::Connect> NetworkApi for NetworkApiClient<C> {
                 .request(req)
                 .map_err(|e| Error::from(e))
                 .and_then(|resp| {
-                    let status = resp.status();
-                    resp.body()
-                        .concat2()
+                    let (http::response::Parts { status, .. }, body) = resp.into_parts();
+                    body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                })
-                .and_then(|(status, body)| {
+                }).and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                })
-                .and_then(|body| {
+                }).and_then(|body| {
                     let parsed: Result<::models::InlineResponse20017, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))

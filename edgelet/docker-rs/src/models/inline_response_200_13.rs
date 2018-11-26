@@ -13,18 +13,24 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InlineResponse20013 {
-    #[serde(rename = "LayersSize", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "LayersSize",
+        skip_serializing_if = "Option::is_none"
+    )]
     layers_size: Option<i64>,
     #[serde(rename = "Images", skip_serializing_if = "Option::is_none")]
     images: Option<Vec<::models::ImageSummary>>,
-    #[serde(rename = "Containers", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "Containers",
+        skip_serializing_if = "Option::is_none"
+    )]
     containers: Option<Vec<::models::ContainerSummary>>,
     #[serde(rename = "Volumes", skip_serializing_if = "Option::is_none")]
     volumes: Option<Vec<::models::Volume>>,
 }
 
 impl InlineResponse20013 {
-    pub fn new() -> InlineResponse20013 {
+    pub fn new() -> Self {
         InlineResponse20013 {
             layers_size: None,
             images: None,
@@ -37,13 +43,13 @@ impl InlineResponse20013 {
         self.layers_size = Some(layers_size);
     }
 
-    pub fn with_layers_size(mut self, layers_size: i64) -> InlineResponse20013 {
+    pub fn with_layers_size(mut self, layers_size: i64) -> Self {
         self.layers_size = Some(layers_size);
         self
     }
 
-    pub fn layers_size(&self) -> Option<&i64> {
-        self.layers_size.as_ref()
+    pub fn layers_size(&self) -> Option<i64> {
+        self.layers_size
     }
 
     pub fn reset_layers_size(&mut self) {
@@ -54,13 +60,13 @@ impl InlineResponse20013 {
         self.images = Some(images);
     }
 
-    pub fn with_images(mut self, images: Vec<::models::ImageSummary>) -> InlineResponse20013 {
+    pub fn with_images(mut self, images: Vec<::models::ImageSummary>) -> Self {
         self.images = Some(images);
         self
     }
 
-    pub fn images(&self) -> Option<&Vec<::models::ImageSummary>> {
-        self.images.as_ref()
+    pub fn images(&self) -> Option<&[::models::ImageSummary]> {
+        self.images.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_images(&mut self) {
@@ -71,16 +77,13 @@ impl InlineResponse20013 {
         self.containers = Some(containers);
     }
 
-    pub fn with_containers(
-        mut self,
-        containers: Vec<::models::ContainerSummary>,
-    ) -> InlineResponse20013 {
+    pub fn with_containers(mut self, containers: Vec<::models::ContainerSummary>) -> Self {
         self.containers = Some(containers);
         self
     }
 
-    pub fn containers(&self) -> Option<&Vec<::models::ContainerSummary>> {
-        self.containers.as_ref()
+    pub fn containers(&self) -> Option<&[::models::ContainerSummary]> {
+        self.containers.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_containers(&mut self) {
@@ -91,13 +94,13 @@ impl InlineResponse20013 {
         self.volumes = Some(volumes);
     }
 
-    pub fn with_volumes(mut self, volumes: Vec<::models::Volume>) -> InlineResponse20013 {
+    pub fn with_volumes(mut self, volumes: Vec<::models::Volume>) -> Self {
         self.volumes = Some(volumes);
         self
     }
 
-    pub fn volumes(&self) -> Option<&Vec<::models::Volume>> {
-        self.volumes.as_ref()
+    pub fn volumes(&self) -> Option<&[::models::Volume]> {
+        self.volumes.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_volumes(&mut self) {

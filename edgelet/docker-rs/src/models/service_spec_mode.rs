@@ -15,7 +15,10 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ServiceSpecMode {
-    #[serde(rename = "Replicated", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "Replicated",
+        skip_serializing_if = "Option::is_none"
+    )]
     replicated: Option<::models::ServiceSpecModeReplicated>,
     #[serde(rename = "Global", skip_serializing_if = "Option::is_none")]
     global: Option<Value>,
@@ -23,7 +26,7 @@ pub struct ServiceSpecMode {
 
 impl ServiceSpecMode {
     /// Scheduling mode for the service.
-    pub fn new() -> ServiceSpecMode {
+    pub fn new() -> Self {
         ServiceSpecMode {
             replicated: None,
             global: None,
@@ -34,10 +37,7 @@ impl ServiceSpecMode {
         self.replicated = Some(replicated);
     }
 
-    pub fn with_replicated(
-        mut self,
-        replicated: ::models::ServiceSpecModeReplicated,
-    ) -> ServiceSpecMode {
+    pub fn with_replicated(mut self, replicated: ::models::ServiceSpecModeReplicated) -> Self {
         self.replicated = Some(replicated);
         self
     }
@@ -54,7 +54,7 @@ impl ServiceSpecMode {
         self.global = Some(global);
     }
 
-    pub fn with_global(mut self, global: Value) -> ServiceSpecMode {
+    pub fn with_global(mut self, global: Value) -> Self {
         self.global = Some(global);
         self
     }

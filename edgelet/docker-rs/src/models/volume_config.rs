@@ -20,7 +20,10 @@ pub struct VolumeConfig {
     #[serde(rename = "Driver", skip_serializing_if = "Option::is_none")]
     driver: Option<String>,
     /// A mapping of driver options and values. These options are passed directly to the driver and are driver specific.
-    #[serde(rename = "DriverOpts", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "DriverOpts",
+        skip_serializing_if = "Option::is_none"
+    )]
     driver_opts: Option<::std::collections::HashMap<String, String>>,
     /// User-defined key/value metadata.
     #[serde(rename = "Labels", skip_serializing_if = "Option::is_none")]
@@ -28,7 +31,7 @@ pub struct VolumeConfig {
 }
 
 impl VolumeConfig {
-    pub fn new() -> VolumeConfig {
+    pub fn new() -> Self {
         VolumeConfig {
             name: None,
             driver: None,
@@ -41,13 +44,13 @@ impl VolumeConfig {
         self.name = Some(name);
     }
 
-    pub fn with_name(mut self, name: String) -> VolumeConfig {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
     }
 
-    pub fn name(&self) -> Option<&String> {
-        self.name.as_ref()
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_name(&mut self) {
@@ -58,13 +61,13 @@ impl VolumeConfig {
         self.driver = Some(driver);
     }
 
-    pub fn with_driver(mut self, driver: String) -> VolumeConfig {
+    pub fn with_driver(mut self, driver: String) -> Self {
         self.driver = Some(driver);
         self
     }
 
-    pub fn driver(&self) -> Option<&String> {
-        self.driver.as_ref()
+    pub fn driver(&self) -> Option<&str> {
+        self.driver.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_driver(&mut self) {
@@ -78,7 +81,7 @@ impl VolumeConfig {
     pub fn with_driver_opts(
         mut self,
         driver_opts: ::std::collections::HashMap<String, String>,
-    ) -> VolumeConfig {
+    ) -> Self {
         self.driver_opts = Some(driver_opts);
         self
     }
@@ -95,10 +98,7 @@ impl VolumeConfig {
         self.labels = Some(labels);
     }
 
-    pub fn with_labels(
-        mut self,
-        labels: ::std::collections::HashMap<String, String>,
-    ) -> VolumeConfig {
+    pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
         self.labels = Some(labels);
         self
     }

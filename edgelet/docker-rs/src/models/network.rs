@@ -23,17 +23,26 @@ pub struct Network {
     scope: Option<String>,
     #[serde(rename = "Driver", skip_serializing_if = "Option::is_none")]
     driver: Option<String>,
-    #[serde(rename = "EnableIPv6", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "EnableIPv6",
+        skip_serializing_if = "Option::is_none"
+    )]
     enable_i_pv6: Option<bool>,
     #[serde(rename = "IPAM", skip_serializing_if = "Option::is_none")]
     IPAM: Option<::models::Ipam>,
     #[serde(rename = "Internal", skip_serializing_if = "Option::is_none")]
     internal: Option<bool>,
-    #[serde(rename = "Attachable", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "Attachable",
+        skip_serializing_if = "Option::is_none"
+    )]
     attachable: Option<bool>,
     #[serde(rename = "Ingress", skip_serializing_if = "Option::is_none")]
     ingress: Option<bool>,
-    #[serde(rename = "Containers", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "Containers",
+        skip_serializing_if = "Option::is_none"
+    )]
     containers: Option<::std::collections::HashMap<String, ::models::NetworkContainer>>,
     #[serde(rename = "Options", skip_serializing_if = "Option::is_none")]
     options: Option<::std::collections::HashMap<String, String>>,
@@ -42,7 +51,7 @@ pub struct Network {
 }
 
 impl Network {
-    pub fn new() -> Network {
+    pub fn new() -> Self {
         Network {
             name: None,
             id: None,
@@ -64,13 +73,13 @@ impl Network {
         self.name = Some(name);
     }
 
-    pub fn with_name(mut self, name: String) -> Network {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
     }
 
-    pub fn name(&self) -> Option<&String> {
-        self.name.as_ref()
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_name(&mut self) {
@@ -81,13 +90,13 @@ impl Network {
         self.id = Some(id);
     }
 
-    pub fn with_id(mut self, id: String) -> Network {
+    pub fn with_id(mut self, id: String) -> Self {
         self.id = Some(id);
         self
     }
 
-    pub fn id(&self) -> Option<&String> {
-        self.id.as_ref()
+    pub fn id(&self) -> Option<&str> {
+        self.id.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_id(&mut self) {
@@ -98,13 +107,13 @@ impl Network {
         self.created = Some(created);
     }
 
-    pub fn with_created(mut self, created: String) -> Network {
+    pub fn with_created(mut self, created: String) -> Self {
         self.created = Some(created);
         self
     }
 
-    pub fn created(&self) -> Option<&String> {
-        self.created.as_ref()
+    pub fn created(&self) -> Option<&str> {
+        self.created.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_created(&mut self) {
@@ -115,13 +124,13 @@ impl Network {
         self.scope = Some(scope);
     }
 
-    pub fn with_scope(mut self, scope: String) -> Network {
+    pub fn with_scope(mut self, scope: String) -> Self {
         self.scope = Some(scope);
         self
     }
 
-    pub fn scope(&self) -> Option<&String> {
-        self.scope.as_ref()
+    pub fn scope(&self) -> Option<&str> {
+        self.scope.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_scope(&mut self) {
@@ -132,13 +141,13 @@ impl Network {
         self.driver = Some(driver);
     }
 
-    pub fn with_driver(mut self, driver: String) -> Network {
+    pub fn with_driver(mut self, driver: String) -> Self {
         self.driver = Some(driver);
         self
     }
 
-    pub fn driver(&self) -> Option<&String> {
-        self.driver.as_ref()
+    pub fn driver(&self) -> Option<&str> {
+        self.driver.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_driver(&mut self) {
@@ -149,7 +158,7 @@ impl Network {
         self.enable_i_pv6 = Some(enable_i_pv6);
     }
 
-    pub fn with_enable_i_pv6(mut self, enable_i_pv6: bool) -> Network {
+    pub fn with_enable_i_pv6(mut self, enable_i_pv6: bool) -> Self {
         self.enable_i_pv6 = Some(enable_i_pv6);
         self
     }
@@ -166,7 +175,7 @@ impl Network {
         self.IPAM = Some(IPAM);
     }
 
-    pub fn with_IPAM(mut self, IPAM: ::models::Ipam) -> Network {
+    pub fn with_IPAM(mut self, IPAM: ::models::Ipam) -> Self {
         self.IPAM = Some(IPAM);
         self
     }
@@ -183,7 +192,7 @@ impl Network {
         self.internal = Some(internal);
     }
 
-    pub fn with_internal(mut self, internal: bool) -> Network {
+    pub fn with_internal(mut self, internal: bool) -> Self {
         self.internal = Some(internal);
         self
     }
@@ -200,7 +209,7 @@ impl Network {
         self.attachable = Some(attachable);
     }
 
-    pub fn with_attachable(mut self, attachable: bool) -> Network {
+    pub fn with_attachable(mut self, attachable: bool) -> Self {
         self.attachable = Some(attachable);
         self
     }
@@ -217,7 +226,7 @@ impl Network {
         self.ingress = Some(ingress);
     }
 
-    pub fn with_ingress(mut self, ingress: bool) -> Network {
+    pub fn with_ingress(mut self, ingress: bool) -> Self {
         self.ingress = Some(ingress);
         self
     }
@@ -240,7 +249,7 @@ impl Network {
     pub fn with_containers(
         mut self,
         containers: ::std::collections::HashMap<String, ::models::NetworkContainer>,
-    ) -> Network {
+    ) -> Self {
         self.containers = Some(containers);
         self
     }
@@ -259,7 +268,7 @@ impl Network {
         self.options = Some(options);
     }
 
-    pub fn with_options(mut self, options: ::std::collections::HashMap<String, String>) -> Network {
+    pub fn with_options(mut self, options: ::std::collections::HashMap<String, String>) -> Self {
         self.options = Some(options);
         self
     }
@@ -276,7 +285,7 @@ impl Network {
         self.labels = Some(labels);
     }
 
-    pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Network {
+    pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
         self.labels = Some(labels);
         self
     }

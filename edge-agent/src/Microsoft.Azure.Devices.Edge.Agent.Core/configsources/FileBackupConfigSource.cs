@@ -19,6 +19,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
         readonly ISerde<DeploymentConfigInfo> serde;
         readonly IEncryptionProvider encryptionProvider;
 
+        Option<DeploymentConfigInfo> lastBackedUpConfig = Option.None<DeploymentConfigInfo>();
+
         public FileBackupConfigSource(string path, IConfigSource underlying, ISerde<DeploymentConfigInfo> serde, IEncryptionProvider encryptionProvider)
         {
             this.configFilePath = Preconditions.CheckNonWhiteSpace(path, nameof(path));
@@ -32,29 +34,40 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
 
         async Task<DeploymentConfigInfo> ReadFromBackup()
         {
+            DeploymentConfigInfo backedUpDeploymentConfigInfo = DeploymentConfigInfo.Empty;
+
             try
             {
-                if (!File.Exists(this.configFilePath))
-                {
-                    Events.BackupFileDoesNotExist(this.configFilePath);
-                }
-                else
-                {
-                    using (await this.sync.LockAsync())
-                    {
-                        string encryptedJson = await DiskFile.ReadAllAsync(this.configFilePath);
-                        string json = await this.encryptionProvider.DecryptAsync(encryptedJson);
-                        DeploymentConfigInfo deploymentConfigInfo = this.serde.Deserialize(json);
-                        Events.ObtainedDeploymentFromBackup(this.configFilePath);
-                        return deploymentConfigInfo;
-                    }
-                }
+                backedUpDeploymentConfigInfo = await this.lastBackedUpConfig
+                    .Map(v => Task.FromResult(v))
+                    .GetOrElse(
+                        async () =>
+                        {
+                            if (!File.Exists(this.configFilePath))
+                            {
+                                Events.BackupFileDoesNotExist(this.configFilePath);
+                                return DeploymentConfigInfo.Empty;
+                            }
+                            else
+                            {
+                                using (await this.sync.LockAsync())
+                                {
+                                    string encryptedJson = await DiskFile.ReadAllAsync(this.configFilePath);
+                                    string json = await this.encryptionProvider.DecryptAsync(encryptedJson);
+                                    DeploymentConfigInfo deploymentConfigInfo = this.serde.Deserialize(json);
+                                    Events.ObtainedDeploymentFromBackup(this.configFilePath);
+                                    this.lastBackedUpConfig = Option.Some(deploymentConfigInfo);
+                                    return deploymentConfigInfo;
+                                }
+                            }
+                        });
             }
             catch (Exception e)
             {
                 Events.GetBackupFailed(e, this.configFilePath);
             }
-            return DeploymentConfigInfo.Empty;
+
+            return backedUpDeploymentConfigInfo;
         }
 
         async Task BackupDeploymentConfig(DeploymentConfigInfo deploymentConfigInfo)
@@ -62,13 +75,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
             try
             {
                 // backup the config info only if there isn't an error in it
-                if (deploymentConfigInfo.Exception.HasValue == false)
+                if (!deploymentConfigInfo.Exception.HasValue
+                    && !this.lastBackedUpConfig.Filter(c => deploymentConfigInfo.Equals(c)).HasValue)
                 {
                     string json = this.serde.Serialize(deploymentConfigInfo);
                     string encrypted = await this.encryptionProvider.EncryptAsync(json);
                     using (await this.sync.LockAsync())
                     {
                         await DiskFile.WriteAllAsync(this.configFilePath, encrypted);
+                        this.lastBackedUpConfig = Option.Some(deploymentConfigInfo);
                     }
                 }
             }
@@ -93,6 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
                     // TODO - Backing up the config every time for now, probably should optimize this.
                     await this.BackupDeploymentConfig(deploymentConfig);
                 }
+
                 return deploymentConfig;
             }
             catch (Exception ex)

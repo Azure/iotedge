@@ -24,12 +24,7 @@ pub struct PluginEnv {
 }
 
 impl PluginEnv {
-    pub fn new(
-        name: String,
-        description: String,
-        settable: Vec<String>,
-        value: String,
-    ) -> PluginEnv {
+    pub fn new(name: String, description: String, settable: Vec<String>, value: String) -> Self {
         PluginEnv {
             name: name,
             description: description,
@@ -42,7 +37,7 @@ impl PluginEnv {
         self.name = name;
     }
 
-    pub fn with_name(mut self, name: String) -> PluginEnv {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = name;
         self
     }
@@ -55,7 +50,7 @@ impl PluginEnv {
         self.description = description;
     }
 
-    pub fn with_description(mut self, description: String) -> PluginEnv {
+    pub fn with_description(mut self, description: String) -> Self {
         self.description = description;
         self
     }
@@ -68,12 +63,12 @@ impl PluginEnv {
         self.settable = settable;
     }
 
-    pub fn with_settable(mut self, settable: Vec<String>) -> PluginEnv {
+    pub fn with_settable(mut self, settable: Vec<String>) -> Self {
         self.settable = settable;
         self
     }
 
-    pub fn settable(&self) -> &Vec<String> {
+    pub fn settable(&self) -> &[String] {
         &self.settable
     }
 
@@ -81,7 +76,7 @@ impl PluginEnv {
         self.value = value;
     }
 
-    pub fn with_value(mut self, value: String) -> PluginEnv {
+    pub fn with_value(mut self, value: String) -> Self {
         self.value = value;
         self
     }

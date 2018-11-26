@@ -13,7 +13,10 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TaskStatusContainerStatus {
-    #[serde(rename = "ContainerID", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "ContainerID",
+        skip_serializing_if = "Option::is_none"
+    )]
     container_id: Option<String>,
     #[serde(rename = "PID", skip_serializing_if = "Option::is_none")]
     PID: Option<i32>,
@@ -22,7 +25,7 @@ pub struct TaskStatusContainerStatus {
 }
 
 impl TaskStatusContainerStatus {
-    pub fn new() -> TaskStatusContainerStatus {
+    pub fn new() -> Self {
         TaskStatusContainerStatus {
             container_id: None,
             PID: None,
@@ -34,13 +37,13 @@ impl TaskStatusContainerStatus {
         self.container_id = Some(container_id);
     }
 
-    pub fn with_container_id(mut self, container_id: String) -> TaskStatusContainerStatus {
+    pub fn with_container_id(mut self, container_id: String) -> Self {
         self.container_id = Some(container_id);
         self
     }
 
-    pub fn container_id(&self) -> Option<&String> {
-        self.container_id.as_ref()
+    pub fn container_id(&self) -> Option<&str> {
+        self.container_id.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_container_id(&mut self) {
@@ -51,13 +54,13 @@ impl TaskStatusContainerStatus {
         self.PID = Some(PID);
     }
 
-    pub fn with_PID(mut self, PID: i32) -> TaskStatusContainerStatus {
+    pub fn with_PID(mut self, PID: i32) -> Self {
         self.PID = Some(PID);
         self
     }
 
-    pub fn PID(&self) -> Option<&i32> {
-        self.PID.as_ref()
+    pub fn PID(&self) -> Option<i32> {
+        self.PID
     }
 
     pub fn reset_PID(&mut self) {
@@ -68,13 +71,13 @@ impl TaskStatusContainerStatus {
         self.exit_code = Some(exit_code);
     }
 
-    pub fn with_exit_code(mut self, exit_code: i32) -> TaskStatusContainerStatus {
+    pub fn with_exit_code(mut self, exit_code: i32) -> Self {
         self.exit_code = Some(exit_code);
         self
     }
 
-    pub fn exit_code(&self) -> Option<&i32> {
-        self.exit_code.as_ref()
+    pub fn exit_code(&self) -> Option<i32> {
+        self.exit_code
     }
 
     pub fn reset_exit_code(&mut self) {

@@ -14,12 +14,15 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InlineResponse20017 {
     /// Networks that were deleted
-    #[serde(rename = "NetworksDeleted", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "NetworksDeleted",
+        skip_serializing_if = "Option::is_none"
+    )]
     networks_deleted: Option<Vec<String>>,
 }
 
 impl InlineResponse20017 {
-    pub fn new() -> InlineResponse20017 {
+    pub fn new() -> Self {
         InlineResponse20017 {
             networks_deleted: None,
         }
@@ -29,13 +32,13 @@ impl InlineResponse20017 {
         self.networks_deleted = Some(networks_deleted);
     }
 
-    pub fn with_networks_deleted(mut self, networks_deleted: Vec<String>) -> InlineResponse20017 {
+    pub fn with_networks_deleted(mut self, networks_deleted: Vec<String>) -> Self {
         self.networks_deleted = Some(networks_deleted);
         self
     }
 
-    pub fn networks_deleted(&self) -> Option<&Vec<String>> {
-        self.networks_deleted.as_ref()
+    pub fn networks_deleted(&self) -> Option<&[String]> {
+        self.networks_deleted.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_networks_deleted(&mut self) {

@@ -1,34 +1,27 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use edgelet_core::{Module, ModuleRegistry, ModuleRuntime, ModuleStatus};
-use edgelet_http::route::{BoxFuture, Handler, Parameters};
-use failure::ResultExt;
-use futures::{future, Future, Stream};
-use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
-use http::{Request, Response, StatusCode};
-use hyper::{Body, Error as HyperError};
-use management::models::*;
+use failure::{Fail, ResultExt};
+use futures::{Future, Stream};
+use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use hyper::{Body, Request, Response, StatusCode};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json;
+
+use edgelet_core::{Module, ModuleRegistry, ModuleRuntime, ModuleStatus, RuntimeOperation};
+use edgelet_http::route::{Handler, Parameters};
+use edgelet_http::Error as HttpError;
+use management::models::*;
 
 use super::{spec_to_core, spec_to_details};
 use error::{Error, ErrorKind};
 use IntoResponse;
 
-pub struct CreateModule<M>
-where
-    M: 'static + ModuleRuntime + Clone,
-    <M::Module as Module>::Config: DeserializeOwned + Serialize,
-{
+pub struct CreateModule<M> {
     runtime: M,
 }
 
-impl<M> CreateModule<M>
-where
-    M: 'static + ModuleRuntime + Clone,
-    <M::Module as Module>::Config: DeserializeOwned + Serialize,
-{
+impl<M> CreateModule<M> {
     pub fn new(runtime: M) -> Self {
         CreateModule { runtime }
     }
@@ -36,63 +29,61 @@ where
 
 impl<M> Handler<Parameters> for CreateModule<M>
 where
-    M: 'static + ModuleRuntime + Clone,
+    M: 'static + ModuleRuntime + Clone + Send + Sync,
     <M::Module as Module>::Config: DeserializeOwned + Serialize,
-    M::Error: IntoResponse,
-    <M::ModuleRegistry as ModuleRegistry>::Error: IntoResponse,
 {
     fn handle(
         &self,
         req: Request<Body>,
         _params: Parameters,
-    ) -> BoxFuture<Response<Body>, HyperError> {
+    ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
         let runtime = self.runtime.clone();
-        let response = req
-            .into_body()
-            .concat2()
-            .and_then(move |b| {
-                serde_json::from_slice::<ModuleSpec>(&b)
-                    .context(ErrorKind::BadBody)
-                    .map_err(From::from)
-                    .and_then(|spec| {
-                        spec_to_core::<M>(&spec)
-                            .context(ErrorKind::BadBody)
-                            .map_err(Error::from)
-                            .map(|core_spec| (core_spec, spec))
-                    })
-                    .map(move |(core_spec, spec)| {
-                        let created = runtime
-                            .registry()
-                            .pull(core_spec.config())
-                            .and_then(move |_| {
-                                runtime
-                                    .create(core_spec)
-                                    .map(move |_| {
-                                        let details =
-                                            spec_to_details(&spec, &ModuleStatus::Stopped);
-                                        serde_json::to_string(&details)
-                                            .context(ErrorKind::Serde)
-                                            .map(|b| {
-                                                Response::builder()
-                                                    .status(StatusCode::CREATED)
-                                                    .header(CONTENT_TYPE, "application/json")
-                                                    .header(
-                                                        CONTENT_LENGTH,
-                                                        b.len().to_string().as_str(),
-                                                    )
-                                                    .body(b.into())
-                                                    .unwrap_or_else(|e| e.into_response())
-                                            })
-                                            .unwrap_or_else(|e| e.into_response())
-                                    })
-                                    .or_else(|e| future::ok(e.into_response()))
-                            })
-                            .or_else(|e| future::ok(e.into_response()));
-                        future::Either::A(created)
-                    })
-                    .unwrap_or_else(|e| future::Either::B(future::ok(e.into_response())))
-            })
-            .or_else(|e| future::ok(e.into_response()));
+        let response =
+            req.into_body()
+                .concat2()
+                .then(|b| {
+                    let b = b.context(ErrorKind::MalformedRequestBody)?;
+                    let spec = serde_json::from_slice::<ModuleSpec>(&b)
+                        .context(ErrorKind::MalformedRequestBody)?;
+                    let core_spec = spec_to_core::<M>(&spec, ErrorKind::MalformedRequestBody)?;
+                    Ok((spec, core_spec))
+                }).and_then(move |(spec, core_spec)| {
+                    let module_name = spec.name().to_string();
+                    runtime
+                        .registry()
+                        .pull(core_spec.config())
+                        .then(move |result| match result {
+                            Ok(_) => Ok(runtime.create(core_spec).then(
+                                move |result| -> Result<_, Error> {
+                                    result.with_context(|_| {
+                                        ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
+                                            module_name.clone(),
+                                        ))
+                                    })?;
+                                    let details = spec_to_details(&spec, ModuleStatus::Stopped);
+                                    let b = serde_json::to_string(&details).with_context(|_| {
+                                        ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
+                                            module_name.clone(),
+                                        ))
+                                    })?;
+                                    let response = Response::builder()
+                                        .status(StatusCode::CREATED)
+                                        .header(CONTENT_TYPE, "application/json")
+                                        .header(CONTENT_LENGTH, b.len().to_string().as_str())
+                                        .body(b.into())
+                                        .context(ErrorKind::RuntimeOperation(
+                                            RuntimeOperation::CreateModule(module_name),
+                                        ))?;
+                                    Ok(response)
+                                },
+                            )),
+                            Err(err) => Err(Error::from(err.context(ErrorKind::RuntimeOperation(
+                                RuntimeOperation::CreateModule(module_name),
+                            )))),
+                        })
+                }).flatten()
+                .or_else(|e| Ok(e.into_response()));
+
         Box::new(response)
     }
 }
@@ -103,7 +94,7 @@ mod tests {
     use edgelet_core::{ModuleRuntimeState, ModuleStatus};
     use edgelet_http::route::Parameters;
     use edgelet_test_utils::module::*;
-    use http::Request;
+    use hyper::Request;
     use management::models::{Config, ErrorResponse};
     use server::module::tests::Error;
 
@@ -158,8 +149,7 @@ mod tests {
 
                 assert_eq!(160, b.len());
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 
@@ -181,11 +171,11 @@ mod tests {
             .concat2()
             .and_then(|b| {
                 let error_response: ErrorResponse = serde_json::from_slice(&b).unwrap();
-                let expected = "Bad body\n\tcaused by: expected value at line 1 column 1";
+                let expected =
+                    "Request body is malformed\n\tcaused by: expected value at line 1 column 1";
                 assert_eq!(expected, error_response.message());
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 
@@ -209,10 +199,12 @@ mod tests {
             .concat2()
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
-                assert_eq!("General error", error.message());
+                assert_eq!(
+                    "Could not create module image-id\n\tcaused by: General error",
+                    error.message()
+                );
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 
@@ -237,12 +229,11 @@ mod tests {
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
                 assert_eq!(
-                    "Bad body\n\tcaused by: Serde error\n\tcaused by: missing field `image`",
+                    "Request body is malformed\n\tcaused by: missing field `image`",
                     error.message()
                 );
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 }

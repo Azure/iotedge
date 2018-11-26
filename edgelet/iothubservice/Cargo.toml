@@ -5,21 +5,21 @@ authors = ["Azure IoT Edge Devs"]
 publish = false
 
 [dependencies]
-chrono = "0.4"
 failure = "0.1"
 futures = "0.1"
-hyper = "0.11"
-log = "0.4"
+hyper = "0.12"
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
 url = "1.7"
 
-edgelet-core = { path = "../edgelet-core" }
 edgelet-http = { path = "../edgelet-http" }
 edgelet-utils = { path = "../edgelet-utils" }
 
 [dev_dependencies]
+chrono = "0.4"
 clap = "2.31"
-hyper-tls = "0.1"
-tokio-core = "0.1"
+hyper-tls = "0.3"
+tokio = "0.1.8"
+typed-headers = "0.1"
+url = "1.7"

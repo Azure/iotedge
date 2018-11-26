@@ -16,79 +16,142 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct HostConfig {
     /// An integer value representing this container's relative CPU weight versus other containers.
-    #[serde(rename = "CpuShares", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "CpuShares",
+        skip_serializing_if = "Option::is_none"
+    )]
     cpu_shares: Option<i32>,
     /// Memory limit in bytes.
     #[serde(rename = "Memory", skip_serializing_if = "Option::is_none")]
     memory: Option<i64>,
     /// Path to `cgroups` under which the container's `cgroup` is created. If the path is not absolute, the path is considered to be relative to the `cgroups` path of the init process. Cgroups are created if they do not already exist.
-    #[serde(rename = "CgroupParent", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "CgroupParent",
+        skip_serializing_if = "Option::is_none"
+    )]
     cgroup_parent: Option<String>,
     /// Block IO weight (relative weight).
-    #[serde(rename = "BlkioWeight", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "BlkioWeight",
+        skip_serializing_if = "Option::is_none"
+    )]
     blkio_weight: Option<i32>,
     /// Block IO weight (relative device weight) in the form `[{\"Path\": \"device_path\", \"Weight\": weight}]`.
-    #[serde(rename = "BlkioWeightDevice", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "BlkioWeightDevice",
+        skip_serializing_if = "Option::is_none"
+    )]
     blkio_weight_device: Option<Vec<::models::ResourcesBlkioWeightDevice>>,
     /// Limit read rate (bytes per second) from a device, in the form `[{\"Path\": \"device_path\", \"Rate\": rate}]`.
-    #[serde(rename = "BlkioDeviceReadBps", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "BlkioDeviceReadBps",
+        skip_serializing_if = "Option::is_none"
+    )]
     blkio_device_read_bps: Option<Vec<::models::ThrottleDevice>>,
     /// Limit write rate (bytes per second) to a device, in the form `[{\"Path\": \"device_path\", \"Rate\": rate}]`.
-    #[serde(rename = "BlkioDeviceWriteBps", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "BlkioDeviceWriteBps",
+        skip_serializing_if = "Option::is_none"
+    )]
     blkio_device_write_bps: Option<Vec<::models::ThrottleDevice>>,
     /// Limit read rate (IO per second) from a device, in the form `[{\"Path\": \"device_path\", \"Rate\": rate}]`.
-    #[serde(rename = "BlkioDeviceReadIOps", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "BlkioDeviceReadIOps",
+        skip_serializing_if = "Option::is_none"
+    )]
     blkio_device_read_i_ops: Option<Vec<::models::ThrottleDevice>>,
     /// Limit write rate (IO per second) to a device, in the form `[{\"Path\": \"device_path\", \"Rate\": rate}]`.
-    #[serde(rename = "BlkioDeviceWriteIOps", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "BlkioDeviceWriteIOps",
+        skip_serializing_if = "Option::is_none"
+    )]
     blkio_device_write_i_ops: Option<Vec<::models::ThrottleDevice>>,
     /// The length of a CPU period in microseconds.
-    #[serde(rename = "CpuPeriod", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "CpuPeriod",
+        skip_serializing_if = "Option::is_none"
+    )]
     cpu_period: Option<i64>,
     /// Microseconds of CPU time that the container can get in a CPU period.
     #[serde(rename = "CpuQuota", skip_serializing_if = "Option::is_none")]
     cpu_quota: Option<i64>,
     /// The length of a CPU real-time period in microseconds. Set to 0 to allocate no time allocated to real-time tasks.
-    #[serde(rename = "CpuRealtimePeriod", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "CpuRealtimePeriod",
+        skip_serializing_if = "Option::is_none"
+    )]
     cpu_realtime_period: Option<i64>,
     /// The length of a CPU real-time runtime in microseconds. Set to 0 to allocate no time allocated to real-time tasks.
-    #[serde(rename = "CpuRealtimeRuntime", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "CpuRealtimeRuntime",
+        skip_serializing_if = "Option::is_none"
+    )]
     cpu_realtime_runtime: Option<i64>,
     /// CPUs in which to allow execution (e.g., `0-3`, `0,1`)
-    #[serde(rename = "CpusetCpus", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "CpusetCpus",
+        skip_serializing_if = "Option::is_none"
+    )]
     cpuset_cpus: Option<String>,
     /// Memory nodes (MEMs) in which to allow execution (0-3, 0,1). Only effective on NUMA systems.
-    #[serde(rename = "CpusetMems", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "CpusetMems",
+        skip_serializing_if = "Option::is_none"
+    )]
     cpuset_mems: Option<String>,
     /// A list of devices to add to the container.
     #[serde(rename = "Devices", skip_serializing_if = "Option::is_none")]
     devices: Option<Vec<::models::DeviceMapping>>,
     /// a list of cgroup rules to apply to the container
-    #[serde(rename = "DeviceCgroupRules", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "DeviceCgroupRules",
+        skip_serializing_if = "Option::is_none"
+    )]
     device_cgroup_rules: Option<Vec<String>>,
     /// Disk limit (in bytes).
-    #[serde(rename = "DiskQuota", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "DiskQuota",
+        skip_serializing_if = "Option::is_none"
+    )]
     disk_quota: Option<i64>,
     /// Kernel memory limit in bytes.
-    #[serde(rename = "KernelMemory", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "KernelMemory",
+        skip_serializing_if = "Option::is_none"
+    )]
     kernel_memory: Option<i64>,
     /// Memory soft limit in bytes.
-    #[serde(rename = "MemoryReservation", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "MemoryReservation",
+        skip_serializing_if = "Option::is_none"
+    )]
     memory_reservation: Option<i64>,
     /// Total memory limit (memory + swap). Set as `-1` to enable unlimited swap.
-    #[serde(rename = "MemorySwap", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "MemorySwap",
+        skip_serializing_if = "Option::is_none"
+    )]
     memory_swap: Option<i64>,
     /// Tune a container's memory swappiness behavior. Accepts an integer between 0 and 100.
-    #[serde(rename = "MemorySwappiness", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "MemorySwappiness",
+        skip_serializing_if = "Option::is_none"
+    )]
     memory_swappiness: Option<i64>,
     /// CPU quota in units of 10<sup>-9</sup> CPUs.
     #[serde(rename = "NanoCPUs", skip_serializing_if = "Option::is_none")]
     nano_cp_us: Option<i64>,
     /// Disable OOM Killer for the container.
-    #[serde(rename = "OomKillDisable", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "OomKillDisable",
+        skip_serializing_if = "Option::is_none"
+    )]
     oom_kill_disable: Option<bool>,
     /// Tune a container's pids limit. Set -1 for unlimited.
-    #[serde(rename = "PidsLimit", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "PidsLimit",
+        skip_serializing_if = "Option::is_none"
+    )]
     pids_limit: Option<i64>,
     /// A list of resource limits to set in the container. For example: `{\"Name\": \"nofile\", \"Soft\": 1024, \"Hard\": 2048}`\"
     #[serde(rename = "Ulimits", skip_serializing_if = "Option::is_none")]
@@ -97,39 +160,72 @@ pub struct HostConfig {
     #[serde(rename = "CpuCount", skip_serializing_if = "Option::is_none")]
     cpu_count: Option<i64>,
     /// The usable percentage of the available CPUs (Windows only).  On Windows Server containers, the processor resource controls are mutually exclusive. The order of precedence is `CPUCount` first, then `CPUShares`, and `CPUPercent` last.
-    #[serde(rename = "CpuPercent", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "CpuPercent",
+        skip_serializing_if = "Option::is_none"
+    )]
     cpu_percent: Option<i64>,
     /// Maximum IOps for the container system drive (Windows only)
-    #[serde(rename = "IOMaximumIOps", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "IOMaximumIOps",
+        skip_serializing_if = "Option::is_none"
+    )]
     io_maximum_i_ops: Option<i64>,
     /// Maximum IO in bytes per second for the container system drive (Windows only)
-    #[serde(rename = "IOMaximumBandwidth", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "IOMaximumBandwidth",
+        skip_serializing_if = "Option::is_none"
+    )]
     io_maximum_bandwidth: Option<i64>,
     /// A list of volume bindings for this container. Each volume binding is a string in one of these forms:  - `host-src:container-dest` to bind-mount a host path into the container. Both `host-src`, and `container-dest` must be an _absolute_ path. - `host-src:container-dest:ro` to make the bind mount read-only inside the container. Both `host-src`, and `container-dest` must be an _absolute_ path. - `volume-name:container-dest` to bind-mount a volume managed by a volume driver into the container. `container-dest` must be an _absolute_ path. - `volume-name:container-dest:ro` to mount the volume read-only inside the container.  `container-dest` must be an _absolute_ path.
     #[serde(rename = "Binds", skip_serializing_if = "Option::is_none")]
     binds: Option<Vec<String>>,
     /// Path to a file where the container ID is written
-    #[serde(rename = "ContainerIDFile", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "ContainerIDFile",
+        skip_serializing_if = "Option::is_none"
+    )]
     container_id_file: Option<String>,
-    #[serde(rename = "LogConfig", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "LogConfig",
+        skip_serializing_if = "Option::is_none"
+    )]
     log_config: Option<::models::HostConfigLogConfig>,
     /// Network mode to use for this container. Supported standard values are: `bridge`, `host`, `none`, and `container:<name|id>`. Any other value is taken as a custom network's name to which this container should connect to.
-    #[serde(rename = "NetworkMode", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "NetworkMode",
+        skip_serializing_if = "Option::is_none"
+    )]
     network_mode: Option<String>,
     /// A map of exposed container ports and the host port they should map to.
-    #[serde(rename = "PortBindings", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "PortBindings",
+        skip_serializing_if = "Option::is_none"
+    )]
     port_bindings:
         Option<::std::collections::HashMap<String, Vec<::models::HostConfigPortBindings>>>,
-    #[serde(rename = "RestartPolicy", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "RestartPolicy",
+        skip_serializing_if = "Option::is_none"
+    )]
     restart_policy: Option<::models::RestartPolicy>,
     /// Automatically remove the container when the container's process exits. This has no effect if `RestartPolicy` is set.
-    #[serde(rename = "AutoRemove", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "AutoRemove",
+        skip_serializing_if = "Option::is_none"
+    )]
     auto_remove: Option<bool>,
     /// Driver that this container uses to mount volumes.
-    #[serde(rename = "VolumeDriver", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "VolumeDriver",
+        skip_serializing_if = "Option::is_none"
+    )]
     volume_driver: Option<String>,
     /// A list of volumes to inherit from another container, specified in the form `<container name>[:<ro|rw>]`.
-    #[serde(rename = "VolumesFrom", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "VolumesFrom",
+        skip_serializing_if = "Option::is_none"
+    )]
     volumes_from: Option<Vec<String>>,
     /// Specification for mounts to be added to the container.
     #[serde(rename = "Mounts", skip_serializing_if = "Option::is_none")]
@@ -144,13 +240,22 @@ pub struct HostConfig {
     #[serde(rename = "Dns", skip_serializing_if = "Option::is_none")]
     dns: Option<Vec<String>>,
     /// A list of DNS options.
-    #[serde(rename = "DnsOptions", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "DnsOptions",
+        skip_serializing_if = "Option::is_none"
+    )]
     dns_options: Option<Vec<String>>,
     /// A list of DNS search domains.
-    #[serde(rename = "DnsSearch", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "DnsSearch",
+        skip_serializing_if = "Option::is_none"
+    )]
     dns_search: Option<Vec<String>>,
     /// A list of hostnames/IP mappings to add to the container's `/etc/hosts` file. Specified in the form `[\"hostname:IP\"]`.
-    #[serde(rename = "ExtraHosts", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "ExtraHosts",
+        skip_serializing_if = "Option::is_none"
+    )]
     extra_hosts: Option<Vec<String>>,
     /// A list of additional groups that the container process will run as.
     #[serde(rename = "GroupAdd", skip_serializing_if = "Option::is_none")]
@@ -165,25 +270,43 @@ pub struct HostConfig {
     #[serde(rename = "Links", skip_serializing_if = "Option::is_none")]
     links: Option<Vec<String>>,
     /// An integer value containing the score given to the container in order to tune OOM killer preferences.
-    #[serde(rename = "OomScoreAdj", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "OomScoreAdj",
+        skip_serializing_if = "Option::is_none"
+    )]
     oom_score_adj: Option<i32>,
     /// Set the PID (Process) Namespace mode for the container. It can be either:  - `\"container:<name|id>\"`: joins another container's PID namespace - `\"host\"`: use the host's PID namespace inside the container
     #[serde(rename = "PidMode", skip_serializing_if = "Option::is_none")]
     pid_mode: Option<String>,
     /// Gives the container full access to the host.
-    #[serde(rename = "Privileged", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "Privileged",
+        skip_serializing_if = "Option::is_none"
+    )]
     privileged: Option<bool>,
     /// Allocates a random host port for all of a container's exposed ports.
-    #[serde(rename = "PublishAllPorts", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "PublishAllPorts",
+        skip_serializing_if = "Option::is_none"
+    )]
     publish_all_ports: Option<bool>,
     /// Mount the container's root filesystem as read only.
-    #[serde(rename = "ReadonlyRootfs", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "ReadonlyRootfs",
+        skip_serializing_if = "Option::is_none"
+    )]
     readonly_rootfs: Option<bool>,
     /// A list of string values to customize labels for MLS systems, such as SELinux.
-    #[serde(rename = "SecurityOpt", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "SecurityOpt",
+        skip_serializing_if = "Option::is_none"
+    )]
     security_opt: Option<Vec<String>>,
     /// Storage driver options for this container, in the form `{\"size\": \"120G\"}`.
-    #[serde(rename = "StorageOpt", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "StorageOpt",
+        skip_serializing_if = "Option::is_none"
+    )]
     storage_opt: Option<::std::collections::HashMap<String, String>>,
     /// A map of container directories which should be replaced by tmpfs mounts, and their corresponding mount options. For example: `{ \"/run\": \"rw,noexec,nosuid,size=65536k\" }`.
     #[serde(rename = "Tmpfs", skip_serializing_if = "Option::is_none")]
@@ -192,7 +315,10 @@ pub struct HostConfig {
     #[serde(rename = "UTSMode", skip_serializing_if = "Option::is_none")]
     uts_mode: Option<String>,
     /// Sets the usernamespace mode for the container when usernamespace remapping option is enabled.
-    #[serde(rename = "UsernsMode", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "UsernsMode",
+        skip_serializing_if = "Option::is_none"
+    )]
     userns_mode: Option<String>,
     /// Size of `/dev/shm` in bytes. If omitted, the system uses 64MB.
     #[serde(rename = "ShmSize", skip_serializing_if = "Option::is_none")]
@@ -204,16 +330,22 @@ pub struct HostConfig {
     #[serde(rename = "Runtime", skip_serializing_if = "Option::is_none")]
     runtime: Option<String>,
     /// Initial console size, as an `[height, width]` array. (Windows only)
-    #[serde(rename = "ConsoleSize", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "ConsoleSize",
+        skip_serializing_if = "Option::is_none"
+    )]
     console_size: Option<Vec<i32>>,
     /// Isolation technology of the container. (Windows only)
-    #[serde(rename = "Isolation", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "Isolation",
+        skip_serializing_if = "Option::is_none"
+    )]
     isolation: Option<String>,
 }
 
 impl HostConfig {
     /// Container configuration that depends on the host we are running on
-    pub fn new() -> HostConfig {
+    pub fn new() -> Self {
         HostConfig {
             cpu_shares: None,
             memory: None,
@@ -287,13 +419,13 @@ impl HostConfig {
         self.cpu_shares = Some(cpu_shares);
     }
 
-    pub fn with_cpu_shares(mut self, cpu_shares: i32) -> HostConfig {
+    pub fn with_cpu_shares(mut self, cpu_shares: i32) -> Self {
         self.cpu_shares = Some(cpu_shares);
         self
     }
 
-    pub fn cpu_shares(&self) -> Option<&i32> {
-        self.cpu_shares.as_ref()
+    pub fn cpu_shares(&self) -> Option<i32> {
+        self.cpu_shares
     }
 
     pub fn reset_cpu_shares(&mut self) {
@@ -304,13 +436,13 @@ impl HostConfig {
         self.memory = Some(memory);
     }
 
-    pub fn with_memory(mut self, memory: i64) -> HostConfig {
+    pub fn with_memory(mut self, memory: i64) -> Self {
         self.memory = Some(memory);
         self
     }
 
-    pub fn memory(&self) -> Option<&i64> {
-        self.memory.as_ref()
+    pub fn memory(&self) -> Option<i64> {
+        self.memory
     }
 
     pub fn reset_memory(&mut self) {
@@ -321,13 +453,13 @@ impl HostConfig {
         self.cgroup_parent = Some(cgroup_parent);
     }
 
-    pub fn with_cgroup_parent(mut self, cgroup_parent: String) -> HostConfig {
+    pub fn with_cgroup_parent(mut self, cgroup_parent: String) -> Self {
         self.cgroup_parent = Some(cgroup_parent);
         self
     }
 
-    pub fn cgroup_parent(&self) -> Option<&String> {
-        self.cgroup_parent.as_ref()
+    pub fn cgroup_parent(&self) -> Option<&str> {
+        self.cgroup_parent.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_cgroup_parent(&mut self) {
@@ -338,13 +470,13 @@ impl HostConfig {
         self.blkio_weight = Some(blkio_weight);
     }
 
-    pub fn with_blkio_weight(mut self, blkio_weight: i32) -> HostConfig {
+    pub fn with_blkio_weight(mut self, blkio_weight: i32) -> Self {
         self.blkio_weight = Some(blkio_weight);
         self
     }
 
-    pub fn blkio_weight(&self) -> Option<&i32> {
-        self.blkio_weight.as_ref()
+    pub fn blkio_weight(&self) -> Option<i32> {
+        self.blkio_weight
     }
 
     pub fn reset_blkio_weight(&mut self) {
@@ -361,13 +493,13 @@ impl HostConfig {
     pub fn with_blkio_weight_device(
         mut self,
         blkio_weight_device: Vec<::models::ResourcesBlkioWeightDevice>,
-    ) -> HostConfig {
+    ) -> Self {
         self.blkio_weight_device = Some(blkio_weight_device);
         self
     }
 
-    pub fn blkio_weight_device(&self) -> Option<&Vec<::models::ResourcesBlkioWeightDevice>> {
-        self.blkio_weight_device.as_ref()
+    pub fn blkio_weight_device(&self) -> Option<&[::models::ResourcesBlkioWeightDevice]> {
+        self.blkio_weight_device.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_blkio_weight_device(&mut self) {
@@ -384,13 +516,13 @@ impl HostConfig {
     pub fn with_blkio_device_read_bps(
         mut self,
         blkio_device_read_bps: Vec<::models::ThrottleDevice>,
-    ) -> HostConfig {
+    ) -> Self {
         self.blkio_device_read_bps = Some(blkio_device_read_bps);
         self
     }
 
-    pub fn blkio_device_read_bps(&self) -> Option<&Vec<::models::ThrottleDevice>> {
-        self.blkio_device_read_bps.as_ref()
+    pub fn blkio_device_read_bps(&self) -> Option<&[::models::ThrottleDevice]> {
+        self.blkio_device_read_bps.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_blkio_device_read_bps(&mut self) {
@@ -407,13 +539,13 @@ impl HostConfig {
     pub fn with_blkio_device_write_bps(
         mut self,
         blkio_device_write_bps: Vec<::models::ThrottleDevice>,
-    ) -> HostConfig {
+    ) -> Self {
         self.blkio_device_write_bps = Some(blkio_device_write_bps);
         self
     }
 
-    pub fn blkio_device_write_bps(&self) -> Option<&Vec<::models::ThrottleDevice>> {
-        self.blkio_device_write_bps.as_ref()
+    pub fn blkio_device_write_bps(&self) -> Option<&[::models::ThrottleDevice]> {
+        self.blkio_device_write_bps.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_blkio_device_write_bps(&mut self) {
@@ -430,13 +562,13 @@ impl HostConfig {
     pub fn with_blkio_device_read_i_ops(
         mut self,
         blkio_device_read_i_ops: Vec<::models::ThrottleDevice>,
-    ) -> HostConfig {
+    ) -> Self {
         self.blkio_device_read_i_ops = Some(blkio_device_read_i_ops);
         self
     }
 
-    pub fn blkio_device_read_i_ops(&self) -> Option<&Vec<::models::ThrottleDevice>> {
-        self.blkio_device_read_i_ops.as_ref()
+    pub fn blkio_device_read_i_ops(&self) -> Option<&[::models::ThrottleDevice]> {
+        self.blkio_device_read_i_ops.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_blkio_device_read_i_ops(&mut self) {
@@ -453,13 +585,13 @@ impl HostConfig {
     pub fn with_blkio_device_write_i_ops(
         mut self,
         blkio_device_write_i_ops: Vec<::models::ThrottleDevice>,
-    ) -> HostConfig {
+    ) -> Self {
         self.blkio_device_write_i_ops = Some(blkio_device_write_i_ops);
         self
     }
 
-    pub fn blkio_device_write_i_ops(&self) -> Option<&Vec<::models::ThrottleDevice>> {
-        self.blkio_device_write_i_ops.as_ref()
+    pub fn blkio_device_write_i_ops(&self) -> Option<&[::models::ThrottleDevice]> {
+        self.blkio_device_write_i_ops.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_blkio_device_write_i_ops(&mut self) {
@@ -470,13 +602,13 @@ impl HostConfig {
         self.cpu_period = Some(cpu_period);
     }
 
-    pub fn with_cpu_period(mut self, cpu_period: i64) -> HostConfig {
+    pub fn with_cpu_period(mut self, cpu_period: i64) -> Self {
         self.cpu_period = Some(cpu_period);
         self
     }
 
-    pub fn cpu_period(&self) -> Option<&i64> {
-        self.cpu_period.as_ref()
+    pub fn cpu_period(&self) -> Option<i64> {
+        self.cpu_period
     }
 
     pub fn reset_cpu_period(&mut self) {
@@ -487,13 +619,13 @@ impl HostConfig {
         self.cpu_quota = Some(cpu_quota);
     }
 
-    pub fn with_cpu_quota(mut self, cpu_quota: i64) -> HostConfig {
+    pub fn with_cpu_quota(mut self, cpu_quota: i64) -> Self {
         self.cpu_quota = Some(cpu_quota);
         self
     }
 
-    pub fn cpu_quota(&self) -> Option<&i64> {
-        self.cpu_quota.as_ref()
+    pub fn cpu_quota(&self) -> Option<i64> {
+        self.cpu_quota
     }
 
     pub fn reset_cpu_quota(&mut self) {
@@ -504,13 +636,13 @@ impl HostConfig {
         self.cpu_realtime_period = Some(cpu_realtime_period);
     }
 
-    pub fn with_cpu_realtime_period(mut self, cpu_realtime_period: i64) -> HostConfig {
+    pub fn with_cpu_realtime_period(mut self, cpu_realtime_period: i64) -> Self {
         self.cpu_realtime_period = Some(cpu_realtime_period);
         self
     }
 
-    pub fn cpu_realtime_period(&self) -> Option<&i64> {
-        self.cpu_realtime_period.as_ref()
+    pub fn cpu_realtime_period(&self) -> Option<i64> {
+        self.cpu_realtime_period
     }
 
     pub fn reset_cpu_realtime_period(&mut self) {
@@ -521,13 +653,13 @@ impl HostConfig {
         self.cpu_realtime_runtime = Some(cpu_realtime_runtime);
     }
 
-    pub fn with_cpu_realtime_runtime(mut self, cpu_realtime_runtime: i64) -> HostConfig {
+    pub fn with_cpu_realtime_runtime(mut self, cpu_realtime_runtime: i64) -> Self {
         self.cpu_realtime_runtime = Some(cpu_realtime_runtime);
         self
     }
 
-    pub fn cpu_realtime_runtime(&self) -> Option<&i64> {
-        self.cpu_realtime_runtime.as_ref()
+    pub fn cpu_realtime_runtime(&self) -> Option<i64> {
+        self.cpu_realtime_runtime
     }
 
     pub fn reset_cpu_realtime_runtime(&mut self) {
@@ -538,13 +670,13 @@ impl HostConfig {
         self.cpuset_cpus = Some(cpuset_cpus);
     }
 
-    pub fn with_cpuset_cpus(mut self, cpuset_cpus: String) -> HostConfig {
+    pub fn with_cpuset_cpus(mut self, cpuset_cpus: String) -> Self {
         self.cpuset_cpus = Some(cpuset_cpus);
         self
     }
 
-    pub fn cpuset_cpus(&self) -> Option<&String> {
-        self.cpuset_cpus.as_ref()
+    pub fn cpuset_cpus(&self) -> Option<&str> {
+        self.cpuset_cpus.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_cpuset_cpus(&mut self) {
@@ -555,13 +687,13 @@ impl HostConfig {
         self.cpuset_mems = Some(cpuset_mems);
     }
 
-    pub fn with_cpuset_mems(mut self, cpuset_mems: String) -> HostConfig {
+    pub fn with_cpuset_mems(mut self, cpuset_mems: String) -> Self {
         self.cpuset_mems = Some(cpuset_mems);
         self
     }
 
-    pub fn cpuset_mems(&self) -> Option<&String> {
-        self.cpuset_mems.as_ref()
+    pub fn cpuset_mems(&self) -> Option<&str> {
+        self.cpuset_mems.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_cpuset_mems(&mut self) {
@@ -572,13 +704,13 @@ impl HostConfig {
         self.devices = Some(devices);
     }
 
-    pub fn with_devices(mut self, devices: Vec<::models::DeviceMapping>) -> HostConfig {
+    pub fn with_devices(mut self, devices: Vec<::models::DeviceMapping>) -> Self {
         self.devices = Some(devices);
         self
     }
 
-    pub fn devices(&self) -> Option<&Vec<::models::DeviceMapping>> {
-        self.devices.as_ref()
+    pub fn devices(&self) -> Option<&[::models::DeviceMapping]> {
+        self.devices.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_devices(&mut self) {
@@ -589,13 +721,13 @@ impl HostConfig {
         self.device_cgroup_rules = Some(device_cgroup_rules);
     }
 
-    pub fn with_device_cgroup_rules(mut self, device_cgroup_rules: Vec<String>) -> HostConfig {
+    pub fn with_device_cgroup_rules(mut self, device_cgroup_rules: Vec<String>) -> Self {
         self.device_cgroup_rules = Some(device_cgroup_rules);
         self
     }
 
-    pub fn device_cgroup_rules(&self) -> Option<&Vec<String>> {
-        self.device_cgroup_rules.as_ref()
+    pub fn device_cgroup_rules(&self) -> Option<&[String]> {
+        self.device_cgroup_rules.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_device_cgroup_rules(&mut self) {
@@ -606,13 +738,13 @@ impl HostConfig {
         self.disk_quota = Some(disk_quota);
     }
 
-    pub fn with_disk_quota(mut self, disk_quota: i64) -> HostConfig {
+    pub fn with_disk_quota(mut self, disk_quota: i64) -> Self {
         self.disk_quota = Some(disk_quota);
         self
     }
 
-    pub fn disk_quota(&self) -> Option<&i64> {
-        self.disk_quota.as_ref()
+    pub fn disk_quota(&self) -> Option<i64> {
+        self.disk_quota
     }
 
     pub fn reset_disk_quota(&mut self) {
@@ -623,13 +755,13 @@ impl HostConfig {
         self.kernel_memory = Some(kernel_memory);
     }
 
-    pub fn with_kernel_memory(mut self, kernel_memory: i64) -> HostConfig {
+    pub fn with_kernel_memory(mut self, kernel_memory: i64) -> Self {
         self.kernel_memory = Some(kernel_memory);
         self
     }
 
-    pub fn kernel_memory(&self) -> Option<&i64> {
-        self.kernel_memory.as_ref()
+    pub fn kernel_memory(&self) -> Option<i64> {
+        self.kernel_memory
     }
 
     pub fn reset_kernel_memory(&mut self) {
@@ -640,13 +772,13 @@ impl HostConfig {
         self.memory_reservation = Some(memory_reservation);
     }
 
-    pub fn with_memory_reservation(mut self, memory_reservation: i64) -> HostConfig {
+    pub fn with_memory_reservation(mut self, memory_reservation: i64) -> Self {
         self.memory_reservation = Some(memory_reservation);
         self
     }
 
-    pub fn memory_reservation(&self) -> Option<&i64> {
-        self.memory_reservation.as_ref()
+    pub fn memory_reservation(&self) -> Option<i64> {
+        self.memory_reservation
     }
 
     pub fn reset_memory_reservation(&mut self) {
@@ -657,13 +789,13 @@ impl HostConfig {
         self.memory_swap = Some(memory_swap);
     }
 
-    pub fn with_memory_swap(mut self, memory_swap: i64) -> HostConfig {
+    pub fn with_memory_swap(mut self, memory_swap: i64) -> Self {
         self.memory_swap = Some(memory_swap);
         self
     }
 
-    pub fn memory_swap(&self) -> Option<&i64> {
-        self.memory_swap.as_ref()
+    pub fn memory_swap(&self) -> Option<i64> {
+        self.memory_swap
     }
 
     pub fn reset_memory_swap(&mut self) {
@@ -674,13 +806,13 @@ impl HostConfig {
         self.memory_swappiness = Some(memory_swappiness);
     }
 
-    pub fn with_memory_swappiness(mut self, memory_swappiness: i64) -> HostConfig {
+    pub fn with_memory_swappiness(mut self, memory_swappiness: i64) -> Self {
         self.memory_swappiness = Some(memory_swappiness);
         self
     }
 
-    pub fn memory_swappiness(&self) -> Option<&i64> {
-        self.memory_swappiness.as_ref()
+    pub fn memory_swappiness(&self) -> Option<i64> {
+        self.memory_swappiness
     }
 
     pub fn reset_memory_swappiness(&mut self) {
@@ -691,13 +823,13 @@ impl HostConfig {
         self.nano_cp_us = Some(nano_cp_us);
     }
 
-    pub fn with_nano_cp_us(mut self, nano_cp_us: i64) -> HostConfig {
+    pub fn with_nano_cp_us(mut self, nano_cp_us: i64) -> Self {
         self.nano_cp_us = Some(nano_cp_us);
         self
     }
 
-    pub fn nano_cp_us(&self) -> Option<&i64> {
-        self.nano_cp_us.as_ref()
+    pub fn nano_cp_us(&self) -> Option<i64> {
+        self.nano_cp_us
     }
 
     pub fn reset_nano_cp_us(&mut self) {
@@ -708,7 +840,7 @@ impl HostConfig {
         self.oom_kill_disable = Some(oom_kill_disable);
     }
 
-    pub fn with_oom_kill_disable(mut self, oom_kill_disable: bool) -> HostConfig {
+    pub fn with_oom_kill_disable(mut self, oom_kill_disable: bool) -> Self {
         self.oom_kill_disable = Some(oom_kill_disable);
         self
     }
@@ -725,13 +857,13 @@ impl HostConfig {
         self.pids_limit = Some(pids_limit);
     }
 
-    pub fn with_pids_limit(mut self, pids_limit: i64) -> HostConfig {
+    pub fn with_pids_limit(mut self, pids_limit: i64) -> Self {
         self.pids_limit = Some(pids_limit);
         self
     }
 
-    pub fn pids_limit(&self) -> Option<&i64> {
-        self.pids_limit.as_ref()
+    pub fn pids_limit(&self) -> Option<i64> {
+        self.pids_limit
     }
 
     pub fn reset_pids_limit(&mut self) {
@@ -742,13 +874,13 @@ impl HostConfig {
         self.ulimits = Some(ulimits);
     }
 
-    pub fn with_ulimits(mut self, ulimits: Vec<::models::ResourcesUlimits>) -> HostConfig {
+    pub fn with_ulimits(mut self, ulimits: Vec<::models::ResourcesUlimits>) -> Self {
         self.ulimits = Some(ulimits);
         self
     }
 
-    pub fn ulimits(&self) -> Option<&Vec<::models::ResourcesUlimits>> {
-        self.ulimits.as_ref()
+    pub fn ulimits(&self) -> Option<&[::models::ResourcesUlimits]> {
+        self.ulimits.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_ulimits(&mut self) {
@@ -759,13 +891,13 @@ impl HostConfig {
         self.cpu_count = Some(cpu_count);
     }
 
-    pub fn with_cpu_count(mut self, cpu_count: i64) -> HostConfig {
+    pub fn with_cpu_count(mut self, cpu_count: i64) -> Self {
         self.cpu_count = Some(cpu_count);
         self
     }
 
-    pub fn cpu_count(&self) -> Option<&i64> {
-        self.cpu_count.as_ref()
+    pub fn cpu_count(&self) -> Option<i64> {
+        self.cpu_count
     }
 
     pub fn reset_cpu_count(&mut self) {
@@ -776,13 +908,13 @@ impl HostConfig {
         self.cpu_percent = Some(cpu_percent);
     }
 
-    pub fn with_cpu_percent(mut self, cpu_percent: i64) -> HostConfig {
+    pub fn with_cpu_percent(mut self, cpu_percent: i64) -> Self {
         self.cpu_percent = Some(cpu_percent);
         self
     }
 
-    pub fn cpu_percent(&self) -> Option<&i64> {
-        self.cpu_percent.as_ref()
+    pub fn cpu_percent(&self) -> Option<i64> {
+        self.cpu_percent
     }
 
     pub fn reset_cpu_percent(&mut self) {
@@ -793,13 +925,13 @@ impl HostConfig {
         self.io_maximum_i_ops = Some(io_maximum_i_ops);
     }
 
-    pub fn with_io_maximum_i_ops(mut self, io_maximum_i_ops: i64) -> HostConfig {
+    pub fn with_io_maximum_i_ops(mut self, io_maximum_i_ops: i64) -> Self {
         self.io_maximum_i_ops = Some(io_maximum_i_ops);
         self
     }
 
-    pub fn io_maximum_i_ops(&self) -> Option<&i64> {
-        self.io_maximum_i_ops.as_ref()
+    pub fn io_maximum_i_ops(&self) -> Option<i64> {
+        self.io_maximum_i_ops
     }
 
     pub fn reset_io_maximum_i_ops(&mut self) {
@@ -810,13 +942,13 @@ impl HostConfig {
         self.io_maximum_bandwidth = Some(io_maximum_bandwidth);
     }
 
-    pub fn with_io_maximum_bandwidth(mut self, io_maximum_bandwidth: i64) -> HostConfig {
+    pub fn with_io_maximum_bandwidth(mut self, io_maximum_bandwidth: i64) -> Self {
         self.io_maximum_bandwidth = Some(io_maximum_bandwidth);
         self
     }
 
-    pub fn io_maximum_bandwidth(&self) -> Option<&i64> {
-        self.io_maximum_bandwidth.as_ref()
+    pub fn io_maximum_bandwidth(&self) -> Option<i64> {
+        self.io_maximum_bandwidth
     }
 
     pub fn reset_io_maximum_bandwidth(&mut self) {
@@ -827,13 +959,13 @@ impl HostConfig {
         self.binds = Some(binds);
     }
 
-    pub fn with_binds(mut self, binds: Vec<String>) -> HostConfig {
+    pub fn with_binds(mut self, binds: Vec<String>) -> Self {
         self.binds = Some(binds);
         self
     }
 
-    pub fn binds(&self) -> Option<&Vec<String>> {
-        self.binds.as_ref()
+    pub fn binds(&self) -> Option<&[String]> {
+        self.binds.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_binds(&mut self) {
@@ -844,13 +976,13 @@ impl HostConfig {
         self.container_id_file = Some(container_id_file);
     }
 
-    pub fn with_container_id_file(mut self, container_id_file: String) -> HostConfig {
+    pub fn with_container_id_file(mut self, container_id_file: String) -> Self {
         self.container_id_file = Some(container_id_file);
         self
     }
 
-    pub fn container_id_file(&self) -> Option<&String> {
-        self.container_id_file.as_ref()
+    pub fn container_id_file(&self) -> Option<&str> {
+        self.container_id_file.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_container_id_file(&mut self) {
@@ -861,7 +993,7 @@ impl HostConfig {
         self.log_config = Some(log_config);
     }
 
-    pub fn with_log_config(mut self, log_config: ::models::HostConfigLogConfig) -> HostConfig {
+    pub fn with_log_config(mut self, log_config: ::models::HostConfigLogConfig) -> Self {
         self.log_config = Some(log_config);
         self
     }
@@ -878,13 +1010,13 @@ impl HostConfig {
         self.network_mode = Some(network_mode);
     }
 
-    pub fn with_network_mode(mut self, network_mode: String) -> HostConfig {
+    pub fn with_network_mode(mut self, network_mode: String) -> Self {
         self.network_mode = Some(network_mode);
         self
     }
 
-    pub fn network_mode(&self) -> Option<&String> {
-        self.network_mode.as_ref()
+    pub fn network_mode(&self) -> Option<&str> {
+        self.network_mode.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_network_mode(&mut self) {
@@ -901,7 +1033,7 @@ impl HostConfig {
     pub fn with_port_bindings(
         mut self,
         port_bindings: ::std::collections::HashMap<String, Vec<::models::HostConfigPortBindings>>,
-    ) -> HostConfig {
+    ) -> Self {
         self.port_bindings = Some(port_bindings);
         self
     }
@@ -920,7 +1052,7 @@ impl HostConfig {
         self.restart_policy = Some(restart_policy);
     }
 
-    pub fn with_restart_policy(mut self, restart_policy: ::models::RestartPolicy) -> HostConfig {
+    pub fn with_restart_policy(mut self, restart_policy: ::models::RestartPolicy) -> Self {
         self.restart_policy = Some(restart_policy);
         self
     }
@@ -937,7 +1069,7 @@ impl HostConfig {
         self.auto_remove = Some(auto_remove);
     }
 
-    pub fn with_auto_remove(mut self, auto_remove: bool) -> HostConfig {
+    pub fn with_auto_remove(mut self, auto_remove: bool) -> Self {
         self.auto_remove = Some(auto_remove);
         self
     }
@@ -954,13 +1086,13 @@ impl HostConfig {
         self.volume_driver = Some(volume_driver);
     }
 
-    pub fn with_volume_driver(mut self, volume_driver: String) -> HostConfig {
+    pub fn with_volume_driver(mut self, volume_driver: String) -> Self {
         self.volume_driver = Some(volume_driver);
         self
     }
 
-    pub fn volume_driver(&self) -> Option<&String> {
-        self.volume_driver.as_ref()
+    pub fn volume_driver(&self) -> Option<&str> {
+        self.volume_driver.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_volume_driver(&mut self) {
@@ -971,13 +1103,13 @@ impl HostConfig {
         self.volumes_from = Some(volumes_from);
     }
 
-    pub fn with_volumes_from(mut self, volumes_from: Vec<String>) -> HostConfig {
+    pub fn with_volumes_from(mut self, volumes_from: Vec<String>) -> Self {
         self.volumes_from = Some(volumes_from);
         self
     }
 
-    pub fn volumes_from(&self) -> Option<&Vec<String>> {
-        self.volumes_from.as_ref()
+    pub fn volumes_from(&self) -> Option<&[String]> {
+        self.volumes_from.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_volumes_from(&mut self) {
@@ -988,13 +1120,13 @@ impl HostConfig {
         self.mounts = Some(mounts);
     }
 
-    pub fn with_mounts(mut self, mounts: Vec<::models::Mount>) -> HostConfig {
+    pub fn with_mounts(mut self, mounts: Vec<::models::Mount>) -> Self {
         self.mounts = Some(mounts);
         self
     }
 
-    pub fn mounts(&self) -> Option<&Vec<::models::Mount>> {
-        self.mounts.as_ref()
+    pub fn mounts(&self) -> Option<&[::models::Mount]> {
+        self.mounts.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_mounts(&mut self) {
@@ -1005,13 +1137,13 @@ impl HostConfig {
         self.cap_add = Some(cap_add);
     }
 
-    pub fn with_cap_add(mut self, cap_add: Vec<String>) -> HostConfig {
+    pub fn with_cap_add(mut self, cap_add: Vec<String>) -> Self {
         self.cap_add = Some(cap_add);
         self
     }
 
-    pub fn cap_add(&self) -> Option<&Vec<String>> {
-        self.cap_add.as_ref()
+    pub fn cap_add(&self) -> Option<&[String]> {
+        self.cap_add.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_cap_add(&mut self) {
@@ -1022,13 +1154,13 @@ impl HostConfig {
         self.cap_drop = Some(cap_drop);
     }
 
-    pub fn with_cap_drop(mut self, cap_drop: Vec<String>) -> HostConfig {
+    pub fn with_cap_drop(mut self, cap_drop: Vec<String>) -> Self {
         self.cap_drop = Some(cap_drop);
         self
     }
 
-    pub fn cap_drop(&self) -> Option<&Vec<String>> {
-        self.cap_drop.as_ref()
+    pub fn cap_drop(&self) -> Option<&[String]> {
+        self.cap_drop.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_cap_drop(&mut self) {
@@ -1039,13 +1171,13 @@ impl HostConfig {
         self.dns = Some(dns);
     }
 
-    pub fn with_dns(mut self, dns: Vec<String>) -> HostConfig {
+    pub fn with_dns(mut self, dns: Vec<String>) -> Self {
         self.dns = Some(dns);
         self
     }
 
-    pub fn dns(&self) -> Option<&Vec<String>> {
-        self.dns.as_ref()
+    pub fn dns(&self) -> Option<&[String]> {
+        self.dns.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_dns(&mut self) {
@@ -1056,13 +1188,13 @@ impl HostConfig {
         self.dns_options = Some(dns_options);
     }
 
-    pub fn with_dns_options(mut self, dns_options: Vec<String>) -> HostConfig {
+    pub fn with_dns_options(mut self, dns_options: Vec<String>) -> Self {
         self.dns_options = Some(dns_options);
         self
     }
 
-    pub fn dns_options(&self) -> Option<&Vec<String>> {
-        self.dns_options.as_ref()
+    pub fn dns_options(&self) -> Option<&[String]> {
+        self.dns_options.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_dns_options(&mut self) {
@@ -1073,13 +1205,13 @@ impl HostConfig {
         self.dns_search = Some(dns_search);
     }
 
-    pub fn with_dns_search(mut self, dns_search: Vec<String>) -> HostConfig {
+    pub fn with_dns_search(mut self, dns_search: Vec<String>) -> Self {
         self.dns_search = Some(dns_search);
         self
     }
 
-    pub fn dns_search(&self) -> Option<&Vec<String>> {
-        self.dns_search.as_ref()
+    pub fn dns_search(&self) -> Option<&[String]> {
+        self.dns_search.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_dns_search(&mut self) {
@@ -1090,13 +1222,13 @@ impl HostConfig {
         self.extra_hosts = Some(extra_hosts);
     }
 
-    pub fn with_extra_hosts(mut self, extra_hosts: Vec<String>) -> HostConfig {
+    pub fn with_extra_hosts(mut self, extra_hosts: Vec<String>) -> Self {
         self.extra_hosts = Some(extra_hosts);
         self
     }
 
-    pub fn extra_hosts(&self) -> Option<&Vec<String>> {
-        self.extra_hosts.as_ref()
+    pub fn extra_hosts(&self) -> Option<&[String]> {
+        self.extra_hosts.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_extra_hosts(&mut self) {
@@ -1107,13 +1239,13 @@ impl HostConfig {
         self.group_add = Some(group_add);
     }
 
-    pub fn with_group_add(mut self, group_add: Vec<String>) -> HostConfig {
+    pub fn with_group_add(mut self, group_add: Vec<String>) -> Self {
         self.group_add = Some(group_add);
         self
     }
 
-    pub fn group_add(&self) -> Option<&Vec<String>> {
-        self.group_add.as_ref()
+    pub fn group_add(&self) -> Option<&[String]> {
+        self.group_add.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_group_add(&mut self) {
@@ -1124,13 +1256,13 @@ impl HostConfig {
         self.ipc_mode = Some(ipc_mode);
     }
 
-    pub fn with_ipc_mode(mut self, ipc_mode: String) -> HostConfig {
+    pub fn with_ipc_mode(mut self, ipc_mode: String) -> Self {
         self.ipc_mode = Some(ipc_mode);
         self
     }
 
-    pub fn ipc_mode(&self) -> Option<&String> {
-        self.ipc_mode.as_ref()
+    pub fn ipc_mode(&self) -> Option<&str> {
+        self.ipc_mode.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_ipc_mode(&mut self) {
@@ -1141,13 +1273,13 @@ impl HostConfig {
         self.cgroup = Some(cgroup);
     }
 
-    pub fn with_cgroup(mut self, cgroup: String) -> HostConfig {
+    pub fn with_cgroup(mut self, cgroup: String) -> Self {
         self.cgroup = Some(cgroup);
         self
     }
 
-    pub fn cgroup(&self) -> Option<&String> {
-        self.cgroup.as_ref()
+    pub fn cgroup(&self) -> Option<&str> {
+        self.cgroup.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_cgroup(&mut self) {
@@ -1158,13 +1290,13 @@ impl HostConfig {
         self.links = Some(links);
     }
 
-    pub fn with_links(mut self, links: Vec<String>) -> HostConfig {
+    pub fn with_links(mut self, links: Vec<String>) -> Self {
         self.links = Some(links);
         self
     }
 
-    pub fn links(&self) -> Option<&Vec<String>> {
-        self.links.as_ref()
+    pub fn links(&self) -> Option<&[String]> {
+        self.links.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_links(&mut self) {
@@ -1175,13 +1307,13 @@ impl HostConfig {
         self.oom_score_adj = Some(oom_score_adj);
     }
 
-    pub fn with_oom_score_adj(mut self, oom_score_adj: i32) -> HostConfig {
+    pub fn with_oom_score_adj(mut self, oom_score_adj: i32) -> Self {
         self.oom_score_adj = Some(oom_score_adj);
         self
     }
 
-    pub fn oom_score_adj(&self) -> Option<&i32> {
-        self.oom_score_adj.as_ref()
+    pub fn oom_score_adj(&self) -> Option<i32> {
+        self.oom_score_adj
     }
 
     pub fn reset_oom_score_adj(&mut self) {
@@ -1192,13 +1324,13 @@ impl HostConfig {
         self.pid_mode = Some(pid_mode);
     }
 
-    pub fn with_pid_mode(mut self, pid_mode: String) -> HostConfig {
+    pub fn with_pid_mode(mut self, pid_mode: String) -> Self {
         self.pid_mode = Some(pid_mode);
         self
     }
 
-    pub fn pid_mode(&self) -> Option<&String> {
-        self.pid_mode.as_ref()
+    pub fn pid_mode(&self) -> Option<&str> {
+        self.pid_mode.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_pid_mode(&mut self) {
@@ -1209,7 +1341,7 @@ impl HostConfig {
         self.privileged = Some(privileged);
     }
 
-    pub fn with_privileged(mut self, privileged: bool) -> HostConfig {
+    pub fn with_privileged(mut self, privileged: bool) -> Self {
         self.privileged = Some(privileged);
         self
     }
@@ -1226,7 +1358,7 @@ impl HostConfig {
         self.publish_all_ports = Some(publish_all_ports);
     }
 
-    pub fn with_publish_all_ports(mut self, publish_all_ports: bool) -> HostConfig {
+    pub fn with_publish_all_ports(mut self, publish_all_ports: bool) -> Self {
         self.publish_all_ports = Some(publish_all_ports);
         self
     }
@@ -1243,7 +1375,7 @@ impl HostConfig {
         self.readonly_rootfs = Some(readonly_rootfs);
     }
 
-    pub fn with_readonly_rootfs(mut self, readonly_rootfs: bool) -> HostConfig {
+    pub fn with_readonly_rootfs(mut self, readonly_rootfs: bool) -> Self {
         self.readonly_rootfs = Some(readonly_rootfs);
         self
     }
@@ -1260,13 +1392,13 @@ impl HostConfig {
         self.security_opt = Some(security_opt);
     }
 
-    pub fn with_security_opt(mut self, security_opt: Vec<String>) -> HostConfig {
+    pub fn with_security_opt(mut self, security_opt: Vec<String>) -> Self {
         self.security_opt = Some(security_opt);
         self
     }
 
-    pub fn security_opt(&self) -> Option<&Vec<String>> {
-        self.security_opt.as_ref()
+    pub fn security_opt(&self) -> Option<&[String]> {
+        self.security_opt.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_security_opt(&mut self) {
@@ -1280,7 +1412,7 @@ impl HostConfig {
     pub fn with_storage_opt(
         mut self,
         storage_opt: ::std::collections::HashMap<String, String>,
-    ) -> HostConfig {
+    ) -> Self {
         self.storage_opt = Some(storage_opt);
         self
     }
@@ -1297,7 +1429,7 @@ impl HostConfig {
         self.tmpfs = Some(tmpfs);
     }
 
-    pub fn with_tmpfs(mut self, tmpfs: ::std::collections::HashMap<String, String>) -> HostConfig {
+    pub fn with_tmpfs(mut self, tmpfs: ::std::collections::HashMap<String, String>) -> Self {
         self.tmpfs = Some(tmpfs);
         self
     }
@@ -1314,13 +1446,13 @@ impl HostConfig {
         self.uts_mode = Some(uts_mode);
     }
 
-    pub fn with_uts_mode(mut self, uts_mode: String) -> HostConfig {
+    pub fn with_uts_mode(mut self, uts_mode: String) -> Self {
         self.uts_mode = Some(uts_mode);
         self
     }
 
-    pub fn uts_mode(&self) -> Option<&String> {
-        self.uts_mode.as_ref()
+    pub fn uts_mode(&self) -> Option<&str> {
+        self.uts_mode.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_uts_mode(&mut self) {
@@ -1331,13 +1463,13 @@ impl HostConfig {
         self.userns_mode = Some(userns_mode);
     }
 
-    pub fn with_userns_mode(mut self, userns_mode: String) -> HostConfig {
+    pub fn with_userns_mode(mut self, userns_mode: String) -> Self {
         self.userns_mode = Some(userns_mode);
         self
     }
 
-    pub fn userns_mode(&self) -> Option<&String> {
-        self.userns_mode.as_ref()
+    pub fn userns_mode(&self) -> Option<&str> {
+        self.userns_mode.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_userns_mode(&mut self) {
@@ -1348,13 +1480,13 @@ impl HostConfig {
         self.shm_size = Some(shm_size);
     }
 
-    pub fn with_shm_size(mut self, shm_size: i32) -> HostConfig {
+    pub fn with_shm_size(mut self, shm_size: i32) -> Self {
         self.shm_size = Some(shm_size);
         self
     }
 
-    pub fn shm_size(&self) -> Option<&i32> {
-        self.shm_size.as_ref()
+    pub fn shm_size(&self) -> Option<i32> {
+        self.shm_size
     }
 
     pub fn reset_shm_size(&mut self) {
@@ -1365,10 +1497,7 @@ impl HostConfig {
         self.sysctls = Some(sysctls);
     }
 
-    pub fn with_sysctls(
-        mut self,
-        sysctls: ::std::collections::HashMap<String, String>,
-    ) -> HostConfig {
+    pub fn with_sysctls(mut self, sysctls: ::std::collections::HashMap<String, String>) -> Self {
         self.sysctls = Some(sysctls);
         self
     }
@@ -1385,13 +1514,13 @@ impl HostConfig {
         self.runtime = Some(runtime);
     }
 
-    pub fn with_runtime(mut self, runtime: String) -> HostConfig {
+    pub fn with_runtime(mut self, runtime: String) -> Self {
         self.runtime = Some(runtime);
         self
     }
 
-    pub fn runtime(&self) -> Option<&String> {
-        self.runtime.as_ref()
+    pub fn runtime(&self) -> Option<&str> {
+        self.runtime.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_runtime(&mut self) {
@@ -1402,13 +1531,13 @@ impl HostConfig {
         self.console_size = Some(console_size);
     }
 
-    pub fn with_console_size(mut self, console_size: Vec<i32>) -> HostConfig {
+    pub fn with_console_size(mut self, console_size: Vec<i32>) -> Self {
         self.console_size = Some(console_size);
         self
     }
 
-    pub fn console_size(&self) -> Option<&Vec<i32>> {
-        self.console_size.as_ref()
+    pub fn console_size(&self) -> Option<&[i32]> {
+        self.console_size.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_console_size(&mut self) {
@@ -1419,13 +1548,13 @@ impl HostConfig {
         self.isolation = Some(isolation);
     }
 
-    pub fn with_isolation(mut self, isolation: String) -> HostConfig {
+    pub fn with_isolation(mut self, isolation: String) -> Self {
         self.isolation = Some(isolation);
         self
     }
 
-    pub fn isolation(&self) -> Option<&String> {
-        self.isolation.as_ref()
+    pub fn isolation(&self) -> Option<&str> {
+        self.isolation.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_isolation(&mut self) {

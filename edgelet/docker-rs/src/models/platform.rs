@@ -16,7 +16,10 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Platform {
     /// Architecture represents the hardware architecture (for example, `x86_64`).
-    #[serde(rename = "Architecture", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "Architecture",
+        skip_serializing_if = "Option::is_none"
+    )]
     architecture: Option<String>,
     /// OS represents the Operating System (for example, `linux` or `windows`).
     #[serde(rename = "OS", skip_serializing_if = "Option::is_none")]
@@ -25,7 +28,7 @@ pub struct Platform {
 
 impl Platform {
     /// Platform represents the platform (Arch/OS).
-    pub fn new() -> Platform {
+    pub fn new() -> Self {
         Platform {
             architecture: None,
             OS: None,
@@ -36,13 +39,13 @@ impl Platform {
         self.architecture = Some(architecture);
     }
 
-    pub fn with_architecture(mut self, architecture: String) -> Platform {
+    pub fn with_architecture(mut self, architecture: String) -> Self {
         self.architecture = Some(architecture);
         self
     }
 
-    pub fn architecture(&self) -> Option<&String> {
-        self.architecture.as_ref()
+    pub fn architecture(&self) -> Option<&str> {
+        self.architecture.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_architecture(&mut self) {
@@ -53,13 +56,13 @@ impl Platform {
         self.OS = Some(OS);
     }
 
-    pub fn with_OS(mut self, OS: String) -> Platform {
+    pub fn with_OS(mut self, OS: String) -> Self {
         self.OS = Some(OS);
         self
     }
 
-    pub fn OS(&self) -> Option<&String> {
-        self.OS.as_ref()
+    pub fn OS(&self) -> Option<&str> {
+        self.OS.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_OS(&mut self) {

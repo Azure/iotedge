@@ -19,12 +19,15 @@ pub struct AuthConfig {
     password: Option<String>,
     #[serde(rename = "email", skip_serializing_if = "Option::is_none")]
     email: Option<String>,
-    #[serde(rename = "serveraddress", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "serveraddress",
+        skip_serializing_if = "Option::is_none"
+    )]
     serveraddress: Option<String>,
 }
 
 impl AuthConfig {
-    pub fn new() -> AuthConfig {
+    pub fn new() -> Self {
         AuthConfig {
             username: None,
             password: None,
@@ -37,13 +40,13 @@ impl AuthConfig {
         self.username = Some(username);
     }
 
-    pub fn with_username(mut self, username: String) -> AuthConfig {
+    pub fn with_username(mut self, username: String) -> Self {
         self.username = Some(username);
         self
     }
 
-    pub fn username(&self) -> Option<&String> {
-        self.username.as_ref()
+    pub fn username(&self) -> Option<&str> {
+        self.username.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_username(&mut self) {
@@ -54,13 +57,13 @@ impl AuthConfig {
         self.password = Some(password);
     }
 
-    pub fn with_password(mut self, password: String) -> AuthConfig {
+    pub fn with_password(mut self, password: String) -> Self {
         self.password = Some(password);
         self
     }
 
-    pub fn password(&self) -> Option<&String> {
-        self.password.as_ref()
+    pub fn password(&self) -> Option<&str> {
+        self.password.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_password(&mut self) {
@@ -71,13 +74,13 @@ impl AuthConfig {
         self.email = Some(email);
     }
 
-    pub fn with_email(mut self, email: String) -> AuthConfig {
+    pub fn with_email(mut self, email: String) -> Self {
         self.email = Some(email);
         self
     }
 
-    pub fn email(&self) -> Option<&String> {
-        self.email.as_ref()
+    pub fn email(&self) -> Option<&str> {
+        self.email.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_email(&mut self) {
@@ -88,13 +91,13 @@ impl AuthConfig {
         self.serveraddress = Some(serveraddress);
     }
 
-    pub fn with_serveraddress(mut self, serveraddress: String) -> AuthConfig {
+    pub fn with_serveraddress(mut self, serveraddress: String) -> Self {
         self.serveraddress = Some(serveraddress);
         self
     }
 
-    pub fn serveraddress(&self) -> Option<&String> {
-        self.serveraddress.as_ref()
+    pub fn serveraddress(&self) -> Option<&str> {
+        self.serveraddress.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_serveraddress(&mut self) {

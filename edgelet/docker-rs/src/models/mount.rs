@@ -26,18 +26,30 @@ pub struct Mount {
     #[serde(rename = "ReadOnly", skip_serializing_if = "Option::is_none")]
     read_only: Option<bool>,
     /// The consistency requirement for the mount: `default`, `consistent`, `cached`, or `delegated`.
-    #[serde(rename = "Consistency", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "Consistency",
+        skip_serializing_if = "Option::is_none"
+    )]
     consistency: Option<String>,
-    #[serde(rename = "BindOptions", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "BindOptions",
+        skip_serializing_if = "Option::is_none"
+    )]
     bind_options: Option<::models::MountBindOptions>,
-    #[serde(rename = "VolumeOptions", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "VolumeOptions",
+        skip_serializing_if = "Option::is_none"
+    )]
     volume_options: Option<::models::MountVolumeOptions>,
-    #[serde(rename = "TmpfsOptions", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "TmpfsOptions",
+        skip_serializing_if = "Option::is_none"
+    )]
     tmpfs_options: Option<::models::MountTmpfsOptions>,
 }
 
 impl Mount {
-    pub fn new() -> Mount {
+    pub fn new() -> Self {
         Mount {
             target: None,
             source: None,
@@ -54,13 +66,13 @@ impl Mount {
         self.target = Some(target);
     }
 
-    pub fn with_target(mut self, target: String) -> Mount {
+    pub fn with_target(mut self, target: String) -> Self {
         self.target = Some(target);
         self
     }
 
-    pub fn target(&self) -> Option<&String> {
-        self.target.as_ref()
+    pub fn target(&self) -> Option<&str> {
+        self.target.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_target(&mut self) {
@@ -71,13 +83,13 @@ impl Mount {
         self.source = Some(source);
     }
 
-    pub fn with_source(mut self, source: String) -> Mount {
+    pub fn with_source(mut self, source: String) -> Self {
         self.source = Some(source);
         self
     }
 
-    pub fn source(&self) -> Option<&String> {
-        self.source.as_ref()
+    pub fn source(&self) -> Option<&str> {
+        self.source.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_source(&mut self) {
@@ -88,13 +100,13 @@ impl Mount {
         self._type = Some(_type);
     }
 
-    pub fn with__type(mut self, _type: String) -> Mount {
+    pub fn with__type(mut self, _type: String) -> Self {
         self._type = Some(_type);
         self
     }
 
-    pub fn _type(&self) -> Option<&String> {
-        self._type.as_ref()
+    pub fn _type(&self) -> Option<&str> {
+        self._type.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset__type(&mut self) {
@@ -105,7 +117,7 @@ impl Mount {
         self.read_only = Some(read_only);
     }
 
-    pub fn with_read_only(mut self, read_only: bool) -> Mount {
+    pub fn with_read_only(mut self, read_only: bool) -> Self {
         self.read_only = Some(read_only);
         self
     }
@@ -122,13 +134,13 @@ impl Mount {
         self.consistency = Some(consistency);
     }
 
-    pub fn with_consistency(mut self, consistency: String) -> Mount {
+    pub fn with_consistency(mut self, consistency: String) -> Self {
         self.consistency = Some(consistency);
         self
     }
 
-    pub fn consistency(&self) -> Option<&String> {
-        self.consistency.as_ref()
+    pub fn consistency(&self) -> Option<&str> {
+        self.consistency.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_consistency(&mut self) {
@@ -139,7 +151,7 @@ impl Mount {
         self.bind_options = Some(bind_options);
     }
 
-    pub fn with_bind_options(mut self, bind_options: ::models::MountBindOptions) -> Mount {
+    pub fn with_bind_options(mut self, bind_options: ::models::MountBindOptions) -> Self {
         self.bind_options = Some(bind_options);
         self
     }
@@ -156,7 +168,7 @@ impl Mount {
         self.volume_options = Some(volume_options);
     }
 
-    pub fn with_volume_options(mut self, volume_options: ::models::MountVolumeOptions) -> Mount {
+    pub fn with_volume_options(mut self, volume_options: ::models::MountVolumeOptions) -> Self {
         self.volume_options = Some(volume_options);
         self
     }
@@ -173,7 +185,7 @@ impl Mount {
         self.tmpfs_options = Some(tmpfs_options);
     }
 
-    pub fn with_tmpfs_options(mut self, tmpfs_options: ::models::MountTmpfsOptions) -> Mount {
+    pub fn with_tmpfs_options(mut self, tmpfs_options: ::models::MountTmpfsOptions) -> Self {
         self.tmpfs_options = Some(tmpfs_options);
         self
     }

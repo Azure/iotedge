@@ -14,12 +14,15 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TaskSpecPlacementSpread {
     /// label descriptor, such as engine.labels.az
-    #[serde(rename = "SpreadDescriptor", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "SpreadDescriptor",
+        skip_serializing_if = "Option::is_none"
+    )]
     spread_descriptor: Option<String>,
 }
 
 impl TaskSpecPlacementSpread {
-    pub fn new() -> TaskSpecPlacementSpread {
+    pub fn new() -> Self {
         TaskSpecPlacementSpread {
             spread_descriptor: None,
         }
@@ -29,13 +32,13 @@ impl TaskSpecPlacementSpread {
         self.spread_descriptor = Some(spread_descriptor);
     }
 
-    pub fn with_spread_descriptor(mut self, spread_descriptor: String) -> TaskSpecPlacementSpread {
+    pub fn with_spread_descriptor(mut self, spread_descriptor: String) -> Self {
         self.spread_descriptor = Some(spread_descriptor);
         self
     }
 
-    pub fn spread_descriptor(&self) -> Option<&String> {
-        self.spread_descriptor.as_ref()
+    pub fn spread_descriptor(&self) -> Option<&str> {
+        self.spread_descriptor.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_spread_descriptor(&mut self) {

@@ -29,15 +29,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string iothubHostName = "testiothub.azure-devices.net";
             string edgehubHostName = "edgehub1";
             string deviceId = "d1";
-            var connectionManager = Mock.Of<IConnectionManager>();
             var underlyingAuthenticator = Mock.Of<IAuthenticator>();
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
             string key = GetKey();
             var serviceIdentity = new ServiceIdentity(deviceId, "1234", new string[0], new ServiceAuthentication(new SymmetricKeyAuthentication(key, GetKey())), ServiceIdentityStatus.Enabled);
-            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId)))
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId), true))
                 .ReturnsAsync(Option.Some(serviceIdentity));
 
-            IAuthenticator authenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, edgehubHostName, underlyingAuthenticator, connectionManager);
+            IAuthenticator authenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, edgehubHostName, underlyingAuthenticator);
 
             var identity = Mock.Of<IDeviceIdentity>(d => d.DeviceId == deviceId && d.Id == deviceId);
             string token = GetDeviceToken(iothubHostName, deviceId, key);
@@ -59,15 +58,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string edgehubHostName = "edgehub1";
             string deviceId = "d1";
             string moduleId = "m1";
-            var connectionManager = Mock.Of<IConnectionManager>();
             var underlyingAuthenticator = Mock.Of<IAuthenticator>();
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
             string key = GetKey();
             var serviceIdentity = new ServiceIdentity(deviceId, moduleId, "1234", new string[0], new ServiceAuthentication(new SymmetricKeyAuthentication(key, GetKey())), ServiceIdentityStatus.Enabled);
-            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == $"{deviceId}/{moduleId}")))
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == $"{deviceId}/{moduleId}"), true))
                 .ReturnsAsync(Option.Some(serviceIdentity));
 
-            IAuthenticator authenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, edgehubHostName, underlyingAuthenticator, connectionManager);
+            IAuthenticator authenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, edgehubHostName, underlyingAuthenticator);
 
             var identity = Mock.Of<IModuleIdentity>(d => d.DeviceId == deviceId && d.ModuleId == moduleId && d.Id == $"{deviceId}/{moduleId}");
             string token = GetDeviceToken(iothubHostName, deviceId, moduleId, key);
@@ -89,18 +87,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string edgehubHostName = "edgehub1";
             string deviceId = "d1";
             string moduleId = "m1";
-            var connectionManager = Mock.Of<IConnectionManager>();
             var underlyingAuthenticator = Mock.Of<IAuthenticator>();
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
             string key = GetKey();
             var deviceServiceIdentity = new ServiceIdentity(deviceId, "1234", new string[0], new ServiceAuthentication(new SymmetricKeyAuthentication(key, GetKey())), ServiceIdentityStatus.Enabled);
             var moduleServiceIdentity = new ServiceIdentity(deviceId, moduleId, "1234", new string[0], new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey())), ServiceIdentityStatus.Enabled);
-            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == $"{deviceId}/{moduleId}")))
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == $"{deviceId}/{moduleId}"), true))
                 .ReturnsAsync(Option.Some(moduleServiceIdentity));
-            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId)))
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId), false))
                 .ReturnsAsync(Option.Some(deviceServiceIdentity));
 
-            IAuthenticator authenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, edgehubHostName, underlyingAuthenticator, connectionManager);
+            IAuthenticator authenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, edgehubHostName, underlyingAuthenticator);
 
             var identity = Mock.Of<IModuleIdentity>(d => d.DeviceId == deviceId && d.ModuleId == moduleId && d.Id == $"{deviceId}/{moduleId}");
             string token = GetDeviceToken(iothubHostName, deviceId, key);
@@ -122,18 +119,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string edgehubHostName = "edgehub1";
             string deviceId = "d1";
             string moduleId = "m1";
-            var connectionManager = Mock.Of<IConnectionManager>();
             var underlyingAuthenticator = Mock.Of<IAuthenticator>();
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
             string key = GetKey();
             var deviceServiceIdentity = new ServiceIdentity(deviceId, "1234", new string[0], new ServiceAuthentication(new SymmetricKeyAuthentication(key, GetKey())), ServiceIdentityStatus.Enabled);
             var moduleServiceIdentity = new ServiceIdentity(deviceId, moduleId, "1234", new string[0], new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey())), ServiceIdentityStatus.Enabled);
-            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == $"{deviceId}/{moduleId}")))
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == $"{deviceId}/{moduleId}"), true))
                 .ReturnsAsync(Option.Some(moduleServiceIdentity));
-            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId)))
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId), false))
                 .ReturnsAsync(Option.Some(deviceServiceIdentity));
 
-            IAuthenticator authenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, edgehubHostName, underlyingAuthenticator, connectionManager);
+            IAuthenticator authenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, edgehubHostName, underlyingAuthenticator);
 
             var identity = Mock.Of<IModuleIdentity>(d => d.DeviceId == deviceId && d.ModuleId == moduleId && d.Id == $"{deviceId}/{moduleId}");
             string token = GetDeviceToken(iothubHostName, deviceId, moduleId, key);
@@ -154,15 +150,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string iothubHostName = "testiothub.azure-devices.net";
             string edgehubHostName = "edgehub1";
             string deviceId = "d1";
-            var connectionManager = Mock.Of<IConnectionManager>();
             var underlyingAuthenticator = Mock.Of<IAuthenticator>();
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
             string key = GetKey();
             var serviceIdentity = new ServiceIdentity(deviceId, "1234", new string[0], new ServiceAuthentication(new SymmetricKeyAuthentication(key, GetKey())), ServiceIdentityStatus.Disabled);
-            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId)))
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId), true))
                 .ReturnsAsync(Option.Some(serviceIdentity));
 
-            IAuthenticator authenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, edgehubHostName, underlyingAuthenticator, connectionManager);
+            IAuthenticator authenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, edgehubHostName, underlyingAuthenticator);
 
             var identity = Mock.Of<IDeviceIdentity>(d => d.DeviceId == deviceId && d.Id == deviceId);
             string token = GetDeviceToken(iothubHostName, deviceId, key);
@@ -183,15 +178,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string iothubHostName = "testiothub.azure-devices.net";
             string edgehubHostName = "edgehub1";
             string deviceId = "d1";
-            var connectionManager = Mock.Of<IConnectionManager>();
             var underlyingAuthenticator = Mock.Of<IAuthenticator>();
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
             string key = GetKey();
             var serviceIdentity = new ServiceIdentity(deviceId, "1234", new string[0], new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey())), ServiceIdentityStatus.Enabled);
-            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId)))
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId), true))
                 .ReturnsAsync(Option.Some(serviceIdentity));
 
-            IAuthenticator authenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, edgehubHostName, underlyingAuthenticator, connectionManager);
+            IAuthenticator authenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, edgehubHostName, underlyingAuthenticator);
 
             var identity = Mock.Of<IDeviceIdentity>(d => d.DeviceId == deviceId && d.Id == deviceId);
             string token = GetDeviceToken(iothubHostName, deviceId, key);
@@ -212,15 +206,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string iothubHostName = "testiothub.azure-devices.net";
             string edgehubHostName = "edgehub1";
             string deviceId = "d1";
-            var connectionManager = Mock.Of<IConnectionManager>();
             var underlyingAuthenticator = Mock.Of<IAuthenticator>();
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
             string key = GetKey();
             var serviceIdentity = new ServiceIdentity(deviceId, "1234", new string[0], new ServiceAuthentication(new SymmetricKeyAuthentication(key, GetKey())), ServiceIdentityStatus.Enabled);
-            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId)))
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId), true))
                 .ReturnsAsync(Option.Some(serviceIdentity));
 
-            IAuthenticator authenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, edgehubHostName, underlyingAuthenticator, connectionManager);
+            IAuthenticator authenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, edgehubHostName, underlyingAuthenticator);
 
             var identity = Mock.Of<IDeviceIdentity>(d => d.DeviceId == deviceId && d.Id == deviceId);
             string token = GetDeviceToken(iothubHostName, deviceId, key, TimeSpan.FromHours(-1));
@@ -241,12 +234,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string iothubHostName = "testiothub.azure-devices.net";
             string edgehubHostName = "edgehub1";
             string deviceId = "d1";
-            var connectionManager = Mock.Of<IConnectionManager>();
             var underlyingAuthenticator = Mock.Of<IAuthenticator>();
             var deviceScopeIdentitiesCache = Mock.Of<IDeviceScopeIdentitiesCache>();
             string key = GetKey();
 
-            var authenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, iothubHostName, edgehubHostName, underlyingAuthenticator, connectionManager);
+            var authenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, iothubHostName, edgehubHostName, underlyingAuthenticator);
 
             var identity = Mock.Of<IDeviceIdentity>(d => d.DeviceId == deviceId && d.Id == deviceId);
             string token = GetDeviceToken(iothubHostName, deviceId, key);
@@ -268,12 +260,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string iothubHostName = "testiothub.azure-devices.net";
             string edgehubHostName = "edgehub1";
             string deviceId = "d1";
-            var connectionManager = Mock.Of<IConnectionManager>();
             var underlyingAuthenticator = Mock.Of<IAuthenticator>();
             var deviceScopeIdentitiesCache = Mock.Of<IDeviceScopeIdentitiesCache>();
             string key = GetKey();
 
-            var authenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, iothubHostName, edgehubHostName, underlyingAuthenticator, connectionManager);
+            var authenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, iothubHostName, edgehubHostName, underlyingAuthenticator);
 
             var identity = Mock.Of<IDeviceIdentity>(d => d.DeviceId == deviceId && d.Id == deviceId);
             string token = GetDeviceToken(edgehubHostName, deviceId, key);
@@ -295,12 +286,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string iothubHostName = "testiothub.azure-devices.net";
             string edgehubHostName = "edgehub1";
             string deviceId = "d1";
-            var connectionManager = Mock.Of<IConnectionManager>();
+
             var underlyingAuthenticator = Mock.Of<IAuthenticator>();
             var deviceScopeIdentitiesCache = Mock.Of<IDeviceScopeIdentitiesCache>();
             string key = GetKey();
 
-            var authenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, iothubHostName, edgehubHostName, underlyingAuthenticator, connectionManager);
+            var authenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, iothubHostName, edgehubHostName, underlyingAuthenticator);
 
             var identity = Mock.Of<IDeviceIdentity>(d => d.DeviceId == deviceId && d.Id == deviceId);
             string token = GetDeviceToken(edgehubHostName, "d2", key);
@@ -322,12 +313,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string iothubHostName = "testiothub.azure-devices.net";
             string edgehubHostName = "edgehub1";
             string deviceId = "d1";
-            var connectionManager = Mock.Of<IConnectionManager>();
+
             var underlyingAuthenticator = Mock.Of<IAuthenticator>();
             var deviceScopeIdentitiesCache = Mock.Of<IDeviceScopeIdentitiesCache>();
             string key = GetKey();
 
-            var authenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, iothubHostName, edgehubHostName, underlyingAuthenticator, connectionManager);
+            var authenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, iothubHostName, edgehubHostName, underlyingAuthenticator);
 
             var identity = Mock.Of<IDeviceIdentity>(d => d.DeviceId == deviceId && d.Id == deviceId);
             string token = GetDeviceToken("edgehub2", deviceId, key);
@@ -349,12 +340,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string iothubHostName = "testiothub.azure-devices.net";
             string edgehubHostName = "edgehub1";
             string deviceId = "d1";
-            var connectionManager = Mock.Of<IConnectionManager>();
+
             var underlyingAuthenticator = Mock.Of<IAuthenticator>();
             var deviceScopeIdentitiesCache = Mock.Of<IDeviceScopeIdentitiesCache>();
-            string key = GetKey();
 
-            var authenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, iothubHostName, edgehubHostName, underlyingAuthenticator, connectionManager);
+            var authenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, iothubHostName, edgehubHostName, underlyingAuthenticator);
 
             var identity = Mock.Of<IDeviceIdentity>(d => d.DeviceId == deviceId && d.Id == deviceId);
             string audience = $"{iothubHostName}/devices/{deviceId}/foo";
@@ -375,12 +365,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string edgehubHostName = "edgehub1";
             string deviceId = "d1";
             string moduleId = "m1";
-            var connectionManager = Mock.Of<IConnectionManager>();
+
             var underlyingAuthenticator = Mock.Of<IAuthenticator>();
             var deviceScopeIdentitiesCache = Mock.Of<IDeviceScopeIdentitiesCache>();
-            string key = GetKey();
 
-            var authenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, iothubHostName, edgehubHostName, underlyingAuthenticator, connectionManager);
+            var authenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, iothubHostName, edgehubHostName, underlyingAuthenticator);
 
             var identity = Mock.Of<IModuleIdentity>(d => d.DeviceId == deviceId && d.ModuleId == moduleId && d.Id == $"{deviceId}/{moduleId}");
             string audience = $"{iothubHostName}/devices/{deviceId}/modules/{moduleId}/m1";
@@ -391,6 +380,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             // Assert
             Assert.False(isAuthenticated);
             Mock.Get(underlyingAuthenticator).VerifyAll();
+        }
+
+        [Fact]
+        public async Task ValidateUnderlyingAuthenticatorErrorTest()
+        {
+            // Arrange
+            string iothubHostName = "testiothub.azure-devices.net";
+            string edgehubHostName = "edgehub1";
+            string deviceId = "d1";
+            var underlyingAuthenticator = Mock.Of<IAuthenticator>();
+            Mock.Get(underlyingAuthenticator).Setup(u => u.AuthenticateAsync(It.IsAny<IClientCredentials>())).ThrowsAsync(new TimeoutException());
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId), true))
+                .ReturnsAsync(Option.None<ServiceIdentity>());
+
+            IAuthenticator authenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, edgehubHostName, underlyingAuthenticator);
+
+            var identity = Mock.Of<IDeviceIdentity>(d => d.DeviceId == deviceId && d.Id == deviceId);
+            string token = GetDeviceToken(iothubHostName, deviceId, GetKey());
+            var tokenCredentials = Mock.Of<ITokenCredentials>(t => t.Identity == identity && t.Token == token);
+
+            // Act
+            await Assert.ThrowsAsync<TimeoutException>(() => authenticator.AuthenticateAsync(tokenCredentials));
+
+            // Assert            
+            Mock.Get(underlyingAuthenticator).VerifyAll();
+            Mock.Get(underlyingAuthenticator).Verify(u => u.AuthenticateAsync(It.IsAny<IClientCredentials>()), Times.Once);
         }
 
         static string GetDeviceToken(string iothubHostName, string deviceId, string key, TimeSpan timeToLive)
@@ -404,7 +420,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         }
 
         static string GetDeviceToken(string iothubHostName, string deviceId, string key)
-            => GetDeviceToken(iothubHostName, deviceId, key, TimeSpan.FromHours(1));         
+            => GetDeviceToken(iothubHostName, deviceId, key, TimeSpan.FromHours(1));
 
         static string GetDeviceToken(string iothubHostName, string deviceId, string moduleId, string key)
         {

@@ -13,12 +13,15 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ContainerSummaryInnerHostConfig {
-    #[serde(rename = "NetworkMode", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "NetworkMode",
+        skip_serializing_if = "Option::is_none"
+    )]
     network_mode: Option<String>,
 }
 
 impl ContainerSummaryInnerHostConfig {
-    pub fn new() -> ContainerSummaryInnerHostConfig {
+    pub fn new() -> Self {
         ContainerSummaryInnerHostConfig { network_mode: None }
     }
 
@@ -26,13 +29,13 @@ impl ContainerSummaryInnerHostConfig {
         self.network_mode = Some(network_mode);
     }
 
-    pub fn with_network_mode(mut self, network_mode: String) -> ContainerSummaryInnerHostConfig {
+    pub fn with_network_mode(mut self, network_mode: String) -> Self {
         self.network_mode = Some(network_mode);
         self
     }
 
-    pub fn network_mode(&self) -> Option<&String> {
-        self.network_mode.as_ref()
+    pub fn network_mode(&self) -> Option<&str> {
+        self.network_mode.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_network_mode(&mut self) {

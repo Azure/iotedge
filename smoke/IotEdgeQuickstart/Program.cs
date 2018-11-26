@@ -27,31 +27,36 @@ Environment Variables:
   --registry                registryAddress
   --tag                     imageTag
   --username                registryUser
+  --proxy                   https_proxy
 
 Defaults:
   All options to this command have defaults. If an option is not specified and
   its corresponding environment variable is not defined, then the default will
   be used.
 
-  Option                    Default value
-  --bootstrapper            'iotedged'
-  --bootstrapper-archive    no path (archive is installed from apt or pypi)
-  --connection-string       get the value from Key Vault
-  --device-id               an auto-generated unique identifier
-  --edge-hostname           'quickstart'
-  --eventhub-endpoint       get the value from Key Vault
-  --leave-running           none (or 'all' if given as a switch)
-  --password                anonymous, or Key Vault if --registry is specified
-  --registry                mcr.microsoft.com (anonymous)
-  --tag                     '1.0'
-  --use-http                if --bootstrapper=iotedged then use Unix Domain
-                            Sockets, otherwise N/A
-                            switch form uses local IP address as hostname
-  --username                anonymous, or Key Vault if --registry is specified
-  --no-deployment           deploy Edge Hub and temperature sensor modules
-  --no-verify               false
-  --verify-data-from-module tempSensor
-  --deployment              deployment json file
+  Option                     Default value
+  --bootstrapper             'iotedged'
+  --bootstrapper-archive     no path (archive is installed from apt or pypi)
+  --connection-string        get the value from Key Vault
+  --device-id                an auto-generated unique identifier
+  --edge-hostname            'quickstart'
+  --eventhub-endpoint        get the value from Key Vault
+  --leave-running            none (or 'all' if given as a switch)
+  --password                 anonymous, or Key Vault if --registry is specified
+  --registry                 mcr.microsoft.com (anonymous)
+  --tag                      '1.0'
+  --use-http                 if --bootstrapper=iotedged then use Unix Domain
+                             Sockets, otherwise N/A
+                             switch form uses local IP address as hostname
+  --username                 anonymous, or Key Vault if --registry is specified
+  --no-deployment            deploy Edge Hub and temperature sensor modules
+  --no-verify                false
+  --optimize_for_performance true
+  --verify-data-from-module  tempSensor
+  --deployment               deployment json file
+  --runtime-log-level        debug
+  --clean_up_existing_device false
+  --proxy                    No proxy is used
 "
         )]
     [HelpOption]
@@ -102,11 +107,35 @@ Defaults:
         [Option("--no-verify", CommandOptionType.NoValue, Description = "Don't verify the behavior of the deployment (e.g.: temp sensor)")]
         public bool NoVerify { get; } = false;
 
+        [Option("--optimize_for_performance <true/false>", CommandOptionType.SingleValue, Description = "Add OptimizeForPerformance Flag on edgeHub. Only when no deployment is passed.")]
+        public bool OptimizeForPerformance { get; } = true;
+
         [Option("--verify-data-from-module", Description = "Verify if a given module sent data do IoTHub.")]
         public string VerifyDataFromModule { get; } = "tempSensor";
 
+        [Option("--runtime-log-level", Description = "Change Runtime log level for modules.")]
+        public LogLevel RuntimeLogLevel { get; } = LogLevel.Debug;
+
         [Option("-l|--deployment <filename>", Description = "Deployment json file")]
         public string DeploymentFileName { get; } = Environment.GetEnvironmentVariable("deployment");
+
+        [Option("--device_ca_cert", Description = "path to the device ca certificate and its chain")]
+        public string DeviceCaCert { get; } = "";
+
+        [Option("--device_ca_pk", Description = "path to the device ca private key file")]
+        public string DeviceCaPk { get; } = "";
+
+        [Option("--trusted_ca_certs", Description = "path to a file containing all the trusted CA")]
+        public string DeviceCaCerts { get; } = "";
+
+        [Option("--clean_up_existing_device <true/false>", CommandOptionType.SingleValue, Description = "Clean up existing device on success.")]
+        public bool CleanUpExistingDeviceOnSuccess { get; } = false;
+
+        [Option("--proxy <value>", CommandOptionType.SingleValue, Description = "Proxy for IoT Hub connections.")]
+        public (bool useProxy, string proxyUrl) Proxy { get; } = (false, string.Empty);
+
+        [Option("--upstream-protocol <value>", CommandOptionType.SingleValue, Description = "Upstream protocol for IoT Hub connections.")]
+        public (bool overrideUpstreamProtocol, UpstreamProtocolType upstreamProtocol) UpstreamProtocol { get; } = (false, UpstreamProtocolType.Amqp);
 
         // ReSharper disable once UnusedMember.Local
         async Task<int> OnExecuteAsync()
@@ -131,9 +160,14 @@ Defaults:
                 {
                     case BootstrapperType.Iotedged:
                         {
+                            (bool useProxy, string proxyUrl) = this.Proxy;
+                            Option<string> proxy = useProxy
+                                ? Option.Some(proxyUrl)
+                                : Option.Maybe(Environment.GetEnvironmentVariable("https_proxy"));
+
                             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                             {
-                                bootstrapper = new IotedgedWindows(this.BootstrapperArchivePath, credentials);
+                                bootstrapper = new IotedgedWindows(this.BootstrapperArchivePath, credentials, proxy);
                             }
                             else
                             {
@@ -141,7 +175,13 @@ Defaults:
                                 Option<HttpUris> uris = useHttp
                                     ? Option.Some(string.IsNullOrEmpty(hostname) ? new HttpUris() : new HttpUris(hostname))
                                     : Option.None<HttpUris>();
-                                bootstrapper = new IotedgedLinux(this.BootstrapperArchivePath, credentials, uris);
+
+                                (bool overrideUpstreamProtocol, UpstreamProtocolType upstreamProtocol) = this.UpstreamProtocol;
+                                Option<UpstreamProtocolType> upstreamProtocolOption = overrideUpstreamProtocol
+                                    ? Option.Some(upstreamProtocol)
+                                    : Option.None<UpstreamProtocolType>();
+
+                                bootstrapper = new IotedgedLinux(this.BootstrapperArchivePath, credentials, uris, proxy, upstreamProtocolOption);
                             }
                         }
                         break;
@@ -167,6 +207,7 @@ Defaults:
                     credentials,
                     connectionString,
                     endpoint,
+                    this.UpstreamProtocol.Item2,
                     tag,
                     this.DeviceId,
                     this.EdgeHostname,
@@ -174,7 +215,13 @@ Defaults:
                     this.NoDeployment,
                     this.NoVerify,
                     this.VerifyDataFromModule, 
-                    deployment);
+                    deployment,
+                    this.DeviceCaCert,
+                    this.DeviceCaPk,
+                    this.DeviceCaCerts,
+                    this.OptimizeForPerformance,
+                    this.RuntimeLogLevel,
+                    this.CleanUpExistingDeviceOnSuccess);
                 await test.RunAsync();
             }
             catch (Exception ex)
@@ -212,5 +259,19 @@ Defaults:
         All,  // don't clean up anything
         Core, // remove modules/identities except Edge Agent & Hub
         None  // iotedgectl stop, uninstall, remove device identity
+    }
+
+    public enum LogLevel
+    {
+        Info,
+        Debug
+    }
+
+    public enum UpstreamProtocolType
+    {
+        Amqp,
+        AmqpWs,
+        Mqtt,
+        MqttWs
     }
 }

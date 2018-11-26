@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-/// Enumerator for CERTIFICATE_TYPE
+/// Enumerator for `CERTIFICATE_TYPE`
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum CertificateType {
     Unknown,
@@ -9,7 +9,7 @@ pub enum CertificateType {
     Ca,
 }
 
-/// Enumerator for CERTIFICATE_ISSUER
+/// Enumerator for `CERTIFICATE_ISSUER`
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum CertificateIssuer {
     DefaultCa,
@@ -24,6 +24,7 @@ pub struct CertificateProperties {
     certificate_type: CertificateType,
     alias: String,
     issuer: CertificateIssuer,
+    san_entries: Option<Vec<String>>,
 }
 
 impl CertificateProperties {
@@ -39,6 +40,7 @@ impl CertificateProperties {
             certificate_type,
             alias,
             issuer: CertificateIssuer::DefaultCa,
+            san_entries: None,
         }
     }
 
@@ -46,7 +48,7 @@ impl CertificateProperties {
         &self.validity_in_secs
     }
 
-    pub fn with_validity_in_secs(mut self, validity_in_secs: u64) -> CertificateProperties {
+    pub fn with_validity_in_secs(mut self, validity_in_secs: u64) -> Self {
         self.validity_in_secs = validity_in_secs;
         self
     }
@@ -55,7 +57,7 @@ impl CertificateProperties {
         &self.common_name
     }
 
-    pub fn with_common_name(mut self, common_name: String) -> CertificateProperties {
+    pub fn with_common_name(mut self, common_name: String) -> Self {
         self.common_name = common_name;
         self
     }
@@ -64,10 +66,7 @@ impl CertificateProperties {
         &self.certificate_type
     }
 
-    pub fn with_certificate_type(
-        mut self,
-        certificate_type: CertificateType,
-    ) -> CertificateProperties {
+    pub fn with_certificate_type(mut self, certificate_type: CertificateType) -> Self {
         self.certificate_type = certificate_type;
         self
     }
@@ -76,7 +75,7 @@ impl CertificateProperties {
         &self.alias
     }
 
-    pub fn with_alias(mut self, alias: String) -> CertificateProperties {
+    pub fn with_alias(mut self, alias: String) -> Self {
         self.alias = alias;
         self
     }
@@ -85,8 +84,17 @@ impl CertificateProperties {
         &self.issuer
     }
 
-    pub fn with_issuer(mut self, issuer: CertificateIssuer) -> CertificateProperties {
+    pub fn with_issuer(mut self, issuer: CertificateIssuer) -> Self {
         self.issuer = issuer;
+        self
+    }
+
+    pub fn san_entries(&self) -> Option<&[String]> {
+        self.san_entries.as_ref().map(AsRef::as_ref)
+    }
+
+    pub fn with_san_entries(mut self, entries: Vec<String>) -> Self {
+        self.san_entries = Some(entries);
         self
     }
 }
@@ -109,24 +117,28 @@ mod tests {
         assert_eq!(&CertificateType::Client, c.certificate_type());
         assert_eq!("alias", c.alias());
         assert_eq!(&CertificateIssuer::DefaultCa, c.issuer());
+        assert_eq!(true, c.san_entries().is_none());
     }
 
     #[test]
     fn test_default_with_settings() {
+        let input_sans = vec![String::from("serif"), String::from("sar")];
         let c = CertificateProperties::new(
             3600,
             "common_name".to_string(),
             CertificateType::Client,
             "alias".to_string(),
         ).with_certificate_type(CertificateType::Ca)
-            .with_common_name("bafflegab".to_string())
-            .with_validity_in_secs(240)
-            .with_alias("Andrew Johnson".to_string())
-            .with_issuer(CertificateIssuer::DeviceCa);
+        .with_common_name("bafflegab".to_string())
+        .with_validity_in_secs(240)
+        .with_alias("Andrew Johnson".to_string())
+        .with_issuer(CertificateIssuer::DeviceCa)
+        .with_san_entries(input_sans.clone());
         assert_eq!(&240, c.validity_in_secs());
         assert_eq!("bafflegab", c.common_name());
         assert_eq!(&CertificateType::Ca, c.certificate_type());
         assert_eq!("Andrew Johnson", c.alias());
         assert_eq!(&CertificateIssuer::DeviceCa, c.issuer());
+        assert_eq!(&*input_sans, c.san_entries().unwrap());
     }
 }

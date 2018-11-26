@@ -17,7 +17,10 @@ use serde_json::Value;
 pub struct ManagerStatus {
     #[serde(rename = "Leader", skip_serializing_if = "Option::is_none")]
     leader: Option<bool>,
-    #[serde(rename = "Reachability", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "Reachability",
+        skip_serializing_if = "Option::is_none"
+    )]
     reachability: Option<::models::Reachability>,
     /// The IP address and port at which the manager is reachable.
     #[serde(rename = "Addr", skip_serializing_if = "Option::is_none")]
@@ -26,7 +29,7 @@ pub struct ManagerStatus {
 
 impl ManagerStatus {
     /// ManagerStatus represents the status of a manager.  It provides the current status of a node's manager component, if the node is a manager.
-    pub fn new() -> ManagerStatus {
+    pub fn new() -> Self {
         ManagerStatus {
             leader: None,
             reachability: None,
@@ -38,7 +41,7 @@ impl ManagerStatus {
         self.leader = Some(leader);
     }
 
-    pub fn with_leader(mut self, leader: bool) -> ManagerStatus {
+    pub fn with_leader(mut self, leader: bool) -> Self {
         self.leader = Some(leader);
         self
     }
@@ -55,7 +58,7 @@ impl ManagerStatus {
         self.reachability = Some(reachability);
     }
 
-    pub fn with_reachability(mut self, reachability: ::models::Reachability) -> ManagerStatus {
+    pub fn with_reachability(mut self, reachability: ::models::Reachability) -> Self {
         self.reachability = Some(reachability);
         self
     }
@@ -72,13 +75,13 @@ impl ManagerStatus {
         self.addr = Some(addr);
     }
 
-    pub fn with_addr(mut self, addr: String) -> ManagerStatus {
+    pub fn with_addr(mut self, addr: String) -> Self {
         self.addr = Some(addr);
         self
     }
 
-    pub fn addr(&self) -> Option<&String> {
-        self.addr.as_ref()
+    pub fn addr(&self) -> Option<&str> {
+        self.addr.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_addr(&mut self) {

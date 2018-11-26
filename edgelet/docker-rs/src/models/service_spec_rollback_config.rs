@@ -16,19 +16,28 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ServiceSpecRollbackConfig {
     /// Maximum number of tasks to be rolled back in one iteration (0 means unlimited parallelism).
-    #[serde(rename = "Parallelism", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "Parallelism",
+        skip_serializing_if = "Option::is_none"
+    )]
     parallelism: Option<i64>,
     /// Amount of time between rollback iterations, in nanoseconds.
     #[serde(rename = "Delay", skip_serializing_if = "Option::is_none")]
     delay: Option<i64>,
     /// Action to take if an rolled back task fails to run, or stops running during the rollback.
-    #[serde(rename = "FailureAction", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "FailureAction",
+        skip_serializing_if = "Option::is_none"
+    )]
     failure_action: Option<String>,
     /// Amount of time to monitor each rolled back task for failures, in nanoseconds.
     #[serde(rename = "Monitor", skip_serializing_if = "Option::is_none")]
     monitor: Option<i64>,
     /// The fraction of tasks that may fail during a rollback before the failure action is invoked, specified as a floating point number between 0 and 1.
-    #[serde(rename = "MaxFailureRatio", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "MaxFailureRatio",
+        skip_serializing_if = "Option::is_none"
+    )]
     max_failure_ratio: Option<f32>,
     /// The order of operations when rolling back a task. Either the old task is shut down before the new task is started, or the new task is started before the old task is shut down.
     #[serde(rename = "Order", skip_serializing_if = "Option::is_none")]
@@ -37,7 +46,7 @@ pub struct ServiceSpecRollbackConfig {
 
 impl ServiceSpecRollbackConfig {
     /// Specification for the rollback strategy of the service.
-    pub fn new() -> ServiceSpecRollbackConfig {
+    pub fn new() -> Self {
         ServiceSpecRollbackConfig {
             parallelism: None,
             delay: None,
@@ -52,13 +61,13 @@ impl ServiceSpecRollbackConfig {
         self.parallelism = Some(parallelism);
     }
 
-    pub fn with_parallelism(mut self, parallelism: i64) -> ServiceSpecRollbackConfig {
+    pub fn with_parallelism(mut self, parallelism: i64) -> Self {
         self.parallelism = Some(parallelism);
         self
     }
 
-    pub fn parallelism(&self) -> Option<&i64> {
-        self.parallelism.as_ref()
+    pub fn parallelism(&self) -> Option<i64> {
+        self.parallelism
     }
 
     pub fn reset_parallelism(&mut self) {
@@ -69,13 +78,13 @@ impl ServiceSpecRollbackConfig {
         self.delay = Some(delay);
     }
 
-    pub fn with_delay(mut self, delay: i64) -> ServiceSpecRollbackConfig {
+    pub fn with_delay(mut self, delay: i64) -> Self {
         self.delay = Some(delay);
         self
     }
 
-    pub fn delay(&self) -> Option<&i64> {
-        self.delay.as_ref()
+    pub fn delay(&self) -> Option<i64> {
+        self.delay
     }
 
     pub fn reset_delay(&mut self) {
@@ -86,13 +95,13 @@ impl ServiceSpecRollbackConfig {
         self.failure_action = Some(failure_action);
     }
 
-    pub fn with_failure_action(mut self, failure_action: String) -> ServiceSpecRollbackConfig {
+    pub fn with_failure_action(mut self, failure_action: String) -> Self {
         self.failure_action = Some(failure_action);
         self
     }
 
-    pub fn failure_action(&self) -> Option<&String> {
-        self.failure_action.as_ref()
+    pub fn failure_action(&self) -> Option<&str> {
+        self.failure_action.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_failure_action(&mut self) {
@@ -103,13 +112,13 @@ impl ServiceSpecRollbackConfig {
         self.monitor = Some(monitor);
     }
 
-    pub fn with_monitor(mut self, monitor: i64) -> ServiceSpecRollbackConfig {
+    pub fn with_monitor(mut self, monitor: i64) -> Self {
         self.monitor = Some(monitor);
         self
     }
 
-    pub fn monitor(&self) -> Option<&i64> {
-        self.monitor.as_ref()
+    pub fn monitor(&self) -> Option<i64> {
+        self.monitor
     }
 
     pub fn reset_monitor(&mut self) {
@@ -120,13 +129,13 @@ impl ServiceSpecRollbackConfig {
         self.max_failure_ratio = Some(max_failure_ratio);
     }
 
-    pub fn with_max_failure_ratio(mut self, max_failure_ratio: f32) -> ServiceSpecRollbackConfig {
+    pub fn with_max_failure_ratio(mut self, max_failure_ratio: f32) -> Self {
         self.max_failure_ratio = Some(max_failure_ratio);
         self
     }
 
-    pub fn max_failure_ratio(&self) -> Option<&f32> {
-        self.max_failure_ratio.as_ref()
+    pub fn max_failure_ratio(&self) -> Option<f32> {
+        self.max_failure_ratio
     }
 
     pub fn reset_max_failure_ratio(&mut self) {
@@ -137,13 +146,13 @@ impl ServiceSpecRollbackConfig {
         self.order = Some(order);
     }
 
-    pub fn with_order(mut self, order: String) -> ServiceSpecRollbackConfig {
+    pub fn with_order(mut self, order: String) -> Self {
         self.order = Some(order);
         self
     }
 
-    pub fn order(&self) -> Option<&String> {
-        self.order.as_ref()
+    pub fn order(&self) -> Option<&str> {
+        self.order.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_order(&mut self) {

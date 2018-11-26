@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
 {
     using System;
+    using System.IO;
     using System.Collections.Generic;
     using System.Linq;
     using System.Security.Cryptography.X509Certificates;
@@ -95,6 +96,85 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
         }
 
         [Fact]
+        public void GetServerCertificateAndChainFromFileRaisesArgExceptionWithInvalidCertFile()
+        {
+            string testFile = Path.GetRandomFileName();
+            Assert.Throws<ArgumentException>(() => CertificateHelper.GetServerCertificateAndChainFromFile(null, testFile));
+            Assert.Throws<ArgumentException>(() => CertificateHelper.GetServerCertificateAndChainFromFile("", testFile));
+            Assert.Throws<ArgumentException>(() => CertificateHelper.GetServerCertificateAndChainFromFile("   ", testFile));
+        }
+
+        [Fact]
+        public void GetServerCertificateAndChainFromFileRaisesArgExceptionWithInvalidPrivateKeyFile()
+        {
+            string testFile = Path.GetRandomFileName();
+            Assert.Throws<ArgumentException>(() => CertificateHelper.GetServerCertificateAndChainFromFile(testFile, null));
+            Assert.Throws<ArgumentException>(() => CertificateHelper.GetServerCertificateAndChainFromFile(testFile, ""));
+            Assert.Throws<ArgumentException>(() => CertificateHelper.GetServerCertificateAndChainFromFile(testFile, "   "));
+        }
+
+        [Fact]
+        public void ParseTrustedBundleFromFileRaisesExceptionWithInvalidTBFile()
+        {
+            string testFile = Path.GetRandomFileName();
+            Assert.Throws<ArgumentException>(() => CertificateHelper.ParseTrustedBundleFromFile(null));
+            Assert.Throws<ArgumentException>(() => CertificateHelper.ParseTrustedBundleFromFile(""));
+            Assert.Throws<ArgumentException>(() => CertificateHelper.ParseTrustedBundleFromFile("   "));
+            Assert.Throws<ArgumentException>(() => CertificateHelper.ParseTrustedBundleFromFile(testFile));
+        }
+
+        [Fact]
+        public void ParseTrustBundleNullResponseRaisesException()
+        {
+            TrustBundleResponse response = null;
+            Assert.Throws<ArgumentException>(() => CertificateHelper.ParseTrustBundleResponse(response));
+        }
+
+        [Fact]
+        public void ParseTrustBundleEmptyResponseReturnsEmptyList()
+        {
+            var response = new TrustBundleResponse()
+            {
+                Certificate = "  ",
+            };
+            IEnumerable<X509Certificate2> certs = CertificateHelper.ParseTrustBundleResponse(response);
+            Assert.Equal(certs.Count(), 0);
+        }
+
+        [Fact]
+        public void ParseTrustBundleInvalidResponseReturnsEmptyList()
+        {
+            var response = new TrustBundleResponse()
+            {
+                Certificate = "somewhere over the rainbow",
+            };
+            IEnumerable<X509Certificate2> certs = CertificateHelper.ParseTrustBundleResponse(response);
+            Assert.Equal(certs.Count(), 0);
+        }
+
+        [Fact]
+        public void ParseTrustBundleResponseWithOneCertReturnsNonEmptyList()
+        {
+            var response = new TrustBundleResponse()
+            {
+                Certificate = $"{TestCertificateHelper.CertificatePem}\n",
+            };
+            IEnumerable<X509Certificate2> certs = CertificateHelper.ParseTrustBundleResponse(response);
+            Assert.Equal(certs.Count(), 1);
+        }
+
+        [Fact]
+        public void ParseTrustBundleResponseWithMultipleCertReturnsNonEmptyList()
+        {
+            var response = new TrustBundleResponse()
+            {
+                Certificate = $"{TestCertificateHelper.CertificatePem}\n{TestCertificateHelper.CertificatePem}",
+            };
+            IEnumerable<X509Certificate2> certs = CertificateHelper.ParseTrustBundleResponse(response);
+            Assert.Equal(certs.Count(), 2);
+        }
+
+        [Fact]
         public void ParseCertificatesSingleShouldReturnCetificate()
         {
             IList<string> pemCerts = CertificateHelper.ParsePemCerts(TestCertificateHelper.CertificatePem);
@@ -170,6 +250,31 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
                 }
             };
             (X509Certificate2 cert, IEnumerable<X509Certificate2> chain) = CertificateHelper.ParseCertificateResponse(response);
+
+            var expected = new X509Certificate2(Encoding.UTF8.GetBytes(TestCertificateHelper.CertificatePem));
+            Assert.Equal(expected, cert);
+            Assert.True(cert.HasPrivateKey);
+            Assert.Equal(chain.Count(), 1);
+            Assert.Equal(expected, chain.First());
+        }
+
+        [Fact]
+        public void ParseCertificateAndKeyShouldReturnCertAndKey()
+        {
+            TestCertificateHelper.GenerateSelfSignedCert("top secret").Export(X509ContentType.Cert);
+            (X509Certificate2 cert, IEnumerable<X509Certificate2> chain) = CertificateHelper.ParseCertificateAndKey(TestCertificateHelper.CertificatePem, TestCertificateHelper.PrivateKeyPem);
+
+            var expected = new X509Certificate2(Encoding.UTF8.GetBytes(TestCertificateHelper.CertificatePem));
+            Assert.Equal(expected, cert);
+            Assert.True(cert.HasPrivateKey);
+            Assert.Equal(chain.Count(), 0);
+        }
+
+        public void ParseMultipleCertificateAndKeyShouldReturnCertAndKey()
+        {
+            TestCertificateHelper.GenerateSelfSignedCert("top secret").Export(X509ContentType.Cert);
+            string certificate = $"{TestCertificateHelper.CertificatePem}\n{TestCertificateHelper.CertificatePem}";
+            (X509Certificate2 cert, IEnumerable<X509Certificate2> chain) = CertificateHelper.ParseCertificateAndKey(certificate, TestCertificateHelper.PrivateKeyPem);
 
             var expected = new X509Certificate2(Encoding.UTF8.GetBytes(TestCertificateHelper.CertificatePem));
             Assert.Equal(expected, cert);

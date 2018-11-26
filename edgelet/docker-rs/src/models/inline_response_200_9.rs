@@ -14,15 +14,21 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InlineResponse2009 {
     /// Images that were deleted
-    #[serde(rename = "ImagesDeleted", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "ImagesDeleted",
+        skip_serializing_if = "Option::is_none"
+    )]
     images_deleted: Option<Vec<::models::ImageDeleteResponseItem>>,
     /// Disk space reclaimed in bytes
-    #[serde(rename = "SpaceReclaimed", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "SpaceReclaimed",
+        skip_serializing_if = "Option::is_none"
+    )]
     space_reclaimed: Option<i64>,
 }
 
 impl InlineResponse2009 {
-    pub fn new() -> InlineResponse2009 {
+    pub fn new() -> Self {
         InlineResponse2009 {
             images_deleted: None,
             space_reclaimed: None,
@@ -36,13 +42,13 @@ impl InlineResponse2009 {
     pub fn with_images_deleted(
         mut self,
         images_deleted: Vec<::models::ImageDeleteResponseItem>,
-    ) -> InlineResponse2009 {
+    ) -> Self {
         self.images_deleted = Some(images_deleted);
         self
     }
 
-    pub fn images_deleted(&self) -> Option<&Vec<::models::ImageDeleteResponseItem>> {
-        self.images_deleted.as_ref()
+    pub fn images_deleted(&self) -> Option<&[::models::ImageDeleteResponseItem]> {
+        self.images_deleted.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_images_deleted(&mut self) {
@@ -53,13 +59,13 @@ impl InlineResponse2009 {
         self.space_reclaimed = Some(space_reclaimed);
     }
 
-    pub fn with_space_reclaimed(mut self, space_reclaimed: i64) -> InlineResponse2009 {
+    pub fn with_space_reclaimed(mut self, space_reclaimed: i64) -> Self {
         self.space_reclaimed = Some(space_reclaimed);
         self
     }
 
-    pub fn space_reclaimed(&self) -> Option<&i64> {
-        self.space_reclaimed.as_ref()
+    pub fn space_reclaimed(&self) -> Option<i64> {
+        self.space_reclaimed
     }
 
     pub fn reset_space_reclaimed(&mut self) {

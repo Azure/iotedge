@@ -15,31 +15,52 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TaskSpec {
-    #[serde(rename = "PluginSpec", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "PluginSpec",
+        skip_serializing_if = "Option::is_none"
+    )]
     plugin_spec: Option<::models::TaskSpecPluginSpec>,
-    #[serde(rename = "ContainerSpec", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "ContainerSpec",
+        skip_serializing_if = "Option::is_none"
+    )]
     container_spec: Option<::models::TaskSpecContainerSpec>,
-    #[serde(rename = "Resources", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "Resources",
+        skip_serializing_if = "Option::is_none"
+    )]
     resources: Option<::models::TaskSpecResources>,
-    #[serde(rename = "RestartPolicy", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "RestartPolicy",
+        skip_serializing_if = "Option::is_none"
+    )]
     restart_policy: Option<::models::TaskSpecRestartPolicy>,
-    #[serde(rename = "Placement", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "Placement",
+        skip_serializing_if = "Option::is_none"
+    )]
     placement: Option<::models::TaskSpecPlacement>,
     /// A counter that triggers an update even if no relevant parameters have been changed.
-    #[serde(rename = "ForceUpdate", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "ForceUpdate",
+        skip_serializing_if = "Option::is_none"
+    )]
     force_update: Option<i32>,
     /// Runtime is the type of runtime specified for the task executor.
     #[serde(rename = "Runtime", skip_serializing_if = "Option::is_none")]
     runtime: Option<String>,
     #[serde(rename = "Networks", skip_serializing_if = "Option::is_none")]
     networks: Option<Vec<::models::TaskSpecNetworks>>,
-    #[serde(rename = "LogDriver", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "LogDriver",
+        skip_serializing_if = "Option::is_none"
+    )]
     log_driver: Option<::models::TaskSpecLogDriver>,
 }
 
 impl TaskSpec {
     /// User modifiable task configuration.
-    pub fn new() -> TaskSpec {
+    pub fn new() -> Self {
         TaskSpec {
             plugin_spec: None,
             container_spec: None,
@@ -57,7 +78,7 @@ impl TaskSpec {
         self.plugin_spec = Some(plugin_spec);
     }
 
-    pub fn with_plugin_spec(mut self, plugin_spec: ::models::TaskSpecPluginSpec) -> TaskSpec {
+    pub fn with_plugin_spec(mut self, plugin_spec: ::models::TaskSpecPluginSpec) -> Self {
         self.plugin_spec = Some(plugin_spec);
         self
     }
@@ -74,10 +95,7 @@ impl TaskSpec {
         self.container_spec = Some(container_spec);
     }
 
-    pub fn with_container_spec(
-        mut self,
-        container_spec: ::models::TaskSpecContainerSpec,
-    ) -> TaskSpec {
+    pub fn with_container_spec(mut self, container_spec: ::models::TaskSpecContainerSpec) -> Self {
         self.container_spec = Some(container_spec);
         self
     }
@@ -94,7 +112,7 @@ impl TaskSpec {
         self.resources = Some(resources);
     }
 
-    pub fn with_resources(mut self, resources: ::models::TaskSpecResources) -> TaskSpec {
+    pub fn with_resources(mut self, resources: ::models::TaskSpecResources) -> Self {
         self.resources = Some(resources);
         self
     }
@@ -111,10 +129,7 @@ impl TaskSpec {
         self.restart_policy = Some(restart_policy);
     }
 
-    pub fn with_restart_policy(
-        mut self,
-        restart_policy: ::models::TaskSpecRestartPolicy,
-    ) -> TaskSpec {
+    pub fn with_restart_policy(mut self, restart_policy: ::models::TaskSpecRestartPolicy) -> Self {
         self.restart_policy = Some(restart_policy);
         self
     }
@@ -131,7 +146,7 @@ impl TaskSpec {
         self.placement = Some(placement);
     }
 
-    pub fn with_placement(mut self, placement: ::models::TaskSpecPlacement) -> TaskSpec {
+    pub fn with_placement(mut self, placement: ::models::TaskSpecPlacement) -> Self {
         self.placement = Some(placement);
         self
     }
@@ -148,13 +163,13 @@ impl TaskSpec {
         self.force_update = Some(force_update);
     }
 
-    pub fn with_force_update(mut self, force_update: i32) -> TaskSpec {
+    pub fn with_force_update(mut self, force_update: i32) -> Self {
         self.force_update = Some(force_update);
         self
     }
 
-    pub fn force_update(&self) -> Option<&i32> {
-        self.force_update.as_ref()
+    pub fn force_update(&self) -> Option<i32> {
+        self.force_update
     }
 
     pub fn reset_force_update(&mut self) {
@@ -165,13 +180,13 @@ impl TaskSpec {
         self.runtime = Some(runtime);
     }
 
-    pub fn with_runtime(mut self, runtime: String) -> TaskSpec {
+    pub fn with_runtime(mut self, runtime: String) -> Self {
         self.runtime = Some(runtime);
         self
     }
 
-    pub fn runtime(&self) -> Option<&String> {
-        self.runtime.as_ref()
+    pub fn runtime(&self) -> Option<&str> {
+        self.runtime.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_runtime(&mut self) {
@@ -182,13 +197,13 @@ impl TaskSpec {
         self.networks = Some(networks);
     }
 
-    pub fn with_networks(mut self, networks: Vec<::models::TaskSpecNetworks>) -> TaskSpec {
+    pub fn with_networks(mut self, networks: Vec<::models::TaskSpecNetworks>) -> Self {
         self.networks = Some(networks);
         self
     }
 
-    pub fn networks(&self) -> Option<&Vec<::models::TaskSpecNetworks>> {
-        self.networks.as_ref()
+    pub fn networks(&self) -> Option<&[::models::TaskSpecNetworks]> {
+        self.networks.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_networks(&mut self) {
@@ -199,7 +214,7 @@ impl TaskSpec {
         self.log_driver = Some(log_driver);
     }
 
-    pub fn with_log_driver(mut self, log_driver: ::models::TaskSpecLogDriver) -> TaskSpec {
+    pub fn with_log_driver(mut self, log_driver: ::models::TaskSpecLogDriver) -> Self {
         self.log_driver = Some(log_driver);
         self
     }

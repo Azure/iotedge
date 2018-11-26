@@ -19,8 +19,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
     {
         public const string TwinPatch = "PATCH";
         public const string TwinGet = "GET";
+        public const string TwinPut = "PUT";
+        public const string TwinDelete = "DELETE";
 
-        public TwinReceivingLinkHandler(IReceivingAmqpLink link, Uri requestUri, IDictionary<string, string> boundVariables,
+        public TwinReceivingLinkHandler(IReceivingAmqpLink link,
+            Uri requestUri,
+            IDictionary<string, string> boundVariables,
             IMessageConverter<AmqpMessage> messageConverter)
             : base(link, requestUri, boundVariables, messageConverter)
         {
@@ -51,14 +55,39 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
                         Events.InvalidCorrelationId(this);
                         return;
                     }
+
                     await this.DeviceListener.SendGetTwinRequest(correlationId);
                     Events.ProcessedTwinGetRequest(this);
                     break;
+
                 case TwinPatch:
                     EdgeMessage reportedPropertiesMessage = new EdgeMessage.Builder(amqpMessage.GetPayloadBytes()).Build();
                     await this.DeviceListener.UpdateReportedPropertiesAsync(reportedPropertiesMessage, correlationId);
                     Events.ProcessedTwinReportedPropertiesUpdate(this);
                     break;
+
+                case TwinPut:
+                    if (string.IsNullOrWhiteSpace(correlationId))
+                    {
+                        Events.InvalidCorrelationId(this);
+                        return;
+                    }
+
+                    await this.DeviceListener.AddDesiredPropertyUpdatesSubscription(correlationId);
+                    Events.ProcessedDesiredPropertyUpdatesSubscriptionRequest(this, correlationId);
+                    break;
+
+                case TwinDelete:
+                    if (string.IsNullOrWhiteSpace(correlationId))
+                    {
+                        Events.InvalidCorrelationId(this);
+                        return;
+                    }
+
+                    await this.DeviceListener.RemoveDesiredPropertyUpdatesSubscription(correlationId);
+                    Events.ProcessedDesiredPropertyUpdatesSubscriptionRemovalRequest(this, correlationId);
+                    break;
+
                 default:
                     Events.InvalidOperation(this, operation);
                     break;
@@ -74,7 +103,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             {
                 InvalidOperation = IdStart,
                 ProcessedTwinGetRequest,
-                ProcessedTwinReportedPropertiesUpdate
+                ProcessedTwinReportedPropertiesUpdate,
+                ProcessedDesiredPropertyUpdatesSubscriptionRequest,
+                ProcessedDesiredPropertyUpdatesSubscriptionRemovalRequest
             }
 
             public static void InvalidOperation(TwinReceivingLinkHandler handler)
@@ -100,6 +131,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             public static void InvalidCorrelationId(TwinReceivingLinkHandler handler)
             {
                 Log.LogWarning((int)EventIds.InvalidOperation, $"Cannot process message on link {handler.LinkUri} because no correlation ID was specified");
+            }
+
+            public static void ProcessedDesiredPropertyUpdatesSubscriptionRequest(TwinReceivingLinkHandler handler, string correlationId)
+            {
+                Log.LogDebug((int)EventIds.ProcessedDesiredPropertyUpdatesSubscriptionRequest, $"Processed Twin desired properties subscription for {handler.ClientId} on request {correlationId}");
+            }
+
+            public static void ProcessedDesiredPropertyUpdatesSubscriptionRemovalRequest(TwinReceivingLinkHandler handler, string correlationId)
+            {
+                Log.LogDebug((int)EventIds.ProcessedDesiredPropertyUpdatesSubscriptionRemovalRequest, $"Processed removing Twin desired properties subscription for {handler.ClientId} on request {correlationId}");
             }
         }
     }

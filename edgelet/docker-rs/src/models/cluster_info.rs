@@ -21,23 +21,32 @@ pub struct ClusterInfo {
     #[serde(rename = "Version", skip_serializing_if = "Option::is_none")]
     version: Option<::models::ObjectVersion>,
     /// Date and time at which the swarm was initialised in [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format with nano-seconds.
-    #[serde(rename = "CreatedAt", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "CreatedAt",
+        skip_serializing_if = "Option::is_none"
+    )]
     created_at: Option<String>,
     /// Date and time at which the swarm was last updated in [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format with nano-seconds.
-    #[serde(rename = "UpdatedAt", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "UpdatedAt",
+        skip_serializing_if = "Option::is_none"
+    )]
     updated_at: Option<String>,
     #[serde(rename = "Spec", skip_serializing_if = "Option::is_none")]
     spec: Option<::models::SwarmSpec>,
     #[serde(rename = "TLSInfo", skip_serializing_if = "Option::is_none")]
     tls_info: Option<::models::TlsInfo>,
     /// Whether there is currently a root CA rotation in progress for the swarm
-    #[serde(rename = "RootRotationInProgress", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "RootRotationInProgress",
+        skip_serializing_if = "Option::is_none"
+    )]
     root_rotation_in_progress: Option<bool>,
 }
 
 impl ClusterInfo {
     /// ClusterInfo represents information about the swarm as is returned by the \"/info\" endpoint. Join-tokens are not included.
-    pub fn new() -> ClusterInfo {
+    pub fn new() -> Self {
         ClusterInfo {
             ID: None,
             version: None,
@@ -53,13 +62,13 @@ impl ClusterInfo {
         self.ID = Some(ID);
     }
 
-    pub fn with_ID(mut self, ID: String) -> ClusterInfo {
+    pub fn with_ID(mut self, ID: String) -> Self {
         self.ID = Some(ID);
         self
     }
 
-    pub fn ID(&self) -> Option<&String> {
-        self.ID.as_ref()
+    pub fn ID(&self) -> Option<&str> {
+        self.ID.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_ID(&mut self) {
@@ -70,7 +79,7 @@ impl ClusterInfo {
         self.version = Some(version);
     }
 
-    pub fn with_version(mut self, version: ::models::ObjectVersion) -> ClusterInfo {
+    pub fn with_version(mut self, version: ::models::ObjectVersion) -> Self {
         self.version = Some(version);
         self
     }
@@ -87,13 +96,13 @@ impl ClusterInfo {
         self.created_at = Some(created_at);
     }
 
-    pub fn with_created_at(mut self, created_at: String) -> ClusterInfo {
+    pub fn with_created_at(mut self, created_at: String) -> Self {
         self.created_at = Some(created_at);
         self
     }
 
-    pub fn created_at(&self) -> Option<&String> {
-        self.created_at.as_ref()
+    pub fn created_at(&self) -> Option<&str> {
+        self.created_at.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_created_at(&mut self) {
@@ -104,13 +113,13 @@ impl ClusterInfo {
         self.updated_at = Some(updated_at);
     }
 
-    pub fn with_updated_at(mut self, updated_at: String) -> ClusterInfo {
+    pub fn with_updated_at(mut self, updated_at: String) -> Self {
         self.updated_at = Some(updated_at);
         self
     }
 
-    pub fn updated_at(&self) -> Option<&String> {
-        self.updated_at.as_ref()
+    pub fn updated_at(&self) -> Option<&str> {
+        self.updated_at.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_updated_at(&mut self) {
@@ -121,7 +130,7 @@ impl ClusterInfo {
         self.spec = Some(spec);
     }
 
-    pub fn with_spec(mut self, spec: ::models::SwarmSpec) -> ClusterInfo {
+    pub fn with_spec(mut self, spec: ::models::SwarmSpec) -> Self {
         self.spec = Some(spec);
         self
     }
@@ -138,7 +147,7 @@ impl ClusterInfo {
         self.tls_info = Some(tls_info);
     }
 
-    pub fn with_tls_info(mut self, tls_info: ::models::TlsInfo) -> ClusterInfo {
+    pub fn with_tls_info(mut self, tls_info: ::models::TlsInfo) -> Self {
         self.tls_info = Some(tls_info);
         self
     }

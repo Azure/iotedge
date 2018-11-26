@@ -4,7 +4,7 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use std::default::Default;
 
-use http::{Method, StatusCode};
+use hyper::{Method, StatusCode};
 use percent_encoding::percent_decode;
 use regex::Regex;
 
@@ -21,12 +21,10 @@ pub struct Parameters {
 
 impl Parameters {
     pub fn new() -> Self {
-        Parameters {
-            captures: Vec::new(),
-        }
+        Parameters { captures: vec![] }
     }
 
-    pub fn with_captures<I>(captures: I) -> Parameters
+    pub fn with_captures<I>(captures: I) -> Self
     where
         I: IntoCaptures,
     {
@@ -67,7 +65,7 @@ impl Default for Parameters {
 
 struct RegexRoute {
     pattern: Regex,
-    handler: Box<Handler<Parameters>>,
+    handler: Box<Handler<Parameters> + Sync>,
 }
 
 #[derive(Default)]
@@ -81,7 +79,7 @@ impl Builder for RegexRoutesBuilder {
     fn route<S, H>(mut self, method: Method, pattern: S, handler: H) -> Self
     where
         S: AsRef<str>,
-        H: Handler<<Self::Recognizer as Recognizer>::Parameters>,
+        H: Handler<<Self::Recognizer as Recognizer>::Parameters> + Sync,
     {
         let pattern = normalize_pattern(pattern.as_ref());
         let pattern = Regex::new(&pattern).expect("failed to compile regex");
@@ -130,8 +128,10 @@ fn match_route(re: &Regex, path: &str) -> Option<Parameters> {
             let val = name
                 .map(|n| cap.name(n).expect("missing name"))
                 .and_then(|v| percent_decode(v.as_str().as_bytes()).decode_utf8().ok())
-                .map(|v| v.to_string())
-                .unwrap_or_else(|| cap.get(i).expect("missing capture").as_str().to_owned());
+                .map_or_else(
+                    || cap.get(i).expect("missing capture").as_str().to_owned(),
+                    |v| v.to_string(),
+                );
             captures.push((name.map(|s| s.to_owned()), val));
         }
         Parameters { captures }

@@ -77,7 +77,7 @@ fn wait_readable(poll: &Poll, events: &mut Events) {
 
 fn get_content_length<'a>(headers: &'a [httparse::Header<'a>]) -> Option<usize> {
     for header in headers {
-        if header.name == "Content-Length" {
+        if header.name.eq_ignore_ascii_case("Content-Length") {
             return Some(str::from_utf8(header.value).unwrap().parse().unwrap());
         }
     }
@@ -101,7 +101,7 @@ fn parse_req<'a>(
 
 fn read_to_end<T: Read>(source: &mut T) -> Vec<u8> {
     let mut buf = [0; 256];
-    let mut buffer = Vec::new();
+    let mut buffer = vec![];
     loop {
         match source.read(&mut buf) {
             Ok(0) => break,

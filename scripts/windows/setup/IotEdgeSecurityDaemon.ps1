@@ -30,6 +30,9 @@ function Install-SecurityDaemon {
         [ValidateSet("Linux", "Windows")]
         [String] $ContainerOs = "Linux",
 
+        # Proxy URI
+        [Uri] $Proxy,
+
         # Local path to iotedged zip file
         [String] $ArchivePath,
 
@@ -45,6 +48,10 @@ function Install-SecurityDaemon {
 
     $ErrorActionPreference = "Stop"
     Set-StrictMode -Version 5
+
+    Set-Variable Windows1607 -Value 14393 -Option Constant
+    Set-Variable Windows1803 -Value 17134 -Option Constant
+    Set-Variable Windows1809 -Value 17763 -Option Constant
 
     if (Test-EdgeAlreadyInstalled) {
         Write-Host ("`nIoT Edge is already installed. To reinstall, run 'Uninstall-SecurityDaemon' first.") `
@@ -63,17 +70,31 @@ function Install-SecurityDaemon {
         return
     }
 
-    Get-SecurityDaemon
+    if (-not (Test-IotCore)) {
+        # `Invoke-WebRequest` may not use TLS 1.2 by default, depending on the specific release of Windows 10.
+        # This will be a problem if the release is downloaded from github.com since it only provides TLS 1.2.
+        # So enable TLS 1.2 in `[System.Net.ServicePointManager]::SecurityProtocol`, which enables it (in the current PS session)
+        # for `Invoke-WebRequest` and everything else that uses `System.Net.HttpWebRequest`
+        #
+        # This is not needed on IoT Core since its `Invoke-WebRequest` supports TLS 1.2 by default. It *can't* be done
+        # for IoT Core anyway because the `System.Net.ServicePointManager` type doesn't exist in its version of dotnet.
+        [System.Net.ServicePointManager]::SecurityProtocol =
+            [System.Net.ServicePointManager]::SecurityProtocol -bor [System.Net.SecurityProtocolType]::Tls12
+    }
+
+    $usesSeparateDllForEventLogMessages = Get-SecurityDaemon
     Set-SystemPath
     Get-VcRuntime
     Add-FirewallExceptions
-    Add-IotEdgeRegistryKey
+    Add-IotEdgeRegistryKey -UsesSeparateDllForEventLogMessages:$usesSeparateDllForEventLogMessages
 
     Set-ProvisioningMode
     Set-AgentImage
     Set-Hostname
-    Set-GatewayAddress
     Set-MobyNetwork
+    if (-not (Test-UdsSupport)) {
+        Set-GatewayAddress
+    }
     Install-IotEdgeService
 
     Write-Host ("`nThis device is now provisioned with the IoT Edge runtime.`n" +
@@ -143,7 +164,7 @@ function Test-IsDockerRunning {
         }
     } else {
         Write-Host "Docker is not running." -ForegroundColor "Red"
-        if ((Get-Item "HKLM:\Software\Microsoft\Windows NT\CurrentVersion").GetValue("EditionID") -eq "IoTUAP") {
+        if (Test-IotCore) {
             Write-Host ("Please visit https://docs.microsoft.com/en-us/azure/iot-edge/how-to-install-iot-core " +
                 "for assistance with installing Docker on IoT Core.") `
                 -ForegroundColor "Red"
@@ -158,18 +179,28 @@ function Test-IsDockerRunning {
     return $true
 }
 
-function Test-IsKernelValid {
-    $MinBuildForLinuxContainers = 14393
-    $SupportedBuildsForWindowsContainers = @(17134)
-    $CurrentBuild = (Get-Item "HKLM:\Software\Microsoft\Windows NT\CurrentVersion").GetValue("CurrentBuild")
+function Get-WindowsBuild {
+    return (Get-Item "HKLM:\Software\Microsoft\Windows NT\CurrentVersion").GetValue("CurrentBuild")
+}
 
-    # If using Linux containers, any Windows 10 version >14393 will suffice.
+function Test-UdsSupport {
+    # TODO: Enable when we have RS5-based modules in process-isolated containers
+    # $MinBuildForUnixDomainSockets = $Windows1809
+    # $CurrentBuild = Get-WindowsBuild
+    # return ($ContainerOs -eq "Windows" -and $CurrentBuild -ge $MinBuildForUnixDomainSockets)
+    return $false
+}
+
+function Test-IsKernelValid {
+    $MinBuildForLinuxContainers = $Windows1607
+    $SupportedBuildsForWindowsContainers = @($Windows1803, $Windows1809)
+    $CurrentBuild = Get-WindowsBuild
+
     if (($ContainerOs -eq "Linux" -and $CurrentBuild -ge $MinBuildForLinuxContainers) -or `
         ($ContainerOs -eq "Windows" -and $SupportedBuildsForWindowsContainers -contains $CurrentBuild)) {
         Write-Host "The container host is on supported build version $CurrentBuild." -ForegroundColor "Green"
         return $true
     } else {
-
         Write-Host ("The container host is on unsupported build version $CurrentBuild. `n" +
             "Please use a container host running build $MinBuildForLinuxContainers newer when using Linux containers" +
             "or with one of the following supported build versions when using Windows containers:`n" +
@@ -227,17 +258,77 @@ function Get-SecurityDaemon {
             Invoke-WebRequest `
                 -Uri "https://aka.ms/iotedged-windows-latest" `
                 -OutFile "$ArchivePath" `
-                -UseBasicParsing
+                -UseBasicParsing `
+                -Proxy $Proxy
             Write-Host "Downloaded security daemon." -ForegroundColor "Green"
         }
         if ((Get-Item "$ArchivePath").PSIsContainer) {
             Copy-Item "$ArchivePath\*" "C:\ProgramData\iotedge" -Force
         }
         else {
-            Invoke-Native "mkdir C:\ProgramData\iotedge"
+            New-Item -Type Directory 'C:\ProgramData\iotedge' | Out-Null
             Expand-Archive "$ArchivePath" "C:\ProgramData\iotedge" -Force
-            Copy-Item "C:\ProgramData\iotedge\iotedged-windows\*" "C:\ProgramData\iotedge" -Force
+            Copy-Item "C:\ProgramData\iotedge\iotedged-windows\*" "C:\ProgramData\iotedge" -Force -Recurse
         }
+
+        if (Test-UdsSupport) {
+            foreach ($Name in "mgmt", "workload")
+            {
+                # We can't bind socket files directly in Windows, so create a folder
+                # and bind to that. The folder needs to give Modify rights to a
+                # well-known group that will exist in any container so that
+                # non-privileged modules can access it.
+                $Path = "C:\ProgramData\iotedge\$Name"
+                New-Item "$Path" -ItemType "Directory" -Force
+                $Rule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule(`
+                    "NT AUTHORITY\Authenticated Users", 'Modify', 'ObjectInherit', 'InheritOnly', 'Allow')
+                $Acl = [System.IO.Directory]::GetAccessControl($Path)
+                $Acl.AddAccessRule($Rule)
+                [System.IO.Directory]::SetAccessControl($Path, $Acl)            
+            }
+        }
+
+        if (Test-Path 'C:\ProgramData\iotedge\iotedged_eventlog_messages.dll') {
+            # This release uses iotedged_eventlog_messages.dll as the eventlog message file
+
+            New-Item -Type Directory 'C:\ProgramData\iotedge-eventlog' -ErrorAction SilentlyContinue -ErrorVariable CmdErr | Out-Null
+            if ($? -or ($CmdErr.FullyQualifiedErrorId -eq 'DirectoryExist,Microsoft.PowerShell.Commands.NewItemCommand')) {
+                Move-Item `
+                    'C:\ProgramData\iotedge\iotedged_eventlog_messages.dll' `
+                    'C:\ProgramData\iotedge-eventlog\iotedged_eventlog_messages.dll' `
+                    -Force -ErrorAction SilentlyContinue -ErrorVariable CmdErr
+                if ($?) {
+                    # Copied eventlog messages DLL successfully
+                }
+                elseif (
+                    ($CmdErr.Exception -is [System.IO.IOException]) -and
+                    ($CmdErr.Exception.HResult -eq 0x800700b7) # HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS)
+                ) {
+                    # ERROR_ALREADY_EXISTS despite Move-Item -Force likely means the DLL is held open by something,
+                    # probably the Windows EventLog service or some other process.
+                    #
+                    # It's not really a problem to have an old DLL from a previous installation lying around, since the message IDs
+                    # and format strings haven't changed. Even if they have changed, it just means some logs in the event log will
+                    # not display correcty.
+                    #
+                    # Don't bother warning the user about it.
+                }
+                else {
+                    throw $CmdErr
+                }
+            }
+            else {
+                throw $CmdErr
+            }
+
+            $usesSeparateDllForEventLogMessages = $true
+        }
+        else {
+            # This release uses iotedged.exe as the eventlog message file
+            $usesSeparateDllForEventLogMessages = $false
+        }
+
+        return $usesSeparateDllForEventLogMessages
     }
     finally {
         Remove-Item "C:\ProgramData\iotedge\iotedged-windows" -Recurse -Force -ErrorAction "SilentlyContinue"
@@ -255,18 +346,32 @@ function Remove-SecurityDaemonResources {
     Write-Verbose "$(if ($?) { "Deleted registry key '$LogKey'" } else { $CmdErr })"
 
     $EdgePath = "C:\ProgramData\iotedge"
+    $EdgeEventLogMessagesPath = "C:\ProgramData\iotedge-eventlog"
+
     Remove-Item -Recurse $EdgePath -ErrorAction SilentlyContinue -ErrorVariable CmdErr
     if ($?) {
         Write-Verbose "Deleted install directory '$EdgePath'"
     }
-    else {
+    elseif ($CmdErr.FullyQualifiedErrorId -ne "PathNotFound,Microsoft.PowerShell.Commands.RemoveItemCommand") {
         Write-Verbose "$CmdErr"
-        if ($CmdErr.FullyQualifiedErrorId -ne "PathNotFound,Microsoft.PowerShell.Commands.RemoveItemCommand") {
-            Write-Host ("Could not delete install directory '$EdgePath'. Please reboot " +
-                "your device and run Uninstall-SecurityDaemon again with '-Force'.") `
-                -ForegroundColor "Red"
-            $success = $false
-        }
+        Write-Host ("Could not delete install directory '$EdgePath'. Please reboot " +
+            "your device and run Uninstall-SecurityDaemon again with '-Force'.") `
+            -ForegroundColor "Red"
+        $success = $false
+    }
+
+    Remove-Item -Recurse $EdgeEventLogMessagesPath -ErrorAction SilentlyContinue -ErrorVariable CmdErr
+    if ($?) {
+        Write-Verbose "Deleted install directory '$EdgeEventLogMessagesPath'"
+    }
+    elseif ($CmdErr.FullyQualifiedErrorId -ne "PathNotFound,Microsoft.PowerShell.Commands.RemoveItemCommand") {
+        Write-Warning "Could not delete '$EdgeEventLogMessagesPath'."
+        Write-Warning "If you're reinstalling or updating IoT Edge, then this is safe to ignore."
+        Write-Warning ("Otherwise, please close Event Viewer, or any PowerShell windows where you ran Get-WinEvent, " +
+            "then run Uninstall-SecurityDaemon again with '-Force'.")
+    }
+    else {
+        $success = $false
     }
 
     $success
@@ -304,7 +409,7 @@ function Reset-SystemPath {
 }
 
 function Get-VcRuntime {
-    if ((Get-Item "HKLM:\Software\Microsoft\Windows NT\CurrentVersion").GetValue("EditionID") -eq "IoTUAP") {
+    if (Test-IotCore) {
         Write-Host "Skipped vcruntime download on IoT Core." -ForegroundColor "Green"
         return
     }
@@ -314,7 +419,8 @@ function Get-VcRuntime {
         Invoke-WebRequest `
             -Uri "https://download.microsoft.com/download/0/6/4/064F84EA-D1DB-4EAA-9A5C-CC2F0FF6A638/vc_redist.x64.exe" `
             -OutFile "$env:TEMP\vc_redist.exe" `
-            -UseBasicParsing
+            -UseBasicParsing `
+            -Proxy $Proxy
         Invoke-Native "$env:TEMP\vc_redist.exe /quiet /norestart"
         Write-Host "Downloaded vcruntime." -ForegroundColor "Green"
     }
@@ -369,13 +475,19 @@ function Remove-FirewallExceptions {
     Write-Verbose "$(if ($?) { "Removed firewall exceptions" } else { $CmdErr })"
 }
 
-function Add-IotEdgeRegistryKey {
+function Add-IotEdgeRegistryKey([switch] $UsesSeparateDllForEventLogMessages) {
+    if ($UsesSeparateDllForEventLogMessages) {
+        $messageFilePath = 'C:\ProgramData\iotedge-eventlog\iotedged_eventlog_messages.dll'
+    }
+    else {
+        $messageFilePath = 'C:\ProgramData\iotedge\iotedged.exe'
+    }
     $RegistryContent = @(
         "Windows Registry Editor Version 5.00",
         "",
         "[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\EventLog\Application\iotedged]"
         "`"CustomSource`"=dword:00000001"
-        "`"EventMessageFile`"=`"C:\\ProgramData\\iotedge\\iotedged.exe`""
+        "`"EventMessageFile`"=`"$($messageFilePath -replace '\\', '\\')`""
         "`"TypesSupported`"=dword:00000007")
     try {
         $RegistryContent | Set-Content "$env:TEMP\iotedge.reg" -Force
@@ -491,11 +603,11 @@ function Set-MobyNetwork {
     $SelectionRegex = "moby_runtime:\s*uri:\s*`".*`"\s*#?\s*network:\s*`".*`""
     $ReplacementContentWindows = @(
         "moby_runtime:",
-        "  docker_uri: `"npipe://./pipe/docker_engine`"",
+        "  uri: `"npipe://./pipe/docker_engine`"",
         "  network: `"nat`"")
     $ReplacementContentLinux = @(
         "moby_runtime:",
-        "  docker_uri: `"npipe://./pipe/docker_engine`"",
+        "  uri: `"npipe://./pipe/docker_engine`"",
         "  network: `"azure-iot-edge`"")
     if ($ContainerOs -eq "Windows") {
         ($ConfigurationYaml -replace $SelectionRegex, ($ReplacementContentWindows -join "`n")) | Set-Content "C:\ProgramData\iotedge\config.yaml" -Force
@@ -578,6 +690,10 @@ function Invoke-Native {
             $out
         }
     }
+}
+
+function Test-IotCore {
+    (Get-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion').'EditionID' -eq 'IoTUAP'
 }
 
 Export-ModuleMember -Function Install-SecurityDaemon, Uninstall-SecurityDaemon

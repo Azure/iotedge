@@ -1,27 +1,23 @@
 #!/bin/bash
 
+set -eo pipefail
+
 usage()
 {
-    echo "Missing arguments. Usage: $0 -u <App SP> -s <App secret> -t <App Tenant ID> -c <Cert name> -v <keyVault name>"
+    echo "Missing arguments. Usage: $0 -v <keyVault name> -c <Cert name>"
     exit 1;
 }
 
-while getopts ":c:u:s:t:v:" o; do
+while getopts ":c:v:s:" o; do
     case "${o}" in
-        u)
-            APP_SP_NAME=${OPTARG}
-            ;;
-        s)
-            APP_SP_SECRET=${OPTARG}
-            ;;
-        t)
-            APP_TENANT_ID=${OPTARG}
-            ;;
         c)
             CERT_NAME=${OPTARG}
             ;;
         v)
             KEYVAULT_NAME=${OPTARG}
+            ;;
+        s)
+            STORE_NAME=${OPTARG}
             ;;
         *)
             usage
@@ -30,16 +26,15 @@ while getopts ":c:u:s:t:v:" o; do
 done
 shift $((OPTIND-1))
 
-if [ -z "${APP_SP_NAME}" ] || [ -z "${APP_SP_SECRET}" ] || [ -z "${APP_TENANT_ID}" ] || [ -z "${CERT_NAME}" ] || [ -z "${KEYVAULT_NAME}" ]; then
+if [ -z "${CERT_NAME}" ] || [ -z "${KEYVAULT_NAME}" ]; then
     usage
 fi
 
-BASEDIR=$(dirname "$0")
+if [[ -z ${STORE_NAME} ]]; then
+        STORE_NAME="My"
+fi
 
-# Login to KeyVault using App Service Principal
-echo Logging in to KeyVault using App Service Principal
-az login --service-principal -u $APP_SP_NAME --tenant $APP_TENANT_ID -p $APP_SP_SECRET 
-echo Done logging in
+BASEDIR=$(dirname "$0")
 
 # Download the Cert
 echo Downloading cert from KeyVault
@@ -49,7 +44,7 @@ echo Done downloading cert from KeyVault
 
 # Install the Cert
 echo Installing Cert
-powershell -command "$BASEDIR/InstallCert.ps1 -CertificateValue $keyVaultCert"
+pwsh -Command "$BASEDIR/InstallCert.ps1 -CertificateValue $keyVaultCert" -StoreName $STORE_NAME
 echo Done installing Cert.
 
 exit 0

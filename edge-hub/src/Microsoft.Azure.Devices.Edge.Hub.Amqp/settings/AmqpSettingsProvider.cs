@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Settings
             IClientCredentialsFactory identityFactory,
             ILinkHandlerProvider linkHandlerProvider,
             IConnectionProvider connectionProvider,
-            ICredentialsStore credentialsStore)
+            ICredentialsCache credentialsCache)
         {
             Preconditions.CheckNotNull(authenticator, nameof(authenticator));
             Preconditions.CheckNotNull(identityFactory, nameof(identityFactory));
@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Settings
             {
                 AllowAnonymousConnection = true,
                 RequireSecureTransport = true,
-                RuntimeProvider = new AmqpRuntimeProvider(linkHandlerProvider, true, identityFactory, authenticator, iotHubHostName, connectionProvider, credentialsStore)
+                RuntimeProvider = new AmqpRuntimeProvider(linkHandlerProvider, true, identityFactory, authenticator, iotHubHostName, connectionProvider, credentialsCache)
             };
 
             // Add all transport providers we want to support.
@@ -53,7 +53,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Settings
                 //       needs (i.e. old clients that are still using EXTERNAL for CBS).
                 // saslProvider.AddHandler(new SaslExternalHandler());
 
-                saslProvider.AddHandler(new SaslAnonymousHandler()); // CBS for other clients
+                // CBS 
+                saslProvider.AddHandler(new SaslAnonymousHandler());
+
+                // CBS - used by some SDKs like C
+                saslProvider.AddHandler(new SaslAnonymousHandler(Constants.ServiceBusCbsSaslMechanismName));
 
                 // This handler implements SAS key based auth.
                 saslProvider.AddHandler(new SaslPlainHandler(new EdgeHubSaslPlainAuthenticator(authenticator, identityFactory, iotHubHostName)));

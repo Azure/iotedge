@@ -16,25 +16,40 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SwarmSpecRaft {
     /// The number of log entries between snapshots.
-    #[serde(rename = "SnapshotInterval", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "SnapshotInterval",
+        skip_serializing_if = "Option::is_none"
+    )]
     snapshot_interval: Option<i32>,
     /// The number of snapshots to keep beyond the current snapshot.
-    #[serde(rename = "KeepOldSnapshots", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "KeepOldSnapshots",
+        skip_serializing_if = "Option::is_none"
+    )]
     keep_old_snapshots: Option<i32>,
     /// The number of log entries to keep around to sync up slow followers after a snapshot is created.
-    #[serde(rename = "LogEntriesForSlowFollowers", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "LogEntriesForSlowFollowers",
+        skip_serializing_if = "Option::is_none"
+    )]
     log_entries_for_slow_followers: Option<i32>,
     /// The number of ticks that a follower will wait for a message from the leader before becoming a candidate and starting an election. `ElectionTick` must be greater than `HeartbeatTick`.  A tick currently defaults to one second, so these translate directly to seconds currently, but this is NOT guaranteed.
-    #[serde(rename = "ElectionTick", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "ElectionTick",
+        skip_serializing_if = "Option::is_none"
+    )]
     election_tick: Option<i32>,
     /// The number of ticks between heartbeats. Every HeartbeatTick ticks, the leader will send a heartbeat to the followers.  A tick currently defaults to one second, so these translate directly to seconds currently, but this is NOT guaranteed.
-    #[serde(rename = "HeartbeatTick", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "HeartbeatTick",
+        skip_serializing_if = "Option::is_none"
+    )]
     heartbeat_tick: Option<i32>,
 }
 
 impl SwarmSpecRaft {
     /// Raft configuration.
-    pub fn new() -> SwarmSpecRaft {
+    pub fn new() -> Self {
         SwarmSpecRaft {
             snapshot_interval: None,
             keep_old_snapshots: None,
@@ -48,13 +63,13 @@ impl SwarmSpecRaft {
         self.snapshot_interval = Some(snapshot_interval);
     }
 
-    pub fn with_snapshot_interval(mut self, snapshot_interval: i32) -> SwarmSpecRaft {
+    pub fn with_snapshot_interval(mut self, snapshot_interval: i32) -> Self {
         self.snapshot_interval = Some(snapshot_interval);
         self
     }
 
-    pub fn snapshot_interval(&self) -> Option<&i32> {
-        self.snapshot_interval.as_ref()
+    pub fn snapshot_interval(&self) -> Option<i32> {
+        self.snapshot_interval
     }
 
     pub fn reset_snapshot_interval(&mut self) {
@@ -65,13 +80,13 @@ impl SwarmSpecRaft {
         self.keep_old_snapshots = Some(keep_old_snapshots);
     }
 
-    pub fn with_keep_old_snapshots(mut self, keep_old_snapshots: i32) -> SwarmSpecRaft {
+    pub fn with_keep_old_snapshots(mut self, keep_old_snapshots: i32) -> Self {
         self.keep_old_snapshots = Some(keep_old_snapshots);
         self
     }
 
-    pub fn keep_old_snapshots(&self) -> Option<&i32> {
-        self.keep_old_snapshots.as_ref()
+    pub fn keep_old_snapshots(&self) -> Option<i32> {
+        self.keep_old_snapshots
     }
 
     pub fn reset_keep_old_snapshots(&mut self) {
@@ -85,13 +100,13 @@ impl SwarmSpecRaft {
     pub fn with_log_entries_for_slow_followers(
         mut self,
         log_entries_for_slow_followers: i32,
-    ) -> SwarmSpecRaft {
+    ) -> Self {
         self.log_entries_for_slow_followers = Some(log_entries_for_slow_followers);
         self
     }
 
-    pub fn log_entries_for_slow_followers(&self) -> Option<&i32> {
-        self.log_entries_for_slow_followers.as_ref()
+    pub fn log_entries_for_slow_followers(&self) -> Option<i32> {
+        self.log_entries_for_slow_followers
     }
 
     pub fn reset_log_entries_for_slow_followers(&mut self) {
@@ -102,13 +117,13 @@ impl SwarmSpecRaft {
         self.election_tick = Some(election_tick);
     }
 
-    pub fn with_election_tick(mut self, election_tick: i32) -> SwarmSpecRaft {
+    pub fn with_election_tick(mut self, election_tick: i32) -> Self {
         self.election_tick = Some(election_tick);
         self
     }
 
-    pub fn election_tick(&self) -> Option<&i32> {
-        self.election_tick.as_ref()
+    pub fn election_tick(&self) -> Option<i32> {
+        self.election_tick
     }
 
     pub fn reset_election_tick(&mut self) {
@@ -119,13 +134,13 @@ impl SwarmSpecRaft {
         self.heartbeat_tick = Some(heartbeat_tick);
     }
 
-    pub fn with_heartbeat_tick(mut self, heartbeat_tick: i32) -> SwarmSpecRaft {
+    pub fn with_heartbeat_tick(mut self, heartbeat_tick: i32) -> Self {
         self.heartbeat_tick = Some(heartbeat_tick);
         self
     }
 
-    pub fn heartbeat_tick(&self) -> Option<&i32> {
-        self.heartbeat_tick.as_ref()
+    pub fn heartbeat_tick(&self) -> Option<i32> {
+        self.heartbeat_tick
     }
 
     pub fn reset_heartbeat_tick(&mut self) {

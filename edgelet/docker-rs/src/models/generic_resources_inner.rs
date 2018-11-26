@@ -13,14 +13,20 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GenericResourcesInner {
-    #[serde(rename = "NamedResourceSpec", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "NamedResourceSpec",
+        skip_serializing_if = "Option::is_none"
+    )]
     named_resource_spec: Option<::models::GenericResourcesInnerNamedResourceSpec>,
-    #[serde(rename = "DiscreteResourceSpec", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "DiscreteResourceSpec",
+        skip_serializing_if = "Option::is_none"
+    )]
     discrete_resource_spec: Option<::models::GenericResourcesInnerDiscreteResourceSpec>,
 }
 
 impl GenericResourcesInner {
-    pub fn new() -> GenericResourcesInner {
+    pub fn new() -> Self {
         GenericResourcesInner {
             named_resource_spec: None,
             discrete_resource_spec: None,
@@ -37,7 +43,7 @@ impl GenericResourcesInner {
     pub fn with_named_resource_spec(
         mut self,
         named_resource_spec: ::models::GenericResourcesInnerNamedResourceSpec,
-    ) -> GenericResourcesInner {
+    ) -> Self {
         self.named_resource_spec = Some(named_resource_spec);
         self
     }
@@ -60,7 +66,7 @@ impl GenericResourcesInner {
     pub fn with_discrete_resource_spec(
         mut self,
         discrete_resource_spec: ::models::GenericResourcesInnerDiscreteResourceSpec,
-    ) -> GenericResourcesInner {
+    ) -> Self {
         self.discrete_resource_spec = Some(discrete_resource_spec);
         self
     }

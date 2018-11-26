@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
     using Microsoft.Azure.Devices.Edge.Util.Edged;
     using Microsoft.Azure.Devices.Edge.Util.Edged.GeneratedCode;
     using Microsoft.Extensions.Logging;
+    using Org.BouncyCastle.Crypto;
     using Org.BouncyCastle.Crypto.Parameters;
     using Org.BouncyCastle.OpenSsl;
     using Org.BouncyCastle.Pkcs;
@@ -197,7 +198,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 .ToList();
         }
 
-        public static async Task<(X509Certificate2, IEnumerable<X509Certificate2>)> GetServerCertificatesFromEdgelet(Uri workloadUri, string workloadApiVersion, string moduleId, string moduleGenerationId, string edgeHubHostname, DateTime expiration)
+        public static async Task<(X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain)> GetServerCertificatesFromEdgelet(Uri workloadUri, string workloadApiVersion, string moduleId, string moduleGenerationId, string edgeHubHostname, DateTime expiration)
         {
             if (string.IsNullOrEmpty(edgeHubHostname))
             {
@@ -206,6 +207,39 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
             CertificateResponse response = await new WorkloadClient(workloadUri, workloadApiVersion, moduleId, moduleGenerationId).CreateServerCertificateAsync(edgeHubHostname, expiration);
             return ParseCertificateResponse(response);
+        }
+
+        public static async Task<IEnumerable<X509Certificate2>> GetTrustBundleFromEdgelet(Uri workloadUri, string workloadApiVersion, string moduleId, string moduleGenerationId)
+        {
+            TrustBundleResponse response = await new WorkloadClient(workloadUri, workloadApiVersion, moduleId, moduleGenerationId).GetTrustBundleAsync();
+            return ParseTrustBundleResponse(response);
+        }
+
+        public static (X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain) GetServerCertificateAndChainFromFile(string serverWithChainFilePath, string serverPrivateKeyFilePath)
+        {
+            string cert, privateKey;
+
+            if (string.IsNullOrWhiteSpace(serverWithChainFilePath) || !File.Exists(serverWithChainFilePath))
+            {
+                throw new ArgumentException($"'{serverWithChainFilePath}' is not a path to a server certificate file");
+            }
+
+            if (string.IsNullOrWhiteSpace(serverPrivateKeyFilePath) || !File.Exists(serverPrivateKeyFilePath))
+            {
+                throw new ArgumentException($"'{serverPrivateKeyFilePath}' is not a path to a private key file");
+            }
+
+            using (var sr = new StreamReader(serverWithChainFilePath))
+            {
+                cert = sr.ReadToEnd();
+            }
+
+            using (var sr = new StreamReader(serverPrivateKeyFilePath))
+            {
+                privateKey = sr.ReadToEnd();
+            }
+
+            return ParseCertificateAndKey(cert, privateKey);
         }
 
         public static IEnumerable<X509Certificate2> GetServerCACertificatesFromFile(string chainPath)
@@ -231,9 +265,45 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 .ToList(); // Re-add the certificate end-marker which was removed by split
         }
 
+        public static IEnumerable<X509Certificate2> ParseTrustedBundleFromFile(string trustBundleFilePath)
+        {
+            string certs;
+
+            if (string.IsNullOrWhiteSpace(trustBundleFilePath) || !File.Exists(trustBundleFilePath))
+            {
+                throw new ArgumentException($"'{trustBundleFilePath}' is not a path to a trust bundle certificates file");
+            }
+
+            using (var sr = new StreamReader(trustBundleFilePath))
+            {
+                certs = sr.ReadToEnd();
+            }
+
+            return ParseTrustedBundleCerts(certs);
+        }
+
+        internal static IEnumerable<X509Certificate2> ParseTrustBundleResponse(TrustBundleResponse response)
+        {
+            if (response == null)
+            {
+                throw new ArgumentException($"Null TrustBundle Response received");
+            }
+            return ParseTrustedBundleCerts(response.Certificate);
+        }
+
+        internal static IEnumerable<X509Certificate2> ParseTrustedBundleCerts(string trustedCACerts)
+        {
+            return GetCertificatesFromPem(ParsePemCerts(trustedCACerts));
+        }
+
         internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateResponse(CertificateResponse response)
         {
-            IEnumerable<string> pemCerts = ParsePemCerts(response.Certificate);
+            return ParseCertificateAndKey(response.Certificate, response.PrivateKey.Bytes);
+        }
+
+        internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateAndKey(string certificateWithChain, string privateKey)
+        {
+            IEnumerable<string> pemCerts = ParsePemCerts(certificateWithChain);
 
             if (pemCerts.FirstOrDefault() == null)
             {
@@ -245,7 +315,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
             Pkcs12Store store = new Pkcs12StoreBuilder().Build();
             IList<X509CertificateEntry> chain = new List<X509CertificateEntry>();
 
-            var sr = new StringReader(pemCerts.First() + "\r\n" + response.PrivateKey.Bytes);
+            // note: the seperator between the certificate and private key is added for safety to delinate the cert and key boundary
+            var sr = new StringReader(pemCerts.First() + "\r\n" + privateKey);
             var pemReader = new PemReader(sr);
 
             RsaPrivateCrtKeyParameters keyParams = null;
@@ -255,6 +326,11 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 if (certObject is Org.BouncyCastle.X509.X509Certificate x509Cert)
                 {
                     chain.Add(new X509CertificateEntry(x509Cert));
+                }
+                // when processing certificates generated via openssl certObject type is of AsymmetricCipherKeyPair
+                if (certObject is AsymmetricCipherKeyPair)
+                {
+                    certObject = ((AsymmetricCipherKeyPair)certObject).Private;
                 }
                 if (certObject is RsaPrivateCrtKeyParameters)
                 {

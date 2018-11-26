@@ -19,12 +19,15 @@ pub struct TaskSpecContainerSpecConfigs {
     #[serde(rename = "ConfigID", skip_serializing_if = "Option::is_none")]
     config_id: Option<String>,
     /// ConfigName is the name of the config that this references, but this is just provided for lookup/display purposes. The config in the reference will be identified by its ID.
-    #[serde(rename = "ConfigName", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "ConfigName",
+        skip_serializing_if = "Option::is_none"
+    )]
     config_name: Option<String>,
 }
 
 impl TaskSpecContainerSpecConfigs {
-    pub fn new() -> TaskSpecContainerSpecConfigs {
+    pub fn new() -> Self {
         TaskSpecContainerSpecConfigs {
             file: None,
             config_id: None,
@@ -36,10 +39,7 @@ impl TaskSpecContainerSpecConfigs {
         self.file = Some(file);
     }
 
-    pub fn with_file(
-        mut self,
-        file: ::models::TaskSpecContainerSpecFile1,
-    ) -> TaskSpecContainerSpecConfigs {
+    pub fn with_file(mut self, file: ::models::TaskSpecContainerSpecFile1) -> Self {
         self.file = Some(file);
         self
     }
@@ -56,13 +56,13 @@ impl TaskSpecContainerSpecConfigs {
         self.config_id = Some(config_id);
     }
 
-    pub fn with_config_id(mut self, config_id: String) -> TaskSpecContainerSpecConfigs {
+    pub fn with_config_id(mut self, config_id: String) -> Self {
         self.config_id = Some(config_id);
         self
     }
 
-    pub fn config_id(&self) -> Option<&String> {
-        self.config_id.as_ref()
+    pub fn config_id(&self) -> Option<&str> {
+        self.config_id.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_config_id(&mut self) {
@@ -73,13 +73,13 @@ impl TaskSpecContainerSpecConfigs {
         self.config_name = Some(config_name);
     }
 
-    pub fn with_config_name(mut self, config_name: String) -> TaskSpecContainerSpecConfigs {
+    pub fn with_config_name(mut self, config_name: String) -> Self {
         self.config_name = Some(config_name);
         self
     }
 
-    pub fn config_name(&self) -> Option<&String> {
-        self.config_name.as_ref()
+    pub fn config_name(&self) -> Option<&str> {
+        self.config_name.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_config_name(&mut self) {

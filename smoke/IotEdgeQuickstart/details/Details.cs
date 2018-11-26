@@ -15,6 +15,8 @@ namespace IotEdgeQuickstart.Details
     using Microsoft.Azure.EventHubs;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
+    using EventHubClientTransportType = Microsoft.Azure.EventHubs.TransportType;
+    using ServiceClientTransportType = Microsoft.Azure.Devices.TransportType;
 
     public class Details
     {
@@ -22,10 +24,18 @@ namespace IotEdgeQuickstart.Details
         readonly Option<RegistryCredentials> credentials;
         readonly string iothubConnectionString;
         readonly string eventhubCompatibleEndpointWithEntityPath;
+        readonly ServiceClientTransportType serviceClientTransportType;
+        readonly EventHubClientTransportType eventHubClientTransportType;
         readonly string imageTag;
         readonly string deviceId;
         readonly string hostname;
         public readonly Option<string> DeploymentFileName;
+        readonly string deviceCaCert;
+        readonly string deviceCaPk;
+        readonly string deviceCaCerts;
+        readonly bool optimizedForPerformance;
+        readonly LogLevel runtimeLogLevel;
+        readonly bool cleanUpExistingDeviceOnSuccess; 
 
         DeviceContext context;
 
@@ -34,20 +44,52 @@ namespace IotEdgeQuickstart.Details
             Option<RegistryCredentials> credentials,
             string iothubConnectionString,
             string eventhubCompatibleEndpointWithEntityPath,
+            UpstreamProtocolType upstreamProtocol,
             string imageTag,
             string deviceId,
             string hostname,
-            Option<string> deploymentFileName
+            Option<string> deploymentFileName,
+            string deviceCaCert,
+            string deviceCaPk,
+            string deviceCaCerts,
+            bool optimizedForPerformance,
+            LogLevel runtimeLogLevel,
+            bool cleanUpExistingDeviceOnSuccess
             )
         {
             this.bootstrapper = bootstrapper;
             this.credentials = credentials;
             this.iothubConnectionString = iothubConnectionString;
             this.eventhubCompatibleEndpointWithEntityPath = eventhubCompatibleEndpointWithEntityPath;
+
+            switch (upstreamProtocol)
+            {
+                case UpstreamProtocolType.Amqp:
+                case UpstreamProtocolType.Mqtt:
+                    this.serviceClientTransportType = ServiceClientTransportType.Amqp;
+                    this.eventHubClientTransportType = EventHubClientTransportType.Amqp;
+                    break;
+
+                case UpstreamProtocolType.AmqpWs:
+                case UpstreamProtocolType.MqttWs:
+                    this.serviceClientTransportType = ServiceClientTransportType.Amqp_WebSocket_Only;
+                    this.eventHubClientTransportType = EventHubClientTransportType.AmqpWebSockets;
+                    break;
+
+                default:
+                    throw new Exception($"Unexpected upstream protocol type {upstreamProtocol}");
+            }
+
             this.imageTag = imageTag;
             this.deviceId = deviceId;
             this.hostname = hostname;
             this.DeploymentFileName = deploymentFileName;
+            this.deviceCaCert = deviceCaCert;
+            this.deviceCaPk = deviceCaPk;
+            this.deviceCaCerts = deviceCaCerts;
+            this.optimizedForPerformance = optimizedForPerformance;
+            this.runtimeLogLevel = runtimeLogLevel;
+            this.cleanUpExistingDeviceOnSuccess = cleanUpExistingDeviceOnSuccess;
         }
 
         protected Task VerifyEdgeIsNotAlreadyActive() => this.bootstrapper.VerifyNotActive();
@@ -65,13 +107,14 @@ namespace IotEdgeQuickstart.Details
             if (device != null)
             {
                 Console.WriteLine($"Device '{device.Id}' already registered on IoT hub '{builder.HostName}'");
+                Console.WriteLine($"Clean up Existing device? {this.cleanUpExistingDeviceOnSuccess}");
 
                 this.context = new DeviceContext
                 {
                     Device = device,
                     IotHubConnectionString = this.iothubConnectionString,
                     RegistryManager = rm,
-                    RemoveDevice = false
+                    RemoveDevice = this.cleanUpExistingDeviceOnSuccess
                 };
             }
             else
@@ -112,7 +155,7 @@ namespace IotEdgeQuickstart.Details
                 $"DeviceId={this.context.Device.Id};" +
                 $"SharedAccessKey={this.context.Device.Authentication.SymmetricKey.PrimaryKey}";
 
-            return this.bootstrapper.Configure(connectionString, this.EdgeAgentImage(), this.hostname);
+            return this.bootstrapper.Configure(connectionString, this.EdgeAgentImage(), this.hostname, this.deviceCaCert, this.deviceCaPk, this.deviceCaCerts, this.runtimeLogLevel);
         }
 
         protected Task StartBootstrapper() => this.bootstrapper.Start();
@@ -128,7 +171,7 @@ namespace IotEdgeQuickstart.Details
                 try
                 {
                     ServiceClient serviceClient =
-                        ServiceClient.CreateFromConnectionString(this.context.IotHubConnectionString);
+                        ServiceClient.CreateFromConnectionString(this.context.IotHubConnectionString, this.serviceClientTransportType);
 
                     while (true)
                     {
@@ -174,11 +217,10 @@ namespace IotEdgeQuickstart.Details
             return this.context.RegistryManager.ApplyConfigurationContentOnDeviceAsync(this.context.Device.Id, config);
         }
 
-        protected Task VerifyTempSensorIsRunning() => this.bootstrapper.VerifyModuleIsRunning("tempSensor");
-
         protected async Task VerifyDataOnIoTHub(string moduleId)
         {
             var builder = new EventHubsConnectionStringBuilder(this.eventhubCompatibleEndpointWithEntityPath);
+            builder.TransportType = this.eventHubClientTransportType;
 
             Console.WriteLine($"Receiving events from device '{this.context.Device.Id}' on Event Hub '{builder.EntityPath}'");
 
@@ -190,7 +232,7 @@ namespace IotEdgeQuickstart.Details
                 EventHubPartitionKeyResolver.ResolveToPartition(
                     this.context.Device.Id,
                     (await eventHubClient.GetRuntimeInformationAsync()).PartitionCount),
-                DateTime.Now);
+                EventPosition.FromEnd());
 
             var result = new TaskCompletionSource<bool>();
             using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3)))
@@ -199,8 +241,8 @@ namespace IotEdgeQuickstart.Details
                 {
                     eventHubReceiver.SetReceiveHandler(new PartitionReceiveHandler(eventData =>
                     {
-                        eventData.Properties.TryGetValue("iothub-connection-device-id", out object devId);
-                        eventData.Properties.TryGetValue("iothub-connection-module-id", out object modId);
+                        eventData.SystemProperties.TryGetValue("iothub-connection-device-id", out object devId);
+                        eventData.SystemProperties.TryGetValue("iothub-connection-module-id", out object modId);
 
                         if (devId != null && devId.ToString().Equals(this.context.Device.Id) &&
                             modId != null && modId.ToString().Equals(moduleId))
@@ -250,6 +292,7 @@ namespace IotEdgeQuickstart.Details
 
         protected void KeepEdgeDeviceIdentity()
         {
+            Console.WriteLine("Keeping Edge Device Identity.");
             if (this.context != null)
             {
                 this.context.RemoveDevice = false;
@@ -266,6 +309,7 @@ namespace IotEdgeQuickstart.Details
 
                 if (remove)
                 {
+                    Console.WriteLine($"Trying to remove device from Registry. Device Id: {device.Id}");
                     return this.context.RegistryManager.RemoveDeviceAsync(device);
                 }
             }
@@ -300,7 +344,11 @@ namespace IotEdgeQuickstart.Details
             string edgeHubImage = this.EdgeHubImage();
             string tempSensorImage = this.TempSensorImage();
             string deployJson = this.DeploymentFileName.Match(
-                f => JObject.Parse(File.ReadAllText(f)).ToString(),
+                f =>
+                {
+                    Console.WriteLine($"Deployment file used: {f}");
+                    return JObject.Parse(File.ReadAllText(f)).ToString();
+                },
                 () => {
                     string deployJsonRegistry = this.credentials.Match(
                     c =>
@@ -319,6 +367,7 @@ namespace IotEdgeQuickstart.Details
                     json = Regex.Replace(json, "<image-edge-hub>", edgeHubImage);
                     json = Regex.Replace(json, "<image-temp-sensor>", tempSensorImage);
                     json = Regex.Replace(json, "<registry-info>", deployJsonRegistry);
+                    json = Regex.Replace(json, "<optimized-for-performance>", this.optimizedForPerformance.ToString());
                     return json;
                 });
 
@@ -356,7 +405,12 @@ namespace IotEdgeQuickstart.Details
             ""settings"": {
               ""image"": ""<image-edge-hub>"",
               ""createOptions"": ""{\""HostConfig\"":{\""PortBindings\"":{\""8883/tcp\"":[{\""HostPort\"":\""8883\""}],\""443/tcp\"":[{\""HostPort\"":\""443\""}]}},\""Env\"":[\""SSL_CERTIFICATE_PATH=/mnt/edgehub\"",\""SSL_CERTIFICATE_NAME=edge-hub-server.cert.pfx\""]}""
-            }
+            },
+		    ""env"": {
+				""OptimizeForPerformance"": {
+					""value"": ""<optimized-for-performance>""
+				}
+			},
           }
         },
         ""modules"": {

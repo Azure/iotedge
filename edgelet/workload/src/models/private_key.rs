@@ -25,7 +25,7 @@ pub struct PrivateKey {
 }
 
 impl PrivateKey {
-    pub fn new(type_: String) -> PrivateKey {
+    pub fn new(type_: String) -> Self {
         PrivateKey {
             type_,
             ref_: None,
@@ -37,7 +37,7 @@ impl PrivateKey {
         self.type_ = type_;
     }
 
-    pub fn with_type(mut self, type_: String) -> PrivateKey {
+    pub fn with_type(mut self, type_: String) -> Self {
         self.type_ = type_;
         self
     }
@@ -50,13 +50,13 @@ impl PrivateKey {
         self.ref_ = Some(ref_);
     }
 
-    pub fn with_ref(mut self, ref_: String) -> PrivateKey {
+    pub fn with_ref(mut self, ref_: String) -> Self {
         self.ref_ = Some(ref_);
         self
     }
 
-    pub fn ref_(&self) -> Option<&String> {
-        self.ref_.as_ref()
+    pub fn ref_(&self) -> Option<&str> {
+        self.ref_.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_ref(&mut self) {
@@ -67,13 +67,13 @@ impl PrivateKey {
         self.bytes = Some(bytes);
     }
 
-    pub fn with_bytes(mut self, bytes: String) -> PrivateKey {
+    pub fn with_bytes(mut self, bytes: String) -> Self {
         self.bytes = Some(bytes);
         self
     }
 
-    pub fn bytes(&self) -> Option<&String> {
-        self.bytes.as_ref()
+    pub fn bytes(&self) -> Option<&str> {
+        self.bytes.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_bytes(&mut self) {

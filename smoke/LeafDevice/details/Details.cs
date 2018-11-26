@@ -12,6 +12,11 @@ namespace LeafDevice.Details
     using Microsoft.Azure.Devices.Common;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Azure.EventHubs;
+    using System.Net;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using DeviceClientTransportType = Microsoft.Azure.Devices.Client.TransportType;
+    using EventHubClientTransportType = Microsoft.Azure.EventHubs.TransportType;
+    using ServiceClientTransportType = Microsoft.Azure.Devices.TransportType;
 
     public class Details
     {
@@ -20,6 +25,9 @@ namespace LeafDevice.Details
         readonly string deviceId;
         readonly string certificateFileName;
         readonly string edgeHostName;
+        readonly ServiceClientTransportType serviceClientTransportType;
+        readonly EventHubClientTransportType eventHubClientTransportType;
+        readonly DeviceClientTransportType deviceClientTransportType;
 
         DeviceContext context;
 
@@ -28,7 +36,8 @@ namespace LeafDevice.Details
             string eventhubCompatibleEndpointWithEntityPath,
             string deviceId,
             string certificateFileName,
-            string edgeHostName
+            string edgeHostName,
+            bool useWebSockets
         )
         {
             this.iothubConnectionString = iothubConnectionString;
@@ -36,6 +45,19 @@ namespace LeafDevice.Details
             this.deviceId = deviceId;
             this.certificateFileName = certificateFileName;
             this.edgeHostName = edgeHostName;
+
+            if (useWebSockets)
+            {
+                this.serviceClientTransportType = ServiceClientTransportType.Amqp_WebSocket_Only;
+                this.eventHubClientTransportType = EventHubClientTransportType.AmqpWebSockets;
+                this.deviceClientTransportType = DeviceClientTransportType.Mqtt_WebSocket_Only;
+            }
+            else
+            {
+                this.serviceClientTransportType = ServiceClientTransportType.Amqp;
+                this.eventHubClientTransportType = EventHubClientTransportType.Amqp;
+                this.deviceClientTransportType = DeviceClientTransportType.Mqtt;
+            }
         }
 
         protected Task InstallCaCertificate()
@@ -50,12 +72,21 @@ namespace LeafDevice.Details
         protected async Task ConnectToEdgeAndSendData()
         {
             Microsoft.Azure.Devices.IotHubConnectionStringBuilder builder = Microsoft.Azure.Devices.IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
-            string leafDeviceConnectionString = $"HostName={builder.HostName};DeviceId={this.deviceId};SharedAccessKey={this.context.Device.Authentication.SymmetricKey.PrimaryKey};gatewayHostName={this.edgeHostName}";
-
-            DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(leafDeviceConnectionString, Microsoft.Azure.Devices.Client.TransportType.Amqp);
-
+            string leafDeviceConnectionString = $"HostName={builder.HostName};DeviceId={this.deviceId};SharedAccessKey={this.context.Device.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={this.edgeHostName}";
+            
+            this.context.DeviceClientInstance = Option.Some(DeviceClient.CreateFromConnectionString(leafDeviceConnectionString, this.deviceClientTransportType));
+            Console.WriteLine("Leaf Device client created.");
+            
             var message = new Microsoft.Azure.Devices.Client.Message(Encoding.ASCII.GetBytes($"Message from Leaf Device. MsgGUID: {this.context.MessageGuid}"));
-            await deviceClient.SendEventAsync(message);
+            Console.WriteLine($"Trying to send the message to '{this.edgeHostName}'");
+
+            await this.context.DeviceClientInstance.ForEachAsync(
+                async dc =>
+                {
+                    await dc.SendEventAsync(message);
+                    await dc.SetMethodHandlerAsync("DirectMethod", DirectMethod, null).ConfigureAwait(false);
+                    Console.WriteLine($"Message Sent. ");
+                });
         }
 
         protected async Task GetOrCreateDeviceIdentity()
@@ -100,6 +131,7 @@ namespace LeafDevice.Details
             this.context = new DeviceContext
             {
                 Device = device,
+                DeviceClientInstance = Option.None<DeviceClient>(),
                 IotHubConnectionString = this.iothubConnectionString,
                 RegistryManager = rm,
                 RemoveDevice = true,
@@ -110,6 +142,7 @@ namespace LeafDevice.Details
         protected async Task VerifyDataOnIoTHub()
         {
             var builder = new EventHubsConnectionStringBuilder(this.eventhubCompatibleEndpointWithEntityPath);
+            builder.TransportType = this.eventHubClientTransportType;
 
             Console.WriteLine($"Receiving events from device '{this.context.Device.Id}' on Event Hub '{builder.EntityPath}'");
 
@@ -121,7 +154,7 @@ namespace LeafDevice.Details
                 EventHubPartitionKeyResolver.ResolveToPartition(
                     this.context.Device.Id,
                     (await eventHubClient.GetRuntimeInformationAsync()).PartitionCount),
-                DateTime.Now.AddMinutes(-5));
+                EventPosition.FromEnqueuedTime(DateTime.Now.AddMinutes(-5)));
 
             var result = new TaskCompletionSource<bool>();
             using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3)))
@@ -132,7 +165,7 @@ namespace LeafDevice.Details
                         new PartitionReceiveHandler(
                             eventData =>
                             {
-                                eventData.Properties.TryGetValue("iothub-connection-device-id", out object devId);
+                                eventData.SystemProperties.TryGetValue("iothub-connection-device-id", out object devId);
 
                                 if (devId != null && devId.ToString().Equals(this.context.Device.Id)
                                     && Encoding.UTF8.GetString(eventData.Body).Contains(this.context.MessageGuid))
@@ -150,6 +183,38 @@ namespace LeafDevice.Details
 
             await eventHubReceiver.CloseAsync();
             await eventHubClient.CloseAsync();
+        }
+
+        static Task<MethodResponse> DirectMethod(MethodRequest methodRequest, object userContext)
+        {
+            Console.WriteLine($"Leaf device received direct method call...Payload Received: {methodRequest.DataAsJson}");
+            return Task.FromResult(new MethodResponse(methodRequest.Data, (int)HttpStatusCode.OK));
+        }
+
+        protected async Task VerifyDirectMethod()
+        {
+            //User Service SDK to invoke Direct Method on the device.
+            ServiceClient serviceClient =
+                ServiceClient.CreateFromConnectionString(this.context.IotHubConnectionString, this.serviceClientTransportType);
+            
+            //Call a direct method
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(300)))
+            {
+                CloudToDeviceMethod cloudToDeviceMethod = new CloudToDeviceMethod("DirectMethod").SetPayloadJson("{\"TestKey\" : \"TestValue\"}");
+
+                CloudToDeviceMethodResult result = await serviceClient.InvokeDeviceMethodAsync(
+                this.context.Device.Id,
+                cloudToDeviceMethod,
+                cts.Token);
+
+                if (result.Status != 200)
+                {
+                    throw new Exception("Could not invoke Direct Method on Device.");
+                } else if (!result.GetPayloadAsJson().Equals("{\"TestKey\":\"TestValue\"}"))
+                {
+                    throw new Exception($"Payload doesn't match with Sent Payload. Received payload: {result.GetPayloadAsJson()}. Expected: {{\"TestKey\":\"TestValue\"}}");
+                }
+            }
         }
 
         protected void KeepDeviceIdentity()
@@ -180,10 +245,12 @@ namespace LeafDevice.Details
 
     public class DeviceContext
     {
-        public Device Device;
-        public string IotHubConnectionString;
-        public RegistryManager RegistryManager;
-        public bool RemoveDevice;
-        public string MessageGuid; //used to identify exactly which message got sent. 
+        public Device Device { get; set; }
+
+        public Option<DeviceClient> DeviceClientInstance { get; set; }
+        public string IotHubConnectionString { get; set; }
+        public RegistryManager RegistryManager { get; set; }
+        public bool RemoveDevice { get; set; }
+        public string MessageGuid { get; set; } //used to identify exactly which message got sent.
     }
 }

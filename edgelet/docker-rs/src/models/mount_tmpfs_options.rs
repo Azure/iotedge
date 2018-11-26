@@ -16,7 +16,10 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct MountTmpfsOptions {
     /// The size for the tmpfs mount in bytes.
-    #[serde(rename = "SizeBytes", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "SizeBytes",
+        skip_serializing_if = "Option::is_none"
+    )]
     size_bytes: Option<i64>,
     /// The permission mode for the tmpfs mount in an integer.
     #[serde(rename = "Mode", skip_serializing_if = "Option::is_none")]
@@ -25,7 +28,7 @@ pub struct MountTmpfsOptions {
 
 impl MountTmpfsOptions {
     /// Optional configuration for the `tmpfs` type.
-    pub fn new() -> MountTmpfsOptions {
+    pub fn new() -> Self {
         MountTmpfsOptions {
             size_bytes: None,
             mode: None,
@@ -36,13 +39,13 @@ impl MountTmpfsOptions {
         self.size_bytes = Some(size_bytes);
     }
 
-    pub fn with_size_bytes(mut self, size_bytes: i64) -> MountTmpfsOptions {
+    pub fn with_size_bytes(mut self, size_bytes: i64) -> Self {
         self.size_bytes = Some(size_bytes);
         self
     }
 
-    pub fn size_bytes(&self) -> Option<&i64> {
-        self.size_bytes.as_ref()
+    pub fn size_bytes(&self) -> Option<i64> {
+        self.size_bytes
     }
 
     pub fn reset_size_bytes(&mut self) {
@@ -53,13 +56,13 @@ impl MountTmpfsOptions {
         self.mode = Some(mode);
     }
 
-    pub fn with_mode(mut self, mode: i32) -> MountTmpfsOptions {
+    pub fn with_mode(mut self, mode: i32) -> Self {
         self.mode = Some(mode);
         self
     }
 
-    pub fn mode(&self) -> Option<&i32> {
-        self.mode.as_ref()
+    pub fn mode(&self) -> Option<i32> {
+        self.mode
     }
 
     pub fn reset_mode(&mut self) {

@@ -10,18 +10,18 @@
 
 use failure::err_msg;
 use failure::Error;
-use hyper::client::Connect;
+use hyper::client::connect::Connect;
 use hyper::{Client, Uri};
 
 pub struct Configuration<C: Connect> {
     pub base_path: String,
     pub user_agent: Option<String>,
     pub client: Client<C>,
-    pub uri_composer: Box<Fn(&str, &str) -> Result<Uri, Error>>,
+    pub uri_composer: Box<Fn(&str, &str) -> Result<Uri, Error> + Send + Sync>,
 }
 
 impl<C: Connect> Configuration<C> {
-    pub fn new(client: Client<C>) -> Configuration<C> {
+    pub fn new(client: Client<C>) -> Self {
         Configuration {
             base_path: "http://localhost/v1.34".to_owned(),
             user_agent: Some("edgelet/0.1.0".to_owned()),

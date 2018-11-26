@@ -71,20 +71,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     var transportSettings = c.Resolve<ITransportSettings>();
                     var transportListenerProvider = c.Resolve<ITransportListenerProvider>();
                     var linkHandlerProvider = c.Resolve<ILinkHandlerProvider>();
-                    ICredentialsStore credentialsStore = await c.Resolve<Task<ICredentialsStore>>();
-                    IAuthenticator authenticator = await c.Resolve<Task<IAuthenticator>>();
-                    IConnectionProvider connectionProvider = await c.Resolve<Task<IConnectionProvider>>();
+                    var credentialsCacheTask = c.Resolve<Task<ICredentialsCache>>();
+                    var authenticatorTask = c.Resolve<Task<IAuthenticator>>();
+                    var connectionProviderTask = c.Resolve<Task<IConnectionProvider>>();
+                    ICredentialsCache credentialsCache = await credentialsCacheTask;
+                    IAuthenticator authenticator = await authenticatorTask;
+                    IConnectionProvider connectionProvider = await connectionProviderTask;
+                    var webSocketListenerRegistry = c.Resolve<IWebSocketListenerRegistry>();
                     AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(
                         this.iotHubHostName,
                         authenticator,
                         identityFactory,
                         linkHandlerProvider,
                         connectionProvider,
-                        credentialsStore);
+                        credentialsCache);
+
                     return new AmqpProtocolHead(
                         transportSettings,
                         amqpSettings,
-                        transportListenerProvider);
+                        transportListenerProvider,
+                        webSocketListenerRegistry);
                 })
                 .As<Task<AmqpProtocolHead>>()
                 .SingleInstance();

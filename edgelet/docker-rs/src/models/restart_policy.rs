@@ -19,13 +19,16 @@ pub struct RestartPolicy {
     #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
     name: Option<String>,
     /// If `on-failure` is used, the number of times to retry before giving up
-    #[serde(rename = "MaximumRetryCount", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "MaximumRetryCount",
+        skip_serializing_if = "Option::is_none"
+    )]
     maximum_retry_count: Option<i32>,
 }
 
 impl RestartPolicy {
     /// The behavior to apply when the container exits. The default is not to restart.  An ever increasing delay (double the previous delay, starting at 100ms) is added before each restart to prevent flooding the server.
-    pub fn new() -> RestartPolicy {
+    pub fn new() -> Self {
         RestartPolicy {
             name: None,
             maximum_retry_count: None,
@@ -36,13 +39,13 @@ impl RestartPolicy {
         self.name = Some(name);
     }
 
-    pub fn with_name(mut self, name: String) -> RestartPolicy {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
     }
 
-    pub fn name(&self) -> Option<&String> {
-        self.name.as_ref()
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_name(&mut self) {
@@ -53,13 +56,13 @@ impl RestartPolicy {
         self.maximum_retry_count = Some(maximum_retry_count);
     }
 
-    pub fn with_maximum_retry_count(mut self, maximum_retry_count: i32) -> RestartPolicy {
+    pub fn with_maximum_retry_count(mut self, maximum_retry_count: i32) -> Self {
         self.maximum_retry_count = Some(maximum_retry_count);
         self
     }
 
-    pub fn maximum_retry_count(&self) -> Option<&i32> {
-        self.maximum_retry_count.as_ref()
+    pub fn maximum_retry_count(&self) -> Option<i32> {
+        self.maximum_retry_count
     }
 
     pub fn reset_maximum_retry_count(&mut self) {

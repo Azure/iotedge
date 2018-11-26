@@ -1,64 +1,65 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::cell::RefCell;
+use std::sync::Mutex;
 
-use edgelet_core::{IdentityManager, IdentitySpec};
-use edgelet_http::route::{BoxFuture, Handler, Parameters};
-use futures::{future, Future};
-use http::{Request, Response, StatusCode};
-use hyper::{Body, Error as HyperError};
+use failure::{Fail, ResultExt};
+use futures::{Future, IntoFuture};
+use hyper::{Body, Request, Response, StatusCode};
+
+use edgelet_core::{IdentityManager, IdentityOperation, IdentitySpec};
+use edgelet_http::route::{Handler, Parameters};
+use edgelet_http::Error as HttpError;
 
 use error::{Error, ErrorKind};
 use IntoResponse;
 
-pub struct DeleteIdentity<I>
-where
-    I: 'static + IdentityManager,
-    <I as IdentityManager>::Error: IntoResponse,
-{
-    id_manager: RefCell<I>,
+pub struct DeleteIdentity<I> {
+    id_manager: Mutex<I>,
 }
 
-impl<I> DeleteIdentity<I>
-where
-    I: 'static + IdentityManager,
-    <I as IdentityManager>::Error: IntoResponse,
-{
+impl<I> DeleteIdentity<I> {
     pub fn new(id_manager: I) -> Self {
         DeleteIdentity {
-            id_manager: RefCell::new(id_manager),
+            id_manager: Mutex::new(id_manager),
         }
     }
 }
 
 impl<I> Handler<Parameters> for DeleteIdentity<I>
 where
-    I: 'static + IdentityManager,
-    <I as IdentityManager>::Error: IntoResponse,
+    I: 'static + IdentityManager + Send,
 {
     fn handle(
         &self,
         _req: Request<Body>,
         params: Parameters,
-    ) -> BoxFuture<Response<Body>, HyperError> {
+    ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
         let response = params
             .name("name")
-            .ok_or_else(|| Error::from(ErrorKind::BadParam))
+            .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("name")))
             .map(|name| {
-                let result = self
-                    .id_manager
-                    .borrow_mut()
-                    .delete(IdentitySpec::new(name))
-                    .map(|_| {
-                        Response::builder()
-                            .status(StatusCode::NO_CONTENT)
-                            .body(Body::default())
-                            .unwrap_or_else(|e| e.into_response())
+                let name = name.to_string();
+
+                self.id_manager
+                    .lock()
+                    .unwrap()
+                    .delete(IdentitySpec::new(name.clone()))
+                    .then(|result| match result {
+                        Ok(_) => Ok(name),
+                        Err(err) => Err(Error::from(err.context(ErrorKind::IdentityOperation(
+                            IdentityOperation::DeleteIdentity(name),
+                        )))),
                     })
-                    .or_else(|e| future::ok(e.into_response()));
-                future::Either::A(result)
-            })
-            .unwrap_or_else(|e| future::Either::B(future::ok(e.into_response())));
+            }).into_future()
+            .flatten()
+            .and_then(|name| {
+                Ok(Response::builder()
+                    .status(StatusCode::NO_CONTENT)
+                    .body(Body::default())
+                    .context(ErrorKind::IdentityOperation(
+                        IdentityOperation::DeleteIdentity(name),
+                    ))?)
+            }).or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }
@@ -91,7 +92,7 @@ mod tests {
         let response = handler.handle(request, parameters).wait().unwrap();
         assert_eq!(StatusCode::NO_CONTENT, response.status());
 
-        let list = handler.id_manager.borrow().list().wait().unwrap();
+        let list = handler.id_manager.lock().unwrap().list().wait().unwrap();
         assert_eq!(2, list.len());
         assert_eq!(
             None,
@@ -115,10 +116,12 @@ mod tests {
             .concat2()
             .and_then(|body| {
                 let error: ErrorResponse = serde_json::from_slice(&body).unwrap();
-                assert_eq!("Bad parameter", error.message());
+                assert_eq!(
+                    "The request is missing required parameter `name`",
+                    error.message()
+                );
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 
@@ -138,10 +141,12 @@ mod tests {
             .concat2()
             .and_then(|body| {
                 let error: ErrorResponse = serde_json::from_slice(&body).unwrap();
-                assert_eq!("Module not found", error.message());
+                assert_eq!(
+                    "Could not delete identity m1\n\tcaused by: Module not found",
+                    error.message()
+                );
                 Ok(())
-            })
-            .wait()
+            }).wait()
             .unwrap();
     }
 }

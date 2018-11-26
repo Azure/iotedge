@@ -1,6 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
+
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Net;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -10,10 +15,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Moq;
-    using System;
-    using System.Collections.Generic;
-    using System.Net;
-    using System.Threading.Tasks;
     using Xunit;
     using IMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
     using Message = Microsoft.Azure.Devices.Edge.Hub.Core.EdgeMessage;
@@ -57,10 +58,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var twinManager = Mock.Of<ITwinManager>();
 
             // Test Scenario
-            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager, "testEdgeDevice", Mock.Of<IInvokeMethodHandler>());
-            var identity = Mock.Of<IIdentity>();
+            var routingEdgeHub = new RoutingEdgeHub(
+                router,
+                messageConverter,
+                connectionManager,
+                twinManager,
+                "testEdgeDevice",
+                Mock.Of<IInvokeMethodHandler>(),
+                Mock.Of<IDeviceConnectivityManager>());
+            var identity = new Mock<IIdentity>();
+            identity.SetupGet(id => id.Id).Returns("something");
             EdgeMessage[] messages = { new Message.Builder(new byte[0]).Build() };
-            await routingEdgeHub.ProcessDeviceMessageBatch(identity, messages);
+            await routingEdgeHub.ProcessDeviceMessageBatch(identity.Object, messages);
 
             // Verify Expectation
             Mock.Get(endpointExecutor).Verify(e => e.Invoke(It.IsAny<IMessage>()), Times.Once);
@@ -103,7 +112,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             Message badMessage = new Message.Builder(new byte[300 * 1024]).Build();
 
-            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager, "testEdgeDevice", Mock.Of<IInvokeMethodHandler>());
+            var routingEdgeHub = new RoutingEdgeHub(
+                router,
+                messageConverter,
+                connectionManager,
+                twinManager,
+                "testEdgeDevice",
+                Mock.Of<IInvokeMethodHandler>(),
+                Mock.Of<IDeviceConnectivityManager>());
 
             await Assert.ThrowsAsync<EdgeHubMessageTooLargeException>(() => routingEdgeHub.ProcessDeviceMessage(identity.Object, badMessage));
 
@@ -147,14 +163,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var twinManager = new Mock<ITwinManager>();
             var message = Mock.Of<Core.IMessage>();
             twinManager.Setup(t => t.GetTwinAsync(It.IsAny<string>())).Returns(Task.FromResult(message));
-            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager.Object, "testEdgeDevice", Mock.Of<IInvokeMethodHandler>());
+            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager.Object, "testEdgeDevice", Mock.Of<IInvokeMethodHandler>(), Mock.Of<IDeviceConnectivityManager>());
 
             Core.IMessage received = await routingEdgeHub.GetTwinAsync("*");
             twinManager.Verify(x => x.GetTwinAsync("*"), Times.Once);
 
             Assert.Equal(message, received);
         }
-
 
         [Fact]
         public async Task UpdateDesiredPropertiesForwardsToTwinManager()
@@ -185,7 +200,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var message = Mock.Of<Core.IMessage>();
             Core.IMessage received = new Message.Builder(new byte[0]).Build();
             twinManager.Setup(t => t.UpdateDesiredPropertiesAsync(It.IsAny<string>(), It.IsAny<Core.IMessage>())).Callback<string, Core.IMessage>((s, m) => received = message).Returns(Task.CompletedTask);
-            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager.Object, "testEdgeDevice", Mock.Of<IInvokeMethodHandler>());
+            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager.Object, "testEdgeDevice", Mock.Of<IInvokeMethodHandler>(), Mock.Of<IDeviceConnectivityManager>());
 
             await routingEdgeHub.UpdateDesiredPropertiesAsync("*", message);
             twinManager.Verify(x => x.UpdateDesiredPropertiesAsync("*", message), Times.Once);
@@ -217,15 +232,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Router router = await Router.CreateAsync("myRouter", "myIotHub", routerConfig, endpointExecutorFactory);
 
             // Create mock message converter to generate a message with source matching the route
-            var messageConverter = Mock.Of<Core.IMessageConverter<IMessage>>();            
+            var messageConverter = Mock.Of<Core.IMessageConverter<IMessage>>();
 
             // Mock of twin manager
             var twinManager = Mock.Of<ITwinManager>();
-            
+
             // DeviceListener
             var identity = Mock.Of<IModuleIdentity>(m => m.DeviceId == "device1" && m.ModuleId == "module1" && m.Id == "device1/module1");
-            var credentialsProvider = Mock.Of<IClientCredentials>(c => c.Identity == identity);
-            var cloudProxy = new Mock<ICloudProxy>();            
+            var cloudProxy = new Mock<ICloudProxy>();
             var underlyingDeviceProxy = new Mock<IDeviceProxy>();
             underlyingDeviceProxy.Setup(d => d.InvokeMethodAsync(It.IsAny<DirectMethodRequest>())).ReturnsAsync(default(DirectMethodResponse));
             underlyingDeviceProxy.SetupGet(d => d.IsActive).Returns(true);
@@ -235,21 +249,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var cloudConnectionProvider = new Mock<ICloudConnectionProvider>();
             cloudConnectionProvider.Setup(c => c.Connect(It.IsAny<IClientCredentials>(), It.IsAny<Action<string, CloudConnectionStatus>>()))
                 .ReturnsAsync(Try.Success(cloudConnection));
-            var connectionManager = new ConnectionManager(cloudConnectionProvider.Object);
+            var connectionManager = new ConnectionManager(cloudConnectionProvider.Object, Mock.Of<ICredentialsCache>(), new IdentityProvider("myIotHub"));
 
             IInvokeMethodHandler invokeMethodHandler = new InvokeMethodHandler(connectionManager);
 
             // RoutingEdgeHub
-            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager, "testEdgeDevice", invokeMethodHandler);
+            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager, "testEdgeDevice", invokeMethodHandler, Mock.Of<IDeviceConnectivityManager>());
 
-            var deviceMessageHandler = new DeviceMessageHandler(identity, routingEdgeHub, connectionManager);            
+            var deviceMessageHandler = new DeviceMessageHandler(identity, routingEdgeHub, connectionManager);
             var methodRequest = new DirectMethodRequest("device1/module1", "shutdown", null, TimeSpan.FromSeconds(2), TimeSpan.FromMilliseconds(10));
 
             // Act
-            await connectionManager.AddDeviceConnection(credentialsProvider);
             deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object);
             await deviceMessageHandler.AddSubscription(DeviceSubscription.Methods);
-            Task<DirectMethodResponse> responseTask = routingEdgeHub.InvokeMethodAsync(identity.Id, methodRequest);                        
+            Task<DirectMethodResponse> responseTask = routingEdgeHub.InvokeMethodAsync(identity.Id, methodRequest);
 
             // Assert
             Assert.False(responseTask.IsCompleted);
@@ -300,7 +313,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             // DeviceListener
             var identity = Mock.Of<IModuleIdentity>(m => m.DeviceId == "device1" && m.ModuleId == "module1" && m.Id == "device1/module1");
-            var credentialsProvider = Mock.Of<IClientCredentials>(c => c.Identity == identity);
             var cloudProxy = new Mock<ICloudProxy>();
             var underlyingDeviceProxy = new Mock<IDeviceProxy>();
             underlyingDeviceProxy.Setup(d => d.InvokeMethodAsync(It.IsAny<DirectMethodRequest>())).ReturnsAsync(new DirectMethodResponse(methodRequest.CorrelationId, null, 200));
@@ -311,18 +323,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var cloudConnectionProvider = new Mock<ICloudConnectionProvider>();
             cloudConnectionProvider.Setup(c => c.Connect(It.IsAny<IClientCredentials>(), It.IsAny<Action<string, CloudConnectionStatus>>()))
                 .ReturnsAsync(Try.Success(cloudConnection));
-            var connectionManager = new ConnectionManager(cloudConnectionProvider.Object);
+            var connectionManager = new ConnectionManager(cloudConnectionProvider.Object, Mock.Of<ICredentialsCache>(), new IdentityProvider("myIotHub"));
 
             IInvokeMethodHandler invokeMethodHandler = new InvokeMethodHandler(connectionManager);
 
             // RoutingEdgeHub
-            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager, "testEdgeDevice", invokeMethodHandler);
+            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager, "testEdgeDevice", invokeMethodHandler, Mock.Of<IDeviceConnectivityManager>());
 
             var deviceMessageHandler = new DeviceMessageHandler(identity, routingEdgeHub, connectionManager);
 
             // Act
-            await connectionManager.AddDeviceConnection(credentialsProvider);
-            deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object);            
+            deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object);
             Task<DirectMethodResponse> responseTask = routingEdgeHub.InvokeMethodAsync(identity.Id, methodRequest);
 
             // Assert
@@ -372,20 +383,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             // DeviceListener
             var identity = Mock.Of<IModuleIdentity>(m => m.DeviceId == "device1" && m.ModuleId == "module1" && m.Id == "device1/module1");
-            var credentialsProvider = Mock.Of<IClientCredentials>(c => c.Identity == identity);
             var cloudProxy = new Mock<ICloudProxy>();
 
             // ICloudConnectionProvider
             var cloudConnection = Mock.Of<ICloudConnection>(c => c.IsActive && c.CloudProxy == Option.Some(cloudProxy.Object));
             var cloudConnectionProvider = new Mock<ICloudConnectionProvider>();
-            cloudConnectionProvider.Setup(c => c.Connect(It.IsAny<IClientCredentials>(), It.IsAny<Action<string, CloudConnectionStatus>>()))
+            cloudConnectionProvider.Setup(c => c.Connect(It.IsAny<IIdentity>(), It.IsAny<Action<string, CloudConnectionStatus>>()))
                 .ReturnsAsync(Try.Success(cloudConnection));
-            var connectionManager = new ConnectionManager(cloudConnectionProvider.Object);
+            var connectionManager = new ConnectionManager(cloudConnectionProvider.Object, Mock.Of<ICredentialsCache>(), new IdentityProvider("myIotHub"));
 
             IInvokeMethodHandler invokeMethodHandler = new InvokeMethodHandler(connectionManager);
 
             // RoutingEdgeHub
-            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager, "testEdgeDevice", invokeMethodHandler);
+            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager, "testEdgeDevice", invokeMethodHandler, Mock.Of<IDeviceConnectivityManager>());
 
             var deviceMessageHandler = new DeviceMessageHandler(identity, routingEdgeHub, connectionManager);
             var underlyingDeviceProxy = new Mock<IDeviceProxy>();
@@ -400,9 +410,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 .ReturnsAsync(default(DirectMethodResponse));
             underlyingDeviceProxy.SetupGet(d => d.IsActive).Returns(true);
 
-
             // Act
-            await connectionManager.AddDeviceConnection(credentialsProvider);
             deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object);
             Task<DirectMethodResponse> responseTask = routingEdgeHub.InvokeMethodAsync(identity.Id, methodRequest);
 
@@ -451,7 +459,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             string edgeDeviceId = "testEdgeDevice";
             // Test Scenario
-            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager, edgeDeviceId, Mock.Of<IInvokeMethodHandler>());
+            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager, edgeDeviceId, Mock.Of<IInvokeMethodHandler>(), Mock.Of<IDeviceConnectivityManager>());
 
             Message clientMessage1 = new Message.Builder(new byte[0]).Build();
             clientMessage1.SystemProperties[Core.SystemProperties.ConnectionDeviceId] = edgeDeviceId;
@@ -490,7 +498,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             // Arrange
             cloudProxy = new Mock<ICloudProxy>();
-            
+
             // Act
             await edgeHub.ProcessSubscription(id, Option.Some(cloudProxy.Object), DeviceSubscription.C2D, false);
 
@@ -561,7 +569,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             string id = "d1";
             RoutingEdgeHub edgeHub = await GetTestEdgeHub();
             var cloudProxy = new Mock<ICloudProxy>();
-            
+
             // Act
             await edgeHub.ProcessSubscription(id, Option.Some(cloudProxy.Object), DeviceSubscription.ModuleMessages, true);
             await edgeHub.ProcessSubscription(id, Option.Some(cloudProxy.Object), DeviceSubscription.ModuleMessages, false);
@@ -571,7 +579,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             await edgeHub.ProcessSubscription(id, Option.Some(cloudProxy.Object), DeviceSubscription.Unknown, false);
 
             // Assert
-            cloudProxy.VerifyAll();            
+            cloudProxy.VerifyAll();
         }
 
         [Fact]
@@ -587,7 +595,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             connectionManager.Setup(c => c.AddSubscription(deviceId, DeviceSubscription.Methods));
             connectionManager.Setup(c => c.GetCloudConnection(deviceId)).Returns(Task.FromResult(Option.Some(cloudProxy.Object)));
             IEdgeHub edgeHub = await GetTestEdgeHub(connectionManager.Object);
-            
+
             // Act
             await edgeHub.AddSubscription(deviceId, DeviceSubscription.Methods);
 
@@ -597,7 +605,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         }
 
         [Fact]
-        public async Task AddSubscriptionThrowsTest()
+        public async Task AddSubscriptionHandlesExceptionTest()
         {
             // Arrange
             string deviceId = "d1";
@@ -611,7 +619,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             IEdgeHub edgeHub = await GetTestEdgeHub(connectionManager.Object);
 
             // Act
-            await Assert.ThrowsAsync<InvalidOperationException>(() => edgeHub.AddSubscription(deviceId, DeviceSubscription.Methods));
+            await edgeHub.AddSubscription(deviceId, DeviceSubscription.Methods);
 
             // Assert
             cloudProxy.VerifyAll();
@@ -640,7 +648,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             connectionManager.VerifyAll();
         }
 
-
         [Fact]
         public async Task RemoveSubscriptionTest()
         {
@@ -664,7 +671,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         }
 
         [Fact]
-        public async Task RemoveSubscriptionThrowsTest()
+        public async Task RemoveSubscriptionHandlesExceptionTest()
         {
             // Arrange
             string deviceId = "d1";
@@ -678,7 +685,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             IEdgeHub edgeHub = await GetTestEdgeHub(connectionManager.Object);
 
             // Act
-            await Assert.ThrowsAsync<InvalidOperationException>(() => edgeHub.AddSubscription(deviceId, DeviceSubscription.Methods));
+            await edgeHub.AddSubscription(deviceId, DeviceSubscription.Methods);
 
             // Assert
             cloudProxy.VerifyAll();
@@ -707,6 +714,81 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             connectionManager.VerifyAll();
         }
 
+        [Fact]
+        public async Task ProcessSubscriptionsOnDeviceConnected()
+        {
+            // Arrange
+            string d1 = "d1";
+            var deviceIdentity = Mock.Of<IIdentity>(d => d.Id == d1);
+            string m1 = "d2/m1";
+            var moduleIdentity = Mock.Of<IIdentity>(m => m.Id == m1);
+
+            var connectedClients = new List<IIdentity>
+            {
+                deviceIdentity,
+                moduleIdentity
+            };
+            
+            IReadOnlyDictionary<DeviceSubscription, bool> device1Subscriptions = new Dictionary<DeviceSubscription, bool>()
+            {
+                [DeviceSubscription.Methods] = true,
+                [DeviceSubscription.DesiredPropertyUpdates] = true
+            };
+
+            IReadOnlyDictionary<DeviceSubscription, bool> module1Subscriptions = new Dictionary<DeviceSubscription, bool>()
+            {
+                [DeviceSubscription.Methods] = true,
+                [DeviceSubscription.ModuleMessages] = true
+            };
+
+            var device1CloudProxy = Mock.Of<ICloudProxy>(dc => dc.SetupDesiredPropertyUpdatesAsync() == Task.CompletedTask
+                && dc.SetupCallMethodAsync() == Task.CompletedTask);
+            Mock.Get(device1CloudProxy).SetupGet(d => d.IsActive).Returns(true);
+            var module1CloudProxy = Mock.Of<ICloudProxy>(mc => mc.SetupCallMethodAsync() == Task.CompletedTask && mc.IsActive);
+
+            var invokeMethodHandler = Mock.Of<IInvokeMethodHandler>(m =>
+                m.ProcessInvokeMethodSubscription(d1) == Task.CompletedTask
+                && m.ProcessInvokeMethodSubscription(m1) == Task.CompletedTask);
+
+            var connectionManager = Mock.Of<IConnectionManager>(c =>
+                c.GetConnectedClients() == connectedClients
+                && c.GetSubscriptions(d1) == Option.Some(device1Subscriptions)
+                && c.GetSubscriptions(m1) == Option.Some(module1Subscriptions)
+                && c.GetCloudConnection(d1) == Task.FromResult(Option.Some(device1CloudProxy))
+                && c.GetCloudConnection(m1) == Task.FromResult(Option.Some(module1CloudProxy)));
+
+            var endpoint = new Mock<Endpoint>("myId");
+            var endpointExecutor = Mock.Of<IEndpointExecutor>();
+            Mock.Get(endpointExecutor).SetupGet(ee => ee.Endpoint).Returns(() => endpoint.Object);
+            var endpointExecutorFactory = Mock.Of<IEndpointExecutorFactory>();
+            Mock.Get(endpointExecutorFactory).Setup(eef => eef.CreateAsync(It.IsAny<Endpoint>())).ReturnsAsync(endpointExecutor);
+            var endpoints = new HashSet<Endpoint> { endpoint.Object };
+            var route = new Route("myRoute", "true", "myIotHub", TelemetryMessageSource.Instance, endpoints);
+            var routerConfig = new RouterConfig(new[] { route });
+            Router router = await Router.CreateAsync("myRouter", "myIotHub", routerConfig, endpointExecutorFactory);
+
+            var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
+
+            var edgeHub = new RoutingEdgeHub(
+                router,
+                Mock.Of<Core.IMessageConverter<IMessage>>(),
+                connectionManager,
+                Mock.Of<ITwinManager>(),
+                "ed1",
+                invokeMethodHandler,
+                deviceConnectivityManager);
+
+            // Act
+            Mock.Get(deviceConnectivityManager).Raise(d => d.DeviceConnected += null, new EventArgs());
+
+            // Assert
+            Mock.Get(device1CloudProxy).Verify(d => d.SetupDesiredPropertyUpdatesAsync(), Times.Once);
+            Mock.Get(device1CloudProxy).Verify(d => d.SetupCallMethodAsync(), Times.Once);
+            Mock.Get(module1CloudProxy).Verify(m => m.SetupCallMethodAsync(), Times.Once);
+            Mock.Get(invokeMethodHandler).VerifyAll();
+            Mock.Get(connectionManager).VerifyAll();
+        }
+
         static async Task<RoutingEdgeHub> GetTestEdgeHub(IConnectionManager connectionManager = null)
         {
             // Arrange
@@ -724,8 +806,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             // Create a router
             var routerConfig = new RouterConfig(new[] { route });
             Router router = await Router.CreateAsync("myRouter", "myIotHub", routerConfig, endpointExecutorFactory);
-            var edgeHub = new RoutingEdgeHub(router, Mock.Of<Core.IMessageConverter<IMessage>>(),
-                connectionManager, Mock.Of<ITwinManager>(), "ed1", Mock.Of<IInvokeMethodHandler>());
+            var edgeHub = new RoutingEdgeHub(
+                router,
+                Mock.Of<Core.IMessageConverter<IMessage>>(),
+                connectionManager,
+                Mock.Of<ITwinManager>(),
+                "ed1",
+                Mock.Of<IInvokeMethodHandler>(),
+                Mock.Of<IDeviceConnectivityManager>());
             return edgeHub;
         }
     }

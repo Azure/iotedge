@@ -29,8 +29,7 @@ impl SetPlatformDefines for Config {
                         String::from("ON")
                     })
                 })
-            })
-            .unwrap();
+            }).unwrap();
         // C-shared library wants Windows flags (/DWIN32 /D_WINDOWS) for Windows,
         // and the cmake library overrides this.
         self.cflag("/DWIN32")
@@ -38,6 +37,7 @@ impl SetPlatformDefines for Config {
             .cflag("/D_WINDOWS")
             .cxxflag("/D_WINDOWS")
             .define(USE_EMULATOR, use_emulator)
+            .define("use_cppunittest", "OFF")
     }
 
     #[cfg(unix)]

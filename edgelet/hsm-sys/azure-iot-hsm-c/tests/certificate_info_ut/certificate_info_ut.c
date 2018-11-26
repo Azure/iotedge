@@ -5,10 +5,12 @@
 #include <cstdlib>
 #include <cstdint>
 #include <cstddef>
+#include <ctime>
 #else
 #include <stdlib.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <time.h>
 #endif
 
 static void* my_gballoc_malloc(size_t size)
@@ -43,10 +45,12 @@ static void* my_gballoc_realloc(void* ptr, size_t size)
 
 #include "certificate_info.h"
 
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+ extern time_t get_utc_time_from_asn_string(const unsigned char *time_value, size_t length);
  extern STRING_HANDLE real_Base64_Encoder(BUFFER_HANDLE input);
  extern STRING_HANDLE real_Base64_Encode_Bytes(const unsigned char* source, size_t size);
  extern BUFFER_HANDLE real_Base64_Decoder(const char* source);
@@ -66,31 +70,63 @@ extern "C" {
 static const int64_t RSA_CERT_VALID_FROM_TIME = 1484940333;
 static const int64_t RSA_CERT_VALID_TO_TIME = 1800300333;
 
-static const char* TEST_RSA_CERT =
+static const char* TEST_RSA_CERT_WIN_EOL =
+"-----BEGIN CERTIFICATE-----""\r\n"
+"MIICpDCCAYwCCQCgAJQdOd6dNzANBgkqhkiG9w0BAQsFADAUMRIwEAYDVQQDDAlsb2NhbGhvc3QwHhcNMTcwMTIwMTkyNTMzWhcNMjcwMTE4MTkyNTMzWjAUMRIwEAYDVQQDDAlsb2NhbGhvc3QwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDlJ3fRNWm05BRAhgUY7cpzaxHZIORomZaOp2Uua5yv+psdkpv35ExLhKGrUIK1AJLZylnue0ohZfKPFTnoxMHOecnaaXZ9RA25M7XGQvw85ePlGOZKKf3zXw3Ds58GFY6Sr1SqtDopcDuMmDSg/afYVvGHDjb2Fc4hZFip350AADcmjH5SfWuxgptCY2Jl6ImJoOpxt+imWsJCJEmwZaXw+eZBb87e/9PH4DMXjIUFZebShowAfTh/sinfwRkaLVQ7uJI82Ka/icm6Hmr56j7U81gDaF0DhC03ds5lhN7nMp5aqaKeEJiSGdiyyHAescfxLO/SMunNc/eG7iAirY7BAgMBAAEwDQYJKoZIhvcNAQELBQADggEBACU7TRogb8sEbv+SGzxKSgWKKbw+FNgC4Zi6Fz59t+4jORZkoZ8W87NM946wvkIpxbLKuc4F+7nTGHHksyHIiGC3qPpi4vWpqVeNAP+kfQptFoWEOzxD7jQTWIcqYhvssKZGwDk06c/WtvVnhZOZW+zzJKXA7mbwJrfp8VekOnN5zPwrOCumDiRX7BnEtMjqFDgdMgs9ohR5aFsI7tsqp+dToLKaZqBLTvYwCgCJCxdg3QvMhVD8OxcEIFJtDEwm3h9WFFO3ocabCmcMDyXUL354yaZ7RphCBLd06XXdaUU/eV6fOjY6T5ka4ZRJcYDJtjxSG04XPtxswQfrPGGoFhk=""\r\n"
+"-----END CERTIFICATE-----\r\n";
+
+static const char* TEST_RSA_CERT_NIX_EOL =
 "-----BEGIN CERTIFICATE-----""\n"
 "MIICpDCCAYwCCQCgAJQdOd6dNzANBgkqhkiG9w0BAQsFADAUMRIwEAYDVQQDDAlsb2NhbGhvc3QwHhcNMTcwMTIwMTkyNTMzWhcNMjcwMTE4MTkyNTMzWjAUMRIwEAYDVQQDDAlsb2NhbGhvc3QwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDlJ3fRNWm05BRAhgUY7cpzaxHZIORomZaOp2Uua5yv+psdkpv35ExLhKGrUIK1AJLZylnue0ohZfKPFTnoxMHOecnaaXZ9RA25M7XGQvw85ePlGOZKKf3zXw3Ds58GFY6Sr1SqtDopcDuMmDSg/afYVvGHDjb2Fc4hZFip350AADcmjH5SfWuxgptCY2Jl6ImJoOpxt+imWsJCJEmwZaXw+eZBb87e/9PH4DMXjIUFZebShowAfTh/sinfwRkaLVQ7uJI82Ka/icm6Hmr56j7U81gDaF0DhC03ds5lhN7nMp5aqaKeEJiSGdiyyHAescfxLO/SMunNc/eG7iAirY7BAgMBAAEwDQYJKoZIhvcNAQELBQADggEBACU7TRogb8sEbv+SGzxKSgWKKbw+FNgC4Zi6Fz59t+4jORZkoZ8W87NM946wvkIpxbLKuc4F+7nTGHHksyHIiGC3qPpi4vWpqVeNAP+kfQptFoWEOzxD7jQTWIcqYhvssKZGwDk06c/WtvVnhZOZW+zzJKXA7mbwJrfp8VekOnN5zPwrOCumDiRX7BnEtMjqFDgdMgs9ohR5aFsI7tsqp+dToLKaZqBLTvYwCgCJCxdg3QvMhVD8OxcEIFJtDEwm3h9WFFO3ocabCmcMDyXUL354yaZ7RphCBLd06XXdaUU/eV6fOjY6T5ka4ZRJcYDJtjxSG04XPtxswQfrPGGoFhk=""\n"
+"-----END CERTIFICATE-----\n";
+
+static const char* TEST_ECC_CERT_WIN_EOL =
+"-----BEGIN CERTIFICATE-----""\r\n"
+"MIIBfTCCASSgAwIBAgIFGis8TV4wCgYIKoZIzj0EAwIwNDESMBAGA1UEAwwJcmlvdC1yb290MQswCQYDVQQGDAJVUzERMA8GA1UECgwITVNSX1RFU1QwHhcNMTcwMTAxMDAwMDAwWhcNMzcwMTAxMDAwMDAwWjA0MRIwEAYDVQQDDAlyaW90LXJvb3QxCzAJBgNVBAYMAlVTMREwDwYDVQQKDAhNU1JfVEVTVDBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABGmrWiahUg/J7F2llfSXSLn+0j0JxZ0fp1DTlEnI/Jzr3x5bsP2eRppj0jflBPvU+qJwT7EFnq2a1Tz4OWKxzn2jIzAhMAsGA1UdDwQEAwIABDASBgNVHRMBAf8ECDAGAQH/AgEBMAoGCCqGSM49BAMCA0cAMEQCIFFcPW6545a5BNP+yn9U/c0MwemXvzddylFa0KbDtANfAiB0rxBRLP1e7vZtzjJsLP6njjO6qWoArXRuTV2nDO3S9g==""\r\n"
 "-----END CERTIFICATE-----\r\n";
 
-static const char* TEST_ECC_CERT =
+static const char* TEST_ECC_CERT_NIX_EOL =
 "-----BEGIN CERTIFICATE-----""\n"
 "MIIBfTCCASSgAwIBAgIFGis8TV4wCgYIKoZIzj0EAwIwNDESMBAGA1UEAwwJcmlvdC1yb290MQswCQYDVQQGDAJVUzERMA8GA1UECgwITVNSX1RFU1QwHhcNMTcwMTAxMDAwMDAwWhcNMzcwMTAxMDAwMDAwWjA0MRIwEAYDVQQDDAlyaW90LXJvb3QxCzAJBgNVBAYMAlVTMREwDwYDVQQKDAhNU1JfVEVTVDBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABGmrWiahUg/J7F2llfSXSLn+0j0JxZ0fp1DTlEnI/Jzr3x5bsP2eRppj0jflBPvU+qJwT7EFnq2a1Tz4OWKxzn2jIzAhMAsGA1UdDwQEAwIABDASBgNVHRMBAf8ECDAGAQH/AgEBMAoGCCqGSM49BAMCA0cAMEQCIFFcPW6545a5BNP+yn9U/c0MwemXvzddylFa0KbDtANfAiB0rxBRLP1e7vZtzjJsLP6njjO6qWoArXRuTV2nDO3S9g==""\n"
-"-----END CERTIFICATE-----\r\n";
+"-----END CERTIFICATE-----\n";
 
-static const char* TEST_INVALID_CERT =
-"-----BEGIN CERTIFICATE REQUEST-----""\n"
-"MIIBIjCByAIBADBmMQswCQYDVQQGEwJVUzELMAkGA1UECAwCV0ExEDAOBgNVBAcMB1JlZG1vbmQxITAfBgNVBAoMGEludGVybmV0IFdpZGdpdHMgUHR5IEx0ZDEVMBMGA1UEAwwMUHJvdl9yZXF1ZXN0MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEdgUgbY2fVlM1Xr6P6B/E+yfT539BCzd4jBuoIyUYncnO5K0Qxyz8zC/V7z+iGQzB7jF799pkJoLtVPUhXoaLjqAAMAoGCCqGSM49BAMCA0kAMEYCIQCVfcLe+lNdUZtGxe4ZcxNcmQylnFRH9/ZCbyWWruROiAIhAK2OF66q5mFzCtZ8OE7KgffB3cBUCf/xZdUda9dH9Onp""\n"
+static const char* TEST_INVALID_CERT_WIN_EOL =
+"-----BEGIN CERTIFICATE REQUEST-----""\r\n"
+"MIIBIjCByAIBADBmMQswCQYDVQQGEwJVUzELMAkGA1UECAwCV0ExEDAOBgNVBAcMB1JlZG1vbmQxITAfBgNVBAoMGEludGVybmV0IFdpZGdpdHMgUHR5IEx0ZDEVMBMGA1UEAwwMUHJvdl9yZXF1ZXN0MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEdgUgbY2fVlM1Xr6P6B/E+yfT539BCzd4jBuoIyUYncnO5K0Qxyz8zC/V7z+iGQzB7jF799pkJoLtVPUhXoaLjqAAMAoGCCqGSM49BAMCA0kAMEYCIQCVfcLe+lNdUZtGxe4ZcxNcmQylnFRH9/ZCbyWWruROiAIhAK2OF66q5mFzCtZ8OE7KgffB3cBUCf/xZdUda9dH9Onp""\r\n"
 "-----END CERTIFICATE REQUEST-----\r\n";
 
-static const char* TEST_CHAIN_HEADER = "-----BEGIN CERTIFICATE-----";
-static const char* TEST_CERT_CHAIN =
-"-----BEGIN CERTIFICATE-----""\n"
-"MIIFvTCCA6WgAwIBAgICA+kwDQYJKoZIhvcNAQELBQAwgZUxCzAJBgNVBAYTAlVTMRcwFQYDVQQDDA5FZGdlIERldmljZSBDQTEQMA4GA1UEBwwHUmVkbW9uZDEiMCAGA1UECgwZRGVmYXVsdCBFZGdlIE9yZ2FuaXphdGlvbjETMBEGA1UECAwKV2FzaGluZ3RvbjEiMCAGA1UECwwZRGVmYXVsdCBFZGdlIE9yZ2FuaXphdGlvbjAeFw0xODA0MjQwMzU1NTdaFw0xOTA0MjQwMzU1NTdaMIGUMQswCQYDVQQGEwJVUzEWMBQGA1UEAwwNRWRnZSBBZ2VudCBDQTEQMA4GA1UEBwwHUmVkbW9uZDEiMCAGA1UECgwZRGVmYXVsdCBFZGdlIE9yZ2FuaXphdGlvbjETMBEGA1UECAwKV2FzaGluZ3RvbjEiMCAGA1UECwwZRGVmYXVsdCBFZGdlIE9yZ2FuaXphdGlvbjCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBAOr+S7kLLzqhhw1U6O7xGc6tf82EjvUVBZdXR8t61j8G3JwgtyfDdGk0M8pcG3hOmfZwAbHqEUZ8i78uJchvYzilJQcINxUuwS1bl7MWiFkThsql/XLyYtCSnKrhqRVPi2hxwbN4v39HmazEmUXazFSgF13E+Si2/lfJ86JHfnnQCMZmDP02EtcPc1Rw3LmS7pg3h2mRv769Vj11Wtsr7nNTssbGc3yhAhXdt3sMWQihr4yBnhk931uyQiQgeQ69eK5L8g3KjRsOFvMJEXAsIk/lmuYquTaUZfaanuzRezzNVDMwZF9oiVXXClutGj/MlRYl+23gFChx+QAmFg1T7oCb2a1FdXIM5koycRtWKRAbBh+q20Asn6DcEhZE+yyiMQYaiPvUENpPKi5zX5q7lxzIhHb/LrQH9yzVxYGb4bj1t64SnOscwiDc02zRNrInqud8vkVITu/HUskaZWVX1ArwMPyurdNBgKM+ZocWN7niw1txzISjZIyYooYmKmFh6rc3D0TSLlno2WVvTcaxmnw4q9CNIRIH/9uH7mlDxprg4TRBHGx9Bvrh1YJpllTBHv6nhI78r5YTr0ofZ1fr3mHIRcxMdFTVwRtVbKCRmU30broaCOlNJewtTZB27nQnjJBu7CbOKWlyADJlvc5tD8EYiH8HP162XCqKYg4zwDkNAgMBAAGjFjAUMBIGA1UdEwEB/wQIMAYBAf8CAQAwDQYJKoZIhvcNAQELBQADggIBAHR9AU3JtlJdeWB1cndjZRKJ+YCMHThGKvV9AbVuPUogCnkVRuz2JBh34xeulT90Ihh8LvXA6qE8swQc39+lxXijHAOKKVPgXKF4Z4EEztyK83E4fyxLnBl+x8diFWasVSAI3XLBX72gVno5LyAdwK9B6IqTGUvXt24/Gfd1PRrb7S4gYhwq96Lb7KpPnqElbs9yCeewjqImjzW4tWZrAug1fa4i7sGZX9l1BtpmRmov84JZPQKW5O4ocFuEpobiV1ESER8o4OxBKCCiwPyuZuGbnQrROF45C0qa67nF+R96OtcHraNKpqGkdsROST51Es5ISCLaBKyXzV8cgfzfzK7rap/DoYytbz2igInsHc1Gp+DHmkDKzDinNH0AGcSuA8FzR5W4Vzt+UVB9HTjAr5rgfrtiSAkrb4vXI/wE0iyKxMbdP0WVnY++im1mxjpywv6oeuwigx4aDiCBg/qD/JFdK4Db5J4TeRE60s/evigsrrhPjNrKXOjZQxVJU0d1xDoYJfk7bZumZPP0eSKvNRNmFARPVTZtR3geZjul8BZllBXbwCuxE2Ibg7uyqHsUVmJxF8dedKiBPaMWXkhmN3nBcTbopBsay9VrSn4L8EOXiXf36UrKL+IrDm5RzlPxA6vIafjsuHEJWnX1ec1qRiWLcU7SRkEbt8Dre+ktIMO3""\n"
+static const char* TEST_INVALID_CERT_NIX_EOL =
+"-----BEGIN CERTIFICATE REQUEST-----""\n"
+"MIIBIjCByAIBADBmMQswCQYDVQQGEwJVUzELMAkGA1UECAwCV0ExEDAOBgNVBAcMB1JlZG1vbmQxITAfBgNVBAoMGEludGVybmV0IFdpZGdpdHMgUHR5IEx0ZDEVMBMGA1UEAwwMUHJvdl9yZXF1ZXN0MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEdgUgbY2fVlM1Xr6P6B/E+yfT539BCzd4jBuoIyUYncnO5K0Qxyz8zC/V7z+iGQzB7jF799pkJoLtVPUhXoaLjqAAMAoGCCqGSM49BAMCA0kAMEYCIQCVfcLe+lNdUZtGxe4ZcxNcmQylnFRH9/ZCbyWWruROiAIhAK2OF66q5mFzCtZ8OE7KgffB3cBUCf/xZdUda9dH9Onp""\n"
+"-----END CERTIFICATE REQUEST-----\n";
+
+static const char* TEST_CERT_CHAIN_WIN_EOL =
+"-----BEGIN CERTIFICATE-----""\r\n"
+"MIIFvTCCA6WgAwIBAgICA+kwDQYJKoZIhvcNAQELBQAwgZUxCzAJBgNVBAYTAlVTMRcwFQYDVQQDDA5FZGdlIERldmljZSBDQTEQMA4GA1UEBwwHUmVkbW9uZDEiMCAGA1UECgwZRGVmYXVsdCBFZGdlIE9yZ2FuaXphdGlvbjETMBEGA1UECAwKV2FzaGluZ3RvbjEiMCAGA1UECwwZRGVmYXVsdCBFZGdlIE9yZ2FuaXphdGlvbjAeFw0xODA0MjQwMzU1NTdaFw0xOTA0MjQwMzU1NTdaMIGUMQswCQYDVQQGEwJVUzEWMBQGA1UEAwwNRWRnZSBBZ2VudCBDQTEQMA4GA1UEBwwHUmVkbW9uZDEiMCAGA1UECgwZRGVmYXVsdCBFZGdlIE9yZ2FuaXphdGlvbjETMBEGA1UECAwKV2FzaGluZ3RvbjEiMCAGA1UECwwZRGVmYXVsdCBFZGdlIE9yZ2FuaXphdGlvbjCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBAOr+S7kLLzqhhw1U6O7xGc6tf82EjvUVBZdXR8t61j8G3JwgtyfDdGk0M8pcG3hOmfZwAbHqEUZ8i78uJchvYzilJQcINxUuwS1bl7MWiFkThsql/XLyYtCSnKrhqRVPi2hxwbN4v39HmazEmUXazFSgF13E+Si2/lfJ86JHfnnQCMZmDP02EtcPc1Rw3LmS7pg3h2mRv769Vj11Wtsr7nNTssbGc3yhAhXdt3sMWQihr4yBnhk931uyQiQgeQ69eK5L8g3KjRsOFvMJEXAsIk/lmuYquTaUZfaanuzRezzNVDMwZF9oiVXXClutGj/MlRYl+23gFChx+QAmFg1T7oCb2a1FdXIM5koycRtWKRAbBh+q20Asn6DcEhZE+yyiMQYaiPvUENpPKi5zX5q7lxzIhHb/LrQH9yzVxYGb4bj1t64SnOscwiDc02zRNrInqud8vkVITu/HUskaZWVX1ArwMPyurdNBgKM+ZocWN7niw1txzISjZIyYooYmKmFh6rc3D0TSLlno2WVvTcaxmnw4q9CNIRIH/9uH7mlDxprg4TRBHGx9Bvrh1YJpllTBHv6nhI78r5YTr0ofZ1fr3mHIRcxMdFTVwRtVbKCRmU30broaCOlNJewtTZB27nQnjJBu7CbOKWlyADJlvc5tD8EYiH8HP162XCqKYg4zwDkNAgMBAAGjFjAUMBIGA1UdEwEB/wQIMAYBAf8CAQAwDQYJKoZIhvcNAQELBQADggIBAHR9AU3JtlJdeWB1cndjZRKJ+YCMHThGKvV9AbVuPUogCnkVRuz2JBh34xeulT90Ihh8LvXA6qE8swQc39+lxXijHAOKKVPgXKF4Z4EEztyK83E4fyxLnBl+x8diFWasVSAI3XLBX72gVno5LyAdwK9B6IqTGUvXt24/Gfd1PRrb7S4gYhwq96Lb7KpPnqElbs9yCeewjqImjzW4tWZrAug1fa4i7sGZX9l1BtpmRmov84JZPQKW5O4ocFuEpobiV1ESER8o4OxBKCCiwPyuZuGbnQrROF45C0qa67nF+R96OtcHraNKpqGkdsROST51Es5ISCLaBKyXzV8cgfzfzK7rap/DoYytbz2igInsHc1Gp+DHmkDKzDinNH0AGcSuA8FzR5W4Vzt+UVB9HTjAr5rgfrtiSAkrb4vXI/wE0iyKxMbdP0WVnY++im1mxjpywv6oeuwigx4aDiCBg/qD/JFdK4Db5J4TeRE60s/evigsrrhPjNrKXOjZQxVJU0d1xDoYJfk7bZumZPP0eSKvNRNmFARPVTZtR3geZjul8BZllBXbwCuxE2Ibg7uyqHsUVmJxF8dedKiBPaMWXkhmN3nBcTbopBsay9VrSn4L8EOXiXf36UrKL+IrDm5RzlPxA6vIafjsuHEJWnX1ec1qRiWLcU7SRkEbt8Dre+ktIMO3""\r\n"
 "-----END CERTIFICATE-----""\r\n"
-"-----BEGIN CERTIFICATE-----""\n"
-"MIIFuzCCA6OgAwIBAgICA+gwDQYJKoZIhvcNAQELBQAwgZUxCzAJBgNVBAYTAlVTMRcwFQYDVQQDDA5FZGdlIERldmljZSBDQTEQMA4GA1UEBwwHUmVkbW9uZDEiMCAGA1UECgwZRGVmYXVsdCBFZGdlIE9yZ2FuaXphdGlvbjETMBEGA1UECAwKV2FzaGluZ3RvbjEiMCAGA1UECwwZRGVmYXVsdCBFZGdlIE9yZ2FuaXphdGlvbjAeFw0xODA0MjQwMzU1NTdaFw0xOTA0MjQwMzU1NTdaMIGVMQswCQYDVQQGEwJVUzEXMBUGA1UEAwwORWRnZSBEZXZpY2UgQ0ExEDAOBgNVBAcMB1JlZG1vbmQxIjAgBgNVBAoMGURlZmF1bHQgRWRnZSBPcmdhbml6YXRpb24xEzARBgNVBAgMCldhc2hpbmd0b24xIjAgBgNVBAsMGURlZmF1bHQgRWRnZSBPcmdhbml6YXRpb24wggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQCxqFOTRC1in4Kjhgba62GYYTZnDLsFk/Y9YqyhHr0+VMLEyZrwLRMyKS5V2nmt7lFMZsMDuoU+uISo+i+Wvx8aNjyalF8vQfVwQtRfFbSAVEzmEZMfff80SMdo31uN9KcmjTqrn1ULLHBEhmiOgW+V+gizAkcmCpCHWEv1MexlQ2t5RSM0BF2AIwA4I3DyT0OuVyAtC3UUxPDQb5KqUChBGexej/Y1JxcLDo7evxEH5eZtepXeVIO/yzn2a7PaplxEh2vStLsZVUuso1e8bghjREVp4OzHmce2Fss46XFTlah7gCTlCe7f03OVQOBS7IOxrPnm1xizmI4aNECa+HqkPoM83/fLUzjAYi3DFzwY+Y8kzt5tIq1jt5oXSAu+W/K3t1w9EMDn0BcKjvEMoJKiX2ZAD/PhLT+0GgGzyYenqwXLv9a0oh245rv/dD3Q+uL5sSuS9U+UF4j8NYVqXxRmU340/WQdfDyrL/IiRDrp+oelm3ddKX6qQ9ZqrlK31H1FAJrJH/6mf0auOdkumAHoGwL+vIzaezW52CuQDtNmRi3IoDoObdzSfW0aTeKoljr9/fq3jri7BI5GwWAhDBM+tiYPaMCaSxBI547SAFlla1xScI22a04L5ec3KHZleb6Rsfvd1ybWlSOjXOGqHcnGz9uUCwM/cYHcLQpnsroHxQIDAQABoxMwETAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4ICAQBkNRKg/xeJ2/n/KckHxCXv9QsPnnEFQu0Z2w2nw5GPi0Y9cSQHgwL1EwPvAsjQ7WBbe2e44DkwssbGnLO4kE0CkLgbTVbBPybrWeOcl3Ei173CBSwPOQxJZ14voquSFxglaYoVABaLpmsME4ZYn9W1occhoLKaZ7jGZAbLo/ZsigO1u/mSf6ZgaBSd1GdBeTfzLxu1IdnorYlKWudi9pQ/6TW/yT+mNq3iuMWNeqUJps2sgWkaaaqzvHx4dAOb6rzBC/4vuxIc2X2z6NgSjdddr1V3yCyjpX54TgM/q/00BhSaRluqQAn/QHqIrDbeExUbGSFfb9Ma1aiUMNuxgYGiF/v72P7Nq+WhOLa9mucoO293abq0SOAup4RdqOj9QnyJ91s1Lwe07bn3huF1ScYkOAQxmzA3rS8JZ2z6snJigI/Kb70Ba2rVdFjVDRuNEC5xhK6hFkLsk+quPKubNpHOQLSkXHf7sVGFT714j0JSoBa8OKMY3HErWGP1qBdp8HtfV1rtrYzesWvfPj4sAqLpvgq9cd2GXhoDlxKjZam9RkbdkdIVi59125y/qhqMpQF5uRKyDFx6GWkY+MgOMk0BbvUSVjH9bSdZZzupUvYpRodI92fYZWnlKNavPxi0bbJ/WcFDb/rbn83UtaFt3xnejuutm6RjKPSbQGLceR7O4A==""\n"
+"-----BEGIN CERTIFICATE-----""\r\n"
+"MIIFuzCCA6OgAwIBAgICA+gwDQYJKoZIhvcNAQELBQAwgZUxCzAJBgNVBAYTAlVTMRcwFQYDVQQDDA5FZGdlIERldmljZSBDQTEQMA4GA1UEBwwHUmVkbW9uZDEiMCAGA1UECgwZRGVmYXVsdCBFZGdlIE9yZ2FuaXphdGlvbjETMBEGA1UECAwKV2FzaGluZ3RvbjEiMCAGA1UECwwZRGVmYXVsdCBFZGdlIE9yZ2FuaXphdGlvbjAeFw0xODA0MjQwMzU1NTdaFw0xOTA0MjQwMzU1NTdaMIGVMQswCQYDVQQGEwJVUzEXMBUGA1UEAwwORWRnZSBEZXZpY2UgQ0ExEDAOBgNVBAcMB1JlZG1vbmQxIjAgBgNVBAoMGURlZmF1bHQgRWRnZSBPcmdhbml6YXRpb24xEzARBgNVBAgMCldhc2hpbmd0b24xIjAgBgNVBAsMGURlZmF1bHQgRWRnZSBPcmdhbml6YXRpb24wggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQCxqFOTRC1in4Kjhgba62GYYTZnDLsFk/Y9YqyhHr0+VMLEyZrwLRMyKS5V2nmt7lFMZsMDuoU+uISo+i+Wvx8aNjyalF8vQfVwQtRfFbSAVEzmEZMfff80SMdo31uN9KcmjTqrn1ULLHBEhmiOgW+V+gizAkcmCpCHWEv1MexlQ2t5RSM0BF2AIwA4I3DyT0OuVyAtC3UUxPDQb5KqUChBGexej/Y1JxcLDo7evxEH5eZtepXeVIO/yzn2a7PaplxEh2vStLsZVUuso1e8bghjREVp4OzHmce2Fss46XFTlah7gCTlCe7f03OVQOBS7IOxrPnm1xizmI4aNECa+HqkPoM83/fLUzjAYi3DFzwY+Y8kzt5tIq1jt5oXSAu+W/K3t1w9EMDn0BcKjvEMoJKiX2ZAD/PhLT+0GgGzyYenqwXLv9a0oh245rv/dD3Q+uL5sSuS9U+UF4j8NYVqXxRmU340/WQdfDyrL/IiRDrp+oelm3ddKX6qQ9ZqrlK31H1FAJrJH/6mf0auOdkumAHoGwL+vIzaezW52CuQDtNmRi3IoDoObdzSfW0aTeKoljr9/fq3jri7BI5GwWAhDBM+tiYPaMCaSxBI547SAFlla1xScI22a04L5ec3KHZleb6Rsfvd1ybWlSOjXOGqHcnGz9uUCwM/cYHcLQpnsroHxQIDAQABoxMwETAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4ICAQBkNRKg/xeJ2/n/KckHxCXv9QsPnnEFQu0Z2w2nw5GPi0Y9cSQHgwL1EwPvAsjQ7WBbe2e44DkwssbGnLO4kE0CkLgbTVbBPybrWeOcl3Ei173CBSwPOQxJZ14voquSFxglaYoVABaLpmsME4ZYn9W1occhoLKaZ7jGZAbLo/ZsigO1u/mSf6ZgaBSd1GdBeTfzLxu1IdnorYlKWudi9pQ/6TW/yT+mNq3iuMWNeqUJps2sgWkaaaqzvHx4dAOb6rzBC/4vuxIc2X2z6NgSjdddr1V3yCyjpX54TgM/q/00BhSaRluqQAn/QHqIrDbeExUbGSFfb9Ma1aiUMNuxgYGiF/v72P7Nq+WhOLa9mucoO293abq0SOAup4RdqOj9QnyJ91s1Lwe07bn3huF1ScYkOAQxmzA3rS8JZ2z6snJigI/Kb70Ba2rVdFjVDRuNEC5xhK6hFkLsk+quPKubNpHOQLSkXHf7sVGFT714j0JSoBa8OKMY3HErWGP1qBdp8HtfV1rtrYzesWvfPj4sAqLpvgq9cd2GXhoDlxKjZam9RkbdkdIVi59125y/qhqMpQF5uRKyDFx6GWkY+MgOMk0BbvUSVjH9bSdZZzupUvYpRodI92fYZWnlKNavPxi0bbJ/WcFDb/rbn83UtaFt3xnejuutm6RjKPSbQGLceR7O4A==""\r\n"
 "-----END CERTIFICATE-----\r\n";
 
-static const unsigned char TEST_PRIVATE_KEY[] = { 0x32, 0x03, 0x33, 0x34, 0x35, 0x36, 0x0 };
+static const char* TEST_CERT_CHAIN_NIX_EOL =
+"-----BEGIN CERTIFICATE-----""\n"
+"MIIFvTCCA6WgAwIBAgICA+kwDQYJKoZIhvcNAQELBQAwgZUxCzAJBgNVBAYTAlVTMRcwFQYDVQQDDA5FZGdlIERldmljZSBDQTEQMA4GA1UEBwwHUmVkbW9uZDEiMCAGA1UECgwZRGVmYXVsdCBFZGdlIE9yZ2FuaXphdGlvbjETMBEGA1UECAwKV2FzaGluZ3RvbjEiMCAGA1UECwwZRGVmYXVsdCBFZGdlIE9yZ2FuaXphdGlvbjAeFw0xODA0MjQwMzU1NTdaFw0xOTA0MjQwMzU1NTdaMIGUMQswCQYDVQQGEwJVUzEWMBQGA1UEAwwNRWRnZSBBZ2VudCBDQTEQMA4GA1UEBwwHUmVkbW9uZDEiMCAGA1UECgwZRGVmYXVsdCBFZGdlIE9yZ2FuaXphdGlvbjETMBEGA1UECAwKV2FzaGluZ3RvbjEiMCAGA1UECwwZRGVmYXVsdCBFZGdlIE9yZ2FuaXphdGlvbjCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBAOr+S7kLLzqhhw1U6O7xGc6tf82EjvUVBZdXR8t61j8G3JwgtyfDdGk0M8pcG3hOmfZwAbHqEUZ8i78uJchvYzilJQcINxUuwS1bl7MWiFkThsql/XLyYtCSnKrhqRVPi2hxwbN4v39HmazEmUXazFSgF13E+Si2/lfJ86JHfnnQCMZmDP02EtcPc1Rw3LmS7pg3h2mRv769Vj11Wtsr7nNTssbGc3yhAhXdt3sMWQihr4yBnhk931uyQiQgeQ69eK5L8g3KjRsOFvMJEXAsIk/lmuYquTaUZfaanuzRezzNVDMwZF9oiVXXClutGj/MlRYl+23gFChx+QAmFg1T7oCb2a1FdXIM5koycRtWKRAbBh+q20Asn6DcEhZE+yyiMQYaiPvUENpPKi5zX5q7lxzIhHb/LrQH9yzVxYGb4bj1t64SnOscwiDc02zRNrInqud8vkVITu/HUskaZWVX1ArwMPyurdNBgKM+ZocWN7niw1txzISjZIyYooYmKmFh6rc3D0TSLlno2WVvTcaxmnw4q9CNIRIH/9uH7mlDxprg4TRBHGx9Bvrh1YJpllTBHv6nhI78r5YTr0ofZ1fr3mHIRcxMdFTVwRtVbKCRmU30broaCOlNJewtTZB27nQnjJBu7CbOKWlyADJlvc5tD8EYiH8HP162XCqKYg4zwDkNAgMBAAGjFjAUMBIGA1UdEwEB/wQIMAYBAf8CAQAwDQYJKoZIhvcNAQELBQADggIBAHR9AU3JtlJdeWB1cndjZRKJ+YCMHThGKvV9AbVuPUogCnkVRuz2JBh34xeulT90Ihh8LvXA6qE8swQc39+lxXijHAOKKVPgXKF4Z4EEztyK83E4fyxLnBl+x8diFWasVSAI3XLBX72gVno5LyAdwK9B6IqTGUvXt24/Gfd1PRrb7S4gYhwq96Lb7KpPnqElbs9yCeewjqImjzW4tWZrAug1fa4i7sGZX9l1BtpmRmov84JZPQKW5O4ocFuEpobiV1ESER8o4OxBKCCiwPyuZuGbnQrROF45C0qa67nF+R96OtcHraNKpqGkdsROST51Es5ISCLaBKyXzV8cgfzfzK7rap/DoYytbz2igInsHc1Gp+DHmkDKzDinNH0AGcSuA8FzR5W4Vzt+UVB9HTjAr5rgfrtiSAkrb4vXI/wE0iyKxMbdP0WVnY++im1mxjpywv6oeuwigx4aDiCBg/qD/JFdK4Db5J4TeRE60s/evigsrrhPjNrKXOjZQxVJU0d1xDoYJfk7bZumZPP0eSKvNRNmFARPVTZtR3geZjul8BZllBXbwCuxE2Ibg7uyqHsUVmJxF8dedKiBPaMWXkhmN3nBcTbopBsay9VrSn4L8EOXiXf36UrKL+IrDm5RzlPxA6vIafjsuHEJWnX1ec1qRiWLcU7SRkEbt8Dre+ktIMO3""\n"
+"-----END CERTIFICATE-----""\n"
+"-----BEGIN CERTIFICATE-----""\n"
+"MIIFuzCCA6OgAwIBAgICA+gwDQYJKoZIhvcNAQELBQAwgZUxCzAJBgNVBAYTAlVTMRcwFQYDVQQDDA5FZGdlIERldmljZSBDQTEQMA4GA1UEBwwHUmVkbW9uZDEiMCAGA1UECgwZRGVmYXVsdCBFZGdlIE9yZ2FuaXphdGlvbjETMBEGA1UECAwKV2FzaGluZ3RvbjEiMCAGA1UECwwZRGVmYXVsdCBFZGdlIE9yZ2FuaXphdGlvbjAeFw0xODA0MjQwMzU1NTdaFw0xOTA0MjQwMzU1NTdaMIGVMQswCQYDVQQGEwJVUzEXMBUGA1UEAwwORWRnZSBEZXZpY2UgQ0ExEDAOBgNVBAcMB1JlZG1vbmQxIjAgBgNVBAoMGURlZmF1bHQgRWRnZSBPcmdhbml6YXRpb24xEzARBgNVBAgMCldhc2hpbmd0b24xIjAgBgNVBAsMGURlZmF1bHQgRWRnZSBPcmdhbml6YXRpb24wggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQCxqFOTRC1in4Kjhgba62GYYTZnDLsFk/Y9YqyhHr0+VMLEyZrwLRMyKS5V2nmt7lFMZsMDuoU+uISo+i+Wvx8aNjyalF8vQfVwQtRfFbSAVEzmEZMfff80SMdo31uN9KcmjTqrn1ULLHBEhmiOgW+V+gizAkcmCpCHWEv1MexlQ2t5RSM0BF2AIwA4I3DyT0OuVyAtC3UUxPDQb5KqUChBGexej/Y1JxcLDo7evxEH5eZtepXeVIO/yzn2a7PaplxEh2vStLsZVUuso1e8bghjREVp4OzHmce2Fss46XFTlah7gCTlCe7f03OVQOBS7IOxrPnm1xizmI4aNECa+HqkPoM83/fLUzjAYi3DFzwY+Y8kzt5tIq1jt5oXSAu+W/K3t1w9EMDn0BcKjvEMoJKiX2ZAD/PhLT+0GgGzyYenqwXLv9a0oh245rv/dD3Q+uL5sSuS9U+UF4j8NYVqXxRmU340/WQdfDyrL/IiRDrp+oelm3ddKX6qQ9ZqrlK31H1FAJrJH/6mf0auOdkumAHoGwL+vIzaezW52CuQDtNmRi3IoDoObdzSfW0aTeKoljr9/fq3jri7BI5GwWAhDBM+tiYPaMCaSxBI547SAFlla1xScI22a04L5ec3KHZleb6Rsfvd1ybWlSOjXOGqHcnGz9uUCwM/cYHcLQpnsroHxQIDAQABoxMwETAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4ICAQBkNRKg/xeJ2/n/KckHxCXv9QsPnnEFQu0Z2w2nw5GPi0Y9cSQHgwL1EwPvAsjQ7WBbe2e44DkwssbGnLO4kE0CkLgbTVbBPybrWeOcl3Ei173CBSwPOQxJZ14voquSFxglaYoVABaLpmsME4ZYn9W1occhoLKaZ7jGZAbLo/ZsigO1u/mSf6ZgaBSd1GdBeTfzLxu1IdnorYlKWudi9pQ/6TW/yT+mNq3iuMWNeqUJps2sgWkaaaqzvHx4dAOb6rzBC/4vuxIc2X2z6NgSjdddr1V3yCyjpX54TgM/q/00BhSaRluqQAn/QHqIrDbeExUbGSFfb9Ma1aiUMNuxgYGiF/v72P7Nq+WhOLa9mucoO293abq0SOAup4RdqOj9QnyJ91s1Lwe07bn3huF1ScYkOAQxmzA3rS8JZ2z6snJigI/Kb70Ba2rVdFjVDRuNEC5xhK6hFkLsk+quPKubNpHOQLSkXHf7sVGFT714j0JSoBa8OKMY3HErWGP1qBdp8HtfV1rtrYzesWvfPj4sAqLpvgq9cd2GXhoDlxKjZam9RkbdkdIVi59125y/qhqMpQF5uRKyDFx6GWkY+MgOMk0BbvUSVjH9bSdZZzupUvYpRodI92fYZWnlKNavPxi0bbJ/WcFDb/rbn83UtaFt3xnejuutm6RjKPSbQGLceR7O4A==""\n"
+"-----END CERTIFICATE-----\n";
+
+static const char* EXPECTED_TEST_CERT_CHAIN_WIN_EOL =
+"-----BEGIN CERTIFICATE-----\r\n"
+"MIIFuzCCA6OgAwIBAgICA+gwDQYJKoZIhvcNAQELBQAwgZUxCzAJBgNVBAYTAlVTMRcwFQYDVQQDDA5FZGdlIERldmljZSBDQTEQMA4GA1UEBwwHUmVkbW9uZDEiMCAGA1UECgwZRGVmYXVsdCBFZGdlIE9yZ2FuaXphdGlvbjETMBEGA1UECAwKV2FzaGluZ3RvbjEiMCAGA1UECwwZRGVmYXVsdCBFZGdlIE9yZ2FuaXphdGlvbjAeFw0xODA0MjQwMzU1NTdaFw0xOTA0MjQwMzU1NTdaMIGVMQswCQYDVQQGEwJVUzEXMBUGA1UEAwwORWRnZSBEZXZpY2UgQ0ExEDAOBgNVBAcMB1JlZG1vbmQxIjAgBgNVBAoMGURlZmF1bHQgRWRnZSBPcmdhbml6YXRpb24xEzARBgNVBAgMCldhc2hpbmd0b24xIjAgBgNVBAsMGURlZmF1bHQgRWRnZSBPcmdhbml6YXRpb24wggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQCxqFOTRC1in4Kjhgba62GYYTZnDLsFk/Y9YqyhHr0+VMLEyZrwLRMyKS5V2nmt7lFMZsMDuoU+uISo+i+Wvx8aNjyalF8vQfVwQtRfFbSAVEzmEZMfff80SMdo31uN9KcmjTqrn1ULLHBEhmiOgW+V+gizAkcmCpCHWEv1MexlQ2t5RSM0BF2AIwA4I3DyT0OuVyAtC3UUxPDQb5KqUChBGexej/Y1JxcLDo7evxEH5eZtepXeVIO/yzn2a7PaplxEh2vStLsZVUuso1e8bghjREVp4OzHmce2Fss46XFTlah7gCTlCe7f03OVQOBS7IOxrPnm1xizmI4aNECa+HqkPoM83/fLUzjAYi3DFzwY+Y8kzt5tIq1jt5oXSAu+W/K3t1w9EMDn0BcKjvEMoJKiX2ZAD/PhLT+0GgGzyYenqwXLv9a0oh245rv/dD3Q+uL5sSuS9U+UF4j8NYVqXxRmU340/WQdfDyrL/IiRDrp+oelm3ddKX6qQ9ZqrlK31H1FAJrJH/6mf0auOdkumAHoGwL+vIzaezW52CuQDtNmRi3IoDoObdzSfW0aTeKoljr9/fq3jri7BI5GwWAhDBM+tiYPaMCaSxBI547SAFlla1xScI22a04L5ec3KHZleb6Rsfvd1ybWlSOjXOGqHcnGz9uUCwM/cYHcLQpnsroHxQIDAQABoxMwETAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4ICAQBkNRKg/xeJ2/n/KckHxCXv9QsPnnEFQu0Z2w2nw5GPi0Y9cSQHgwL1EwPvAsjQ7WBbe2e44DkwssbGnLO4kE0CkLgbTVbBPybrWeOcl3Ei173CBSwPOQxJZ14voquSFxglaYoVABaLpmsME4ZYn9W1occhoLKaZ7jGZAbLo/ZsigO1u/mSf6ZgaBSd1GdBeTfzLxu1IdnorYlKWudi9pQ/6TW/yT+mNq3iuMWNeqUJps2sgWkaaaqzvHx4dAOb6rzBC/4vuxIc2X2z6NgSjdddr1V3yCyjpX54TgM/q/00BhSaRluqQAn/QHqIrDbeExUbGSFfb9Ma1aiUMNuxgYGiF/v72P7Nq+WhOLa9mucoO293abq0SOAup4RdqOj9QnyJ91s1Lwe07bn3huF1ScYkOAQxmzA3rS8JZ2z6snJigI/Kb70Ba2rVdFjVDRuNEC5xhK6hFkLsk+quPKubNpHOQLSkXHf7sVGFT714j0JSoBa8OKMY3HErWGP1qBdp8HtfV1rtrYzesWvfPj4sAqLpvgq9cd2GXhoDlxKjZam9RkbdkdIVi59125y/qhqMpQF5uRKyDFx6GWkY+MgOMk0BbvUSVjH9bSdZZzupUvYpRodI92fYZWnlKNavPxi0bbJ/WcFDb/rbn83UtaFt3xnejuutm6RjKPSbQGLceR7O4A==\r\n"
+"-----END CERTIFICATE-----\r\n";
+
+static const char* EXPECTED_TEST_CERT_CHAIN_NIX_EOL =
+"-----BEGIN CERTIFICATE-----\n"
+"MIIFuzCCA6OgAwIBAgICA+gwDQYJKoZIhvcNAQELBQAwgZUxCzAJBgNVBAYTAlVTMRcwFQYDVQQDDA5FZGdlIERldmljZSBDQTEQMA4GA1UEBwwHUmVkbW9uZDEiMCAGA1UECgwZRGVmYXVsdCBFZGdlIE9yZ2FuaXphdGlvbjETMBEGA1UECAwKV2FzaGluZ3RvbjEiMCAGA1UECwwZRGVmYXVsdCBFZGdlIE9yZ2FuaXphdGlvbjAeFw0xODA0MjQwMzU1NTdaFw0xOTA0MjQwMzU1NTdaMIGVMQswCQYDVQQGEwJVUzEXMBUGA1UEAwwORWRnZSBEZXZpY2UgQ0ExEDAOBgNVBAcMB1JlZG1vbmQxIjAgBgNVBAoMGURlZmF1bHQgRWRnZSBPcmdhbml6YXRpb24xEzARBgNVBAgMCldhc2hpbmd0b24xIjAgBgNVBAsMGURlZmF1bHQgRWRnZSBPcmdhbml6YXRpb24wggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQCxqFOTRC1in4Kjhgba62GYYTZnDLsFk/Y9YqyhHr0+VMLEyZrwLRMyKS5V2nmt7lFMZsMDuoU+uISo+i+Wvx8aNjyalF8vQfVwQtRfFbSAVEzmEZMfff80SMdo31uN9KcmjTqrn1ULLHBEhmiOgW+V+gizAkcmCpCHWEv1MexlQ2t5RSM0BF2AIwA4I3DyT0OuVyAtC3UUxPDQb5KqUChBGexej/Y1JxcLDo7evxEH5eZtepXeVIO/yzn2a7PaplxEh2vStLsZVUuso1e8bghjREVp4OzHmce2Fss46XFTlah7gCTlCe7f03OVQOBS7IOxrPnm1xizmI4aNECa+HqkPoM83/fLUzjAYi3DFzwY+Y8kzt5tIq1jt5oXSAu+W/K3t1w9EMDn0BcKjvEMoJKiX2ZAD/PhLT+0GgGzyYenqwXLv9a0oh245rv/dD3Q+uL5sSuS9U+UF4j8NYVqXxRmU340/WQdfDyrL/IiRDrp+oelm3ddKX6qQ9ZqrlK31H1FAJrJH/6mf0auOdkumAHoGwL+vIzaezW52CuQDtNmRi3IoDoObdzSfW0aTeKoljr9/fq3jri7BI5GwWAhDBM+tiYPaMCaSxBI547SAFlla1xScI22a04L5ec3KHZleb6Rsfvd1ybWlSOjXOGqHcnGz9uUCwM/cYHcLQpnsroHxQIDAQABoxMwETAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4ICAQBkNRKg/xeJ2/n/KckHxCXv9QsPnnEFQu0Z2w2nw5GPi0Y9cSQHgwL1EwPvAsjQ7WBbe2e44DkwssbGnLO4kE0CkLgbTVbBPybrWeOcl3Ei173CBSwPOQxJZ14voquSFxglaYoVABaLpmsME4ZYn9W1occhoLKaZ7jGZAbLo/ZsigO1u/mSf6ZgaBSd1GdBeTfzLxu1IdnorYlKWudi9pQ/6TW/yT+mNq3iuMWNeqUJps2sgWkaaaqzvHx4dAOb6rzBC/4vuxIc2X2z6NgSjdddr1V3yCyjpX54TgM/q/00BhSaRluqQAn/QHqIrDbeExUbGSFfb9Ma1aiUMNuxgYGiF/v72P7Nq+WhOLa9mucoO293abq0SOAup4RdqOj9QnyJ91s1Lwe07bn3huF1ScYkOAQxmzA3rS8JZ2z6snJigI/Kb70Ba2rVdFjVDRuNEC5xhK6hFkLsk+quPKubNpHOQLSkXHf7sVGFT714j0JSoBa8OKMY3HErWGP1qBdp8HtfV1rtrYzesWvfPj4sAqLpvgq9cd2GXhoDlxKjZam9RkbdkdIVi59125y/qhqMpQF5uRKyDFx6GWkY+MgOMk0BbvUSVjH9bSdZZzupUvYpRodI92fYZWnlKNavPxi0bbJ/WcFDb/rbn83UtaFt3xnejuutm6RjKPSbQGLceR7O4A==\n"
+"-----END CERTIFICATE-----\n";
+
+static const unsigned char TEST_PRIVATE_KEY[] = { 0x32, 0x03, 0x33, 0x34, 0x35, 0x36 };
 static size_t TEST_PRIVATE_KEY_LEN = sizeof(TEST_PRIVATE_KEY)/sizeof(TEST_PRIVATE_KEY[0]);
 
 static TEST_MUTEX_HANDLE g_testByTest;
@@ -247,7 +283,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         //arrange
 
         //act
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_UNKNOWN);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_UNKNOWN);
 
         //assert
         ASSERT_IS_NULL(cert_handle);
@@ -259,9 +295,10 @@ BEGIN_TEST_SUITE(certificate_info_ut)
     TEST_FUNCTION(certificate_info_create_pk_type_invalid_fails)
     {
         //arrange
+        int BAD_PRIVATE_KEY_TYPE = 50;
 
         //act
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, 500);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, (PRIVATE_KEY_TYPE)BAD_PRIVATE_KEY_TYPE);
 
         //assert
         ASSERT_IS_NULL(cert_handle);
@@ -275,7 +312,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         //arrange
 
         //act
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT, NULL, 0, PRIVATE_KEY_PAYLOAD);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, NULL, 0, PRIVATE_KEY_PAYLOAD);
 
         //assert
         ASSERT_IS_NULL(cert_handle);
@@ -289,7 +326,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         //arrange
 
         //act
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT, NULL, 0, PRIVATE_KEY_REFERENCE);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, NULL, 0, PRIVATE_KEY_REFERENCE);
 
         //assert
         ASSERT_IS_NULL(cert_handle);
@@ -303,7 +340,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         //arrange
 
         //act
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT, NULL, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_UNKNOWN);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, NULL, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_UNKNOWN);
 
         //assert
         ASSERT_IS_NULL(cert_handle);
@@ -317,7 +354,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         //arrange
 
         //act
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT, TEST_PRIVATE_KEY, 0, PRIVATE_KEY_PAYLOAD);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, 0, PRIVATE_KEY_PAYLOAD);
 
         //assert
         ASSERT_IS_NULL(cert_handle);
@@ -332,7 +369,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
 
         //act
         size_t pk_size = 100;
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT, NULL, 0, PRIVATE_KEY_UNKNOWN);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, NULL, 0, PRIVATE_KEY_UNKNOWN);
         const void* pk = certificate_info_get_private_key(cert_handle, &pk_size);
         PRIVATE_KEY_TYPE pk_type = certificate_info_private_key_type(cert_handle);
 
@@ -352,14 +389,15 @@ BEGIN_TEST_SUITE(certificate_info_ut)
 
         //act
         size_t pk_size = 100;
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
         const void* pk = certificate_info_get_private_key(cert_handle, &pk_size);
         PRIVATE_KEY_TYPE pk_type = certificate_info_private_key_type(cert_handle);
 
         //assert
         ASSERT_IS_NOT_NULL(cert_handle);
-        ASSERT_ARE_EQUAL(char_ptr, pk, TEST_PRIVATE_KEY);
         ASSERT_ARE_EQUAL_WITH_MSG(size_t, TEST_PRIVATE_KEY_LEN, pk_size, "Line:" TOSTRING(__LINE__));
+        int cmp = memcmp(pk, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN);
+        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, cmp, "Line:" TOSTRING(__LINE__));
         ASSERT_ARE_EQUAL_WITH_MSG(int, PRIVATE_KEY_PAYLOAD, pk_type, "Line:" TOSTRING(__LINE__));
 
         //cleanup
@@ -372,27 +410,28 @@ BEGIN_TEST_SUITE(certificate_info_ut)
 
         //act
         size_t pk_size = 100;
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_REFERENCE);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_REFERENCE);
         const void* pk = certificate_info_get_private_key(cert_handle, &pk_size);
         PRIVATE_KEY_TYPE pk_type = certificate_info_private_key_type(cert_handle);
 
         //assert
         ASSERT_IS_NOT_NULL(cert_handle);
-        ASSERT_ARE_EQUAL(char_ptr, pk, TEST_PRIVATE_KEY);
         ASSERT_ARE_EQUAL_WITH_MSG(size_t, TEST_PRIVATE_KEY_LEN, pk_size, "Line:" TOSTRING(__LINE__));
+        int cmp = memcmp(pk, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN);
+        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, cmp, "Line:" TOSTRING(__LINE__));
         ASSERT_ARE_EQUAL_WITH_MSG(int, PRIVATE_KEY_REFERENCE, pk_type, "Line:" TOSTRING(__LINE__));
 
         //cleanup
         certificate_info_destroy(cert_handle);
     }
 
-    TEST_FUNCTION(certificate_info_create_succeed)
+    TEST_FUNCTION(certificate_info_create_rsa_win_succeed)
     {
         //arrange
-        setup_parse_cert(strlen(TEST_RSA_CERT) + 1);
+        setup_parse_cert(strlen(TEST_RSA_CERT_WIN_EOL) + 1);
 
         //act
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
 
         //assert
         ASSERT_IS_NOT_NULL(cert_handle);
@@ -402,13 +441,45 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         certificate_info_destroy(cert_handle);
     }
 
-    TEST_FUNCTION(certificate_info_create_ecc_succeed)
+    TEST_FUNCTION(certificate_info_create_rsa_nix_succeed)
     {
         //arrange
-        setup_parse_cert(strlen(TEST_ECC_CERT) + 1);
+        setup_parse_cert(strlen(TEST_RSA_CERT_NIX_EOL) + 1);
 
         //act
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_ECC_CERT, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_NIX_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+
+        //assert
+        ASSERT_IS_NOT_NULL(cert_handle);
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+        //cleanup
+        certificate_info_destroy(cert_handle);
+    }
+
+    TEST_FUNCTION(certificate_info_create_ecc_win_succeed)
+    {
+        //arrange
+        setup_parse_cert(strlen(TEST_ECC_CERT_WIN_EOL) + 1);
+
+        //act
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_ECC_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+
+        //assert
+        ASSERT_IS_NOT_NULL(cert_handle);
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+        //cleanup
+        certificate_info_destroy(cert_handle);
+    }
+
+    TEST_FUNCTION(certificate_info_create_ecc_nix_succeed)
+    {
+        //arrange
+        setup_parse_cert(strlen(TEST_ECC_CERT_NIX_EOL) + 1);
+
+        //act
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_ECC_CERT_NIX_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
 
         //assert
         ASSERT_IS_NOT_NULL(cert_handle);
@@ -421,10 +492,10 @@ BEGIN_TEST_SUITE(certificate_info_ut)
     TEST_FUNCTION(certificate_info_no_private_key_succeed)
     {
         //arrange
-        setup_parse_cert_common(strlen(TEST_ECC_CERT) + 1, false);
+        setup_parse_cert_common(strlen(TEST_ECC_CERT_WIN_EOL) + 1, false);
 
         //act
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_ECC_CERT, NULL, 0, PRIVATE_KEY_UNKNOWN);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_ECC_CERT_WIN_EOL, NULL, 0, PRIVATE_KEY_UNKNOWN);
 
         //assert
         ASSERT_IS_NOT_NULL(cert_handle);
@@ -434,12 +505,26 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         certificate_info_destroy(cert_handle);
     }
 
-    TEST_FUNCTION(certificate_info_create_invalid_cert_succeed)
+    TEST_FUNCTION(certificate_info_create_invalid_cert_win_succeed)
     {
         //arrange
 
         //act
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_INVALID_CERT, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_INVALID_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+
+        //assert
+        ASSERT_IS_NULL(cert_handle);
+
+        //cleanup
+        certificate_info_destroy(cert_handle);
+    }
+
+    TEST_FUNCTION(certificate_info_create_invalid_cert_nix_succeed)
+    {
+        //arrange
+
+        //act
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_INVALID_CERT_NIX_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
 
         //assert
         ASSERT_IS_NULL(cert_handle);
@@ -451,7 +536,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
     TEST_FUNCTION(certificate_info_create_fail)
     {
         //arrange
-        setup_parse_cert(strlen(TEST_RSA_CERT) + 1);
+        setup_parse_cert(strlen(TEST_RSA_CERT_WIN_EOL) + 1);
 
         int negativeTestsInitResult = umock_c_negative_tests_init();
         ASSERT_ARE_EQUAL(int, 0, negativeTestsInitResult);
@@ -475,7 +560,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
             char tmp_msg[64];
             sprintf(tmp_msg, "certificate_info_create failure in test %zu/%zu", index, count);
 
-            CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+            CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
 
             //assert
             ASSERT_IS_NULL_WITH_MSG(cert_handle, tmp_msg);
@@ -488,7 +573,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
     TEST_FUNCTION(certificate_info_destroy_with_private_key_succeed)
     {
         //arrange
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
         umock_c_reset_all_calls();
         STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
         STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
@@ -507,7 +592,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
     TEST_FUNCTION(certificate_info_destroy_without_private_key_succeed)
     {
         //arrange
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT, NULL, 0, PRIVATE_KEY_UNKNOWN);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, NULL, 0, PRIVATE_KEY_UNKNOWN);
         umock_c_reset_all_calls();
         STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
         STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
@@ -537,7 +622,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
     TEST_FUNCTION(certificate_info_get_certificate_succeed)
     {
         //arrange
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
         umock_c_reset_all_calls();
 
         //act
@@ -545,7 +630,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
 
         //assert
         ASSERT_IS_NOT_NULL(certificate);
-        ASSERT_ARE_EQUAL(char_ptr, TEST_RSA_CERT, certificate);
+        ASSERT_ARE_EQUAL(char_ptr, TEST_RSA_CERT_WIN_EOL, certificate);
 
         //cleanup
         certificate_info_destroy(cert_handle);
@@ -567,7 +652,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
     TEST_FUNCTION(certificate_info_get_certificate_leaf_succeed)
     {
         //arrange
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
         umock_c_reset_all_calls();
 
         //act
@@ -575,7 +660,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
 
         //assert
         ASSERT_IS_NOT_NULL(certificate);
-        ASSERT_ARE_EQUAL(char_ptr, TEST_RSA_CERT, certificate);
+        ASSERT_ARE_EQUAL(char_ptr, TEST_RSA_CERT_WIN_EOL, certificate);
 
         //cleanup
         certificate_info_destroy(cert_handle);
@@ -598,7 +683,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
     {
         //arrange
         size_t pk_len;
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
         umock_c_reset_all_calls();
 
         //act
@@ -631,7 +716,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
     TEST_FUNCTION(certificate_info_get_private_key_length_NULL_fail)
     {
         //arrange
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
         umock_c_reset_all_calls();
 
         //act
@@ -647,7 +732,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
     TEST_FUNCTION(certificate_info_get_valid_from_success)
     {
         //arrange
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
         umock_c_reset_all_calls();
 
         //act
@@ -676,7 +761,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
     TEST_FUNCTION(certificate_info_get_valid_to_success)
     {
         //arrange
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
         umock_c_reset_all_calls();
 
         //act
@@ -705,7 +790,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
     TEST_FUNCTION(certificate_info_private_key_type_success)
     {
         //arrange
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
         umock_c_reset_all_calls();
 
         //act
@@ -730,10 +815,10 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         //cleanup
     }
 
-    TEST_FUNCTION(certificate_info_get_chain_no_chain_success)
+    TEST_FUNCTION(certificate_info_get_chain_no_chain_win_success)
     {
         //arrange
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
         umock_c_reset_all_calls();
 
         //act
@@ -746,10 +831,26 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         certificate_info_destroy(cert_handle);
     }
 
-    TEST_FUNCTION(certificate_info_get_chain_success)
+    TEST_FUNCTION(certificate_info_get_chain_no_chain_nix_success)
     {
         //arrange
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_CERT_CHAIN, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_NIX_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+        umock_c_reset_all_calls();
+
+        //act
+        const char* cert_chain = certificate_info_get_chain(cert_handle);
+
+        //assert
+        ASSERT_IS_NULL(cert_chain);
+
+        //cleanup
+        certificate_info_destroy(cert_handle);
+    }
+
+    TEST_FUNCTION(certificate_info_get_chain_win_success)
+    {
+        //arrange
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_CERT_CHAIN_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
         umock_c_reset_all_calls();
 
         //act
@@ -757,7 +858,30 @@ BEGIN_TEST_SUITE(certificate_info_ut)
 
         //assert
         ASSERT_IS_NOT_NULL(cert_chain);
-        ASSERT_ARE_EQUAL(int, 0, memcmp(cert_chain, TEST_CHAIN_HEADER, strlen(TEST_CHAIN_HEADER)));
+        const char *expected_chain = EXPECTED_TEST_CERT_CHAIN_WIN_EOL;
+        size_t expected_len = strlen(expected_chain);
+        ASSERT_ARE_EQUAL(size_t, expected_len, strlen(cert_chain));
+        ASSERT_ARE_EQUAL(int, 0, strcmp(cert_chain, expected_chain));
+
+        //cleanup
+        certificate_info_destroy(cert_handle);
+    }
+
+    TEST_FUNCTION(certificate_info_get_chain_nix_success)
+    {
+        //arrange
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_CERT_CHAIN_NIX_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+        umock_c_reset_all_calls();
+
+        //act
+        const char* cert_chain = certificate_info_get_chain(cert_handle);
+
+        //assert
+        ASSERT_IS_NOT_NULL(cert_chain);
+        const char *expected_chain = EXPECTED_TEST_CERT_CHAIN_NIX_EOL;
+        size_t expected_len = strlen(expected_chain);
+        ASSERT_ARE_EQUAL(size_t, expected_len, strlen(cert_chain));
+        ASSERT_ARE_EQUAL(int, 0, strcmp(cert_chain, expected_chain));
 
         //cleanup
         certificate_info_destroy(cert_handle);
@@ -771,6 +895,48 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         (void)certificate_info_get_chain(NULL);
 
         //assert
+
+        //cleanup
+    }
+
+    TEST_FUNCTION(get_utc_time_from_asn_string_invalid_smaller_len_test)
+    {
+        //arrange
+        time_t test_time;
+
+        //act
+        test_time = get_utc_time_from_asn_string((unsigned char*)"180101010101Z", 12);
+
+        //assert
+        ASSERT_ARE_EQUAL(int64_t, 0, test_time);
+
+        //cleanup
+    }
+
+    TEST_FUNCTION(get_utc_time_from_asn_string_invalid_larger_len_test)
+    {
+        //arrange
+        time_t test_time;
+
+        //act
+        test_time = get_utc_time_from_asn_string((unsigned char*)"180101010101Z", 14);
+
+        //assert
+        ASSERT_ARE_EQUAL(int64_t, 0, test_time);
+
+        //cleanup
+    }
+
+    TEST_FUNCTION(get_utc_time_from_asn_string_success_test)
+    {
+        //arrange
+        time_t test_time;
+
+        //act
+        test_time = get_utc_time_from_asn_string((unsigned char*)"180101010101Z", 13);
+
+        //assert
+        ASSERT_ARE_EQUAL(int64_t, 1514768461, test_time);
 
         //cleanup
     }

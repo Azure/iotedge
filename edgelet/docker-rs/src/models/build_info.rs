@@ -19,18 +19,24 @@ pub struct BuildInfo {
     stream: Option<String>,
     #[serde(rename = "error", skip_serializing_if = "Option::is_none")]
     error: Option<String>,
-    #[serde(rename = "errorDetail", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "errorDetail",
+        skip_serializing_if = "Option::is_none"
+    )]
     error_detail: Option<::models::ErrorDetail>,
     #[serde(rename = "status", skip_serializing_if = "Option::is_none")]
     status: Option<String>,
     #[serde(rename = "progress", skip_serializing_if = "Option::is_none")]
     progress: Option<String>,
-    #[serde(rename = "progressDetail", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "progressDetail",
+        skip_serializing_if = "Option::is_none"
+    )]
     progress_detail: Option<::models::ProgressDetail>,
 }
 
 impl BuildInfo {
-    pub fn new() -> BuildInfo {
+    pub fn new() -> Self {
         BuildInfo {
             id: None,
             stream: None,
@@ -46,13 +52,13 @@ impl BuildInfo {
         self.id = Some(id);
     }
 
-    pub fn with_id(mut self, id: String) -> BuildInfo {
+    pub fn with_id(mut self, id: String) -> Self {
         self.id = Some(id);
         self
     }
 
-    pub fn id(&self) -> Option<&String> {
-        self.id.as_ref()
+    pub fn id(&self) -> Option<&str> {
+        self.id.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_id(&mut self) {
@@ -63,13 +69,13 @@ impl BuildInfo {
         self.stream = Some(stream);
     }
 
-    pub fn with_stream(mut self, stream: String) -> BuildInfo {
+    pub fn with_stream(mut self, stream: String) -> Self {
         self.stream = Some(stream);
         self
     }
 
-    pub fn stream(&self) -> Option<&String> {
-        self.stream.as_ref()
+    pub fn stream(&self) -> Option<&str> {
+        self.stream.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_stream(&mut self) {
@@ -80,13 +86,13 @@ impl BuildInfo {
         self.error = Some(error);
     }
 
-    pub fn with_error(mut self, error: String) -> BuildInfo {
+    pub fn with_error(mut self, error: String) -> Self {
         self.error = Some(error);
         self
     }
 
-    pub fn error(&self) -> Option<&String> {
-        self.error.as_ref()
+    pub fn error(&self) -> Option<&str> {
+        self.error.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_error(&mut self) {
@@ -97,7 +103,7 @@ impl BuildInfo {
         self.error_detail = Some(error_detail);
     }
 
-    pub fn with_error_detail(mut self, error_detail: ::models::ErrorDetail) -> BuildInfo {
+    pub fn with_error_detail(mut self, error_detail: ::models::ErrorDetail) -> Self {
         self.error_detail = Some(error_detail);
         self
     }
@@ -114,13 +120,13 @@ impl BuildInfo {
         self.status = Some(status);
     }
 
-    pub fn with_status(mut self, status: String) -> BuildInfo {
+    pub fn with_status(mut self, status: String) -> Self {
         self.status = Some(status);
         self
     }
 
-    pub fn status(&self) -> Option<&String> {
-        self.status.as_ref()
+    pub fn status(&self) -> Option<&str> {
+        self.status.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_status(&mut self) {
@@ -131,13 +137,13 @@ impl BuildInfo {
         self.progress = Some(progress);
     }
 
-    pub fn with_progress(mut self, progress: String) -> BuildInfo {
+    pub fn with_progress(mut self, progress: String) -> Self {
         self.progress = Some(progress);
         self
     }
 
-    pub fn progress(&self) -> Option<&String> {
-        self.progress.as_ref()
+    pub fn progress(&self) -> Option<&str> {
+        self.progress.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_progress(&mut self) {
@@ -148,7 +154,7 @@ impl BuildInfo {
         self.progress_detail = Some(progress_detail);
     }
 
-    pub fn with_progress_detail(mut self, progress_detail: ::models::ProgressDetail) -> BuildInfo {
+    pub fn with_progress_detail(mut self, progress_detail: ::models::ProgressDetail) -> Self {
         self.progress_detail = Some(progress_detail);
         self
     }

@@ -14,12 +14,15 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InlineResponse20019 {
     /// The swarm's unlock key.
-    #[serde(rename = "UnlockKey", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "UnlockKey",
+        skip_serializing_if = "Option::is_none"
+    )]
     unlock_key: Option<String>,
 }
 
 impl InlineResponse20019 {
-    pub fn new() -> InlineResponse20019 {
+    pub fn new() -> Self {
         InlineResponse20019 { unlock_key: None }
     }
 
@@ -27,13 +30,13 @@ impl InlineResponse20019 {
         self.unlock_key = Some(unlock_key);
     }
 
-    pub fn with_unlock_key(mut self, unlock_key: String) -> InlineResponse20019 {
+    pub fn with_unlock_key(mut self, unlock_key: String) -> Self {
         self.unlock_key = Some(unlock_key);
         self
     }
 
-    pub fn unlock_key(&self) -> Option<&String> {
-        self.unlock_key.as_ref()
+    pub fn unlock_key(&self) -> Option<&str> {
+        self.unlock_key.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_unlock_key(&mut self) {

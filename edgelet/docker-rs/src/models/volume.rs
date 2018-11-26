@@ -23,7 +23,10 @@ pub struct Volume {
     #[serde(rename = "Mountpoint")]
     mountpoint: String,
     /// Date/Time the volume was created.
-    #[serde(rename = "CreatedAt", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "CreatedAt",
+        skip_serializing_if = "Option::is_none"
+    )]
     created_at: Option<String>,
     /// Low-level details about the volume, provided by the volume driver. Details are returned as a map with key/value pairs: `{\"key\":\"value\",\"key2\":\"value2\"}`.  The `Status` field is optional, and is omitted if the volume driver does not support this feature.
     #[serde(rename = "Status", skip_serializing_if = "Option::is_none")]
@@ -37,7 +40,10 @@ pub struct Volume {
     /// The driver specific options used when creating the volume.
     #[serde(rename = "Options")]
     options: ::std::collections::HashMap<String, String>,
-    #[serde(rename = "UsageData", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "UsageData",
+        skip_serializing_if = "Option::is_none"
+    )]
     usage_data: Option<::models::VolumeUsageData>,
 }
 
@@ -49,7 +55,7 @@ impl Volume {
         labels: ::std::collections::HashMap<String, String>,
         scope: String,
         options: ::std::collections::HashMap<String, String>,
-    ) -> Volume {
+    ) -> Self {
         Volume {
             name: name,
             driver: driver,
@@ -67,7 +73,7 @@ impl Volume {
         self.name = name;
     }
 
-    pub fn with_name(mut self, name: String) -> Volume {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = name;
         self
     }
@@ -80,7 +86,7 @@ impl Volume {
         self.driver = driver;
     }
 
-    pub fn with_driver(mut self, driver: String) -> Volume {
+    pub fn with_driver(mut self, driver: String) -> Self {
         self.driver = driver;
         self
     }
@@ -93,7 +99,7 @@ impl Volume {
         self.mountpoint = mountpoint;
     }
 
-    pub fn with_mountpoint(mut self, mountpoint: String) -> Volume {
+    pub fn with_mountpoint(mut self, mountpoint: String) -> Self {
         self.mountpoint = mountpoint;
         self
     }
@@ -106,13 +112,13 @@ impl Volume {
         self.created_at = Some(created_at);
     }
 
-    pub fn with_created_at(mut self, created_at: String) -> Volume {
+    pub fn with_created_at(mut self, created_at: String) -> Self {
         self.created_at = Some(created_at);
         self
     }
 
-    pub fn created_at(&self) -> Option<&String> {
-        self.created_at.as_ref()
+    pub fn created_at(&self) -> Option<&str> {
+        self.created_at.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_created_at(&mut self) {
@@ -123,7 +129,7 @@ impl Volume {
         self.status = Some(status);
     }
 
-    pub fn with_status(mut self, status: ::std::collections::HashMap<String, Value>) -> Volume {
+    pub fn with_status(mut self, status: ::std::collections::HashMap<String, Value>) -> Self {
         self.status = Some(status);
         self
     }
@@ -140,7 +146,7 @@ impl Volume {
         self.labels = labels;
     }
 
-    pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Volume {
+    pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
         self.labels = labels;
         self
     }
@@ -153,7 +159,7 @@ impl Volume {
         self.scope = scope;
     }
 
-    pub fn with_scope(mut self, scope: String) -> Volume {
+    pub fn with_scope(mut self, scope: String) -> Self {
         self.scope = scope;
         self
     }
@@ -166,7 +172,7 @@ impl Volume {
         self.options = options;
     }
 
-    pub fn with_options(mut self, options: ::std::collections::HashMap<String, String>) -> Volume {
+    pub fn with_options(mut self, options: ::std::collections::HashMap<String, String>) -> Self {
         self.options = options;
         self
     }
@@ -179,7 +185,7 @@ impl Volume {
         self.usage_data = Some(usage_data);
     }
 
-    pub fn with_usage_data(mut self, usage_data: ::models::VolumeUsageData) -> Volume {
+    pub fn with_usage_data(mut self, usage_data: ::models::VolumeUsageData) -> Self {
         self.usage_data = Some(usage_data);
         self
     }

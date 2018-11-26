@@ -1,8 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use error::Error;
+use failure::Fail;
 use futures::future::Either;
-use futures::{future, Future};
+use futures::{future, Future, Stream};
+
+use error::{Error, ErrorKind};
 use module::{Module, ModuleRuntime};
 use pid::Pid;
 
@@ -23,8 +25,6 @@ where
 impl<M> Authorization<M>
 where
     M: 'static + ModuleRuntime,
-    M::Error: Into<Error>,
-    <M::Module as Module>::Error: Into<Error>,
 {
     pub fn new(runtime: M, policy: Policy) -> Self {
         Authorization { runtime, policy }
@@ -54,30 +54,23 @@ where
     ) -> impl Future<Item = bool, Error = Error> {
         name.map_or_else(
             || Either::A(future::ok(false)),
-            |name| {
-                Either::B(
-                    self.runtime
-                        .list()
-                        .map_err(|e| e.into())
-                        .and_then(move |list| {
-                            list.iter()
-                                .filter_map(|m| if m.name() == name { Some(m) } else { None })
-                                .nth(0)
-                                .map(|m| {
-                                    Either::A(m.runtime_state().map_err(|e| e.into()).and_then(
-                                        move |rs| {
-                                            let authorized = rs.pid() == &pid;
-                                            if !authorized {
-                                                info!("Request not authorized - expected caller pid: {}, actual caller pid: {}", rs.pid(), pid);
-                                            }
-                                            Ok(authorized)
-                                        },
-                                    ))
-                                })
-                                .unwrap_or_else(|| Either::B(future::ok(false)))
-                        }),
-                )
-            },
+            |name| Either::B(
+                self.runtime
+                    .list_with_details()
+                    .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime)))
+                    .filter_map(move |(m, rs)| if m.name() == name { Some(rs) } else { None })
+                    .into_future()
+                    .then(move |result| match result {
+                        Ok((Some(rs), _)) => {
+                            let authorized = rs.pid() == pid;
+                            if !authorized {
+                                info!("Request not authorized - expected caller pid: {}, actual caller pid: {}", rs.pid(), pid);
+                            }
+                            Ok(authorized)
+                        },
+                        Ok((None, _)) => Ok(false),
+                        Err((err, _)) => Err(err),
+                    })),
         )
     }
 
@@ -92,15 +85,14 @@ where
 
 #[cfg(test)]
 mod tests {
-
     use std::time::Duration;
 
     use super::*;
     use error::{Error, ErrorKind};
     use failure::Context;
-    use futures::future;
     use futures::future::FutureResult;
     use futures::stream::Empty;
+    use futures::{future, stream};
     use module::{
         LogOptions, Module, ModuleRegistry, ModuleRuntimeState, ModuleSpec,
         SystemInfo as CoreSystemInfo,
@@ -108,14 +100,14 @@ mod tests {
 
     #[test]
     fn should_authorize_anonymous() {
-        let runtime = TestModuleList::new(&vec![]);
+        let runtime = TestModuleList::new(vec![]);
         let auth = Authorization::new(runtime, Policy::Anonymous);
         assert_eq!(true, auth.authorize(None, Pid::None).wait().unwrap());
     }
 
     #[test]
     fn should_authorize_caller() {
-        let runtime = TestModuleList::new(&vec![
+        let runtime = TestModuleList::new(vec![
             TestModule::new("xyz", 987),
             TestModule::new("abc", 123),
         ]);
@@ -130,7 +122,7 @@ mod tests {
 
     #[test]
     fn should_authorize_system_caller() {
-        let runtime = TestModuleList::new(&vec![
+        let runtime = TestModuleList::new(vec![
             TestModule::new("xyz", 987),
             TestModule::new("edgeAgent", 123),
         ]);
@@ -145,14 +137,14 @@ mod tests {
 
     #[test]
     fn should_reject_caller_without_name() {
-        let runtime = TestModuleList::new(&vec![TestModule::new("abc", 123)]);
+        let runtime = TestModuleList::new(vec![TestModule::new("abc", 123)]);
         let auth = Authorization::new(runtime, Policy::Caller);
         assert_eq!(false, auth.authorize(None, Pid::Value(123)).wait().unwrap());
     }
 
     #[test]
     fn should_reject_caller_with_different_name() {
-        let runtime = TestModuleList::new(&vec![TestModule::new("abc", 123)]);
+        let runtime = TestModuleList::new(vec![TestModule::new("abc", 123)]);
         let auth = Authorization::new(runtime, Policy::Caller);
         assert_eq!(
             false,
@@ -164,7 +156,7 @@ mod tests {
 
     #[test]
     fn should_reject_caller_with_different_pid() {
-        let runtime = TestModuleList::new(&vec![TestModule::new("abc", 123)]);
+        let runtime = TestModuleList::new(vec![TestModule::new("abc", 123)]);
         let auth = Authorization::new(runtime, Policy::Caller);
         assert_eq!(
             false,
@@ -176,7 +168,7 @@ mod tests {
 
     #[test]
     fn should_authorize_module() {
-        let runtime = TestModuleList::new(&vec![
+        let runtime = TestModuleList::new(vec![
             TestModule::new("xyz", 987),
             TestModule::new("abc", 123),
         ]);
@@ -186,21 +178,21 @@ mod tests {
 
     #[test]
     fn should_reject_module_whose_name_does_not_match_policy() {
-        let runtime = TestModuleList::new(&vec![TestModule::new("xyz", 123)]);
+        let runtime = TestModuleList::new(vec![TestModule::new("xyz", 123)]);
         let auth = Authorization::new(runtime, Policy::Module("abc"));
         assert_eq!(false, auth.authorize(None, Pid::Value(123)).wait().unwrap());
     }
 
     #[test]
     fn should_reject_module_with_different_pid() {
-        let runtime = TestModuleList::new(&vec![TestModule::new("abc", 123)]);
+        let runtime = TestModuleList::new(vec![TestModule::new("abc", 123)]);
         let auth = Authorization::new(runtime, Policy::Module("abc"));
         assert_eq!(false, auth.authorize(None, Pid::Value(456)).wait().unwrap());
     }
 
     #[test]
     fn should_reject_module_when_runtime_returns_no_pid() {
-        let runtime = TestModuleList::new(&vec![TestModule::new_with_behavior(
+        let runtime = TestModuleList::new(vec![TestModule::new_with_behavior(
             "abc",
             123,
             TestModuleBehavior::NoPid,
@@ -217,7 +209,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "A module runtime error occurred.")]
     fn should_fail_when_runtime_state_fails() {
-        let runtime = TestModuleList::new(&vec![TestModule::new_with_behavior(
+        let runtime = TestModuleList::new(vec![TestModule::new_with_behavior(
             "abc",
             123,
             TestModuleBehavior::FailRuntimeState,
@@ -232,7 +224,7 @@ mod tests {
     #[should_panic(expected = "A module runtime error occurred.")]
     fn should_fail_when_list_fails() {
         let runtime = TestModuleList::new_with_behavior(
-            &vec![TestModule::new("abc", 123)],
+            vec![TestModule::new("abc", 123)],
             TestModuleListBehavior::FailList,
         );
         let auth = Authorization::new(runtime, Policy::Caller);
@@ -243,7 +235,7 @@ mod tests {
 
     struct TestConfig {}
 
-    #[derive(Clone)]
+    #[derive(Clone, Copy)]
     enum TestModuleBehavior {
         Default,
         FailRuntimeState,
@@ -283,6 +275,12 @@ mod tests {
         };
     }
 
+    macro_rules! notimpl_error_stream {
+        () => {
+            stream::once(Err(Error::new(Context::new(ErrorKind::ModuleRuntime))))
+        };
+    }
+
     impl Module for TestModule {
         type Config = TestConfig;
         type Error = Error;
@@ -300,7 +298,7 @@ mod tests {
         fn runtime_state(&self) -> Self::RuntimeStateFuture {
             match self.behavior {
                 TestModuleBehavior::Default => {
-                    future::ok(ModuleRuntimeState::default().with_pid(&Pid::Value(self.pid)))
+                    future::ok(ModuleRuntimeState::default().with_pid(Pid::Value(self.pid)))
                 }
                 TestModuleBehavior::FailRuntimeState => notimpl_error!(),
                 TestModuleBehavior::NoPid => future::ok(ModuleRuntimeState::default()),
@@ -308,7 +306,7 @@ mod tests {
         }
     }
 
-    #[derive(Clone)]
+    #[derive(Clone, Copy)]
     enum TestModuleListBehavior {
         Default,
         FailList,
@@ -321,21 +319,18 @@ mod tests {
     }
 
     impl TestModuleList {
-        pub fn new(modules: &Vec<TestModule>) -> Self {
+        pub fn new(modules: Vec<TestModule>) -> Self {
             TestModuleList {
-                modules: modules.clone(),
+                modules,
                 behavior: TestModuleListBehavior::Default,
             }
         }
 
         pub fn new_with_behavior(
-            modules: &Vec<TestModule>,
+            modules: Vec<TestModule>,
             behavior: TestModuleListBehavior,
         ) -> Self {
-            TestModuleList {
-                modules: modules.clone(),
-                behavior,
-            }
+            TestModuleList { modules, behavior }
         }
     }
 
@@ -364,6 +359,8 @@ mod tests {
         type CreateFuture = FutureResult<(), Self::Error>;
         type InitFuture = FutureResult<(), Self::Error>;
         type ListFuture = FutureResult<Vec<Self::Module>, Self::Error>;
+        type ListWithDetailsStream =
+            Box<Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
         type LogsFuture = FutureResult<Self::Logs, Self::Error>;
         type RemoveFuture = FutureResult<(), Self::Error>;
         type RestartFuture = FutureResult<(), Self::Error>;
@@ -404,6 +401,18 @@ mod tests {
             match self.behavior {
                 TestModuleListBehavior::Default => future::ok(self.modules.clone()),
                 TestModuleListBehavior::FailList => notimpl_error!(),
+            }
+        }
+
+        fn list_with_details(&self) -> Self::ListWithDetailsStream {
+            match self.behavior {
+                TestModuleListBehavior::Default => Box::new(stream::futures_unordered(
+                    self.modules
+                        .clone()
+                        .into_iter()
+                        .map(|m| m.runtime_state().map(|rs| (m, rs))),
+                )),
+                TestModuleListBehavior::FailList => Box::new(notimpl_error_stream!()),
             }
         }
 

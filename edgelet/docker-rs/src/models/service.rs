@@ -17,20 +17,29 @@ pub struct Service {
     ID: Option<String>,
     #[serde(rename = "Version", skip_serializing_if = "Option::is_none")]
     version: Option<::models::ObjectVersion>,
-    #[serde(rename = "CreatedAt", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "CreatedAt",
+        skip_serializing_if = "Option::is_none"
+    )]
     created_at: Option<String>,
-    #[serde(rename = "UpdatedAt", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "UpdatedAt",
+        skip_serializing_if = "Option::is_none"
+    )]
     updated_at: Option<String>,
     #[serde(rename = "Spec", skip_serializing_if = "Option::is_none")]
     spec: Option<::models::ServiceSpec>,
     #[serde(rename = "Endpoint", skip_serializing_if = "Option::is_none")]
     endpoint: Option<::models::ServiceEndpoint>,
-    #[serde(rename = "UpdateStatus", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "UpdateStatus",
+        skip_serializing_if = "Option::is_none"
+    )]
     update_status: Option<::models::ServiceUpdateStatus>,
 }
 
 impl Service {
-    pub fn new() -> Service {
+    pub fn new() -> Self {
         Service {
             ID: None,
             version: None,
@@ -46,13 +55,13 @@ impl Service {
         self.ID = Some(ID);
     }
 
-    pub fn with_ID(mut self, ID: String) -> Service {
+    pub fn with_ID(mut self, ID: String) -> Self {
         self.ID = Some(ID);
         self
     }
 
-    pub fn ID(&self) -> Option<&String> {
-        self.ID.as_ref()
+    pub fn ID(&self) -> Option<&str> {
+        self.ID.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_ID(&mut self) {
@@ -63,7 +72,7 @@ impl Service {
         self.version = Some(version);
     }
 
-    pub fn with_version(mut self, version: ::models::ObjectVersion) -> Service {
+    pub fn with_version(mut self, version: ::models::ObjectVersion) -> Self {
         self.version = Some(version);
         self
     }
@@ -80,13 +89,13 @@ impl Service {
         self.created_at = Some(created_at);
     }
 
-    pub fn with_created_at(mut self, created_at: String) -> Service {
+    pub fn with_created_at(mut self, created_at: String) -> Self {
         self.created_at = Some(created_at);
         self
     }
 
-    pub fn created_at(&self) -> Option<&String> {
-        self.created_at.as_ref()
+    pub fn created_at(&self) -> Option<&str> {
+        self.created_at.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_created_at(&mut self) {
@@ -97,13 +106,13 @@ impl Service {
         self.updated_at = Some(updated_at);
     }
 
-    pub fn with_updated_at(mut self, updated_at: String) -> Service {
+    pub fn with_updated_at(mut self, updated_at: String) -> Self {
         self.updated_at = Some(updated_at);
         self
     }
 
-    pub fn updated_at(&self) -> Option<&String> {
-        self.updated_at.as_ref()
+    pub fn updated_at(&self) -> Option<&str> {
+        self.updated_at.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_updated_at(&mut self) {
@@ -114,7 +123,7 @@ impl Service {
         self.spec = Some(spec);
     }
 
-    pub fn with_spec(mut self, spec: ::models::ServiceSpec) -> Service {
+    pub fn with_spec(mut self, spec: ::models::ServiceSpec) -> Self {
         self.spec = Some(spec);
         self
     }
@@ -131,7 +140,7 @@ impl Service {
         self.endpoint = Some(endpoint);
     }
 
-    pub fn with_endpoint(mut self, endpoint: ::models::ServiceEndpoint) -> Service {
+    pub fn with_endpoint(mut self, endpoint: ::models::ServiceEndpoint) -> Self {
         self.endpoint = Some(endpoint);
         self
     }
@@ -148,7 +157,7 @@ impl Service {
         self.update_status = Some(update_status);
     }
 
-    pub fn with_update_status(mut self, update_status: ::models::ServiceUpdateStatus) -> Service {
+    pub fn with_update_status(mut self, update_status: ::models::ServiceUpdateStatus) -> Self {
         self.update_status = Some(update_status);
         self
     }

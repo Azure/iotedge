@@ -17,7 +17,10 @@ pub struct NetworkConfig {
     #[serde(rename = "Name")]
     name: String,
     /// Check for networks with duplicate names. Since Network is primarily keyed based on a random ID and not on the name, and network name is strictly a user-friendly alias to the network which is uniquely identified using ID, there is no guaranteed way to check for duplicates. CheckDuplicate is there to provide a best effort checking of any networks which has the same name but it is not guaranteed to catch all name collisions.
-    #[serde(rename = "CheckDuplicate", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "CheckDuplicate",
+        skip_serializing_if = "Option::is_none"
+    )]
     check_duplicate: Option<bool>,
     /// Name of the network driver plugin to use.
     #[serde(rename = "Driver", skip_serializing_if = "Option::is_none")]
@@ -26,7 +29,10 @@ pub struct NetworkConfig {
     #[serde(rename = "Internal", skip_serializing_if = "Option::is_none")]
     internal: Option<bool>,
     /// Globally scoped network is manually attachable by regular containers from workers in swarm mode.
-    #[serde(rename = "Attachable", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "Attachable",
+        skip_serializing_if = "Option::is_none"
+    )]
     attachable: Option<bool>,
     /// Ingress network is the network which provides the routing-mesh in swarm mode.
     #[serde(rename = "Ingress", skip_serializing_if = "Option::is_none")]
@@ -35,7 +41,10 @@ pub struct NetworkConfig {
     #[serde(rename = "IPAM", skip_serializing_if = "Option::is_none")]
     IPAM: Option<::models::Ipam>,
     /// Enable IPv6 on the network.
-    #[serde(rename = "EnableIPv6", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "EnableIPv6",
+        skip_serializing_if = "Option::is_none"
+    )]
     enable_i_pv6: Option<bool>,
     /// Network specific options to be used by the drivers.
     #[serde(rename = "Options", skip_serializing_if = "Option::is_none")]
@@ -46,7 +55,7 @@ pub struct NetworkConfig {
 }
 
 impl NetworkConfig {
-    pub fn new(name: String) -> NetworkConfig {
+    pub fn new(name: String) -> Self {
         NetworkConfig {
             name: name,
             check_duplicate: None,
@@ -65,7 +74,7 @@ impl NetworkConfig {
         self.name = name;
     }
 
-    pub fn with_name(mut self, name: String) -> NetworkConfig {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = name;
         self
     }
@@ -78,7 +87,7 @@ impl NetworkConfig {
         self.check_duplicate = Some(check_duplicate);
     }
 
-    pub fn with_check_duplicate(mut self, check_duplicate: bool) -> NetworkConfig {
+    pub fn with_check_duplicate(mut self, check_duplicate: bool) -> Self {
         self.check_duplicate = Some(check_duplicate);
         self
     }
@@ -95,13 +104,13 @@ impl NetworkConfig {
         self.driver = Some(driver);
     }
 
-    pub fn with_driver(mut self, driver: String) -> NetworkConfig {
+    pub fn with_driver(mut self, driver: String) -> Self {
         self.driver = Some(driver);
         self
     }
 
-    pub fn driver(&self) -> Option<&String> {
-        self.driver.as_ref()
+    pub fn driver(&self) -> Option<&str> {
+        self.driver.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_driver(&mut self) {
@@ -112,7 +121,7 @@ impl NetworkConfig {
         self.internal = Some(internal);
     }
 
-    pub fn with_internal(mut self, internal: bool) -> NetworkConfig {
+    pub fn with_internal(mut self, internal: bool) -> Self {
         self.internal = Some(internal);
         self
     }
@@ -129,7 +138,7 @@ impl NetworkConfig {
         self.attachable = Some(attachable);
     }
 
-    pub fn with_attachable(mut self, attachable: bool) -> NetworkConfig {
+    pub fn with_attachable(mut self, attachable: bool) -> Self {
         self.attachable = Some(attachable);
         self
     }
@@ -146,7 +155,7 @@ impl NetworkConfig {
         self.ingress = Some(ingress);
     }
 
-    pub fn with_ingress(mut self, ingress: bool) -> NetworkConfig {
+    pub fn with_ingress(mut self, ingress: bool) -> Self {
         self.ingress = Some(ingress);
         self
     }
@@ -163,7 +172,7 @@ impl NetworkConfig {
         self.IPAM = Some(IPAM);
     }
 
-    pub fn with_IPAM(mut self, IPAM: ::models::Ipam) -> NetworkConfig {
+    pub fn with_IPAM(mut self, IPAM: ::models::Ipam) -> Self {
         self.IPAM = Some(IPAM);
         self
     }
@@ -180,7 +189,7 @@ impl NetworkConfig {
         self.enable_i_pv6 = Some(enable_i_pv6);
     }
 
-    pub fn with_enable_i_pv6(mut self, enable_i_pv6: bool) -> NetworkConfig {
+    pub fn with_enable_i_pv6(mut self, enable_i_pv6: bool) -> Self {
         self.enable_i_pv6 = Some(enable_i_pv6);
         self
     }
@@ -197,10 +206,7 @@ impl NetworkConfig {
         self.options = Some(options);
     }
 
-    pub fn with_options(
-        mut self,
-        options: ::std::collections::HashMap<String, String>,
-    ) -> NetworkConfig {
+    pub fn with_options(mut self, options: ::std::collections::HashMap<String, String>) -> Self {
         self.options = Some(options);
         self
     }
@@ -217,10 +223,7 @@ impl NetworkConfig {
         self.labels = Some(labels);
     }
 
-    pub fn with_labels(
-        mut self,
-        labels: ::std::collections::HashMap<String, String>,
-    ) -> NetworkConfig {
+    pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
         self.labels = Some(labels);
         self
     }

@@ -20,7 +20,7 @@ pub struct ErrorDetail {
 }
 
 impl ErrorDetail {
-    pub fn new() -> ErrorDetail {
+    pub fn new() -> Self {
         ErrorDetail {
             code: None,
             message: None,
@@ -31,13 +31,13 @@ impl ErrorDetail {
         self.code = Some(code);
     }
 
-    pub fn with_code(mut self, code: i32) -> ErrorDetail {
+    pub fn with_code(mut self, code: i32) -> Self {
         self.code = Some(code);
         self
     }
 
-    pub fn code(&self) -> Option<&i32> {
-        self.code.as_ref()
+    pub fn code(&self) -> Option<i32> {
+        self.code
     }
 
     pub fn reset_code(&mut self) {
@@ -48,13 +48,13 @@ impl ErrorDetail {
         self.message = Some(message);
     }
 
-    pub fn with_message(mut self, message: String) -> ErrorDetail {
+    pub fn with_message(mut self, message: String) -> Self {
         self.message = Some(message);
         self
     }
 
-    pub fn message(&self) -> Option<&String> {
-        self.message.as_ref()
+    pub fn message(&self) -> Option<&str> {
+        self.message.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_message(&mut self) {

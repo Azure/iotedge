@@ -13,12 +13,15 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ImageMetadata {
-    #[serde(rename = "LastTagTime", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "LastTagTime",
+        skip_serializing_if = "Option::is_none"
+    )]
     last_tag_time: Option<String>,
 }
 
 impl ImageMetadata {
-    pub fn new() -> ImageMetadata {
+    pub fn new() -> Self {
         ImageMetadata {
             last_tag_time: None,
         }
@@ -28,13 +31,13 @@ impl ImageMetadata {
         self.last_tag_time = Some(last_tag_time);
     }
 
-    pub fn with_last_tag_time(mut self, last_tag_time: String) -> ImageMetadata {
+    pub fn with_last_tag_time(mut self, last_tag_time: String) -> Self {
         self.last_tag_time = Some(last_tag_time);
         self
     }
 
-    pub fn last_tag_time(&self) -> Option<&String> {
-        self.last_tag_time.as_ref()
+    pub fn last_tag_time(&self) -> Option<&str> {
+        self.last_tag_time.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_last_tag_time(&mut self) {

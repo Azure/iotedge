@@ -44,7 +44,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.actionBlock = new ActionBlock<IIdentity>(this.ProcessConnectionEstablishedForDevice);
         }
 
-        public static ITwinManager CreateTwinManager(IConnectionManager connectionManager, IMessageConverterProvider messageConverterProvider, Option<IStoreProvider> storeProvider)
+        public static ITwinManager CreateTwinManager(
+            IConnectionManager connectionManager,
+            IMessageConverterProvider messageConverterProvider,
+            Option<IStoreProvider> storeProvider)
         {
             Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
             Preconditions.CheckNotNull(messageConverterProvider, nameof(messageConverterProvider));
@@ -54,7 +57,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     s => Option.Some(s.GetEntityStore<string, TwinInfo>(Constants.TwinStorePartitionKey)),
                     () => Option.None<IEntityStore<string, TwinInfo>>()));
             connectionManager.CloudConnectionEstablished += twinManager.ConnectionEstablishedCallback;
-            connectionManager.CloudConnectionLost += twinManager.ConnectionLostCallback;
             return twinManager;
         }
 
@@ -105,18 +107,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.actionBlock.Post(identity);
         }
 
-        void ConnectionLostCallback(object sender, IIdentity identity)
-        {
-            Events.ConnectionLost(identity.Id);
-        }
-
         public async Task<IMessage> GetTwinAsync(string id)
         {
             return await this.TwinStore.Match(
                 async (store) =>
                 {
                     TwinInfo twinInfo = await this.GetTwinInfoWithStoreSupportAsync(id);
-                    return this.twinConverter.ToMessage(twinInfo.Twin);
+                    return twinInfo.Twin != null
+                        ? this.twinConverter.ToMessage(twinInfo.Twin)
+                        : throw new InvalidOperationException($"Error getting twin for device {id}. Twin is null.");
                 },
                 async () =>
                 {
@@ -323,10 +322,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 t =>
                 {
                     twinInfo = t;
-                    Events.GetTwinFromStoreWhenOffline(id,
-                        twinInfo.Twin.Properties.Desired.Version,
-                        twinInfo.Twin.Properties.Reported.Version,
-                        e);
+                    Events.GetTwinFromStoreWhenOffline(id, twinInfo, e);
                     return Task.CompletedTask;
                 },
                 () => throw new InvalidOperationException($"Error getting twin for device {id}", e));
@@ -339,19 +335,40 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 IEntityStore<string, TwinInfo> twinStore = this.TwinStore.Expect(() => new InvalidOperationException("Missing twin store"));
                 await twinStore.Update(
-                        id,
-                        u =>
+                    id,
+                    u =>
+                    {
+                        if (u.Twin == null)
                         {
-                            string mergedJson = JsonEx.Merge(u.Twin.Properties.Reported, reported, /*treatNullAsDelete*/ true);
-                            var mergedProperty = new TwinCollection(mergedJson);
                             if (!cloudVerified)
                             {
-                                ValidateTwinCollectionSize(mergedProperty);
+                                ValidateTwinCollectionSize(reported);
                             }
-                            u.Twin.Properties.Reported = mergedProperty;
-                            Events.UpdatedCachedReportedProperties(id, u.Twin.Properties.Reported.Version, cloudVerified);
+
+                            var twinProperties = new TwinProperties
+                            {
+                                Desired = new TwinCollection(),
+                                Reported = reported
+                            };
+                            var twin = new Twin(twinProperties);
+                            Events.UpdatedCachedReportedProperties(id, reported.Version, cloudVerified);
+                            return new TwinInfo(twin, reported);
+                        }
+                        else
+                        {
+                            string mergedJson = JsonEx.Merge(u.Twin.Properties.Reported, reported, /*treatNullAsDelete*/ true);
+                            var mergedReportedProperties = new TwinCollection(mergedJson);
+
+                            if (!cloudVerified)
+                            {
+                                ValidateTwinCollectionSize(mergedReportedProperties);
+                            }
+
+                            u.Twin.Properties.Reported = mergedReportedProperties;
+                            Events.UpdatedCachedReportedProperties(id, mergedReportedProperties.Version, cloudVerified);
                             return u;
-                        });
+                        }
+                    });
             }
         }
 
@@ -607,7 +624,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 UpdateCachedTwin,
                 SendDesiredPropertyUpdateToSubscriber,
                 PreserveCachedTwin,
-                ConnectionLost,
                 ConnectionEstablished,
                 GetTwinOnEstablished,
                 SendDiffToDeviceProxy,
@@ -660,10 +676,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     $"at reported property version {reportedVersion} cloudVerified {cloudVerified}");
             }
 
-            public static void GetTwinFromStoreWhenOffline(string id, long desiredVersion, long reportedVersion, Exception e)
+            public static void GetTwinFromStoreWhenOffline(string id, TwinInfo twinInfo, Exception e)
             {
-                Log.LogDebug((int)EventIds.GetTwinFromStoreWhenOffline, $"Getting twin for {id} at desired version " +
-                    $"{desiredVersion} reported version {reportedVersion} from local store. Get from cloud threw {e.GetType()} {e.Message}");
+                if (twinInfo.Twin != null)
+                {
+                    Log.LogDebug((int)EventIds.GetTwinFromStoreWhenOffline, $"Getting twin for {id} at desired version " +
+                        $"{twinInfo.Twin.Properties.Desired.Version} reported version {twinInfo.Twin.Properties.Reported.Version} from local store. Get from cloud threw {e.GetType()} {e.Message}");
+                }
+                else
+                {
+                    Log.LogDebug((int)EventIds.GetTwinFromStoreWhenOffline, $"Getting twin info for {id}, but twin is null. Get from cloud threw {e.GetType()} {e.Message}");
+                }
             }
 
             public static void GotTwinFromCloudSuccess(string id, long desiredVersion, long reportedVersion)
@@ -690,11 +713,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 Log.LogDebug((int)EventIds.PreserveCachedTwin, $"Local twin for {id} at higher or equal desired version " +
                     $"{cachedDesired} compared to cloud {cloudDesired} or reported version {cachedReported} compared to cloud" +
                     $" {cloudReported}");
-            }
-
-            public static void ConnectionLost(string id)
-            {
-                Log.LogDebug((int)EventIds.ConnectionLost, $"ConnectionLost for {id}");
             }
 
             public static void ConnectionEstablished(string id)
@@ -736,9 +754,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             public static void ConnectionEstablishedCallbackException(string id, Exception e)
             {
-                Log.LogWarning(
-                    (int)EventIds.ConnectionEstablishedCallbackException,
-                    $"Error in connection established callback for client {id} - {e.GetType()} {e.Message}");
+                if (e.HasTimeoutException())
+                {
+                    Log.LogDebug(
+                        (int)EventIds.ConnectionEstablishedCallbackException,
+                        $"Timed out while processing connection established callback for client {id} - {e.GetType()} {e.Message}");
+                }
+                else
+                {
+                    Log.LogWarning(
+                        (int)EventIds.ConnectionEstablishedCallbackException, e,
+                        $"Error in connection established callback for client {id}");
+                }
             }
 
             public static void MissingTwinOnUpdateReported(string id, Exception e)

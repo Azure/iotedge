@@ -2,12 +2,16 @@
 
 use std::str;
 
+use failure::ResultExt;
 use hex::{decode, encode};
+use hyper::client::connect::Destination;
 use hyper::Uri as HyperUri;
 use url::Url;
 
+use edgelet_utils::ensure_not_empty_with_context;
+
 use super::*;
-use error::{Error, ErrorKind, Result};
+use error::{Error, ErrorKind, InvalidUrlReason, Result};
 
 #[derive(Debug)]
 pub struct Uri {
@@ -15,44 +19,83 @@ pub struct Uri {
 }
 
 impl Uri {
-    pub fn new(base_path: &str, path: &str) -> Result<Uri> {
+    pub fn new(base_path: &str, path: &str) -> Result<Self> {
         // parse base_path as url and extract host and path from it;
         // "host" is the name of the machine which should be "." for localhost
         // and "path" will be "/pipe/<name>" where <name> is the pipe name
-        let url = Url::parse(ensure_not_empty!(base_path))?;
+        ensure_not_empty_with_context(base_path, || ErrorKind::BadBasePath(base_path.to_string()))?;
+        let url = Url::parse(base_path)
+            .with_context(|_| ErrorKind::BadBasePath(base_path.to_string()))?;
+
         if url.scheme() != NAMED_PIPE_SCHEME {
-            Err(ErrorKind::InvalidUrlScheme)?
-        } else if url.host_str().map(|h| h.trim()).unwrap_or("") == "" {
-            Err(ErrorKind::MissingUrlHost)?
-        } else if !url.path().starts_with("/pipe/") || url.path().len() < "/pipe/".len() + 1 {
-            Err(ErrorKind::MalformedNamedPipeUrl)?
-        } else {
-            let pipe_path = format!(
-                r"\\{}{}",
-                url.host().unwrap(),
-                url.path().replace("/", "\\")
-            );
-            Ok(Uri {
-                url: Url::parse(&format!("npipe://{}", encode(pipe_path)))?.join(path)?,
-            })
+            return Err(Error::from(ErrorKind::InvalidUrl(
+                url.to_string(),
+                InvalidUrlReason::Scheme(url.scheme().to_string()),
+            )));
         }
+
+        if url.host_str().map_or("", |h| h.trim()) == "" {
+            return Err(Error::from(ErrorKind::InvalidUrl(
+                url.to_string(),
+                InvalidUrlReason::MissingHost,
+            )));
+        }
+
+        if !url.path().starts_with("/pipe/") || url.path().len() < "/pipe/".len() + 1 {
+            return Err(Error::from(ErrorKind::InvalidUrl(
+                url.to_string(),
+                InvalidUrlReason::Path(url.path().to_string()),
+            )));
+        }
+
+        let pipe_path = format!(
+            r"\\{}{}",
+            url.host().unwrap(),
+            url.path().replace("/", "\\")
+        );
+
+        Ok(Uri {
+            url: Url::parse(&format!("npipe://{}", encode(pipe_path)))
+                .context(ErrorKind::ConstructUrlForHyper)?
+                .join(path)
+                .context(ErrorKind::ConstructUrlForHyper)?,
+        })
     }
 
-    pub fn get_pipe_path(uri: &HyperUri) -> Result<String> {
-        if uri.scheme() != Some(NAMED_PIPE_SCHEME) {
-            Err(ErrorKind::InvalidUrlScheme)?
-        } else {
-            uri.host()
-                .map(|h| h.trim())
-                .and_then(|h| if h.is_empty() { None } else { Some(h) })
-                .ok_or_else(|| Error::from(ErrorKind::MissingUrlHost))
-                .and_then(|h| decode(h).map_err(Error::from))
-                .and_then(|bytes| {
-                    str::from_utf8(bytes.as_slice())
-                        .map_err(Error::from)
-                        .map(|s| s.to_owned())
-                })
+    pub fn get_pipe_path(dst: &Destination) -> Result<String> {
+        Uri::get_pipe_path_from_parts(dst.scheme(), dst.host())
+    }
+
+    fn get_pipe_path_from_parts(scheme: &str, host: &str) -> Result<String> {
+        if scheme != NAMED_PIPE_SCHEME {
+            return Err(Error::from(ErrorKind::InvalidUrl(
+                format!("{}://{}", scheme, host),
+                InvalidUrlReason::Scheme(scheme.to_string()),
+            )));
         }
+
+        let host = host.trim();
+        if host.is_empty() {
+            return Err(Error::from(ErrorKind::InvalidUrl(
+                format!("{}://{}", scheme, host),
+                InvalidUrlReason::MissingHost,
+            )));
+        }
+
+        let bytes = decode(host).with_context(|_| {
+            ErrorKind::InvalidUrl(
+                format!("{}://{}", scheme, host),
+                InvalidUrlReason::BadHost(host.to_string()),
+            )
+        })?;
+
+        let s = str::from_utf8(bytes.as_slice()).with_context(|_| {
+            ErrorKind::InvalidUrl(
+                format!("{}://{}", scheme, host),
+                InvalidUrlReason::BadHost(host.to_string()),
+            )
+        })?;
+        Ok(s.to_owned())
     }
 }
 
@@ -123,29 +166,33 @@ mod tests {
 
     #[test]
     fn uri_host_scheme() {
-        let uri = "foo://boo".parse().unwrap();
-        assert!(Uri::get_pipe_path(&uri).is_err());
-    }
-
-    #[test]
-    fn uri_host_empty() {
-        let uri = "npipe://   /".parse().unwrap();
-        assert!(Uri::get_pipe_path(&uri).is_err());
+        let uri: HyperUri = "foo://boo".parse().unwrap();
+        assert!(
+            Uri::get_pipe_path_from_parts(uri.scheme_part().unwrap().as_str(), uri.host().unwrap())
+                .is_err()
+        );
     }
 
     #[test]
     fn uri_host_decode() {
-        let uri = "npipe://123/".parse().unwrap();
-        assert!(Uri::get_pipe_path(&uri).is_err());
+        let uri: HyperUri = "npipe://123/".parse().unwrap();
+        assert!(
+            Uri::get_pipe_path_from_parts(uri.scheme_part().unwrap().as_str(), uri.host().unwrap())
+                .is_err()
+        );
     }
 
     #[test]
     fn uri_host() {
-        let uri = "npipe://5c5c2e5c706970655c646f636b65725f656e67696e65/containers/json?all=true"
-            .parse()
-            .unwrap();
+        let uri: HyperUri =
+            "npipe://5c5c2e5c706970655c646f636b65725f656e67696e65/containers/json?all=true"
+                .parse()
+                .unwrap();
         assert_eq!(
-            &Uri::get_pipe_path(&uri).unwrap(),
+            &Uri::get_pipe_path_from_parts(
+                uri.scheme_part().unwrap().as_str(),
+                uri.host().unwrap()
+            ).unwrap(),
             "\\\\.\\pipe\\docker_engine"
         );
     }

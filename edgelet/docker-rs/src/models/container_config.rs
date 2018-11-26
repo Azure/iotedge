@@ -19,39 +19,66 @@ pub struct ContainerConfig {
     #[serde(rename = "Hostname", skip_serializing_if = "Option::is_none")]
     hostname: Option<String>,
     /// The domain name to use for the container.
-    #[serde(rename = "Domainname", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "Domainname",
+        skip_serializing_if = "Option::is_none"
+    )]
     domainname: Option<String>,
     /// The user that commands are run as inside the container.
     #[serde(rename = "User", skip_serializing_if = "Option::is_none")]
     user: Option<String>,
     /// Whether to attach to `stdin`.
-    #[serde(rename = "AttachStdin", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "AttachStdin",
+        skip_serializing_if = "Option::is_none"
+    )]
     attach_stdin: Option<bool>,
     /// Whether to attach to `stdout`.
-    #[serde(rename = "AttachStdout", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "AttachStdout",
+        skip_serializing_if = "Option::is_none"
+    )]
     attach_stdout: Option<bool>,
     /// Whether to attach to `stderr`.
-    #[serde(rename = "AttachStderr", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "AttachStderr",
+        skip_serializing_if = "Option::is_none"
+    )]
     attach_stderr: Option<bool>,
     /// An object mapping ports to an empty object in the form:  `{\"<port>/<tcp|udp>\": {}}`
-    #[serde(rename = "ExposedPorts", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "ExposedPorts",
+        skip_serializing_if = "Option::is_none"
+    )]
     exposed_ports: Option<::std::collections::HashMap<String, Value>>,
     /// Attach standard streams to a TTY, including `stdin` if it is not closed.
     #[serde(rename = "Tty", skip_serializing_if = "Option::is_none")]
     tty: Option<bool>,
     /// Open `stdin`
-    #[serde(rename = "OpenStdin", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "OpenStdin",
+        skip_serializing_if = "Option::is_none"
+    )]
     open_stdin: Option<bool>,
     /// Close `stdin` after one attached client disconnects
-    #[serde(rename = "StdinOnce", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "StdinOnce",
+        skip_serializing_if = "Option::is_none"
+    )]
     stdin_once: Option<bool>,
     /// A list of environment variables to set inside the container in the form `[\"VAR=value\", ...]`. A variable without `=` is removed from the environment, rather than to have an empty value.
     #[serde(rename = "Env", skip_serializing_if = "Option::is_none")]
     env: Option<Vec<String>>,
-    #[serde(rename = "Healthcheck", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "Healthcheck",
+        skip_serializing_if = "Option::is_none"
+    )]
     healthcheck: Option<::models::HealthConfig>,
     /// Command is already escaped (Windows only)
-    #[serde(rename = "ArgsEscaped", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "ArgsEscaped",
+        skip_serializing_if = "Option::is_none"
+    )]
     args_escaped: Option<bool>,
     /// The name of the image to use when creating the container
     #[serde(rename = "Image", skip_serializing_if = "Option::is_none")]
@@ -59,13 +86,22 @@ pub struct ContainerConfig {
     #[serde(rename = "Volumes", skip_serializing_if = "Option::is_none")]
     volumes: Option<::models::ContainerConfigVolumes>,
     /// The working directory for commands to run in.
-    #[serde(rename = "WorkingDir", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "WorkingDir",
+        skip_serializing_if = "Option::is_none"
+    )]
     working_dir: Option<String>,
     /// Disable networking for the container.
-    #[serde(rename = "NetworkDisabled", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "NetworkDisabled",
+        skip_serializing_if = "Option::is_none"
+    )]
     network_disabled: Option<bool>,
     /// MAC address of the container.
-    #[serde(rename = "MacAddress", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "MacAddress",
+        skip_serializing_if = "Option::is_none"
+    )]
     mac_address: Option<String>,
     /// `ONBUILD` metadata that were defined in the image's `Dockerfile`.
     #[serde(rename = "OnBuild", skip_serializing_if = "Option::is_none")]
@@ -74,10 +110,16 @@ pub struct ContainerConfig {
     #[serde(rename = "Labels", skip_serializing_if = "Option::is_none")]
     labels: Option<::std::collections::HashMap<String, String>>,
     /// Signal to stop a container as a string or unsigned integer.
-    #[serde(rename = "StopSignal", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "StopSignal",
+        skip_serializing_if = "Option::is_none"
+    )]
     stop_signal: Option<String>,
     /// Timeout to stop a container in seconds.
-    #[serde(rename = "StopTimeout", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "StopTimeout",
+        skip_serializing_if = "Option::is_none"
+    )]
     stop_timeout: Option<i32>,
     /// Shell for when `RUN`, `CMD`, and `ENTRYPOINT` uses a shell.
     #[serde(rename = "Shell", skip_serializing_if = "Option::is_none")]
@@ -86,7 +128,7 @@ pub struct ContainerConfig {
 
 impl ContainerConfig {
     /// Configuration for a container that is portable between hosts
-    pub fn new() -> ContainerConfig {
+    pub fn new() -> Self {
         ContainerConfig {
             hostname: None,
             domainname: None,
@@ -118,13 +160,13 @@ impl ContainerConfig {
         self.hostname = Some(hostname);
     }
 
-    pub fn with_hostname(mut self, hostname: String) -> ContainerConfig {
+    pub fn with_hostname(mut self, hostname: String) -> Self {
         self.hostname = Some(hostname);
         self
     }
 
-    pub fn hostname(&self) -> Option<&String> {
-        self.hostname.as_ref()
+    pub fn hostname(&self) -> Option<&str> {
+        self.hostname.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_hostname(&mut self) {
@@ -135,13 +177,13 @@ impl ContainerConfig {
         self.domainname = Some(domainname);
     }
 
-    pub fn with_domainname(mut self, domainname: String) -> ContainerConfig {
+    pub fn with_domainname(mut self, domainname: String) -> Self {
         self.domainname = Some(domainname);
         self
     }
 
-    pub fn domainname(&self) -> Option<&String> {
-        self.domainname.as_ref()
+    pub fn domainname(&self) -> Option<&str> {
+        self.domainname.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_domainname(&mut self) {
@@ -152,13 +194,13 @@ impl ContainerConfig {
         self.user = Some(user);
     }
 
-    pub fn with_user(mut self, user: String) -> ContainerConfig {
+    pub fn with_user(mut self, user: String) -> Self {
         self.user = Some(user);
         self
     }
 
-    pub fn user(&self) -> Option<&String> {
-        self.user.as_ref()
+    pub fn user(&self) -> Option<&str> {
+        self.user.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_user(&mut self) {
@@ -169,7 +211,7 @@ impl ContainerConfig {
         self.attach_stdin = Some(attach_stdin);
     }
 
-    pub fn with_attach_stdin(mut self, attach_stdin: bool) -> ContainerConfig {
+    pub fn with_attach_stdin(mut self, attach_stdin: bool) -> Self {
         self.attach_stdin = Some(attach_stdin);
         self
     }
@@ -186,7 +228,7 @@ impl ContainerConfig {
         self.attach_stdout = Some(attach_stdout);
     }
 
-    pub fn with_attach_stdout(mut self, attach_stdout: bool) -> ContainerConfig {
+    pub fn with_attach_stdout(mut self, attach_stdout: bool) -> Self {
         self.attach_stdout = Some(attach_stdout);
         self
     }
@@ -203,7 +245,7 @@ impl ContainerConfig {
         self.attach_stderr = Some(attach_stderr);
     }
 
-    pub fn with_attach_stderr(mut self, attach_stderr: bool) -> ContainerConfig {
+    pub fn with_attach_stderr(mut self, attach_stderr: bool) -> Self {
         self.attach_stderr = Some(attach_stderr);
         self
     }
@@ -223,7 +265,7 @@ impl ContainerConfig {
     pub fn with_exposed_ports(
         mut self,
         exposed_ports: ::std::collections::HashMap<String, Value>,
-    ) -> ContainerConfig {
+    ) -> Self {
         self.exposed_ports = Some(exposed_ports);
         self
     }
@@ -240,7 +282,7 @@ impl ContainerConfig {
         self.tty = Some(tty);
     }
 
-    pub fn with_tty(mut self, tty: bool) -> ContainerConfig {
+    pub fn with_tty(mut self, tty: bool) -> Self {
         self.tty = Some(tty);
         self
     }
@@ -257,7 +299,7 @@ impl ContainerConfig {
         self.open_stdin = Some(open_stdin);
     }
 
-    pub fn with_open_stdin(mut self, open_stdin: bool) -> ContainerConfig {
+    pub fn with_open_stdin(mut self, open_stdin: bool) -> Self {
         self.open_stdin = Some(open_stdin);
         self
     }
@@ -274,7 +316,7 @@ impl ContainerConfig {
         self.stdin_once = Some(stdin_once);
     }
 
-    pub fn with_stdin_once(mut self, stdin_once: bool) -> ContainerConfig {
+    pub fn with_stdin_once(mut self, stdin_once: bool) -> Self {
         self.stdin_once = Some(stdin_once);
         self
     }
@@ -291,13 +333,13 @@ impl ContainerConfig {
         self.env = Some(env);
     }
 
-    pub fn with_env(mut self, env: Vec<String>) -> ContainerConfig {
+    pub fn with_env(mut self, env: Vec<String>) -> Self {
         self.env = Some(env);
         self
     }
 
-    pub fn env(&self) -> Option<&Vec<String>> {
-        self.env.as_ref()
+    pub fn env(&self) -> Option<&[String]> {
+        self.env.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_env(&mut self) {
@@ -308,7 +350,7 @@ impl ContainerConfig {
         self.healthcheck = Some(healthcheck);
     }
 
-    pub fn with_healthcheck(mut self, healthcheck: ::models::HealthConfig) -> ContainerConfig {
+    pub fn with_healthcheck(mut self, healthcheck: ::models::HealthConfig) -> Self {
         self.healthcheck = Some(healthcheck);
         self
     }
@@ -325,7 +367,7 @@ impl ContainerConfig {
         self.args_escaped = Some(args_escaped);
     }
 
-    pub fn with_args_escaped(mut self, args_escaped: bool) -> ContainerConfig {
+    pub fn with_args_escaped(mut self, args_escaped: bool) -> Self {
         self.args_escaped = Some(args_escaped);
         self
     }
@@ -342,13 +384,13 @@ impl ContainerConfig {
         self.image = Some(image);
     }
 
-    pub fn with_image(mut self, image: String) -> ContainerConfig {
+    pub fn with_image(mut self, image: String) -> Self {
         self.image = Some(image);
         self
     }
 
-    pub fn image(&self) -> Option<&String> {
-        self.image.as_ref()
+    pub fn image(&self) -> Option<&str> {
+        self.image.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_image(&mut self) {
@@ -359,7 +401,7 @@ impl ContainerConfig {
         self.volumes = Some(volumes);
     }
 
-    pub fn with_volumes(mut self, volumes: ::models::ContainerConfigVolumes) -> ContainerConfig {
+    pub fn with_volumes(mut self, volumes: ::models::ContainerConfigVolumes) -> Self {
         self.volumes = Some(volumes);
         self
     }
@@ -376,13 +418,13 @@ impl ContainerConfig {
         self.working_dir = Some(working_dir);
     }
 
-    pub fn with_working_dir(mut self, working_dir: String) -> ContainerConfig {
+    pub fn with_working_dir(mut self, working_dir: String) -> Self {
         self.working_dir = Some(working_dir);
         self
     }
 
-    pub fn working_dir(&self) -> Option<&String> {
-        self.working_dir.as_ref()
+    pub fn working_dir(&self) -> Option<&str> {
+        self.working_dir.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_working_dir(&mut self) {
@@ -393,7 +435,7 @@ impl ContainerConfig {
         self.network_disabled = Some(network_disabled);
     }
 
-    pub fn with_network_disabled(mut self, network_disabled: bool) -> ContainerConfig {
+    pub fn with_network_disabled(mut self, network_disabled: bool) -> Self {
         self.network_disabled = Some(network_disabled);
         self
     }
@@ -410,13 +452,13 @@ impl ContainerConfig {
         self.mac_address = Some(mac_address);
     }
 
-    pub fn with_mac_address(mut self, mac_address: String) -> ContainerConfig {
+    pub fn with_mac_address(mut self, mac_address: String) -> Self {
         self.mac_address = Some(mac_address);
         self
     }
 
-    pub fn mac_address(&self) -> Option<&String> {
-        self.mac_address.as_ref()
+    pub fn mac_address(&self) -> Option<&str> {
+        self.mac_address.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_mac_address(&mut self) {
@@ -427,13 +469,13 @@ impl ContainerConfig {
         self.on_build = Some(on_build);
     }
 
-    pub fn with_on_build(mut self, on_build: Vec<String>) -> ContainerConfig {
+    pub fn with_on_build(mut self, on_build: Vec<String>) -> Self {
         self.on_build = Some(on_build);
         self
     }
 
-    pub fn on_build(&self) -> Option<&Vec<String>> {
-        self.on_build.as_ref()
+    pub fn on_build(&self) -> Option<&[String]> {
+        self.on_build.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_on_build(&mut self) {
@@ -444,10 +486,7 @@ impl ContainerConfig {
         self.labels = Some(labels);
     }
 
-    pub fn with_labels(
-        mut self,
-        labels: ::std::collections::HashMap<String, String>,
-    ) -> ContainerConfig {
+    pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
         self.labels = Some(labels);
         self
     }
@@ -464,13 +503,13 @@ impl ContainerConfig {
         self.stop_signal = Some(stop_signal);
     }
 
-    pub fn with_stop_signal(mut self, stop_signal: String) -> ContainerConfig {
+    pub fn with_stop_signal(mut self, stop_signal: String) -> Self {
         self.stop_signal = Some(stop_signal);
         self
     }
 
-    pub fn stop_signal(&self) -> Option<&String> {
-        self.stop_signal.as_ref()
+    pub fn stop_signal(&self) -> Option<&str> {
+        self.stop_signal.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_stop_signal(&mut self) {
@@ -481,13 +520,13 @@ impl ContainerConfig {
         self.stop_timeout = Some(stop_timeout);
     }
 
-    pub fn with_stop_timeout(mut self, stop_timeout: i32) -> ContainerConfig {
+    pub fn with_stop_timeout(mut self, stop_timeout: i32) -> Self {
         self.stop_timeout = Some(stop_timeout);
         self
     }
 
-    pub fn stop_timeout(&self) -> Option<&i32> {
-        self.stop_timeout.as_ref()
+    pub fn stop_timeout(&self) -> Option<i32> {
+        self.stop_timeout
     }
 
     pub fn reset_stop_timeout(&mut self) {
@@ -498,13 +537,13 @@ impl ContainerConfig {
         self.shell = Some(shell);
     }
 
-    pub fn with_shell(mut self, shell: Vec<String>) -> ContainerConfig {
+    pub fn with_shell(mut self, shell: Vec<String>) -> Self {
         self.shell = Some(shell);
         self
     }
 
-    pub fn shell(&self) -> Option<&Vec<String>> {
-        self.shell.as_ref()
+    pub fn shell(&self) -> Option<&[String]> {
+        self.shell.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_shell(&mut self) {

@@ -15,17 +15,26 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct EndpointIpamConfig {
-    #[serde(rename = "IPv4Address", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "IPv4Address",
+        skip_serializing_if = "Option::is_none"
+    )]
     i_pv4_address: Option<String>,
-    #[serde(rename = "IPv6Address", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "IPv6Address",
+        skip_serializing_if = "Option::is_none"
+    )]
     i_pv6_address: Option<String>,
-    #[serde(rename = "LinkLocalIPs", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "LinkLocalIPs",
+        skip_serializing_if = "Option::is_none"
+    )]
     link_local_i_ps: Option<Vec<String>>,
 }
 
 impl EndpointIpamConfig {
     /// EndpointIPAMConfig represents an endpoint's IPAM configuration.
-    pub fn new() -> EndpointIpamConfig {
+    pub fn new() -> Self {
         EndpointIpamConfig {
             i_pv4_address: None,
             i_pv6_address: None,
@@ -37,13 +46,13 @@ impl EndpointIpamConfig {
         self.i_pv4_address = Some(i_pv4_address);
     }
 
-    pub fn with_i_pv4_address(mut self, i_pv4_address: String) -> EndpointIpamConfig {
+    pub fn with_i_pv4_address(mut self, i_pv4_address: String) -> Self {
         self.i_pv4_address = Some(i_pv4_address);
         self
     }
 
-    pub fn i_pv4_address(&self) -> Option<&String> {
-        self.i_pv4_address.as_ref()
+    pub fn i_pv4_address(&self) -> Option<&str> {
+        self.i_pv4_address.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_i_pv4_address(&mut self) {
@@ -54,13 +63,13 @@ impl EndpointIpamConfig {
         self.i_pv6_address = Some(i_pv6_address);
     }
 
-    pub fn with_i_pv6_address(mut self, i_pv6_address: String) -> EndpointIpamConfig {
+    pub fn with_i_pv6_address(mut self, i_pv6_address: String) -> Self {
         self.i_pv6_address = Some(i_pv6_address);
         self
     }
 
-    pub fn i_pv6_address(&self) -> Option<&String> {
-        self.i_pv6_address.as_ref()
+    pub fn i_pv6_address(&self) -> Option<&str> {
+        self.i_pv6_address.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_i_pv6_address(&mut self) {
@@ -71,13 +80,13 @@ impl EndpointIpamConfig {
         self.link_local_i_ps = Some(link_local_i_ps);
     }
 
-    pub fn with_link_local_i_ps(mut self, link_local_i_ps: Vec<String>) -> EndpointIpamConfig {
+    pub fn with_link_local_i_ps(mut self, link_local_i_ps: Vec<String>) -> Self {
         self.link_local_i_ps = Some(link_local_i_ps);
         self
     }
 
-    pub fn link_local_i_ps(&self) -> Option<&Vec<String>> {
-        self.link_local_i_ps.as_ref()
+    pub fn link_local_i_ps(&self) -> Option<&[String]> {
+        self.link_local_i_ps.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_link_local_i_ps(&mut self) {

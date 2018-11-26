@@ -15,13 +15,16 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SwarmSpecTaskDefaults {
-    #[serde(rename = "LogDriver", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "LogDriver",
+        skip_serializing_if = "Option::is_none"
+    )]
     log_driver: Option<::models::SwarmSpecTaskDefaultsLogDriver>,
 }
 
 impl SwarmSpecTaskDefaults {
     /// Defaults for creating tasks in this cluster.
-    pub fn new() -> SwarmSpecTaskDefaults {
+    pub fn new() -> Self {
         SwarmSpecTaskDefaults { log_driver: None }
     }
 
@@ -29,10 +32,7 @@ impl SwarmSpecTaskDefaults {
         self.log_driver = Some(log_driver);
     }
 
-    pub fn with_log_driver(
-        mut self,
-        log_driver: ::models::SwarmSpecTaskDefaultsLogDriver,
-    ) -> SwarmSpecTaskDefaults {
+    pub fn with_log_driver(mut self, log_driver: ::models::SwarmSpecTaskDefaultsLogDriver) -> Self {
         self.log_driver = Some(log_driver);
         self
     }

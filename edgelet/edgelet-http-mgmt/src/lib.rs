@@ -1,6 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(warnings)]
+#![deny(unused_extern_crates, warnings)]
+// Remove this when clippy stops warning about old-style `allow()`,
+// which can only be silenced by enabling a feature and thus requires nightly
+//
+// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
+#![allow(renamed_and_removed_lints)]
+#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
+#![cfg_attr(feature = "cargo-clippy", allow(stutter, use_self))]
 
 #[cfg(test)]
 extern crate chrono;
@@ -12,11 +19,7 @@ extern crate edgelet_iothub;
 #[cfg(test)]
 extern crate edgelet_test_utils;
 extern crate failure;
-#[macro_use]
-extern crate failure_derive;
-#[macro_use]
 extern crate futures;
-extern crate http;
 extern crate hyper;
 #[macro_use]
 extern crate lazy_static;
@@ -29,11 +32,9 @@ extern crate serde;
 extern crate serde_json;
 #[cfg(not(test))]
 extern crate serde_json;
-extern crate tokio_core;
 extern crate url;
 
-use http::Response;
-use hyper::Body;
+use hyper::{Body, Response};
 
 mod client;
 mod error;
@@ -41,6 +42,7 @@ mod server;
 
 pub use client::ModuleClient;
 pub use error::{Error, ErrorKind};
+pub use server::ListModules;
 pub use server::ManagementService;
 
 pub trait IntoResponse {

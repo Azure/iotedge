@@ -25,10 +25,16 @@ pub struct InlineResponse200State {
     #[serde(rename = "Paused", skip_serializing_if = "Option::is_none")]
     paused: Option<bool>,
     /// Whether this container is restarting.
-    #[serde(rename = "Restarting", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "Restarting",
+        skip_serializing_if = "Option::is_none"
+    )]
     restarting: Option<bool>,
     /// Whether this container has been killed because it ran out of memory.
-    #[serde(rename = "OOMKilled", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "OOMKilled",
+        skip_serializing_if = "Option::is_none"
+    )]
     oom_killed: Option<bool>,
     #[serde(rename = "Dead", skip_serializing_if = "Option::is_none")]
     dead: Option<bool>,
@@ -41,16 +47,22 @@ pub struct InlineResponse200State {
     #[serde(rename = "Error", skip_serializing_if = "Option::is_none")]
     error: Option<String>,
     /// The time when this container was last started.
-    #[serde(rename = "StartedAt", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "StartedAt",
+        skip_serializing_if = "Option::is_none"
+    )]
     started_at: Option<String>,
     /// The time when this container last exited.
-    #[serde(rename = "FinishedAt", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "FinishedAt",
+        skip_serializing_if = "Option::is_none"
+    )]
     finished_at: Option<String>,
 }
 
 impl InlineResponse200State {
     /// The state of the container.
-    pub fn new() -> InlineResponse200State {
+    pub fn new() -> Self {
         InlineResponse200State {
             status: None,
             running: None,
@@ -70,13 +82,13 @@ impl InlineResponse200State {
         self.status = Some(status);
     }
 
-    pub fn with_status(mut self, status: String) -> InlineResponse200State {
+    pub fn with_status(mut self, status: String) -> Self {
         self.status = Some(status);
         self
     }
 
-    pub fn status(&self) -> Option<&String> {
-        self.status.as_ref()
+    pub fn status(&self) -> Option<&str> {
+        self.status.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_status(&mut self) {
@@ -87,7 +99,7 @@ impl InlineResponse200State {
         self.running = Some(running);
     }
 
-    pub fn with_running(mut self, running: bool) -> InlineResponse200State {
+    pub fn with_running(mut self, running: bool) -> Self {
         self.running = Some(running);
         self
     }
@@ -104,7 +116,7 @@ impl InlineResponse200State {
         self.paused = Some(paused);
     }
 
-    pub fn with_paused(mut self, paused: bool) -> InlineResponse200State {
+    pub fn with_paused(mut self, paused: bool) -> Self {
         self.paused = Some(paused);
         self
     }
@@ -121,7 +133,7 @@ impl InlineResponse200State {
         self.restarting = Some(restarting);
     }
 
-    pub fn with_restarting(mut self, restarting: bool) -> InlineResponse200State {
+    pub fn with_restarting(mut self, restarting: bool) -> Self {
         self.restarting = Some(restarting);
         self
     }
@@ -138,7 +150,7 @@ impl InlineResponse200State {
         self.oom_killed = Some(oom_killed);
     }
 
-    pub fn with_oom_killed(mut self, oom_killed: bool) -> InlineResponse200State {
+    pub fn with_oom_killed(mut self, oom_killed: bool) -> Self {
         self.oom_killed = Some(oom_killed);
         self
     }
@@ -155,7 +167,7 @@ impl InlineResponse200State {
         self.dead = Some(dead);
     }
 
-    pub fn with_dead(mut self, dead: bool) -> InlineResponse200State {
+    pub fn with_dead(mut self, dead: bool) -> Self {
         self.dead = Some(dead);
         self
     }
@@ -172,13 +184,13 @@ impl InlineResponse200State {
         self.pid = Some(pid);
     }
 
-    pub fn with_pid(mut self, pid: i32) -> InlineResponse200State {
+    pub fn with_pid(mut self, pid: i32) -> Self {
         self.pid = Some(pid);
         self
     }
 
-    pub fn pid(&self) -> Option<&i32> {
-        self.pid.as_ref()
+    pub fn pid(&self) -> Option<i32> {
+        self.pid
     }
 
     pub fn reset_pid(&mut self) {
@@ -189,13 +201,13 @@ impl InlineResponse200State {
         self.exit_code = Some(exit_code);
     }
 
-    pub fn with_exit_code(mut self, exit_code: i64) -> InlineResponse200State {
+    pub fn with_exit_code(mut self, exit_code: i64) -> Self {
         self.exit_code = Some(exit_code);
         self
     }
 
-    pub fn exit_code(&self) -> Option<&i64> {
-        self.exit_code.as_ref()
+    pub fn exit_code(&self) -> Option<i64> {
+        self.exit_code
     }
 
     pub fn reset_exit_code(&mut self) {
@@ -206,13 +218,13 @@ impl InlineResponse200State {
         self.error = Some(error);
     }
 
-    pub fn with_error(mut self, error: String) -> InlineResponse200State {
+    pub fn with_error(mut self, error: String) -> Self {
         self.error = Some(error);
         self
     }
 
-    pub fn error(&self) -> Option<&String> {
-        self.error.as_ref()
+    pub fn error(&self) -> Option<&str> {
+        self.error.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_error(&mut self) {
@@ -223,13 +235,13 @@ impl InlineResponse200State {
         self.started_at = Some(started_at);
     }
 
-    pub fn with_started_at(mut self, started_at: String) -> InlineResponse200State {
+    pub fn with_started_at(mut self, started_at: String) -> Self {
         self.started_at = Some(started_at);
         self
     }
 
-    pub fn started_at(&self) -> Option<&String> {
-        self.started_at.as_ref()
+    pub fn started_at(&self) -> Option<&str> {
+        self.started_at.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_started_at(&mut self) {
@@ -240,13 +252,13 @@ impl InlineResponse200State {
         self.finished_at = Some(finished_at);
     }
 
-    pub fn with_finished_at(mut self, finished_at: String) -> InlineResponse200State {
+    pub fn with_finished_at(mut self, finished_at: String) -> Self {
         self.finished_at = Some(finished_at);
         self
     }
 
-    pub fn finished_at(&self) -> Option<&String> {
-        self.finished_at.as_ref()
+    pub fn finished_at(&self) -> Option<&str> {
+        self.finished_at.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_finished_at(&mut self) {

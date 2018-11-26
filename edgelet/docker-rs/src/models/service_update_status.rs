@@ -17,9 +17,15 @@ use serde_json::Value;
 pub struct ServiceUpdateStatus {
     #[serde(rename = "State", skip_serializing_if = "Option::is_none")]
     state: Option<String>,
-    #[serde(rename = "StartedAt", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "StartedAt",
+        skip_serializing_if = "Option::is_none"
+    )]
     started_at: Option<String>,
-    #[serde(rename = "CompletedAt", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "CompletedAt",
+        skip_serializing_if = "Option::is_none"
+    )]
     completed_at: Option<String>,
     #[serde(rename = "Message", skip_serializing_if = "Option::is_none")]
     message: Option<String>,
@@ -27,7 +33,7 @@ pub struct ServiceUpdateStatus {
 
 impl ServiceUpdateStatus {
     /// The status of a service update.
-    pub fn new() -> ServiceUpdateStatus {
+    pub fn new() -> Self {
         ServiceUpdateStatus {
             state: None,
             started_at: None,
@@ -40,13 +46,13 @@ impl ServiceUpdateStatus {
         self.state = Some(state);
     }
 
-    pub fn with_state(mut self, state: String) -> ServiceUpdateStatus {
+    pub fn with_state(mut self, state: String) -> Self {
         self.state = Some(state);
         self
     }
 
-    pub fn state(&self) -> Option<&String> {
-        self.state.as_ref()
+    pub fn state(&self) -> Option<&str> {
+        self.state.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_state(&mut self) {
@@ -57,13 +63,13 @@ impl ServiceUpdateStatus {
         self.started_at = Some(started_at);
     }
 
-    pub fn with_started_at(mut self, started_at: String) -> ServiceUpdateStatus {
+    pub fn with_started_at(mut self, started_at: String) -> Self {
         self.started_at = Some(started_at);
         self
     }
 
-    pub fn started_at(&self) -> Option<&String> {
-        self.started_at.as_ref()
+    pub fn started_at(&self) -> Option<&str> {
+        self.started_at.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_started_at(&mut self) {
@@ -74,13 +80,13 @@ impl ServiceUpdateStatus {
         self.completed_at = Some(completed_at);
     }
 
-    pub fn with_completed_at(mut self, completed_at: String) -> ServiceUpdateStatus {
+    pub fn with_completed_at(mut self, completed_at: String) -> Self {
         self.completed_at = Some(completed_at);
         self
     }
 
-    pub fn completed_at(&self) -> Option<&String> {
-        self.completed_at.as_ref()
+    pub fn completed_at(&self) -> Option<&str> {
+        self.completed_at.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_completed_at(&mut self) {
@@ -91,13 +97,13 @@ impl ServiceUpdateStatus {
         self.message = Some(message);
     }
 
-    pub fn with_message(mut self, message: String) -> ServiceUpdateStatus {
+    pub fn with_message(mut self, message: String) -> Self {
         self.message = Some(message);
         self
     }
 
-    pub fn message(&self) -> Option<&String> {
-        self.message.as_ref()
+    pub fn message(&self) -> Option<&str> {
+        self.message.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_message(&mut self) {

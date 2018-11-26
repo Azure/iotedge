@@ -21,24 +21,36 @@ pub struct ServiceSpec {
     /// User-defined key/value metadata.
     #[serde(rename = "Labels", skip_serializing_if = "Option::is_none")]
     labels: Option<::std::collections::HashMap<String, String>>,
-    #[serde(rename = "TaskTemplate", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "TaskTemplate",
+        skip_serializing_if = "Option::is_none"
+    )]
     task_template: Option<::models::TaskSpec>,
     #[serde(rename = "Mode", skip_serializing_if = "Option::is_none")]
     mode: Option<::models::ServiceSpecMode>,
-    #[serde(rename = "UpdateConfig", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "UpdateConfig",
+        skip_serializing_if = "Option::is_none"
+    )]
     update_config: Option<::models::ServiceSpecUpdateConfig>,
-    #[serde(rename = "RollbackConfig", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "RollbackConfig",
+        skip_serializing_if = "Option::is_none"
+    )]
     rollback_config: Option<::models::ServiceSpecRollbackConfig>,
     /// Array of network names or IDs to attach the service to.
     #[serde(rename = "Networks", skip_serializing_if = "Option::is_none")]
     networks: Option<Vec<::models::TaskSpecNetworks>>,
-    #[serde(rename = "EndpointSpec", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "EndpointSpec",
+        skip_serializing_if = "Option::is_none"
+    )]
     endpoint_spec: Option<::models::EndpointSpec>,
 }
 
 impl ServiceSpec {
     /// User modifiable configuration for a service.
-    pub fn new() -> ServiceSpec {
+    pub fn new() -> Self {
         ServiceSpec {
             name: None,
             labels: None,
@@ -55,13 +67,13 @@ impl ServiceSpec {
         self.name = Some(name);
     }
 
-    pub fn with_name(mut self, name: String) -> ServiceSpec {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
     }
 
-    pub fn name(&self) -> Option<&String> {
-        self.name.as_ref()
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_name(&mut self) {
@@ -72,10 +84,7 @@ impl ServiceSpec {
         self.labels = Some(labels);
     }
 
-    pub fn with_labels(
-        mut self,
-        labels: ::std::collections::HashMap<String, String>,
-    ) -> ServiceSpec {
+    pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
         self.labels = Some(labels);
         self
     }
@@ -92,7 +101,7 @@ impl ServiceSpec {
         self.task_template = Some(task_template);
     }
 
-    pub fn with_task_template(mut self, task_template: ::models::TaskSpec) -> ServiceSpec {
+    pub fn with_task_template(mut self, task_template: ::models::TaskSpec) -> Self {
         self.task_template = Some(task_template);
         self
     }
@@ -109,7 +118,7 @@ impl ServiceSpec {
         self.mode = Some(mode);
     }
 
-    pub fn with_mode(mut self, mode: ::models::ServiceSpecMode) -> ServiceSpec {
+    pub fn with_mode(mut self, mode: ::models::ServiceSpecMode) -> Self {
         self.mode = Some(mode);
         self
     }
@@ -126,10 +135,7 @@ impl ServiceSpec {
         self.update_config = Some(update_config);
     }
 
-    pub fn with_update_config(
-        mut self,
-        update_config: ::models::ServiceSpecUpdateConfig,
-    ) -> ServiceSpec {
+    pub fn with_update_config(mut self, update_config: ::models::ServiceSpecUpdateConfig) -> Self {
         self.update_config = Some(update_config);
         self
     }
@@ -149,7 +155,7 @@ impl ServiceSpec {
     pub fn with_rollback_config(
         mut self,
         rollback_config: ::models::ServiceSpecRollbackConfig,
-    ) -> ServiceSpec {
+    ) -> Self {
         self.rollback_config = Some(rollback_config);
         self
     }
@@ -166,13 +172,13 @@ impl ServiceSpec {
         self.networks = Some(networks);
     }
 
-    pub fn with_networks(mut self, networks: Vec<::models::TaskSpecNetworks>) -> ServiceSpec {
+    pub fn with_networks(mut self, networks: Vec<::models::TaskSpecNetworks>) -> Self {
         self.networks = Some(networks);
         self
     }
 
-    pub fn networks(&self) -> Option<&Vec<::models::TaskSpecNetworks>> {
-        self.networks.as_ref()
+    pub fn networks(&self) -> Option<&[::models::TaskSpecNetworks]> {
+        self.networks.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_networks(&mut self) {
@@ -183,7 +189,7 @@ impl ServiceSpec {
         self.endpoint_spec = Some(endpoint_spec);
     }
 
-    pub fn with_endpoint_spec(mut self, endpoint_spec: ::models::EndpointSpec) -> ServiceSpec {
+    pub fn with_endpoint_spec(mut self, endpoint_spec: ::models::EndpointSpec) -> Self {
         self.endpoint_spec = Some(endpoint_spec);
         self
     }

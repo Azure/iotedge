@@ -15,15 +15,21 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TaskSpecContainerSpecPrivileges {
-    #[serde(rename = "CredentialSpec", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "CredentialSpec",
+        skip_serializing_if = "Option::is_none"
+    )]
     credential_spec: Option<::models::TaskSpecContainerSpecPrivilegesCredentialSpec>,
-    #[serde(rename = "SELinuxContext", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "SELinuxContext",
+        skip_serializing_if = "Option::is_none"
+    )]
     se_linux_context: Option<::models::TaskSpecContainerSpecPrivilegesSeLinuxContext>,
 }
 
 impl TaskSpecContainerSpecPrivileges {
     /// Security options for the container
-    pub fn new() -> TaskSpecContainerSpecPrivileges {
+    pub fn new() -> Self {
         TaskSpecContainerSpecPrivileges {
             credential_spec: None,
             se_linux_context: None,
@@ -40,7 +46,7 @@ impl TaskSpecContainerSpecPrivileges {
     pub fn with_credential_spec(
         mut self,
         credential_spec: ::models::TaskSpecContainerSpecPrivilegesCredentialSpec,
-    ) -> TaskSpecContainerSpecPrivileges {
+    ) -> Self {
         self.credential_spec = Some(credential_spec);
         self
     }
@@ -65,7 +71,7 @@ impl TaskSpecContainerSpecPrivileges {
     pub fn with_se_linux_context(
         mut self,
         se_linux_context: ::models::TaskSpecContainerSpecPrivilegesSeLinuxContext,
-    ) -> TaskSpecContainerSpecPrivileges {
+    ) -> Self {
         self.se_linux_context = Some(se_linux_context);
         self
     }

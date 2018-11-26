@@ -8,12 +8,25 @@
 //! $ cargo run --example device -- -h HUB_NAME -d DEVICE_ID -s "$sas_token" get -m MODULE_ID
 //! ```
 
+#![deny(unused_extern_crates, warnings)]
+// Remove this when clippy stops warning about old-style `allow()`,
+// which can only be silenced by enabling a feature and thus requires nightly
+//
+// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
+#![allow(renamed_and_removed_lints)]
+#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
+#![cfg_attr(feature = "cargo-clippy", allow(
+    doc_markdown, // clippy want the "IoT" of "IoT Hub" in a code fence
+    use_self,
+))]
+
 extern crate chrono;
 extern crate clap;
+extern crate failure;
 extern crate hyper;
 extern crate hyper_tls;
 extern crate serde_json;
-extern crate tokio_core;
+extern crate tokio;
 extern crate url;
 
 extern crate edgelet_http;
@@ -21,14 +34,12 @@ extern crate iothubservice;
 
 use chrono::{DateTime, Utc};
 use clap::{App, Arg, ArgMatches, SubCommand};
-use hyper::client::Service;
-use hyper::{Client as HyperClient, Error as HyperError, Request, Response};
+use failure::Fail;
+use hyper::Client as HyperClient;
 use hyper_tls::HttpsConnector;
-use tokio_core::reactor::Core;
 use url::Url;
 
-use edgelet_http::client::{Client, TokenSource};
-use edgelet_http::error::Error as HttpError;
+use edgelet_http::client::{Client, ClientImpl, TokenSource};
 use iothubservice::error::Error;
 use iothubservice::DeviceClient;
 
@@ -55,77 +66,93 @@ fn main() {
 
     let sas_token = matches.value_of("sas-token").unwrap();
     let hub_name = matches.value_of("hub-name").unwrap();
-    let device_id = matches.value_of("device-id").unwrap();
+    let device_id = matches.value_of("device-id").unwrap().to_string();
 
-    let mut core = Core::new().unwrap();
-    let hyper_client = HyperClient::configure()
-        .connector(HttpsConnector::new(4, &core.handle()).unwrap())
-        .build(&core.handle());
+    let hyper_client = HyperClient::builder().build(HttpsConnector::new(4).unwrap());
 
     let token_source = StaticTokenSource::new(sas_token.to_string());
 
     let client = Client::new(
         hyper_client,
         Some(token_source),
-        "2017-11-08-preview",
+        "2017-11-08-preview".to_string(),
         Url::parse(&format!("https://{}.azure-devices.net", hub_name)).unwrap(),
     ).unwrap();
 
     let device_client = DeviceClient::new(client, device_id).unwrap();
 
-    if let Some(_) = matches.subcommand_matches("list") {
-        list_modules(&mut core, device_client);
+    let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
+
+    if matches.subcommand_matches("list").is_some() {
+        list_modules(&mut tokio_runtime, &device_client);
     } else if let Some(create) = matches.subcommand_matches("create") {
-        let module_id = create.value_of("module-id").unwrap();
-        create_module(&mut core, device_client, module_id);
+        let module_id = create.value_of("module-id").unwrap().to_string();
+        create_module(&mut tokio_runtime, &device_client, module_id);
     } else if let Some(delete) = matches.subcommand_matches("delete") {
         let module_id = delete.value_of("module-id").unwrap();
-        delete_module(&mut core, device_client, module_id);
+        delete_module(&mut tokio_runtime, &device_client, module_id);
     } else if let Some(get) = matches.subcommand_matches("get") {
-        let module_id = get.value_of("module-id").unwrap();
-        get_module(&mut core, device_client, module_id);
+        let module_id = get.value_of("module-id").unwrap().to_string();
+        get_module(&mut tokio_runtime, &device_client, module_id);
     }
 }
 
-fn list_modules<S, T>(core: &mut Core, device_client: DeviceClient<S, T>)
-where
-    S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
-    T: 'static + TokenSource + Clone,
-    T::Error: Into<HttpError>,
+fn list_modules<C, T>(
+    tokio_runtime: &mut tokio::runtime::Runtime,
+    device_client: &DeviceClient<C, T>,
+) where
+    C: ClientImpl + 'static,
+    T: TokenSource + Clone + 'static,
+    T::Error: Fail,
 {
-    let response = core.run(device_client.list_modules()).unwrap();
-    println!("{}", serde_json::to_string_pretty(&response).unwrap());
-}
-
-fn get_module<S, T>(core: &mut Core, device_client: DeviceClient<S, T>, module_id: &str)
-where
-    S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
-    T: 'static + TokenSource + Clone,
-    T::Error: Into<HttpError>,
-{
-    let response = core.run(device_client.get_module_by_id(module_id)).unwrap();
-    println!("{}", serde_json::to_string_pretty(&response).unwrap());
-}
-
-fn create_module<S, T>(core: &mut Core, device_client: DeviceClient<S, T>, module_id: &str)
-where
-    S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
-    T: 'static + TokenSource + Clone,
-    T::Error: Into<HttpError>,
-{
-    let response = core
-        .run(device_client.create_module(module_id, None, None))
+    let response = tokio_runtime
+        .block_on(device_client.list_modules())
         .unwrap();
     println!("{}", serde_json::to_string_pretty(&response).unwrap());
 }
 
-fn delete_module<S, T>(core: &mut Core, device_client: DeviceClient<S, T>, module_id: &str)
-where
-    S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
-    T: 'static + TokenSource + Clone,
-    T::Error: Into<HttpError>,
+fn get_module<C, T>(
+    tokio_runtime: &mut tokio::runtime::Runtime,
+    device_client: &DeviceClient<C, T>,
+    module_id: String,
+) where
+    C: ClientImpl + 'static,
+    T: TokenSource + Clone + 'static,
+    T::Error: Fail,
 {
-    core.run(device_client.delete_module(module_id)).unwrap();
+    let response = tokio_runtime
+        .block_on(device_client.get_module_by_id(module_id))
+        .unwrap();
+    println!("{}", serde_json::to_string_pretty(&response).unwrap());
+}
+
+fn create_module<C, T>(
+    tokio_runtime: &mut tokio::runtime::Runtime,
+    device_client: &DeviceClient<C, T>,
+    module_id: String,
+) where
+    C: ClientImpl + 'static,
+    T: TokenSource + Clone + 'static,
+    T::Error: Fail,
+{
+    let response = tokio_runtime
+        .block_on(device_client.create_module(module_id, None, None))
+        .unwrap();
+    println!("{}", serde_json::to_string_pretty(&response).unwrap());
+}
+
+fn delete_module<C, T>(
+    tokio_runtime: &mut tokio::runtime::Runtime,
+    device_client: &DeviceClient<C, T>,
+    module_id: &str,
+) where
+    C: ClientImpl + 'static,
+    T: TokenSource + Clone + 'static,
+    T::Error: Fail,
+{
+    tokio_runtime
+        .block_on(device_client.delete_module(module_id))
+        .unwrap();
     println!("Module {} deleted", module_id);
 }
 
@@ -150,8 +177,7 @@ fn parse_args<'a>() -> ArgMatches<'a> {
                 .help("SAS token to use when connecting to IoT Hub")
                 .required(true)
                 .takes_value(true),
-        )
-        .arg(
+        ).arg(
             Arg::with_name("hub-name")
                 .short("h")
                 .long("hub-name")
@@ -159,8 +185,7 @@ fn parse_args<'a>() -> ArgMatches<'a> {
                 .help("IoT Hub name")
                 .required(true)
                 .takes_value(true),
-        )
-        .arg(
+        ).arg(
             Arg::with_name("device-id")
                 .short("d")
                 .long("device-id")
@@ -168,22 +193,18 @@ fn parse_args<'a>() -> ArgMatches<'a> {
                 .help("Device ID")
                 .required(true)
                 .takes_value(true),
-        )
-        .subcommand(
+        ).subcommand(
             SubCommand::with_name("create")
                 .about("Create a new module")
                 .arg(module_id.clone()),
-        )
-        .subcommand(
+        ).subcommand(
             SubCommand::with_name("delete")
                 .about("Delete module")
                 .arg(module_id.clone()),
-        )
-        .subcommand(SubCommand::with_name("list").about("List modules"))
+        ).subcommand(SubCommand::with_name("list").about("List modules"))
         .subcommand(
             SubCommand::with_name("get")
                 .about("Get an existing module")
                 .arg(module_id.clone()),
-        )
-        .get_matches()
+        ).get_matches()
 }

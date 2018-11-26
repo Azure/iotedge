@@ -2,11 +2,8 @@
 
 use std::fmt;
 use std::fmt::Display;
-use std::num::ParseIntError;
 
-use edgelet_utils::Error as UtilsError;
 use failure::{Backtrace, Context, Fail};
-use tokio_timer;
 
 pub type Result<T> = ::std::result::Result<T, Error>;
 
@@ -17,36 +14,48 @@ pub struct Error {
 
 #[derive(Debug, Fail)]
 pub enum ErrorKind {
-    #[fail(display = "An IO error occurred.")]
-    Io,
-    #[fail(display = "A module runtime error occurred.")]
-    ModuleRuntime,
-    #[fail(display = "Signing error occurred. Invalid key length: {}", _0)]
-    Sign(usize),
-    #[fail(display = "A error occurred retrieving a key from the key store.")]
-    KeyStore,
-    #[fail(display = "Item not found.")]
-    NotFound,
-    #[fail(display = "Utils error")]
-    Utils,
-    #[fail(display = "Provisioning error")]
-    Provision(String),
+    // Only used by edgelet-test-utils
+    #[cfg(test)]
     #[fail(display = "Identity error")]
-    Identity,
-    #[fail(display = "Error activating key")]
-    Activate,
+    Certificate,
+
     #[fail(
         display = "Edge runtime module has not been created in IoT Hub. Please make sure this device is an IoT Edge capable device."
     )]
     EdgeRuntimeIdentityNotFound,
-    #[fail(display = "Watchdog error")]
-    Watchdog,
-    #[fail(display = "Tokio timer error")]
-    TokioTimer,
-    #[fail(display = "Parse error")]
-    Parse,
-    #[fail(display = "Http error")]
-    Http,
+
+    #[fail(display = "The timer that checks the edge runtime status encountered an error.")]
+    EdgeRuntimeStatusCheckerTimer,
+
+    #[fail(display = "An identity manager error occurred.")]
+    IdentityManager,
+
+    #[fail(display = "A error occurred in the key store.")]
+    KeyStore,
+
+    #[fail(display = "Invalid log tail {:?}", _0)]
+    InvalidLogTail(String),
+
+    #[fail(display = "Invalid module name {:?}", _0)]
+    InvalidModuleName(String),
+
+    #[fail(display = "Invalid module type {:?}", _0)]
+    InvalidModuleType(String),
+
+    #[fail(display = "Item not found.")]
+    KeyStoreItemNotFound,
+
+    #[fail(display = "A module runtime error occurred.")]
+    ModuleRuntime,
+
+    #[fail(display = "Signing error occurred.")]
+    Sign,
+
+    #[fail(
+        display = "Signing error occurred. Invalid key length: {}",
+        _0
+    )]
+    SignInvalidKeyLength(usize),
 }
 
 impl Fail for Error {
@@ -66,7 +75,7 @@ impl Display for Error {
 }
 
 impl Error {
-    pub fn new(inner: Context<ErrorKind>) -> Error {
+    pub fn new(inner: Context<ErrorKind>) -> Self {
         Error { inner }
     }
 
@@ -76,7 +85,7 @@ impl Error {
 }
 
 impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Error {
+    fn from(kind: ErrorKind) -> Self {
         Error {
             inner: Context::new(kind),
         }
@@ -84,31 +93,7 @@ impl From<ErrorKind> for Error {
 }
 
 impl From<Context<ErrorKind>> for Error {
-    fn from(inner: Context<ErrorKind>) -> Error {
+    fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
-    }
-}
-
-impl From<UtilsError> for Error {
-    fn from(error: UtilsError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::Utils),
-        }
-    }
-}
-
-impl From<tokio_timer::Error> for Error {
-    fn from(error: tokio_timer::Error) -> Error {
-        Error {
-            inner: error.context(ErrorKind::TokioTimer),
-        }
-    }
-}
-
-impl From<ParseIntError> for Error {
-    fn from(error: ParseIntError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::Parse),
-        }
     }
 }

@@ -425,7 +425,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             var cloudConnectionProvider = new Mock<ICloudConnectionProvider>();
             cloudConnectionProvider.Setup(c => c.Connect(It.IsAny<IClientCredentials>(), It.IsAny<Action<string, CloudConnectionStatus>>())).ReturnsAsync(Try.Success(cloudConnection));
-            IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider.Object);
+
+            IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider.Object, Mock.Of<ICredentialsCache>(), new IdentityProvider(iotHubName));
             var routingMessageConverter = new RoutingMessageConverter();
             RouteFactory routeFactory = new EdgeRouteFactory(new EndpointFactory(connectionManager, routingMessageConverter, edgeDeviceId));
             IEnumerable<Route> routesList = routeFactory.Create(routes).ToList();
@@ -437,7 +438,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             IEndpointExecutorFactory endpointExecutorFactory = new StoringAsyncEndpointExecutorFactory(endpointExecutorConfig, new AsyncEndpointExecutorOptions(1, TimeSpan.FromMilliseconds(10)), messageStore);
             Router router = await Router.CreateAsync(Guid.NewGuid().ToString(), iotHubName, routerConfig, endpointExecutorFactory);
             ITwinManager twinManager = new TwinManager(connectionManager, new TwinCollectionMessageConverter(), new TwinMessageConverter(), Option.None<IEntityStore<string, TwinInfo>>());
-            IEdgeHub edgeHub = new RoutingEdgeHub(router, routingMessageConverter, connectionManager, twinManager, edgeDeviceId, Mock.Of<IInvokeMethodHandler>());
+            IEdgeHub edgeHub = new RoutingEdgeHub(router, routingMessageConverter, connectionManager, twinManager, edgeDeviceId, Mock.Of<IInvokeMethodHandler>(), Mock.Of<IDeviceConnectivityManager>());
             return (edgeHub, connectionManager);
         }
 
@@ -475,7 +476,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                     })
                     .Returns(Task.CompletedTask);
                 deviceProxy.SetupGet(d => d.IsActive).Returns(true);
-                await connectionManager.AddDeviceConnection(moduleCredentials);
                 deviceListener.BindDeviceProxy(deviceProxy.Object);
                 await deviceListener.AddSubscription(DeviceSubscription.ModuleMessages);
                 return new TestModule(moduleCredentials.Identity as IModuleIdentity, outputEndpointId, deviceListener, receivedMessages);
@@ -532,8 +532,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 IClientCredentials deviceCredentials = SetupDeviceIdentity(deviceId);
                 Try<ICloudProxy> cloudProxy = await connectionManager.CreateCloudConnectionAsync(deviceCredentials);
                 Assert.True(cloudProxy.Success);
-                var deviceProxy = Mock.Of<IDeviceProxy>();
-                await connectionManager.AddDeviceConnection(deviceCredentials);
+                var deviceProxy = Mock.Of<IDeviceProxy>();                
                 var deviceListener = new DeviceMessageHandler(deviceCredentials.Identity, edgeHub, connectionManager);
                 deviceListener.BindDeviceProxy(deviceProxy);
                 return new TestDevice(deviceCredentials.Identity as IDeviceIdentity, deviceListener);
@@ -600,9 +599,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         }
 
         static IClientCredentials SetupDeviceIdentity(string deviceId) =>
-            new TokenCredentials(new DeviceIdentity("iotHub", deviceId), Guid.NewGuid().ToString(), string.Empty);
+            new TokenCredentials(new DeviceIdentity("iotHub", deviceId), Guid.NewGuid().ToString(), string.Empty, false);
 
         static IClientCredentials SetupModuleCredentials(string moduleId, string deviceId) =>
-            new TokenCredentials(new ModuleIdentity("iotHub", deviceId, moduleId), Guid.NewGuid().ToString(), string.Empty);
+            new TokenCredentials(new ModuleIdentity("iotHub", deviceId, moduleId), Guid.NewGuid().ToString(), string.Empty, false);
     }
 }

@@ -15,47 +15,77 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct EndpointSettings {
-    #[serde(rename = "IPAMConfig", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "IPAMConfig",
+        skip_serializing_if = "Option::is_none"
+    )]
     ipam_config: Option<::models::EndpointIpamConfig>,
     #[serde(rename = "Links", skip_serializing_if = "Option::is_none")]
     links: Option<Vec<String>>,
     #[serde(rename = "Aliases", skip_serializing_if = "Option::is_none")]
     aliases: Option<Vec<String>>,
     /// Unique ID of the network.
-    #[serde(rename = "NetworkID", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "NetworkID",
+        skip_serializing_if = "Option::is_none"
+    )]
     network_id: Option<String>,
     /// Unique ID for the service endpoint in a Sandbox.
-    #[serde(rename = "EndpointID", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "EndpointID",
+        skip_serializing_if = "Option::is_none"
+    )]
     endpoint_id: Option<String>,
     /// Gateway address for this network.
     #[serde(rename = "Gateway", skip_serializing_if = "Option::is_none")]
     gateway: Option<String>,
     /// IPv4 address.
-    #[serde(rename = "IPAddress", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "IPAddress",
+        skip_serializing_if = "Option::is_none"
+    )]
     ip_address: Option<String>,
     /// Mask length of the IPv4 address.
-    #[serde(rename = "IPPrefixLen", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "IPPrefixLen",
+        skip_serializing_if = "Option::is_none"
+    )]
     ip_prefix_len: Option<i32>,
     /// IPv6 gateway address.
-    #[serde(rename = "IPv6Gateway", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "IPv6Gateway",
+        skip_serializing_if = "Option::is_none"
+    )]
     i_pv6_gateway: Option<String>,
     /// Global IPv6 address.
-    #[serde(rename = "GlobalIPv6Address", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "GlobalIPv6Address",
+        skip_serializing_if = "Option::is_none"
+    )]
     global_i_pv6_address: Option<String>,
     /// Mask length of the global IPv6 address.
-    #[serde(rename = "GlobalIPv6PrefixLen", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "GlobalIPv6PrefixLen",
+        skip_serializing_if = "Option::is_none"
+    )]
     global_i_pv6_prefix_len: Option<i64>,
     /// MAC address for the endpoint on this network.
-    #[serde(rename = "MacAddress", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "MacAddress",
+        skip_serializing_if = "Option::is_none"
+    )]
     mac_address: Option<String>,
     /// DriverOpts is a mapping of driver options and values. These options are passed directly to the driver and are driver specific.
-    #[serde(rename = "DriverOpts", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "DriverOpts",
+        skip_serializing_if = "Option::is_none"
+    )]
     driver_opts: Option<::std::collections::HashMap<String, String>>,
 }
 
 impl EndpointSettings {
     /// Configuration for a network endpoint.
-    pub fn new() -> EndpointSettings {
+    pub fn new() -> Self {
         EndpointSettings {
             ipam_config: None,
             links: None,
@@ -77,10 +107,7 @@ impl EndpointSettings {
         self.ipam_config = Some(ipam_config);
     }
 
-    pub fn with_ipam_config(
-        mut self,
-        ipam_config: ::models::EndpointIpamConfig,
-    ) -> EndpointSettings {
+    pub fn with_ipam_config(mut self, ipam_config: ::models::EndpointIpamConfig) -> Self {
         self.ipam_config = Some(ipam_config);
         self
     }
@@ -97,13 +124,13 @@ impl EndpointSettings {
         self.links = Some(links);
     }
 
-    pub fn with_links(mut self, links: Vec<String>) -> EndpointSettings {
+    pub fn with_links(mut self, links: Vec<String>) -> Self {
         self.links = Some(links);
         self
     }
 
-    pub fn links(&self) -> Option<&Vec<String>> {
-        self.links.as_ref()
+    pub fn links(&self) -> Option<&[String]> {
+        self.links.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_links(&mut self) {
@@ -114,13 +141,13 @@ impl EndpointSettings {
         self.aliases = Some(aliases);
     }
 
-    pub fn with_aliases(mut self, aliases: Vec<String>) -> EndpointSettings {
+    pub fn with_aliases(mut self, aliases: Vec<String>) -> Self {
         self.aliases = Some(aliases);
         self
     }
 
-    pub fn aliases(&self) -> Option<&Vec<String>> {
-        self.aliases.as_ref()
+    pub fn aliases(&self) -> Option<&[String]> {
+        self.aliases.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_aliases(&mut self) {
@@ -131,13 +158,13 @@ impl EndpointSettings {
         self.network_id = Some(network_id);
     }
 
-    pub fn with_network_id(mut self, network_id: String) -> EndpointSettings {
+    pub fn with_network_id(mut self, network_id: String) -> Self {
         self.network_id = Some(network_id);
         self
     }
 
-    pub fn network_id(&self) -> Option<&String> {
-        self.network_id.as_ref()
+    pub fn network_id(&self) -> Option<&str> {
+        self.network_id.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_network_id(&mut self) {
@@ -148,13 +175,13 @@ impl EndpointSettings {
         self.endpoint_id = Some(endpoint_id);
     }
 
-    pub fn with_endpoint_id(mut self, endpoint_id: String) -> EndpointSettings {
+    pub fn with_endpoint_id(mut self, endpoint_id: String) -> Self {
         self.endpoint_id = Some(endpoint_id);
         self
     }
 
-    pub fn endpoint_id(&self) -> Option<&String> {
-        self.endpoint_id.as_ref()
+    pub fn endpoint_id(&self) -> Option<&str> {
+        self.endpoint_id.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_endpoint_id(&mut self) {
@@ -165,13 +192,13 @@ impl EndpointSettings {
         self.gateway = Some(gateway);
     }
 
-    pub fn with_gateway(mut self, gateway: String) -> EndpointSettings {
+    pub fn with_gateway(mut self, gateway: String) -> Self {
         self.gateway = Some(gateway);
         self
     }
 
-    pub fn gateway(&self) -> Option<&String> {
-        self.gateway.as_ref()
+    pub fn gateway(&self) -> Option<&str> {
+        self.gateway.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_gateway(&mut self) {
@@ -182,13 +209,13 @@ impl EndpointSettings {
         self.ip_address = Some(ip_address);
     }
 
-    pub fn with_ip_address(mut self, ip_address: String) -> EndpointSettings {
+    pub fn with_ip_address(mut self, ip_address: String) -> Self {
         self.ip_address = Some(ip_address);
         self
     }
 
-    pub fn ip_address(&self) -> Option<&String> {
-        self.ip_address.as_ref()
+    pub fn ip_address(&self) -> Option<&str> {
+        self.ip_address.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_ip_address(&mut self) {
@@ -199,13 +226,13 @@ impl EndpointSettings {
         self.ip_prefix_len = Some(ip_prefix_len);
     }
 
-    pub fn with_ip_prefix_len(mut self, ip_prefix_len: i32) -> EndpointSettings {
+    pub fn with_ip_prefix_len(mut self, ip_prefix_len: i32) -> Self {
         self.ip_prefix_len = Some(ip_prefix_len);
         self
     }
 
-    pub fn ip_prefix_len(&self) -> Option<&i32> {
-        self.ip_prefix_len.as_ref()
+    pub fn ip_prefix_len(&self) -> Option<i32> {
+        self.ip_prefix_len
     }
 
     pub fn reset_ip_prefix_len(&mut self) {
@@ -216,13 +243,13 @@ impl EndpointSettings {
         self.i_pv6_gateway = Some(i_pv6_gateway);
     }
 
-    pub fn with_i_pv6_gateway(mut self, i_pv6_gateway: String) -> EndpointSettings {
+    pub fn with_i_pv6_gateway(mut self, i_pv6_gateway: String) -> Self {
         self.i_pv6_gateway = Some(i_pv6_gateway);
         self
     }
 
-    pub fn i_pv6_gateway(&self) -> Option<&String> {
-        self.i_pv6_gateway.as_ref()
+    pub fn i_pv6_gateway(&self) -> Option<&str> {
+        self.i_pv6_gateway.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_i_pv6_gateway(&mut self) {
@@ -233,13 +260,13 @@ impl EndpointSettings {
         self.global_i_pv6_address = Some(global_i_pv6_address);
     }
 
-    pub fn with_global_i_pv6_address(mut self, global_i_pv6_address: String) -> EndpointSettings {
+    pub fn with_global_i_pv6_address(mut self, global_i_pv6_address: String) -> Self {
         self.global_i_pv6_address = Some(global_i_pv6_address);
         self
     }
 
-    pub fn global_i_pv6_address(&self) -> Option<&String> {
-        self.global_i_pv6_address.as_ref()
+    pub fn global_i_pv6_address(&self) -> Option<&str> {
+        self.global_i_pv6_address.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_global_i_pv6_address(&mut self) {
@@ -250,16 +277,13 @@ impl EndpointSettings {
         self.global_i_pv6_prefix_len = Some(global_i_pv6_prefix_len);
     }
 
-    pub fn with_global_i_pv6_prefix_len(
-        mut self,
-        global_i_pv6_prefix_len: i64,
-    ) -> EndpointSettings {
+    pub fn with_global_i_pv6_prefix_len(mut self, global_i_pv6_prefix_len: i64) -> Self {
         self.global_i_pv6_prefix_len = Some(global_i_pv6_prefix_len);
         self
     }
 
-    pub fn global_i_pv6_prefix_len(&self) -> Option<&i64> {
-        self.global_i_pv6_prefix_len.as_ref()
+    pub fn global_i_pv6_prefix_len(&self) -> Option<i64> {
+        self.global_i_pv6_prefix_len
     }
 
     pub fn reset_global_i_pv6_prefix_len(&mut self) {
@@ -270,13 +294,13 @@ impl EndpointSettings {
         self.mac_address = Some(mac_address);
     }
 
-    pub fn with_mac_address(mut self, mac_address: String) -> EndpointSettings {
+    pub fn with_mac_address(mut self, mac_address: String) -> Self {
         self.mac_address = Some(mac_address);
         self
     }
 
-    pub fn mac_address(&self) -> Option<&String> {
-        self.mac_address.as_ref()
+    pub fn mac_address(&self) -> Option<&str> {
+        self.mac_address.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_mac_address(&mut self) {
@@ -290,7 +314,7 @@ impl EndpointSettings {
     pub fn with_driver_opts(
         mut self,
         driver_opts: ::std::collections::HashMap<String, String>,
-    ) -> EndpointSettings {
+    ) -> Self {
         self.driver_opts = Some(driver_opts);
         self
     }

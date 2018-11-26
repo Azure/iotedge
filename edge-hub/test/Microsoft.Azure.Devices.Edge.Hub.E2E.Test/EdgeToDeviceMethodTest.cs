@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
     using System;
+    using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
@@ -10,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Newtonsoft.Json;
     using Xunit;
 
-    [E2E]
+    [Integration]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
     public class EdgeToDeviceMethodTest : IClassFixture<ProtocolHeadFixture>
     {
@@ -19,10 +20,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         public async Task InvokeMethodOnModuleTest(ITransportSettings[] transportSettings)
         {
             // Arrange
+            string deviceName = string.Format("moduleMethodTest-{0}", transportSettings.First().GetTransportType().ToString("g"));
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
-            string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
-            IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);            
+            Devices.IotHubConnectionStringBuilder connectionStringBuilder = Devices.IotHubConnectionStringBuilder.Create(iotHubConnectionString);
+            RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
             ModuleClient receiver = null;
 
             var request = new TestMethodRequest("Prop1", 10);
@@ -35,19 +36,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(response)), 200));
             }
 
+            string receiverModuleName = "method-module";
+            (string edgeDeviceId, string deviceConnStr) = await RegistryManagerHelper.CreateDevice(deviceName, iotHubConnectionString, rm, true, false);
             try
             {
-                string receiverModuleName = "receiver1";
                 ServiceClient sender = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
 
-                string receiverModuleConnectionString = await RegistryManagerHelper.CreateModuleIfNotExists(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, receiverModuleName);
+                string receiverModuleConnectionString = await RegistryManagerHelper.CreateModuleIfNotExists(rm, connectionStringBuilder.HostName, edgeDeviceId, receiverModuleName);
                 receiver = ModuleClient.CreateFromConnectionString(receiverModuleConnectionString, transportSettings);
                 await receiver.OpenAsync();
                 await receiver.SetMethodHandlerAsync("poke", MethodHandler, null);
 
+                await Task.Delay(TimeSpan.FromSeconds(5));
+
                 // Act
                 CloudToDeviceMethodResult cloudToDeviceMethodResult = await sender.InvokeDeviceMethodAsync(
-                    connectionStringBuilder.DeviceId,
+                    edgeDeviceId,
                     receiverModuleName,
                     new CloudToDeviceMethod("poke").SetPayloadJson(JsonConvert.SerializeObject(request)));
 
@@ -73,6 +77,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 {
                     await receiver.CloseAsync();
                 }
+
+                try
+                {
+                    await RegistryManagerHelper.RemoveDevice(edgeDeviceId, rm);
+                }
+                catch (Exception)
+                {
+                    // ignored
+                }
             }
             // wait for the connection to be closed on the Edge side
             await Task.Delay(TimeSpan.FromSeconds(10));
@@ -83,6 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         public async Task InvokeMethodOnDeviceTest(ITransportSettings[] transportSettings)
         {
             // Arrange
+            string deviceName = string.Format("deviceMethodTest-{0}", transportSettings.First().GetTransportType().ToString("g"));
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
             RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
             DeviceClient receiver = null;
@@ -97,14 +111,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(response)), 200));
             }
 
+            (string deviceId, string receiverModuleConnectionString) = await RegistryManagerHelper.CreateDevice(deviceName, iotHubConnectionString, rm);
             try
             {
                 ServiceClient sender = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
 
-                (string deviceId, string receiverModuleConnectionString) = await RegistryManagerHelper.CreateDevice("methodTest", iotHubConnectionString, rm);
                 receiver = DeviceClient.CreateFromConnectionString(receiverModuleConnectionString, transportSettings);
                 await receiver.OpenAsync();
                 await receiver.SetMethodHandlerAsync("poke", MethodHandler, null);
+
+                await Task.Delay(TimeSpan.FromSeconds(5));
 
                 // Act
                 CloudToDeviceMethodResult cloudToDeviceMethodResult = await sender.InvokeDeviceMethodAsync(
@@ -133,10 +149,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 {
                     await receiver.CloseAsync();
                 }
+
+                try
+                {
+                    await RegistryManagerHelper.RemoveDevice(deviceId, rm);
+                }
+                catch (Exception)
+                {
+                    // ignored
+                }
             }
             // wait for the connection to be closed on the Edge side
             await Task.Delay(TimeSpan.FromSeconds(10));
-        }        
+        }
 
         class TestMethodRequest
         {

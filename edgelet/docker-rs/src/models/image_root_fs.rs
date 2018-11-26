@@ -17,12 +17,15 @@ pub struct ImageRootFs {
     _type: String,
     #[serde(rename = "Layers", skip_serializing_if = "Option::is_none")]
     layers: Option<Vec<String>>,
-    #[serde(rename = "BaseLayer", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "BaseLayer",
+        skip_serializing_if = "Option::is_none"
+    )]
     base_layer: Option<String>,
 }
 
 impl ImageRootFs {
-    pub fn new(_type: String) -> ImageRootFs {
+    pub fn new(_type: String) -> Self {
         ImageRootFs {
             _type: _type,
             layers: None,
@@ -34,7 +37,7 @@ impl ImageRootFs {
         self._type = _type;
     }
 
-    pub fn with__type(mut self, _type: String) -> ImageRootFs {
+    pub fn with__type(mut self, _type: String) -> Self {
         self._type = _type;
         self
     }
@@ -47,13 +50,13 @@ impl ImageRootFs {
         self.layers = Some(layers);
     }
 
-    pub fn with_layers(mut self, layers: Vec<String>) -> ImageRootFs {
+    pub fn with_layers(mut self, layers: Vec<String>) -> Self {
         self.layers = Some(layers);
         self
     }
 
-    pub fn layers(&self) -> Option<&Vec<String>> {
-        self.layers.as_ref()
+    pub fn layers(&self) -> Option<&[String]> {
+        self.layers.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_layers(&mut self) {
@@ -64,13 +67,13 @@ impl ImageRootFs {
         self.base_layer = Some(base_layer);
     }
 
-    pub fn with_base_layer(mut self, base_layer: String) -> ImageRootFs {
+    pub fn with_base_layer(mut self, base_layer: String) -> Self {
         self.base_layer = Some(base_layer);
         self
     }
 
-    pub fn base_layer(&self) -> Option<&String> {
-        self.base_layer.as_ref()
+    pub fn base_layer(&self) -> Option<&str> {
+        self.base_layer.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_base_layer(&mut self) {

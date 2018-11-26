@@ -19,7 +19,10 @@ pub struct NodeDescription {
     hostname: Option<String>,
     #[serde(rename = "Platform", skip_serializing_if = "Option::is_none")]
     platform: Option<::models::Platform>,
-    #[serde(rename = "Resources", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "Resources",
+        skip_serializing_if = "Option::is_none"
+    )]
     resources: Option<::models::ResourceObject>,
     #[serde(rename = "Engine", skip_serializing_if = "Option::is_none")]
     engine: Option<::models::EngineDescription>,
@@ -29,7 +32,7 @@ pub struct NodeDescription {
 
 impl NodeDescription {
     /// NodeDescription encapsulates the properties of the Node as reported by the agent.
-    pub fn new() -> NodeDescription {
+    pub fn new() -> Self {
         NodeDescription {
             hostname: None,
             platform: None,
@@ -43,13 +46,13 @@ impl NodeDescription {
         self.hostname = Some(hostname);
     }
 
-    pub fn with_hostname(mut self, hostname: String) -> NodeDescription {
+    pub fn with_hostname(mut self, hostname: String) -> Self {
         self.hostname = Some(hostname);
         self
     }
 
-    pub fn hostname(&self) -> Option<&String> {
-        self.hostname.as_ref()
+    pub fn hostname(&self) -> Option<&str> {
+        self.hostname.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_hostname(&mut self) {
@@ -60,7 +63,7 @@ impl NodeDescription {
         self.platform = Some(platform);
     }
 
-    pub fn with_platform(mut self, platform: ::models::Platform) -> NodeDescription {
+    pub fn with_platform(mut self, platform: ::models::Platform) -> Self {
         self.platform = Some(platform);
         self
     }
@@ -77,7 +80,7 @@ impl NodeDescription {
         self.resources = Some(resources);
     }
 
-    pub fn with_resources(mut self, resources: ::models::ResourceObject) -> NodeDescription {
+    pub fn with_resources(mut self, resources: ::models::ResourceObject) -> Self {
         self.resources = Some(resources);
         self
     }
@@ -94,7 +97,7 @@ impl NodeDescription {
         self.engine = Some(engine);
     }
 
-    pub fn with_engine(mut self, engine: ::models::EngineDescription) -> NodeDescription {
+    pub fn with_engine(mut self, engine: ::models::EngineDescription) -> Self {
         self.engine = Some(engine);
         self
     }
@@ -111,7 +114,7 @@ impl NodeDescription {
         self.tls_info = Some(tls_info);
     }
 
-    pub fn with_tls_info(mut self, tls_info: ::models::TlsInfo) -> NodeDescription {
+    pub fn with_tls_info(mut self, tls_info: ::models::TlsInfo) -> Self {
         self.tls_info = Some(tls_info);
         self
     }

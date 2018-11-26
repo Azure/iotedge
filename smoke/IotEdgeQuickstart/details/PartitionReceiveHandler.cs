@@ -26,6 +26,6 @@ namespace IotEdgeQuickstart.Details
             return Task.CompletedTask;
         }
         public Task ProcessErrorAsync(Exception error) => throw error;
-        public int MaxBatchSize { get; } = 10;
+        public int MaxBatchSize { get; set; }
     }
 }

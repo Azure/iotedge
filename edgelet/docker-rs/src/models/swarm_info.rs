@@ -23,14 +23,23 @@ pub struct SwarmInfo {
     node_addr: Option<String>,
     //TODO: This change was due to SwarmInfo, Local Node Stat returning String, instead of STATE. So the Swagger is not matching with api.
     //If Auto generate tool is run again, make sure this is working.
-    #[serde(rename = "LocalNodeState", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "LocalNodeState",
+        skip_serializing_if = "Option::is_none"
+    )]
     local_node_state: Option<String>,
-    #[serde(rename = "ControlAvailable", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "ControlAvailable",
+        skip_serializing_if = "Option::is_none"
+    )]
     control_available: Option<bool>,
     #[serde(rename = "Error", skip_serializing_if = "Option::is_none")]
     error: Option<String>,
     /// List of ID's and addresses of other managers in the swarm.
-    #[serde(rename = "RemoteManagers", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "RemoteManagers",
+        skip_serializing_if = "Option::is_none"
+    )]
     remote_managers: Option<Vec<::models::PeerNode>>,
     /// Total number of nodes in the swarm.
     #[serde(rename = "Nodes", skip_serializing_if = "Option::is_none")]
@@ -44,7 +53,7 @@ pub struct SwarmInfo {
 
 impl SwarmInfo {
     /// Represents generic information about swarm.
-    pub fn new() -> SwarmInfo {
+    pub fn new() -> Self {
         SwarmInfo {
             node_id: None,
             node_addr: None,
@@ -62,13 +71,13 @@ impl SwarmInfo {
         self.node_id = Some(node_id);
     }
 
-    pub fn with_node_id(mut self, node_id: String) -> SwarmInfo {
+    pub fn with_node_id(mut self, node_id: String) -> Self {
         self.node_id = Some(node_id);
         self
     }
 
-    pub fn node_id(&self) -> Option<&String> {
-        self.node_id.as_ref()
+    pub fn node_id(&self) -> Option<&str> {
+        self.node_id.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_node_id(&mut self) {
@@ -79,13 +88,13 @@ impl SwarmInfo {
         self.node_addr = Some(node_addr);
     }
 
-    pub fn with_node_addr(mut self, node_addr: String) -> SwarmInfo {
+    pub fn with_node_addr(mut self, node_addr: String) -> Self {
         self.node_addr = Some(node_addr);
         self
     }
 
-    pub fn node_addr(&self) -> Option<&String> {
-        self.node_addr.as_ref()
+    pub fn node_addr(&self) -> Option<&str> {
+        self.node_addr.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_node_addr(&mut self) {
@@ -103,15 +112,15 @@ impl SwarmInfo {
         //TODO: This change was due to SwarmInfo, Local Node Stat returning String, instead of STATE. So the Swagger is not matching with api.
         //If Auto generate tool is run again, make sure this is working.
         local_node_state: String,
-    ) -> SwarmInfo {
+    ) -> Self {
         self.local_node_state = Some(local_node_state);
         self
     }
 
     //TODO: This change was due to SwarmInfo, Local Node Stat returning String, instead of STATE. So the Swagger is not matching with api.
     //If Auto generate tool is run again, make sure this is working.
-    pub fn local_node_state(&self) -> Option<&String> {
-        self.local_node_state.as_ref()
+    pub fn local_node_state(&self) -> Option<&str> {
+        self.local_node_state.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_local_node_state(&mut self) {
@@ -122,7 +131,7 @@ impl SwarmInfo {
         self.control_available = Some(control_available);
     }
 
-    pub fn with_control_available(mut self, control_available: bool) -> SwarmInfo {
+    pub fn with_control_available(mut self, control_available: bool) -> Self {
         self.control_available = Some(control_available);
         self
     }
@@ -139,13 +148,13 @@ impl SwarmInfo {
         self.error = Some(error);
     }
 
-    pub fn with_error(mut self, error: String) -> SwarmInfo {
+    pub fn with_error(mut self, error: String) -> Self {
         self.error = Some(error);
         self
     }
 
-    pub fn error(&self) -> Option<&String> {
-        self.error.as_ref()
+    pub fn error(&self) -> Option<&str> {
+        self.error.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_error(&mut self) {
@@ -156,13 +165,13 @@ impl SwarmInfo {
         self.remote_managers = Some(remote_managers);
     }
 
-    pub fn with_remote_managers(mut self, remote_managers: Vec<::models::PeerNode>) -> SwarmInfo {
+    pub fn with_remote_managers(mut self, remote_managers: Vec<::models::PeerNode>) -> Self {
         self.remote_managers = Some(remote_managers);
         self
     }
 
-    pub fn remote_managers(&self) -> Option<&Vec<::models::PeerNode>> {
-        self.remote_managers.as_ref()
+    pub fn remote_managers(&self) -> Option<&[::models::PeerNode]> {
+        self.remote_managers.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_remote_managers(&mut self) {
@@ -173,13 +182,13 @@ impl SwarmInfo {
         self.nodes = Some(nodes);
     }
 
-    pub fn with_nodes(mut self, nodes: i32) -> SwarmInfo {
+    pub fn with_nodes(mut self, nodes: i32) -> Self {
         self.nodes = Some(nodes);
         self
     }
 
-    pub fn nodes(&self) -> Option<&i32> {
-        self.nodes.as_ref()
+    pub fn nodes(&self) -> Option<i32> {
+        self.nodes
     }
 
     pub fn reset_nodes(&mut self) {
@@ -190,13 +199,13 @@ impl SwarmInfo {
         self.managers = Some(managers);
     }
 
-    pub fn with_managers(mut self, managers: i32) -> SwarmInfo {
+    pub fn with_managers(mut self, managers: i32) -> Self {
         self.managers = Some(managers);
         self
     }
 
-    pub fn managers(&self) -> Option<&i32> {
-        self.managers.as_ref()
+    pub fn managers(&self) -> Option<i32> {
+        self.managers
     }
 
     pub fn reset_managers(&mut self) {
@@ -207,7 +216,7 @@ impl SwarmInfo {
         self.cluster = Some(cluster);
     }
 
-    pub fn with_cluster(mut self, cluster: ::models::ClusterInfo) -> SwarmInfo {
+    pub fn with_cluster(mut self, cluster: ::models::ClusterInfo) -> Self {
         self.cluster = Some(cluster);
         self
     }

@@ -160,21 +160,25 @@ const HSM_CLIENT_KEY_INTERFACE* test_hook_hsm_client_key_interface(void)
 
 static int test_hook_hsm_client_store_create(const char* store_name)
 {
+    (void)store_name;
     return 0;
 }
 
 static int test_hook_hsm_client_store_destroy(const char* store_name)
 {
+    (void)store_name;
     return 0;
 }
 
 static HSM_CLIENT_STORE_HANDLE test_hook_hsm_client_store_open(const char* store_name)
 {
+    (void)store_name;
     return TEST_HSM_STORE_HANDLE;
 }
 
 static int test_hook_hsm_client_store_close(HSM_CLIENT_STORE_HANDLE handle)
 {
+    (void)handle;
     return 0;
 }
 
@@ -182,6 +186,9 @@ static KEY_HANDLE test_hook_hsm_client_store_open_key(HSM_CLIENT_STORE_HANDLE ha
                                                       HSM_KEY_T key_type,
                                                       const char* key_name)
 {
+    (void)handle;
+    (void)key_type;
+    (void)key_name;
     ASSERT_FAIL("API not expected to be called");
     return NULL;
 }
@@ -189,6 +196,8 @@ static KEY_HANDLE test_hook_hsm_client_store_open_key(HSM_CLIENT_STORE_HANDLE ha
 static int test_hook_hsm_client_store_close_key(HSM_CLIENT_STORE_HANDLE handle,
                                                 KEY_HANDLE key_handle)
 {
+    (void)handle;
+    (void)key_handle;
     ASSERT_FAIL("API not expected to be called");
     return __LINE__;
 }
@@ -197,6 +206,9 @@ static int test_hook_hsm_client_store_remove_key(HSM_CLIENT_STORE_HANDLE handle,
                                                  HSM_KEY_T key_type,
                                                  const char* key_name)
 {
+    (void)handle;
+    (void)key_type;
+    (void)key_name;
     return 0;
 }
 
@@ -205,6 +217,10 @@ static int test_hook_hsm_client_store_insert_sas_key(HSM_CLIENT_STORE_HANDLE han
                                                      const unsigned char* key,
                                                      size_t key_len)
 {
+    (void)handle;
+    (void)key_name;
+    (void)key;
+    (void)key_len;
     ASSERT_FAIL("API not expected to be called");
     return __LINE__;
 }
@@ -212,24 +228,32 @@ static int test_hook_hsm_client_store_insert_sas_key(HSM_CLIENT_STORE_HANDLE han
 static int test_hook_hsm_client_store_insert_encryption_key(HSM_CLIENT_STORE_HANDLE handle,
                                                             const char* key_name)
 {
+    (void)handle;
+    (void)key_name;
     return 0;
 }
 
 static int test_hook_hsm_client_store_create_pki_cert(HSM_CLIENT_STORE_HANDLE handle,
                                                       CERT_PROPS_HANDLE cert_props_handle)
 {
+    (void)handle;
+    (void)cert_props_handle;
     return 0;
 }
 
 static CERT_INFO_HANDLE test_hook_hsm_client_store_get_pki_cert(HSM_CLIENT_STORE_HANDLE handle,
                                                                 const char* alias)
 {
+    (void)handle;
+    (void)alias;
     return TEST_CERT_INFO_HANDLE;
 }
 
 static int test_hook_hsm_client_store_remove_pki_cert(HSM_CLIENT_STORE_HANDLE handle,
                                                       const char* alias)
 {
+    (void)handle;
+    (void)alias;
     return 0;
 }
 
@@ -237,6 +261,9 @@ static int test_hook_hsm_client_store_insert_pki_trusted_cert(HSM_CLIENT_STORE_H
                                                               const char* alias,
                                                               const char* file_name)
 {
+    (void)handle;
+    (void)alias;
+    (void)file_name;
     ASSERT_FAIL("API not expected to be called");
     return __LINE__;
 }
@@ -246,6 +273,7 @@ static CERT_INFO_HANDLE test_hook_hsm_client_store_get_pki_trusted_certs
     HSM_CLIENT_STORE_HANDLE handle
 )
 {
+    (void)handle;
     return TEST_TRUST_BUNDLE_CERT_INFO_HANDLE;
 }
 
@@ -255,6 +283,8 @@ static int test_hook_hsm_client_store_remove_pki_trusted_cert
     const char* alias
 )
 {
+    (void)handle;
+    (void)alias;
     ASSERT_FAIL("API not expected to be called");
     return __LINE__;
 }
@@ -265,6 +295,11 @@ static int test_hook_hsm_client_key_sign(KEY_HANDLE key_handle,
                                          unsigned char** digest,
                                          size_t* digest_size)
 {
+    (void)key_handle;
+    (void)data_to_be_signed;
+    (void)data_len;
+    (void)digest;
+    (void)digest_size;
     ASSERT_FAIL("API not expected to be called");
     return __LINE__;
 }
@@ -277,6 +312,13 @@ static int test_hook_hsm_client_key_derive_and_sign(KEY_HANDLE key_handle,
                                                     unsigned char** digest,
                                                     size_t* digest_size)
 {
+    (void)key_handle;
+    (void)data_to_be_signed;
+    (void)data_len;
+    (void)identity;
+    (void)identity_size;
+    (void)digest;
+    (void)digest_size;
     ASSERT_FAIL("API not expected to be called");
     return __LINE__;
 }
@@ -287,6 +329,11 @@ static int test_hook_hsm_client_key_encrypt(KEY_HANDLE key_handle,
                                             const SIZED_BUFFER *initialization_vector,
                                             SIZED_BUFFER *ciphertext)
 {
+    (void)key_handle;
+    (void)identity;
+    (void)plaintext;
+    (void)initialization_vector;
+    (void)ciphertext;
     ASSERT_FAIL("API not expected to be called");
     return __LINE__;
 }
@@ -297,22 +344,30 @@ static int test_hook_hsm_client_key_decrypt(KEY_HANDLE key_handle,
                                             const SIZED_BUFFER *initialization_vector,
                                             SIZED_BUFFER *plaintext)
 {
+    (void)key_handle;
+    (void)identity;
+    (void)ciphertext;
+    (void)initialization_vector;
+    (void)plaintext;
     ASSERT_FAIL("API not expected to be called");
     return __LINE__;
 }
 
 static void test_hook_hsm_client_key_destroy(KEY_HANDLE key_handle)
 {
+    (void)key_handle;
     ASSERT_FAIL("API not expected to be called");
 }
 
 static const char* test_hook_get_alias(CERT_PROPS_HANDLE handle)
 {
+    (void)handle;
     return TEST_ALIAS_STRING;
 }
 
 static const char* test_hook_get_issuer_alias(CERT_PROPS_HANDLE handle)
 {
+    (void)handle;
     return TEST_ISSUER_ALIAS_STRING;
 }
 
@@ -324,6 +379,10 @@ static CERT_INFO_HANDLE test_hook_certificate_info_create
     PRIVATE_KEY_TYPE pk_type
 )
 {
+    (void)certificate;
+    (void)private_key;
+    (void)priv_key_len;
+    (void)pk_type;
     return TEST_CERT_INFO_HANDLE;
 }
 
@@ -796,7 +855,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
             // assert
             ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
             ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
-            for (int idx = 0; idx < sizeof(test_output); idx++)
+            for (int idx = 0; idx < (int)sizeof(test_output); idx++)
             {
                 ASSERT_ARE_EQUAL_WITH_MSG(char, test_input[idx], test_output[idx], "Line:" TOSTRING(__LINE__));
             }
@@ -822,7 +881,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
             // act, assert
             status = hsm_client_get_random_bytes(NULL, test_output, sizeof(test_output));
             ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-            for (int idx = 0; idx < sizeof(test_output); idx++)
+            for (int idx = 0; idx < (int)sizeof(test_output); idx++)
             {
                 ASSERT_ARE_EQUAL_WITH_MSG(char, test_input[idx], test_output[idx], "Line:" TOSTRING(__LINE__));
             }
@@ -862,10 +921,14 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
             // assert
             ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
             ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
-            for (int idx = 0; idx < sizeof(test_output); idx++)
-            {
-                ASSERT_ARE_NOT_EQUAL_WITH_MSG(char, test_input[idx], test_output[idx], "Line:" TOSTRING(__LINE__));
-            }
+
+            // if this test fails it implies that the call to hsm_client_get_random_bytes
+            // never updated the buffer and yet returned a success OR
+            // the statistically improbable event occured that the random bytes returned
+            // exactly what the test_input was setup with
+            // P(test failure) = P('r') * P('a') * P('n') * P('d') = ((1/256) ^ 4) == very small
+            int cmp = memcmp(test_input, test_output, sizeof(test_input));
+            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, cmp, "Line:" TOSTRING(__LINE__));
 
             //cleanup
             hsm_client_crypto_destroy(hsm_handle);

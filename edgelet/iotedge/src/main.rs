@@ -1,15 +1,20 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+#![deny(unused_extern_crates, warnings)]
+// Remove this when clippy stops warning about old-style `allow()`,
+// which can only be silenced by enabling a feature and thus requires nightly
+//
+// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
+#![allow(renamed_and_removed_lints)]
+#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
+
 #[macro_use]
 extern crate clap;
 extern crate edgelet_core;
 extern crate edgelet_http_mgmt;
 extern crate failure;
-extern crate futures;
-extern crate hyper;
 extern crate iotedge;
-extern crate management;
-extern crate tokio_core;
+extern crate tokio;
 extern crate url;
 
 use std::io;
@@ -17,12 +22,13 @@ use std::io::Write;
 use std::process;
 
 use clap::{App, AppSettings, Arg, SubCommand};
+use failure::{Fail, ResultExt};
+use url::Url;
+
 use edgelet_core::{LogOptions, LogTail};
 use edgelet_http_mgmt::ModuleClient;
-use failure::Fail;
+
 use iotedge::*;
-use tokio_core::reactor::Core;
-use url::Url;
 
 #[cfg(unix)]
 const MGMT_URI: &str = "unix:///var/run/iotedge/mgmt.sock";
@@ -46,7 +52,7 @@ fn main() {
 }
 
 fn run() -> Result<(), Error> {
-    let mut core = Core::new()?;
+    let default_uri = option_env!("IOTEDGE_HOST").unwrap_or(MGMT_URI);
 
     let matches = App::new(crate_name!())
         .version(edgelet_core::version())
@@ -61,9 +67,8 @@ fn run() -> Result<(), Error> {
                 .value_name("HOST")
                 .global(true)
                 .env("IOTEDGE_HOST")
-                .default_value(MGMT_URI),
-        )
-        .subcommand(SubCommand::with_name("list").about("List modules"))
+                .default_value(default_uri),
+        ).subcommand(SubCommand::with_name("list").about("List modules"))
         .subcommand(
             SubCommand::with_name("restart")
                 .about("Restart a module")
@@ -73,8 +78,7 @@ fn run() -> Result<(), Error> {
                         .required(true)
                         .index(1),
                 ),
-        )
-        .subcommand(
+        ).subcommand(
             SubCommand::with_name("logs")
                 .about("Fetch the logs of a module")
                 .arg(
@@ -82,34 +86,37 @@ fn run() -> Result<(), Error> {
                         .help("Sets the module identity to get logs")
                         .required(true)
                         .index(1),
-                )
-                .arg(
+                ).arg(
                     Arg::with_name("tail")
                         .help("Number of lines to show from the end of the log")
                         .long("tail")
                         .takes_value(true)
                         .value_name("NUM")
                         .default_value("all"),
-                )
-                .arg(
+                ).arg(
                     Arg::with_name("follow")
                         .help("Follow output log")
                         .short("f")
                         .long("follow"),
                 ),
-        )
-        .subcommand(SubCommand::with_name("version").about("Show the version information"))
+        ).subcommand(SubCommand::with_name("version").about("Show the version information"))
         .get_matches();
 
-    let url = matches
-        .value_of("host")
-        .map(|h| Url::parse(h).map_err(Error::from))
-        .unwrap_or_else(|| Err(Error::from(ErrorKind::NoHost)))?;
-    let runtime = ModuleClient::new(&url, &core.handle())?;
+    let url = matches.value_of("host").map_or_else(
+        || Err(Error::from(ErrorKind::MissingHostParameter)),
+        |h| {
+            Url::parse(h)
+                .context(ErrorKind::BadHostParameter)
+                .map_err(Error::from)
+        },
+    )?;
+    let runtime = ModuleClient::new(&url).context(ErrorKind::ModuleRuntime)?;
+
+    let mut tokio_runtime = tokio::runtime::Runtime::new().context(ErrorKind::InitializeTokio)?;
 
     match matches.subcommand() {
-        ("list", Some(_args)) => core.run(List::new(runtime, io::stdout()).execute()),
-        ("restart", Some(args)) => core.run(
+        ("list", Some(_args)) => tokio_runtime.block_on(List::new(runtime, io::stdout()).execute()),
+        ("restart", Some(args)) => tokio_runtime.block_on(
             Restart::new(
                 args.value_of("MODULE").unwrap().to_string(),
                 runtime,
@@ -124,9 +131,9 @@ fn run() -> Result<(), Error> {
                 .and_then(|a| a.parse::<LogTail>().ok())
                 .unwrap_or_default();
             let options = LogOptions::new().with_follow(follow).with_tail(tail);
-            core.run(Logs::new(id, options, runtime).execute())
+            tokio_runtime.block_on(Logs::new(id, options, runtime).execute())
         }
-        ("version", Some(_args)) => core.run(Version::new().execute()),
-        (command, _) => core.run(Unknown::new(command.to_string()).execute()),
+        ("version", Some(_args)) => tokio_runtime.block_on(Version::new().execute()),
+        (command, _) => tokio_runtime.block_on(Unknown::new(command.to_string()).execute()),
     }
 }

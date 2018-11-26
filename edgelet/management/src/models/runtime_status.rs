@@ -15,12 +15,15 @@ use serde_json::Value;
 pub struct RuntimeStatus {
     #[serde(rename = "status")]
     status: String,
-    #[serde(rename = "description", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "description",
+        skip_serializing_if = "Option::is_none"
+    )]
     description: Option<String>,
 }
 
 impl RuntimeStatus {
-    pub fn new(status: String) -> RuntimeStatus {
+    pub fn new(status: String) -> Self {
         RuntimeStatus {
             status,
             description: None,
@@ -31,7 +34,7 @@ impl RuntimeStatus {
         self.status = status;
     }
 
-    pub fn with_status(mut self, status: String) -> RuntimeStatus {
+    pub fn with_status(mut self, status: String) -> Self {
         self.status = status;
         self
     }
@@ -44,13 +47,13 @@ impl RuntimeStatus {
         self.description = Some(description);
     }
 
-    pub fn with_description(mut self, description: String) -> RuntimeStatus {
+    pub fn with_description(mut self, description: String) -> Self {
         self.description = Some(description);
         self
     }
 
-    pub fn description(&self) -> Option<&String> {
-        self.description.as_ref()
+    pub fn description(&self) -> Option<&str> {
+        self.description.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_description(&mut self) {

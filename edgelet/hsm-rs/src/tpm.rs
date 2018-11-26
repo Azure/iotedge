@@ -19,6 +19,9 @@ pub struct Tpm {
     interface: HSM_CLIENT_TPM_INTERFACE,
 }
 
+// Handles don't have thread-affinity
+unsafe impl Send for Tpm {}
+
 // HSM TPM
 
 impl Drop for Tpm {
@@ -204,6 +207,7 @@ impl AsRef<[u8]> for TpmBuffer {
 #[cfg(test)]
 mod tests {
     use std::os::raw::{c_int, c_uchar, c_void};
+    use std::ptr;
 
     use super::super::{ManageTpmKeys, SignWithTpm};
     use super::{Tpm, TpmKey};
@@ -262,7 +266,7 @@ mod tests {
     }
 
     unsafe extern "C" fn fake_handle_create_good() -> HSM_CLIENT_HANDLE {
-        0_isize as *mut c_void
+        ptr::null_mut()
     }
     unsafe extern "C" fn fake_handle_create_bad() -> HSM_CLIENT_HANDLE {
         1_isize as *mut c_void
@@ -369,8 +373,8 @@ mod tests {
     fn tpm_no_activate_function_fail() {
         let hsm_tpm = fake_no_if_tpm_hsm();
         let key = b"key data";
-        let result = hsm_tpm.activate_identity_key(key).unwrap();
-        println!("You should never see this print {:?}", result);
+        hsm_tpm.activate_identity_key(key).unwrap();
+        println!("You should never see this print");
     }
 
     #[test]
@@ -427,11 +431,12 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(feature = "cargo-clippy", allow(let_unit_value))]
+
     fn tpm_success() {
         let hsm_tpm = fake_good_tpm_hsm();
         let k1 = b"A fake key";
-        let result1 = hsm_tpm.activate_identity_key(k1).unwrap();
-        assert_eq!(result1, ());
+        let _result1: () = hsm_tpm.activate_identity_key(k1).unwrap();
 
         let result2 = hsm_tpm.get_ek().unwrap();
         let buf2 = &result2;
@@ -474,8 +479,8 @@ mod tests {
     fn tpm_activate_identity_errors() {
         let hsm_tpm = fake_bad_tpm_hsm();
         let k1 = b"A fake key";
-        let result = hsm_tpm.activate_identity_key(k1).unwrap();
-        println!("You should never see this print {:?}", result);
+        hsm_tpm.activate_identity_key(k1).unwrap();
+        println!("You should never see this print");
     }
 
     #[test]

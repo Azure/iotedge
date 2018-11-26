@@ -16,13 +16,16 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct MountBindOptions {
     /// A propagation mode with the value `[r]private`, `[r]shared`, or `[r]slave`.
-    #[serde(rename = "Propagation", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "Propagation",
+        skip_serializing_if = "Option::is_none"
+    )]
     propagation: Option<String>,
 }
 
 impl MountBindOptions {
     /// Optional configuration for the `bind` type.
-    pub fn new() -> MountBindOptions {
+    pub fn new() -> Self {
         MountBindOptions { propagation: None }
     }
 
@@ -30,13 +33,13 @@ impl MountBindOptions {
         self.propagation = Some(propagation);
     }
 
-    pub fn with_propagation(mut self, propagation: String) -> MountBindOptions {
+    pub fn with_propagation(mut self, propagation: String) -> Self {
         self.propagation = Some(propagation);
         self
     }
 
-    pub fn propagation(&self) -> Option<&String> {
-        self.propagation.as_ref()
+    pub fn propagation(&self) -> Option<&str> {
+        self.propagation.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_propagation(&mut self) {

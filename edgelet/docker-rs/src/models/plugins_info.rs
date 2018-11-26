@@ -22,7 +22,10 @@ pub struct PluginsInfo {
     #[serde(rename = "Network", skip_serializing_if = "Option::is_none")]
     network: Option<Vec<String>>,
     /// Names of available authorization plugins.
-    #[serde(rename = "Authorization", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "Authorization",
+        skip_serializing_if = "Option::is_none"
+    )]
     authorization: Option<Vec<String>>,
     /// Names of available logging-drivers, and logging-driver plugins.
     #[serde(rename = "Log", skip_serializing_if = "Option::is_none")]
@@ -31,7 +34,7 @@ pub struct PluginsInfo {
 
 impl PluginsInfo {
     /// Available plugins per type.  <p><br /></p>  > **Note**: Only unmanaged (V1) plugins are included in this list. > V1 plugins are \"lazily\" loaded, and are not returned in this list > if there is no resource using the plugin.
-    pub fn new() -> PluginsInfo {
+    pub fn new() -> Self {
         PluginsInfo {
             volume: None,
             network: None,
@@ -44,13 +47,13 @@ impl PluginsInfo {
         self.volume = Some(volume);
     }
 
-    pub fn with_volume(mut self, volume: Vec<String>) -> PluginsInfo {
+    pub fn with_volume(mut self, volume: Vec<String>) -> Self {
         self.volume = Some(volume);
         self
     }
 
-    pub fn volume(&self) -> Option<&Vec<String>> {
-        self.volume.as_ref()
+    pub fn volume(&self) -> Option<&[String]> {
+        self.volume.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_volume(&mut self) {
@@ -61,13 +64,13 @@ impl PluginsInfo {
         self.network = Some(network);
     }
 
-    pub fn with_network(mut self, network: Vec<String>) -> PluginsInfo {
+    pub fn with_network(mut self, network: Vec<String>) -> Self {
         self.network = Some(network);
         self
     }
 
-    pub fn network(&self) -> Option<&Vec<String>> {
-        self.network.as_ref()
+    pub fn network(&self) -> Option<&[String]> {
+        self.network.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_network(&mut self) {
@@ -78,13 +81,13 @@ impl PluginsInfo {
         self.authorization = Some(authorization);
     }
 
-    pub fn with_authorization(mut self, authorization: Vec<String>) -> PluginsInfo {
+    pub fn with_authorization(mut self, authorization: Vec<String>) -> Self {
         self.authorization = Some(authorization);
         self
     }
 
-    pub fn authorization(&self) -> Option<&Vec<String>> {
-        self.authorization.as_ref()
+    pub fn authorization(&self) -> Option<&[String]> {
+        self.authorization.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_authorization(&mut self) {
@@ -95,13 +98,13 @@ impl PluginsInfo {
         self.log = Some(log);
     }
 
-    pub fn with_log(mut self, log: Vec<String>) -> PluginsInfo {
+    pub fn with_log(mut self, log: Vec<String>) -> Self {
         self.log = Some(log);
         self
     }
 
-    pub fn log(&self) -> Option<&Vec<String>> {
-        self.log.as_ref()
+    pub fn log(&self) -> Option<&[String]> {
+        self.log.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_log(&mut self) {

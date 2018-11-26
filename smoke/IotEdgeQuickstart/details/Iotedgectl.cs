@@ -84,7 +84,7 @@ namespace IotEdgeQuickstart.Details
                 300); // 5 min timeout because install can be slow on raspberry pi
         }
 
-        public async Task Configure(string connectionString, string image, string hostname)
+        public async Task Configure(string connectionString, string image, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel)
         {
             Console.WriteLine($"Setting up iotedgectl with agent image '{image}'");
 

@@ -588,7 +588,7 @@ STRING_HANDLE compute_b64_sha_digest_string
     }
     else if (ip_buffer_size > UINT_MAX)
     {
-        LOG_ERROR("Input buffer size too large %lu", ip_buffer_size);
+        LOG_ERROR("Input buffer size too large %zu", ip_buffer_size);
         result = NULL;
     }
     else
@@ -1055,7 +1055,7 @@ static int remove_pki_cert(CRYPTO_STORE *store, const char *alias)
     LIST_ITEM_HANDLE list_item = singlylinkedlist_find(certs_list, find_pki_cert_cb, alias);
     if (list_item == NULL)
     {
-        LOG_ERROR("Certificate not found %s", alias);
+        LOG_DEBUG("Certificate not found %s", alias);
         result = __FAILURE__;
     }
     else
@@ -1472,7 +1472,7 @@ static int remove_if_cert_and_key_exist_by_alias
             }
             else if (remove_pki_cert(store, alias) != 0)
             {
-                LOG_ERROR("Could not remove certificate and key from store for alias %s", alias);
+                LOG_DEBUG("Could not remove certificate and key from store for alias %s", alias);
                 result = __FAILURE__;
             }
             else
@@ -1641,7 +1641,7 @@ static int generate_edge_hsm_certificates_if_needed(void)
     else if ((load_status == LOAD_ERR_VERIFICATION_FAILED) ||
              (load_status == LOAD_ERR_NOT_FOUND))
     {
-        LOG_DEBUG("Load status %d. Generating owner and device CA certs and keys", load_status);
+        LOG_INFO("Load status %d. Regenerating owner and device CA certs and keys", load_status);
         if (create_owner_ca_cert() != 0)
         {
             result = __FAILURE__;
@@ -2538,7 +2538,7 @@ static int edge_hsm_client_store_create_pki_cert
         }
         else if (load_status == LOAD_ERR_NOT_FOUND)
         {
-            LOG_ERROR("Generating certificate and key for alias %s", alias);
+            LOG_INFO("Generating certificate and key for alias %s", alias);
             if (edge_hsm_client_store_create_pki_cert_internal(handle, cert_props_handle, 0) != 0)
             {
                 LOG_ERROR("Could not create certificate and key for alias %s", alias);

@@ -17,7 +17,10 @@ pub struct Image {
     id: String,
     #[serde(rename = "RepoTags", skip_serializing_if = "Option::is_none")]
     repo_tags: Option<Vec<String>>,
-    #[serde(rename = "RepoDigests", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "RepoDigests",
+        skip_serializing_if = "Option::is_none"
+    )]
     repo_digests: Option<Vec<String>>,
     #[serde(rename = "Parent")]
     parent: String,
@@ -27,7 +30,10 @@ pub struct Image {
     created: String,
     #[serde(rename = "Container")]
     container: String,
-    #[serde(rename = "ContainerConfig", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "ContainerConfig",
+        skip_serializing_if = "Option::is_none"
+    )]
     container_config: Option<::models::ContainerConfig>,
     #[serde(rename = "DockerVersion")]
     docker_version: String,
@@ -39,7 +45,10 @@ pub struct Image {
     architecture: String,
     #[serde(rename = "Os")]
     os: String,
-    #[serde(rename = "OsVersion", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "OsVersion",
+        skip_serializing_if = "Option::is_none"
+    )]
     os_version: Option<String>,
     #[serde(rename = "Size")]
     size: i64,
@@ -68,7 +77,7 @@ impl Image {
         virtual_size: i64,
         graph_driver: ::models::GraphDriverData,
         root_fs: ::models::ImageRootFs,
-    ) -> Image {
+    ) -> Self {
         Image {
             id: id,
             repo_tags: None,
@@ -96,7 +105,7 @@ impl Image {
         self.id = id;
     }
 
-    pub fn with_id(mut self, id: String) -> Image {
+    pub fn with_id(mut self, id: String) -> Self {
         self.id = id;
         self
     }
@@ -109,13 +118,13 @@ impl Image {
         self.repo_tags = Some(repo_tags);
     }
 
-    pub fn with_repo_tags(mut self, repo_tags: Vec<String>) -> Image {
+    pub fn with_repo_tags(mut self, repo_tags: Vec<String>) -> Self {
         self.repo_tags = Some(repo_tags);
         self
     }
 
-    pub fn repo_tags(&self) -> Option<&Vec<String>> {
-        self.repo_tags.as_ref()
+    pub fn repo_tags(&self) -> Option<&[String]> {
+        self.repo_tags.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_repo_tags(&mut self) {
@@ -126,13 +135,13 @@ impl Image {
         self.repo_digests = Some(repo_digests);
     }
 
-    pub fn with_repo_digests(mut self, repo_digests: Vec<String>) -> Image {
+    pub fn with_repo_digests(mut self, repo_digests: Vec<String>) -> Self {
         self.repo_digests = Some(repo_digests);
         self
     }
 
-    pub fn repo_digests(&self) -> Option<&Vec<String>> {
-        self.repo_digests.as_ref()
+    pub fn repo_digests(&self) -> Option<&[String]> {
+        self.repo_digests.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_repo_digests(&mut self) {
@@ -143,7 +152,7 @@ impl Image {
         self.parent = parent;
     }
 
-    pub fn with_parent(mut self, parent: String) -> Image {
+    pub fn with_parent(mut self, parent: String) -> Self {
         self.parent = parent;
         self
     }
@@ -156,7 +165,7 @@ impl Image {
         self.comment = comment;
     }
 
-    pub fn with_comment(mut self, comment: String) -> Image {
+    pub fn with_comment(mut self, comment: String) -> Self {
         self.comment = comment;
         self
     }
@@ -169,7 +178,7 @@ impl Image {
         self.created = created;
     }
 
-    pub fn with_created(mut self, created: String) -> Image {
+    pub fn with_created(mut self, created: String) -> Self {
         self.created = created;
         self
     }
@@ -182,7 +191,7 @@ impl Image {
         self.container = container;
     }
 
-    pub fn with_container(mut self, container: String) -> Image {
+    pub fn with_container(mut self, container: String) -> Self {
         self.container = container;
         self
     }
@@ -195,7 +204,7 @@ impl Image {
         self.container_config = Some(container_config);
     }
 
-    pub fn with_container_config(mut self, container_config: ::models::ContainerConfig) -> Image {
+    pub fn with_container_config(mut self, container_config: ::models::ContainerConfig) -> Self {
         self.container_config = Some(container_config);
         self
     }
@@ -212,7 +221,7 @@ impl Image {
         self.docker_version = docker_version;
     }
 
-    pub fn with_docker_version(mut self, docker_version: String) -> Image {
+    pub fn with_docker_version(mut self, docker_version: String) -> Self {
         self.docker_version = docker_version;
         self
     }
@@ -225,7 +234,7 @@ impl Image {
         self.author = author;
     }
 
-    pub fn with_author(mut self, author: String) -> Image {
+    pub fn with_author(mut self, author: String) -> Self {
         self.author = author;
         self
     }
@@ -238,7 +247,7 @@ impl Image {
         self.config = Some(config);
     }
 
-    pub fn with_config(mut self, config: ::models::ContainerConfig) -> Image {
+    pub fn with_config(mut self, config: ::models::ContainerConfig) -> Self {
         self.config = Some(config);
         self
     }
@@ -255,7 +264,7 @@ impl Image {
         self.architecture = architecture;
     }
 
-    pub fn with_architecture(mut self, architecture: String) -> Image {
+    pub fn with_architecture(mut self, architecture: String) -> Self {
         self.architecture = architecture;
         self
     }
@@ -268,7 +277,7 @@ impl Image {
         self.os = os;
     }
 
-    pub fn with_os(mut self, os: String) -> Image {
+    pub fn with_os(mut self, os: String) -> Self {
         self.os = os;
         self
     }
@@ -281,13 +290,13 @@ impl Image {
         self.os_version = Some(os_version);
     }
 
-    pub fn with_os_version(mut self, os_version: String) -> Image {
+    pub fn with_os_version(mut self, os_version: String) -> Self {
         self.os_version = Some(os_version);
         self
     }
 
-    pub fn os_version(&self) -> Option<&String> {
-        self.os_version.as_ref()
+    pub fn os_version(&self) -> Option<&str> {
+        self.os_version.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_os_version(&mut self) {
@@ -298,7 +307,7 @@ impl Image {
         self.size = size;
     }
 
-    pub fn with_size(mut self, size: i64) -> Image {
+    pub fn with_size(mut self, size: i64) -> Self {
         self.size = size;
         self
     }
@@ -311,7 +320,7 @@ impl Image {
         self.virtual_size = virtual_size;
     }
 
-    pub fn with_virtual_size(mut self, virtual_size: i64) -> Image {
+    pub fn with_virtual_size(mut self, virtual_size: i64) -> Self {
         self.virtual_size = virtual_size;
         self
     }
@@ -324,7 +333,7 @@ impl Image {
         self.graph_driver = graph_driver;
     }
 
-    pub fn with_graph_driver(mut self, graph_driver: ::models::GraphDriverData) -> Image {
+    pub fn with_graph_driver(mut self, graph_driver: ::models::GraphDriverData) -> Self {
         self.graph_driver = graph_driver;
         self
     }
@@ -337,7 +346,7 @@ impl Image {
         self.root_fs = root_fs;
     }
 
-    pub fn with_root_fs(mut self, root_fs: ::models::ImageRootFs) -> Image {
+    pub fn with_root_fs(mut self, root_fs: ::models::ImageRootFs) -> Self {
         self.root_fs = root_fs;
         self
     }
@@ -350,7 +359,7 @@ impl Image {
         self.metadata = Some(metadata);
     }
 
-    pub fn with_metadata(mut self, metadata: ::models::ImageMetadata) -> Image {
+    pub fn with_metadata(mut self, metadata: ::models::ImageMetadata) -> Self {
         self.metadata = Some(metadata);
         self
     }

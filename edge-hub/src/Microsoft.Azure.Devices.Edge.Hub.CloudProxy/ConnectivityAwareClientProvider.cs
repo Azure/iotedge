@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
 
@@ -18,12 +19,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         }
 
         public IClient Create(IIdentity identity, IAuthenticationMethod authenticationMethod, ITransportSettings[] transportSettings) =>
-            new ConnectivityAwareClient(this.underlyingClientProvider.Create(identity, authenticationMethod, transportSettings), this.deviceConnectivityManager);
+            new ConnectivityAwareClient(this.underlyingClientProvider.Create(identity, authenticationMethod, transportSettings), this.deviceConnectivityManager, identity);
 
         public IClient Create(IIdentity identity, string connectionString, ITransportSettings[] transportSettings) =>
-            new ConnectivityAwareClient(this.underlyingClientProvider.Create(identity, connectionString, transportSettings), this.deviceConnectivityManager);
+            new ConnectivityAwareClient(this.underlyingClientProvider.Create(identity, connectionString, transportSettings), this.deviceConnectivityManager, identity);
 
         public async Task<IClient> CreateAsync(IIdentity identity, ITransportSettings[] transportSettings) =>
-            new ConnectivityAwareClient(await underlyingClientProvider.CreateAsync(identity, transportSettings).ConfigureAwait(false), this.deviceConnectivityManager);
+            new ConnectivityAwareClient(await this.underlyingClientProvider.CreateAsync(identity, transportSettings).ConfigureAwait(false), this.deviceConnectivityManager, identity);
+        public IClient Create(IIdentity identity, ITokenProvider tokenProvider, ITransportSettings[] transportSettings) =>
+            new ConnectivityAwareClient(this.underlyingClientProvider.Create(identity, tokenProvider, transportSettings), this.deviceConnectivityManager, identity);
     }
 }
