@@ -65,7 +65,10 @@ function Install-SecurityDaemon {
         [String] $Username,
 
         # Password to pull IoT Edge Agent image
-        [SecureString] $Password
+        [SecureString] $Password,
+
+        # Also install the Moby CLI (docker.exe) to $MobyInstallDirectory. Only takes affect for `-ContainerOs Windows`
+        [Switch] $WithMobyCli
     )
 
     $ErrorActionPreference = 'Stop'
@@ -310,7 +313,34 @@ function Get-SecurityDaemon {
         # If we create the iotedge archive ourselves, then delete it when we're done
         $deleteEdgeArchive = $false
 
-        $mobyArchivePath = "$env:TEMP\iotedge-moby.zip"
+        $mobyRuntimeArchivePath = "$env:TEMP\iotedge-moby-runtime.zip"
+        $mobyCliArchivePath = "$env:TEMP\iotedge-moby-cli.zip"
+
+        if ($ContainerOs -eq 'Windows') {
+            # Get moby runtime
+
+            Write-Host 'Downloading the latest version of Moby runtime...'
+            New-Item -Type Directory $MobyInstallDirectory | Out-Null
+            Invoke-WebRequest `
+                -Uri 'https://aka.ms/iotedge-moby-engine-win-amd64-latest' `
+                -OutFile $mobyRuntimeArchivePath `
+                -UseBasicParsing `
+                -Proxy $Proxy
+            Write-HostGreen 'Downloaded Moby runtime.'
+            Expand-Archive $mobyRuntimeArchivePath $MobyInstallDirectory -Force
+
+            if ($WithMobyCli) {
+                Write-Host 'Downloading the latest version of Moby CLI...'
+                Invoke-WebRequest `
+                    -Uri 'https://aka.ms/iotedge-moby-cli-win-amd64-latest' `
+                    -OutFile $mobyCliArchivePath `
+                    -UseBasicParsing `
+                    -Proxy $Proxy
+                Write-HostGreen 'Downloaded Moby CLI.'
+
+                Expand-Archive $mobyCliArchivePath $MobyInstallDirectory -Force
+            }
+        }
 
         if (-not "$ArchivePath") {
             $ArchivePath = "$env:TEMP\iotedged-windows.zip"
@@ -376,22 +406,6 @@ function Get-SecurityDaemon {
         else {
             throw $cmdErr
         }
-
-        if ($ContainerOs -eq 'Windows') {
-            # Get moby runtime
-
-            Write-Host 'Downloading the latest version of Moby runtime...'
-            Invoke-WebRequest `
-                -Uri 'https://aka.ms/iotedge-moby-win-amd64-latest' `
-                -OutFile $mobyArchivePath `
-                -UseBasicParsing `
-                -Proxy $Proxy
-            Write-HostGreen 'Downloaded moby runtime.'
-
-            New-Item -Type Directory $MobyInstallDirectory | Out-Null
-            Expand-Archive $mobyArchivePath $MobyInstallDirectory -Force
-            Copy-Item "$MobyInstallDirectory\docker\*" $MobyInstallDirectory -Force -Recurse
-        }
     }
     finally {
         Remove-Item "$EdgeInstallDirectory\iotedged-windows" -Recurse -Force -ErrorAction SilentlyContinue
@@ -401,7 +415,8 @@ function Get-SecurityDaemon {
             Remove-Item $ArchivePath -Recurse -Force -ErrorAction SilentlyContinue
         }
 
-        Remove-Item $mobyArchivePath -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-Item $mobyRuntimeArchivePath -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-Item $mobyCliArchivePath -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
 
