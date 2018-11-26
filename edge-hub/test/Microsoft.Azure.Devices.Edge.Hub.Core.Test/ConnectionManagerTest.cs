@@ -81,9 +81,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var deviceCredentials2 = Mock.Of<ITokenCredentials>(c => c.Identity == Mock.Of<IIdentity>(d => d.Id == "Device2"));
 
             string edgeDeviceId = "edgeDevice";
-            string module1Id = "module1";
-            string token = TokenHelper.CreateSasToken(IotHubHostName);
-            var module1Credentials = new TokenCredentials(new ModuleIdentity(IotHubHostName, edgeDeviceId, module1Id), token, DummyProductInfo, true);
             IClient client1 = GetDeviceClient();
             IClient client2 = GetDeviceClient();
             var messageConverterProvider = Mock.Of<IMessageConverterProvider>();
@@ -104,7 +101,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 credentialsCache,
                 new ModuleIdentity(IotHubHostName, edgeDeviceId, "$edgeHub"),
                 TimeSpan.FromMinutes(60),
-                true);
+                true,
+                TimeSpan.FromSeconds(20));
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
 
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, GetIdentityProvider());
@@ -821,7 +819,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                credentialsCache,
                new ModuleIdentity(IotHubHostName, edgeDeviceId, "$edgeHub"),
                TimeSpan.FromMinutes(60),
-               true);
+               true,
+               TimeSpan.FromSeconds(20));
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, GetIdentityProvider());
 
