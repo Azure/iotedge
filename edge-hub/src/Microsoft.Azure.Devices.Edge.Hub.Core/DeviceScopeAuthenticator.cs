@@ -88,6 +88,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     (isAuthenticated, valueFound) = await this.AuthenticateWithServiceIdentity(tCredentials, moduleIdentity.DeviceId, syncServiceIdentity);
                 }
 
+                // In the return value, the first flag indicates if the authentication succeeded.
+                // The second flag indicates whether the authenticator should fall back to the underlying authenticator. This is done if
+                // the ServiceIdentity was not found (which means the device/module is not in scope).
                 return (isAuthenticated, !valueFound);
             }
             catch (Exception e)
