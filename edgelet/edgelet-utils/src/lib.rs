@@ -64,7 +64,7 @@ pub fn parse_query(query: &str) -> HashMap<&str, &str> {
 
 pub fn prepare_cert_uri_module(hub_name: &str, device_id: &str, module_id: &str) -> String {
     format!(
-        "URI: azureiot://{}/devices/{}/module/{}",
+        "URI: azureiot://{}/devices/{}/modules/{}",
         hub_name, device_id, module_id
     )
 }
@@ -124,7 +124,7 @@ mod tests {
     #[test]
     fn validate_cert_uri_module() {
         assert_eq!(
-            "URI: azureiot://hub_id/devices/did/module/mid",
+            "URI: azureiot://hub_id/devices/did/modules/mid",
             prepare_cert_uri_module("hub_id", "did", "mid")
         );
     }

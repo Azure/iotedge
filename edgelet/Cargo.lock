@@ -1032,7 +1032,7 @@ dependencies = [
 [[package]]
 name = "mio-uds-windows"
 version = "0.1.0"
-source = "git+https://github.com/Azure/mio-uds-windows.git#67c2c785112b79ff212c018f124196d7297c5d88"
+source = "git+https://github.com/Azure/mio-uds-windows.git#87a4a9970e668fdbe9205f4039967e175182c70e"
 dependencies = [
  "iovec 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
