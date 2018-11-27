@@ -307,9 +307,36 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
 
         public string Type { get; }
 
-        public bool Equals(IRuntimeInfo other)
+        public bool Equals(IRuntimeInfo other) => other is TestRuntimeInfo otherRuntimeInfo
+            && this.Equals(otherRuntimeInfo);
+
+        public override bool Equals(object obj)
         {
-            throw new NotImplementedException();
+            if (ReferenceEquals(null, obj))
+                return false;
+            if (ReferenceEquals(this, obj))
+                return true;
+            if (obj.GetType() != this.GetType())
+                return false;
+            return Equals((TestRuntimeInfo)obj);
         }
+
+        public override int GetHashCode()
+        {
+            return (this.Type != null ? this.Type.GetHashCode() : 0);
+        }
+
+        public bool Equals(TestRuntimeInfo other)
+        {
+            if (ReferenceEquals(null, other))
+                return false;
+            if (ReferenceEquals(this, other))
+                return true;
+            return string.Equals(this.Type, other.Type);
+        }
+
+        public static bool operator ==(TestRuntimeInfo left, TestRuntimeInfo right) => Equals(left, right);
+
+        public static bool operator !=(TestRuntimeInfo left, TestRuntimeInfo right) => !Equals(left, right);
     }
 }
