@@ -1,6 +1,14 @@
+## Copyright (c) Microsoft. All rights reserved.
+## Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+###############################################################################
+# This script demonstrates creating X.509 certificates for an Azure IoT Hub
+# CA Cert deployment.
 #
-#  Routines to help *experiment* (not necessarily productize) CA certificates.
-#
+# These certs MUST NOT be used in production.  It is expected that production
+# certificates will be created using a company's proper secure signing process.
+# These certs are intended only to help demonstrate and prototype CA certs.
+###############################################################################
 
 # This will make PowerShell complain more on unsafe practices
 Set-StrictMode -Version 2.0
@@ -25,6 +33,7 @@ $_days_until_expiration      = $env:DEFAULT_VALIDITY_DAYS
 $_opensslRootConfigFile      = "$_basePath/openssl_root_ca.cnf"
 $_keySuffix                  = "key.pem"
 $_certSuffix                 = "cert.pem"
+$_certPfxSuffix              = "cert.pfx"
 $_csrSuffix                  = "csr.pem"
 # Whether to use ECC or RSA is stored in a file.  If it doesn't exist, we default to ECC.
 $algorithmUsedFile           = "./algorithmUsed.txt"
@@ -88,7 +97,7 @@ function Get-CertPathForPrefix([string]$prefix)
 #>
 function Get-PfxCertPathForPrefix([string]$prefix)
 {
-    return "$_basePath/certs/$prefix.pfx"
+    return "$_basePath/certs/$prefix.$_certPfxSuffix"
 }
 
 <#
@@ -627,13 +636,13 @@ function New-CACertsDevice([Parameter(Mandatory=$TRUE)][string]$deviceName, [str
     # Certificates for edge devices need to be able to sign other certs.
     if ($isEdgeDevice -eq $true)
     {
+        $devicePrefix = "iot-edge-device-$deviceName"
         # Note: Appending a '.ca' to the common name is useful in situations
         # where a user names their hostname as the edge device name.
         # By doing so we avoid TLS validation errors where we have a server or
         # client certificate where the hostname is used as the common name
         # which essentially results in "loop" for validation purposes.
         $deviceName += ".ca"
-        $devicePrefix = "iot-edge-device-$deviceName"
         $certFile = New-IntermediateCACertificate $devicePrefix $issuerPrefix $deviceName
     }
     else
