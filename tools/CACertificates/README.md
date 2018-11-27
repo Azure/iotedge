@@ -21,7 +21,7 @@ You'll need to do some initial setup prior to running these scripts.
 
 ###  **PowerShell**
 * Get OpenSSL for Windows.
-  * See https://www.openssl.org/docs/faq.html#MISC4 for places to download it or https://www.openssl.org/source/ to build from source.
+  * See https://docs.microsoft.com/en-us/azure/iot-edge/how-to-create-transparent-gateway#install-openssl.
 * Start PowerShell as an Administrator.
 * `cd` to a working directory you want to run in.  All files will be created in this directory.
 * `cp *.cnf` and `cp ca-certs.ps1` from the directory this .MD file is located into your working directory.
@@ -50,7 +50,6 @@ After the scripts have been executed certificates and keys will be generated in 
 
 ```
 <work_dir>
-  |
   +-- certs   (Contains all the public certificates in various formats and their full certificate chains)
   +-- private (Contains all the private keys in PEM format)
   +-- csr     (Contains all the public CSRs used to generate the certificates)
@@ -91,17 +90,19 @@ Note that if you're using this certificate as a DPS registration ID, the ID **mu
 #### IoT Leaf Device
 * Run `./certGen.sh create_device_certificate mydevice` to create the new device certificate.
   * This will create files ```iot-device-mydevice*``` that each contain the public key, private key, and PFX respectively.
-  
+
 #### IoT Edge Device
 * Run `./certGen.sh create_edge_device_certificate myEdgeDevice` to create the new IoT Edge device certificate.
   * This will create files ```iot-edge-device-mydevice*``` that each contain the public key, private key, and PFX respectively.
 
 ## Step 5 - Cleanup
-### **PowerShell***
-From start menu, open `manage computer certificates` and navigate Certificates -Local Compturer-->personal.  Remove certificates issued by "Azure IoT CA TestOnly*".  Similarly remove them from "Trusted Root Certification Authority->Certificates" and "Intermediate Certificate Authorities->Certificates".
-
-### **Bash**
 These scripts output certificates to the current working directory, so there is no analogous system cleanup needed. Simply delete the contents of your work directory.
+
+'''Note:''' On Windows machines in case you are prompted to cleanup any old certificates from the powershell script, please follow these general guidelines.
+* From start menu, open `manage computer certificates` and navigate Certificates --> Local Computer -->personal.
+* Remove certificates issued by "Azure IoT CA TestOnly*".
+* Similarly remove them from "Trusted Root Certification Authority --> Certificates" and "Intermediate Certificate Authorities --> Certificates".
+
 
 [the official documentation]: https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-security-x509-get-started
 [Edge gateway creation documentation]: https://docs.microsoft.com/en-us/azure/iot-edge/how-to-create-transparent-gateway
