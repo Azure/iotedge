@@ -114,10 +114,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             return Option.None<IIdentity>();
         }
 
-        void OnMessageReceived(AmqpMessage message)
+        async void OnMessageReceived(AmqpMessage message)
         {
             Events.NewTokenReceived();
-            this.HandleTokenUpdate(message);
+            try
+            {
+                await this.HandleTokenUpdate(message);
+            }
+            catch (Exception ex)
+            {
+                Events.ErrorHandlingTokenUpdate(ex);
+            }
         }
 
         async Task HandleTokenUpdate(AmqpMessage message)
@@ -161,6 +168,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 if (credentialsInfo.IsAuthenticated)
                 {
                     await this.credentialsCache.Add(identity);
+                    Events.CbsTokenUpdated(identity.Identity);
+                }
+                else
+                {
+                    Events.CbsTokenNotUpdated(identity.Identity);
                 }
             }
 
@@ -304,7 +316,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 ErrorUpdatingToken,
                 ErrorGettingIdentity,
                 TokenUpdated,
-                ErrorSendingResponse
+                ErrorSendingResponse,
+                ErrorHandlingTokenUpdate,
+                CbsTokenNotUpdated
             }
 
             public static void LinkRegistered(IAmqpLink link)
@@ -340,6 +354,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             public static void ErrorSendingResponse(Exception exception)
             {
                 Log.LogWarning((int)EventIds.ErrorSendingResponse, exception, "Error sending response message");
+            }
+
+            public static void ErrorHandlingTokenUpdate(Exception exception)
+            {
+                Log.LogWarning((int)EventIds.ErrorHandlingTokenUpdate, exception, "Error handling token update");
+            }
+
+            public static void CbsTokenNotUpdated(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.CbsTokenNotUpdated, $"Got a new token for an unauthenticated identity {identity.Id}, not updating credentials cache");
             }
         }
     }

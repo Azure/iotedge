@@ -4,9 +4,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 {
     using System.Collections.Concurrent;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    class MuxConnectionsHandler
+    class MuxConnectionsHandler : IAmqpClientConnectionsHandler
     {
         readonly ConcurrentDictionary<string, ConnectionHandler> connectionHandlers = new ConcurrentDictionary<string, ConnectionHandler>();
         readonly IAmqpConnection connection;
@@ -18,6 +19,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             this.connectionProvider = Preconditions.CheckNotNull(connectionProvider, nameof(connectionProvider));
         }
 
-        public ConnectionHandler GetConnectionHandler(string id) => this.connectionHandlers.GetOrAdd(id, i => new ConnectionHandler(this.connection, this.connectionProvider));
+        public IConnectionHandler GetConnectionHandler(string id) => this.connectionHandlers.GetOrAdd(id, i => new ConnectionHandler(this.connection, this.connectionProvider));
+    }
+
+    public interface IAmqpClientConnectionsHandler
+    {
+        IConnectionHandler GetConnectionHandler(IIdentity identity)
     }
 }

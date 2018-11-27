@@ -21,9 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     class ConnectionHandler : IConnectionHandler
     {
         readonly IDictionary<LinkType, ILinkHandler> registry = new Dictionary<LinkType, ILinkHandler>();
-        bool isInitialized;
-        IDeviceListener deviceListener;
-        AmqpAuthentication amqpAuthentication;
+        readonly IIdentity identity;
 
         readonly AsyncLock initializationLock = new AsyncLock();
         readonly AsyncLock registryUpdateLock = new AsyncLock();
@@ -36,101 +34,55 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             this.connectionProvider = Preconditions.CheckNotNull(connectionProvider, nameof(connectionProvider));
         }
 
-        public ConnectionHandler(string id, IClientCredentials credentia)
+        public ConnectionHandler(IIdentity identity, IDeviceListener deviceListener, IAmqpAuthenticator amqpAuth, IAmqpConnection connection)
+        {
+            this.identity = Preconditions.CheckNotNull(identity, nameof(identity));
+            this.connection = Preconditions.CheckNotNull(connection, nameof(connection));
+            this.DeviceListener = Preconditions.CheckNotNull(deviceListener, nameof(deviceListener));
+            this.AmqpAuthenticator = Preconditions.CheckNotNull(amqpAuth, nameof(amqpAuth));
+        }
 
-        public static async Task<ConnectionHandler> Create(string id, IAmqpConnection connection, IConnectionProvider connectionProvider)
+        public static async Task<ConnectionHandler> Create(IIdentity identity, IAmqpConnection connection, IConnectionProvider connectionProvider)
         {
             IAmqpAuthenticator amqpAuth;
-            Option<IIdentity> identityOption;
+
             // Check if Principal is SaslPrincipal
             if (connection.Principal is SaslPrincipal saslPrincipal)
             {
                 amqpAuth = saslPrincipal;
-                identityOption = saslPrincipal.AmqpAuthentication.ClientCredentials.Map(c => c.Identity);
             }
             else
             {
                 // Else the connection uses CBS authentication. Get AmqpAuthentication from the CbsNode                    
                 var cbsNode = connection.FindExtension<ICbsNode>();
                 amqpAuth = cbsNode ?? throw new InvalidOperationException("CbsNode is null");
-                identityOption = cbsNode.GetIdentity(id);
             }
 
-            IIdentity identity = identityOption.Expect(() => new InvalidOperationException($"Unable to find an identity for {id}"));
             IDeviceListener deviceListener = await connectionProvider.GetDeviceListenerAsync(identity);
-            var deviceProxy = new DeviceProxy(this, identity.Identity);
-            this.deviceListener.BindDeviceProxy(deviceProxy);
-            Events.InitializedConnectionHandler(identity.Identity);
+            var connectionHandler = new ConnectionHandler(identity, deviceListener, amqpAuth, connection);
+            var deviceProxy = new DeviceProxy(connectionHandler, identity);
+            deviceListener.BindDeviceProxy(deviceProxy);
+            Events.InitializedConnectionHandler(identity);
+            return connectionHandler;
         }
 
-        public async Task<IDeviceListener> GetDeviceListener()
-        {
-            await this.EnsureInitialized();
-            return this.deviceListener;
-        }
+        public IDeviceListener DeviceListener { get; }
 
-        public async Task<AmqpAuthentication> GetAmqpAuthentication()
-        {
-            await this.EnsureInitialized();
-            return this.amqpAuthentication;
-        }
+        public IAmqpAuthenticator AmqpAuthenticator { get; }
 
-        async Task EnsureInitialized()
-        {
-            if (!this.isInitialized)
-            {
-                using (await this.initializationLock.LockAsync())
-                {
-                    if (!this.isInitialized)
-                    {
-                        AmqpAuthentication amqpAuth;
-                        // Check if Principal is SaslPrincipal
-                        if (this.connection.Principal is SaslPrincipal saslPrincipal)
-                        {
-                            amqpAuth = saslPrincipal.AmqpAuthentication;
-                        }
-                        else
-                        {
-                            // Else the connection uses CBS authentication. Get AmqpAuthentication from the CbsNode                    
-                            var cbsNode = this.connection.FindExtension<ICbsNode>();
-                            if (cbsNode == null)
-                            {
-                                throw new InvalidOperationException("CbsNode is null");
-                            }
-
-                            amqpAuth = await cbsNode.GetAmqpAuthentication();
-                        }
-
-                        if (!amqpAuth.IsAuthenticated)
-                        {
-                            throw new InvalidOperationException("Connection not authenticated");
-                        }
-
-                        IClientCredentials clientCredentials = amqpAuth.ClientCredentials.Expect(() => new InvalidOperationException("Authenticated connection should have a valid identity"));
-                        this.deviceListener = await this.connectionProvider.GetDeviceListenerAsync(clientCredentials.Identity);
-                        var deviceProxy = new DeviceProxy(this, clientCredentials.Identity);
-                        this.deviceListener.BindDeviceProxy(deviceProxy);
-                        this.amqpAuthentication = amqpAuth;
-                        this.isInitialized = true;
-                        Events.InitializedConnectionHandler(clientCredentials.Identity);
-                    }
-                }
-            }
-        }
-
-        async Task<Option<IClientCredentials>> GetUpdatedAuthenticatedIdentity()
-        {
-            var cbsNode = this.connection.FindExtension<ICbsNode>();
-            if (cbsNode != null)
-            {
-                AmqpAuthentication updatedAmqpAuthentication = await cbsNode.GetAmqpAuthentication();
-                if (updatedAmqpAuthentication.IsAuthenticated)
-                {
-                    return updatedAmqpAuthentication.ClientCredentials;
-                }
-            }
-            return Option.None<IClientCredentials>();
-        }
+        //async Task<Option<IClientCredentials>> GetUpdatedAuthenticatedIdentity()
+        //{
+        //    var cbsNode = this.connection.FindExtension<ICbsNode>();
+        //    if (cbsNode != null)
+        //    {
+        //        AmqpAuthentication updatedAmqpAuthentication = await cbsNode.GetAmqpAuthentication();
+        //        if (updatedAmqpAuthentication.IsAuthenticated)
+        //        {
+        //            return updatedAmqpAuthentication.ClientCredentials;
+        //        }
+        //    }
+        //    return Option.None<IClientCredentials>();
+        //}
 
         public async Task RegisterLinkHandler(ILinkHandler linkHandler)
         {
@@ -200,9 +152,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         async Task CloseConnection()
         {
             using (await this.initializationLock.LockAsync())
-            {
-                this.isInitialized = false;                
-                await (this.deviceListener?.CloseAsync() ?? Task.CompletedTask);
+            {         
+                await (this.DeviceListener?.CloseAsync() ?? Task.CompletedTask);
             }
         }
 
@@ -310,7 +261,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 this.isActive.Set(false);
             }
 
-            public Task<Option<IClientCredentials>> GetUpdatedIdentity() => this.connectionHandler.GetUpdatedAuthenticatedIdentity();
+            public Task<Option<IClientCredentials>> GetUpdatedIdentity() => throw new NotImplementedException(); // this.connectionHandler.GetUpdatedAuthenticatedIdentity();
         }
 
         static class Events

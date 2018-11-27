@@ -84,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 amqpConnection.Extensions.Add(cbsNode);
             }
 
-            IConnectionHandler connectionHandler = new ConnectionHandler(new EdgeAmqpConnection(amqpConnection), this.connectionProvider);
+            IAmqpClientConnectionsHandler connectionHandler = new MuxConnectionsHandler(new EdgeAmqpConnection(amqpConnection), this.connectionProvider);
             amqpConnection.Extensions.Add(connectionHandler);
         }
 
