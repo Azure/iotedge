@@ -34,7 +34,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 Mock.Of<ICloudListener>(),
                 tokenProvider,
                 TimeSpan.FromMinutes(60),
-                true);
+                true,
+                TimeSpan.FromSeconds(20));
 
             Option<ICloudProxy> cloudProxy1 = cloudConnection.CloudProxy;
             Assert.True(cloudProxy1.HasValue);
@@ -68,7 +69,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 Mock.Of<ICloudListener>(),
                 tokenProvider,
                 TimeSpan.FromMinutes(60),
-                true));
+                true,
+                TimeSpan.FromSeconds(20)));
         }
 
         static IClientProvider GetMockDeviceClientProviderWithKey()
