@@ -495,5 +495,72 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             // Assert
             mockReporter.Verify(r => r.ReportShutdown(It.IsAny<DeploymentStatus>(), token));
         }
+
+        [Fact]
+        [Unit]
+        public async Task HandleShutdownTest()
+        {
+            // Arrange
+            var mockConfigSource = new Mock<IConfigSource>();
+
+            IModule mod1 = new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"), null);
+            IModule mod2 = new TestModule("mod2", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"), null);
+            var modules = new Dictionary<string, IModule>
+            {
+                [mod1.Name] = mod1,
+                [mod2.Name] = mod2
+            };
+
+            var mockEnvironment = new Mock<IEnvironment>();
+            mockEnvironment.Setup(m => m.GetModulesAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new ModuleSet(modules));
+
+            var mockPlanner = new Mock<IPlanner>();
+            mockPlanner.Setup(p => p.CreateShutdownPlanAsync(It.IsAny<ModuleSet>()))
+                .ReturnsAsync(new Plan(new ICommand[0]));
+
+            var mockPlanRunner = new Mock<IPlanRunner>();
+            mockPlanRunner.Setup(m => m.ExecuteAsync(It.IsAny<long>(), It.IsAny<Plan>(), It.IsAny<CancellationToken>()))
+                .Returns(async () =>
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(5));
+                    return true;
+                });
+
+            var mockReporter = new Mock<IReporter>();
+            mockReporter.Setup(
+                    m => m.ReportAsync(
+                        It.IsAny<CancellationToken>(),
+                        It.IsAny<ModuleSet>(),
+                        It.IsAny<IRuntimeInfo>(),
+                        It.IsAny<long>(),
+                        It.IsAny<Option<DeploymentStatus>>()))
+                .Returns(Task.Delay(TimeSpan.FromSeconds(5)));
+
+            var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
+            var configStore = Mock.Of<IEntityStore<string, string>>();
+            var mockEnvironmentProvider = Mock.Of<IEnvironmentProvider>(m => m.Create(It.IsAny<DeploymentConfig>()) == mockEnvironment.Object);
+            var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
+            var encryptionDecryptionProvider = Mock.Of<IEncryptionProvider>();
+            var deploymentConfig = new DeploymentConfig("1.0", Mock.Of<IRuntimeInfo>(), new SystemModules(null, null), modules);
+            var deploymentConfigInfo = new DeploymentConfigInfo(0, deploymentConfig);
+            var token = new CancellationToken();
+
+            mockConfigSource.Setup(cs => cs.GetDeploymentConfigInfoAsync())
+                .ReturnsAsync(deploymentConfigInfo);
+
+            // Act
+            var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde, encryptionDecryptionProvider);
+
+            Task shutdownTask = agent.HandleShutdown(token);
+            Task waitTask = Task.Delay(TimeSpan.FromSeconds(6));
+            Task completedTask = await Task.WhenAny(shutdownTask, waitTask);
+
+            // Assert
+            Assert.Equal(completedTask, shutdownTask);
+            mockReporter.Verify(r => r.ReportShutdown(It.IsAny<DeploymentStatus>(), token), Times.Once);
+            mockPlanRunner.Verify(r => r.ExecuteAsync(It.IsAny<long>(), It.IsAny<Plan>(), It.IsAny<CancellationToken>()), Times.Once);
+            mockPlanner.Verify(r => r.CreateShutdownPlanAsync(It.IsAny<ModuleSet>()), Times.Once);
+        }
     }
 }
