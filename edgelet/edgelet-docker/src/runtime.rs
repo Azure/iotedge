@@ -113,6 +113,8 @@ impl ModuleRegistry for DockerModuleRuntime {
     fn pull(&self, config: &Self::Config) -> Self::PullFuture {
         let image = config.image().to_string();
 
+        info!("Pulling image {}...", image);
+
         let creds: Result<String> = config.auth().map_or_else(
             || Ok("".to_string()),
             |a| {
@@ -125,27 +127,34 @@ impl ModuleRegistry for DockerModuleRuntime {
 
         let response = creds
             .map(|creds| {
-                debug!("Pulling {}", image);
                 self.client
                     .image_api()
                     .image_create(&image, "", "", "", "", &creds, "")
-                    .map_err(|err| {
-                        let e = Error::from_docker_error(
+                    .then(|result| match result {
+                        Ok(()) => Ok(image),
+                        Err(err) => Err(Error::from_docker_error(
                             err,
                             ErrorKind::RegistryOperation(RegistryOperation::PullImage(image)),
-                        );
-                        warn!("Attempt to pull image failed.");
-                        log_failure(Level::Warn, &e);
-                        e
+                        )),
                     })
             }).into_future()
-            .flatten();
+            .flatten()
+            .then(move |result| match result {
+                Ok(image) => {
+                    info!("Successfully pulled image {}", image);
+                    Ok(())
+                }
+                Err(err) => {
+                    log_failure(Level::Warn, &err);
+                    Err(err)
+                }
+            });
 
         Box::new(response)
     }
 
     fn remove(&self, name: &str) -> Self::RemoveFuture {
-        debug!("Removing {}", name);
+        info!("Removing image {}...", name);
 
         if let Err(err) = ensure_not_empty_with_context(name, || {
             ErrorKind::RegistryOperation(RegistryOperation::RemoveImage(name.to_string()))
@@ -159,15 +168,19 @@ impl ModuleRegistry for DockerModuleRuntime {
             self.client
                 .image_api()
                 .image_delete(&name, false, false)
-                .map(|_| ())
-                .map_err(|err| {
-                    let e = Error::from_docker_error(
-                        err,
-                        ErrorKind::RegistryOperation(RegistryOperation::RemoveImage(name)),
-                    );
-                    warn!("Attempt to remove image failed.");
-                    log_failure(Level::Warn, &e);
-                    e
+                .then(|result| match result {
+                    Ok(_) => {
+                        info!("Successfully removed image {}", name);
+                        Ok(())
+                    }
+                    Err(err) => {
+                        let err = Error::from_docker_error(
+                            err,
+                            ErrorKind::RegistryOperation(RegistryOperation::RemoveImage(name)),
+                        );
+                        log_failure(Level::Warn, &err);
+                        Err(err)
+                    }
                 }),
         )
     }
@@ -195,6 +208,8 @@ impl ModuleRuntime for DockerModuleRuntime {
     type RemoveAllFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
 
     fn init(&self) -> Self::InitFuture {
+        info!("Initializing module runtime...");
+
         let created = self.network_id.clone().map_or_else(
             || future::Either::B(future::ok(())),
             |id| {
@@ -219,18 +234,27 @@ impl ModuleRuntime for DockerModuleRuntime {
                             err,
                             ErrorKind::RuntimeOperation(RuntimeOperation::Init),
                         );
-                        warn!("Module runtime init failed.");
                         log_failure(Level::Warn, &e);
                         e
                     });
                 future::Either::A(fut)
             },
         );
+        let created = created.then(|result| {
+            match result {
+                Ok(()) => info!("Successfully initialized module runtime"),
+                Err(ref err) => log_failure(Level::Warn, err),
+            }
+
+            result
+        });
 
         Box::new(created)
     }
 
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
+        info!("Creating module {}...", module.name());
+
         // we only want "docker" modules
         if module.type_() != DOCKER_MODULE_TYPE {
             return Box::new(future::err(Error::from(ErrorKind::InvalidModuleType(
@@ -269,28 +293,33 @@ impl ModuleRuntime for DockerModuleRuntime {
                     .client
                     .container_api()
                     .container_create(create_options, module.name())
-                    .map_err(move |err| {
-                        Error::from_docker_error(
+                    .then(|result| match result {
+                        Ok(_) => Ok(module),
+                        Err(err) => Err(Error::from_docker_error(
                             err,
                             ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
                                 module.name().to_string(),
                             )),
-                        )
-                    }).map(|_| ()))
+                        )),
+                    }))
+            }).into_future()
+            .flatten()
+            .then(|result| match result {
+                Ok(module) => {
+                    info!("Successfully created module {}", module.name());
+                    Ok(())
+                }
+                Err(err) => {
+                    log_failure(Level::Warn, &err);
+                    Err(err)
+                }
             });
 
-        match result {
-            Ok(f) => Box::new(f),
-            Err(err) => {
-                warn!("Attempt to create a container failed.");
-                log_failure(Level::Warn, &err);
-                Box::new(future::err(err))
-            }
-        }
+        Box::new(result)
     }
 
     fn start(&self, id: &str) -> Self::StartFuture {
-        debug!("Starting container {}", id);
+        info!("Starting module {}...", id);
 
         let id = id.to_string();
 
@@ -304,20 +333,25 @@ impl ModuleRuntime for DockerModuleRuntime {
             self.client
                 .container_api()
                 .container_start(&id, "")
-                .map_err(|err| {
-                    let e = Error::from_docker_error(
-                        err,
-                        ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(id)),
-                    );
-                    warn!("Attempt to start a container failed.");
-                    log_failure(Level::Warn, &e);
-                    e
-                }).map(|_| ()),
+                .then(|result| match result {
+                    Ok(_) => {
+                        info!("Successfully started module {}", id);
+                        Ok(())
+                    }
+                    Err(err) => {
+                        let err = Error::from_docker_error(
+                            err,
+                            ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(id)),
+                        );
+                        log_failure(Level::Warn, &err);
+                        Err(err)
+                    }
+                }),
         )
     }
 
     fn stop(&self, id: &str, wait_before_kill: Option<Duration>) -> Self::StopFuture {
-        debug!("Stopping container {}", id);
+        info!("Stopping module {}...", id);
 
         let id = id.to_string();
 
@@ -340,48 +374,59 @@ impl ModuleRuntime for DockerModuleRuntime {
                         s if s > i32::max_value() as u64 => i32::max_value(),
                         s => s as i32,
                     }),
-                ).map_err(|err| {
-                    let e = Error::from_docker_error(
-                        err,
-                        ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(id)),
-                    );
-                    warn!("Attempt to stop a container failed.");
-                    log_failure(Level::Warn, &e);
-                    e
-                }).map(|_| ()),
+                ).then(|result| match result {
+                    Ok(_) => {
+                        info!("Successfully stopped module {}", id);
+                        Ok(())
+                    }
+                    Err(err) => {
+                        let err = Error::from_docker_error(
+                            err,
+                            ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(id)),
+                        );
+                        log_failure(Level::Warn, &err);
+                        Err(err)
+                    }
+                }),
         )
     }
 
     fn system_info(&self) -> Self::SystemInfoFuture {
+        info!("Querying system info...");
+
         Box::new(
             self.client
                 .system_api()
                 .system_info()
-                .map(|system_info| {
-                    CoreSystemInfo::new(
-                        system_info
-                            .os_type()
-                            .unwrap_or(&String::from("Unknown"))
-                            .to_string(),
-                        system_info
-                            .architecture()
-                            .unwrap_or(&String::from("Unknown"))
-                            .to_string(),
-                    )
-                }).map_err(|err| {
-                    let e = Error::from_docker_error(
-                        err,
-                        ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo),
-                    );
-                    warn!("Attempt to get system information failed.");
-                    log_failure(Level::Warn, &e);
-                    e
+                .then(|result| match result {
+                    Ok(system_info) => {
+                        let system_info = CoreSystemInfo::new(
+                            system_info
+                                .os_type()
+                                .unwrap_or(&String::from("Unknown"))
+                                .to_string(),
+                            system_info
+                                .architecture()
+                                .unwrap_or(&String::from("Unknown"))
+                                .to_string(),
+                        );
+                        info!("Successfully queried system info");
+                        Ok(system_info)
+                    }
+                    Err(err) => {
+                        let err = Error::from_docker_error(
+                            err,
+                            ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo),
+                        );
+                        log_failure(Level::Warn, &err);
+                        Err(err)
+                    }
                 }),
         )
     }
 
     fn restart(&self, id: &str) -> Self::RestartFuture {
-        debug!("Restarting container {}", id);
+        info!("Restarting module {}...", id);
 
         let id = id.to_string();
 
@@ -395,20 +440,25 @@ impl ModuleRuntime for DockerModuleRuntime {
             self.client
                 .container_api()
                 .container_restart(&id, WAIT_BEFORE_KILL_SECONDS)
-                .map_err(|err| {
-                    let e = Error::from_docker_error(
-                        err,
-                        ErrorKind::RuntimeOperation(RuntimeOperation::RestartModule(id)),
-                    );
-                    warn!("Attempt to restart a container failed.");
-                    log_failure(Level::Warn, &e);
-                    e
-                }).map(|_| ()),
+                .then(|result| match result {
+                    Ok(_) => {
+                        info!("Successfully restarted module {}", id);
+                        Ok(())
+                    }
+                    Err(err) => {
+                        let err = Error::from_docker_error(
+                            err,
+                            ErrorKind::RuntimeOperation(RuntimeOperation::RestartModule(id)),
+                        );
+                        log_failure(Level::Warn, &err);
+                        Err(err)
+                    }
+                }),
         )
     }
 
     fn remove(&self, id: &str) -> Self::RemoveFuture {
-        debug!("Removing container {}", id);
+        info!("Removing module {}...", id);
 
         let id = id.to_string();
 
@@ -424,19 +474,26 @@ impl ModuleRuntime for DockerModuleRuntime {
                 .container_delete(
                     &id, /* remove volumes */ false, /* force */ true,
                     /* remove link */ false,
-                ).map_err(|err| {
-                    let e = Error::from_docker_error(
-                        err,
-                        ErrorKind::RuntimeOperation(RuntimeOperation::RemoveModule(id)),
-                    );
-                    warn!("Attempt to remove a container failed.");
-                    log_failure(Level::Warn, &e);
-                    e
-                }).map(|_| ()),
+                ).then(|result| match result {
+                    Ok(_) => {
+                        info!("Successfully removed module {}", id);
+                        Ok(())
+                    }
+                    Err(err) => {
+                        let err = Error::from_docker_error(
+                            err,
+                            ErrorKind::RuntimeOperation(RuntimeOperation::RemoveModule(id)),
+                        );
+                        log_failure(Level::Warn, &err);
+                        Err(err)
+                    }
+                }),
         )
     }
 
     fn list(&self) -> Self::ListFuture {
+        debug!("Listing modules...");
+
         let mut filters = HashMap::new();
         filters.insert("label", LABELS.deref());
 
@@ -484,10 +541,13 @@ impl ModuleRuntime for DockerModuleRuntime {
                     })
             }).into_future()
             .flatten()
-            .map_err(|err| {
-                warn!("Attempt to list containers failed.");
-                log_failure(Level::Warn, &err);
-                err
+            .then(|result| {
+                match result {
+                    Ok(_) => debug!("Successfully listed modules"),
+                    Err(ref err) => log_failure(Level::Warn, err),
+                }
+
+                result
             });
         Box::new(result)
     }
@@ -497,6 +557,8 @@ impl ModuleRuntime for DockerModuleRuntime {
     }
 
     fn logs(&self, id: &str, options: &LogOptions) -> Self::LogsFuture {
+        info!("Getting logs for module {}...", id);
+
         let id = id.to_string();
 
         let tail = &options.tail().to_string();
@@ -504,16 +566,18 @@ impl ModuleRuntime for DockerModuleRuntime {
             .client
             .container_api()
             .container_logs(&id, options.follow(), true, true, 0, false, tail)
-            .then(|logs| match logs {
-                Ok(logs) => Ok(Logs(id, logs)),
+            .then(|result| match result {
+                Ok(logs) => {
+                    info!("Successfully got logs for module {}", id);
+                    Ok(Logs(id, logs))
+                }
                 Err(err) => {
-                    let e = Error::from_docker_error(
+                    let err = Error::from_docker_error(
                         err,
                         ErrorKind::RuntimeOperation(RuntimeOperation::GetModuleLogs(id)),
                     );
-                    warn!("Attempt to get container logs failed.");
-                    log_failure(Level::Warn, &e);
-                    Err(e)
+                    log_failure(Level::Warn, &err);
+                    Err(err)
                 }
             });
         Box::new(result)
