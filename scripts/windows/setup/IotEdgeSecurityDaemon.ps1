@@ -23,6 +23,7 @@ Set-Variable EdgeEventLogName -Value 'iotedged' -Option Constant
 Set-Variable EdgeEventLogInstallDirectory -Value 'C:\ProgramData\iotedge-eventlog' -Option Constant
 Set-Variable EdgeServiceName -Value 'iotedge' -Option Constant
 
+Set-Variable MobyDataRootDirectory -Value 'C:\ProgramData\iotedge-moby-data' -Option Constant
 Set-Variable MobyInstallDirectory -Value 'C:\ProgramData\iotedge-moby' -Option Constant
 Set-Variable MobyNamedPipeUrl -Value 'npipe://./pipe/iotedge_moby_engine' -Option Constant
 Set-Variable MobyServiceName -Value 'iotedge-moby' -Option Constant
@@ -267,7 +268,7 @@ function Test-EdgeAlreadyInstalled {
 }
 
 function Test-MobyAlreadyInstalled {
-    (Get-Service $MobyServiceName -ErrorAction SilentlyContinue) -or (Test-Path -Path $MobyInstallDirectory)
+    (Get-Service $MobyServiceName -ErrorAction SilentlyContinue) -or (Test-Path -Path $MobyInstallDirectory) -or (Test-Path -Path $MobyDataRootDirectory)
 }
 
 function Test-AgentRegistryArgs {
@@ -290,7 +291,7 @@ function Test-AgentRegistryArgs {
 }
 
 function Get-ContainerOs {
-    if (Test-Path $MobyInstallDirectory) {
+    if ((Test-Path $MobyInstallDirectory) -or (Test-Path $MobyDataRootDirectory)) {
         return 'Windows'
     }
     else {
@@ -328,6 +329,8 @@ function Get-SecurityDaemon {
                 -Proxy $Proxy
             Write-HostGreen 'Downloaded Moby runtime.'
             Expand-Archive $mobyRuntimeArchivePath $MobyInstallDirectory -Force
+
+            New-Item -Type Directory $MobyDataRootDirectory | Out-Null
 
             if ($WithMobyCli) {
                 Write-Host 'Downloading the latest version of Moby CLI...'
@@ -409,7 +412,6 @@ function Get-SecurityDaemon {
     }
     finally {
         Remove-Item "$EdgeInstallDirectory\iotedged-windows" -Recurse -Force -ErrorAction SilentlyContinue
-        Remove-Item "$MobyInstallDirectory\docker" -Recurse -Force -ErrorAction SilentlyContinue
 
         if ($deleteEdgeArchive) {
             Remove-Item $ArchivePath -Recurse -Force -ErrorAction SilentlyContinue
@@ -451,6 +453,20 @@ function Remove-SecurityDaemonResources {
         Write-Warning 'If you''re reinstalling or updating IoT Edge, then this is safe to ignore.'
         Write-Warning ('Otherwise, please close Event Viewer, or any PowerShell windows where you ran Get-WinEvent, ' +
             'then run `Uninstall-SecurityDaemon` again with `-Force`.')
+    }
+    else {
+        Write-Verbose "$cmdErr"
+    }
+
+    Remove-Item -Recurse $MobyDataRootDirectory -ErrorAction SilentlyContinue -ErrorVariable cmdErr
+    if ($?) {
+        Write-Verbose "Deleted Moby data root directory '$MobyDataRootDirectory'"
+    }
+    elseif ($cmdErr.FullyQualifiedErrorId -ne 'PathNotFound,Microsoft.PowerShell.Commands.RemoveItemCommand') {
+        Write-Verbose "$cmdErr"
+        Write-HostRed ("Could not delete Moby data root directory '$MobyDataRootDirectory'. Please reboot " +
+            'your device and run `Uninstall-SecurityDaemon` again with `-Force`.')
+        $success = $false
     }
     else {
         Write-Verbose "$cmdErr"
@@ -574,7 +590,7 @@ function Install-Services {
             # dockerd needs two more slashes after the scheme
             $namedPipeUrl = $MobyNamedPipeUrl -replace 'npipe://\./pipe/', 'npipe:////./pipe/'
             New-Service -Name $MobyServiceName -BinaryPathName `
-                """$MobyInstallDirectory\dockerd.exe"" -H $namedPipeUrl --exec-opt isolation=process --run-service --service-name ""$MobyServiceName""" | Out-Null
+                """$MobyInstallDirectory\dockerd.exe"" -H $namedPipeUrl --exec-opt isolation=process --run-service --service-name ""$MobyServiceName"" --data-root ""$MobyDataRootDirectory""" | Out-Null
             New-Service -Name $EdgeServiceName -BinaryPathName """$EdgeInstallDirectory\iotedged.exe"" -c ""$EdgeInstallDirectory\config.yaml""" -DependsOn $MobyServiceName | Out-Null
         }
     }
