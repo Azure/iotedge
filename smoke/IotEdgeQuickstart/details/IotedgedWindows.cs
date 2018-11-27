@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 namespace IotEdgeQuickstart.Details
 {
     using System;
@@ -70,7 +72,7 @@ namespace IotEdgeQuickstart.Details
                                 .DefaultIfEmpty("name status")
                                 .Single()
                                 .Split(null as char[], StringSplitOptions.RemoveEmptyEntries)
-                                .ElementAt(1);  // second column is STATUS
+                                .ElementAt(1); // second column is STATUS
 
                             if (status == "running")
                             {
@@ -130,7 +132,6 @@ namespace IotEdgeQuickstart.Details
             return Task.CompletedTask;
         }
 
-
         public async Task Configure(string connectionString, string image, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel)
         {
             Console.WriteLine($"Installing iotedged from {this.archivePath ?? "default location"}");
@@ -147,7 +148,8 @@ namespace IotEdgeQuickstart.Details
                 else
                 {
                     this.scriptDir = Path.GetTempPath();
-                    await Process.RunAsync("powershell",
+                    await Process.RunAsync(
+                        "powershell",
                         $"iwr -useb -o '{this.scriptDir}\\IotEdgeSecurityDaemon.ps1' aka.ms/iotedge-win",
                         cts.Token);
                 }
@@ -160,9 +162,7 @@ namespace IotEdgeQuickstart.Details
                     args += $" -Username '{c.User}' -Password (ConvertTo-SecureString '{c.Password}' -AsPlainText -Force)";
                 }
 
-                this.proxy.ForEach(proxy => {
-                    args += $" -Proxy '{proxy}'";
-                });
+                this.proxy.ForEach(proxy => { args += $" -Proxy '{proxy}'"; });
 
                 if (this.archivePath != null)
                 {
@@ -258,7 +258,7 @@ namespace IotEdgeQuickstart.Details
             // Add delay to ensure iotedge service is completely started up.
             Task.Delay(new TimeSpan(0, 0, 0, 5));
             Console.WriteLine("iotedge service started on Windows");
-            
+
             return Task.CompletedTask;
         }
 
@@ -278,7 +278,8 @@ namespace IotEdgeQuickstart.Details
         {
             using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3)))
             {
-                await Process.RunAsync("powershell",
+                await Process.RunAsync(
+                    "powershell",
                     $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Uninstall-SecurityDaemon",
                     cts.Token);
             }
