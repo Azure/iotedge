@@ -243,7 +243,7 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "Publishing - IoTEdgeQuickstart x86"
 $ProjectPublishPath = Join-Path $PUBLISH_FOLDER "IoTEdgeQuickstart"
 $IoTEdgeQuickstartProjectFolder = Join-Path $BuildRepositoryLocalPath "smoke/IotEdgeQuickstart"
-&$DOTNET_PATH publish -f netcoreapp2.1 -r "win-x32" -c $Configuration -o $ProjectPublishPath $IoTEdgeQuickstartProjectFolder |
+&$DOTNET_PATH publish -f netcoreapp2.1 -r "win-x86" -c $Configuration -o $ProjectPublishPath $IoTEdgeQuickstartProjectFolder |
 	Write-Host
 if ($LASTEXITCODE -ne 0) {
 	throw "Failed publishing IoTEdgeQuickstart."
@@ -252,7 +252,7 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "Publishing - LeafDevice x86"
 $ProjectPublishPath = Join-Path $PUBLISH_FOLDER "LeafDevice"
 $LeafDeviceProjectFolder = Join-Path $BuildRepositoryLocalPath "smoke/LeafDevice"
-&$DOTNET_PATH publish -f netcoreapp2.1 -r "win-x32" -c $Configuration -o $ProjectPublishPath $LeafDeviceProjectFolder |
+&$DOTNET_PATH publish -f netcoreapp2.1 -r "win-x86" -c $Configuration -o $ProjectPublishPath $LeafDeviceProjectFolder |
 	Write-Host
 if ($LASTEXITCODE -ne 0) {
 	throw "Failed publishing LeafDevice."
