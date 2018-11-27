@@ -460,6 +460,8 @@ function Remove-SecurityDaemonResources {
 
     if (Test-Path $MobyDataRootDirectory) {
         try {
+            Write-Host "Deleting Moby data root directory '$MobyDataRootDirectory'..."
+
             # Removing `$MobyDataRootDirectory` is tricky. Windows base images contain files owned by TrustedInstaller, etc
             # Deleting them is a three-step process:
             #
