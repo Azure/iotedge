@@ -196,7 +196,7 @@ function Uninstall-SecurityDaemon {
     $success = Remove-SecurityDaemonResources
     Reset-SystemPath
 
-    [System.Environment]::SetEnvironmentVariable('IOTEDGE_HOST', $null, [System.EnvironmentVariableTarget]::Machine)
+    Remove-MachineEnvironmentVariable 'IOTEDGE_HOST'
     Remove-Item Env:\IOTEDGE_HOST -ErrorAction SilentlyContinue
 
     Remove-FirewallExceptions
@@ -473,8 +473,29 @@ function Remove-SecurityDaemonResources {
     $success
 }
 
+function Get-MachineEnvironmentVariable([string] $Name) {
+    # Equivalent to `[System.Environment]::GetEnvironmentVariable($Name, [System.EnvironmentVariableTarget]::Machine)`
+    # but IoT Core doesn't have this overload
+
+    (Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment').$Name
+}
+
+function Set-MachineEnvironmentVariable([string] $Name, [string] $Value) {
+    # Equivalent to `[System.Environment]::SetEnvironmentVariable($Name, $Value, [System.EnvironmentVariableTarget]::Machine)`
+    # but IoT Core doesn't have this overload
+
+    Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment' -Name $Name -Value $Value
+}
+
+function Remove-MachineEnvironmentVariable([string] $Name) {
+    # Equivalent to `[System.Environment]::SetEnvironmentVariable($Name, $null, [System.EnvironmentVariableTarget]::Machine)`
+    # but IoT Core doesn't have this overload
+
+    Remove-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment' -Name $Name -ErrorAction SilentlyContinue
+}
+
 function Get-SystemPath {
-    [System.Environment]::GetEnvironmentVariable('PATH', [System.EnvironmentVariableTarget]::Machine) -split ';' | Where-Object { $_.Length -gt 0 }
+    (Get-MachineEnvironmentVariable 'Path') -split ';' | Where-Object { $_.Length -gt 0 }
 }
 
 function Set-SystemPath {
@@ -494,7 +515,7 @@ function Set-SystemPath {
         $systemPath += $MobyInstallDirectory
     }
 
-    [System.Environment]::SetEnvironmentVariable('PATH', ($systemPath -join ';'), [System.EnvironmentVariableTarget]::Machine)
+    Set-MachineEnvironmentVariable 'PATH' ($systemPath -join ';')
     $env:PATH += ";$EdgeInstallDirectory;$MobyInstallDirectory"
 
     Write-HostGreen 'Updated system PATH.'
@@ -509,7 +530,7 @@ function Reset-SystemPath {
     }
 
     $systemPath = $systemPath | Where-Object { ($_ -ne $EdgeInstallDirectory) -and ($_ -ne $MobyInstallDirectory) }
-    [System.Environment]::SetEnvironmentVariable('PATH', ($systemPath -join ';'), [System.EnvironmentVariableTarget]::Machine)
+    Set-MachineEnvironmentVariable 'PATH' ($systemPath -join ';')
 
     Write-Verbose 'Removed IoT Edge directories from system PATH'
 }
@@ -700,7 +721,7 @@ function Set-GatewayAddress {
         "  workload_uri: 'http://${gatewayAddress}:15581'")
     $configurationYaml = $configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")
 
-    [System.Environment]::SetEnvironmentVariable('IOTEDGE_HOST', "http://${gatewayAddress}:15580", [System.EnvironmentVariableTarget]::Machine)
+    Set-MachineEnvironmentVariable 'IOTEDGE_HOST' "http://${gatewayAddress}:15580"
     $env:IOTEDGE_HOST = "http://${gatewayAddress}:15580"
 
     $configurationYaml | Set-Content "$EdgeInstallDirectory\config.yaml" -Force
