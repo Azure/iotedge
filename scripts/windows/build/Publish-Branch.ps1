@@ -14,7 +14,7 @@ param (
     [ValidateNotNullOrEmpty()]
     [String] $BuildBinariesDirectory = $Env:BUILD_BINARIESDIRECTORY,
 
-    [ValidateSet("Debug", "Release")]
+    [ValidateSet("Debug", "CheckInBuild", "Release")]
     [String] $Configuration = $Env:CONFIGURATION,
 
     [ValidateNotNull()]
