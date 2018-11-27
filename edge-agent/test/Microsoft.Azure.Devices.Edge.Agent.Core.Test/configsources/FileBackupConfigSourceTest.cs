@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -24,8 +25,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
         static readonly IModule ValidModule1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ConfigurationInfo, EnvVars);
         static readonly IEdgeHubModule EdgeHubModule = new TestHubModule("edgeHub", "test", ModuleStatus.Running, new TestConfig("edge-hub:latest"), RestartPolicy.Always, ConfigurationInfo, EnvVars);
         static readonly IDictionary<string, IModule> Modules1 = new Dictionary<string, IModule> { ["mod1"] = ValidModule1 };
+        static readonly IDictionary<string, IModule> Modules2 = new Dictionary<string, IModule> { ["mod2"] = ValidModule1 };
         static readonly DeploymentConfig ValidConfig1 = new DeploymentConfig("1.0", TestRuntimeInfo, new SystemModules(EdgeAgentModule, EdgeHubModule), Modules1);
+        static readonly DeploymentConfig ValidConfig2 = new DeploymentConfig("1.0", TestRuntimeInfo, new SystemModules(EdgeAgentModule, EdgeHubModule), Modules2);
         static readonly DeploymentConfigInfo ValidConfigInfo1 = new DeploymentConfigInfo(0, ValidConfig1);
+        static readonly DeploymentConfigInfo ValidConfigInfo2 = new DeploymentConfigInfo(0, ValidConfig2);
 
         readonly string tempFileName;
 
@@ -285,9 +289,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
             encryptionProvider.Setup(ep => ep.DecryptAsync(It.IsAny<string>()))
                 .ReturnsAsync(serde.Serialize(ValidConfigInfo1));
 
+            DeploymentConfigInfo config1;
+            DeploymentConfigInfo config2;
+
             using (IConfigSource configSource = new FileBackupConfigSource(this.tempFileName, underlying.Object, serde, encryptionProvider.Object))
             {
-                DeploymentConfigInfo config1 = await configSource.GetDeploymentConfigInfoAsync();
+                config1 = await configSource.GetDeploymentConfigInfoAsync();
                 Assert.NotNull(config1);
 
                 Assert.True(File.Exists(this.tempFileName));
@@ -295,14 +302,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                 string returnedJson = serde.Serialize(config1);
 
                 Assert.True(string.Equals(backupJson, returnedJson, StringComparison.OrdinalIgnoreCase));
-
-                DeploymentConfigInfo config2 = await configSource.GetDeploymentConfigInfoAsync();
-                Assert.NotNull(config2);
-
-                Assert.Equal(serde.Serialize(config1), serde.Serialize(config2));
-                encryptionProvider.Verify(ep => ep.EncryptAsync(It.IsAny<string>()));
-                encryptionProvider.Verify(ep => ep.DecryptAsync(It.IsAny<string>()));
             }
+
+            using (IConfigSource configSource = new FileBackupConfigSource(this.tempFileName, underlying.Object, serde, encryptionProvider.Object))
+            {
+                config2 = await configSource.GetDeploymentConfigInfoAsync();
+                Assert.NotNull(config2);
+            }
+
+            Assert.Equal(serde.Serialize(config1), serde.Serialize(config2));
+            encryptionProvider.Verify(ep => ep.EncryptAsync(It.IsAny<string>()));
+            encryptionProvider.Verify(ep => ep.DecryptAsync(It.IsAny<string>()));
         }
 
         [Fact]
@@ -335,13 +345,160 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                 string returnedJson = serde.Serialize(config1);
 
                 Assert.True(string.Equals(backupJson, returnedJson, StringComparison.OrdinalIgnoreCase));
+            }
 
+            using (IConfigSource configSource = new FileBackupConfigSource(this.tempFileName, underlying.Object, serde, encryptionProvider.Object))
+            {
                 DeploymentConfigInfo config2 = await configSource.GetDeploymentConfigInfoAsync();
                 Assert.NotNull(config2);
 
                 Assert.Equal(DeploymentConfigInfo.Empty, config2);
                 encryptionProvider.Verify(ep => ep.EncryptAsync(It.IsAny<string>()));
                 encryptionProvider.Verify(ep => ep.DecryptAsync(It.IsAny<string>()));
+            }
+        }
+
+        [Fact]
+        [Unit]
+        public async void FileBackupWriteOnlyWhenConfigurationChanges()
+        {
+            if (File.Exists(this.tempFileName))
+            {
+                File.Delete(this.tempFileName);
+            }
+
+            var underlying = new Mock<IConfigSource>();
+            underlying.SetupSequence(t => t.GetDeploymentConfigInfoAsync())
+                .ReturnsAsync(ValidConfigInfo1)
+                .ReturnsAsync(ValidConfigInfo1)
+                .ReturnsAsync(ValidConfigInfo2)
+                .ReturnsAsync(ValidConfigInfo2);
+
+            ISerde<DeploymentConfigInfo> serde = this.GetSerde();
+
+            using (IConfigSource configSource = new FileBackupConfigSource(this.tempFileName, underlying.Object, serde, NullEncryptionProvider.Instance))
+            {
+                DeploymentConfigInfo config1 = await configSource.GetDeploymentConfigInfoAsync();
+                Assert.NotNull(config1);
+
+                Assert.True(File.Exists(this.tempFileName));
+                string backupJson = await DiskFile.ReadAllAsync(this.tempFileName);
+                string returnedJson = serde.Serialize(config1);
+
+                Assert.True(string.Equals(backupJson, returnedJson, StringComparison.OrdinalIgnoreCase));
+
+                DateTime modifiedTime1 = File.GetLastWriteTimeUtc(this.tempFileName);
+                Assert.True(DateTime.UtcNow - modifiedTime1 < TimeSpan.FromSeconds(5));
+
+                DeploymentConfigInfo config2 = await configSource.GetDeploymentConfigInfoAsync();
+                Assert.NotNull(config2);
+
+                Assert.Equal(serde.Serialize(config1), serde.Serialize(config2));
+
+                DateTime modifiedTime2 = File.GetLastWriteTimeUtc(this.tempFileName);
+                Assert.Equal(modifiedTime2, modifiedTime1);
+
+                DeploymentConfigInfo config3 = await configSource.GetDeploymentConfigInfoAsync();
+                Assert.NotNull(config3);
+
+                Assert.True(File.Exists(this.tempFileName));
+                backupJson = await DiskFile.ReadAllAsync(this.tempFileName);
+                returnedJson = serde.Serialize(config3);
+
+                Assert.True(string.Equals(backupJson, returnedJson, StringComparison.OrdinalIgnoreCase));
+
+                DateTime modifiedTime3 = File.GetLastWriteTimeUtc(this.tempFileName);
+                Assert.True(DateTime.UtcNow - modifiedTime1 < TimeSpan.FromSeconds(5));
+                Assert.NotEqual(modifiedTime1, modifiedTime3);
+
+                DeploymentConfigInfo config4 = await configSource.GetDeploymentConfigInfoAsync();
+                Assert.NotNull(config4);
+
+                Assert.Equal(serde.Serialize(config4), serde.Serialize(config4));
+
+                DateTime modifiedTime4 = File.GetLastWriteTimeUtc(this.tempFileName);
+                Assert.Equal(modifiedTime4, modifiedTime3);
+            }
+        }
+
+        [Fact]
+        [Unit]
+        public async Task FileBackupReadOnlyWhenUninitialized()
+        {
+            if (File.Exists(this.tempFileName))
+            {
+                File.Delete(this.tempFileName);
+            }
+
+            var underlying = new Mock<IConfigSource>();
+            underlying.SetupSequence(t => t.GetDeploymentConfigInfoAsync())
+                .ReturnsAsync(ValidConfigInfo1)
+                .ReturnsAsync(DeploymentConfigInfo.Empty)
+                .ThrowsAsync(new InvalidOperationException())
+                .ReturnsAsync(ValidConfigInfo1)
+                .ReturnsAsync(DeploymentConfigInfo.Empty)
+                .ThrowsAsync(new InvalidOperationException());
+
+            ISerde<DeploymentConfigInfo> serde = this.GetSerde();
+            DeploymentConfigInfo config1;
+            using (IConfigSource configSource = new FileBackupConfigSource(this.tempFileName, underlying.Object, serde, NullEncryptionProvider.Instance))
+            {
+                config1 = await configSource.GetDeploymentConfigInfoAsync();
+                Assert.NotNull(config1);
+
+                Assert.True(File.Exists(this.tempFileName));
+                string backupJson = await DiskFile.ReadAllAsync(this.tempFileName);
+                string returnedJson = serde.Serialize(config1);
+
+                Assert.True(string.Equals(backupJson, returnedJson, StringComparison.OrdinalIgnoreCase));
+                File.Delete(this.tempFileName);
+
+                DeploymentConfigInfo config2 = await configSource.GetDeploymentConfigInfoAsync();
+                Assert.NotNull(config2);
+
+                Assert.Equal(serde.Serialize(config1), serde.Serialize(config2));
+
+                DeploymentConfigInfo config3 = await configSource.GetDeploymentConfigInfoAsync();
+                Assert.NotNull(config3);
+
+                Assert.Equal(serde.Serialize(config1), serde.Serialize(config3));
+            }
+
+            using (IConfigSource configSource = new FileBackupConfigSource(this.tempFileName, underlying.Object, serde, NullEncryptionProvider.Instance))
+            {
+                config1 = await configSource.GetDeploymentConfigInfoAsync();
+                Assert.NotNull(config1);
+
+                Assert.True(File.Exists(this.tempFileName));
+                string backupJson = await DiskFile.ReadAllAsync(this.tempFileName);
+                string returnedJson = serde.Serialize(config1);
+
+                Assert.True(string.Equals(backupJson, returnedJson, StringComparison.OrdinalIgnoreCase));
+            }
+
+            using (IConfigSource configSource = new FileBackupConfigSource(this.tempFileName, underlying.Object, serde, NullEncryptionProvider.Instance))
+            {
+                DeploymentConfigInfo config5 = await configSource.GetDeploymentConfigInfoAsync();
+                Assert.NotNull(config5);
+
+                Assert.Equal(serde.Serialize(config1), serde.Serialize(config5));
+            }
+
+            using (IConfigSource configSource = new FileBackupConfigSource(this.tempFileName, underlying.Object, serde, NullEncryptionProvider.Instance))
+            {
+                DeploymentConfigInfo config5 = await configSource.GetDeploymentConfigInfoAsync();
+                Assert.NotNull(config5);
+
+                Assert.Equal(serde.Serialize(config1), serde.Serialize(config5));
+            }
+
+            File.Delete(this.tempFileName);
+            using (IConfigSource configSource = new FileBackupConfigSource(this.tempFileName, underlying.Object, serde, NullEncryptionProvider.Instance))
+            {
+                DeploymentConfigInfo config6 = await configSource.GetDeploymentConfigInfoAsync();
+                Assert.NotNull(config6);
+
+                Assert.Equal(config6, DeploymentConfigInfo.Empty);
             }
         }
 

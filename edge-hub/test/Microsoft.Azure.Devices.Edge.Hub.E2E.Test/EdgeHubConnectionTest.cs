@@ -50,7 +50,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             await registryManager.OpenAsync();
 
             string iothubHostName = iotHubConnectionStringBuilder.HostName;
-            var identityFactory = new ClientCredentialsFactory(iothubHostName);
+            var identityProvider = new IdentityProvider(iothubHostName);
+            var identityFactory = new ClientCredentialsFactory(identityProvider);
 
             (string edgeDeviceId, string deviceConnStr) = await RegistryManagerHelper.CreateDevice(EdgeDeviceId, iotHubConnectionString, registryManager, true, false);
             string edgeHubConnectionString = $"{deviceConnStr};ModuleId={EdgeHubModuleId}";
@@ -67,8 +68,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 credentialsCache,
                 edgeHubCredentials.Identity,
                 TimeSpan.FromMinutes(60),
-                true);
-            var connectionManager = new ConnectionManager(cloudConnectionProvider, Mock.Of<ICredentialsCache>());
+                true,
+                TimeSpan.FromSeconds(20));
+            var connectionManager = new ConnectionManager(cloudConnectionProvider, Mock.Of<ICredentialsCache>(), identityProvider);
 
             try
             {

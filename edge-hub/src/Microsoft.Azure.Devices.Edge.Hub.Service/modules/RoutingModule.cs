@@ -41,6 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly int maxConnectedClients;
         readonly TimeSpan cloudConnectionIdleTimeout;
         readonly bool closeCloudConnectionOnIdleTimeout;
+        readonly TimeSpan operationTimeout;
 
         public RoutingModule(string iotHubName,
             string edgeDeviceId,
@@ -56,7 +57,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             TimeSpan connectivityCheckFrequency,
             int maxConnectedClients,
             TimeSpan cloudConnectionIdleTimeout,
-            bool closeCloudConnectionOnIdleTimeout)
+            bool closeCloudConnectionOnIdleTimeout,
+            TimeSpan operationTimeout)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
@@ -73,6 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.maxConnectedClients = Preconditions.CheckRange(maxConnectedClients, 1);
             this.cloudConnectionIdleTimeout = cloudConnectionIdleTimeout;
             this.closeCloudConnectionOnIdleTimeout = closeCloudConnectionOnIdleTimeout;
+            this.operationTimeout = operationTimeout;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -184,10 +187,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         credentialsCache,
                         edgeHubCredentials.Identity,
                         this.cloudConnectionIdleTimeout,
-                        this.closeCloudConnectionOnIdleTimeout);
+                        this.closeCloudConnectionOnIdleTimeout,
+                        this.operationTimeout);
                     return cloudConnectionProvider;
                 })
                 .As<Task<ICloudConnectionProvider>>()
+                .SingleInstance();
+
+            // IIdentityProvider
+            builder.Register(_ => new IdentityProvider(this.iotHubName))
+                .As<IIdentityProvider>()
                 .SingleInstance();
 
             // Task<IConnectionManager>
@@ -196,11 +205,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 {
                     var cloudConnectionProviderTask = c.Resolve<Task<ICloudConnectionProvider>>();
                     var credentialsCacheTask = c.Resolve<Task<ICredentialsCache>>();
+                    var identityProvider = c.Resolve<IIdentityProvider>();
                     ICloudConnectionProvider cloudConnectionProvider = await cloudConnectionProviderTask;
                     ICredentialsCache credentialsCache = await credentialsCacheTask;
                     IConnectionManager connectionManager = new ConnectionManager(
                         cloudConnectionProvider,
                         credentialsCache,
+                        identityProvider,
                         this.maxConnectedClients);
                     return connectionManager;
                 })

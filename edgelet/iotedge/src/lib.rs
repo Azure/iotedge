@@ -15,15 +15,11 @@ extern crate chrono_humanize;
 #[macro_use]
 extern crate clap;
 extern crate edgelet_core;
-extern crate edgelet_http_mgmt;
 extern crate failure;
-#[macro_use]
-extern crate failure_derive;
 #[macro_use]
 extern crate futures;
 extern crate tabwriter;
 extern crate tokio;
-extern crate url;
 
 use futures::Future;
 

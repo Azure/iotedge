@@ -1,27 +1,22 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use edgelet_core::{LogOptions, LogTail, ModuleRuntime};
-use edgelet_http::route::{Handler, Parameters};
 use failure::ResultExt;
-use futures::{future, Future};
-use http::{Request, Response, StatusCode};
-use hyper::{Body, Error as HyperError};
+use futures::{future, Future, IntoFuture};
+use hyper::{Body, Request, Response, StatusCode};
 use url::form_urlencoded;
+
+use edgelet_core::{LogOptions, LogTail, ModuleRuntime, RuntimeOperation};
+use edgelet_http::route::{Handler, Parameters};
+use edgelet_http::Error as HttpError;
 
 use error::{Error, ErrorKind};
 use IntoResponse;
 
-pub struct ModuleLogs<M>
-where
-    M: 'static + ModuleRuntime + Clone,
-{
+pub struct ModuleLogs<M> {
     runtime: M,
 }
 
-impl<M> ModuleLogs<M>
-where
-    M: 'static + ModuleRuntime + Clone,
-{
+impl<M> ModuleLogs<M> {
     pub fn new(runtime: M) -> Self {
         ModuleLogs { runtime }
     }
@@ -30,53 +25,58 @@ where
 impl<M> Handler<Parameters> for ModuleLogs<M>
 where
     M: 'static + ModuleRuntime + Clone + Send,
-    M::Error: IntoResponse,
     M::Logs: Into<Body>,
 {
     fn handle(
         &self,
         req: Request<Body>,
         params: Parameters,
-    ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+    ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
         let runtime = self.runtime.clone();
-        let response = match params
+
+        let response = params
             .name("name")
-            .ok_or_else(|| Error::from(ErrorKind::BadParam))
+            .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("name")))
             .and_then(|name| {
+                let name = name.to_string();
                 let options = req
                     .uri()
                     .query()
-                    .map_or_else(|| Ok(LogOptions::default()), parse_options)
-                    .context(ErrorKind::BadParam);
-                Ok((name, options?))
-            }) {
-            Ok((name, options)) => {
-                let result = runtime
-                    .logs(name, &options)
-                    .map(|s| {
-                        Response::builder()
-                            .status(StatusCode::OK)
-                            .body(s.into())
-                            .unwrap_or_else(|e| e.into_response())
-                    }).or_else(|e| future::ok(e.into_response()));
-                future::Either::A(result)
-            }
-            Err(e) => future::Either::B(future::ok(e.into_response())),
-        };
+                    .map_or_else(|| Ok(LogOptions::default()), parse_options)?;
+                Ok((name, options))
+            }).map(move |(name, options)| {
+                runtime.logs(&name, &options).then(|s| -> Result<_, Error> {
+                    let s = s.with_context(|_| {
+                        ErrorKind::RuntimeOperation(RuntimeOperation::GetModuleLogs(name.clone()))
+                    })?;
+                    let response = Response::builder()
+                        .status(StatusCode::OK)
+                        .body(s.into())
+                        .context(ErrorKind::RuntimeOperation(
+                            RuntimeOperation::GetModuleLogs(name),
+                        ))?;
+                    Ok(response)
+                })
+            }).into_future()
+            .flatten()
+            .or_else(|e| future::ok(e.into_response()));
+
         Box::new(response)
     }
 }
 
 fn parse_options(query: &str) -> Result<LogOptions, Error> {
-    let parse = form_urlencoded::parse(query.as_bytes()).collect::<Vec<_>>();
+    let parse: Vec<_> = form_urlencoded::parse(query.as_bytes()).collect();
     let tail = parse
         .iter()
         .find(|&(ref key, _)| key == "tail")
-        .map_or_else(|| Ok(LogTail::default()), |(_, val)| val.parse::<LogTail>())?;
+        .map_or_else(|| Ok(LogTail::default()), |(_, val)| val.parse::<LogTail>())
+        .context(ErrorKind::MalformedRequestParameter("tail"))?;
     let follow = parse
         .iter()
         .find(|&(ref key, _)| key == "follow")
-        .map_or_else(|| Ok(false), |(_, val)| val.parse::<bool>())?;
+        .map_or_else(|| Ok(false), |(_, val)| val.parse::<bool>())
+        .context(ErrorKind::MalformedRequestParameter("follow"))?;
     let options = LogOptions::new().with_follow(follow).with_tail(tail);
     Ok(options)
 }
@@ -114,7 +114,10 @@ mod tests {
         let query = "follow=34&tail=6";
         let options = parse_options(&query);
         assert!(options.is_err());
-        assert_eq!("Parse error", options.err().unwrap().to_string());
+        assert_eq!(
+            "The request parameter `follow` is malformed",
+            options.err().unwrap().to_string()
+        );
     }
 
     #[test]
@@ -122,7 +125,10 @@ mod tests {
         let query = "follow=false&tail=adsaf";
         let options = parse_options(&query);
         assert!(options.is_err());
-        assert_eq!("Core error", options.err().unwrap().to_string());
+        assert_eq!(
+            "The request parameter `tail` is malformed",
+            options.err().unwrap().to_string()
+        );
     }
 
     #[test]
@@ -180,7 +186,10 @@ mod tests {
             .concat2()
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
-                assert_eq!("General error", error.message());
+                assert_eq!(
+                    "Could not get logs for module mod1\n\tcaused by: General error",
+                    error.message()
+                );
                 Ok(())
             }).wait()
             .unwrap();
@@ -217,7 +226,7 @@ mod tests {
             .concat2()
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
-                assert_eq!("Bad parameter\n\tcaused by: Core error\n\tcaused by: Parse error\n\tcaused by: invalid digit found in string", error.message());
+                assert_eq!("The request parameter `tail` is malformed\n\tcaused by: Invalid log tail \"asfafda\"\n\tcaused by: invalid digit found in string", error.message());
                 Ok(())
             })
             .wait()

@@ -2,27 +2,31 @@
 
 use std::fmt;
 use std::fmt::Display;
-use std::io::Error as IoError;
 
-use edgelet_utils::Error as UtilsError;
 use failure::{Backtrace, Context, Fail};
-use log::{ParseLevelError, SetLoggerError};
+use winapi::shared::minwindef::DWORD;
 
 #[derive(Debug)]
 pub struct Error {
     inner: Context<ErrorKind>,
 }
 
-#[derive(Clone, Copy, Debug, Fail)]
+#[derive(Debug, Fail)]
 pub enum ErrorKind {
-    #[fail(display = "Edgelet utils error")]
-    Utils,
-    #[fail(display = "I/O error")]
-    Io,
-    #[fail(display = "Log level parse error")]
-    ParseLevel,
-    #[fail(display = "Could not set global logger")]
-    SetLogger,
+    #[fail(display = "Log level {:?} is invalid", _0)]
+    InvalidLogLevel(String),
+
+    #[fail(display = "Log name {:?} is invalid", _0)]
+    InvalidLogName(String),
+
+    #[fail(
+        display = "Registering event source failed with Windows error 0x{:08X}",
+        _0
+    )]
+    RegisterEventSource(DWORD),
+
+    #[fail(display = "Could not register global logger")]
+    RegisterGlobalLogger,
 }
 
 impl Fail for Error {
@@ -58,33 +62,5 @@ impl From<ErrorKind> for Error {
 impl From<Context<ErrorKind>> for Error {
     fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
-    }
-}
-
-impl From<IoError> for Error {
-    fn from(err: IoError) -> Self {
-        Error {
-            inner: err.context(ErrorKind::Io),
-        }
-    }
-}
-
-impl From<UtilsError> for Error {
-    fn from(err: UtilsError) -> Self {
-        Error {
-            inner: err.context(ErrorKind::Utils),
-        }
-    }
-}
-
-impl From<ParseLevelError> for Error {
-    fn from(_: ParseLevelError) -> Self {
-        Error::from(ErrorKind::ParseLevel)
-    }
-}
-
-impl From<SetLoggerError> for Error {
-    fn from(_: SetLoggerError) -> Self {
-        Error::from(ErrorKind::SetLogger)
     }
 }
