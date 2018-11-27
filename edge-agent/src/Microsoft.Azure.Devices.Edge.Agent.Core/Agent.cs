@@ -223,7 +223,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         }
 
         // This should be called only within the reconcile lock.
-        private async Task UpdateCurrentConfig(DeploymentConfigInfo deploymentConfigInfo)
+        async Task UpdateCurrentConfig(DeploymentConfigInfo deploymentConfigInfo)
         {
             this.environment = this.environmentProvider.Create(deploymentConfigInfo.DeploymentConfig);
             this.currentConfig = deploymentConfigInfo;
@@ -237,9 +237,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             try
             {
                 Events.InitiateShutdown();
-                await this.ShutdownModules(token);
+                Task shutdownModulesTask = this.ShutdownModules(token);
                 var status = new DeploymentStatus(DeploymentStatusCode.Unknown, "Agent is not running");
-                await this.reporter.ReportShutdown(status, token);
+                Task reportShutdownTask = this.reporter.ReportShutdown(status, token);
+                await Task.WhenAll(shutdownModulesTask, reportShutdownTask);
                 Events.CompletedShutdown();
             }
             catch (Exception ex) when (!ex.IsFatal())
