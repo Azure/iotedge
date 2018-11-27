@@ -71,6 +71,15 @@ namespace IotEdgeQuickstart.Details
                                 .Single()
                                 .Split(null as char[], StringSplitOptions.RemoveEmptyEntries)
                                 .ElementAt(1);  // second column is STATUS
+
+                            if (status == "running")
+                            {
+                                break;
+                            }
+                            else
+                            {
+                                await Task.Delay(TimeSpan.FromSeconds(5), cts.Token);
+                            }
                         }
                         catch (Exception listOperationException)
                         {
@@ -78,6 +87,11 @@ namespace IotEdgeQuickstart.Details
                             string exceptionDetails = listOperationException.ToString();
                             Console.WriteLine(exceptionDetails);
                             retryCount--;
+
+                            if (retryCount < 0)
+                            {
+                                throw;
+                            }
 
                             if (exceptionDetails.Contains("Could not list modules", StringComparison.OrdinalIgnoreCase))
                             {
@@ -91,23 +105,7 @@ namespace IotEdgeQuickstart.Details
                                     // Eat it up and let it retry in next iteration
                                     Console.WriteLine(restartOperationException);
                                 }
-
-                                await Task.Delay(TimeSpan.FromSeconds(10), cts.Token);
                             }
-
-                            if (retryCount == 0)
-                            {
-                                throw;
-                            }
-                        }
-
-                        if (status == "running")
-                        {
-                            break;
-                        }
-                        else
-                        {
-                            await Task.Delay(TimeSpan.FromSeconds(5), cts.Token);
                         }
 
                         errorMessage = "Not found";
@@ -273,7 +271,7 @@ namespace IotEdgeQuickstart.Details
         public async Task Restart()
         {
             await Process.RunAsync("powershell", "Restart-Service iotedge");
-            await Task.Delay(TimeSpan.FromSeconds(3));
+            await Task.Delay(TimeSpan.FromSeconds(5));
         }
 
         public async Task Reset()
