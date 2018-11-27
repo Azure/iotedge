@@ -89,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             var addedTasks = new List<Task<ICommand[]>>();
             foreach (IModule module in modules)
             {
-                if(moduleIdentities.TryGetValue(module.Name, out IModuleIdentity moduleIdentity))
+                if (moduleIdentities.TryGetValue(module.Name, out IModuleIdentity moduleIdentity))
                 {
                     var tasks = new List<Task<ICommand>>();
                     var moduleWithIdentity = new ModuleWithIdentity(module, moduleIdentity);
@@ -280,9 +280,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             IEnumerable<Task<ICommand>> stopTasks = current.Modules.Values
                 .Where(c => !c.Name.Equals(Constants.EdgeAgentModuleName, StringComparison.OrdinalIgnoreCase))
                 .Select(m => this.commandFactory.StopAsync(m));
-            IList<ICommand> commands = await Task.WhenAll(stopTasks);
-            Events.PlanCreated(commands);
-            return new Plan(commands);
+            ICommand[] stopCommands = await Task.WhenAll(stopTasks);
+            ICommand parallelCommand = new ParallelGroupCommand(stopCommands);
+            Events.ShutdownPlanCreated(stopCommands);
+            return new Plan(new[] { parallelCommand });
         }
     }
 
@@ -331,6 +332,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
         public static void UnableToProcessModule(IModule module)
         {
             Log.LogInformation((int)EventIds.UnableToProcessModule, $"Unable to process module {module.Name} add or update as the module identity could not be obtained");
+        }
+
+        public static void ShutdownPlanCreated(ICommand[] stopCommands)
+        {
+            Log.LogDebug((int)EventIds.PlanCreated, $"HealthRestartPlanner created shutdown Plan, with {stopCommands.Length} command(s).");
         }
     }
 }
