@@ -458,18 +458,28 @@ function Remove-SecurityDaemonResources {
         Write-Verbose "$cmdErr"
     }
 
-    Remove-Item -Recurse $MobyDataRootDirectory -ErrorAction SilentlyContinue -ErrorVariable cmdErr
-    if ($?) {
-        Write-Verbose "Deleted Moby data root directory '$MobyDataRootDirectory'"
-    }
-    elseif ($cmdErr.FullyQualifiedErrorId -ne 'PathNotFound,Microsoft.PowerShell.Commands.RemoveItemCommand') {
-        Write-Verbose "$cmdErr"
-        Write-HostRed ("Could not delete Moby data root directory '$MobyDataRootDirectory'. Please reboot " +
-            'your device and run `Uninstall-SecurityDaemon` again with `-Force`.')
-        $success = $false
-    }
-    else {
-        Write-Verbose "$cmdErr"
+    if (Test-Path $MobyDataRootDirectory) {
+        try {
+            # Removing $MobyDataRootDirectory is tricky. Windows base images contain files owned by TrustedInstaller, etc
+            # Deleting them is a three-step process:
+            #
+            # 1. Take ownership of all files
+            Invoke-Native "takeown /r /skipsl /f ""$MobyDataRootDirectory"""
+
+            # 2. Reset their ACLs so that they inherit from their container
+            Invoke-Native "icacls ""$MobyDataRootDirectory"" /reset /t /l /q /c"
+
+            # 3. Use cmd's `rd` rather than `Remove-Item` since the latter gets tripped up by reparse points, etc
+            Invoke-Native "rd /s /q ""$MobyDataRootDirectory"""
+
+            Write-Verbose "Deleted Moby data root directory '$MobyDataRootDirectory'"
+        }
+        catch {
+            Write-Verbose "$_"
+            Write-HostRed ("Could not delete Moby data root directory '$MobyDataRootDirectory'. Please reboot " +
+                'your device and run `Uninstall-SecurityDaemon` again with `-Force`.')
+            $success = $false
+        }
     }
 
     Remove-Item -Recurse $MobyInstallDirectory -ErrorAction SilentlyContinue -ErrorVariable cmdErr
