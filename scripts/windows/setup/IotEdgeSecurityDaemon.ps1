@@ -322,6 +322,7 @@ function Get-SecurityDaemon {
 
             Write-Host 'Downloading the latest version of Moby runtime...'
             New-Item -Type Directory $MobyInstallDirectory | Out-Null
+            Remove-Permissions $MobyInstallDirectory
             Invoke-WebRequest `
                 -Uri 'https://aka.ms/iotedge-moby-engine-win-amd64-latest' `
                 -OutFile $mobyRuntimeArchivePath `
@@ -331,6 +332,7 @@ function Get-SecurityDaemon {
             Expand-Archive $mobyRuntimeArchivePath $MobyInstallDirectory -Force
 
             New-Item -Type Directory $MobyDataRootDirectory | Out-Null
+            Remove-Permissions $MobyDataRootDirectory
 
             if ($WithMobyCli) {
                 Write-Host 'Downloading the latest version of Moby CLI...'
@@ -366,6 +368,8 @@ function Get-SecurityDaemon {
             Copy-Item "$EdgeInstallDirectory\iotedged-windows\*" $EdgeInstallDirectory -Force -Recurse
         }
 
+        Remove-Permissions $EdgeInstallDirectory
+
         foreach ($name in 'mgmt', 'workload') {
             # We can't bind socket files directly in Windows, so create a folder
             # and bind to that. The folder needs to give Modify rights to a
@@ -382,6 +386,7 @@ function Get-SecurityDaemon {
 
         New-Item -Type Directory $EdgeEventLogInstallDirectory -ErrorAction SilentlyContinue -ErrorVariable cmdErr | Out-Null
         if ($? -or ($cmdErr.FullyQualifiedErrorId -eq 'DirectoryExist,Microsoft.PowerShell.Commands.NewItemCommand')) {
+            Remove-Permissions $EdgeEventLogInstallDirectory
             Move-Item `
                 "$EdgeInstallDirectory\iotedged_eventlog_messages.dll" `
                 "$EdgeEventLogInstallDirectory\iotedged_eventlog_messages.dll" `
@@ -859,6 +864,23 @@ function Write-HostGreen {
 
 function Write-HostRed {
     Write-Host -ForegroundColor Red @args
+}
+
+function Remove-Permissions {
+    $Path = $args
+    $User = 'BUILTIN\Users'
+    Write-HostGreen "Remove $User permission to $Path"
+    
+    # Remove inherited Write permission for BUILTIN\Users
+    icacls $Path /inheritance:d | Out-Null
+    $Acl = [System.IO.Directory]::GetAccessControl($Path)
+    foreach ($access in $Acl.Access) { 
+        if ($access.IdentityReference.Value -eq $User)  
+        { 
+            $Acl.RemoveAccessRule($access) | Out-Null
+        }
+    } 
+    [System.IO.Directory]::SetAccessControl($Path, $Acl)  
 }
 
 Export-ModuleMember -Function Install-SecurityDaemon, Uninstall-SecurityDaemon
