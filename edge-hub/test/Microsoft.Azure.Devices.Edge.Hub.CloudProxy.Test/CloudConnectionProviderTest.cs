@@ -44,7 +44,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 CredentialsCache,
                 EdgeHubIdentity,
                 TimeSpan.FromMinutes(60),
-                true);
+                true,
+                TimeSpan.FromSeconds(20));
             cloudConnectionProvider.BindEdgeHub(edgeHub);
             var deviceIdentity = Mock.Of<IDeviceIdentity>(m => m.Id == "d1");
             string token = TokenHelper.CreateSasToken(IotHubHostName, DateTime.UtcNow.AddMinutes(10));
@@ -84,7 +85,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 CredentialsCache,
                 EdgeHubIdentity,
                 TimeSpan.FromMinutes(60),
-                true);
+                true,
+                TimeSpan.FromSeconds(20));
             cloudConnectionProvider.BindEdgeHub(edgeHub);
             var deviceIdentity = Mock.Of<IDeviceIdentity>(m => m.Id == "d1");
             string token = TokenHelper.CreateSasToken(IotHubHostName, DateTime.UtcNow.AddMinutes(10));
@@ -120,7 +122,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 CredentialsCache,
                 EdgeHubIdentity,
                 TimeSpan.FromMinutes(60),
-                true);
+                true,
+                TimeSpan.FromSeconds(20));
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
             // Act
@@ -159,7 +162,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 credentialsCache.Object,
                 EdgeHubIdentity,
                 TimeSpan.FromMinutes(60),
-                true);
+                true,
+                TimeSpan.FromSeconds(20));
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
             // Act
@@ -198,7 +202,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 credentialsCache.Object,
                 EdgeHubIdentity,
                 TimeSpan.FromMinutes(60),
-                true);
+                true,
+                TimeSpan.FromSeconds(20));
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
             // Act

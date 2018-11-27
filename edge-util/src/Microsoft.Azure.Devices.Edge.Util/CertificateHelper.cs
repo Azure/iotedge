@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
     using Microsoft.Azure.Devices.Edge.Util.Edged;
     using Microsoft.Azure.Devices.Edge.Util.Edged.GeneratedCode;
     using Microsoft.Extensions.Logging;
+    using Org.BouncyCastle.Crypto;
     using Org.BouncyCastle.Crypto.Parameters;
     using Org.BouncyCastle.OpenSsl;
     using Org.BouncyCastle.Pkcs;
@@ -208,6 +209,12 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return ParseCertificateResponse(response);
         }
 
+        public static async Task<IEnumerable<X509Certificate2>> GetTrustBundleFromEdgelet(Uri workloadUri, string workloadApiVersion, string moduleId, string moduleGenerationId)
+        {
+            TrustBundleResponse response = await new WorkloadClient(workloadUri, workloadApiVersion, moduleId, moduleGenerationId).GetTrustBundleAsync();
+            return ParseTrustBundleResponse(response);
+        }
+
         public static (X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain) GetServerCertificateAndChainFromFile(string serverWithChainFilePath, string serverPrivateKeyFilePath)
         {
             string cert, privateKey;
@@ -258,6 +265,37 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 .ToList(); // Re-add the certificate end-marker which was removed by split
         }
 
+        public static IEnumerable<X509Certificate2> ParseTrustedBundleFromFile(string trustBundleFilePath)
+        {
+            string certs;
+
+            if (string.IsNullOrWhiteSpace(trustBundleFilePath) || !File.Exists(trustBundleFilePath))
+            {
+                throw new ArgumentException($"'{trustBundleFilePath}' is not a path to a trust bundle certificates file");
+            }
+
+            using (var sr = new StreamReader(trustBundleFilePath))
+            {
+                certs = sr.ReadToEnd();
+            }
+
+            return ParseTrustedBundleCerts(certs);
+        }
+
+        internal static IEnumerable<X509Certificate2> ParseTrustBundleResponse(TrustBundleResponse response)
+        {
+            if (response == null)
+            {
+                throw new ArgumentException($"Null TrustBundle Response received");
+            }
+            return ParseTrustedBundleCerts(response.Certificate);
+        }
+
+        internal static IEnumerable<X509Certificate2> ParseTrustedBundleCerts(string trustedCACerts)
+        {
+            return GetCertificatesFromPem(ParsePemCerts(trustedCACerts));
+        }
+
         internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateResponse(CertificateResponse response)
         {
             return ParseCertificateAndKey(response.Certificate, response.PrivateKey.Bytes);
@@ -288,6 +326,11 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 if (certObject is Org.BouncyCastle.X509.X509Certificate x509Cert)
                 {
                     chain.Add(new X509CertificateEntry(x509Cert));
+                }
+                // when processing certificates generated via openssl certObject type is of AsymmetricCipherKeyPair
+                if (certObject is AsymmetricCipherKeyPair)
+                {
+                    certObject = ((AsymmetricCipherKeyPair)certObject).Private;
                 }
                 if (certObject is RsaPrivateCrtKeyParameters)
                 {

@@ -62,7 +62,7 @@ jobs:
           arguments: --toolchain armv7-unknown-linux-gnueabihf --release true
 
 ################################################################################
-  - phase: windows_amd64
+  - job: windows_amd64
 ################################################################################
     displayName: Windows amd64
     pool:
@@ -84,7 +84,7 @@ jobs:
           filePath: edgelet/build/windows/test.ps1
 
 ################################################################################
-  - phase: style_check
+  - job: style_check
 ################################################################################
     displayName: Style Check
     pool:
