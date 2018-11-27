@@ -460,7 +460,7 @@ function Remove-SecurityDaemonResources {
 
     if (Test-Path $MobyDataRootDirectory) {
         try {
-            # Removing $MobyDataRootDirectory is tricky. Windows base images contain files owned by TrustedInstaller, etc
+            # Removing `$MobyDataRootDirectory` is tricky. Windows base images contain files owned by TrustedInstaller, etc
             # Deleting them is a three-step process:
             #
             # 1. Take ownership of all files
@@ -469,8 +469,10 @@ function Remove-SecurityDaemonResources {
             # 2. Reset their ACLs so that they inherit from their container
             Invoke-Native "icacls ""$MobyDataRootDirectory"" /reset /t /l /q /c"
 
-            # 3. Use cmd's `rd` rather than `Remove-Item` since the latter gets tripped up by reparse points, etc
-            Invoke-Native "rd /s /q ""$MobyDataRootDirectory"""
+            # 3. Use cmd's `rd` rather than `Remove-Item` since the latter gets tripped up by reparse points, etc.
+            #    Prepend the path with `\\?\` since the layer directories have long names, so the paths usually exceed 260 characters,
+            #    and IoT Core's filesystem doesn't seem to automatically use (or even have) short names
+            Invoke-Native "rd /s /q ""\\?\$MobyDataRootDirectory"""
 
             Write-Verbose "Deleted Moby data root directory '$MobyDataRootDirectory'"
         }
