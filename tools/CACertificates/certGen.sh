@@ -9,7 +9,11 @@
 # certificates will be created using a company's proper secure signing process.
 # These certs are intended only to help demonstrate and prototype CA certs.
 ###############################################################################
+set -e
 
+###############################################################################
+# Define Variables
+###############################################################################
 root_ca_dir="."
 home_dir="."
 algorithm="genrsa"
@@ -19,7 +23,9 @@ LOCALITY="Redmond"
 ORGANIZATION_NAME="My Organization"
 root_ca_password="1234"
 key_bits_length="4096"
-days_till_expire=30
+# if you would like to override the default 30 day validity period, use
+# env variable DEFAULT_VALIDITY_DAYS and set the duration in units of days
+days_till_expire=${DEFAULT_VALIDITY_DAYS:=30}
 ca_chain_prefix="azure-iot-test-only.chain.ca"
 intermediate_ca_dir="."
 openssl_root_config_file="./openssl_root_ca.cnf"
@@ -38,6 +44,9 @@ function warn_certs_not_for_production()
     tput sgr0
 }
 
+###############################################################################
+# Generate Intermediate CA Cert
+###############################################################################
 function generate_root_ca()
 {
     local common_name="Azure IoT Hub CA Cert Test Only"
@@ -83,8 +92,6 @@ function generate_root_ca()
 
     [ $? -eq 0 ] || exit $?
 }
-
-
 
 ###############################################################################
 # Generate Intermediate CA Cert
@@ -153,14 +160,31 @@ function generate_intermediate_ca()
     echo "-----------------------------------"
     cat ${intermediate_ca_dir}/certs/${intermediate_ca_prefix}.cert.pem \
         ${root_ca_dir}/certs/${root_ca_prefix}.cert.pem > \
-        ${intermediate_ca_dir}/certs/${ca_chain_prefix}.cert.pem
+        ${intermediate_ca_dir}/certs/${intermediate_ca_prefix}-full-chain.cert.pem
+
     [ $? -eq 0 ] || exit $?
-    chmod 444 ${intermediate_ca_dir}/certs/${ca_chain_prefix}.cert.pem
+    chmod 444 ${intermediate_ca_dir}/certs/${intermediate_ca_prefix}-full-chain.cert.pem
     [ $? -eq 0 ] || exit $?
 
     echo "Root + Intermediate CA Chain Certificate Generated At:"
     echo "------------------------------------------------------"
-    echo "    ${intermediate_ca_dir}/certs/${ca_chain_prefix}.cert.pem"
+    echo "    ${intermediate_ca_dir}/certs/${intermediate_ca_prefix}-full-chain.cert.pem"
+
+    echo "Create the intermediate CA PFX Certificate"
+    echo "----------------------------------------"
+    openssl pkcs12 -export \
+            -in ${intermediate_ca_dir}/certs/${intermediate_ca_prefix}.cert.pem \
+            -certfile ${root_ca_dir}/certs/${root_ca_prefix}.cert.pem \
+            -inkey ${intermediate_ca_dir}/private/${intermediate_ca_prefix}.key.pem \
+            -passin pass:${intermediate_ca_password} \
+            -passout pass:${intermediate_ca_password} \
+            -name ${intermediate_ca_prefix} \
+            -out ${intermediate_ca_dir}/certs/${intermediate_ca_prefix}.cert.pfx
+    [ $? -eq 0 ] || exit $?
+
+    echo "${intermediate_ca_prefix} PFX Certificate Generated At:"
+    echo "--------------------------------------------"
+    echo "    ${intermediate_ca_dir}/certs/${intermediate_ca_prefix}.cert.pfx"
 
     warn_certs_not_for_production
 }
@@ -174,12 +198,13 @@ function generate_device_certificate_common()
     local common_name="${1}"
     local device_prefix="${2}"
     local certificate_dir="${3}"
-    local ca_password="${4}"
+    local ca_prefix="${4}"
+    local ca_password="${5}"
     local server_pfx_password="1234"
     local password_cmd=" -passin pass:${ca_password} "
-    local openssl_config_file="${5}"
-    local openssl_config_extension="${6}"
-    local cert_type_diagnostic="${7}"
+    local openssl_config_file="${6}"
+    local openssl_config_extension="${7}"
+    local cert_type_diagnostic="${8}"
 
     echo "Creating ${cert_type_diagnostic} Certificate"
     echo "----------------------------------------"
@@ -200,10 +225,14 @@ function generate_device_certificate_common()
         -new -sha256 -out ${certificate_dir}/csr/${device_prefix}.csr.pem
     [ $? -eq 0 ] || exit $?
 
+    ca_cert_file=${certificate_dir}/certs/${ca_prefix}.cert.pem
+    ca_key_file=${certificate_dir}/private/${ca_prefix}.key.pem
     openssl ca -batch -config ${openssl_config_file} \
             ${password_cmd} \
             -extensions "${openssl_config_extension}" \
             -days ${days_till_expire} -notext -md sha256 \
+            -cert ${ca_cert_file} \
+            -keyfile ${ca_key_file} -keyform PEM \
             -in ${certificate_dir}/csr/${device_prefix}.csr.pem \
             -out ${certificate_dir}/certs/${device_prefix}.cert.pem
     [ $? -eq 0 ] || exit $?
@@ -214,7 +243,8 @@ function generate_device_certificate_common()
          " certificate with the signer"
     echo "-----------------------------------"
     openssl verify \
-            -CAfile ${certificate_dir}/certs/${ca_chain_prefix}.cert.pem \
+            -CAfile ${root_ca_dir}/certs/${root_ca_prefix}.cert.pem \
+            -untrusted  ${ca_cert_file} \
             ${certificate_dir}/certs/${device_prefix}.cert.pem
     [ $? -eq 0 ] || exit $?
 
@@ -225,35 +255,37 @@ function generate_device_certificate_common()
     openssl x509 -noout -text \
             -in ${certificate_dir}/certs/${device_prefix}.cert.pem
     [ $? -eq 0 ] || exit $?
+
+    issuer_chain=""
+    if [ "${ca_prefix}" == "${root_ca_prefix}" ]; then
+        issuer_chain=${certificate_dir}/certs/${root_ca_prefix}.cert.pem
+    else
+        issuer_chain=${certificate_dir}/certs/${ca_prefix}-full-chain.cert.pem
+    fi
+
+    cat ${certificate_dir}/certs/${device_prefix}.cert.pem \
+        ${issuer_chain} > \
+        ${certificate_dir}/certs/${device_prefix}-full-chain.cert.pem
+    echo "${cert_type_diagnostic} Full Chain Certificate Generated At:"
+    echo "----------------------------------------"
+    echo "    ${certificate_dir}/certs/${device_prefix}-full-chain.cert.pem"
+    echo ""
+    [ $? -eq 0 ] || exit $?
+
     echo "Create the ${cert_type_diagnostic} PFX Certificate"
     echo "----------------------------------------"
-    openssl pkcs12 -in ${certificate_dir}/certs/${device_prefix}.cert.pem \
+    openssl pkcs12 -export \
+            -in ${certificate_dir}/certs/${device_prefix}.cert.pem \
+            -certfile ${issuer_chain} \
             -inkey ${certificate_dir}/private/${device_prefix}.key.pem \
-            -password pass:${server_pfx_password} \
-            -export -out ${certificate_dir}/certs/${device_prefix}.cert.pfx
+            -passout pass: \
+            -name ${device_prefix} \
+            -out ${certificate_dir}/certs/${device_prefix}.cert.pfx
     [ $? -eq 0 ] || exit $?
+
     echo "${cert_type_diagnostic} PFX Certificate Generated At:"
     echo "--------------------------------------------"
     echo "    ${certificate_dir}/certs/${device_prefix}.cert.pfx"
-    [ $? -eq 0 ] || exit $?
-}
-
-###############################################################################
-# Generate a certificate for a leaf device
-# signed with either the root or intermediate cert.
-###############################################################################
-function generate_leaf_certificate()
-{
-    local common_name="${1}"
-    local device_prefix="${2}"
-    local certificate_dir="${3}"
-    local ca_password="${4}"
-    local openssl_config_file="${5}"
-
-    generate_device_certificate_common "${common_name}" "${device_prefix}" \
-                                       "${certificate_dir}" "${ca_password}" \
-                                       "${openssl_config_file}" "server_cert" \
-                                       "Leaf Device"
 }
 
 ###############################################################################
@@ -283,7 +315,7 @@ function prepare_filesystem()
     touch ./index.txt
 
     rm -f ./serial
-    echo 01 > ./serial
+    echo 1000 > ./serial
 }
 
 ###############################################################################
@@ -306,11 +338,17 @@ function generate_verification_certificate()
         exit 1
     fi
 
-    rm -f ./private/verification-code.key.pem
-    rm -f ./certs/verification-code.cert.pem
-    generate_leaf_certificate "${1}" "verification-code" \
-                              ${root_ca_dir} ${root_ca_password} \
-                              ${openssl_root_config_file}
+    rm -f ./private/iot-device-verification-code.key.pem
+    rm -f ./certs/iot-device-verification-code.cert.pem
+    rm -f ./certs/iot-device-verification-code.cert.pfx
+    rm -f ./certs/iot-device-verification-code-full-chain.cert.pem
+    generate_device_certificate_common "${1}" \
+                                       "iot-device-verification-code" \
+                                       "${root_ca_dir}" \
+                                       "${root_ca_prefix}" \
+                                       "${root_ca_password}" \
+                                       "${openssl_root_config_file}" \
+                                       "usr_cert" "Verification Device"
 }
 
 ###############################################################################
@@ -325,12 +363,16 @@ function generate_device_certificate()
 
     rm -f ./private/iot-device-${1}.key.pem
     rm -f ./certs/iot-device-${1}.cert.pem
+    rm -f ./certs/iot-device-${1}.cert.pfx
     rm -f ./certs/iot-device-${1}-full-chain.cert.pem
-    generate_leaf_certificate "${1}" "iot-device-${1}" \
-                              ${intermediate_ca_dir} \
-                              ${intermediate_ca_password} \
-                              ${openssl_root_config_file}
-    cat ./certs/iot-device-${1}.cert.pem ./certs/azure-iot-test-only.intermediate.cert.pem ./certs/azure-iot-test-only.root.ca.cert.pem > ./certs/iot-device-${1}-full-chain.cert.pem
+    generate_device_certificate_common "${1}" \
+                                       "iot-device-${1}" \
+                                       "${intermediate_ca_dir}" \
+                                       "${intermediate_ca_prefix}" \
+                                       "${intermediate_ca_password}" \
+                                       "${openssl_root_config_file}" \
+                                       "usr_cert" "Device Certificate"
+
 }
 
 
@@ -346,12 +388,15 @@ function generate_edge_server_certificate()
 
     rm -f ./private/iot-edge-server-${1}.key.pem
     rm -f ./certs/iot-edge-server-${1}.cert.pem
+    rm -f ./certs/iot-edge-server-${1}.cert.pfx
     rm -f ./certs/iot-edge-server-${1}-full-chain.cert.pem
-    generate_leaf_certificate "${1}" "iot-edge-server-${1}" \
-                               ${intermediate_ca_dir} \
-                               ${intermediate_ca_password} \
-                               ${openssl_root_config_file}
-    cat ./certs/iot-edge-server-${1}.cert.pem ./certs/azure-iot-test-only.intermediate.cert.pem ./certs/azure-iot-test-only.root.ca.cert.pem > ./certs/iot-edge-server-${1}-full-chain.cert.pem
+    generate_device_certificate_common "${1}" \
+                                       "iot-edge-server-${1}" \
+                                       "${intermediate_ca_dir}" \
+                                       "${intermediate_ca_prefix}" \
+                                       "${intermediate_ca_password}" \
+                                       "${openssl_root_config_file}" \
+                                       "server_cert" "Edge Server Certificate"
 }
 
 ###############################################################################
@@ -366,6 +411,7 @@ function generate_edge_device_certificate()
     fi
     rm -f ./private/iot-edge-device-${1}.key.pem
     rm -f ./certs/iot-edge-device-${1}.cert.pem
+    rm -f ./certs/iot-edge-device-${1}.cert.pfx
     rm -f ./certs/iot-edge-device-${1}-full-chain.cert.pem
 
     # Note: Appending a '.ca' to the common name is useful in situations
@@ -376,10 +422,10 @@ function generate_edge_device_certificate()
     generate_device_certificate_common "${1}.ca" \
                                        "iot-edge-device-${1}" \
                                        ${intermediate_ca_dir} \
+                                       ${intermediate_ca_prefix} \
                                        ${intermediate_ca_password} \
                                        ${openssl_root_config_file} \
-                                       "v3_intermediate_ca" "Edge Device"
-    cat ./certs/iot-edge-device-${1}.cert.pem ./certs/azure-iot-test-only.intermediate.cert.pem ./certs/azure-iot-test-only.root.ca.cert.pem > ./certs/iot-edge-device-${1}-full-chain.cert.pem
+                                       "v3_intermediate_ca" "Edge Device CA"
 }
 
 if [ "${1}" == "create_root_and_intermediate" ]; then
