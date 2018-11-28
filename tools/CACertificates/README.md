@@ -4,7 +4,7 @@
 Certificates created by these scripts **MUST NOT** be used for production.  They contain hard-coded passwords ("1234"), expire by default after 30 days, and most importantly are provided for demonstration purposes to help you quickly understand CA Certificates.  When productizing against CA Certificates, you'll need to use your own security best practices for certification creation and lifetime management.
 
 ## Introduction
-This document helps create certificates for use in **pre-testing** IoT SDK's against the IoT Hub and Edge runtime.  In particular, the tools in this directory can be used to either setup CA Certificates (along with proof of possession) or Edge device certificates.  This document assumes you have basic familiarity with the scenario you are setting up for as well as some knowledge of PowerShell or Bash.
+This document helps create certificates for use in **pre-testing** IoT SDKs against the IoT Hub and Edge runtime.  In particular, the tools in this directory can be used to either setup CA Certificates (along with proof of possession) or Edge device certificates.  This document assumes you have basic familiarity with the scenario you are setting up for as well as some knowledge of PowerShell or Bash.
 
 This directory contains a PowerShell (PS1) and Bash script to help create **test** certificates for Azure IoT Hub's CA Certificate / proof-of-possession and/or Edge certificates.
 
