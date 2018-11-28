@@ -249,8 +249,25 @@ namespace IotEdgeQuickstart.Details
 
         public async Task Stop()
         {
-            await Process.RunAsync("powershell", "Stop-Service -NoWait iotedge");
-            await Task.Delay(TimeSpan.FromSeconds(3));
+            try
+            {
+                ServiceController[] services = ServiceController.GetServices();
+                var iotedgeService = services.FirstOrDefault(s => s.ServiceName.Equals("iotedge", StringComparison.OrdinalIgnoreCase));
+
+                // check service exists
+                if (iotedgeService != null)
+                {
+                    if (iotedgeService.Status == ServiceControllerStatus.Running)
+                    {
+                        iotedgeService.Stop();
+                        await Task.Delay(TimeSpan.FromSeconds(3));
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                throw new Exception($"Error stopping iotedged: {e}");
+            }
         }
 
         public async Task Restart()
