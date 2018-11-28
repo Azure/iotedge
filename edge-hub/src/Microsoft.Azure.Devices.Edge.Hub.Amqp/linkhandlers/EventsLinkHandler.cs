@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Amqp.Framing;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
@@ -70,14 +71,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 
         void AddMessageSystemProperties(IMessage message)
         {
-            if (!string.IsNullOrWhiteSpace(this.DeviceId))
+            if (this.Identity is IDeviceIdentity deviceIdentity)
             {
-                message.SystemProperties[SystemProperties.ConnectionDeviceId] = this.DeviceId;
+                message.SystemProperties[SystemProperties.ConnectionDeviceId] = deviceIdentity.DeviceId;
             }
 
-            if (!string.IsNullOrWhiteSpace(this.ModuleId))
+            if (this.Identity is IModuleIdentity moduleIdentity)
             {
-                message.SystemProperties[SystemProperties.ConnectionModuleId] = this.ModuleId;
+                message.SystemProperties[SystemProperties.ConnectionDeviceId] = moduleIdentity.DeviceId;
+                message.SystemProperties[SystemProperties.ConnectionModuleId] = moduleIdentity.ModuleId;
             }
         }
 
