@@ -27,48 +27,59 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         readonly AsyncLock registryUpdateLock = new AsyncLock();
         readonly IAmqpConnection connection;
         readonly IConnectionProvider connectionProvider;
+        Option<IDeviceListener> deviceListener = Option.None<IDeviceListener>();
 
-        public ConnectionHandler(IAmqpConnection connection, IConnectionProvider connectionProvider)
+        public ConnectionHandler(IIdentity identity, IAmqpConnection connection, IConnectionProvider connectionProvider)
         {
+            this.identity = Preconditions.CheckNotNull(identity, nameof(identity));
             this.connection = Preconditions.CheckNotNull(connection, nameof(connection));
             this.connectionProvider = Preconditions.CheckNotNull(connectionProvider, nameof(connectionProvider));
         }
 
-        public ConnectionHandler(IIdentity identity, IDeviceListener deviceListener, IAmqpAuthenticator amqpAuth, IAmqpConnection connection)
+        //public ConnectionHandler(IIdentity identity, IAmqpConnection connection)
+        //{
+        //    this.identity = Preconditions.CheckNotNull(identity, nameof(identity));
+        //    this.connection = Preconditions.CheckNotNull(connection, nameof(connection));
+        //}
+
+        //public static async Task<ConnectionHandler> Create(IIdentity identity, IAmqpConnection connection, IConnectionProvider connectionProvider)
+        //{
+        //    IAmqpAuthenticator amqpAuth;
+
+
+        //    IDeviceListener deviceListener = await connectionProvider.GetDeviceListenerAsync(identity);
+        //    var connectionHandler = new ConnectionHandler(identity, deviceListener, amqpAuth, connection);
+        //    var deviceProxy = new DeviceProxy(connectionHandler, identity);
+        //    deviceListener.BindDeviceProxy(deviceProxy);
+        //    Events.InitializedConnectionHandler(identity);
+        //    return connectionHandler;
+        //}
+
+        //public IDeviceListener DeviceListener { get; }
+
+        //public IAmqpAuthenticator AmqpAuthenticator { get; }
+
+        public Task<IDeviceListener> GetDeviceListener()
         {
-            this.identity = Preconditions.CheckNotNull(identity, nameof(identity));
-            this.connection = Preconditions.CheckNotNull(connection, nameof(connection));
-            this.DeviceListener = Preconditions.CheckNotNull(deviceListener, nameof(deviceListener));
-            this.AmqpAuthenticator = Preconditions.CheckNotNull(amqpAuth, nameof(amqpAuth));
+            return this.deviceListener.Map(d => Task.FromResult(d))
+                .GetOrElse(
+                    async () =>
+                    {
+                        using (await this.initializationLock.LockAsync())
+                        {
+                            return await this.deviceListener.Map(d => Task.FromResult(d))
+                                .GetOrElse(
+                                    async () =>
+                                    {
+                                        IDeviceListener dl = await this.connectionProvider.GetDeviceListenerAsync(this.identity);
+                                        var deviceProxy = new DeviceProxy(this, this.identity);
+                                        dl.BindDeviceProxy(deviceProxy);
+                                        this.deviceListener = Option.Some(dl);
+                                        return dl;
+                                    });
+                        }
+                    });
         }
-
-        public static async Task<ConnectionHandler> Create(IIdentity identity, IAmqpConnection connection, IConnectionProvider connectionProvider)
-        {
-            IAmqpAuthenticator amqpAuth;
-
-            // Check if Principal is SaslPrincipal
-            if (connection.Principal is SaslPrincipal saslPrincipal)
-            {
-                amqpAuth = saslPrincipal;
-            }
-            else
-            {
-                // Else the connection uses CBS authentication. Get AmqpAuthentication from the CbsNode                    
-                var cbsNode = connection.FindExtension<ICbsNode>();
-                amqpAuth = cbsNode ?? throw new InvalidOperationException("CbsNode is null");
-            }
-
-            IDeviceListener deviceListener = await connectionProvider.GetDeviceListenerAsync(identity);
-            var connectionHandler = new ConnectionHandler(identity, deviceListener, amqpAuth, connection);
-            var deviceProxy = new DeviceProxy(connectionHandler, identity);
-            deviceListener.BindDeviceProxy(deviceProxy);
-            Events.InitializedConnectionHandler(identity);
-            return connectionHandler;
-        }
-
-        public IDeviceListener DeviceListener { get; }
-
-        public IAmqpAuthenticator AmqpAuthenticator { get; }
 
         //async Task<Option<IClientCredentials>> GetUpdatedAuthenticatedIdentity()
         //{
@@ -152,8 +163,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         async Task CloseConnection()
         {
             using (await this.initializationLock.LockAsync())
-            {         
-                await (this.DeviceListener?.CloseAsync() ?? Task.CompletedTask);
+            {
+                await this.deviceListener.ForEachAsync(d => d.CloseAsync());
             }
         }
 

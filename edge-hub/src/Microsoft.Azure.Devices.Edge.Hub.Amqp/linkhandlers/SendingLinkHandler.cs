@@ -5,10 +5,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
-    using System.Threading.Tasks.Dataflow;
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Amqp.Framing;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -17,9 +17,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
     /// </summary>
     public abstract class SendingLinkHandler : LinkHandler, ISendingLinkHandler
     {
-        protected SendingLinkHandler(ISendingAmqpLink link, Uri requestUri,
-            IDictionary<string, string> boundVariables, IMessageConverter<AmqpMessage> messageConverter)
-            : base(link, requestUri, boundVariables, messageConverter)
+        protected SendingLinkHandler(
+            IIdentity identity,
+            ISendingAmqpLink link,
+            Uri requestUri,
+            IDictionary<string, string> boundVariables,
+            IConnectionHandler connectionHandler,
+            IMessageConverter<AmqpMessage> messageConverter)
+            : base(identity, link, requestUri, boundVariables, connectionHandler, messageConverter)
         {
             Preconditions.CheckArgument(!link.IsReceiver, $"Link {requestUri} cannot send");
             this.SendingAmqpLink = link;
@@ -56,6 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
                     this.SendingAmqpLink.Settings.SndSettleMode = (byte)SenderSettleMode.Settled;
                     break;
             }
+
             return Task.CompletedTask;
         }
 
@@ -81,12 +87,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
                 {
                     return this.SendingAmqpLink.SendMessageAsync(amqpMessage, deliveryTag, AmqpConstants.NullBinary, Amqp.Constants.DefaultTimeout);
                 }
+
                 Events.MessageSent(this, message);
             }
             catch (Exception ex)
             {
                 Events.ErrorProcessingMessage(ex, this);
             }
+
             return Task.CompletedTask;
         }
 
@@ -167,8 +175,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
                     {
                         messageId = string.Empty;
                     }
+
                     return messageId;
                 }
+
                 Log.LogDebug((int)EventIds.MessageSent, $"Sent message with id {GetMessageId()} to device {handler.ClientId}");
             }
         }

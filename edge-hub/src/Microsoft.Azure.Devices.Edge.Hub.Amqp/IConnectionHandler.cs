@@ -8,13 +8,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
     public interface IConnectionHandler
     {
-        //Task<IDeviceListener> GetDeviceListener();
+        Task<IDeviceListener> GetDeviceListener();
 
         //Task<AmqpAuthentication> GetAmqpAuthentication();
 
-        IDeviceListener DeviceListener { get; }
+        //IDeviceListener DeviceListener { get; }
 
-        IAmqpAuthenticator AmqpAuthenticator { get; }
+        //IAmqpAuthenticator AmqpAuthenticator { get; }
 
         Task RegisterLinkHandler(ILinkHandler linkHandler);
 
