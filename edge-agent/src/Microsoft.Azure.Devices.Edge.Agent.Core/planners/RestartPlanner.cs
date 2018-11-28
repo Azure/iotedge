@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
     using System.Collections.Immutable;
     using System.Linq;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Commands;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -66,9 +67,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             IEnumerable<Task<ICommand>> stopTasks = current.Modules.Values
                 .Where(c => !c.Name.Equals(Constants.EdgeAgentModuleName, StringComparison.OrdinalIgnoreCase))
                 .Select(m => this.commandFactory.StopAsync(m));
-            IList<ICommand> commands = await Task.WhenAll(stopTasks);
-            Events.PlanCreated(commands);
-            return new Plan(commands);
+            ICommand[] stopCommands = await Task.WhenAll(stopTasks);
+            ICommand parallelCommand = new ParallelGroupCommand(stopCommands);
+            Events.ShutdownPlanCreated(stopCommands);
+            return new Plan(new[] { parallelCommand });
         }
 
         async Task<ICommand> CreateOrUpdate(ModuleSet current, IModule desiredMod, IRuntimeInfo runtimeInfo, IImmutableDictionary<string, IModuleIdentity> moduleIdentities) =>
@@ -89,6 +91,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             public static void PlanCreated(IList<ICommand> commands)
             {
                 Log.LogDebug((int)EventIds.PlanCreated, $"RestartPlanner created Plan, with {commands.Count} commands.");
+            }
+
+            public static void ShutdownPlanCreated(ICommand[] stopCommands)
+            {
+                Log.LogDebug((int)EventIds.PlanCreated, $"HealthRestartPlanner created shutdown Plan, with {stopCommands.Length} command(s).");
             }
         }
     }

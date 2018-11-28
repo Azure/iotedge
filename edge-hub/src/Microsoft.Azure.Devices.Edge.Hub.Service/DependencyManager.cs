@@ -119,6 +119,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             int cloudConnectionIdleTimeoutSecs = this.configuration.GetValue("CloudConnectionIdleTimeoutSecs", 3600);
             TimeSpan cloudConnectionIdleTimeout = TimeSpan.FromSeconds(cloudConnectionIdleTimeoutSecs);
             bool closeCloudConnectionOnIdleTimeout = this.configuration.GetValue("CloseCloudConnectionOnIdleTimeout", true);
+            int cloudOperationTimeoutSecs = this.configuration.GetValue("CloudOperationTimeoutSecs", 20);
+            TimeSpan cloudOperationTimeout = TimeSpan.FromSeconds(cloudOperationTimeoutSecs); 
 
             builder.RegisterModule(
                 new RoutingModule(
@@ -136,7 +138,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     connectivityCheckFrequency,
                     maxConnectedClients,
                     cloudConnectionIdleTimeout,
-                    closeCloudConnectionOnIdleTimeout));
+                    closeCloudConnectionOnIdleTimeout,
+                    cloudOperationTimeout));
         }
 
         void RegisterCommonModule(ContainerBuilder builder, bool optimizeForPerformance, (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward)

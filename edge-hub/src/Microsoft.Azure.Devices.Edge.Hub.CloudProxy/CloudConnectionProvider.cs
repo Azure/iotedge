@@ -36,6 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly bool closeOnIdleTimeout;
         readonly ICredentialsCache credentialsCache;
         readonly IIdentity edgeHubIdentity;
+        readonly TimeSpan operationTimeout;
         Option<IEdgeHub> edgeHub;
 
         public CloudConnectionProvider(IMessageConverterProvider messageConverterProvider,
@@ -47,7 +48,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             ICredentialsCache credentialsCache,
             IIdentity edgeHubIdentity,
             TimeSpan idleTimeout,
-            bool closeOnIdleTimeout)
+            bool closeOnIdleTimeout,
+            TimeSpan operationTimeout)
         {
             Preconditions.CheckRange(connectionPoolSize, 1, nameof(connectionPoolSize));
             this.messageConverterProvider = Preconditions.CheckNotNull(messageConverterProvider, nameof(messageConverterProvider));
@@ -60,6 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.deviceScopeIdentitiesCache = Preconditions.CheckNotNull(deviceScopeIdentitiesCache, nameof(deviceScopeIdentitiesCache));
             this.credentialsCache = Preconditions.CheckNotNull(credentialsCache, nameof(credentialsCache));
             this.edgeHubIdentity = Preconditions.CheckNotNull(edgeHubIdentity, nameof(edgeHubIdentity));
+            this.operationTimeout = operationTimeout;
         }
 
         public void BindEdgeHub(IEdgeHub edgeHubInstance)
@@ -136,7 +139,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         cloudListener,
                         this.edgeHubTokenProvider,
                         this.idleTimeout,
-                        this.closeOnIdleTimeout);
+                        this.closeOnIdleTimeout,
+                        this.operationTimeout);
                     Events.SuccessCreatingCloudConnection(clientCredentials.Identity);
                     return Try.Success(cc);
                 }
@@ -150,7 +154,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         this.clientProvider,
                         cloudListener,
                         this.idleTimeout,
-                        this.closeOnIdleTimeout);
+                        this.closeOnIdleTimeout,
+                        this.operationTimeout);
                     Events.SuccessCreatingCloudConnection(clientCredentials.Identity);
                     return Try.Success(cc);
                 }
@@ -188,7 +193,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                             cloudListener,
                             this.edgeHubTokenProvider,
                             this.idleTimeout,
-                            this.closeOnIdleTimeout);
+                            this.closeOnIdleTimeout,
+                            this.operationTimeout);
                         Events.SuccessCreatingCloudConnection(identity);
                         return Try.Success(cc);
                     })

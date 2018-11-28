@@ -187,7 +187,7 @@ mod tests {
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
                 assert_eq!(
-                    "Could not get logs of module mod1\n\tcaused by: General error",
+                    "Could not get logs for module mod1\n\tcaused by: General error",
                     error.message()
                 );
                 Ok(())

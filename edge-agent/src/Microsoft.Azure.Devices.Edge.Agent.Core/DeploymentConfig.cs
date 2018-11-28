@@ -6,11 +6,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Json;
     using Newtonsoft.Json;
 
-    public class DeploymentConfig
+    public class DeploymentConfig : IEquatable<DeploymentConfig>
     {
+        static readonly ReadOnlyDictionaryComparer<string, IModule> ModuleDictionaryComparer = new ReadOnlyDictionaryComparer<string, IModule>();
+
         [JsonConstructor]
         public DeploymentConfig(
             string schemaVersion,
@@ -33,7 +34,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             }
         }
 
-        public static DeploymentConfig Empty = new DeploymentConfig("1.0",
+        public static DeploymentConfig Empty = new DeploymentConfig(
+            "1.0",
             UnknownRuntimeInfo.Instance,
             new SystemModules(UnknownEdgeAgentModule.Instance, UnknownEdgeHubModule.Instance),
             ImmutableDictionary<string, IModule>.Empty);
@@ -57,64 +59,47 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             {
                 modules.Add(module.Key, module.Value);
             }
+
             this.SystemModules.EdgeHub.Filter(e => e != UnknownEdgeHubModule.Instance).ForEach(h => modules.Add(h.Name, h));
             this.SystemModules.EdgeAgent.Filter(e => e != UnknownEdgeAgentModule.Instance).ForEach(h => modules.Add(h.Name, h));
             return modules.Count == 0
                 ? ModuleSet.Empty
                 : new ModuleSet(modules);
         }
-    }
 
-    public class SystemModules : IEquatable<SystemModules>
-    {
-        [JsonConstructor]
-        public SystemModules(IEdgeAgentModule edgeAgent, IEdgeHubModule edgeHub)
+        public bool Equals(DeploymentConfig other)
         {
-            this.EdgeAgent = Option.Maybe(edgeAgent);
-            this.EdgeHub = Option.Maybe(edgeHub);
+            if (ReferenceEquals(null, other))
+                return false;
+            if (ReferenceEquals(this, other))
+                return true;
+            return string.Equals(this.SchemaVersion, other.SchemaVersion)
+                && Equals(this.Runtime, other.Runtime)
+                && Equals(this.SystemModules, other.SystemModules)
+                && ModuleDictionaryComparer.Equals(this.Modules, other.Modules);
         }
 
-        public SystemModules(Option<IEdgeAgentModule> edgeAgent, Option<IEdgeHubModule> edgeHub)
+        public override bool Equals(object obj)
         {
-            this.EdgeAgent = edgeAgent;
-            this.EdgeHub = edgeHub;
-        }
-
-        [JsonProperty(PropertyName = "edgeHub")]
-        [JsonConverter(typeof(OptionConverter<IEdgeHubModule>))]
-        public Option<IEdgeHubModule> EdgeHub { get; }
-
-        [JsonProperty(PropertyName = "edgeAgent")]
-        [JsonConverter(typeof(OptionConverter<IEdgeAgentModule>))]
-        public Option<IEdgeAgentModule> EdgeAgent { get; }
-
-        public override bool Equals(object obj) => this.Equals(obj as SystemModules);
-
-        public bool Equals(SystemModules other)
-        {
-            return other != null &&
-                EqualityComparer<Option<IEdgeHubModule>>.Default.Equals(this.EdgeHub, other.EdgeHub) &&
-                EqualityComparer<Option<IEdgeAgentModule>>.Default.Equals(this.EdgeAgent, other.EdgeAgent);
+            if (ReferenceEquals(null, obj))
+                return false;
+            if (ReferenceEquals(this, obj))
+                return true;
+            if (obj.GetType() != this.GetType())
+                return false;
+            return this.Equals((DeploymentConfig)obj);
         }
 
         public override int GetHashCode()
         {
-            int hashCode = -874519432;
-            hashCode = hashCode * -1521134295 + EqualityComparer<Option<IEdgeHubModule>>.Default.GetHashCode(this.EdgeHub);
-            hashCode = hashCode * -1521134295 + EqualityComparer<Option<IEdgeAgentModule>>.Default.GetHashCode(this.EdgeAgent);
-            return hashCode;
+            unchecked
+            {
+                int hashCode = (this.SchemaVersion != null ? this.SchemaVersion.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.Runtime != null ? this.Runtime.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.SystemModules != null ? this.SystemModules.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.Modules != null ? this.Modules.GetHashCode() : 0);
+                return hashCode;
+            }
         }
-
-        public static bool operator ==(SystemModules modules1, SystemModules modules2)
-        {
-            return EqualityComparer<SystemModules>.Default.Equals(modules1, modules2);
-        }
-
-        public static bool operator !=(SystemModules modules1, SystemModules modules2)
-        {
-            return !(modules1 == modules2);
-        }
-
-        public SystemModules Clone() => new SystemModules(this.EdgeAgent, this.EdgeHub);
-    }
+    }    
 }
