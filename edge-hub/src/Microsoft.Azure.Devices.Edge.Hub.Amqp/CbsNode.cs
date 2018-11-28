@@ -341,9 +341,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 Log.LogWarning((int)EventIds.ErrorGettingIdentity, exception, "Error getting identity from the token received on the Cbs link");
             }
 
-            public static void ErrorAuthenticatingIdentity(IIdentity identity)
+            public static void ErrorAuthenticatingIdentity(string id, Exception e)
             {
-                Log.LogWarning((int)EventIds.ErrorGettingIdentity, $"Error authenticating token received on the Cbs link for {identity.Id}");
+                Log.LogWarning((int)EventIds.ErrorGettingIdentity, e, $"Error authenticating token received on the Cbs link for {id}");
             }
 
             public static void CbsTokenUpdated(IIdentity identity)

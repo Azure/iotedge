@@ -6,8 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
     public static class Templates
     {
-        public const string IoTHubAliasRootPrefix = "/$iothub";
-
         public const string DevicePathPrefix = "/devices/";
         public const string ModulesPathPrefix = "/modules/";
 
