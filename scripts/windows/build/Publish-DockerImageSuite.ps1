@@ -28,6 +28,7 @@ param (
     [Switch]$TemperatureFilter,
     [Switch]$DirectMethodSender,
     [Switch]$DirectMethodReceiver,
+    [Switch]$TemperatureFilterFunction,
 
     [Switch]$Push,
     [Switch]$Clean
@@ -44,6 +45,7 @@ $Images = @{
     "temperature-filter"           = @("TemperatureFilter", $TemperatureFilter)
     "direct-method-sender"         = @("DirectMethodSender", $DirectMethodSender)
     "direct-method-receiver"       = @("DirectMethodReceiver", $DirectMethodReceiver)	
+    "functions-filter"             = @("EdgeHubTriggerCSharp", $TemperatureFilterFunction)
 }
 
 foreach ($Image in $Images.GetEnumerator()) {
