@@ -173,18 +173,6 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return thumbprints.Any(th => certificate.Thumbprint.Equals(th, StringComparison.OrdinalIgnoreCase));
         }
 
-        public static bool ValidateClientCert(X509Certificate certificate, X509Chain chain, Option<IList<X509Certificate2>> trustedCACerts, ILogger logger)
-        {
-            Preconditions.CheckNotNull(certificate);
-            Preconditions.CheckNotNull(chain);
-            Preconditions.CheckNotNull(trustedCACerts);
-            Preconditions.CheckNotNull(logger);
-
-            X509Certificate2 remoteCertificate = new X509Certificate2(certificate);
-            IList<X509Certificate2> remoteCertificateChain = GetCertificatesFromChain(chain);
-            return ValidateClientCert(remoteCertificate, remoteCertificateChain, trustedCACerts, logger);
-        }
-
         public static bool IsCACertificate(X509Certificate2 certificate)
         {
             // https://tools.ietf.org/html/rfc3280#section-4.2.1.3
