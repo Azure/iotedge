@@ -1,6 +1,6 @@
 # Managing test CA certificates for samples and tutorials
 
-## WARNING
+## :warning: WARNING :warning:
 Certificates created by these scripts **MUST NOT** be used for production.  They contain hard-coded passwords ("1234"), expire by default after 30 days, and most importantly are provided for demonstration purposes to help you quickly understand CA Certificates.  When productizing against CA Certificates, you'll need to use your own security best practices for certification creation and lifetime management.
 
 ## Introduction
