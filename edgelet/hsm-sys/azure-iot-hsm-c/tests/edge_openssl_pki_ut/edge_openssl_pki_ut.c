@@ -109,9 +109,11 @@ MOCKABLE_FUNCTION(, int, EC_GROUP_get_curve_name, const EC_GROUP*, group);
 #if ((OPENSSL_VERSION_NUMBER & 0xFFF00000L) >= 0x10100000L)
     MOCKABLE_FUNCTION(, int, EVP_PKEY_bits, const EVP_PKEY*, pkey);
     MOCKABLE_FUNCTION(, X509_NAME*, X509_get_subject_name, const X509*, a);
+    MOCKABLE_FUNCTION(, int, X509_get_ext_by_NID, const X509*, x, int, nid, int, lastpos);
 #else
     MOCKABLE_FUNCTION(, int, EVP_PKEY_bits, EVP_PKEY*, pkey);
     MOCKABLE_FUNCTION(, X509_NAME*, X509_get_subject_name, X509*, a);
+    MOCKABLE_FUNCTION(, int, X509_get_ext_by_NID, X509*, x, int, nid, int, lastpos);
 #endif
 
 MOCKABLE_FUNCTION(, BIO*, BIO_new_file, const char*, filename, const char*, mode);
@@ -171,7 +173,6 @@ MOCKABLE_FUNCTION(, int, X509_add_ext, X509*, x, X509_EXTENSION*, ex, int, loc);
 MOCKABLE_FUNCTION(, void, X509_EXTENSION_free, X509_EXTENSION*, ex);
 
 MOCKABLE_FUNCTION(, void, X509V3_set_ctx, X509V3_CTX*, ctx, X509*, issuer, X509*, subj, X509_REQ*, req, X509_CRL*, crl, int, flags);
-MOCKABLE_FUNCTION(, int, X509_get_ext_by_NID, X509*, x, int, nid, int, lastpos);
 
 #undef ENABLE_MOCKS
 
@@ -1120,7 +1121,11 @@ static void test_hook_X509V3_set_ctx
     (void)flags;
 }
 
+#if ((OPENSSL_VERSION_NUMBER & 0xFFF00000L) >= 0x10100000L)
+static int test_hook_X509_get_ext_by_NID(const X509 *x, int nid, int lastpos)
+#else
 static int test_hook_X509_get_ext_by_NID(X509 *x, int nid, int lastpos)
+#endif
 {
     (void)x;
     (void)nid;
