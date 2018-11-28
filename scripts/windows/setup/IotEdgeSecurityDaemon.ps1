@@ -866,21 +866,19 @@ function Write-HostRed {
     Write-Host -ForegroundColor Red @args
 }
 
-function Remove-Permissions {
-    $Path = $args
-    $User = 'BUILTIN\Users'
-    Write-HostGreen "Remove $User permission to $Path"
+function Remove-Permissions([string] $Path) {
+    $user = 'BUILTIN\Users'
+    Write-Verbose  "Remove $User permission to $Path"
+    Invoke-Native "icacls ""$Path"" /inheritance:d"
     
-    # Remove inherited Write permission for BUILTIN\Users
-    icacls $Path /inheritance:d | Out-Null
-    $Acl = [System.IO.Directory]::GetAccessControl($Path)
-    foreach ($access in $Acl.Access) { 
-        if ($access.IdentityReference.Value -eq $User)  
+    $acl = Get-Acl -Path $Path
+    foreach ($access in $acl.Access) { 
+        if ($access.IdentityReference.Value -eq $user)  
         { 
-            $Acl.RemoveAccessRule($access) | Out-Null
+            $acl.RemoveAccessRule($access) | Out-Null
         }
     } 
-    [System.IO.Directory]::SetAccessControl($Path, $Acl)  
+    Set-Acl -Path $Path -AclObject $acl
 }
 
 Export-ModuleMember -Function Install-SecurityDaemon, Uninstall-SecurityDaemon
