@@ -224,7 +224,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 
             // Task<IAuthenticator>
             builder.Register(async c =>
-                {                    
+                {
                     IAuthenticator tokenAuthenticator;
                     IAuthenticator certificateAuthenticator;
                     IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
@@ -239,12 +239,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             break;
 
                         case AuthenticationMode.Scope:
-                            tokenAuthenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, this.iothubHostName, this.edgeDeviceHostName, new NullAuthenticator());
+                            tokenAuthenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, this.iothubHostName, this.edgeDeviceHostName, new NullAuthenticator(), true, true);
                             break;
 
                         default:
                             IAuthenticator cloudTokenAuthenticator = await this.GetCloudTokenAuthenticator(c);
-                            tokenAuthenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, this.iothubHostName, this.edgeDeviceHostName, cloudTokenAuthenticator);
+                            tokenAuthenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, this.iothubHostName, this.edgeDeviceHostName, cloudTokenAuthenticator, true, true);
                             break;
                     }
 

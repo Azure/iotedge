@@ -17,7 +17,7 @@ jobs:
         displayName: Clean package list
         inputs:
           targetType: inline
-          script: apt-get clean && rm -r /var/lib/apt/lists/*
+          script: sudo apt-get clean && sudo rm -r /var/lib/apt/lists/*
       - task: Bash@3
         displayName: Install dependencies
         inputs:
