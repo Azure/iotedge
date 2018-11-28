@@ -12,7 +12,6 @@
 extern crate bytes;
 extern crate chrono;
 extern crate edgelet_core;
-#[macro_use]
 extern crate failure;
 extern crate hsm;
 
