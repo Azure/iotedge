@@ -149,14 +149,14 @@ mod tests {
 
     #[test]
     fn url_path() {
-        let url = Uri::new("npipe://./pipe/docker_engine", "/containers/json?all=true").unwrap();
+        let url = Uri::new("npipe://./pipe/boo", "/containers/json?all=true").unwrap();
         assert_eq!(url.url.path(), "/containers/json");
         assert_eq!(url.url.query(), Some("all=true"));
     }
 
     #[test]
     fn hyper_uri() {
-        let uri: HyperUri = Uri::new("npipe://./pipe/docker_engine", "/containers/json?all=true")
+        let uri: HyperUri = Uri::new("npipe://./pipe/boo", "/containers/json?all=true")
             .unwrap()
             .into();
         let expected =

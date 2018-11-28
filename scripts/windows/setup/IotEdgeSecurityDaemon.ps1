@@ -322,7 +322,7 @@ function Get-SecurityDaemon {
 
             Write-Host 'Downloading the latest version of Moby runtime...'
             New-Item -Type Directory $MobyInstallDirectory | Out-Null
-            Remove-Permissions $MobyInstallDirectory
+            Remove-BuiltinWritePermissions $MobyInstallDirectory
             Invoke-WebRequest `
                 -Uri 'https://aka.ms/iotedge-moby-engine-win-amd64-latest' `
                 -OutFile $mobyRuntimeArchivePath `
@@ -332,7 +332,7 @@ function Get-SecurityDaemon {
             Expand-Archive $mobyRuntimeArchivePath $MobyInstallDirectory -Force
 
             New-Item -Type Directory $MobyDataRootDirectory | Out-Null
-            Remove-Permissions $MobyDataRootDirectory
+            Remove-BuiltinWritePermissions $MobyDataRootDirectory
 
             if ($WithMobyCli) {
                 Write-Host 'Downloading the latest version of Moby CLI...'
@@ -368,7 +368,7 @@ function Get-SecurityDaemon {
             Copy-Item "$EdgeInstallDirectory\iotedged-windows\*" $EdgeInstallDirectory -Force -Recurse
         }
 
-        Remove-Permissions $EdgeInstallDirectory
+        Remove-BuiltinWritePermissions $EdgeInstallDirectory
 
         foreach ($name in 'mgmt', 'workload') {
             # We can't bind socket files directly in Windows, so create a folder
@@ -386,7 +386,7 @@ function Get-SecurityDaemon {
 
         New-Item -Type Directory $EdgeEventLogInstallDirectory -ErrorAction SilentlyContinue -ErrorVariable cmdErr | Out-Null
         if ($? -or ($cmdErr.FullyQualifiedErrorId -eq 'DirectoryExist,Microsoft.PowerShell.Commands.NewItemCommand')) {
-            Remove-Permissions $EdgeEventLogInstallDirectory
+            Remove-BuiltinWritePermissions $EdgeEventLogInstallDirectory
             Move-Item `
                 "$EdgeInstallDirectory\iotedged_eventlog_messages.dll" `
                 "$EdgeEventLogInstallDirectory\iotedged_eventlog_messages.dll" `
@@ -866,16 +866,21 @@ function Write-HostRed {
     Write-Host -ForegroundColor Red @args
 }
 
-function Remove-Permissions([string] $Path) {
+function Remove-BuiltinWritePermissions([string] $Path) {
     $user = 'BUILTIN\Users'
     Write-Verbose  "Remove $user permission to $Path"
     Invoke-Native "icacls ""$Path"" /inheritance:d"
     
     $acl = Get-Acl -Path $Path
-    foreach ($access in $acl.Access) { 
-        if ($access.IdentityReference.Value -eq $user)  
-        { 
-            $acl.RemoveAccessRule($access) | Out-Null
+    foreach ($access in $acl.Access) {
+        $write = [System.Security.AccessControl.FileSystemRights]::Write
+        if ($access.IdentityReference.Value -eq $user -and
+            $access.AccessControlType -eq 'Allow' -and
+            ($access.FileSystemRights -band $write) -eq $write)
+        {
+            $rule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule(`
+                $user, 'Write', $access.InheritanceFlags, $access.PropagationFlags, 'Allow')
+            $acl.RemoveAccessRule($rule) | Out-Null
         }
     } 
     Set-Acl -Path $Path -AclObject $acl

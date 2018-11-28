@@ -163,5 +163,5 @@ homedir: "C:\\ProgramData\\iotedge"
 ###############################################################################
 
 moby_runtime:
-  uri: "npipe://./pipe/docker_engine"
+  uri: "npipe://./pipe/iotedge_moby_engine"
 #   network: "nat"
