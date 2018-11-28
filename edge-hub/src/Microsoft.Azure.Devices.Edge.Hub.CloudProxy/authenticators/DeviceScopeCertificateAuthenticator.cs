@@ -103,7 +103,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             {
                 result = CertificateHelper.ValidateClientCert(certificateCredentials.ClientCertificate,
                                                               certificateCredentials.ClientCertificateChain,
-                                                              Option.None<IList<X509Certificate2>>(), Events.Log);
+                                                              Option.None<IList<X509Certificate2>>(),
+                                                              Events.Log);
                 if (!result)
                 {
                     Events.InvalidCertificate(serviceIdentity.Id, certificateCredentials);
@@ -111,12 +112,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
                 else
                 {
                     result = serviceIdentity.Authentication.X509Thumbprint.Map(
-                    t =>
+                        t =>
+                        {
+                            List<string> thumbprints = new List<string>() { t.PrimaryThumbprint, t.SecondaryThumbprint };
+                            return CertificateHelper.ValidateCertificateThumbprint(certificateCredentials.ClientCertificate, thumbprints);
+                        })
+                        .GetOrElse(() => throw new InvalidOperationException($"Unable to validate certificate because the service identity has empty thumbprints"));
+                    if (!result)
                     {
-                        List<string> thumbprints = new List<string>() { t.PrimaryThumbprint, t.SecondaryThumbprint };
-                        return CertificateHelper.ValidateCertificateThumbprint(certificateCredentials.ClientCertificate, thumbprints);
-                    }).GetOrElse(() => throw new InvalidOperationException($"Unable to validate certificate because the service identity has empty thumbprints"));
-                    if (!result) Events.ThumbprintMismatch(serviceIdentity.Id);
+                        Events.ThumbprintMismatch(serviceIdentity.Id);
+                    }
                 }
             }
             else if (serviceIdentity.Authentication.Type == ServiceAuthenticationType.CertificateAuthority)
@@ -124,22 +129,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
                 if (certificateCredentials.Identity is IModuleIdentity)
                 {
                     result = serviceIdentity.ModuleId.Map(
-                    moduleId =>
+                        moduleId =>
+                        {
+                            return CertificateHelper.ValidateIotHubSanUri(certificateCredentials.ClientCertificate,
+                                                                          iothubHostName,
+                                                                          serviceIdentity.DeviceId,
+                                                                          moduleId);
+                        })
+                        .GetOrElse(() => throw new InvalidOperationException($"Unable to validate certificate because the service identity is not a module"));
+                    if (!result)
                     {
-                        return CertificateHelper.ValidateSanUri(certificateCredentials.ClientCertificate, iothubHostName,
-                                                                serviceIdentity.DeviceId, moduleId);
-                    }).GetOrElse(() => throw new InvalidOperationException($"Unable to validate certificate because the service identity is not a module"));
-                    if (!result) Events.InvalidCertificateUri(serviceIdentity.Id, certificateCredentials);
+                        Events.InvalidCertificateUri(serviceIdentity.Id, certificateCredentials);
+                    }
                 }
                 else
                 {
                     result = CertificateHelper.ValidateCommonName(certificateCredentials.ClientCertificate, serviceIdentity.DeviceId);
-                    if (!result) Events.InvalidCommonName(serviceIdentity.Id);
+                    if (!result)
+                    {
+                        Events.InvalidCommonName(serviceIdentity.Id);
+                    }
                 }
 
                 if (result && (!CertificateHelper.ValidateClientCert(certificateCredentials.ClientCertificate,
-                                                                    certificateCredentials.ClientCertificateChain,
-                                                                    Option.Some(this.trustBundle), Events.Log)))
+                                                                     certificateCredentials.ClientCertificateChain,
+                                                                     Option.Some(this.trustBundle),
+                                                                     Events.Log)))
                 {
                     Events.InvalidCertificate(serviceIdentity.Id, certificateCredentials);
                     result = false;
@@ -169,54 +184,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
                 ServiceIdentityNotEnabled,
                 ServiceIdentityNotFound,
                 AuthenticatedInScope,
-                InvalidCertificateURI,
-                
+                InvalidCertificateURI
             }
 
-            public static void UnsupportedClientIdentityType(string id)
-            {
-                Log.LogWarning((int)EventIds.UnsupportedClientIdentityType, $"Error authenticating {id} using X.509 certificates since this is identity type is unsupported.");
-            }
+            public static void UnsupportedClientIdentityType(string id) => Log.LogWarning((int)EventIds.UnsupportedClientIdentityType, $"Error authenticating {id} using X.509 certificates since this is identity type is unsupported.");
 
-            public static void ThumbprintMismatch(string id)
-            {
-                Log.LogWarning((int)EventIds.ThumbprintMismatch, $"Error authenticating certificate for {id} because the certificate thumbprint did not match the primary or the secondary thumbprints.");
-            }
+            public static void ThumbprintMismatch(string id) => Log.LogWarning((int)EventIds.ThumbprintMismatch, $"Error authenticating certificate for {id} because the certificate thumbprint did not match the primary or the secondary thumbprints.");
 
-            public static void InvalidCommonName(string id)
-            {
-                Log.LogWarning((int)EventIds.InvalidCommonName, $"Error authenticating certificate for id {id} because the certificate common name (CN) did not match the id");
-            }
+            public static void InvalidCommonName(string id) => Log.LogWarning((int)EventIds.InvalidCommonName, $"Error authenticating certificate for id {id} because the certificate common name (CN) did not match the id");
 
-            public static void InvalidCertificate(string id, ICertificateCredentials certificateCredentials)
-            {
-                Log.LogWarning((int)EventIds.InvalidServiceIdentityType, $"Invalid certificate with subject {certificateCredentials.ClientCertificate.Subject} for {id}");
-            }
+            public static void InvalidCertificate(string id, ICertificateCredentials certificateCredentials) => Log.LogWarning((int)EventIds.InvalidServiceIdentityType, $"Invalid certificate with subject {certificateCredentials.ClientCertificate.Subject} for {id}");
 
-            public static void InvalidCertificateUri(string id, ICertificateCredentials certificateCredentials)
-            {
-                Log.LogWarning((int)EventIds.InvalidServiceIdentityType, $"Certificate for id {id} with subject {certificateCredentials.ClientCertificate.Subject} does not contain the module URI");
-            }
-            
-            public static void InvalidServiceIdentityType(ServiceIdentity serviceIdentity)
-            {
-                Log.LogWarning((int)EventIds.InvalidServiceIdentityType, $"Error authenticating token for {serviceIdentity.Id} because the service identity authentication type is unexpected - {serviceIdentity.Authentication.Type}");
-            }
+            public static void InvalidCertificateUri(string id, ICertificateCredentials certificateCredentials) => Log.LogWarning((int)EventIds.InvalidServiceIdentityType, $"Certificate for id {id} with subject {certificateCredentials.ClientCertificate.Subject} does not contain the module URI");
 
-            public static void ErrorAuthenticating(Exception exception, IClientCredentials credentials)
-            {
-                Log.LogWarning((int)EventIds.ErrorAuthenticating, exception, $"Error authenticating credentials for {credentials.Identity.Id}");
-            }
+            public static void InvalidServiceIdentityType(ServiceIdentity serviceIdentity) => Log.LogWarning((int)EventIds.InvalidServiceIdentityType, $"Error authenticating token for {serviceIdentity.Id} because the service identity authentication type is unexpected - {serviceIdentity.Authentication.Type}");
 
-            public static void ServiceIdentityNotEnabled(ServiceIdentity serviceIdentity)
-            {
-                Log.LogWarning((int)EventIds.ServiceIdentityNotEnabled, $"Error authenticating token for {serviceIdentity.Id} because the service identity is not enabled");
-            }
+            public static void ErrorAuthenticating(Exception exception, IClientCredentials credentials) => Log.LogWarning((int)EventIds.ErrorAuthenticating, exception, $"Error authenticating credentials for {credentials.Identity.Id}");
 
-            public static void ServiceIdentityNotFound(IIdentity identity)
-            {
-                Log.LogDebug((int)EventIds.ServiceIdentityNotFound, $"Service identity for {identity.Id} not found. Using underlying authenticator to authenticate");
-            }
+            public static void ServiceIdentityNotEnabled(ServiceIdentity serviceIdentity) => Log.LogWarning((int)EventIds.ServiceIdentityNotEnabled, $"Error authenticating token for {serviceIdentity.Id} because the service identity is not enabled");
+
+            public static void ServiceIdentityNotFound(IIdentity identity) => Log.LogDebug((int)EventIds.ServiceIdentityNotFound, $"Service identity for {identity.Id} not found. Using underlying authenticator to authenticate");
 
             public static void AuthenticatedInScope(IIdentity identity, bool isAuthenticated)
             {

@@ -21,16 +21,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         readonly IAuthenticator authenticator;
         readonly IClientCredentialsFactory clientCredentialsFactory;
         readonly bool clientCertAuthAllowed;
-        X509Certificate2 remoteCertificate;
-        IList<X509Certificate2> remoteCertificateChain;
+        Option<X509Certificate2> remoteCertificate;
+        Option<IList<X509Certificate2>> remoteCertificateChain;
 
         public DeviceIdentityProvider(IAuthenticator authenticator, IClientCredentialsFactory clientCredentialsFactory, bool clientCertAuthAllowed)
         {
             this.authenticator = authenticator;
             this.clientCredentialsFactory = clientCredentialsFactory;
             this.clientCertAuthAllowed = clientCertAuthAllowed;
-            this.remoteCertificate = null;
-            this.remoteCertificateChain = null;
+            this.remoteCertificate = Option.None<X509Certificate2>();
+            this.remoteCertificateChain = Option.None<IList<X509Certificate2>>();
         }
 
         public async Task<IDeviceIdentity> GetAsync(string clientId, string username, string password, EndPoint clientAddress)
@@ -43,12 +43,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 (string deviceId, string moduleId, string deviceClientType) = ParseUserName(username);
                 IClientCredentials deviceCredentials;
 
-                if (password == null && this.clientCertAuthAllowed && this.remoteCertificate != null)
+                if (password == null && this.clientCertAuthAllowed)
                 {
-                    deviceCredentials = this.clientCredentialsFactory.GetWithX509Cert(
-                        deviceId,
-                        moduleId,
-                        deviceClientType, this.remoteCertificate, this.remoteCertificateChain);
+                    deviceCredentials = this.remoteCertificate.Map(cert =>
+                    {
+                        return this.clientCredentialsFactory.GetWithX509Cert(deviceId,
+                                                                             moduleId,
+                                                                             deviceClientType,
+                                                                             cert,
+                                                                             this.remoteCertificateChain.GetOrElse(new List<X509Certificate2>()));
+                    }).GetOrElse(() => throw new InvalidOperationException($"Unable to validate credientials since no certificate was provided and password is null"));
                 }
                 else
                 {
@@ -74,17 +78,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public bool RemoteCertificateValidationCallback(X509Certificate certificate, X509Chain chain)
         {
-            this.remoteCertificate = certificate == null ? null : new X509Certificate2(certificate);
-            this.remoteCertificateChain = chain == null ? new List<X509Certificate2>() :
-                                           chain.ChainElements.Cast<X509ChainElement>().Select(element => element.Certificate).ToList();
+            if (certificate != null)
+            {
+                this.remoteCertificate = Option.Some(new X509Certificate2(certificate));
+            }
+            IList<X509Certificate2> list = chain == null ? new List<X509Certificate2>() :
+                                                           chain.ChainElements.Cast<X509ChainElement>().Select(element => element.Certificate).ToList();
+            this.remoteCertificateChain = Option.Some(list);
 
             return true; // real validation in GetAsync above
         }
 
         public bool RemoteCertificateValidationCallback(X509Certificate2 certificate, IList<X509Certificate2> chain)
         {
-            this.remoteCertificate = certificate == null ? null : new X509Certificate2(certificate);
-            this.remoteCertificateChain = chain == null ? new List<X509Certificate2>() : chain.ToList();
+            if (certificate != null)
+            {
+                this.remoteCertificate = Option.Some(certificate);
+            }
+            IList<X509Certificate2> list = chain ?? new List<X509Certificate2>();
+            this.remoteCertificateChain = Option.Some(list);
 
             return true; // real validation in GetAsync above
         }
@@ -216,15 +228,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 CreateFailure
             }
 
-            public static void Success(string clientId, string username)
-            {
-                Log.LogInformation((int)EventIds.CreateSuccess, Invariant($"Successfully generated identity for clientId {clientId} and username {username}"));
-            }
+            public static void Success(string clientId, string username) => Log.LogInformation((int)EventIds.CreateSuccess, Invariant($"Successfully generated identity for clientId {clientId} and username {username}"));
 
-            public static void Error(string clientId, string username)
-            {
-                Log.LogError((int)EventIds.CreateFailure, Invariant($"Unable to generate identity for clientId {clientId} and username {username}"));
-            }
+            public static void Error(string clientId, string username) => Log.LogError((int)EventIds.CreateFailure, Invariant($"Unable to generate identity for clientId {clientId} and username {username}"));
         }
     }
 }

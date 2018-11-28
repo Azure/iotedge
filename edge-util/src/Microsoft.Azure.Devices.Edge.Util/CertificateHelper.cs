@@ -21,6 +21,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
     public static class CertificateHelper
     {
+        public const string IotHubModuleCertificateUriScheme = "azureiot";
+
         public static string GetSha256Thumbprint(X509Certificate2 cert)
         {
             Preconditions.CheckNotNull(cert);
@@ -95,43 +97,43 @@ namespace Microsoft.Azure.Devices.Edge.Util
             Preconditions.CheckNotNull(remoteCertificateChain);
             Preconditions.CheckNotNull(trustedCACerts);
 
-            bool match = false;
-
             (IList<X509Certificate2> remoteCerts, Option<string> errors) = BuildCertificateList(remoteCertificate, Option.Some(remoteCertificateChain));
             if (errors.HasValue)
             {
                 return (false, errors);
             }
 
-            if (trustedCACerts.HasValue)
-            {
-                var caList = trustedCACerts.GetOrElse(new List<X509Certificate2>());
-                foreach (X509Certificate2 chainElement in remoteCerts)
+            (bool, Option<string>) result = trustedCACerts.Map(
+                caList =>
                 {
-                    string thumbprint = GetSha256Thumbprint(chainElement);
-                    if (remoteCertificateChain.Any(cert => GetSha256Thumbprint(cert) == thumbprint) &&
-                        caList.Any(cert => GetSha256Thumbprint(cert) == thumbprint))
+                    bool match = false;
+                    foreach (X509Certificate2 chainElement in remoteCerts)
                     {
-                        match = true;
-                        break;
+                        string thumbprint = GetSha256Thumbprint(chainElement);
+                        if (remoteCertificateChain.Any(cert => GetSha256Thumbprint(cert) == thumbprint) &&
+                            caList.Any(cert => GetSha256Thumbprint(cert) == thumbprint))
+                        {
+                            match = true;
+                            break;
+                        }
                     }
-                }
-                if (!match)
-                {
-                    return (false, Option.Some($"Error validating cert with Subject: {remoteCertificate.SubjectName} Thumbprint: {GetSha256Thumbprint(remoteCertificate)}"));
-                }
-                else
-                {
-                    return (true, Option.None<string>());
-                }
-            }
+                    if (!match)
+                    {
+                        return (false, Option.Some($"Error validating cert with Subject: {remoteCertificate.SubjectName} Thumbprint: {GetSha256Thumbprint(remoteCertificate)}"));
+                    }
+                    else
+                    {
+                        return (true, Option.None<string>());
+                    }
+                })
+                .GetOrElse(() => { return (true, Option.None<string>()); });
 
-            return (true, Option.None<string>());
+            return result;
         }
 
-        public static string GetCommonNameFromSubject(string subject)
+        static Option<string> GetCommonNameFromSubject(string subject)
         {
-            string commonName = null;
+            var commonName = Option.None<string>();
             string[] parts = subject.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
 
             foreach (var part in parts)
@@ -142,7 +144,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                     string[] cnParts = partTrimed.Split(new char[] { '=' }, StringSplitOptions.RemoveEmptyEntries);
                     if (cnParts.Length > 1)
                     {
-                        commonName = cnParts[1].Trim();
+                        commonName = Option.Some(cnParts[1].Trim());
                     }
                 }
             }
@@ -155,7 +157,12 @@ namespace Microsoft.Azure.Devices.Edge.Util
             Preconditions.CheckNotNull(certificate);
             Preconditions.CheckNotNull(commonName);
 
-            return String.Equals(commonName, GetCommonNameFromSubject(certificate.Subject), StringComparison.Ordinal);
+            return GetCommonNameFromSubject(certificate.Subject).Map(
+                subject =>
+                {
+                    return String.Equals(commonName, subject, StringComparison.Ordinal);
+                })
+                .GetOrElse(() => { return false; });
         }
 
         public static bool ValidateCertificateThumbprint(X509Certificate2 certificate, IList<string> thumbprints)
@@ -163,7 +170,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             Preconditions.CheckNotNull(certificate);
             Preconditions.CheckNotNull(thumbprints);
 
-            return thumbprints.Any(th => th.ToLower() == certificate.Thumbprint.ToLower());
+            return thumbprints.Any(th => certificate.Thumbprint.Equals(th, StringComparison.OrdinalIgnoreCase));
         }
 
         public static bool ValidateClientCert(X509Certificate certificate, X509Chain chain, Option<IList<X509Certificate2>> trustedCACerts, ILogger logger)
@@ -191,11 +198,14 @@ namespace Microsoft.Azure.Devices.Edge.Util
             // a CA.  If the cA boolean is not asserted, then the keyCertSign bit in
             // the key usage extension MUST NOT be asserted.
             var basicConstraints = certificate.Extensions.OfType<X509BasicConstraintsExtension>();
-            foreach (X509BasicConstraintsExtension extension in basicConstraints)
+            if (basicConstraints != null)
             {
-                if (extension.CertificateAuthority)
+                foreach (X509BasicConstraintsExtension extension in basicConstraints)
                 {
-                    return true;
+                    if (extension.CertificateAuthority)
+                    {
+                        return true;
+                    }
                 }
             }
 
@@ -213,54 +223,25 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
             if (certificate.NotAfter < currentTime)
             {
-                logger.LogWarning($"Certificate with subject: {certificate.Subject} has expired");
+                logger.LogWarning($"Certificate with subject: {certificate.Subject} has expired on UTC time: {certificate.NotAfter.ToString("MM-dd-yyyy H:mm:ss")}");
                 return false;
             }
 
             if (certificate.NotBefore > currentTime)
             {
-                logger.LogWarning($"Certificate with subject: {certificate.Subject} is not valid");
+                logger.LogWarning($"Certificate with subject: {certificate.Subject} is not valid until UTC time: {certificate.NotBefore.ToString("MM-dd-yyyy H:mm:ss")}");
                 return false;
             }
 
             if (IsCACertificate(certificate))
             {
-                logger.LogWarning($"Client certificate with basic constraints as TRUE is not permitted");
+                logger.LogWarning($"Certificate with subject: {certificate.Subject} was found to be a CA certificate, this is not permitted per the authentication policy");
                 return false;
             }
 
             bool result = false;
             Option<string> errors = Option.None<string>();
             (result, errors) = ValidateCert(certificate, certificateChain, trustedCACerts);
-            if (errors.HasValue)
-            {
-                errors.ForEach(v => logger.LogWarning(v));
-            }
-
-            return result;
-        }
-
-        public static bool ValidateClientCertCAChain(X509Certificate certificate, X509Chain chain, IList<X509Certificate2> trustedCACerts, ILogger logger)
-        {
-            Preconditions.CheckNotNull(certificate);
-            Preconditions.CheckNotNull(chain);
-            Preconditions.CheckNotNull(logger);
-
-            X509Certificate2 remoteCertificate = new X509Certificate2(certificate);
-            IList<X509Certificate2> remoteCertificateChain = GetCertificatesFromChain(chain);
-            return ValidateClientCertCAChain(remoteCertificate, remoteCertificateChain, trustedCACerts, logger);
-        }
-
-        public static bool ValidateClientCertCAChain(X509Certificate2 certificate, IList<X509Certificate2> chain, IList<X509Certificate2> trustedCACerts, ILogger logger)
-        {
-            Preconditions.CheckNotNull(certificate);
-            Preconditions.CheckNotNull(chain);
-            Preconditions.CheckNotNull(trustedCACerts);
-            Preconditions.CheckNotNull(logger);
-
-            bool result = false;
-            Option<string> errors = Option.None<string>();
-            (result, errors) = ValidateCert(certificate, chain, Option.Some(trustedCACerts));
             if (errors.HasValue)
             {
                 errors.ForEach(v => logger.LogWarning(v));
@@ -287,10 +268,9 @@ namespace Microsoft.Azure.Devices.Edge.Util
            return sanList;
         }
 
-        public static bool ValidateSanUri(X509Certificate2 certificate, string iothubHostName, string deviceId, string moduleId)
+        public static bool ValidateIotHubSanUri(X509Certificate2 certificate, string iothubHostName, string deviceId, string moduleId)
         {
-            string scheme = "azureiot";
-            string uri = string.Format($"{scheme}://{iothubHostName}/devices/{deviceId}/modules/{moduleId}");
+            string uri = string.Format($"{IotHubModuleCertificateUriScheme}://{iothubHostName}/devices/{deviceId}/modules/{moduleId}");
             var sanList = ParseSanUris(certificate);
             return sanList.Contains(uri);
         }
@@ -321,13 +301,11 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
         }
 
-        public static IEnumerable<X509Certificate2> GetCertificatesFromPem(IEnumerable<string> rawPemCerts)
-        {
-            return rawPemCerts
+        public static IEnumerable<X509Certificate2> GetCertificatesFromPem(IEnumerable<string> rawPemCerts) =>
+            rawPemCerts
                 .Select(c => System.Text.Encoding.UTF8.GetBytes(c))
                 .Select(c => new X509Certificate2(c))
                 .ToList();
-        }
 
         public static async Task<(X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain)> GetServerCertificatesFromEdgelet(Uri workloadUri, string workloadApiVersion, string moduleId, string moduleGenerationId, string edgeHubHostname, DateTime expiration)
         {

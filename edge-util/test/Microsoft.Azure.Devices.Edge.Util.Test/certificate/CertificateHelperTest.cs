@@ -409,7 +409,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
             var sans = TestCertificateHelper.PrepareSanEntries(uris, dnsNames);
             var (clientCert, clientKeyPair) = TestCertificateHelper.GenerateCertificate("MyTestClient", notBefore, notAfter, null, null, false, sans);
 
-            Assert.False(CertificateHelper.ValidateSanUri(clientCert, hub, deviceId, moduleId));
+            Assert.False(CertificateHelper.ValidateIotHubSanUri(clientCert, hub, deviceId, moduleId));
         }
 
         [Fact]
@@ -425,7 +425,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
             var sans = TestCertificateHelper.PrepareSanEntries(uris, dnsNames);
             var (clientCert, clientKeyPair) = TestCertificateHelper.GenerateCertificate("MyTestClient", notBefore, notAfter, null, null, false, sans);
 
-            Assert.True(CertificateHelper.ValidateSanUri(clientCert, hub, deviceId, moduleId));
+            Assert.True(CertificateHelper.ValidateIotHubSanUri(clientCert, hub, deviceId, moduleId));
         }
     }
 }

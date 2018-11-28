@@ -163,7 +163,7 @@ U7JoTvzy0x7VG98T0+y68IcyjsSIPQ==
             if (issuer != null)
             {
                 certGenerator.SetIssuerDN(new X509Name(issuer.Subject));
-                Org.BouncyCastle.X509.X509Certificate issuerCert = DotNetUtilities.FromX509Certificate(issuer);
+                var issuerCert = DotNetUtilities.FromX509Certificate(issuer);
                 certGenerator.AddExtension(X509Extensions.AuthorityKeyIdentifier, false, new AuthorityKeyIdentifierStructure(issuerCert));
             }
             else
