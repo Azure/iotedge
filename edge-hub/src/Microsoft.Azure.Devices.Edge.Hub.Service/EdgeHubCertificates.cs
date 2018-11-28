@@ -50,6 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 string moduleId = configuration.GetValue<string>(Constants.ConfigKey.ModuleId);
                 string generationId = configuration.GetValue<string>(Constants.ConfigKey.ModuleGenerationId);
                 DateTime expiration = DateTime.UtcNow.AddDays(Constants.CertificateValidityDays);
+
                 certificates = await CertificateHelper.GetServerCertificatesFromEdgelet(workloadUri, Constants.WorkloadApiVersion, moduleId, generationId, edgeHubHostname, expiration);
                 InstallCertificates(certificates.CertificateChain);
                 IEnumerable<X509Certificate2> trustBundle = await CertificateHelper.GetTrustBundleFromEdgelet(workloadUri, Constants.WorkloadApiVersion, moduleId, generationId);
@@ -95,12 +96,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             string message;
             if (certificateChain != null)
             {
-                message = "Found intermediate certificates.";
+                X509Certificate2[] certs = certificateChain.ToArray();
+                message = $"Found intermediate certificates: {string.Join(",", certs.Select(c => $"[{c.Subject}:{c.GetExpirationDateString()}]"))}";
 
                 CertificateHelper.InstallCerts(
                     RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? StoreName.CertificateAuthority : StoreName.Root,
                     StoreLocation.CurrentUser,
-                    certificateChain);
+                    certs);
             }
             else
             {
