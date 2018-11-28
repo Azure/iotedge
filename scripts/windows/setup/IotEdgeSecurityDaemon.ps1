@@ -868,7 +868,7 @@ function Write-HostRed {
 
 function Remove-Permissions([string] $Path) {
     $user = 'BUILTIN\Users'
-    Write-Verbose  "Remove $User permission to $Path"
+    Write-Verbose  "Remove $user permission to $Path"
     Invoke-Native "icacls ""$Path"" /inheritance:d"
     
     $acl = Get-Acl -Path $Path
