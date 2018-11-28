@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
+
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
 {
     using System;
     using System.Net;
-    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Common.Data;
     using Microsoft.Azure.Devices.Common.Security;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -13,102 +13,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public class DeviceScopeTokenAuthenticator : IAuthenticator
+    public class DeviceScopeTokenAuthenticator : DeviceScopeAuthenticator<ITokenCredentials>
     {
-        readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
         readonly string iothubHostName;
         readonly string edgeHubHostName;
-        readonly IAuthenticator underlyingAuthenticator;
 
         public DeviceScopeTokenAuthenticator(
             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache,
             string iothubHostName,
             string edgeHubHostName,
-            IAuthenticator underlyingAuthenticator)
+            IAuthenticator underlyingAuthenticator,
+            bool allowDeviceAuthForModule,
+            bool syncServiceIdentityOnFailure)
+            :
+            base(deviceScopeIdentitiesCache, underlyingAuthenticator, allowDeviceAuthForModule, syncServiceIdentityOnFailure)
         {
-            this.underlyingAuthenticator = Preconditions.CheckNotNull(underlyingAuthenticator, nameof(underlyingAuthenticator));
-            this.deviceScopeIdentitiesCache = Preconditions.CheckNotNull(deviceScopeIdentitiesCache, nameof(deviceScopeIdentitiesCache));
             this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
-            this.edgeHubHostName = Preconditions.CheckNotNull(edgeHubHostName, nameof(edgeHubHostName));
+            this.edgeHubHostName = Preconditions.CheckNonWhiteSpace(edgeHubHostName, nameof(edgeHubHostName));
         }
 
-        public async Task<bool> AuthenticateAsync(IClientCredentials clientCredentials)
-        {
-            if (!(clientCredentials is ITokenCredentials tokenCredentials))
-            {
-                return false;
-            }
+        protected override bool AreInputCredentialsValid(ITokenCredentials credentials) => this.TryGetSharedAccessSignature(credentials.Token, credentials.Identity, out SharedAccessSignature _);
 
-            Option<ServiceIdentity> serviceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(clientCredentials.Identity.Id, true);
-            if (serviceIdentity.HasValue)
-            {
-                try
-                {
-                    bool isAuthenticated = await serviceIdentity
-                        .Map(s => this.AuthenticateInternalAsync(tokenCredentials, s))
-                        .GetOrElse(Task.FromResult(false));
-                    Events.AuthenticatedInScope(clientCredentials.Identity, isAuthenticated);
-                    return isAuthenticated;
-                }
-                catch (Exception e)
-                {
-                    Events.ErrorAuthenticating(e, clientCredentials);
-                    return await this.underlyingAuthenticator.AuthenticateAsync(clientCredentials);
-                }
-            }
-            else
-            {
-                Events.ServiceIdentityNotFound(clientCredentials.Identity);
-                return await this.underlyingAuthenticator.AuthenticateAsync(clientCredentials);
-            }
-        }
-
-        public async Task<bool> ReauthenticateAsync(IClientCredentials clientCredentials)
-        {
-            if (!(clientCredentials is ITokenCredentials tokenCredentials))
-            {
-                return false;
-            }
-
-            Option<ServiceIdentity> serviceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(clientCredentials.Identity.Id);
-            if (serviceIdentity.HasValue)
-            {
-                try
-                {
-                    bool isAuthenticated = await serviceIdentity.Map(s => this.AuthenticateInternalAsync(tokenCredentials, s)).GetOrElse(Task.FromResult(false));
-                    Events.ReauthenticatedInScope(clientCredentials.Identity, isAuthenticated);
-                    return isAuthenticated;
-                }
-                catch (Exception e)
-                {
-                    Events.ErrorAuthenticating(e, clientCredentials);
-                    return await this.underlyingAuthenticator.ReauthenticateAsync(clientCredentials);
-                }
-            }
-            else
-            {
-                Events.ServiceIdentityNotFound(clientCredentials.Identity);
-                return await this.underlyingAuthenticator.ReauthenticateAsync(clientCredentials);
-            }
-        }
-
-        async Task<bool> AuthenticateInternalAsync(ITokenCredentials tokenCredentials, ServiceIdentity serviceIdentity)
-        {
-            if (!this.TryGetSharedAccessSignature(tokenCredentials.Token, tokenCredentials.Identity, out SharedAccessSignature sharedAccessSignature))
-            {
-                return false;
-            }
-
-            bool result = this.ValidateCredentials(sharedAccessSignature, serviceIdentity, tokenCredentials.Identity);
-            if (!result && tokenCredentials.Identity is IModuleIdentity moduleIdentity && serviceIdentity.IsModule)
-            {
-                // Module can use the Device key to authenticate
-                Option<ServiceIdentity> deviceServiceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(moduleIdentity.DeviceId);
-                result = await deviceServiceIdentity.Map(d => this.AuthenticateInternalAsync(tokenCredentials, d))
-                    .GetOrElse(Task.FromResult(false));
-            }
-            return result;
-        }
+        protected override bool ValidateWithServiceIdentity(ServiceIdentity serviceIdentity, ITokenCredentials credentials) =>
+            this.TryGetSharedAccessSignature(credentials.Token, credentials.Identity, out SharedAccessSignature sharedAccessSignature)
+                ? this.ValidateCredentials(sharedAccessSignature, serviceIdentity, credentials.Identity)
+                : false;
 
         bool TryGetSharedAccessSignature(string token, IIdentity identity, out SharedAccessSignature sharedAccessSignature)
         {
@@ -156,25 +85,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             }
 
             return serviceIdentity.Authentication.SymmetricKey.Map(
-                s =>
-                {
-                    var rule = new SharedAccessSignatureAuthorizationRule
+                    s =>
                     {
-                        PrimaryKey = s.PrimaryKey,
-                        SecondaryKey = s.SecondaryKey
-                    };
+                        var rule = new SharedAccessSignatureAuthorizationRule
+                        {
+                            PrimaryKey = s.PrimaryKey,
+                            SecondaryKey = s.SecondaryKey
+                        };
 
-                    try
-                    {
-                        sharedAccessSignature.Authenticate(rule);
-                        return true;
-                    }
-                    catch (UnauthorizedAccessException e)
-                    {
-                        Events.KeysMismatch(serviceIdentity.Id, e);
-                        return false;
-                    }
-                })
+                        try
+                        {
+                            sharedAccessSignature.Authenticate(rule);
+                            return true;
+                        }
+                        catch (UnauthorizedAccessException e)
+                        {
+                            Events.KeysMismatch(serviceIdentity.Id, e);
+                            return false;
+                        }
+                    })
                 .GetOrElse(() => throw new InvalidOperationException($"Unable to validate token because the service identity has empty symmetric keys"));
         }
 
@@ -246,23 +175,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
 
             enum EventIds
             {
-                ErrorReauthenticating = IdStart,
-                InvalidHostName,
+                InvalidHostName = IdStart,
                 InvalidAudience,
                 IdMismatch,
                 KeysMismatch,
                 InvalidServiceIdentityType,
-                ErrorAuthenticating,
                 ServiceIdentityNotEnabled,
                 TokenExpired,
-                ErrorParsingToken,
-                ServiceIdentityNotFound,
-                AuthenticatedInScope
-            }
-
-            public static void ErrorReauthenticating(Exception exception, ServiceIdentity serviceIdentity)
-            {
-                Log.LogWarning((int)EventIds.ErrorReauthenticating, exception, $"Error re-authenticating {serviceIdentity.Id} after the service identity was updated.");
+                ErrorParsingToken
             }
 
             public static void InvalidHostName(string id, string hostName, string iotHubHostName, string edgeHubHostName)
@@ -290,11 +210,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
                 Log.LogWarning((int)EventIds.InvalidServiceIdentityType, $"Error authenticating token for {serviceIdentity.Id} because the service identity authentication type is unexpected - {serviceIdentity.Authentication.Type}");
             }
 
-            public static void ErrorAuthenticating(Exception exception, IClientCredentials credentials)
-            {
-                Log.LogWarning((int)EventIds.ErrorAuthenticating, exception, $"Error authenticating credentials for {credentials.Identity.Id}");
-            }
-
             public static void ServiceIdentityNotEnabled(ServiceIdentity serviceIdentity)
             {
                 Log.LogWarning((int)EventIds.ServiceIdentityNotEnabled, $"Error authenticating token for {serviceIdentity.Id} because the service identity is not enabled");
@@ -308,23 +223,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             public static void ErrorParsingToken(IIdentity identity, Exception exception)
             {
                 Log.LogWarning((int)EventIds.ErrorParsingToken, exception, $"Error authenticating token for {identity.Id} because the token could not be parsed");
-            }
-
-            public static void ServiceIdentityNotFound(IIdentity identity)
-            {
-                Log.LogDebug((int)EventIds.ServiceIdentityNotFound, $"Service identity for {identity.Id} not found. Using underlying authenticator to authenticate");
-            }
-
-            public static void AuthenticatedInScope(IIdentity identity, bool isAuthenticated)
-            {
-                string authenticated = isAuthenticated ? "authenticated" : "not authenticated";
-                Log.LogInformation((int)EventIds.AuthenticatedInScope, $"Client {identity.Id} in device scope {authenticated} locally.");
-            }
-
-            public static void ReauthenticatedInScope(IIdentity identity, bool isAuthenticated)
-            {
-                string authenticated = isAuthenticated ? "reauthenticated" : "not reauthenticated";
-                Log.LogDebug((int)EventIds.AuthenticatedInScope, $"Client {identity.Id} in device scope {authenticated} locally.");
             }
         }
     }

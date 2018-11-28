@@ -434,7 +434,7 @@ impl fmt::Display for RuntimeOperation {
         match self {
             RuntimeOperation::CreateModule(name) => write!(f, "Could not create module {}", name),
             RuntimeOperation::GetModuleLogs(name) => {
-                write!(f, "Could not get logs of module {}", name)
+                write!(f, "Could not get logs for module {}", name)
             }
             RuntimeOperation::Init => write!(f, "Could not initialize module runtime"),
             RuntimeOperation::ListModules => write!(f, "Could not list modules"),
