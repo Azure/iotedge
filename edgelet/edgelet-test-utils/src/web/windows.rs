@@ -1,118 +1,137 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#[cfg(windows)]
-use std::io::{self, Read, Write};
-use std::str;
-use std::sync::mpsc::Sender;
+use std::ffi::OsString;
+use std::io;
+use std::os::windows::io::{FromRawHandle, IntoRawHandle};
 
-use httparse::{self, Request as HtRequest, Status};
-use mio::{Events, Poll, PollOpt, Ready, Token};
+use futures::{Async, Future, Poll, Stream};
+use hyper::body::Payload;
+use hyper::server::conn::{Connection, Http};
+use hyper::service::{service_fn, NewService, Service};
+use hyper::{Body, Request, Response};
+use mio::Ready;
 use mio_named_pipes::NamedPipe;
+use miow::pipe::NamedPipeBuilder;
+use tokio::reactor::{Handle, PollEvented2};
 
-pub fn run_pipe_server<F>(path: &str, handler: F, ready_channel: &Sender<()>)
+pub fn run_pipe_server<F, R>(
+    addr: OsString,
+    handler: F,
+) -> impl Future<Item = (), Error = io::Error>
 where
-    F: 'static + Fn(&HtRequest, Option<Vec<u8>>) -> String + Send + Sync,
+    F: 'static + Fn(Request<Body>) -> R + Clone + Send + Sync,
+    R: 'static + Future<Item = Response<Body>, Error = io::Error> + Send,
 {
-    let mut server = NamedPipe::new(path).unwrap();
+    let listener = NamedPipe::new(&addr).expect("couldn't create named pipe listener");
+    let handle = Default::default();
+    let io = PollEvented2::new_with_handle(listener, &handle)
+        .expect("couldn't create named pipe listener");
 
-    let poll = Poll::new().unwrap();
-    poll.register(
-        &server,
-        Token(0),
-        Ready::readable() | Ready::writable(),
-        PollOpt::edge(),
-    ).unwrap();
-
-    // signal that the server is ready to run
-    ready_channel.send(()).unwrap();
-
-    // wait for a client to connect
-    match server.connect() {
-        Ok(_) => (),
-        Err(err) => {
-            if err.kind() != io::ErrorKind::WouldBlock {
-                panic!("connect error {:?}", err);
-            }
-        }
+    let serve = Serve {
+        incoming: Incoming { addr, handle, io },
+        new_service: move || service_fn(handler.clone()),
+        protocol: Http::new(),
     };
 
-    let mut events = Events::with_capacity(128);
-    poll.poll(&mut events, None).unwrap();
-
-    wait_readable(&poll, &mut events);
-
-    // read and parse the request
-    let buffer = read_to_end(&mut server);
-    let mut headers = [httparse::EMPTY_HEADER; 16];
-    let (req, size) = parse_req(&mut headers, &buffer);
-
-    let content_length = get_content_length(req.headers);
-
-    // size has length of HTTP header; if there's a content-length header
-    // and its value is greater than zero then try to read the body
-    let mut body = None;
-    if let Some(length) = content_length {
-        if buffer.len() < (size + length) {
-            wait_readable(&poll, &mut events);
-            body = Some(read_to_end(&mut server));
-        }
-    }
-
-    // handle the request and respond
-    let response = handler(&req, body);
-    server.write_all(response.as_bytes()).unwrap();
+    serve.for_each(|connecting| {
+        connecting
+            .then(|connection| {
+                let connection = connection.unwrap();
+                Ok::<_, hyper::Error>(connection)
+            }).flatten()
+            .map_err(|e| {
+                io::Error::new(
+                    io::ErrorKind::Other,
+                    format!("failed to serve connection: {}", e),
+                )
+            })
+    })
 }
 
-fn wait_readable(poll: &Poll, events: &mut Events) {
-    loop {
-        poll.poll(events, None).unwrap();
-        let events = events.iter().collect::<Vec<_>>();
-        if let Some(event) = events.iter().find(|e| e.token() == Token(0)) {
-            if event.readiness().is_readable() {
-                break;
+struct Incoming {
+    addr: OsString,
+    handle: Handle,
+    io: PollEvented2<NamedPipe>,
+}
+
+impl Stream for Incoming {
+    type Item = PollEvented2<NamedPipe>;
+    type Error = io::Error;
+
+    fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
+        match self.io.get_ref().connect() {
+            Ok(()) => {
+                let new_listener = NamedPipeBuilder::new(&self.addr).first(false).create()?;
+                let new_listener =
+                    unsafe { NamedPipe::from_raw_handle(new_listener.into_raw_handle()) };
+                let new_io = PollEvented2::new_with_handle(new_listener, &self.handle)?;
+                let connected_io = std::mem::replace(&mut self.io, new_io);
+                Ok(Async::Ready(Some(connected_io)))
             }
+
+            Err(ref err) if err.kind() == io::ErrorKind::WouldBlock => {
+                self.io.clear_read_ready(Ready::readable())?;
+                Ok(Async::NotReady)
+            }
+
+            Err(err) => Err(err),
         }
     }
 }
 
-fn get_content_length<'a>(headers: &'a [httparse::Header<'a>]) -> Option<usize> {
-    for header in headers {
-        if header.name.eq_ignore_ascii_case("Content-Length") {
-            return Some(str::from_utf8(header.value).unwrap().parse().unwrap());
-        }
-    }
-
-    None
+struct Serve<S> {
+    incoming: Incoming,
+    new_service: S,
+    protocol: Http,
 }
 
-/// Given a type that implements Read, parse an HTTP request from the bytes
-/// read from the source.
-fn parse_req<'a>(
-    headers: &'a mut [httparse::Header<'a>],
-    buffer: &'a [u8],
-) -> (HtRequest<'a, 'a>, usize) {
-    let mut req = HtRequest::new(headers);
-    let res = req.parse(buffer).unwrap();
-    match res {
-        Status::Complete(size) => (req, size),
-        Status::Partial => panic!("Unexpected partial parse of HTTP request"),
+impl<S> Stream for Serve<S>
+where
+    S: NewService<ReqBody = Body>,
+{
+    type Item = Connecting<S::Future>;
+    type Error = <Incoming as Stream>::Error;
+
+    fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
+        match self.incoming.poll()? {
+            Async::Ready(Some(stream)) => {
+                let service_future = self.new_service.new_service();
+                Ok(Async::Ready(Some(Connecting {
+                    service_future,
+                    stream: Some(stream),
+                    protocol: self.protocol.clone(),
+                })))
+            }
+            Async::Ready(None) => Ok(Async::Ready(None)),
+            Async::NotReady => Ok(Async::NotReady),
+        }
     }
 }
 
-fn read_to_end<T: Read>(source: &mut T) -> Vec<u8> {
-    let mut buf = [0; 256];
-    let mut buffer = vec![];
-    loop {
-        match source.read(&mut buf) {
-            Ok(0) => break,
-            Ok(len) => buffer.extend_from_slice(&buf[0..len]),
-            Err(err) => if err.kind() == io::ErrorKind::WouldBlock {
-                break;
-            } else {
-                panic!("read_to_end error: {:?}", err);
-            },
-        }
-    }
+struct Connecting<F> {
+    service_future: F,
+    stream: Option<PollEvented2<NamedPipe>>,
+    protocol: Http,
+}
 
-    buffer
+impl<F> Future for Connecting<F>
+where
+    F: Future,
+    F::Item: Service<ReqBody = Body>,
+    <F::Item as Service>::ResBody: Payload,
+    <F::Item as Service>::Future: Send + 'static,
+{
+    type Item = Connection<PollEvented2<NamedPipe>, F::Item>;
+    type Error = F::Error;
+
+    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+        let service = match self.service_future.poll()? {
+            Async::Ready(service) => service,
+            Async::NotReady => return Ok(Async::NotReady),
+        };
+        let stream = self.stream.take().expect("polled after complete");
+        Ok(Async::Ready(
+            self.protocol.serve_connection(stream, service),
+        ))
+    }
 }
