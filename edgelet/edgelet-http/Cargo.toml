@@ -48,5 +48,4 @@ tempdir = "0.3.7"
 edgelet-test-utils = { path = "../edgelet-test-utils" }
 
 [target.'cfg(windows)'.dev-dependencies]
-httparse = "1.2"
 rand = "0.4"

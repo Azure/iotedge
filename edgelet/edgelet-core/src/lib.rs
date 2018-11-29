@@ -14,7 +14,6 @@ extern crate base64;
 extern crate bytes;
 extern crate chrono;
 extern crate consistenttime;
-#[macro_use]
 extern crate failure;
 extern crate futures;
 extern crate hmac;
