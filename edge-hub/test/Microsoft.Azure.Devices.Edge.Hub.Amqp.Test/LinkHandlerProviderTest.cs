@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -39,7 +40,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var messageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
             var twinMessageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
             var methodMessageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
-            var linkHandlerProvider = new LinkHandlerProvider(messageConverter, twinMessageConverter, methodMessageConverter);
+            var identityProvider = new IdentityProvider("foo.bar");
+            var linkHandlerProvider = new LinkHandlerProvider(messageConverter, twinMessageConverter, methodMessageConverter, identityProvider);
 
             var amqpLink = Mock.Of<IAmqpLink>(l => l.IsReceiver == isReceiver);
             var uri = new Uri(linkUri);
@@ -72,7 +74,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var messageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
             var twinMessageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
             var methodMessageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
-            var linkHandlerProvider = new LinkHandlerProvider(messageConverter, twinMessageConverter, methodMessageConverter);
+            var identityProvider = new IdentityProvider("foo.bar");
+            var linkHandlerProvider = new LinkHandlerProvider(messageConverter, twinMessageConverter, methodMessageConverter, identityProvider);
 
             var amqpLink = Mock.Of<IAmqpLink>(l => l.IsReceiver == isReceiver);
             var uri = new Uri(linkUri);
@@ -102,7 +105,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var messageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
             var twinMessageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
             var methodMessageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
-            var linkHandlerProvider = new LinkHandlerProvider(messageConverter, twinMessageConverter, methodMessageConverter);
+            var identityProvider = new IdentityProvider("foo.bar");
+            var linkHandlerProvider = new LinkHandlerProvider(messageConverter, twinMessageConverter, methodMessageConverter, identityProvider);
 
             var uri = new Uri("amqps://foo.bar//abs/prq");
             var amqpConnection = Mock.Of<IAmqpConnection>(c => c.FindExtension<IConnectionHandler>() == Mock.Of<IConnectionHandler>());

@@ -10,16 +10,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     class MuxConnectionsHandler : IAmqpClientConnectionsHandler
     {
         readonly ConcurrentDictionary<string, ConnectionHandler> connectionHandlers = new ConcurrentDictionary<string, ConnectionHandler>();
-        readonly IAmqpConnection connection;
         readonly IConnectionProvider connectionProvider;
 
-        public MuxConnectionsHandler(IAmqpConnection connection, IConnectionProvider connectionProvider)
+        public MuxConnectionsHandler(IConnectionProvider connectionProvider)
         {
-            this.connection = Preconditions.CheckNotNull(connection, nameof(connection));
             this.connectionProvider = Preconditions.CheckNotNull(connectionProvider, nameof(connectionProvider));
         }
 
-        public IConnectionHandler GetConnectionHandler(IIdentity identity) => this.connectionHandlers.GetOrAdd(identity.Id, i => new ConnectionHandler(identity, this.connection, this.connectionProvider));
+        public IConnectionHandler GetConnectionHandler(IIdentity identity) =>
+            this.connectionHandlers.GetOrAdd(identity.Id, i => new ConnectionHandler(identity, this.connectionProvider));
     }
 
     public interface IAmqpClientConnectionsHandler

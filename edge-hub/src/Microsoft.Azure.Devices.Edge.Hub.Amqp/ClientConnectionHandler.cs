@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading.Tasks;
     using System.Web;
     using Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers;
@@ -25,39 +26,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
         readonly AsyncLock initializationLock = new AsyncLock();
         readonly AsyncLock registryUpdateLock = new AsyncLock();
-        readonly IAmqpConnection connection;
         readonly IConnectionProvider connectionProvider;
         Option<IDeviceListener> deviceListener = Option.None<IDeviceListener>();
 
-        public ConnectionHandler(IIdentity identity, IAmqpConnection connection, IConnectionProvider connectionProvider)
+        public ConnectionHandler(IIdentity identity, IConnectionProvider connectionProvider)
         {
             this.identity = Preconditions.CheckNotNull(identity, nameof(identity));
-            this.connection = Preconditions.CheckNotNull(connection, nameof(connection));
             this.connectionProvider = Preconditions.CheckNotNull(connectionProvider, nameof(connectionProvider));
         }
-
-        //public ConnectionHandler(IIdentity identity, IAmqpConnection connection)
-        //{
-        //    this.identity = Preconditions.CheckNotNull(identity, nameof(identity));
-        //    this.connection = Preconditions.CheckNotNull(connection, nameof(connection));
-        //}
-
-        //public static async Task<ConnectionHandler> Create(IIdentity identity, IAmqpConnection connection, IConnectionProvider connectionProvider)
-        //{
-        //    IAmqpAuthenticator amqpAuth;
-
-
-        //    IDeviceListener deviceListener = await connectionProvider.GetDeviceListenerAsync(identity);
-        //    var connectionHandler = new ConnectionHandler(identity, deviceListener, amqpAuth, connection);
-        //    var deviceProxy = new DeviceProxy(connectionHandler, identity);
-        //    deviceListener.BindDeviceProxy(deviceProxy);
-        //    Events.InitializedConnectionHandler(identity);
-        //    return connectionHandler;
-        //}
-
-        //public IDeviceListener DeviceListener { get; }
-
-        //public IAmqpAuthenticator AmqpAuthenticator { get; }
 
         public Task<IDeviceListener> GetDeviceListener()
         {
@@ -80,20 +56,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                         }
                     });
         }
-
-        //async Task<Option<IClientCredentials>> GetUpdatedAuthenticatedIdentity()
-        //{
-        //    var cbsNode = this.connection.FindExtension<ICbsNode>();
-        //    if (cbsNode != null)
-        //    {
-        //        AmqpAuthentication updatedAmqpAuthentication = await cbsNode.GetAmqpAuthentication();
-        //        if (updatedAmqpAuthentication.IsAuthenticated)
-        //        {
-        //            return updatedAmqpAuthentication.ClientCredentials;
-        //        }
-        //    }
-        //    return Option.None<IClientCredentials>();
-        //}
 
         public async Task RegisterLinkHandler(ILinkHandler linkHandler)
         {
@@ -160,6 +122,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             }
         }
 
+        Task CloseAllLinks()
+        {
+            IList<ILinkHandler> links = this.registry.Values.ToList();
+            IEnumerable<Task> closeTasks = links.Select(l => l.CloseAsync(Constants.DefaultTimeout));
+            return Task.WhenAll(closeTasks);
+        }
+
         async Task CloseConnection()
         {
             using (await this.initializationLock.LockAsync())
@@ -184,7 +153,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 if (this.isActive.GetAndSet(false))
                 {
                     Events.ClosingProxy(this.Identity, ex);
-                    return this.connectionHandler.connection.Close();
+                    return this.connectionHandler.CloseAllLinks();
                 }
                 return Task.CompletedTask;
             }
@@ -272,7 +241,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 this.isActive.Set(false);
             }
 
-            public Task<Option<IClientCredentials>> GetUpdatedIdentity() => throw new NotImplementedException(); // this.connectionHandler.GetUpdatedAuthenticatedIdentity();
+            public Task<Option<IClientCredentials>> GetUpdatedIdentity() => throw new NotImplementedException();
         }
 
         static class Events

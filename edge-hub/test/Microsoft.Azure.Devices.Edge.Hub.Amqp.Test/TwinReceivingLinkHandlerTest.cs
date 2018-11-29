@@ -10,7 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
-    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -27,8 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             deviceListener.Setup(d => d.AddDesiredPropertyUpdatesSubscription(It.IsAny<string>()))
                 .Callback<string>(c => receivedCorrelationId = c)
                 .Returns(Task.CompletedTask);
-            var connectionHandler = Mock.Of<IConnectionHandler>(c => c.GetDeviceListener() == Task.FromResult(deviceListener.Object)
-                && c.GetAmqpAuthentication() == Task.FromResult(new AmqpAuthentication(true, Option.Some(Mock.Of<IClientCredentials>()))));
+            var connectionHandler = Mock.Of<IConnectionHandler>(c => c.GetDeviceListener() == Task.FromResult(deviceListener.Object));
             var amqpConnection = Mock.Of<IAmqpConnection>(c => c.FindExtension<IConnectionHandler>() == connectionHandler);
             var amqpSession = Mock.Of<IAmqpSession>(s => s.Connection == amqpConnection);
             var receivingLink = Mock.Of<IReceivingAmqpLink>(l => l.Session == amqpSession && l.IsReceiver && l.Settings == new AmqpLinkSettings() && l.State == AmqpObjectState.Opened);
@@ -36,7 +34,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var requestUri = new Uri("amqps://foo.bar/devices/d1/twin");
             var boundVariables = new Dictionary<string, string> { { "deviceid", "d1" } };
             var messageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
-            var twinReceivingLinkHandler = new TwinReceivingLinkHandler(receivingLink, requestUri, boundVariables, messageConverter);
+            var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
+            var twinReceivingLinkHandler = new TwinReceivingLinkHandler(identity, receivingLink, requestUri, boundVariables, connectionHandler, messageConverter);
 
             string correlationId = Guid.NewGuid().ToString();
             AmqpMessage amqpMessage = AmqpMessage.Create();
@@ -62,8 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             deviceListener.Setup(d => d.RemoveDesiredPropertyUpdatesSubscription(It.IsAny<string>()))
                 .Callback<string>(c => receivedCorrelationId = c)
                 .Returns(Task.CompletedTask);
-            var connectionHandler = Mock.Of<IConnectionHandler>(c => c.GetDeviceListener() == Task.FromResult(deviceListener.Object)
-                && c.GetAmqpAuthentication() == Task.FromResult(new AmqpAuthentication(true, Option.Some(Mock.Of<IClientCredentials>()))));
+            var connectionHandler = Mock.Of<IConnectionHandler>(c => c.GetDeviceListener() == Task.FromResult(deviceListener.Object));
             var amqpConnection = Mock.Of<IAmqpConnection>(c => c.FindExtension<IConnectionHandler>() == connectionHandler);
             var amqpSession = Mock.Of<IAmqpSession>(s => s.Connection == amqpConnection);
             var receivingLink = Mock.Of<IReceivingAmqpLink>(l => l.Session == amqpSession && l.IsReceiver && l.Settings == new AmqpLinkSettings() && l.State == AmqpObjectState.Opened);
@@ -71,7 +69,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var requestUri = new Uri("amqps://foo.bar/devices/d1/twin");
             var boundVariables = new Dictionary<string, string> { { "deviceid", "d1" } };
             var messageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
-            var twinReceivingLinkHandler = new TwinReceivingLinkHandler(receivingLink, requestUri, boundVariables, messageConverter);
+            var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
+            var twinReceivingLinkHandler = new TwinReceivingLinkHandler(identity, receivingLink, requestUri, boundVariables, connectionHandler, messageConverter);
 
             string correlationId = Guid.NewGuid().ToString();
             AmqpMessage amqpMessage = AmqpMessage.Create();
