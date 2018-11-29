@@ -3,7 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 {
     using System.Threading.Tasks;
 
-    interface IAmqpAuthenticator
+    public interface IAmqpAuthenticator
     {
         Task<bool> AuthenticateAsync(string id);
     }

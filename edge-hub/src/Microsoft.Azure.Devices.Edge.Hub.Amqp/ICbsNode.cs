@@ -4,7 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     using System;
     using System.Threading.Tasks;
 
-    interface ICbsNode : IAmqpAuthenticator, IDisposable
+    public interface ICbsNode : IAmqpAuthenticator, IDisposable
     {
         void RegisterLink(IAmqpLink link);
 
