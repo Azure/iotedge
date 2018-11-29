@@ -24,9 +24,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var connectionPovider = Mock.Of<IConnectionProvider>();
 
             // Act / Assert
-            Assert.NotNull(new ConnectionHandler(identity, connectionPovider));
-            Assert.Throws<ArgumentNullException>(() => new ConnectionHandler(null, connectionPovider));
-            Assert.Throws<ArgumentNullException>(() => new ConnectionHandler(identity, null));
+            Assert.NotNull(new ClientConnectionHandler(identity, connectionPovider));
+            Assert.Throws<ArgumentNullException>(() => new ClientConnectionHandler(null, connectionPovider));
+            Assert.Throws<ArgumentNullException>(() => new ClientConnectionHandler(identity, null));
         }
 
         [Fact]
@@ -40,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                 .Callback<IDeviceProxy>(d => deviceProxy = d);
 
             var connectionProvider = Mock.Of<IConnectionProvider>(c => c.GetDeviceListenerAsync(identity) == Task.FromResult(deviceListener));
-            var connectionHandler = new ConnectionHandler(identity, connectionProvider);
+            var connectionHandler = new ClientConnectionHandler(identity, connectionProvider);
 
             // Act
             var tasks = new List<Task<IDeviceListener>>();
@@ -74,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
             var connectionProvider = Mock.Of<IConnectionProvider>(c => c.GetDeviceListenerAsync(identity) == Task.FromResult(deviceListener));
             
-            var connectionHandler = new ConnectionHandler(identity, connectionProvider);
+            var connectionHandler = new ClientConnectionHandler(identity, connectionProvider);
 
             IMessage receivedMessage = null;
             var c2DLinkHandler = new Mock<ISendingLinkHandler>();
@@ -110,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
             var connectionProvider = Mock.Of<IConnectionProvider>(c => c.GetDeviceListenerAsync(identity) == Task.FromResult(deviceListener));
 
-            var connectionHandler = new ConnectionHandler(identity, connectionProvider);
+            var connectionHandler = new ClientConnectionHandler(identity, connectionProvider);
 
             IMessage receivedMessage = null;
             var moduleMessageLinkHandler = new Mock<ISendingLinkHandler>();
@@ -146,7 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
             var connectionProvider = Mock.Of<IConnectionProvider>(c => c.GetDeviceListenerAsync(identity) == Task.FromResult(deviceListener));
 
-            var connectionHandler = new ConnectionHandler(identity, connectionProvider);
+            var connectionHandler = new ClientConnectionHandler(identity, connectionProvider);
 
             IMessage receivedMessage = null;
             var methodSendingLinkHandler = new Mock<ISendingLinkHandler>();
@@ -182,7 +182,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
             var connectionProvider = Mock.Of<IConnectionProvider>(c => c.GetDeviceListenerAsync(identity) == Task.FromResult(deviceListener));
 
-            var connectionHandler = new ConnectionHandler(identity, connectionProvider);
+            var connectionHandler = new ClientConnectionHandler(identity, connectionProvider);
 
             IMessage receivedMessage = null;
             var twinSendingLinkHandler = new Mock<ISendingLinkHandler>();
@@ -214,7 +214,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var connectionProvider = Mock.Of<IConnectionProvider>(c => c.GetDeviceListenerAsync(identity) == Task.FromResult(deviceListener.Object));
             deviceListener.Setup(d => d.BindDeviceProxy(It.IsAny<IDeviceProxy>()));
 
-            var connectionHandler = new ConnectionHandler(identity, connectionProvider);
+            var connectionHandler = new ClientConnectionHandler(identity, connectionProvider);
 
             var eventsLinkHandler = Mock.Of<ILinkHandler>(l => l.Type == LinkType.Events);
             string twinCorrelationId = Guid.NewGuid().ToString();
