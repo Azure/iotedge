@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
     using Xunit;
     using CertificateHelper = Microsoft.Azure.Devices.Edge.Util.CertificateHelper;
     using TestCertificateHelper = Microsoft.Azure.Devices.Edge.Util.Test.Common.CertificateHelper;
+    using System.Security.Cryptography;
 
     [Unit]
     public class CertificateHelperTest
@@ -396,6 +397,20 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
             Assert.False(difference.Any());
         }
 
+        static void PrintSAN(X509Certificate2 cert)
+        {
+            foreach (System.Security.Cryptography.X509Certificates.X509Extension extension in cert.Extensions)
+            {
+                // Create an AsnEncodedData object using the extensions information.
+                AsnEncodedData asndata = new AsnEncodedData(extension.Oid, extension.RawData);
+                Console.WriteLine("Extension type: {0}", extension.Oid.FriendlyName);
+                Console.WriteLine("Oid value: {0}", asndata.Oid.Value);
+                Console.WriteLine("Raw data length: {0} {1}", asndata.RawData.Length, Environment.NewLine);
+                Console.WriteLine("Formatted: " + asndata.Format(true));
+                Console.WriteLine("UnFormatted: " + asndata.Format(false));
+            }
+        }
+
         [Fact]
         public void ValidateSanUriTestFails()
         {
@@ -408,6 +423,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
             var dnsNames = new List<string>();
             var sans = TestCertificateHelper.PrepareSanEntries(uris, dnsNames);
             var (clientCert, clientKeyPair) = TestCertificateHelper.GenerateCertificate("MyTestClient", notBefore, notAfter, null, null, false, sans);
+
+            PrintSAN(clientCert);
 
             Assert.False(CertificateHelper.ValidateIotHubSanUri(clientCert, hub, deviceId, moduleId));
         }
@@ -425,6 +442,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
             var sans = TestCertificateHelper.PrepareSanEntries(uris, dnsNames);
             var (clientCert, clientKeyPair) = TestCertificateHelper.GenerateCertificate("MyTestClient", notBefore, notAfter, null, null, false, sans);
 
+            PrintSAN(clientCert);
             Assert.True(CertificateHelper.ValidateIotHubSanUri(clientCert, hub, deviceId, moduleId));
         }
     }

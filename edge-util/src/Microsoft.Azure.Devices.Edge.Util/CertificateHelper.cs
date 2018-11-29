@@ -253,7 +253,9 @@ namespace Microsoft.Azure.Devices.Edge.Util
                             where match.Success && match.Groups.Count > 0 && !string.IsNullOrEmpty(match.Groups[1].Value)
                             select match.Groups[1].Value;
 
-           return sanList;
+           foreach (var san in sanList)
+            Console.WriteLine($"%%%[{san}]");
+            return sanList;
         }
 
         public static bool ValidateIotHubSanUri(X509Certificate2 certificate, string iothubHostName, string deviceId, string moduleId)
