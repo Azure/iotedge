@@ -18,10 +18,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.edgeHub = Preconditions.CheckNotNull(edgeHub, nameof(edgeHub));
         }
 
-        public Task<IDeviceListener> GetDeviceListenerAsync(IClientCredentials clientCredentials)
+        public Task<IDeviceListener> GetDeviceListenerAsync(IIdentity identity)
         {
-            Preconditions.CheckNotNull(clientCredentials, nameof(clientCredentials));
-            IDeviceListener deviceListener = new DeviceMessageHandler(clientCredentials.Identity, this.edgeHub, this.connectionManager);
+            IDeviceListener deviceListener = new DeviceMessageHandler(Preconditions.CheckNotNull(identity, nameof(identity)), this.edgeHub, this.connectionManager);
             return Task.FromResult(deviceListener);
         }
 
