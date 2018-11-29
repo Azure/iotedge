@@ -384,8 +384,14 @@ impl ModuleRuntime for DockerModuleRuntime {
                             err,
                             ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(id)),
                         );
-                        log_failure(Level::Warn, &err);
-                        Err(err)
+                        if let Some(ErrorKind::NotFound(_)) =
+                            err.cause().and_then(Fail::downcast_ref)
+                        {
+                            Ok(())
+                        } else {
+                            log_failure(Level::Warn, &err);
+                            Err(err)
+                        }
                     }
                 }),
         )
