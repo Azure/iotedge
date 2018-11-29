@@ -160,7 +160,7 @@ mod tests {
             .unwrap()
             .into();
         let expected =
-            "npipe://5c5c2e5c706970655c646f636b65725f656e67696e65/containers/json?all=true";
+            "npipe://5c5c2e5c706970655c626f6f/containers/json?all=true";
         assert_eq!(uri, expected.parse::<HyperUri>().unwrap());
     }
 
@@ -185,7 +185,7 @@ mod tests {
     #[test]
     fn uri_host() {
         let uri: HyperUri =
-            "npipe://5c5c2e5c706970655c646f636b65725f656e67696e65/containers/json?all=true"
+            "npipe://5c5c2e5c706970655c626f6f/containers/json?all=true"
                 .parse()
                 .unwrap();
         assert_eq!(
@@ -193,7 +193,7 @@ mod tests {
                 uri.scheme_part().unwrap().as_str(),
                 uri.host().unwrap()
             ).unwrap(),
-            "\\\\.\\pipe\\docker_engine"
+            "\\\\.\\pipe\\boo"
         );
     }
 }
