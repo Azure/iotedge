@@ -248,7 +248,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
                             where ext.Oid.FriendlyName.Contains("Subject Alternative Name")
                             let data = new AsnEncodedData(ext.Oid, ext.RawData)
                             let text = data.Format(true)
-                            from line in text.Split(new char[] { '\r', '\n', ',' }, StringSplitOptions.RemoveEmptyEntries)
+                            from lines in text.Split(new char[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                            from line in lines.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
                             let match = sanRex.Match(line)
                             where match.Success && match.Groups.Count > 0 && !string.IsNullOrEmpty(match.Groups[1].Value)
                             select match.Groups[1].Value;

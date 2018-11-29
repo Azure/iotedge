@@ -393,6 +393,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
             var sans = TestCertificateHelper.PrepareSanEntries(uris, dnsNames);
             var (clientCert, clientKeyPair) = TestCertificateHelper.GenerateCertificate("MyTestClient", notBefore, notAfter, null, null, false, sans);
 
+            PrintSAN(clientCert);
+
             IEnumerable<string> difference = uris.Except(CertificateHelper.ParseSanUris(clientCert));
             Assert.False(difference.Any());
         }
