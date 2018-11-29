@@ -73,16 +73,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             IAmqpAuthenticator amqpAuth;
             IAmqpConnection connection = this.Link.Session.Connection;
 
-            // Check if Principal is SaslPrincipal
-            if (connection.Principal is SaslPrincipal saslPrincipal)
+            // Check if Principal is IAmqpAuthenticator
+            if (connection.Principal is IAmqpAuthenticator connAuth)
             {
-                amqpAuth = saslPrincipal;
+                amqpAuth = connAuth;
+            }
+            else if(connection.FindExtension<ICbsNode>() is IAmqpAuthenticator cbsAuth)
+            {
+                amqpAuth = cbsAuth;
             }
             else
             {
-                // Else the connection uses CBS authentication. Get AmqpAuthentication from the CbsNode                    
-                var cbsNode = connection.FindExtension<ICbsNode>();
-                amqpAuth = cbsNode ?? throw new InvalidOperationException("CbsNode is null");
+                throw new InvalidOperationException($"Unable to find authentication mechanism for AMQP connection for identity {this.Identity.Id}");
             }
 
             return amqpAuth.AuthenticateAsync(this.Identity.Id);

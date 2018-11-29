@@ -21,13 +21,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         public void ConnectionHandlerCtorTest()
         {
             // Arrange
+            var identity = Mock.Of<IIdentity>();
             var amqpConnection = Mock.Of<IAmqpConnection>();
             var connectionPovider = Mock.Of<IConnectionProvider>();
 
             // Act / Assert
-            Assert.NotNull(new ConnectionHandler(amqpConnection, connectionPovider));
-            Assert.Throws<ArgumentNullException>(() => new ConnectionHandler(null, connectionPovider));
-            Assert.Throws<ArgumentNullException>(() => new ConnectionHandler(amqpConnection, null));
+            Assert.NotNull(new ConnectionHandler(identity, amqpConnection, connectionPovider));
+            Assert.Throws<ArgumentNullException>(() => new ConnectionHandler(null, amqpConnection, connectionPovider));
+            Assert.Throws<ArgumentNullException>(() => new ConnectionHandler(identity, null, connectionPovider));
+            Assert.Throws<ArgumentNullException>(() => new ConnectionHandler(identity, amqpConnection, null));
         }
 
         [Fact]
