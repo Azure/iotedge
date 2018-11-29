@@ -3,6 +3,8 @@ pr:
   branches:
     include:
       - master
+variables:
+  configuration: CheckInBuild
 jobs:
 
 ################################################################################
@@ -21,7 +23,7 @@ jobs:
         displayName: Build
         inputs:
           filePath: scripts/linux/buildBranch.sh
-          arguments: -c "CheckInBuild"
+          arguments: -c "$(configuration)"
       - task: Bash@3
         displayName: Test
         inputs:
@@ -50,7 +52,7 @@ jobs:
         displayName: Build
         inputs:
           filePath: scripts/windows/build/Publish-Branch.ps1
-          arguments: -Configuration:"CheckInBuild" -PublishTests:$True -UpdateVersion
+          arguments: -Configuration:"$(configuration)" -PublishTests:$True -UpdateVersion
       - task: PowerShell@2
         displayName: Test
         inputs:
