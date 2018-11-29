@@ -259,7 +259,6 @@ fn pipe_post_handler(req: Request<Body>) -> impl Future<Item = Response<Body>, E
 
 #[cfg(windows)]
 #[test]
-#[ignore] //todo fix test. Disabling test as it is flaky and gating the checkin
 fn pipe_post() {
     let path = make_path();
     let url = make_url(&path);
