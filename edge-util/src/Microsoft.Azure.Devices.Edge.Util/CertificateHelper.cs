@@ -238,34 +238,6 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return result;
         }
 
-        // san parsing implementation based on
-        // https://stackoverflow.com/questions/16698307/how-do-you-parse-the-subject-alternate-names-from-an-x509certificate2
-        public static IEnumerable<string> ParseSanUris(X509Certificate2 certificate)
-        {
-            Regex sanRex = new Regex(@"^UR[IL]\s*[:=](.*)", RegexOptions.Compiled | RegexOptions.CultureInvariant);
-
-            var sanList = from X509Extension ext in certificate.Extensions
-                            where ext.Oid.FriendlyName.Contains("Subject Alternative Name")
-                            let data = new AsnEncodedData(ext.Oid, ext.RawData)
-                            let text = data.Format(true)
-                            from lines in text.Split(new char[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
-                            from line in lines.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-                            let match = sanRex.Match(line)
-                            where match.Success && match.Groups.Count > 0 && !string.IsNullOrEmpty(match.Groups[1].Value)
-                            select match.Groups[1].Value;
-
-           foreach (var san in sanList)
-            Console.WriteLine($"%%%[{san}]");
-            return sanList;
-        }
-
-        public static bool ValidateIotHubSanUri(X509Certificate2 certificate, string iothubHostName, string deviceId, string moduleId)
-        {
-            string uri = string.Format($"{IotHubModuleCertificateUriScheme}://{iothubHostName}/devices/{deviceId}/modules/{moduleId}");
-            var sanList = ParseSanUris(certificate);
-            return sanList.Contains(uri);
-        }
-
         public static void InstallCerts(StoreName name, StoreLocation location, IEnumerable<X509Certificate2> certs)
         {
             List<X509Certificate2> certsList = Preconditions.CheckNotNull(certs, nameof(certs)).ToList();
