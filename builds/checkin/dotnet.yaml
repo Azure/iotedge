@@ -3,8 +3,6 @@ pr:
   branches:
     include:
       - master
-variables:
-  configuration: CheckInBuild
 jobs:
 
 ################################################################################
