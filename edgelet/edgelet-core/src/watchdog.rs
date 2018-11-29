@@ -13,7 +13,9 @@ use edgelet_utils::log_failure;
 
 use error::{Error, ErrorKind};
 use identity::{Identity, IdentityManager, IdentitySpec};
-use module::{Module, ModuleRegistry, ModuleRuntime, ModuleSpec, ModuleStatus};
+use module::{
+    Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec, ModuleStatus,
+};
 
 // Time to allow EdgeAgent to gracefully shutdown (including stopping all modules, and updating reported properties)
 const EDGE_RUNTIME_STOP_TIME: Duration = Duration::from_secs(60);
@@ -32,6 +34,7 @@ pub struct Watchdog<M, I> {
 impl<M, I> Watchdog<M, I>
 where
     M: 'static + ModuleRuntime + Clone,
+    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
     <M::Module as Module>::Config: Clone,
     I: 'static + IdentityManager + Clone,
 {
@@ -68,9 +71,9 @@ where
         shutdown_signal
             .select(watchdog)
             .then(move |result| match result {
-                Ok(((), _)) => Either::A(stop_runtime(&runtime_copy, &name)),
-                Err((e, _)) => Either::B(future::err(e)),
-            })
+                Ok(((), _)) => Ok(stop_runtime(&runtime_copy, &name)),
+                Err((err, _)) => Err(err),
+            }).flatten()
     }
 }
 
@@ -78,12 +81,16 @@ where
 fn stop_runtime<M>(runtime: &M, name: &str) -> impl Future<Item = (), Error = Error>
 where
     M: 'static + ModuleRuntime + Clone,
+    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
     <M::Module as Module>::Config: Clone,
 {
     info!("Stopping edge runtime module {}", name);
     runtime
         .stop(name, Some(EDGE_RUNTIME_STOP_TIME))
-        .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime)))
+        .or_else(|err| match (&err).into() {
+            ModuleRuntimeErrorReason::NotFound => Ok(()),
+            _ => Err(Error::from(err.context(ErrorKind::ModuleRuntime))),
+        })
 }
 
 // Start watchdog on a timer for 1 minute
