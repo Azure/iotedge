@@ -28,9 +28,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                 .Returns(Task.CompletedTask);
             var connectionHandler = Mock.Of<IConnectionHandler>(c => c.GetDeviceListener() == Task.FromResult(deviceListener.Object));
             var cbsNode = Mock.Of<ICbsNode>(c => c.AuthenticateAsync("d1") == Task.FromResult(true));
-            var amqpConnection = Mock.Of<IAmqpConnection>(c =>
-                c.FindExtension<IConnectionHandler>() == connectionHandler &&
-                c.FindExtension<ICbsNode>() == cbsNode);
+            var amqpConnection = Mock.Of<IAmqpConnection>(
+                c =>
+                    c.FindExtension<IConnectionHandler>() == connectionHandler &&
+                    c.FindExtension<ICbsNode>() == cbsNode);
             var amqpSession = Mock.Of<IAmqpSession>(s => s.Connection == amqpConnection);
             var receivingLink = Mock.Of<IReceivingAmqpLink>(l => l.Session == amqpSession && l.IsReceiver && l.Settings == new AmqpLinkSettings() && l.State == AmqpObjectState.Opened);
 
@@ -66,9 +67,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                 .Returns(Task.CompletedTask);
             var connectionHandler = Mock.Of<IConnectionHandler>(c => c.GetDeviceListener() == Task.FromResult(deviceListener.Object));
             var cbsNode = Mock.Of<ICbsNode>(c => c.AuthenticateAsync("d1") == Task.FromResult(true));
-            var amqpConnection = Mock.Of<IAmqpConnection>(c =>
-                c.FindExtension<IConnectionHandler>() == connectionHandler &&
-                c.FindExtension<ICbsNode>() == cbsNode);
+            var amqpConnection = Mock.Of<IAmqpConnection>(
+                c =>
+                    c.FindExtension<IConnectionHandler>() == connectionHandler &&
+                    c.FindExtension<ICbsNode>() == cbsNode);
             var amqpSession = Mock.Of<IAmqpSession>(s => s.Connection == amqpConnection);
             var receivingLink = Mock.Of<IReceivingAmqpLink>(l => l.Session == amqpSession && l.IsReceiver && l.Settings == new AmqpLinkSettings() && l.State == AmqpObjectState.Opened);
 

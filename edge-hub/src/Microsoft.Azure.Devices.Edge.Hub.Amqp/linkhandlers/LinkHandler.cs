@@ -78,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             {
                 amqpAuth = connAuth;
             }
-            else if(connection.FindExtension<ICbsNode>() is IAmqpAuthenticator cbsAuth)
+            else if (connection.FindExtension<ICbsNode>() is IAmqpAuthenticator cbsAuth)
             {
                 amqpAuth = cbsAuth;
             }

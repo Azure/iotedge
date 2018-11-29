@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 {
     using System;
@@ -19,17 +20,59 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             yield return new object[] { "amqps://foo.bar/$cbs", true, LinkType.Cbs, new Dictionary<string, string>() };
             yield return new object[] { "amqps://foo.bar/$cbs", false, LinkType.Cbs, new Dictionary<string, string>() };
             yield return new object[] { "amqps://foo.bar//devices/device1/messages/events", true, LinkType.Events, new Dictionary<string, string> { { "deviceid", "device1" } } };
-            yield return new object[] { "amqps://foo.bar/devices/device1/modules/module1/messages/events", true, LinkType.Events, new Dictionary<string, string> { { "deviceid", "device1" }, { "moduleid", "module1" } } };
-            yield return new object[] { "amqps://foo.bar/devices/device1/modules/module1/messages/events", false, LinkType.ModuleMessages, new Dictionary<string, string> { { "deviceid", "device1" }, { "moduleid", "module1" } } };
+            yield return new object[]
+            {
+                "amqps://foo.bar/devices/device1/modules/module1/messages/events", true, LinkType.Events, new Dictionary<string, string>
+                {
+                    { "deviceid", "device1" },
+                    { "moduleid", "module1" }
+                }
+            };
+            yield return new object[]
+            {
+                "amqps://foo.bar/devices/device1/modules/module1/messages/events", false, LinkType.ModuleMessages, new Dictionary<string, string>
+                {
+                    { "deviceid", "device1" },
+                    { "moduleid", "module1" }
+                }
+            };
             yield return new object[] { "amqps://foo.bar/devices/device1/messages/deviceBound", false, LinkType.C2D, new Dictionary<string, string> { { "deviceid", "device1" } } };
             yield return new object[] { "amqps://foo.bar/devices/device1/methods/deviceBound", false, LinkType.MethodSending, new Dictionary<string, string> { { "deviceid", "device1" } } };
-            yield return new object[] { "amqps://foo.bar/devices/device1/modules/module1/methods/deviceBound", false, LinkType.MethodSending, new Dictionary<string, string> { { "deviceid", "device1" }, { "moduleid", "module1" } } };
+            yield return new object[]
+            {
+                "amqps://foo.bar/devices/device1/modules/module1/methods/deviceBound", false, LinkType.MethodSending, new Dictionary<string, string>
+                {
+                    { "deviceid", "device1" },
+                    { "moduleid", "module1" }
+                }
+            };
             yield return new object[] { "amqps://foo.bar/devices/device1/methods/deviceBound", true, LinkType.MethodReceiving, new Dictionary<string, string> { { "deviceid", "device1" } } };
-            yield return new object[] { "amqps://foo.bar/devices/device1/modules/module1/methods/deviceBound", true, LinkType.MethodReceiving, new Dictionary<string, string> { { "deviceid", "device1" }, { "moduleid", "module1" } } };
+            yield return new object[]
+            {
+                "amqps://foo.bar/devices/device1/modules/module1/methods/deviceBound", true, LinkType.MethodReceiving, new Dictionary<string, string>
+                {
+                    { "deviceid", "device1" },
+                    { "moduleid", "module1" }
+                }
+            };
             yield return new object[] { "amqps://foo.bar/devices/device1/twin", false, LinkType.TwinSending, new Dictionary<string, string> { { "deviceid", "device1" } } };
-            yield return new object[] { "amqps://foo.bar/devices/device1/modules/module1/twin", false, LinkType.TwinSending, new Dictionary<string, string> { { "deviceid", "device1" }, { "moduleid", "module1" } } };
+            yield return new object[]
+            {
+                "amqps://foo.bar/devices/device1/modules/module1/twin", false, LinkType.TwinSending, new Dictionary<string, string>
+                {
+                    { "deviceid", "device1" },
+                    { "moduleid", "module1" }
+                }
+            };
             yield return new object[] { "amqps://foo.bar/devices/device1/twin", true, LinkType.TwinReceiving, new Dictionary<string, string> { { "deviceid", "device1" } } };
-            yield return new object[] { "amqps://foo.bar/devices/device1/modules/module1/twin", true, LinkType.TwinReceiving, new Dictionary<string, string> { { "deviceid", "device1" }, { "moduleid", "module1" } } };
+            yield return new object[]
+            {
+                "amqps://foo.bar/devices/device1/modules/module1/twin", true, LinkType.TwinReceiving, new Dictionary<string, string>
+                {
+                    { "deviceid", "device1" },
+                    { "moduleid", "module1" }
+                }
+            };
         }
 
         [Theory]
@@ -83,7 +126,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             // Act / Assert
             Assert.Throws<InvalidOperationException>(() => linkHandlerProvider.GetLinkType(amqpLink, uri));
         }
-        
+
         static IEnumerable<object[]> GetLinkHandlerTestData()
         {
             yield return new object[] { "amqps://foo.bar/$cbs", true, typeof(CbsLinkHandler) };
@@ -114,8 +157,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var linkHandlerProvider = new LinkHandlerProvider(messageConverter, twinMessageConverter, methodMessageConverter, identityProvider);
 
             var uri = new Uri(url);
-            var amqpClientConnectionsHandler = Mock.Of<IAmqpClientConnectionsHandler>(c => c.GetConnectionHandler(It.IsAny<IIdentity>()) == Mock.Of<IConnectionHandler>());
-            var amqpConnection = Mock.Of<IAmqpConnection>(c => c.FindExtension<IAmqpClientConnectionsHandler>() == amqpClientConnectionsHandler);
+            var amqpClientConnectionsHandler = Mock.Of<IClientConnectionsHandler>(c => c.GetConnectionHandler(It.IsAny<IIdentity>()) == Mock.Of<IConnectionHandler>());
+            var amqpConnection = Mock.Of<IAmqpConnection>(c => c.FindExtension<IClientConnectionsHandler>() == amqpClientConnectionsHandler);
             var amqpSession = Mock.Of<IAmqpSession>(s => s.Connection == amqpConnection);
             IAmqpLink amqpLink = isReceiver
                 ? Mock.Of<IReceivingAmqpLink>(l => l.IsReceiver && l.Session == amqpSession)

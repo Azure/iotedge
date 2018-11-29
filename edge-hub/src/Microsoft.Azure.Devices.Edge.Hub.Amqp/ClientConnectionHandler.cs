@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     /// It maintains the IIdentity and the IDeviceListener for the connection, and provides it to the link handlers.
     /// It also maintains a registry of the links open on that connection, and makes sure duplicate/invalid links are not opened. 
     /// </summary>
-    class ConnectionHandler : IConnectionHandler
+    class ClientConnectionHandler : IConnectionHandler
     {
         readonly IDictionary<LinkType, ILinkHandler> registry = new Dictionary<LinkType, ILinkHandler>();
         readonly IIdentity identity;
@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         readonly IConnectionProvider connectionProvider;
         Option<IDeviceListener> deviceListener = Option.None<IDeviceListener>();
 
-        public ConnectionHandler(IIdentity identity, IConnectionProvider connectionProvider)
+        public ClientConnectionHandler(IIdentity identity, IConnectionProvider connectionProvider)
         {
             this.identity = Preconditions.CheckNotNull(identity, nameof(identity));
             this.connectionProvider = Preconditions.CheckNotNull(connectionProvider, nameof(connectionProvider));
@@ -139,12 +139,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
         public class DeviceProxy : IDeviceProxy
         {
-            readonly ConnectionHandler connectionHandler;
+            readonly ClientConnectionHandler clientConnectionHandler;
             readonly AtomicBoolean isActive = new AtomicBoolean(true);
 
-            public DeviceProxy(ConnectionHandler connectionHandler, IIdentity identity)
+            public DeviceProxy(ClientConnectionHandler clientConnectionHandler, IIdentity identity)
             {
-                this.connectionHandler = connectionHandler;
+                this.clientConnectionHandler = clientConnectionHandler;
                 this.Identity = identity;
             }
 
@@ -153,14 +153,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 if (this.isActive.GetAndSet(false))
                 {
                     Events.ClosingProxy(this.Identity, ex);
-                    return this.connectionHandler.CloseAllLinks();
+                    return this.clientConnectionHandler.CloseAllLinks();
                 }
                 return Task.CompletedTask;
             }
 
             public Task SendC2DMessageAsync(IMessage message)
             {
-                if (!this.connectionHandler.registry.TryGetValue(LinkType.C2D, out ILinkHandler linkHandler))
+                if (!this.clientConnectionHandler.registry.TryGetValue(LinkType.C2D, out ILinkHandler linkHandler))
                 {
                     Events.LinkNotFound(LinkType.ModuleMessages, this.Identity, "C2D message");
                     return Task.CompletedTask;
@@ -174,7 +174,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
             public Task SendMessageAsync(IMessage message, string input)
             {
-                if (!this.connectionHandler.registry.TryGetValue(LinkType.ModuleMessages, out ILinkHandler linkHandler))
+                if (!this.clientConnectionHandler.registry.TryGetValue(LinkType.ModuleMessages, out ILinkHandler linkHandler))
                 {
                     Events.LinkNotFound(LinkType.ModuleMessages, this.Identity, "message");
                     return Task.CompletedTask;
@@ -186,7 +186,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
             public async Task<DirectMethodResponse> InvokeMethodAsync(DirectMethodRequest request)
             {
-                if (!this.connectionHandler.registry.TryGetValue(LinkType.MethodSending, out ILinkHandler linkHandler))
+                if (!this.clientConnectionHandler.registry.TryGetValue(LinkType.MethodSending, out ILinkHandler linkHandler))
                 {
                     Events.LinkNotFound(LinkType.ModuleMessages, this.Identity, "method request");
                     return default(DirectMethodResponse);
@@ -209,7 +209,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
             public Task OnDesiredPropertyUpdates(IMessage desiredProperties)
             {
-                if (!this.connectionHandler.registry.TryGetValue(LinkType.TwinSending, out ILinkHandler linkHandler))
+                if (!this.clientConnectionHandler.registry.TryGetValue(LinkType.TwinSending, out ILinkHandler linkHandler))
                 {
                     Events.LinkNotFound(LinkType.ModuleMessages, this.Identity, "desired properties update");
                     return Task.CompletedTask;
@@ -221,7 +221,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
             public Task SendTwinUpdate(IMessage twin)
             {
-                if (!this.connectionHandler.registry.TryGetValue(LinkType.TwinSending, out ILinkHandler linkHandler))
+                if (!this.clientConnectionHandler.registry.TryGetValue(LinkType.TwinSending, out ILinkHandler linkHandler))
                 {
                     Events.LinkNotFound(LinkType.ModuleMessages, this.Identity, "twin update");
                     return Task.CompletedTask;
@@ -246,7 +246,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<ConnectionHandler>();
+            static readonly ILogger Log = Logger.Factory.CreateLogger<ClientConnectionHandler>();
             const int IdStart = AmqpEventIds.ConnectionHandler;
 
             enum EventIds

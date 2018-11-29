@@ -11,7 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
-    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -26,9 +25,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var deviceListener = new Mock<IDeviceListener>();
             var connectionHandler = Mock.Of<IConnectionHandler>(c => c.GetDeviceListener() == Task.FromResult(deviceListener.Object));
             var cbsNode = Mock.Of<ICbsNode>(c => c.AuthenticateAsync("d1") == Task.FromResult(true));
-            var amqpConnection = Mock.Of<IAmqpConnection>(c =>
-                c.FindExtension<IConnectionHandler>() == connectionHandler &&
-                c.FindExtension<ICbsNode>() == cbsNode);
+            var amqpConnection = Mock.Of<IAmqpConnection>(
+                c =>
+                    c.FindExtension<IConnectionHandler>() == connectionHandler &&
+                    c.FindExtension<ICbsNode>() == cbsNode);
             var amqpSession = Mock.Of<IAmqpSession>(s => s.Connection == amqpConnection);
             var receivingLink = Mock.Of<IReceivingAmqpLink>(l => l.Session == amqpSession && l.IsReceiver && l.Settings == new AmqpLinkSettings() && l.State == AmqpObjectState.Opened);
 
@@ -53,8 +53,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
     class TestReceivingLinkHandler : ReceivingLinkHandler
     {
-        public TestReceivingLinkHandler(IIdentity identity, IReceivingAmqpLink link,
-            Uri requestUri, IDictionary<string, string> boundVariables, IConnectionHandler connectionHandler, IMessageConverter<AmqpMessage> messageConverter)
+        public TestReceivingLinkHandler(
+            IIdentity identity,
+            IReceivingAmqpLink link,
+            Uri requestUri,
+            IDictionary<string, string> boundVariables,
+            IConnectionHandler connectionHandler,
+            IMessageConverter<AmqpMessage> messageConverter)
             : base(identity, link, requestUri, boundVariables, connectionHandler, messageConverter)
         {
         }

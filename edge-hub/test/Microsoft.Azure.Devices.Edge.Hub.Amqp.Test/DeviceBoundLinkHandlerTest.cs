@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 {
     using System;
@@ -11,7 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
-    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -73,9 +73,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             AmqpMessage receivedAmqpMessage = null;
             var connectionHandler = Mock.Of<IConnectionHandler>(c => c.GetDeviceListener() == Task.FromResult(deviceListener.Object));
             var cbsNode = Mock.Of<ICbsNode>(c => c.AuthenticateAsync("d1") == Task.FromResult(true));
-            var amqpConnection = Mock.Of<IAmqpConnection>(c =>
-                c.FindExtension<IConnectionHandler>() == connectionHandler &&
-                c.FindExtension<ICbsNode>() == cbsNode);
+            var amqpConnection = Mock.Of<IAmqpConnection>(
+                c =>
+                    c.FindExtension<IConnectionHandler>() == connectionHandler &&
+                    c.FindExtension<ICbsNode>() == cbsNode);
             var amqpSession = Mock.Of<IAmqpSession>(s => s.Connection == amqpConnection);
             var sendingLink = Mock.Of<ISendingAmqpLink>(l => l.Session == amqpSession && !l.IsReceiver && l.Settings == new AmqpLinkSettings() && l.State == AmqpObjectState.Opened);
             Mock.Get(sendingLink).Setup(s => s.SendMessageNoWait(It.IsAny<AmqpMessage>(), It.IsAny<ArraySegment<byte>>(), It.IsAny<ArraySegment<byte>>()))
@@ -90,8 +91,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var body = new byte[] { 0, 1, 2, 3 };
             IMessage message = new EdgeMessage.Builder(body).Build();
             var deliveryState = new Mock<DeliveryState>(new AmqpSymbol(""), AmqpConstants.AcceptedOutcome.DescriptorCode);
-            var delivery = Mock.Of<Delivery>(d => d.State == deliveryState.Object
-                && d.DeliveryTag == new ArraySegment<byte>(Guid.NewGuid().ToByteArray()));
+            var delivery = Mock.Of<Delivery>(
+                d => d.State == deliveryState.Object
+                    && d.DeliveryTag == new ArraySegment<byte>(Guid.NewGuid().ToByteArray()));
 
             // Act
             await sendingLinkHandler.OpenAsync(TimeSpan.FromSeconds(5));

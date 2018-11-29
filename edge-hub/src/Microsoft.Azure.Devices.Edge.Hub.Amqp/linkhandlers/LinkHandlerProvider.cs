@@ -110,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 
         IConnectionHandler GetConnectionHandler(IAmqpLink link, IIdentity identity)
         {
-            var amqpClientConnectionsHandler = link.Session.Connection.FindExtension<IAmqpClientConnectionsHandler>();
+            var amqpClientConnectionsHandler = link.Session.Connection.FindExtension<IClientConnectionsHandler>();
             if (amqpClientConnectionsHandler == null)
             {
                 throw new InvalidOperationException("Expected extension IAmqpClientConnectionsHandler not found on connection");
