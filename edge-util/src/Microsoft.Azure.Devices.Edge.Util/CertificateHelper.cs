@@ -242,7 +242,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
         // https://stackoverflow.com/questions/16698307/how-do-you-parse-the-subject-alternate-names-from-an-x509certificate2
         public static IEnumerable<string> ParseSanUris(X509Certificate2 certificate)
         {
-            Regex sanRex = new Regex(@"^UR[IL][:=](.*)", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+            Regex sanRex = new Regex(@"^UR[IL]\s*[:=](.*)", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
             var sanList = from X509Extension ext in certificate.Extensions
                             where ext.Oid.FriendlyName.Contains("Subject Alternative Name")
