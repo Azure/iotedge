@@ -66,11 +66,21 @@ namespace LeafDevice.Details
             }
         }
 
-        protected Task InstallCaCertificate()
+        protected Task InitializeServerCerts()
         {
+            if (string.IsNullOrEmpty(this.certificateFileName))
+            {
+                return Task.CompletedTask;
+            }
+
             // Since Windows will pop up security warning when add certificate to current user store location;
             // Therefore we will use CustomCertificateValidator instead.
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                // This will hook up callback on device transport settings to validate with given certificate
+                CustomCertificateValidator.Create(new List<X509Certificate2> { this.GetCertificate() }, this.deviceTransportSettings);
+            }
+            else
             {
                 var store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
                 store.Open(OpenFlags.ReadWrite);
@@ -87,14 +97,6 @@ namespace LeafDevice.Details
         {
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
             string leafDeviceConnectionString = $"HostName={builder.HostName};DeviceId={this.deviceId};SharedAccessKey={this.context.Device.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={this.edgeHostName}";
-
-            // Need to use CustomCertificateValidator since we can't automate to install certificate on Windows
-            // For details, refer to InstallCaCertificate method
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && !string.IsNullOrEmpty(this.certificateFileName))
-            {
-                // This will hook up callback on device transport settings to validate with given certificate
-                CustomCertificateValidator.Create(new List<X509Certificate2> { this.GetCertificate() }, this.deviceTransportSettings);
-            }
 
             DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(leafDeviceConnectionString, this.deviceTransportSettings);
             this.context.DeviceClientInstance = Option.Some(deviceClient);
