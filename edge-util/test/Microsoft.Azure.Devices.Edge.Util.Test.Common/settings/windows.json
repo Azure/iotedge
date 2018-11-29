@@ -1,5 +1,5 @@
 ﻿{
-    "dockerHostUrl": "npipe://./pipe/docker_engine",
+    "dockerHostUrl": "npipe://./pipe/iotedge_moby_engine",
     "testSuite": [
         "test-config-windows-x64.json"
       ]
