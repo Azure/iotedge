@@ -83,23 +83,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             // Act / Assert
             Assert.Throws<InvalidOperationException>(() => linkHandlerProvider.GetLinkType(amqpLink, uri));
         }
-
+        
         static IEnumerable<object[]> GetLinkHandlerTestData()
         {
-            yield return new object[] { LinkType.Cbs, true, typeof(CbsLinkHandler) };
-            yield return new object[] { LinkType.Cbs, false, typeof(CbsLinkHandler) };
-            yield return new object[] { LinkType.Events, true, typeof(EventsLinkHandler) };
-            yield return new object[] { LinkType.ModuleMessages, false, typeof(ModuleMessageLinkHandler) };
-            yield return new object[] { LinkType.C2D, false, typeof(DeviceBoundLinkHandler) };
-            yield return new object[] { LinkType.MethodReceiving, true, typeof(MethodReceivingLinkHandler) };
-            yield return new object[] { LinkType.MethodSending, false, typeof(MethodSendingLinkHandler) };
-            yield return new object[] { LinkType.TwinReceiving, true, typeof(TwinReceivingLinkHandler) };
-            yield return new object[] { LinkType.TwinSending, false, typeof(TwinSendingLinkHandler) };
+            yield return new object[] { "amqps://foo.bar/$cbs", true, typeof(CbsLinkHandler) };
+            yield return new object[] { "amqps://foo.bar/$cbs", false, typeof(CbsLinkHandler) };
+            yield return new object[] { "amqps://foo.bar//devices/device1/messages/events", true, typeof(EventsLinkHandler) };
+            yield return new object[] { "amqps://foo.bar/devices/device1/modules/module1/messages/events", true, typeof(EventsLinkHandler) };
+            yield return new object[] { "amqps://foo.bar/devices/device1/modules/module1/messages/events", false, typeof(ModuleMessageLinkHandler) };
+            yield return new object[] { "amqps://foo.bar/devices/device1/messages/deviceBound", false, typeof(DeviceBoundLinkHandler) };
+            yield return new object[] { "amqps://foo.bar/devices/device1/methods/deviceBound", false, typeof(MethodSendingLinkHandler) };
+            yield return new object[] { "amqps://foo.bar/devices/device1/modules/module1/methods/deviceBound", false, typeof(MethodSendingLinkHandler) };
+            yield return new object[] { "amqps://foo.bar/devices/device1/methods/deviceBound", true, typeof(MethodReceivingLinkHandler) };
+            yield return new object[] { "amqps://foo.bar/devices/device1/modules/module1/methods/deviceBound", true, typeof(MethodReceivingLinkHandler) };
+            yield return new object[] { "amqps://foo.bar/devices/device1/twin", false, typeof(TwinSendingLinkHandler) };
+            yield return new object[] { "amqps://foo.bar/devices/device1/modules/module1/twin", false, typeof(TwinSendingLinkHandler) };
+            yield return new object[] { "amqps://foo.bar/devices/device1/twin", true, typeof(TwinReceivingLinkHandler) };
+            yield return new object[] { "amqps://foo.bar/devices/device1/modules/module1/twin", true, typeof(TwinReceivingLinkHandler) };
         }
 
         [Theory]
         [MemberData(nameof(GetLinkHandlerTestData))]
-        public void GetLinkHandlerTest(LinkType linkType, bool isReceiver, Type expectedLinkHandlerType)
+        public void GetLinkHandlerTest(string url, bool isReceiver, Type expectedLinkHandlerType)
         {
             // Arrange
             var messageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
@@ -108,19 +113,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var identityProvider = new IdentityProvider("foo.bar");
             var linkHandlerProvider = new LinkHandlerProvider(messageConverter, twinMessageConverter, methodMessageConverter, identityProvider);
 
-            var uri = new Uri("amqps://foo.bar//abs/prq");
-            var amqpConnection = Mock.Of<IAmqpConnection>(c => c.FindExtension<IConnectionHandler>() == Mock.Of<IConnectionHandler>());
+            var uri = new Uri(url);
+            var amqpClientConnectionsHandler = Mock.Of<IAmqpClientConnectionsHandler>(c => c.GetConnectionHandler(It.IsAny<IIdentity>()) == Mock.Of<IConnectionHandler>());
+            var amqpConnection = Mock.Of<IAmqpConnection>(c => c.FindExtension<IAmqpClientConnectionsHandler>() == amqpClientConnectionsHandler);
             var amqpSession = Mock.Of<IAmqpSession>(s => s.Connection == amqpConnection);
             IAmqpLink amqpLink = isReceiver
                 ? Mock.Of<IReceivingAmqpLink>(l => l.IsReceiver && l.Session == amqpSession)
                 : Mock.Of<ISendingAmqpLink>(l => !l.IsReceiver && l.Session == amqpSession) as IAmqpLink;
-            if (linkType == LinkType.Cbs)
+            if (url.Contains("$cbs"))
             {
                 Mock.Get(amqpConnection).Setup(c => c.FindExtension<ICbsNode>()).Returns(Mock.Of<ICbsNode>());
             }
 
             // Act
-            ILinkHandler linkHandler = linkHandlerProvider.GetLinkHandler(linkType, amqpLink, uri, new Dictionary<string, string>());
+            ILinkHandler linkHandler = linkHandlerProvider.Create(amqpLink, uri);
 
             // Assert
             Assert.NotNull(linkHandler);

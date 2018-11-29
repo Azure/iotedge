@@ -49,14 +49,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         public async Task SendMessageTest()
         {
             // Arrange
-            var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
+            var identity = Mock.Of<IDeviceIdentity>(i => i.Id == "d1" && i.DeviceId == "d1");
 
             IEnumerable<IMessage> receivedMessages = null;
             var deviceListener = Mock.Of<IDeviceListener>();
             Mock.Get(deviceListener).Setup(d => d.ProcessDeviceMessageBatchAsync(It.IsAny<IEnumerable<IMessage>>())).Callback<IEnumerable<IMessage>>(m => receivedMessages = m);
 
             var connectionHandler = Mock.Of<IConnectionHandler>(c => c.GetDeviceListener() == Task.FromResult(deviceListener));
-            var amqpConnection = Mock.Of<IAmqpConnection>(c => c.FindExtension<IConnectionHandler>() == connectionHandler);
+            var cbsNode = Mock.Of<ICbsNode>(c => c.AuthenticateAsync("d1") == Task.FromResult(true));
+            var amqpConnection = Mock.Of<IAmqpConnection>(c =>
+                c.FindExtension<IConnectionHandler>() == connectionHandler &&
+                c.FindExtension<ICbsNode>() == cbsNode);
             var amqpSession = Mock.Of<IAmqpSession>(s => s.Connection == amqpConnection);
             var amqpLink = Mock.Of<IReceivingAmqpLink>(l => l.Session == amqpSession && l.IsReceiver && l.Settings == new AmqpLinkSettings() && l.State == AmqpObjectState.Opened);
 
@@ -122,7 +125,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                 .Returns(Task.CompletedTask);
 
             var connectionHandler = Mock.Of<IConnectionHandler>(c => c.GetDeviceListener() == Task.FromResult(deviceListener));
-            var amqpConnection = Mock.Of<IAmqpConnection>(c => c.FindExtension<IConnectionHandler>() == connectionHandler);
+            var cbsNode = Mock.Of<ICbsNode>(c => c.AuthenticateAsync("d1") == Task.FromResult(true));
+            var amqpConnection = Mock.Of<IAmqpConnection>(c =>
+                c.FindExtension<IConnectionHandler>() == connectionHandler &&
+                c.FindExtension<ICbsNode>() == cbsNode);
             var amqpSession = Mock.Of<IAmqpSession>(s => s.Connection == amqpConnection);
             var amqpLink = Mock.Of<IReceivingAmqpLink>(l => l.Session == amqpSession && l.IsReceiver && l.Settings == new AmqpLinkSettings() && l.State == AmqpObjectState.Opened);
 
@@ -200,7 +206,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                 .Returns(Task.CompletedTask);
 
             var connectionHandler = Mock.Of<IConnectionHandler>(c => c.GetDeviceListener() == Task.FromResult(deviceListener));
-            var amqpConnection = Mock.Of<IAmqpConnection>(c => c.FindExtension<IConnectionHandler>() == connectionHandler);
+            var cbsNode = Mock.Of<ICbsNode>(c => c.AuthenticateAsync("d1") == Task.FromResult(true));
+            var amqpConnection = Mock.Of<IAmqpConnection>(c =>
+                c.FindExtension<IConnectionHandler>() == connectionHandler &&
+                c.FindExtension<ICbsNode>() == cbsNode);
             var amqpSession = Mock.Of<IAmqpSession>(s => s.Connection == amqpConnection);
             var amqpLink = Mock.Of<IReceivingAmqpLink>(l => l.Session == amqpSession && l.IsReceiver && l.Settings == new AmqpLinkSettings() && l.State == AmqpObjectState.Opened);
 
