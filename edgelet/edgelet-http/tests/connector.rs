@@ -126,11 +126,12 @@ fn make_url(path: &str) -> String {
 
 #[cfg(windows)]
 fn pipe_get_handler(_req: Request<Body>) -> impl Future<Item = Response<Body>, Error = io::Error> {
-    let response =
-        Response::builder()
+    let response = Response::builder()
         .header(hyper::header::CONTENT_TYPE, "text/plain; charset=utf-8")
-        .header(hyper::header::CONTENT_LENGTH, format!("{}", GET_RESPONSE.len()))
-        .body(GET_RESPONSE.into())
+        .header(
+            hyper::header::CONTENT_LENGTH,
+            format!("{}", GET_RESPONSE.len()),
+        ).body(GET_RESPONSE.into())
         .expect("couldn't create response body");
     future::ok(response)
 }
@@ -141,8 +142,7 @@ fn pipe_get() {
     let path = make_path();
     let url = make_url(&path);
 
-    let server =
-        run_pipe_server(path.into(), pipe_get_handler).map_err(|err| eprintln!("{}", err));
+    let server = run_pipe_server(path.into(), pipe_get_handler).map_err(|err| eprintln!("{}", err));
 
     let connector = UrlConnector::new(&Url::parse(&url).unwrap()).unwrap();
 
