@@ -139,7 +139,7 @@ namespace IotEdgeQuickstart.Details
                         cts.Token);
                 }
 
-                string args = $"Set-ExecutionPolicy -ExecutionPolicy RemoteSigned;. {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Install-SecurityDaemon -Manual " +
+                string args = $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Install-SecurityDaemon -Manual " +
                     $"-ContainerOs Windows -DeviceConnectionString '{connectionString}' -AgentImage '{image}'";
 
                 foreach (RegistryCredentials c in this.credentials)
