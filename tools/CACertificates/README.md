@@ -33,7 +33,6 @@ You'll need to do some initial setup prior to running these scripts.
 * Start Bash.
 * `cd` to the directory you want to run in.  All files will be created as children of this directory.
 * `cp *.cnf` and `cp certGen.sh` from the directory this .MD file is located into your working directory.
-* `chmod +x certGen.sh`
 
 ## Step 2 - Create the certificate chain
 First you need to create a CA and an intermediate certificate signer that chains back to the CA.
