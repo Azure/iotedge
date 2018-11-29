@@ -2,7 +2,7 @@
     {
         "name": "nano",
         "version": "1.0",
-        "image": "microsoft/nanoserver:1803",
+        "image": "microsoft/nanoserver:1809",
         "validator": {
             "$type": "RunCommandValidator",
             "command": "docker",
