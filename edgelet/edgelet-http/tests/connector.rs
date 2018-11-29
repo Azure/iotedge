@@ -11,8 +11,6 @@
 extern crate edgelet_http;
 extern crate edgelet_test_utils;
 extern crate futures;
-#[cfg(windows)]
-extern crate httparse;
 extern crate hyper;
 #[cfg(windows)]
 extern crate hyper_named_pipe;
@@ -28,10 +26,6 @@ extern crate typed_headers;
 extern crate url;
 
 use std::io;
-#[cfg(windows)]
-use std::sync::mpsc::channel;
-#[cfg(windows)]
-use std::thread;
 
 use edgelet_http::UrlConnector;
 #[cfg(windows)]
@@ -40,8 +34,6 @@ use edgelet_test_utils::run_uds_server;
 use edgelet_test_utils::{get_unused_tcp_port, run_tcp_server};
 use futures::future;
 use futures::prelude::*;
-#[cfg(windows)]
-use httparse::Request as HtRequest;
 use hyper::{
     Body, Client, Error as HyperError, Method, Request, Response, StatusCode, Uri as HyperUri,
 };
@@ -133,32 +125,24 @@ fn make_url(path: &str) -> String {
 }
 
 #[cfg(windows)]
-#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
-fn pipe_get_handler(_req: &HtRequest, _body: Option<Vec<u8>>) -> String {
-    format!(
-        "HTTP/1.1 200 OK\r\n\
-         Content-Type: text/plain; charset=utf-8\r\n\
-         Content-Length: {}\r\n\
-         \r\n\
-         {}",
-        GET_RESPONSE.len(),
-        GET_RESPONSE
-    )
+fn pipe_get_handler(_req: Request<Body>) -> impl Future<Item = Response<Body>, Error = io::Error> {
+    let response =
+        Response::builder()
+        .header(hyper::header::CONTENT_TYPE, "text/plain; charset=utf-8")
+        .header(hyper::header::CONTENT_LENGTH, format!("{}", GET_RESPONSE.len()))
+        .body(GET_RESPONSE.into())
+        .expect("couldn't create response body");
+    future::ok(response)
 }
 
 #[cfg(windows)]
 #[test]
 fn pipe_get() {
-    let (sender, receiver) = channel();
     let path = make_path();
     let url = make_url(&path);
 
-    thread::spawn(move || {
-        run_pipe_server(&path, pipe_get_handler, &sender);
-    });
-
-    // wait for server to get ready
-    receiver.recv().unwrap();
+    let server =
+        run_pipe_server(path.into(), pipe_get_handler).map_err(|err| eprintln!("{}", err));
 
     let connector = UrlConnector::new(&Url::parse(&url).unwrap()).unwrap();
 
@@ -174,10 +158,9 @@ fn pipe_get() {
             assert_eq!(GET_RESPONSE, &String::from_utf8_lossy(body.as_ref()));
         });
 
-    tokio::runtime::current_thread::Runtime::new()
-        .unwrap()
-        .block_on(task)
-        .unwrap();
+    let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+    runtime.spawn(server);
+    runtime.block_on(task).unwrap();
 }
 
 const POST_BODY: &str = r#"{"donuts":"yes"}"#;
@@ -265,28 +248,24 @@ fn uds_post() {
 }
 
 #[cfg(windows)]
-fn pipe_post_handler(_req: &HtRequest, body: Option<Vec<u8>>) -> String {
-    let body = body.unwrap();
-    let body = String::from_utf8_lossy(&body);
-    assert_eq!(&body, POST_BODY);
-
-    "HTTP/1.1 200 OK\r\n\r\n".to_string()
+fn pipe_post_handler(req: Request<Body>) -> impl Future<Item = Response<Body>, Error = io::Error> {
+    req.into_body().concat2().then(|body| {
+        let body = body.expect("couldn't read request body");
+        let body = String::from_utf8_lossy(&body);
+        assert_eq!(&body, POST_BODY);
+        Ok(Response::new(Body::default()))
+    })
 }
 
 #[cfg(windows)]
 #[test]
 #[ignore] //todo fix test. Disabling test as it is flaky and gating the checkin
 fn pipe_post() {
-    let (sender, receiver) = channel();
     let path = make_path();
     let url = make_url(&path);
 
-    thread::spawn(move || {
-        run_pipe_server(&path, pipe_post_handler, &sender);
-    });
-
-    // wait for server to get ready
-    receiver.recv().unwrap();
+    let server =
+        run_pipe_server(path.into(), pipe_post_handler).map_err(|err| eprintln!("{}", err));
 
     let connector = UrlConnector::new(&Url::parse(&url).unwrap()).unwrap();
 
@@ -309,8 +288,7 @@ fn pipe_post() {
         assert_eq!(StatusCode::OK, res.status());
     });
 
-    tokio::runtime::current_thread::Runtime::new()
-        .unwrap()
-        .block_on(task)
-        .unwrap();
+    let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+    runtime.spawn(server);
+    runtime.block_on(task).unwrap();
 }
