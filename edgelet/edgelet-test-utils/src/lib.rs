@@ -17,8 +17,6 @@ extern crate edgelet_core;
 #[macro_use]
 extern crate failure;
 extern crate futures;
-#[cfg(windows)]
-extern crate httparse;
 extern crate hyper;
 #[cfg(unix)]
 extern crate hyperlocal;
@@ -30,6 +28,8 @@ extern crate mio;
 extern crate mio_named_pipes;
 #[cfg(windows)]
 extern crate mio_uds_windows;
+#[cfg(windows)]
+extern crate miow;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;

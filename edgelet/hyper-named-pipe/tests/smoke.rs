@@ -10,7 +10,6 @@
 #![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
 
 extern crate futures;
-extern crate httparse;
 extern crate hyper;
 extern crate rand;
 extern crate tokio;
@@ -19,15 +18,10 @@ extern crate typed_headers;
 extern crate edgelet_test_utils;
 extern crate hyper_named_pipe;
 
-use std::sync::mpsc::channel;
-use std::thread;
+use std::io;
 
-use futures::future::Future;
-use futures::Stream;
-use httparse::Request;
-use hyper::{
-    Body, Client as HyperClient, Method, Request as HyperRequest, StatusCode, Uri as HyperUri,
-};
+use futures::{future, Future, Stream};
+use hyper::{Body, Client as HyperClient, Method, Request, Response, StatusCode, Uri as HyperUri};
 use rand::Rng;
 use typed_headers::{mime, ContentLength, ContentType, HeaderMapExt};
 
@@ -42,62 +36,50 @@ fn make_url(path: &str) -> Uri {
     Uri::new(&format!("npipe:{}", path.replace("\\", "/")), "/").unwrap()
 }
 
-#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
-fn get_handler(_req: &Request, _body: Option<Vec<u8>>) -> String {
-    "HTTP/1.1 200 OK\r\n\r\n".to_string()
+fn get_handler(_req: Request<Body>) -> impl Future<Item = Response<Body>, Error = io::Error> {
+    future::ok(Response::new(Body::default()))
 }
 
 #[test]
 fn get() {
-    let (sender, receiver) = channel();
     let path = make_path();
     let url = make_url(&path);
 
-    thread::spawn(move || {
-        run_pipe_server(&path, get_handler, &sender);
-    });
-
-    // wait for server to get ready
-    receiver.recv().unwrap();
+    let server = run_pipe_server(path.into(), get_handler).map_err(|err| eprintln!("{}", err));
 
     let hyper_client = HyperClient::builder().build::<_, Body>(PipeConnector);
 
     // make a get request
     let task = hyper_client.get(url.into());
-    let response = tokio::runtime::current_thread::Runtime::new()
-        .unwrap()
-        .block_on(task)
-        .unwrap();
+
+    let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+    runtime.spawn(server);
+    let response = runtime.block_on(task).unwrap();
     assert_eq!(response.status(), StatusCode::OK);
 }
 
 const GET_RESPONSE: &str = "The answer is 42";
 
-#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
-fn get_with_body_handler(_req: &Request, _body: Option<Vec<u8>>) -> String {
-    format!(
-        "HTTP/1.1 200 OK\r\n\
-         Content-Type: text/plain; charset=utf-8\r\n\
-         Content-Length: {}\r\n\
-         \r\n\
-         {}",
-        GET_RESPONSE.len(),
-        GET_RESPONSE
-    )
+fn get_with_body_handler(
+    _req: Request<Body>,
+) -> impl Future<Item = Response<Body>, Error = io::Error> {
+    let response = Response::builder()
+        .header(hyper::header::CONTENT_TYPE, "text/plain; charset=utf-8")
+        .header(
+            hyper::header::CONTENT_LENGTH,
+            format!("{}", GET_RESPONSE.len()),
+        ).body(GET_RESPONSE.into())
+        .expect("couldn't create response body");
+    future::ok(response)
 }
 
 #[test]
 fn get_with_body() {
-    let (sender, receiver) = channel();
     let path = make_path();
     let url = make_url(&path);
 
-    thread::spawn(move || {
-        run_pipe_server(&path, get_with_body_handler, &sender);
-    });
-
-    // wait for server to get ready
-    receiver.recv().unwrap();
+    let server =
+        run_pipe_server(path.into(), get_with_body_handler).map_err(|err| eprintln!("{}", err));
 
     let hyper_client = HyperClient::builder().build::<_, Body>(PipeConnector);
 
@@ -111,39 +93,33 @@ fn get_with_body() {
             assert_eq!(GET_RESPONSE, &String::from_utf8_lossy(body.as_ref()));
         });
 
-    tokio::runtime::current_thread::Runtime::new()
-        .unwrap()
-        .block_on(task)
-        .unwrap();
+    let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+    runtime.spawn(server);
+    runtime.block_on(task).unwrap();
 }
 
 const POST_BODY: &str = r#"{"donuts":"yes"}"#;
 
-fn post_handler(_req: &Request, body: Option<Vec<u8>>) -> String {
-    let body = body.unwrap();
-    let body = String::from_utf8_lossy(&body);
-    assert_eq!(&body, POST_BODY);
-
-    "HTTP/1.1 200 OK\r\n\r\n".to_string()
+fn post_handler(req: Request<Body>) -> impl Future<Item = Response<Body>, Error = io::Error> {
+    req.into_body().concat2().then(|body| {
+        let body = body.expect("couldn't read request body");
+        let body = String::from_utf8_lossy(&body);
+        assert_eq!(&body, POST_BODY);
+        Ok(Response::new(Body::default()))
+    })
 }
 
 #[test]
 fn post() {
-    let (sender, receiver) = channel();
     let path = make_path();
     let url: HyperUri = make_url(&path).into();
 
-    thread::spawn(move || {
-        run_pipe_server(&path, post_handler, &sender);
-    });
-
-    // wait for server to get ready
-    receiver.recv().unwrap();
+    let server = run_pipe_server(path.into(), post_handler).map_err(|err| eprintln!("{}", err));
 
     let hyper_client = HyperClient::builder().build::<_, Body>(PipeConnector);
 
     // make a post request
-    let mut req = HyperRequest::builder()
+    let mut req = Request::builder()
         .method(Method::POST)
         .uri(url)
         .body(POST_BODY.into())
@@ -157,8 +133,7 @@ fn post() {
         assert_eq!(StatusCode::OK, res.status());
     });
 
-    tokio::runtime::current_thread::Runtime::new()
-        .unwrap()
-        .block_on(task)
-        .unwrap();
+    let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+    runtime.spawn(server);
+    runtime.block_on(task).unwrap();
 }
