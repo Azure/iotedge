@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         readonly IClientCredentialsFactory clientCredentialsFactory;
         readonly bool clientCertAuthAllowed;
         Option<X509Certificate2> remoteCertificate;
-        Option<IList<X509Certificate2>> remoteCertificateChain;
+        IList<X509Certificate2> remoteCertificateChain;
 
         public DeviceIdentityProvider(IAuthenticator authenticator, IClientCredentialsFactory clientCredentialsFactory, bool clientCertAuthAllowed)
         {
@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             this.clientCredentialsFactory = clientCredentialsFactory;
             this.clientCertAuthAllowed = clientCertAuthAllowed;
             this.remoteCertificate = Option.None<X509Certificate2>();
-            this.remoteCertificateChain = Option.None<IList<X509Certificate2>>();
+            this.remoteCertificateChain = new List<X509Certificate2>();
         }
 
         public async Task<IDeviceIdentity> GetAsync(string clientId, string username, string password, EndPoint clientAddress)
@@ -51,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                                                                              moduleId,
                                                                              deviceClientType,
                                                                              cert,
-                                                                             this.remoteCertificateChain.GetOrElse(new List<X509Certificate2>()));
+                                                                             this.remoteCertificateChain);
                     }).GetOrElse(() => throw new InvalidOperationException($"Unable to validate credientials since no certificate was provided and password is null"));
                 }
                 else
@@ -82,9 +82,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             {
                 this.remoteCertificate = Option.Some(new X509Certificate2(certificate));
             }
-            IList<X509Certificate2> list = chain == null ? new List<X509Certificate2>() :
-                                                           chain.ChainElements.Cast<X509ChainElement>().Select(element => element.Certificate).ToList();
-            this.remoteCertificateChain = Option.Some(list);
+            if (chain != null)
+            {
+                this.remoteCertificateChain = chain.ChainElements.Cast<X509ChainElement>().Select(element => element.Certificate).ToList();
+            }
 
             return true; // real validation in GetAsync above
         }
@@ -95,8 +96,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             {
                 this.remoteCertificate = Option.Some(certificate);
             }
-            IList<X509Certificate2> list = chain ?? new List<X509Certificate2>();
-            this.remoteCertificateChain = Option.Some(list);
+            if (chain != null)
+            {
+                this.remoteCertificateChain = chain;
+   
+            }
 
             return true; // real validation in GetAsync above
         }
