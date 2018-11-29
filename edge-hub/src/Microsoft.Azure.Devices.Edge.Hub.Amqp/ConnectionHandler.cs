@@ -79,13 +79,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                             throw new InvalidOperationException("Connection not authenticated");
                         }
 
-                        IClientCredentials identity = amqpAuth.ClientCredentials.Expect(() => new InvalidOperationException("Authenticated connection should have a valid identity"));
-                        this.deviceListener = await this.connectionProvider.GetDeviceListenerAsync(identity);
-                        var deviceProxy = new DeviceProxy(this, identity.Identity);
+                        IClientCredentials clientCredentials = amqpAuth.ClientCredentials.Expect(() => new InvalidOperationException("Authenticated connection should have a valid identity"));
+                        this.deviceListener = await this.connectionProvider.GetDeviceListenerAsync(clientCredentials.Identity);
+                        var deviceProxy = new DeviceProxy(this, clientCredentials.Identity);
                         this.deviceListener.BindDeviceProxy(deviceProxy);
                         this.amqpAuthentication = amqpAuth;
                         this.isInitialized = true;
-                        Events.InitializedConnectionHandler(identity.Identity);
+                        Events.InitializedConnectionHandler(clientCredentials.Identity);
                     }
                 }
             }
