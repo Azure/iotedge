@@ -93,20 +93,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             {
                 if (this.clientCredentialsMap.TryGetValue(id, out CredentialsInfo credentialsInfo))
                 {
-                    if (credentialsInfo.IsAuthenticated)
+                    // Not -ve caching isAuthenticated here.
+                    // If incorrect credentials are sent, then it authenticates every time and fails
+                    // If correct credentials are sent later, then the authentication will succeed.
+                    if (!credentialsInfo.IsAuthenticated)
                     {
-                        return true;
-                    }
-                    else
-                    {
-                        bool isAuthenticated = await this.authenticator.AuthenticateAsync(credentialsInfo.ClientCredentials);
-                        if (isAuthenticated)
+                        using (await credentialsInfo.AsyncLock.LockAsync())
                         {
-                            credentialsInfo.IsAuthenticated = true;
+                            if (!credentialsInfo.IsAuthenticated)
+                            {
+                                credentialsInfo.IsAuthenticated = await this.authenticator.AuthenticateAsync(credentialsInfo.ClientCredentials);
+                            }
                         }
-
-                        return isAuthenticated;
                     }
+
+                    return credentialsInfo.IsAuthenticated;
                 }
                 else
                 {
@@ -118,17 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 Events.ErrorAuthenticatingIdentity(id, e);
                 return false;
             }
-        }
-
-        public Option<IIdentity> GetIdentity(string id)
-        {
-            if (this.clientCredentialsMap.TryGetValue(id, out CredentialsInfo credentialsInfo))
-            {
-                return Option.Some(credentialsInfo.ClientCredentials.Identity);
-            }
-
-            return Option.None<IIdentity>();
-        }
+        }        
 
         async void OnMessageReceived(AmqpMessage message)
         {
@@ -160,13 +151,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             }
         }
 
-        // Note: This method accesses this.amqpAuthentication, and should be invoked only within this.identitySyncLock
+        // Note: This method updates this.clientCredentialsMap, and should be invoked only within this.identitySyncLock
         internal async Task<(AmqpResponseStatusCode, string)> UpdateCbsToken(AmqpMessage message)
         {
-            IClientCredentials identity;
+            IClientCredentials clientCredentials;
             try
             {
-                identity = this.GetClientCredentials(message);
+                clientCredentials = this.GetClientCredentials(message);
             }
             catch (Exception e) when (!ExceptionEx.IsFatal(e))
             {
@@ -174,21 +165,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 return (AmqpResponseStatusCode.BadRequest, e.Message);
             }
 
-            if (!this.clientCredentialsMap.TryGetValue(identity.Identity.Id, out CredentialsInfo credentialsInfo))
+            if (!this.clientCredentialsMap.TryGetValue(clientCredentials.Identity.Id, out CredentialsInfo credentialsInfo))
             {
-                this.clientCredentialsMap[identity.Identity.Id] = new CredentialsInfo(identity);
+                this.clientCredentialsMap[clientCredentials.Identity.Id] = new CredentialsInfo(clientCredentials);
             }
             else
             {
-                credentialsInfo.ClientCredentials = identity;
+                using (await credentialsInfo.AsyncLock.LockAsync())
+                {
+                    credentialsInfo.ClientCredentials = clientCredentials;
+                }
+
                 if (credentialsInfo.IsAuthenticated)
                 {
-                    await this.credentialsCache.Add(identity);
-                    Events.CbsTokenUpdated(identity.Identity);
+                    await this.credentialsCache.Add(clientCredentials);
+                    Events.CbsTokenUpdated(clientCredentials.Identity);
                 }
                 else
                 {
-                    Events.CbsTokenNotUpdated(identity.Identity);
+                    Events.CbsTokenNotUpdated(clientCredentials.Identity);
                 }
             }
 
@@ -313,11 +308,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             {
                 this.ClientCredentials = clientCredentials;
                 this.IsAuthenticated = false;
+                this.AsyncLock = new AsyncLock();
             }
 
             public IClientCredentials ClientCredentials { get; set; }
 
             public bool IsAuthenticated { get; set; }
+
+            public AsyncLock AsyncLock { get; }
         }
 
         static class Events
