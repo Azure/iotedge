@@ -16,85 +16,40 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public class DeviceScopeCertificateAuthenticator : IAuthenticator
+    public class DeviceScopeCertificateAuthenticator : DeviceScopeAuthenticator<ICertificateCredentials>
     {
-        readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
         readonly string iothubHostName;
-        readonly IAuthenticator underlyingAuthenticator;
         readonly IList<X509Certificate2> trustBundle;
 
         public DeviceScopeCertificateAuthenticator(
             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache,
             string iothubHostName,
             IAuthenticator underlyingAuthenticator,
-            IList<X509Certificate2> trustBundle)
+            IList<X509Certificate2> trustBundle,
+            bool syncServiceIdentityOnFailure)
+            :
+            base(deviceScopeIdentitiesCache, underlyingAuthenticator, false, syncServiceIdentityOnFailure)
         {
-            this.deviceScopeIdentitiesCache = Preconditions.CheckNotNull(deviceScopeIdentitiesCache, nameof(deviceScopeIdentitiesCache));
-            this.underlyingAuthenticator = Preconditions.CheckNotNull(underlyingAuthenticator, nameof(underlyingAuthenticator));
             this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
             this.trustBundle = Preconditions.CheckNotNull(trustBundle, nameof(trustBundle));
         }
 
-        public Task<bool> AuthenticateAsync(IClientCredentials clientCredentials)
-            => this.AuthenticateAsync(clientCredentials, false);
+        // we return true here since a client certificates and its chain will be validated ValidateWithServiceIdentity
+        // a possibility would be to check if things are null but that is already being done in CertificateCredentials
+        protected override bool AreInputCredentialsValid(ICertificateCredentials credentials) => true;
 
-        public Task<bool> ReauthenticateAsync(IClientCredentials clientCredentials)
-            => this.AuthenticateAsync(clientCredentials, true);
-
-        async Task<bool> AuthenticateAsync(IClientCredentials clientCredentials, bool reAuthenticating)
-        {
-            if (!(clientCredentials is ICertificateCredentials certificateCredentials))
-            {
-                return false;
-            }
-
-            Option<ServiceIdentity> serviceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(clientCredentials.Identity.Id, reAuthenticating);
-            if (serviceIdentity.HasValue)
-            {
-                // currently authenticating modules via X.509 is disabled. all the necessary pieces to authenticate
-                // modules via X.509 CA are implemented below and to enable modules to authenticate remove this check
-                if (certificateCredentials.Identity is IModuleIdentity)
-                {
-                    Events.UnsupportedClientIdentityType(certificateCredentials.Identity.Id);
-                    return false;
-                }
-                else
-                {
-                    try
-                    {
-                        bool isAuthenticated = await serviceIdentity.Map(s => this.AuthenticateInternalAsync(certificateCredentials, s)).GetOrElse(Task.FromResult(false));
-                        if (reAuthenticating)
-                        {
-                            Events.ReauthenticatedInScope(clientCredentials.Identity, isAuthenticated);
-                        }
-                        else
-                        {
-                            Events.AuthenticatedInScope(clientCredentials.Identity, isAuthenticated);
-                        }
-                        return isAuthenticated;
-                    }
-                    catch (Exception e)
-                    {
-                        Events.ErrorAuthenticating(e, clientCredentials);
-                        return await this.underlyingAuthenticator.ReauthenticateAsync(clientCredentials);
-                    }
-                }
-            }
-            else
-            {
-                Events.ServiceIdentityNotFound(clientCredentials.Identity);
-                return await this.underlyingAuthenticator.ReauthenticateAsync(clientCredentials);
-            }
-        }
-
-        async Task<bool> AuthenticateInternalAsync(ICertificateCredentials certificateCredentials, ServiceIdentity serviceIdentity) =>
-            await Task.FromResult(this.ValidateCertificateWithSecurityIdentity(certificateCredentials, serviceIdentity));
-
-        bool ValidateCertificateWithSecurityIdentity(ICertificateCredentials certificateCredentials, ServiceIdentity serviceIdentity)
+        protected override bool ValidateWithServiceIdentity(ServiceIdentity serviceIdentity, ICertificateCredentials certificateCredentials)
         {
             bool result;
 
-            if (serviceIdentity.Status != ServiceIdentityStatus.Enabled)
+            // currently authenticating modules via X.509 is disabled. all the necessary pieces to authenticate
+            // modules via X.509 CA are implemented below and to enable modules to authenticate remove this check
+            if (certificateCredentials.Identity is IModuleIdentity)
+            {
+                Events.UnsupportedClientIdentityType(certificateCredentials.Identity.Id);
+                result = false;
+            }
+            else if (serviceIdentity.Status != ServiceIdentityStatus.Enabled)
             {
                 Events.ServiceIdentityNotEnabled(serviceIdentity);
                 result = false;
@@ -126,38 +81,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             }
             else if (serviceIdentity.Authentication.Type == ServiceAuthenticationType.CertificateAuthority)
             {
-                if (certificateCredentials.Identity is IModuleIdentity)
+                if (!CertificateHelper.ValidateCommonName(certificateCredentials.ClientCertificate, serviceIdentity.DeviceId))
                 {
-                    result = serviceIdentity.ModuleId.Map(
-                        moduleId =>
-                        {
-                            return CertificateHelper.ValidateIotHubSanUri(certificateCredentials.ClientCertificate,
-                                                                          iothubHostName,
-                                                                          serviceIdentity.DeviceId,
-                                                                          moduleId);
-                        })
-                        .GetOrElse(() => throw new InvalidOperationException($"Unable to validate certificate because the service identity is not a module"));
-                    if (!result)
-                    {
-                        Events.InvalidCertificateUri(serviceIdentity.Id, certificateCredentials);
-                    }
+                    Events.InvalidCommonName(serviceIdentity.Id);
+                    result = false;
                 }
-                else
-                {
-                    result = CertificateHelper.ValidateCommonName(certificateCredentials.ClientCertificate, serviceIdentity.DeviceId);
-                    if (!result)
-                    {
-                        Events.InvalidCommonName(serviceIdentity.Id);
-                    }
-                }
-
-                if (result && (!CertificateHelper.ValidateClientCert(certificateCredentials.ClientCertificate,
-                                                                     certificateCredentials.ClientCertificateChain,
-                                                                     Option.Some(this.trustBundle),
-                                                                     Events.Log)))
+                else if (!CertificateHelper.ValidateClientCert(certificateCredentials.ClientCertificate,
+                                                               certificateCredentials.ClientCertificateChain,
+                                                               Option.Some(this.trustBundle),
+                                                               Events.Log))
                 {
                     Events.InvalidCertificate(serviceIdentity.Id, certificateCredentials);
                     result = false;
+                }
+                else
+                {
+                    result = true;
                 }
             }
             else
