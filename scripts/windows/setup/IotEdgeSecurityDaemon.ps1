@@ -872,8 +872,8 @@ function Remove-BuiltinWritePermissions([string] $Path) {
     Invoke-Native "icacls ""$Path"" /inheritance:d"
     
     $acl = Get-Acl -Path $Path
+    $write = [System.Security.AccessControl.FileSystemRights]::Write
     foreach ($access in $acl.Access) {
-        $write = [System.Security.AccessControl.FileSystemRights]::Write
         if ($access.IdentityReference.Value -eq $user -and
             $access.AccessControlType -eq 'Allow' -and
             ($access.FileSystemRights -band $write) -eq $write)
