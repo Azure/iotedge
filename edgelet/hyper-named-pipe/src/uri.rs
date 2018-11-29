@@ -159,8 +159,7 @@ mod tests {
         let uri: HyperUri = Uri::new("npipe://./pipe/boo", "/containers/json?all=true")
             .unwrap()
             .into();
-        let expected =
-            "npipe://5c5c2e5c706970655c626f6f/containers/json?all=true";
+        let expected = "npipe://5c5c2e5c706970655c626f6f/containers/json?all=true";
         assert_eq!(uri, expected.parse::<HyperUri>().unwrap());
     }
 
@@ -184,10 +183,9 @@ mod tests {
 
     #[test]
     fn uri_host() {
-        let uri: HyperUri =
-            "npipe://5c5c2e5c706970655c626f6f/containers/json?all=true"
-                .parse()
-                .unwrap();
+        let uri: HyperUri = "npipe://5c5c2e5c706970655c626f6f/containers/json?all=true"
+            .parse()
+            .unwrap();
         assert_eq!(
             &Uri::get_pipe_path_from_parts(
                 uri.scheme_part().unwrap().as_str(),
