@@ -99,7 +99,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             if (chain != null)
             {
                 this.remoteCertificateChain = chain;
-   
             }
 
             return true; // real validation in GetAsync above

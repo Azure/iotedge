@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using System.Security.Cryptography.X509Certificates;
     using Autofac;
     using Microsoft.AspNetCore.Hosting;
+    using Microsoft.AspNetCore.Server.Kestrel.Https;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
 
@@ -30,7 +31,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 {
                     options.Listen(!Socket.OSSupportsIPv6 ? IPAddress.Any : IPAddress.IPv6Any, port, listenOptions =>
                     {
-                        listenOptions.UseHttps(serverCertificate);
+                        listenOptions.UseHttps(serverCertificate, (connectionAdapterOptions) =>
+                        {
+                            connectionAdapterOptions.ClientCertificateMode = ClientCertificateMode.AllowCertificate;
+                            connectionAdapterOptions.ClientCertificateValidation = (clientCert, chain, policyErrors) => true;
+                        });
                     });
                 })
                 .UseSockets()

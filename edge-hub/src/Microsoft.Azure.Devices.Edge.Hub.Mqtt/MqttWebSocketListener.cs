@@ -56,7 +56,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public string SubProtocol => Constants.WebSocketSubProtocol;
 
-        public async Task ProcessWebSocketRequestAsync(WebSocket webSocket, Option<EndPoint> localEndPoint, EndPoint remoteEndPoint, string correlationId)
+        public async Task ProcessWebSocketRequestAsync(WebSocket webSocket, Option<EndPoint> localEndPoint, EndPoint remoteEndPoint, string correlationId) =>
+            await ProcessWebSocketRequestAsync(webSocket, localEndPoint, remoteEndPoint, correlationId, Option.None<X509Certificate2>(), Option.None<IList<X509Certificate2>>());
+
+        public async Task ProcessWebSocketRequestAsync(WebSocket webSocket,
+                                                       Option<EndPoint> localEndPoint,
+                                                       EndPoint remoteEndPoint,
+                                                       string correlationId,
+                                                       Option<X509Certificate2> clientCert,
+                                                       Option<IList<X509Certificate2>> clientCertChain)
         {
             try
             {
@@ -65,6 +73,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     webSocket,
                     remoteEndPoint
                 );
+
+                clientCert.Map(cert =>
+                {
+                    return identityProvider.RemoteCertificateValidationCallback(cert,
+                                                                                clientCertChain.GetOrElse(() =>
+                                                                                    throw new ArgumentException("Certificate chain was found to be null")));
+                });
 
                 serverChannel
                     .Option(ChannelOption.Allocator, this.byteBufferAllocator)
@@ -105,15 +120,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 Exception
             }
 
-            public static void Established(string correlationId)
-            {
+            public static void Established(string correlationId) =>
                 Log.LogInformation((int)Events.EventIds.Established, Invariant($"CorrelationId {correlationId}"));
-            }
 
-            public static void Exception(string correlationId, Exception ex)
-            {
+            public static void Exception(string correlationId, Exception ex) =>
                 Log.LogWarning((int)Events.EventIds.Exception, ex, Invariant($"CorrelationId {correlationId}"));
-            }
         }
     }
 }

@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Http;
@@ -61,49 +62,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
 
         internal async Task<(bool, string)> AuthenticateRequest(HttpContext context)
         {
-            // Authorization header may be present in the QueryNameValuePairs as per Azure standards,           
-            // So check in the query parameters first.             
-            List<string> authorizationQueryParameters = context.Request.Query
-                .Where(p => p.Key.Equals(HeaderNames.Authorization, StringComparison.OrdinalIgnoreCase))
-                .SelectMany(p => p.Value)
-                .ToList();
-
-            if (!(context.Request.Headers.TryGetValue(HeaderNames.Authorization, out StringValues authorizationHeaderValues)
-                && authorizationQueryParameters.Count == 0))
-            {
-                return LogAndReturnFailure("Authorization header missing");
-            }
-            else if (authorizationQueryParameters.Count != 1 && authorizationHeaderValues.Count != 1)
-            {
-                return LogAndReturnFailure("Invalid authorization header count");
-            }
-
-            string authHeader = authorizationQueryParameters.Count == 1
-                ? authorizationQueryParameters.First()
-                : authorizationHeaderValues.First();
-
-            if (!authHeader.StartsWith("SharedAccessSignature", StringComparison.OrdinalIgnoreCase))
-            {
-                return LogAndReturnFailure("Invalid Authorization header. Only SharedAccessSignature is supported.");
-            }
-
-            try
-            {
-                SharedAccessSignature sharedAccessSignature = SharedAccessSignature.Parse(this.iotHubName, authHeader);
-                if (sharedAccessSignature.IsExpired())
-                {
-                    return LogAndReturnFailure("SharedAccessSignature is expired");
-                }
-            }
-            catch (Exception ex)
-            {
-                return LogAndReturnFailure($"Cannot parse SharedAccessSignature because of the following error - {ex.Message}");
-            }
-
             if (!context.Request.Headers.TryGetValue(HttpConstants.IdHeaderKey, out StringValues clientIds) || clientIds.Count == 0)
             {
                 return LogAndReturnFailure("Request header does not contain ModuleId");
             }
+
             string clientId = clientIds.First();
             string[] clientIdParts = clientId.Split(new[] { '/' }, 2, StringSplitOptions.RemoveEmptyEntries);
             if (clientIdParts.Length != 2)
@@ -113,7 +76,59 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
             string deviceId = clientIdParts[0];
             string moduleId = clientIdParts[1];
 
-            IClientCredentials clientCredentials = this.identityFactory.GetWithSasToken(deviceId, moduleId, string.Empty, authHeader, false);
+            IClientCredentials clientCredentials;
+            X509Certificate2 clientCertificate = await context.Connection.GetClientCertificateAsync();
+
+            if (clientCertificate != null)
+            {
+                IList<X509Certificate2> certChain = context.Connection.GetClientCertificateChain(context);
+                clientCredentials = this.identityFactory.GetWithX509Cert(deviceId, moduleId, string.Empty, clientCertificate, certChain);
+            }
+            else
+            {
+                // Authorization header may be present in the QueryNameValuePairs as per Azure standards,
+                // So check in the query parameters first.
+                List<string> authorizationQueryParameters = context.Request.Query
+                .Where(p => p.Key.Equals(HeaderNames.Authorization, StringComparison.OrdinalIgnoreCase))
+                .SelectMany(p => p.Value)
+                .ToList();
+
+                if (!(context.Request.Headers.TryGetValue(HeaderNames.Authorization, out StringValues authorizationHeaderValues)
+                    && authorizationQueryParameters.Count == 0))
+                {
+                    return LogAndReturnFailure("Authorization header missing");
+                }
+                else if (authorizationQueryParameters.Count != 1 && authorizationHeaderValues.Count != 1)
+                {
+                    return LogAndReturnFailure("Invalid authorization header count");
+                }
+
+                string authHeader = authorizationQueryParameters.Count == 1
+                    ? authorizationQueryParameters.First()
+                    : authorizationHeaderValues.First();
+
+                if (!authHeader.StartsWith("SharedAccessSignature", StringComparison.OrdinalIgnoreCase))
+                {
+                    return LogAndReturnFailure("Invalid Authorization header. Only SharedAccessSignature is supported.");
+                }
+
+                try
+                {
+                    SharedAccessSignature sharedAccessSignature = SharedAccessSignature.Parse(this.iotHubName, authHeader);
+                    if (sharedAccessSignature.IsExpired())
+                    {
+                        return LogAndReturnFailure("SharedAccessSignature is expired");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    return LogAndReturnFailure($"Cannot parse SharedAccessSignature because of the following error - {ex.Message}");
+                }
+
+
+                clientCredentials = this.identityFactory.GetWithSasToken(deviceId, moduleId, string.Empty, authHeader, false);
+            }
+
             IIdentity identity = clientCredentials.Identity;
             IAuthenticator authenticator = await this.authenticatorTask;
 
