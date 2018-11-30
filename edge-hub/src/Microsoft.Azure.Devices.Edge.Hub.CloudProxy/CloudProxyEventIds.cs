@@ -14,5 +14,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public const int ServiceProxy = EventIdStart + 700;
         public const int DeviceScopeApiClient = EventIdStart + 800;
         public const int CloudTokenAuthenticator = EventIdStart + 900;
+        public const int CertificateCredentialsAuthenticator = EventIdStart + 1000;
     }
 }
