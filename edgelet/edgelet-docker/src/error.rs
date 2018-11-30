@@ -8,7 +8,9 @@ use hyper::StatusCode;
 use serde_json;
 
 use docker::apis::{ApiError as DockerApiError, Error as DockerError};
-use edgelet_core::{ModuleOperation, RegistryOperation, RuntimeOperation};
+use edgelet_core::{
+    ModuleOperation, ModuleRuntimeErrorReason, RegistryOperation, RuntimeOperation,
+};
 
 pub type Result<T> = ::std::result::Result<T, Error>;
 
@@ -136,5 +138,14 @@ impl From<ErrorKind> for Error {
 impl From<Context<ErrorKind>> for Error {
     fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
+    }
+}
+
+impl<'a> From<&'a Error> for ModuleRuntimeErrorReason {
+    fn from(err: &'a Error) -> Self {
+        match Fail::find_root_cause(err).downcast_ref::<ErrorKind>() {
+            Some(ErrorKind::NotFound(_)) => ModuleRuntimeErrorReason::NotFound,
+            _ => ModuleRuntimeErrorReason::Other,
+        }
     }
 }
