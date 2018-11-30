@@ -2,6 +2,7 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 {
+    using System.Collections.Generic;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Autofac;
@@ -27,7 +28,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly bool isStoreAndForwardEnabled;
         readonly X509Certificate2 tlsCertificate;
         readonly bool clientCertAuthAllowed;
-        readonly string caChainPath;
         readonly bool optimizeForPerformance;
 
         public MqttModule(
@@ -36,7 +36,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             X509Certificate2 tlsCertificate,
             bool isStoreAndForwardEnabled,
             bool clientCertAuthAllowed,
-            string caChainPath,
             bool optimizeForPerformance)
         {
             this.mqttSettingsConfiguration = Preconditions.CheckNotNull(mqttSettingsConfiguration, nameof(mqttSettingsConfiguration));
@@ -44,7 +43,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.tlsCertificate = Preconditions.CheckNotNull(tlsCertificate, nameof(tlsCertificate));
             this.isStoreAndForwardEnabled = isStoreAndForwardEnabled;
             this.clientCertAuthAllowed = clientCertAuthAllowed;
-            this.caChainPath = caChainPath;
             this.optimizeForPerformance = optimizeForPerformance;
         }
 
@@ -91,15 +89,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<Task<IMqttConnectionProvider>>()
                 .SingleInstance();
 
-            // IIdentityProvider
-            builder.Register(async c =>
-                {
-                    IAuthenticator authenticator = await c.Resolve<Task<IAuthenticator>>();
-                    return new DeviceIdentityProvider(authenticator, c.Resolve<IClientCredentialsFactory>(), this.clientCertAuthAllowed) as IDeviceIdentityProvider;
-                })
-                .As<Task<IDeviceIdentityProvider>>()
-                .SingleInstance();
-
             // Task<ISessionStatePersistenceProvider>
             builder.Register(
                     async c =>
@@ -127,21 +116,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     var websocketListenerRegistry = c.Resolve<IWebSocketListenerRegistry>();
                     var byteBufferAllocator = c.Resolve<IByteBufferAllocator>();
                     var mqttConnectionProviderTask = c.Resolve<Task<IMqttConnectionProvider>>();
-                    var deviceIdentityProviderTask = c.Resolve<Task<IDeviceIdentityProvider>>();
                     var sessionStatePersistenceProviderTask = c.Resolve<Task<ISessionStatePersistenceProvider>>();
+                    var authenticatorProviderTask = c.Resolve<Task<IAuthenticator>>();
+                    IClientCredentialsFactory clientCredentialsProvider = c.Resolve<IClientCredentialsFactory>();
                     IMqttConnectionProvider mqttConnectionProvider = await mqttConnectionProviderTask;
-                    IDeviceIdentityProvider deviceIdentityProvider = await deviceIdentityProviderTask;
                     ISessionStatePersistenceProvider sessionStatePersistenceProvider = await sessionStatePersistenceProviderTask;
+                    IAuthenticator authenticator = await authenticatorProviderTask;
                     return new MqttProtocolHead(
                         settingsProvider,
                             this.tlsCertificate,
                             mqttConnectionProvider,
-                            deviceIdentityProvider,
+                            authenticator,
+                            clientCredentialsProvider,
                             sessionStatePersistenceProvider,
                             websocketListenerRegistry,
                             byteBufferAllocator,
-                            this.clientCertAuthAllowed,
-                            this.caChainPath);
+                            this.clientCertAuthAllowed);
                 })
                 .As<Task<MqttProtocolHead>>()
                 .SingleInstance();

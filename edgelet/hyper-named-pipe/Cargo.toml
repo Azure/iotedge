@@ -15,7 +15,6 @@ url = "1.7"
 edgelet-utils = { path = "../edgelet-utils" }
 
 [dev-dependencies]
-httparse = "1.2"
 rand = "0.4"
 tokio = "0.1.8"
 typed-headers = "0.1"
