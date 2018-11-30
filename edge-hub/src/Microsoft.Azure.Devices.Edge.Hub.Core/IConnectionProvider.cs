@@ -9,6 +9,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
     public interface IConnectionProvider : IDisposable
     {
-        Task<IDeviceListener> GetDeviceListenerAsync(IClientCredentials clientCredentials);
+        Task<IDeviceListener> GetDeviceListenerAsync(IIdentity identity);
     }
 }

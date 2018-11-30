@@ -14,12 +14,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         readonly string edgeDeviceId;
         readonly IAuthenticator tokenAuthenticator;
+        readonly IAuthenticator certificateAuthenticator;
         readonly ICredentialsCache credentialsCache;
 
-        public Authenticator(IAuthenticator tokenAuthenticator, string edgeDeviceId, ICredentialsCache credentialsCache)
+        public Authenticator(IAuthenticator tokenAuthenticator, IAuthenticator certificateAuthenticator, string edgeDeviceId, ICredentialsCache credentialsCache)
         {
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
             this.tokenAuthenticator = Preconditions.CheckNotNull(tokenAuthenticator, nameof(tokenAuthenticator));
+            this.certificateAuthenticator = Preconditions.CheckNotNull(certificateAuthenticator, nameof(certificateAuthenticator));
             this.credentialsCache = Preconditions.CheckNotNull(credentialsCache, nameof(ICredentialsCache));
         }
 
@@ -42,11 +44,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             bool isAuthenticated;
             if (clientCredentials.AuthenticationType == AuthenticationType.X509Cert)
             {
-                // If we reach here, we have validated the client cert. Validation is done in
-                // DeviceIdentityProvider.cs::RemoteCertificateValidationCallback. In the future, we could
-                // do authentication based on the CN. However, EdgeHub does not have enough information
-                // currently to do CN validation.
-                isAuthenticated = true;
+                isAuthenticated = await (reAuthenticating
+                    ? this.certificateAuthenticator.ReauthenticateAsync(clientCredentials)
+                    : this.certificateAuthenticator.AuthenticateAsync(clientCredentials));
             }
             else
             {
