@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         readonly string iotHubHostName;
         readonly ICredentialsCache credentialsCache;
         readonly ConcurrentDictionary<string, CredentialsInfo> clientCredentialsMap = new ConcurrentDictionary<string, CredentialsInfo>();
-        bool disposed;        
+        bool disposed;
 
         ISendingAmqpLink sendingLink;
         IReceivingAmqpLink receivingLink;
