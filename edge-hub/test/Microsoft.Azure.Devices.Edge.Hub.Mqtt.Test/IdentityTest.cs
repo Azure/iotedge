@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 {
     using System;
     using System.Collections.Generic;
+    using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
@@ -247,7 +248,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Type expectedIdentityType,
             AuthenticationType expected)
         {
-            IClientCredentials clientCredentials = await GetClientCredentials(iotHubHostName, clientId, value, token, token == null);
+            X509Certificate2 certificate = new X509Certificate2();
+            IList<X509Certificate2> chain = new List<X509Certificate2>();
+            IClientCredentials clientCredentials = await GetClientCredentials(iotHubHostName, clientId, value, token, token == null, string.Empty, certificate, chain);
             Assert.NotNull(clientCredentials);
             Assert.IsType(expectedCredentialsType, clientCredentials);
             Assert.IsType(expectedIdentityType, clientCredentials.Identity);
@@ -294,7 +297,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             string moduleId,
             AuthenticationType authenticationType)
         {
-            IClientCredentials clientCredentials = await GetClientCredentials(iotHubHostName, $"{deviceId}/{moduleId}", value, token, token == null);
+            var certificate = new X509Certificate2();
+            var chain = new List<X509Certificate2>();
+            IClientCredentials clientCredentials = await GetClientCredentials(iotHubHostName, $"{deviceId}/{moduleId}", value, token, token == null, string.Empty, certificate, chain);
             Assert.NotNull(clientCredentials);
             Assert.Equal(authenticationType, clientCredentials.AuthenticationType);
             var hubModuleIdentity = clientCredentials.Identity as IModuleIdentity;
@@ -303,14 +308,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.Equal(moduleId, hubModuleIdentity.ModuleId);
             Assert.Equal($"{deviceId}/{moduleId}", hubModuleIdentity.Id);
         }
-
-        static async Task<IClientCredentials> GetClientCredentials(string iotHubHostName, string deviceId, string userName, string token, bool isCertAuthAllowed = false, string productInfo = "")
+        
+        static async Task<IClientCredentials> GetClientCredentials(string iotHubHostName, string deviceId, string userName, string token, bool isCertAuthAllowed = false, string productInfo = "", X509Certificate2 certificate = null, IList<X509Certificate2> chain = null)
         {
             var authenticator = Mock.Of<IAuthenticator>(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>()) == Task.FromResult(true));
             var factory = new ClientCredentialsFactory(new IdentityProvider(iotHubHostName), productInfo);
-            var sasTokenIdentityProvider = new DeviceIdentityProvider(authenticator, factory, isCertAuthAllowed);
-
-            ProtocolGateway.Identity.IDeviceIdentity deviceIdentity = await sasTokenIdentityProvider.GetAsync(deviceId, userName, token, null);
+            var credentialIdentityProvider = new DeviceIdentityProvider(authenticator, factory, isCertAuthAllowed);
+            if ((certificate != null) && (chain != null))
+            {
+                credentialIdentityProvider.RemoteCertificateValidationCallback(certificate, chain);
+            }
+            ProtocolGateway.Identity.IDeviceIdentity deviceIdentity = await credentialIdentityProvider.GetAsync(deviceId, userName, token, null);
             Assert.NotNull(deviceIdentity);
             IClientCredentials clientCredentials = (deviceIdentity as ProtocolGatewayIdentity)?.ClientCredentials;
             return clientCredentials;
