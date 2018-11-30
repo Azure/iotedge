@@ -73,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     var eventListener = new LoggerEventListener(loggerFactory.CreateLogger("ProtocolGateway"));
                     eventListener.EnableEvents(CommonEventSource.Log, EventLevel.Informational);
                 });
-            
+
             bool optimizeForPerformance = this.configuration.GetValue("OptimizeForPerformance", true);
             (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward = this.GetStoreAndForwardConfiguration();
 
@@ -95,14 +95,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             var topics = new MessageAddressConversionConfiguration(
                 this.configuration.GetSection(Constants.TopicNameConversionSectionName + ":InboundTemplates").Get<List<string>>(),
                 this.configuration.GetSection(Constants.TopicNameConversionSectionName + ":OutboundTemplates").Get<Dictionary<string, string>>());
-            string caChainPath = this.configuration.GetValue(Constants.ConfigKey.EdgeHubServerCAChainCertificateFile, string.Empty);
 
-            // TODO: We don't want to make enabling Cert Auth configurable right now. Turn off Cert auth. 
-            //bool clientCertAuthEnabled = this.Configuration.GetValue("ClientCertAuthEnabled", false);
-            bool clientCertAuthEnabled = false;
+            bool clientCertAuthEnabled = this.configuration.GetValue(Constants.ConfigKey.EdgeHubClientCertAuthEnabled, false);
 
             IConfiguration mqttSettingsConfiguration = this.configuration.GetSection("mqttSettings");
-            builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, this.serverCertificate, storeAndForward.isEnabled, clientCertAuthEnabled, caChainPath, optimizeForPerformance));
+            builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, this.serverCertificate, storeAndForward.isEnabled, clientCertAuthEnabled, optimizeForPerformance));
         }
 
         void RegisterRoutingModule(ContainerBuilder builder, (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward)

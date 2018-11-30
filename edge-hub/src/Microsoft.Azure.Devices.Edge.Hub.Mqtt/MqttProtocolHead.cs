@@ -16,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using DotNetty.Transport.Channels;
     using DotNetty.Transport.Channels.Sockets;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.ProtocolGateway;
     using Microsoft.Azure.Devices.ProtocolGateway.Identity;
@@ -30,10 +31,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         readonly X509Certificate tlsCertificate;
         readonly ISessionStatePersistenceProvider sessionProvider;
         readonly IMqttConnectionProvider mqttConnectionProvider;
-        readonly IDeviceIdentityProvider identityProvider;
+        readonly IAuthenticator authenticator;
+        readonly IClientCredentialsFactory clientCredentialsFactory;
         readonly IWebSocketListenerRegistry webSocketListenerRegistry;
         readonly IByteBufferAllocator byteBufferAllocator;
-        readonly Option<IList<X509Certificate2>> caCertChain;
         readonly bool clientCertAuthAllowed;
 
         const int MqttsPort = 8883;
@@ -48,24 +49,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         public MqttProtocolHead(ISettingsProvider settingsProvider,
             X509Certificate tlsCertificate,
             IMqttConnectionProvider mqttConnectionProvider,
-            IDeviceIdentityProvider identityProvider,
+            IAuthenticator authenticator,
+            IClientCredentialsFactory clientCredentialsFactory,
             ISessionStatePersistenceProvider sessionProvider,
             IWebSocketListenerRegistry webSocketListenerRegistry,
             IByteBufferAllocator byteBufferAllocator,
-            bool clientCertAuthAllowed,
-            string caChainPath)
+            bool clientCertAuthAllowed)
         {
             this.settingsProvider = Preconditions.CheckNotNull(settingsProvider, nameof(settingsProvider));
             this.tlsCertificate = Preconditions.CheckNotNull(tlsCertificate, nameof(tlsCertificate));
             this.mqttConnectionProvider = Preconditions.CheckNotNull(mqttConnectionProvider, nameof(mqttConnectionProvider));
-            this.identityProvider = Preconditions.CheckNotNull(identityProvider, nameof(identityProvider));
+            this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
+            this.clientCredentialsFactory = Preconditions.CheckNotNull(clientCredentialsFactory, nameof(clientCredentialsFactory));
             this.sessionProvider = Preconditions.CheckNotNull(sessionProvider, nameof(sessionProvider));
             this.webSocketListenerRegistry = Preconditions.CheckNotNull(webSocketListenerRegistry, nameof(webSocketListenerRegistry));
             this.byteBufferAllocator = Preconditions.CheckNotNull(byteBufferAllocator);
             this.clientCertAuthAllowed = clientCertAuthAllowed;
-            this.caCertChain = clientCertAuthAllowed
-                ? this.GetCaChainCerts(Preconditions.CheckNonWhiteSpace(caChainPath, nameof(this.caCertChain)))
-                : Option.None<IList<X509Certificate2>>();
         }
 
         public string Name => "MQTT";
@@ -145,6 +144,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 // Channel initializer, it is handler that is purposed to help configure a new channel
                 .ChildHandler(new ActionChannelInitializer<ISocketChannel>(channel =>
                 {
+                    DeviceIdentityProvider identityProvider = new DeviceIdentityProvider(this.authenticator, this.clientCredentialsFactory, this.clientCertAuthAllowed);
                     // configure the channel pipeline of the new Channel by adding handlers
                     TlsSettings serverSettings = new ServerTlsSettings(
                             certificate: this.tlsCertificate,
@@ -156,7 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                                       true,
                                       (sender, remoteCertificate, remoteChain, sslPolicyErrors) =>
                                       this.clientCertAuthAllowed ?
-                                          CertificateHelper.ValidateClientCert(remoteCertificate, remoteChain, this.caCertChain, this.logger) : true),
+                                          identityProvider.RemoteCertificateValidationCallback(remoteCertificate, remoteChain) : true),
                                       serverSettings));
 
                     channel.Pipeline.AddLast(
@@ -165,7 +165,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                         new MqttAdapter(
                             settings,
                             this.sessionProvider,
-                            this.identityProvider,
+                            identityProvider,
                             null,
                             bridgeFactory));
                 }));
@@ -173,7 +173,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             var mqttWebSocketListener = new MqttWebSocketListener(
                 settings,
                 bridgeFactory,
-                this.identityProvider,
+                this.authenticator,
+                this.clientCredentialsFactory,
                 () => this.sessionProvider,
                 new MultithreadEventLoopGroup(Environment.ProcessorCount),
                 this.byteBufferAllocator,
@@ -183,17 +184,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             this.webSocketListenerRegistry.TryRegister(mqttWebSocketListener);
 
             return bootstrap;
-        }
-
-        Option<IList<X509Certificate2>> GetCaChainCerts(string caChainPath)
-        {
-            if (!string.IsNullOrWhiteSpace(caChainPath))
-            {
-                (Option<IList<X509Certificate2>> caChainCerts, Option<string> errors) = CertificateHelper.GetCertsAtPath(caChainPath);
-                errors.ForEach(v => this.logger.LogWarning(v));
-                return caChainCerts;
-            }
-            return Option.None<IList<X509Certificate2>>();
         }
     }
 }

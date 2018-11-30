@@ -3,6 +3,8 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 {
     using System;
+    using System.Collections.Generic;
+    using System.Security.Cryptography.X509Certificates;
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -77,7 +79,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Arrange
             string callerProductInfo = "productInfo";
             var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
-            var credentials = new X509CertCredentials(identity, callerProductInfo);
+            var clientCertificate = new X509Certificate2();
+            var clientCertChain = new List<X509Certificate2>();
+            var credentials = new X509CertCredentials(identity, callerProductInfo, clientCertificate, clientCertChain);
 
             var dbStoreProvider = new InMemoryDbStoreProvider();
             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
