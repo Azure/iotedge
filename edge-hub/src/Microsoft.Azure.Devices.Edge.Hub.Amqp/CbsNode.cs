@@ -159,7 +159,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 {
                     credentialsInfo.ClientCredentials = clientCredentials;
                 }
-                
                 if (credentialsInfo.IsAuthenticated)
                 {
                     await this.credentialsCache.Add(clientCredentials);
