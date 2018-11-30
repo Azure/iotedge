@@ -5,6 +5,7 @@
     <OutputType>Library</OutputType>
     <ApplicationIcon />
     <StartupObject />
+    <Configurations>Debug;Release;CheckInBuild</Configurations>
   </PropertyGroup>
   <ItemGroup>
     <Content Include="../docker*/**/*.*" CopyToPublishDirectory="Always">
