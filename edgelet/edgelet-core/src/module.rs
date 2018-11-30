@@ -385,6 +385,12 @@ pub trait ModuleRuntime {
     fn remove_all(&self) -> Self::RemoveAllFuture;
 }
 
+#[derive(Clone, Copy, Debug)]
+pub enum ModuleRuntimeErrorReason {
+    NotFound,
+    Other,
+}
+
 // Useful for error contexts
 #[derive(Clone, Copy, Debug)]
 pub enum ModuleOperation {
