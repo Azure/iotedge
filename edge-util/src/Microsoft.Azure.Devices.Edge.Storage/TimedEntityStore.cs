@@ -84,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         public Task IterateBatch(TK startKey, int batchSize, Func<TK, TV, Task> perEntityCallback) => this.IterateBatch(startKey, batchSize, perEntityCallback, CancellationToken.None);
 
         public Task Put(TK key, TV value, CancellationToken cancellationToken)
-        {            
+        {
             Func<CancellationToken, Task> putWithTimeout = cts => this.underlyingKeyValueStore.Put(key, value, cts);
             return putWithTimeout.TimeoutAfter(cancellationToken, this.timeout);
         }

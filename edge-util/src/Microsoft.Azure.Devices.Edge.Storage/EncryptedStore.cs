@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+
 namespace Microsoft.Azure.Devices.Edge.Storage
 {
     using System;
@@ -16,6 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             this.entityStore = Preconditions.CheckNotNull(entityStore, nameof(entityStore));
             this.encryptionProvider = Preconditions.CheckNotNull(encryptionProvider, nameof(encryptionProvider));
         }
+
         public Task Put(TK key, TV value) => this.Put(key, value, CancellationToken.None);
 
         public Task<Option<TV>> Get(TK key) => this.Get(key, CancellationToken.None);
