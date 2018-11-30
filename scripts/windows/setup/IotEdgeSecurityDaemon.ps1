@@ -594,6 +594,11 @@ function Get-VcRuntime {
         return
     }
 
+    if (Test-Path 'C:\Windows\System32\vcruntime140.dll') {
+        Write-HostGreen 'Skipping VC Runtime installation because it is already installed.'
+        return
+    }
+
     $deleteVcRuntimeArchive = $false
 
     try {
