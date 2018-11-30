@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     /// This class is used to get tokens from the Client on the CBS link. It generates 
     /// an identity from the received token and authenticates it. 
     /// </summary>
-    class CbsNode : ICbsNode
+    class CbsNode : ICbsNode, IAmqpAuthenticator
     {
         static readonly List<UriPathTemplate> ResourceTemplates = new List<UriPathTemplate>
         {
