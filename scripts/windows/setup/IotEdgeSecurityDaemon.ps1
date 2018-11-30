@@ -85,6 +85,10 @@ function Install-SecurityDaemon {
     $ErrorActionPreference = 'Stop'
     Set-StrictMode -Version 5
 
+    if ($InvokeWebRequestParameters -eq $null) {
+        $InvokeWebRequestParameters = @{}
+    }
+
     if ($Proxy -ne $null) {
         $InvokeWebRequestParameters['-Proxy'] = $Proxy
     }
