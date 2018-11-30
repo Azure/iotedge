@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
     using System.Threading.Tasks;
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
 
     /// <summary>
@@ -33,6 +34,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
         {
             // TODO: Check if we need to worry about credit available on the link
             await base.OnOpenAsync(timeout);
+
+            if (!(this.Identity is IModuleIdentity))
+            {
+                await this.DeviceListener.AddSubscription(DeviceSubscription.C2D);
+            }
         }
     }
 }
