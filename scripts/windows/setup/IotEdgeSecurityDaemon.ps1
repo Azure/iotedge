@@ -75,7 +75,7 @@ function Install-SecurityDaemon {
         # If -Proxy is also specified, it overrides the `-Proxy` key set in this hashtable, if any.
         #
         # Example:
-        #     Install-SecurityDaemon -InvokeWebRequestParameters @{ '-Proxy' = 'http://localhost:8888'; '-ProxyCredential' = (Get-Credential).ToNetworkCredential() }
+        #     Install-SecurityDaemon -InvokeWebRequestParameters @{ '-Proxy' = 'http://localhost:8888'; '-ProxyCredential' = (Get-Credential).GetNetworkCredential() }
         [HashTable] $InvokeWebRequestParameters,
 
         # Don't install the Moby CLI (docker.exe) to $MobyInstallDirectory. Only takes effect for `-ContainerOs Windows`
