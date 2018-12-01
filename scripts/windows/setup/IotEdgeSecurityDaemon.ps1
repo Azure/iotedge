@@ -59,7 +59,7 @@ function Install-SecurityDaemon {
         # If set to a directory, the installer prefers to use iotedged zip, moby Engine zip, moby CLI zip and VC Runtime MSI files from inside this directory
         # over downloading them from the internet. Thus placing all four files in this directory can be used to have a completely offline install,
         # or a specific subset can be placed to override the online versions of those specific components.
-        [String] $ArchivePath,
+        [String] $OfflineInstallationPath,
 
         # IoT Edge Agent image to pull
         [String] $AgentImage,
@@ -79,7 +79,10 @@ function Install-SecurityDaemon {
         [HashTable] $InvokeWebRequestParameters,
 
         # Don't install the Moby CLI (docker.exe) to $MobyInstallDirectory. Only takes effect for `-ContainerOs Windows`
-        [Switch] $SkipMobyCli
+        [Switch] $SkipMobyCli,
+
+        # Local path to iotedged zip file. Only kept for backward compatibility. Prefer to set -OfflineInstallationPath instead.
+        [String] $ArchivePath
     )
 
     $ErrorActionPreference = 'Stop'
@@ -365,14 +368,24 @@ function Get-SecurityDaemon {
         }
 
         Write-Host 'Downloading the latest version of IoT Edge security daemon...'
-        # The -LocalCacheGlob value here *intentionally* doesn't check for .zip extension,
-        # so that an expanded directory of the same name will match
-        $edgeArchivePath =
-            Download-File `
-                -Url 'https://aka.ms/iotedged-windows-latest' `
-                -DownloadFilename 'iotedged-windows.zip' `
-                -LocalCacheGlob '*iotedged-windows*' `
-                -Delete ([ref] $deleteEdgeArchive)
+
+        # Historically the `-ArchivePath` parameter pointed to the zip / directory of iotedged.
+        # This is now better handled through `-OfflineInstallationPath`, but `-ArchivePath` is still allowed
+        # for backward compatibility.
+        if ($ArchivePath -ne '') {
+            $edgeArchivePath = $ArchivePath
+        }
+        else {
+            # The -LocalCacheGlob value here *intentionally* doesn't check for .zip extension,
+            # so that an expanded directory of the same name will match
+            $edgeArchivePath =
+                Download-File `
+                    -Url 'https://aka.ms/iotedged-windows-latest' `
+                    -DownloadFilename 'iotedged-windows.zip' `
+                    -LocalCacheGlob '*iotedged-windows*' `
+                    -Delete ([ref] $deleteEdgeArchive)
+        }
+
         Write-HostGreen "Using IoT Edge security daemon from $edgeArchivePath"
 
         if ((Get-Item $edgeArchivePath).PSIsContainer) {
@@ -921,8 +934,8 @@ function Remove-BuiltinWritePermissions([string] $Path) {
 }
 
 function Download-File([string] $Url, [string] $DownloadFilename, [string] $LocalCacheGlob, [ref] $Delete) {
-    if (($ArchivePath -ne '') -and (Test-Path "$ArchivePath\$LocalCacheGlob")) {
-        $result = (Get-Item "$ArchivePath\$LocalCacheGlob" | Select-Object -First 1).FullName
+    if (($OfflineInstallationPath -ne '') -and (Test-Path "$OfflineInstallationPath\$LocalCacheGlob")) {
+        $result = (Get-Item "$OfflineInstallationPath\$LocalCacheGlob" | Select-Object -First 1).FullName
         $Delete.Value = $false
         return $result
     }
