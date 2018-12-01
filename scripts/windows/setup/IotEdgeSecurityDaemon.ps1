@@ -338,36 +338,31 @@ function Get-SecurityDaemon {
         $deleteEdgeArchive = $false
 
         if ($ContainerOs -eq 'Windows') {
-            Write-Host 'Downloading the latest version of Moby Engine...'
             New-Item -Type Directory $MobyInstallDirectory | Out-Null
             Remove-BuiltinWritePermissions $MobyInstallDirectory
             $mobyEngineArchivePath =
                 Download-File `
+                    -Description 'Moby Engine' `
                     -Url 'https://aka.ms/iotedge-moby-engine-win-amd64-latest' `
                     -DownloadFilename 'iotedge-moby-engine.zip' `
                     -LocalCacheGlob '*moby-engine*.zip' `
                     -Delete ([ref] $deleteMobyEngineArchive)
-            Write-HostGreen "Using Moby Engine from $mobyEngineArchivePath"
             Expand-Archive $mobyEngineArchivePath $MobyInstallDirectory -Force
 
             New-Item -Type Directory $MobyDataRootDirectory | Out-Null
             Remove-BuiltinWritePermissions $MobyDataRootDirectory
 
             if (-not ($SkipMobyCli)) {
-                Write-Host 'Downloading the latest version of Moby CLI...'
                 $mobyCliArchivePath =
                     Download-File `
+                        -Description 'Moby CLI' `
                         -Url 'https://aka.ms/iotedge-moby-cli-win-amd64-latest' `
                         -DownloadFilename 'iotedge-moby-cli.zip' `
                         -LocalCacheGlob '*moby-cli*.zip' `
                         -Delete ([ref] $deleteMobyCliArchive)
-                Write-HostGreen "Using Moby CLI from $mobyCliArchivePath"
-
                 Expand-Archive $mobyCliArchivePath $MobyInstallDirectory -Force
             }
         }
-
-        Write-Host 'Downloading the latest version of IoT Edge security daemon...'
 
         # Historically the `-ArchivePath` parameter pointed to the zip / directory of iotedged.
         # This is now better handled through `-OfflineInstallationPath`, but `-ArchivePath` is still allowed
@@ -380,13 +375,12 @@ function Get-SecurityDaemon {
             # so that an expanded directory of the same name will match
             $edgeArchivePath =
                 Download-File `
+                    -Description 'IoT Edge security daemon' `
                     -Url 'https://aka.ms/iotedged-windows-latest' `
                     -DownloadFilename 'iotedged-windows.zip' `
                     -LocalCacheGlob '*iotedged-windows*' `
                     -Delete ([ref] $deleteEdgeArchive)
         }
-
-        Write-HostGreen "Using IoT Edge security daemon from $edgeArchivePath"
 
         if ((Get-Item $edgeArchivePath).PSIsContainer) {
             New-Item -Type Directory $EdgeInstallDirectory | Out-Null
@@ -619,14 +613,13 @@ function Get-VcRuntime {
     $deleteVcRuntimeArchive = $false
 
     try {
-        Write-Host 'Downloading VC Runtime installer...'
         $vcRuntimeArchivePath =
             Download-File `
+                -Description 'VC Runtime installer' `
                 -Url 'https://download.microsoft.com/download/0/6/4/064F84EA-D1DB-4EAA-9A5C-CC2F0FF6A638/vc_redist.x64.exe' `
                 -DownloadFilename 'vc_redist.x64.exe' `
                 -LocalCacheGlob '*vc_redist*.exe' `
                 -Delete ([ref] $deleteVcRuntimeArchive)
-        Write-HostGreen "Using VC Runtime installer from $vcRuntimeArchivePath"
 
         Invoke-Native """$vcRuntimeArchivePath"" /quiet /norestart"
         Write-HostGreen 'Installed VC Runtime.'
@@ -933,21 +926,27 @@ function Remove-BuiltinWritePermissions([string] $Path) {
     Set-Acl -Path $Path -AclObject $acl
 }
 
-function Download-File([string] $Url, [string] $DownloadFilename, [string] $LocalCacheGlob, [ref] $Delete) {
+function Download-File([string] $Description, [string] $Url, [string] $DownloadFilename, [string] $LocalCacheGlob, [ref] $Delete) {
     if (($OfflineInstallationPath -ne '') -and (Test-Path "$OfflineInstallationPath\$LocalCacheGlob")) {
         $result = (Get-Item "$OfflineInstallationPath\$LocalCacheGlob" | Select-Object -First 1).FullName
+
         $Delete.Value = $false
-        return $result
+    }
+    else {
+        Write-Host "Downloading $Description..."
+
+        Invoke-WebRequest `
+            -Uri $Url `
+            -OutFile "$env:TEMP\$DownloadFileName" `
+            -UseBasicParsing `
+            @InvokeWebRequestParameters
+
+        $Delete.Value = $true
+        $result = "$env:TEMP\$DownloadFileName"
     }
 
-    Invoke-WebRequest `
-        -Uri $Url `
-        -OutFile "$env:TEMP\$DownloadFileName" `
-        -UseBasicParsing `
-        @InvokeWebRequestParameters
-
-    $Delete.Value = $true
-    return "$env:TEMP\$DownloadFileName"
+    Write-HostGreen "Using $Description from $result"
+    return $result
 }
 
 Export-ModuleMember -Function Install-SecurityDaemon, Uninstall-SecurityDaemon
