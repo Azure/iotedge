@@ -357,7 +357,7 @@ function Get-SecurityDaemon {
                 Write-Host 'Downloading the latest version of Moby CLI...'
                 $mobyCliArchivePath =
                     Download-File `
-                        -Url 'https://aka.ms/iotedge-moby-engine-win-amd64-latest' `
+                        -Url 'https://aka.ms/iotedge-moby-cli-win-amd64-latest' `
                         -DownloadFilename 'iotedge-moby-cli.zip' `
                         -LocalCacheGlob '*moby-cli*.zip' `
                         -Delete ([ref] $deleteMobyCliArchive)
