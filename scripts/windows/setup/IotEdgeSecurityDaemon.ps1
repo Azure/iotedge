@@ -942,12 +942,12 @@ function Download-File([string] $Url, [string] $DownloadFilename, [string] $Loca
 
     Invoke-WebRequest `
         -Uri $Url `
-        -OutFile "$env:TEMP\$DownloadFileName.zip" `
+        -OutFile "$env:TEMP\$DownloadFileName" `
         -UseBasicParsing `
         @InvokeWebRequestParameters
 
     $Delete.Value = $true
-    return "$env:TEMP\$DownloadFileName.zip"
+    return "$env:TEMP\$DownloadFileName"
 }
 
 Export-ModuleMember -Function Install-SecurityDaemon, Uninstall-SecurityDaemon
