@@ -2,23 +2,33 @@
 
 namespace Microsoft.Azure.Devices.Edge.Storage
 {
+    using System;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public class StoreProvider : IStoreProvider
     {
         readonly IDbStoreProvider dbStoreProvider;
+        readonly TimeSpan operationTimeout;
 
         public StoreProvider(IDbStoreProvider dbStoreProvider)
+            : this(dbStoreProvider, TimeSpan.FromMinutes(2))
         {
             this.dbStoreProvider = Preconditions.CheckNotNull(dbStoreProvider, nameof(dbStoreProvider));
+        }
+
+        public StoreProvider(IDbStoreProvider dbStoreProvider, TimeSpan operationTimeout)
+        {
+            this.dbStoreProvider = Preconditions.CheckNotNull(dbStoreProvider, nameof(dbStoreProvider));
+            this.operationTimeout = operationTimeout;
         }
 
         public IEntityStore<TK, TV> GetEntityStore<TK, TV>(string entityName)
         {
             IDbStore entityDbStore = this.dbStoreProvider.GetDbStore(Preconditions.CheckNonWhiteSpace(entityName, nameof(entityName)));
             IEntityStore<TK, TV> entityStore = new EntityStore<TK, TV>(entityDbStore, entityName, 12);
-            return entityStore;
+            IEntityStore<TK, TV> timedEntityStore = new TimedEntityStore<TK, TV>(entityStore, this.operationTimeout);
+            return timedEntityStore;
         }
 
         public async Task<ISequentialStore<T>> GetSequentialStore<T>(string entityName)

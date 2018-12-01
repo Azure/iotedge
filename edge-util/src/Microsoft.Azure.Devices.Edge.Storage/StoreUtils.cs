@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             {
                 Array.Reverse(key);
             }
+
             long offset = BitConverter.ToInt64(key, 0);
             return offset;
         }
@@ -26,7 +27,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             if (BitConverter.IsLittleEndian)
             {
                 Array.Reverse(bytes);
-            }            
+            }
+
             return bytes;
         }
 
@@ -41,6 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                     properties.Add(item.Key, item.Value);
                 }
             }
+
             return properties;
         }
     }
