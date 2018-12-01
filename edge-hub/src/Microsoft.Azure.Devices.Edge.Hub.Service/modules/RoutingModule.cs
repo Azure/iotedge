@@ -307,7 +307,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     .SingleInstance();
 
                 // ICheckpointStore
-                builder.Register(c => CheckpointStore.Create(c.Resolve<IDbStoreProvider>()))
+                builder.Register(c =>
+                    {
+                        var dbStoreProvider = c.Resolve<IDbStoreProvider>();
+                        IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
+                        return CheckpointStore.Create(storeProvider);
+                    })
                     .As<ICheckpointStore>()
                     .SingleInstance();
 

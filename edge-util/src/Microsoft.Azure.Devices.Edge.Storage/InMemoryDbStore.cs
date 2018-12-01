@@ -9,48 +9,60 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Nito.AsyncEx;
 
     /// <summary>
-    /// Provices in memory implementation of a Db store
+    /// Provides an in memory implementation of the IDbStore
     /// </summary>
     class InMemoryDbStore : IDbStore
     {
         readonly ItemKeyedCollection keyValues;
-        readonly ReaderWriterLockSlim listLock = new ReaderWriterLockSlim();
+        readonly AsyncReaderWriterLock listLock = new AsyncReaderWriterLock();
 
         public InMemoryDbStore()
         {
             this.keyValues = new ItemKeyedCollection(new ByteArrayComparer());
         }
 
-        public Task<bool> Contains(byte[] key) => Task.FromResult(this.keyValues.Contains(key));
+        public Task Put(byte[] key, byte[] value) => this.Put(key, value, CancellationToken.None);
 
-        public Task<Option<byte[]>> Get(byte[] key)
+        public Task<Option<byte[]>> Get(byte[] key) => this.Get(key, CancellationToken.None);
+
+        public Task Remove(byte[] key) => this.Remove(key, CancellationToken.None);
+
+        public Task<bool> Contains(byte[] key) => this.Contains(key, CancellationToken.None);
+
+        public Task<Option<(byte[] key, byte[] value)>> GetFirstEntry() => this.GetFirstEntry(CancellationToken.None);
+
+        public Task<Option<(byte[] key, byte[] value)>> GetLastEntry() => this.GetLastEntry(CancellationToken.None);
+
+        public Task IterateBatch(int batchSize, Func<byte[], byte[], Task> perEntityCallback) => this.IterateBatch(batchSize, perEntityCallback, CancellationToken.None);
+
+        public Task IterateBatch(byte[] startKey, int batchSize, Func<byte[], byte[], Task> perEntityCallback) => this.IterateBatch(startKey, batchSize, perEntityCallback, CancellationToken.None);
+
+        public Task<bool> Contains(byte[] key, CancellationToken cancellationToken) => Task.FromResult(this.keyValues.Contains(key));
+
+        public async Task<Option<byte[]>> Get(byte[] key, CancellationToken cancellationToken)
         {
-            this.listLock.EnterReadLock();
-            try
+            using (await this.listLock.ReaderLockAsync(cancellationToken))
             {
                 Option<byte[]> value = this.keyValues.Contains(key)
                     ? Option.Some(this.keyValues[key].Value)
                     : Option.None<byte[]>();
-                return Task.FromResult(value);
-            }
-            finally
-            {
-                this.listLock.ExitReadLock();
+                return value;
             }
         }
 
-        public Task IterateBatch(int batchSize, Func<byte[], byte[], Task> callback)
+        public async Task IterateBatch(int batchSize, Func<byte[], byte[], Task> callback, CancellationToken cancellationToken)
         {
             int index = 0;
-            List<(byte[] key, byte[] value)> snapshot = this.GetSnapshot();
-            return this.IterateBatch(snapshot, index, batchSize, callback);
+            List<(byte[] key, byte[] value)> snapshot = await this.GetSnapshot(cancellationToken);
+            await this.IterateBatch(snapshot, index, batchSize, callback, cancellationToken);
         }
 
-        public Task IterateBatch(byte[] startKey, int batchSize, Func<byte[], byte[], Task> callback)
+        public async Task IterateBatch(byte[] startKey, int batchSize, Func<byte[], byte[], Task> callback, CancellationToken cancellationToken)
         {
-            List<(byte[] key, byte[] value)> snapshot = this.GetSnapshot();
+            List<(byte[] key, byte[] value)> snapshot = await this.GetSnapshot(cancellationToken);
             int i = 0;
             for (; i < snapshot.Count; i++)
             {
@@ -60,14 +72,15 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                     break;
                 }
             }
-            return this.IterateBatch(snapshot, i, batchSize, callback);
+
+            await this.IterateBatch(snapshot, i, batchSize, callback, cancellationToken);
         }
 
-        async Task IterateBatch(List<(byte[] key, byte[] value)> snapshot, int index, int batchSize, Func<byte[], byte[], Task> callback)
+        async Task IterateBatch(List<(byte[] key, byte[] value)> snapshot, int index, int batchSize, Func<byte[], byte[], Task> callback, CancellationToken cancellationToken)
         {
             if (index >= 0)
             {
-                for (int i = index; i < index + batchSize && i < snapshot.Count; i++)
+                for (int i = index; i < index + batchSize && i < snapshot.Count && !cancellationToken.IsCancellationRequested; i++)
                 {
                     var keyClone = snapshot[i].key.Clone() as byte[];
                     var valueClone = snapshot[i].value.Clone() as byte[];
@@ -76,42 +89,31 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             }
         }
 
-        public Task<Option<(byte[] key, byte[] value)>> GetFirstEntry()
+        public async Task<Option<(byte[] key, byte[] value)>> GetFirstEntry(CancellationToken cancellationToken)
         {
-            this.listLock.EnterReadLock();
-            try
+            using (await this.listLock.ReaderLockAsync(cancellationToken))
             {
                 Option<(byte[], byte[])> firstEntry = this.keyValues.Count > 0
                     ? Option.Some((this.keyValues[0].Key, this.keyValues[0].Value))
                     : Option.None<(byte[], byte[])>();
-                return Task.FromResult(firstEntry);
-            }
-            finally
-            {
-                this.listLock.ExitReadLock();
+                return firstEntry;
             }
         }
 
-        public Task<Option<(byte[] key, byte[] value)>> GetLastEntry()
+        public async Task<Option<(byte[] key, byte[] value)>> GetLastEntry(CancellationToken cancellationToken)
         {
-            this.listLock.EnterReadLock();
-            try
+            using (await this.listLock.ReaderLockAsync(cancellationToken))
             {
                 Option<(byte[], byte[])> lastEntry = (this.keyValues.Count > 0)
                     ? Option.Some((this.keyValues[this.keyValues.Count - 1].Key, this.keyValues[this.keyValues.Count - 1].Value))
                     : Option.None<(byte[], byte[])>();
-                return Task.FromResult(lastEntry);
-            }
-            finally
-            {
-                this.listLock.ExitReadLock();
+                return lastEntry;
             }
         }
 
-        public Task Put(byte[] key, byte[] value)
+        public async Task Put(byte[] key, byte[] value, CancellationToken cancellationToken)
         {
-            this.listLock.EnterWriteLock();
-            try
+            using (await this.listLock.WriterLockAsync(cancellationToken))
             {
                 if (!this.keyValues.Contains(key))
                 {
@@ -121,38 +123,22 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 {
                     this.keyValues[key].Value = value;
                 }
-                return Task.CompletedTask;
-            }
-            finally
-            {
-                this.listLock.ExitWriteLock();
             }
         }
 
-        public Task Remove(byte[] key)
+        public async Task Remove(byte[] key, CancellationToken cancellationToken)
         {
-            this.listLock.EnterWriteLock();
-            try
+            using (await this.listLock.WriterLockAsync(cancellationToken))
             {
                 this.keyValues.Remove(key);
-                return Task.CompletedTask;
-            }
-            finally
-            {
-                this.listLock.ExitWriteLock();
             }
         }
 
-        List<(byte[], byte[])> GetSnapshot()
+        async Task<List<(byte[], byte[])>> GetSnapshot(CancellationToken cancellationToken)
         {
-            this.listLock.EnterReadLock();
-            try
+            using (await this.listLock.ReaderLockAsync(cancellationToken))
             {
                 return new List<(byte[], byte[])>(this.keyValues.ItemList);
-            }
-            finally
-            {
-                this.listLock.ExitReadLock();
             }
         }
 
@@ -199,6 +185,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 {
                     hashCode = hashCode * -1521134295 + b.GetHashCode();
                 }
+
                 return hashCode;
             }
         }

@@ -27,14 +27,14 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return tcs.Task;
         }
 
-        public async static Task<(T1, T2)> WhenAll<T1, T2>(Task<T1> t1, Task<T2> t2)
+        public static async Task<(T1, T2)> WhenAll<T1, T2>(Task<T1> t1, Task<T2> t2)
         {
             T1 val1 = await t1;
             T2 val2 = await t2;
             return (val1, val2);
         }
 
-        public async static Task<(T1, T2, T3)> WhenAll<T1, T2, T3>(Task<T1> t1, Task<T2> t2, Task<T3> t3)
+        public static async Task<(T1, T2, T3)> WhenAll<T1, T2, T3>(Task<T1> t1, Task<T2> t2, Task<T3> t3)
         {
             T1 val1 = await t1;
             T2 val2 = await t2;
@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return (val1, val2, val3);
         }
 
-        public async static Task<(T1, T2, T3, T4)> WhenAll<T1, T2, T3, T4>(Task<T1> t1, Task<T2> t2, Task<T3> t3, Task<T4> t4)
+        public static async Task<(T1, T2, T3, T4)> WhenAll<T1, T2, T3, T4>(Task<T1> t1, Task<T2> t2, Task<T3> t3, Task<T4> t4)
         {
             T1 val1 = await t1;
             T2 val2 = await t2;
@@ -51,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return (val1, val2, val3, val4);
         }
 
-        public async static Task<(T1, T2, T3, T4, T5)> WhenAll<T1, T2, T3, T4, T5>(Task<T1> t1, Task<T2> t2, Task<T3> t3, Task<T4> t4, Task<T5> t5)
+        public static async Task<(T1, T2, T3, T4, T5)> WhenAll<T1, T2, T3, T4, T5>(Task<T1> t1, Task<T2> t2, Task<T3> t3, Task<T4> t4, Task<T5> t5)
         {
             T1 val1 = await t1;
             T2 val2 = await t2;
@@ -61,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return (val1, val2, val3, val4, val5);
         }
 
-        public async static Task<(T1, T2, T3, T4, T5, T6)> WhenAll<T1, T2, T3, T4, T5, T6>(Task<T1> t1, Task<T2> t2, Task<T3> t3, Task<T4> t4, Task<T5> t5, Task<T6> t6)
+        public static async Task<(T1, T2, T3, T4, T5, T6)> WhenAll<T1, T2, T3, T4, T5, T6>(Task<T1> t1, Task<T2> t2, Task<T3> t3, Task<T4> t4, Task<T5> t5, Task<T6> t6)
         {
             T1 val1 = await t1;
             T2 val2 = await t2;
@@ -72,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return (val1, val2, val3, val4, val5, val6);
         }
 
-        public async static Task<(T1, T2, T3, T4, T5, T6, T7)> WhenAll<T1, T2, T3, T4, T5, T6, T7>(Task<T1> t1, Task<T2> t2, Task<T3> t3, Task<T4> t4, Task<T5> t5, Task<T6> t6, Task<T7> t7)
+        public static async Task<(T1, T2, T3, T4, T5, T6, T7)> WhenAll<T1, T2, T3, T4, T5, T6, T7>(Task<T1> t1, Task<T2> t2, Task<T3> t3, Task<T4> t4, Task<T5> t5, Task<T6> t6, Task<T7> t7)
         {
             T1 val1 = await t1;
             T2 val2 = await t2;
@@ -84,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return (val1, val2, val3, val4, val5, val6, val7);
         }
 
-        public async static Task<(T1, T2, T3, T4, T5, T6, T7, T8)> WhenAll<T1, T2, T3, T4, T5, T6, T7, T8>(Task<T1> t1, Task<T2> t2, Task<T3> t3, Task<T4> t4, Task<T5> t5, Task<T6> t6, Task<T7> t7, Task<T8> t8)
+        public static async Task<(T1, T2, T3, T4, T5, T6, T7, T8)> WhenAll<T1, T2, T3, T4, T5, T6, T7, T8>(Task<T1> t1, Task<T2> t2, Task<T3> t3, Task<T4> t4, Task<T5> t5, Task<T6> t6, Task<T7> t7, Task<T8> t8)
         {
             T1 val1 = await t1;
             T2 val2 = await t2;
@@ -97,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return (val1, val2, val3, val4, val5, val6, val7, val8);
         }
 
-        public async static Task<(T1, T2, T3, T4, T5, T6, T7, T8, T9)> WhenAll<T1, T2, T3, T4, T5, T6, T7, T8, T9>(Task<T1> t1, Task<T2> t2, Task<T3> t3, Task<T4> t4, Task<T5> t5, Task<T6> t6, Task<T7> t7, Task<T8> t8, Task<T9> t9)
+        public static async Task<(T1, T2, T3, T4, T5, T6, T7, T8, T9)> WhenAll<T1, T2, T3, T4, T5, T6, T7, T8, T9>(Task<T1> t1, Task<T2> t2, Task<T3> t3, Task<T4> t4, Task<T5> t5, Task<T6> t6, Task<T7> t7, Task<T8> t8, Task<T9> t9)
         {
             T1 val1 = await t1;
             T2 val2 = await t2;
@@ -111,6 +111,111 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return (val1, val2, val3, val4, val5, val6, val7, val8, val9);
         }
 
+        public static async Task<T> TimeoutAfter<T>(this Task<T> task, TimeSpan timeout)
+        {
+            using (var cts = new CancellationTokenSource())
+            {
+                Task timerTask = Task.Delay(timeout, cts.Token);
+                Task completedTask = await Task.WhenAny(task, timerTask);
+                if (completedTask == timerTask)
+                {
+                    throw new TimeoutException("Operation timed out");
+                }
+
+                cts.Cancel();
+                return await task;
+            }
+        }
+
+        public static async Task TimeoutAfter(this Task task, TimeSpan timeout)
+        {
+            using (var cts = new CancellationTokenSource())
+            {
+                Task timerTask = Task.Delay(timeout, cts.Token);
+                Task completedTask = await Task.WhenAny(task, timerTask);
+                if (completedTask == timerTask)
+                {
+                    throw new TimeoutException("Operation timed out");
+                }
+
+                cts.Cancel();
+                await task;
+            }
+        }
+
+        public static Task TimeoutAfter(this Func<CancellationToken, Task> operation, CancellationToken cancellationToken, TimeSpan timeout)
+        {
+            using (var cts = new CancellationTokenSource())
+            {
+                try
+                {
+                    return operation(CancellationTokenSource.CreateLinkedTokenSource(cts.Token, cancellationToken).Token)
+                        .TimeoutAfter(timeout);
+                }
+                catch (TimeoutException)
+                {
+                    cts.Cancel();
+                    throw;
+                }
+            }
+        }
+
+        public static Task<T> TimeoutAfter<T>(this Func<CancellationToken, Task<T>> operation, CancellationToken cancellationToken, TimeSpan timeout)
+        {
+            using (var cts = new CancellationTokenSource())
+            {
+                try
+                {
+                    return operation(CancellationTokenSource.CreateLinkedTokenSource(cts.Token, cancellationToken).Token)
+                        .TimeoutAfter(timeout);
+                }
+                catch (TimeoutException)
+                {
+                    cts.Cancel();
+                    throw;
+                }
+            }
+        }
+
+        static async Task<T> ExecuteUntilCancelled<T>(this Task<T> task, CancellationToken cancellationToken)
+        {            
+            var tcs = new TaskCompletionSource<T>();
+            cancellationToken.Register(
+                () =>
+                {
+                    tcs.SetException(new TaskCanceledException(task));
+                });
+            Task<T> completedTask = await Task.WhenAny(task, tcs.Task);
+            return await completedTask;
+        }
+
+        static async Task ExecuteUntilCancelled(this Task task, CancellationToken cancellationToken)
+        {
+            var tcs = new TaskCompletionSource<int>();
+            cancellationToken.Register(
+                () =>
+                {
+                    tcs.TrySetCanceled();
+                });
+            Task completedTask = await Task.WhenAny(task, tcs.Task);
+            //// Await here to bubble up any exceptions
+            await completedTask;
+        }
+
+        public static Task<T> ExecuteUntilCancelled<T>(this Func<T> operation, CancellationToken cancellationToken)
+        {
+            Preconditions.CheckNotNull(operation, nameof(operation));
+            Task<T> task = Task.Run(operation, cancellationToken);
+            return task.ExecuteUntilCancelled(cancellationToken);
+        }
+
+        public static Task ExecuteUntilCancelled(this Action operation, CancellationToken cancellationToken)
+        {
+            Preconditions.CheckNotNull(operation, nameof(operation));
+            Task task = Task.Run(operation, cancellationToken);
+            return task.ExecuteUntilCancelled(cancellationToken);
+        }
+        
         public static IAsyncResult ToAsyncResult(this Task task, AsyncCallback callback, object state)
         {
             if (task.AsyncState == state)
