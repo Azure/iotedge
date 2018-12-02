@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
     using System.Threading.Tasks;
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -22,11 +23,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
         public const string TwinPut = "PUT";
         public const string TwinDelete = "DELETE";
 
-        public TwinReceivingLinkHandler(IReceivingAmqpLink link,
+        public TwinReceivingLinkHandler(
+            IIdentity identity,
+            IReceivingAmqpLink link,
             Uri requestUri,
-            IDictionary<string, string> boundVariables,
+            IDictionary<string, string> boundVariables, IConnectionHandler connectionHandler,
             IMessageConverter<AmqpMessage> messageConverter)
-            : base(link, requestUri, boundVariables, messageConverter)
+            : base(identity, link, requestUri, boundVariables, connectionHandler, messageConverter)
         {
         }
 

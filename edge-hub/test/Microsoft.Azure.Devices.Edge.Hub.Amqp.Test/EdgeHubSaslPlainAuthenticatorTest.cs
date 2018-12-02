@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 {
     using System;
+    using System.Security.Principal;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -100,11 +101,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             Mock.Get(authenticator).Setup(a => a.AuthenticateAsync(clientCredentials))
                 .ReturnsAsync(true);
 
-            var principal = await saslAuthenticator.AuthenticateAsync(UserId, Password) as SaslPrincipal;
+            IPrincipal principal = await saslAuthenticator.AuthenticateAsync(UserId, Password);
             Assert.NotNull(principal);
-            Assert.NotNull(principal.Identity);
-            Assert.NotNull(principal.AmqpAuthentication);
-            Assert.Equal(identity, principal.AmqpAuthentication.ClientCredentials.OrDefault().Identity);
+
+            var amqpAuthenticator = principal as IAmqpAuthenticator;
+            Assert.NotNull(amqpAuthenticator);
+
+            bool isAuthenticated = await amqpAuthenticator.AuthenticateAsync("dev1/mod1");
+            Assert.True(isAuthenticated);
         }
     }
 }
