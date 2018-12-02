@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading;
     using System.Threading.Tasks;
 
     /// <summary>
@@ -19,6 +20,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         Task<bool> RemoveFirst(Func<long, T, Task<bool>> predicate);
 
-        Task<IEnumerable<(long, T)>> GetBatch(long startingOffset, int batchSize);        
+        Task<IEnumerable<(long, T)>> GetBatch(long startingOffset, int batchSize);
+
+        Task<long> Append(T item, CancellationToken cancellationToken);
+
+        Task<bool> RemoveFirst(Func<long, T, Task<bool>> predicate, CancellationToken cancellationToken);
+
+        Task<IEnumerable<(long, T)>> GetBatch(long startingOffset, int batchSize, CancellationToken cancellationToken);
     }
 }
