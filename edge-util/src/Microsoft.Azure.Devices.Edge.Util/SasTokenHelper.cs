@@ -41,5 +41,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         public static string BuildAudience(string iotHub, string deviceId, string moduleId) =>
             WebUtility.UrlEncode(Invariant($"{iotHub}/devices/{deviceId}/modules/{moduleId}"));
+
+        public static string BuildAudience(string iotHub, string deviceId) =>
+            WebUtility.UrlEncode(Invariant($"{iotHub}/devices/{deviceId}"));
     }
 }
