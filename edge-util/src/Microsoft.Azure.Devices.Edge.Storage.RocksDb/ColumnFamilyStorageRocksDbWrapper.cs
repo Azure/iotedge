@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+
 namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 {
     using System;
@@ -21,6 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
     {
         const string DbFolderName = "db";
         const string ColumnFamiliesFileName = "columnfamilies";
+
         static readonly DbOptions Options = new DbOptions()
             .SetCreateIfMissing()
             .SetCreateMissingColumnFamilies();
@@ -69,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             {
                 return this.columnFamiliesProvider.ListColumnFamilies();
             }
-        }        
+        }
 
         public ColumnFamilyHandle GetColumnFamily(string columnFamilyName) => this.db.GetColumnFamily(columnFamilyName);
 
@@ -78,10 +80,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             lock (ColumnFamiliesLock)
             {
                 this.columnFamiliesProvider.AddColumnFamily(entityName);
-                ColumnFamilyHandle handle = this.db.CreateColumnFamily(columnFamilyOptions, entityName);                
+                ColumnFamilyHandle handle = this.db.CreateColumnFamily(columnFamilyOptions, entityName);
                 return handle;
             }
-        }        
+        }
 
         public void DropColumnFamily(string columnFamilyName)
         {

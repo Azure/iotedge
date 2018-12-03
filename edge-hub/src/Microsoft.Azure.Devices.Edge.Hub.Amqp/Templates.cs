@@ -6,16 +6,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
     public static class Templates
     {
-        public const string IoTHubAliasRootPrefix = "/$iothub";
-
         public const string DevicePathPrefix = "/devices/";
         public const string ModulesPathPrefix = "/modules/";
 
         public const string DeviceIdTemplateParameterName = "deviceid";
         public const string ModuleIdTemplateParameterName = "moduleid";
-
-        const string TelemetryEventHubReceiveRedirectPrefix = "/messages/events";
-        const string OperationMonitoringEventHubReceiveRedirectPrefix = "/messages/operationsMonitoringEvents";
 
         public const string DeviceTelemetryStreamUriFormat = "/devices/{0}/messages/events";
         public const string ModuleTelemetryStreamUriFormat = "/devices/{0}/modules/{1}/messages/events";
@@ -30,11 +25,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         public static readonly UriPathTemplate ModuleEventsTemplate = new UriPathTemplate(ModuleTelemetryStreamUriFormat.FormatInvariant("{" + DeviceIdTemplateParameterName + "}", "{" + ModuleIdTemplateParameterName + "}"));
         public static readonly UriPathTemplate DeviceFromDeviceBoundTemplate = new UriPathTemplate(DeviceC2DStreamUriFormat.FormatInvariant("{" + DeviceIdTemplateParameterName + "}"));
         public static readonly UriPathTemplate ModuleFromDeviceBoundTemplate = new UriPathTemplate(ModuleC2DStreamUriFormat.FormatInvariant("{" + DeviceIdTemplateParameterName + "}", "{" + ModuleIdTemplateParameterName + "}"));
-        public static readonly UriPathTemplate ServiceToDeviceBoundTemplate = new UriPathTemplate("/messages/deviceBound");
-        public static readonly UriPathTemplate FeedbackTemplate = new UriPathTemplate("/messages/serviceBound/feedback");
-        public static readonly UriPathTemplate FileNotificationTemplate = new UriPathTemplate("/messages/serviceBound/filenotifications");
-        public static readonly UriPathTemplate EventHubReceiveRedirectTemplate = new UriPathTemplate(TelemetryEventHubReceiveRedirectPrefix + "/*");
-        public static readonly UriPathTemplate OperationMonitoringEventHubReceiveRedirectTemplate = new UriPathTemplate(OperationMonitoringEventHubReceiveRedirectPrefix + "/*");
 
         public static class Twin
         {
@@ -46,7 +36,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             public static readonly UriPathTemplate ModuleDeviceBoundMethodCallTemplate = new UriPathTemplate(ModuleDeviceBoundMethodCallUriFormat.FormatInvariant("{" + DeviceIdTemplateParameterName + "}", "{" + ModuleIdTemplateParameterName + "}"));
             public static readonly UriPathTemplate TwinStreamTemplate = new UriPathTemplate(DeviceTwinMessageStreamUriFormat.FormatInvariant("{" + DeviceIdTemplateParameterName + "}"));
             public static readonly UriPathTemplate ModuleTwinStreamTemplate = new UriPathTemplate(ModuleTwinMessageStreamUriFormat.FormatInvariant("{" + DeviceIdTemplateParameterName + "}", "{" + ModuleIdTemplateParameterName + "}"));
-            public static readonly UriPathTemplate RootTwinStreamTemplate = new UriPathTemplate(IoTHubAliasRootPrefix + DeviceTwinMessageStreamUriFormat.FormatInvariant("{" + DeviceIdTemplateParameterName + "}"));
         }
     }
 }

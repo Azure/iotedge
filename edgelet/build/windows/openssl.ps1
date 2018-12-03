@@ -23,6 +23,16 @@ function Get-OpenSSL
             Throw "Failed to install vcpkg with exit code $LastExitCode"
         }
     }
+
+    Write-Host "Downloading strawberry perl"
+    if (!(Test-Path -Path $env:HOMEDRIVE\vcpkg\Downloads))
+    {
+        New-Item -Type Directory "$env:HOMEDRIVE\vcpkg\Downloads" | Out-Null
+    }
+    $strawberryPerlUri = "https://edgebuild.blob.core.windows.net/strawberry-perl/strawberry-perl-5.24.1.1-32bit-portable.zip"
+    $strawberryPerlPath = "$env:HOMEDRIVE\vcpkg\Downloads\strawberry-perl-5.24.1.1-32bit-portable.zip"
+    Invoke-WebRequest -Uri $strawberryPerlUri -OutFile $strawberryPerlPath
+
     Write-Host "Installing OpenSSL for x64..."
     & $env:HOMEDRIVE\\vcpkg\\vcpkg.exe install openssl:x64-windows
     if ($LastExitCode)
