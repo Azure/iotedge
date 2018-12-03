@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
 
     /// <summary>
     /// This handler is used to send messages to modules
@@ -15,9 +16,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
     /// </summary>
     class ModuleMessageLinkHandler : SendingLinkHandler
     {
-        public ModuleMessageLinkHandler(ISendingAmqpLink link, Uri requestUri, IDictionary<string, string> boundVariables,
+        public ModuleMessageLinkHandler(
+            IIdentity identity,
+            ISendingAmqpLink link,
+            Uri requestUri,
+            IDictionary<string, string> boundVariables,
+            IConnectionHandler connectionHandler,
             IMessageConverter<AmqpMessage> messageConverter)
-            : base(link, requestUri, boundVariables, messageConverter)
+            : base(identity, link, requestUri, boundVariables, connectionHandler, messageConverter)
         {
         }
 
