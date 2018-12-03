@@ -23,7 +23,7 @@
     },
     {
       "placeholder": "1234",
-      "_justification": "This private key password ($_privateKeyPassword in /tools/CACertificates/ca-certs.ps1) is intended only to help demonstrate and prototype CA certs and warnings are provided to not use in production."
+      "_justification": "This private key password (defined in /tools/CACertificates/ca-certs.ps1 and /tools/CACertificates/certGen.sh) is intended only to help demonstrate and prototype CA certs and warnings are provided to not use in production."
     }
   ]
 }
