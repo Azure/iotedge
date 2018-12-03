@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             this.combinedConfigProvider = Preconditions.CheckNotNull(combinedConfigProvider, nameof(combinedConfigProvider));
         }
 
-        public Task<ICommand> UpdateEdgeAgentAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo) => Task.FromResult(NullCommand.Instance as ICommand);
+        public Task<ICommand> UpdateEdgeAgentAsync(IModule currentModule, IModuleWithIdentity next, IRuntimeInfo runtimeInfo) => Task.FromResult(NullCommand.Instance as ICommand);
 
         public async Task<ICommand> CreateAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
         {
@@ -40,9 +40,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         public async Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo)
         {
-            if (current is DockerModule currentDockerModule && next.Module is DockerModule)
+            if (current is DockerModule currentDockerModule && next.Module is DockerModule nextDockerModule)
             {
+                CombinedDockerConfig combinedDockerConfig = this.combinedConfigProvider.GetCombinedConfig(nextDockerModule, runtimeInfo);
                 return new GroupCommand(
+                    new PullCommand(this.client, combinedDockerConfig),
+                    new StopCommand(this.client, currentDockerModule),
                     new RemoveCommand(this.client, currentDockerModule),
                     await this.CreateAsync(next, runtimeInfo));
             }
@@ -70,5 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 : (ICommand)NullCommand.Instance);
 
         public Task<ICommand> WrapAsync(ICommand command) => Task.FromResult(command);
+
+        public Task<ICommand> PullAsync(IModule module) => throw new System.NotImplementedException();
     }
 }

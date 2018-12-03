@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public async Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo) => new LoggingCommand(await this.underlying.UpdateAsync(current, next, runtimeInfo), "update", this.logger);
 
-        public async Task<ICommand> UpdateEdgeAgentAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo) => new LoggingCommand(await this.underlying.UpdateEdgeAgentAsync(module, runtimeInfo), "update Edge Agent", this.logger);
+        public async Task<ICommand> UpdateEdgeAgentAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo) => new LoggingCommand(await this.underlying.UpdateEdgeAgentAsync(current, next, runtimeInfo), "update Edge Agent", this.logger);
 
         public async Task<ICommand> RemoveAsync(IModule module) => new LoggingCommand(await this.underlying.RemoveAsync(module), "remove", this.logger);
 
