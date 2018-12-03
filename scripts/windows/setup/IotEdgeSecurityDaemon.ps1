@@ -665,6 +665,7 @@ function Install-Services {
 
 function Uninstall-Services {
     if (Get-Service $EdgeServiceName -ErrorAction SilentlyContinue) {
+        Set-Service -StartupType Disabled $EdgeServiceName -ErrorAction SilentlyContinue
         Stop-Service -NoWait -ErrorAction SilentlyContinue -ErrorVariable cmdErr $EdgeServiceName
         if ($?) {
             Start-Sleep -Seconds 7
