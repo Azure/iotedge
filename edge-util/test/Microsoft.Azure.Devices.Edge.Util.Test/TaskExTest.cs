@@ -61,5 +61,116 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             Assert.Equal(7, a7);
             Assert.Equal(8, a8);
         }
+
+        [Fact]
+        [Unit]
+        public async Task ExecuteFuncUntilCancelledTest()
+        {
+            int TestFunc()
+            {
+                DateTime end = DateTime.Now + TimeSpan.FromSeconds(5);
+                while (DateTime.Now < end)
+                {
+                    // No-op
+                }
+
+                return 0;
+            }
+
+            Func<int> operation = () => TestFunc();
+            var cts = new CancellationTokenSource();
+            Func<Task> testCode = () => operation.ExecuteUntilCancelled(cts.Token);
+            Task assertTask = Assert.ThrowsAsync<TaskCanceledException>(testCode);
+
+            await Task.Delay(TimeSpan.FromSeconds(2));
+            cts.Cancel();
+
+            await assertTask;
+
+            // Assert
+            Assert.True(assertTask.IsCompletedSuccessfully);
+        }
+
+        [Fact]
+        [Unit]
+        public async Task ExecuteActionUntilCancelledTest()
+        {
+            void TestAction()
+            {
+                DateTime end = DateTime.Now + TimeSpan.FromSeconds(5);
+                while (DateTime.Now < end)
+                {
+                    // No-op
+                }
+            }
+
+            Action operation = () => TestAction();
+            var cts = new CancellationTokenSource();
+            Func<Task> testCode = () => operation.ExecuteUntilCancelled(cts.Token);
+
+            Task assertTask = Assert.ThrowsAsync<TaskCanceledException>(testCode);
+
+            await Task.Delay(TimeSpan.FromSeconds(2));
+            cts.Cancel();
+
+            await assertTask;
+
+            // Assert
+            Assert.True(assertTask.IsCompletedSuccessfully);
+        }
+
+        [Fact]
+        [Unit]
+        public async Task ActionTimeoutAfterTest()
+        {
+            Task TestAction(CancellationToken _) => Task.Delay(TimeSpan.FromSeconds(10));
+            Func<CancellationToken, Task> operation = c => TestAction(c);
+            var cts = new CancellationTokenSource();
+            Func<CancellationToken, Task> testCode = c => operation.TimeoutAfter(cts.Token, TimeSpan.FromSeconds(3));
+            await Assert.ThrowsAsync<TimeoutException>(() => testCode(cts.Token));
+        }
+
+        [Fact]
+        [Unit]
+        public async Task FuncTimeoutAfterTest()
+        {
+            async Task<int> TestFunc(CancellationToken _)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(10));
+                return 10;
+            }
+
+            Func<CancellationToken, Task<int>> operation = c => TestFunc(c);
+            var cts = new CancellationTokenSource();
+            Func<CancellationToken, Task> testCode = c => operation.TimeoutAfter(cts.Token, TimeSpan.FromSeconds(3));
+            await Assert.ThrowsAsync<TimeoutException>(() => testCode(cts.Token));
+        }
+
+        [Fact]
+        [Unit]
+        public async Task ActionTimeoutAfterCancelTest()
+        {
+            Task TestAction(CancellationToken _) => Task.Delay(TimeSpan.FromSeconds(10));
+            Func<CancellationToken, Task> operation = c => TestAction(c);
+            var cts = new CancellationTokenSource();
+            Func<CancellationToken, Task> testCode = c => operation.TimeoutAfter(cts.Token, TimeSpan.FromSeconds(3));
+            await Assert.ThrowsAsync<TimeoutException>(() => testCode(cts.Token));
+        }
+
+        [Fact]
+        [Unit]
+        public async Task FuncTimeoutAfterCancelTest()
+        {
+            async Task<int> TestFunc(CancellationToken _)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(10));
+                return 10;
+            }
+
+            Func<CancellationToken, Task<int>> operation = c => TestFunc(c);
+            var cts = new CancellationTokenSource();
+            Func<CancellationToken, Task> testCode = c => operation.TimeoutAfter(cts.Token, TimeSpan.FromSeconds(3));
+            await Assert.ThrowsAsync<TimeoutException>(() => testCode(cts.Token));
+        }
     }
 }

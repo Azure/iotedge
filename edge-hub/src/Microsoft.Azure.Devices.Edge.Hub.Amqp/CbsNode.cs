@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     /// This class is used to get tokens from the Client on the CBS link. It generates 
     /// an identity from the received token and authenticates it. 
     /// </summary>
-    class CbsNode : ICbsNode
+    class CbsNode : ICbsNode, IAmqpAuthenticator
     {
         static readonly List<UriPathTemplate> ResourceTemplates = new List<UriPathTemplate>
         {
@@ -71,22 +71,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             Events.LinkRegistered(link);
         }
 
-        // TODO: Temporary implementation - just get the first credentials and return it. 
-        public async Task<AmqpAuthentication> GetAmqpAuthentication()
-        {
-            if (!this.clientCredentialsMap.Any())
-            {
-                throw new InvalidOperationException("No valid credentials found");
-            }
-
-            KeyValuePair<string, CredentialsInfo> creds = this.clientCredentialsMap.First();
-            if (!creds.Value.IsAuthenticated)
-            {
-                creds.Value.IsAuthenticated = await this.authenticator.AuthenticateAsync(creds.Value.ClientCredentials);
-            }
-            return new AmqpAuthentication(creds.Value.IsAuthenticated, Option.Some(creds.Value.ClientCredentials));
-        }
-
         public async Task<bool> AuthenticateAsync(string id)
         {
             try
@@ -119,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 Events.ErrorAuthenticatingIdentity(id, e);
                 return false;
             }
-        }        
+        }
 
         async void OnMessageReceived(AmqpMessage message)
         {
@@ -175,7 +159,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 {
                     credentialsInfo.ClientCredentials = clientCredentials;
                 }
-
                 if (credentialsInfo.IsAuthenticated)
                 {
                     await this.credentialsCache.Add(clientCredentials);
