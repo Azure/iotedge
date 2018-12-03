@@ -49,6 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 string json = value.ToJson();
                 bytes = json.ToBytes();
             }
+
             return bytes;
         }
 

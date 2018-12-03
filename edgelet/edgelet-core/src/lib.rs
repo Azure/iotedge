@@ -14,7 +14,6 @@ extern crate base64;
 extern crate bytes;
 extern crate chrono;
 extern crate consistenttime;
-#[macro_use]
 extern crate failure;
 extern crate futures;
 extern crate hmac;
@@ -50,7 +49,8 @@ pub use error::{Error, ErrorKind};
 pub use identity::{AuthType, Identity, IdentityManager, IdentityOperation, IdentitySpec};
 pub use module::{
     LogOptions, LogTail, Module, ModuleOperation, ModuleRegistry, ModuleRuntime,
-    ModuleRuntimeState, ModuleSpec, ModuleStatus, RegistryOperation, RuntimeOperation, SystemInfo,
+    ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleSpec, ModuleStatus, RegistryOperation,
+    RuntimeOperation, SystemInfo,
 };
 pub use workload::WorkloadConfig;
 
