@@ -369,6 +369,7 @@ function Get-SecurityDaemon {
         # for backward compatibility.
         if ($ArchivePath -ne '') {
             $edgeArchivePath = $ArchivePath
+            $deleteEdgeArchive = $false
         }
         else {
             # The -LocalCacheGlob value here *intentionally* doesn't check for .zip extension,
