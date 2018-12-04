@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
     public class SasTokenHelperTest
     {
         [Fact]
-        public void BuildAudienceTest()
+        public void BuildAudienceModuleTest()
         {
             // Arrange
             string iotHubHostName = "testIotHub.azure-devices.net";
@@ -23,6 +23,20 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
 
             // Assert
             Assert.Equal("testIotHub.azure-devices.net%2Fdevices%2Fdevice1%2Fmodules%2Fmodule1", audience);
+        }
+
+        [Fact]
+        public void BuildAudienceDeviceTest()
+        {
+            // Arrange
+            string iotHubHostName = "testIotHub.azure-devices.net";
+            string deviceId = "device1";
+
+            // Act
+            string audience = SasTokenHelper.BuildAudience(iotHubHostName, deviceId);
+
+            // Assert
+            Assert.Equal("testIotHub.azure-devices.net%2Fdevices%2Fdevice1", audience);
         }
 
         [Fact]

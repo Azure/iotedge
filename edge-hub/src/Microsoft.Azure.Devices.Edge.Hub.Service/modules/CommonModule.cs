@@ -165,7 +165,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             // ITokenProvider
-            builder.Register(c => new ModuleTokenProvider(c.Resolve<ISignatureProvider>(), this.iothubHostName, this.edgeDeviceId, this.edgeHubModuleId, TimeSpan.FromHours(1)))
+            builder.Register(c => new ClientTokenProvider(c.Resolve<ISignatureProvider>(), this.iothubHostName, this.edgeDeviceId, this.edgeHubModuleId, TimeSpan.FromHours(1)))
                 .Named<ITokenProvider>("EdgeHubClientAuthTokenProvider")
                 .SingleInstance();
 
@@ -174,7 +174,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 {
                     string deviceId = WebUtility.UrlEncode(this.edgeDeviceId);
                     string moduleId = WebUtility.UrlEncode(this.edgeHubModuleId);
-                    return new ModuleTokenProvider(c.Resolve<ISignatureProvider>(), this.iothubHostName, deviceId, moduleId, TimeSpan.FromHours(1));
+                    return new ClientTokenProvider(c.Resolve<ISignatureProvider>(), this.iothubHostName, deviceId, moduleId, TimeSpan.FromHours(1));
                 })
                 .Named<ITokenProvider>("EdgeHubServiceAuthTokenProvider")
                 .SingleInstance();
