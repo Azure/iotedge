@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
 
             sequentialStore = await SequentialStore<Item>.Create(entityStore);
             offset = await sequentialStore.Append(new Item { Prop1 = 20 });
-            Assert.Equal(10162, offset);
+            Assert.Equal(10161, offset);
 
             IList<(long, Item)> batch = (await sequentialStore.GetBatch(0, 100)).ToList();
             Assert.Equal(12, batch.Count);
