@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.AspNetCore.Server.Kestrel.Https;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Azure.Devices.Edge.Hub.Http.Extensions;
 
     public class Hosting
     {
@@ -22,21 +23,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         public static Hosting Initialize(
             IConfigurationRoot configuration,
             X509Certificate2 serverCertificate,
-            IDependencyManager dependencyManager)
+            IDependencyManager dependencyManager,
+            bool clientCertAuthEnabled)
         {
             int port = configuration.GetValue("httpSettings:port", 443);
-
+            var certificateMode = clientCertAuthEnabled ? ClientCertificateMode.AllowCertificate : ClientCertificateMode.NoCertificate;
             IWebHostBuilder webHostBuilder = new WebHostBuilder()
                 .UseKestrel(options =>
                 {
                     options.Listen(!Socket.OSSupportsIPv6 ? IPAddress.Any : IPAddress.IPv6Any, port, listenOptions =>
                     {
-                        listenOptions.UseHttps(serverCertificate, (connectionAdapterOptions) =>
-                        {
-                            connectionAdapterOptions.ClientCertificateMode = ClientCertificateMode.AllowCertificate;
-                            // note: certificate validation will take place later after the client credentials are authenticated
-                            connectionAdapterOptions.ClientCertificateValidation = (clientCert, chain, policyErrors) => true;
-                        });
+                        listenOptions.UseHttpsExtensions(
+                            new HttpsConnectionAdapterOptions()
+                            {
+                                ServerCertificate = serverCertificate,
+                                ClientCertificateValidation = (clientCert, chain, policyErrors) => true,
+                                ClientCertificateMode = certificateMode
+                            });
                     });
                 })
                 .UseSockets()
