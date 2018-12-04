@@ -81,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
 
             if (clientCertificate != null)
             {
-                IList<X509Certificate2> certChain = context.Connection.GetClientCertificateChain(context);
+                IList<X509Certificate2> certChain = context.GetClientCertificateChain();
                 clientCredentials = this.identityFactory.GetWithX509Cert(deviceId, moduleId, string.Empty, clientCertificate, certChain);
             }
             else

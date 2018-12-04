@@ -62,7 +62,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Adapters
                     {
                         if (certificate == null)
                         {
-                            return this.options.ClientCertificateMode != ClientCertificateMode.RequireCertificate;
+                            if ((this.options.ClientCertificateMode == ClientCertificateMode.AllowCertificate) ||
+                                (this.options.ClientCertificateMode == ClientCertificateMode.RequireCertificate))
+                            {
+                                return false;
+                            }
                         }
 
                         if (this.options.ClientCertificateValidation == null)

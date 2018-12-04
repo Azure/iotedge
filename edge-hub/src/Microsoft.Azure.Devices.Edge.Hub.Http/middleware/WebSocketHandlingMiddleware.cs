@@ -74,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
             IList<X509Certificate2> certChain = null;
             if (cert != null)
             {
-                certChain = context.Connection.GetClientCertificateChain(context);
+                certChain = context.GetClientCertificateChain();
             }
             Option<IList<X509Certificate2>> clientCertificateChain = (certChain == null) ? Option.None<IList<X509Certificate2>>() :
                                                                                            Option.Some(certChain);
