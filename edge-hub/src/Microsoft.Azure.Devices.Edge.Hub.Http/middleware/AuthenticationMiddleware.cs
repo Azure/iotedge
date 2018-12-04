@@ -125,7 +125,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
                     return LogAndReturnFailure($"Cannot parse SharedAccessSignature because of the following error - {ex.Message}");
                 }
 
-
                 clientCredentials = this.identityFactory.GetWithSasToken(deviceId, moduleId, string.Empty, authHeader, false);
             }
 

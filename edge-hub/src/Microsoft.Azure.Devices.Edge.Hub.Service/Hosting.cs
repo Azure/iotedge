@@ -34,6 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                         listenOptions.UseHttps(serverCertificate, (connectionAdapterOptions) =>
                         {
                             connectionAdapterOptions.ClientCertificateMode = ClientCertificateMode.AllowCertificate;
+                            // note: certificate validation will take place later after the client credentials are authenticated
                             connectionAdapterOptions.ClientCertificateValidation = (clientCert, chain, policyErrors) => true;
                         });
                     });

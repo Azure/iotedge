@@ -57,7 +57,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
         protected override void OnListen()
         {
-
         }
 
         static class Events

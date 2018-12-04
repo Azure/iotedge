@@ -76,9 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
                 clientCert.Map(cert =>
                 {
-                    return identityProvider.RemoteCertificateValidationCallback(cert,
-                                                                                clientCertChain.GetOrElse(() =>
-                                                                                    throw new ArgumentException("Certificate chain was found to be null")));
+                    return identityProvider.RemoteCertificateValidationCallback(cert, clientCertChain.Expect(() => new ArgumentException("Certificate chain was found to be null")));
                 });
 
                 serverChannel

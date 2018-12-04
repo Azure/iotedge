@@ -12,7 +12,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         string SubProtocol { get; }
 
-        Task ProcessWebSocketRequestAsync(WebSocket webSocket, Option<EndPoint> localEndPoint, EndPoint remoteEndPoint, string correlationId);
+        Task ProcessWebSocketRequestAsync(WebSocket webSocket,
+                                          Option<EndPoint> localEndPoint,
+                                          EndPoint remoteEndPoint,
+                                          string correlationId);
+
         Task ProcessWebSocketRequestAsync(WebSocket webSocket,
                                           Option<EndPoint> localEndPoint,
                                           EndPoint remoteEndPoint,
