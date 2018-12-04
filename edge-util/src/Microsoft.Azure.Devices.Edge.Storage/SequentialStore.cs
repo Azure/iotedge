@@ -17,8 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     /// </summary>
     class SequentialStore<T> : ISequentialStore<T>
     {
-        const int DefaultTailOffset = -1;
-        const int DefaultHeadOffset = 0;
+        const long DefaultHeadOffset = 0;
         readonly IEntityStore<byte[], T> entityStore;
         readonly AsyncLock headLockObject = new AsyncLock();
         readonly AsyncLock tailLockObject = new AsyncLock();
@@ -40,14 +39,17 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         public Task<IEnumerable<(long, T)>> GetBatch(long startingOffset, int batchSize) => this.GetBatch(startingOffset, batchSize, CancellationToken.None);
 
-        public static async Task<ISequentialStore<T>> Create(IEntityStore<byte[], T> entityStore)
+        public static Task<ISequentialStore<T>> Create(IEntityStore<byte[], T> entityStore)
+            => Create(entityStore, DefaultHeadOffset);
+
+        public static async Task<ISequentialStore<T>> Create(IEntityStore<byte[], T> entityStore, long defaultHeadOffset)
         {
             Preconditions.CheckNotNull(entityStore, nameof(entityStore));
             Option<(byte[] key, T value)> firstEntry = await entityStore.GetFirstEntry(CancellationToken.None);
             Option<(byte[] key, T value)> lastEntry = await entityStore.GetLastEntry(CancellationToken.None);
             long MapLocalFunction((byte[] key, T) e) => StoreUtils.GetOffsetFromKey(e.key);
-            long headOffset = firstEntry.Map(MapLocalFunction).GetOrElse(DefaultHeadOffset);
-            long tailOffset = lastEntry.Map(MapLocalFunction).GetOrElse(DefaultTailOffset);
+            long headOffset = firstEntry.Map(MapLocalFunction).GetOrElse(defaultHeadOffset);
+            long tailOffset = lastEntry.Map(MapLocalFunction).GetOrElse(defaultHeadOffset - 1);
             var sequentialStore = new SequentialStore<T>(entityStore, headOffset, tailOffset);
             return sequentialStore;
         }
