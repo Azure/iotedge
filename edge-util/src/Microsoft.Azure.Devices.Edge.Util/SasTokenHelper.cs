@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 namespace Microsoft.Azure.Devices.Edge.Util
 {
@@ -42,5 +41,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         public static string BuildAudience(string iotHub, string deviceId, string moduleId) =>
             WebUtility.UrlEncode(Invariant($"{iotHub}/devices/{deviceId}/modules/{moduleId}"));
+
+        public static string BuildAudience(string iotHub, string deviceId) =>
+            WebUtility.UrlEncode(Invariant($"{iotHub}/devices/{deviceId}"));
     }
 }

@@ -8,7 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test;
@@ -87,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             ICloudProxy cloudProxy = await this.GetCloudProxyWithConnectionStringKey("device2ConnStrKey");
             IMessage result = await cloudProxy.GetTwinAsync();
-            string actualString = System.Text.Encoding.UTF8.GetString(result.Body);
+            string actualString = Encoding.UTF8.GetString(result.Body);
             Assert.StartsWith("{", actualString);
             bool disconnectResult = await cloudProxy.CloseAsync();
             Assert.True(disconnectResult);
@@ -100,7 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             ICloudProxy cloudProxy = await this.GetCloudProxyWithConnectionStringKey("device2ConnStrKey");
             IMessage message = await cloudProxy.GetTwinAsync();
 
-            JObject twin = JObject.Parse(System.Text.Encoding.UTF8.GetString(message.Body));
+            JObject twin = JObject.Parse(Encoding.UTF8.GetString(message.Body));
             int version = (int)twin.SelectToken("reported.$version");
             int counter = (int?)twin.SelectToken("reported.bvtCounter") ?? 0;
 
@@ -108,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             await cloudProxy.UpdateReportedPropertiesAsync(updateReportedPropertiesMessage);
 
             message = await cloudProxy.GetTwinAsync();
-            twin = JObject.Parse(System.Text.Encoding.UTF8.GetString(message.Body));
+            twin = JObject.Parse(Encoding.UTF8.GetString(message.Body));
             int nextVersion = (int)twin.SelectToken("reported.$version");
             var nextCounter = (int?)twin.SelectToken("reported.bvtCounter");
             Assert.NotNull(nextCounter);
@@ -221,6 +220,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             const int ConnectionPoolSize = 10;
             string deviceConnectionString = await SecretsHelper.GetSecretFromConfigKey(connectionStringConfigKey);
+            string deviceId = ConnectionStringHelper.GetDeviceId(deviceConnectionString);
+            string iotHubHostName = ConnectionStringHelper.GetHostName(deviceConnectionString);
+            string sasKey = ConnectionStringHelper.GetSharedAccessKey(deviceConnectionString);
             var converters = new MessageConverterProvider(
                 new Dictionary<Type, IMessageConverter>()
                 {
@@ -238,13 +240,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 Mock.Of<ITokenProvider>(),
                 Mock.Of<IDeviceScopeIdentitiesCache>(),
                 credentialsCache,
-                Mock.Of<IIdentity>(),
+                Mock.Of<IIdentity>(i => i.Id == $"{deviceId}/$edgeHub"),
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20));
             cloudConnectionProvider.BindEdgeHub(edgeHub);
-            var deviceIdentity = Mock.Of<IDeviceIdentity>(m => m.Id == ConnectionStringHelper.GetDeviceId(deviceConnectionString));
-            var clientCredentials = new SharedKeyCredentials(deviceIdentity, deviceConnectionString, string.Empty);
+            
+            var clientTokenProvider = new ClientTokenProvider(new SharedAccessKeySignatureProvider(sasKey), iotHubHostName, deviceId, TimeSpan.FromHours(1));
+            string token = await clientTokenProvider.GetTokenAsync(Option.None<TimeSpan>());
+            var deviceIdentity = new DeviceIdentity(iotHubHostName, deviceId);
+            var clientCredentials = new TokenCredentials(deviceIdentity, token, string.Empty, false);
 
             Try<ICloudConnection> cloudConnection = await cloudConnectionProvider.Connect(clientCredentials, (_, __) => { });
             Assert.True(cloudConnection.Success);

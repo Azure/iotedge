@@ -53,11 +53,13 @@ function Install-SecurityDaemon {
 
         [ContainerOs] $ContainerOs = 'Linux',
 
-        # Proxy URI
+        # Proxy URI used for all Invoke-WebRequest calls. To specify other proxy-related options like -ProxyCredential, see -InvokeWebRequestParameters
         [Uri] $Proxy,
 
-        # Local path to iotedged zip file
-        [String] $ArchivePath,
+        # If set to a directory, the installer prefers to use iotedged zip, moby Engine zip, moby CLI zip and VC Runtime MSI files from inside this directory
+        # over downloading them from the internet. Thus placing all four files in this directory can be used to have a completely offline install,
+        # or a specific subset can be placed to override the online versions of those specific components.
+        [String] $OfflineInstallationPath,
 
         # IoT Edge Agent image to pull
         [String] $AgentImage,
@@ -68,12 +70,31 @@ function Install-SecurityDaemon {
         # Password to pull IoT Edge Agent image
         [SecureString] $Password,
 
-        # Also install the Moby CLI (docker.exe) to $MobyInstallDirectory. Only takes affect for `-ContainerOs Windows`
-        [Switch] $WithMobyCli
+        # Splatted into every Invoke-WebRequest invocation. Can be used to set extra options.
+        #
+        # If -Proxy is also specified, it overrides the `-Proxy` key set in this hashtable, if any.
+        #
+        # Example:
+        #     Install-SecurityDaemon -InvokeWebRequestParameters @{ '-Proxy' = 'http://localhost:8888'; '-ProxyCredential' = (Get-Credential).GetNetworkCredential() }
+        [HashTable] $InvokeWebRequestParameters,
+
+        # Don't install the Moby CLI (docker.exe) to $MobyInstallDirectory. Only takes effect for `-ContainerOs Windows`
+        [Switch] $SkipMobyCli,
+
+        # Local path to iotedged zip file. Only kept for backward compatibility. Prefer to set -OfflineInstallationPath instead.
+        [String] $ArchivePath
     )
 
     $ErrorActionPreference = 'Stop'
     Set-StrictMode -Version 5
+
+    if ($InvokeWebRequestParameters -eq $null) {
+        $InvokeWebRequestParameters = @{}
+    }
+
+    if ($Proxy -ne $null) {
+        $InvokeWebRequestParameters['-Proxy'] = $Proxy
+    }
 
     if (Test-EdgeAlreadyInstalled) {
         Write-HostRed
@@ -83,7 +104,7 @@ function Install-SecurityDaemon {
 
     if (Test-MobyAlreadyInstalled) {
         Write-HostRed
-        Write-HostRed 'IoT Edge Moby Runtime is already installed. To reinstall, run `Uninstall-SecurityDaemon` first.'
+        Write-HostRed 'IoT Edge Moby Engine is already installed. To reinstall, run `Uninstall-SecurityDaemon` first.'
         return
     }
 
@@ -124,6 +145,7 @@ function Install-SecurityDaemon {
     }
     if ($preRequisitesMet) {
         Write-HostGreen "The container host is on supported build version $currentWindowsBuild."
+        Set-ContainerOs
     }
     else {
         Write-HostRed
@@ -155,7 +177,7 @@ function Install-SecurityDaemon {
     if ($ContainerOs -eq 'Linux') {
         Set-GatewayAddress
     }
-    Set-MobyRuntimeParameters
+    Set-MobyEngineParameters
 
     # Register services
     Set-SystemPath
@@ -227,10 +249,27 @@ function Test-IsDockerRunning {
 
             Write-HostGreen 'Docker is running.'
 
-            $dockerCliExe = "$env:ProgramFiles\Docker\Docker\DockerCli.exe"
+            return $true
+        }
 
+        'Windows' {
+            $service = Get-Service $MobyServiceName -ErrorAction SilentlyContinue
+            if (($service -eq $null) -or ($service.Status -ne 'Running')) {
+                return $false
+            }
+
+            return $true
+        }
+    }
+}
+
+function Set-ContainerOs {
+    switch ($ContainerOs) {
+        'Linux' {
             if ((Get-ExternalDockerServerOs) -ne 'Linux') {
                 Write-Host 'Switching Docker to use Linux containers...'
+
+                $dockerCliExe = "$env:ProgramFiles\Docker\Docker\DockerCli.exe"
 
                 if (-not (Test-Path -Path $dockerCliExe)) {
                     throw 'Unable to switch to Linux containers.'
@@ -244,17 +283,11 @@ function Test-IsDockerRunning {
 
                 Write-HostGreen 'Switched Docker to use Linux containers.'
             }
-
-            return $true
         }
 
         'Windows' {
-            $service = Get-Service $MobyServiceName -ErrorAction SilentlyContinue
-            if (($service -eq $null) -or ($service.Status -ne 'Running')) {
-                return $false
-            }
-
-            return $true
+            # No need to test for Linux/switch to Windows containers because our
+            # moby installation doesn't support Linux containers
         }
     }
 }
@@ -311,60 +344,64 @@ function Get-ExternalDockerServerOs {
 
 function Get-SecurityDaemon {
     try {
-        # If we create the iotedge archive ourselves, then delete it when we're done
+        # If we create these archives ourselves, then delete them when we're done
+        $deleteMobyEngineArchive = $false
+        $deleteMobyCliArchive = $false
         $deleteEdgeArchive = $false
 
-        $mobyRuntimeArchivePath = "$env:TEMP\iotedge-moby-runtime.zip"
-        $mobyCliArchivePath = "$env:TEMP\iotedge-moby-cli.zip"
-
         if ($ContainerOs -eq 'Windows') {
-            # Get moby runtime
-
-            Write-Host 'Downloading the latest version of Moby runtime...'
             New-Item -Type Directory $MobyInstallDirectory | Out-Null
             Remove-BuiltinWritePermissions $MobyInstallDirectory
-            Invoke-WebRequest `
-                -Uri 'https://aka.ms/iotedge-moby-engine-win-amd64-latest' `
-                -OutFile $mobyRuntimeArchivePath `
-                -UseBasicParsing `
-                -Proxy $Proxy
-            Write-HostGreen 'Downloaded Moby runtime.'
-            Expand-Archive $mobyRuntimeArchivePath $MobyInstallDirectory -Force
+            $mobyEngineArchivePath =
+                Download-File `
+                    -Description 'Moby Engine' `
+                    -Url 'https://aka.ms/iotedge-moby-engine-win-amd64-latest' `
+                    -DownloadFilename 'iotedge-moby-engine.zip' `
+                    -LocalCacheGlob '*moby-engine*.zip' `
+                    -Delete ([ref] $deleteMobyEngineArchive)
+            Expand-Archive $mobyEngineArchivePath $MobyInstallDirectory -Force
 
             New-Item -Type Directory $MobyDataRootDirectory | Out-Null
             Remove-BuiltinWritePermissions $MobyDataRootDirectory
 
-            if ($WithMobyCli) {
-                Write-Host 'Downloading the latest version of Moby CLI...'
-                Invoke-WebRequest `
-                    -Uri 'https://aka.ms/iotedge-moby-cli-win-amd64-latest' `
-                    -OutFile $mobyCliArchivePath `
-                    -UseBasicParsing `
-                    -Proxy $Proxy
-                Write-HostGreen 'Downloaded Moby CLI.'
-
+            if (-not ($SkipMobyCli)) {
+                $mobyCliArchivePath =
+                    Download-File `
+                        -Description 'Moby CLI' `
+                        -Url 'https://aka.ms/iotedge-moby-cli-win-amd64-latest' `
+                        -DownloadFilename 'iotedge-moby-cli.zip' `
+                        -LocalCacheGlob '*moby-cli*.zip' `
+                        -Delete ([ref] $deleteMobyCliArchive)
                 Expand-Archive $mobyCliArchivePath $MobyInstallDirectory -Force
             }
         }
 
-        if (-not "$ArchivePath") {
-            $ArchivePath = "$env:TEMP\iotedged-windows.zip"
-            $deleteEdgeArchive = $true
-            Write-Host 'Downloading the latest version of IoT Edge security daemon...'
-            Invoke-WebRequest `
-                -Uri 'https://aka.ms/iotedged-windows-latest' `
-                -OutFile $ArchivePath `
-                -UseBasicParsing `
-                -Proxy $Proxy
-            Write-HostGreen 'Downloaded security daemon.'
+        # Historically the `-ArchivePath` parameter pointed to the zip / directory of iotedged.
+        # This is now better handled through `-OfflineInstallationPath`, but `-ArchivePath` is still allowed
+        # for backward compatibility.
+        if ($ArchivePath -ne '') {
+            $edgeArchivePath = $ArchivePath
+            $deleteEdgeArchive = $false
         }
-        if ((Get-Item $ArchivePath).PSIsContainer) {
+        else {
+            # The -LocalCacheGlob value here *intentionally* doesn't check for .zip extension,
+            # so that an expanded directory of the same name will match
+            $edgeArchivePath =
+                Download-File `
+                    -Description 'IoT Edge security daemon' `
+                    -Url 'https://aka.ms/iotedged-windows-latest' `
+                    -DownloadFilename 'iotedged-windows.zip' `
+                    -LocalCacheGlob '*iotedged-windows*' `
+                    -Delete ([ref] $deleteEdgeArchive)
+        }
+
+        if ((Get-Item $edgeArchivePath).PSIsContainer) {
             New-Item -Type Directory $EdgeInstallDirectory | Out-Null
-            Copy-Item "$ArchivePath\*" $EdgeInstallDirectory -Force
+            Copy-Item "$edgeArchivePath\*" $EdgeInstallDirectory -Force
         }
         else {
             New-Item -Type Directory $EdgeInstallDirectory | Out-Null
-            Expand-Archive $ArchivePath $EdgeInstallDirectory -Force
+            Expand-Archive $edgeArchivePath $EdgeInstallDirectory -Force
             Copy-Item "$EdgeInstallDirectory\iotedged-windows\*" $EdgeInstallDirectory -Force -Recurse
         }
 
@@ -419,11 +456,16 @@ function Get-SecurityDaemon {
         Remove-Item "$EdgeInstallDirectory\iotedged-windows" -Recurse -Force -ErrorAction SilentlyContinue
 
         if ($deleteEdgeArchive) {
-            Remove-Item $ArchivePath -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item $edgeArchivePath -Recurse -Force -ErrorAction SilentlyContinue
         }
 
-        Remove-Item $mobyRuntimeArchivePath -Recurse -Force -ErrorAction SilentlyContinue
-        Remove-Item $mobyCliArchivePath -Recurse -Force -ErrorAction SilentlyContinue
+        if ($deleteMobyEngineArchive) {
+            Remove-Item $mobyEngineArchivePath -Recurse -Force -ErrorAction SilentlyContinue
+        }
+
+        if ($deleteMobyCliArchive) {
+            Remove-Item $mobyCliArchivePath -Recurse -Force -ErrorAction SilentlyContinue
+        }
     }
 }
 
@@ -572,30 +614,41 @@ function Reset-SystemPath {
 
 function Get-VcRuntime {
     if (Test-IotCore) {
-        Write-HostGreen 'Skipped vcruntime download on IoT Core.'
+        Write-HostGreen 'Skipping VC Runtime installation on IoT Core.'
         return
     }
 
+    if (Test-Path 'C:\Windows\System32\vcruntime140.dll') {
+        Write-HostGreen 'Skipping VC Runtime installation because it is already installed.'
+        return
+    }
+
+    $deleteVcRuntimeArchive = $false
+
     try {
-        Write-Host 'Downloading vcruntime...'
-        Invoke-WebRequest `
-            -Uri 'https://download.microsoft.com/download/0/6/4/064F84EA-D1DB-4EAA-9A5C-CC2F0FF6A638/vc_redist.x64.exe' `
-            -OutFile "$env:TEMP\vc_redist.exe" `
-            -UseBasicParsing `
-            -Proxy $Proxy
-        Invoke-Native """$env:TEMP\vc_redist.exe"" /quiet /norestart"
-        Write-HostGreen 'Downloaded vcruntime.'
+        $vcRuntimeArchivePath =
+            Download-File `
+                -Description 'VC Runtime installer' `
+                -Url 'https://download.microsoft.com/download/0/6/4/064F84EA-D1DB-4EAA-9A5C-CC2F0FF6A638/vc_redist.x64.exe' `
+                -DownloadFilename 'vc_redist.x64.exe' `
+                -LocalCacheGlob '*vc_redist*.exe' `
+                -Delete ([ref] $deleteVcRuntimeArchive)
+
+        Invoke-Native """$vcRuntimeArchivePath"" /quiet /norestart"
+        Write-HostGreen 'Installed VC Runtime.'
     }
     catch {
         if ($LASTEXITCODE -eq 1638) {
-            Write-HostGreen 'Skipping vcruntime installation because a newer version is already installed.'
+            Write-HostGreen 'Skipping VC Runtime installation because a newer version is already installed.'
         }
         else {
             throw $_
         }
     }
     finally {
-        Remove-Item "$env:TEMP\vc_redist.exe" -Force -Recurse -ErrorAction SilentlyContinue
+        if ($deleteVcRuntimeArchive) {
+            Remove-Item $vcRuntimeArchivePath -Recurse -Force -ErrorAction SilentlyContinue
+        }
     }
 }
 
@@ -624,6 +677,7 @@ function Install-Services {
 
 function Uninstall-Services {
     if (Get-Service $EdgeServiceName -ErrorAction SilentlyContinue) {
+        Set-Service -StartupType Disabled $EdgeServiceName -ErrorAction SilentlyContinue
         Stop-Service -NoWait -ErrorAction SilentlyContinue -ErrorVariable cmdErr $EdgeServiceName
         if ($?) {
             Start-Sleep -Seconds 7
@@ -763,7 +817,7 @@ function Set-GatewayAddress {
     Write-HostGreen "Configured device with gateway address '$gatewayAddress'."
 }
 
-function Set-MobyRuntimeParameters {
+function Set-MobyEngineParameters {
     $configurationYaml = Get-Content "$EdgeInstallDirectory\config.yaml" -Raw
     $selectionRegex = 'moby_runtime:\s*uri:\s*".*"\s*#?\s*network:\s*".*"'
     $replacementContentWindows = @(
@@ -884,6 +938,29 @@ function Remove-BuiltinWritePermissions([string] $Path) {
         }
     } 
     Set-Acl -Path $Path -AclObject $acl
+}
+
+function Download-File([string] $Description, [string] $Url, [string] $DownloadFilename, [string] $LocalCacheGlob, [ref] $Delete) {
+    if (($OfflineInstallationPath -ne '') -and (Test-Path "$OfflineInstallationPath\$LocalCacheGlob")) {
+        $result = (Get-Item "$OfflineInstallationPath\$LocalCacheGlob" | Select-Object -First 1).FullName
+
+        $Delete.Value = $false
+    }
+    else {
+        Write-Host "Downloading $Description..."
+
+        Invoke-WebRequest `
+            -Uri $Url `
+            -OutFile "$env:TEMP\$DownloadFileName" `
+            -UseBasicParsing `
+            @InvokeWebRequestParameters
+
+        $Delete.Value = $true
+        $result = "$env:TEMP\$DownloadFileName"
+    }
+
+    Write-HostGreen "Using $Description from $result"
+    return $result
 }
 
 Export-ModuleMember -Function Install-SecurityDaemon, Uninstall-SecurityDaemon
