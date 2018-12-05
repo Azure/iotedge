@@ -1,13 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use futures::future::{self, FutureResult};
+use futures::future::{self, FutureResult, IntoFuture};
 
-use edgelet_core::{
-    AuthType, Error as CoreError, ErrorKind as CoreErrorKind, Identity, IdentityManager,
-    IdentitySpec,
-};
+use edgelet_core::{AuthType, Identity, IdentityManager, IdentitySpec};
 
-#[derive(Clone, Debug, Fail)]
+#[derive(Clone, Copy, Debug, Fail)]
 pub enum Error {
     #[fail(display = "General error")]
     General,
@@ -17,12 +14,6 @@ pub enum Error {
 
     #[fail(display = "Module generation ID was not provided")]
     MissingGenerationId,
-}
-
-impl From<Error> for CoreError {
-    fn from(_err: Error) -> CoreError {
-        CoreError::from(CoreErrorKind::Identity)
-    }
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -43,7 +34,7 @@ impl TestIdentity {
         managed_by: &str,
         generation_id: &str,
         auth_type: AuthType,
-    ) -> TestIdentity {
+    ) -> Self {
         TestIdentity {
             module_id: module_id.to_string(),
             managed_by: managed_by.to_string(),
@@ -67,7 +58,7 @@ impl Identity for TestIdentity {
     }
 
     fn auth_type(&self) -> AuthType {
-        self.auth_type.clone()
+        self.auth_type
     }
 }
 
@@ -81,7 +72,7 @@ pub struct TestIdentityManager {
 }
 
 impl TestIdentityManager {
-    pub fn new(identities: Vec<TestIdentity>) -> TestIdentityManager {
+    pub fn new(identities: Vec<TestIdentity>) -> Self {
         TestIdentityManager {
             identities,
             gen_id_sentinel: 0,
@@ -91,17 +82,17 @@ impl TestIdentityManager {
         }
     }
 
-    pub fn with_fail_list(mut self, fail_list: bool) -> TestIdentityManager {
+    pub fn with_fail_list(mut self, fail_list: bool) -> Self {
         self.fail_list = fail_list;
         self
     }
 
-    pub fn with_fail_get(mut self, fail_get: bool) -> TestIdentityManager {
+    pub fn with_fail_get(mut self, fail_get: bool) -> Self {
         self.fail_get = fail_get;
         self
     }
 
-    pub fn with_fail_create(mut self, fail_create: bool) -> TestIdentityManager {
+    pub fn with_fail_create(mut self, fail_create: bool) -> Self {
         self.fail_create = fail_create;
         self
     }
@@ -190,8 +181,9 @@ impl IdentityManager for TestIdentityManager {
         self.identities
             .iter()
             .position(|ref mid| mid.module_id() == id.module_id())
-            .map(|index| self.identities.remove(index))
-            .map(|_| future::ok(()))
-            .unwrap_or_else(|| future::err(Error::ModuleNotFound))
+            .map(|index| {
+                self.identities.remove(index);
+            }).ok_or(Error::ModuleNotFound)
+            .into_future()
     }
 }

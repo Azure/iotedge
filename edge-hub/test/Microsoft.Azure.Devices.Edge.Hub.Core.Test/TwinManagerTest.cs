@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 {
     using System;
@@ -388,11 +390,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(Task.FromResult(cloudProxy));
 
             string deviceId = "device9";
-            var collection = new TwinCollection()
+            var collection1 = new TwinCollection
             {
                 ["name"] = "value"
             };
-            IMessage collectionMessage = this.twinCollectionMessageConverter.ToMessage(collection);
+            IMessage collectionMessage1 = this.twinCollectionMessageConverter.ToMessage(collection1);
+
+            var collection2 = new TwinCollection
+            {
+                ["name2"] = "value2"
+            };
+            IMessage collectionMessage2 = this.twinCollectionMessageConverter.ToMessage(collection2);
 
             var twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
 
@@ -407,16 +415,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.Equal(storeMiss, true);
 
             // Act
-            await twinManager.UpdateReportedPropertiesAsync(deviceId, collectionMessage);
-            TwinInfo cached = null;
-            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { storeHit = true; cached = t; return Task.FromResult(t); }, () => { storeMiss = true; return Task.FromResult<TwinInfo>(null); });
+            await twinManager.UpdateReportedPropertiesAsync(deviceId, collectionMessage1);
+            TwinInfo cached1 = null;
+            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { storeHit = true; cached1 = t; return Task.FromResult(t); }, () => { storeMiss = true; return Task.FromResult<TwinInfo>(null); });
 
             // Assert
             Assert.Equal(storeHit, true);
-            Assert.Equal(cached.Twin, null);
+            Assert.Equal(cached1.Twin, null);
             Assert.True(JToken.DeepEquals(
-                JsonConvert.DeserializeObject<JToken>(cached.ReportedPropertiesPatch.ToJson()),
-                JsonConvert.DeserializeObject<JToken>(collection.ToJson())));
+                JsonConvert.DeserializeObject<JToken>(cached1.ReportedPropertiesPatch.ToJson()),
+                JsonConvert.DeserializeObject<JToken>(collection1.ToJson())));
+
+            // Act
+            await twinManager.UpdateReportedPropertiesAsync(deviceId, collectionMessage2);
+            TwinInfo cached2 = null;
+            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { storeHit = true; cached2 = t; return Task.FromResult(t); }, () => { storeMiss = true; return Task.FromResult<TwinInfo>(null); });
+
+            // Assert
+            Assert.Equal(storeHit, true);
+            Assert.NotNull(cached2.Twin);
+            Assert.True(JToken.DeepEquals(
+                JsonConvert.DeserializeObject<JToken>(cached2.ReportedPropertiesPatch.ToJson()),
+                JsonConvert.DeserializeObject<JToken>(collection2.ToJson())));
         }
 
         [Fact]

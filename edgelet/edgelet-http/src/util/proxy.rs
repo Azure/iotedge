@@ -11,11 +11,11 @@ pub struct MaybeProxyClient {
 }
 
 impl MaybeProxyClient {
-    pub fn new(proxy_uri: Option<Uri>) -> Result<MaybeProxyClient, Error> {
+    pub fn new(proxy_uri: Option<Uri>) -> Result<Self, Error> {
         MaybeProxyClient::create(false, proxy_uri)
     }
 
-    fn create(null: bool, proxy_uri: Option<Uri>) -> Result<MaybeProxyClient, Error> {
+    fn create(null: bool, proxy_uri: Option<Uri>) -> Result<Self, Error> {
         let mut config = Client::configure();
         if null {
             config.null();
@@ -29,7 +29,7 @@ impl MaybeProxyClient {
     }
 
     #[cfg(test)]
-    pub fn new_null() -> Result<MaybeProxyClient, Error> {
+    pub fn new_null() -> Result<Self, Error> {
         MaybeProxyClient::create(true, None)
     }
 
@@ -57,8 +57,7 @@ mod tests {
     use super::super::super::client::ClientImpl;
     use super::MaybeProxyClient;
     use futures::Future;
-    use http::Request;
-    use hyper::{StatusCode, Uri};
+    use hyper::{Request, StatusCode, Uri};
 
     #[test]
     fn can_create_client() {
@@ -68,7 +67,7 @@ mod tests {
 
     #[test]
     fn can_create_client_with_proxy() {
-        let uri = "irrelevant".parse::<Uri>().unwrap();
+        let uri = "http://example.com".parse::<Uri>().unwrap();
         let client = MaybeProxyClient::new(Some(uri)).unwrap();
         assert!(client.has_proxy() && !client.is_null());
     }
@@ -76,7 +75,7 @@ mod tests {
     #[test]
     fn client_calls_underlying_service() {
         let client = MaybeProxyClient::new_null().unwrap();
-        let response = client.call(Request::default().into()).wait().unwrap();
+        let response = client.call(Request::default()).wait().unwrap();
         assert_eq!(
             response.status(),
             StatusCode::from_u16(234).expect("StatusCode::from_u16 should not fail")

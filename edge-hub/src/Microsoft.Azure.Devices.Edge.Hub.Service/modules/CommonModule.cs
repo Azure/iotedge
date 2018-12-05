@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using System;
     using System.Collections.Generic;
     using System.Net;
+    using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
@@ -32,6 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly TimeSpan scopeCacheRefreshRate;
         readonly Option<string> workloadUri;
         readonly bool persistTokens;
+        readonly IList<X509Certificate2> trustBundle;
 
         public CommonModule(
             string productInfo,
@@ -47,7 +49,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             string storagePath,
             Option<string> workloadUri,
             TimeSpan scopeCacheRefreshRate,
-            bool persistTokens)
+            bool persistTokens,
+            IList<X509Certificate2> trustBundle)
         {
             this.productInfo = productInfo;
             this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
@@ -63,6 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.scopeCacheRefreshRate = scopeCacheRefreshRate;
             this.workloadUri = workloadUri;
             this.persistTokens = persistTokens;
+            this.trustBundle = Preconditions.CheckNotNull(trustBundle, nameof(trustBundle));
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -161,7 +165,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             // ITokenProvider
-            builder.Register(c => new ModuleTokenProvider(c.Resolve<ISignatureProvider>(), this.iothubHostName, this.edgeDeviceId, this.edgeHubModuleId, TimeSpan.FromHours(1)))
+            builder.Register(c => new ClientTokenProvider(c.Resolve<ISignatureProvider>(), this.iothubHostName, this.edgeDeviceId, this.edgeHubModuleId, TimeSpan.FromHours(1)))
                 .Named<ITokenProvider>("EdgeHubClientAuthTokenProvider")
                 .SingleInstance();
 
@@ -170,7 +174,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 {
                     string deviceId = WebUtility.UrlEncode(this.edgeDeviceId);
                     string moduleId = WebUtility.UrlEncode(this.edgeHubModuleId);
-                    return new ModuleTokenProvider(c.Resolve<ISignatureProvider>(), this.iothubHostName, deviceId, moduleId, TimeSpan.FromHours(1));
+                    return new ClientTokenProvider(c.Resolve<ISignatureProvider>(), this.iothubHostName, deviceId, moduleId, TimeSpan.FromHours(1));
                 })
                 .Named<ITokenProvider>("EdgeHubServiceAuthTokenProvider")
                 .SingleInstance();
@@ -206,7 +210,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     if (this.persistTokens)
                     {
                         IKeyValueStore<string, string> encryptedStore = await GetEncryptedStore(c, "CredentialsCache");
-                        return new TokenCredentialsCache(encryptedStore);
+                        return new PersistedTokenCredentialsCache(encryptedStore);
                     }
                     else
                     {
@@ -220,10 +224,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 
             // Task<IAuthenticator>
             builder.Register(async c =>
-                {                    
+                {
                     IAuthenticator tokenAuthenticator;
+                    IAuthenticator certificateAuthenticator;
                     IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
                     var credentialsCacheTask = c.Resolve<Task<ICredentialsCache>>();
+                    // by default regardless of how the authenticationMode, X.509 certificate validation will always be scoped
+                    deviceScopeIdentitiesCache = await c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
+                    certificateAuthenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache, this.iothubHostName, new NullAuthenticator(), this.trustBundle, true);
                     switch (this.authenticationMode)
                     {
                         case AuthenticationMode.Cloud:
@@ -231,26 +239,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             break;
 
                         case AuthenticationMode.Scope:
-                            deviceScopeIdentitiesCache = await c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
-                            tokenAuthenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, this.iothubHostName, this.edgeDeviceHostName, new NullAuthenticator());
+                            tokenAuthenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, this.iothubHostName, this.edgeDeviceHostName, new NullAuthenticator(), true, true);
                             break;
 
-                        default:                            
-                            var deviceScopeIdentitiesCacheTask = c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
+                        default:
                             IAuthenticator cloudTokenAuthenticator = await this.GetCloudTokenAuthenticator(c);
-                            deviceScopeIdentitiesCache = await deviceScopeIdentitiesCacheTask;
-                            tokenAuthenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, this.iothubHostName, this.edgeDeviceHostName, cloudTokenAuthenticator);
+                            tokenAuthenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, this.iothubHostName, this.edgeDeviceHostName, cloudTokenAuthenticator, true, true);
                             break;
                     }
 
                     ICredentialsCache credentialsCache = await credentialsCacheTask;
-                    return new Authenticator(tokenAuthenticator, this.edgeDeviceId, credentialsCache) as IAuthenticator;
+                    return new Authenticator(tokenAuthenticator, certificateAuthenticator, this.edgeDeviceId, credentialsCache) as IAuthenticator;
                 })
                 .As<Task<IAuthenticator>>()
                 .SingleInstance();
 
             // IClientCredentialsFactory
-            builder.Register(c => new ClientCredentialsFactory(this.iothubHostName, this.productInfo))
+            builder.Register(c => new ClientCredentialsFactory(c.Resolve<IIdentityProvider>(), this.productInfo))
                 .As<IClientCredentialsFactory>()
                 .SingleInstance();
 
@@ -274,7 +279,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         deviceScopeIdentitiesCache,
                         TimeSpan.FromMinutes(5),
                         edgeHubCredentials.Identity,
-                        deviceConnectivityManager); 
+                        deviceConnectivityManager);
                     return connectionReauthenticator;
                 })
                 .As<Task<ConnectionReauthenticator>>()

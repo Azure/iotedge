@@ -1,16 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::fmt::{self, Display};
-use std::str::Utf8Error;
 
-use base64::DecodeError;
-use chrono::format::ParseError;
-use edgelet_core::Error as CoreError;
-use edgelet_utils::Error as UtilsError;
 use failure::{Backtrace, Context, Fail};
-use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
-use http::{Error as HttpError, Response, StatusCode};
-use hyper::{Body, Error as HyperError};
+use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use hyper::{Body, Response, StatusCode};
 use serde_json;
 use workload::models::ErrorResponse;
 
@@ -23,34 +17,34 @@ pub struct Error {
     inner: Context<ErrorKind>,
 }
 
-#[derive(Debug, Fail)]
+#[derive(Clone, Debug, Fail)]
 pub enum ErrorKind {
-    #[fail(display = "Keystore error")]
-    KeyStore,
-    #[fail(display = "Serde error")]
-    Serde,
-    #[fail(display = "Hyper error")]
-    Hyper,
-    #[fail(display = "Http error")]
-    Http,
-    #[fail(display = "Bad parameter")]
-    BadParam,
-    #[fail(display = "Bad body")]
-    BadBody,
-    #[fail(display = "Invalid private key error")]
+    #[fail(display = "Certificate has an invalid private key")]
     BadPrivateKey,
+
+    #[fail(display = "{}", _0)]
+    CertOperation(CertOperation),
+
+    #[fail(display = "{}", _0)]
+    EncryptionOperation(EncryptionOperation),
+
+    #[fail(display = "Request body is malformed")]
+    MalformedRequestBody,
+
+    #[fail(display = "The request parameter `{}` is malformed", _0)]
+    MalformedRequestParameter(&'static str),
+
+    #[fail(
+        display = "The request is missing required parameter `{}`",
+        _0
+    )]
+    MissingRequiredParameter(&'static str),
+
     #[fail(display = "Module not found")]
-    NotFound,
-    #[fail(display = "Sign failed")]
-    Sign,
-    #[fail(display = "Invalid base64 string")]
-    Base64,
-    #[fail(display = "Invalid ISO 8601 date")]
-    DateParse,
-    #[fail(display = "Utils error")]
-    Utils,
-    #[fail(display = "UTF-8 encode/decode")]
-    Utf8,
+    ModuleNotFound(String),
+
+    #[fail(display = "Could not start workload service")]
+    StartService,
 }
 
 impl Fail for Error {
@@ -76,7 +70,7 @@ impl Error {
 }
 
 impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Error {
+    fn from(kind: ErrorKind) -> Self {
         Error {
             inner: Context::new(kind),
         }
@@ -84,72 +78,8 @@ impl From<ErrorKind> for Error {
 }
 
 impl From<Context<ErrorKind>> for Error {
-    fn from(inner: Context<ErrorKind>) -> Error {
+    fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
-    }
-}
-
-impl From<serde_json::Error> for Error {
-    fn from(error: serde_json::Error) -> Error {
-        Error {
-            inner: error.context(ErrorKind::Serde),
-        }
-    }
-}
-
-impl From<HyperError> for Error {
-    fn from(error: HyperError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::Hyper),
-        }
-    }
-}
-
-impl From<HttpError> for Error {
-    fn from(error: HttpError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::Http),
-        }
-    }
-}
-
-impl From<DecodeError> for Error {
-    fn from(error: DecodeError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::Base64),
-        }
-    }
-}
-
-impl From<CoreError> for Error {
-    fn from(error: CoreError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::Sign),
-        }
-    }
-}
-
-impl From<ParseError> for Error {
-    fn from(error: ParseError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::DateParse),
-        }
-    }
-}
-
-impl From<UtilsError> for Error {
-    fn from(error: UtilsError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::Utils),
-        }
-    }
-}
-
-impl From<Utf8Error> for Error {
-    fn from(error: Utf8Error) -> Error {
-        Error {
-            inner: error.context(ErrorKind::Utf8),
-        }
     }
 }
 
@@ -163,10 +93,10 @@ impl IntoResponse for Error {
         }
 
         let status_code = match *self.kind() {
-            ErrorKind::NotFound => StatusCode::NOT_FOUND,
-            ErrorKind::BadParam => StatusCode::BAD_REQUEST,
-            ErrorKind::BadBody => StatusCode::BAD_REQUEST,
-            ErrorKind::Base64 => StatusCode::UNPROCESSABLE_ENTITY,
+            ErrorKind::ModuleNotFound(_) => StatusCode::NOT_FOUND,
+            ErrorKind::MalformedRequestBody
+            | ErrorKind::MalformedRequestParameter(_)
+            | ErrorKind::MissingRequiredParameter(_) => StatusCode::BAD_REQUEST,
             _ => {
                 error!("Internal server error: {}", message);
                 StatusCode::INTERNAL_SERVER_ERROR
@@ -174,39 +104,58 @@ impl IntoResponse for Error {
         };
 
         // Per the RFC, status code NotModified should not have a body
-        let body = if status_code != StatusCode::NOT_MODIFIED {
-            let b = serde_json::to_string(&ErrorResponse::new(message))
-                .expect("serialization of ErrorResponse failed.");
-            Some(b)
+        let body = if status_code == StatusCode::NOT_MODIFIED {
+            String::new()
         } else {
-            None
+            serde_json::to_string(&ErrorResponse::new(message))
+                .expect("serialization of ErrorResponse failed.")
         };
 
-        body.map(|b| {
-            Response::builder()
-                .status(status_code)
-                .header(CONTENT_TYPE, "application/json")
-                .header(CONTENT_LENGTH, b.len().to_string().as_str())
-                .body(b.into())
-                .expect("response builder failure")
-        }).unwrap_or_else(|| {
-            Response::builder()
-                .status(status_code)
-                .body(Body::default())
-                .expect("response builder failure")
-        })
+        let mut response = Response::builder();
+        response
+            .status(status_code)
+            .header(CONTENT_LENGTH, body.len().to_string().as_str());
+
+        if !body.is_empty() {
+            response.header(CONTENT_TYPE, "application/json");
+        }
+
+        response
+            .body(body.into())
+            .expect("response builder failure")
     }
 }
 
-impl IntoResponse for HttpError {
-    fn into_response(self) -> Response<Body> {
-        Error::from(self).into_response()
+#[derive(Clone, Copy, Debug)]
+pub enum CertOperation {
+    CreateIdentityCert,
+    GetServerCert,
+}
+
+impl fmt::Display for CertOperation {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            CertOperation::CreateIdentityCert => write!(f, "Could not create identity cert"),
+            CertOperation::GetServerCert => write!(f, "Could not get server cert"),
+        }
     }
 }
 
-impl IntoResponse for Context<ErrorKind> {
-    fn into_response(self) -> Response<Body> {
-        let error: Error = Error::from(self);
-        error.into_response()
+#[derive(Clone, Copy, Debug)]
+pub enum EncryptionOperation {
+    Decrypt,
+    Encrypt,
+    GetTrustBundle,
+    Sign,
+}
+
+impl fmt::Display for EncryptionOperation {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            EncryptionOperation::Decrypt => write!(f, "Could not decrypt"),
+            EncryptionOperation::Encrypt => write!(f, "Could not encrypt"),
+            EncryptionOperation::GetTrustBundle => write!(f, "Could not get trust bundle"),
+            EncryptionOperation::Sign => write!(f, "Could not sign"),
+        }
     }
 }

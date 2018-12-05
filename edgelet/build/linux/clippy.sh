@@ -42,6 +42,8 @@ function run_clippy()
 {
     echo "Running clippy..."
     (cd $PROJECT_ROOT && $CARGO "+$TOOLCHAIN" clippy --all)
+    (cd $PROJECT_ROOT && $CARGO "+$TOOLCHAIN" clippy --all --tests)
+    (cd $PROJECT_ROOT && $CARGO "+$TOOLCHAIN" clippy --all --examples)
 }
 
 ###############################################################################

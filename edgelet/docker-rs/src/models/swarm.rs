@@ -48,7 +48,7 @@ pub struct Swarm {
 }
 
 impl Swarm {
-    pub fn new() -> Swarm {
+    pub fn new() -> Self {
         Swarm {
             ID: None,
             version: None,
@@ -65,13 +65,13 @@ impl Swarm {
         self.ID = Some(ID);
     }
 
-    pub fn with_ID(mut self, ID: String) -> Swarm {
+    pub fn with_ID(mut self, ID: String) -> Self {
         self.ID = Some(ID);
         self
     }
 
-    pub fn ID(&self) -> Option<&String> {
-        self.ID.as_ref()
+    pub fn ID(&self) -> Option<&str> {
+        self.ID.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_ID(&mut self) {
@@ -82,7 +82,7 @@ impl Swarm {
         self.version = Some(version);
     }
 
-    pub fn with_version(mut self, version: ::models::ObjectVersion) -> Swarm {
+    pub fn with_version(mut self, version: ::models::ObjectVersion) -> Self {
         self.version = Some(version);
         self
     }
@@ -99,13 +99,13 @@ impl Swarm {
         self.created_at = Some(created_at);
     }
 
-    pub fn with_created_at(mut self, created_at: String) -> Swarm {
+    pub fn with_created_at(mut self, created_at: String) -> Self {
         self.created_at = Some(created_at);
         self
     }
 
-    pub fn created_at(&self) -> Option<&String> {
-        self.created_at.as_ref()
+    pub fn created_at(&self) -> Option<&str> {
+        self.created_at.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_created_at(&mut self) {
@@ -116,13 +116,13 @@ impl Swarm {
         self.updated_at = Some(updated_at);
     }
 
-    pub fn with_updated_at(mut self, updated_at: String) -> Swarm {
+    pub fn with_updated_at(mut self, updated_at: String) -> Self {
         self.updated_at = Some(updated_at);
         self
     }
 
-    pub fn updated_at(&self) -> Option<&String> {
-        self.updated_at.as_ref()
+    pub fn updated_at(&self) -> Option<&str> {
+        self.updated_at.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_updated_at(&mut self) {
@@ -133,7 +133,7 @@ impl Swarm {
         self.spec = Some(spec);
     }
 
-    pub fn with_spec(mut self, spec: ::models::SwarmSpec) -> Swarm {
+    pub fn with_spec(mut self, spec: ::models::SwarmSpec) -> Self {
         self.spec = Some(spec);
         self
     }
@@ -150,7 +150,7 @@ impl Swarm {
         self.tls_info = Some(tls_info);
     }
 
-    pub fn with_tls_info(mut self, tls_info: ::models::TlsInfo) -> Swarm {
+    pub fn with_tls_info(mut self, tls_info: ::models::TlsInfo) -> Self {
         self.tls_info = Some(tls_info);
         self
     }
@@ -167,7 +167,7 @@ impl Swarm {
         self.root_rotation_in_progress = Some(root_rotation_in_progress);
     }
 
-    pub fn with_root_rotation_in_progress(mut self, root_rotation_in_progress: bool) -> Swarm {
+    pub fn with_root_rotation_in_progress(mut self, root_rotation_in_progress: bool) -> Self {
         self.root_rotation_in_progress = Some(root_rotation_in_progress);
         self
     }
@@ -184,7 +184,7 @@ impl Swarm {
         self.join_tokens = Some(join_tokens);
     }
 
-    pub fn with_join_tokens(mut self, join_tokens: ::models::JoinTokens) -> Swarm {
+    pub fn with_join_tokens(mut self, join_tokens: ::models::JoinTokens) -> Self {
         self.join_tokens = Some(join_tokens);
         self
     }

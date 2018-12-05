@@ -22,7 +22,7 @@ pub struct InlineResponse20015 {
 }
 
 impl InlineResponse20015 {
-    pub fn new(volumes: Vec<::models::Volume>, warnings: Vec<String>) -> InlineResponse20015 {
+    pub fn new(volumes: Vec<::models::Volume>, warnings: Vec<String>) -> Self {
         InlineResponse20015 {
             volumes: volumes,
             warnings: warnings,
@@ -33,12 +33,12 @@ impl InlineResponse20015 {
         self.volumes = volumes;
     }
 
-    pub fn with_volumes(mut self, volumes: Vec<::models::Volume>) -> InlineResponse20015 {
+    pub fn with_volumes(mut self, volumes: Vec<::models::Volume>) -> Self {
         self.volumes = volumes;
         self
     }
 
-    pub fn volumes(&self) -> &Vec<::models::Volume> {
+    pub fn volumes(&self) -> &[::models::Volume] {
         &self.volumes
     }
 
@@ -46,12 +46,12 @@ impl InlineResponse20015 {
         self.warnings = warnings;
     }
 
-    pub fn with_warnings(mut self, warnings: Vec<String>) -> InlineResponse20015 {
+    pub fn with_warnings(mut self, warnings: Vec<String>) -> Self {
         self.warnings = warnings;
         self
     }
 
-    pub fn warnings(&self) -> &Vec<String> {
+    pub fn warnings(&self) -> &[String] {
         &self.warnings
     }
 }

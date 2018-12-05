@@ -39,6 +39,7 @@ mod imp {
         Box::new(on_any_signal)
     }
 
+    #[derive(Clone, Copy)]
     struct DisplaySignal(i32);
 
     impl fmt::Display for DisplaySignal {

@@ -4,14 +4,13 @@ use std::fmt;
 use std::fmt::Display;
 
 use failure::{Backtrace, Context, Fail};
-use hyper::{Error as HyperError, StatusCode};
+use hyper::StatusCode;
 use serde_json;
-use url::ParseError;
 
 use docker::apis::{ApiError as DockerApiError, Error as DockerError};
-use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind};
-use edgelet_http::Error as HttpError;
-use edgelet_utils::Error as UtilsError;
+use edgelet_core::{
+    ModuleOperation, ModuleRuntimeErrorReason, RegistryOperation, RuntimeOperation,
+};
 
 pub type Result<T> = ::std::result::Result<T, Error>;
 
@@ -42,34 +41,47 @@ fn get_message(
 
 #[derive(Debug, Fail)]
 pub enum ErrorKind {
-    #[fail(display = "Invalid docker URI - {}", _0)]
-    InvalidDockerUri(String),
-    #[fail(display = "Invalid unix domain socket URI - {}", _0)]
-    InvalidUdsUri(String),
-    #[fail(display = "Utils error")]
-    Utils,
-    #[fail(display = "Serde error")]
-    Serde,
-    #[fail(display = "Transport error")]
-    Transport,
-    #[fail(display = "Invalid URL")]
-    UrlParse,
-    #[fail(display = "{}", _0)]
-    NotFound(String),
+    #[fail(display = "Could not clone create options")]
+    CloneCreateOptions,
+
     #[fail(display = "Conflict with current operation")]
     Conflict,
-    #[fail(display = "Container already in this state")]
-    NotModified,
+
     #[fail(display = "Container runtime error")]
     Docker,
-    #[fail(display = "{}", _0)]
-    FormattedDockerRuntime(String),
+
     #[fail(display = "Container runtime error - {:?}", _0)]
     DockerRuntime(DockerError<serde_json::Value>),
-    #[fail(display = "Core error")]
-    Core,
-    #[fail(display = "Http error")]
-    Http,
+
+    #[fail(display = "{}", _0)]
+    FormattedDockerRuntime(String),
+
+    #[fail(display = "Could not initialize module runtime")]
+    Initialization,
+
+    #[fail(display = "Invalid docker image {:?}", _0)]
+    InvalidImage(String),
+
+    #[fail(display = "Invalid module name {:?}", _0)]
+    InvalidModuleName(String),
+
+    #[fail(display = "Invalid module type {:?}", _0)]
+    InvalidModuleType(String),
+
+    #[fail(display = "{}", _0)]
+    ModuleOperation(ModuleOperation),
+
+    #[fail(display = "{}", _0)]
+    NotFound(String),
+
+    #[fail(display = "Target of operation already in this state")]
+    NotModified,
+
+    #[fail(display = "{}", _0)]
+    RegistryOperation(RegistryOperation),
+
+    #[fail(display = "{}", _0)]
+    RuntimeOperation(RuntimeOperation),
 }
 
 impl Fail for Error {
@@ -92,10 +104,31 @@ impl Error {
     pub fn kind(&self) -> &ErrorKind {
         self.inner.get_context()
     }
+
+    pub fn from_docker_error(err: DockerError<serde_json::Value>, context: ErrorKind) -> Self {
+        let context = match err {
+            DockerError::Hyper(error) => error.context(ErrorKind::Docker).context(context),
+            DockerError::Serde(error) => error.context(ErrorKind::Docker).context(context),
+            DockerError::Api(error) => match error.code {
+                StatusCode::NOT_FOUND => match get_message(error) {
+                    Ok(message) => ErrorKind::NotFound(message).context(context),
+                    Err(e) => ErrorKind::DockerRuntime(DockerError::Api(e)).context(context),
+                },
+                StatusCode::CONFLICT => ErrorKind::Conflict.context(context),
+                StatusCode::NOT_MODIFIED => ErrorKind::NotModified.context(context),
+                _ => match get_message(error) {
+                    Ok(message) => ErrorKind::FormattedDockerRuntime(message).context(context),
+                    Err(e) => ErrorKind::DockerRuntime(DockerError::Api(e)).context(context),
+                },
+            },
+        };
+
+        context.into()
+    }
 }
 
 impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Error {
+    fn from(kind: ErrorKind) -> Self {
         Error {
             inner: Context::new(kind),
         }
@@ -103,78 +136,16 @@ impl From<ErrorKind> for Error {
 }
 
 impl From<Context<ErrorKind>> for Error {
-    fn from(inner: Context<ErrorKind>) -> Error {
+    fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
     }
 }
 
-impl From<UtilsError> for Error {
-    fn from(error: UtilsError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::Utils),
+impl<'a> From<&'a Error> for ModuleRuntimeErrorReason {
+    fn from(err: &'a Error) -> Self {
+        match Fail::find_root_cause(err).downcast_ref::<ErrorKind>() {
+            Some(ErrorKind::NotFound(_)) => ModuleRuntimeErrorReason::NotFound,
+            _ => ModuleRuntimeErrorReason::Other,
         }
-    }
-}
-
-impl From<serde_json::Error> for Error {
-    fn from(error: serde_json::Error) -> Error {
-        Error {
-            inner: error.context(ErrorKind::Serde),
-        }
-    }
-}
-
-impl From<HyperError> for Error {
-    fn from(error: HyperError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::Transport),
-        }
-    }
-}
-
-impl From<HttpError> for Error {
-    fn from(error: HttpError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::Http),
-        }
-    }
-}
-
-impl From<DockerError<serde_json::Value>> for Error {
-    fn from(err: DockerError<serde_json::Value>) -> Error {
-        match err {
-            DockerError::Hyper(error) => Error {
-                inner: Error::from(error).context(ErrorKind::Docker),
-            },
-            DockerError::Serde(error) => Error {
-                inner: Error::from(error).context(ErrorKind::Docker),
-            },
-            DockerError::ApiError(error) => match error.code {
-                StatusCode::NOT_FOUND => get_message(error)
-                    .map(|message| Error::from(ErrorKind::NotFound(message)))
-                    .unwrap_or_else(|e| {
-                        Error::from(ErrorKind::DockerRuntime(DockerError::ApiError(e)))
-                    }),
-                StatusCode::CONFLICT => Error::from(ErrorKind::Conflict),
-                StatusCode::NOT_MODIFIED => Error::from(ErrorKind::NotModified),
-                _ => get_message(error)
-                    .map(|message| Error::from(ErrorKind::FormattedDockerRuntime(message)))
-                    .unwrap_or_else(|e| {
-                        Error::from(ErrorKind::DockerRuntime(DockerError::ApiError(e)))
-                    }),
-            },
-        }
-    }
-}
-
-impl From<ParseError> for Error {
-    fn from(_: ParseError) -> Error {
-        Error::from(ErrorKind::UrlParse)
-    }
-}
-
-impl From<Error> for CoreError {
-    fn from(err: Error) -> CoreError {
-        CoreError::from(err.context(CoreErrorKind::ModuleRuntime))
     }
 }

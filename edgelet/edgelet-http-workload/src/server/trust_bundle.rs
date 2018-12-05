@@ -3,17 +3,17 @@
 use std::str;
 
 use failure::ResultExt;
-use futures::{future, Future};
-use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
-use http::{Request, Response, StatusCode};
-use hyper::{Body, Error as HyperError};
+use futures::{Future, IntoFuture};
+use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use hyper::{Body, Request, Response, StatusCode};
 use serde_json;
 
 use edgelet_core::{Certificate, GetTrustBundle};
 use edgelet_http::route::{Handler, Parameters};
+use edgelet_http::Error as HttpError;
 use workload::models::TrustBundleResponse;
 
-use error::{Error, ErrorKind};
+use error::{EncryptionOperation, Error, ErrorKind};
 use IntoResponse;
 
 pub struct TrustBundleHandler<T: GetTrustBundle> {
@@ -32,37 +32,42 @@ where
 impl<T> Handler<Parameters> for TrustBundleHandler<T>
 where
     T: 'static + GetTrustBundle + Send,
-    <T as GetTrustBundle>::Certificate: Certificate,
 {
     fn handle(
         &self,
         _req: Request<Body>,
         _params: Parameters,
-    ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+    ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
         let response = self
             .hsm
             .get_trust_bundle()
-            .and_then(|cert| cert.pem())
-            .map_err(Error::from)
-            .and_then(|cert| {
-                str::from_utf8(cert.as_ref())
-                    .context(ErrorKind::Utf8)
-                    .map_err(From::from)
-                    .map(|s| s.to_string())
-            }).and_then(|cert| {
-                serde_json::to_string(&TrustBundleResponse::new(cert))
-                    .context(ErrorKind::Serde)
-                    .map_err(From::from)
-            }).and_then(|b| {
-                Response::builder()
+            .context(ErrorKind::EncryptionOperation(
+                EncryptionOperation::GetTrustBundle,
+            )).map_err(Error::from)
+            .and_then(|cert| -> Result<_, Error> {
+                let cert = cert.pem().context(ErrorKind::EncryptionOperation(
+                    EncryptionOperation::GetTrustBundle,
+                ))?;
+                let cert = str::from_utf8(cert.as_ref())
+                    .context(ErrorKind::EncryptionOperation(
+                        EncryptionOperation::GetTrustBundle,
+                    ))?.to_string();
+                let body = serde_json::to_string(&TrustBundleResponse::new(cert)).context(
+                    ErrorKind::EncryptionOperation(EncryptionOperation::GetTrustBundle),
+                )?;
+                let response = Response::builder()
                     .status(StatusCode::OK)
                     .header(CONTENT_TYPE, "application/json")
-                    .header(CONTENT_LENGTH, b.len().to_string().as_str())
-                    .body(b.into())
-                    .map_err(Error::from)
-            }).unwrap_or_else(|e| e.into_response());
+                    .header(CONTENT_LENGTH, body.len().to_string().as_str())
+                    .body(body.into())
+                    .context(ErrorKind::EncryptionOperation(
+                        EncryptionOperation::GetTrustBundle,
+                    ))?;
+                Ok(response)
+            }).or_else(|e| Ok(e.into_response()))
+            .into_future();
 
-        Box::new(future::ok(response))
+        Box::new(response)
     }
 }
 
@@ -83,12 +88,12 @@ mod tests {
     }
 
     impl TestHsm {
-        fn with_fail_call(mut self, fail_call: bool) -> TestHsm {
+        fn with_fail_call(mut self, fail_call: bool) -> Self {
             self.fail_call = fail_call;
             self
         }
 
-        fn with_cert(mut self, cert: TestCert) -> TestHsm {
+        fn with_cert(mut self, cert: TestCert) -> Self {
             self.cert = cert;
             self
         }
@@ -97,9 +102,9 @@ mod tests {
     impl GetTrustBundle for TestHsm {
         type Certificate = TestCert;
 
-        fn get_trust_bundle(&self) -> Result<TestCert, CoreError> {
+        fn get_trust_bundle(&self) -> Result<Self::Certificate, CoreError> {
             if self.fail_call {
-                Err(CoreError::from(CoreErrorKind::Io))
+                Err(CoreError::from(CoreErrorKind::KeyStore))
             } else {
                 Ok(self.cert.clone())
             }
@@ -143,7 +148,7 @@ mod tests {
     #[test]
     fn success() {
         let handler = TrustBundleHandler::new(
-            TestHsm::default().with_cert(TestCert::default().with_cert("boo".as_bytes().to_vec())),
+            TestHsm::default().with_cert(TestCert::default().with_cert(b"boo".to_vec())),
         );
         let request = Request::get("http://localhost/trust-bundle")
             .body("".into())

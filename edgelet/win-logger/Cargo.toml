@@ -7,6 +7,6 @@ publish = false
 [dependencies]
 failure = "0.1"
 log = { version = "0.4", features = ["std"] }
-winapi = { version = "0.3.5", features = ["winbase", "winnt"] }
+winapi = { version = "0.3.5", features = ["errhandlingapi", "winbase", "winnt"] }
 
 edgelet-utils = { path = "../edgelet-utils" }

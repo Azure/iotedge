@@ -4,9 +4,9 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use chrono::{DateTime, Duration, Utc};
-use futures::future::{self, Either};
+use failure::{Fail, ResultExt};
 use futures::{Future, IntoFuture, Stream};
-use hyper::{self, Body, Error as HyperError, Method, Request, Response};
+use hyper::{self, Body, Method, Request, Response};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json;
@@ -14,7 +14,9 @@ use typed_headers::{http, mime, ContentLength, ContentType, HeaderMapExt};
 use url::form_urlencoded::Serializer as UrlSerializer;
 use url::Url;
 
-use error::Error;
+use edgelet_utils::ensure_not_empty_with_context;
+
+use error::{Error, ErrorKind};
 
 pub trait TokenSource {
     type Error;
@@ -65,18 +67,22 @@ impl<C, T> Client<C, T>
 where
     C: ClientImpl,
     T: TokenSource + Clone,
-    T::Error: Into<Error>,
+    T::Error: Fail,
 {
     pub fn new(
         inner: C,
         token_source: Option<T>,
-        api_version: &str,
+        api_version: String,
         host_name: Url,
     ) -> Result<Self, Error> {
+        ensure_not_empty_with_context(&api_version, || {
+            ErrorKind::InvalidApiVersion(api_version.clone())
+        })?;
+
         let client = Client {
             inner: Arc::new(inner),
             token_source,
-            api_version: ensure_not_empty!(api_version).to_string(),
+            api_version,
             host_name,
             user_agent: None,
         };
@@ -103,7 +109,7 @@ where
     }
 
     pub fn user_agent(&self) -> Option<&str> {
-        self.user_agent.as_ref().map(String::as_str)
+        self.user_agent.as_ref().map(AsRef::as_ref)
     }
 
     pub fn host_name(&self) -> &Url {
@@ -114,7 +120,7 @@ where
         if let Some(ref source) = self.token_source {
             let token_duration = Duration::hours(1);
             let expiry = Utc::now() + token_duration;
-            let token = source.get(&expiry).map_err(|err| err.into())?;
+            let token = source.get(&expiry).context(ErrorKind::TokenSource)?;
             debug!(
                 "Success generating token for request {} {}",
                 req.method(),
@@ -152,9 +158,12 @@ where
                 |ser, (key, val)| ser.append_pair(key, val),
             ).finish();
 
+        // build the full url
+        let path_query = format!("{}?{}", path, query);
         self.host_name
-            // build the full url
-            .join(&format!("{}?{}", path, query))
+            .join(&path_query)
+            .with_context(|_| ErrorKind::UrlJoin(self.host_name.clone(), path_query))
+            .context(ErrorKind::Http)
             .map_err(Error::from)
             .and_then(|url| {
                 let mut req = Request::builder();
@@ -172,53 +181,50 @@ where
 
                 // add request body if there is any
                 let mut req = if let Some(body) = body {
-                    let serialized = serde_json::to_string(&body)?;
+                    let serialized = serde_json::to_string(&body).context(ErrorKind::Http)?;
                     let serialized_len = serialized.len();
-                    let mut req = req.body(Body::from(serialized))?;
-                    req.headers_mut().typed_insert(&ContentType(mime::APPLICATION_JSON));
-                    req.headers_mut().typed_insert(&ContentLength(serialized_len as u64));
+                    let mut req = req.body(Body::from(serialized)).context(ErrorKind::Http)?;
+                    req.headers_mut()
+                        .typed_insert(&ContentType(mime::APPLICATION_JSON));
+                    req.headers_mut()
+                        .typed_insert(&ContentLength(serialized_len as u64));
                     req
-                }
-                else {
-                    req.body(Body::empty())?
+                } else {
+                    req.body(Body::empty()).context(ErrorKind::Http)?
                 };
 
                 // add sas token
                 self.add_sas_token(&mut req, path)?;
 
                 Ok(req)
-            })
-            .map(|req| {
-                let res =
-                    self.inner.call(req)
-                    .map_err(|e| { error!("{:?}", e); Error::from(e) })
+            }).map(|req| {
+                self.inner
+                    .call(req)
+                    .then(|resp| resp.context(ErrorKind::Http).map_err(Error::from))
                     .and_then(|resp| {
                         let (http::response::Parts { status, .. }, body) = resp.into_parts();
-                        body
-                            .concat2()
-                            .and_then(move |body| Ok((status, body)))
-                            .map_err(<Error as From<HyperError>>::from)
-                    })
-                    .and_then(|(status, body)| {
+                        body.concat2().then(move |res| {
+                            let body = res.context(ErrorKind::Http)?;
+                            Ok((status, body))
+                        })
+                    }).and_then(|(status, body)| {
                         if status.is_success() {
                             Ok(body)
                         } else {
-                            Err(Error::from((status, &*body)))
+                            Err(Error::http_with_error_response(status, &*body))
                         }
-                    })
-                    .and_then(|body| {
+                    }).and_then(|body| {
                         if body.len() == 0 {
                             Ok(None)
                         } else {
-                            serde_json::from_slice::<ResponseT>(&body)
-                                .map_err(Error::from)
-                                .map(Option::Some)
+                            Ok(Some(
+                                serde_json::from_slice::<ResponseT>(&body)
+                                    .context(ErrorKind::Http)?,
+                            ))
                         }
-                    });
-
-                Either::A(res)
-            })
-            .unwrap_or_else(|e| Either::B(future::err(e)))
+                    })
+            }).into_future()
+            .flatten()
     }
 }
 
@@ -241,7 +247,6 @@ where
 mod tests {
     use super::*;
     use std::collections::HashMap;
-    use std::mem;
     use std::str;
 
     use chrono::{DateTime, Utc};
@@ -282,47 +287,58 @@ mod tests {
     fn empty_api_version_fails() {
         let hyper_client = HyperClient::new();
         let token_source: Option<StaticTokenSource> = None;
-        match Client::new(
+        let api_version = "".to_string();
+        let client = Client::new(
             hyper_client,
             token_source,
-            "",
+            api_version.clone(),
             Url::parse("http://localhost").unwrap(),
-        ) {
+        );
+        match client {
             Ok(_) => panic!("Expected error but got a result."),
-            Err(err) => {
-                if mem::discriminant(err.kind()) != mem::discriminant(&ErrorKind::Utils) {
-                    panic!("Wrong error kind. Expected `ArgumentEmpty` found {:?}", err);
-                }
-            }
-        };
+            Err(err) => if let ErrorKind::InvalidApiVersion(s) = err.kind() {
+                assert_eq!(s, &api_version);
+            } else {
+                panic!(
+                    "Wrong error kind. Expected `InvalidApiVersion` found {:?}",
+                    err
+                );
+            },
+        }
     }
 
     #[test]
     fn white_space_api_version_fails() {
         let hyper_client = HyperClient::new();
         let token_source: Option<StaticTokenSource> = None;
-        match Client::new(
+        let api_version = "      ".to_string();
+        let client = Client::new(
             hyper_client,
             token_source,
-            "      ",
+            api_version.clone(),
             Url::parse("http://localhost").unwrap(),
-        ) {
+        );
+        match client {
             Ok(_) => panic!("Expected error but got a result."),
-            Err(err) => {
-                if mem::discriminant(err.kind()) != mem::discriminant(&ErrorKind::Utils) {
-                    panic!("Wrong error kind. Expected `ArgumentEmpty` found {:?}", err);
-                }
-            }
-        };
+            Err(err) => if let ErrorKind::InvalidApiVersion(s) = err.kind() {
+                assert_eq!(s, &api_version);
+            } else {
+                panic!(
+                    "Wrong error kind. Expected `InvalidApiVersion` found {:?}",
+                    err
+                );
+            },
+        }
     }
 
     #[test]
     fn request_adds_api_version() {
-        let api_version = "2018-04-10";
+        let api_version = "2018-04-10".to_string();
         let host_name = Url::parse("http://localhost").unwrap();
         let response = r#""response""#;
         let token_source: Option<StaticTokenSource> = None;
 
+        let api_version2 = api_version.clone();
         let handler = move |req: Request<Body>| {
             assert_eq!(req.uri().path(), "/boo");
             assert_eq!(None, req.headers().get(hyper::header::IF_MATCH));
@@ -332,7 +348,7 @@ mod tests {
                 parse_query(req.uri().query().unwrap().as_bytes())
                     .into_owned()
                     .collect();
-            assert_eq!(query_map.get("api-version"), Some(&api_version.to_string()));
+            assert_eq!(query_map.get("api-version"), Some(&api_version2));
 
             future::ok(Response::new(response.into()))
         };
@@ -348,11 +364,12 @@ mod tests {
 
     #[test]
     fn request_adds_api_version_with_other_query_params() {
-        let api_version = "2018-04-10";
+        let api_version = "2018-04-10".to_string();
         let host_name = Url::parse("http://localhost").unwrap();
         let response = r#""response""#;
         let token_source: Option<StaticTokenSource> = None;
 
+        let api_version2 = api_version.clone();
         let handler = move |req: Request<Body>| {
             assert_eq!(req.uri().path(), "/boo");
             assert_eq!(None, req.headers().get(hyper::header::IF_MATCH));
@@ -362,11 +379,11 @@ mod tests {
                 parse_query(req.uri().query().unwrap().as_bytes())
                     .into_owned()
                     .collect();
-            assert_eq!(query_map.get("api-version"), Some(&api_version.to_string()));
+            assert_eq!(query_map.get("api-version"), Some(&api_version2));
             assert_eq!(query_map.get("k1"), Some(&"v1".to_string()));
             assert_eq!(
                 query_map.get("k2"),
-                Some(&"this value has spaces and 🐮🐮🐮".to_string())
+                Some(&"this value has spaces and \u{1f42e}\u{1f42e}\u{1f42e}".to_string())
             );
 
             Ok(Response::new(response.into()))
@@ -375,7 +392,10 @@ mod tests {
 
         let mut query = HashMap::new();
         query.insert("k1", "v1");
-        query.insert("k2", "this value has spaces and 🐮🐮🐮");
+        query.insert(
+            "k2",
+            "this value has spaces and \u{1f42e}\u{1f42e}\u{1f42e}",
+        );
 
         let task = client.request::<String, String>(Method::GET, "/boo", Some(query), None, false);
 
@@ -388,7 +408,7 @@ mod tests {
 
     #[test]
     fn request_adds_user_agent() {
-        let api_version = "2018-04-10";
+        let api_version = "2018-04-10".to_string();
         let user_agent = "edgelet/request/test";
         let host_name = Url::parse("http://localhost").unwrap();
         let response = r#""response""#;
@@ -418,7 +438,7 @@ mod tests {
 
     #[test]
     fn request_adds_sas_token() {
-        let api_version = "2018-04-10";
+        let api_version = "2018-04-10".to_string();
         let sas_token = "super_secret_password_y'all";
         let host_name = Url::parse("http://localhost").unwrap();
         let response = r#""response""#;
@@ -446,7 +466,7 @@ mod tests {
 
     #[test]
     fn request_adds_if_match_header() {
-        let api_version = "2018-04-10";
+        let api_version = "2018-04-10".to_string();
         let host_name = Url::parse("http://localhost").unwrap();
         let response = r#""response""#;
         let token_source: Option<StaticTokenSource> = None;
@@ -478,7 +498,7 @@ mod tests {
 
     #[test]
     fn request_adds_body() {
-        let api_version = "2018-04-10";
+        let api_version = "2018-04-10".to_string();
         let host_name = Url::parse("http://localhost").unwrap();
         let response = r#""response""#;
         let token_source: Option<StaticTokenSource> = None;
@@ -514,7 +534,7 @@ mod tests {
 
     #[test]
     fn request_can_return_empty_response() {
-        let api_version = "2018-04-10";
+        let api_version = "2018-04-10".to_string();
         let host_name = Url::parse("http://localhost").unwrap();
         let token_source: Option<StaticTokenSource> = None;
 
@@ -549,7 +569,7 @@ mod tests {
 
     #[test]
     fn request_returns_response() {
-        let api_version = "2018-04-10";
+        let api_version = "2018-04-10".to_string();
         let host_name = Url::parse("http://localhost").unwrap();
         let response = r#""response""#;
         let token_source: Option<StaticTokenSource> = None;

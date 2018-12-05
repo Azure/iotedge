@@ -19,10 +19,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
         public IList<X509Certificate2> CertificateChain { get; }
 
-        EdgeHubCertificates(X509Certificate2 serverCertificate, IList<X509Certificate2> certificateChain)
+        public IList<X509Certificate2> TrustBundle { get; }
+
+        EdgeHubCertificates(X509Certificate2 serverCertificate, IList<X509Certificate2> certificateChain, IList<X509Certificate2> trustBundle)
         {
             this.ServerCertificate = Preconditions.CheckNotNull(serverCertificate, nameof(serverCertificate));
             this.CertificateChain = Preconditions.CheckNotNull(certificateChain, nameof(certificateChain));
+            this.TrustBundle = Preconditions.CheckNotNull(trustBundle, nameof(trustBundle));
         }
 
         public static async Task<EdgeHubCertificates> LoadAsync(IConfigurationRoot configuration)
@@ -31,6 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             EdgeHubCertificates result;
             string edgeHubDevCertPath = configuration.GetValue<string>(Constants.ConfigKey.EdgeHubDevServerCertificateFile);
             string edgeHubDevPrivateKeyPath = configuration.GetValue<string>(Constants.ConfigKey.EdgeHubDevServerPrivateKeyFile);
+            string edgeHubDevTrustBundlePath = configuration.GetValue<string>(Constants.ConfigKey.EdgeHubDevTrustBundleFile);
             string edgeHubDockerCertPFXPath = configuration.GetValue<string>(Constants.ConfigKey.EdgeHubServerCertificateFile);
             string edgeHubDockerCaChainCertPath = configuration.GetValue<string>(Constants.ConfigKey.EdgeHubServerCAChainCertificateFile);
             string edgeHubConnectionString = configuration.GetValue<string>(Constants.ConfigKey.IotHubConnectionString);
@@ -46,19 +50,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 string moduleId = configuration.GetValue<string>(Constants.ConfigKey.ModuleId);
                 string generationId = configuration.GetValue<string>(Constants.ConfigKey.ModuleGenerationId);
                 DateTime expiration = DateTime.UtcNow.AddDays(Constants.CertificateValidityDays);
+
                 certificates = await CertificateHelper.GetServerCertificatesFromEdgelet(workloadUri, Constants.WorkloadApiVersion, moduleId, generationId, edgeHubHostname, expiration);
                 InstallCertificates(certificates.CertificateChain);
-                result = new EdgeHubCertificates(certificates.ServerCertificate, certificates.CertificateChain?.ToList());
+                IEnumerable<X509Certificate2> trustBundle = await CertificateHelper.GetTrustBundleFromEdgelet(workloadUri, Constants.WorkloadApiVersion, moduleId, generationId);
+
+                result = new EdgeHubCertificates(certificates.ServerCertificate,
+                                                 certificates.CertificateChain?.ToList(),
+                                                 trustBundle?.ToList());
             }
             else if (!string.IsNullOrEmpty(edgeHubDevCertPath) &&
-                     !string.IsNullOrEmpty(edgeHubDevPrivateKeyPath))
+                     !string.IsNullOrEmpty(edgeHubDevPrivateKeyPath) &&
+                     !string.IsNullOrEmpty(edgeHubDevTrustBundlePath))
             {
                 // If no connection string was set and we use iotedged workload style certificates for development
                 (X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain) certificates;
 
                 certificates = CertificateHelper.GetServerCertificateAndChainFromFile(edgeHubDevCertPath, edgeHubDevPrivateKeyPath);
                 InstallCertificates(certificates.CertificateChain);
-                result = new EdgeHubCertificates(certificates.ServerCertificate, certificates.CertificateChain?.ToList());
+
+                IEnumerable<X509Certificate2> trustBundle = CertificateHelper.ParseTrustedBundleFromFile(edgeHubDevTrustBundlePath);
+
+                result = new EdgeHubCertificates(certificates.ServerCertificate,
+                                                 certificates.CertificateChain?.ToList(),
+                                                 trustBundle?.ToList());
             }
             else if (!string.IsNullOrEmpty(edgeHubDockerCertPFXPath) &&
                      !string.IsNullOrEmpty(edgeHubDockerCaChainCertPath))
@@ -66,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 // If no connection string was set and we use iotedge devdiv style certificates for development
                 List<X509Certificate2> certificateChain = CertificateHelper.GetServerCACertificatesFromFile(edgeHubDockerCaChainCertPath)?.ToList();
                 InstallCertificates(certificateChain);
-                result = new EdgeHubCertificates(new X509Certificate2(edgeHubDockerCertPFXPath), certificateChain);
+                result = new EdgeHubCertificates(new X509Certificate2(edgeHubDockerCertPFXPath), certificateChain, new List<X509Certificate2>());
             }
             else
             {
@@ -81,12 +96,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             string message;
             if (certificateChain != null)
             {
-                message = "Found intermediate certificates.";
+                X509Certificate2[] certs = certificateChain.ToArray();
+                message = $"Found intermediate certificates: {string.Join(",", certs.Select(c => $"[{c.Subject}:{c.GetExpirationDateString()}]"))}";
 
                 CertificateHelper.InstallCerts(
                     RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? StoreName.CertificateAuthority : StoreName.Root,
                     StoreLocation.CurrentUser,
-                    certificateChain);
+                    certs);
             }
             else
             {

@@ -6,11 +6,13 @@ use std::sync::{Arc, Mutex};
 
 use chrono::{Duration, Utc};
 use chrono_humanize::{Accuracy, HumanTime, Tense};
-use edgelet_core::{Module, ModuleRuntime, ModuleRuntimeState, ModuleStatus};
-use futures::{future, Future};
+use failure::{Fail, ResultExt};
+use futures::{Future, Stream};
 use tabwriter::TabWriter;
 
-use error::Error;
+use edgelet_core::{Module, ModuleRuntime, ModuleRuntimeState, ModuleStatus};
+
+use error::{Error, ErrorKind};
 use Command;
 
 pub struct List<M, W> {
@@ -36,8 +38,6 @@ where
     M: 'static + ModuleRuntime + Clone,
     M::Module: Clone,
     M::Config: Display,
-    M::Error: Into<Error>,
-    <M::Module as Module>::Error: Into<Error>,
     W: 'static + Write + Send,
 {
     type Future = Box<Future<Item = (), Error = Error> + Send>;
@@ -46,29 +46,25 @@ where
         let write = self.output.clone();
         let result = self
             .runtime
-            .list()
-            .map_err(|e| e.into())
-            .and_then(move |list| {
-                let modules = list.clone();
-                let futures = list.into_iter().map(|m| m.runtime_state());
-                future::join_all(futures)
-                    .map_err(|e| e.into())
-                    .and_then(move |states| {
-                        let mut w = write.lock().unwrap();
-                        writeln!(w, "NAME\tSTATUS\tDESCRIPTION\tCONFIG")?;
-                        for (module, state) in modules.iter().zip(states) {
-                            writeln!(
-                                w,
-                                "{}\t{}\t{}\t{}",
-                                module.name(),
-                                state.status(),
-                                humanize_state(&state),
-                                module.config(),
-                            )?;
-                        }
-                        w.flush()?;
-                        Ok(())
-                    })
+            .list_with_details()
+            .map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)))
+            .collect()
+            .and_then(move |result| {
+                let mut w = write.lock().unwrap();
+                writeln!(w, "NAME\tSTATUS\tDESCRIPTION\tCONFIG")
+                    .context(ErrorKind::WriteToStdout)?;
+                for (module, state) in result {
+                    writeln!(
+                        w,
+                        "{}\t{}\t{}\t{}",
+                        module.name(),
+                        state.status(),
+                        humanize_state(&state),
+                        module.config(),
+                    ).context(ErrorKind::WriteToStdout)?;
+                }
+                w.flush().context(ErrorKind::WriteToStdout)?;
+                Ok(())
             });
         Box::new(result)
     }
@@ -77,14 +73,15 @@ where
 fn humanize_state(state: &ModuleRuntimeState) -> String {
     match *state.status() {
         ModuleStatus::Unknown => "Unknown".to_string(),
-        ModuleStatus::Stopped => state
-            .finished_at()
-            .map(|time| {
+        ModuleStatus::Stopped => state.finished_at().map_or_else(
+            || "Stopped".to_string(),
+            |time| {
                 format!(
                     "Stopped {}",
                     time_string(&HumanTime::from(Utc::now() - *time), Tense::Past)
                 )
-            }).unwrap_or_else(|| "Stopped".to_string()),
+            },
+        ),
         ModuleStatus::Failed => state
             .finished_at()
             .and_then(|time| {
@@ -96,14 +93,15 @@ fn humanize_state(state: &ModuleRuntimeState) -> String {
                     )
                 })
             }).unwrap_or_else(|| "Failed".to_string()),
-        ModuleStatus::Running => state
-            .started_at()
-            .map(|time| {
+        ModuleStatus::Running => state.started_at().map_or_else(
+            || "Up".to_string(),
+            |time| {
                 format!(
                     "Up {}",
                     time_string(&HumanTime::from(Utc::now() - *time), Tense::Present)
                 )
-            }).unwrap_or_else(|| "Up".to_string()),
+            },
+        ),
     }
 }
 

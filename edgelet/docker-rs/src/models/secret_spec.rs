@@ -28,7 +28,7 @@ pub struct SecretSpec {
 }
 
 impl SecretSpec {
-    pub fn new() -> SecretSpec {
+    pub fn new() -> Self {
         SecretSpec {
             name: None,
             labels: None,
@@ -41,13 +41,13 @@ impl SecretSpec {
         self.name = Some(name);
     }
 
-    pub fn with_name(mut self, name: String) -> SecretSpec {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
     }
 
-    pub fn name(&self) -> Option<&String> {
-        self.name.as_ref()
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_name(&mut self) {
@@ -58,10 +58,7 @@ impl SecretSpec {
         self.labels = Some(labels);
     }
 
-    pub fn with_labels(
-        mut self,
-        labels: ::std::collections::HashMap<String, String>,
-    ) -> SecretSpec {
+    pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
         self.labels = Some(labels);
         self
     }
@@ -78,13 +75,13 @@ impl SecretSpec {
         self.data = Some(data);
     }
 
-    pub fn with_data(mut self, data: String) -> SecretSpec {
+    pub fn with_data(mut self, data: String) -> Self {
         self.data = Some(data);
         self
     }
 
-    pub fn data(&self) -> Option<&String> {
-        self.data.as_ref()
+    pub fn data(&self) -> Option<&str> {
+        self.data.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_data(&mut self) {
@@ -95,7 +92,7 @@ impl SecretSpec {
         self.driver = Some(driver);
     }
 
-    pub fn with_driver(mut self, driver: ::models::Driver) -> SecretSpec {
+    pub fn with_driver(mut self, driver: ::models::Driver) -> Self {
         self.driver = Some(driver);
         self
     }

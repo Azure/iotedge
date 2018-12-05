@@ -2,6 +2,8 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
 {
+    using System.Collections.Generic;
+    using System.Security.Cryptography.X509Certificates;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
 
@@ -13,53 +15,43 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
     /// </summary>
     public class ClientCredentialsFactory : IClientCredentialsFactory
     {
-        readonly string iotHubHostName;
+        readonly IIdentityProvider identityProvider;
         readonly string callerProductInfo;
 
-        public ClientCredentialsFactory(string iotHubHostName)
-            : this(iotHubHostName, string.Empty)
+        public ClientCredentialsFactory(IIdentityProvider identityProvider)
+            : this(identityProvider, string.Empty)
         {
         }
 
-        public ClientCredentialsFactory(string iotHubHostName, string callerProductInfo)
+        public ClientCredentialsFactory(IIdentityProvider identityProvider, string callerProductInfo)
         {
-            this.iotHubHostName = iotHubHostName;
+            this.identityProvider = identityProvider;
             this.callerProductInfo = callerProductInfo;
         }
 
-        public IClientCredentials GetWithX509Cert(string deviceId, string moduleId, string deviceClientType)
+        public IClientCredentials GetWithX509Cert(string deviceId, string moduleId, string deviceClientType, X509Certificate2 clientCertificate, IList<X509Certificate2> clientChainCertificate)
         {
             string productInfo = string.Join(" ", this.callerProductInfo, deviceClientType).Trim();
-            IIdentity identity = this.GetIdentity(deviceId, moduleId);
-            return new X509CertCredentials(identity, productInfo);
+            IIdentity identity = this.identityProvider.Create(deviceId, moduleId);
+            return new X509CertCredentials(identity, productInfo, clientCertificate, clientChainCertificate);
         }
 
-        public IClientCredentials GetWithSasToken(string deviceId, string moduleId, string deviceClientType, string token)
+        public IClientCredentials GetWithSasToken(string deviceId, string moduleId, string deviceClientType, string token, bool updatable)
         {
             string productInfo = string.Join(" ", this.callerProductInfo, deviceClientType).Trim();
-            IIdentity identity = this.GetIdentity(deviceId, moduleId);
-            return new TokenCredentials(identity, token, productInfo);
+            IIdentity identity = this.identityProvider.Create(deviceId, moduleId);
+            return new TokenCredentials(identity, token, productInfo, updatable);
         }
 
         public IClientCredentials GetWithConnectionString(string connectionString)
         {
             Preconditions.CheckNonWhiteSpace(connectionString, nameof(connectionString));
             IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(connectionString);
-            IIdentity identity = this.GetIdentity(iotHubConnectionStringBuilder.DeviceId, iotHubConnectionStringBuilder.ModuleId);
+            IIdentity identity = this.identityProvider.Create(iotHubConnectionStringBuilder.DeviceId, iotHubConnectionStringBuilder.ModuleId);
             return new SharedKeyCredentials(identity, connectionString, this.callerProductInfo);
         }
 
-        public IClientCredentials GetWithIotEdged(string deviceId, string moduleId)
-        {
-            return new IotEdgedCredentials(this.GetIdentity(deviceId, moduleId), this.callerProductInfo);
-        }
-
-        IIdentity GetIdentity(string deviceId, string moduleId)
-        {
-            IIdentity identity = string.IsNullOrWhiteSpace(moduleId)
-                ? new DeviceIdentity(this.iotHubHostName, deviceId)
-                : new ModuleIdentity(this.iotHubHostName, deviceId, moduleId) as IIdentity;
-            return identity;
-        }
+        public IClientCredentials GetWithIotEdged(string deviceId, string moduleId) =>
+            new IotEdgedCredentials(this.identityProvider.Create(deviceId, moduleId), this.callerProductInfo);
     }
 }

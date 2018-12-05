@@ -45,14 +45,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 }
 
                 // TODO: Figure out where the device client type parameter value should come from.
-                IClientCredentials deviceIdentity = this.clientCredentialsFactory.GetWithSasToken(deviceId, moduleId, string.Empty, password);
+                IClientCredentials deviceIdentity = this.clientCredentialsFactory.GetWithSasToken(deviceId, moduleId, string.Empty, password, false);
 
                 if (!await this.authenticator.AuthenticateAsync(deviceIdentity))
                 {
                     throw new EdgeHubConnectionException("Authentication failed.");
                 }
 
-                return new SaslPrincipal(new AmqpAuthentication(true, Option.Some(deviceIdentity)));
+                return new SaslPrincipal(true, deviceIdentity);
             }
             catch (Exception ex) when (!ex.IsFatal())
             {

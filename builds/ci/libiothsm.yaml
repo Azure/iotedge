@@ -1,17 +1,23 @@
-phases:
+trigger:
+  batch: true
+  branches:
+    include:
+      - master
+pr: none
+jobs:
 
 ################################################################################
-  - phase: linux_amd64
+  - job: linux_amd64
 ################################################################################
     displayName: Linux amd64
-    queue:
-      name: Hosted Linux Preview
+    pool:
+      vmImage: 'ubuntu-16.04'
     steps:
       - task: Bash@3
         displayName: Clean package list
         inputs:
           targetType: inline
-          script: apt-get clean && rm -r /var/lib/apt/lists/*
+          script: sudo apt-get clean && sudo rm -r /var/lib/apt/lists/*
       - task: Bash@3
         displayName: Install dependencies
         inputs:
@@ -29,11 +35,11 @@ phases:
         workingDirectory: edgelet/hsm-sys/azure-iot-hsm-c/build
 
 ################################################################################
-  - phase: windows_amd64
+  - job: windows_amd64
 ################################################################################
     displayName: Windows amd64
-    queue:
-      name: Hosted VS2017
+    pool:
+      vmImage: 'vs2017-win2016'
     steps:
       - task: PowerShell@2
         displayName: Install

@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 {
     using System;
+    using System.Security.Principal;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -58,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             const string UserId = "dev1/modules/mod1@sas.hub1";
             const string Password = "pwd";
 
-            Mock.Get(clientCredentialsFactory).Setup(f => f.GetWithSasToken("dev1", "mod1", string.Empty, Password))
+            Mock.Get(clientCredentialsFactory).Setup(f => f.GetWithSasToken("dev1", "mod1", string.Empty, Password, false))
                 .Throws(new ApplicationException("Bad donut"));
 
             await Assert.ThrowsAsync<EdgeHubConnectionException>(() => saslAuthenticator.AuthenticateAsync(UserId, Password));
@@ -75,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             const string UserId = "dev1/modules/mod1@sas.hub1";
             const string Password = "pwd";
 
-            Mock.Get(clientCredentialsFactory).Setup(f => f.GetWithSasToken("dev1", "mod1", string.Empty, Password))
+            Mock.Get(clientCredentialsFactory).Setup(f => f.GetWithSasToken("dev1", "mod1", string.Empty, Password, false))
                 .Returns(clientCredentials);
             Mock.Get(authenticator).Setup(a => a.AuthenticateAsync(clientCredentials))
                 .ReturnsAsync(false);
@@ -95,16 +96,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             const string UserId = "dev1/modules/mod1@sas.hub1";
             const string Password = "pwd";
 
-            Mock.Get(clientCredentialsFactory).Setup(f => f.GetWithSasToken("dev1", "mod1", string.Empty, Password))
+            Mock.Get(clientCredentialsFactory).Setup(f => f.GetWithSasToken("dev1", "mod1", string.Empty, Password, false))
                 .Returns(clientCredentials);
             Mock.Get(authenticator).Setup(a => a.AuthenticateAsync(clientCredentials))
                 .ReturnsAsync(true);
 
-            var principal = await saslAuthenticator.AuthenticateAsync(UserId, Password) as SaslPrincipal;
+            IPrincipal principal = await saslAuthenticator.AuthenticateAsync(UserId, Password);
             Assert.NotNull(principal);
-            Assert.NotNull(principal.Identity);
-            Assert.NotNull(principal.AmqpAuthentication);
-            Assert.Equal(identity, principal.AmqpAuthentication.ClientCredentials.OrDefault().Identity);
+
+            var amqpAuthenticator = principal as IAmqpAuthenticator;
+            Assert.NotNull(amqpAuthenticator);
+
+            bool isAuthenticated = await amqpAuthenticator.AuthenticateAsync("dev1/mod1");
+            Assert.True(isAuthenticated);
         }
     }
 }

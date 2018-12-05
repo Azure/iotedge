@@ -17,10 +17,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
     [Integration]
     public class MessageStoreTest
     {
-        [Fact]
-        public async Task BasicTest()
+        [Theory]
+        [InlineData(0)]
+        [InlineData(10150)]
+        [InlineData(-1)]
+        public async Task BasicTest(long initialCheckpointOffset)
         {
-            (IMessageStore messageStore, ICheckpointStore checkpointStore) result = await this.GetMessageStore();
+            (IMessageStore messageStore, ICheckpointStore checkpointStore) result = await this.GetMessageStore(initialCheckpointOffset);
             using (IMessageStore messageStore = result.messageStore)
             {
                 for (int i = 0; i < 10000; i++)
@@ -28,12 +31,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
                     if (i % 2 == 0)
                     {
                         long offset = await messageStore.Add("module1", this.GetMessage(i));
-                        Assert.Equal(i / 2, offset);
+                        Assert.Equal(initialCheckpointOffset + 1 + i / 2, offset);
                     }
                     else
                     {
                         long offset = await messageStore.Add("module2", this.GetMessage(i));
-                        Assert.Equal(i / 2, offset);
+                        Assert.Equal(initialCheckpointOffset + 1 + i / 2, offset);
                     }
                 }
 
@@ -209,7 +212,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
             // Arrange
             var dbStoreProvider = new InMemoryDbStoreProvider();
             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
-            ICheckpointStore checkpointStore = CheckpointStore.Create(dbStoreProvider);
+            ICheckpointStore checkpointStore = CheckpointStore.Create(storeProvider);
             IMessageStore messageStore = new MessageStore(storeProvider, checkpointStore, TimeSpan.FromHours(1));
 
             // Act
@@ -278,7 +281,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
         {
             var dbStoreProvider = new InMemoryDbStoreProvider();
             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
-            ICheckpointStore checkpointStore = CheckpointStore.Create(dbStoreProvider);
+            ICheckpointStore checkpointStore = CheckpointStore.Create(storeProvider);
+            IMessageStore messageStore = new MessageStore(storeProvider, checkpointStore, TimeSpan.FromSeconds(ttlSecs));
+            await messageStore.AddEndpoint("module1");
+            await messageStore.AddEndpoint("module2");
+            return (messageStore, checkpointStore);
+        }
+
+        async Task<(IMessageStore, ICheckpointStore)> GetMessageStore(long initialCheckpointOffset, int ttlSecs = 300)
+        {
+            var dbStoreProvider = new InMemoryDbStoreProvider();
+            IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
+            
+            IEntityStore<string, CheckpointStore.CheckpointEntity> checkpointUnderlyingStore = storeProvider.GetEntityStore<string, CheckpointStore.CheckpointEntity>($"Checkpoint{Guid.NewGuid().ToString()}");
+            if (initialCheckpointOffset >= 0)
+            {
+                await checkpointUnderlyingStore.Put("module1", new CheckpointStore.CheckpointEntity(initialCheckpointOffset, null, null));
+                await checkpointUnderlyingStore.Put("module2", new CheckpointStore.CheckpointEntity(initialCheckpointOffset, null, null));
+            }
+
+            ICheckpointStore checkpointStore = new CheckpointStore(checkpointUnderlyingStore);
             IMessageStore messageStore = new MessageStore(storeProvider, checkpointStore, TimeSpan.FromSeconds(ttlSecs));
             await messageStore.AddEndpoint("module1");
             await messageStore.AddEndpoint("module2");

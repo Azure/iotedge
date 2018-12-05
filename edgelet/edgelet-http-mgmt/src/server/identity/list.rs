@@ -1,32 +1,25 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use edgelet_core::{Identity as CoreIdentity, IdentityManager};
-use edgelet_http::route::{Handler, Parameters};
 use failure::ResultExt;
-use futures::{future, Future};
-use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
-use http::{Request, Response, StatusCode};
-use hyper::{Body, Error as HyperError};
-use management::models::{Identity, IdentityList};
+use futures::Future;
+use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use hyper::{Body, Request, Response, StatusCode};
 use serde::Serialize;
 use serde_json;
 
-use error::ErrorKind;
+use edgelet_core::{Identity as CoreIdentity, IdentityManager, IdentityOperation};
+use edgelet_http::route::{Handler, Parameters};
+use edgelet_http::Error as HttpError;
+use management::models::{Identity, IdentityList};
+
+use error::{Error, ErrorKind};
 use IntoResponse;
 
-pub struct ListIdentities<I>
-where
-    I: 'static + IdentityManager,
-    I::Identity: Serialize,
-{
+pub struct ListIdentities<I> {
     id_manager: I,
 }
 
-impl<I> ListIdentities<I>
-where
-    I: 'static + IdentityManager,
-    I::Identity: Serialize,
-{
+impl<I> ListIdentities<I> {
     pub fn new(id_manager: I) -> Self {
         ListIdentities { id_manager }
     }
@@ -41,37 +34,39 @@ where
         &self,
         _req: Request<Body>,
         _params: Parameters,
-    ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
-        let response = self.id_manager.list().then(|result| {
-            result
-                .context(ErrorKind::IdentityManager)
-                .map(|identities| {
-                    let body = IdentityList::new(
-                        identities
-                            .iter()
-                            .map(|identity| {
-                                Identity::new(
-                                    identity.module_id().to_string(),
-                                    identity.managed_by().to_string(),
-                                    identity.generation_id().to_string(),
-                                    identity.auth_type().to_string(),
-                                )
-                            }).collect(),
-                    );
-                    let result = serde_json::to_string(&body)
-                        .context(ErrorKind::Serde)
-                        .map(|b| {
-                            Response::builder()
-                                .status(StatusCode::OK)
-                                .header(CONTENT_TYPE, "application/json")
-                                .header(CONTENT_LENGTH, b.len().to_string().as_str())
-                                .body(b.into())
-                                .unwrap_or_else(|e| e.into_response())
-                        }).unwrap_or_else(|e| e.into_response());
-
-                    future::ok(result)
-                }).unwrap_or_else(|e| future::ok(e.into_response()))
-        });
+    ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
+        let response = self
+            .id_manager
+            .list()
+            .then(|result| -> Result<_, Error> {
+                let identities = result.context(ErrorKind::IdentityOperation(
+                    IdentityOperation::ListIdentities,
+                ))?;
+                let body = IdentityList::new(
+                    identities
+                        .iter()
+                        .map(|identity| {
+                            Identity::new(
+                                identity.module_id().to_string(),
+                                identity.managed_by().to_string(),
+                                identity.generation_id().to_string(),
+                                identity.auth_type().to_string(),
+                            )
+                        }).collect(),
+                );
+                let b = serde_json::to_string(&body).context(ErrorKind::IdentityOperation(
+                    IdentityOperation::ListIdentities,
+                ))?;
+                let response = Response::builder()
+                    .status(StatusCode::OK)
+                    .header(CONTENT_TYPE, "application/json")
+                    .header(CONTENT_LENGTH, b.len().to_string().as_str())
+                    .body(b.into())
+                    .context(ErrorKind::IdentityOperation(
+                        IdentityOperation::ListIdentities,
+                    ))?;
+                Ok(response)
+            }).or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }
@@ -133,7 +128,7 @@ mod tests {
             .and_then(|body| {
                 let error: ErrorResponse = serde_json::from_slice(&body).unwrap();
                 assert_eq!(
-                    "Identity manager error\n\tcaused by: General error",
+                    "Could not list identities\n\tcaused by: General error",
                     error.message()
                 );
                 Ok(())

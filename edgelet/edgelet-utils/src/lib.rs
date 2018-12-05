@@ -1,8 +1,14 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 #![deny(unused_extern_crates, warnings)]
+// Remove this when clippy stops warning about old-style `allow()`,
+// which can only be silenced by enabling a feature and thus requires nightly
+//
+// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
+#![allow(renamed_and_removed_lints)]
+#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
+#![cfg_attr(feature = "cargo-clippy", allow(stutter, use_self))]
 
-#[macro_use]
 extern crate failure;
 #[cfg(test)]
 extern crate futures;
@@ -33,25 +39,33 @@ use std::collections::HashMap;
 
 pub use error::{Error, ErrorKind};
 pub use logging::log_failure;
+pub use macros::ensure_not_empty_with_context;
 pub use ser_de::{serde_clone, string_or_struct};
 
 pub fn parse_query(query: &str) -> HashMap<&str, &str> {
     query
         .split('&')
         .filter_map(|seg| {
-            if !seg.is_empty() {
+            if seg.is_empty() {
+                None
+            } else {
                 let mut tokens = seg.splitn(2, '=');
-                if let Some(key) = tokens.nth(0) {
-                    let val = tokens.nth(0).unwrap_or("");
+                if let Some(key) = tokens.next() {
+                    let val = tokens.next().unwrap_or("");
                     Some((key, val))
                 } else {
                     // if there's no key then we ignore this token
                     None
                 }
-            } else {
-                None
             }
         }).collect()
+}
+
+pub fn prepare_cert_uri_module(hub_name: &str, device_id: &str, module_id: &str) -> String {
+    format!(
+        "URI: azureiot://{}/devices/{}/modules/{}",
+        hub_name, device_id, module_id
+    )
 }
 
 #[cfg(test)]
@@ -105,4 +119,13 @@ mod tests {
         assert_eq!(map.get("k4"), Some(&"10=20"));
         assert_eq!(map.get("bling"), Some(&""));
     }
+
+    #[test]
+    fn validate_cert_uri_module() {
+        assert_eq!(
+            "URI: azureiot://hub_id/devices/did/modules/mid",
+            prepare_cert_uri_module("hub_id", "did", "mid")
+        );
+    }
+
 }

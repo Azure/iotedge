@@ -9,10 +9,8 @@
  */
 
 use std::borrow::Borrow;
-use std::borrow::Cow;
 use std::sync::Arc;
 
-use futures;
 use futures::{Future, Stream};
 use hyper;
 use serde_json;
@@ -25,7 +23,7 @@ pub struct WorkloadApiClient<C: hyper::client::connect::Connect> {
 }
 
 impl<C: hyper::client::connect::Connect> WorkloadApiClient<C> {
-    pub fn new(configuration: Arc<configuration::Configuration<C>>) -> WorkloadApiClient<C> {
+    pub fn new(configuration: Arc<configuration::Configuration<C>>) -> Self {
         WorkloadApiClient { configuration }
     }
 }
@@ -35,7 +33,7 @@ pub trait WorkloadApi {
         &self,
         api_version: &str,
         name: &str,
-        genid: &str,
+        request: ::models::IdentityCertificateRequest,
     ) -> Box<Future<Item = ::models::CertificateResponse, Error = Error<serde_json::Value>>>;
     fn create_server_certificate(
         &self,
@@ -81,7 +79,7 @@ where
         &self,
         api_version: &str,
         name: &str,
-        genid: &str,
+        request: ::models::IdentityCertificateRequest,
     ) -> Box<Future<Item = ::models::CertificateResponse, Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
@@ -91,10 +89,9 @@ where
             .append_pair("api-version", &api_version.to_string())
             .finish();
         let uri_str = format!(
-            "/modules/{name}/genid/{genid}/certificate/identity?{}",
+            "/modules/{name}/certificate/identity?{}",
             query,
             name = name,
-            genid = genid
         );
 
         let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
@@ -102,14 +99,21 @@ where
         // if let Err(e) = uri {
         //     return Box::new(futures::future::err(e));
         // }
+        let serialized = serde_json::to_string(&request).unwrap();
+        let serialized_len = serialized.len();
+
         let mut req = hyper::Request::builder();
         req.method(method).uri(uri.unwrap());
         if let Some(ref user_agent) = configuration.user_agent {
             req.header(http::header::USER_AGENT, &**user_agent);
         }
-        let req = req
-            .body(hyper::Body::empty())
+        let mut req = req
+            .body(hyper::Body::from(serialized))
             .expect("could not build hyper::Request");
+        req.headers_mut()
+            .typed_insert(&typed_headers::ContentType(mime::APPLICATION_JSON));
+        req.headers_mut()
+            .typed_insert(&typed_headers::ContentLength(serialized_len as u64));
 
         // send request
         Box::new(

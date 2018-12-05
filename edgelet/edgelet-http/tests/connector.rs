@@ -1,43 +1,39 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(warnings)]
+#![deny(unused_extern_crates, warnings)]
+// Remove this when clippy stops warning about old-style `allow()`,
+// which can only be silenced by enabling a feature and thus requires nightly
+//
+// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
+#![allow(renamed_and_removed_lints)]
+#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
 
 extern crate edgelet_http;
 extern crate edgelet_test_utils;
 extern crate futures;
-#[cfg(windows)]
-extern crate httparse;
 extern crate hyper;
 #[cfg(windows)]
 extern crate hyper_named_pipe;
 #[cfg(unix)]
 extern crate hyperlocal;
 #[cfg(windows)]
+extern crate hyperlocal_windows;
+#[cfg(windows)]
 extern crate rand;
-#[cfg(unix)]
-#[macro_use(defer)]
-extern crate scopeguard;
+extern crate tempdir;
 extern crate tokio;
 extern crate typed_headers;
 extern crate url;
 
-#[cfg(unix)]
 use std::io;
-#[cfg(windows)]
-use std::sync::mpsc::channel;
-#[cfg(windows)]
-use std::thread;
 
 use edgelet_http::UrlConnector;
 #[cfg(windows)]
 use edgelet_test_utils::run_pipe_server;
-#[cfg(unix)]
 use edgelet_test_utils::run_uds_server;
 use edgelet_test_utils::{get_unused_tcp_port, run_tcp_server};
 use futures::future;
 use futures::prelude::*;
-#[cfg(windows)]
-use httparse::Request as HtRequest;
 use hyper::{
     Body, Client, Error as HyperError, Method, Request, Response, StatusCode, Uri as HyperUri,
 };
@@ -46,7 +42,10 @@ use hyper_named_pipe::Uri as PipeUri;
 #[cfg(unix)]
 use hyperlocal::Uri as HyperlocalUri;
 #[cfg(windows)]
+use hyperlocal_windows::Uri as HyperlocalUri;
+#[cfg(windows)]
 use rand::Rng;
+use tempdir::TempDir;
 use typed_headers::mime;
 use typed_headers::{ContentLength, ContentType, HeaderMapExt};
 use url::Url;
@@ -85,23 +84,20 @@ fn tcp_get() {
     runtime.block_on(task).unwrap();
 }
 
-#[cfg(unix)]
 #[test]
+#[cfg_attr(windows, ignore)] // TODO: remove when windows build servers are upgraded to RS5
 fn uds_get() {
-    let file_path = "/tmp/edgelet_test_uds_get.sock";
+    let dir = TempDir::new("uds").unwrap();
+    let file_path = dir.path().join("sock");
+    let file_path = file_path.to_str().unwrap();
 
-    // make sure file gets deleted when test is done
-    defer! {{
-        ::std::fs::remove_file(&file_path).unwrap_or(());
-    }}
-
-    let path_copy = file_path.to_string();
-    let server = run_uds_server(&path_copy, |req| {
+    let server = run_uds_server(&file_path, |req| {
         hello_handler(req).map_err(|err| io::Error::new(io::ErrorKind::Other, err))
     }).map_err(|err| eprintln!("{}", err));
 
-    let connector =
-        UrlConnector::new(&Url::parse(&format!("unix://{}", file_path)).unwrap()).unwrap();
+    let mut url = Url::from_file_path(file_path).unwrap();
+    url.set_scheme("unix").unwrap();
+    let connector = UrlConnector::new(&url).unwrap();
 
     let client = Client::builder().build::<_, Body>(connector);
     let task = client
@@ -129,31 +125,24 @@ fn make_url(path: &str) -> String {
 }
 
 #[cfg(windows)]
-fn pipe_get_handler(_req: &HtRequest, _body: Option<Vec<u8>>) -> String {
-    format!(
-        "HTTP/1.1 200 OK\r\n\
-         Content-Type: text/plain; charset=utf-8\r\n\
-         Content-Length: {}\r\n\
-         \r\n\
-         {}",
-        GET_RESPONSE.len(),
-        GET_RESPONSE
-    )
+fn pipe_get_handler(_req: Request<Body>) -> impl Future<Item = Response<Body>, Error = io::Error> {
+    let response = Response::builder()
+        .header(hyper::header::CONTENT_TYPE, "text/plain; charset=utf-8")
+        .header(
+            hyper::header::CONTENT_LENGTH,
+            format!("{}", GET_RESPONSE.len()),
+        ).body(GET_RESPONSE.into())
+        .expect("couldn't create response body");
+    future::ok(response)
 }
 
 #[cfg(windows)]
 #[test]
 fn pipe_get() {
-    let (sender, receiver) = channel();
     let path = make_path();
     let url = make_url(&path);
 
-    thread::spawn(move || {
-        run_pipe_server(&path, pipe_get_handler, &sender);
-    });
-
-    // wait for server to get ready
-    receiver.recv().unwrap();
+    let server = run_pipe_server(path.into(), pipe_get_handler).map_err(|err| eprintln!("{}", err));
 
     let connector = UrlConnector::new(&Url::parse(&url).unwrap()).unwrap();
 
@@ -169,10 +158,9 @@ fn pipe_get() {
             assert_eq!(GET_RESPONSE, &String::from_utf8_lossy(body.as_ref()));
         });
 
-    tokio::runtime::current_thread::Runtime::new()
-        .unwrap()
-        .block_on(task)
-        .unwrap();
+    let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+    runtime.spawn(server);
+    runtime.block_on(task).unwrap();
 }
 
 const POST_BODY: &str = r#"{"donuts":"yes"}"#;
@@ -221,23 +209,20 @@ fn tcp_post() {
     runtime.block_on(task).unwrap();
 }
 
-#[cfg(unix)]
 #[test]
+#[cfg_attr(windows, ignore)] // TODO: remove when windows build servers are upgraded to RS5
 fn uds_post() {
-    let file_path = "/tmp/edgelet_test_uds_post.sock";
+    let dir = TempDir::new("uds").unwrap();
+    let file_path = dir.path().join("sock");
+    let file_path = file_path.to_str().unwrap();
 
-    // make sure file gets deleted when test is done
-    defer! {{
-        ::std::fs::remove_file(&file_path).unwrap_or(());
-    }}
-
-    let path_copy = file_path.to_string();
-    let server = run_uds_server(&path_copy, |req| {
+    let server = run_uds_server(&file_path, |req| {
         hello_handler(req).map_err(|err| io::Error::new(io::ErrorKind::Other, err))
     }).map_err(|err| eprintln!("{}", err));
 
-    let connector =
-        UrlConnector::new(&Url::parse(&format!("unix://{}", file_path)).unwrap()).unwrap();
+    let mut url = Url::from_file_path(file_path).unwrap();
+    url.set_scheme("unix").unwrap();
+    let connector = UrlConnector::new(&url).unwrap();
 
     let client = Client::builder().build::<_, Body>(connector);
 
@@ -263,28 +248,23 @@ fn uds_post() {
 }
 
 #[cfg(windows)]
-fn pipe_post_handler(_req: &HtRequest, body: Option<Vec<u8>>) -> String {
-    let body = body.unwrap();
-    let body = String::from_utf8_lossy(&body);
-    assert_eq!(&body, POST_BODY);
-
-    "HTTP/1.1 200 OK\r\n\r\n".to_string()
+fn pipe_post_handler(req: Request<Body>) -> impl Future<Item = Response<Body>, Error = io::Error> {
+    req.into_body().concat2().then(|body| {
+        let body = body.expect("couldn't read request body");
+        let body = String::from_utf8_lossy(&body);
+        assert_eq!(&body, POST_BODY);
+        Ok(Response::new(Body::default()))
+    })
 }
 
 #[cfg(windows)]
 #[test]
-#[ignore] //todo fix test. Disabling test as it is flaky and gating the checkin
 fn pipe_post() {
-    let (sender, receiver) = channel();
     let path = make_path();
     let url = make_url(&path);
 
-    thread::spawn(move || {
-        run_pipe_server(&path, pipe_post_handler, &sender);
-    });
-
-    // wait for server to get ready
-    receiver.recv().unwrap();
+    let server =
+        run_pipe_server(path.into(), pipe_post_handler).map_err(|err| eprintln!("{}", err));
 
     let connector = UrlConnector::new(&Url::parse(&url).unwrap()).unwrap();
 
@@ -307,8 +287,7 @@ fn pipe_post() {
         assert_eq!(StatusCode::OK, res.status());
     });
 
-    tokio::runtime::current_thread::Runtime::new()
-        .unwrap()
-        .block_on(task)
-        .unwrap();
+    let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+    runtime.spawn(server);
+    runtime.block_on(task).unwrap();
 }

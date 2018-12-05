@@ -1,33 +1,25 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use edgelet_core::{Module, ModuleRuntime};
-use edgelet_http::route::{Handler, Parameters};
 use failure::ResultExt;
-use futures::{future, Future};
-use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
-use http::{Request, Response, StatusCode};
-use hyper::{Body, Error as HyperError};
-use management::models::*;
+use futures::{Future, Stream};
+use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use hyper::{Body, Request, Response, StatusCode};
 use serde::Serialize;
 use serde_json;
 
-use super::core_to_details;
-use error::ErrorKind;
+use edgelet_core::{Module, ModuleRuntime, ModuleRuntimeState, RuntimeOperation};
+use edgelet_http::route::{Handler, Parameters};
+use edgelet_http::Error as HttpError;
+use management::models::*;
+
+use error::{Error, ErrorKind};
 use IntoResponse;
 
-pub struct ListModules<M>
-where
-    M: 'static + ModuleRuntime,
-    <M::Module as Module>::Config: Serialize,
-{
+pub struct ListModules<M> {
     runtime: M,
 }
 
-impl<M> ListModules<M>
-where
-    M: 'static + ModuleRuntime,
-    <M::Module as Module>::Config: Serialize,
-{
+impl<M> ListModules<M> {
     pub fn new(runtime: M) -> Self {
         ListModules { runtime }
     }
@@ -42,34 +34,64 @@ where
         &self,
         _req: Request<Body>,
         _params: Parameters,
-    ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+    ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
         debug!("List modules");
-        let response =
-            self.runtime
-                .list()
-                .then(|result| match result.context(ErrorKind::ModuleRuntime) {
-                    Ok(mods) => {
-                        let futures = mods.into_iter().map(core_to_details);
-                        let response = future::join_all(futures)
-                            .map(|details| {
-                                let body = ModuleList::new(details);
-                                serde_json::to_string(&body)
-                                    .context(ErrorKind::Serde)
-                                    .map(|b| {
-                                        Response::builder()
-                                            .status(StatusCode::OK)
-                                            .header(CONTENT_TYPE, "application/json")
-                                            .header(CONTENT_LENGTH, b.len().to_string().as_str())
-                                            .body(b.into())
-                                            .unwrap_or_else(|e| e.into_response())
-                                    }).unwrap_or_else(|e| e.into_response())
-                            }).or_else(|e| future::ok(e.into_response()));
-                        future::Either::A(response)
-                    }
-                    Err(e) => future::Either::B(future::ok(e.into_response())),
-                });
+
+        let response = self
+            .runtime
+            .list_with_details()
+            .collect()
+            .then(|result| -> Result<_, Error> {
+                let details: Result<_, Error> = result
+                    .context(ErrorKind::RuntimeOperation(RuntimeOperation::ListModules))?
+                    .into_iter()
+                    .map(|(module, state)| core_to_details(&module, &state))
+                    .collect();
+                let body = ModuleList::new(details?);
+                let b = serde_json::to_string(&body)
+                    .context(ErrorKind::RuntimeOperation(RuntimeOperation::ListModules))?;
+                let response = Response::builder()
+                    .status(StatusCode::OK)
+                    .header(CONTENT_TYPE, "application/json")
+                    .header(CONTENT_LENGTH, b.len().to_string().as_str())
+                    .body(b.into())
+                    .context(ErrorKind::RuntimeOperation(RuntimeOperation::ListModules))?;
+                Ok(response)
+            }).or_else(|e| Ok(e.into_response()));
+
         Box::new(response)
     }
+}
+
+fn core_to_details<M>(module: &M, state: &ModuleRuntimeState) -> Result<ModuleDetails, Error>
+where
+    M: 'static + Module + Send,
+    M::Config: Serialize,
+{
+    let settings = serde_json::to_value(module.config())
+        .context(ErrorKind::RuntimeOperation(RuntimeOperation::ListModules))?;
+    let config = Config::new(settings).with_env(vec![]);
+    let mut runtime_status = RuntimeStatus::new(state.status().to_string());
+    if let Some(description) = state.status_description() {
+        runtime_status.set_description(description.to_string());
+    }
+    let mut status = Status::new(runtime_status);
+    if let Some(started_at) = state.started_at() {
+        status.set_start_time(started_at.to_rfc3339());
+    }
+    if let Some(code) = state.exit_code() {
+        if let Some(finished_at) = state.finished_at() {
+            status.set_exit_status(ExitStatus::new(finished_at.to_rfc3339(), code.to_string()));
+        }
+    }
+
+    Ok(ModuleDetails::new(
+        "id".to_string(),
+        module.name().to_string(),
+        module.type_().to_string(),
+        config,
+        status,
+    ))
 }
 
 #[cfg(test)]
@@ -160,7 +182,7 @@ mod tests {
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
                 assert_eq!(
-                    "Module runtime error\n\tcaused by: General error",
+                    "Could not list modules\n\tcaused by: General error",
                     error.message()
                 );
                 Ok(())
@@ -189,7 +211,7 @@ mod tests {
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
                 assert_eq!(
-                    "Module runtime error\n\tcaused by: General error",
+                    "Could not list modules\n\tcaused by: General error",
                     error.message()
                 );
                 Ok(())

@@ -6,7 +6,7 @@ use serde_json;
 pub enum Error<T> {
     Hyper(hyper::Error),
     Serde(serde_json::Error),
-    ApiError(ApiError<T>),
+    Api(ApiError<T>),
 }
 
 #[derive(Debug)]
@@ -21,17 +21,17 @@ where
 {
     fn from(e: (hyper::StatusCode, &'de [u8])) -> Self {
         if e.1.is_empty() {
-            return Error::ApiError(ApiError {
+            return Error::Api(ApiError {
                 code: e.0,
                 content: None,
             });
         }
         match serde_json::from_slice::<T>(e.1) {
-            Ok(t) => Error::ApiError(ApiError {
+            Ok(t) => Error::Api(ApiError {
                 code: e.0,
                 content: Some(t),
             }),
-            Err(e) => Error::from(e),
+            Err(e) => e.into(),
         }
     }
 }
@@ -47,8 +47,6 @@ impl<T> From<serde_json::Error> for Error<T> {
         Error::Serde(e)
     }
 }
-
-use super::models::*;
 
 mod identity_api;
 pub use self::identity_api::{IdentityApi, IdentityApiClient};

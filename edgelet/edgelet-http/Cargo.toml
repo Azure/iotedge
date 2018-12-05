@@ -8,9 +8,7 @@ publish = false
 bytes = "0.4"
 chrono = "0.4"
 failure = "0.1"
-failure_derive = "0.1"
 futures = "0.1"
-http = "0.1"
 hyper = "0.12"
 hyper-proxy = "0.5"
 hyper-tls = "0.3"
@@ -19,7 +17,7 @@ percent-encoding = "1.0"
 regex = "0.2"
 serde = "1.0"
 serde_json = "1.0"
-tokio = "0.1.8"
+tokio = "0.1.11"
 typed-headers = "0.1"
 url = "1.7"
 
@@ -36,16 +34,18 @@ tokio-uds = "0.2"
 
 [target.'cfg(windows)'.dependencies]
 hyper-named-pipe = { path = "../hyper-named-pipe" }
+hyperlocal-windows = { git = "https://github.com/Azure/hyperlocal-windows" }
+mio-uds-windows = { git = "https://github.com/Azure/mio-uds-windows.git" }
 tokio-named-pipe = { path = "../tokio-named-pipe" }
+tokio-uds-windows = { git = "https://github.com/Azure/tokio-uds-windows.git" }
+winapi = { version = "0.3.5", features = ["winsock2"] }
 
 [dev-dependencies]
 lazy_static = "1.0"
+tempfile = "3"
+tempdir = "0.3.7"
 
 edgelet-test-utils = { path = "../edgelet-test-utils" }
 
-[target.'cfg(unix)'.dev-dependencies]
-tempfile = "3"
-
 [target.'cfg(windows)'.dev-dependencies]
-httparse = "1.2"
 rand = "0.4"

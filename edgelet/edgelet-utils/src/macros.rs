@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+
 //! Utility macros
 //!
 //! This module contains helper macros for implementing argument validation in
@@ -28,7 +29,7 @@
 //! }
 //!
 //! impl From<UtilsError> for BooError {
-//!     fn from(err: UtilsError) -> BooError {
+//!     fn from(err: UtilsError) -> Self {
 //!         BooError { inner: Box::new(err) }
 //!     }
 //! }
@@ -68,7 +69,7 @@
 //! }
 //!
 //! impl From<UtilsError> for BooError {
-//!     fn from(err: UtilsError) -> BooError {
+//!     fn from(err: UtilsError) -> Self {
 //!         BooError { inner: Box::new(err) }
 //!     }
 //! }
@@ -89,6 +90,12 @@
 //!     let _thing_future = do_the_thing(20);
 //! }
 //! ```
+
+use std::fmt;
+
+use failure::{Context, Fail};
+
+use error::ErrorKind;
 
 /// Exits a function early with an `Error`.
 ///
@@ -147,13 +154,14 @@ macro_rules! fbail {
 /// Not to be directly invoked. Use one of the other `ensure*` macros.
 #[macro_export]
 macro_rules! ensure_impl {
-    ($val:expr, $cond:expr, $err:expr, $bail:tt) => {
-        if !($cond) {
-            $bail!($err);
-        } else {
+    ($val:expr, $cond:expr, $err:expr, $bail:tt) => {{
+        let cond = $cond;
+        if cond {
             $val
+        } else {
+            $bail!($err);
         }
-    };
+    }};
 }
 
 /// Check if a condition evaluates to `true` and call the `bail!` macro with an
@@ -302,10 +310,7 @@ macro_rules! ensure_greater_impl {
             (val_val, low_val) => $ensure!(
                 *val_val,
                 *val_val > *low_val,
-                $crate::ErrorKind::ArgumentTooLow(
-                    format!("{}", val_val),
-                    format!("{}", low_val),
-                )
+                $crate::ErrorKind::ArgumentTooLow(format!("{}", val_val), format!("{}", low_val))
             ),
         }
     };
@@ -418,6 +423,18 @@ macro_rules! fensure_not_empty {
     };
 }
 
+pub fn ensure_not_empty_with_context<D, F>(value: &str, context: F) -> Result<(), Context<D>>
+where
+    D: fmt::Display + Send + Sync,
+    F: FnOnce() -> D,
+{
+    if value.trim().is_empty() {
+        return Err(ErrorKind::ArgumentEmpty(String::new()).context(context()));
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use std::fmt::Debug;
@@ -428,24 +445,24 @@ mod tests {
 
     use error::{Error, ErrorKind};
 
-    fn check_value<T, F>(expected: T, f: F)
+    fn check_value<T, F>(expected: &T, f: F)
     where
         F: Fn() -> Result<T, Error>,
         T: PartialEq + Debug,
     {
         match f() {
-            Ok(actual) => assert_eq!(expected, actual),
+            Ok(actual) => assert_eq!(expected, &actual),
             Err(err) => panic!(format!("{:?}", err)),
         }
     }
 
-    fn check_fvalue<T, F>(expected: T, f: F)
+    fn check_fvalue<T, F>(expected: &T, f: F)
     where
         F: Fn() -> Box<Future<Item = T, Error = Error>>,
         T: PartialEq + Debug,
     {
         match f().wait() {
-            Ok(actual) => assert_eq!(expected, actual),
+            Ok(actual) => assert_eq!(expected, &actual),
             Err(err) => panic!(format!("{:?}", err)),
         }
     }
@@ -484,7 +501,9 @@ mod tests {
 
     #[test]
     fn validate_ensure() {
-        check_value(15, || Ok(ensure!(15, 15 > 10)));
+        check_value(&15, || Ok(ensure!(15, 15 > 10)));
+
+        #[cfg_attr(feature = "cargo-clippy", allow(eq_op))]
         check_error(
             |err| {
                 mem::discriminant(err.kind())
@@ -496,7 +515,9 @@ mod tests {
 
     #[test]
     fn validate_fensure() {
-        check_fvalue(15, || Box::new(future::ok(fensure!(15, 15 > 10))));
+        check_fvalue(&15, || Box::new(future::ok(fensure!(15, 15 > 10))));
+
+        #[cfg_attr(feature = "cargo-clippy", allow(eq_op))]
         check_ferror(
             |err| {
                 mem::discriminant(err.kind())
@@ -516,8 +537,8 @@ mod tests {
             ))
         });
 
-        check_value(10, || Ok(ensure_range!(10, 5, 15)));
-        check_value(15, || Ok(ensure_range!(15, 5, 15)));
+        check_value(&10, || Ok(ensure_range!(10, 5, 15)));
+        check_value(&15, || Ok(ensure_range!(15, 5, 15)));
         check_error(validator.as_ref(), || Ok(ensure_range!(3, 5, 15)));
         check_error(validator.as_ref(), || Ok(ensure_range!(5, 5, 15)));
         check_error(validator.as_ref(), || Ok(ensure_range!(25, 5, 15)));
@@ -533,8 +554,8 @@ mod tests {
             ))
         });
 
-        check_fvalue(10, || Box::new(future::ok(fensure_range!(10, 5, 15))));
-        check_fvalue(15, || Box::new(future::ok(fensure_range!(15, 5, 15))));
+        check_fvalue(&10, || Box::new(future::ok(fensure_range!(10, 5, 15))));
+        check_fvalue(&15, || Box::new(future::ok(fensure_range!(15, 5, 15))));
         check_ferror(validator.as_ref(), || {
             Box::new(future::ok(fensure_range!(3, 5, 15)))
         });
@@ -553,7 +574,7 @@ mod tests {
                 == mem::discriminant(&ErrorKind::ArgumentTooLow("".to_string(), "".to_string()))
         });
 
-        check_value(10, || Ok(ensure_greater!(10, 5)));
+        check_value(&10, || Ok(ensure_greater!(10, 5)));
         check_error(validator.as_ref(), || Ok(ensure_greater!(10, 25)));
     }
 
@@ -564,7 +585,7 @@ mod tests {
                 == mem::discriminant(&ErrorKind::ArgumentTooLow("".to_string(), "".to_string()))
         });
 
-        check_fvalue(10, || Box::new(future::ok(fensure_greater!(10, 5))));
+        check_fvalue(&10, || Box::new(future::ok(fensure_greater!(10, 5))));
         check_ferror(validator.as_ref(), || {
             Box::new(future::ok(fensure_greater!(10, 25)))
         });
@@ -591,8 +612,8 @@ mod tests {
         check_error(validator.as_ref(), || {
             Ok(ensure_not_empty!("    ".to_string(), "white space String"))
         });
-        check_value("  not empty  ", || Ok(ensure_not_empty!("  not empty  ")));
-        check_value("  not empty  ".to_string(), || {
+        check_value(&"  not empty  ", || Ok(ensure_not_empty!("  not empty  ")));
+        check_value(&"  not empty  ".to_string(), || {
             Ok(ensure_not_empty!("  not empty  ".to_string()))
         });
     }
@@ -628,10 +649,10 @@ mod tests {
                 "white space String"
             )))
         });
-        check_fvalue("  not empty  ", || {
+        check_fvalue(&"  not empty  ", || {
             Box::new(future::ok(fensure_not_empty!("  not empty  ")))
         });
-        check_fvalue("  not empty  ".to_string(), || {
+        check_fvalue(&"  not empty  ".to_string(), || {
             Box::new(future::ok(fensure_not_empty!("  not empty  ".to_string())))
         });
     }

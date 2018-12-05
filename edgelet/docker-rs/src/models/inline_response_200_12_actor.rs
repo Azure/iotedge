@@ -25,7 +25,7 @@ pub struct InlineResponse20012Actor {
 }
 
 impl InlineResponse20012Actor {
-    pub fn new() -> InlineResponse20012Actor {
+    pub fn new() -> Self {
         InlineResponse20012Actor {
             ID: None,
             attributes: None,
@@ -36,13 +36,13 @@ impl InlineResponse20012Actor {
         self.ID = Some(ID);
     }
 
-    pub fn with_ID(mut self, ID: String) -> InlineResponse20012Actor {
+    pub fn with_ID(mut self, ID: String) -> Self {
         self.ID = Some(ID);
         self
     }
 
-    pub fn ID(&self) -> Option<&String> {
-        self.ID.as_ref()
+    pub fn ID(&self) -> Option<&str> {
+        self.ID.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_ID(&mut self) {
@@ -56,7 +56,7 @@ impl InlineResponse20012Actor {
     pub fn with_attributes(
         mut self,
         attributes: ::std::collections::HashMap<String, String>,
-    ) -> InlineResponse20012Actor {
+    ) -> Self {
         self.attributes = Some(attributes);
         self
     }

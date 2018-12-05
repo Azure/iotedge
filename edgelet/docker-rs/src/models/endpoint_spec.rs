@@ -25,7 +25,7 @@ pub struct EndpointSpec {
 
 impl EndpointSpec {
     /// Properties that can be configured to access and load balance a service.
-    pub fn new() -> EndpointSpec {
+    pub fn new() -> Self {
         EndpointSpec {
             mode: None,
             ports: None,
@@ -36,13 +36,13 @@ impl EndpointSpec {
         self.mode = Some(mode);
     }
 
-    pub fn with_mode(mut self, mode: String) -> EndpointSpec {
+    pub fn with_mode(mut self, mode: String) -> Self {
         self.mode = Some(mode);
         self
     }
 
-    pub fn mode(&self) -> Option<&String> {
-        self.mode.as_ref()
+    pub fn mode(&self) -> Option<&str> {
+        self.mode.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_mode(&mut self) {
@@ -53,13 +53,13 @@ impl EndpointSpec {
         self.ports = Some(ports);
     }
 
-    pub fn with_ports(mut self, ports: Vec<::models::EndpointPortConfig>) -> EndpointSpec {
+    pub fn with_ports(mut self, ports: Vec<::models::EndpointPortConfig>) -> Self {
         self.ports = Some(ports);
         self
     }
 
-    pub fn ports(&self) -> Option<&Vec<::models::EndpointPortConfig>> {
-        self.ports.as_ref()
+    pub fn ports(&self) -> Option<&[::models::EndpointPortConfig]> {
+        self.ports.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_ports(&mut self) {

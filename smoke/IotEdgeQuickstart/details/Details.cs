@@ -235,7 +235,7 @@ namespace IotEdgeQuickstart.Details
                 EventPosition.FromEnd());
 
             var result = new TaskCompletionSource<bool>();
-            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3)))
+            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5)))
             {
                 using (cts.Token.Register(() => result.TrySetCanceled()))
                 {
@@ -344,7 +344,11 @@ namespace IotEdgeQuickstart.Details
             string edgeHubImage = this.EdgeHubImage();
             string tempSensorImage = this.TempSensorImage();
             string deployJson = this.DeploymentFileName.Match(
-                f => JObject.Parse(File.ReadAllText(f)).ToString(),
+                f =>
+                {
+                    Console.WriteLine($"Deployment file used: {f}");
+                    return JObject.Parse(File.ReadAllText(f)).ToString();
+                },
                 () => {
                     string deployJsonRegistry = this.credentials.Match(
                     c =>

@@ -13,15 +13,15 @@ agent:
 hostname: "localhost"
 
 connect:
-  management_uri: "http://localhost:15580"
-  workload_uri: "http://localhost:15581"
+  management_uri: "unix:///C:/ProgramData/iotedge/mgmt/sock"
+  workload_uri: "unix:///C:/ProgramData/iotedge/workload/sock"
 
 listen:
-  management_uri: "http://0.0.0.0:15580"
-  workload_uri: "http://0.0.0.0:15581"
+  management_uri: "unix:///C:/ProgramData/iotedge/mgmt/sock"
+  workload_uri: "unix:///C:/ProgramData/iotedge/workload/sock"
 
 homedir: "C:\\ProgramData\\iotedge"
 
 moby_runtime:
-  uri: "npipe://./pipe/docker_engine"
+  uri: "npipe://./pipe/iotedge_moby_engine"
   network: "nat"

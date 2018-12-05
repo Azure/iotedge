@@ -2,12 +2,22 @@
 
 //! iot-hsm-sys
 //! Rust FFI to C library interface
-//! Based off of https://github.com/Azure/azure-iot-hsm-c/inc/hsm_client_data.h
+//! Based off of <https://github.com/Azure/azure-iot-hsm-c/inc/hsm_client_data.h>
 //! Commit id: 11dd77758c6ed1cb06b7c0ba40fdd49bd0d7d3f1
 //!
-//! Intitial version created through bindgen https://docs.rs/bindgen/
+//! Intitial version created through bindgen <https://docs.rs/bindgen/>
 
 #![deny(unused_extern_crates, warnings)]
+// Remove this when clippy stops warning about old-style `allow()`,
+// which can only be silenced by enabling a feature and thus requires nightly
+//
+// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
+#![allow(renamed_and_removed_lints)]
+#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
+#![cfg_attr(feature = "cargo-clippy", allow(
+    doc_markdown, // bindgen-generated docs
+    use_self, // bindgen-generated signatures
+))]
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals)]
 
 use std::os::raw::{c_char, c_int, c_uchar, c_void};
@@ -34,7 +44,7 @@ fn bindgen_test_supported_hsm_version() {
             .to_string_lossy()
             .into_owned()
     };
-    assert_eq!(String::from("1.0.0"), result);
+    assert_eq!(String::from("1.0.1"), result);
 }
 
 pub type HSM_CLIENT_HANDLE = *mut c_void;
@@ -62,7 +72,7 @@ fn bindgen_test_layout_SIZED_BUFFER_TAG() {
     );
     assert_eq!(
         ::std::mem::align_of::<SIZED_BUFFER_TAG>(),
-        1_usize * ::std::mem::size_of::<usize>(),
+        ::std::mem::size_of::<usize>(),
         concat!("Alignment of ", stringify!(SIZED_BUFFER_TAG))
     );
     assert_eq!(
@@ -77,7 +87,7 @@ fn bindgen_test_layout_SIZED_BUFFER_TAG() {
     );
     assert_eq!(
         unsafe { &(*(::std::ptr::null::<SIZED_BUFFER_TAG>())).size as *const _ as usize },
-        1_usize * ::std::mem::size_of::<usize>(),
+        ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
             stringify!(SIZED_BUFFER_TAG),
@@ -330,6 +340,21 @@ extern "C" {
     pub fn get_alias(handle: CERT_PROPS_HANDLE) -> *const c_char;
 }
 
+extern "C" {
+    pub fn set_san_entries(
+        handle: CERT_PROPS_HANDLE,
+        san_list: *const *const c_char,
+        num_entries: usize,
+    ) -> c_int;
+}
+
+extern "C" {
+    pub fn get_san_entries(
+        handle: CERT_PROPS_HANDLE,
+        num_entries: *mut usize,
+    ) -> *const *const c_char;
+}
+
 /// API generates a X.509 certificate and private key pair using the supplied
 /// certificate properties. Any CA certificates are expected to by issued by
 /// the Device CA. Other certificates may be issued by any intermediate CA
@@ -451,6 +476,10 @@ extern "C" {
 }
 
 extern "C" {
+    pub fn certificate_info_get_valid_to(handle: CERT_INFO_HANDLE) -> i64;
+}
+
+extern "C" {
     pub fn certificate_info_private_key_type(handle: CERT_INFO_HANDLE) -> PRIVATE_KEY_TYPE;
 }
 
@@ -497,7 +526,7 @@ fn bindgen_test_layout_HSM_CLIENT_TPM_INTERFACE_TAG() {
     );
     assert_eq!(
         ::std::mem::align_of::<HSM_CLIENT_TPM_INTERFACE_TAG>(),
-        1_usize * ::std::mem::size_of::<usize>(),
+        ::std::mem::size_of::<usize>(),
         concat!("Alignment of ", stringify!(HSM_CLIENT_TPM_INTERFACE_TAG))
     );
     assert_eq!(
@@ -505,7 +534,7 @@ fn bindgen_test_layout_HSM_CLIENT_TPM_INTERFACE_TAG() {
             &(*(::std::ptr::null::<HSM_CLIENT_TPM_INTERFACE_TAG>())).hsm_client_tpm_create
                 as *const _ as usize
         },
-        0usize,
+        0_usize,
         concat!(
             "Offset of field: ",
             stringify!(HSM_CLIENT_TPM_INTERFACE_TAG),
@@ -518,7 +547,7 @@ fn bindgen_test_layout_HSM_CLIENT_TPM_INTERFACE_TAG() {
             &(*(::std::ptr::null::<HSM_CLIENT_TPM_INTERFACE_TAG>())).hsm_client_tpm_destroy
                 as *const _ as usize
         },
-        1_usize * ::std::mem::size_of::<usize>(),
+        ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
             stringify!(HSM_CLIENT_TPM_INTERFACE_TAG),
@@ -641,7 +670,7 @@ fn bindgen_test_layout_HSM_CLIENT_X509_INTERFACE_TAG() {
     );
     assert_eq!(
         ::std::mem::align_of::<HSM_CLIENT_X509_INTERFACE_TAG>(),
-        1_usize * ::std::mem::size_of::<usize>(),
+        ::std::mem::size_of::<usize>(),
         concat!("Alignment of ", stringify!(HSM_CLIENT_X509_INTERFACE_TAG))
     );
     assert_eq!(
@@ -649,7 +678,7 @@ fn bindgen_test_layout_HSM_CLIENT_X509_INTERFACE_TAG() {
             &(*(::std::ptr::null::<HSM_CLIENT_X509_INTERFACE_TAG>())).hsm_client_x509_create
                 as *const _ as usize
         },
-        0usize,
+        0_usize,
         concat!(
             "Offset of field: ",
             stringify!(HSM_CLIENT_X509_INTERFACE_TAG),
@@ -662,7 +691,7 @@ fn bindgen_test_layout_HSM_CLIENT_X509_INTERFACE_TAG() {
             &(*(::std::ptr::null::<HSM_CLIENT_X509_INTERFACE_TAG>())).hsm_client_x509_destroy
                 as *const _ as usize
         },
-        1_usize * ::std::mem::size_of::<usize>(),
+        ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
             stringify!(HSM_CLIENT_X509_INTERFACE_TAG),
@@ -768,7 +797,7 @@ fn bindgen_test_layout_HSM_CLIENT_CRYPTO_INTERFACE_TAG() {
     );
     assert_eq!(
         ::std::mem::align_of::<HSM_CLIENT_CRYPTO_INTERFACE_TAG>(),
-        1_usize * ::std::mem::size_of::<usize>(),
+        ::std::mem::size_of::<usize>(),
         concat!("Alignment of ", stringify!(HSM_CLIENT_CRYPTO_INTERFACE_TAG))
     );
     assert_eq!(
@@ -776,7 +805,7 @@ fn bindgen_test_layout_HSM_CLIENT_CRYPTO_INTERFACE_TAG() {
             &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE_TAG>())).hsm_client_crypto_create
                 as *const _ as usize
         },
-        0usize,
+        0_usize,
         concat!(
             "Offset of field: ",
             stringify!(HSM_CLIENT_CRYPTO_INTERFACE_TAG),
@@ -789,7 +818,7 @@ fn bindgen_test_layout_HSM_CLIENT_CRYPTO_INTERFACE_TAG() {
             &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE_TAG>())).hsm_client_crypto_destroy
                 as *const _ as usize
         },
-        1_usize * ::std::mem::size_of::<usize>(),
+        ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
             stringify!(HSM_CLIENT_CRYPTO_INTERFACE_TAG),

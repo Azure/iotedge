@@ -1,7 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
+
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 {
     using System;
+    using System.Collections.Generic;
+    using System.Security.Cryptography.X509Certificates;
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -11,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using Moq;
     using Xunit;
 
-    public class TokenCredentialsStoreTest
+    public class PersistedTokenCredentialsCacheTest
     {
         [Fact]
         [Unit]
@@ -22,12 +25,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             string callerProductInfo = "productInfo";
             string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/device1/modules/moduleId");
             var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
-            var credentials = new TokenCredentials(identity, sasToken, callerProductInfo);
+            var credentials = new TokenCredentials(identity, sasToken, callerProductInfo, true);
 
             var dbStoreProvider = new InMemoryDbStoreProvider();
             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
             var encryptedStore = new EncryptedStore<string, string>(storeProvider.GetEntityStore<string, string>("tokenCredentials"), new NullEncryptionProvider());
-            var tokenCredentialsStore = new TokenCredentialsCache(encryptedStore);
+            var tokenCredentialsStore = new PersistedTokenCredentialsCache(encryptedStore);
 
             // Act
             await tokenCredentialsStore.Add(credentials);
@@ -38,6 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var storedTokenCredentials = storedCredentials.OrDefault() as ITokenCredentials;
             Assert.NotNull(storedTokenCredentials);
             Assert.Equal(sasToken, storedTokenCredentials.Token);
+            Assert.Equal(credentials.IsUpdatable, storedTokenCredentials.IsUpdatable);
         }
 
         [Fact]
@@ -49,12 +53,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             string callerProductInfo = "productInfo";
             string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/device1/modules/moduleId");
             var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
-            var credentials = new TokenCredentials(identity, sasToken, callerProductInfo);
+            var credentials = new TokenCredentials(identity, sasToken, callerProductInfo, false);
 
             var dbStoreProvider = new InMemoryDbStoreProvider();
             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
             var encryptedStore = new EncryptedStore<string, string>(storeProvider.GetEntityStore<string, string>("tokenCredentials"), new TestEncryptionProvider());
-            var tokenCredentialsStore = new TokenCredentialsCache(encryptedStore);
+            var tokenCredentialsStore = new PersistedTokenCredentialsCache(encryptedStore);
 
             // Act
             await tokenCredentialsStore.Add(credentials);
@@ -65,6 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var storedTokenCredentials = storedCredentials.OrDefault() as ITokenCredentials;
             Assert.NotNull(storedTokenCredentials);
             Assert.Equal(sasToken, storedTokenCredentials.Token);
+            Assert.Equal(credentials.IsUpdatable, storedTokenCredentials.IsUpdatable);
         }
 
         [Fact]
@@ -74,12 +79,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Arrange
             string callerProductInfo = "productInfo";
             var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
-            var credentials = new X509CertCredentials(identity, callerProductInfo);
+            var clientCertificate = new X509Certificate2();
+            var clientCertChain = new List<X509Certificate2>();
+            var credentials = new X509CertCredentials(identity, callerProductInfo, clientCertificate, clientCertChain);
 
             var dbStoreProvider = new InMemoryDbStoreProvider();
             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
             var encryptedStore = new EncryptedStore<string, string>(storeProvider.GetEntityStore<string, string>("tokenCredentials"), new TestEncryptionProvider());
-            var tokenCredentialsStore = new TokenCredentialsCache(encryptedStore);
+            var tokenCredentialsStore = new PersistedTokenCredentialsCache(encryptedStore);
 
             // Act
             await tokenCredentialsStore.Add(credentials);
@@ -87,6 +94,34 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             // Assert
             Assert.False(storedCredentials.HasValue);
+        }
+
+        [Fact]
+        [Unit]
+        public async Task RoundtripTokenCredentialsWithEncryptionBackwardCompatibilityTest()
+        {
+            // Arrange
+            string iothubHostName = "iothub1.azure.net";
+            string callerProductInfo = "productInfo";
+            string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/device1/modules/moduleId");
+            var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
+            var credentials = new TokenCredentials(identity, sasToken, callerProductInfo, true);
+
+            var dbStoreProvider = new InMemoryDbStoreProvider();
+            IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
+            var encryptedStore = new EncryptedStore<string, string>(storeProvider.GetEntityStore<string, string>("tokenCredentials"), new TestEncryptionProvider());
+            var tokenCredentialsStore = new PersistedTokenCredentialsCache(encryptedStore);
+
+            // Act
+            await encryptedStore.Put(credentials.Identity.Id, credentials.Token);
+            Option<IClientCredentials> storedCredentials = await tokenCredentialsStore.Get(identity);
+
+            // Assert
+            Assert.True(storedCredentials.HasValue);
+            var storedTokenCredentials = storedCredentials.OrDefault() as ITokenCredentials;
+            Assert.NotNull(storedTokenCredentials);
+            Assert.Equal(sasToken, storedTokenCredentials.Token);
+            Assert.Equal(false, storedTokenCredentials.IsUpdatable);
         }
 
         class TestEncryptionProvider : IEncryptionProvider

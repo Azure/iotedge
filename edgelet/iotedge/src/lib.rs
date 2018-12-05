@@ -6,6 +6,8 @@
 //
 // Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
 #![allow(renamed_and_removed_lints)]
+#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
+#![cfg_attr(feature = "cargo-clippy", allow(stutter, use_self))]
 
 extern crate bytes;
 extern crate chrono;
@@ -13,15 +15,11 @@ extern crate chrono_humanize;
 #[macro_use]
 extern crate clap;
 extern crate edgelet_core;
-extern crate edgelet_http_mgmt;
 extern crate failure;
-#[macro_use]
-extern crate failure_derive;
 #[macro_use]
 extern crate futures;
 extern crate tabwriter;
 extern crate tokio;
-extern crate url;
 
 use futures::Future;
 

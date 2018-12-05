@@ -1,6 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 #![deny(unused_extern_crates, warnings)]
+// Remove this when clippy stops warning about old-style `allow()`,
+// which can only be silenced by enabling a feature and thus requires nightly
+//
+// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
+#![allow(renamed_and_removed_lints)]
+#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
 
 #[macro_use]
 extern crate clap;
@@ -16,16 +22,18 @@ use std::io::Write;
 use std::process;
 
 use clap::{App, AppSettings, Arg, SubCommand};
+use failure::{Fail, ResultExt};
+use url::Url;
+
 use edgelet_core::{LogOptions, LogTail};
 use edgelet_http_mgmt::ModuleClient;
-use failure::Fail;
+
 use iotedge::*;
-use url::Url;
 
 #[cfg(unix)]
 const MGMT_URI: &str = "unix:///var/run/iotedge/mgmt.sock";
 #[cfg(windows)]
-const MGMT_URI: &str = "http://localhost:15580";
+const MGMT_URI: &str = "unix:///C:/ProgramData/iotedge/mgmt/sock";
 
 fn main() {
     if let Err(ref error) = run() {
@@ -94,13 +102,17 @@ fn run() -> Result<(), Error> {
         ).subcommand(SubCommand::with_name("version").about("Show the version information"))
         .get_matches();
 
-    let url = matches
-        .value_of("host")
-        .map(|h| Url::parse(h).map_err(Error::from))
-        .unwrap_or_else(|| Err(Error::from(ErrorKind::NoHost)))?;
-    let runtime = ModuleClient::new(&url)?;
+    let url = matches.value_of("host").map_or_else(
+        || Err(Error::from(ErrorKind::MissingHostParameter)),
+        |h| {
+            Url::parse(h)
+                .context(ErrorKind::BadHostParameter)
+                .map_err(Error::from)
+        },
+    )?;
+    let runtime = ModuleClient::new(&url).context(ErrorKind::ModuleRuntime)?;
 
-    let mut tokio_runtime = tokio::runtime::Runtime::new()?;
+    let mut tokio_runtime = tokio::runtime::Runtime::new().context(ErrorKind::InitializeTokio)?;
 
     match matches.subcommand() {
         ("list", Some(_args)) => tokio_runtime.block_on(List::new(runtime, io::stdout()).execute()),

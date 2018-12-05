@@ -21,7 +21,7 @@ pub struct ContainerSummaryInnerNetworkSettings {
 
 impl ContainerSummaryInnerNetworkSettings {
     /// A summary of the container's network settings
-    pub fn new() -> ContainerSummaryInnerNetworkSettings {
+    pub fn new() -> Self {
         ContainerSummaryInnerNetworkSettings { networks: None }
     }
 
@@ -35,7 +35,7 @@ impl ContainerSummaryInnerNetworkSettings {
     pub fn with_networks(
         mut self,
         networks: ::std::collections::HashMap<String, ::models::EndpointSettings>,
-    ) -> ContainerSummaryInnerNetworkSettings {
+    ) -> Self {
         self.networks = Some(networks);
         self
     }

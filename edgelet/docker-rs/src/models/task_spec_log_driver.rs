@@ -23,7 +23,7 @@ pub struct TaskSpecLogDriver {
 
 impl TaskSpecLogDriver {
     /// Specifies the log driver to use for tasks created from this spec. If not present, the default one for the swarm will be used, finally falling back to the engine default if not specified.
-    pub fn new() -> TaskSpecLogDriver {
+    pub fn new() -> Self {
         TaskSpecLogDriver {
             name: None,
             options: None,
@@ -34,13 +34,13 @@ impl TaskSpecLogDriver {
         self.name = Some(name);
     }
 
-    pub fn with_name(mut self, name: String) -> TaskSpecLogDriver {
+    pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
     }
 
-    pub fn name(&self) -> Option<&String> {
-        self.name.as_ref()
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_name(&mut self) {
@@ -51,10 +51,7 @@ impl TaskSpecLogDriver {
         self.options = Some(options);
     }
 
-    pub fn with_options(
-        mut self,
-        options: ::std::collections::HashMap<String, String>,
-    ) -> TaskSpecLogDriver {
+    pub fn with_options(mut self, options: ::std::collections::HashMap<String, String>) -> Self {
         self.options = Some(options);
         self
     }

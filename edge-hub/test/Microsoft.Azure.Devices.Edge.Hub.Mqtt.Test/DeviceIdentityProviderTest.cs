@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 {
     using System;
     using System.Collections.Generic;
+    using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -16,12 +17,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         static IEnumerable<object[]> GetIdentityProviderInputs()
         {
             string sasToken = TokenHelper.CreateSasToken("TestHub.azure-devices.net/devices/device_2", "AAAAAAAAAAAzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz");
+            X509Certificate2 certificate = new X509Certificate2();
+            IList<X509Certificate2> chain = new List<X509Certificate2>() { certificate };
+
             yield return new object[]
             {
                 "TestHub.azure-devices.net",
                 "Device_2",
                 $"127.0.0.1/Device_2/api-version=2016-11-14&DeviceClientType={Uri.EscapeDataString("Microsoft.Azure.Devices.Client/1.2.2")}",
                 sasToken,
+                null,
+                null,
                 true,
                 typeof(ProtocolGatewayIdentity)
             };
@@ -32,6 +38,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 "Device_1",
                 $"127.0.0.1/Device_2/api-version=2016-11-14&DeviceClientType={Uri.EscapeDataString("Microsoft.Azure.Devices.Client/1.2.2")}",
                 sasToken,
+                null,
+                null,
                 true,
                 typeof(UnauthenticatedDeviceIdentity)
             };
@@ -42,6 +50,44 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 "Device_2",
                 $"127.0.0.1/Device_2/api-version=2016-11-14&DeviceClientType={Uri.EscapeDataString("Microsoft.Azure.Devices.Client/1.2.2")}",
                 sasToken,
+                null,
+                null,
+                false,
+                typeof(UnauthenticatedDeviceIdentity)
+            };
+
+            yield return new object[]
+            {
+                "TestHub.azure-devices.net",
+                "Device_2",
+                $"127.0.0.1/Device_2/api-version=2016-11-14&DeviceClientType={Uri.EscapeDataString("Microsoft.Azure.Devices.Client/1.2.2")}",
+                null,
+                certificate,
+                chain,
+                true,
+                typeof(ProtocolGatewayIdentity)
+            };
+
+            yield return new object[]
+            {
+                "TestHub.azure-devices.net",
+                "Device_1",
+                $"127.0.0.1/Device_2/api-version=2016-11-14&DeviceClientType={Uri.EscapeDataString("Microsoft.Azure.Devices.Client/1.2.2")}",
+                null,
+                certificate,
+                chain,
+                true,
+                typeof(UnauthenticatedDeviceIdentity)
+            };
+
+            yield return new object[]
+            {
+                "TestHub.azure-devices.net",
+                "Device_2",
+                $"127.0.0.1/Device_2/api-version=2016-11-14&DeviceClientType={Uri.EscapeDataString("Microsoft.Azure.Devices.Client/1.2.2")}",
+                null,
+                certificate,
+                chain,
                 false,
                 typeof(UnauthenticatedDeviceIdentity)
             };
@@ -55,13 +101,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             string clientId,
             string username,
             string password,
+            X509Certificate2 certificate,
+            IList<X509Certificate2> chain,
             bool authRetVal,
             Type expectedType)
         {
             var authenticator = new Mock<IAuthenticator>();
             authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(authRetVal);
-
-            IDeviceIdentityProvider deviceIdentityProvider = new DeviceIdentityProvider(authenticator.Object, new ClientCredentialsFactory(iotHubHostName), false);
+            DeviceIdentityProvider deviceIdentityProvider = new DeviceIdentityProvider(authenticator.Object, new ClientCredentialsFactory(new IdentityProvider(iotHubHostName)), true);
+            if (certificate != null)
+            {
+                deviceIdentityProvider.RemoteCertificateValidationCallback(certificate, chain);
+            }
             IDeviceIdentity deviceIdentity = await deviceIdentityProvider.GetAsync(clientId, username, password, null);
             Assert.IsAssignableFrom(expectedType, deviceIdentity);
         }

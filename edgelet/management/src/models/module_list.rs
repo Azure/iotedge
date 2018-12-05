@@ -18,7 +18,7 @@ pub struct ModuleList {
 }
 
 impl ModuleList {
-    pub fn new(modules: Vec<::models::ModuleDetails>) -> ModuleList {
+    pub fn new(modules: Vec<::models::ModuleDetails>) -> Self {
         ModuleList { modules }
     }
 
@@ -26,12 +26,12 @@ impl ModuleList {
         self.modules = modules;
     }
 
-    pub fn with_modules(mut self, modules: Vec<::models::ModuleDetails>) -> ModuleList {
+    pub fn with_modules(mut self, modules: Vec<::models::ModuleDetails>) -> Self {
         self.modules = modules;
         self
     }
 
-    pub fn modules(&self) -> &Vec<::models::ModuleDetails> {
+    pub fn modules(&self) -> &[::models::ModuleDetails] {
         &self.modules
     }
 }

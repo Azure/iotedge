@@ -25,7 +25,7 @@ pub struct ServiceEndpoint {
 }
 
 impl ServiceEndpoint {
-    pub fn new() -> ServiceEndpoint {
+    pub fn new() -> Self {
         ServiceEndpoint {
             spec: None,
             ports: None,
@@ -37,7 +37,7 @@ impl ServiceEndpoint {
         self.spec = Some(spec);
     }
 
-    pub fn with_spec(mut self, spec: ::models::EndpointSpec) -> ServiceEndpoint {
+    pub fn with_spec(mut self, spec: ::models::EndpointSpec) -> Self {
         self.spec = Some(spec);
         self
     }
@@ -54,13 +54,13 @@ impl ServiceEndpoint {
         self.ports = Some(ports);
     }
 
-    pub fn with_ports(mut self, ports: Vec<::models::EndpointPortConfig>) -> ServiceEndpoint {
+    pub fn with_ports(mut self, ports: Vec<::models::EndpointPortConfig>) -> Self {
         self.ports = Some(ports);
         self
     }
 
-    pub fn ports(&self) -> Option<&Vec<::models::EndpointPortConfig>> {
-        self.ports.as_ref()
+    pub fn ports(&self) -> Option<&[::models::EndpointPortConfig]> {
+        self.ports.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_ports(&mut self) {
@@ -74,13 +74,13 @@ impl ServiceEndpoint {
     pub fn with_virtual_i_ps(
         mut self,
         virtual_i_ps: Vec<::models::ServiceEndpointVirtualIPs>,
-    ) -> ServiceEndpoint {
+    ) -> Self {
         self.virtual_i_ps = Some(virtual_i_ps);
         self
     }
 
-    pub fn virtual_i_ps(&self) -> Option<&Vec<::models::ServiceEndpointVirtualIPs>> {
-        self.virtual_i_ps.as_ref()
+    pub fn virtual_i_ps(&self) -> Option<&[::models::ServiceEndpointVirtualIPs]> {
+        self.virtual_i_ps.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_virtual_i_ps(&mut self) {

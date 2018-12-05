@@ -25,7 +25,7 @@ pub struct SignRequest {
 }
 
 impl SignRequest {
-    pub fn new(key_id: String, algo: String, data: String) -> SignRequest {
+    pub fn new(key_id: String, algo: String, data: String) -> Self {
         SignRequest { key_id, algo, data }
     }
 
@@ -33,7 +33,7 @@ impl SignRequest {
         self.key_id = key_id;
     }
 
-    pub fn with_key_id(mut self, key_id: String) -> SignRequest {
+    pub fn with_key_id(mut self, key_id: String) -> Self {
         self.key_id = key_id;
         self
     }
@@ -46,7 +46,7 @@ impl SignRequest {
         self.algo = algo;
     }
 
-    pub fn with_algo(mut self, algo: String) -> SignRequest {
+    pub fn with_algo(mut self, algo: String) -> Self {
         self.algo = algo;
         self
     }
@@ -59,7 +59,7 @@ impl SignRequest {
         self.data = data;
     }
 
-    pub fn with_data(mut self, data: String) -> SignRequest {
+    pub fn with_data(mut self, data: String) -> Self {
         self.data = data;
         self
     }

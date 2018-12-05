@@ -25,7 +25,10 @@ param (
     [Switch]$Agent,
     [Switch]$Hub,
     [Switch]$SimulatedTemperatureSensor,
-    [Switch]$FunctionsBinding,
+    [Switch]$TemperatureFilter,
+    [Switch]$DirectMethodSender,
+    [Switch]$DirectMethodReceiver,
+    [Switch]$TemperatureFilterFunction,
 
     [Switch]$Push,
     [Switch]$Clean
@@ -34,11 +37,15 @@ param (
 Set-StrictMode -Version "Latest"
 $ErrorActionPreference = "Stop"
 
-$All = -not $Agent -and -not $Hub -and -not $SimulatedTemperatureSensor -and -not $FunctionsBinding
+$All = -not $Agent -and -not $Hub -and -not $SimulatedTemperatureSensor -and -not $TemperatureFilter
 $Images = @{
     "agent"                        = @("Microsoft.Azure.Devices.Edge.Agent.Service", $Agent)
     "hub"                          = @("Microsoft.Azure.Devices.Edge.Hub.Service", $Hub)
     "simulated-temperature-sensor" = @("SimulatedTemperatureSensor", $SimulatedTemperatureSensor)
+    "temperature-filter"           = @("TemperatureFilter", $TemperatureFilter)
+    "direct-method-sender"         = @("DirectMethodSender", $DirectMethodSender)
+    "direct-method-receiver"       = @("DirectMethodReceiver", $DirectMethodReceiver)	
+    "functions-filter"             = @("EdgeHubTriggerCSharp", $TemperatureFilterFunction)
 }
 
 foreach ($Image in $Images.GetEnumerator()) {

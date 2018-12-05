@@ -7,6 +7,7 @@ use std::string::ToString;
 use std::sync::{Arc, RwLock};
 
 use bytes::Bytes;
+use chrono::{DateTime, Utc};
 use consistenttime::ct_u8_slice_eq;
 use failure::ResultExt;
 use hmac::{Hmac, Mac};
@@ -15,7 +16,7 @@ use sha2::Sha256;
 use certificate_properties::CertificateProperties;
 use error::{Error, ErrorKind};
 
-/// This is the issuer alias used when CertificateIssuer::DefaultCa is provided by the caller
+/// This is the issuer alias used when `CertificateIssuer::DefaultCa` is provided by the caller
 pub const IOTEDGED_CA_ALIAS: &str = "iotedged-workload-ca";
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -60,6 +61,7 @@ pub trait KeyStore {
     fn get(&self, identity: &KeyIdentity, key_name: &str) -> Result<Self::Key, Error>;
 }
 
+#[derive(Clone, Copy)]
 pub enum SignatureAlgorithm {
     HMACSHA256,
 }
@@ -128,6 +130,7 @@ pub trait Certificate {
 
     fn pem(&self) -> Result<Self::Buffer, Error>;
     fn get_private_key(&self) -> Result<Option<PrivateKey<Self::KeyBuffer>>, Error>;
+    fn get_valid_to(&self) -> Result<DateTime<Utc>, Error>;
 }
 
 pub trait GetTrustBundle {
@@ -173,7 +176,7 @@ pub struct Digest {
 }
 
 impl PartialEq for Digest {
-    fn eq(&self, other: &Digest) -> bool {
+    fn eq(&self, other: &Self) -> bool {
         ct_u8_slice_eq(self.bytes.as_ref(), other.bytes.as_ref())
     }
 }
@@ -185,7 +188,7 @@ impl Signature for Digest {
 }
 
 impl Digest {
-    pub fn new(bytes: Bytes) -> Digest {
+    pub fn new(bytes: Bytes) -> Self {
         Digest { bytes }
     }
 }
@@ -196,7 +199,7 @@ pub struct MemoryKey {
 }
 
 impl MemoryKey {
-    pub fn new<B: AsRef<[u8]>>(key: B) -> MemoryKey {
+    pub fn new<B: AsRef<[u8]>>(key: B) -> Self {
         MemoryKey {
             key: Bytes::from(key.as_ref()),
         }
@@ -214,8 +217,8 @@ impl Sign for MemoryKey {
         let signature = match signature_algorithm {
             SignatureAlgorithm::HMACSHA256 => {
                 // Create `Mac` trait implementation, namely HMAC-SHA256
-                let mut mac =
-                    Hmac::<Sha256>::new(&self.key).map_err(|_| ErrorKind::Sign(self.key.len()))?;
+                let mut mac = Hmac::<Sha256>::new(&self.key)
+                    .map_err(|_| ErrorKind::SignInvalidKeyLength(self.key.len()))?;
                 mac.input(data);
 
                 // `result` has type `MacResult` which is a thin wrapper around array of
@@ -251,13 +254,13 @@ struct MemoryKeyIdentity {
 }
 
 impl MemoryKeyIdentity {
-    pub fn new(identity: KeyIdentity, key_name: String) -> MemoryKeyIdentity {
+    pub fn new(identity: KeyIdentity, key_name: String) -> Self {
         MemoryKeyIdentity { identity, key_name }
     }
 }
 
 impl MemoryKeyStore {
-    pub fn new() -> MemoryKeyStore {
+    pub fn new() -> Self {
         MemoryKeyStore {
             keys: Arc::new(RwLock::new(HashMap::new())),
         }
@@ -323,7 +326,7 @@ impl KeyStore for MemoryKeyStore {
                 identity.clone(),
                 key_name.to_string(),
             )).cloned()
-            .ok_or_else(|| Error::from(ErrorKind::NotFound))
+            .ok_or_else(|| Error::from(ErrorKind::KeyStoreItemNotFound))
     }
 }
 
@@ -344,20 +347,17 @@ impl<K: Sign> KeyStore for DerivedKeyStore<K> {
     type Key = MemoryKey;
 
     fn get(&self, identity: &KeyIdentity, key_name: &str) -> Result<Self::Key, Error> {
-        self.root
+        let data = match identity {
+            KeyIdentity::Device => "",
+            KeyIdentity::Module(ref m) => m,
+        };
+        let signature = self
+            .root
             .sign(
                 SignatureAlgorithm::HMACSHA256,
-                format!(
-                    "{}{}",
-                    match identity {
-                        KeyIdentity::Device => "",
-                        KeyIdentity::Module(ref m) => m,
-                    },
-                    key_name
-                ).as_bytes(),
-            ).map(|d| MemoryKey::new(d.as_bytes()))
-            .context(ErrorKind::KeyStore)
-            .map_err(Error::from)
+                format!("{}{}", data, key_name).as_bytes(),
+            ).context(ErrorKind::Sign)?;
+        Ok(MemoryKey::new(signature.as_bytes()))
     }
 }
 

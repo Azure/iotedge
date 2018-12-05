@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading.Tasks;
     using System.Web;
     using Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers;
@@ -18,91 +19,42 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     /// It maintains the IIdentity and the IDeviceListener for the connection, and provides it to the link handlers.
     /// It also maintains a registry of the links open on that connection, and makes sure duplicate/invalid links are not opened. 
     /// </summary>
-    class ConnectionHandler : IConnectionHandler
+    class ClientConnectionHandler : IConnectionHandler
     {
         readonly IDictionary<LinkType, ILinkHandler> registry = new Dictionary<LinkType, ILinkHandler>();
-        bool isInitialized;
-        IDeviceListener deviceListener;
-        AmqpAuthentication amqpAuthentication;
+        readonly IIdentity identity;
 
         readonly AsyncLock initializationLock = new AsyncLock();
         readonly AsyncLock registryUpdateLock = new AsyncLock();
-        readonly IAmqpConnection connection;
         readonly IConnectionProvider connectionProvider;
+        Option<IDeviceListener> deviceListener = Option.None<IDeviceListener>();
 
-        public ConnectionHandler(IAmqpConnection connection, IConnectionProvider connectionProvider)
+        public ClientConnectionHandler(IIdentity identity, IConnectionProvider connectionProvider)
         {
-            this.connection = Preconditions.CheckNotNull(connection, nameof(connection));
+            this.identity = Preconditions.CheckNotNull(identity, nameof(identity));
             this.connectionProvider = Preconditions.CheckNotNull(connectionProvider, nameof(connectionProvider));
         }
 
-        public async Task<IDeviceListener> GetDeviceListener()
+        public Task<IDeviceListener> GetDeviceListener()
         {
-            await this.EnsureInitialized();
-            return this.deviceListener;
-        }
-
-        public async Task<AmqpAuthentication> GetAmqpAuthentication()
-        {
-            await this.EnsureInitialized();
-            return this.amqpAuthentication;
-        }
-
-        async Task EnsureInitialized()
-        {
-            if (!this.isInitialized)
-            {
-                using (await this.initializationLock.LockAsync())
-                {
-                    if (!this.isInitialized)
+            return this.deviceListener.Map(d => Task.FromResult(d))
+                .GetOrElse(
+                    async () =>
                     {
-                        AmqpAuthentication amqpAuth;
-                        // Check if Principal is SaslPrincipal
-                        if (this.connection.Principal is SaslPrincipal saslPrincipal)
+                        using (await this.initializationLock.LockAsync())
                         {
-                            amqpAuth = saslPrincipal.AmqpAuthentication;
+                            return await this.deviceListener.Map(d => Task.FromResult(d))
+                                .GetOrElse(
+                                    async () =>
+                                    {
+                                        IDeviceListener dl = await this.connectionProvider.GetDeviceListenerAsync(this.identity);
+                                        var deviceProxy = new DeviceProxy(this, this.identity);
+                                        dl.BindDeviceProxy(deviceProxy);
+                                        this.deviceListener = Option.Some(dl);
+                                        return dl;
+                                    });
                         }
-                        else
-                        {
-                            // Else the connection uses CBS authentication. Get AmqpAuthentication from the CbsNode                    
-                            var cbsNode = this.connection.FindExtension<ICbsNode>();
-                            if (cbsNode == null)
-                            {
-                                throw new InvalidOperationException("CbsNode is null");
-                            }
-
-                            amqpAuth = await cbsNode.GetAmqpAuthentication();
-                        }
-
-                        if (!amqpAuth.IsAuthenticated)
-                        {
-                            throw new InvalidOperationException("Connection not authenticated");
-                        }
-
-                        IClientCredentials identity = amqpAuth.ClientCredentials.Expect(() => new InvalidOperationException("Authenticated connection should have a valid identity"));
-                        this.deviceListener = await this.connectionProvider.GetDeviceListenerAsync(identity);
-                        var deviceProxy = new DeviceProxy(this, identity.Identity);
-                        this.deviceListener.BindDeviceProxy(deviceProxy);
-                        this.amqpAuthentication = amqpAuth;
-                        this.isInitialized = true;
-                        Events.InitializedConnectionHandler(identity.Identity);
-                    }
-                }
-            }
-        }
-
-        async Task<Option<IClientCredentials>> GetUpdatedAuthenticatedIdentity()
-        {
-            var cbsNode = this.connection.FindExtension<ICbsNode>();
-            if (cbsNode != null)
-            {
-                AmqpAuthentication updatedAmqpAuthentication = await cbsNode.GetAmqpAuthentication();
-                if (updatedAmqpAuthentication.IsAuthenticated)
-                {
-                    return updatedAmqpAuthentication.ClientCredentials;
-                }
-            }
-            return Option.None<IClientCredentials>();
+                    });
         }
 
         public async Task RegisterLinkHandler(ILinkHandler linkHandler)
@@ -170,23 +122,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             }
         }
 
+        Task CloseAllLinks()
+        {
+            IList<ILinkHandler> links = this.registry.Values.ToList();
+            IEnumerable<Task> closeTasks = links.Select(l => l.CloseAsync(Constants.DefaultTimeout));
+            return Task.WhenAll(closeTasks);
+        }
+
         async Task CloseConnection()
         {
             using (await this.initializationLock.LockAsync())
             {
-                this.isInitialized = false;                
-                await (this.deviceListener?.CloseAsync() ?? Task.CompletedTask);
+                await this.deviceListener.ForEachAsync(d => d.CloseAsync());
             }
         }
 
         public class DeviceProxy : IDeviceProxy
         {
-            readonly ConnectionHandler connectionHandler;
+            readonly ClientConnectionHandler clientConnectionHandler;
             readonly AtomicBoolean isActive = new AtomicBoolean(true);
 
-            public DeviceProxy(ConnectionHandler connectionHandler, IIdentity identity)
+            public DeviceProxy(ClientConnectionHandler clientConnectionHandler, IIdentity identity)
             {
-                this.connectionHandler = connectionHandler;
+                this.clientConnectionHandler = clientConnectionHandler;
                 this.Identity = identity;
             }
 
@@ -195,14 +153,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 if (this.isActive.GetAndSet(false))
                 {
                     Events.ClosingProxy(this.Identity, ex);
-                    return this.connectionHandler.connection.Close();
+                    return this.clientConnectionHandler.CloseAllLinks();
                 }
                 return Task.CompletedTask;
             }
 
             public Task SendC2DMessageAsync(IMessage message)
             {
-                if (!this.connectionHandler.registry.TryGetValue(LinkType.C2D, out ILinkHandler linkHandler))
+                if (!this.clientConnectionHandler.registry.TryGetValue(LinkType.C2D, out ILinkHandler linkHandler))
                 {
                     Events.LinkNotFound(LinkType.ModuleMessages, this.Identity, "C2D message");
                     return Task.CompletedTask;
@@ -210,23 +168,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 message.SystemProperties[SystemProperties.To] = this.Identity is IModuleIdentity moduleIdentity
                     ? $"/devices/{HttpUtility.UrlEncode(moduleIdentity.DeviceId)}/modules/{HttpUtility.UrlEncode(moduleIdentity.ModuleId)}"
                     : $"/devices/{HttpUtility.UrlEncode(this.Identity.Id)}";
+                Events.SendingC2DMessage(this.Identity);
                 return ((ISendingLinkHandler)linkHandler).SendMessage(message);
             }
 
             public Task SendMessageAsync(IMessage message, string input)
             {
-                if (!this.connectionHandler.registry.TryGetValue(LinkType.ModuleMessages, out ILinkHandler linkHandler))
+                if (!this.clientConnectionHandler.registry.TryGetValue(LinkType.ModuleMessages, out ILinkHandler linkHandler))
                 {
                     Events.LinkNotFound(LinkType.ModuleMessages, this.Identity, "message");
                     return Task.CompletedTask;
                 }
                 message.SystemProperties[SystemProperties.InputName] = input;
+                Events.SendingTelemetryMessage(this.Identity);
                 return ((ISendingLinkHandler)linkHandler).SendMessage(message);
             }
 
             public async Task<DirectMethodResponse> InvokeMethodAsync(DirectMethodRequest request)
             {
-                if (!this.connectionHandler.registry.TryGetValue(LinkType.MethodSending, out ILinkHandler linkHandler))
+                if (!this.clientConnectionHandler.registry.TryGetValue(LinkType.MethodSending, out ILinkHandler linkHandler))
                 {
                     Events.LinkNotFound(LinkType.ModuleMessages, this.Identity, "method request");
                     return default(DirectMethodResponse);
@@ -243,26 +203,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                     })
                     .Build();
                 await ((ISendingLinkHandler)linkHandler).SendMessage(message);
+                Events.SentMethodInvocation(this.Identity);
                 return default(DirectMethodResponse);
             }
 
             public Task OnDesiredPropertyUpdates(IMessage desiredProperties)
             {
-                if (!this.connectionHandler.registry.TryGetValue(LinkType.TwinSending, out ILinkHandler linkHandler))
+                if (!this.clientConnectionHandler.registry.TryGetValue(LinkType.TwinSending, out ILinkHandler linkHandler))
                 {
                     Events.LinkNotFound(LinkType.ModuleMessages, this.Identity, "desired properties update");
                     return Task.CompletedTask;
                 }
+
+                Events.SendingDeriredPropertyUpdates(this.Identity);
                 return ((ISendingLinkHandler)linkHandler).SendMessage(desiredProperties);
             }
 
             public Task SendTwinUpdate(IMessage twin)
             {
-                if (!this.connectionHandler.registry.TryGetValue(LinkType.TwinSending, out ILinkHandler linkHandler))
+                if (!this.clientConnectionHandler.registry.TryGetValue(LinkType.TwinSending, out ILinkHandler linkHandler))
                 {
                     Events.LinkNotFound(LinkType.ModuleMessages, this.Identity, "twin update");
                     return Task.CompletedTask;
                 }
+
+                Events.SendingTwinUpdate(this.Identity);
                 return ((ISendingLinkHandler)linkHandler).SendMessage(twin);
             }
 
@@ -276,12 +241,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 this.isActive.Set(false);
             }
 
-            public Task<Option<IClientCredentials>> GetUpdatedIdentity() => this.connectionHandler.GetUpdatedAuthenticatedIdentity();
+            public Task<Option<IClientCredentials>> GetUpdatedIdentity() => throw new NotImplementedException();
         }
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<ConnectionHandler>();
+            static readonly ILogger Log = Logger.Factory.CreateLogger<ClientConnectionHandler>();
             const int IdStart = AmqpEventIds.ConnectionHandler;
 
             enum EventIds
@@ -289,7 +254,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 ClosingProxy = IdStart,
                 LinkNotFound,
                 SettingProxyInactive,
-                InitializedConnectionHandler
+                InitializedConnectionHandler,
+                SendingC2DMessage,
+                SendingTelemetryMessage,
+                SentMethodInvocation,
+                SendingDeriredPropertyUpdates,
+                SendingTwinUpdate
             }
 
             internal static void ClosingProxy(IIdentity identity, Exception ex)
@@ -310,6 +280,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             internal static void InitializedConnectionHandler(IIdentity identity)
             {
                 Log.LogInformation((int)EventIds.InitializedConnectionHandler, $"Initialized AMQP connection handler for {identity.Id}");
+            }
+
+            public static void SendingC2DMessage(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.SendingC2DMessage, $"Sending C2D message to {identity.Id}");
+            }
+
+            public static void SendingTelemetryMessage(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.SendingTelemetryMessage, $"Sending telemetry message to {identity.Id}");
+            }
+
+            public static void SentMethodInvocation(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.SentMethodInvocation, $"Sending method invocation to {identity.Id}");
+            }
+
+            public static void SendingDeriredPropertyUpdates(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.SendingDeriredPropertyUpdates, $"Sending desired properties update to {identity.Id}");
+            }
+
+            public static void SendingTwinUpdate(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.SendingTwinUpdate, $"Sending twin update to {identity.Id}");
             }
         }
     }

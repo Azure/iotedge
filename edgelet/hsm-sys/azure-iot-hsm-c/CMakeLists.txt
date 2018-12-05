@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 2.8.11)
 project(iothsm)
 set (iothsm_VERSION_MAJOR 1)
 set (iothsm_VERSION_MINOR 0)
-set (iothsm_VERSION_PATCH 2)
+set (iothsm_VERSION_PATCH 4)
 
 #Use solution folders.
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
@@ -133,7 +133,17 @@ if (${run_unittests})
     add_subdirectory(tests)
 endif()
 
-install(TARGETS iothsm DESTINATION ${CMAKE_INSTALL_LIBDIR})
+set_target_properties(iothsm PROPERTIES
+        VERSION ${iothsm_VERSION_MAJOR}.${iothsm_VERSION_MINOR}.${iothsm_VERSION_PATCH}
+        SOVERSION 1)
+
+if(WIN32)
+    install(TARGETS iothsm DESTINATION ${CMAKE_INSTALL_LIBDIR})
+else()
+    install(TARGETS iothsm
+            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+endif(WIN32)
 
 # CPack
 include (InstallRequiredSystemLibraries)
@@ -154,6 +164,7 @@ endif()
 set (CPACK_DEBIAN_PACKAGE_PROVIDES "libiothsm")
 set (CPACK_DEBIAN_PACKAGE_MAINTAINER "Azure IoT Edge Devs")
 set (CPACK_DEBIAN_FILE_NAME "DEB-DEFAULT")
+set (CPACK_DEBIAN_PACKAGE_GENERATE_SHLIBS "ON")
 
 set (CPACK_RPM_FILE_NAME RPM-DEFAULT)
 set (CPACK_RPM_PACKAGE_RELEASE_DIST On)
