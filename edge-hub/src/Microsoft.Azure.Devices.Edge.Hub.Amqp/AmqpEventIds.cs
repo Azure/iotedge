@@ -18,5 +18,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         public const int LinkHandler = EventIdStart + 700;
         public const int AmqpWebSocketListener = EventIdStart + 800;
         public const int ServerWebSocketTransport = EventIdStart + 900;
+        public const int X509PrinciparAuthenticator = EventIdStart + 1000;
     }
 }

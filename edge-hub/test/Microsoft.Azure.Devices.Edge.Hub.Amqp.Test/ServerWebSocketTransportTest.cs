@@ -5,10 +5,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
     using System;
     using System.Collections.Generic;
     using System.Net.WebSockets;
+    using System.Security.Cryptography.X509Certificates;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Amqp.Transport;
+    using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -16,11 +20,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
     [Unit]
     public class ServerWebSocketTransportTest
     {
+        readonly Option<X509Certificate2> noClientCert = Option.None<X509Certificate2>();
+        readonly Option<IList<X509Certificate2>> noClientCertChain = Option.None<IList<X509Certificate2>>();
+
         [Fact]
         public void ReadAsyncThrowsWhenBufferIsNull()
         {
             var webSocket = new Mock<WebSocket>();
-            var serverTransport = new ServerWebSocketTransport(webSocket.Object, "local", "remote", Guid.NewGuid().ToString());
+            var serverTransport = new ServerWebSocketTransport(webSocket.Object,
+                                                               "local",
+                                                               "remote",
+                                                               Guid.NewGuid().ToString(),
+                                                               noClientCert,
+                                                               noClientCertChain,
+                                                               Mock.Of<IAuthenticator>(),
+                                                               Mock.Of<IClientCredentialsFactory>());
 
             Assert.Throws<ArgumentNullException>(() => serverTransport.ReadAsync(new TransportAsyncCallbackArgs()));
         }
@@ -29,7 +43,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         public void ReadAsyncThrowsWhenCompletedCallbackIsNull()
         {
             var webSocket = new Mock<WebSocket>();
-            var serverTransport = new ServerWebSocketTransport(webSocket.Object, "local", "remote", Guid.NewGuid().ToString());
+            var serverTransport = new ServerWebSocketTransport(webSocket.Object,
+                                                               "local",
+                                                               "remote",
+                                                               Guid.NewGuid().ToString(),
+                                                               noClientCert,
+                                                               noClientCertChain,
+                                                               Mock.Of<IAuthenticator>(),
+                                                               Mock.Of<IClientCredentialsFactory>());
 
             var args = new TransportAsyncCallbackArgs();
             args.SetBuffer(new byte[4], 0, 4);
@@ -46,7 +67,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                 .Returns(WebSocketState.CloseSent)
                 .Returns(WebSocketState.CloseReceived)
                 .Returns(WebSocketState.None);
-            var serverTransport = new ServerWebSocketTransport(webSocket.Object, "local", "remote", Guid.NewGuid().ToString());
+            var serverTransport = new ServerWebSocketTransport(webSocket.Object,
+                                                               "local",
+                                                               "remote",
+                                                               Guid.NewGuid().ToString(),
+                                                               noClientCert,
+                                                               noClientCertChain,
+                                                               Mock.Of<IAuthenticator>(),
+                                                               Mock.Of<IClientCredentialsFactory>());
 
             var args = new TransportAsyncCallbackArgs();
             args.SetBuffer(new byte[4], 0, 4);
@@ -65,7 +93,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             webSocket.Setup(ws => ws.State)
                 .Returns(WebSocketState.Open);
 
-            var serverTransport = new ServerWebSocketTransport(webSocket.Object, "local", "remote", Guid.NewGuid().ToString());
+            var serverTransport = new ServerWebSocketTransport(webSocket.Object,
+                                                               "local",
+                                                               "remote",
+                                                               Guid.NewGuid().ToString(),
+                                                               noClientCert,
+                                                               noClientCertChain,
+                                                               Mock.Of<IAuthenticator>(),
+                                                               Mock.Of<IClientCredentialsFactory>());
 
             var args = new TransportAsyncCallbackArgs();
             args.SetBuffer(new byte[4], -1, 4);
@@ -91,7 +126,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             webSocket.Setup(ws => ws.ReceiveAsync(It.IsAny<ArraySegment<byte>>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.FromResult(new WebSocketReceiveResult(2, WebSocketMessageType.Text, true)));
 
-            var serverTransport = new ServerWebSocketTransport(webSocket.Object, "local", "remote", Guid.NewGuid().ToString());
+            var serverTransport = new ServerWebSocketTransport(webSocket.Object,
+                                                               "local",
+                                                               "remote",
+                                                               Guid.NewGuid().ToString(),
+                                                               noClientCert,
+                                                               noClientCertChain,
+                                                               Mock.Of<IAuthenticator>(),
+                                                               Mock.Of<IClientCredentialsFactory>());
 
             var args = new TransportAsyncCallbackArgs();
             args.SetBuffer(new byte[4], 0, 4);
@@ -105,7 +147,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         public void WriteAsyncThrowsWhenBufferIsNull()
         {
             var webSocket = new Mock<WebSocket>();
-            var serverTransport = new ServerWebSocketTransport(webSocket.Object, "local", "remote", Guid.NewGuid().ToString());
+            var serverTransport = new ServerWebSocketTransport(webSocket.Object,
+                                                               "local",
+                                                               "remote",
+                                                               Guid.NewGuid().ToString(),
+                                                               noClientCert,
+                                                               noClientCertChain,
+                                                               Mock.Of<IAuthenticator>(),
+                                                               Mock.Of<IClientCredentialsFactory>());
 
             Assert.Throws<ArgumentException>(() => serverTransport.WriteAsync(new TransportAsyncCallbackArgs()));
         }
@@ -114,7 +163,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         public void WriteAsyncThrowsWhenCompletedCallbackIsNull()
         {
             var webSocket = new Mock<WebSocket>();
-            var serverTransport = new ServerWebSocketTransport(webSocket.Object, "local", "remote", Guid.NewGuid().ToString());
+            var serverTransport = new ServerWebSocketTransport(webSocket.Object,
+                                                               "local",
+                                                               "remote",
+                                                               Guid.NewGuid().ToString(),
+                                                               noClientCert,
+                                                               noClientCertChain,
+                                                               Mock.Of<IAuthenticator>(),
+                                                               Mock.Of<IClientCredentialsFactory>());
 
             var args = new TransportAsyncCallbackArgs();
             args.SetBuffer(new byte[4], 0, 4);
@@ -131,7 +187,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                 .Returns(WebSocketState.CloseSent)
                 .Returns(WebSocketState.CloseReceived)
                 .Returns(WebSocketState.None);
-            var serverTransport = new ServerWebSocketTransport(webSocket.Object, "local", "remote", Guid.NewGuid().ToString());
+            var serverTransport = new ServerWebSocketTransport(webSocket.Object,
+                                                               "local",
+                                                               "remote",
+                                                               Guid.NewGuid().ToString(),
+                                                               noClientCert,
+                                                               noClientCertChain,
+                                                               Mock.Of<IAuthenticator>(),
+                                                               Mock.Of<IClientCredentialsFactory>());
 
             var args = new TransportAsyncCallbackArgs();
             args.SetBuffer(new byte[4], 0, 4);
@@ -152,7 +215,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             webSocket.Setup(ws => ws.SendAsync(It.IsAny<ArraySegment<byte>>(), It.IsAny<WebSocketMessageType>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.FromResult(new WebSocketReceiveResult(2, WebSocketMessageType.Text, true)));
 
-            var serverTransport = new ServerWebSocketTransport(webSocket.Object, "local", "remote", Guid.NewGuid().ToString());
+            var serverTransport = new ServerWebSocketTransport(webSocket.Object,
+                                                               "local",
+                                                               "remote",
+                                                               Guid.NewGuid().ToString(),
+                                                               noClientCert,
+                                                               noClientCertChain,
+                                                               Mock.Of<IAuthenticator>(),
+                                                               Mock.Of<IClientCredentialsFactory>());
 
             var args = new TransportAsyncCallbackArgs();
             args.SetBuffer(new byte[4], 0, 4);
@@ -171,7 +241,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             webSocket.Setup(ws => ws.SendAsync(It.IsAny<ArraySegment<byte>>(), It.IsAny<WebSocketMessageType>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.FromResult(new WebSocketReceiveResult(2, WebSocketMessageType.Text, true)));
 
-            var serverTransport = new ServerWebSocketTransport(webSocket.Object, "local", "remote", Guid.NewGuid().ToString());
+            var serverTransport = new ServerWebSocketTransport(webSocket.Object,
+                                                               "local",
+                                                               "remote",
+                                                               Guid.NewGuid().ToString(),
+                                                               noClientCert,
+                                                               noClientCertChain,
+                                                               Mock.Of<IAuthenticator>(),
+                                                               Mock.Of<IClientCredentialsFactory>());
 
             var args = new TransportAsyncCallbackArgs();
             args.SetBuffer(new List<ByteBuffer> { new ByteBuffer(new byte[4]), new ByteBuffer(new byte[5])});
