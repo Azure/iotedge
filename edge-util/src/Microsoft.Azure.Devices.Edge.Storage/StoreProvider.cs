@@ -38,6 +38,13 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             return sequentialStore;
         }
 
+        public async Task<ISequentialStore<T>> GetSequentialStore<T>(string entityName, long defaultHeadOffset)
+        {
+            IEntityStore<byte[], T> underlyingStore = this.GetEntityStore<byte[], T>(entityName);
+            ISequentialStore<T> sequentialStore = await SequentialStore<T>.Create(underlyingStore, defaultHeadOffset);
+            return sequentialStore;
+        }
+
         public Task RemoveStore<T>(ISequentialStore<T> sequentialStore)
         {
             this.dbStoreProvider.RemoveDbStore(sequentialStore.EntityName);
