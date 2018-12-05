@@ -22,13 +22,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Adapters
     {
         // See http://oid-info.com/get/1.3.6.1.5.5.7.3.1
         // Indicates that a certificate can be used as a SSL server certificate
-        private const string ServerAuthenticationOid = "1.3.6.1.5.5.7.3.1";
+        const string ServerAuthenticationOid = "1.3.6.1.5.5.7.3.1";
         const string AuthenticationSucceeded = "AuthenticationSucceeded";
         internal const string DisableHandshakeTimeoutSwitch = "Switch.Microsoft.AspNetCore.Server.Kestrel.Https.DisableHandshakeTimeout";
-        private static readonly TimeSpan HandshakeTimeout = TimeSpan.FromSeconds(10);
-        private static readonly ClosedAdaptedConnection _closedAdaptedConnection = new ClosedAdaptedConnection();
-        private readonly HttpsConnectionAdapterOptions options;
-        private readonly X509Certificate2 serverCertificate;
+        static readonly TimeSpan HandshakeTimeout = TimeSpan.FromSeconds(10);
+        static readonly ClosedAdaptedConnection _closedAdaptedConnection = new ClosedAdaptedConnection();
+        readonly HttpsConnectionAdapterOptions options;
+        readonly X509Certificate2 serverCertificate;
 
         public HttpsExtensionConnectionAdapter(HttpsConnectionAdapterOptions options)
         {
@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Adapters
         public Task<IAdaptedConnection> OnConnectionAsync(ConnectionAdapterContext context) =>
             Task.Run(() => InnerOnConnectionAsync(context));
 
-        private async Task<IAdaptedConnection> InnerOnConnectionAsync(ConnectionAdapterContext context)
+        async Task<IAdaptedConnection> InnerOnConnectionAsync(ConnectionAdapterContext context)
         {
             SslStream sslStream;
             bool certificateRequired;
@@ -62,11 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Adapters
                     {
                         if (certificate == null)
                         {
-                            if ((this.options.ClientCertificateMode == ClientCertificateMode.AllowCertificate) ||
-                                (this.options.ClientCertificateMode == ClientCertificateMode.RequireCertificate))
-                            {
-                                return false;
-                            }
+                            return this.options.ClientCertificateMode != ClientCertificateMode.RequireCertificate;
                         }
 
                         if (this.options.ClientCertificateValidation == null)
@@ -157,9 +153,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Adapters
 
             Events.AuthenticationSuccess();
             // Always set the feature even though the cert might be null
+            var cert = (sslStream.RemoteCertificate != null) ? new X509Certificate2(sslStream.RemoteCertificate) : null;
             context.Features.Set<ITlsConnectionFeature>(new TlsConnectionFeature
             {
-                ClientCertificate = new X509Certificate2(sslStream.RemoteCertificate)
+                ClientCertificate = cert
             });
             context.Features.Set<ITlsConnectionFeatureExtended>(new TlsConnectionFeatureExtended
             {
@@ -169,7 +166,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Adapters
             return new HttpsAdaptedConnection(sslStream);
         }
 
-        private static void EnsureCertificateIsAllowedForServerAuth(X509Certificate2 certificate)
+        static void EnsureCertificateIsAllowedForServerAuth(X509Certificate2 certificate)
         {
             /* If the Extended Key Usage extension is included, then we check that the serverAuth usage is included. (http://oid-info.com/get/1.3.6.1.5.5.7.3.1)
              * If the Extended Key Usage extension is not included, then we assume the certificate is allowed for all usages.
@@ -206,7 +203,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Adapters
             }
         }
 
-        private static void ObserveTaskException(Task task)
+        static void ObserveTaskException(Task task)
         {
             _ = task.ContinueWith(t =>
             {
@@ -214,9 +211,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Adapters
             }, TaskScheduler.Current);
         }
 
-        private class HttpsAdaptedConnection : IAdaptedConnection
+        class HttpsAdaptedConnection : IAdaptedConnection
         {
-            private readonly SslStream _sslStream;
+            readonly SslStream _sslStream;
 
             public HttpsAdaptedConnection(SslStream sslStream)
             {
@@ -228,7 +225,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Adapters
             public void Dispose() => _sslStream.Dispose();
         }
 
-        private class ClosedAdaptedConnection : IAdaptedConnection
+        class ClosedAdaptedConnection : IAdaptedConnection
         {
             public Stream ConnectionStream { get; } = new ClosedStream();
 
@@ -240,7 +237,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Adapters
 
         internal class ClosedStream : Stream
         {
-            private static readonly Task<int> ZeroResultTask = Task.FromResult(result: 0);
+            static readonly Task<int> ZeroResultTask = Task.FromResult(result: 0);
 
             public override bool CanRead => true;
             public override bool CanSeek => false;
