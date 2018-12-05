@@ -15,14 +15,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
     {
         readonly IEntityStore<string, CheckpointEntity> underlyingStore;
 
-        CheckpointStore(IEntityStore<string, CheckpointEntity> underlyingStore)
+        internal CheckpointStore(IEntityStore<string, CheckpointEntity> underlyingStore)
         {
             this.underlyingStore = underlyingStore;
         }
 
         public static CheckpointStore Create(IStoreProvider storeProvider)
         {
-            IEntityStore<string, CheckpointEntity> underlyingStore = Preconditions.CheckNotNull(storeProvider, nameof(storeProvider)).GetEntityStore<string, CheckpointEntity>(Constants.CheckpointStorePartitionKey);
+            IEntityStore<string, CheckpointEntity> underlyingStore = Preconditions.CheckNotNull(storeProvider, nameof(storeProvider))
+                .GetEntityStore<string, CheckpointEntity>(Constants.CheckpointStorePartitionKey);
             return new CheckpointStore(underlyingStore);
         }
 
