@@ -14,7 +14,6 @@
 //! HTTP and Unix sockets respectively.
 
 use std::io;
-use std::path::Path;
 
 use failure::ResultExt;
 use futures::{future, Future};
@@ -30,7 +29,7 @@ use hyperlocal_windows::{UnixConnector, Uri as HyperlocalUri};
 use url::{ParseError, Url};
 
 use error::{Error, ErrorKind, InvalidUrlReason};
-use util::StreamSelector;
+use util::{socket_file_exists, StreamSelector};
 use UrlExt;
 
 const UNIX_SCHEME: &str = "unix";
@@ -43,18 +42,6 @@ pub enum UrlConnector {
     #[cfg(windows)]
     Pipe(PipeConnector),
     Unix(UnixConnector),
-}
-
-fn socket_file_exists(path: &Path) -> bool {
-    if cfg!(windows) {
-        use std::fs;
-        // Unix domain socket files in Windows are reparse points, so path.exists()
-        // (which calls fs::metadata(path)) won't work. Use fs::symlink_metadata()
-        // instead.
-        fs::symlink_metadata(path).is_ok()
-    } else {
-        path.exists()
-    }
 }
 
 impl UrlConnector {

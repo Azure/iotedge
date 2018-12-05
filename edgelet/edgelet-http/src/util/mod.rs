@@ -5,6 +5,7 @@ use std::io::{self, Read, Write};
 use std::net::SocketAddr;
 #[cfg(unix)]
 use std::os::unix::net::SocketAddr as UnixSocketAddr;
+use std::path::Path;
 
 use bytes::{Buf, BufMut};
 use edgelet_core::pid::Pid;
@@ -140,6 +141,18 @@ impl fmt::Display for IncomingSocketAddr {
                 }
             }
         }
+    }
+}
+
+pub fn socket_file_exists(path: &Path) -> bool {
+    if cfg!(windows) {
+        use std::fs;
+        // Unix domain socket files in Windows are reparse points, so path.exists()
+        // (which calls fs::metadata(path)) won't work. Use fs::symlink_metadata()
+        // instead.
+        fs::symlink_metadata(path).is_ok()
+    } else {
+        path.exists()
     }
 }
 
