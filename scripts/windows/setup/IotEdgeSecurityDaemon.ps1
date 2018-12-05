@@ -145,6 +145,7 @@ function Install-SecurityDaemon {
     }
     if ($preRequisitesMet) {
         Write-HostGreen "The container host is on supported build version $currentWindowsBuild."
+        Set-ContainerOs
     }
     else {
         Write-HostRed
@@ -248,10 +249,27 @@ function Test-IsDockerRunning {
 
             Write-HostGreen 'Docker is running.'
 
-            $dockerCliExe = "$env:ProgramFiles\Docker\Docker\DockerCli.exe"
+            return $true
+        }
 
+        'Windows' {
+            $service = Get-Service $MobyServiceName -ErrorAction SilentlyContinue
+            if (($service -eq $null) -or ($service.Status -ne 'Running')) {
+                return $false
+            }
+
+            return $true
+        }
+    }
+}
+
+function Set-ContainerOs {
+    switch ($ContainerOs) {
+        'Linux' {
             if ((Get-ExternalDockerServerOs) -ne 'Linux') {
                 Write-Host 'Switching Docker to use Linux containers...'
+
+                $dockerCliExe = "$env:ProgramFiles\Docker\Docker\DockerCli.exe"
 
                 if (-not (Test-Path -Path $dockerCliExe)) {
                     throw 'Unable to switch to Linux containers.'
@@ -265,17 +283,11 @@ function Test-IsDockerRunning {
 
                 Write-HostGreen 'Switched Docker to use Linux containers.'
             }
-
-            return $true
         }
 
         'Windows' {
-            $service = Get-Service $MobyServiceName -ErrorAction SilentlyContinue
-            if (($service -eq $null) -or ($service.Status -ne 'Running')) {
-                return $false
-            }
-
-            return $true
+            # No need to test for Linux/switch to Windows containers because our
+            # moby installation doesn't support Linux containers
         }
     }
 }
