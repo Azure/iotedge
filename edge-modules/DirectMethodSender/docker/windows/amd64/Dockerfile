@@ -7,6 +7,7 @@ WORKDIR /app
 
 COPY $EXE_DIR/ ./
 
+USER ContainerAdministrator
 # Add an unprivileged user account for running the module
 RUN net user /add moduleuser
 
