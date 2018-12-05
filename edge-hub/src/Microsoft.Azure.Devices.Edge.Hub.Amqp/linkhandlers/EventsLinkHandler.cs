@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 {
     using System;
@@ -8,6 +9,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Amqp.Framing;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -19,9 +22,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
     {
         static readonly long MaxBatchedMessageSize = 600 * 1024;
 
-        public EventsLinkHandler(IReceivingAmqpLink link, Uri requestUri, IDictionary<string, string> boundVariables,
+        public EventsLinkHandler(
+            IIdentity identity,
+            IReceivingAmqpLink link,
+            Uri requestUri,
+            IDictionary<string, string> boundVariables,
+            IConnectionHandler connectionHandler,
             IMessageConverter<AmqpMessage> messageConverter)
-            : base(link, requestUri, boundVariables, messageConverter)
+            : base(identity, link, requestUri, boundVariables, connectionHandler, messageConverter)
         {
         }
 
@@ -63,14 +71,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 
         void AddMessageSystemProperties(IMessage message)
         {
-            if (!string.IsNullOrWhiteSpace(this.DeviceId))
+            if (this.Identity is IDeviceIdentity deviceIdentity)
             {
-                message.SystemProperties[SystemProperties.ConnectionDeviceId] = this.DeviceId;
+                message.SystemProperties[SystemProperties.ConnectionDeviceId] = deviceIdentity.DeviceId;
             }
 
-            if (!string.IsNullOrWhiteSpace(this.ModuleId))
+            if (this.Identity is IModuleIdentity moduleIdentity)
             {
-                message.SystemProperties[SystemProperties.ConnectionModuleId] = this.ModuleId;
+                message.SystemProperties[SystemProperties.ConnectionDeviceId] = moduleIdentity.DeviceId;
+                message.SystemProperties[SystemProperties.ConnectionModuleId] = moduleIdentity.ModuleId;
             }
         }
 
@@ -83,10 +92,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
                 foreach (Data data in message.DataBody)
                 {
                     var payload = (ArraySegment<byte>)data.Value;
-                    AmqpMessage debatchedMessage = AmqpMessage.CreateAmqpStreamMessage(new BufferListStream(new List<ArraySegment<byte>>()
-                    {
-                        payload
-                    }));
+                    AmqpMessage debatchedMessage = AmqpMessage.CreateAmqpStreamMessage(
+                        new BufferListStream(
+                            new List<ArraySegment<byte>>()
+                            {
+                                payload
+                            }));
                     outputMessages.Add(debatchedMessage);
                 }
             }
