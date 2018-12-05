@@ -20,7 +20,7 @@ pub fn listener<P: AsRef<Path>>(path: P) -> Result<Incoming, Error> {
     let listener = if socket_file_exists(path.as_ref()) {
         // get the previous file's metadata
         #[cfg(unix)]
-        let metadata = get_metadata(path)?;
+        let metadata = get_metadata(path.as_ref())?;
 
         debug!("unlinking {}...", path.as_ref().display());
         fs::remove_file(&path)
@@ -48,14 +48,10 @@ pub fn listener<P: AsRef<Path>>(path: P) -> Result<Incoming, Error> {
 }
 
 #[cfg(unix)]
-fn get_metadata<P: AsRef<Path>>(path: P) -> Result<Metadata, Error> {
-    let metadata = fs::metadata(&path)
-        .with_context(|_| ErrorKind::Path(path.as_ref().display().to_string()))?;
-    debug!(
-        "read metadata {:?} for {}",
-        metadata,
-        path.as_ref().display()
-    );
+fn get_metadata(path: &Path) -> Result<fs::Metadata, Error> {
+    let metadata =
+        fs::metadata(path).with_context(|_| ErrorKind::Path(path.display().to_string()))?;
+    debug!("read metadata {:?} for {}", metadata, path.display());
     Ok(metadata)
 }
 
