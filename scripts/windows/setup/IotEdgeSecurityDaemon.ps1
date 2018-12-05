@@ -34,13 +34,16 @@ enum ContainerOs {
 }
 
 function Install-SecurityDaemon {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = 'Manual')]
     param (
         [Parameter(ParameterSetName = 'Manual')]
         [Switch] $Manual,
 
         [Parameter(ParameterSetName = 'DPS')]
         [Switch] $Dps,
+
+        [Parameter(ParameterSetName = 'ExistingConfig')]
+        [Switch] $ExistingConfig,
 
         [Parameter(Mandatory = $true, ParameterSetName = 'Manual')]
         [String] $DeviceConnectionString,
@@ -62,12 +65,18 @@ function Install-SecurityDaemon {
         [String] $OfflineInstallationPath,
 
         # IoT Edge Agent image to pull
+        [Parameter(ParameterSetName = 'Manual')]
+        [Parameter(ParameterSetName = 'DPS')]
         [String] $AgentImage,
 
         # Username to pull IoT Edge Agent image
+        [Parameter(ParameterSetName = 'Manual')]
+        [Parameter(ParameterSetName = 'DPS')]
         [String] $Username,
 
         # Password to pull IoT Edge Agent image
+        [Parameter(ParameterSetName = 'Manual')]
+        [Parameter(ParameterSetName = 'DPS')]
         [SecureString] $Password,
 
         # Splatted into every Invoke-WebRequest invocation. Can be used to set extra options.
@@ -170,14 +179,27 @@ function Install-SecurityDaemon {
     Get-SecurityDaemon
     Get-VcRuntime
 
-    # Update config.yaml
-    Set-ProvisioningMode
-    Set-AgentImage
-    Set-Hostname
-    if ($ContainerOs -eq 'Linux') {
-        Set-GatewayAddress
+    # config.yaml
+    if ($ExistingConfig) {
+        Write-HostGreen 'Using existing config.yaml'
+
+        if (-not (Test-Path "$EdgeInstallDirectory\config.yaml")) {
+            Write-HostRed
+            Write-HostRed "$EdgeInstallDirectory\config.yaml was not found."
+            return
+        }
     }
-    Set-MobyEngineParameters
+    else {
+        Write-Host 'Generating config.yaml...'
+
+        Set-ProvisioningMode
+        Set-AgentImage
+        Set-Hostname
+        if ($ContainerOs -eq 'Linux') {
+            Set-GatewayAddress
+        }
+        Set-MobyEngineParameters
+    }
 
     # Register services
     Set-SystemPath
@@ -198,6 +220,10 @@ function Install-SecurityDaemon {
 function Uninstall-SecurityDaemon {
     [CmdletBinding()]
     param (
+        [Switch] $DeleteConfig,
+
+        [Switch] $DeleteMobyDataRoot,
+
         [Switch] $Force
     )
 
@@ -215,7 +241,7 @@ function Uninstall-SecurityDaemon {
     $ContainerOs = Get-ContainerOs
 
     Uninstall-Services
-    Stop-IotEdgeContainers
+    Remove-IotEdgeContainers
     $success = Remove-SecurityDaemonResources
     Reset-SystemPath
 
@@ -297,11 +323,11 @@ function Get-WindowsBuild {
 }
 
 function Test-EdgeAlreadyInstalled {
-    (Get-Service $EdgeServiceName -ErrorAction SilentlyContinue) -or (Test-Path -Path $EdgeInstallDirectory)
+    (Get-Service $EdgeServiceName -ErrorAction SilentlyContinue) -or (Test-Path -Path "$EdgeInstallDirectory\iotedged.exe")
 }
 
 function Test-MobyAlreadyInstalled {
-    (Get-Service $MobyServiceName -ErrorAction SilentlyContinue) -or (Test-Path -Path $MobyInstallDirectory) -or (Test-Path -Path $MobyDataRootDirectory)
+    (Get-Service $MobyServiceName -ErrorAction SilentlyContinue) -or (Test-Path -Path $MobyInstallDirectory)
 }
 
 function Test-AgentRegistryArgs {
@@ -361,7 +387,9 @@ function Get-SecurityDaemon {
                     -Delete ([ref] $deleteMobyEngineArchive)
             Expand-Archive $mobyEngineArchivePath $MobyInstallDirectory -Force
 
-            New-Item -Type Directory $MobyDataRootDirectory | Out-Null
+            if (-not (Test-Path $MobyDataRootDirectory)) {
+                New-Item -Type Directory $MobyDataRootDirectory | Out-Null
+            }
             Remove-BuiltinWritePermissions $MobyDataRootDirectory
 
             if (-not ($SkipMobyCli)) {
@@ -396,13 +424,25 @@ function Get-SecurityDaemon {
         }
 
         if ((Get-Item $edgeArchivePath).PSIsContainer) {
-            New-Item -Type Directory $EdgeInstallDirectory | Out-Null
-            Copy-Item "$edgeArchivePath\*" $EdgeInstallDirectory -Force
+            if (-not (Test-Path $EdgeInstallDirectory)) {
+                New-Item -Type Directory $EdgeInstallDirectory | Out-Null
+            }
+            if ($ExistingConfig) {
+                Copy-Item "$edgeArchivePath\*" $EdgeInstallDirectory -Force -Recurse -Exclude 'config.yaml'
+            }
+            else {
+                Copy-Item "$edgeArchivePath\*" $EdgeInstallDirectory -Force -Recurse
+            }
         }
         else {
             New-Item -Type Directory $EdgeInstallDirectory | Out-Null
             Expand-Archive $edgeArchivePath $EdgeInstallDirectory -Force
-            Copy-Item "$EdgeInstallDirectory\iotedged-windows\*" $EdgeInstallDirectory -Force -Recurse
+            if ($ExistingConfig) {
+                Copy-Item "$EdgeInstallDirectory\iotedged-windows\*" $EdgeInstallDirectory -Force -Recurse -Exclude 'config.yaml'
+            }
+            else {
+                Copy-Item "$EdgeInstallDirectory\iotedged-windows\*" $EdgeInstallDirectory -Force -Recurse
+            }
         }
 
         Remove-BuiltinWritePermissions $EdgeInstallDirectory
@@ -476,7 +516,17 @@ function Remove-SecurityDaemonResources {
     Remove-Item $logKey -ErrorAction SilentlyContinue -ErrorVariable cmdErr
     Write-Verbose "$(if ($?) { "Deleted registry key '$logKey'" } else { $cmdErr })"
 
-    Remove-Item -Recurse $EdgeInstallDirectory -ErrorAction SilentlyContinue -ErrorVariable cmdErr
+    Write-Host "Deleting install directory '$EdgeInstallDirectory'..."
+    if (-not $DeleteConfig) {
+        Write-Host "Not deleting config.yaml since -DeleteConfig was not specified."
+    }
+
+    if ($DeleteConfig) {
+        Remove-Item -Recurse $EdgeInstallDirectory -ErrorAction SilentlyContinue -ErrorVariable cmdErr
+    }
+    else {
+        Remove-Item -Recurse $EdgeInstallDirectory -Exclude 'config.yaml' -ErrorAction SilentlyContinue -ErrorVariable cmdErr
+    }
     if ($?) {
         Write-Verbose "Deleted install directory '$EdgeInstallDirectory'"
     }
@@ -505,32 +555,37 @@ function Remove-SecurityDaemonResources {
         Write-Verbose "$cmdErr"
     }
 
-    if (Test-Path $MobyDataRootDirectory) {
-        try {
-            Write-Host "Deleting Moby data root directory '$MobyDataRootDirectory'..."
+    if ($DeleteMobyDataRoot) {
+        if (Test-Path $MobyDataRootDirectory) {
+            try {
+                Write-Host "Deleting Moby data root directory '$MobyDataRootDirectory'..."
 
-            # Removing `$MobyDataRootDirectory` is tricky. Windows base images contain files owned by TrustedInstaller, etc
-            # Deleting them is a three-step process:
-            #
-            # 1. Take ownership of all files
-            Invoke-Native "takeown /r /skipsl /f ""$MobyDataRootDirectory"""
+                # Removing `$MobyDataRootDirectory` is tricky. Windows base images contain files owned by TrustedInstaller, etc
+                # Deleting them is a three-step process:
+                #
+                # 1. Take ownership of all files
+                Invoke-Native "takeown /r /skipsl /f ""$MobyDataRootDirectory"""
 
-            # 2. Reset their ACLs so that they inherit from their container
-            Invoke-Native "icacls ""$MobyDataRootDirectory"" /reset /t /l /q /c"
+                # 2. Reset their ACLs so that they inherit from their container
+                Invoke-Native "icacls ""$MobyDataRootDirectory"" /reset /t /l /q /c"
 
-            # 3. Use cmd's `rd` rather than `Remove-Item` since the latter gets tripped up by reparse points, etc.
-            #    Prepend the path with `\\?\` since the layer directories have long names, so the paths usually exceed 260 characters,
-            #    and IoT Core's filesystem doesn't seem to automatically use (or even have) short names
-            Invoke-Native "rd /s /q ""\\?\$MobyDataRootDirectory"""
+                # 3. Use cmd's `rd` rather than `Remove-Item` since the latter gets tripped up by reparse points, etc.
+                #    Prepend the path with `\\?\` since the layer directories have long names, so the paths usually exceed 260 characters,
+                #    and IoT Core's filesystem doesn't seem to automatically use (or even have) short names
+                Invoke-Native "rd /s /q ""\\?\$MobyDataRootDirectory"""
 
-            Write-Verbose "Deleted Moby data root directory '$MobyDataRootDirectory'"
+                Write-Verbose "Deleted Moby data root directory '$MobyDataRootDirectory'"
+            }
+            catch {
+                Write-Verbose "$_"
+                Write-HostRed ("Could not delete Moby data root directory '$MobyDataRootDirectory'. Please reboot " +
+                    'your device and run `Uninstall-SecurityDaemon` again with `-Force`.')
+                $success = $false
+            }
         }
-        catch {
-            Write-Verbose "$_"
-            Write-HostRed ("Could not delete Moby data root directory '$MobyDataRootDirectory'. Please reboot " +
-                'your device and run `Uninstall-SecurityDaemon` again with `-Force`.')
-            $success = $false
-        }
+    }
+    else {
+        Write-Host "Not deleting Moby data root directory '$MobyDataRootDirectory' since -DeleteMobyDataRoot was not specified."
     }
 
     Remove-Item -Recurse $MobyInstallDirectory -ErrorAction SilentlyContinue -ErrorVariable cmdErr
@@ -849,23 +904,23 @@ function Get-AgentRegistry {
     return 'index.docker.io'
 }
 
-function Stop-IotEdgeContainers {
+function Remove-IotEdgeContainers {
     $dockerExe = Get-DockerExePath
 
     if (-not (Test-IsDockerRunning 6> $null)) {
         return
     }
 
-    $runningContainersString = Invoke-Native "$dockerExe ps --format ""{{.ID}}""" -Passthru
+    $runningContainersString = Invoke-Native "$dockerExe ps --all --format ""{{.ID}}""" -Passthru
     [string[]] $runningContainers = $runningContainersString -split {$_ -eq "`r" -or $_ -eq "`n"} | where {$_.Length -gt 0}
 
     foreach ($containerId in $runningContainers) {
-        $inspectString = Invoke-Native "$dockerExe inspect ""$containerId""" -Passthru | ConvertFrom-Json
+        $inspectString = Invoke-Native "$dockerExe inspect ""$containerId""" -Passthru
         $inspectResult = ($inspectString | ConvertFrom-Json)[0]
 
         if ($inspectResult.Config.Labels.'net.azure-devices.edge.owner' -eq 'Microsoft.Azure.Devices.Edge.Agent') {
-            Invoke-Native "$dockerExe stop ""$containerId"""
-            Write-Verbose "Stopped container $($inspectResult.Name)"
+            Invoke-Native "$dockerExe rm --force ""$containerId"""
+            Write-Verbose "Stopped and deleted container $($inspectResult.Name)"
         }
     }
 }
