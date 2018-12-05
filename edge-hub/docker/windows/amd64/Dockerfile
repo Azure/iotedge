@@ -12,6 +12,7 @@ EXPOSE 8883/tcp
 EXPOSE 5671/tcp
 EXPOSE 443/tcp
 
+USER ContainerAdministrator
 # Add an unprivileged user account for running Edge Hub
 RUN net user /add edgehubuser
 
