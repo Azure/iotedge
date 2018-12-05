@@ -7,4 +7,8 @@ WORKDIR /app
 
 COPY $EXE_DIR/ ./
 
+# Add an unprivileged user account for running the module
+RUN net user /add moduleuser
+
+USER moduleuser
 CMD ["dotnet", "MessagesAnalyzer.dll"]

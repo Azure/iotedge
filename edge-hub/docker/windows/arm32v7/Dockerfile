@@ -1,5 +1,5 @@
-ARG base_tag=2.1.6-runtime-nanoserver-1809
-FROM microsoft/dotnet:${base_tag}
+ARG base_tag=1.0.0-windows-arm32v7
+FROM azureiotedge/azureiotedge-hub-base:${base_tag}
 
 ARG EXE_DIR=.
 
@@ -11,9 +11,6 @@ COPY $EXE_DIR/ ./
 EXPOSE 8883/tcp
 EXPOSE 5671/tcp
 EXPOSE 443/tcp
-
-# Add an unprivileged user account for running Edge Hub
-RUN net user /add edgehubuser
 
 USER edgehubuser
 CMD ["dotnet", "Microsoft.Azure.Devices.Edge.Hub.Service.dll"]

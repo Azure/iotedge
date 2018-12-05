@@ -151,6 +151,14 @@ foreach ($appProjectFileName in $appProjectList) {
     if ($LASTEXITCODE -ne 0) {
         throw "Failed app publishing $appProjectFilePath."
     }
+    
+    # Copy rocksdb ARM32 version to native/arm folder; this rocksdb.dll statically linked with snappy dll.
+    if ($appProjectFileName -eq "Microsoft.Azure.Devices.Edge.Agent.Service.csproj" -or $appProjectFileName -eq "Microsoft.Azure.Devices.Edge.Hub.Service.csproj")
+    {
+        $rocksdbARMDestPath = Join-Path $ProjectPublishPath "native\arm"
+        $rocksdbARMSourcePath = Join-Path $BuildRepositoryLocalPath "thirdparty\rocksdb\arm32\rocksdb.dll"
+        Copy-Item $rocksdbARMSourcePath $rocksdbARMDestPath -Force
+    }
 }
 
 <#
@@ -227,6 +235,7 @@ else {
  # Publish IoTEdgeQuickstart and LeafDevice
  #>
 
+ # Subject to remove once other pipelines are updated to use the new path
 Write-Host "Publishing - IoTEdgeQuickstart x64"
 $ProjectPublishPath = Join-Path $PUBLISH_FOLDER "IoTEdgeQuickstart"
 $IoTEdgeQuickstartProjectFolder = Join-Path $BuildRepositoryLocalPath "smoke/IotEdgeQuickstart"
@@ -243,4 +252,46 @@ $LeafDeviceProjectFolder = Join-Path $BuildRepositoryLocalPath "smoke/LeafDevice
 	Write-Host
 if ($LASTEXITCODE -ne 0) {
 	throw "Failed publishing LeafDevice."
+}
+
+<#
+ # Publish IoTEdgeQuickstart
+ #>
+$IoTEdgeQuickstartProjectFolder = Join-Path $BuildRepositoryLocalPath "smoke/IotEdgeQuickstart"
+
+Write-Host "Publishing - IoTEdgeQuickstart x64"
+$ProjectPublishPath = Join-Path $PUBLISH_FOLDER "IoTEdgeQuickstart/x64"
+&$DOTNET_PATH publish -f netcoreapp2.1 -r "win10-x64" -c $Configuration -o $ProjectPublishPath $IoTEdgeQuickstartProjectFolder |
+	Write-Host
+if ($LASTEXITCODE -ne 0) {
+	throw "Failed publishing IoTEdgeQuickstart x64."
+}
+
+Write-Host "Publishing - IoTEdgeQuickstart arm32"
+$ProjectPublishPath = Join-Path $PUBLISH_FOLDER "IoTEdgeQuickstart/arm32"
+&$DOTNET_PATH publish -f netcoreapp2.1 -r "win10-arm" -c $Configuration -o $ProjectPublishPath $IoTEdgeQuickstartProjectFolder |
+	Write-Host
+if ($LASTEXITCODE -ne 0) {
+	throw "Failed publishing IoTEdgeQuickstart arm32."
+}
+
+<#
+ # Publish LeafDevice
+ #>
+$LeafDeviceProjectFolder = Join-Path $BuildRepositoryLocalPath "smoke/LeafDevice"
+
+Write-Host "Publishing - LeafDevice x64"
+$ProjectPublishPath = Join-Path $PUBLISH_FOLDER "LeafDevice/x64"
+&$DOTNET_PATH publish -f netcoreapp2.1 -r "win10-x64" -c $Configuration -o $ProjectPublishPath $LeafDeviceProjectFolder |
+	Write-Host
+if ($LASTEXITCODE -ne 0) {
+	throw "Failed publishing LeafDevice x64."
+}
+
+Write-Host "Publishing - LeafDevice arm32"
+$ProjectPublishPath = Join-Path $PUBLISH_FOLDER "LeafDevice/arm32"
+&$DOTNET_PATH publish -f netcoreapp2.1 -r "win10-arm" -c $Configuration -o $ProjectPublishPath $LeafDeviceProjectFolder |
+	Write-Host
+if ($LASTEXITCODE -ne 0) {
+	throw "Failed publishing LeafDevice arm32."
 }
