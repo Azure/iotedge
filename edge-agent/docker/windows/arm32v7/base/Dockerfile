@@ -19,4 +19,4 @@ ENV ASPNETCORE_URLS=http://+:80
 # Enable detection of running in a container1
 ENV DOTNET_RUNNING_IN_CONTAINER=true
 
-# Don't need to install RocksDB since RocksDB.dll ARM32 version is copied to native/arm folder.
+# Don't need to install RocksDB since RocksDB.dll ARM32 version is copied to native/arm folder during build.
