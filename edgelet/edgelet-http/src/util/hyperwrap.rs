@@ -65,7 +65,8 @@ fn uri_to_proxy(uri: Uri) -> Result<Proxy, Error> {
                     url.to_string(),
                     InvalidUrlReason::InvalidCredentials,
                 )
-            }).with_context(|_| ErrorKind::Proxy(uri.clone()))
+            })
+            .with_context(|_| ErrorKind::Proxy(uri.clone()))
             .context(ErrorKind::Initialization)?;
         let credentials = match url.password() {
             Some(password) => {
@@ -76,7 +77,8 @@ fn uri_to_proxy(uri: Uri) -> Result<Proxy, Error> {
                             url.to_string(),
                             InvalidUrlReason::InvalidCredentials,
                         )
-                    }).with_context(|_| ErrorKind::Proxy(uri.clone()))
+                    })
+                    .with_context(|_| ErrorKind::Proxy(uri.clone()))
                     .context(ErrorKind::Initialization)?;
 
                 Credentials::basic(&username, &password)
@@ -85,7 +87,8 @@ fn uri_to_proxy(uri: Uri) -> Result<Proxy, Error> {
                             url.to_string(),
                             InvalidUrlReason::InvalidCredentials,
                         )
-                    }).with_context(|_| ErrorKind::Proxy(uri))
+                    })
+                    .with_context(|_| ErrorKind::Proxy(uri))
                     .context(ErrorKind::Initialization)?
             }
             None => Credentials::basic(&username, "")
@@ -94,7 +97,8 @@ fn uri_to_proxy(uri: Uri) -> Result<Proxy, Error> {
                         url.to_string(),
                         InvalidUrlReason::InvalidCredentials,
                     )
-                }).with_context(|_| ErrorKind::Proxy(uri))
+                })
+                .with_context(|_| ErrorKind::Proxy(uri))
                 .context(ErrorKind::Initialization)?,
         };
         proxy.set_authorization(credentials);
@@ -146,7 +150,8 @@ impl ClientImpl for Client {
                 Response::builder()
                     .status(
                         StatusCode::from_u16(234).expect("StatusCode::from_u16 should not fail"),
-                    ).body(Body::empty())
+                    )
+                    .body(Body::empty())
                     .expect("creating empty resposne should not fail"),
             )),
         }

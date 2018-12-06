@@ -14,16 +14,10 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InlineResponse2009 {
     /// Images that were deleted
-    #[serde(
-        rename = "ImagesDeleted",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "ImagesDeleted", skip_serializing_if = "Option::is_none")]
     images_deleted: Option<Vec<::models::ImageDeleteResponseItem>>,
     /// Disk space reclaimed in bytes
-    #[serde(
-        rename = "SpaceReclaimed",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "SpaceReclaimed", skip_serializing_if = "Option::is_none")]
     space_reclaimed: Option<i64>,
 }
 

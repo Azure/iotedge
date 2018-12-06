@@ -83,7 +83,8 @@ impl UrlConnector {
                     scheme: scheme.to_string(),
                     base_path: base_path.to_string(),
                     path: path.to_string(),
-                })?.into()),
+                })?
+                .into()),
             UNIX_SCHEME => Ok(HyperlocalUri::new(base_path, &path).into()),
             HTTP_SCHEME => Ok(Url::parse(base_path)
                 .and_then(|base| base.join(path))

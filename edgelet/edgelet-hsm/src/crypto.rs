@@ -166,7 +166,8 @@ impl CoreCertificate for Certificate {
                 }
                 Some(HsmPrivateKey::Ref(key_string)) => Some(CorePrivateKey::Ref(key_string)),
                 None => None,
-            }).map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
+            })
+            .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
             .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore)))
     }
 

@@ -61,7 +61,8 @@ where
                     authorized
                         .context(ErrorKind::Authorization)
                         .map_err(Error::from)
-                }).and_then(move |authorized| {
+                })
+                .and_then(move |authorized| {
                     if authorized {
                         future::Either::A(inner.handle(req, params).then(|resp| {
                             resp.context(ErrorKind::Authorization).map_err(Error::from)
@@ -71,7 +72,8 @@ where
                             name.unwrap_or_else(String::new),
                         ))))
                     }
-                }).or_else(|e| future::ok(e.into_response()));
+                })
+                .or_else(|e| future::ok(e.into_response()));
 
         Box::new(response)
     }

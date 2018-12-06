@@ -221,13 +221,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|_| futures::future::ok(())),
+                })
+                .and_then(|_| futures::future::ok(())),
         )
     }
 
@@ -270,13 +272,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|_| futures::future::ok(())),
+                })
+                .and_then(|_| futures::future::ok(())),
         )
     }
 
@@ -329,13 +333,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|_| futures::future::ok(())),
+                })
+                .and_then(|_| futures::future::ok(())),
         )
     }
 
@@ -388,13 +394,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|_| futures::future::ok(())),
+                })
+                .and_then(|_| futures::future::ok(())),
         )
     }
 
@@ -434,13 +442,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|body| {
+                })
+                .and_then(|body| {
                     let parsed: Result<Vec<::models::InlineResponse2002>, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
@@ -495,13 +505,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|body| {
+                })
+                .and_then(|body| {
                     let parsed: Result<::models::InlineResponse201, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
@@ -552,13 +564,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|_| futures::future::ok(())),
+                })
+                .and_then(|_| futures::future::ok(())),
         )
     }
 
@@ -597,13 +611,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|_| futures::future::ok(())),
+                })
+                .and_then(|_| futures::future::ok(())),
         )
     }
 
@@ -647,13 +663,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|body| {
+                })
+                .and_then(|body| {
                     let parsed: Result<::models::InlineResponse200, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
@@ -700,13 +718,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|_| futures::future::ok(())),
+                })
+                .and_then(|_| futures::future::ok(())),
         )
     }
 
@@ -755,13 +775,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|body| {
+                })
+                .and_then(|body| {
                     let parsed: Result<Vec<::models::ContainerSummary>, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
@@ -860,13 +882,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|_| futures::future::ok(())),
+                })
+                .and_then(|_| futures::future::ok(())),
         )
     }
 
@@ -908,13 +932,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|body| {
+                })
+                .and_then(|body| {
                     let parsed: Result<::models::InlineResponse2005, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
@@ -961,13 +987,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|_| futures::future::ok(())),
+                })
+                .and_then(|_| futures::future::ok(())),
         )
     }
 
@@ -1012,13 +1040,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|_| futures::future::ok(())),
+                })
+                .and_then(|_| futures::future::ok(())),
         )
     }
 
@@ -1061,13 +1091,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|_| futures::future::ok(())),
+                })
+                .and_then(|_| futures::future::ok(())),
         )
     }
 
@@ -1110,13 +1142,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|_| futures::future::ok(())),
+                })
+                .and_then(|_| futures::future::ok(())),
         )
     }
 
@@ -1159,13 +1193,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|body| {
+                })
+                .and_then(|body| {
                     let parsed: Result<serde_json::Value, _> = serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
@@ -1211,13 +1247,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|_| futures::future::ok(())),
+                })
+                .and_then(|_| futures::future::ok(())),
         )
     }
 
@@ -1260,13 +1298,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|body| {
+                })
+                .and_then(|body| {
                     let parsed: Result<::models::InlineResponse2001, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
@@ -1309,13 +1349,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|_| futures::future::ok(())),
+                })
+                .and_then(|_| futures::future::ok(())),
         )
     }
 
@@ -1362,13 +1404,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|body| {
+                })
+                .and_then(|body| {
                     let parsed: Result<::models::InlineResponse2003, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
@@ -1415,13 +1459,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|body| {
+                })
+                .and_then(|body| {
                     let parsed: Result<::models::InlineResponse2004, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
@@ -1445,7 +1491,8 @@ where
             .append_pair(
                 "noOverwriteDirNonDir",
                 &no_overwrite_dir_non_dir.to_string(),
-            ).finish();
+            )
+            .finish();
         let uri_str = format!("/containers/{id}/archive?{}", query, id = id);
 
         let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
@@ -1480,13 +1527,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|_| futures::future::ok(())),
+                })
+                .and_then(|_| futures::future::ok(())),
         )
     }
 }

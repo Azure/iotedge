@@ -16,10 +16,7 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ContainerCreateBodyNetworkingConfig {
     /// A mapping of network name to endpoint configuration for that network.
-    #[serde(
-        rename = "EndpointsConfig",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "EndpointsConfig", skip_serializing_if = "Option::is_none")]
     endpoints_config: Option<::std::collections::HashMap<String, ::models::EndpointSettings>>,
 }
 

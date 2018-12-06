@@ -17,10 +17,7 @@ pub struct ServiceEndpoint {
     spec: Option<::models::EndpointSpec>,
     #[serde(rename = "Ports", skip_serializing_if = "Option::is_none")]
     ports: Option<Vec<::models::EndpointPortConfig>>,
-    #[serde(
-        rename = "VirtualIPs",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "VirtualIPs", skip_serializing_if = "Option::is_none")]
     virtual_i_ps: Option<Vec<::models::ServiceEndpointVirtualIPs>>,
 }
 

@@ -73,7 +73,8 @@ where
             .then(move |result| match result {
                 Ok(((), _)) => Ok(stop_runtime(&runtime_copy, &name)),
                 Err((err, _)) => Err(err),
-            }).flatten()
+            })
+            .flatten()
     }
 }
 
@@ -118,7 +119,8 @@ where
                 id_mgr.clone(),
                 spec.clone(),
                 module_id.clone(),
-            ).or_else(|e| {
+            )
+            .or_else(|e| {
                 warn!("Error in watchdog when checking for edge runtime status:");
                 log_failure(Level::Warn, &e);
                 future::ok(())
@@ -145,7 +147,8 @@ where
                 m.runtime_state()
                     .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime)))
             })
-        }).and_then(move |state| match state {
+        })
+        .and_then(move |state| match state {
             Some(state) => {
                 let res = if *state.status() == ModuleStatus::Running {
                     info!("Edge runtime is running.");
@@ -165,7 +168,8 @@ where
             }
 
             None => Either::B(create_and_start(runtime, &id_mgr, spec, module_id)),
-        }).map(|_| ())
+        })
+        .map(|_| ())
 }
 
 // Gets the edge runtime module, if it exists.
@@ -183,7 +187,8 @@ where
             m.into_iter()
                 .filter_map(move |m| if m.name() == name { Some(m) } else { None })
                 .next()
-        }).map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime)))
+        })
+        .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime)))
 }
 
 // Gets and updates the identity of the module.
@@ -205,7 +210,8 @@ where
                     .update(
                         IdentitySpec::new(module.module_id().to_string())
                             .with_generation_id(module.generation_id().to_string()),
-                    ).map_err(|e| Error::from(e.context(ErrorKind::IdentityManager)));
+                    )
+                    .map_err(|e| Error::from(e.context(ErrorKind::IdentityManager)));
                 Either::A(res)
             }
             None => Either::B(
@@ -454,7 +460,8 @@ mod tests {
             "iotedge",
             "1",
             AuthType::None,
-        )]).with_fail_update(true);
+        )])
+        .with_fail_update(true);
 
         assert_eq!(
             true,

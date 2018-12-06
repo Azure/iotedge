@@ -20,10 +20,7 @@ pub struct VolumeConfig {
     #[serde(rename = "Driver", skip_serializing_if = "Option::is_none")]
     driver: Option<String>,
     /// A mapping of driver options and values. These options are passed directly to the driver and are driver specific.
-    #[serde(
-        rename = "DriverOpts",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "DriverOpts", skip_serializing_if = "Option::is_none")]
     driver_opts: Option<::std::collections::HashMap<String, String>>,
     /// User-defined key/value metadata.
     #[serde(rename = "Labels", skip_serializing_if = "Option::is_none")]
