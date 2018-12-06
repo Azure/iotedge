@@ -38,9 +38,7 @@ if (-Not (Test-Path $DockerFile -PathType Leaf))
 <#
  # Docker registries
  #>
-$DockerRegistries = New-Object 'System.Collections.Generic.List[String]'
-$DockerRegistries.Add("edgebuilds.azurecr.io/")
-$DockerRegistries.Add("edgerelease.azurecr.io/")
+$DockerRegistries = @("edgebuilds.azurecr.io/", "edgerelease.azurecr.io/")
 
 <#
  # Docker image tags
