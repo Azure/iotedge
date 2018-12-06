@@ -14,7 +14,7 @@ USER ContainerAdministrator
 RUN setx /M PATH "%PATH%;C:\Program Files\dotnet"
 # Add an unprivileged user account for running Edge Hub
 RUN net user /add edgehubuser
-USER ContainerUser
+USER edgehubuser
  
 # Configure Kestrel web server to bind to port 80 when present
 ENV ASPNETCORE_URLS=http://+:80

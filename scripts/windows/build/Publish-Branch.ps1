@@ -137,6 +137,11 @@ $appProjectList.Add("MessagesAnalyzer.csproj")
 $appProjectList.Add("DirectMethodSender.csproj")
 $appProjectList.Add("DirectMethodReceiver.csproj")
 
+# Download latest rocksdb ARM32 library
+$rocksdbARMUri = "https://edgebuild.blob.core.windows.net/rocksdb/rocksdb-arm.dll"
+$rocksdbARMSourcePath = Join-Path $BuildRepositoryLocalPath "thirdparty\rocksdb\arm32\rocksdb.dll"
+Invoke-WebRequest -Uri $rocksdbARMUri -OutFile $rocksdbARMSourcePath
+
 foreach ($appProjectFileName in $appProjectList) {
     $appProjectFilePath = Get-ChildItem -Include *.csproj -File -Recurse |Where-Object {$_.Name -eq "$appProjectFileName"}|Select-Object -first 1|Select -ExpandProperty "FullName"
 
@@ -156,7 +161,6 @@ foreach ($appProjectFileName in $appProjectList) {
     if ($appProjectFileName -eq "Microsoft.Azure.Devices.Edge.Agent.Service.csproj" -or $appProjectFileName -eq "Microsoft.Azure.Devices.Edge.Hub.Service.csproj")
     {
         $rocksdbARMDestPath = Join-Path $ProjectPublishPath "native\arm"
-        $rocksdbARMSourcePath = Join-Path $BuildRepositoryLocalPath "thirdparty\rocksdb\arm32\rocksdb.dll"
         Copy-Item $rocksdbARMSourcePath $rocksdbARMDestPath -Force
     }
 }
