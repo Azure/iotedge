@@ -11,68 +11,80 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
     public class RetryTest
     {
         [Fact]
-        public async Task BasicTest()
+        public async Task RetryRetriesFuncUntilValidResultIsReturned()
         {
             int counter = 0;
-            Func<Task<Option<int>>> func = () => Task.FromResult((counter++ > 2) ? Option.Some(counter) : Option.None<int>());
-            Func<Option<int>, bool> isValid = (option) => option.HasValue;
-            Func<Exception, bool> continueOnException = (ex) => true;
+            Func<Task<int>> func = () => Task.FromResult(++counter);
+            Func<int, bool> isValid = (val) => val > 3;
             TimeSpan retryInterval = TimeSpan.FromMilliseconds(2);
             int retryCount = 5;
 
-            Option<int> returnedValue = await Retry.Do(func, isValid, continueOnException, retryInterval, retryCount);
-            Assert.True(returnedValue.HasValue);
-            Assert.Equal(4, returnedValue.OrDefault());
+            Option<int> returnedValue = await Retry.Do(func, isValid, null, retryInterval, retryCount);
+            Assert.Equal(Option.Some<int>(4), returnedValue);
         }
 
         [Fact]
-        public async Task BasicTestWithException()
-        {
-            int counter = 0;
-            Func<Task<string>> func = () => Task.FromResult((counter++ > 3) ? "Foo" : throw new InvalidOperationException());
-
-            TimeSpan retryInterval = TimeSpan.FromMilliseconds(2);
-            int retryCount = 5;
-
-            string returnedValue = await Retry.Do(func, null, null, retryInterval, retryCount);
-            Assert.NotNull(returnedValue);
-            Assert.Equal("Foo", returnedValue);
-        }
-
-        [Fact]
-        public async Task ValueNotFoundTest()
+        public async Task RetryReturnsNoneIfFuncNeverReturnsValidResult()
         {
             int counter = 0;
             Func<Task<string>> func = () => Task.FromResult((counter++ > 5) ? "Foo" : null);
             Func<string, bool> isValid = (val) => val != null;
+            TimeSpan retryInterval = TimeSpan.FromMilliseconds(2);
+            int retryCount = 5;
+
+            Option<string> returnedValue = await Retry.Do(func, isValid, null, retryInterval, retryCount);
+            Assert.Equal(Option.None<string>(), returnedValue);
+        }
+
+        [Fact]
+        public async Task RetryWithoutValidFuncReturns1stResult()
+        {
+            int counter = 0;
+            Func<Task<string>> func = () => { ++counter; return Task.FromResult<string>("Foo"); };
+            TimeSpan retryInterval = TimeSpan.FromMilliseconds(2);
+            int retryCount = 5;
+
+            Option<string> returnedValue = await Retry.Do(func, null, null, retryInterval, retryCount);
+            Assert.Equal(Option.Some<string>("Foo"), returnedValue);
+            Assert.Equal(1, counter);
+        }
+
+        [Fact]
+        public async Task RetryWithoutExceptionFuncThrowsIfFuncThrows()
+        {
+            Func<Task<string>> func = () => throw new InvalidOperationException();
+            TimeSpan retryInterval = TimeSpan.FromMilliseconds(2);
+            int retryCount = 5;
+
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => Retry.Do(func, null, null, retryInterval, retryCount)
+            );
+        }
+
+        [Fact]
+        public async Task RetryContinuesIfExceptionFuncReturnsTrue()
+        {
+            int counter = 0;
+            Func<Task<string>> func = () => Task.FromResult((counter++ > 3) ? "Foo" : throw new InvalidOperationException());
             Func<Exception, bool> continueOnException = (ex) => true;
             TimeSpan retryInterval = TimeSpan.FromMilliseconds(2);
             int retryCount = 5;
 
-            string returnedValue = await Retry.Do(func, isValid, continueOnException, retryInterval, retryCount);
-            Assert.Null(returnedValue);            
+            Option<string> returnedValue = await Retry.Do(func, null, continueOnException, retryInterval, retryCount);
+            Assert.Equal(Option.Some<string>("Foo"), returnedValue);
         }
 
         [Fact]
-        public async Task ExceptionTest()
+        public async Task RetryThrowsIfExceptionFuncReturnsFalse()
         {
-            int counter = 0;
-            Func<Task<string>> func = () => { counter++; throw new InvalidOperationException(); };
+            Func<Task<string>> func = () => throw new InvalidOperationException();
+            Func<Exception, bool> continueOnException = (ex) => false;
             TimeSpan retryInterval = TimeSpan.FromMilliseconds(2);
             int retryCount = 5;
 
-            Exception caughtException = null;
-            try
-            {
-                await Retry.Do(func, null, null, retryInterval, retryCount);
-            }
-            catch(InvalidOperationException ex)
-            {
-                caughtException = ex;
-            }
-
-            Assert.NotNull(caughtException);
-            Assert.Equal(5, counter);
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => Retry.Do(func, null, continueOnException, retryInterval, retryCount)
+            );
         }
     }
 }
