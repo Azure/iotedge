@@ -175,6 +175,21 @@ function Install-SecurityDaemon {
             [System.Net.ServicePointManager]::SecurityProtocol -bor [System.Net.SecurityProtocolType]::Tls12
     }
 
+    if ($ExistingConfig -and (-not (Test-Path "$EdgeInstallDirectory\config.yaml"))) {
+        Write-HostRed
+        Write-HostRed "$EdgeInstallDirectory\config.yaml was not found."
+        return
+    }
+
+    if ((-not $ExistingConfig) -and (Test-Path "$EdgeInstallDirectory\config.yaml")) {
+        Write-HostRed
+        Write-HostRed "$EdgeInstallDirectory\config.yaml already exists."
+        Write-HostRed (
+            'Delete it using `Uninstall-SecurityDaemon -Force -DeleteConfig` and then re-run `Install-SecurityDaemon`, ' +
+            'or run `Install-SecurityDaemon -ExistingConfig` to use the existing config.yaml')
+        return
+    }
+
     # Download
     Get-SecurityDaemon
     Get-VcRuntime
@@ -182,12 +197,6 @@ function Install-SecurityDaemon {
     # config.yaml
     if ($ExistingConfig) {
         Write-HostGreen 'Using existing config.yaml'
-
-        if (-not (Test-Path "$EdgeInstallDirectory\config.yaml")) {
-            Write-HostRed
-            Write-HostRed "$EdgeInstallDirectory\config.yaml was not found."
-            return
-        }
     }
     else {
         Write-Host 'Generating config.yaml...'
