@@ -160,7 +160,7 @@ foreach ($appProjectFileName in $appProjectList) {
     # Copy rocksdb ARM32 version to native/arm folder; this rocksdb.dll statically linked with snappy dll.
     if ($appProjectFileName -eq "Microsoft.Azure.Devices.Edge.Agent.Service.csproj" -or $appProjectFileName -eq "Microsoft.Azure.Devices.Edge.Hub.Service.csproj")
     {
-        $rocksdbARMDestPath = Join-Path $ProjectPublishPath "native\arm"
+        $rocksdbARMDestPath = Join-Path $ProjectPublishPath "native\arm\rocksdb.dll"
         Copy-Item $rocksdbARMSourcePath $rocksdbARMDestPath -Force
     }
 }
