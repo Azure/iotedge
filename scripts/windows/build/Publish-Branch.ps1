@@ -258,9 +258,10 @@ if ($LASTEXITCODE -ne 0) {
  # Publish IoTEdgeQuickstart
  #>
 $IoTEdgeQuickstartProjectFolder = Join-Path $BuildRepositoryLocalPath "smoke/IotEdgeQuickstart"
+$IoTEdgeQuickstartPublishBaseFolder = Join-Path $PUBLISH_FOLDER "IoTEdgeQuickstart"
 
 Write-Host "Publishing - IoTEdgeQuickstart x64"
-$ProjectPublishPath = Join-Path $PUBLISH_FOLDER "IoTEdgeQuickstart/x64"
+$ProjectPublishPath = Join-Path $IoTEdgeQuickstartPublishBaseFolder "x64"
 &$DOTNET_PATH publish -f netcoreapp2.1 -r "win10-x64" -c $Configuration -o $ProjectPublishPath $IoTEdgeQuickstartProjectFolder |
 	Write-Host
 if ($LASTEXITCODE -ne 0) {
@@ -268,7 +269,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "Publishing - IoTEdgeQuickstart arm32"
-$ProjectPublishPath = Join-Path $PUBLISH_FOLDER "IoTEdgeQuickstart/arm32"
+$ProjectPublishPath = Join-Path $IoTEdgeQuickstartPublishBaseFolder "arm32v7"
 &$DOTNET_PATH publish -f netcoreapp2.1 -r "win10-arm" -c $Configuration -o $ProjectPublishPath $IoTEdgeQuickstartProjectFolder |
 	Write-Host
 if ($LASTEXITCODE -ne 0) {
@@ -279,9 +280,10 @@ if ($LASTEXITCODE -ne 0) {
  # Publish LeafDevice
  #>
 $LeafDeviceProjectFolder = Join-Path $BuildRepositoryLocalPath "smoke/LeafDevice"
+$LeafDevicePublishBaseFolder = Join-Path $PUBLISH_FOLDER "LeafDevice"
 
 Write-Host "Publishing - LeafDevice x64"
-$ProjectPublishPath = Join-Path $PUBLISH_FOLDER "LeafDevice/x64"
+$ProjectPublishPath = Join-Path $LeafDevicePublishBaseFolder "x64"
 &$DOTNET_PATH publish -f netcoreapp2.1 -r "win10-x64" -c $Configuration -o $ProjectPublishPath $LeafDeviceProjectFolder |
 	Write-Host
 if ($LASTEXITCODE -ne 0) {
@@ -289,7 +291,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "Publishing - LeafDevice arm32"
-$ProjectPublishPath = Join-Path $PUBLISH_FOLDER "LeafDevice/arm32"
+$ProjectPublishPath = Join-Path $LeafDevicePublishBaseFolder "arm32v7"
 &$DOTNET_PATH publish -f netcoreapp2.1 -r "win10-arm" -c $Configuration -o $ProjectPublishPath $LeafDeviceProjectFolder |
 	Write-Host
 if ($LASTEXITCODE -ne 0) {
