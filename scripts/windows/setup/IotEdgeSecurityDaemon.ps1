@@ -769,8 +769,6 @@ function Uninstall-Services {
     }
 }
 
-# The daemon listens using UDS by default, so these firewall rules are no longer created.
-# However Uninstall-SecurityDaemon still calls this to remove rules created by old installs.
 function Remove-FirewallExceptions {
     Remove-NetFirewallRule -DisplayName 'iotedged allow inbound 15580,15581' -ErrorAction SilentlyContinue -ErrorVariable cmdErr
     Write-Verbose "$(if ($?) { 'Removed firewall exceptions' } else { $cmdErr })"
