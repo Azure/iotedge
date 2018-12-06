@@ -37,17 +37,17 @@ if (-Not (Test-Path $DockerFile -PathType Leaf))
 
 <#
  # Docker registries
- #>
+ #> 
 $DockerRegistries = @("edgebuilds.azurecr.io/", "edgerelease.azurecr.io/")
 
 <#
  # Docker image tags
  #>
-$DockerImageTags = New-Object 'System.Collections.Generic.List[String]'
+$DockerImageTags = @()
 foreach($Registry in $DockerRegistries)
 {
     $ImageTag = "$Registry$DockerNamespace/${DockerImageName}:$DockerImageVersion-windows-$DockerImageArchitecture"
-    $DockerImageTags.Add($ImageTag) 
+    $DockerImageTags += $ImageTag
 }
 
 <#
