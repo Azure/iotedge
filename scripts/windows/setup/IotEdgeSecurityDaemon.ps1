@@ -387,9 +387,7 @@ function Get-SecurityDaemon {
                     -Delete ([ref] $deleteMobyEngineArchive)
             Expand-Archive $mobyEngineArchivePath $MobyInstallDirectory -Force
 
-            if (-not (Test-Path $MobyDataRootDirectory)) {
-                New-Item -Type Directory $MobyDataRootDirectory | Out-Null
-            }
+            New-Item -Type Directory $MobyDataRootDirectory -Force | Out-Null
             Remove-BuiltinWritePermissions $MobyDataRootDirectory
 
             if (-not ($SkipMobyCli)) {
@@ -424,9 +422,7 @@ function Get-SecurityDaemon {
         }
 
         if ((Get-Item $edgeArchivePath).PSIsContainer) {
-            if (-not (Test-Path $EdgeInstallDirectory)) {
-                New-Item -Type Directory $EdgeInstallDirectory | Out-Null
-            }
+            New-Item -Type Directory $EdgeInstallDirectory -Force | Out-Null
             if ($ExistingConfig) {
                 Copy-Item "$edgeArchivePath\*" $EdgeInstallDirectory -Force -Recurse -Exclude 'config.yaml'
             }
