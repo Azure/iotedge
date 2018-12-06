@@ -242,7 +242,7 @@ else {
  # Subject to remove once other pipelines are updated to use the new path
 Write-Host "Publishing - IoTEdgeQuickstart x64"
 $ProjectPublishPath = Join-Path $PUBLISH_FOLDER "IoTEdgeQuickstart"
-$IoTEdgeQuickstartProjectFolder = Join-Path $BuildRepositoryLocalPath "smoke/IotEdgeQuickstart"
+$IoTEdgeQuickstartProjectFolder = Join-Path $BuildRepositoryLocalPath "smoke/IoTEdgeQuickstart"
 &$DOTNET_PATH publish -f netcoreapp2.1 -r "win-x64" -c $Configuration -o $ProjectPublishPath $IoTEdgeQuickstartProjectFolder |
 	Write-Host
 if ($LASTEXITCODE -ne 0) {
@@ -261,7 +261,7 @@ if ($LASTEXITCODE -ne 0) {
 <#
  # Publish IoTEdgeQuickstart
  #>
-$IoTEdgeQuickstartProjectFolder = Join-Path $BuildRepositoryLocalPath "smoke/IotEdgeQuickstart"
+$IoTEdgeQuickstartProjectFolder = Join-Path $BuildRepositoryLocalPath "smoke/IoTEdgeQuickstart"
 $IoTEdgeQuickstartPublishBaseFolder = Join-Path $PUBLISH_FOLDER "IoTEdgeQuickstart"
 
 Write-Host "Publishing - IoTEdgeQuickstart x64"
