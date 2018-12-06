@@ -94,7 +94,7 @@ function Install-SecurityDaemon {
         #
         # If set to Linux, a separate installation of Docker for Windows is expected.
         #
-        # If set to Windows, the Moby Engine will be installed automatically.
+        # If set to Windows, the Moby Engine will be installed automatically. This will not affect any existing installation of Docker for Windows.
         [ContainerOs] $ContainerOs = 'Linux',
 
         # Proxy URI used for all Invoke-WebRequest calls. To specify other proxy-related options like -ProxyCredential, see -InvokeWebRequestParameters
