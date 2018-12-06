@@ -1,10 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
-// See the thirdpartynotice.txt file for more information.
-
-// THIS FILE HAS BEEN MODIFIED FROM ITS ORIGINAL FORM.
-// Change Log:
-// 5/14/2018 ancan Renamed namespace to Microsoft.Azure.Devices.Edge.Util.Uds
+// Copyright (c) Microsoft. All rights reserved.
 
 using System;
 using System.Diagnostics;

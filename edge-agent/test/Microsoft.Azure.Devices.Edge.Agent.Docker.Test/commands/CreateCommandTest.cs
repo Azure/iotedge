@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
     {
         static readonly IDictionary<string, EnvVal> EnvVars = new Dictionary<string, EnvVal>();
 
-        readonly TimeSpan defaultTimeout = TimeSpan.FromSeconds(30);
+        readonly TimeSpan defaultTimeout = TimeSpan.FromSeconds(300);
 
         [Fact]
         [Integration]

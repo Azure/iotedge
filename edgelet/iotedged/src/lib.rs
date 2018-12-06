@@ -1048,7 +1048,10 @@ mod tests {
             .or_else(|_| {
                 env::set_var("https_proxy", "abc");
                 env::var("https_proxy")
-            }).unwrap();
+            }).unwrap()
+            .parse::<Uri>()
+            .unwrap()
+            .to_string();
         // ensure "HTTPS_PROXY" is NOT set (except on Windows, where env vars
         // are case-insensitive)
         #[cfg(unix)]

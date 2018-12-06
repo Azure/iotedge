@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
     public class RuntimeInfoProviderTest
     {
-        static readonly TimeSpan Timeout = TimeSpan.FromSeconds(45);
+        static readonly TimeSpan Timeout = TimeSpan.FromSeconds(300);
         static readonly IDockerClient Client = DockerHelper.Client;
         const string OperatingSystemType = "linux";
         const string Architecture = "x86_x64";

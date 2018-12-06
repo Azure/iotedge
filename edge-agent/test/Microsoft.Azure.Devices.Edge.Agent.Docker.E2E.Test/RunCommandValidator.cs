@@ -1,4 +1,6 @@
-﻿namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
+// Copyright (c) Microsoft. All rights reserved.
+
+namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
 {
     using System.Diagnostics;
 
