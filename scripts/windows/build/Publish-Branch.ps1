@@ -139,7 +139,8 @@ $appProjectList.Add("DirectMethodReceiver.csproj")
 
 # Download latest rocksdb ARM32 library
 $rocksdbARMUri = "https://edgebuild.blob.core.windows.net/rocksdb/rocksdb-arm.dll"
-$rocksdbARMSourcePath = Join-Path $BuildRepositoryLocalPath "thirdparty\rocksdb\arm32\rocksdb.dll"
+$tempPath = [System.IO.Path]::GetTempPath()
+$rocksdbARMSourcePath = Join-Path $tempPath "rocksdb.dll"
 Invoke-WebRequest -Uri $rocksdbARMUri -OutFile $rocksdbARMSourcePath
 
 foreach ($appProjectFileName in $appProjectList) {
