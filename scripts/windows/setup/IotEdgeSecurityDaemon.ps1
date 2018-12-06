@@ -241,7 +241,6 @@ function Uninstall-SecurityDaemon {
     $ContainerOs = Get-ContainerOs
 
     Uninstall-Services
-    Remove-IotEdgeContainers
     $success = Remove-SecurityDaemonResources
     Reset-SystemPath
 
@@ -742,6 +741,8 @@ function Uninstall-Services {
             Write-Verbose 'Removed IoT Edge service subkey from the registry'
         }
     }
+
+    Remove-IotEdgeContainers
 
     if (Get-Service $MobyServiceName -ErrorAction SilentlyContinue) {
         Stop-Service -NoWait -ErrorAction SilentlyContinue -ErrorVariable cmdErr $MobyServiceName
