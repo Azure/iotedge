@@ -83,6 +83,7 @@ fn create_fd(family: AddressFamily, type_: SockType) -> Fd {
 }
 
 #[test]
+#[ignore]
 fn test_fd_ok() {
     let _l = lock_env();
     set_current_pid();
@@ -108,6 +109,7 @@ fn test_fd_ok() {
 }
 
 #[test]
+#[ignore]
 fn test_fd_err() {
     let _l = lock_env();
     set_current_pid();

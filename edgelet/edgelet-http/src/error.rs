@@ -22,10 +22,7 @@ pub enum ErrorKind {
     #[fail(display = "An error occurred while authorizing the HTTP request")]
     Authorization,
 
-    #[fail(
-        display = "An error occurred while binding a listener to {}",
-        _0
-    )]
+    #[fail(display = "An error occurred while binding a listener to {}", _0)]
     BindListener(BindListenerType),
 
     #[fail(display = "Could not perform HTTP request")]
@@ -48,9 +45,7 @@ pub enum ErrorKind {
 
     #[fail(
         display = "URL parts could not be parsed into a valid URL: scheme: {:?}, base path: {:?}, path: {:?}",
-        scheme,
-        base_path,
-        path
+        scheme, base_path, path
     )]
     MalformedUrl {
         scheme: String,
@@ -75,8 +70,7 @@ pub enum ErrorKind {
 
     #[fail(
         display = "Could not form well-formed URL by joining {:?} with {:?}",
-        _0,
-        _1
+        _0, _1
     )]
     UrlJoin(Url, String),
 }
@@ -146,7 +140,8 @@ impl IntoResponse for Error {
 
         let body = json!({
             "message": message,
-        }).to_string();
+        })
+        .to_string();
 
         Response::builder()
             .status(status_code)

@@ -14,10 +14,7 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TaskSpecPlacementSpread {
     /// label descriptor, such as engine.labels.az
-    #[serde(
-        rename = "SpreadDescriptor",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "SpreadDescriptor", skip_serializing_if = "Option::is_none")]
     spread_descriptor: Option<String>,
 }
 

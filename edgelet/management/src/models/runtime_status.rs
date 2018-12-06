@@ -15,10 +15,7 @@ use serde_json::Value;
 pub struct RuntimeStatus {
     #[serde(rename = "status")]
     status: String,
-    #[serde(
-        rename = "description",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "description", skip_serializing_if = "Option::is_none")]
     description: Option<String>,
 }
 

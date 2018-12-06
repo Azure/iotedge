@@ -64,7 +64,8 @@ where
                     .name("genid")
                     .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("genid")))?;
                 Ok((name, genid))
-            }).map(|(name, genid)| {
+            })
+            .map(|(name, genid)| {
                 let id = name.to_string();
                 let genid = genid.to_string();
                 let key_store = self.key_store.clone();
@@ -74,7 +75,8 @@ where
                         body.context(ErrorKind::EncryptionOperation(EncryptionOperation::Encrypt))?;
                     Ok((id, genid, key_store, body))
                 })
-            }).into_future()
+            })
+            .into_future()
             .flatten()
             .and_then(|(id, genid, key_store, body)| -> Result<_, Error> {
                 let request: SignRequest =
@@ -90,7 +92,8 @@ where
                     .body(body.into())
                     .context(ErrorKind::EncryptionOperation(EncryptionOperation::Sign))?;
                 Ok(response)
-            }).or_else(|e| Ok(e.into_response()));
+            })
+            .or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }
@@ -207,7 +210,8 @@ mod tests {
                 let sign_response: SignResponse = serde_json::from_slice(&b).unwrap();
                 assert_eq!(expected, sign_response.digest());
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
 
         let state = store.state.lock().unwrap();
@@ -251,7 +255,8 @@ mod tests {
                     error_response.message()
                 );
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 
@@ -378,7 +383,8 @@ mod tests {
                     "Request body is malformed\n\tcaused by: expected value at line 1 column 1";
                 assert_eq!(expected, error_response.message());
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 }

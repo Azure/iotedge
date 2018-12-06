@@ -17,10 +17,7 @@ pub struct Image {
     id: String,
     #[serde(rename = "RepoTags", skip_serializing_if = "Option::is_none")]
     repo_tags: Option<Vec<String>>,
-    #[serde(
-        rename = "RepoDigests",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "RepoDigests", skip_serializing_if = "Option::is_none")]
     repo_digests: Option<Vec<String>>,
     #[serde(rename = "Parent")]
     parent: String,
@@ -30,10 +27,7 @@ pub struct Image {
     created: String,
     #[serde(rename = "Container")]
     container: String,
-    #[serde(
-        rename = "ContainerConfig",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "ContainerConfig", skip_serializing_if = "Option::is_none")]
     container_config: Option<::models::ContainerConfig>,
     #[serde(rename = "DockerVersion")]
     docker_version: String,
@@ -45,10 +39,7 @@ pub struct Image {
     architecture: String,
     #[serde(rename = "Os")]
     os: String,
-    #[serde(
-        rename = "OsVersion",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "OsVersion", skip_serializing_if = "Option::is_none")]
     os_version: Option<String>,
     #[serde(rename = "Size")]
     size: i64,

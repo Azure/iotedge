@@ -11,7 +11,6 @@
 #![cfg_attr(feature = "cargo-clippy", allow(stutter, use_self))]
 
 extern crate edgelet_utils;
-#[macro_use]
 extern crate failure;
 extern crate log;
 extern crate winapi;

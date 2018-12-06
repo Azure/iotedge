@@ -18,15 +18,9 @@ pub struct Task {
     ID: Option<String>,
     #[serde(rename = "Version", skip_serializing_if = "Option::is_none")]
     version: Option<::models::ObjectVersion>,
-    #[serde(
-        rename = "CreatedAt",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "CreatedAt", skip_serializing_if = "Option::is_none")]
     created_at: Option<String>,
-    #[serde(
-        rename = "UpdatedAt",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "UpdatedAt", skip_serializing_if = "Option::is_none")]
     updated_at: Option<String>,
     /// Name of the task.
     #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
@@ -37,10 +31,7 @@ pub struct Task {
     #[serde(rename = "Spec", skip_serializing_if = "Option::is_none")]
     spec: Option<::models::TaskSpec>,
     /// The ID of the service this task is part of.
-    #[serde(
-        rename = "ServiceID",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "ServiceID", skip_serializing_if = "Option::is_none")]
     service_id: Option<String>,
     #[serde(rename = "Slot", skip_serializing_if = "Option::is_none")]
     slot: Option<i32>,
@@ -54,10 +45,7 @@ pub struct Task {
     assigned_generic_resources: Option<::models::GenericResources>,
     #[serde(rename = "Status", skip_serializing_if = "Option::is_none")]
     status: Option<::models::TaskStatus>,
-    #[serde(
-        rename = "DesiredState",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "DesiredState", skip_serializing_if = "Option::is_none")]
     desired_state: Option<::models::TaskState>,
 }
 

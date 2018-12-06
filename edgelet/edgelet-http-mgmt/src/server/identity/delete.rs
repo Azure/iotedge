@@ -50,7 +50,8 @@ where
                             IdentityOperation::DeleteIdentity(name),
                         )))),
                     })
-            }).into_future()
+            })
+            .into_future()
             .flatten()
             .and_then(|name| {
                 Ok(Response::builder()
@@ -59,7 +60,8 @@ where
                     .context(ErrorKind::IdentityOperation(
                         IdentityOperation::DeleteIdentity(name),
                     ))?)
-            }).or_else(|e| Ok(e.into_response()));
+            })
+            .or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }
@@ -121,7 +123,8 @@ mod tests {
                     error.message()
                 );
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 
@@ -146,7 +149,8 @@ mod tests {
                     error.message()
                 );
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 }

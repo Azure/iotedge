@@ -122,7 +122,8 @@ pub mod tests {
                         "m1".to_string(),
                     )),
                 ),
-            ).context(ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(
+            )
+            .context(ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(
                 "m1".to_string(),
             ))),
         );
@@ -152,7 +153,8 @@ pub mod tests {
         let error = MgmtError::from(
             DockerError::from(DockerErrorKind::Conflict.context(
                 DockerErrorKind::RuntimeOperation(RuntimeOperation::StartModule("m1".to_string())),
-            )).context(ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(
+            ))
+            .context(ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(
                 "m1".to_string(),
             ))),
         );
@@ -182,7 +184,8 @@ pub mod tests {
         let error = MgmtError::from(
             DockerError::from(DockerErrorKind::NotModified.context(
                 DockerErrorKind::RuntimeOperation(RuntimeOperation::StopModule("m1".to_string())),
-            )).context(ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(
+            ))
+            .context(ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(
                 "m1".to_string(),
             ))),
         );
@@ -198,7 +201,8 @@ pub mod tests {
             .and_then(|b| {
                 assert!(b.into_bytes().is_empty());
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 
@@ -224,7 +228,8 @@ pub mod tests {
                     error.message()
                 );
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 
@@ -234,7 +239,8 @@ pub mod tests {
         let error = MgmtError::from(
             DockerError::from(DockerErrorKind::FormattedDockerRuntime(
                 "manifest for image:latest not found".to_string(),
-            )).context(ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(
+            ))
+            .context(ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(
                 "m1".to_string(),
             ))),
         );
@@ -254,7 +260,8 @@ pub mod tests {
                     error.message()
                 );
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 }

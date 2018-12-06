@@ -6,7 +6,7 @@
     non_snake_case,
     renamed_and_removed_lints,
     unused_imports,
-    unused_mut,
+    unused_mut
 )]
 #![cfg_attr(feature = "cargo-clippy", allow(clippy, clippy_pedantic))]
 

@@ -126,13 +126,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(Error::from)
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|body| {
+                })
+                .and_then(|body| {
                     let parsed: Result<::models::CertificateResponse, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(Error::from)
@@ -193,13 +195,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(Error::from)
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|body| {
+                })
+                .and_then(|body| {
                     let parsed: Result<::models::CertificateResponse, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(Error::from)
@@ -260,13 +264,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(Error::from)
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|body| {
+                })
+                .and_then(|body| {
                     let parsed: Result<::models::DecryptResponse, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(Error::from)
@@ -327,13 +333,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(Error::from)
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|body| {
+                })
+                .and_then(|body| {
                     let parsed: Result<::models::EncryptResponse, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(Error::from)
@@ -394,13 +402,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(Error::from)
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|body| {
+                })
+                .and_then(|body| {
                     let parsed: Result<::models::SignResponse, _> = serde_json::from_slice(&body);
                     parsed.map_err(Error::from)
                 }),
@@ -445,13 +455,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(Error::from)
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|body| {
+                })
+                .and_then(|body| {
                     let parsed: Result<::models::TrustBundleResponse, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(Error::from)

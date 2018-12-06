@@ -68,7 +68,8 @@ fn run() -> Result<(), Error> {
                 .global(true)
                 .env("IOTEDGE_HOST")
                 .default_value(default_uri),
-        ).subcommand(SubCommand::with_name("list").about("List modules"))
+        )
+        .subcommand(SubCommand::with_name("list").about("List modules"))
         .subcommand(
             SubCommand::with_name("restart")
                 .about("Restart a module")
@@ -78,7 +79,8 @@ fn run() -> Result<(), Error> {
                         .required(true)
                         .index(1),
                 ),
-        ).subcommand(
+        )
+        .subcommand(
             SubCommand::with_name("logs")
                 .about("Fetch the logs of a module")
                 .arg(
@@ -86,20 +88,23 @@ fn run() -> Result<(), Error> {
                         .help("Sets the module identity to get logs")
                         .required(true)
                         .index(1),
-                ).arg(
+                )
+                .arg(
                     Arg::with_name("tail")
                         .help("Number of lines to show from the end of the log")
                         .long("tail")
                         .takes_value(true)
                         .value_name("NUM")
                         .default_value("all"),
-                ).arg(
+                )
+                .arg(
                     Arg::with_name("follow")
                         .help("Follow output log")
                         .short("f")
                         .long("follow"),
                 ),
-        ).subcommand(SubCommand::with_name("version").about("Show the version information"))
+        )
+        .subcommand(SubCommand::with_name("version").about("Show the version information"))
         .get_matches();
 
     let url = matches.value_of("host").map_or_else(
@@ -121,7 +126,8 @@ fn run() -> Result<(), Error> {
                 args.value_of("MODULE").unwrap().to_string(),
                 runtime,
                 io::stdout(),
-            ).execute(),
+            )
+            .execute(),
         ),
         ("logs", Some(args)) => {
             let id = args.value_of("MODULE").unwrap().to_string();

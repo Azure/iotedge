@@ -26,7 +26,8 @@ fn crypto_create_cert_input_fail() {
         "test-iotedge-cn".to_string(),
         CertificateType::Ca,
         IOTEDGED_CA_ALIAS.to_string(),
-    ).with_issuer(CertificateIssuer::DeviceCa);
+    )
+    .with_issuer(CertificateIssuer::DeviceCa);
 
     let _workload_ca_cert = crypto.create_certificate(&edgelet_ca_props).unwrap();
 

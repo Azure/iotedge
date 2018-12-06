@@ -116,7 +116,8 @@ fn listen_fds(unset_environment: bool, start_fd: Fd) -> Result<Vec<Socket>, Erro
             } else {
                 Socket::Unknown
             }
-        }).collect();
+        })
+        .collect();
 
     Ok(sockets)
 }
@@ -275,6 +276,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_listen_fds() {
         let _l = lock_env();
         set_current_pid();
@@ -287,6 +289,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_listen_fds_with_names() {
         let _l = lock_env();
         set_current_pid();
@@ -308,6 +311,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_listen_fds_with_missing_env() {
         let r = {
             let _l = lock_env();

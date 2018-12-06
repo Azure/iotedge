@@ -114,7 +114,8 @@ mod tests {
             common_name.clone(),
             CoreCertificateType::Ca,
             alias.clone(),
-        ).with_issuer(CoreCertificateIssuer::DeviceCa);
+        )
+        .with_issuer(CoreCertificateIssuer::DeviceCa);
         check_conversion(
             &core_props,
             &super::convert_properties(&core_props, "device_ca_test"),
@@ -126,7 +127,8 @@ mod tests {
             common_name.clone(),
             CoreCertificateType::Ca,
             alias.clone(),
-        ).with_san_entries(input_sans);
+        )
+        .with_san_entries(input_sans);
         check_conversion(
             &core_props,
             &super::convert_properties(&core_props, "device_ca_test"),

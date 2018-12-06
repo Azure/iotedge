@@ -15,53 +15,32 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct EndpointSettings {
-    #[serde(
-        rename = "IPAMConfig",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "IPAMConfig", skip_serializing_if = "Option::is_none")]
     ipam_config: Option<::models::EndpointIpamConfig>,
     #[serde(rename = "Links", skip_serializing_if = "Option::is_none")]
     links: Option<Vec<String>>,
     #[serde(rename = "Aliases", skip_serializing_if = "Option::is_none")]
     aliases: Option<Vec<String>>,
     /// Unique ID of the network.
-    #[serde(
-        rename = "NetworkID",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "NetworkID", skip_serializing_if = "Option::is_none")]
     network_id: Option<String>,
     /// Unique ID for the service endpoint in a Sandbox.
-    #[serde(
-        rename = "EndpointID",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "EndpointID", skip_serializing_if = "Option::is_none")]
     endpoint_id: Option<String>,
     /// Gateway address for this network.
     #[serde(rename = "Gateway", skip_serializing_if = "Option::is_none")]
     gateway: Option<String>,
     /// IPv4 address.
-    #[serde(
-        rename = "IPAddress",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "IPAddress", skip_serializing_if = "Option::is_none")]
     ip_address: Option<String>,
     /// Mask length of the IPv4 address.
-    #[serde(
-        rename = "IPPrefixLen",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "IPPrefixLen", skip_serializing_if = "Option::is_none")]
     ip_prefix_len: Option<i32>,
     /// IPv6 gateway address.
-    #[serde(
-        rename = "IPv6Gateway",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "IPv6Gateway", skip_serializing_if = "Option::is_none")]
     i_pv6_gateway: Option<String>,
     /// Global IPv6 address.
-    #[serde(
-        rename = "GlobalIPv6Address",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "GlobalIPv6Address", skip_serializing_if = "Option::is_none")]
     global_i_pv6_address: Option<String>,
     /// Mask length of the global IPv6 address.
     #[serde(
@@ -70,16 +49,10 @@ pub struct EndpointSettings {
     )]
     global_i_pv6_prefix_len: Option<i64>,
     /// MAC address for the endpoint on this network.
-    #[serde(
-        rename = "MacAddress",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "MacAddress", skip_serializing_if = "Option::is_none")]
     mac_address: Option<String>,
     /// DriverOpts is a mapping of driver options and values. These options are passed directly to the driver and are driver specific.
-    #[serde(
-        rename = "DriverOpts",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "DriverOpts", skip_serializing_if = "Option::is_none")]
     driver_opts: Option<::std::collections::HashMap<String, String>>,
 }
 

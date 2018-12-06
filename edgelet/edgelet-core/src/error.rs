@@ -51,10 +51,7 @@ pub enum ErrorKind {
     #[fail(display = "Signing error occurred.")]
     Sign,
 
-    #[fail(
-        display = "Signing error occurred. Invalid key length: {}",
-        _0
-    )]
+    #[fail(display = "Signing error occurred. Invalid key length: {}", _0)]
     SignInvalidKeyLength(usize),
 }
 
