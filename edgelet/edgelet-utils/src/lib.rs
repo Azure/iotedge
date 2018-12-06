@@ -58,7 +58,8 @@ pub fn parse_query(query: &str) -> HashMap<&str, &str> {
                     None
                 }
             }
-        }).collect()
+        })
+        .collect()
 }
 
 pub fn prepare_cert_uri_module(hub_name: &str, device_id: &str, module_id: &str) -> String {

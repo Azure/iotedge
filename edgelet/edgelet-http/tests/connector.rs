@@ -75,7 +75,8 @@ fn tcp_get() {
         .and_then(|res| {
             assert_eq!(StatusCode::OK, res.status());
             res.into_body().concat2()
-        }).map(|body| {
+        })
+        .map(|body| {
             assert_eq!(GET_RESPONSE, &String::from_utf8_lossy(body.as_ref()));
         });
 
@@ -93,7 +94,8 @@ fn uds_get() {
 
     let server = run_uds_server(&file_path, |req| {
         hello_handler(req).map_err(|err| io::Error::new(io::ErrorKind::Other, err))
-    }).map_err(|err| eprintln!("{}", err));
+    })
+    .map_err(|err| eprintln!("{}", err));
 
     let mut url = Url::from_file_path(file_path).unwrap();
     url.set_scheme("unix").unwrap();
@@ -105,7 +107,8 @@ fn uds_get() {
         .and_then(|res| {
             assert_eq!(StatusCode::OK, res.status());
             res.into_body().concat2()
-        }).map(|body| {
+        })
+        .map(|body| {
             assert_eq!(GET_RESPONSE, &String::from_utf8_lossy(body.as_ref()));
         });
 
@@ -131,7 +134,8 @@ fn pipe_get_handler(_req: Request<Body>) -> impl Future<Item = Response<Body>, E
         .header(
             hyper::header::CONTENT_LENGTH,
             format!("{}", GET_RESPONSE.len()),
-        ).body(GET_RESPONSE.into())
+        )
+        .body(GET_RESPONSE.into())
         .expect("couldn't create response body");
     future::ok(response)
 }
@@ -154,7 +158,8 @@ fn pipe_get() {
         .and_then(|res| {
             assert_eq!(StatusCode::OK, res.status());
             res.into_body().concat2()
-        }).map(|body| {
+        })
+        .map(|body| {
             assert_eq!(GET_RESPONSE, &String::from_utf8_lossy(body.as_ref()));
         });
 
@@ -175,7 +180,8 @@ fn post_handler(
             .and_then(|body| {
                 assert_eq!(POST_BODY, &String::from_utf8_lossy(body.as_ref()));
                 Ok(())
-            }).map(|_| Response::new(Body::empty())),
+            })
+            .map(|_| Response::new(Body::empty())),
     )
 }
 
@@ -218,7 +224,8 @@ fn uds_post() {
 
     let server = run_uds_server(&file_path, |req| {
         hello_handler(req).map_err(|err| io::Error::new(io::ErrorKind::Other, err))
-    }).map_err(|err| eprintln!("{}", err));
+    })
+    .map_err(|err| eprintln!("{}", err));
 
     let mut url = Url::from_file_path(file_path).unwrap();
     url.set_scheme("unix").unwrap();

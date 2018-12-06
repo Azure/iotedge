@@ -14,10 +14,7 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Container1 {
     /// The ID or name of the container to disconnect from the network.
-    #[serde(
-        rename = "Container",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "Container", skip_serializing_if = "Option::is_none")]
     container: Option<String>,
     /// Force the container to disconnect from the network.
     #[serde(rename = "Force", skip_serializing_if = "Option::is_none")]

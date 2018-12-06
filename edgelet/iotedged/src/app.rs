@@ -54,7 +54,8 @@ pub fn init_common<'a>() -> Result<(Settings<DockerConfig>, ArgMatches<'a>), Err
             .and_then(|name| {
                 info!("Using config file: {}", name);
                 Some(name)
-            }).or_else(|| {
+            })
+            .or_else(|| {
                 info!("Using default configuration");
                 None
             });

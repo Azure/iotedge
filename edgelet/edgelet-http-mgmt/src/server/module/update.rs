@@ -47,7 +47,8 @@ where
                     .find(|&(ref key, _)| key == "start")
                     .and_then(|(_, v)| if v == "false" { None } else { Some(()) })
                     .map(|_| true)
-            }).unwrap_or_else(|| false);
+            })
+            .unwrap_or_else(|| false);
 
         let response = req
             .into_body()
@@ -57,7 +58,8 @@ where
                 let spec = serde_json::from_slice(&b).context(ErrorKind::MalformedRequestBody)?;
                 let core_spec = spec_to_core::<M>(&spec, ErrorKind::MalformedRequestBody)?;
                 Ok((core_spec, spec))
-            }).and_then(move |(core_spec, spec)| {
+            })
+            .and_then(move |(core_spec, spec)| {
                 let name = core_spec.name().to_string();
 
                 if start {
@@ -70,19 +72,22 @@ where
                     result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
                     Ok((core_spec, spec, name, runtime))
                 })
-            }).and_then(|(core_spec, spec, name, runtime)| {
+            })
+            .and_then(|(core_spec, spec, name, runtime)| {
                 debug!("Removed existing module {}", name);
                 runtime.registry().pull(core_spec.config()).then(|result| {
                     result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
                     Ok((core_spec, spec, name, runtime))
                 })
-            }).and_then(|(core_spec, spec, name, runtime)| {
+            })
+            .and_then(|(core_spec, spec, name, runtime)| {
                 debug!("Successfully pulled new image for module {}", name);
                 runtime.create(core_spec).then(|result| {
                     result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
                     Ok((name, spec, runtime))
                 })
-            }).and_then(move |(name, spec, runtime)| {
+            })
+            .and_then(move |(name, spec, runtime)| {
                 debug!("Created module {}", name);
                 if start {
                     info!("Starting module {}", name);
@@ -93,7 +98,8 @@ where
                 } else {
                     future::Either::B(future::ok((ModuleStatus::Stopped, spec, name)))
                 }
-            }).and_then(|(status, spec, name)| -> Result<_, Error> {
+            })
+            .and_then(|(status, spec, name)| -> Result<_, Error> {
                 let details = spec_to_details(&spec, status);
                 let b = serde_json::to_string(&details)
                     .with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
@@ -104,7 +110,8 @@ where
                     .body(b.into())
                     .context(ErrorKind::UpdateModule(name))?;
                 Ok(response)
-            }).or_else(|e| Ok(e.into_response()));
+            })
+            .or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }
@@ -170,7 +177,8 @@ mod tests {
 
                 assert_eq!(160, b.len());
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 
@@ -208,7 +216,8 @@ mod tests {
 
                 assert_eq!(160, b.len());
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 
@@ -234,7 +243,8 @@ mod tests {
                     "Request body is malformed\n\tcaused by: expected value at line 1 column 1";
                 assert_eq!(expected, error_response.message());
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 
@@ -263,7 +273,8 @@ mod tests {
                     error.message()
                 );
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 
@@ -292,7 +303,8 @@ mod tests {
                     error.message()
                 );
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 }

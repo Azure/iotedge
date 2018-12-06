@@ -19,19 +19,13 @@ pub struct BuildInfo {
     stream: Option<String>,
     #[serde(rename = "error", skip_serializing_if = "Option::is_none")]
     error: Option<String>,
-    #[serde(
-        rename = "errorDetail",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "errorDetail", skip_serializing_if = "Option::is_none")]
     error_detail: Option<::models::ErrorDetail>,
     #[serde(rename = "status", skip_serializing_if = "Option::is_none")]
     status: Option<String>,
     #[serde(rename = "progress", skip_serializing_if = "Option::is_none")]
     progress: Option<String>,
-    #[serde(
-        rename = "progressDetail",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "progressDetail", skip_serializing_if = "Option::is_none")]
     progress_detail: Option<::models::ProgressDetail>,
 }
 

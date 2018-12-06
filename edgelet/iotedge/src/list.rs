@@ -61,7 +61,8 @@ where
                         state.status(),
                         humanize_state(&state),
                         module.config(),
-                    ).context(ErrorKind::WriteToStdout)?;
+                    )
+                    .context(ErrorKind::WriteToStdout)?;
                 }
                 w.flush().context(ErrorKind::WriteToStdout)?;
                 Ok(())
@@ -92,7 +93,8 @@ fn humanize_state(state: &ModuleRuntimeState) -> String {
                         time_string(&HumanTime::from(Utc::now() - *time), Tense::Past)
                     )
                 })
-            }).unwrap_or_else(|| "Failed".to_string()),
+            })
+            .unwrap_or_else(|| "Failed".to_string()),
         ModuleStatus::Running => state.started_at().map_or_else(
             || "Up".to_string(),
             |time| {

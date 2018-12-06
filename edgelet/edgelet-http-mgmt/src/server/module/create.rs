@@ -47,7 +47,8 @@ where
                         .context(ErrorKind::MalformedRequestBody)?;
                     let core_spec = spec_to_core::<M>(&spec, ErrorKind::MalformedRequestBody)?;
                     Ok((spec, core_spec))
-                }).and_then(move |(spec, core_spec)| {
+                })
+                .and_then(move |(spec, core_spec)| {
                     let module_name = spec.name().to_string();
                     runtime
                         .registry()
@@ -81,7 +82,8 @@ where
                                 RuntimeOperation::CreateModule(module_name),
                             )))),
                         })
-                }).flatten()
+                })
+                .flatten()
                 .or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
@@ -149,7 +151,8 @@ mod tests {
 
                 assert_eq!(160, b.len());
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 
@@ -175,7 +178,8 @@ mod tests {
                     "Request body is malformed\n\tcaused by: expected value at line 1 column 1";
                 assert_eq!(expected, error_response.message());
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 
@@ -204,7 +208,8 @@ mod tests {
                     error.message()
                 );
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 
@@ -233,7 +238,8 @@ mod tests {
                     error.message()
                 );
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 }

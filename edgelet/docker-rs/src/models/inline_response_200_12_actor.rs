@@ -17,10 +17,7 @@ pub struct InlineResponse20012Actor {
     #[serde(rename = "ID", skip_serializing_if = "Option::is_none")]
     ID: Option<String>,
     /// Various key/value attributes of the object, depending on its type
-    #[serde(
-        rename = "Attributes",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "Attributes", skip_serializing_if = "Option::is_none")]
     attributes: Option<::std::collections::HashMap<String, String>>,
 }
 

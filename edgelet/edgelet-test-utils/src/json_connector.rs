@@ -67,7 +67,8 @@ impl JsonConnector {
              {}",
             body.len(),
             body,
-        ).into();
+        )
+        .into();
 
         JsonConnector { body }
     }

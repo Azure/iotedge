@@ -15,46 +15,25 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TaskSpec {
-    #[serde(
-        rename = "PluginSpec",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "PluginSpec", skip_serializing_if = "Option::is_none")]
     plugin_spec: Option<::models::TaskSpecPluginSpec>,
-    #[serde(
-        rename = "ContainerSpec",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "ContainerSpec", skip_serializing_if = "Option::is_none")]
     container_spec: Option<::models::TaskSpecContainerSpec>,
-    #[serde(
-        rename = "Resources",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "Resources", skip_serializing_if = "Option::is_none")]
     resources: Option<::models::TaskSpecResources>,
-    #[serde(
-        rename = "RestartPolicy",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "RestartPolicy", skip_serializing_if = "Option::is_none")]
     restart_policy: Option<::models::TaskSpecRestartPolicy>,
-    #[serde(
-        rename = "Placement",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "Placement", skip_serializing_if = "Option::is_none")]
     placement: Option<::models::TaskSpecPlacement>,
     /// A counter that triggers an update even if no relevant parameters have been changed.
-    #[serde(
-        rename = "ForceUpdate",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "ForceUpdate", skip_serializing_if = "Option::is_none")]
     force_update: Option<i32>,
     /// Runtime is the type of runtime specified for the task executor.
     #[serde(rename = "Runtime", skip_serializing_if = "Option::is_none")]
     runtime: Option<String>,
     #[serde(rename = "Networks", skip_serializing_if = "Option::is_none")]
     networks: Option<Vec<::models::TaskSpecNetworks>>,
-    #[serde(
-        rename = "LogDriver",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "LogDriver", skip_serializing_if = "Option::is_none")]
     log_driver: Option<::models::TaskSpecLogDriver>,
 }
 

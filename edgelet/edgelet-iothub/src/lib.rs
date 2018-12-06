@@ -212,14 +212,17 @@ where
             .get(
                 &KeyIdentity::Module(id.to_string()),
                 &build_key_name(KEY_PRIMARY, generation_id),
-            ).and_then(|primary_key| {
+            )
+            .and_then(|primary_key| {
                 self.state
                     .key_store
                     .get(
                         &KeyIdentity::Module(id.to_string()),
                         &build_key_name(KEY_SECONDARY, generation_id),
-                    ).map(|secondary_key| (primary_key, secondary_key))
-            }).context(ErrorKind::CannotGetKey(id.to_string()))
+                    )
+                    .map(|secondary_key| (primary_key, secondary_key))
+            })
+            .context(ErrorKind::CannotGetKey(id.to_string()))
             .map_err(Error::from)
     }
 }
@@ -273,7 +276,8 @@ where
                     module_id.clone(),
                     Some(AuthMechanism::default().with_type(HubAuthType::None)),
                     id.managed_by(),
-                ).then(|module| {
+                )
+                .then(|module| {
                     let module = module.with_context(|_| {
                         ErrorKind::IdentityOperation(IdentityOperation::CreateIdentity(
                             module_id.clone(),
@@ -294,7 +298,8 @@ where
                             IdentityOperationReason::InvalidHubResponse,
                         )))
                     }
-                }).and_then(move |(primary_key, secondary_key, idman, module_id)| {
+                })
+                .and_then(move |(primary_key, secondary_key, idman, module_id)| {
                     let auth = AuthMechanism::default()
                         .with_type(HubAuthType::Sas)
                         .with_symmetric_key(
@@ -312,7 +317,8 @@ where
                                 module_id,
                                 IdentityOperationReason::InvalidHubResponse,
                             )))
-                        }).map(HubIdentity::new)
+                        })
+                        .map(HubIdentity::new)
                 }),
         )
     }
@@ -339,7 +345,8 @@ where
                                 Error::from(err.context(ErrorKind::IdentityOperation(
                                     IdentityOperation::UpdateIdentity(module_id),
                                 )))
-                            }).map(HubIdentity::new),
+                            })
+                            .map(HubIdentity::new),
                     )
                 }
 
@@ -366,7 +373,8 @@ where
                     Error::from(err.context(ErrorKind::IdentityOperation(
                         IdentityOperation::ListIdentities,
                     )))
-                }).map(|modules| modules.into_iter().map(HubIdentity::new).collect()),
+                })
+                .map(|modules| modules.into_iter().map(HubIdentity::new).collect()),
         )
     }
 
@@ -588,7 +596,8 @@ mod tests {
                             &module
                                 .with_generation_id("g1".to_string())
                                 .with_managed_by("iotedge".to_string()),
-                        ).unwrap()
+                        )
+                        .unwrap()
                         .into(),
                     );
                     response
@@ -685,7 +694,8 @@ mod tests {
                     .clone()
                     .with_generation_id("g1".to_string())
                     .with_managed_by("iotedge".to_string())
-            }).collect::<Vec<Module>>();
+            })
+            .collect::<Vec<Module>>();
 
         let handler = move |req: Request<Body>| {
             assert_eq!(req.method(), &Method::GET);
@@ -700,8 +710,10 @@ mod tests {
                                 .clone()
                                 .with_generation_id("g1".to_string())
                                 .with_managed_by("iotedge".to_string())
-                        }).collect::<Vec<Module>>(),
-                ).unwrap()
+                        })
+                        .collect::<Vec<Module>>(),
+                )
+                .unwrap()
                 .into(),
             );
             response
@@ -782,7 +794,8 @@ mod tests {
                         .clone()
                         .with_generation_id("g1".to_string())
                         .with_managed_by("iotedge".to_string()),
-                ).unwrap()
+                )
+                .unwrap()
                 .into(),
             );
             response

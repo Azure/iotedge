@@ -17,28 +17,16 @@ pub struct SystemInfo {
     #[serde(rename = "ID", skip_serializing_if = "Option::is_none")]
     ID: Option<String>,
     /// Total number of containers on the host.
-    #[serde(
-        rename = "Containers",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "Containers", skip_serializing_if = "Option::is_none")]
     containers: Option<i32>,
     /// Number of containers with status `\"running\"`.
-    #[serde(
-        rename = "ContainersRunning",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "ContainersRunning", skip_serializing_if = "Option::is_none")]
     containers_running: Option<i32>,
     /// Number of containers with status `\"paused\"`.
-    #[serde(
-        rename = "ContainersPaused",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "ContainersPaused", skip_serializing_if = "Option::is_none")]
     containers_paused: Option<i32>,
     /// Number of containers with status `\"stopped\"`.
-    #[serde(
-        rename = "ContainersStopped",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "ContainersStopped", skip_serializing_if = "Option::is_none")]
     containers_stopped: Option<i32>,
     /// Total number of images on the host.  Both _tagged_ and _untagged_ (dangling) images are counted.
     #[serde(rename = "Images", skip_serializing_if = "Option::is_none")]
@@ -47,87 +35,48 @@ pub struct SystemInfo {
     #[serde(rename = "Driver", skip_serializing_if = "Option::is_none")]
     driver: Option<String>,
     /// Information specific to the storage driver, provided as \"label\" / \"value\" pairs.  This information is provided by the storage driver, and formatted in a way consistent with the output of `docker info` on the command line.  <p><br /></p>  > **Note**: The information returned in this field, including the > formatting of values and labels, should not be considered stable, > and may change without notice.
-    #[serde(
-        rename = "DriverStatus",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "DriverStatus", skip_serializing_if = "Option::is_none")]
     driver_status: Option<Vec<Vec<String>>>,
     /// Root directory of persistent Docker state.  Defaults to `/var/lib/docker` on Linux, and `C:\\ProgramData\\docker` on Windows.
-    #[serde(
-        rename = "DockerRootDir",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "DockerRootDir", skip_serializing_if = "Option::is_none")]
     docker_root_dir: Option<String>,
     /// Status information about this node (standalone Swarm API).  <p><br /></p>  > **Note**: The information returned in this field is only propagated > by the Swarm standalone API, and is empty (`null`) when using > built-in swarm mode.
-    #[serde(
-        rename = "SystemStatus",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "SystemStatus", skip_serializing_if = "Option::is_none")]
     system_status: Option<Vec<Vec<String>>>,
     #[serde(rename = "Plugins", skip_serializing_if = "Option::is_none")]
     plugins: Option<::models::PluginsInfo>,
     /// Indicates if the host has memory limit support enabled.
-    #[serde(
-        rename = "MemoryLimit",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "MemoryLimit", skip_serializing_if = "Option::is_none")]
     memory_limit: Option<bool>,
     /// Indicates if the host has memory swap limit support enabled.
-    #[serde(
-        rename = "SwapLimit",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "SwapLimit", skip_serializing_if = "Option::is_none")]
     swap_limit: Option<bool>,
     /// Indicates if the host has kernel memory limit support enabled.
-    #[serde(
-        rename = "KernelMemory",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "KernelMemory", skip_serializing_if = "Option::is_none")]
     kernel_memory: Option<bool>,
     /// Indicates if CPU CFS(Completely Fair Scheduler) period is supported by the host.
-    #[serde(
-        rename = "CpuCfsPeriod",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "CpuCfsPeriod", skip_serializing_if = "Option::is_none")]
     cpu_cfs_period: Option<bool>,
     /// Indicates if CPU CFS(Completely Fair Scheduler) quota is supported by the host.
-    #[serde(
-        rename = "CpuCfsQuota",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "CpuCfsQuota", skip_serializing_if = "Option::is_none")]
     cpu_cfs_quota: Option<bool>,
     /// Indicates if CPU Shares limiting is supported by the host.
-    #[serde(
-        rename = "CPUShares",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "CPUShares", skip_serializing_if = "Option::is_none")]
     cpu_shares: Option<bool>,
     /// Indicates if CPUsets (cpuset.cpus, cpuset.mems) are supported by the host.  See [cpuset(7)](https://www.kernel.org/doc/Documentation/cgroup-v1/cpusets.txt)
     #[serde(rename = "CPUSet", skip_serializing_if = "Option::is_none")]
     cpu_set: Option<bool>,
     /// Indicates if OOM killer disable is supported on the host.
-    #[serde(
-        rename = "OomKillDisable",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "OomKillDisable", skip_serializing_if = "Option::is_none")]
     oom_kill_disable: Option<bool>,
     /// Indicates IPv4 forwarding is enabled.
-    #[serde(
-        rename = "IPv4Forwarding",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "IPv4Forwarding", skip_serializing_if = "Option::is_none")]
     i_pv4_forwarding: Option<bool>,
     /// Indicates if `bridge-nf-call-iptables` is available on the host.
-    #[serde(
-        rename = "BridgeNfIptables",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "BridgeNfIptables", skip_serializing_if = "Option::is_none")]
     bridge_nf_iptables: Option<bool>,
     /// Indicates if `bridge-nf-call-ip6tables` is available on the host.
-    #[serde(
-        rename = "BridgeNfIp6tables",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "BridgeNfIp6tables", skip_serializing_if = "Option::is_none")]
     bridge_nf_ip6tables: Option<bool>,
     /// Indicates if the daemon is running in debug-mode / with debug-level logging enabled.
     #[serde(rename = "Debug", skip_serializing_if = "Option::is_none")]
@@ -136,55 +85,31 @@ pub struct SystemInfo {
     #[serde(rename = "NFd", skip_serializing_if = "Option::is_none")]
     n_fd: Option<i32>,
     /// The  number of goroutines that currently exist.  This information is only returned if debug-mode is enabled.
-    #[serde(
-        rename = "NGoroutines",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "NGoroutines", skip_serializing_if = "Option::is_none")]
     n_goroutines: Option<i32>,
     /// Current system-time in [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format with nano-seconds.
-    #[serde(
-        rename = "SystemTime",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "SystemTime", skip_serializing_if = "Option::is_none")]
     system_time: Option<String>,
     /// The logging driver to use as a default for new containers.
-    #[serde(
-        rename = "LoggingDriver",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "LoggingDriver", skip_serializing_if = "Option::is_none")]
     logging_driver: Option<String>,
     /// The driver to use for managing cgroups.
-    #[serde(
-        rename = "CgroupDriver",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "CgroupDriver", skip_serializing_if = "Option::is_none")]
     cgroup_driver: Option<String>,
     /// Number of event listeners subscribed.
-    #[serde(
-        rename = "NEventsListener",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "NEventsListener", skip_serializing_if = "Option::is_none")]
     n_events_listener: Option<i32>,
     /// Kernel version of the host.  On Linux, this information obtained from `uname`. On Windows this information is queried from the <kbd>HKEY_LOCAL_MACHINE\\\\SOFTWARE\\\\Microsoft\\\\Windows NT\\\\CurrentVersion\\\\</kbd> registry value, for example _\"10.0 14393 (14393.1198.amd64fre.rs1_release_sec.170427-1353)\"_.
-    #[serde(
-        rename = "KernelVersion",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "KernelVersion", skip_serializing_if = "Option::is_none")]
     kernel_version: Option<String>,
     /// Name of the host's operating system, for example: \"Ubuntu 16.04.2 LTS\" or \"Windows Server 2016 Datacenter\"
-    #[serde(
-        rename = "OperatingSystem",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "OperatingSystem", skip_serializing_if = "Option::is_none")]
     operating_system: Option<String>,
     /// Generic type of the operating system of the host, as returned by the Go runtime (`GOOS`).  Currently returned values are \"linux\" and \"windows\". A full list of possible values can be found in the [Go documentation](https://golang.org/doc/install/source#environment).
     #[serde(rename = "OSType", skip_serializing_if = "Option::is_none")]
     os_type: Option<String>,
     /// Hardware architecture of the host, as returned by the Go runtime (`GOARCH`).  A full list of possible values can be found in the [Go documentation](https://golang.org/doc/install/source#environment).
-    #[serde(
-        rename = "Architecture",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "Architecture", skip_serializing_if = "Option::is_none")]
     architecture: Option<String>,
     /// The number of logical CPUs usable by the daemon.  The number of available CPUs is checked by querying the operating system when the daemon starts. Changes to operating system CPU allocation after the daemon is started are not reflected.
     #[serde(rename = "NCPU", skip_serializing_if = "Option::is_none")]
@@ -193,32 +118,17 @@ pub struct SystemInfo {
     #[serde(rename = "MemTotal", skip_serializing_if = "Option::is_none")]
     mem_total: Option<i64>,
     /// Address / URL of the index server that is used for image search, and as a default for user authentication for Docker Hub and Docker Cloud.
-    #[serde(
-        rename = "IndexServerAddress",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "IndexServerAddress", skip_serializing_if = "Option::is_none")]
     index_server_address: Option<String>,
-    #[serde(
-        rename = "RegistryConfig",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "RegistryConfig", skip_serializing_if = "Option::is_none")]
     registry_config: Option<::models::RegistryServiceConfig>,
-    #[serde(
-        rename = "GenericResources",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "GenericResources", skip_serializing_if = "Option::is_none")]
     generic_resources: Option<::models::GenericResources>,
     /// HTTP-proxy configured for the daemon. This value is obtained from the [`HTTP_PROXY`](https://www.gnu.org/software/wget/manual/html_node/Proxies.html) environment variable.  Containers do not automatically inherit this configuration.
-    #[serde(
-        rename = "HttpProxy",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "HttpProxy", skip_serializing_if = "Option::is_none")]
     http_proxy: Option<String>,
     /// HTTPS-proxy configured for the daemon. This value is obtained from the [`HTTPS_PROXY`](https://www.gnu.org/software/wget/manual/html_node/Proxies.html) environment variable.  Containers do not automatically inherit this configuration.
-    #[serde(
-        rename = "HttpsProxy",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "HttpsProxy", skip_serializing_if = "Option::is_none")]
     https_proxy: Option<String>,
     /// Comma-separated list of domain extensions for which no proxy should be used. This value is obtained from the [`NO_PROXY`](https://www.gnu.org/software/wget/manual/html_node/Proxies.html) environment variable.  Containers do not automatically inherit this configuration.
     #[serde(rename = "NoProxy", skip_serializing_if = "Option::is_none")]
@@ -230,78 +140,42 @@ pub struct SystemInfo {
     #[serde(rename = "Labels", skip_serializing_if = "Option::is_none")]
     labels: Option<Vec<String>>,
     /// Indicates if experimental features are enabled on the daemon.
-    #[serde(
-        rename = "ExperimentalBuild",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "ExperimentalBuild", skip_serializing_if = "Option::is_none")]
     experimental_build: Option<bool>,
     /// Version string of the daemon.  > **Note**: the [standalone Swarm API](https://docs.docker.com/swarm/swarm-api/) > returns the Swarm version instead of the daemon  version, for example > `swarm/1.2.8`.
-    #[serde(
-        rename = "ServerVersion",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "ServerVersion", skip_serializing_if = "Option::is_none")]
     server_version: Option<String>,
     /// URL of the distributed storage backend.   The storage backend is used for multihost networking (to store network and endpoint information) and by the node discovery mechanism.  <p><br /></p>  > **Note**: This field is only propagated when using standalone Swarm > mode, and overlay networking using an external k/v store. Overlay > networks with Swarm mode enabled use the built-in raft store, and > this field will be empty.
-    #[serde(
-        rename = "ClusterStore",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "ClusterStore", skip_serializing_if = "Option::is_none")]
     cluster_store: Option<String>,
     /// The network endpoint that the Engine advertises for the purpose of node discovery. ClusterAdvertise is a `host:port` combination on which the daemon is reachable by other hosts.  <p><br /></p>  > **Note**: This field is only propagated when using standalone Swarm > mode, and overlay networking using an external k/v store. Overlay > networks with Swarm mode enabled use the built-in raft store, and > this field will be empty.
-    #[serde(
-        rename = "ClusterAdvertise",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "ClusterAdvertise", skip_serializing_if = "Option::is_none")]
     cluster_advertise: Option<String>,
     /// List of [OCI compliant](https://github.com/opencontainers/runtime-spec) runtimes configured on the daemon. Keys hold the \"name\" used to reference the runtime.  The Docker daemon relies on an OCI compliant runtime (invoked via the `containerd` daemon) as its interface to the Linux kernel namespaces, cgroups, and SELinux.  The default runtime is `runc`, and automatically configured. Additional runtimes can be configured by the user and will be listed here.
     #[serde(rename = "Runtimes", skip_serializing_if = "Option::is_none")]
     runtimes: Option<::std::collections::HashMap<String, ::models::Runtime>>,
     /// Name of the default OCI runtime that is used when starting containers.  The default can be overridden per-container at create time.
-    #[serde(
-        rename = "DefaultRuntime",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "DefaultRuntime", skip_serializing_if = "Option::is_none")]
     default_runtime: Option<String>,
     #[serde(rename = "Swarm", skip_serializing_if = "Option::is_none")]
     swarm: Option<::models::SwarmInfo>,
     /// Indicates if live restore is enabled.  If enabled, containers are kept running when the daemon is shutdown or upon daemon start if running containers are detected.
-    #[serde(
-        rename = "LiveRestoreEnabled",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "LiveRestoreEnabled", skip_serializing_if = "Option::is_none")]
     live_restore_enabled: Option<bool>,
     /// Represents the isolation technology to use as a default for containers. The supported values are platform-specific.  If no isolation value is specified on daemon start, on Windows client, the default is `hyperv`, and on Windows server, the default is `process`.  This option is currently not used on other platforms.
-    #[serde(
-        rename = "Isolation",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "Isolation", skip_serializing_if = "Option::is_none")]
     isolation: Option<String>,
     /// Name and, optional, path of the the `docker-init` binary.  If the path is omitted, the daemon searches the host's `$PATH` for the binary and uses the first result.
-    #[serde(
-        rename = "InitBinary",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "InitBinary", skip_serializing_if = "Option::is_none")]
     init_binary: Option<String>,
-    #[serde(
-        rename = "ContainerdCommit",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "ContainerdCommit", skip_serializing_if = "Option::is_none")]
     containerd_commit: Option<::models::Commit>,
-    #[serde(
-        rename = "RuncCommit",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "RuncCommit", skip_serializing_if = "Option::is_none")]
     runc_commit: Option<::models::Commit>,
-    #[serde(
-        rename = "InitCommit",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "InitCommit", skip_serializing_if = "Option::is_none")]
     init_commit: Option<::models::Commit>,
     /// List of security features that are enabled on the daemon, such as apparmor, seccomp, SELinux, and user-namespaces (userns).  Additional configuration options for each security feature may be present, and are included as a comma-separated list of key/value pairs.
-    #[serde(
-        rename = "SecurityOptions",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "SecurityOptions", skip_serializing_if = "Option::is_none")]
     security_options: Option<Vec<String>>,
 }
 
