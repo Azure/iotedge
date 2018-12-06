@@ -159,7 +159,8 @@ impl Provision for ManualProvisioning {
                 device_id,
                 hub_name: hub,
                 reconfigure: false,
-            }).map_err(|err| Error::from(err.context(ErrorKind::Provision)));
+            })
+            .map_err(|err| Error::from(err.context(ErrorKind::Provision)));
         Box::new(result.into_future())
     }
 }
@@ -193,7 +194,8 @@ where
             None as Option<DpsTokenSource<TpmKey>>,
             api_version,
             endpoint,
-        ).context(ErrorKind::DpsInitialization)?;
+        )
+        .context(ErrorKind::DpsInitialization)?;
 
         let result = DpsProvisioning {
             client,
@@ -238,7 +240,8 @@ where
                             hub_name,
                             reconfigure: false,
                         }
-                    }).map_err(|err| Error::from(err.context(ErrorKind::Provision))),
+                    })
+                    .map_err(|err| Error::from(err.context(ErrorKind::Provision))),
             ),
             Err(err) => Either::B(future::err(Error::from(err.context(ErrorKind::Provision)))),
         };
@@ -308,7 +311,8 @@ where
                         Ok(_) => Either::A(future::ok(prov_result.clone())),
                         Err(err) => Either::B(future::err(err)),
                     }
-                }).or_else(move |err| {
+                })
+                .or_else(move |err| {
                     log_failure(Level::Warn, &err);
                     match Self::restore(path_on_err) {
                         Ok(prov_result) => Either::A(future::ok(prov_result)),
@@ -535,7 +539,8 @@ mod tests {
             device_id: "something".to_string(),
             hub_name: "something".to_string(),
             reconfigure: true,
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(
             "{\"device_id\":\"something\",\"hub_name\":\"something\"}",
             json

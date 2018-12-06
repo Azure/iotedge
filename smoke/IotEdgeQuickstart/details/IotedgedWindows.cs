@@ -282,7 +282,7 @@ namespace IotEdgeQuickstart.Details
             {
                 await Process.RunAsync(
                     "powershell",
-                    $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Uninstall-SecurityDaemon",
+                    $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Uninstall-SecurityDaemon -DeleteConfig -DeleteMobyDataRoot",
                     cts.Token);
             }
         }

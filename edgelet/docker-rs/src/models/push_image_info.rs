@@ -19,10 +19,7 @@ pub struct PushImageInfo {
     status: Option<String>,
     #[serde(rename = "progress", skip_serializing_if = "Option::is_none")]
     progress: Option<String>,
-    #[serde(
-        rename = "progressDetail",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "progressDetail", skip_serializing_if = "Option::is_none")]
     progress_detail: Option<::models::ProgressDetail>,
 }
 

@@ -22,10 +22,7 @@ pub struct PluginsInfo {
     #[serde(rename = "Network", skip_serializing_if = "Option::is_none")]
     network: Option<Vec<String>>,
     /// Names of available authorization plugins.
-    #[serde(
-        rename = "Authorization",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "Authorization", skip_serializing_if = "Option::is_none")]
     authorization: Option<Vec<String>>,
     /// Names of available logging-drivers, and logging-driver plugins.
     #[serde(rename = "Log", skip_serializing_if = "Option::is_none")]

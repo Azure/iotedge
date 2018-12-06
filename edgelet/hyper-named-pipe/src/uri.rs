@@ -166,19 +166,21 @@ mod tests {
     #[test]
     fn uri_host_scheme() {
         let uri: HyperUri = "foo://boo".parse().unwrap();
-        assert!(
-            Uri::get_pipe_path_from_parts(uri.scheme_part().unwrap().as_str(), uri.host().unwrap())
-                .is_err()
-        );
+        assert!(Uri::get_pipe_path_from_parts(
+            uri.scheme_part().unwrap().as_str(),
+            uri.host().unwrap()
+        )
+        .is_err());
     }
 
     #[test]
     fn uri_host_decode() {
         let uri: HyperUri = "npipe://123/".parse().unwrap();
-        assert!(
-            Uri::get_pipe_path_from_parts(uri.scheme_part().unwrap().as_str(), uri.host().unwrap())
-                .is_err()
-        );
+        assert!(Uri::get_pipe_path_from_parts(
+            uri.scheme_part().unwrap().as_str(),
+            uri.host().unwrap()
+        )
+        .is_err());
     }
 
     #[test]
@@ -190,7 +192,8 @@ mod tests {
             &Uri::get_pipe_path_from_parts(
                 uri.scheme_part().unwrap().as_str(),
                 uri.host().unwrap()
-            ).unwrap(),
+            )
+            .unwrap(),
             "\\\\.\\pipe\\boo"
         );
     }

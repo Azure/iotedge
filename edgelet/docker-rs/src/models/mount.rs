@@ -26,25 +26,13 @@ pub struct Mount {
     #[serde(rename = "ReadOnly", skip_serializing_if = "Option::is_none")]
     read_only: Option<bool>,
     /// The consistency requirement for the mount: `default`, `consistent`, `cached`, or `delegated`.
-    #[serde(
-        rename = "Consistency",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "Consistency", skip_serializing_if = "Option::is_none")]
     consistency: Option<String>,
-    #[serde(
-        rename = "BindOptions",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "BindOptions", skip_serializing_if = "Option::is_none")]
     bind_options: Option<::models::MountBindOptions>,
-    #[serde(
-        rename = "VolumeOptions",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "VolumeOptions", skip_serializing_if = "Option::is_none")]
     volume_options: Option<::models::MountVolumeOptions>,
-    #[serde(
-        rename = "TmpfsOptions",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "TmpfsOptions", skip_serializing_if = "Option::is_none")]
     tmpfs_options: Option<::models::MountTmpfsOptions>,
 }
 

@@ -77,7 +77,8 @@ where
                         })?;
                     Ok(response)
                 })
-            }).or_else(|e| Ok(e.into_response()));
+            })
+            .or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }
@@ -140,7 +141,8 @@ mod tests {
                 assert_eq!(AuthType::Sas, identity.auth_type());
 
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 
@@ -178,7 +180,8 @@ mod tests {
                 assert_eq!(AuthType::Sas, identity.auth_type());
 
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 
@@ -233,7 +236,8 @@ mod tests {
                     error.message()
                 );
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 }

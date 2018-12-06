@@ -202,7 +202,8 @@ mod tests {
                 .and_then(move |(sock, _)| {
                     tx.send(sock.unwrap()).unwrap();
                     Ok(())
-                }).map_err(|e| panic!("err={:?}", e)),
+                })
+                .map_err(|e| panic!("err={:?}", e)),
         );
 
         let a = rt.block_on(UnixStream::connect(&addr)).unwrap();

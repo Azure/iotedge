@@ -56,11 +56,9 @@ pub use workload::WorkloadConfig;
 
 lazy_static! {
     static ref VERSION: String = option_env!("VERSION")
-        .map(|version| {
-            option_env!("BUILD_SOURCEVERSION")
-                .map(|sha| format!("{} ({})", version, sha))
-                .unwrap_or_else(|| version.to_string())
-        })
+        .map(|version| option_env!("BUILD_SOURCEVERSION")
+            .map(|sha| format!("{} ({})", version, sha))
+            .unwrap_or_else(|| version.to_string()))
         .unwrap_or_else(|| env!("CARGO_PKG_VERSION").to_string());
 }
 

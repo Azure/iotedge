@@ -176,7 +176,8 @@ where
                         log_failure(Level::Error, &err);
                         Err(())
                     }
-                }).and_then(move |(srv, addr)| {
+                })
+                .and_then(move |(srv, addr)| {
                     let service = PidService::new(pid, srv);
                     protocol
                         .serve_connection(socket, service)
@@ -250,7 +251,8 @@ impl HyperExt for Http {
                         return Err(ErrorKind::InvalidUrlWithReason(
                             url.to_string(),
                             InvalidUrlReason::NoHost,
-                        ).into())
+                        )
+                        .into())
                     }
                 };
 

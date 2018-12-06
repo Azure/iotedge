@@ -11,7 +11,6 @@
 #![cfg_attr(feature = "cargo-clippy", allow(stutter, use_self))]
 
 extern crate edgelet_utils;
-#[macro_use]
 extern crate failure;
 extern crate futures;
 extern crate hex;
@@ -49,7 +48,8 @@ impl Connect for PipeConnector {
                     io::ErrorKind::InvalidInput,
                     format!("Invalid destination {:?}", dst),
                 )
-            }).and_then(|path| PipeStream::connect(path, None))
+            })
+            .and_then(|path| PipeStream::connect(path, None))
             .map(|stream| (stream, Connected::new()))
             .into_future()
     }

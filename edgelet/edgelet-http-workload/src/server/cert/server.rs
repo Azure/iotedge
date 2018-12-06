@@ -50,14 +50,16 @@ where
                     .name("genid")
                     .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("genid")))?;
                 Ok((name, genid))
-            }).map(|(module_id, genid)| {
+            })
+            .map(|(module_id, genid)| {
                 let alias = format!("{}{}server", module_id.to_string(), genid.to_string());
                 req.into_body().concat2().then(|body| {
                     let body =
                         body.context(ErrorKind::CertOperation(CertOperation::GetServerCert))?;
                     Ok((alias, body))
                 })
-            }).into_future()
+            })
+            .into_future()
             .flatten()
             .and_then(move |(alias, body)| {
                 let cert_req: ServerCertificateRequest =
@@ -93,7 +95,8 @@ where
                     ErrorKind::CertOperation(CertOperation::GetServerCert),
                 )?;
                 Ok(body)
-            }).or_else(|e| future::ok(e.into_response()));
+            })
+            .or_else(|e| future::ok(e.into_response()));
 
         Box::new(response)
     }
@@ -158,10 +161,7 @@ mod tests {
     }
 
     impl Default for TestWorkloadConfig {
-        #[cfg_attr(
-            feature = "cargo-clippy",
-            allow(cast_possible_wrap, cast_sign_loss)
-        )]
+        #[cfg_attr(feature = "cargo-clippy", allow(cast_possible_wrap, cast_sign_loss))]
         fn default() -> Self {
             assert!(MAX_DURATION_SEC < (i64::max_value() as u64));
 

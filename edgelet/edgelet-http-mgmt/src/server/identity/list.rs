@@ -52,7 +52,8 @@ where
                                 identity.generation_id().to_string(),
                                 identity.auth_type().to_string(),
                             )
-                        }).collect(),
+                        })
+                        .collect(),
                 );
                 let b = serde_json::to_string(&body).context(ErrorKind::IdentityOperation(
                     IdentityOperation::ListIdentities,
@@ -66,7 +67,8 @@ where
                         IdentityOperation::ListIdentities,
                     ))?;
                 Ok(response)
-            }).or_else(|e| Ok(e.into_response()));
+            })
+            .or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }
@@ -109,7 +111,8 @@ mod tests {
                 }
 
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 
@@ -132,7 +135,8 @@ mod tests {
                     error.message()
                 );
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 }
