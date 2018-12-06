@@ -3,12 +3,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
 {
     using System;
     using System.Collections.Generic;
-    using System.Collections.ObjectModel;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.GeneratedCode;
+    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
@@ -93,22 +92,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
 
         public Task UndoAsync(CancellationToken token) => TaskEx.Done;
 
-        internal static ModuleSpec BuildModuleSpec(IModule module, IEnumerable<EnvVar> envVars, object settings)
+        static ModuleSpec BuildModuleSpec(IModule module, IEnumerable<EnvVar> envVars, object settings)
         {
             var moduleSpec = new ModuleSpec
             {
                 Name = module.Name,
-                Config = new Config
-                {
-                    Settings = settings,
-                    Env = new ObservableCollection<EnvVar>(envVars)
-                },
+                Settings = settings,
+                EnvironmentVariables = envVars,
                 Type = module.Type
             };
             return moduleSpec;
         }
 
-        internal static IEnumerable<EnvVar> GetEnvVars(IDictionary<string, EnvVal> moduleEnvVars, IModuleIdentity identity, IConfigSource configSource)
+        static IEnumerable<EnvVar> GetEnvVars(IDictionary<string, EnvVal> moduleEnvVars, IModuleIdentity identity, IConfigSource configSource)
         {
             List<EnvVar> envVars = moduleEnvVars.Select(m => new EnvVar { Key = m.Key, Value = m.Value.Value }).ToList();
 

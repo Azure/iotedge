@@ -137,7 +137,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer
             {
                 throw new InvalidOperationException("Module not found");
             }
-            this.modules[module.Name] = GetModuleDetails(module);
+            var moduleDetails = GetModuleDetails(module);
+            if (start)
+            {
+                moduleDetails.Status.RuntimeStatus.Status = "Running";
+            }
+
+            this.modules[module.Name] = moduleDetails;
             return Task.FromResult(this.modules[module.Name]);
         }
     }

@@ -14,17 +14,17 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
         readonly WorkloadClient workloadClient;
         static readonly AsyncLock asyncLock = new AsyncLock();
 
-        EncryptionProvider(Uri workloadUri, string apiVersion, string moduleId, string moduleGenerationid, string initializationVector)
+        EncryptionProvider(Uri workloadUri, string workloadApiVersion, string apiClientVersion, string moduleId, string moduleGenerationid, string initializationVector)
         {
             this.initializationVector = initializationVector;
-            this.workloadClient = new WorkloadClient(workloadUri, apiVersion, moduleId, moduleGenerationid);
+            this.workloadClient = new WorkloadClient(workloadUri, workloadApiVersion, apiClientVersion, moduleId, moduleGenerationid);
         }
 
         public Task<string> DecryptAsync(string encryptedText) => this.workloadClient.DecryptAsync(this.initializationVector, encryptedText);
 
         public Task<string> EncryptAsync(string plainText) => this.workloadClient.EncryptAsync(this.initializationVector, plainText);
 
-        public static async Task<EncryptionProvider> CreateAsync(string storagePath, Uri workloadUri, string edgeletWorkloadApiVersion, string moduleId, string genId, string initializationVectorFileName)
+        public static async Task<EncryptionProvider> CreateAsync(string storagePath, Uri workloadUri, string edgeletApiVersion, string edgeletClientApiVersion, string moduleId, string genId, string initializationVectorFileName)
         {
             string ivFile = $"{storagePath}/{initializationVectorFileName}";
             string iv;
@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
                 }
             }
 
-            return new EncryptionProvider(workloadUri, edgeletWorkloadApiVersion, moduleId, genId, iv);
+            return new EncryptionProvider(workloadUri, edgeletApiVersion, edgeletClientApiVersion, moduleId, genId, iv);
         }
     }
 }

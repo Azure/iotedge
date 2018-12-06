@@ -18,6 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             public const string ModuleGenerationId = "IOTEDGE_MODULEGENERATIONID";
             public const string ModuleId = "IOTEDGE_MODULEID";
             public const string WorkloadUri = "IOTEDGE_WORKLOADURI";
+            public const string WorkloadAPiVersion = "IOTEDGE_APIVERSION";
             public const string EdgeHubDevServerCertificateFile = "EdgeHubDevServerCertificateFile";
             public const string EdgeHubDevServerPrivateKeyFile = "EdgeHubDevServerPrivateKeyFile";
             public const string EdgeHubDevTrustBundleFile = "EdgeHubDevTrustBundleFile";

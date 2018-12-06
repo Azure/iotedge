@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Edged.GeneratedCode;
+    using Microsoft.Azure.Devices.Edge.Util.Edged;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -61,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             configStore.Setup(cs => cs.Get(It.IsAny<string>()))
                 .ReturnsAsync(Option.Some("encrypted"));
             encryptionDecryptionProvider.Setup(ep => ep.DecryptAsync(It.IsAny<string>()))
-                .ThrowsAsync(new IoTEdgedException("failed", 404, "", null, null));
+                .ThrowsAsync(new WorkloadCommunicationException("failed", 404));
 
             Agent agent = await Agent.Create(mockConfigSource.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleLifecycleManager.Object, mockEnvironmentProvider.Object, configStore.Object, serde, encryptionDecryptionProvider.Object);
 
@@ -326,7 +326,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             mockPlanner.Setup(pl => pl.PlanAsync(It.Is<ModuleSet>(ms => ms.Equals(desiredModuleSet)), currentModuleSet, runtimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty))
                 .ReturnsAsync(testPlan);
             encryptionDecryptionProvider.Setup(ep => ep.EncryptAsync(It.IsAny<string>()))
-                .ThrowsAsync(new IoTEdgedException("failed", 404, "", null, null));
+                .ThrowsAsync(new WorkloadCommunicationException("failed", 404));
 
             var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde, encryptionDecryptionProvider.Object);
 

@@ -8,12 +8,12 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
     using System.Linq;
     using System.Security.Cryptography.X509Certificates;
     using System.Text;
-    using Microsoft.Azure.Devices.Edge.Util.Edged.GeneratedCode;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
     using CertificateHelper = Microsoft.Azure.Devices.Edge.Util.CertificateHelper;
     using TestCertificateHelper = Microsoft.Azure.Devices.Edge.Util.Test.Common.CertificateHelper;
     using System.Security.Cryptography;
+    using Microsoft.Azure.Devices.Edge.Util.Edged;
 
     [Unit]
     public class CertificateHelperTest
@@ -69,7 +69,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
             Assert.Throws<ArgumentNullException>(() =>
             CertificateHelper.ValidateClientCert(null, new List<X509Certificate2>(), trustedCACerts, Logger.Factory.CreateLogger("something")));
             Assert.Throws<ArgumentNullException>(() =>
-            CertificateHelper.ValidateClientCert(new X509Certificate2(), null, trustedCACerts, Logger.Factory.CreateLogger("something")));            
+            CertificateHelper.ValidateClientCert(new X509Certificate2(), null, trustedCACerts, Logger.Factory.CreateLogger("something")));
+            Assert.Throws<ArgumentNullException>(() =>
+            CertificateHelper.ValidateClientCert(new X509Certificate2(), new List<X509Certificate2>(), trustedCACerts, null));
         }
 
         [Fact]
@@ -120,51 +122,39 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
         [Fact]
         public void ParseTrustBundleNullResponseRaisesException()
         {
-            TrustBundleResponse response = null;
-            Assert.Throws<ArgumentNullException>(() => CertificateHelper.ParseTrustBundleResponse(response));
+            string response = null;
+            Assert.Throws<ArgumentNullException>(() => CertificateHelper.ParseTrustedBundleCerts(response));
         }
 
         [Fact]
         public void ParseTrustBundleEmptyResponseReturnsEmptyList()
         {
-            var response = new TrustBundleResponse()
-            {
-                Certificate = "  ",
-            };
-            IEnumerable<X509Certificate2> certs = CertificateHelper.ParseTrustBundleResponse(response);
+            string trustBundle = "  ";
+            IEnumerable<X509Certificate2> certs = CertificateHelper.ParseTrustedBundleCerts(trustBundle);
             Assert.Equal(certs.Count(), 0);
         }
 
         [Fact]
         public void ParseTrustBundleInvalidResponseReturnsEmptyList()
         {
-            var response = new TrustBundleResponse()
-            {
-                Certificate = "somewhere over the rainbow",
-            };
-            IEnumerable<X509Certificate2> certs = CertificateHelper.ParseTrustBundleResponse(response);
+            string trustBundle = "somewhere over the rainbow";
+            IEnumerable<X509Certificate2> certs = CertificateHelper.ParseTrustedBundleCerts(trustBundle);
             Assert.Equal(certs.Count(), 0);
         }
 
         [Fact]
         public void ParseTrustBundleResponseWithOneCertReturnsNonEmptyList()
         {
-            var response = new TrustBundleResponse()
-            {
-                Certificate = $"{TestCertificateHelper.CertificatePem}\n",
-            };
-            IEnumerable<X509Certificate2> certs = CertificateHelper.ParseTrustBundleResponse(response);
+            string trustBundle = $"{TestCertificateHelper.CertificatePem}\n";
+            IEnumerable<X509Certificate2> certs = CertificateHelper.ParseTrustedBundleCerts(trustBundle);
             Assert.Equal(certs.Count(), 1);
         }
 
         [Fact]
         public void ParseTrustBundleResponseWithMultipleCertReturnsNonEmptyList()
         {
-            var response = new TrustBundleResponse()
-            {
-                Certificate = $"{TestCertificateHelper.CertificatePem}\n{TestCertificateHelper.CertificatePem}",
-            };
-            IEnumerable<X509Certificate2> certs = CertificateHelper.ParseTrustBundleResponse(response);
+            string trustBundle = $"{TestCertificateHelper.CertificatePem}\n{TestCertificateHelper.CertificatePem}";
+            IEnumerable<X509Certificate2> certs = CertificateHelper.ParseTrustedBundleCerts(trustBundle);
             Assert.Equal(certs.Count(), 2);
         }
 
@@ -207,24 +197,17 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
         [Fact]
         public void ParseCertificatesResponseInvalidCertificateShouldThrow()
         {
-            var response = new CertificateResponse()
-            {
-                Certificate = "InvalidCert",
-            };
-            Assert.Throws<InvalidOperationException>(() => CertificateHelper.ParseCertificateResponse(response));
+            ServerCertificateResponse cert = new ServerCertificateResponse() { Certificate = "InvalidCert" };
+            Assert.Throws<InvalidOperationException>(() => CertificateHelper.ParseCertificateResponse(cert));
         }
 
         [Fact]
         public void ParseCertificatesResponseInvalidKeyShouldThrow()
         {
-            var response = new CertificateResponse()
+            var response = new ServerCertificateResponse()
             {
                 Certificate = TestCertificateHelper.CertificatePem,
-                Expiration = DateTime.UtcNow.AddDays(1),
-                PrivateKey = new PrivateKey()
-                {
-                    Bytes = "InvalidKey"
-                }
+                PrivateKey = "InvalidKey"
             };
 
             Assert.Throws<InvalidOperationException>(() => CertificateHelper.ParseCertificateResponse(response));
@@ -234,14 +217,10 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
         public void ParseCertificatesResponseShouldReturnCert()
         {
             TestCertificateHelper.GenerateSelfSignedCert("top secret").Export(X509ContentType.Cert);
-            var response = new CertificateResponse()
+            var response = new ServerCertificateResponse()
             {
                 Certificate = $"{TestCertificateHelper.CertificatePem}\n{TestCertificateHelper.CertificatePem}",
-                Expiration = DateTime.UtcNow.AddDays(1),
-                PrivateKey = new PrivateKey()
-                {
-                    Bytes = TestCertificateHelper.PrivateKeyPem
-                }
+                PrivateKey = TestCertificateHelper.PrivateKeyPem
             };
             (X509Certificate2 cert, IEnumerable<X509Certificate2> chain) = CertificateHelper.ParseCertificateResponse(response);
 
@@ -298,7 +277,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
         {
             var notBefore = DateTime.Now.Subtract(TimeSpan.FromDays(2));
             var notAfter = DateTime.Now.Subtract(TimeSpan.FromDays(1));
-            var (clientCert, clientKeyPair) =  TestCertificateHelper.GenerateSelfSignedCert("MyTestClient", notBefore, notAfter, false);
+            var (clientCert, clientKeyPair) = TestCertificateHelper.GenerateSelfSignedCert("MyTestClient", notBefore, notAfter, false);
             Assert.False(CertificateHelper.ValidateClientCert(clientCert, new List<X509Certificate2>() { clientCert }, Option.None<IList<X509Certificate2>>(), Logger.Factory.CreateLogger("something")));
         }
 

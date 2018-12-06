@@ -5,8 +5,10 @@
 //----------------------
 // Note: Code manually changed to replace System.Uri.EscapeDataString with System.Net.WebUtility.UrlEncode
 
-namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.GeneratedCode
+namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2018_12_30.GeneratedCode
 {
+    using System.Threading.Tasks;
+
 #pragma warning disable // Disable all warnings
 
     [System.CodeDom.Compiler.GeneratedCode("NSwag", "11.17.12.0 (NJsonSchema v9.10.50.0 (Newtonsoft.Json v9.0.0.0))")]
@@ -1412,6 +1414,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.GeneratedCode
             }
 
             return System.Convert.ToString(value, cultureInfo);
+        }
+
+        public Task PrepareUpdateAsync(string version, ModuleSpec moduleSpec)
+        {
+            throw new System.NotImplementedException();
         }
     }
 

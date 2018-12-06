@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Test;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet;
-    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.GeneratedCode;
+    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;

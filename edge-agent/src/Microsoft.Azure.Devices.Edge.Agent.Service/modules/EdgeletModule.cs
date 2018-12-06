@@ -29,18 +29,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly string gatewayHostName;
         readonly Uri managementUri;
         readonly Uri workloadUri;
+        readonly string apiVersion;
         readonly IEnumerable<AuthConfig> dockerAuthConfig;
         readonly Option<UpstreamProtocol> upstreamProtocol;
         readonly Option<string> productInfo;
 
         public EdgeletModule(string iotHubHostname, string gatewayHostName, string deviceId, Uri managementUri,
-            Uri workloadUri, IEnumerable<AuthConfig> dockerAuthConfig, Option<UpstreamProtocol> upstreamProtocol, Option<string> productInfo)
+            Uri workloadUri, string apiVersion, IEnumerable<AuthConfig> dockerAuthConfig, Option<UpstreamProtocol> upstreamProtocol, Option<string> productInfo)
         {
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.gatewayHostName = Preconditions.CheckNonWhiteSpace(gatewayHostName, nameof(gatewayHostName));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.managementUri = Preconditions.CheckNotNull(managementUri, nameof(managementUri));
             this.workloadUri = Preconditions.CheckNotNull(workloadUri, nameof(workloadUri));
+            this.apiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion));
             this.dockerAuthConfig = Preconditions.CheckNotNull(dockerAuthConfig, nameof(dockerAuthConfig));
             this.upstreamProtocol = Preconditions.CheckNotNull(upstreamProtocol, nameof(upstreamProtocol));
             this.productInfo = productInfo;
@@ -54,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // IModuleManager
-            builder.Register(c => new ModuleManagementHttpClient(this.managementUri))
+            builder.Register(c => new ModuleManagementHttpClient(this.managementUri, this.apiVersion, Constants.EdgeletClientApiVersion))
                 .As<IModuleManager>()
                 .As<IIdentityManager>()
                 .SingleInstance();

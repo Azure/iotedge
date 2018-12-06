@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.1</TargetFramework>
+    <IsPackable>false</IsPackable>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
     <Configurations>Debug;Release;CodeCoverage;CheckInBuild</Configurations>
     <HighEntropyVA>true</HighEntropyVA>
