@@ -33,48 +33,89 @@ enum ContainerOs {
     Windows
 }
 
+<#
+.SYNOPSIS
+
+Installs the IoT Edge Security Daemon and its dependencies.
+
+
+.INPUTS
+
+None
+
+
+.OUTPUTS
+
+None
+
+
+.EXAMPLE
+
+PS> Install-SecurityDaemon -Manual -DeviceConnectionString $deviceConnectionString -ContainerOs Windows
+
+
+.EXAMPLE
+
+PS> Install-SecurityDaemon -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows
+
+
+.EXAMPLE
+
+PS> Install-SecurityDaemon -ExistingConfig -ContainerOs Windows
+#>
 function Install-SecurityDaemon {
     [CmdletBinding(DefaultParameterSetName = 'Manual')]
     param (
+        # Specified the daemon will be configured manually, using a device connection string.
         [Parameter(ParameterSetName = 'Manual')]
         [Switch] $Manual,
 
+        # Specified the daemon will be configured using DPS, using a scope ID and registration ID.
         [Parameter(ParameterSetName = 'DPS')]
         [Switch] $Dps,
 
+        # Specified the daemon will be configured to use an existing config.yaml
         [Parameter(ParameterSetName = 'ExistingConfig')]
         [Switch] $ExistingConfig,
 
+        # The device connection string.
         [Parameter(Mandatory = $true, ParameterSetName = 'Manual')]
         [String] $DeviceConnectionString,
 
+        # The DPS scope ID.
         [Parameter(Mandatory = $true, ParameterSetName = 'DPS')]
         [String] $ScopeId,
 
+        # The DPS registration ID.
         [Parameter(Mandatory = $true, ParameterSetName = 'DPS')]
         [String] $RegistrationId,
 
+        # The base OS of all the containers that will be run on this device via the security daemon.
+        #
+        # If set to Linux, a separate installation of Docker for Windows is expected.
+        #
+        # If set to Windows, the Moby Engine will be installed automatically.
         [ContainerOs] $ContainerOs = 'Linux',
 
         # Proxy URI used for all Invoke-WebRequest calls. To specify other proxy-related options like -ProxyCredential, see -InvokeWebRequestParameters
         [Uri] $Proxy,
 
-        # If set to a directory, the installer prefers to use iotedged zip, moby Engine zip, moby CLI zip and VC Runtime MSI files from inside this directory
+        # If set to a directory, the installer prefers to use iotedged zip, Moby Engine zip, Moby CLI zip and VC Runtime MSI files from inside this directory
         # over downloading them from the internet. Thus placing all four files in this directory can be used to have a completely offline install,
         # or a specific subset can be placed to override the online versions of those specific components.
         [String] $OfflineInstallationPath,
 
-        # IoT Edge Agent image to pull
+        # IoT Edge Agent image to pull for the initial configuration.
         [Parameter(ParameterSetName = 'Manual')]
         [Parameter(ParameterSetName = 'DPS')]
         [String] $AgentImage,
 
-        # Username to pull IoT Edge Agent image
+        # Username used to access the container registry and pull the IoT Edge Agent image.
         [Parameter(ParameterSetName = 'Manual')]
         [Parameter(ParameterSetName = 'DPS')]
         [String] $Username,
 
-        # Password to pull IoT Edge Agent image
+        # Password used to access the container registry and pull the IoT Edge Agent image.
         [Parameter(ParameterSetName = 'Manual')]
         [Parameter(ParameterSetName = 'DPS')]
         [SecureString] $Password,
@@ -84,10 +125,11 @@ function Install-SecurityDaemon {
         # If -Proxy is also specified, it overrides the `-Proxy` key set in this hashtable, if any.
         #
         # Example:
+        #
         #     Install-SecurityDaemon -InvokeWebRequestParameters @{ '-Proxy' = 'http://localhost:8888'; '-ProxyCredential' = (Get-Credential).GetNetworkCredential() }
         [HashTable] $InvokeWebRequestParameters,
 
-        # Don't install the Moby CLI (docker.exe) to $MobyInstallDirectory. Only takes effect for `-ContainerOs Windows`
+        # Don't install the Moby CLI (docker.exe) to $MobyInstallDirectory. Only takes effect for -ContainerOs 'Windows'
         [Switch] $SkipMobyCli,
 
         # Local path to iotedged zip file. Only kept for backward compatibility. Prefer to set -OfflineInstallationPath instead.
@@ -226,13 +268,53 @@ function Install-SecurityDaemon {
     Write-HostGreen '    Format-Table -AutoSize -Wrap'
 }
 
+<#
+.SYNOPSIS
+
+Uninstalls the IoT Edge Security Daemon and its dependencies.
+
+
+.DESCRIPTION
+
+By default this commandlet does not delete the config.yaml and the Moby Engine data root (for -ContainerOs 'Windows' installs),
+so that you can update the daemon using `Install-SecurityDaemon -ExistingConfig`. To delete these as well, specify the
+-DeleteConfig and -DeleteMobyDataRoot flags.
+
+
+.INPUTS
+
+None
+
+
+.OUTPUTS
+
+None
+
+
+.EXAMPLE
+
+PS> Uninstall-SecurityDaemon
+
+
+.EXAMPLE
+
+PS> Uninstall-SecurityDaemon -DeleteConfig -DeleteMobyDataRoot
+
+
+.EXAMPLE
+
+PS> Uninstall-SecurityDaemon -Force
+#>
 function Uninstall-SecurityDaemon {
     [CmdletBinding()]
     param (
+        # If set, the config.yaml will also be deleted.
         [Switch] $DeleteConfig,
 
+        # If set, the Moby Engine data root will also be deleted. This directory is only created for -ContainerOs 'Windows' installs.
         [Switch] $DeleteMobyDataRoot,
 
+        # Forces the uninstallation in case the previous install was only partially successful.
         [Switch] $Force
     )
 
@@ -757,14 +839,14 @@ function Uninstall-Services {
         Stop-Service -NoWait -ErrorAction SilentlyContinue -ErrorVariable cmdErr $MobyServiceName
         if ($?) {
             Start-Sleep -Seconds 7
-            Write-Verbose 'Stopped the IoT Edge Moby Runtime service'
+            Write-Verbose 'Stopped the IoT Edge Moby Engine service'
         }
         else {
             Write-Verbose "$cmdErr"
         }
 
         if (Invoke-Native "sc.exe delete ""$MobyServiceName""" -ErrorAction SilentlyContinue) {
-            Write-Verbose 'Removed IoT Edge Moby Runtime service subkey from the registry'
+            Write-Verbose 'Removed IoT Edge Moby Engine service subkey from the registry'
         }
     }
 }
