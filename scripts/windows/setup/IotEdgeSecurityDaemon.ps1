@@ -907,16 +907,29 @@ function Remove-IotEdgeContainers {
         return
     }
 
-    $runningContainersString = Invoke-Native "$dockerExe ps --all --format ""{{.ID}}""" -Passthru
-    [string[]] $runningContainers = $runningContainersString -split {$_ -eq "`r" -or $_ -eq "`n"} | where {$_.Length -gt 0}
+    $allContainersString = Invoke-Native "$dockerExe ps --all --format ""{{.ID}}""" -Passthru
+    [string[]] $allContainers = $allContainersString -split {$_ -eq "`r" -or $_ -eq "`n"} | where {$_.Length -gt 0}
 
-    foreach ($containerId in $runningContainers) {
+    foreach ($containerId in $allContainers) {
         $inspectString = Invoke-Native "$dockerExe inspect ""$containerId""" -Passthru
         $inspectResult = ($inspectString | ConvertFrom-Json)[0]
 
         if ($inspectResult.Config.Labels.'net.azure-devices.edge.owner' -eq 'Microsoft.Azure.Devices.Edge.Agent') {
-            Invoke-Native "$dockerExe rm --force ""$containerId"""
-            Write-Verbose "Stopped and deleted container $($inspectResult.Name)"
+            if (($inspectResult.Name -eq '/edgeAgent') -or ($inspectResult.Name -eq '/edgeHub')) {
+                Invoke-Native "$dockerExe rm --force ""$containerId"""
+                Write-Verbose "Stopped and deleted container $($inspectResult.Name)"
+
+                # `.Config.Image` contains the user-provided name, but this can be a tag like `foo:latest`
+                # that doesn't necessarily point to the image that has that tag right now.
+                #
+                # So delete the image using its unique identifier, as given by `.Image`, like `sha256:1234abcd...`
+                Invoke-Native "$dockerExe image rm --force ""$($inspectResult.Image)"""
+                Write-Verbose "Deleted image of container $($inspectResult.Name) ($($inspectResult.Config.Image))"
+            }
+            else {
+                Invoke-Native "$dockerExe stop ""$containerId"""
+                Write-Verbose "Stopped container $($inspectResult.Name)"
+            }
         }
     }
 }
