@@ -5,11 +5,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
     using System.Collections.Generic;
     using System.Net;
     using System.Net.WebSockets;
-    using System.Threading.Tasks;
     using System.Security.Cryptography.X509Certificates;
+    using System.Threading.Tasks;
     using AspNetCore.Http;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Http.Extensions;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using static System.FormattableString;
