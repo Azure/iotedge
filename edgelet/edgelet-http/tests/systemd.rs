@@ -40,6 +40,14 @@ lazy_static! {
     static ref LOCK: Mutex<()> = Mutex::new(());
 }
 
+// TODO: This works around https://github.com/rust-lang/cargo/issues/6333
+// `cargo test` opens /dev/random and /dev/urandom at fds 3 and 4 so the first fd bound is 5.
+// Remove the `cfg(test)` definition when that issue is fixed. Also see systemd/src/linux.rs
+#[cfg(test)]
+const LISTEN_FDS_START: Fd = 5;
+#[cfg(not(test))]
+const LISTEN_FDS_START: Fd = 3;
+
 const ENV_FDS: &str = "LISTEN_FDS";
 const ENV_PID: &str = "LISTEN_PID";
 
@@ -83,16 +91,17 @@ fn create_fd(family: AddressFamily, type_: SockType) -> Fd {
 }
 
 #[test]
+#[ignore] // TODO: Unignore when https://github.com/rust-lang/cargo/issues/6333 is fixed
 fn test_fd_ok() {
     let _l = lock_env();
     set_current_pid();
     let fd = create_fd(AddressFamily::Unix, SockType::Stream);
-    assert_eq!(fd, 3);
+    assert_eq!(fd, LISTEN_FDS_START);
 
     // set the env var so that it contains the created fd
-    env::set_var(ENV_FDS, format!("{}", fd - 3 + 1));
+    env::set_var(ENV_FDS, format!("{}", fd - LISTEN_FDS_START + 1));
 
-    let url = Url::parse(&format!("fd://{}", fd - 3)).unwrap();
+    let url = Url::parse(&format!("fd://{}", fd - LISTEN_FDS_START)).unwrap();
     let run = Http::new().bind_url(url, move || {
         let service = TestService {
             status_code: StatusCode::OK,
@@ -112,10 +121,10 @@ fn test_fd_err() {
     let _l = lock_env();
     set_current_pid();
     let fd = create_fd(AddressFamily::Unix, SockType::Stream);
-    assert_eq!(fd, 3);
+    assert_eq!(fd, LISTEN_FDS_START);
 
     // set the env var so that it contains the created fd
-    env::set_var(ENV_FDS, format!("{}", fd - 3 + 1));
+    env::set_var(ENV_FDS, format!("{}", fd - LISTEN_FDS_START + 1));
 
     let url = Url::parse("fd://100").unwrap();
     let run = Http::new().bind_url(url, move || {

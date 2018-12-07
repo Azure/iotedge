@@ -71,7 +71,8 @@ fn run_as_service(_: Vec<OsString>) -> Result<ServiceStatusHandle, Error> {
             ServiceControl::Interrogate => ServiceControlHandlerResult::NoError,
             _ => ServiceControlHandlerResult::NotImplemented,
         },
-    ).map_err(ServiceError::from)
+    )
+    .map_err(ServiceError::from)
     .context(ErrorKind::Initialize(
         InitializeErrorReason::RegisterWindowsService,
     ))?;
@@ -90,7 +91,8 @@ fn run_as_service(_: Vec<OsString>) -> Result<ServiceStatusHandle, Error> {
                     err,
                 );
             }
-        }).map_err(|_| ());
+        })
+        .map_err(|_| ());
 
     // tell Windows we're all set
     update_service_state(status_handle, ServiceState::Running)?;
@@ -140,6 +142,7 @@ fn update_service_state(
             exit_code: ServiceExitCode::Win32(0),
             checkpoint: 0,
             wait_hint: Duration::default(),
-        }).context(ErrorKind::UpdateWindowsServiceState)?;
+        })
+        .context(ErrorKind::UpdateWindowsServiceState)?;
     Ok(())
 }

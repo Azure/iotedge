@@ -68,7 +68,8 @@ fn get_with_body_handler(
         .header(
             hyper::header::CONTENT_LENGTH,
             format!("{}", GET_RESPONSE.len()),
-        ).body(GET_RESPONSE.into())
+        )
+        .body(GET_RESPONSE.into())
         .expect("couldn't create response body");
     future::ok(response)
 }
@@ -89,7 +90,8 @@ fn get_with_body() {
         .and_then(|res| {
             assert_eq!(StatusCode::OK, res.status());
             res.into_body().concat2()
-        }).map(|body| {
+        })
+        .map(|body| {
             assert_eq!(GET_RESPONSE, &String::from_utf8_lossy(body.as_ref()));
         });
 

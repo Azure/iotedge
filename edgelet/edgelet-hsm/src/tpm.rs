@@ -137,8 +137,10 @@ impl Sign for TpmKey {
                             KeyIdentity::Module(ref m) => m,
                         },
                         self.key_name
-                    ).as_bytes(),
-                ).map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
+                    )
+                    .as_bytes(),
+                )
+                .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
                 .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore))),
         }
     }

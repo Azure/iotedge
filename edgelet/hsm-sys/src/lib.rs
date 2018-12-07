@@ -106,12 +106,18 @@ pub type HSM_CLIENT_ACTIVATE_IDENTITY_KEY = Option<
     unsafe extern "C" fn(handle: HSM_CLIENT_HANDLE, key: *const c_uchar, key_len: usize) -> c_int,
 >;
 pub type HSM_CLIENT_GET_ENDORSEMENT_KEY = Option<
-    unsafe extern "C" fn(handle: HSM_CLIENT_HANDLE, key: *mut *mut c_uchar, key_len: *mut usize)
-        -> c_int,
+    unsafe extern "C" fn(
+        handle: HSM_CLIENT_HANDLE,
+        key: *mut *mut c_uchar,
+        key_len: *mut usize,
+    ) -> c_int,
 >;
 pub type HSM_CLIENT_GET_STORAGE_ROOT_KEY = Option<
-    unsafe extern "C" fn(handle: HSM_CLIENT_HANDLE, key: *mut *mut c_uchar, key_len: *mut usize)
-        -> c_int,
+    unsafe extern "C" fn(
+        handle: HSM_CLIENT_HANDLE,
+        key: *mut *mut c_uchar,
+        key_len: *mut usize,
+    ) -> c_int,
 >;
 pub type HSM_CLIENT_SIGN_WITH_IDENTITY = Option<
     unsafe extern "C" fn(
@@ -173,8 +179,11 @@ pub type HSM_CLIENT_GET_COMMON_NAME =
 /// 0  -- On success
 /// Non 0 -- otherwise
 pub type HSM_CLIENT_GET_RANDOM_BYTES = Option<
-    unsafe extern "C" fn(handle: HSM_CLIENT_HANDLE, buffer: *mut c_uchar, buffer_size: usize)
-        -> c_int,
+    unsafe extern "C" fn(
+        handle: HSM_CLIENT_HANDLE,
+        buffer: *mut c_uchar,
+        buffer_size: usize,
+    ) -> c_int,
 >;
 
 /// API to provision a master symmetric encryption key in the HSM.
@@ -396,8 +405,10 @@ extern "C" {
 /// CERT_INFO_HANDLE -- Valid non NULL handle on success
 /// NULL -- otherwise
 pub type HSM_CLIENT_CREATE_CERTIFICATE = Option<
-    unsafe extern "C" fn(handle: HSM_CLIENT_HANDLE, certificate_props: CERT_PROPS_HANDLE)
-        -> CERT_INFO_HANDLE,
+    unsafe extern "C" fn(
+        handle: HSM_CLIENT_HANDLE,
+        certificate_props: CERT_PROPS_HANDLE,
+    ) -> CERT_INFO_HANDLE,
 >;
 
 /// This API deletes any crypto assets associated with the id.

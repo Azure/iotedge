@@ -14,10 +14,7 @@ use serde_json::Value;
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct IdentityCertificateRequest {
     /// Certificate expiration date-time (ISO 8601)
-    #[serde(
-        rename = "expiration",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "expiration", skip_serializing_if = "Option::is_none")]
     expiration: Option<String>,
 }
 

@@ -13,15 +13,9 @@ use serde_json::Value;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Status {
-    #[serde(
-        rename = "startTime",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "startTime", skip_serializing_if = "Option::is_none")]
     start_time: Option<String>,
-    #[serde(
-        rename = "exitStatus",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "exitStatus", skip_serializing_if = "Option::is_none")]
     exit_status: Option<::models::ExitStatus>,
     #[serde(rename = "runtimeStatus")]
     runtime_status: ::models::RuntimeStatus,

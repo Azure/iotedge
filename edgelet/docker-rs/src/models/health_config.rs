@@ -28,10 +28,7 @@ pub struct HealthConfig {
     #[serde(rename = "Retries", skip_serializing_if = "Option::is_none")]
     retries: Option<i32>,
     /// Start period for the container to initialize before starting health-retries countdown in nanoseconds. It should be 0 or at least 1000000 (1 ms). 0 means inherit.
-    #[serde(
-        rename = "StartPeriod",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "StartPeriod", skip_serializing_if = "Option::is_none")]
     start_period: Option<i32>,
 }
 

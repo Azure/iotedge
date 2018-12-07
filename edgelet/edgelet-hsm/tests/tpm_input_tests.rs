@@ -40,7 +40,8 @@ fn tpm_input_tests() {
             module1_identity.clone(),
             "ignored".to_string(),
             &Bytes::from(decoded_key_str),
-        ).expect_err("Module key cannot be activated");
+        )
+        .expect_err("Module key cannot be activated");
 
     key_store
         .activate_identity_key(KeyIdentity::Device, "ignored".to_string(), &Bytes::from(""))

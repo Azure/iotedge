@@ -187,7 +187,8 @@ impl ModuleRuntime for ModuleClient {
                     err,
                     ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(id)),
                 )
-            }).then(|result| match result {
+            })
+            .then(|result| match result {
                 Err(e) => match e.kind() {
                     ErrorKind::NotModified => Ok(()),
                     _ => Err(e),
@@ -209,7 +210,8 @@ impl ModuleRuntime for ModuleClient {
                     err,
                     ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(id)),
                 )
-            }).then(|result| match result {
+            })
+            .then(|result| match result {
                 Err(e) => match e.kind() {
                     ErrorKind::NotModified => Ok(()),
                     _ => Err(e),
@@ -231,7 +233,8 @@ impl ModuleRuntime for ModuleClient {
                     err,
                     ErrorKind::RuntimeOperation(RuntimeOperation::RestartModule(id)),
                 )
-            }).then(|result| match result {
+            })
+            .then(|result| match result {
                 Err(e) => match e.kind() {
                     ErrorKind::NotModified => Ok(()),
                     _ => Err(e),
@@ -258,8 +261,10 @@ impl ModuleRuntime for ModuleClient {
                         let type_ = m.type_().clone();
                         let config = m.config().clone();
                         ModuleDetails(m, ModuleConfig(type_, config))
-                    }).collect()
-            }).map_err(|err| {
+                    })
+                    .collect()
+            })
+            .map_err(|err| {
                 Error::from_mgmt_error(
                     err,
                     ErrorKind::RuntimeOperation(RuntimeOperation::ListModules),
@@ -278,7 +283,8 @@ impl ModuleRuntime for ModuleClient {
                     err,
                     ErrorKind::RuntimeOperation(RuntimeOperation::ListModules),
                 )
-            }).map(|list| {
+            })
+            .map(|list| {
                 let iter = list.modules().to_owned().into_iter().map(|m| {
                     let type_ = m.type_().clone();
                     let config = m.config().clone();
@@ -287,7 +293,8 @@ impl ModuleRuntime for ModuleClient {
                     Ok((module, runtime_state))
                 });
                 stream::iter_result(iter)
-            }).into_stream()
+            })
+            .into_stream()
             .flatten();
         Box::new(modules)
     }
