@@ -78,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             Func<Exception, bool> continueOnException = (ex) => true;
             TimeSpan retryInterval = TimeSpan.FromMilliseconds(2);
 
-            using (var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(200)))
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5)))
             {
                 string returnedValue = await Retry.Do(func, null, continueOnException, retryInterval, cts.Token);
                 Assert.Equal("Foo", returnedValue);
