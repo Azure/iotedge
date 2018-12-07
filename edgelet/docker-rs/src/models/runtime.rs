@@ -19,10 +19,7 @@ pub struct Runtime {
     #[serde(rename = "path", skip_serializing_if = "Option::is_none")]
     path: Option<String>,
     /// List of command-line arguments to pass to the runtime when invoked.
-    #[serde(
-        rename = "runtimeArgs",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "runtimeArgs", skip_serializing_if = "Option::is_none")]
     runtime_args: Option<Vec<String>>,
 }
 

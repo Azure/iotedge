@@ -16,10 +16,7 @@ pub struct Error {
 
 #[derive(Clone, Debug, Fail, PartialEq)]
 pub enum ErrorKind {
-    #[fail(
-        display = "The daemon could not start up successfully: {}",
-        _0
-    )]
+    #[fail(display = "The daemon could not start up successfully: {}", _0)]
     Initialize(InitializeErrorReason),
 
     #[fail(display = "The management service encountered an error")]

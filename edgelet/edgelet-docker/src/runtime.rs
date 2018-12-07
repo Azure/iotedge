@@ -137,7 +137,8 @@ impl ModuleRegistry for DockerModuleRuntime {
                             ErrorKind::RegistryOperation(RegistryOperation::PullImage(image)),
                         )),
                     })
-            }).into_future()
+            })
+            .into_future()
             .flatten()
             .then(move |result| match result {
                 Ok(image) => {
@@ -229,7 +230,8 @@ impl ModuleRuntime for DockerModuleRuntime {
                         } else {
                             future::Either::B(future::ok(()))
                         }
-                    }).map_err(|err| {
+                    })
+                    .map_err(|err| {
                         let e = Error::from_docker_error(
                             err,
                             ErrorKind::RuntimeOperation(RuntimeOperation::Init),
@@ -302,7 +304,8 @@ impl ModuleRuntime for DockerModuleRuntime {
                             )),
                         )),
                     }))
-            }).into_future()
+            })
+            .into_future()
             .flatten()
             .then(|result| match result {
                 Ok(module) => {
@@ -374,7 +377,8 @@ impl ModuleRuntime for DockerModuleRuntime {
                         s if s > i32::max_value() as u64 => i32::max_value(),
                         s => s as i32,
                     }),
-                ).then(|result| match result {
+                )
+                .then(|result| match result {
                     Ok(_) => {
                         info!("Successfully stopped module {}", id);
                         Ok(())
@@ -474,7 +478,8 @@ impl ModuleRuntime for DockerModuleRuntime {
                 .container_delete(
                     &id, /* remove volumes */ false, /* force */ true,
                     /* remove link */ false,
-                ).then(|result| match result {
+                )
+                .then(|result| match result {
                     Ok(_) => {
                         info!("Successfully removed module {}", id);
                         Ok(())
@@ -515,13 +520,15 @@ impl ModuleRuntime for DockerModuleRuntime {
                                     ContainerCreateBody::new()
                                         .with_labels(container.labels().clone()),
                                     None,
-                                ).map(|config| {
+                                )
+                                .map(|config| {
                                     (
                                         container,
                                         config.with_image_id(container.image_id().clone()),
                                     )
                                 })
-                            }).flat_map(|(container, config)| {
+                            })
+                            .flat_map(|(container, config)| {
                                 DockerModule::new(
                                     client_copy.clone(),
                                     container
@@ -532,14 +539,17 @@ impl ModuleRuntime for DockerModuleRuntime {
                                         .to_string(),
                                     config,
                                 )
-                            }).collect()
-                    }).map_err(|err| {
+                            })
+                            .collect()
+                    })
+                    .map_err(|err| {
                         Error::from_docker_error(
                             err,
                             ErrorKind::RuntimeOperation(RuntimeOperation::ListModules),
                         )
                     })
-            }).into_future()
+            })
+            .into_future()
             .flatten()
             .then(|result| {
                 match result {
@@ -670,7 +680,8 @@ where
                     list.into_iter()
                         .map(|module| module.runtime_state().map(|state| (module, state))),
                 )
-            }).flatten()
+            })
+            .flatten()
             .then(Ok::<_, Error>) // Ok(_) -> Ok(Ok(_)), Err(_) -> Ok(Err(_)), ! -> Err(_)
             .filter_map(|value| match value {
                 Ok(value) => Some(Ok(value)),
@@ -678,7 +689,8 @@ where
                     ErrorKind::NotFound(_) => None,
                     _ => Some(Err(err)),
                 },
-            }).then(Result::unwrap), // Ok(Ok(_)) -> Ok(_), Ok(Err(_)) -> Err(_), Err(_) -> !
+            })
+            .then(Result::unwrap), // Ok(Ok(_)) -> Ok(_), Ok(Err(_)) -> Err(_), Err(_) -> !
     )
 }
 
@@ -823,7 +835,8 @@ mod tests {
             DockerConfig::new("nginx:latest".to_string(), ContainerCreateBody::new(), None)
                 .unwrap(),
             HashMap::new(),
-        ).unwrap();
+        )
+        .unwrap();
 
         let task = mri.create(module_config).then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),

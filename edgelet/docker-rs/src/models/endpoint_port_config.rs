@@ -18,22 +18,13 @@ pub struct EndpointPortConfig {
     #[serde(rename = "Protocol", skip_serializing_if = "Option::is_none")]
     protocol: Option<String>,
     /// The port inside the container.
-    #[serde(
-        rename = "TargetPort",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "TargetPort", skip_serializing_if = "Option::is_none")]
     target_port: Option<i32>,
     /// The port on the swarm hosts.
-    #[serde(
-        rename = "PublishedPort",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "PublishedPort", skip_serializing_if = "Option::is_none")]
     published_port: Option<i32>,
     /// The mode in which port is published.  <p><br /></p>  - \"ingress\" makes the target port accessible on on every node,   regardless of whether there is a task for the service running on   that node or not. - \"host\" bypasses the routing mesh and publish the port directly on   the swarm node where that service is running.
-    #[serde(
-        rename = "PublishMode",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "PublishMode", skip_serializing_if = "Option::is_none")]
     publish_mode: Option<String>,
 }
 

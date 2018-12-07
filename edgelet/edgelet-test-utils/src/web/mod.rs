@@ -41,7 +41,8 @@ where
             .then(|connection| {
                 let connection = connection.unwrap();
                 Ok::<_, hyper::Error>(connection)
-            }).flatten()
+            })
+            .flatten()
     })
 }
 
@@ -63,7 +64,8 @@ where
             .then(|connection| {
                 let connection = connection.unwrap();
                 Ok::<_, hyper::Error>(connection)
-            }).flatten()
+            })
+            .flatten()
             .map_err(|e| {
                 io::Error::new(
                     io::ErrorKind::Other,

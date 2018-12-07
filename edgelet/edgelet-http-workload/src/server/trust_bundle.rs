@@ -43,7 +43,8 @@ where
             .get_trust_bundle()
             .context(ErrorKind::EncryptionOperation(
                 EncryptionOperation::GetTrustBundle,
-            )).map_err(Error::from)
+            ))
+            .map_err(Error::from)
             .and_then(|cert| -> Result<_, Error> {
                 let cert = cert.pem().context(ErrorKind::EncryptionOperation(
                     EncryptionOperation::GetTrustBundle,
@@ -51,7 +52,8 @@ where
                 let cert = str::from_utf8(cert.as_ref())
                     .context(ErrorKind::EncryptionOperation(
                         EncryptionOperation::GetTrustBundle,
-                    ))?.to_string();
+                    ))?
+                    .to_string();
                 let body = serde_json::to_string(&TrustBundleResponse::new(cert)).context(
                     ErrorKind::EncryptionOperation(EncryptionOperation::GetTrustBundle),
                 )?;
@@ -64,7 +66,8 @@ where
                         EncryptionOperation::GetTrustBundle,
                     ))?;
                 Ok(response)
-            }).or_else(|e| Ok(e.into_response()))
+            })
+            .or_else(|e| Ok(e.into_response()))
             .into_future();
 
         Box::new(response)
@@ -176,7 +179,8 @@ mod tests {
                 let trust_bundle: TrustBundleResponse = serde_json::from_slice(&b).unwrap();
                 assert_eq!("boo", trust_bundle.certificate().as_str());
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 }

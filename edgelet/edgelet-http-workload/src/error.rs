@@ -34,10 +34,7 @@ pub enum ErrorKind {
     #[fail(display = "The request parameter `{}` is malformed", _0)]
     MalformedRequestParameter(&'static str),
 
-    #[fail(
-        display = "The request is missing required parameter `{}`",
-        _0
-    )]
+    #[fail(display = "The request is missing required parameter `{}`", _0)]
     MissingRequiredParameter(&'static str),
 
     #[fail(display = "Module not found")]

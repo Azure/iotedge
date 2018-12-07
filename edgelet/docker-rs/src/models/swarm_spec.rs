@@ -21,29 +21,17 @@ pub struct SwarmSpec {
     /// User-defined key/value metadata.
     #[serde(rename = "Labels", skip_serializing_if = "Option::is_none")]
     labels: Option<::std::collections::HashMap<String, String>>,
-    #[serde(
-        rename = "Orchestration",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "Orchestration", skip_serializing_if = "Option::is_none")]
     orchestration: Option<::models::SwarmSpecOrchestration>,
     #[serde(rename = "Raft", skip_serializing_if = "Option::is_none")]
     raft: Option<::models::SwarmSpecRaft>,
-    #[serde(
-        rename = "Dispatcher",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "Dispatcher", skip_serializing_if = "Option::is_none")]
     dispatcher: Option<::models::SwarmSpecDispatcher>,
     #[serde(rename = "CAConfig", skip_serializing_if = "Option::is_none")]
     ca_config: Option<::models::SwarmSpecCaConfig>,
-    #[serde(
-        rename = "EncryptionConfig",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "EncryptionConfig", skip_serializing_if = "Option::is_none")]
     encryption_config: Option<::models::SwarmSpecEncryptionConfig>,
-    #[serde(
-        rename = "TaskDefaults",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "TaskDefaults", skip_serializing_if = "Option::is_none")]
     task_defaults: Option<::models::SwarmSpecTaskDefaults>,
 }
 

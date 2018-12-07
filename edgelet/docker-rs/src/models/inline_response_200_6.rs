@@ -14,10 +14,7 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InlineResponse2006 {
     /// Disk space reclaimed in bytes
-    #[serde(
-        rename = "SpaceReclaimed",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "SpaceReclaimed", skip_serializing_if = "Option::is_none")]
     space_reclaimed: Option<i64>,
 }
 

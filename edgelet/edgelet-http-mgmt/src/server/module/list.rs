@@ -57,7 +57,8 @@ where
                     .body(b.into())
                     .context(ErrorKind::RuntimeOperation(RuntimeOperation::ListModules))?;
                 Ok(response)
-            }).or_else(|e| Ok(e.into_response()));
+            })
+            .or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }
@@ -141,7 +142,8 @@ mod tests {
 
                 let config: TestConfig = serde_json::from_value(
                     serde_json::to_value(module.config().settings()).unwrap(),
-                ).unwrap();
+                )
+                .unwrap();
                 assert_eq!("microsoft/test-image", config.image());
 
                 assert_eq!("0", module.status().exit_status().unwrap().status_code());
@@ -159,7 +161,8 @@ mod tests {
                     module.status().runtime_status().description().unwrap()
                 );
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 
@@ -186,7 +189,8 @@ mod tests {
                     error.message()
                 );
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 
@@ -215,7 +219,8 @@ mod tests {
                     error.message()
                 );
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 }

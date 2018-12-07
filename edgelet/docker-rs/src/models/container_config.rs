@@ -19,66 +19,39 @@ pub struct ContainerConfig {
     #[serde(rename = "Hostname", skip_serializing_if = "Option::is_none")]
     hostname: Option<String>,
     /// The domain name to use for the container.
-    #[serde(
-        rename = "Domainname",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "Domainname", skip_serializing_if = "Option::is_none")]
     domainname: Option<String>,
     /// The user that commands are run as inside the container.
     #[serde(rename = "User", skip_serializing_if = "Option::is_none")]
     user: Option<String>,
     /// Whether to attach to `stdin`.
-    #[serde(
-        rename = "AttachStdin",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "AttachStdin", skip_serializing_if = "Option::is_none")]
     attach_stdin: Option<bool>,
     /// Whether to attach to `stdout`.
-    #[serde(
-        rename = "AttachStdout",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "AttachStdout", skip_serializing_if = "Option::is_none")]
     attach_stdout: Option<bool>,
     /// Whether to attach to `stderr`.
-    #[serde(
-        rename = "AttachStderr",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "AttachStderr", skip_serializing_if = "Option::is_none")]
     attach_stderr: Option<bool>,
     /// An object mapping ports to an empty object in the form:  `{\"<port>/<tcp|udp>\": {}}`
-    #[serde(
-        rename = "ExposedPorts",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "ExposedPorts", skip_serializing_if = "Option::is_none")]
     exposed_ports: Option<::std::collections::HashMap<String, Value>>,
     /// Attach standard streams to a TTY, including `stdin` if it is not closed.
     #[serde(rename = "Tty", skip_serializing_if = "Option::is_none")]
     tty: Option<bool>,
     /// Open `stdin`
-    #[serde(
-        rename = "OpenStdin",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "OpenStdin", skip_serializing_if = "Option::is_none")]
     open_stdin: Option<bool>,
     /// Close `stdin` after one attached client disconnects
-    #[serde(
-        rename = "StdinOnce",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "StdinOnce", skip_serializing_if = "Option::is_none")]
     stdin_once: Option<bool>,
     /// A list of environment variables to set inside the container in the form `[\"VAR=value\", ...]`. A variable without `=` is removed from the environment, rather than to have an empty value.
     #[serde(rename = "Env", skip_serializing_if = "Option::is_none")]
     env: Option<Vec<String>>,
-    #[serde(
-        rename = "Healthcheck",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "Healthcheck", skip_serializing_if = "Option::is_none")]
     healthcheck: Option<::models::HealthConfig>,
     /// Command is already escaped (Windows only)
-    #[serde(
-        rename = "ArgsEscaped",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "ArgsEscaped", skip_serializing_if = "Option::is_none")]
     args_escaped: Option<bool>,
     /// The name of the image to use when creating the container
     #[serde(rename = "Image", skip_serializing_if = "Option::is_none")]
@@ -86,22 +59,13 @@ pub struct ContainerConfig {
     #[serde(rename = "Volumes", skip_serializing_if = "Option::is_none")]
     volumes: Option<::models::ContainerConfigVolumes>,
     /// The working directory for commands to run in.
-    #[serde(
-        rename = "WorkingDir",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "WorkingDir", skip_serializing_if = "Option::is_none")]
     working_dir: Option<String>,
     /// Disable networking for the container.
-    #[serde(
-        rename = "NetworkDisabled",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "NetworkDisabled", skip_serializing_if = "Option::is_none")]
     network_disabled: Option<bool>,
     /// MAC address of the container.
-    #[serde(
-        rename = "MacAddress",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "MacAddress", skip_serializing_if = "Option::is_none")]
     mac_address: Option<String>,
     /// `ONBUILD` metadata that were defined in the image's `Dockerfile`.
     #[serde(rename = "OnBuild", skip_serializing_if = "Option::is_none")]
@@ -110,16 +74,10 @@ pub struct ContainerConfig {
     #[serde(rename = "Labels", skip_serializing_if = "Option::is_none")]
     labels: Option<::std::collections::HashMap<String, String>>,
     /// Signal to stop a container as a string or unsigned integer.
-    #[serde(
-        rename = "StopSignal",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "StopSignal", skip_serializing_if = "Option::is_none")]
     stop_signal: Option<String>,
     /// Timeout to stop a container in seconds.
-    #[serde(
-        rename = "StopTimeout",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "StopTimeout", skip_serializing_if = "Option::is_none")]
     stop_timeout: Option<i32>,
     /// Shell for when `RUN`, `CMD`, and `ENTRYPOINT` uses a shell.
     #[serde(rename = "Shell", skip_serializing_if = "Option::is_none")]

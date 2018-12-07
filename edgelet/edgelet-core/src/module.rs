@@ -493,11 +493,13 @@ mod tests {
         let name = "".to_string();
         match ModuleSpec::new(name.clone(), "docker".to_string(), 10_i32, HashMap::new()) {
             Ok(_) => panic!("Expected error"),
-            Err(err) => if let ErrorKind::InvalidModuleName(s) = err.kind() {
-                assert_eq!(s, &name);
-            } else {
-                panic!("Expected `InvalidModuleName` but got {:?}", err);
-            },
+            Err(err) => {
+                if let ErrorKind::InvalidModuleName(s) = err.kind() {
+                    assert_eq!(s, &name);
+                } else {
+                    panic!("Expected `InvalidModuleName` but got {:?}", err);
+                }
+            }
         }
     }
 
@@ -506,11 +508,13 @@ mod tests {
         let name = "    ".to_string();
         match ModuleSpec::new(name.clone(), "docker".to_string(), 10_i32, HashMap::new()) {
             Ok(_) => panic!("Expected error"),
-            Err(err) => if let ErrorKind::InvalidModuleName(s) = err.kind() {
-                assert_eq!(s, &name);
-            } else {
-                panic!("Expected `InvalidModuleName` but got {:?}", err);
-            },
+            Err(err) => {
+                if let ErrorKind::InvalidModuleName(s) = err.kind() {
+                    assert_eq!(s, &name);
+                } else {
+                    panic!("Expected `InvalidModuleName` but got {:?}", err);
+                }
+            }
         }
     }
 
@@ -519,11 +523,13 @@ mod tests {
         let type_ = "    ".to_string();
         match ModuleSpec::new("m1".to_string(), type_.clone(), 10_i32, HashMap::new()) {
             Ok(_) => panic!("Expected error"),
-            Err(err) => if let ErrorKind::InvalidModuleType(s) = err.kind() {
-                assert_eq!(s, &type_);
-            } else {
-                panic!("Expected `InvalidModuleType` but got {:?}", err);
-            },
+            Err(err) => {
+                if let ErrorKind::InvalidModuleType(s) = err.kind() {
+                    assert_eq!(s, &type_);
+                } else {
+                    panic!("Expected `InvalidModuleType` but got {:?}", err);
+                }
+            }
         }
     }
 
@@ -532,11 +538,13 @@ mod tests {
         let type_ = "    ".to_string();
         match ModuleSpec::new("m1".to_string(), type_.clone(), 10_i32, HashMap::new()) {
             Ok(_) => panic!("Expected error"),
-            Err(err) => if let ErrorKind::InvalidModuleType(s) = err.kind() {
-                assert_eq!(s, &type_);
-            } else {
-                panic!("Expected `InvalidModuleType` but got {:?}", err);
-            },
+            Err(err) => {
+                if let ErrorKind::InvalidModuleType(s) = err.kind() {
+                    assert_eq!(s, &type_);
+                } else {
+                    panic!("Expected `InvalidModuleType` but got {:?}", err);
+                }
+            }
         }
     }
 

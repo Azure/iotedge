@@ -358,7 +358,8 @@ where
         IOTEDGED_COMMONNAME.to_string(),
         CertificateType::Ca,
         IOTEDGED_CA_ALIAS.to_string(),
-    ).with_issuer(CertificateIssuer::DeviceCa);
+    )
+    .with_issuer(CertificateIssuer::DeviceCa);
 
     crypto
         .create_certificate(&edgelet_ca_props)
@@ -515,7 +516,8 @@ where
         Some(token_source),
         IOTHUB_API_VERSION.to_string(),
         Url::parse(&hostname).context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?,
-    ).context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?;
+    )
+    .context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?;
     let device_client = DeviceClient::new(http_client, device_id.clone())
         .context(ErrorKind::Initialize(InitializeErrorReason::DeviceClient))?;
     let id_man = HubIdentityManager::new(key_store.clone(), device_client);
@@ -589,14 +591,16 @@ fn manual_provision(
             Error::from(err.context(ErrorKind::Initialize(
                 InitializeErrorReason::ManualProvisioningClient,
             )))
-        }).and_then(move |prov_result| {
+        })
+        .and_then(move |prov_result| {
             memory_hsm
                 .get(&KeyIdentity::Device, "primary")
                 .map_err(|err| {
                     Error::from(err.context(ErrorKind::Initialize(
                         InitializeErrorReason::ManualProvisioningClient,
                     )))
-                }).and_then(|k| {
+                })
+                .and_then(|k| {
                     let derived_key_store = DerivedKeyStore::new(k.clone());
                     Ok((derived_key_store, prov_result, k))
                 })
@@ -632,7 +636,8 @@ where
         "2017-11-15".to_string(),
         ek_result,
         srk_result,
-    ).context(ErrorKind::Initialize(
+    )
+    .context(ErrorKind::Initialize(
         InitializeErrorReason::DpsProvisioningClient,
     ))?;
     let tpm_hsm = TpmKeyStore::from_hsm(tpm).context(ErrorKind::Initialize(
@@ -645,7 +650,8 @@ where
             Error::from(err.context(ErrorKind::Initialize(
                 InitializeErrorReason::DpsProvisioningClient,
             )))
-        }).and_then(|prov_result| {
+        })
+        .and_then(|prov_result| {
             if prov_result.reconfigure() {
                 info!("Successful DPS provisioning. This will trigger reconfiguration of modules.");
                 // Each time DPS provisions, it gets back a new device key. This results in obsolete
@@ -662,7 +668,8 @@ where
             } else {
                 Either::B(future::ok((prov_result, runtime)))
             }
-        }).and_then(move |(prov_result, runtime)| {
+        })
+        .and_then(move |(prov_result, runtime)| {
             let k = tpm_hsm
                 .get(&KeyIdentity::Device, "primary")
                 .context(ErrorKind::Initialize(
@@ -694,7 +701,8 @@ where
         spec.type_().to_string(),
         spec.config().clone(),
         env,
-    ).context(ErrorKind::Initialize(InitializeErrorReason::EdgeRuntime))?;
+    )
+    .context(ErrorKind::Initialize(InitializeErrorReason::EdgeRuntime))?;
 
     // volume mount management and workload URIs
     vol_mount_uri(
@@ -823,10 +831,12 @@ where
                     err.context(ErrorKind::Initialize(
                         InitializeErrorReason::ManagementService,
                     ))
-                })?.run_until(shutdown.map_err(|_| ()))
+                })?
+                .run_until(shutdown.map_err(|_| ()))
                 .map_err(|err| Error::from(err.context(ErrorKind::ManagementService)));
             Ok(run)
-        }).flatten()
+        })
+        .flatten()
 }
 
 fn start_workload<K, C, W>(
@@ -867,11 +877,13 @@ where
                     err.context(ErrorKind::Initialize(
                         InitializeErrorReason::WorkloadService,
                     ))
-                })?.run_until(shutdown.map_err(|_| ()))
+                })?
+                .run_until(shutdown.map_err(|_| ()))
                 .map_err(|err| Error::from(err.context(ErrorKind::WorkloadService)));
             info!("Listening on {} with 1 thread for workload API.", url);
             Ok(run)
-        }).flatten()
+        })
+        .flatten()
 }
 
 #[cfg(test)]
@@ -973,7 +985,8 @@ mod tests {
             &runtime,
             &crypto,
             &mut tokio_runtime,
-        ).unwrap();
+        )
+        .unwrap();
         let expected = serde_json::to_string(&settings).unwrap();
         let expected_sha = Sha256::digest_str(&expected);
         let expected_base64 = base64::encode(&expected_sha);
@@ -1004,7 +1017,8 @@ mod tests {
             &runtime,
             &crypto,
             &mut tokio_runtime,
-        ).unwrap();
+        )
+        .unwrap();
         let mut written = String::new();
         File::open(tmp_dir.path().join("settings_state"))
             .unwrap()
@@ -1020,7 +1034,8 @@ mod tests {
             &runtime,
             &crypto,
             &mut tokio_runtime,
-        ).unwrap();
+        )
+        .unwrap();
         let expected = serde_json::to_string(&settings1).unwrap();
         let expected_sha = Sha256::digest_str(&expected);
         let expected_base64 = base64::encode(&expected_sha);
@@ -1048,7 +1063,11 @@ mod tests {
             .or_else(|_| {
                 env::set_var("https_proxy", "abc");
                 env::var("https_proxy")
-            }).unwrap();
+            })
+            .unwrap()
+            .parse::<Uri>()
+            .unwrap()
+            .to_string();
         // ensure "HTTPS_PROXY" is NOT set (except on Windows, where env vars
         // are case-insensitive)
         #[cfg(unix)]
@@ -1056,7 +1075,8 @@ mod tests {
             .and_then(|var| {
                 env::remove_var("HTTPS_PROXY");
                 Ok(var)
-            }).ok();
+            })
+            .ok();
 
         assert_eq!(get_proxy_uri().unwrap().unwrap().to_string(), proxy_val);
 

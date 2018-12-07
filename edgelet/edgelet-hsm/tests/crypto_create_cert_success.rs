@@ -28,7 +28,8 @@ fn crypto_create_cert_success() {
         "test-iotedge-cn".to_string(),
         CertificateType::Ca,
         IOTEDGED_CA_ALIAS.to_string(),
-    ).with_issuer(CertificateIssuer::DeviceCa);
+    )
+    .with_issuer(CertificateIssuer::DeviceCa);
 
     // act create the default issuing CA cert
     let workload_ca_cert = crypto.create_certificate(&edgelet_ca_props).unwrap();
@@ -48,7 +49,8 @@ fn crypto_create_cert_success() {
         "Common Name".to_string(),
         CertificateType::Ca,
         "Alias".to_string(),
-    ).with_san_entries(san_entries);
+    )
+    .with_san_entries(san_entries);
 
     let cert_info = crypto.create_certificate(&props).unwrap();
 

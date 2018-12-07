@@ -55,7 +55,8 @@ where
                             | LogChunk::Unknown(b) => io::stdout().write(&b)?,
                         };
                         Ok(())
-                    }).map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)))
+                    })
+                    .map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)))
             });
         Box::new(result)
     }
@@ -217,7 +218,8 @@ impl<S, C> AsyncRead for Chunked<S, C>
 where
     C: AsRef<[u8]>,
     S: Stream<Item = C, Error = io::Error>,
-{}
+{
+}
 
 #[cfg(test)]
 mod tests {

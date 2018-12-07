@@ -25,8 +25,7 @@ pub enum ErrorKind {
 
     #[fail(
         display = "The number of file descriptors {} does not match the number of file descriptor names {}.",
-        _0,
-        _1
+        _0, _1
     )]
     NumFdsDoesNotMatchNumFdNames(usize, usize),
 
@@ -35,15 +34,11 @@ pub enum ErrorKind {
 
     #[fail(
         display = "Number of file descriptors {} from environment variable {} is not a valid value.",
-        _1,
-        _0
+        _1, _0
     )]
     InvalidNumFds(String, Fd),
 
-    #[fail(
-        display = "Environment variable {} is set to an invalid value.",
-        _0
-    )]
+    #[fail(display = "Environment variable {} is set to an invalid value.", _0)]
     InvalidVar(String),
 
     #[fail(
@@ -58,8 +53,7 @@ pub enum ErrorKind {
     #[cfg(target_os = "linux")]
     #[fail(
         display = "Based on the environment variable {}, other environment variables meant for a different process (PID {}).",
-        _0,
-        _1
+        _0, _1
     )]
     WrongProcess(String, Pid),
 }
