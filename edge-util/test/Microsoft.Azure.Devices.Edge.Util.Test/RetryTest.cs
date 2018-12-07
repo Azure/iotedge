@@ -5,74 +5,99 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
     using System;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
+    using System.Threading;
     using System.Threading.Tasks;
 
     [Unit]
     public class RetryTest
     {
         [Fact]
-        public async Task BasicTest()
+        public async Task RetryRetriesFuncUntilValidResultIsReturned()
         {
             int counter = 0;
-            Func<Task<Option<int>>> func = () => Task.FromResult((counter++ > 2) ? Option.Some(counter) : Option.None<int>());
-            Func<Option<int>, bool> isValid = (option) => option.HasValue;
-            Func<Exception, bool> continueOnException = (ex) => true;
+            Func<Task<int>> func = () => Task.FromResult(++counter);
+            Func<int, bool> isValid = (val) => val > 3;
             TimeSpan retryInterval = TimeSpan.FromMilliseconds(2);
-            int retryCount = 5;
 
-            Option<int> returnedValue = await Retry.Do(func, isValid, continueOnException, retryInterval, retryCount);
-            Assert.True(returnedValue.HasValue);
-            Assert.Equal(4, returnedValue.OrDefault());
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5)))
+            {
+                int returnedValue = await Retry.Do(func, isValid, null, retryInterval, cts.Token);
+                Assert.Equal(4, returnedValue);
+            }
         }
 
         [Fact]
-        public async Task BasicTestWithException()
+        public async Task RetryThrowsIfFuncNeverReturnsValidResult()
+        {
+            Func<Task<string>> func = () => Task.FromResult(String.Empty);
+            Func<string, bool> isValid = (val) => val == "Foo";
+            TimeSpan retryInterval = TimeSpan.FromMilliseconds(10);
+
+            using (var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(200)))
+            {
+                await Assert.ThrowsAsync<TaskCanceledException>(
+                    () => Retry.Do(func, isValid, null, retryInterval, cts.Token)
+                );
+            }
+        }
+
+        [Fact]
+        public async Task RetryWithoutValidFuncReturns1stResult()
+        {
+            int counter = 0;
+            Func<Task<string>> func = () => { ++counter; return Task.FromResult<string>("Foo"); };
+            TimeSpan retryInterval = TimeSpan.FromMilliseconds(2);
+
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5)))
+            {
+                string returnedValue = await Retry.Do(func, null, null, retryInterval, cts.Token);
+                Assert.Equal("Foo", returnedValue);
+                Assert.Equal(1, counter);
+            }
+        }
+
+        [Fact]
+        public async Task RetryWithoutExceptionFuncThrowsIfFuncThrows()
+        {
+            Func<Task<string>> func = () => throw new InvalidOperationException();
+            TimeSpan retryInterval = TimeSpan.FromMilliseconds(2);
+
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5)))
+            {
+                await Assert.ThrowsAsync<InvalidOperationException>(
+                    () => Retry.Do(func, null, null, retryInterval, cts.Token)
+                );
+            }
+        }
+
+        [Fact]
+        public async Task RetryContinuesIfExceptionFuncReturnsTrue()
         {
             int counter = 0;
             Func<Task<string>> func = () => Task.FromResult((counter++ > 3) ? "Foo" : throw new InvalidOperationException());
-
-            TimeSpan retryInterval = TimeSpan.FromMilliseconds(2);
-            int retryCount = 5;
-
-            string returnedValue = await Retry.Do(func, null, null, retryInterval, retryCount);
-            Assert.NotNull(returnedValue);
-            Assert.Equal("Foo", returnedValue);
-        }
-
-        [Fact]
-        public async Task ValueNotFoundTest()
-        {
-            int counter = 0;
-            Func<Task<string>> func = () => Task.FromResult((counter++ > 5) ? "Foo" : null);
-            Func<string, bool> isValid = (val) => val != null;
             Func<Exception, bool> continueOnException = (ex) => true;
             TimeSpan retryInterval = TimeSpan.FromMilliseconds(2);
-            int retryCount = 5;
 
-            string returnedValue = await Retry.Do(func, isValid, continueOnException, retryInterval, retryCount);
-            Assert.Null(returnedValue);            
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5)))
+            {
+                string returnedValue = await Retry.Do(func, null, continueOnException, retryInterval, cts.Token);
+                Assert.Equal("Foo", returnedValue);
+            }
         }
 
         [Fact]
-        public async Task ExceptionTest()
+        public async Task RetryThrowsIfExceptionFuncReturnsFalse()
         {
-            int counter = 0;
-            Func<Task<string>> func = () => { counter++; throw new InvalidOperationException(); };
+            Func<Task<string>> func = () => throw new InvalidOperationException();
+            Func<Exception, bool> continueOnException = (ex) => false;
             TimeSpan retryInterval = TimeSpan.FromMilliseconds(2);
-            int retryCount = 5;
 
-            Exception caughtException = null;
-            try
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5)))
             {
-                await Retry.Do(func, null, null, retryInterval, retryCount);
+                await Assert.ThrowsAsync<InvalidOperationException>(
+                    () => Retry.Do(func, null, continueOnException, retryInterval, cts.Token)
+                );
             }
-            catch(InvalidOperationException ex)
-            {
-                caughtException = ex;
-            }
-
-            Assert.NotNull(caughtException);
-            Assert.Equal(5, counter);
         }
     }
 }
