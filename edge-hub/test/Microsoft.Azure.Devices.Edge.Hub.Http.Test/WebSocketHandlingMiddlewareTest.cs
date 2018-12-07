@@ -5,8 +5,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
     using System.Collections.Generic;
     using System.Net;
     using System.Net.WebSockets;
+    using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Http;
+    using Microsoft.AspNetCore.Http.Features;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Http.Middleware;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -47,16 +49,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
         public async Task HandlesAWebSocketRequest()
         {
             HttpContext httpContext = this._ContextWithRequestedSubprotocols("abc");
-            
+
             var listener = Mock.Of<IWebSocketListener>(wsl => wsl.SubProtocol == "abc");
-            
+
             var registry = new WebSocketListenerRegistry();
             registry.TryRegister(listener);
 
             var middleware = new WebSocketHandlingMiddleware(this._ThrowingNextDelegate(), registry);
             await middleware.Invoke(httpContext);
 
-            Mock.Get(listener).Verify(r => r.ProcessWebSocketRequestAsync(It.IsAny<WebSocket>(), It.IsAny<Option<EndPoint>>(), It.IsAny<EndPoint>(), It.IsAny<string>()));
+            Mock.Get(listener).Verify(r => r.ProcessWebSocketRequestAsync(It.IsAny<WebSocket>(), It.IsAny<Option<EndPoint>>(), It.IsAny<EndPoint>(), It.IsAny<string>(), It.IsAny<Option<X509Certificate2>>(), It.IsAny<Option<IList<X509Certificate2>>>()));
         }
 
         [Fact]
@@ -115,11 +117,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
         HttpContext _WebSocketRequestContext()
         {
             return Mock.Of<HttpContext>(ctx =>
-                ctx.WebSockets == Mock.Of<WebSocketManager>(wsm =>
-                    wsm.IsWebSocketRequest) &&
-                ctx.Response == Mock.Of<HttpResponse>() &&
-                ctx.Connection == Mock.Of<ConnectionInfo>(conn => conn.LocalIpAddress == new IPAddress(123) && conn.LocalPort == It.IsAny<int>()
-                    && conn.RemoteIpAddress == new IPAddress(123) && conn.RemotePort == It.IsAny<int>()));
+                ctx.WebSockets == Mock.Of<WebSocketManager>(wsm => wsm.IsWebSocketRequest == true)
+                && ctx.Response == Mock.Of<HttpResponse>()
+                && ctx.Features == Mock.Of<IFeatureCollection>(fc =>
+                                                               fc.Get<ITlsConnectionFeatureExtended>() == Mock.Of<ITlsConnectionFeatureExtended>(
+                                                                   f => f.ChainElements == new List<X509Certificate2>()))
+                && ctx.Connection == Mock.Of<ConnectionInfo>(conn => conn.LocalIpAddress == new IPAddress(123)
+                                                             && conn.LocalPort == It.IsAny<int>()
+                                                             && conn.RemoteIpAddress == new IPAddress(123)
+                                                             && conn.RemotePort == It.IsAny<int>()
+                                                             && conn.ClientCertificate == new X509Certificate2()));
         }
 
         HttpContext _NonWebSocketRequestContext()
@@ -132,12 +139,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
         HttpContext _ContextWithRequestedSubprotocols(params string[] subprotocols)
         {
             return Mock.Of<HttpContext>(ctx =>
-                ctx.WebSockets == Mock.Of<WebSocketManager>(wsm =>
-                    wsm.WebSocketRequestedProtocols == subprotocols && wsm.IsWebSocketRequest
-                    && wsm.AcceptWebSocketAsync(It.IsAny<string>()) == Task.FromResult(Mock.Of<WebSocket>())) &&
-                ctx.Response == Mock.Of<HttpResponse>() &&
-                ctx.Connection == Mock.Of<ConnectionInfo>(conn => conn.LocalIpAddress == new IPAddress(123) && conn.LocalPort == It.IsAny<int>()
-                                                           && conn.RemoteIpAddress == new IPAddress(123) && conn.RemotePort == It.IsAny<int>()));
+                ctx.WebSockets == Mock.Of<WebSocketManager>(
+                    wsm =>
+                        wsm.WebSocketRequestedProtocols == subprotocols
+                        && wsm.IsWebSocketRequest
+                        && wsm.AcceptWebSocketAsync(It.IsAny<string>()) == Task.FromResult(Mock.Of<WebSocket>())
+                    )
+                && ctx.Response == Mock.Of<HttpResponse>()
+                && ctx.Features == Mock.Of<IFeatureCollection>(fc =>
+                                                               fc.Get<ITlsConnectionFeatureExtended>() == Mock.Of<ITlsConnectionFeatureExtended>(
+                                                                   f => f.ChainElements == new List<X509Certificate2>()))
+                && ctx.Connection == Mock.Of<ConnectionInfo>(conn => conn.LocalIpAddress == new IPAddress(123)
+                                                             && conn.LocalPort == It.IsAny<int>()
+                                                             && conn.RemoteIpAddress == new IPAddress(123) && conn.RemotePort == It.IsAny<int>()
+                                                             && conn.ClientCertificate == new X509Certificate2()));
         }
 
         RequestDelegate _ThrowingNextDelegate()
@@ -161,9 +176,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var registry = new Mock<IWebSocketListenerRegistry>();
             var listener = new Mock<IWebSocketListener>();
 
-            listener.Setup(wsl => wsl.ProcessWebSocketRequestAsync(It.IsAny<WebSocket>(), It.IsAny<Option<EndPoint>>(), It.IsAny<EndPoint>(), It.IsAny<string>()))
+            listener.Setup(wsl => wsl.ProcessWebSocketRequestAsync(It.IsAny<WebSocket>(),
+                                                                   It.IsAny<Option<EndPoint>>(),
+                                                                   It.IsAny<EndPoint>(),
+                                                                   It.IsAny<string>(),
+                                                                   It.IsAny<Option<X509Certificate2>>(),
+                                                                   It.IsAny<Option<IList<X509Certificate2>>>()))
                 .Returns(Task.CompletedTask)
-                .Callback<WebSocket, Option<EndPoint>, EndPoint, string>((ws, ep1, ep2, id) => correlationIds.Add(id));
+                .Callback<WebSocket, Option<EndPoint>, EndPoint, string, Option<X509Certificate2>, Option<IList<X509Certificate2>>>((ws, ep1, ep2, id, c, cc) => correlationIds.Add(id));
             registry
                 .Setup(wslr => wslr.GetListener(It.IsAny<IList<string>>()))
                 .Returns(Option.Some(listener.Object));

@@ -2,9 +2,11 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
 {
     using System;
+    using System.Collections.Generic;
     using System.Net;
     using System.Net.WebSockets;
     using System.Threading.Tasks;
+    using System.Security.Cryptography.X509Certificates;
     using AspNetCore.Http;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -66,7 +68,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
                 localEndPoint = Option.Some<EndPoint>(new IPEndPoint(context.Connection.LocalIpAddress, context.Connection.LocalPort));
             }
             var remoteEndPoint = new IPEndPoint(context.Connection.RemoteIpAddress, context.Connection.RemotePort);
-            await listener.ProcessWebSocketRequestAsync(webSocket, localEndPoint, remoteEndPoint, correlationId);
+            var cert = await context.Connection.GetClientCertificateAsync();
+            Option<X509Certificate2> clientCertificate = Option.Maybe(cert);
+
+            IList<X509Certificate2> certChain = null;
+            if (cert != null)
+            {
+                certChain = context.GetClientCertificateChain();
+            }
+            Option<IList<X509Certificate2>> clientCertificateChain = (certChain == null) ? Option.None<IList<X509Certificate2>>() :
+                                                                                           Option.Some(certChain);
+
+            await listener.ProcessWebSocketRequestAsync(webSocket, localEndPoint, remoteEndPoint, correlationId, clientCertificate, clientCertificateChain);
 
             Events.WebSocketRequestCompleted(context.TraceIdentifier, correlationId);
         }
@@ -84,33 +97,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
                 SubProtocolSelected
             }
 
-            public static void WebSocketRequestReceived(string traceId, string correlationId)
-            {
+            public static void WebSocketRequestReceived(string traceId, string correlationId) =>
                 Log.LogDebug((int)EventIds.RequestReceived, Invariant($"Request {traceId} received. CorrelationId {correlationId}"));
-            }
 
-            public static void WebSocketSubProtocolSelected(string traceId, string subProtocol, string correlationId)
-            {
+            public static void WebSocketSubProtocolSelected(string traceId, string subProtocol, string correlationId) =>
                 Log.LogDebug((int)EventIds.SubProtocolSelected, Invariant($"Request {traceId} SubProtocol: {subProtocol} CorrelationId: {correlationId}"));
-            }
 
-            public static void WebSocketRequestCompleted(string traceId, string correlationId)
-            {
+            public static void WebSocketRequestCompleted(string traceId, string correlationId) =>
                 Log.LogDebug((int)EventIds.RequestCompleted, Invariant($"Request {traceId} completed. CorrelationId {correlationId}"));
-            }
 
-            public static void WebSocketRequestNoListener(string traceId, string correlationId)
-            {
+            public static void WebSocketRequestNoListener(string traceId, string correlationId) =>
                 Log.LogDebug((int)EventIds.BadRequest, Invariant($"No listener found for request {traceId}. CorrelationId {correlationId}"));
-            }
         }
     }
 
     public static class WebSocketHandlingMiddlewareExtensions
     {
-        public static IApplicationBuilder UseWebSocketHandlingMiddleware(this IApplicationBuilder builder, IWebSocketListenerRegistry webSocketListenerRegistry)
-        {
-            return builder.UseMiddleware<WebSocketHandlingMiddleware>(webSocketListenerRegistry);
-        }
+        public static IApplicationBuilder UseWebSocketHandlingMiddleware(this IApplicationBuilder builder, IWebSocketListenerRegistry webSocketListenerRegistry) =>
+            builder.UseMiddleware<WebSocketHandlingMiddleware>(webSocketListenerRegistry);
     }
 }
