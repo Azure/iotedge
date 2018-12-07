@@ -19,10 +19,7 @@ pub struct AuthConfig {
     password: Option<String>,
     #[serde(rename = "email", skip_serializing_if = "Option::is_none")]
     email: Option<String>,
-    #[serde(
-        rename = "serveraddress",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "serveraddress", skip_serializing_if = "Option::is_none")]
     serveraddress: Option<String>,
 }
 

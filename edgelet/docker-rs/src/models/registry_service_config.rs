@@ -33,10 +33,7 @@ pub struct RegistryServiceConfig {
         skip_serializing_if = "Option::is_none"
     )]
     insecure_registry_cid_rs: Option<Vec<String>>,
-    #[serde(
-        rename = "IndexConfigs",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "IndexConfigs", skip_serializing_if = "Option::is_none")]
     index_configs: Option<::std::collections::HashMap<String, ::models::IndexInfo>>,
     /// List of registry URLs that act as a mirror for the official (`docker.io`) registry.
     #[serde(rename = "Mirrors", skip_serializing_if = "Option::is_none")]

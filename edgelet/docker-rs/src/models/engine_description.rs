@@ -15,10 +15,7 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct EngineDescription {
-    #[serde(
-        rename = "EngineVersion",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "EngineVersion", skip_serializing_if = "Option::is_none")]
     engine_version: Option<String>,
     #[serde(rename = "Labels", skip_serializing_if = "Option::is_none")]
     labels: Option<::std::collections::HashMap<String, String>>,

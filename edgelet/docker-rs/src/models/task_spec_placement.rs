@@ -14,22 +14,13 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TaskSpecPlacement {
     /// An array of constraints.
-    #[serde(
-        rename = "Constraints",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "Constraints", skip_serializing_if = "Option::is_none")]
     constraints: Option<Vec<String>>,
     /// Preferences provide a way to make the scheduler aware of factors such as topology. They are provided in order from highest to lowest precedence.
-    #[serde(
-        rename = "Preferences",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "Preferences", skip_serializing_if = "Option::is_none")]
     preferences: Option<Vec<::models::TaskSpecPlacementPreferences>>,
     /// Platforms stores all the platforms that the service's image can run on. This field is used in the platform filter for scheduling. If empty, then the platform filter is off, meaning there are no scheduling restrictions.
-    #[serde(
-        rename = "Platforms",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "Platforms", skip_serializing_if = "Option::is_none")]
     platforms: Option<Vec<::models::Platform>>,
 }
 

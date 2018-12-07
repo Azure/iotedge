@@ -47,7 +47,8 @@ where
             .map(|name| {
                 let name = name.to_string();
                 read_request(name.clone(), req).map(|spec| (spec, name))
-            }).into_future()
+            })
+            .into_future()
             .flatten()
             .and_then(move |(spec, name)| {
                 let mut rid = id_manager.lock().unwrap();
@@ -56,7 +57,8 @@ where
                         IdentityOperation::UpdateIdentity(name),
                     )))
                 })
-            }).and_then(|id| Ok(write_response(&id)))
+            })
+            .and_then(|id| Ok(write_response(&id)))
             .or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
@@ -78,7 +80,8 @@ where
     serde_json::to_string(&identity)
         .with_context(|_| {
             ErrorKind::IdentityOperation(IdentityOperation::UpdateIdentity(module_id.clone()))
-        }).map_err(Error::from)
+        })
+        .map_err(Error::from)
         .and_then(|b| {
             Ok(Response::builder()
                 .status(StatusCode::OK)
@@ -88,7 +91,8 @@ where
                 .context(ErrorKind::IdentityOperation(
                     IdentityOperation::UpdateIdentity(module_id),
                 ))?)
-        }).unwrap_or_else(|e| e.into_response())
+        })
+        .unwrap_or_else(|e| e.into_response())
 }
 
 fn read_request(
@@ -164,7 +168,8 @@ mod tests {
                 assert_eq!(AuthType::Sas, identity.auth_type());
 
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 
@@ -196,7 +201,8 @@ mod tests {
                     error.message()
                 );
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 

@@ -21,30 +21,18 @@ pub struct ServiceSpec {
     /// User-defined key/value metadata.
     #[serde(rename = "Labels", skip_serializing_if = "Option::is_none")]
     labels: Option<::std::collections::HashMap<String, String>>,
-    #[serde(
-        rename = "TaskTemplate",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "TaskTemplate", skip_serializing_if = "Option::is_none")]
     task_template: Option<::models::TaskSpec>,
     #[serde(rename = "Mode", skip_serializing_if = "Option::is_none")]
     mode: Option<::models::ServiceSpecMode>,
-    #[serde(
-        rename = "UpdateConfig",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "UpdateConfig", skip_serializing_if = "Option::is_none")]
     update_config: Option<::models::ServiceSpecUpdateConfig>,
-    #[serde(
-        rename = "RollbackConfig",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "RollbackConfig", skip_serializing_if = "Option::is_none")]
     rollback_config: Option<::models::ServiceSpecRollbackConfig>,
     /// Array of network names or IDs to attach the service to.
     #[serde(rename = "Networks", skip_serializing_if = "Option::is_none")]
     networks: Option<Vec<::models::TaskSpecNetworks>>,
-    #[serde(
-        rename = "EndpointSpec",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "EndpointSpec", skip_serializing_if = "Option::is_none")]
     endpoint_spec: Option<::models::EndpointSpec>,
 }
 

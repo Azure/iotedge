@@ -128,7 +128,8 @@ mod tests {
             "common_name".to_string(),
             CertificateType::Client,
             "alias".to_string(),
-        ).with_certificate_type(CertificateType::Ca)
+        )
+        .with_certificate_type(CertificateType::Ca)
         .with_common_name("bafflegab".to_string())
         .with_validity_in_secs(240)
         .with_alias("Andrew Johnson".to_string())

@@ -85,7 +85,8 @@ where
                     None,
                     Some(module),
                     add_if_match,
-                ).then(|module| {
+                )
+                .then(|module| {
                     let module =
                         module.with_context(|_| ErrorKind::UpsertModule(module_id.clone()))?;
                     let module = module.ok_or_else(|| {
@@ -116,7 +117,8 @@ where
                     None,
                     None,
                     false,
-                ).then(|module| match module {
+                )
+                .then(|module| match module {
                     Ok(Some(module)) => Ok(module),
 
                     Ok(None) => Err(Error::from(ErrorKind::GetModuleWithReason(
@@ -150,7 +152,8 @@ where
                 None,
                 None,
                 false,
-            ).map_err(|err| Error::from(err.context(ErrorKind::ListModules)))
+            )
+            .map_err(|err| Error::from(err.context(ErrorKind::ListModules)))
             .and_then(|modules| {
                 modules.ok_or_else(|| {
                     Error::from(ErrorKind::ListModulesWithReason(
@@ -175,7 +178,8 @@ where
                     None,
                     None,
                     true,
-                ).map_err(|err| Error::from(err.context(ErrorKind::DeleteModule)))
+                )
+                .map_err(|err| Error::from(err.context(ErrorKind::DeleteModule)))
                 .and_then(|_| Ok(()));
 
             Either::A(res)
@@ -234,12 +238,15 @@ mod tests {
             Some(NullTokenSource),
             "2018-04-11".to_string(),
             Url::parse("http://localhost").unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
         match DeviceClient::new(client, "".to_string()) {
             Ok(_) => panic!("Excepted err got success"),
-            Err(err) => if let ErrorKind::DeleteModule = err.kind() {
-                panic!("Wrong error kind. Expected `Http` found {:?}", err);
-            },
+            Err(err) => {
+                if let ErrorKind::DeleteModule = err.kind() {
+                    panic!("Wrong error kind. Expected `Http` found {:?}", err);
+                }
+            }
         };
     }
 
@@ -251,12 +258,15 @@ mod tests {
             Some(NullTokenSource),
             "2018-04-11".to_string(),
             Url::parse("http://localhost").unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
         match DeviceClient::new(client, "       ".to_string()) {
             Ok(_) => panic!("Excepted err got success"),
-            Err(err) => if let ErrorKind::DeleteModule = err.kind() {
-                panic!("Wrong error kind. Expected `Http` found {:?}", err);
-            },
+            Err(err) => {
+                if let ErrorKind::DeleteModule = err.kind() {
+                    panic!("Wrong error kind. Expected `Http` found {:?}", err);
+                }
+            }
         };
     }
 
@@ -268,7 +278,8 @@ mod tests {
             Some(NullTokenSource),
             "2018-04-11".to_string(),
             Url::parse("http://localhost").unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
         let device_client = DeviceClient::new(client, "d1".to_string()).unwrap();
         let name = "";
 
@@ -296,7 +307,8 @@ mod tests {
             Some(NullTokenSource),
             "2018-04-11".to_string(),
             Url::parse("http://localhost").unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
         let device_client = DeviceClient::new(client, "d1".to_string()).unwrap();
         let name = "     ";
 
@@ -366,7 +378,8 @@ mod tests {
                 Some(auth),
                 Some(&"iotedge".to_string()),
                 false,
-            ).then(|result| {
+            )
+            .then(|result| {
                 assert_eq!(expected_response, result.unwrap());
                 Ok::<_, Error>(())
             });
@@ -427,7 +440,8 @@ mod tests {
                 Some(auth),
                 Some(&"iotedge".to_string()),
                 true,
-            ).then(|result| {
+            )
+            .then(|result| {
                 assert_eq!(expected_response, result.unwrap());
                 Ok::<_, Error>(())
             });
@@ -446,7 +460,8 @@ mod tests {
             Some(NullTokenSource),
             "2018-04-11".to_string(),
             Url::parse("http://localhost").unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
         let device_client = DeviceClient::new(client, "d1".to_string()).unwrap();
         let name = "";
 
@@ -472,7 +487,8 @@ mod tests {
             Some(NullTokenSource),
             "2018-04-11".to_string(),
             Url::parse("http://localhost").unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
         let device_client = DeviceClient::new(client, "d1".to_string()).unwrap();
         let name = "     ";
 

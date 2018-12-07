@@ -15,15 +15,9 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TaskSpecContainerSpecPrivileges {
-    #[serde(
-        rename = "CredentialSpec",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "CredentialSpec", skip_serializing_if = "Option::is_none")]
     credential_spec: Option<::models::TaskSpecContainerSpecPrivilegesCredentialSpec>,
-    #[serde(
-        rename = "SELinuxContext",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "SELinuxContext", skip_serializing_if = "Option::is_none")]
     se_linux_context: Option<::models::TaskSpecContainerSpecPrivilegesSeLinuxContext>,
 }
 

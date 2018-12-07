@@ -101,7 +101,8 @@ mod tests {
                 "opt1": "val1",
                 "opt2": "val2"
             }
-		}).to_string();
+        })
+        .to_string();
 
         let container: Container = serde_json::from_str(&container_json).unwrap();
         assert_eq!(&container.options.opt1, "val1");
@@ -115,7 +116,8 @@ mod tests {
                 "opt1": "val1",
                 "opt2": "val2"
             }).to_string()
-		}).to_string();
+        })
+        .to_string();
 
         let container: Container = serde_json::from_str(&container_json).unwrap();
         assert_eq!(&container.options.opt1, "val1");
@@ -127,7 +129,8 @@ mod tests {
     fn deser_from_bad_str_fails() {
         let container_json = json!({
             "options": "not really json you know"
-		}).to_string();
+        })
+        .to_string();
 
         let _container: Container = serde_json::from_str(&container_json).unwrap();
     }
