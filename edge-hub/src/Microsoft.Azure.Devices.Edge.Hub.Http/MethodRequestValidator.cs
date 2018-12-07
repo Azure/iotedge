@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Http
 {
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
         static readonly TimeSpan DeviceMethodMinResponseTimeout = TimeSpan.FromSeconds(5);
         static readonly TimeSpan DeviceMethodMaxDispatchTimeout = TimeSpan.FromMinutes(5);
         const int DeviceMethodNameMaxLength = 100;
-        const int PayloadMaxSizeBytes = 8 * 1024; // 8kb
+        const int PayloadMaxSizeBytes = 128 * 1024; // 8kb
 
         public void Validate(MethodRequest methodRequest)
         {
