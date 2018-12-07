@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
 {
     using System;
@@ -17,12 +18,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
 
         public DeviceScopeCertificateAuthenticator(
             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache,
-            string iothubHostName,
             IAuthenticator underlyingAuthenticator,
             IList<X509Certificate2> trustBundle,
             bool syncServiceIdentityOnFailure)
-            :
-            base(deviceScopeIdentitiesCache, underlyingAuthenticator, false, syncServiceIdentityOnFailure)
+            : base(deviceScopeIdentitiesCache, underlyingAuthenticator, false, syncServiceIdentityOnFailure)
         {
             this.trustBundle = Preconditions.CheckNotNull(trustBundle, nameof(trustBundle));
         }
@@ -52,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             }
             else if (serviceIdentity.Authentication.Type == ServiceAuthenticationType.CertificateAuthority)
             {
-                result = this.ValidateCaAuth(serviceIdentity, certificateCredentials);                
+                result = this.ValidateCaAuth(serviceIdentity, certificateCredentials);
             }
             else
             {
@@ -71,7 +70,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
                 return false;
             }
 
-            if (!CertificateHelper.ValidateClientCert(certificateCredentials.ClientCertificate,
+            if (!CertificateHelper.ValidateClientCert(
+                certificateCredentials.ClientCertificate,
                 certificateCredentials.ClientCertificateChain,
                 Option.Some(this.trustBundle),
                 Events.Log))
@@ -89,6 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
                 && !serviceIdentity.Authentication.X509Thumbprint.HasValue)
             {
                 Events.ThumbprintServiceIdentityInvalid(serviceIdentity);
+                return false;
             }
 
             X509ThumbprintAuthentication x509ThumbprintAuthentication =
@@ -104,6 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             if (!CertificateHelper.ValidateCertificateThumbprint(certificateCredentials.ClientCertificate, thumbprints))
             {
                 Events.ThumbprintMismatch(serviceIdentity.Id);
+                return false;
             }
 
             return true;
