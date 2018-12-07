@@ -205,19 +205,9 @@ namespace Microsoft.Azure.Devices.Edge.Util
             Preconditions.CheckNotNull(certificate);
             Preconditions.CheckNotNull(certificateChain);
             Preconditions.CheckNotNull(trustedCACerts);
-            Preconditions.CheckNotNull(logger);
 
-            DateTime currentTime = DateTime.Now;
-
-            if (certificate.NotAfter < currentTime)
+            if (!ValidateCertExpiry(certificate, logger))
             {
-                logger.LogWarning($"Certificate with subject: {certificate.Subject} has expired on UTC time: {certificate.NotAfter.ToString("MM-dd-yyyy H:mm:ss")}");
-                return false;
-            }
-
-            if (certificate.NotBefore > currentTime)
-            {
-                logger.LogWarning($"Certificate with subject: {certificate.Subject} is not valid until UTC time: {certificate.NotBefore.ToString("MM-dd-yyyy H:mm:ss")}");
                 return false;
             }
 
@@ -227,15 +217,34 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 return false;
             }
 
-            bool result = false;
-            Option<string> errors = Option.None<string>();
-            (result, errors) = ValidateCert(certificate, certificateChain, trustedCACerts);
+            (bool result, Option<string> errors) = ValidateCert(certificate, certificateChain, trustedCACerts);
             if (errors.HasValue)
             {
                 errors.ForEach(v => logger.LogWarning(v));
             }
 
             return result;
+        }
+
+        public static bool ValidateCertExpiry(X509Certificate2 certificate, ILogger logger)
+        {
+            Preconditions.CheckNotNull(certificate);
+
+            DateTime currentTime = DateTime.Now;
+
+            if (certificate.NotAfter < currentTime)
+            {
+                logger?.LogWarning($"Certificate with subject: {certificate.Subject} has expired on UTC time: {certificate.NotAfter.ToString("MM-dd-yyyy H:mm:ss")}");
+                return false;
+            }
+
+            if (certificate.NotBefore > currentTime)
+            {
+                logger?.LogWarning($"Certificate with subject: {certificate.Subject} is not valid until UTC time: {certificate.NotBefore.ToString("MM-dd-yyyy H:mm:ss")}");
+                return false;
+            }
+
+            return true;
         }
 
         public static void InstallCerts(StoreName name, StoreLocation location, IEnumerable<X509Certificate2> certs)
