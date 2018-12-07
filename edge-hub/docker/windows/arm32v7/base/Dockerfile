@@ -1,0 +1,24 @@
+# Base image for arm32v7 dotnet-runtime container
+FROM mcr.microsoft.com/windows/nanoserver/insider:10.0.17763.55
+ 
+ENV DOTNET_VERSION 2.1.5
+ENV DOTNET_DOWNLOAD_URL https://dotnetcli.blob.core.windows.net/dotnet/Runtime/$DOTNET_VERSION/dotnet-runtime-${DOTNET_VERSION}-win-arm.zip
+ 
+RUN curl -SL %DOTNET_DOWNLOAD_URL% --output dotnet.zip \
+    && mkdir "c:/program files/dotnet" \
+    && tar -zxf dotnet.zip -C "c:/program files/dotnet" \
+    && del dotnet.zip
+ 
+USER ContainerAdministrator
+# In order to set system PATH, ContainerAdministrator must be used
+RUN setx /M PATH "%PATH%;C:\Program Files\dotnet"
+# Add an unprivileged user account for running Edge Hub
+RUN net user /add edgehubuser
+USER edgehubuser
+ 
+# Configure Kestrel web server to bind to port 80 when present
+ENV ASPNETCORE_URLS=http://+:80
+# Enable detection of running in a container1
+ENV DOTNET_RUNNING_IN_CONTAINER=true
+
+# Don't need to install RocksDB since RocksDB.dll ARM32 version is copied to native/arm folder during build.
