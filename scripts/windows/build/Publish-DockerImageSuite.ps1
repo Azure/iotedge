@@ -53,6 +53,12 @@ foreach ($Image in $Images.GetEnumerator()) {
         continue
     }
 
+    if ($Image.Key -eq "functions-filter" -and $Architecture -ne "amd64") {
+        # skip functions filter temporarily as waiting for azure function docker image
+		Write-Host "Skip function filter docker image build since azure function base docker image is not available yet."
+        continue
+    }
+    
     $Name = "azureiotedge-$($Image.Key)"
     $Params = @{
         "Name"    = $Name
