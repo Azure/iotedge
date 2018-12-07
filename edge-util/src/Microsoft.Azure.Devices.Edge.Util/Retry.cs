@@ -31,28 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return Option.None<T>();
         }
 
-        public static async Task<Option<T>> Do<T>(
-            Func<Task<T>> func,
-            Func<T, bool> isValidValue,
-            Func<Exception, bool> continueOnException,
-            TimeSpan retryInterval,
-            int retryCount)
-        {
-            Preconditions.CheckNotNull(func, nameof(func));
-
-            for (int i = 0; i < retryCount; i++)
-            {
-                Option<T> result = await DoOnce(func, isValidValue, continueOnException);
-                if (result.HasValue || i == retryCount - 1)
-                {
-                    return result;
-                }
-                await Task.Delay(retryInterval);
-            }
-            return Option.None<T>();
-        }
-
-        public static async Task<Option<T>> Do<T>(
+        public static async Task<T> Do<T>(
             Func<Task<T>> func,
             Func<T, bool> isValidValue,
             Func<Exception, bool> continueOnException,
@@ -66,14 +45,14 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 Option<T> result = await DoOnce(func, isValidValue, continueOnException);
                 if (result.HasValue)
                 {
-                    return result;
+                    return result.OrDefault();
                 }
                 else
                 {
                     await Task.Delay(retryInterval, token);
                 }
             }
-            return Option.None<T>();
+            throw new TaskCanceledException();
         }
     }
 }

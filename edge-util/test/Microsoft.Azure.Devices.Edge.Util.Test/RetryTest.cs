@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
     using System;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
+    using System.Threading;
     using System.Threading.Tasks;
 
     [Unit]
@@ -17,23 +18,27 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             Func<Task<int>> func = () => Task.FromResult(++counter);
             Func<int, bool> isValid = (val) => val > 3;
             TimeSpan retryInterval = TimeSpan.FromMilliseconds(2);
-            int retryCount = 5;
 
-            Option<int> returnedValue = await Retry.Do(func, isValid, null, retryInterval, retryCount);
-            Assert.Equal(Option.Some<int>(4), returnedValue);
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5)))
+            {
+                int returnedValue = await Retry.Do(func, isValid, null, retryInterval, cts.Token);
+                Assert.Equal(4, returnedValue);
+            }
         }
 
         [Fact]
-        public async Task RetryReturnsNoneIfFuncNeverReturnsValidResult()
+        public async Task RetryThrowsIfFuncNeverReturnsValidResult()
         {
-            int counter = 0;
-            Func<Task<string>> func = () => Task.FromResult((counter++ > 5) ? "Foo" : null);
-            Func<string, bool> isValid = (val) => val != null;
-            TimeSpan retryInterval = TimeSpan.FromMilliseconds(2);
-            int retryCount = 5;
+            Func<Task<string>> func = () => Task.FromResult(String.Empty);
+            Func<string, bool> isValid = (val) => val == "Foo";
+            TimeSpan retryInterval = TimeSpan.FromMilliseconds(10);
 
-            Option<string> returnedValue = await Retry.Do(func, isValid, null, retryInterval, retryCount);
-            Assert.Equal(Option.None<string>(), returnedValue);
+            using (var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(200)))
+            {
+                await Assert.ThrowsAsync<TaskCanceledException>(
+                    () => Retry.Do(func, isValid, null, retryInterval, cts.Token)
+                );
+            }
         }
 
         [Fact]
@@ -42,11 +47,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             int counter = 0;
             Func<Task<string>> func = () => { ++counter; return Task.FromResult<string>("Foo"); };
             TimeSpan retryInterval = TimeSpan.FromMilliseconds(2);
-            int retryCount = 5;
 
-            Option<string> returnedValue = await Retry.Do(func, null, null, retryInterval, retryCount);
-            Assert.Equal(Option.Some<string>("Foo"), returnedValue);
-            Assert.Equal(1, counter);
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5)))
+            {
+                string returnedValue = await Retry.Do(func, null, null, retryInterval, cts.Token);
+                Assert.Equal("Foo", returnedValue);
+                Assert.Equal(1, counter);
+            }
         }
 
         [Fact]
@@ -54,11 +61,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         {
             Func<Task<string>> func = () => throw new InvalidOperationException();
             TimeSpan retryInterval = TimeSpan.FromMilliseconds(2);
-            int retryCount = 5;
 
-            await Assert.ThrowsAsync<InvalidOperationException>(
-                () => Retry.Do(func, null, null, retryInterval, retryCount)
-            );
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5)))
+            {
+                await Assert.ThrowsAsync<InvalidOperationException>(
+                    () => Retry.Do(func, null, null, retryInterval, cts.Token)
+                );
+            }
         }
 
         [Fact]
@@ -68,10 +77,12 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             Func<Task<string>> func = () => Task.FromResult((counter++ > 3) ? "Foo" : throw new InvalidOperationException());
             Func<Exception, bool> continueOnException = (ex) => true;
             TimeSpan retryInterval = TimeSpan.FromMilliseconds(2);
-            int retryCount = 5;
 
-            Option<string> returnedValue = await Retry.Do(func, null, continueOnException, retryInterval, retryCount);
-            Assert.Equal(Option.Some<string>("Foo"), returnedValue);
+            using (var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(200)))
+            {
+                string returnedValue = await Retry.Do(func, null, continueOnException, retryInterval, cts.Token);
+                Assert.Equal("Foo", returnedValue);
+            }
         }
 
         [Fact]
@@ -80,11 +91,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             Func<Task<string>> func = () => throw new InvalidOperationException();
             Func<Exception, bool> continueOnException = (ex) => false;
             TimeSpan retryInterval = TimeSpan.FromMilliseconds(2);
-            int retryCount = 5;
 
-            await Assert.ThrowsAsync<InvalidOperationException>(
-                () => Retry.Do(func, null, continueOnException, retryInterval, retryCount)
-            );
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5)))
+            {
+                await Assert.ThrowsAsync<InvalidOperationException>(
+                    () => Retry.Do(func, null, continueOnException, retryInterval, cts.Token)
+                );
+            }
         }
     }
 }
