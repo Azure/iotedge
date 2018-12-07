@@ -402,7 +402,7 @@ BEGIN_TEST_SUITE(hsm_client_tpm_ut)
             HSM_CLIENT_HANDLE sec_handle = tpm_if->hsm_client_tpm_create();
 
             //assert
-            ASSERT_IS_NULL_WITH_MSG(sec_handle, tmp_msg);
+            ASSERT_IS_NULL(sec_handle, tmp_msg);
         }
 
         //cleanup
@@ -511,7 +511,7 @@ BEGIN_TEST_SUITE(hsm_client_tpm_ut)
             int import_res = tpm_if->hsm_client_activate_identity_key(sec_handle, TEST_IMPORT_KEY, TEST_KEY_SIZE);
 
             //assert
-            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, import_res, tmp_msg);
+            ASSERT_ARE_NOT_EQUAL(int, 0, import_res, tmp_msg);
         }
         //cleanup
         tpm_if->hsm_client_tpm_destroy(sec_handle);
@@ -607,7 +607,7 @@ BEGIN_TEST_SUITE(hsm_client_tpm_ut)
             int result = tpm_if->hsm_client_get_ek(sec_handle, &key, &key_len);
 
             //assert
-            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, result, tmp_msg);
+            ASSERT_ARE_NOT_EQUAL(int, 0, result, tmp_msg);
         }
         //cleanup
         tpm_if->hsm_client_tpm_destroy(sec_handle);
@@ -708,7 +708,7 @@ BEGIN_TEST_SUITE(hsm_client_tpm_ut)
             int result = tpm_if->hsm_client_get_srk(sec_handle, &key, &key_len);
 
             //assert
-            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, result, tmp_msg);
+            ASSERT_ARE_NOT_EQUAL(int, 0, result, tmp_msg);
         }
 
         //cleanup
@@ -870,7 +870,7 @@ BEGIN_TEST_SUITE(hsm_client_tpm_ut)
             int result = tpm_if->hsm_client_sign_with_identity(NULL, TEST_BUFFER, TEST_BUFFER_SIZE, &key, &key_len);
 
             //assert
-            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, result, tmp_msg);
+            ASSERT_ARE_NOT_EQUAL(int, 0, result, tmp_msg);
         }
 
         //cleanup
@@ -1082,7 +1082,7 @@ BEGIN_TEST_SUITE(hsm_client_tpm_ut)
                     IDENTITY_BUFFER, IDENTITY_BUFFER_SIZE, &key, &key_len);
 
             //assert
-            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, result, tmp_msg);
+            ASSERT_ARE_NOT_EQUAL(int, 0, result, tmp_msg);
         }
 
         //cleanup

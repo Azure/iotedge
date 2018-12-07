@@ -46,8 +46,8 @@ static TEST_MUTEX_HANDLE g_dllByDll;
 static void test_helper_setup_homedir(void)
 {
     TEST_IOTEDGE_HOMEDIR = hsm_test_util_create_temp_dir(&TEST_IOTEDGE_HOMEDIR_GUID);
-    ASSERT_IS_NOT_NULL_WITH_MSG(TEST_IOTEDGE_HOMEDIR_GUID, "Line:" TOSTRING(__LINE__));
-    ASSERT_IS_NOT_NULL_WITH_MSG(TEST_IOTEDGE_HOMEDIR, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(TEST_IOTEDGE_HOMEDIR_GUID, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(TEST_IOTEDGE_HOMEDIR, "Line:" TOSTRING(__LINE__));
 
     printf("Temp dir created: [%s]\r\n", TEST_IOTEDGE_HOMEDIR);
     hsm_test_util_setenv("IOTEDGE_HOMEDIR", TEST_IOTEDGE_HOMEDIR);
@@ -76,7 +76,7 @@ static CERT_PROPS_HANDLE test_helper_create_certificate_props
 )
 {
     CERT_PROPS_HANDLE cert_props_handle = cert_properties_create();
-    ASSERT_IS_NOT_NULL_WITH_MSG(cert_props_handle, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(cert_props_handle, "Line:" TOSTRING(__LINE__));
     set_validity_seconds(cert_props_handle, validity);
     set_common_name(cert_props_handle, common_name);
     set_country_name(cert_props_handle, "US");
@@ -93,11 +93,11 @@ static CERT_PROPS_HANDLE test_helper_create_certificate_props
 static BUFFER_HANDLE test_helper_base64_converter(const char* input)
 {
     BUFFER_HANDLE result = Base64_Decoder(input);
-    ASSERT_IS_NOT_NULL_WITH_MSG(result, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
     size_t out_len = BUFFER_length(result);
-    ASSERT_ARE_NOT_EQUAL_WITH_MSG(size_t, 0, out_len, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_NOT_EQUAL(size_t, 0, out_len, "Line:" TOSTRING(__LINE__));
     unsigned char* out_buffer = BUFFER_u_char(result);
-    ASSERT_IS_NOT_NULL_WITH_MSG(out_buffer, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(out_buffer, "Line:" TOSTRING(__LINE__));
     return result;
 }
 
@@ -110,10 +110,10 @@ static BUFFER_HANDLE test_helper_compute_hmac
 {
     int status;
     BUFFER_HANDLE result = BUFFER_new();
-    ASSERT_IS_NOT_NULL_WITH_MSG(result, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
     status = HMACSHA256_ComputeHash(BUFFER_u_char(key_handle), BUFFER_length(key_handle),
                                     input, input_size, result);
-    ASSERT_ARE_EQUAL_WITH_MSG(int, (int)HMACSHA256_OK, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL(int, (int)HMACSHA256_OK, status, "Line:" TOSTRING(__LINE__));
     return result;
 }
 
@@ -136,7 +136,7 @@ static void test_helper_sas_key_sign
     KEY_HANDLE key_handle = store_if->hsm_client_store_open_key(store_handle,
                                                                 HSM_KEY_SAS,
                                                                 key_name);
-    ASSERT_IS_NOT_NULL_WITH_MSG(key_handle, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(key_handle, "Line:" TOSTRING(__LINE__));
     if (derived_identity != NULL)
     {
         status = key_if->hsm_client_key_derive_and_sign(key_handle,
@@ -155,12 +155,12 @@ static void test_helper_sas_key_sign
                                              &digest,
                                              &digest_size);
     }
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
     status = BUFFER_build(hash, digest, digest_size);
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
     free(digest);
     status = store_if->hsm_client_store_close_key(store_handle, key_handle);
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 }
 
 
@@ -202,68 +202,68 @@ BEGIN_TEST_SUITE(edge_hsm_store_int_tests)
     {
         int result;
         const HSM_CLIENT_STORE_INTERFACE *store_if = hsm_client_store_interface();
-        ASSERT_IS_NOT_NULL_WITH_MSG(store_if, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(store_if, "Line:" TOSTRING(__LINE__));
         result = store_if->hsm_client_store_create(EDGE_STORE_NAME);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
 
         result = store_if->hsm_client_store_destroy(EDGE_STORE_NAME);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
     }
 
     TEST_FUNCTION(open_close_smoke)
     {
         int result;
         const HSM_CLIENT_STORE_INTERFACE *store_if = hsm_client_store_interface();
-        ASSERT_IS_NOT_NULL_WITH_MSG(store_if, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(store_if, "Line:" TOSTRING(__LINE__));
 
         result = store_if->hsm_client_store_create(EDGE_STORE_NAME);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
 
         HSM_CLIENT_STORE_HANDLE store_handle = store_if->hsm_client_store_open(EDGE_STORE_NAME);
-        ASSERT_IS_NOT_NULL_WITH_MSG(store_handle, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(store_handle, "Line:" TOSTRING(__LINE__));
 
         result = store_if->hsm_client_store_close(store_handle);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
 
         store_handle = store_if->hsm_client_store_open(EDGE_STORE_NAME);
-        ASSERT_IS_NOT_NULL_WITH_MSG(store_handle, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(store_handle, "Line:" TOSTRING(__LINE__));
 
         result = store_if->hsm_client_store_close(store_handle);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
 
         result = store_if->hsm_client_store_destroy(EDGE_STORE_NAME);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
     }
 
     TEST_FUNCTION(insert_remove_sas_key_smoke)
     {
         int result;
         const HSM_CLIENT_STORE_INTERFACE *store_if = hsm_client_store_interface();
-        ASSERT_IS_NOT_NULL_WITH_MSG(store_if, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(store_if, "Line:" TOSTRING(__LINE__));
 
         result = store_if->hsm_client_store_create(EDGE_STORE_NAME);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
 
         HSM_CLIENT_STORE_HANDLE store_handle = store_if->hsm_client_store_open(EDGE_STORE_NAME);
-        ASSERT_IS_NOT_NULL_WITH_MSG(store_handle, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(store_handle, "Line:" TOSTRING(__LINE__));
 
         result = store_if->hsm_client_store_remove_key(store_handle, HSM_KEY_SAS, "bad_sas_key_name");
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
 
         result = store_if->hsm_client_store_insert_sas_key(store_handle, "my_sas_key", (unsigned char*)"ABCD", 5);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
 
         result = store_if->hsm_client_store_insert_sas_key(store_handle, "my_sas_key", (unsigned char*)"1234", 5);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
 
         result = store_if->hsm_client_store_remove_key(store_handle, HSM_KEY_SAS, "my_sas_key");
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
 
         result = store_if->hsm_client_store_close(store_handle);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
 
         result = store_if->hsm_client_store_destroy(EDGE_STORE_NAME);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
     }
 
     TEST_FUNCTION(insert_overwrite_sign_remove_sas_key_smoke)
@@ -281,24 +281,24 @@ BEGIN_TEST_SUITE(edge_hsm_store_int_tests)
                                                                       test_data_to_be_signed_size);
 
         const HSM_CLIENT_STORE_INTERFACE *store_if = hsm_client_store_interface();
-        ASSERT_IS_NOT_NULL_WITH_MSG(store_if, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(store_if, "Line:" TOSTRING(__LINE__));
 
         result = store_if->hsm_client_store_create(EDGE_STORE_NAME);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
 
         HSM_CLIENT_STORE_HANDLE store_handle = store_if->hsm_client_store_open(EDGE_STORE_NAME);
-        ASSERT_IS_NOT_NULL_WITH_MSG(store_handle, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(store_handle, "Line:" TOSTRING(__LINE__));
 
         // act
         BUFFER_HANDLE test_output_digest = BUFFER_new();
-        ASSERT_IS_NOT_NULL_WITH_MSG(test_output_digest, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(test_output_digest, "Line:" TOSTRING(__LINE__));
 
         result = store_if->hsm_client_store_insert_sas_key(store_handle, "my_sas_key", (unsigned char*)"ABCD", 5);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
         result = store_if->hsm_client_store_insert_sas_key(store_handle, "my_sas_key",
                                                            BUFFER_u_char(decoded_key),
                                                            BUFFER_length(decoded_key));
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
 
         test_helper_sas_key_sign(store_handle,
                                  "my_sas_key",
@@ -320,9 +320,9 @@ BEGIN_TEST_SUITE(edge_hsm_store_int_tests)
         BUFFER_delete(test_expected_digest);
         BUFFER_delete(decoded_key);
         result = store_if->hsm_client_store_close(store_handle);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
         result = store_if->hsm_client_store_destroy(EDGE_STORE_NAME);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
     }
 
     TEST_FUNCTION(insert_default_trusted_ca_cert_smoke)
@@ -330,27 +330,27 @@ BEGIN_TEST_SUITE(edge_hsm_store_int_tests)
         // arrange
         int result;
         const HSM_CLIENT_STORE_INTERFACE *store_if = hsm_client_store_interface();
-        ASSERT_IS_NOT_NULL_WITH_MSG(store_if, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(store_if, "Line:" TOSTRING(__LINE__));
 
         result = store_if->hsm_client_store_create(EDGE_STORE_NAME);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
 
         HSM_CLIENT_STORE_HANDLE store_handle = store_if->hsm_client_store_open(EDGE_STORE_NAME);
-        ASSERT_IS_NOT_NULL_WITH_MSG(store_handle, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(store_handle, "Line:" TOSTRING(__LINE__));
 
         // act
         CERT_INFO_HANDLE cert_info = store_if->hsm_client_store_get_pki_trusted_certs(store_handle);
 
         // assert
-        ASSERT_IS_NOT_NULL_WITH_MSG(cert_info, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(cert_info, "Line:" TOSTRING(__LINE__));
         // todo validate cert props
 
         // cleanup
         certificate_info_destroy(cert_info);
         result = store_if->hsm_client_store_close(store_handle);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
         result = store_if->hsm_client_store_destroy(EDGE_STORE_NAME);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
     }
 
     TEST_FUNCTION(insert_generated_cert_smoke)
@@ -358,16 +358,16 @@ BEGIN_TEST_SUITE(edge_hsm_store_int_tests)
         // arrange
         int result;
         const HSM_CLIENT_STORE_INTERFACE *store_if = hsm_client_store_interface();
-        ASSERT_IS_NOT_NULL_WITH_MSG(store_if, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(store_if, "Line:" TOSTRING(__LINE__));
 
         result = store_if->hsm_client_store_create(EDGE_STORE_NAME);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
 
         HSM_CLIENT_STORE_HANDLE store_handle = store_if->hsm_client_store_open(EDGE_STORE_NAME);
-        ASSERT_IS_NOT_NULL_WITH_MSG(store_handle, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(store_handle, "Line:" TOSTRING(__LINE__));
 
         result = store_if->hsm_client_store_remove_pki_cert(store_handle, "my_test_alias");
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
 
         CERT_PROPS_HANDLE cert_props = test_helper_create_certificate_props("test_cn",
                                                                             "my_test_alias",
@@ -376,25 +376,25 @@ BEGIN_TEST_SUITE(edge_hsm_store_int_tests)
                                                                             3600);
         // act, assert
         CERT_INFO_HANDLE cert_info = store_if->hsm_client_store_get_pki_cert(store_handle, "my_test_alias");
-        ASSERT_IS_NULL_WITH_MSG(cert_info, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(cert_info, "Line:" TOSTRING(__LINE__));
 
         result = store_if->hsm_client_store_create_pki_cert(store_handle, cert_props);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
 
         cert_info = store_if->hsm_client_store_get_pki_cert(store_handle, "my_test_alias");
-        ASSERT_IS_NOT_NULL_WITH_MSG(cert_info, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(cert_info, "Line:" TOSTRING(__LINE__));
         // todo validate cert props
 
         result = store_if->hsm_client_store_remove_pki_cert(store_handle, "my_test_alias");
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
 
         // cleanup
         cert_properties_destroy(cert_props);
         certificate_info_destroy(cert_info);
         result = store_if->hsm_client_store_close(store_handle);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
         result = store_if->hsm_client_store_destroy(EDGE_STORE_NAME);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
     }
 
 END_TEST_SUITE(edge_hsm_store_int_tests)
