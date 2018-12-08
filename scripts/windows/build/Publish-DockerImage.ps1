@@ -82,7 +82,7 @@ if ($Registry) {
  # Build the image
  #>
 
-$BuildOptions = "--no-cache -t $Tag --file $Dockerfile --build-arg registry=$Registry"
+$BuildOptions = "--no-cache -t $Tag --file $Dockerfile --build-arg base_registry=$Registry"
 if ($BaseTag) {
     $BuildOptions += " --build-arg base_tag=$BaseTag"
 }
