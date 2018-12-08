@@ -3,44 +3,56 @@
 namespace Microsoft.Azure.Devices.Edge.Util
 {
     using System;
+    using System.Threading;
     using System.Threading.Tasks;
 
     public static class Retry
     {
+        static async Task<Option<T>> DoOnce<T>(
+            Func<Task<T>> func,
+            Func<T, bool> isValidValue,
+            Func<Exception, bool> continueOnException)
+        {
+            try
+            {
+                T result = await func();
+                if (isValidValue == null || isValidValue(result))
+                {
+                    return Option.Some(result);
+                }
+            }
+            catch (Exception e)
+            {
+                if (continueOnException == null || !continueOnException(e))
+                {
+                    throw;
+                }
+            }
+            return Option.None<T>();
+        }
+
         public static async Task<T> Do<T>(
             Func<Task<T>> func,
             Func<T, bool> isValidValue,
             Func<Exception, bool> continueOnException,
             TimeSpan retryInterval,
-            int retryCount)
+            CancellationToken token)
         {
             Preconditions.CheckNotNull(func, nameof(func));
-            
-            T result = default(T);
-            for (int i = 0; i < retryCount; i++)
-            {
-                try
-                {
-                    result = await func();
-                    if (isValidValue == null || isValidValue(result))
-                    {
-                        return result;
-                    }
 
-                    if (i < retryCount - 1)
-                    {
-                        await Task.Delay(retryInterval);
-                    }
-                }
-                catch (Exception e)
+            while (!token.IsCancellationRequested)
+            {
+                Option<T> result = await DoOnce(func, isValidValue, continueOnException);
+                if (result.HasValue)
                 {
-                    if (i == retryCount - 1 || (continueOnException != null && !continueOnException(e)))
-                    {
-                        throw;
-                    }
+                    return result.OrDefault();
+                }
+                else
+                {
+                    await Task.Delay(retryInterval, token);
                 }
             }
-            return result;
-        }        
+            throw new TaskCanceledException();
+        }
     }
 }
