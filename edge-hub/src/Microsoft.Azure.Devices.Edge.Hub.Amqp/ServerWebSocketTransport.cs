@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             {
                 var chain = clientCertChain.Expect(() => new ArgumentException("Certificate chain was found to be null"));
                 var x509CertIdentity = new X509CertificateIdentity(cert, true);
-                this.Principal = new EdgeHubX509Principal(x509CertIdentity, chain, "", authenticator, clientCredentialsProvider);
+                this.Principal = new EdgeHubX509Principal(x509CertIdentity, chain, authenticator, clientCredentialsProvider);
                 return true;
             });
 

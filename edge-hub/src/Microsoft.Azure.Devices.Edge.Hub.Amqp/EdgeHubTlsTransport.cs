@@ -2,12 +2,10 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 {
-    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Net.Security;
     using System.Security.Cryptography.X509Certificates;
-    using System.Threading.Tasks;
     using Microsoft.Azure.Amqp.Transport;
     using Microsoft.Azure.Amqp.X509;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -16,7 +14,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
     public class EdgeHubTlsTransport : TlsTransport
     {
-        readonly string iotHubHostName;
         readonly IClientCredentialsFactory clientCredentialsProvider;
         readonly IAuthenticator authenticator;
         private IList<X509Certificate2> remoteCertificateChain;
@@ -24,12 +21,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         public EdgeHubTlsTransport(
             TransportBase innerTransport,
             TlsTransportSettings tlsSettings,
-            string iotHubHostName,
             IAuthenticator authenticator,
             IClientCredentialsFactory clientCredentialsProvider)
             : base(innerTransport, tlsSettings)
         {
-            this.iotHubHostName = Preconditions.CheckNotNull(iotHubHostName, nameof(iotHubHostName));
             this.clientCredentialsProvider = Preconditions.CheckNotNull(clientCredentialsProvider, nameof(clientCredentialsProvider));
             this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
             this.remoteCertificateChain = null;
@@ -39,7 +34,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         {
             var principal = new EdgeHubX509Principal(new X509CertificateIdentity(certificate, true),
                                                      this.remoteCertificateChain,
-                                                     this.iotHubHostName,
                                                      this.authenticator,
                                                      this.clientCredentialsProvider);
             // release chain elements from here since principal has this

@@ -10,19 +10,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
     public class EdgeHubTlsTransportSettings : TlsTransportSettings
     {
-        readonly string iotHubHostName;
         readonly IClientCredentialsFactory clientCredentialsProvider;
         readonly IAuthenticator authenticator;
 
         public EdgeHubTlsTransportSettings(
             TransportSettings innerSettings,
             bool isInitiator,
-            string iotHubHostName,
             IAuthenticator authenticator,
             IClientCredentialsFactory clientCredentialsProvider)
             : base(innerSettings, isInitiator)
         {
-            this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostName, nameof(iotHubHostName));
             this.clientCredentialsProvider = Preconditions.CheckNotNull(clientCredentialsProvider, nameof(clientCredentialsProvider));
             this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
         }
@@ -34,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 throw new InvalidOperationException("Server certificate must be set");
             }
 
-            return new EdgeHubTlsTransportListener(this, this.iotHubHostName, this.authenticator, this.clientCredentialsProvider);
+            return new EdgeHubTlsTransportListener(this, this.authenticator, this.clientCredentialsProvider);
         }
     }
 }

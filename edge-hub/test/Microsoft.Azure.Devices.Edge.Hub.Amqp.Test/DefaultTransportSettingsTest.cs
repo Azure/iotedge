@@ -25,7 +25,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var credentialsProvider = Mock.Of<IClientCredentialsFactory>();
             var autheticator = Mock.Of<IAuthenticator>();
 
-
             Assert.Throws<ArgumentException>(() => new DefaultTransportSettings(null, HostName, Port, tlsCertificate, clientCertsAllowed, autheticator, credentialsProvider));
             Assert.Throws<ArgumentException>(() => new DefaultTransportSettings("", HostName, Port, tlsCertificate, clientCertsAllowed, autheticator, credentialsProvider));
             Assert.Throws<ArgumentException>(() => new DefaultTransportSettings("    ", HostName, Port, tlsCertificate, clientCertsAllowed, autheticator, credentialsProvider));
@@ -35,8 +34,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             Assert.Throws<ArgumentOutOfRangeException>(() => new DefaultTransportSettings(Scheme, HostName, -1, tlsCertificate, clientCertsAllowed, autheticator, credentialsProvider));
             Assert.Throws<ArgumentOutOfRangeException>(() => new DefaultTransportSettings(Scheme, HostName, 70000, tlsCertificate, clientCertsAllowed, autheticator, credentialsProvider));
             Assert.Throws<ArgumentNullException>(() => new DefaultTransportSettings(Scheme, HostName, Port, null, clientCertsAllowed, autheticator, credentialsProvider));
-            Assert.Throws<ArgumentException>(() => new DefaultTransportSettings(Scheme, HostName, Port, tlsCertificate, clientCertsAllowed, null, credentialsProvider));
-            Assert.Throws<ArgumentException>(() => new DefaultTransportSettings(Scheme, HostName, Port, tlsCertificate, clientCertsAllowed, autheticator, null));
+            Assert.Throws<ArgumentNullException>(() => new DefaultTransportSettings(Scheme, HostName, Port, tlsCertificate, clientCertsAllowed, null, credentialsProvider));
+            Assert.Throws<ArgumentNullException>(() => new DefaultTransportSettings(Scheme, HostName, Port, tlsCertificate, clientCertsAllowed, autheticator, null));
 
             Assert.NotNull(new DefaultTransportSettings(Scheme, HostName, Port, tlsCertificate, clientCertsAllowed, autheticator, credentialsProvider));
             Assert.NotNull(new DefaultTransportSettings(Scheme, HostName, Port, tlsCertificate, !clientCertsAllowed, autheticator, credentialsProvider));

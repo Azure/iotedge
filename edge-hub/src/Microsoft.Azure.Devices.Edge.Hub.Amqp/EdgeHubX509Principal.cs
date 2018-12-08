@@ -19,19 +19,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     class EdgeHubX509Principal : X509Principal, IAmqpAuthenticator
     {
         IList<X509Certificate2> chainCertificates;
-        readonly string iotHubHostName;
         readonly IClientCredentialsFactory clientCredentialsProvider;
         readonly IAuthenticator authenticator;
 
-        public EdgeHubX509Principal(X509CertificateIdentity identity,
-                                    IList<X509Certificate2> chainCertificates,
-                                    string iotHubHostName,
-                                    IAuthenticator authenticator,
-                                    IClientCredentialsFactory clientCredentialsProvider)
+        public EdgeHubX509Principal(
+            X509CertificateIdentity identity,
+            IList<X509Certificate2> chainCertificates,
+            IAuthenticator authenticator,
+            IClientCredentialsFactory clientCredentialsProvider)
             : base(identity)
         {
             this.chainCertificates = Preconditions.CheckNotNull(chainCertificates, nameof(chainCertificates));
-            this.iotHubHostName = Preconditions.CheckNotNull(iotHubHostName, nameof(iotHubHostName));
             this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
             this.clientCredentialsProvider = Preconditions.CheckNotNull(clientCredentialsProvider, nameof(clientCredentialsProvider));
         }
@@ -64,13 +62,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
         internal static (bool result, string deviceId, string moduleId) ParseIdentity(string identity)
         {
-            string[] clientIdParts = identity.Split(new[] { '/' }, 2, StringSplitOptions.RemoveEmptyEntries);
+            string[] clientIdParts = identity.Split('/');
             if ((clientIdParts.Length == 0) || (clientIdParts.Length > 2))
             {
                 return (false, string.Empty, string.Empty);
             }
+            if (string.IsNullOrWhiteSpace(clientIdParts[0]))
+            {
+                return (false, string.Empty, string.Empty);
+            }
             string deviceId = clientIdParts[0];
-            string moduleId = clientIdParts.Length == 2 ? clientIdParts[0] : string.Empty;
+            string moduleId = string.Empty;
+            if (clientIdParts.Length == 2)
+            {
+                if (string.IsNullOrWhiteSpace(clientIdParts[1]))
+                {
+                    return (false, string.Empty, string.Empty);
+                }
+                else
+                {
+                    moduleId = clientIdParts[1];
+                }
+            }
 
             return (true, deviceId, moduleId);
         }

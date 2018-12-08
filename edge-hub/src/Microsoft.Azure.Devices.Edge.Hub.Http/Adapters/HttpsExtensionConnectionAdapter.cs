@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Adapters
     using Microsoft.AspNetCore.Http.Features;
     using Microsoft.AspNetCore.Server.Kestrel.Core.Adapter.Internal;
     using Microsoft.AspNetCore.Server.Kestrel.Https;
-    using Microsoft.Azure.Devices.Edge.Hub.Http.Middleware;
+    using Microsoft.Azure.Devices.Edge.Hub.Http.Extensions;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 

@@ -9,25 +9,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
     public class EdgeHubTlsTransportListener : TlsTransportListener
     {
-        readonly string iotHubHostName;
         readonly IClientCredentialsFactory clientCredentialsProvider;
         readonly IAuthenticator authenticator;
 
         public EdgeHubTlsTransportListener(
             TlsTransportSettings transportSettings,
-            string iotHubHostName,
             IAuthenticator authenticator,
             IClientCredentialsFactory clientCredentialsProvider)
             : base(transportSettings)
         {
-            this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostName, nameof(iotHubHostName));
             this.clientCredentialsProvider = Preconditions.CheckNotNull(clientCredentialsProvider, nameof(clientCredentialsProvider));
             this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
         }
 
-        protected override TlsTransport OnCreateTransport(TransportBase innerTransport, TlsTransportSettings tlsTransportSettings)
-        {
-            return new EdgeHubTlsTransport(innerTransport, tlsTransportSettings, this.iotHubHostName, this.authenticator, this.clientCredentialsProvider);
-        }
+        protected override TlsTransport OnCreateTransport(TransportBase innerTransport, TlsTransportSettings tlsTransportSettings) =>
+            new EdgeHubTlsTransport(innerTransport, tlsTransportSettings, this.authenticator, this.clientCredentialsProvider);
     }
 }

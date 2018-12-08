@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
     using Microsoft.AspNetCore.Http;
     using System.Collections.Generic;
     using System.Security.Cryptography.X509Certificates;
+    using Microsoft.Azure.Devices.Edge.Hub.Http.Extensions;
 
     public static class HttpContextExtensions
     {
