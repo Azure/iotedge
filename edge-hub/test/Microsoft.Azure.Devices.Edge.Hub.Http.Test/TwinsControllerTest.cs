@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             string command = "showdown";
             string payload = "{ \"prop1\" : \"value1\" }";
 
-            var methodRequest = new MethodRequest { MethodName = command, Payload = new JRaw(payload) };
+            var methodRequest = new MethodRequest(command, new JRaw(payload));
             IActionResult actionResult = await testController.InvokeDeviceMethodAsync(toDeviceId, methodRequest);
 
             Assert.NotNull(actionResult);
@@ -69,8 +69,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             edgeHub.Setup(e => e.InvokeMethodAsync(It.Is<string>(i => i == identity.Id), It.IsAny<DirectMethodRequest>()))
                 .ReturnsAsync(directMethodResponse);
 
-            var validator = new Mock<IValidator<Http.MethodRequest>>();
-            validator.Setup(v => v.Validate(It.IsAny<Http.MethodRequest>()));
+            var validator = new Mock<IValidator<MethodRequest>>();
+            validator.Setup(v => v.Validate(It.IsAny<MethodRequest>()));
 
             var testController = new TwinsController(Task.FromResult(edgeHub.Object), validator.Object);
             testController.OnActionExecuting(actionExecutingContext);
@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             string command = "showdown";
             string payload = "{ \"prop1\" : \"value1\" }";
 
-            var methodRequest = new Http.MethodRequest { MethodName = command, Payload = new JRaw(payload) };
+            var methodRequest = new MethodRequest( command, new JRaw(payload));
             IActionResult actionResult = await testController.InvokeModuleMethodAsync(WebUtility.UrlEncode(toDeviceId), WebUtility.UrlEncode(toModuleId), methodRequest);
 
             Assert.NotNull(actionResult);
@@ -115,7 +115,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             string command = "showdown";
             string payload = "{ \"prop1\" : \"value1\" }";
 
-            var methodRequest = new MethodRequest { MethodName = command, Payload = new JRaw(payload) };
+            var methodRequest = new MethodRequest(command, new JRaw(payload));
             IActionResult actionResult = await testController.InvokeDeviceMethodAsync(toDeviceId, methodRequest);
 
             Assert.NotNull(actionResult);
@@ -140,8 +140,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             edgeHub.Setup(e => e.InvokeMethodAsync(It.Is<string>(i => i == identity.Id), It.IsAny<DirectMethodRequest>()))
                 .ReturnsAsync(directMethodResponse);
 
-            var validator = new Mock<IValidator<Http.MethodRequest>>();
-            validator.Setup(v => v.Validate(It.IsAny<Http.MethodRequest>()));
+            var validator = new Mock<IValidator<MethodRequest>>();
+            validator.Setup(v => v.Validate(It.IsAny<MethodRequest>()));
 
             var testController = new TwinsController(Task.FromResult(edgeHub.Object), validator.Object);
             testController.OnActionExecuting(actionExecutingContext);
@@ -151,7 +151,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             string command = "showdown";
             string payload = "{ \"prop1\" : \"value1\" }";
 
-            var methodRequest = new Http.MethodRequest { MethodName = command, Payload = new JRaw(payload) };
+            var methodRequest = new MethodRequest(command, new JRaw(payload));
             IActionResult actionResult = await testController.InvokeModuleMethodAsync(WebUtility.UrlEncode(toDeviceId), WebUtility.UrlEncode(toModuleId), methodRequest);
 
             Assert.NotNull(actionResult);
@@ -186,7 +186,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             string command = "showdown";
             string payload = "{ \"prop1\" : \"value1\" }";
 
-            var methodRequest = new MethodRequest { MethodName = command, Payload = new JRaw(payload) };
+            var methodRequest = new MethodRequest(command, new JRaw(payload));
             IActionResult actionResult = await testController.InvokeDeviceMethodAsync(toDeviceId, methodRequest);
 
             Assert.NotNull(actionResult);
