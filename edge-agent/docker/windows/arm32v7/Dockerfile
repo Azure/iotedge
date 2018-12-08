@@ -1,5 +1,6 @@
 ARG base_tag=1.0.0-windows-arm32v7
-FROM azureiotedge/azureiotedge-agent-base:${base_tag}
+ARG registry
+FROM ${registry}/azureiotedge/azureiotedge-agent-base:${base_tag}
 
 ARG EXE_DIR=.
 
