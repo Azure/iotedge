@@ -77,26 +77,17 @@ namespace IotEdgeQuickstart.Details
                         {
                             // Display error and retry for some transient exceptions such as hyper error
                             string exceptionDetails = e.ToString();
-                            WriteToConsole("List operation exception caught", new[] { exceptionDetails });
-
-                            if (exceptionDetails.Contains("Could not list modules", StringComparison.OrdinalIgnoreCase))
+                            if (exceptionDetails.Contains("Could not list modules", StringComparison.OrdinalIgnoreCase) ||
+                                exceptionDetails.Contains("Socket file could not be found", StringComparison.OrdinalIgnoreCase))
                             {
-                                try
-                                {
-                                    Console.WriteLine("Workaround: restart iotedge service.");
-                                    this.Restart().Wait();
-                                }
-                                catch (Exception restartOperationException)
-                                {
-                                    // Eat it up and let it retry in next iteration
-                                    Console.WriteLine(restartOperationException);
-                                }
+                                WriteToConsole("List operation exception caught. Retrying in case iotedge service is still starting...", new[] { exceptionDetails });
+                                return true;
                             }
 
-                            return true;
+                            return false;
                         },
                         TimeSpan.FromSeconds(5),
-                        5);
+                        cts.Token);
                 }
                 catch (OperationCanceledException)
                 {
@@ -160,6 +151,7 @@ namespace IotEdgeQuickstart.Details
                 WriteToConsole("Output from Configure iotedge windows service", result);
 
                 // Stop service and update config file
+                await Task.Delay(TimeSpan.FromSeconds(5));
                 await this.Stop();
 
                 UpdateConfigYamlFile(deviceCaCert, deviceCaPk, deviceCaCerts, runtimeLogLevel);
