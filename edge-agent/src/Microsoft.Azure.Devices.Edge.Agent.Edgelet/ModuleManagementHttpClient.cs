@@ -18,7 +18,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         public ModuleManagementHttpClient(Uri managementUri, string edgeletApiVersion, string edgeletClientApiVersion)
         {
+            Preconditions.CheckNotNull(managementUri, nameof(managementUri));
             Preconditions.CheckNonWhiteSpace(edgeletApiVersion, nameof(edgeletApiVersion));
+            Preconditions.CheckNonWhiteSpace(edgeletClientApiVersion, nameof(edgeletClientApiVersion));
             this.inner = this.GetVersionedModuleManagement(managementUri, edgeletApiVersion, edgeletClientApiVersion);
         }
 

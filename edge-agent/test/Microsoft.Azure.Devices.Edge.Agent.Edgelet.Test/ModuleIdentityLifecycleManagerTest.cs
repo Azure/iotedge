@@ -72,11 +72,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             // Arrange
             const string Name = "module1";
             var identity = new Identity
-            {
-                ModuleId = Name,
-                ManagedBy = Constants.ModuleIdentityEdgeManagedByValue,
-                GenerationId = Guid.NewGuid().ToString()
-            };
+            (
+                Name,
+                Guid.NewGuid().ToString(),
+                Constants.ModuleIdentityEdgeManagedByValue
+            );
 
             var identityManager = Mock.Of<IIdentityManager>(m =>
                 m.GetIdentities() == Task.FromResult(Enumerable.Empty<Identity>()) &&
@@ -105,45 +105,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         {
             // Arrange
             const string Module1 = "module1";
-            var identity1 = new Identity
-            {
-                ModuleId = Module1,
-                ManagedBy = "IotEdge",
-                GenerationId = Guid.NewGuid().ToString()
-            };
+            var identity1 = new Identity(Module1, Guid.NewGuid().ToString(), "IotEdge");
 
             const string Module2 = "module2";
-            var identity2 = new Identity
-            {
-                ModuleId = Module2,
-                ManagedBy = "Me",
-                GenerationId = Guid.NewGuid().ToString()
-            };
+            var identity2 = new Identity(Module2, Guid.NewGuid().ToString(), "Me");
 
             const string Module3 = "module3";
-            var identity3 = new Identity
-            {
-                ModuleId = Module3,
-                ManagedBy = Constants.ModuleIdentityEdgeManagedByValue,
-                GenerationId = Guid.NewGuid().ToString()
-            };
+            var identity3 = new Identity(Module3, Guid.NewGuid().ToString(), Constants.ModuleIdentityEdgeManagedByValue);
 
             const string Module4 = "$edgeHub";
-            var identity4 = new Identity
-            {
-                ModuleId = Module4,
-                ManagedBy = Constants.ModuleIdentityEdgeManagedByValue,
-                GenerationId = Guid.NewGuid().ToString()
-            };
+            var identity4 = new Identity(Module4, Guid.NewGuid().ToString(), Constants.ModuleIdentityEdgeManagedByValue);
 
             // We should NOT get an update request for this identity
             const string Module5 = "$edgeAgent";
-            var identity5 = new Identity
-            {
-                ModuleId = Module5,
-                ManagedBy = Constants.ModuleIdentityEdgeManagedByValue,
-                GenerationId = Guid.NewGuid().ToString()
-            };
+            var identity5 = new Identity(Module5, Guid.NewGuid().ToString(), Constants.ModuleIdentityEdgeManagedByValue);
 
             var identityManager = Mock.Of<IIdentityManager>(m =>
                 m.GetIdentities() == Task.FromResult(new List<Identity>() { identity2, identity3, identity4, identity5 }.AsEnumerable()) &&
@@ -185,28 +160,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         {
             // Arrange
             const string Module1 = "module1";
-            var identity1 = new Identity
-            {
-                ModuleId = Module1,
-                ManagedBy = "IotEdge",
-                GenerationId = Guid.NewGuid().ToString()
-            };
+            var identity1 = new Identity(Module1, Guid.NewGuid().ToString(), "IotEdge");
 
             const string Module2 = "module2";
-            var identity2 = new Identity
-            {
-                ModuleId = Module2,
-                ManagedBy = "Me",
-                GenerationId = Guid.NewGuid().ToString()
-            };
+            var identity2 = new Identity(Module2, Guid.NewGuid().ToString(), "Me");
 
             const string Module3 = "module3";
-            var identity3 = new Identity
-            {
-                ModuleId = Module3,
-                ManagedBy = Constants.ModuleIdentityEdgeManagedByValue,
-                GenerationId = Guid.NewGuid().ToString()
-            };
+            var identity3 = new Identity(Module3, Guid.NewGuid().ToString(), Constants.ModuleIdentityEdgeManagedByValue);
 
             var identityManager = Mock.Of<IIdentityManager>(m =>
                 m.GetIdentities() == Task.FromResult(new List<Identity>() { identity2, identity3 }.AsEnumerable()) &&

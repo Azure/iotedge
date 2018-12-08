@@ -123,7 +123,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
 
             var updateExecutionList = new List<TestRecordType>
             {
-                new TestRecordType(TestCommandType.TestStop, desiredModule),
                 new TestRecordType(TestCommandType.TestUpdate, desiredModule),
                 new TestRecordType(TestCommandType.TestStart, desiredModule),
             };
@@ -406,7 +405,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             // build expected execution list
             IEnumerable<TestRecordType> expectedExecutionList = data.SelectMany(d => new[]
             {
-                new TestRecordType(TestCommandType.TestStop, d.UpdatedModule),
                 new TestRecordType(TestCommandType.TestUpdate, d.UpdatedModule),
                 new TestRecordType(TestCommandType.TestStart, d.UpdatedModule)
             });
@@ -833,7 +831,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             IEnumerable<TestRecordType> expectedExecutionList = updateDeployModules
                 .SelectMany(d => new[]
                 {
-                    new TestRecordType(TestCommandType.TestStop, d.UpdatedModule),
                     new TestRecordType(TestCommandType.TestUpdate, d.UpdatedModule),
                     new TestRecordType(TestCommandType.TestStart, d.UpdatedModule)
                 })

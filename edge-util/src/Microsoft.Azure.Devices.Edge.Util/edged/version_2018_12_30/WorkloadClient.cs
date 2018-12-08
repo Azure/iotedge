@@ -114,8 +114,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2018_12_30
 
         }
 
-        protected ITransientErrorDetectionStrategy GetErrorDetectionStrategy() => new ErrorDetectionStrategy();
-
         class ErrorDetectionStrategy : ITransientErrorDetectionStrategy
         {
             public bool IsTransient(Exception ex) => ex is IoTEdgedException se

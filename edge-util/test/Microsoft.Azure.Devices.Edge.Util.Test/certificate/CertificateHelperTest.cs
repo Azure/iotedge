@@ -3,17 +3,16 @@
 namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
 {
     using System;
-    using System.IO;
     using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
     using System.Security.Cryptography.X509Certificates;
     using System.Text;
+    using Microsoft.Azure.Devices.Edge.Util.Edged;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
     using CertificateHelper = Microsoft.Azure.Devices.Edge.Util.CertificateHelper;
     using TestCertificateHelper = Microsoft.Azure.Devices.Edge.Util.Test.Common.CertificateHelper;
-    using System.Security.Cryptography;
-    using Microsoft.Azure.Devices.Edge.Util.Edged;
 
     [Unit]
     public class CertificateHelperTest
@@ -70,8 +69,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
             CertificateHelper.ValidateClientCert(null, new List<X509Certificate2>(), trustedCACerts, Logger.Factory.CreateLogger("something")));
             Assert.Throws<ArgumentNullException>(() =>
             CertificateHelper.ValidateClientCert(new X509Certificate2(), null, trustedCACerts, Logger.Factory.CreateLogger("something")));
-            Assert.Throws<ArgumentNullException>(() =>
-            CertificateHelper.ValidateClientCert(new X509Certificate2(), new List<X509Certificate2>(), trustedCACerts, null));
         }
 
         [Fact]

@@ -1415,11 +1415,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2018_06_28.Generate
 
             return System.Convert.ToString(value, cultureInfo);
         }
-
-        public Task PullImageAsync(string edgeletManagementApiVersion, object settings)
-        {
-            throw new SwaggerException("Not found", 404, null, null, null);
-        }
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "9.10.50.0 (Newtonsoft.Json v9.0.0.0)")]

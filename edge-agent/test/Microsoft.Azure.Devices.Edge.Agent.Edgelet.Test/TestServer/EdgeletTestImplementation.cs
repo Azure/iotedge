@@ -79,6 +79,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer
             return Task.CompletedTask;
         }
 
+        public Task PrepareUpdateModuleAsync(string api_version, string name, ModuleSpec module) => Task.CompletedTask;
+
         public Task<ModuleDetails> GetModuleAsync(string apiVersion, string name)
         {
             if (!this.modules.TryGetValue(name, out ModuleDetails module))

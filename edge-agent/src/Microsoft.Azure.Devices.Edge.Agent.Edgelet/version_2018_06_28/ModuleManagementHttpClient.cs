@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2018_06_28
 
     class ModuleManagementHttpClient : ModuleManagementHttpClientVersioned
     {
-        public ModuleManagementHttpClient(Uri managementUri) : base(managementUri, ApiVersion.Version20180628)
+        public ModuleManagementHttpClient(Uri managementUri) : base(managementUri, ApiVersion.Version20180628, new ErrorDetectionStrategy())
         {
         }
 
@@ -196,8 +196,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2018_06_28
             }
         }
 
-        protected override ITransientErrorDetectionStrategy GetTransientErrorDetectionStartegy() => new ErrorDetectionStrategy();
-
         GeneratedCode.ModuleSpec MapToModuleSpec(ModuleSpec moduleSpec)
         {
             return new GeneratedCode.ModuleSpec()
@@ -218,12 +216,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2018_06_28
 
         Models.Identity MapFromIdentity(Identity identity)
         {
-            return new Models.Identity()
-            {
-                ModuleId = identity.ModuleId,
-                GenerationId = identity.GenerationId,
-                ManagedBy = identity.ManagedBy
-            };
+            return new Models.Identity(identity.ModuleId, identity.GenerationId, identity.ManagedBy);
         }
 
         ModuleRuntimeInfo<T> GetModuleRuntimeInfo<T>(ModuleDetails moduleDetails)

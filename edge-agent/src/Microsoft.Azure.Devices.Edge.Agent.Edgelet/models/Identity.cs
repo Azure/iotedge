@@ -2,12 +2,21 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models
 {
+    using Microsoft.Azure.Devices.Edge.Util;
+
     public class Identity
     {
-        public string ModuleId { get; set; }
+        public string ModuleId { get; }
 
-        public string ManagedBy { get; set; }
+        public string ManagedBy { get; }
 
-        public string GenerationId { get; set; }
+        public string GenerationId { get; }
+
+        public Identity(string moduleId, string generationId, string managedBy)
+        {
+            this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
+            this.ManagedBy = Preconditions.CheckNonWhiteSpace(managedBy, nameof(managedBy));
+            this.GenerationId = Preconditions.CheckNonWhiteSpace(generationId, nameof(generationId));
+        }
     }
 }

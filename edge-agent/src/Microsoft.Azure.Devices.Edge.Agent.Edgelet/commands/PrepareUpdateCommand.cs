@@ -1,13 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-using Microsoft.Azure.Devices.Edge.Agent.Core;
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
 {
-    using System.Collections.ObjectModel;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.GeneratedCode;
+    using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public class PrepareUpdateCommand : ICommand
@@ -34,17 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
 
         static ModuleSpec BuildModuleSpec(IModule module, object settings)
         {
-            var moduleSpec = new ModuleSpec
-            {
-                Name = module.Name,
-                Config = new Config
-                {
-                    Settings = settings,
-                    Env = new ObservableCollection<EnvVar>()
-                },
-                Type = module.Type
-            };
-            return moduleSpec;
+            return new ModuleSpec(module.Name, module.Type, settings);
         }
     }
 }

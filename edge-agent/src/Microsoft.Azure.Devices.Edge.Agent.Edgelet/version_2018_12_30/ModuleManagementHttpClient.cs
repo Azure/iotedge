@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2018_12_30
 
     class ModuleManagementHttpClient : ModuleManagementHttpClientVersioned
     {
-        public ModuleManagementHttpClient(Uri managementUri) : base(managementUri, ApiVersion.Version20181230)
+        public ModuleManagementHttpClient(Uri managementUri) : base(managementUri, ApiVersion.Version20181230, new ErrorDetectionStrategy())
         { }
 
         public override async Task<Models.Identity> CreateIdentityAsync(string name, string managedBy)
@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2018_12_30
 
         public override async Task<Models.Identity> UpdateIdentityAsync(string name, string generationId, string managedBy)
         {
-            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(base.ManagementUri))
+            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
             {
                 var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
                 Identity identity = await this.Execute(() => edgeletHttpClient.UpdateIdentityAsync(
@@ -171,7 +171,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2018_12_30
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
             {
                 var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
-                await this.Execute(() => edgeletHttpClient.PrepareUpdateAsync(this.Version.Name, this.MapToModuleSpec(moduleSpec)), $"prepare update for module module {moduleSpec.Name}");
+                await this.Execute(() => edgeletHttpClient.PrepareUpdateModuleAsync(this.Version.Name, moduleSpec.Name, this.MapToModuleSpec(moduleSpec)), $"prepare update for module module {moduleSpec.Name}");
             }
         }
 
@@ -197,8 +197,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2018_12_30
             }
         }
 
-        protected override ITransientErrorDetectionStrategy GetTransientErrorDetectionStartegy() => new ErrorDetectionStrategy();
-
         GeneratedCode.ModuleSpec MapToModuleSpec(ModuleSpec moduleSpec)
         {
             return new GeneratedCode.ModuleSpec()
@@ -219,12 +217,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2018_12_30
 
         Models.Identity MapFromIdentity(Identity identity)
         {
-            return new Models.Identity()
-            {
-                ModuleId = identity.ModuleId,
-                GenerationId = identity.GenerationId,
-                ManagedBy = identity.ManagedBy
-            };
+            return new Models.Identity(identity.ModuleId, identity.GenerationId, identity.ManagedBy);
         }
 
         ModuleRuntimeInfo<T> GetModuleRuntimeInfo<T>(ModuleDetails moduleDetails)
