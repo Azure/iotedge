@@ -239,29 +239,6 @@ else {
 }
 
 <#
- # Publish IoTEdgeQuickstart and LeafDevice
- #>
-
- # Subject to remove once other pipelines are updated to use the new path
-Write-Host "Publishing - IoTEdgeQuickstart x64"
-$ProjectPublishPath = Join-Path $PUBLISH_FOLDER "IoTEdgeQuickstart"
-$IoTEdgeQuickstartProjectFolder = Join-Path $BuildRepositoryLocalPath "smoke/IoTEdgeQuickstart"
-&$DOTNET_PATH publish -f netcoreapp2.1 -r "win-x64" -c $Configuration -o $ProjectPublishPath $IoTEdgeQuickstartProjectFolder |
-	Write-Host
-if ($LASTEXITCODE -ne 0) {
-	throw "Failed publishing IoTEdgeQuickstart."
-}
-
-Write-Host "Publishing - LeafDevice x64"
-$ProjectPublishPath = Join-Path $PUBLISH_FOLDER "LeafDevice"
-$LeafDeviceProjectFolder = Join-Path $BuildRepositoryLocalPath "smoke/LeafDevice"
-&$DOTNET_PATH publish -f netcoreapp2.1 -r "win-x64" -c $Configuration -o $ProjectPublishPath $LeafDeviceProjectFolder |
-	Write-Host
-if ($LASTEXITCODE -ne 0) {
-	throw "Failed publishing LeafDevice."
-}
-
-<#
  # Publish IoTEdgeQuickstart
  #>
 $IoTEdgeQuickstartProjectFolder = Join-Path $BuildRepositoryLocalPath "smoke/IoTEdgeQuickstart"
