@@ -77,7 +77,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 if (!identity.HasValue)
                 {
                     Events.InvalidMessageNoIdentity();
-                    invalid.Add(new InvalidDetails<IRoutingMessage>(routingMessage, FailureKind.None));
+                    invalid.Add(new InvalidDetails<IRoutingMessage>(routingMessage, FailureKind.InvalidInput));
+                    sendFailureDetails = new SendFailureDetails(FailureKind.InvalidInput, new InvalidOperationException("Message does not contain client identity"));
                 }
                 else
                 {
@@ -113,7 +114,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                                         else
                                         {
                                             Events.InvalidMessage(ex);
-                                            invalid.Add(new InvalidDetails<IRoutingMessage>(routingMessage, FailureKind.None));
+                                            invalid.Add(new InvalidDetails<IRoutingMessage>(routingMessage, FailureKind.InvalidInput));
+                                            sendFailureDetails = new SendFailureDetails(FailureKind.InvalidInput, new InvalidOperationException("Message does not contain client identity"));
                                         }
 
                                         if (failed.Count > 0)
