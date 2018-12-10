@@ -213,14 +213,14 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
             if (IsCACertificate(certificate))
             {
-                logger.LogWarning($"Certificate with subject: {certificate.Subject} was found to be a CA certificate, this is not permitted per the authentication policy");
+                logger?.LogWarning($"Certificate with subject: {certificate.Subject} was found to be a CA certificate, this is not permitted per the authentication policy");
                 return false;
             }
 
             (bool result, Option<string> errors) = ValidateCert(certificate, certificateChain, trustedCACerts);
             if (errors.HasValue)
             {
-                errors.ForEach(v => logger.LogWarning(v));
+                errors.ForEach(v => logger?.LogWarning(v));
             }
 
             return result;
