@@ -133,11 +133,6 @@ namespace IotEdgeQuickstart.Details
                 string args = $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Install-SecurityDaemon -Manual " +
                     $"-ContainerOs Windows -DeviceConnectionString '{connectionString}' -AgentImage '{image}'";
 
-                foreach (RegistryCredentials c in this.credentials)
-                {
-                    args += $" -Username '{c.User}' -Password (ConvertTo-SecureString '{c.Password}' -AsPlainText -Force)";
-                }
-
                 this.proxy.ForEach(proxy => { args += $" -Proxy '{proxy}'"; });
 
                 if (this.archivePath != null)
@@ -145,8 +140,15 @@ namespace IotEdgeQuickstart.Details
                     args += $" -ArchivePath '{this.archivePath}'";
                 }
 
+                string commandForDebug = args;
+
+                foreach (RegistryCredentials c in this.credentials)
+                {
+                    args += $" -Username '{c.User}' -Password (ConvertTo-SecureString '{c.Password}' -AsPlainText -Force)";
+                }
+                
                 // note: ignore hostname for now
-                Console.WriteLine($"Run command to configure: {args}");
+                Console.WriteLine($"Run command to configure: {commandForDebug}");
                 string[] result = await Process.RunAsync("powershell", args, cts.Token);
                 WriteToConsole("Output from Configure iotedge windows service", result);
 
@@ -270,17 +272,7 @@ namespace IotEdgeQuickstart.Details
             }
         }
         
-        public async Task Reset()
-        {
-            // Set 10 minute timeout since removing moby data root takes long time
-            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10)))
-            {
-                await Process.RunAsync(
-                    "powershell",
-                    $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Uninstall-SecurityDaemon -DeleteConfig -DeleteMobyDataRoot",
-                    cts.Token);
-            }
-        }
+        public Task Reset() => Task.CompletedTask;
 
         static void WriteToConsole(string header, string[] result)
         {
