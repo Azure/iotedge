@@ -258,6 +258,7 @@ namespace IotEdgeQuickstart.Details
                 }
             }
 
+            Console.WriteLine("VerifyDataOnIoTHub completed.");
             await eventHubReceiver.CloseAsync();
             await eventHubClient.CloseAsync();
         }

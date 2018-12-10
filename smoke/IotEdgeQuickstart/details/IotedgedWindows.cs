@@ -221,6 +221,10 @@ namespace IotEdgeQuickstart.Details
                     {
                         throw new Exception("Can't start up iotedge service within timeout period.");
                     }
+
+                    // Add delay to ensure iotedge service is completely started up.
+                    Task.Delay(new TimeSpan(0, 0, 0, 5));
+                    Console.WriteLine("iotedge service started on Windows");
                 }
                 else
                 {
@@ -231,10 +235,6 @@ namespace IotEdgeQuickstart.Details
             {
                 throw new Exception($"Error starting iotedged: {e}");
             }
-
-            // Add delay to ensure iotedge service is completely started up.
-            Task.Delay(new TimeSpan(0, 0, 0, 5));
-            Console.WriteLine("iotedge service started on Windows");
 
             return Task.CompletedTask;
         }
@@ -254,6 +254,14 @@ namespace IotEdgeQuickstart.Details
                         iotedgeService.Stop();
                         await Task.Delay(TimeSpan.FromSeconds(3));
                     }
+                    else
+                    {
+                        Console.WriteLine($"Can't step Iotedge service, it is in {iotedgeService.Status} status.");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Iotedge service doesn't exist.");
                 }
             }
             catch (Exception e)
@@ -261,16 +269,11 @@ namespace IotEdgeQuickstart.Details
                 throw new Exception($"Error stopping iotedged: {e}");
             }
         }
-
-        public async Task Restart()
-        {
-            await Process.RunAsync("powershell", "Restart-Service iotedge");
-            await Task.Delay(TimeSpan.FromSeconds(5));
-        }
-
+        
         public async Task Reset()
         {
-            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3)))
+            // Set 10 minute timeout since removing moby data root takes long time
+            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10)))
             {
                 await Process.RunAsync(
                     "powershell",
