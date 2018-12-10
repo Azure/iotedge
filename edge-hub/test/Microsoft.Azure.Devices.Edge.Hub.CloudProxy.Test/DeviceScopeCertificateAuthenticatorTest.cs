@@ -21,8 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     [Unit]
     public class DeviceScopeCertificateAuthenticatorTest
     {
-        string iothubHostName = "testiothub.azure-devices.net";
-        IAuthenticator underlyingAuthenticator = new NullAuthenticator();
+        static IAuthenticator UnderlyingAuthenticator = new NullAuthenticator();
 
         [Fact]
         public void DeviceScopeCertificateAuthenticatorNullArgumentsThrows()
@@ -30,12 +29,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var deviceScopeIdentitiesCache = Mock.Of<IDeviceScopeIdentitiesCache>();
             IList<X509Certificate2> trustBundle = new List<X509Certificate2>();
 
-            Assert.Throws<ArgumentNullException>(() => new DeviceScopeCertificateAuthenticator(null, iothubHostName, underlyingAuthenticator, trustBundle, true));
-            Assert.Throws<ArgumentException>(() => new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache, null, underlyingAuthenticator, trustBundle, true));
-            Assert.Throws<ArgumentException>(() => new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache, "", underlyingAuthenticator, trustBundle, true));
-            Assert.Throws<ArgumentException>(() => new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache, "   ", underlyingAuthenticator, trustBundle, true));
-            Assert.Throws<ArgumentNullException>(() => new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache, iothubHostName, null, trustBundle, true));
-            Assert.Throws<ArgumentNullException>(() => new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache, iothubHostName, underlyingAuthenticator, null, true));
+            Assert.Throws<ArgumentNullException>(() => new DeviceScopeCertificateAuthenticator(null, UnderlyingAuthenticator, trustBundle, true));
+            Assert.Throws<ArgumentNullException>(() => new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache, null, trustBundle, true));
+            Assert.Throws<ArgumentNullException>(() => new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache, UnderlyingAuthenticator, null, true));
         }
 
         [Fact]
@@ -44,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var deviceScopeIdentitiesCache = Mock.Of<IDeviceScopeIdentitiesCache>();
             IList<X509Certificate2> trustBundle = new List<X509Certificate2>();
             IClientCredentials clientCredentials = Mock.Of<IClientCredentials>();
-            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache, iothubHostName, underlyingAuthenticator, trustBundle, true);
+            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache, UnderlyingAuthenticator, trustBundle, true);
 
             Assert.False(await authenticator.AuthenticateAsync(clientCredentials));
         }
@@ -73,7 +69,39 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var serviceIdentity = new ServiceIdentity(deviceId, "1234", new string[0],
                                                       new ServiceAuthentication(new X509ThumbprintAuthentication(primaryCertificate.Thumbprint, secondaryCertificate.Thumbprint)),
                                                       ServiceIdentityStatus.Enabled);
-            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, underlyingAuthenticator, trustBundle, true);
+            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, UnderlyingAuthenticator, trustBundle, true);
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId), false)).ReturnsAsync(Option.Some(serviceIdentity));
+
+            // Assert
+            Assert.True(await authenticator.AuthenticateAsync(primaryCredentials));
+            Assert.True(await authenticator.AuthenticateAsync(secondaryCredentials));
+        }
+
+        [Fact]
+        public async Task AuthenticateAsyncWithDeviceThumbprintX509InScopeCacheSucceedsWithCACert()
+        {
+            string deviceId = "d1";
+            var primaryCertificate = TestCertificateHelper.GenerateSelfSignedCert("primo", true);
+            var primaryClientCertChain = new List<X509Certificate2>() { primaryCertificate };
+            var secondaryCertificate = TestCertificateHelper.GenerateSelfSignedCert("secondo", true);
+            var secondaryClientCertChain = new List<X509Certificate2>() { secondaryCertificate };
+
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
+            IList<X509Certificate2> trustBundle = new List<X509Certificate2>();
+            var primaryCredentials = Mock.Of<ICertificateCredentials>(c =>
+                c.Identity == Mock.Of<IDeviceIdentity>(i => i.DeviceId == deviceId && i.Id == deviceId)
+                    && c.AuthenticationType == AuthenticationType.X509Cert
+                    && c.ClientCertificate == primaryCertificate && c.ClientCertificateChain == primaryClientCertChain);
+
+            var secondaryCredentials = Mock.Of<ICertificateCredentials>(c =>
+                c.Identity == Mock.Of<IDeviceIdentity>(i => i.DeviceId == deviceId && i.Id == deviceId)
+                    && c.AuthenticationType == AuthenticationType.X509Cert
+                    && c.ClientCertificate == secondaryCertificate && c.ClientCertificateChain == secondaryClientCertChain);
+
+            var serviceIdentity = new ServiceIdentity(deviceId, "1234", new string[0],
+                                                      new ServiceAuthentication(new X509ThumbprintAuthentication(primaryCertificate.Thumbprint, secondaryCertificate.Thumbprint)),
+                                                      ServiceIdentityStatus.Enabled);
+            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, UnderlyingAuthenticator, trustBundle, true);
             deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId), false)).ReturnsAsync(Option.Some(serviceIdentity));
 
             // Assert
@@ -105,7 +133,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var serviceIdentity = new ServiceIdentity(deviceId, "1234", new string[0],
                                                       new ServiceAuthentication(new X509ThumbprintAuthentication("7A57E1E55", "DECAF")),
                                                       ServiceIdentityStatus.Enabled);
-            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, underlyingAuthenticator, trustBundle, true);
+            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, UnderlyingAuthenticator, trustBundle, true);
             deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId), false)).ReturnsAsync(Option.Some(serviceIdentity));
 
             // Assert
@@ -138,7 +166,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var serviceIdentity = new ServiceIdentity("some_other_device", "1234", new string[0],
                                                       new ServiceAuthentication(new X509ThumbprintAuthentication(primaryCertificate.Thumbprint, secondaryCertificate.Thumbprint)),
                                                       ServiceIdentityStatus.Enabled);
-            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, underlyingAuthenticator, trustBundle, true);
+            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, UnderlyingAuthenticator, trustBundle, true);
             deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == "some_other_device"), false)).ReturnsAsync(Option.Some(serviceIdentity));
 
             // Assert
@@ -171,7 +199,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var serviceIdentity = new ServiceIdentity(deviceId, "1234", new string[0],
                                                       new ServiceAuthentication(new SymmetricKeyAuthentication(key, GetKey())), ServiceIdentityStatus.Enabled);
 
-            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, underlyingAuthenticator, trustBundle, true);
+            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, UnderlyingAuthenticator, trustBundle, true);
             deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId), false)).ReturnsAsync(Option.Some(serviceIdentity));
 
             // Assert
@@ -197,7 +225,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             var serviceIdentity = new ServiceIdentity(deviceId, "1234", new string[0],
                                                       new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled);
-            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, underlyingAuthenticator, trustBundle, true);
+            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, UnderlyingAuthenticator, trustBundle, true);
             deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId), false)).ReturnsAsync(Option.Some(serviceIdentity));
 
 
@@ -224,7 +252,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             var serviceIdentity = new ServiceIdentity(someOtherDeviceId, "1234", new string[0],
                                                       new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled);
-            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, underlyingAuthenticator, trustBundle, true);
+            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, UnderlyingAuthenticator, trustBundle, true);
             deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == someOtherDeviceId), false)).ReturnsAsync(Option.Some(serviceIdentity));
 
 
@@ -250,7 +278,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             var serviceIdentity = new ServiceIdentity(deviceId, "1234", new string[0],
                                                       new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled);
-            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, underlyingAuthenticator, trustBundle, true);
+            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, UnderlyingAuthenticator, trustBundle, true);
             deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId), false)).ReturnsAsync(Option.Some(serviceIdentity));
 
 
@@ -277,7 +305,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             var serviceIdentity = new ServiceIdentity(deviceId, "1234", new string[0],
                                                       new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled);
-            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, underlyingAuthenticator, trustBundle, true);
+            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, UnderlyingAuthenticator, trustBundle, true);
             deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId), false)).ReturnsAsync(Option.Some(serviceIdentity));
 
 
@@ -304,7 +332,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             var serviceIdentity = new ServiceIdentity(deviceId, "1234", new string[0],
                                                       new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled);
-            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, underlyingAuthenticator, trustBundle, true);
+            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, UnderlyingAuthenticator, trustBundle, true);
             deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId), false)).ReturnsAsync(Option.Some(serviceIdentity));
 
 
@@ -330,7 +358,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             var serviceIdentity = new ServiceIdentity(deviceId, "1234", new string[0],
                                                       new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled);
-            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, underlyingAuthenticator, trustBundle, true);
+            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, UnderlyingAuthenticator, trustBundle, true);
             deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId), false)).ReturnsAsync(Option.Some(serviceIdentity));
 
 
@@ -356,7 +384,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             var serviceIdentity = new ServiceIdentity(deviceId, "1234", new string[0],
                                                       new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled);
-            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, underlyingAuthenticator, trustBundle, true);
+            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, UnderlyingAuthenticator, trustBundle, true);
             deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId), false)).ReturnsAsync(Option.Some(serviceIdentity));
 
 
@@ -383,7 +411,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             var serviceIdentity = new ServiceIdentity(deviceId, "1234", new string[0],
                                                       new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled);
-            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, underlyingAuthenticator, trustBundle, true);
+            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, UnderlyingAuthenticator, trustBundle, true);
             deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId), false)).ReturnsAsync(Option.Some(serviceIdentity));
 
 
@@ -418,7 +446,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var serviceIdentity = new ServiceIdentity(deviceId, moduleId, "1234", new string[0],
                                                       new ServiceAuthentication(new X509ThumbprintAuthentication(primaryCertificate.Thumbprint, secondaryCertificate.Thumbprint)),
                                                       ServiceIdentityStatus.Enabled);
-            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, underlyingAuthenticator, trustBundle, true);
+            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, UnderlyingAuthenticator, trustBundle, true);
             deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == identity), false)).ReturnsAsync(Option.Some(serviceIdentity));
 
             // Assert
@@ -448,7 +476,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             var serviceIdentity = new ServiceIdentity(deviceId, moduleId, "1234", new string[0],
                                                       new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled);
-            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, underlyingAuthenticator, trustBundle, true);
+            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, UnderlyingAuthenticator, trustBundle, true);
             deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == identity), false)).ReturnsAsync(Option.Some(serviceIdentity));
 
 

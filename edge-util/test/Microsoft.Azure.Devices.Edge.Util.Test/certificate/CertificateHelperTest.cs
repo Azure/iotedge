@@ -69,9 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
             Assert.Throws<ArgumentNullException>(() =>
             CertificateHelper.ValidateClientCert(null, new List<X509Certificate2>(), trustedCACerts, Logger.Factory.CreateLogger("something")));
             Assert.Throws<ArgumentNullException>(() =>
-            CertificateHelper.ValidateClientCert(new X509Certificate2(), null, trustedCACerts, Logger.Factory.CreateLogger("something")));
-            Assert.Throws<ArgumentNullException>(() =>
-            CertificateHelper.ValidateClientCert(new X509Certificate2(), new List<X509Certificate2>(), trustedCACerts, null));
+            CertificateHelper.ValidateClientCert(new X509Certificate2(), null, trustedCACerts, Logger.Factory.CreateLogger("something")));            
         }
 
         [Fact]
