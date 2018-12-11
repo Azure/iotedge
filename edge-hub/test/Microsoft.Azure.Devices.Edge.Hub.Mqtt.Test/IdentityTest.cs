@@ -314,9 +314,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             var authenticator = Mock.Of<IAuthenticator>(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>()) == Task.FromResult(true));
             var factory = new ClientCredentialsFactory(new IdentityProvider(iotHubHostName), productInfo);
             var credentialIdentityProvider = new DeviceIdentityProvider(authenticator, factory, isCertAuthAllowed);
-            if ((certificate != null) && (chain != null))
+            if (certificate != null && chain != null)
             {
-                credentialIdentityProvider.RemoteCertificateValidationCallback(certificate, chain);
+                credentialIdentityProvider.RegisterConnectionCertificate(certificate, chain);
             }
             ProtocolGateway.Identity.IDeviceIdentity deviceIdentity = await credentialIdentityProvider.GetAsync(deviceId, userName, token, null);
             Assert.NotNull(deviceIdentity);
