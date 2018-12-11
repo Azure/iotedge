@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                                           Option<EndPoint> localEndPoint,
                                           EndPoint remoteEndPoint,
                                           string correlationId,
-                                          Option<X509Certificate2> clientCert,
-                                          Option<IList<X509Certificate2>> clientCerthain);
+                                          X509Certificate2 clientCert,
+                                          IList<X509Certificate2> clientCertChain);
     }
 }

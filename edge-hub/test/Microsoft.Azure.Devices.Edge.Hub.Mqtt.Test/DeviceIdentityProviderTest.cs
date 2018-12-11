@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         static IEnumerable<object[]> GetIdentityProviderInputs()
         {
             string sasToken = TokenHelper.CreateSasToken("TestHub.azure-devices.net/devices/device_2", "AAAAAAAAAAAzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz");
-            X509Certificate2 certificate = new X509Certificate2();
+            var certificate = new X509Certificate2();
             IList<X509Certificate2> chain = new List<X509Certificate2>() { certificate };
 
             yield return new object[]
@@ -108,10 +108,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         {
             var authenticator = new Mock<IAuthenticator>();
             authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(authRetVal);
-            DeviceIdentityProvider deviceIdentityProvider = new DeviceIdentityProvider(authenticator.Object, new ClientCredentialsFactory(new IdentityProvider(iotHubHostName)), true);
+            var deviceIdentityProvider = new DeviceIdentityProvider(authenticator.Object, new ClientCredentialsFactory(new IdentityProvider(iotHubHostName)), true);
             if (certificate != null)
             {
-                deviceIdentityProvider.RemoteCertificateValidationCallback(certificate, chain);
+                deviceIdentityProvider.RegisterConnectionCertificate(certificate, chain);
             }
             IDeviceIdentity deviceIdentity = await deviceIdentityProvider.GetAsync(clientId, username, password, null);
             Assert.IsAssignableFrom(expectedType, deviceIdentity);
