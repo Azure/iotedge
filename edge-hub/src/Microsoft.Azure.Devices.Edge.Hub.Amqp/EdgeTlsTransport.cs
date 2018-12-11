@@ -12,13 +12,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public class EdgeHubTlsTransport : TlsTransport
+    public class EdgeTlsTransport : TlsTransport
     {
         readonly IClientCredentialsFactory clientCredentialsProvider;
         readonly IAuthenticator authenticator;
         private IList<X509Certificate2> remoteCertificateChain;
 
-        public EdgeHubTlsTransport(
+        public EdgeTlsTransport(
             TransportBase innerTransport,
             TlsTransportSettings tlsSettings,
             IAuthenticator authenticator,
@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
         protected override X509Principal CreateX509Principal(X509Certificate2 certificate)
         {
-            var principal = new EdgeHubX509Principal(new X509CertificateIdentity(certificate, true),
+            var principal = new EdgeX509Principal(new X509CertificateIdentity(certificate, true),
                                                      this.remoteCertificateChain,
                                                      this.authenticator,
                                                      this.clientCredentialsProvider);

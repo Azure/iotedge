@@ -2,36 +2,27 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 {
-    using System;
     using Microsoft.Azure.Amqp.Transport;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public class EdgeHubTlsTransportSettings : TlsTransportSettings
+    public class EdgeTlsTransportListener : TlsTransportListener
     {
         readonly IClientCredentialsFactory clientCredentialsProvider;
         readonly IAuthenticator authenticator;
 
-        public EdgeHubTlsTransportSettings(
-            TransportSettings innerSettings,
-            bool isInitiator,
+        public EdgeTlsTransportListener(
+            TlsTransportSettings transportSettings,
             IAuthenticator authenticator,
             IClientCredentialsFactory clientCredentialsProvider)
-            : base(innerSettings, isInitiator)
+            : base(transportSettings)
         {
             this.clientCredentialsProvider = Preconditions.CheckNotNull(clientCredentialsProvider, nameof(clientCredentialsProvider));
             this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
         }
 
-        public override TransportListener CreateListener()
-        {
-            if (this.Certificate == null)
-            {
-                throw new InvalidOperationException("Server certificate must be set");
-            }
-
-            return new EdgeHubTlsTransportListener(this, this.authenticator, this.clientCredentialsProvider);
-        }
+        protected override TlsTransport OnCreateTransport(TransportBase innerTransport, TlsTransportSettings tlsTransportSettings) =>
+            new EdgeTlsTransport(innerTransport, tlsTransportSettings, this.authenticator, this.clientCredentialsProvider);
     }
 }

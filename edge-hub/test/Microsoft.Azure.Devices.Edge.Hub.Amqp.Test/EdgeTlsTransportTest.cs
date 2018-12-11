@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
     using Xunit;
 
     [Unit]
-    public class EdgeHubTlsTransportTest
+    public class EdgeTlsTransportTest
     {
         [Fact]
         public void TestInvalidConstructorInputs_Fails()
@@ -21,8 +21,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var auth = Mock.Of<IAuthenticator>();
             var cf = Mock.Of<IClientCredentialsFactory>();
 
-            Assert.Throws<ArgumentNullException>(() => new EdgeHubTlsTransport(tb.Object, tts, null, cf));
-            Assert.Throws<ArgumentNullException>(() => new EdgeHubTlsTransport(tb.Object, tts, auth, null));
+            Assert.Throws<ArgumentNullException>(() => new EdgeTlsTransport(tb.Object, tts, null, cf));
+            Assert.Throws<ArgumentNullException>(() => new EdgeTlsTransport(tb.Object, tts, auth, null));
         }
 
         [Fact]
@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var auth = Mock.Of<IAuthenticator>();
             var cf = Mock.Of<IClientCredentialsFactory>();
 
-            Assert.NotNull(new EdgeHubTlsTransport(tb.Object, tts, auth, cf));
+            Assert.NotNull(new EdgeTlsTransport(tb.Object, tts, auth, cf));
         }
     }
 }

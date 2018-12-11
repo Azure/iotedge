@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
     using System.Threading.Tasks;
 
     [Unit]
-    public class EdgeHubX509PrincipalTest
+    public class EdgeX509PrincipalTest
     {
         [Fact]
         public void TestInvalidConstructorInputs_Fails()
@@ -27,9 +27,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var auth = Mock.Of<IAuthenticator>();
             var cf = Mock.Of<IClientCredentialsFactory>();
 
-            Assert.Throws<ArgumentNullException>(() => new EdgeHubX509Principal(identity, null, auth, cf));
-            Assert.Throws<ArgumentNullException>(() => new EdgeHubX509Principal(identity, chain, null, cf));
-            Assert.Throws<ArgumentNullException>(() => new EdgeHubX509Principal(identity, chain, auth, null));
+            Assert.Throws<ArgumentNullException>(() => new EdgeX509Principal(identity, null, auth, cf));
+            Assert.Throws<ArgumentNullException>(() => new EdgeX509Principal(identity, chain, null, cf));
+            Assert.Throws<ArgumentNullException>(() => new EdgeX509Principal(identity, chain, auth, null));
         }
 
         [Fact]
@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var auth = Mock.Of<IAuthenticator>();
             var cf = Mock.Of<IClientCredentialsFactory>();
 
-            Assert.NotNull(new EdgeHubX509Principal(identity, chain, auth, cf));
+            Assert.NotNull(new EdgeX509Principal(identity, chain, auth, cf));
         }
 
         [Fact]
@@ -53,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var auth = Mock.Of<IAuthenticator>();
             var cf = Mock.Of<IClientCredentialsFactory>();
 
-            var principal = new EdgeHubX509Principal(identity, chain, auth, cf);
+            var principal = new EdgeX509Principal(identity, chain, auth, cf);
             await Assert.ThrowsAsync<ArgumentException>(() => principal.AuthenticateAsync(null));
             await Assert.ThrowsAsync<ArgumentException>(() => principal.AuthenticateAsync(""));
             await Assert.ThrowsAsync<ArgumentException>(() => principal.AuthenticateAsync("   "));
@@ -76,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var authenticator = Mock.Of<IAuthenticator>();
             var clientCredentialsFactory = Mock.Of<IClientCredentialsFactory>();
             var clientCredentials = Mock.Of<IClientCredentials>();
-            var principal = new EdgeHubX509Principal(identity, chain, authenticator, clientCredentialsFactory);
+            var principal = new EdgeX509Principal(identity, chain, authenticator, clientCredentialsFactory);
             string deviceId = "myDid";
             string moduleId = "myMid";
 
@@ -100,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var authenticator = Mock.Of<IAuthenticator>();
             var clientCredentialsFactory = Mock.Of<IClientCredentialsFactory>();
             var clientCredentials = Mock.Of<IClientCredentials>();
-            var principal = new EdgeHubX509Principal(identity, chain, authenticator, clientCredentialsFactory);
+            var principal = new EdgeX509Principal(identity, chain, authenticator, clientCredentialsFactory);
             string deviceId = "myDid";
             string moduleId = string.Empty;
 
@@ -124,7 +124,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var authenticator = Mock.Of<IAuthenticator>();
             var clientCredentialsFactory = Mock.Of<IClientCredentialsFactory>();
             var clientCredentials = Mock.Of<IClientCredentials>();
-            var principal = new EdgeHubX509Principal(identity, chain, authenticator, clientCredentialsFactory);
+            var principal = new EdgeX509Principal(identity, chain, authenticator, clientCredentialsFactory);
             string deviceId = "myDid";
             string moduleId = "myMid";
 

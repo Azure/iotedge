@@ -13,13 +13,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    class EdgeHubX509Principal : X509Principal, IAmqpAuthenticator
+    class EdgeX509Principal : X509Principal, IAmqpAuthenticator
     {
         readonly IList<X509Certificate2> chainCertificates;
         readonly IClientCredentialsFactory clientCredentialsProvider;
         readonly IAuthenticator authenticator;
 
-        public EdgeHubX509Principal(
+        public EdgeX509Principal(
             X509CertificateIdentity identity,
             IList<X509Certificate2> chainCertificates,
             IAuthenticator authenticator,
@@ -87,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<EdgeHubX509Principal>();
+            static readonly ILogger Log = Logger.Factory.CreateLogger<EdgeX509Principal>();
             const int IdStart = AmqpEventIds.X509PrinciparAuthenticator;
 
             enum EventIds
