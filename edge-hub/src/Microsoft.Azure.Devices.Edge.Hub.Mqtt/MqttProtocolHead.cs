@@ -194,9 +194,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         bool RemoteCertificateValidationCallback(DeviceIdentityProvider identityProvider, X509Certificate certificate, X509Chain chain)
         {
-            if (this.clientCertAuthAllowed)
+            if (this.clientCertAuthAllowed && certificate != null)
             {
-                IList<X509Certificate2> certChain = chain.ChainElements.Cast<X509ChainElement>().Select(element => element.Certificate).ToList();
+                IList<X509Certificate2> certChain = chain?.ChainElements?
+                        .Cast<X509ChainElement>()
+                        .Select(element => element.Certificate)
+                        .ToList()
+                    ?? new List<X509Certificate2>();
                 identityProvider.RegisterConnectionCertificate(new X509Certificate2(certificate), certChain);
             }
 
