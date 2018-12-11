@@ -128,10 +128,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             }
 
             public static void Established(string correlationId) =>
-                Log.LogInformation((int)Events.EventIds.Established, Invariant($"CorrelationId {correlationId}"));
+                Log.LogInformation((int)EventIds.Established, Invariant($"Processed MQTT WebSocket request with CorrelationId {correlationId}"));
 
             public static void Exception(string correlationId, Exception ex) =>
-                Log.LogWarning((int)Events.EventIds.Exception, ex, Invariant($"CorrelationId {correlationId}"));
+                Log.LogWarning((int)EventIds.Exception, ex, Invariant($"Error processing MQTT WebSocker request with CorrelationId {correlationId}"));
         }
     }
 }
