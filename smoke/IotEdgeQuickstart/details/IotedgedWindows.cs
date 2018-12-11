@@ -225,7 +225,7 @@ namespace IotEdgeQuickstart.Details
                     }
 
                     // Add delay to ensure iotedge service is completely started.
-                    await Task.Delay(new TimeSpan(0, 0, 0, 5));
+                    await Task.Delay(TimeSpan.FromSeconds(5));
                     Console.WriteLine("iotedge service started.");
                 }
                 else
@@ -262,8 +262,6 @@ namespace IotEdgeQuickstart.Details
                             throw new Exception("Can't stop iotedge service within timeout period.");
                         }
 
-                        // Add delay to ensure iotedge service is completely stopped.
-                        await Task.Delay(new TimeSpan(0, 0, 0, 5));
                         Console.WriteLine("iotedge service stopped.");
                     }
                     else
