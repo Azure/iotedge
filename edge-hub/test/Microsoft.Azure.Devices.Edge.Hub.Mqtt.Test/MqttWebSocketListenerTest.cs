@@ -21,13 +21,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             var listener = new MqttWebSocketListener(
                 new ProtocolGateway.Mqtt.Settings(Mock.Of<ISettingsProvider>()),
                 id => Task.FromResult(Mock.Of<IMessagingBridge>()),
-                Mock.Of<Microsoft.Azure.Devices.Edge.Hub.Core.IAuthenticator>(),
+                Mock.Of<Core.IAuthenticator>(),
                 Mock.Of<IClientCredentialsFactory>(),
                 () => Mock.Of<ISessionStatePersistenceProvider>(),
                 new DotNetty.Transport.Channels.MultithreadEventLoopGroup(),
                 Mock.Of<IByteBufferAllocator>(),
                 false,
-                0);
+                0,
+                true);
 
             Assert.Equal(Constants.WebSocketSubProtocol, listener.SubProtocol);
         }
