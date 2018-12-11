@@ -7,7 +7,7 @@ param (
     [String]$Version,
 
     [ValidateNotNullOrEmpty()]
-    [String]$Architecture,
+    [String]$Architecture = $Env:PROCESSOR_ARCHITECTURE,
 
     [ValidateNotNullOrEmpty()]
     [String]$Namespace,

@@ -235,7 +235,7 @@ namespace IotEdgeQuickstart.Details
                 EventPosition.FromEnd());
 
             var result = new TaskCompletionSource<bool>();
-            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5)))
+            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10)))
             {
                 using (cts.Token.Register(() => result.TrySetCanceled()))
                 {
@@ -258,6 +258,7 @@ namespace IotEdgeQuickstart.Details
                 }
             }
 
+            Console.WriteLine("VerifyDataOnIoTHub completed.");
             await eventHubReceiver.CloseAsync();
             await eventHubClient.CloseAsync();
         }
