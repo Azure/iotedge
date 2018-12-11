@@ -231,7 +231,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     var credentialsCacheTask = c.Resolve<Task<ICredentialsCache>>();
                     // by default regardless of how the authenticationMode, X.509 certificate validation will always be scoped
                     deviceScopeIdentitiesCache = await c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
-                    certificateAuthenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache, this.iothubHostName, new NullAuthenticator(), this.trustBundle, true);
+                    certificateAuthenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache, new NullAuthenticator(), this.trustBundle, true);
                     switch (this.authenticationMode)
                     {
                         case AuthenticationMode.Cloud:

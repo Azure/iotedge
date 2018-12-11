@@ -25,6 +25,7 @@ Set-Variable EdgeServiceName -Value 'iotedge' -Option Constant
 
 Set-Variable MobyDataRootDirectory -Value 'C:\ProgramData\iotedge-moby-data' -Option Constant
 Set-Variable MobyInstallDirectory -Value 'C:\ProgramData\iotedge-moby' -Option Constant
+Set-Variable MobyLinuxNamedPipeUrl -Value 'npipe://./pipe/docker_engine' -Option Constant
 Set-Variable MobyNamedPipeUrl -Value 'npipe://./pipe/iotedge_moby_engine' -Option Constant
 Set-Variable MobyServiceName -Value 'iotedge-moby' -Option Constant
 
@@ -961,25 +962,21 @@ function Set-GatewayAddress {
 function Set-MobyEngineParameters {
     $configurationYaml = Get-Content "$EdgeInstallDirectory\config.yaml" -Raw
     $selectionRegex = 'moby_runtime:\s*uri:\s*".*"\s*#?\s*network:\s*".*"'
-    $replacementContentWindows = @(
-        'moby_runtime:',
-        "  uri: '$MobyNamedPipeUrl'",
-        '  network: ''nat''')
-    $replacementContentLinux = @(
-        'moby_runtime:',
-        '  uri: ''npipe://./pipe/docker_engine''',
-        '  network: ''azure-iot-edge''')
-    switch ($ContainerOs) {
+    $mobyUrl = switch ($ContainerOs) {
         'Linux' {
-            ($configurationYaml -replace $selectionRegex, ($replacementContentLinux -join "`n")) | Set-Content "$EdgeInstallDirectory\config.yaml" -Force
-            Write-HostGreen 'Set the Moby runtime network to ''azure-iot-edge''.'
+            $MobyLinuxNamedPipeUrl
         }
 
         'Windows' {
-            ($configurationYaml -replace $selectionRegex, ($replacementContentWindows -join "`n")) | Set-Content "$EdgeInstallDirectory\config.yaml" -Force
-            Write-HostGreen 'Set the Moby runtime network to ''nat''.'
+            $MobyNamedPipeUrl
         }
     }
+    $replacementContent = @(
+        'moby_runtime:',
+        "  uri: '$mobyUrl'",
+        '  network: ''azure-iot-edge''')
+    ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")) | Set-Content "$EdgeInstallDirectory\config.yaml" -Force
+    Write-HostGreen "Configured device with Moby Engine URL '$mobyUrl'."
 }
 
 function Get-AgentRegistry {
