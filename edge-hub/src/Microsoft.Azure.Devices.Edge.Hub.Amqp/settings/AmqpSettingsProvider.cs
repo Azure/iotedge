@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Settings
                 saslProvider.AddHandler(new SaslAnonymousHandler(Constants.ServiceBusCbsSaslMechanismName));
 
                 // This handler implements SAS key based auth.
-                saslProvider.AddHandler(new SaslPlainHandler(new EdgeHubSaslPlainAuthenticator(authenticator, identityFactory, iotHubHostName)));
+                saslProvider.AddHandler(new SaslPlainHandler(new EdgeSaslPlainAuthenticator(authenticator, identityFactory, iotHubHostName)));
 
                 settings.TransportProviders.Add(saslProvider);
             }

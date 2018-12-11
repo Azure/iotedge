@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
     using Moq;
     using Xunit;
 
-    public class EdgeHubSaslPlainAuthenticatorTest
+    public class EdgeSaslPlainAuthenticatorTest
     {
         [Fact]
         [Unit]
@@ -19,10 +19,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var authenticator = Mock.Of<IAuthenticator>();
             var identityFactory = Mock.Of<IClientCredentialsFactory>();
 
-            Assert.Throws<ArgumentNullException>(() => new EdgeHubSaslPlainAuthenticator(null, identityFactory, "iothub"));
-            Assert.Throws<ArgumentNullException>(() => new EdgeHubSaslPlainAuthenticator(authenticator, null, "iothub"));
-            Assert.Throws<ArgumentException>(() => new EdgeHubSaslPlainAuthenticator(authenticator, identityFactory, null));
-            Assert.NotNull(new EdgeHubSaslPlainAuthenticator(authenticator, identityFactory, "iothub"));
+            Assert.Throws<ArgumentNullException>(() => new EdgeSaslPlainAuthenticator(null, identityFactory, "iothub"));
+            Assert.Throws<ArgumentNullException>(() => new EdgeSaslPlainAuthenticator(authenticator, null, "iothub"));
+            Assert.Throws<ArgumentException>(() => new EdgeSaslPlainAuthenticator(authenticator, identityFactory, null));
+            Assert.NotNull(new EdgeSaslPlainAuthenticator(authenticator, identityFactory, "iothub"));
         }
 
         [Fact]
@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         {
             var authenticator = Mock.Of<IAuthenticator>();
             var identityFactory = Mock.Of<IClientCredentialsFactory>();
-            var saslAuthenticator = new EdgeHubSaslPlainAuthenticator(authenticator, identityFactory, "iothub");
+            var saslAuthenticator = new EdgeSaslPlainAuthenticator(authenticator, identityFactory, "iothub");
 
             await Assert.ThrowsAsync<ArgumentException>(() => saslAuthenticator.AuthenticateAsync(null, "pwd"));
             await Assert.ThrowsAsync<ArgumentException>(() => saslAuthenticator.AuthenticateAsync("uid", null));
@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         {
             var authenticator = Mock.Of<IAuthenticator>();
             var identityFactory = Mock.Of<IClientCredentialsFactory>();
-            var saslAuthenticator = new EdgeHubSaslPlainAuthenticator(authenticator, identityFactory, "iothub");
+            var saslAuthenticator = new EdgeSaslPlainAuthenticator(authenticator, identityFactory, "iothub");
             const string UserId = "key1@sas.root.hub1";
 
             await Assert.ThrowsAsync<EdgeHubConnectionException>(() => saslAuthenticator.AuthenticateAsync(UserId, "pwd"));
@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         {
             var authenticator = Mock.Of<IAuthenticator>();
             var clientCredentialsFactory = Mock.Of<IClientCredentialsFactory>();
-            var saslAuthenticator = new EdgeHubSaslPlainAuthenticator(authenticator, clientCredentialsFactory, "iothub");
+            var saslAuthenticator = new EdgeSaslPlainAuthenticator(authenticator, clientCredentialsFactory, "iothub");
             const string UserId = "dev1/modules/mod1@sas.hub1";
             const string Password = "pwd";
 
@@ -71,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         {
             var authenticator = Mock.Of<IAuthenticator>();
             var clientCredentialsFactory = Mock.Of<IClientCredentialsFactory>();
-            var saslAuthenticator = new EdgeHubSaslPlainAuthenticator(authenticator, clientCredentialsFactory, "iothub");
+            var saslAuthenticator = new EdgeSaslPlainAuthenticator(authenticator, clientCredentialsFactory, "iothub");
             var clientCredentials = Mock.Of<IClientCredentials>();
             const string UserId = "dev1/modules/mod1@sas.hub1";
             const string Password = "pwd";
@@ -90,7 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         {
             var authenticator = Mock.Of<IAuthenticator>();
             var clientCredentialsFactory = Mock.Of<IClientCredentialsFactory>();
-            var saslAuthenticator = new EdgeHubSaslPlainAuthenticator(authenticator, clientCredentialsFactory, "hub1");
+            var saslAuthenticator = new EdgeSaslPlainAuthenticator(authenticator, clientCredentialsFactory, "hub1");
             var identity = new ModuleIdentity("hub1", "dev1", "mod1");
             var clientCredentials = Mock.Of<IClientCredentials>(c => c.Identity == identity);
             const string UserId = "dev1/modules/mod1@sas.hub1";
