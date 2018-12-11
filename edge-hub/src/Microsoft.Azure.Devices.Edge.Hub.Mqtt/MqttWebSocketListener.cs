@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public Task ProcessWebSocketRequestAsync(WebSocket webSocket, Option<EndPoint> localEndPoint, EndPoint remoteEndPoint, string correlationId)
         {
-            var identityProvider = new DeviceIdentityProvider(this.authenticator, this.clientCredentialsFactory, true);
+            var identityProvider = new DeviceIdentityProvider(this.authenticator, this.clientCredentialsFactory, this.clientCertAuthAllowed);
             return this.ProcessWebSocketRequestAsyncInternal(identityProvider, webSocket, localEndPoint, remoteEndPoint, correlationId);
         }
 
