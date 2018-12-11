@@ -8,7 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Util
     using System.Linq;
     using System.Security.Cryptography;
     using System.Security.Cryptography.X509Certificates;
-    using System.Text.RegularExpressions;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.Edged;
     using Microsoft.Azure.Devices.Edge.Util.Edged.GeneratedCode;
@@ -21,8 +20,6 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
     public static class CertificateHelper
     {
-        public const string IotHubModuleCertificateUriScheme = "azureiot";
-
         public static string GetSha256Thumbprint(X509Certificate2 cert)
         {
             Preconditions.CheckNotNull(cert);
@@ -117,28 +114,24 @@ namespace Microsoft.Azure.Devices.Edge.Util
                             break;
                         }
                     }
-                    if (!match)
-                    {
-                        return (false, Option.Some($"Error validating cert with Subject: {remoteCertificate.SubjectName} Thumbprint: {GetSha256Thumbprint(remoteCertificate)}"));
-                    }
-                    else
-                    {
-                        return (true, Option.None<string>());
-                    }
+
+                    return match
+                        ? (true, Option.None<string>())
+                        : (false, Option.Some($"Error validating cert with Subject: {remoteCertificate.SubjectName} Thumbprint: {GetSha256Thumbprint(remoteCertificate)}"));
                 })
-                .GetOrElse(() => { return (true, Option.None<string>()); });
+                .GetOrElse(() => (true, Option.None<string>()));
 
             return result;
         }
 
         static Option<string> GetCommonNameFromSubject(string subject)
         {
-            var commonName = Option.None<string>();
+            Option<string> commonName = Option.None<string>();
             string[] parts = subject.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
 
-            foreach (var part in parts)
+            foreach (string part in parts)
             {
-                var partTrimed = part.Trim();
+                string partTrimed = part.Trim();
                 if (partTrimed.StartsWith("CN", StringComparison.OrdinalIgnoreCase))
                 {
                     string[] cnParts = partTrimed.Split(new char[] { '=' }, StringSplitOptions.RemoveEmptyEntries);
@@ -157,12 +150,9 @@ namespace Microsoft.Azure.Devices.Edge.Util
             Preconditions.CheckNotNull(certificate);
             Preconditions.CheckNotNull(commonName);
 
-            return GetCommonNameFromSubject(certificate.Subject).Map(
-                subject =>
-                {
-                    return String.Equals(commonName, subject, StringComparison.Ordinal);
-                })
-                .GetOrElse(() => { return false; });
+            return GetCommonNameFromSubject(certificate.Subject)
+                .Map(subject => commonName.Equals(subject, StringComparison.Ordinal))
+                .GetOrElse(() => false);
         }
 
         public static bool ValidateCertificateThumbprint(X509Certificate2 certificate, IList<string> thumbprints)
@@ -170,7 +160,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             Preconditions.CheckNotNull(certificate);
             Preconditions.CheckNotNull(thumbprints);
 
-            return thumbprints.Any(th => certificate.Thumbprint.Equals(th, StringComparison.OrdinalIgnoreCase));
+            return thumbprints.Any(th => certificate.Thumbprint?.Equals(th, StringComparison.OrdinalIgnoreCase) ?? false);
         }
 
         public static bool IsCACertificate(X509Certificate2 certificate)
@@ -218,10 +208,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
 
             (bool result, Option<string> errors) = ValidateCert(certificate, certificateChain, trustedCACerts);
-            if (errors.HasValue)
-            {
-                errors.ForEach(v => logger?.LogWarning(v));
-            }
+            errors.ForEach(v => logger?.LogWarning(v));
 
             return result;
         }

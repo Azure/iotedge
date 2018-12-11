@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
+namespace Microsoft.Azure.Devices.Edge.Hub.Http.Extensions
 {
     using Microsoft.AspNetCore.Http;
     using System.Collections.Generic;

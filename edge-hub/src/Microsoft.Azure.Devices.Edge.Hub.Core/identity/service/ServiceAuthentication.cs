@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service
                 return true;
             if (obj.GetType() != this.GetType())
                 return false;
-            return Equals((ServiceAuthentication)obj);
+            return this.Equals((ServiceAuthentication)obj);
         }
 
         public override int GetHashCode()

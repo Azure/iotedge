@@ -249,7 +249,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     }
 
                     ICredentialsCache credentialsCache = await credentialsCacheTask;
-                    return new Authenticator(tokenAuthenticator, certificateAuthenticator, this.edgeDeviceId, credentialsCache) as IAuthenticator;
+                    return new Authenticator(tokenAuthenticator, certificateAuthenticator, credentialsCache) as IAuthenticator;
                 })
                 .As<Task<IAuthenticator>>()
                 .SingleInstance();
