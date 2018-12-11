@@ -39,15 +39,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             this.LocalEndPoint = Preconditions.CheckNotNull(localEndpoint, nameof(localEndpoint));
             this.RemoteEndPoint = Preconditions.CheckNotNull(remoteEndpoint, nameof(remoteEndpoint));
             this.correlationId = Preconditions.CheckNonWhiteSpace(correlationId, nameof(correlationId));
-            Preconditions.CheckNotNull(clientCert, nameof(clientCert));
-            Preconditions.CheckNotNull(clientCertChain, nameof(clientCertChain));
+            Preconditions.CheckNotNull(authenticator, nameof(authenticator));
+            Preconditions.CheckNotNull(clientCredentialsProvider, nameof(clientCredentialsProvider));
 
-            clientCert.Map(cert =>
+            clientCert.ForEach(cert =>
             {
-                var chain = clientCertChain.Expect(() => new ArgumentException("Certificate chain was found to be null"));
+                IList<X509Certificate2> chain = clientCertChain.Expect(() => new ArgumentException("Certificate chain was found to be null"));
                 var x509CertIdentity = new X509CertificateIdentity(cert, true);
                 this.Principal = new EdgeHubX509Principal(x509CertIdentity, chain, authenticator, clientCredentialsProvider);
-                return true;
             });
 
             this.cancellationTokenSource = new CancellationTokenSource();

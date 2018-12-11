@@ -21,8 +21,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Settings
             IClientCredentialsFactory clientCredentialsProvider)
         {
             this.HostName = Preconditions.CheckNonWhiteSpace(hostName, nameof(hostName));
-            clientCredentialsProvider = Preconditions.CheckNotNull(clientCredentialsProvider, nameof(clientCredentialsProvider));
-            authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
+            Preconditions.CheckNotNull(clientCredentialsProvider, nameof(clientCredentialsProvider));
+            Preconditions.CheckNotNull(authenticator, nameof(authenticator));
 
             var address = new UriBuilder
             {

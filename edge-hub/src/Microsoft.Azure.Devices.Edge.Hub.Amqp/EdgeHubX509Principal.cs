@@ -5,20 +5,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     using System;
     using System.Collections.Generic;
     using System.Security.Cryptography.X509Certificates;
-    using System.Security.Principal;
-    using Microsoft.Azure.Amqp.X509;
-    using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Hub.Core;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using System.Threading.Tasks;
     using static System.FormattableString;
+    using Microsoft.Azure.Amqp.X509;
+    using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using Microsoft.Extensions.Primitives;
-
 
     class EdgeHubX509Principal : X509Principal, IAmqpAuthenticator
     {
-        IList<X509Certificate2> chainCertificates;
+        readonly IList<X509Certificate2> chainCertificates;
         readonly IClientCredentialsFactory clientCredentialsProvider;
         readonly IAuthenticator authenticator;
 
@@ -42,15 +39,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
             if (!identity.parseResult)
             {
-                Events.AuthenticationFailed($"Id format invalid {identity}. Id expected to contain either deviceId or deviceId/moduleId");
+                Events.IdentityParseFailed(id);
                 return false;
             }
-            var clientCredentials = this.clientCredentialsProvider.GetWithX509Cert(identity.deviceId, identity.moduleId, string.Empty, this.CertificateIdentity.Certificate, this.chainCertificates);
+            IClientCredentials clientCredentials = this.clientCredentialsProvider.GetWithX509Cert(identity.deviceId, identity.moduleId, string.Empty, this.CertificateIdentity.Certificate, this.chainCertificates);
 
             bool result = await this.authenticator.AuthenticateAsync(clientCredentials);
             if (!result)
             {
-                Events.AuthenticationFailed($"Unable to authenticate device with Id {id}");
+                Events.AuthenticationFailed(id);
             }
             else
             {
@@ -96,20 +93,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             enum EventIds
             {
                 AuthenticationFailed = IdStart,
+                IdentityParseFailed,
                 AuthenticationSuccess
             }
 
-            public static void AuthenticationFailed(string message, Exception ex = null)
-            {
-                if (ex == null)
-                {
-                    Log.LogDebug((int)EventIds.AuthenticationFailed, Invariant($"Amqp X.509 authentication failed due to following issue - {message}"));
-                }
-                else
-                {
-                    Log.LogWarning((int)EventIds.AuthenticationFailed, ex, Invariant($"Amqp X.509 authentication failed due to following issue - {message}"));
-                }
-            }
+            public static void IdentityParseFailed(string id, Exception ex = null) =>
+                Log.LogWarning((int)EventIds.IdentityParseFailed, Invariant($"Amqp X.509 authentication failed. Id format invalid {id}. Id expected to contain either deviceId or deviceId/moduleId"));
+
+            public static void AuthenticationFailed(string id, Exception ex = null) =>
+                Log.LogWarning((int)EventIds.AuthenticationFailed, ex, Invariant($"Unable to authenticate device with Id {id}"));
 
             public static void AuthenticationSucceeded(string id) =>
                 Log.LogDebug((int)EventIds.AuthenticationSuccess, Invariant($"Amqp X.509 authentication succeeded for client with Id {id}"));
