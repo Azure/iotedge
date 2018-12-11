@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         {
             T config = this.combinedConfigProvider.GetCombinedConfig(next.Module, runtimeInfo);
             return new GroupCommand(
-                this.PrepareUpdateAsync(next.Module, config),
+                new PrepareUpdateCommand(this.moduleManager, next.Module, config),
                 await this.StopAsync(current),
                 CreateOrUpdateCommand.BuildUpdate(
                     this.moduleManager,
@@ -59,7 +59,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         public Task<ICommand> RestartAsync(IModule module) => Task.FromResult(new RestartCommand(this.moduleManager, module) as ICommand);
 
         public Task<ICommand> WrapAsync(ICommand command) => Task.FromResult(command);
-
-        ICommand PrepareUpdateAsync(IModule module, object settings) => new PrepareUpdateCommand(this.moduleManager, module, settings);
     }
 }

@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                     new PullCommand(this.client, combinedDockerConfig),
                     new StopCommand(this.client, currentDockerModule),
                     new RemoveCommand(this.client, currentDockerModule),
-                    await this.CreateAsync(next, runtimeInfo));
+                    await CreateCommand.BuildAsync(this.client, nextDockerModule, next.ModuleIdentity, this.dockerLoggerConfig, this.configSource, next.Module is EdgeHubDockerModule));
             }
             return NullCommand.Instance;
         }
@@ -73,7 +73,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 : (ICommand)NullCommand.Instance);
 
         public Task<ICommand> WrapAsync(ICommand command) => Task.FromResult(command);
-
-        public Task<ICommand> PullAsync(IModule module) => throw new System.NotImplementedException();
     }
 }

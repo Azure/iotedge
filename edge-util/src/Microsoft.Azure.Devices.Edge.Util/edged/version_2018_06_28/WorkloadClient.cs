@@ -83,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2018_06_28
             var signRequest = new SignRequest
             {
                 KeyId = keyId,
-                Algo = SignRequestAlgo.HMACSHA256, //TODO: get from string
+                Algo = this.GetSignatureAlgorithm(algorithm),
                 Data = Encoding.UTF8.GetBytes(data)
             };
 
@@ -115,6 +115,12 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2018_06_28
                     throw ex;
             }
 
+        }
+
+        SignRequestAlgo GetSignatureAlgorithm(string algorithm)
+        {
+            // for now there is only one supported algorithm 
+            return SignRequestAlgo.HMACSHA256;
         }
 
         class ErrorDetectionStrategy : ITransientErrorDetectionStrategy

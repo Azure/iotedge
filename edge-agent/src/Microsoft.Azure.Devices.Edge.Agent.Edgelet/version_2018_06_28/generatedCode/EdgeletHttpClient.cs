@@ -7,8 +7,6 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2018_06_28.GeneratedCode
 {
-    using System.Threading.Tasks;
-
 #pragma warning disable // Disable all warnings
 
     [System.CodeDom.Compiler.GeneratedCode("NSwag", "11.17.12.0 (NJsonSchema v9.10.50.0 (Newtonsoft.Json v9.0.0.0))")]
