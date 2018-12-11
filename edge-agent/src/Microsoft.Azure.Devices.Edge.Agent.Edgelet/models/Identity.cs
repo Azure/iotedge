@@ -15,8 +15,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models
         public Identity(string moduleId, string generationId, string managedBy)
         {
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
-            this.ManagedBy = Preconditions.CheckNonWhiteSpace(managedBy, nameof(managedBy));
             this.GenerationId = Preconditions.CheckNonWhiteSpace(generationId, nameof(generationId));
+            this.ManagedBy = Preconditions.CheckNotNull(managedBy, nameof(managedBy));
         }
     }
 }
