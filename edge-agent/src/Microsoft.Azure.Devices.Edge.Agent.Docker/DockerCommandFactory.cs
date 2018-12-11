@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             this.combinedConfigProvider = Preconditions.CheckNotNull(combinedConfigProvider, nameof(combinedConfigProvider));
         }
 
-        public Task<ICommand> UpdateEdgeAgentAsync(IModule currentModule, IModuleWithIdentity next, IRuntimeInfo runtimeInfo) => Task.FromResult(NullCommand.Instance as ICommand);
+        public Task<ICommand> UpdateEdgeAgentAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo) => Task.FromResult(NullCommand.Instance as ICommand);
 
         public async Task<ICommand> CreateAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
         {

@@ -30,17 +30,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
                 this.combinedConfigProvider.GetCombinedConfig(module.Module, runtimeInfo)) as ICommand);
 
         public Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo) =>
-            this.UpdateAsync(current, next, runtimeInfo, false);
+            this.UpdateAsync(Option.Some(current), next, runtimeInfo, false);
 
-        public Task<ICommand> UpdateEdgeAgentAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo) =>
-            this.UpdateAsync(current, next, runtimeInfo, true);
+        public Task<ICommand> UpdateEdgeAgentAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo) =>
+            this.UpdateAsync(Option.None<IModule>(), module, runtimeInfo, true);
 
-        async Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo, bool start)
+        async Task<ICommand> UpdateAsync(Option<IModule> current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo, bool start)
         {
             T config = this.combinedConfigProvider.GetCombinedConfig(next.Module, runtimeInfo);
             return new GroupCommand(
                 new PrepareUpdateCommand(this.moduleManager, next.Module, config),
-                await this.StopAsync(current),
+                await current.Match(c => this.StopAsync(c), () => Task.FromResult<ICommand>(NullCommand.Instance )),
                 CreateOrUpdateCommand.BuildUpdate(
                     this.moduleManager,
                     next.Module,

@@ -193,7 +193,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             // extract list of modules that need attention
             (IList<IModule> added, IList<IModule> updateDeployed, IList<IRuntimeModule> updateStateChanged, IList<IRuntimeModule> removed, IList<IRuntimeModule> runningGreat) = this.ProcessDiff(desired, current);
 
-            List<ICommand> updateRuntimeCommands = await this.GetUpdateRuntimeCommands(current, updateDeployed, moduleIdentities, runtimeInfo);
+            List<ICommand> updateRuntimeCommands = await this.GetUpdateRuntimeCommands(updateDeployed, moduleIdentities, runtimeInfo);
 
             // create "stop" commands for modules that have been removed
             IEnumerable<Task<ICommand>> stopTasks = removed
@@ -253,17 +253,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             return new Plan(commands);
         }
 
-        async Task<List<ICommand>> GetUpdateRuntimeCommands(ModuleSet current, IList<IModule> updateDeployed, IImmutableDictionary<string, IModuleIdentity> moduleIdentities, IRuntimeInfo runtimeInfo)
+        async Task<List<ICommand>> GetUpdateRuntimeCommands(IList<IModule> updateDeployed, IImmutableDictionary<string, IModuleIdentity> moduleIdentities, IRuntimeInfo runtimeInfo)
         {
             var updateRuntimeCommands = new List<ICommand>();
             IModule edgeAgentModule = updateDeployed.FirstOrDefault(m => m.Name.Equals(Constants.EdgeAgentModuleName, StringComparison.OrdinalIgnoreCase));
-            current.TryGetModule(Constants.EdgeAgentModuleName, out IModule currentModule);
             if (edgeAgentModule != null)
             {
                 if (moduleIdentities.TryGetValue(edgeAgentModule.Name, out IModuleIdentity edgeAgentIdentity))
                 {
                     updateDeployed.Remove(edgeAgentModule);
-                    ICommand updateEdgeAgentCommand = await this.commandFactory.UpdateEdgeAgentAsync(currentModule, new ModuleWithIdentity(edgeAgentModule, edgeAgentIdentity), runtimeInfo);
+                    ICommand updateEdgeAgentCommand = await this.commandFactory.UpdateEdgeAgentAsync(new ModuleWithIdentity(edgeAgentModule, edgeAgentIdentity), runtimeInfo);
                     updateRuntimeCommands.Add(updateEdgeAgentCommand);
                 }
                 else

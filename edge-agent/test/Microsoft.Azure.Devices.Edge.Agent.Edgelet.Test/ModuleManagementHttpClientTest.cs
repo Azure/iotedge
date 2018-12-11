@@ -68,6 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             Identity identity1 = await client.CreateIdentityAsync("Foo", Constants.ModuleIdentityEdgeManagedByValue);
             Identity identity2 = await client.CreateIdentityAsync("Bar", Constants.ModuleIdentityEdgeManagedByValue);
             Identity identity3 = await client.CreateIdentityAsync("External", "Someone");
+            Identity identity4 = await client.CreateIdentityAsync("ExternalNoManagedBy", "");
 
             // Assert
             Assert.NotNull(identity1);
@@ -79,25 +80,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             Assert.NotNull(identity3);
             Assert.Equal("External", identity3.ModuleId);
             Assert.Equal("Someone", identity3.ManagedBy);
+            Assert.Equal(string.Empty, identity4.ManagedBy);
 
             // Act
-            Identity identity4 = await client.UpdateIdentityAsync("Foo", identity1.GenerationId, identity1.ManagedBy);
-            Identity identity5 = await client.UpdateIdentityAsync("Bar", identity2.GenerationId, identity2.ManagedBy);
-            Identity identity6 = await client.UpdateIdentityAsync("External", identity3.GenerationId, identity3.ManagedBy);
+            Identity identity5 = await client.UpdateIdentityAsync("Foo", identity1.GenerationId, identity1.ManagedBy);
+            Identity identity6 = await client.UpdateIdentityAsync("Bar", identity2.GenerationId, identity2.ManagedBy);
+            Identity identity7 = await client.UpdateIdentityAsync("External", identity3.GenerationId, identity3.ManagedBy);
 
             // Assert
-            Assert.NotNull(identity4);
-            Assert.Equal("Foo", identity4.ModuleId);
-            Assert.Equal(identity1.GenerationId, identity4.GenerationId);
-            Assert.Equal(identity1.ManagedBy, identity4.ManagedBy);
             Assert.NotNull(identity5);
-            Assert.Equal("Bar", identity5.ModuleId);
-            Assert.Equal(identity2.GenerationId, identity5.GenerationId);
-            Assert.Equal(identity2.ManagedBy, identity5.ManagedBy);
+            Assert.Equal("Foo", identity5.ModuleId);
+            Assert.Equal(identity1.GenerationId, identity5.GenerationId);
+            Assert.Equal(identity1.ManagedBy, identity5.ManagedBy);
             Assert.NotNull(identity6);
-            Assert.Equal("External", identity6.ModuleId);
-            Assert.Equal(identity3.GenerationId, identity6.GenerationId);
-            Assert.Equal("Someone", identity6.ManagedBy);
+            Assert.Equal("Bar", identity6.ModuleId);
+            Assert.Equal(identity2.GenerationId, identity6.GenerationId);
+            Assert.Equal(identity2.ManagedBy, identity6.ManagedBy);
+            Assert.NotNull(identity7);
+            Assert.Equal("External", identity7.ModuleId);
+            Assert.Equal(identity3.GenerationId, identity7.GenerationId);
+            Assert.Equal("Someone", identity7.ManagedBy);
 
             // Act
             List<Identity> identities = (await client.GetIdentities())
@@ -106,13 +108,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
 
             // Assert
             Assert.NotNull(identities);
-            Assert.Equal(3, identities.Count);
+            Assert.Equal(4, identities.Count);
             Assert.Equal("Bar", identities[0].ModuleId);
             Assert.Equal("External", identities[1].ModuleId);
-            Assert.Equal("Foo", identities[2].ModuleId);
+            Assert.Equal("ExternalNoManagedBy", identities[2].ModuleId);
+            Assert.Equal("Foo", identities[3].ModuleId);
             Assert.Equal(Constants.ModuleIdentityEdgeManagedByValue, identities[0].ManagedBy);
             Assert.Equal("Someone", identities[1].ManagedBy);
-            Assert.Equal(Constants.ModuleIdentityEdgeManagedByValue, identities[2].ManagedBy);
+            Assert.Equal(string.Empty, identities[2].ManagedBy);
+            Assert.Equal(Constants.ModuleIdentityEdgeManagedByValue, identities[3].ManagedBy);
 
             // Act
             await client.DeleteIdentityAsync("Bar");
@@ -122,9 +126,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
 
             // Assert
             Assert.NotNull(identities);
-            Assert.Equal(2, identities.Count);
+            Assert.Equal(3, identities.Count);
             Assert.Equal("External", identities[0].ModuleId);
-            Assert.Equal("Foo", identities[1].ModuleId);
+            Assert.Equal("ExternalNoManagedBy", identities[1].ModuleId);
+            Assert.Equal("Foo", identities[2].ModuleId);
         }
 
         [Theory]

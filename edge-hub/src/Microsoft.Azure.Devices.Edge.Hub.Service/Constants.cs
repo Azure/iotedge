@@ -31,6 +31,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         public const string InitializationVectorFileName = "EdgeHubIV";
         public const string TopicNameConversionSectionName = "mqttTopicNameConversion";
         public const string VersionInfoFileName = "versionInfo.json";
-        public const string WorkloadApiVersion = "2018-06-28";
+        public const string WorkloadApiVersion = "2018-12-30";
     }
 }

@@ -79,10 +79,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestUpdate, next.Module, this.Recorder));
         }
 
-        public Task<ICommand> UpdateEdgeAgentAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo)
+        public Task<ICommand> UpdateEdgeAgentAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
         {
-            Assert.True(next.Module is TestModule);
-            return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestUpdateEdgeAgent, next.Module, this.Recorder));
+            Assert.True(module.Module is TestModule);
+            return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestUpdateEdgeAgent, module.Module, this.Recorder));
         }
 
         public Task<ICommand> RemoveAsync(IModule module)
@@ -138,10 +138,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestUpdate, next.Module, this.Recorder, true));
         }
 
-        public Task<ICommand> UpdateEdgeAgentAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo)
+        public Task<ICommand> UpdateEdgeAgentAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
         {
-            Assert.True(next.Module is TestModule);
-            return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestUpdateEdgeAgent, next.Module, this.Recorder, true));
+            Assert.True(module.Module is TestModule);
+            return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestUpdateEdgeAgent, module.Module, this.Recorder, true));
         }
 
         public Task<ICommand> RemoveAsync(IModule module)
