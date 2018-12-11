@@ -239,7 +239,7 @@ namespace IotEdgeQuickstart.Details
             }
         }
 
-        public async Task Stop()
+        public Task Stop()
         {
             Console.WriteLine("Stopping iotedge service.");
 
@@ -278,6 +278,8 @@ namespace IotEdgeQuickstart.Details
             {
                 throw new Exception($"Error stopping iotedged: {e}");
             }
+
+            return Task.CompletedTask;
         }
         
         public Task Reset() => Task.CompletedTask;
