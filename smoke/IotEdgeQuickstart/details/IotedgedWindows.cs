@@ -203,9 +203,9 @@ namespace IotEdgeQuickstart.Details
             Environment.SetEnvironmentVariable("IOTEDGE_HOST", result.Groups[1].Value);
         }
 
-        public Task Start()
+        public async Task Start()
         {
-            Console.WriteLine("Starting up iotedge service on Windows");
+            Console.WriteLine("Starting iotedge service.");
 
             // Configured service is not started up automatically in Windows 10 RS4, but should start up in RS5.
             // Therefore we check if service is not running and start it up explicitly
@@ -221,28 +221,28 @@ namespace IotEdgeQuickstart.Details
 
                     if (iotedgeService.Status != ServiceControllerStatus.Running)
                     {
-                        throw new Exception("Can't start up iotedge service within timeout period.");
+                        throw new Exception("Can't start iotedge service within timeout period.");
                     }
 
-                    // Add delay to ensure iotedge service is completely started up.
-                    Task.Delay(new TimeSpan(0, 0, 0, 5));
-                    Console.WriteLine("iotedge service started on Windows");
+                    // Add delay to ensure iotedge service is completely started.
+                    await Task.Delay(new TimeSpan(0, 0, 0, 5));
+                    Console.WriteLine("iotedge service started.");
                 }
                 else
                 {
-                    Console.WriteLine("Iotedge service is already started.");
+                    Console.WriteLine("Iotedge service is already running.");
                 }
             }
             catch (Exception e)
             {
                 throw new Exception($"Error starting iotedged: {e}");
             }
-
-            return Task.CompletedTask;
         }
 
         public async Task Stop()
         {
+            Console.WriteLine("Stopping iotedge service.");
+
             try
             {
                 ServiceController[] services = ServiceController.GetServices();
@@ -251,14 +251,24 @@ namespace IotEdgeQuickstart.Details
                 // check service exists
                 if (iotedgeService != null)
                 {
-                    if (iotedgeService.Status == ServiceControllerStatus.Running)
+                    if (iotedgeService.Status != ServiceControllerStatus.Stopped)
                     {
                         iotedgeService.Stop();
-                        await Task.Delay(TimeSpan.FromSeconds(3));
+                        iotedgeService.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromMinutes(2));
+                        iotedgeService.Refresh();
+
+                        if (iotedgeService.Status != ServiceControllerStatus.Stopped)
+                        {
+                            throw new Exception("Can't stop iotedge service within timeout period.");
+                        }
+
+                        // Add delay to ensure iotedge service is completely stopped.
+                        await Task.Delay(new TimeSpan(0, 0, 0, 5));
+                        Console.WriteLine("iotedge service stopped.");
                     }
                     else
                     {
-                        Console.WriteLine($"Can't step Iotedge service, it is in {iotedgeService.Status} status.");
+                        Console.WriteLine("Iotedge service is already stopped.");
                     }
                 }
                 else
