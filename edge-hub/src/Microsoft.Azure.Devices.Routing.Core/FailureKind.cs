@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
         Unauthorized = 3,
         Throttled = 4,
         Timeout = 5,
+        InvalidInput = 6,
 
         // Service Bus
         MaxMessageSizeExceeded = 20,
