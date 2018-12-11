@@ -110,8 +110,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             IProcessor cloudMessageProcessor = cloudEndpoint.CreateProcessor();
             ISinkResult<IRoutingMessage> sinkResult = await cloudMessageProcessor.ProcessAsync(routingMessage, CancellationToken.None);
-            Assert.Equal(FailureKind.Transient, sinkResult.SendFailureDetails.OrDefault().FailureKind);
-            Assert.Equal(typeof(EdgeHubConnectionException), sinkResult.SendFailureDetails.OrDefault().RawException.GetType());
+            Assert.Equal(FailureKind.InvalidInput, sinkResult.SendFailureDetails.OrDefault().FailureKind);
+            Assert.Equal(typeof(InvalidOperationException), sinkResult.SendFailureDetails.OrDefault().RawException.GetType());
+            Assert.Equal(1, sinkResult.InvalidDetailsList.Count);
+            Assert.Equal(0, sinkResult.Failed.Count);
+            Assert.Equal(0, sinkResult.Succeeded.Count);
         }
     }
 }
