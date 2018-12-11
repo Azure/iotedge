@@ -112,7 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             catch (TaskCanceledException taskCanceledException)
             {
                 Events.WriteException(this.correlationId, taskCanceledException);
-                throw new EdgeHubAmqpException(taskCanceledException.Message, ErrorCode.ServerError, taskCanceledException);
+                throw new EdgeAmqpException(taskCanceledException.Message, ErrorCode.ServerError, taskCanceledException);
             }
             catch (Exception e) when (!e.IsFatal())
             {
