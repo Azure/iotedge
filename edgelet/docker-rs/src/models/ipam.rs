@@ -71,10 +71,7 @@ impl Ipam {
         self.options = Some(options);
     }
 
-    pub fn with_options(
-        mut self,
-        options: ::std::collections::HashMap<String, String>,
-    ) -> Self {
+    pub fn with_options(mut self, options: ::std::collections::HashMap<String, String>) -> Self {
         self.options = Some(options);
         self
     }
