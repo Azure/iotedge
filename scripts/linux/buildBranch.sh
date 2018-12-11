@@ -201,11 +201,25 @@ publish_leafdevice()
         .
 }
 
+build_solution()
+{
+    echo "Building IoT Edge solution"
+    $DOTNET_ROOT_PATH/dotnet build \
+        -c $CONFIGURATION \
+        -o "$BUILD_BINARIESDIRECTORY" \
+        "$ROOT_FOLDER/Microsoft.Azure.Devices.Edge.sln"
+    if [ $? -gt 0 ]; then
+        RES=1
+    fi
+}
+
 process_args "$@"
 
 rm -fr $PUBLISH_FOLDER
 
 update_version_info
+
+build_solution
 
 publish_app "Microsoft.Azure.Devices.Edge.Agent.Service"
 publish_app "Microsoft.Azure.Devices.Edge.Hub.Service"
