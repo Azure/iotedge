@@ -21,7 +21,7 @@ pub struct Ipam {
     config: Option<Vec<::std::collections::HashMap<String, String>>>,
     /// Driver-specific options, specified as a map.
     #[serde(rename = "Options", skip_serializing_if = "Option::is_none")]
-    options: Option<Vec<::std::collections::HashMap<String, String>>>,
+    options: Option<::std::collections::HashMap<String, String>>,
 }
 
 impl Ipam {
@@ -67,20 +67,20 @@ impl Ipam {
         self.config = None;
     }
 
-    pub fn set_options(&mut self, options: Vec<::std::collections::HashMap<String, String>>) {
+    pub fn set_options(&mut self, options: ::std::collections::HashMap<String, String>) {
         self.options = Some(options);
     }
 
     pub fn with_options(
         mut self,
-        options: Vec<::std::collections::HashMap<String, String>>,
+        options: ::std::collections::HashMap<String, String>,
     ) -> Self {
         self.options = Some(options);
         self
     }
 
-    pub fn options(&self) -> Option<&[::std::collections::HashMap<String, String>]> {
-        self.options.as_ref().map(AsRef::as_ref)
+    pub fn options(&self) -> Option<&::std::collections::HashMap<String, String>> {
+        self.options.as_ref()
     }
 
     pub fn reset_options(&mut self) {
