@@ -22,8 +22,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public IMessage ToMessage(IProtocolGatewayMessage sourceMessage)
         {
-            // TODO: should reject messages which are not matched ( PassThroughUnmatchedMessages)
-            this.addressConvertor.TryParseProtocolMessagePropsFromAddress(sourceMessage);
+            if(!this.addressConvertor.TryParseProtocolMessagePropsFromAddress(sourceMessage))
+            {
+                throw new InvalidOperationException("Topic name could not be matched against any of the configured routes.");
+            }
 
             byte[] payloadBytes = this.byteBufferConverter.ToByteArray(sourceMessage.Payload);
 
