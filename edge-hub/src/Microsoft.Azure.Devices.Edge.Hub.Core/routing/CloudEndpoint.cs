@@ -115,7 +115,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                                         {
                                             Events.InvalidMessage(ex);
                                             invalid.Add(new InvalidDetails<IRoutingMessage>(routingMessage, FailureKind.InvalidInput));
-                                            sendFailureDetails = new SendFailureDetails(FailureKind.InvalidInput, new InvalidOperationException("Message does not contain client identity"));
+                                            sendFailureDetails = new SendFailureDetails(FailureKind.InvalidInput, ex);
                                         }
 
                                         if (failed.Count > 0)
