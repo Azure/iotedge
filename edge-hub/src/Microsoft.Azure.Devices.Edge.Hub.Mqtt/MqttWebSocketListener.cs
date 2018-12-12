@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public Task ProcessWebSocketRequestAsync(WebSocket webSocket, Option<EndPoint> localEndPoint, EndPoint remoteEndPoint, string correlationId)
         {
-            var identityProvider = new DeviceIdentityProvider(this.authenticator, this.clientCredentialsFactory, true);
+            var identityProvider = new DeviceIdentityProvider(this.authenticator, this.clientCredentialsFactory, this.clientCertAuthAllowed);
             return this.ProcessWebSocketRequestAsyncInternal(identityProvider, webSocket, localEndPoint, remoteEndPoint, correlationId);
         }
 
@@ -128,10 +128,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             }
 
             public static void Established(string correlationId) =>
-                Log.LogInformation((int)Events.EventIds.Established, Invariant($"CorrelationId {correlationId}"));
+                Log.LogInformation((int)EventIds.Established, Invariant($"Processed MQTT WebSocket request with CorrelationId {correlationId}"));
 
             public static void Exception(string correlationId, Exception ex) =>
-                Log.LogWarning((int)Events.EventIds.Exception, ex, Invariant($"CorrelationId {correlationId}"));
+                Log.LogWarning((int)EventIds.Exception, ex, Invariant($"Error processing MQTT WebSocket request with CorrelationId {correlationId}"));
         }
     }
 }
