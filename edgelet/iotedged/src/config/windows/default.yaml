@@ -24,4 +24,4 @@ homedir: "C:\\ProgramData\\iotedge"
 
 moby_runtime:
   uri: "npipe://./pipe/iotedge_moby_engine"
-  network: "nat"
+  network: "azure-iot-edge"

@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 await ConnectToIotHub(edgeDeviceConnectionString);
 
                 ConfigHelper.TestConfig[Service.Constants.ConfigKey.IotHubConnectionString] = edgeDeviceConnectionString;
-                Hosting hosting = Hosting.Initialize(ConfigHelper.TestConfig, certificate, new DependencyManager(ConfigHelper.TestConfig, certificate, trustBundle));
+                Hosting hosting = Hosting.Initialize(ConfigHelper.TestConfig, certificate, new DependencyManager(ConfigHelper.TestConfig, certificate, trustBundle), true);
                 this.container = hosting.Container;
 
                 // CloudConnectionProvider and RoutingEdgeHub have a circular dependency. So set the

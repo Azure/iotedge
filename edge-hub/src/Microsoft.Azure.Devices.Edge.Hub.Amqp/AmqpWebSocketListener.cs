@@ -3,8 +3,10 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 {
     using System;
+    using System.Collections.Generic;
     using System.Net;
     using System.Net.WebSockets;
+    using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
@@ -43,16 +45,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 //wait until websocket is closed
                 await taskCompletion.Task;
             }
-            catch (Exception ex) when(!ex.IsFatal())
+            catch (Exception ex) when (!ex.IsFatal())
             {
                 Events.FailedAcceptWebSocket(correlationId, ex);
                 throw;
             }
         }
 
+        public Task ProcessWebSocketRequestAsync(WebSocket webSocket, Option<EndPoint> localEndPoint, EndPoint remoteEndPoint, string correlationId, X509Certificate2 clientCert, IList<X509Certificate2> clientCertChain)
+            => this.ProcessWebSocketRequestAsync(webSocket, localEndPoint, remoteEndPoint, correlationId);
+
         protected override void OnListen()
         {
-            
         }
 
         static class Events
@@ -66,15 +70,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 Exception
             }
 
-            public static void EstablishedConnection(string correlationId)
-            {
+            public static void EstablishedConnection(string correlationId) =>
                 Log.LogInformation((int)EventIds.Established, $"Connection established CorrelationId {correlationId}");
-            }
 
-            public static void FailedAcceptWebSocket(string correlationId, Exception ex)
-            {
+            public static void FailedAcceptWebSocket(string correlationId, Exception ex) =>
                 Log.LogWarning((int)EventIds.Exception, ex, $"Connection failed CorrelationId {correlationId}");
-            }
         }
     }
 

@@ -57,13 +57,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             string edgeHubConnectionString = $"{deviceConnStr};ModuleId={EdgeHubModuleId}";
 
             IClientCredentials edgeHubCredentials = identityFactory.GetWithConnectionString(edgeHubConnectionString);
+            string sasKey = ConnectionStringHelper.GetSharedAccessKey(deviceConnStr);
+            var signatureProvider = new SharedAccessKeySignatureProvider(sasKey);
             var credentialsCache = Mock.Of<ICredentialsCache>();
             var cloudConnectionProvider = new CloudConnectionProvider(
                 messageConverterProvider,
                 1,
                 new ClientProvider(),
                 Option.None<UpstreamProtocol>(),
-                Mock.Of<ITokenProvider>(),
+                new ClientTokenProvider(signatureProvider, iothubHostName, edgeDeviceId, TimeSpan.FromMinutes(60)), 
                 Mock.Of<IDeviceScopeIdentitiesCache>(),
                 credentialsCache,
                 edgeHubCredentials.Identity,

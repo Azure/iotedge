@@ -217,7 +217,7 @@ impl Main {
             }
         }
 
-        let hyper_client = MaybeProxyClient::new(get_proxy_uri()?)
+        let hyper_client = MaybeProxyClient::new(get_proxy_uri(None)?)
             .context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?;
 
         info!(
@@ -332,10 +332,10 @@ impl Main {
     }
 }
 
-pub fn get_proxy_uri() -> Result<Option<Uri>, Error> {
-    let proxy_uri = env::var("HTTPS_PROXY")
-        .or_else(|_| env::var("https_proxy"))
-        .ok();
+pub fn get_proxy_uri(https_proxy: Option<String>) -> Result<Option<Uri>, Error> {
+    let proxy_uri = https_proxy
+        .or_else(|| env::var("HTTPS_PROXY").ok())
+        .or_else(|| env::var("https_proxy").ok());
     let proxy_uri = match proxy_uri {
         None => None,
         Some(s) => {
@@ -1051,41 +1051,40 @@ mod tests {
 
     #[test]
     fn get_proxy_uri_recognizes_https_proxy() {
-        // TODO:
-        // `cargo test` runs tests in parallel threads by default, so invoking
-        // tests which read/write a per-process resource like environment
-        // variables will cause problems when there's more than one such test.
-        // To more fully test get_proxy_uri(), we'll need to create a nullable
-        // infrastructure for environment variables.
-
-        // ensure "https_proxy" env var is set
+        // Use existing "https_proxy" env var if it's set, otherwise invent one
         let proxy_val = env::var("https_proxy")
-            .or_else(|_| {
-                env::set_var("https_proxy", "abc");
-                env::var("https_proxy")
-            })
-            .unwrap()
+            .unwrap_or_else(|_| "abc".to_string())
             .parse::<Uri>()
             .unwrap()
             .to_string();
-        // ensure "HTTPS_PROXY" is NOT set (except on Windows, where env vars
-        // are case-insensitive)
-        #[cfg(unix)]
-        let other_val = env::var("HTTPS_PROXY")
-            .and_then(|var| {
-                env::remove_var("HTTPS_PROXY");
-                Ok(var)
-            })
-            .ok();
 
-        assert_eq!(get_proxy_uri().unwrap().unwrap().to_string(), proxy_val);
+        assert_eq!(
+            get_proxy_uri(Some(proxy_val.clone()))
+                .unwrap()
+                .unwrap()
+                .to_string(),
+            proxy_val
+        );
+    }
 
-        // restore value of HTTPS_PROXY if necessary
-        #[cfg(unix)]
-        {
-            if let Some(val) = other_val {
-                env::set_var("HTTPS_PROXY", val);
-            }
-        }
+    #[test]
+    fn get_proxy_uri_allows_credentials_in_authority() {
+        let proxy_val = "https://username:password@example.com/".to_string();
+        assert_eq!(
+            get_proxy_uri(Some(proxy_val.clone()))
+                .unwrap()
+                .unwrap()
+                .to_string(),
+            proxy_val
+        );
+
+        let proxy_val = "https://username%2f:password%2f@example.com/".to_string();
+        assert_eq!(
+            get_proxy_uri(Some(proxy_val.clone()))
+                .unwrap()
+                .unwrap()
+                .to_string(),
+            proxy_val
+        );
     }
 }

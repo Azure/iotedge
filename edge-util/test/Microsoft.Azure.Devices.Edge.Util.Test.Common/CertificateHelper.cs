@@ -4,7 +4,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
 {
     using System;
     using System.Collections.Generic;
+    using System.Security.Cryptography;
     using System.Security.Cryptography.X509Certificates;
+    using Org.BouncyCastle.Asn1;
     using Org.BouncyCastle.Asn1.X509;
     using Org.BouncyCastle.Crypto;
     using Org.BouncyCastle.Crypto.Generators;
@@ -102,6 +104,13 @@ U7JoTvzy0x7VG98T0+y68IcyjsSIPQ==
 -----END PRIVATE KEY-----
 ";
 
+        public enum ExtKeyUsage
+        {
+            None = 0,
+            ClientAuth,
+            ServerAuth,
+        };
+
         public static X509Certificate2 GetCertificate(string thumbprint, 
             StoreName storeName, 
             StoreLocation storeLocation)
@@ -126,9 +135,22 @@ U7JoTvzy0x7VG98T0+y68IcyjsSIPQ==
         }
 
         public static (X509Certificate2, AsymmetricCipherKeyPair) GenerateSelfSignedCert(string subjectName, DateTime notBefore, DateTime notAfter, bool isCA) =>
-            GenerateCertificate(subjectName, notBefore, notAfter, null, null, isCA, null);
+            GenerateCertificate(subjectName, notBefore, notAfter, null, null, isCA, null, null);
 
-        public static (X509Certificate2, AsymmetricCipherKeyPair) GenerateCertificate(string subjectName, DateTime notBefore, DateTime notAfter, X509Certificate2 issuer, AsymmetricCipherKeyPair issuerKeyPair, bool isCA, GeneralNames sanEntries)
+        public static (X509Certificate2, AsymmetricCipherKeyPair) GenerateServerCert(string subjectName, DateTime notBefore, DateTime notAfter) =>
+            GenerateCertificate(subjectName, notBefore, notAfter, null, null, false, null, new List<ExtKeyUsage>() { ExtKeyUsage.ServerAuth });
+
+        public static (X509Certificate2, AsymmetricCipherKeyPair) GenerateClientert(string subjectName, DateTime notBefore, DateTime notAfter) =>
+            GenerateCertificate(subjectName, notBefore, notAfter, null, null, false, null, new List<ExtKeyUsage>() { ExtKeyUsage.ClientAuth });
+
+        public static (X509Certificate2, AsymmetricCipherKeyPair) GenerateCertificate(string subjectName,
+                                                                                      DateTime notBefore,
+                                                                                      DateTime notAfter,
+                                                                                      X509Certificate2 issuer,
+                                                                                      AsymmetricCipherKeyPair issuerKeyPair,
+                                                                                      bool isCA,
+                                                                                      GeneralNames sanEntries,
+                                                                                      IList<ExtKeyUsage> extKeyUsages)
         {
             if (((issuer == null) && (issuerKeyPair != null)) ||
                 ((issuer != null) && (issuerKeyPair == null)))
@@ -170,6 +192,25 @@ U7JoTvzy0x7VG98T0+y68IcyjsSIPQ==
             {
                 certGenerator.SetIssuerDN(certName);
             }
+
+            if (extKeyUsages != null)
+            {
+                var oids = new List<DerObjectIdentifier>();
+                foreach (var usage in extKeyUsages)
+                {
+                    if (usage == ExtKeyUsage.ClientAuth)
+                    {
+                        oids.Add(new DerObjectIdentifier("1.3.6.1.5.5.7.3.8"));
+                    }
+                    else if (usage == ExtKeyUsage.ServerAuth)
+                    {
+                        oids.Add(new DerObjectIdentifier("1.3.6.1.5.5.7.3.1"));
+                    }
+                }
+                var ext = new ExtendedKeyUsage(oids);
+                certGenerator.AddExtension(X509Extensions.ExtendedKeyUsage, false, ext);
+            }
+            
             var privateKey = (issuerKeyPair == null) ? keyPair.Private : issuerKeyPair.Private;
             var signatureFactory = new Asn1SignatureFactory("SHA256WITHRSA", privateKey, random);
             BCX509.X509Certificate bcCert = certGenerator.Generate(signatureFactory);

@@ -46,6 +46,7 @@ while read proj; do
   TESTENVIRONMENT=$ENVIRONMENT $DOTNET_ROOT_PATH/dotnet test \
     $TEST_FILTER \
     -p:ParallelizeTestCollections=false \
+    --no-build \
     -v d \
     --logger "trx;LogFileName=result.trx" \
     -o "$OUTPUT_FOLDER" \
