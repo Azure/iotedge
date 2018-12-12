@@ -25,8 +25,7 @@ param (
 
     [Switch]$Dotnet,
     [Switch]$Python,
-    [Switch]$Nuget,
-    [Switch]$Coverage
+    [Switch]$Nuget
 )
 
 Set-StrictMode -Version "Latest"
@@ -103,17 +102,6 @@ if ($Python -or $All) {
     $PythonMsi = Join-Path $PythonInstallPath "python.msi"
     (New-Object System.Net.WebClient).DownloadFile($PythonUrl, $PythonMsi)
     cmd /c start /wait msiexec /passive /package $PythonMsi 
-}
-
-<#
- # Install code coverage tools
- #>
-
-if ($Coverage -or $All) {
-    $NugetConfig = Join-Path $BuildRepositoryLocalPath "nuget.config"
-    &$NugetExe install OpenCover -version 4.6.519 -OutputDirectory $BuildRepositoryLocalPath -ConfigFile $NugetConfig
-    &$NugetExe install OpenCoverToCoberturaConverter -version 0.2.6 -OutputDirectory $BuildRepositoryLocalPath -ConfigFile $NugetConfig
-    &$NugetExe install ReportGenerator  -version 2.5.6 -OutputDirectory $BuildRepositoryLocalPath -ConfigFile $NugetConfig
 }
 
 Write-Host "Done!"
