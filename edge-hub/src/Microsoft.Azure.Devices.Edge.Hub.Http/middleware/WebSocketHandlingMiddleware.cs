@@ -5,11 +5,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
     using System.Collections.Generic;
     using System.Net;
     using System.Net.WebSockets;
-    using System.Threading.Tasks;
     using System.Security.Cryptography.X509Certificates;
+    using System.Threading.Tasks;
     using AspNetCore.Http;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Http.Extensions;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using static System.FormattableString;
@@ -68,18 +69,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
                 localEndPoint = Option.Some<EndPoint>(new IPEndPoint(context.Connection.LocalIpAddress, context.Connection.LocalPort));
             }
             var remoteEndPoint = new IPEndPoint(context.Connection.RemoteIpAddress, context.Connection.RemotePort);
-            var cert = await context.Connection.GetClientCertificateAsync();
-            Option<X509Certificate2> clientCertificate = Option.Maybe(cert);
 
-            IList<X509Certificate2> certChain = null;
+            X509Certificate2 cert = await context.Connection.GetClientCertificateAsync();
             if (cert != null)
             {
-                certChain = context.GetClientCertificateChain();
+                IList<X509Certificate2> certChain = context.GetClientCertificateChain();
+                await listener.ProcessWebSocketRequestAsync(webSocket, localEndPoint, remoteEndPoint, correlationId, cert, certChain);
             }
-            Option<IList<X509Certificate2>> clientCertificateChain = (certChain == null) ? Option.None<IList<X509Certificate2>>() :
-                                                                                           Option.Some(certChain);
-
-            await listener.ProcessWebSocketRequestAsync(webSocket, localEndPoint, remoteEndPoint, correlationId, clientCertificate, clientCertificateChain);
+            else
+            {
+                await listener.ProcessWebSocketRequestAsync(webSocket, localEndPoint, remoteEndPoint, correlationId);
+            }           
 
             Events.WebSocketRequestCompleted(context.TraceIdentifier, correlationId);
         }

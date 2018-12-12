@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Adapters
     using System.IO;
     using System.Linq;
     using System.Net.Security;
+    using System.Security.Cryptography;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading;
     using System.Threading.Tasks;
@@ -23,10 +24,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Adapters
         // See http://oid-info.com/get/1.3.6.1.5.5.7.3.1
         // Indicates that a certificate can be used as a SSL server certificate
         const string ServerAuthenticationOid = "1.3.6.1.5.5.7.3.1";
-        const string AuthenticationSucceeded = "AuthenticationSucceeded";
         internal const string DisableHandshakeTimeoutSwitch = "Switch.Microsoft.AspNetCore.Server.Kestrel.Https.DisableHandshakeTimeout";
         static readonly TimeSpan HandshakeTimeout = TimeSpan.FromSeconds(10);
-        static readonly ClosedAdaptedConnection _closedAdaptedConnection = new ClosedAdaptedConnection();
+        static readonly ClosedAdaptedConnection ClosedAdaptedConnectionInstance = new ClosedAdaptedConnection();
         readonly HttpsConnectionAdapterOptions options;
         readonly X509Certificate2 serverCertificate;
 
@@ -40,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Adapters
         public bool IsHttps => true;
 
         public Task<IAdaptedConnection> OnConnectionAsync(ConnectionAdapterContext context) =>
-            Task.Run(() => InnerOnConnectionAsync(context));
+            Task.Run(() => this.InnerOnConnectionAsync(context));
 
         async Task<IAdaptedConnection> InnerOnConnectionAsync(ConnectionAdapterContext context)
         {
@@ -56,7 +56,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Adapters
             }
             else
             {
-                sslStream = new SslStream(context.ConnectionStream,
+                sslStream = new SslStream(
+                    context.ConnectionStream,
                     leaveInnerStreamOpen: false,
                     userCertificateValidationCallback: (sender, certificate, chain, sslPolicyErrors) =>
                     {
@@ -72,22 +73,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Adapters
                                 return false;
                             }
                         }
-
-                        var certificate2 = new X509Certificate2(certificate);
-                        if (certificate2 == null)
+                        else if (!this.options.ClientCertificateValidation(new X509Certificate2(certificate), chain, sslPolicyErrors))
                         {
                             return false;
                         }
 
-                        if (this.options.ClientCertificateValidation != null)
-                        {
-                            if (!this.options.ClientCertificateValidation(certificate2, chain, sslPolicyErrors))
-                            {
-                                return false;
-                            }
-                        }
-
-                        foreach (var element in chain.ChainElements)
+                        foreach (X509ChainElement element in chain.ChainElements)
                         {
                             chainElements.Add(element.Certificate);
                         }
@@ -100,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Adapters
 
             try
             {
-                if (AppContext.TryGetSwitch(DisableHandshakeTimeoutSwitch, out var handshakeDisabled) && handshakeDisabled)
+                if (AppContext.TryGetSwitch(DisableHandshakeTimeoutSwitch, out bool handshakeDisabled) && handshakeDisabled)
                 {
                     await sslStream.AuthenticateAsServerAsync(
                         this.serverCertificate,
@@ -112,14 +103,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Adapters
                 {
                     try
                     {
-                        var handshakeTask = sslStream.AuthenticateAsServerAsync(
+                        Task handshakeTask = sslStream.AuthenticateAsServerAsync(
                             this.serverCertificate,
                             certificateRequired,
                             this.options.SslProtocols,
                             this.options.CheckCertificateRevocation);
-                        var handshakeTimeoutTask = Task.Delay(HandshakeTimeout);
+                        Task handshakeTimeoutTask = Task.Delay(HandshakeTimeout);
 
-                        var firstTask = await Task.WhenAny(handshakeTask, handshakeTimeoutTask);
+                        Task firstTask = await Task.WhenAny(handshakeTask, handshakeTimeoutTask);
 
                         if (firstTask == handshakeTimeoutTask)
                         {
@@ -130,7 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Adapters
 
                             // This will cause the request processing loop to exit immediately and close the underlying connection.
                             sslStream.Dispose();
-                            return _closedAdaptedConnection;
+                            return ClosedAdaptedConnectionInstance;
                         }
 
                         // Observe potential handshake failures.
@@ -140,7 +131,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Adapters
                     {
                         Events.AuthenticationTimedOut();
                         sslStream.Dispose();
-                        return _closedAdaptedConnection;
+                        return ClosedAdaptedConnectionInstance;
                     }
                 }
             }
@@ -148,20 +139,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Adapters
             {
                 Events.AuthenticationFailed();
                 sslStream.Dispose();
-                return _closedAdaptedConnection;
+                return ClosedAdaptedConnectionInstance;
             }
 
             Events.AuthenticationSuccess();
+
             // Always set the feature even though the cert might be null
-            var cert = (sslStream.RemoteCertificate != null) ? new X509Certificate2(sslStream.RemoteCertificate) : null;
-            context.Features.Set<ITlsConnectionFeature>(new TlsConnectionFeature
-            {
-                ClientCertificate = cert
-            });
-            context.Features.Set<ITlsConnectionFeatureExtended>(new TlsConnectionFeatureExtended
-            {
-                ChainElements = chainElements
-            });
+            X509Certificate2 cert = sslStream.RemoteCertificate != null ? new X509Certificate2(sslStream.RemoteCertificate) : null;
+
+            context.Features.Set<ITlsConnectionFeature>(
+                new TlsConnectionFeature
+                {
+                    ClientCertificate = cert
+                });
+
+            context.Features.Set<ITlsConnectionFeatureExtended>(
+                new TlsConnectionFeatureExtended
+                {
+                    ChainElements = chainElements
+                });
 
             return new HttpsAdaptedConnection(sslStream);
         }
@@ -183,12 +179,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Adapters
              * order for the certificate to be acceptable to that application.
              */
 
-            var hasEkuExtension = false;
+            bool hasEkuExtension = false;
 
-            foreach (var extension in certificate.Extensions.OfType<X509EnhancedKeyUsageExtension>())
+            foreach (X509EnhancedKeyUsageExtension extension in certificate.Extensions.OfType<X509EnhancedKeyUsageExtension>())
             {
                 hasEkuExtension = true;
-                foreach (var oid in extension.EnhancedKeyUsages)
+                foreach (Oid oid in extension.EnhancedKeyUsages)
                 {
                     if (oid.Value.Equals(ServerAuthenticationOid, StringComparison.Ordinal))
                     {
@@ -203,26 +199,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Adapters
             }
         }
 
-        static void ObserveTaskException(Task task)
-        {
-            _ = task.ContinueWith(t =>
-            {
-                _ = t.Exception;
-            }, TaskScheduler.Current);
-        }
+        static void ObserveTaskException(Task task) => _ = task.ContinueWith(t => _ = t.Exception, TaskScheduler.Current);
 
         class HttpsAdaptedConnection : IAdaptedConnection
         {
-            readonly SslStream _sslStream;
+            readonly SslStream sslStream;
 
             public HttpsAdaptedConnection(SslStream sslStream)
             {
-                _sslStream = sslStream;
+                this.sslStream = sslStream;
             }
 
-            public Stream ConnectionStream => _sslStream;
+            public Stream ConnectionStream => this.sslStream;
 
-            public void Dispose() => _sslStream.Dispose();
+            public void Dispose() => this.sslStream.Dispose();
         }
 
         class ClosedAdaptedConnection : IAdaptedConnection
@@ -240,27 +230,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Adapters
             static readonly Task<int> ZeroResultTask = Task.FromResult(result: 0);
 
             public override bool CanRead => true;
+
             public override bool CanSeek => false;
+
             public override bool CanWrite => false;
 
             public override long Length
             {
-                get
-                {
-                    throw new NotSupportedException();
-                }
+                get { throw new NotSupportedException(); }
             }
 
             public override long Position
             {
-                get
-                {
-                    throw new NotSupportedException();
-                }
-                set
-                {
-                    throw new NotSupportedException();
-                }
+                get { throw new NotSupportedException(); }
+                set { throw new NotSupportedException(); }
             }
 
             public override void Flush()
@@ -277,6 +260,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Adapters
 
             public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
         }
+
         static class Events
         {
             static readonly ILogger Log = Logger.Factory.CreateLogger<HttpsExtensionConnectionAdapter>();

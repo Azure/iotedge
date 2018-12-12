@@ -73,45 +73,60 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
                 IMessage message = this.cloudEndpoint.messageConverter.ToMessage(routingMessage);
 
-                Util.Option<ICloudProxy> cloudProxy = await this.GetCloudProxy(routingMessage);
-                if (!cloudProxy.HasValue)
+                Util.Option<string> identity = this.GetIdentity(routingMessage);
+                if (!identity.HasValue)
                 {
-                    sendFailureDetails = new SendFailureDetails(FailureKind.Transient, new EdgeHubConnectionException("IoT Hub is not connected"));
-                    failed.Add(routingMessage);
+                    Events.InvalidMessageNoIdentity();
+                    invalid.Add(new InvalidDetails<IRoutingMessage>(routingMessage, FailureKind.InvalidInput));
+                    sendFailureDetails = new SendFailureDetails(FailureKind.InvalidInput, new InvalidOperationException("Message does not contain client identity"));
                 }
                 else
                 {
-                    await cloudProxy.ForEachAsync(async cp =>
-                    {
-                        try
+                    await identity.ForEachAsync(
+                        async id =>
                         {
-                            string id = this.GetIdentity(routingMessage).Expect(() => new InvalidOperationException("Could not retrieve identity of message"));
-                            using (Metrics.CloudLatency(id))
+                            Util.Option<ICloudProxy> cloudProxy = await this.cloudEndpoint.cloudProxyGetterFunc(id);
+                            if (!cloudProxy.HasValue)
                             {
-                                await cp.SendMessageAsync(message);
-                            }
-                            succeeded.Add(routingMessage);
-                            Metrics.MessageCount(id);
-                        }
-                        catch (Exception ex)
-                        {
-                            if (IsRetryable(ex))
-                            {
+                                Events.IoTHubNotConnected(id);
+                                sendFailureDetails = new SendFailureDetails(FailureKind.Transient, new EdgeHubConnectionException("IoT Hub is not connected"));
                                 failed.Add(routingMessage);
                             }
                             else
                             {
-                                Events.InvalidMessage(ex);
-                                invalid.Add(new InvalidDetails<IRoutingMessage>(routingMessage, FailureKind.None));
-                            }
+                                await cloudProxy.ForEachAsync(async cp =>
+                                {
+                                    try
+                                    {
+                                        using (Metrics.CloudLatency(id))
+                                        {
+                                            await cp.SendMessageAsync(message);
+                                        }
+                                        succeeded.Add(routingMessage);
+                                        Metrics.MessageCount(id);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        if (IsRetryable(ex))
+                                        {
+                                            failed.Add(routingMessage);
+                                        }
+                                        else
+                                        {
+                                            Events.InvalidMessage(ex);
+                                            invalid.Add(new InvalidDetails<IRoutingMessage>(routingMessage, FailureKind.InvalidInput));
+                                            sendFailureDetails = new SendFailureDetails(FailureKind.InvalidInput, ex);
+                                        }
 
-                            if (failed.Count > 0)
-                            {
-                                Events.RetryingMessage(routingMessage, ex);
-                                sendFailureDetails = new SendFailureDetails(FailureKind.Transient, new EdgeHubIOException($"Error sending messages to IotHub for device {this.cloudEndpoint.Id}"));
+                                        if (failed.Count > 0)
+                                        {
+                                            Events.RetryingMessage(routingMessage, ex);
+                                            sendFailureDetails = new SendFailureDetails(FailureKind.Transient, new EdgeHubIOException($"Error sending messages to IotHub for device {this.cloudEndpoint.Id}"));
+                                        }
+                                    }
+                                });
                             }
-                        }
-                    });
+                        });
                 }
 
                 return new SinkResult<IRoutingMessage>(succeeded, failed, invalid, sendFailureDetails);
@@ -169,21 +184,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 return Option.None<string>();
             }
 
-            Task<Util.Option<ICloudProxy>> GetCloudProxy(IRoutingMessage routingMessage)
-            {
-                return this.GetIdentity(routingMessage).Map(
-                    async id =>
-                    {
-                        Util.Option<ICloudProxy> cloudProxy = await this.cloudEndpoint.cloudProxyGetterFunc(id);
-                        if (!cloudProxy.HasValue)
-                        {
-                            Events.IoTHubNotConnected(id);
-                        }
-                        return cloudProxy;
-                    })
-                    .GetOrElse(() => Task.FromResult(Option.None<ICloudProxy>()));
-            }
-
             static bool IsRetryable(Exception ex) => ex != null && RetryableExceptions.Contains(ex.GetType());
         }
 
@@ -203,7 +203,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 RateUnit = TimeUnit.Seconds
             };
 
-            internal static MetricTags GetTags(string id)
+            static MetricTags GetTags(string id)
             {
                 return new MetricTags("DeviceId", id);
             }
@@ -224,7 +224,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 IoTHubNotConnected,
                 RetryingMessages,
                 InvalidMessage,
-                ProcessingMessages
+                ProcessingMessages,
+                InvalidMessageNoIdentity
             }
 
             public static void DeviceIdNotFound(IRoutingMessage routingMessage)
@@ -232,7 +233,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 string message = routingMessage.SystemProperties.TryGetValue(SystemProperties.MessageId, out string messageId)
                     ? Invariant($"Message with MessageId {messageId} does not contain a device Id.")
                     : "Received message does not contain a device Id";
-                Log.LogError((int)EventIds.DeviceIdNotFound, message);
+                Log.LogWarning((int)EventIds.DeviceIdNotFound, message);
             }
 
             internal static void IoTHubNotConnected(string id)
@@ -266,6 +267,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             public static void ProcessingMessages(ICollection<IRoutingMessage> routingMessages)
             {
                 Log.LogDebug((int)EventIds.ProcessingMessages, Invariant($"Sending {routingMessages.Count} message(s) upstream."));
+            }
+
+            public static void InvalidMessageNoIdentity()
+            {
+                Log.LogWarning((int)EventIds.InvalidMessageNoIdentity, "Cannot process message with no identity, discarding it.");
             }
         }
     }

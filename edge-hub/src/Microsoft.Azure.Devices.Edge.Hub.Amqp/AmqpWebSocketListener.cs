@@ -27,10 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             this.clientCredentialsFactory = Preconditions.CheckNotNull(clientCredentialsFactory, nameof(clientCredentialsFactory));
         }
 
-        public async Task ProcessWebSocketRequestAsync(WebSocket webSocket, Option<EndPoint> localEndPoint, EndPoint remoteEndPoint, string correlationId) =>
-            await ProcessWebSocketRequestAsync(webSocket, localEndPoint, remoteEndPoint, correlationId, Option.None<X509Certificate2>(), Option.None<IList<X509Certificate2>>());
-
-        public async Task ProcessWebSocketRequestAsync(WebSocket webSocket, Option<EndPoint> localEndPoint, EndPoint remoteEndPoint, string correlationId, Option<X509Certificate2> clientCert, Option<IList<X509Certificate2>> clientCertChain)
+        public async Task ProcessWebSocketRequestAsync(WebSocket webSocket, Option<EndPoint> localEndPoint, EndPoint remoteEndPoint, string correlationId)
         {
             try
             {
@@ -60,12 +57,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 //wait until websocket is closed
                 await taskCompletion.Task;
             }
-            catch (Exception ex) when(!ex.IsFatal())
+            catch (Exception ex) when (!ex.IsFatal())
             {
                 Events.FailedAcceptWebSocket(correlationId, ex);
                 throw;
             }
         }
+
+        public Task ProcessWebSocketRequestAsync(WebSocket webSocket, Option<EndPoint> localEndPoint, EndPoint remoteEndPoint, string correlationId, X509Certificate2 clientCert, IList<X509Certificate2> clientCertChain)
+            => this.ProcessWebSocketRequestAsync(webSocket, localEndPoint, remoteEndPoint, correlationId);
 
         protected override void OnListen()
         {

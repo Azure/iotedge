@@ -59,10 +59,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
         public Task ProcessDeviceMessageBatch(IIdentity identity, IEnumerable<IMessage> messages)
         {
-            Preconditions.CheckNotNull(messages, nameof(messages));
-            Metrics.MessageCount(identity, messages.Count());
+            IList<IMessage> messageList = Preconditions.CheckNotNull(messages, nameof(messages)).ToList();
+            Metrics.MessageCount(identity, messageList.Count);
 
-            IEnumerable<IRoutingMessage> routingMessages = messages
+            IEnumerable<IRoutingMessage> routingMessages = messageList
                 .Select(m => this.ProcessMessageInternal(m, true));
             return this.router.RouteAsync(routingMessages);
         }

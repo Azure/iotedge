@@ -51,6 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                                         var deviceProxy = new DeviceProxy(this, this.identity);
                                         dl.BindDeviceProxy(deviceProxy);
                                         this.deviceListener = Option.Some(dl);
+                                        Events.InitializedDeviceListener(this.identity);
                                         return dl;
                                     });
                         }
@@ -254,7 +255,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 ClosingProxy = IdStart,
                 LinkNotFound,
                 SettingProxyInactive,
-                InitializedConnectionHandler,
+                InitializedDeviceListener,
                 SendingC2DMessage,
                 SendingTelemetryMessage,
                 SentMethodInvocation,
@@ -277,9 +278,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 Log.LogInformation((int)EventIds.SettingProxyInactive, $"Setting proxy inactive for {identity.Id}.");
             }
 
-            internal static void InitializedConnectionHandler(IIdentity identity)
+            internal static void InitializedDeviceListener(IIdentity identity)
             {
-                Log.LogInformation((int)EventIds.InitializedConnectionHandler, $"Initialized AMQP connection handler for {identity.Id}");
+                Log.LogInformation((int)EventIds.InitializedDeviceListener, $"Initialized device listener in the AMQP protocol head for {identity.Id}");
             }
 
             public static void SendingC2DMessage(IIdentity identity)
