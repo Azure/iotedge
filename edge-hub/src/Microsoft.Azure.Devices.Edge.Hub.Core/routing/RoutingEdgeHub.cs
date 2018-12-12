@@ -433,11 +433,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
                     if (!string.IsNullOrWhiteSpace(messageIdsString))
                     {
-                        Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received {messages.Count} messages from {identity.Id} with message Ids [{messageIdsString}]"));
+                        Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received {messages.Count} message(s) from {identity.Id} with message Id(s) [{messageIdsString}]"));
                     }
                     else
                     {
-                        Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received {messages.Count} messages from {identity.Id}"));
+                        Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received {messages.Count} message(s) from {identity.Id}"));
                     }
                 }
             }
