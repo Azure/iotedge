@@ -14,14 +14,35 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
     public class MethodRequestValidatorTest
     {
         [Theory]
+        [MemberData(nameof(GetValidData))]
+        public void ValidateRequestTest(MethodRequest request)
+        {
+            // Arrange
+            IValidator<MethodRequest> methodRequestValidator = new MethodRequestValidator();
+
+            // Act / Assert
+            methodRequestValidator.Validate(request);
+        }
+
+
+        [Theory]
         [MemberData(nameof(GetInvalidData))]
-        public void ValidateRequestTest(MethodRequest request, Type expectedExceptionType)
+        public void ValidateInvalidRequestTest(MethodRequest request, Type expectedExceptionType)
         {
             // Arrange
             IValidator<MethodRequest> methodRequestValidator = new MethodRequestValidator();
 
             // Act / Assert
             Assert.Throws(expectedExceptionType, () => methodRequestValidator.Validate(request));
+        }
+
+        static IEnumerable<object[]> GetValidData()
+        {
+            yield return new object[] { new MethodRequest("poke", new JRaw("{\"prop\":\"val\"}"), 5, 30) };
+
+            yield return new object[] { new MethodRequest("poke", new JRaw("{\"prop\":\"val\"}"), 300, 300) };
+
+            yield return new object[] { new MethodRequest(new string('1', 100), new JRaw("{\"prop\":\"val\"}"), 300, 300) };
         }
 
         static IEnumerable<object[]> GetInvalidData()
