@@ -3,13 +3,18 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
     using System.Net.WebSockets;
+    using System.Security.Cryptography.X509Certificates;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Amqp.Transport;
+    using Microsoft.Azure.Amqp.X509;
     using Microsoft.Azure.Devices.Common.Exceptions;
+    using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -20,14 +25,39 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         readonly CancellationTokenSource cancellationTokenSource;
         bool socketAborted;
 
-        public ServerWebSocketTransport(WebSocket webSocket, string localEndpoint, string remoteEndpoint, string correlationId)
+        public ServerWebSocketTransport(WebSocket webSocket,
+                                        string localEndpoint,
+                                        string remoteEndpoint,
+                                        string correlationId)
             : base("serverwebsocket")
+
         {
             this.webSocket = Preconditions.CheckNotNull(webSocket, nameof(webSocket));
             this.LocalEndPoint = Preconditions.CheckNotNull(localEndpoint, nameof(localEndpoint));
             this.RemoteEndPoint = Preconditions.CheckNotNull(remoteEndpoint, nameof(remoteEndpoint));
             this.correlationId = Preconditions.CheckNonWhiteSpace(correlationId, nameof(correlationId));
             this.cancellationTokenSource = new CancellationTokenSource();
+        }
+
+        public ServerWebSocketTransport(WebSocket webSocket,
+                                        string localEndpoint,
+                                        string remoteEndpoint,
+                                        string correlationId,
+                                        X509Certificate2 clientCert,
+                                        IList<X509Certificate2> clientCertChain,
+                                        IAuthenticator authenticator,
+                                        IClientCredentialsFactory clientCredentialsProvider)
+            : this(webSocket, localEndpoint, remoteEndpoint, correlationId)
+        {
+            Preconditions.CheckNotNull(authenticator, nameof(authenticator));
+            Preconditions.CheckNotNull(clientCredentialsProvider, nameof(clientCredentialsProvider));
+            Preconditions.CheckNotNull(clientCert, nameof(clientCert));
+            Preconditions.CheckNotNull(clientCertChain, nameof(clientCertChain));
+
+            // we mark this as authenticated but the real authentication will happen when the credentials are
+            // evaluated in EdgeX509Principal.AuthenticateAsyc
+            var x509CertIdentity = new X509CertificateIdentity(clientCert, true);
+            this.Principal = new EdgeX509Principal(x509CertIdentity, clientCertChain, authenticator, clientCredentialsProvider);
         }
 
         public override string LocalEndPoint { get; }
@@ -90,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             catch (TaskCanceledException taskCanceledException)
             {
                 Events.WriteException(this.correlationId, taskCanceledException);
-                throw new EdgeHubAmqpException(taskCanceledException.Message, ErrorCode.ServerError, taskCanceledException);
+                throw new EdgeAmqpException(taskCanceledException.Message, ErrorCode.ServerError, taskCanceledException);
             }
             catch (Exception e) when (!e.IsFatal())
             {
@@ -153,7 +183,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 }
             }
 
-            // returning zero bytes will cause the Amqp layer above to clean up 
+            // returning zero bytes will cause the Amqp layer above to clean up
             return 0;
         }
 
@@ -200,7 +230,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 Events.CloseException(this.correlationId, e);
             }
 
-            // Call Abort anyway to ensure that all WebSocket Resources are released 
+            // Call Abort anyway to ensure that all WebSocket Resources are released
             this.Abort();
         }
 
