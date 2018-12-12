@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     using Microsoft.Azure.Amqp.Transport;
     using Microsoft.Azure.Devices.Edge.Hub.Amqp.Settings;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
@@ -27,6 +28,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         readonly IWebSocketListenerRegistry webSocketListenerRegistry;
         readonly ConcurrentDictionary<uint, AmqpConnection> incomingConnectionMap;
         readonly AsyncLock syncLock;
+        readonly IAuthenticator authenticator;
+        readonly IClientCredentialsFactory clientCredentialsFactory;
 
         TransportListener amqpTransportListener;
 
@@ -34,19 +37,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             ITransportSettings transportSettings,
             AmqpSettings amqpSettings,
             ITransportListenerProvider transportListenerProvider,
-            IWebSocketListenerRegistry webSocketListenerRegistry)
+            IWebSocketListenerRegistry webSocketListenerRegistry,
+            IAuthenticator authenticator,
+            IClientCredentialsFactory clientCredentialsFactory)
         {
             this.syncLock = new AsyncLock();
             this.transportSettings = Preconditions.CheckNotNull(transportSettings, nameof(transportSettings));
             this.amqpSettings = Preconditions.CheckNotNull(amqpSettings, nameof(amqpSettings));
             this.transportListenerProvider = Preconditions.CheckNotNull(transportListenerProvider);
             this.webSocketListenerRegistry = Preconditions.CheckNotNull(webSocketListenerRegistry);
+            this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
+            this.clientCredentialsFactory = Preconditions.CheckNotNull(clientCredentialsFactory, nameof(clientCredentialsFactory));
 
             this.connectionSettings = new AmqpConnectionSettings
             {
                 ContainerId = "DeviceGateway_" + Guid.NewGuid().ToString("N"),
                 HostName = transportSettings.HostName,
-                // 'IdleTimeOut' on connection settings will be used to close connection if server hasn't 
+                // 'IdleTimeOut' on connection settings will be used to close connection if server hasn't
                 // received any packet for 'IdleTimeout'
                 // Open frame send to client will have the IdleTimeout set and the client will do heart beat
                 // every 'IdleTimeout * 7 / 8'
@@ -63,7 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         {
             Events.Starting();
 
-            var amqpWebSocketListener = new AmqpWebSocketListener();
+            var amqpWebSocketListener = new AmqpWebSocketListener(this.authenticator, this.clientCredentialsFactory);
             // This transport settings object sets up a listener for TLS over TCP and a listener for WebSockets.
             TransportListener[] listeners = { this.transportSettings.Settings.CreateListener(), amqpWebSocketListener };
 
