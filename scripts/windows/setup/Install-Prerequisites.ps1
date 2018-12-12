@@ -45,7 +45,7 @@ if (-not $BuildRepositoryLocalPath) {
     $BuildRepositoryLocalPath = DefaultBuildRepositoryLocalPath
 }
 
-$All = -not $Dotnet -and -not $Python -and -not $Nuget -and -not $Coverage
+$All = -not $Dotnet -and -not $Python -and -not $Nuget
 
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
