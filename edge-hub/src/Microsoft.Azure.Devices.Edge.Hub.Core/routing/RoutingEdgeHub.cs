@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Extensions.Logging;
+    using Serilog.Events;
     using static System.FormattableString;
     using IIdentity = Microsoft.Azure.Devices.Edge.Hub.Core.Identity.IIdentity;
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
@@ -48,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         {
             Preconditions.CheckNotNull(message, nameof(message));
             Preconditions.CheckNotNull(identity, nameof(identity));
-            Events.MessageReceived(identity);
+            Events.MessageReceived(identity, message);
             Metrics.MessageCount(identity, 1);
             using (Metrics.MessageLatency(identity))
             {
@@ -59,10 +60,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
         public Task ProcessDeviceMessageBatch(IIdentity identity, IEnumerable<IMessage> messages)
         {
-            IList<IMessage> messageList = Preconditions.CheckNotNull(messages, nameof(messages)).ToList();
-            Metrics.MessageCount(identity, messageList.Count);
+            Preconditions.CheckNotNull(messages, nameof(messages));
+            IList<IMessage> messagesList = messages as IList<IMessage> ?? messages.ToList();
+            Events.MessagesReceived(identity, messagesList);
+            Metrics.MessageCount(identity, messagesList.Count);
 
-            IEnumerable<IRoutingMessage> routingMessages = messageList
+            IEnumerable<IRoutingMessage> routingMessages = messagesList
                 .Select(m => this.ProcessMessageInternal(m, true));
             return this.router.RouteAsync(routingMessages);
         }
@@ -321,9 +324,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 Log.LogDebug((int)EventIds.MethodReceived, Invariant($"Received method invoke call from {fromId} for {toId} with correlation ID {correlationId}"));
             }
 
-            internal static void MessageReceived(IIdentity identity)
+            internal static void MessageReceived(IIdentity identity, IMessage message)
             {
-                Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received message from {identity.Id}"));
+                if (message.SystemProperties.TryGetValue(SystemProperties.MessageId, out string messageId))
+                {
+                    Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received message from {identity.Id} with message Id {messageId}"));
+                }
+                else
+                {
+                    Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received message from {identity.Id}"));
+                }
             }
 
             internal static void UpdateReportedPropertiesReceived(IIdentity identity)
@@ -410,6 +420,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             internal static void ErrorProcessingSubscriptions(Exception e)
             {
                 Log.LogWarning((int)EventIds.ProcessingSubscription, e, Invariant($"Error processing subscriptions for connected clients."));
+            }
+
+            public static void MessagesReceived(IIdentity identity, IList<IMessage> messages)
+            {
+                if (Logger.GetLogLevel() <= LogEventLevel.Debug)
+                {
+                    string messageIdsString = messages
+                        .Select(m => m.SystemProperties.TryGetValue(SystemProperties.MessageId, out string messageId) ? messageId : string.Empty)
+                        .Where(m => !string.IsNullOrWhiteSpace(m))
+                        .Join(", ");
+
+                    if (!string.IsNullOrWhiteSpace(messageIdsString))
+                    {
+                        Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received {messages.Count} message(s) from {identity.Id} with message Id(s) [{messageIdsString}]"));
+                    }
+                    else
+                    {
+                        Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received {messages.Count} message(s) from {identity.Id}"));
+                    }
+                }
             }
         }
     }
