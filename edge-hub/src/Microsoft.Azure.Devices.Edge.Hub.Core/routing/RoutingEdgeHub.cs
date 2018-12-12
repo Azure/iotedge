@@ -421,36 +421,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             {
                 Log.LogWarning((int)EventIds.ProcessingSubscription, e, Invariant($"Error processing subscriptions for connected clients."));
             }
-            
-            public static void MessagesReceived(IIdentity identity, IEnumerable<IMessage> messages)
+
+            public static void MessagesReceived(IIdentity identity, IList<IMessage> messages)
             {
                 if (Logger.GetLogLevel() <= LogEventLevel.Debug)
                 {
-                    if (messages.Count > 1)
+                    string messageIdsString = messages
+                        .Select(m => m.SystemProperties.TryGetValue(SystemProperties.MessageId, out string messageId) ? messageId : string.Empty)
+                        .Where(m => !string.IsNullOrWhiteSpace(m))
+                        .Join(", ");
+
+                    if (!string.IsNullOrWhiteSpace(messageIdsString))
                     {
-                        IEnumerable<string> messageIds = messages
-                            .Select(m => m.SystemProperties.TryGetValue(SystemProperties.MessageId, out string messageId) ? messageId : string.Empty)
-                            .Where(m => !string.IsNullOrWhiteSpace(m));
-                        string messageIdsString = string.Join(", ", messageIds);
-                        if (!string.IsNullOrWhiteSpace(messageIdsString))
-                        {
-                            Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received messages from {identity.Id} with message Ids [{messageIdsString}]"));
-                        }
-                        else
-                        {
-                            Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received {messages.Count} messages from {identity.Id}"));
-                        }
+                        Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received {messages.Count} messages from {identity.Id} with message Ids [{messageIdsString}]"));
                     }
-                    else if (messages.Count == 1)
+                    else
                     {
-                        if (messages[0].SystemProperties.TryGetValue(SystemProperties.MessageId, out string messageId))
-                        {
-                            Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received message from {identity.Id} with message Id {messageId}"));
-                        }
-                        else
-                        {
-                            Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received message from {identity.Id}"));
-                        }
+                        Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received {messages.Count} messages from {identity.Id}"));
                     }
                 }
             }
