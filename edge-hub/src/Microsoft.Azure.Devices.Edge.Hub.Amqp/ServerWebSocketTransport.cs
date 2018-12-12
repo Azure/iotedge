@@ -28,28 +28,36 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         public ServerWebSocketTransport(WebSocket webSocket,
                                         string localEndpoint,
                                         string remoteEndpoint,
-                                        string correlationId,
-                                        Option<X509Certificate2> clientCert,
-                                        Option<IList<X509Certificate2>> clientCertChain,
-                                        IAuthenticator authenticator,
-                                        IClientCredentialsFactory clientCredentialsProvider)
+                                        string correlationId)
             : base("serverwebsocket")
+
         {
             this.webSocket = Preconditions.CheckNotNull(webSocket, nameof(webSocket));
             this.LocalEndPoint = Preconditions.CheckNotNull(localEndpoint, nameof(localEndpoint));
             this.RemoteEndPoint = Preconditions.CheckNotNull(remoteEndpoint, nameof(remoteEndpoint));
             this.correlationId = Preconditions.CheckNonWhiteSpace(correlationId, nameof(correlationId));
+            this.cancellationTokenSource = new CancellationTokenSource();
+        }
+
+        public ServerWebSocketTransport(WebSocket webSocket,
+                                        string localEndpoint,
+                                        string remoteEndpoint,
+                                        string correlationId,
+                                        X509Certificate2 clientCert,
+                                        IList<X509Certificate2> clientCertChain,
+                                        IAuthenticator authenticator,
+                                        IClientCredentialsFactory clientCredentialsProvider)
+            : this(webSocket, localEndpoint, remoteEndpoint, correlationId)
+        {
             Preconditions.CheckNotNull(authenticator, nameof(authenticator));
             Preconditions.CheckNotNull(clientCredentialsProvider, nameof(clientCredentialsProvider));
+            Preconditions.CheckNotNull(clientCert, nameof(clientCert));
+            Preconditions.CheckNotNull(clientCertChain, nameof(clientCertChain));
 
-            clientCert.ForEach(cert =>
-            {
-                IList<X509Certificate2> chain = clientCertChain.Expect(() => new ArgumentException("Certificate chain was found to be null"));
-                var x509CertIdentity = new X509CertificateIdentity(cert, true);
-                this.Principal = new EdgeX509Principal(x509CertIdentity, chain, authenticator, clientCredentialsProvider);
-            });
-
-            this.cancellationTokenSource = new CancellationTokenSource();
+            // we mark this as authenticated but the real authentication will happen when the credentials are
+            // evaluated in EdgeX509Principal.AuthenticateAsyc
+            var x509CertIdentity = new X509CertificateIdentity(clientCert, true);
+            this.Principal = new EdgeX509Principal(x509CertIdentity, clientCertChain, authenticator, clientCredentialsProvider);
         }
 
         public override string LocalEndPoint { get; }
