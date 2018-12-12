@@ -131,7 +131,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 Log.LogInformation((int)EventIds.Established, Invariant($"Processed MQTT WebSocket request with CorrelationId {correlationId}"));
 
             public static void Exception(string correlationId, Exception ex) =>
-                Log.LogWarning((int)EventIds.Exception, ex, Invariant($"Error processing MQTT WebSocker request with CorrelationId {correlationId}"));
+                Log.LogWarning((int)EventIds.Exception, ex, Invariant($"Error processing MQTT WebSocket request with CorrelationId {correlationId}"));
         }
     }
 }
