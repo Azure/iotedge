@@ -53,13 +53,16 @@ pub enum ErrorKind {
     #[fail(display = "State not modified")]
     NotModified,
 
+    #[fail(display = "Could not prepare update for module {:?}", _0)]
+    PrepareUpdateModule(String),
+
     #[fail(display = "{}", _0)]
     RuntimeOperation(RuntimeOperation),
 
     #[fail(display = "Could not start management service")]
     StartService,
 
-    #[fail(display = "Could not update module")]
+    #[fail(display = "Could not update module {:?}", _0)]
     UpdateModule(String),
 }
 
