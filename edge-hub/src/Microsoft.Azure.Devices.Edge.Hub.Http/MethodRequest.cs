@@ -12,8 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
         const int DeviceMethodDefaultResponseTimeoutInSeconds = 30;
         const int DeviceMethodDefaultConnectTimeoutInSeconds = 0;
         byte[] payloadBytes;
-
-        [JsonConstructor]
+        
         public MethodRequest(string methodName, JRaw payload)
             : this(methodName, payload, DeviceMethodDefaultResponseTimeoutInSeconds, DeviceMethodDefaultConnectTimeoutInSeconds)
         {
