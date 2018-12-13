@@ -13,13 +13,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
     using Xunit;
 
     [Unit]
-    public class ModuleManagementHttpClientTest : IClassFixture<EdleletFixture>
+    public class ModuleManagementHttpClientTest : IClassFixture<EdgeletFixture>
     {
         readonly Uri serverUrl;
+        EdgeletFixture edgeletFixture;
 
-        public ModuleManagementHttpClientTest(EdleletFixture edleletFixture)
+        public ModuleManagementHttpClientTest(EdgeletFixture edgeletFixture)
         {
-            this.serverUrl = new Uri(edleletFixture.ServiceUrl);
+            this.serverUrl = new Uri(edgeletFixture.ServiceUrl);
+            this.edgeletFixture = edgeletFixture;
         }
 
         [Fact]
