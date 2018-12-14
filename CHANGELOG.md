@@ -1,4 +1,4 @@
-# 1.0.5 (2018-12-13)
+# 1.0.5 (2018-12-17)
 * Support Windows 10 1809 (RS5)
 * Improved error messages in `iotedge`/`iotedged`
 * Stability and reliability fixes
