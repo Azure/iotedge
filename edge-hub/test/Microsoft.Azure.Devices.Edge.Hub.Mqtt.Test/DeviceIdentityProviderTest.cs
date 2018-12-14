@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         {
             string sasToken = TokenHelper.CreateSasToken("TestHub.azure-devices.net/devices/device_2", "AAAAAAAAAAAzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz");
             var certificate = new X509Certificate2();
-            IList<X509Certificate2> chain = new List<X509Certificate2>() { certificate };
+            IList<X509Certificate2> chain = new List<X509Certificate2> { certificate };
 
             yield return new object[]
             {
@@ -167,6 +167,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         public void ParseUserNameErrorTest(string username)
         {
             Assert.Throws<EdgeHubConnectionException>(() => DeviceIdentityProvider.ParseUserName(username));
+        }
+
+        [Fact]
+        [Unit]
+        public async Task GetIdentityCertAuthNotEnabled()
+        {
+            string iotHubHostName = "foo.azure-devices.net";
+            var authenticator = new Mock<IAuthenticator>();
+            authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(true);
+            var deviceIdentityProvider = new DeviceIdentityProvider(authenticator.Object, new ClientCredentialsFactory(new IdentityProvider(iotHubHostName)), false);
+            deviceIdentityProvider.RegisterConnectionCertificate(new X509Certificate2(), new List<X509Certificate2> { new X509Certificate2() });
+            IDeviceIdentity deviceIdentity = await deviceIdentityProvider.GetAsync(                
+                "Device_2",
+                $"127.0.0.1/Device_2/api-version=2016-11-14&DeviceClientType={Uri.EscapeDataString("Microsoft.Azure.Devices.Client/1.2.2")}",
+                null,
+                null);
+            Assert.Equal(UnauthenticatedDeviceIdentity.Instance, deviceIdentity);
         }
     }
 }

@@ -42,24 +42,35 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 Preconditions.CheckNonWhiteSpace(clientId, nameof(clientId));
 
                 (string deviceId, string moduleId, string deviceClientType) = ParseUserName(username);
-                IClientCredentials deviceCredentials;
+                IClientCredentials deviceCredentials = null;
 
-                if (password == null && this.clientCertAuthAllowed)
+                if (!string.IsNullOrEmpty(password))
                 {
-                    deviceCredentials = this.remoteCertificate
-                        .Map(
-                            cert =>
-                                this.clientCredentialsFactory.GetWithX509Cert(
-                                    deviceId,
-                                    moduleId,
-                                    deviceClientType,
-                                    cert,
-                                    this.remoteCertificateChain))
-                        .GetOrElse(() => throw new InvalidOperationException($"Unable to validate credientials since no certificate was provided and password is null"));
+                    deviceCredentials = this.clientCredentialsFactory.GetWithSasToken(deviceId, moduleId, deviceClientType, password, false);
+                }
+                else if (this.remoteCertificate.HasValue)
+                {
+                    if (!this.clientCertAuthAllowed)
+                    {
+                        Events.CertAuthNotEnabled(deviceId, moduleId);
+                        return UnauthenticatedDeviceIdentity.Instance;
+                    }
+
+                    this.remoteCertificate.ForEach(
+                        cert =>
+                        {
+                            deviceCredentials = this.clientCredentialsFactory.GetWithX509Cert(
+                                deviceId,
+                                moduleId,
+                                deviceClientType,
+                                cert,
+                                this.remoteCertificateChain);
+                        });
                 }
                 else
                 {
-                    deviceCredentials = this.clientCredentialsFactory.GetWithSasToken(deviceId, moduleId, deviceClientType, password, false);
+                    Events.AuthNotFound(deviceId, moduleId);
+                    return UnauthenticatedDeviceIdentity.Instance;
                 }
 
                 if (deviceCredentials == null
@@ -75,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex);
+                Events.ErrorCreatingIdentity(ex);
                 throw;
             }
         }
@@ -210,12 +221,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             enum EventIds
             {
                 CreateSuccess = IdStart,
-                CreateFailure
+                CreateFailure,
+                CertAuthNotEnabled,
+                AuthNotFound,
+                ErrorCreatingIdentity
             }
 
-            public static void Success(string clientId, string username) => Log.LogInformation((int)EventIds.CreateSuccess, Invariant($"Successfully generated identity for clientId {clientId} and username {username}"));
+            static string GetId(string deviceId, string moduleId) =>
+                string.IsNullOrWhiteSpace(moduleId) ? deviceId : $"{deviceId}/{moduleId}";
 
-            public static void Error(string clientId, string username) => Log.LogError((int)EventIds.CreateFailure, Invariant($"Unable to generate identity for clientId {clientId} and username {username}"));
+            public static void Success(string clientId, string username)
+                => Log.LogInformation((int)EventIds.CreateSuccess, Invariant($"Successfully generated identity for clientId {clientId} and username {username}"));
+
+            public static void Error(string clientId, string username)
+                => Log.LogError((int)EventIds.CreateFailure, Invariant($"Unable to generate identity for clientId {clientId} and username {username}"));
+
+            public static void CertAuthNotEnabled(string deviceId, string moduleId)
+                => Log.LogInformation((int)EventIds.CertAuthNotEnabled, Invariant($"Cannot create identity for {GetId(deviceId, moduleId)} because certificate authentication is not enabled"));
+
+            public static void AuthNotFound(string deviceId, string moduleId)
+                => Log.LogInformation((int)EventIds.AuthNotFound, Invariant($"Cannot create identity for {GetId(deviceId, moduleId)} because neither token nor certificate was presented"));
+
+            public static void ErrorCreatingIdentity(Exception ex)
+                => Log.LogError((int)EventIds.ErrorCreatingIdentity, ex, "Error creating client identity");
         }
     }
 }

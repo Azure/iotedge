@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Extensions
     {
         public static IList<X509Certificate2> GetClientCertificateChain(this HttpContext context)
         {
-            ITlsConnectionFeatureExtended feature = context.Features.Get<ITlsConnectionFeatureExtended>();
+            var feature = context.Features.Get<ITlsConnectionFeatureExtended>();
             return (feature == null) ? new List<X509Certificate2>() : feature.ChainElements;
         }
     }
