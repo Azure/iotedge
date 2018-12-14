@@ -42,7 +42,8 @@ where
                         RuntimeOperation::StartModule(name),
                     )))),
                 })
-            }).into_future()
+            })
+            .into_future()
             .flatten()
             .and_then(|name| {
                 Ok(Response::builder()
@@ -51,7 +52,8 @@ where
                     .context(ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(
                         name,
                     )))?)
-            }).or_else(|e| Ok(e.into_response()));
+            })
+            .or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }

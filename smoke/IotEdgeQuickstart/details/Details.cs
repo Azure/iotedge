@@ -235,7 +235,7 @@ namespace IotEdgeQuickstart.Details
                 EventPosition.FromEnd());
 
             var result = new TaskCompletionSource<bool>();
-            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5)))
+            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10)))
             {
                 using (cts.Token.Register(() => result.TrySetCanceled()))
                 {
@@ -258,6 +258,7 @@ namespace IotEdgeQuickstart.Details
                 }
             }
 
+            Console.WriteLine("VerifyDataOnIoTHub completed.");
             await eventHubReceiver.CloseAsync();
             await eventHubClient.CloseAsync();
         }
@@ -374,9 +375,6 @@ namespace IotEdgeQuickstart.Details
             return (deployJson, new [] { edgeAgentImage, edgeHubImage, tempSensorImage });
         }
 
-        // TODO: Remove Env (SSL_CERTIFICATE_PATH and SSL_CERTIFICATE_NAME) from
-        //       modulesContent.$edgeAgent.systemModules.edgeHub.settings.createOptions
-        //       once Azure/iot-edge-v1#632 is fixed and available on mcr.microsoft.com
         const string DeployJson = @"
 {
   ""modulesContent"": {
@@ -404,7 +402,7 @@ namespace IotEdgeQuickstart.Details
             ""restartPolicy"": ""always"",
             ""settings"": {
               ""image"": ""<image-edge-hub>"",
-              ""createOptions"": ""{\""HostConfig\"":{\""PortBindings\"":{\""8883/tcp\"":[{\""HostPort\"":\""8883\""}],\""443/tcp\"":[{\""HostPort\"":\""443\""}]}},\""Env\"":[\""SSL_CERTIFICATE_PATH=/mnt/edgehub\"",\""SSL_CERTIFICATE_NAME=edge-hub-server.cert.pfx\""]}""
+              ""createOptions"": ""{\""HostConfig\"":{\""PortBindings\"":{\""8883/tcp\"":[{\""HostPort\"":\""8883\""}],\""443/tcp\"":[{\""HostPort\"":\""443\""}],\""5671/tcp\"":[{\""HostPort\"":\""5671\""}]}}}""
             },
 		    ""env"": {
 				""OptimizeForPerformance"": {

@@ -11,13 +11,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public class EdgeHubSaslPlainAuthenticator : ISaslPlainAuthenticator
+    public class EdgeSaslPlainAuthenticator : ISaslPlainAuthenticator
     {
         readonly IAuthenticator authenticator;
         readonly IClientCredentialsFactory clientCredentialsFactory;
         readonly string iotHubHostName;
 
-        public EdgeHubSaslPlainAuthenticator(IAuthenticator authenticator, IClientCredentialsFactory clientCredentialsFactory, string iotHubHostName)
+        public EdgeSaslPlainAuthenticator(IAuthenticator authenticator, IClientCredentialsFactory clientCredentialsFactory, string iotHubHostName)
         {
             this.clientCredentialsFactory = Preconditions.CheckNotNull(clientCredentialsFactory, nameof(clientCredentialsFactory));
             this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                     throw new EdgeHubConnectionException("Authentication failed.");
                 }
 
-                return new SaslPrincipal(new AmqpAuthentication(true, Option.Some(deviceIdentity)));
+                return new SaslPrincipal(true, deviceIdentity);
             }
             catch (Exception ex) when (!ex.IsFatal())
             {
@@ -63,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<EdgeHubSaslPlainAuthenticator>();
+            static readonly ILogger Log = Logger.Factory.CreateLogger<EdgeSaslPlainAuthenticator>();
             const int IdStart = AmqpEventIds.SaslPlainAuthenticator;
 
             enum EventIds

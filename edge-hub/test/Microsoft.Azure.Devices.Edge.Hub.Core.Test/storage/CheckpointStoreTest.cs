@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
 {
     using System;
@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
         [Fact]
         public async Task CheckpointStoreBasicTest()
         {
-            ICheckpointStore checkpointStore = CheckpointStore.Create(new InMemoryDbStoreProvider());
+            ICheckpointStore checkpointStore = CheckpointStore.Create(new StoreProvider(new InMemoryDbStoreProvider()));
 
             for (long i = 0; i < 10; i++)
             {

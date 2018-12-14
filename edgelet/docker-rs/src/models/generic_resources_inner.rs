@@ -13,10 +13,7 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GenericResourcesInner {
-    #[serde(
-        rename = "NamedResourceSpec",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "NamedResourceSpec", skip_serializing_if = "Option::is_none")]
     named_resource_spec: Option<::models::GenericResourcesInnerNamedResourceSpec>,
     #[serde(
         rename = "DiscreteResourceSpec",

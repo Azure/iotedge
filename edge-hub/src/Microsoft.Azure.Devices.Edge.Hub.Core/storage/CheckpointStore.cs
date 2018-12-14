@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 {
     using System;
@@ -15,15 +15,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
     {
         readonly IEntityStore<string, CheckpointEntity> underlyingStore;
 
-        CheckpointStore(IEntityStore<string, CheckpointEntity> underlyingStore)
+        internal CheckpointStore(IEntityStore<string, CheckpointEntity> underlyingStore)
         {
             this.underlyingStore = underlyingStore;
         }
 
-        public static CheckpointStore Create(IDbStoreProvider dbStoreProvider)
+        public static CheckpointStore Create(IStoreProvider storeProvider)
         {
-            IDbStore dbStore = Preconditions.CheckNotNull(dbStoreProvider, nameof(dbStoreProvider)).GetDbStore(Constants.CheckpointStorePartitionKey);
-            IEntityStore<string, CheckpointEntity> underlyingStore = new EntityStore<string, CheckpointEntity>(dbStore, nameof(CheckpointEntity), 12);
+            IEntityStore<string, CheckpointEntity> underlyingStore = Preconditions.CheckNotNull(storeProvider, nameof(storeProvider))
+                .GetEntityStore<string, CheckpointEntity>(Constants.CheckpointStorePartitionKey);
             return new CheckpointStore(underlyingStore);
         }
 

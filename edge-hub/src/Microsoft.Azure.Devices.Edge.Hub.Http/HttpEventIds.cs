@@ -10,5 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
         public const int HttpProtocolHead = EventIdStart + 300;
         public const int WebSocketListenerRegistry = EventIdStart + 400;
         public const int WebSocketHandlingMiddleware = EventIdStart + 500;
+        public const int HttpsExtensionConnectionAdapter = EventIdStart + 600;
     }
 }

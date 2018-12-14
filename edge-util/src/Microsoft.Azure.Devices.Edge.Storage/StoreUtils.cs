@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public static class StoreUtils
@@ -13,8 +14,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             Preconditions.CheckNotNull(key, nameof(key));
             if (BitConverter.IsLittleEndian)
             {
+                key = key.ToArray();
                 Array.Reverse(key);
             }
+
             long offset = BitConverter.ToInt64(key, 0);
             return offset;
         }
@@ -25,8 +28,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             byte[] bytes = BitConverter.GetBytes(offset);
             if (BitConverter.IsLittleEndian)
             {
+                bytes = bytes.ToArray();
                 Array.Reverse(bytes);
-            }            
+            }
+
             return bytes;
         }
 
@@ -41,6 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                     properties.Add(item.Key, item.Value);
                 }
             }
+
             return properties;
         }
     }

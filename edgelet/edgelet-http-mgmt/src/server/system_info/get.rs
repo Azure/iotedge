@@ -60,7 +60,8 @@ where
                     .body(b.into())
                     .context(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo))?;
                 Ok(response)
-            }).or_else(|e| Ok(e.into_response()));
+            })
+            .or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }
@@ -107,7 +108,8 @@ mod tests {
                 assert_eq!(edgelet_core::version(), system_info.version());
 
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 
@@ -134,7 +136,8 @@ mod tests {
                     error.message()
                 );
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 }

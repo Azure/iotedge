@@ -183,7 +183,8 @@ impl IdentityManager for TestIdentityManager {
             .position(|ref mid| mid.module_id() == id.module_id())
             .map(|index| {
                 self.identities.remove(index);
-            }).ok_or(Error::ModuleNotFound)
+            })
+            .ok_or(Error::ModuleNotFound)
             .into_future()
     }
 }

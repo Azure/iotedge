@@ -39,24 +39,3 @@ pub enum Socket {
 
 #[cfg(target_os = "linux")]
 pub use self::linux::{listener, listener_name, listeners_name};
-
-// #[cfg(not(target_os = "linux"))]
-// pub use self::other::{listener, listener_name, listeners_name};
-
-// #[cfg(not(target_os = "linux"))]
-// mod other {
-//     use super::*;
-
-//     pub fn listener(_num: i32) -> Result<Socket, Error> {
-//         Err(Error::from(ErrorKind::NotFound))
-//         Err(Error::from(ErrorKind::SocketNotFound(SocketLookupType::Fd((num + (LISTEN_FDS_START as usize)) as Fd))))
-//     }
-
-//     pub fn listener_name(_name: &str) -> Result<Socket, Error> {
-//         Err(Error::from(ErrorKind::NotFound))
-//     }
-
-//     pub fn listeners_name(_name: &str) -> Result<Vec<Socket>, Error> {
-//         Err(Error::from(ErrorKind::NotFound))
-//     }
-// }

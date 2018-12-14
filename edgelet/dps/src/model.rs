@@ -19,10 +19,7 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DeviceRegistration {
-    #[serde(
-        rename = "registrationId",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "registrationId", skip_serializing_if = "Option::is_none")]
     registration_id: Option<String>,
     #[serde(rename = "tpm", skip_serializing_if = "Option::is_none")]
     tpm: Option<TpmAttestation>,
@@ -84,10 +81,7 @@ impl Default for DeviceRegistration {
 pub struct TpmAttestation {
     #[serde(rename = "endorsementKey")]
     endorsement_key: String,
-    #[serde(
-        rename = "storageRootKey",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "storageRootKey", skip_serializing_if = "Option::is_none")]
     storage_root_key: Option<String>,
 }
 
@@ -135,10 +129,7 @@ impl TpmAttestation {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TpmRegistrationResult {
-    #[serde(
-        rename = "authenticationKey",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "authenticationKey", skip_serializing_if = "Option::is_none")]
     authentication_key: Option<String>,
 }
 
@@ -185,10 +176,7 @@ pub struct RegistrationOperationStatus {
     #[serde(rename = "status", skip_serializing_if = "Option::is_none")]
     status: Option<String>,
     /// Device registration status.
-    #[serde(
-        rename = "registrationState",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "registrationState", skip_serializing_if = "Option::is_none")]
     registration_state: Option<DeviceRegistrationResult>,
 }
 
@@ -262,16 +250,10 @@ pub struct DeviceRegistrationResult {
     #[serde(rename = "registrationId")]
     registration_id: String,
     /// Registration create date time (in UTC).
-    #[serde(
-        rename = "createdDateTimeUtc",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "createdDateTimeUtc", skip_serializing_if = "Option::is_none")]
     created_date_time_utc: Option<String>,
     /// Assigned Azure IoT Hub.
-    #[serde(
-        rename = "assignedHub",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "assignedHub", skip_serializing_if = "Option::is_none")]
     assigned_hub: Option<String>,
     /// Device ID.
     #[serde(rename = "deviceId", skip_serializing_if = "Option::is_none")]
@@ -280,16 +262,10 @@ pub struct DeviceRegistrationResult {
     #[serde(rename = "status")]
     status: String,
     /// Error code.
-    #[serde(
-        rename = "errorCode",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "errorCode", skip_serializing_if = "Option::is_none")]
     error_code: Option<i32>,
     /// Error message.
-    #[serde(
-        rename = "errorMessage",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "errorMessage", skip_serializing_if = "Option::is_none")]
     error_message: Option<String>,
     /// Last updated date time (in UTC).
     #[serde(

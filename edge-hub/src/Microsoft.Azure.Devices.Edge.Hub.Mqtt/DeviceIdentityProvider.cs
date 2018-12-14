@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
     using System;
@@ -45,14 +46,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
                 if (password == null && this.clientCertAuthAllowed)
                 {
-                    deviceCredentials = this.remoteCertificate.Map(cert =>
-                    {
-                        return this.clientCredentialsFactory.GetWithX509Cert(deviceId,
-                                                                             moduleId,
-                                                                             deviceClientType,
-                                                                             cert,
-                                                                             this.remoteCertificateChain);
-                    }).GetOrElse(() => throw new InvalidOperationException($"Unable to validate credientials since no certificate was provided and password is null"));
+                    deviceCredentials = this.remoteCertificate
+                        .Map(
+                            cert =>
+                                this.clientCredentialsFactory.GetWithX509Cert(
+                                    deviceId,
+                                    moduleId,
+                                    deviceClientType,
+                                    cert,
+                                    this.remoteCertificateChain))
+                        .GetOrElse(() => throw new InvalidOperationException($"Unable to validate credientials since no certificate was provided and password is null"));
                 }
                 else
                 {
@@ -66,6 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     Events.Error(clientId, username);
                     return UnauthenticatedDeviceIdentity.Instance;
                 }
+
                 Events.Success(clientId, username);
                 return new ProtocolGatewayIdentity(deviceCredentials);
             }
@@ -76,33 +80,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             }
         }
 
-        public bool RemoteCertificateValidationCallback(X509Certificate certificate, X509Chain chain)
+        public void RegisterConnectionCertificate(X509Certificate2 certificate, IList<X509Certificate2> chain)
         {
-            if (certificate != null)
-            {
-                this.remoteCertificate = Option.Some(new X509Certificate2(certificate));
-            }
-            if (chain != null)
-            {
-                this.remoteCertificateChain = chain.ChainElements.Cast<X509ChainElement>().Select(element => element.Certificate).ToList();
-            }
-
-            return true; // real validation in GetAsync above
-        }
-
-        public bool RemoteCertificateValidationCallback(X509Certificate2 certificate, IList<X509Certificate2> chain)
-        {
-            if (certificate != null)
-            {
-                this.remoteCertificate = Option.Some(certificate);
-            }
-            if (chain != null)
-            {
-                this.remoteCertificateChain = chain;
-   
-            }
-
-            return true; // real validation in GetAsync above
+            this.remoteCertificate = Option.Some(Preconditions.CheckNotNull(certificate, nameof(certificate)));
+            this.remoteCertificateChain = Preconditions.CheckNotNull(chain, nameof(chain));
         }
 
         internal static (string deviceId, string moduleId, string deviceClientType) ParseUserName(string username)
@@ -200,8 +181,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             {
                 deviceClientType = string.Empty;
             }
-            return (deviceId, moduleId, deviceClientType);
 
+            return (deviceId, moduleId, deviceClientType);
         }
 
         static IDictionary<string, string> ParseDeviceClientType(string queryParameterString)
@@ -211,11 +192,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             var kvsep = new[] { '=' };
 
             Dictionary<string, string> queryParameters = queryParameterString
-                .Split('&')                             // split input string into params
-                .Select(s => s.Split(kvsep, 2))         // split each param into a key/value pair
-                .GroupBy(s => s[0])                     // group duplicates (by key) together...
-                .Select(s => s.First())                 // ...and keep only the first one
-                .ToDictionary(                          // convert to Dictionary<string, string>
+                .Split('&') // split input string into params
+                .Select(s => s.Split(kvsep, 2)) // split each param into a key/value pair
+                .GroupBy(s => s[0]) // group duplicates (by key) together...
+                .Select(s => s.First()) // ...and keep only the first one
+                .ToDictionary( // convert to Dictionary<string, string>
                     s => s[0],
                     s => Uri.UnescapeDataString(s.ElementAtOrEmpty(1)));
             return queryParameters;

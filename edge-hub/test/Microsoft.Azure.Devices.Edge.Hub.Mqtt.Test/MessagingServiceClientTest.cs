@@ -108,8 +108,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         [Fact]
         public async Task SendAsyncForwardsMessagesToTheDeviceListener()
         {
-            Messages m = MakeMessages();
+            Messages m = MakeMessages("devices/d1/messages/events/");
             Mock<IDeviceListener> listener = MakeDeviceListenerSpy();
+            m.Expected.SystemProperties[Core.SystemProperties.ConnectionDeviceId] = "d1";
 
             var client = new MessagingServiceClient(listener.Object, ProtocolGatewayMessageConverter.Value, ByteBufferConverter);
             await client.SendAsync(m.Source);

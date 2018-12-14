@@ -44,7 +44,8 @@ where
                     .query()
                     .map_or_else(|| Ok(LogOptions::default()), parse_options)?;
                 Ok((name, options))
-            }).map(move |(name, options)| {
+            })
+            .map(move |(name, options)| {
                 runtime.logs(&name, &options).then(|s| -> Result<_, Error> {
                     let s = s.with_context(|_| {
                         ErrorKind::RuntimeOperation(RuntimeOperation::GetModuleLogs(name.clone()))
@@ -57,7 +58,8 @@ where
                         ))?;
                     Ok(response)
                 })
-            }).into_future()
+            })
+            .into_future()
             .flatten()
             .or_else(|e| future::ok(e.into_response()));
 
@@ -162,7 +164,8 @@ mod tests {
             .and_then(|b| {
                 assert_eq!(0, b.len());
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 
@@ -191,7 +194,8 @@ mod tests {
                     error.message()
                 );
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 
@@ -211,7 +215,8 @@ mod tests {
         let handler = ModuleLogs::new(runtime);
         let request = Request::get(
             "http://localhost/modules/mod1/logs?api-version=2018-06-28&follow=asfda&tail=asfafda",
-        ).body(Body::default())
+        )
+        .body(Body::default())
         .unwrap();
         let parameters =
             Parameters::with_captures(vec![(Some("name".to_string()), "mod1".to_string())]);

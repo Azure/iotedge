@@ -168,7 +168,8 @@ where
                 None,
                 Some(registration.clone()),
                 false,
-            ).map_err(|err| Error::from(err.context(ErrorKind::GetOperationId)));
+            )
+            .map_err(|err| Error::from(err.context(ErrorKind::GetOperationId)));
         Box::new(f)
     }
 
@@ -253,7 +254,8 @@ where
         let chain = Interval::new(
             Instant::now(),
             Duration::from_secs(DPS_ASSIGNMENT_RETRY_INTERVAL_SECS),
-        ).take(retry_count)
+        )
+        .take(retry_count)
         .map_err(|err| Error::from(err.context(ErrorKind::GetDeviceRegistrationResult)))
         .and_then(move |_instant: Instant| {
             debug!("Ask DPS for registration status");
@@ -264,7 +266,8 @@ where
                 &operation_id,
                 key.clone(),
             )
-        }).skip_while(Self::is_skippable_result)
+        })
+        .skip_while(Self::is_skippable_result)
         .take(1)
         .fold(
             None,
@@ -300,7 +303,8 @@ where
                 None,
                 Some(registration.clone()),
                 false,
-            ).then(move |result| {
+            )
+            .then(move |result| {
                 match result {
                     Ok(_) => Either::B(future::err(Error::from(
                         ErrorKind::RegisterWithAuthUnexpectedlySucceeded,
@@ -374,7 +378,8 @@ where
             &tpm_ek,
             &tpm_srk,
             &self.key_store,
-        ).and_then(
+        )
+        .and_then(
             move |operation_status: Option<RegistrationOperationStatus>| match key_store
                 .get(&KeyIdentity::Device, "primary")
             {
@@ -401,7 +406,8 @@ where
                     err.context(ErrorKind::RegisterWithAuthUnexpectedlyFailed),
                 ))),
             },
-        ).and_then(move |operation_status: Option<DeviceRegistrationResult>| {
+        )
+        .and_then(move |operation_status: Option<DeviceRegistrationResult>| {
             let s = operation_status.ok_or_else(|| {
                 Error::from(ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned)
             })?;
@@ -431,12 +437,14 @@ fn get_device_info(
             .device_id()
             .ok_or_else(|| {
                 Error::from(ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned)
-            })?.to_string(),
+            })?
+            .to_string(),
         registration_result
             .assigned_hub()
             .ok_or_else(|| {
                 Error::from(ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned)
-            })?.to_string(),
+            })?
+            .to_string(),
     ))
 }
 
@@ -496,7 +504,8 @@ mod tests {
                 None,
                 "2017-11-15".to_string(),
                 Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
-            ).unwrap(),
+            )
+            .unwrap(),
         ));
         let task = DpsClient::register_with_auth(
             &client,
@@ -505,7 +514,8 @@ mod tests {
             &Bytes::from("ek".to_string().into_bytes()),
             &Bytes::from("srk".to_string().into_bytes()),
             &MemoryKeyStore::new(),
-        ).map(|result| match result {
+        )
+        .map(|result| match result {
             Some(op) => {
                 assert_eq!(op.operation_id(), "something");
                 assert_eq!(op.status().unwrap(), "assigning");
@@ -533,7 +543,8 @@ mod tests {
             None,
             "2017-11-15".to_string(),
             Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
         let dps = DpsClient::new(
             client,
             "scope".to_string(),
@@ -541,7 +552,8 @@ mod tests {
             Bytes::from("ek".to_string().into_bytes()),
             Bytes::from("srk".to_string().into_bytes()),
             MemoryKeyStore::new(),
-        ).unwrap();
+        )
+        .unwrap();
         let task = dps.register().then(|result| match result {
             Ok(_) => panic!("Excepted err got success"),
             Err(err) => match err.kind() {
@@ -587,7 +599,8 @@ mod tests {
             None,
             "2017-11-15".to_string(),
             Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
         let dps = DpsClient::new(
             client,
             "scope".to_string(),
@@ -595,7 +608,8 @@ mod tests {
             Bytes::from("ek".to_string().into_bytes()),
             Bytes::from("srk".to_string().into_bytes()),
             MemoryKeyStore::new(),
-        ).unwrap();
+        )
+        .unwrap();
         let task = dps.register().then(|result| match result {
             Ok(_) => panic!("Excepted err got success"),
             Err(err) => match err.kind() {
@@ -625,7 +639,8 @@ mod tests {
                 &RegistrationOperationStatus::new("operation".to_string()).with_registration_state(
                     DeviceRegistrationResult::new("reg".to_string(), "doesn't matter".to_string()),
                 ),
-            ).unwrap()
+            )
+            .unwrap()
             .into(),
         );
 
@@ -650,12 +665,14 @@ mod tests {
                 None,
                 "2017-11-15".to_string(),
                 Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
-            ).unwrap()
+            )
+            .unwrap()
             .with_token_source(DpsTokenSource::new(
                 "scope_id".to_string(),
                 "reg".to_string(),
                 key.clone(),
-            )).clone(),
+            ))
+            .clone(),
         ));
         let dps_operation = DpsClient::<_, _, MemoryKeyStore>::get_device_registration_result(
             client,
@@ -694,12 +711,14 @@ mod tests {
                 None,
                 "2017-11-15".to_string(),
                 Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
-            ).unwrap()
+            )
+            .unwrap()
             .with_token_source(DpsTokenSource::new(
                 "scope_id".to_string(),
                 "reg".to_string(),
                 key.clone(),
-            )).clone(),
+            ))
+            .clone(),
         ));
         let dps_operation = DpsClient::<_, _, MemoryKeyStore>::get_device_registration_result(
             client,
@@ -745,7 +764,8 @@ mod tests {
             None,
             "2017-11-15".to_string(),
             Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
         let dps_operation = DpsClient::<_, _, MemoryKeyStore>::get_operation_status(
             &Arc::new(RwLock::new(client.clone())),
             "scope_id",
@@ -781,7 +801,8 @@ mod tests {
             None,
             "2017-11-15".to_string(),
             Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
         let dps_operation = DpsClient::<_, _, MemoryKeyStore>::get_operation_status(
             &Arc::new(RwLock::new(client.clone())),
             "scope_id",
@@ -812,7 +833,8 @@ mod tests {
                 &DeviceRegistrationResult::new("reg".to_string(), "assigned".to_string())
                     .with_device_id("device".to_string())
                     .with_assigned_hub("hub".to_string())
-            ).unwrap(),
+            )
+            .unwrap(),
             ("device".to_string(), "hub".to_string())
         )
     }

@@ -217,7 +217,7 @@ impl Main {
             }
         }
 
-        let hyper_client = MaybeProxyClient::new(get_proxy_uri()?)
+        let hyper_client = MaybeProxyClient::new(get_proxy_uri(None)?)
             .context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?;
 
         info!(
@@ -332,10 +332,10 @@ impl Main {
     }
 }
 
-pub fn get_proxy_uri() -> Result<Option<Uri>, Error> {
-    let proxy_uri = env::var("HTTPS_PROXY")
-        .or_else(|_| env::var("https_proxy"))
-        .ok();
+pub fn get_proxy_uri(https_proxy: Option<String>) -> Result<Option<Uri>, Error> {
+    let proxy_uri = https_proxy
+        .or_else(|| env::var("HTTPS_PROXY").ok())
+        .or_else(|| env::var("https_proxy").ok());
     let proxy_uri = match proxy_uri {
         None => None,
         Some(s) => {
@@ -358,7 +358,8 @@ where
         IOTEDGED_COMMONNAME.to_string(),
         CertificateType::Ca,
         IOTEDGED_CA_ALIAS.to_string(),
-    ).with_issuer(CertificateIssuer::DeviceCa);
+    )
+    .with_issuer(CertificateIssuer::DeviceCa);
 
     crypto
         .create_certificate(&edgelet_ca_props)
@@ -515,7 +516,8 @@ where
         Some(token_source),
         IOTHUB_API_VERSION.to_string(),
         Url::parse(&hostname).context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?,
-    ).context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?;
+    )
+    .context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?;
     let device_client = DeviceClient::new(http_client, device_id.clone())
         .context(ErrorKind::Initialize(InitializeErrorReason::DeviceClient))?;
     let id_man = HubIdentityManager::new(key_store.clone(), device_client);
@@ -589,14 +591,16 @@ fn manual_provision(
             Error::from(err.context(ErrorKind::Initialize(
                 InitializeErrorReason::ManualProvisioningClient,
             )))
-        }).and_then(move |prov_result| {
+        })
+        .and_then(move |prov_result| {
             memory_hsm
                 .get(&KeyIdentity::Device, "primary")
                 .map_err(|err| {
                     Error::from(err.context(ErrorKind::Initialize(
                         InitializeErrorReason::ManualProvisioningClient,
                     )))
-                }).and_then(|k| {
+                })
+                .and_then(|k| {
                     let derived_key_store = DerivedKeyStore::new(k.clone());
                     Ok((derived_key_store, prov_result, k))
                 })
@@ -632,7 +636,8 @@ where
         "2017-11-15".to_string(),
         ek_result,
         srk_result,
-    ).context(ErrorKind::Initialize(
+    )
+    .context(ErrorKind::Initialize(
         InitializeErrorReason::DpsProvisioningClient,
     ))?;
     let tpm_hsm = TpmKeyStore::from_hsm(tpm).context(ErrorKind::Initialize(
@@ -645,7 +650,8 @@ where
             Error::from(err.context(ErrorKind::Initialize(
                 InitializeErrorReason::DpsProvisioningClient,
             )))
-        }).and_then(|prov_result| {
+        })
+        .and_then(|prov_result| {
             if prov_result.reconfigure() {
                 info!("Successful DPS provisioning. This will trigger reconfiguration of modules.");
                 // Each time DPS provisions, it gets back a new device key. This results in obsolete
@@ -662,7 +668,8 @@ where
             } else {
                 Either::B(future::ok((prov_result, runtime)))
             }
-        }).and_then(move |(prov_result, runtime)| {
+        })
+        .and_then(move |(prov_result, runtime)| {
             let k = tpm_hsm
                 .get(&KeyIdentity::Device, "primary")
                 .context(ErrorKind::Initialize(
@@ -694,7 +701,8 @@ where
         spec.type_().to_string(),
         spec.config().clone(),
         env,
-    ).context(ErrorKind::Initialize(InitializeErrorReason::EdgeRuntime))?;
+    )
+    .context(ErrorKind::Initialize(InitializeErrorReason::EdgeRuntime))?;
 
     // volume mount management and workload URIs
     vol_mount_uri(
@@ -823,10 +831,12 @@ where
                     err.context(ErrorKind::Initialize(
                         InitializeErrorReason::ManagementService,
                     ))
-                })?.run_until(shutdown.map_err(|_| ()))
+                })?
+                .run_until(shutdown.map_err(|_| ()))
                 .map_err(|err| Error::from(err.context(ErrorKind::ManagementService)));
             Ok(run)
-        }).flatten()
+        })
+        .flatten()
 }
 
 fn start_workload<K, C, W>(
@@ -867,11 +877,13 @@ where
                     err.context(ErrorKind::Initialize(
                         InitializeErrorReason::WorkloadService,
                     ))
-                })?.run_until(shutdown.map_err(|_| ()))
+                })?
+                .run_until(shutdown.map_err(|_| ()))
                 .map_err(|err| Error::from(err.context(ErrorKind::WorkloadService)));
             info!("Listening on {} with 1 thread for workload API.", url);
             Ok(run)
-        }).flatten()
+        })
+        .flatten()
 }
 
 #[cfg(test)]
@@ -973,7 +985,8 @@ mod tests {
             &runtime,
             &crypto,
             &mut tokio_runtime,
-        ).unwrap();
+        )
+        .unwrap();
         let expected = serde_json::to_string(&settings).unwrap();
         let expected_sha = Sha256::digest_str(&expected);
         let expected_base64 = base64::encode(&expected_sha);
@@ -1004,7 +1017,8 @@ mod tests {
             &runtime,
             &crypto,
             &mut tokio_runtime,
-        ).unwrap();
+        )
+        .unwrap();
         let mut written = String::new();
         File::open(tmp_dir.path().join("settings_state"))
             .unwrap()
@@ -1020,7 +1034,8 @@ mod tests {
             &runtime,
             &crypto,
             &mut tokio_runtime,
-        ).unwrap();
+        )
+        .unwrap();
         let expected = serde_json::to_string(&settings1).unwrap();
         let expected_sha = Sha256::digest_str(&expected);
         let expected_base64 = base64::encode(&expected_sha);
@@ -1036,36 +1051,40 @@ mod tests {
 
     #[test]
     fn get_proxy_uri_recognizes_https_proxy() {
-        // TODO:
-        // `cargo test` runs tests in parallel threads by default, so invoking
-        // tests which read/write a per-process resource like environment
-        // variables will cause problems when there's more than one such test.
-        // To more fully test get_proxy_uri(), we'll need to create a nullable
-        // infrastructure for environment variables.
-
-        // ensure "https_proxy" env var is set
+        // Use existing "https_proxy" env var if it's set, otherwise invent one
         let proxy_val = env::var("https_proxy")
-            .or_else(|_| {
-                env::set_var("https_proxy", "abc");
-                env::var("https_proxy")
-            }).unwrap();
-        // ensure "HTTPS_PROXY" is NOT set (except on Windows, where env vars
-        // are case-insensitive)
-        #[cfg(unix)]
-        let other_val = env::var("HTTPS_PROXY")
-            .and_then(|var| {
-                env::remove_var("HTTPS_PROXY");
-                Ok(var)
-            }).ok();
+            .unwrap_or_else(|_| "abc".to_string())
+            .parse::<Uri>()
+            .unwrap()
+            .to_string();
 
-        assert_eq!(get_proxy_uri().unwrap().unwrap().to_string(), proxy_val);
+        assert_eq!(
+            get_proxy_uri(Some(proxy_val.clone()))
+                .unwrap()
+                .unwrap()
+                .to_string(),
+            proxy_val
+        );
+    }
 
-        // restore value of HTTPS_PROXY if necessary
-        #[cfg(unix)]
-        {
-            if let Some(val) = other_val {
-                env::set_var("HTTPS_PROXY", val);
-            }
-        }
+    #[test]
+    fn get_proxy_uri_allows_credentials_in_authority() {
+        let proxy_val = "https://username:password@example.com/".to_string();
+        assert_eq!(
+            get_proxy_uri(Some(proxy_val.clone()))
+                .unwrap()
+                .unwrap()
+                .to_string(),
+            proxy_val
+        );
+
+        let proxy_val = "https://username%2f:password%2f@example.com/".to_string();
+        assert_eq!(
+            get_proxy_uri(Some(proxy_val.clone()))
+                .unwrap()
+                .unwrap()
+                .to_string(),
+            proxy_val
+        );
     }
 }

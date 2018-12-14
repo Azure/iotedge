@@ -25,6 +25,7 @@ Set-Variable EdgeServiceName -Value 'iotedge' -Option Constant
 
 Set-Variable MobyDataRootDirectory -Value 'C:\ProgramData\iotedge-moby-data' -Option Constant
 Set-Variable MobyInstallDirectory -Value 'C:\ProgramData\iotedge-moby' -Option Constant
+Set-Variable MobyLinuxNamedPipeUrl -Value 'npipe://./pipe/docker_engine' -Option Constant
 Set-Variable MobyNamedPipeUrl -Value 'npipe://./pipe/iotedge_moby_engine' -Option Constant
 Set-Variable MobyServiceName -Value 'iotedge-moby' -Option Constant
 
@@ -33,47 +34,119 @@ enum ContainerOs {
     Windows
 }
 
+<#
+.SYNOPSIS
+
+Installs the IoT Edge Security Daemon and its dependencies.
+
+
+.INPUTS
+
+None
+
+
+.OUTPUTS
+
+None
+
+
+.EXAMPLE
+
+PS> Install-SecurityDaemon -Manual -DeviceConnectionString $deviceConnectionString -ContainerOs Windows
+
+
+.EXAMPLE
+
+PS> Install-SecurityDaemon -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows
+
+
+.EXAMPLE
+
+PS> Install-SecurityDaemon -ExistingConfig -ContainerOs Windows
+#>
 function Install-SecurityDaemon {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = 'Manual')]
     param (
+        # Specified the daemon will be configured manually, using a device connection string.
         [Parameter(ParameterSetName = 'Manual')]
         [Switch] $Manual,
 
+        # Specified the daemon will be configured using DPS, using a scope ID and registration ID.
         [Parameter(ParameterSetName = 'DPS')]
         [Switch] $Dps,
 
+        # Specified the daemon will be configured to use an existing config.yaml
+        [Parameter(ParameterSetName = 'ExistingConfig')]
+        [Switch] $ExistingConfig,
+
+        # The device connection string.
         [Parameter(Mandatory = $true, ParameterSetName = 'Manual')]
         [String] $DeviceConnectionString,
 
+        # The DPS scope ID.
         [Parameter(Mandatory = $true, ParameterSetName = 'DPS')]
         [String] $ScopeId,
 
+        # The DPS registration ID.
         [Parameter(Mandatory = $true, ParameterSetName = 'DPS')]
         [String] $RegistrationId,
 
+        # The base OS of all the containers that will be run on this device via the security daemon.
+        #
+        # If set to Linux, a separate installation of Docker for Windows is expected.
+        #
+        # If set to Windows, the Moby Engine will be installed automatically. This will not affect any existing installation of Docker for Windows.
         [ContainerOs] $ContainerOs = 'Linux',
 
-        # Proxy URI
+        # Proxy URI used for all Invoke-WebRequest calls. To specify other proxy-related options like -ProxyCredential, see -InvokeWebRequestParameters
         [Uri] $Proxy,
 
-        # Local path to iotedged zip file
-        [String] $ArchivePath,
+        # If set to a directory, the installer prefers to use iotedged zip, Moby Engine zip, Moby CLI zip and VC Runtime MSI files from inside this directory
+        # over downloading them from the internet. Thus placing all four files in this directory can be used to have a completely offline install,
+        # or a specific subset can be placed to override the online versions of those specific components.
+        [String] $OfflineInstallationPath,
 
-        # IoT Edge Agent image to pull
+        # IoT Edge Agent image to pull for the initial configuration.
+        [Parameter(ParameterSetName = 'Manual')]
+        [Parameter(ParameterSetName = 'DPS')]
         [String] $AgentImage,
 
-        # Username to pull IoT Edge Agent image
+        # Username used to access the container registry and pull the IoT Edge Agent image.
+        [Parameter(ParameterSetName = 'Manual')]
+        [Parameter(ParameterSetName = 'DPS')]
         [String] $Username,
 
-        # Password to pull IoT Edge Agent image
+        # Password used to access the container registry and pull the IoT Edge Agent image.
+        [Parameter(ParameterSetName = 'Manual')]
+        [Parameter(ParameterSetName = 'DPS')]
         [SecureString] $Password,
 
-        # Also install the Moby CLI (docker.exe) to $MobyInstallDirectory. Only takes affect for `-ContainerOs Windows`
-        [Switch] $WithMobyCli
+        # Splatted into every Invoke-WebRequest invocation. Can be used to set extra options.
+        #
+        # If -Proxy is also specified, it overrides the `-Proxy` key set in this hashtable, if any.
+        #
+        # Example:
+        #
+        #     Install-SecurityDaemon -InvokeWebRequestParameters @{ '-Proxy' = 'http://localhost:8888'; '-ProxyCredential' = (Get-Credential).GetNetworkCredential() }
+        [HashTable] $InvokeWebRequestParameters,
+
+        # Don't install the Moby CLI (docker.exe) to $MobyInstallDirectory. Only takes effect for -ContainerOs 'Windows'
+        [Switch] $SkipMobyCli,
+
+        # Local path to iotedged zip file. Only kept for backward compatibility. Prefer to set -OfflineInstallationPath instead.
+        [String] $ArchivePath
     )
 
     $ErrorActionPreference = 'Stop'
     Set-StrictMode -Version 5
+
+    if ($InvokeWebRequestParameters -eq $null) {
+        $InvokeWebRequestParameters = @{}
+    }
+
+    if ($Proxy -ne $null) {
+        $InvokeWebRequestParameters['-Proxy'] = $Proxy
+    }
 
     if (Test-EdgeAlreadyInstalled) {
         Write-HostRed
@@ -83,7 +156,7 @@ function Install-SecurityDaemon {
 
     if (Test-MobyAlreadyInstalled) {
         Write-HostRed
-        Write-HostRed 'IoT Edge Moby Runtime is already installed. To reinstall, run `Uninstall-SecurityDaemon` first.'
+        Write-HostRed 'IoT Edge Moby Engine is already installed. To reinstall, run `Uninstall-SecurityDaemon` first.'
         return
     }
 
@@ -124,6 +197,7 @@ function Install-SecurityDaemon {
     }
     if ($preRequisitesMet) {
         Write-HostGreen "The container host is on supported build version $currentWindowsBuild."
+        Set-ContainerOs
     }
     else {
         Write-HostRed
@@ -144,18 +218,40 @@ function Install-SecurityDaemon {
             [System.Net.ServicePointManager]::SecurityProtocol -bor [System.Net.SecurityProtocolType]::Tls12
     }
 
+    if ($ExistingConfig -and (-not (Test-Path "$EdgeInstallDirectory\config.yaml"))) {
+        Write-HostRed
+        Write-HostRed "$EdgeInstallDirectory\config.yaml was not found."
+        return
+    }
+
+    if ((-not $ExistingConfig) -and (Test-Path "$EdgeInstallDirectory\config.yaml")) {
+        Write-HostRed
+        Write-HostRed "$EdgeInstallDirectory\config.yaml already exists."
+        Write-HostRed (
+            'Delete it using `Uninstall-SecurityDaemon -Force -DeleteConfig` and then re-run `Install-SecurityDaemon`, ' +
+            'or run `Install-SecurityDaemon -ExistingConfig` to use the existing config.yaml')
+        return
+    }
+
     # Download
     Get-SecurityDaemon
     Get-VcRuntime
 
-    # Update config.yaml
-    Set-ProvisioningMode
-    Set-AgentImage
-    Set-Hostname
-    if ($ContainerOs -eq 'Linux') {
-        Set-GatewayAddress
+    # config.yaml
+    if ($ExistingConfig) {
+        Write-HostGreen 'Using existing config.yaml'
     }
-    Set-MobyRuntimeParameters
+    else {
+        Write-Host 'Generating config.yaml...'
+
+        Set-ProvisioningMode
+        Set-AgentImage
+        Set-Hostname
+        if ($ContainerOs -eq 'Linux') {
+            Set-GatewayAddress
+        }
+        Set-MobyEngineParameters
+    }
 
     # Register services
     Set-SystemPath
@@ -173,9 +269,53 @@ function Install-SecurityDaemon {
     Write-HostGreen '    Format-Table -AutoSize -Wrap'
 }
 
+<#
+.SYNOPSIS
+
+Uninstalls the IoT Edge Security Daemon and its dependencies.
+
+
+.DESCRIPTION
+
+By default this commandlet does not delete the config.yaml and the Moby Engine data root (for -ContainerOs 'Windows' installs),
+so that you can update the daemon using `Install-SecurityDaemon -ExistingConfig`. To delete these as well, specify the
+-DeleteConfig and -DeleteMobyDataRoot flags.
+
+
+.INPUTS
+
+None
+
+
+.OUTPUTS
+
+None
+
+
+.EXAMPLE
+
+PS> Uninstall-SecurityDaemon
+
+
+.EXAMPLE
+
+PS> Uninstall-SecurityDaemon -DeleteConfig -DeleteMobyDataRoot
+
+
+.EXAMPLE
+
+PS> Uninstall-SecurityDaemon -Force
+#>
 function Uninstall-SecurityDaemon {
     [CmdletBinding()]
     param (
+        # If set, the config.yaml will also be deleted.
+        [Switch] $DeleteConfig,
+
+        # If set, the Moby Engine data root will also be deleted. This directory is only created for -ContainerOs 'Windows' installs.
+        [Switch] $DeleteMobyDataRoot,
+
+        # Forces the uninstallation in case the previous install was only partially successful.
         [Switch] $Force
     )
 
@@ -193,7 +333,6 @@ function Uninstall-SecurityDaemon {
     $ContainerOs = Get-ContainerOs
 
     Uninstall-Services
-    Stop-IotEdgeContainers
     $success = Remove-SecurityDaemonResources
     Reset-SystemPath
 
@@ -227,24 +366,6 @@ function Test-IsDockerRunning {
 
             Write-HostGreen 'Docker is running.'
 
-            $dockerCliExe = "$env:ProgramFiles\Docker\Docker\DockerCli.exe"
-
-            if ((Get-ExternalDockerServerOs) -ne 'Linux') {
-                Write-Host 'Switching Docker to use Linux containers...'
-
-                if (-not (Test-Path -Path $dockerCliExe)) {
-                    throw 'Unable to switch to Linux containers.'
-                }
-
-                Invoke-Native """$dockerCliExe"" -SwitchDaemon"
-
-                if ((Get-ExternalDockerServerOs) -ne 'Linux') {
-                    throw 'Unable to switch to Linux containers.'
-                }
-
-                Write-HostGreen 'Switched Docker to use Linux containers.'
-            }
-
             return $true
         }
 
@@ -259,16 +380,45 @@ function Test-IsDockerRunning {
     }
 }
 
+function Set-ContainerOs {
+    switch ($ContainerOs) {
+        'Linux' {
+            if ((Get-ExternalDockerServerOs) -ne 'Linux') {
+                Write-Host 'Switching Docker to use Linux containers...'
+
+                $dockerCliExe = "$env:ProgramFiles\Docker\Docker\DockerCli.exe"
+
+                if (-not (Test-Path -Path $dockerCliExe)) {
+                    throw 'Unable to switch to Linux containers.'
+                }
+
+                Invoke-Native """$dockerCliExe"" -SwitchDaemon"
+
+                if ((Get-ExternalDockerServerOs) -ne 'Linux') {
+                    throw 'Unable to switch to Linux containers.'
+                }
+
+                Write-HostGreen 'Switched Docker to use Linux containers.'
+            }
+        }
+
+        'Windows' {
+            # No need to test for Linux/switch to Windows containers because our
+            # moby installation doesn't support Linux containers
+        }
+    }
+}
+
 function Get-WindowsBuild {
     (Get-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion').'CurrentBuild'
 }
 
 function Test-EdgeAlreadyInstalled {
-    (Get-Service $EdgeServiceName -ErrorAction SilentlyContinue) -or (Test-Path -Path $EdgeInstallDirectory)
+    (Get-Service $EdgeServiceName -ErrorAction SilentlyContinue) -or (Test-Path -Path "$EdgeInstallDirectory\iotedged.exe")
 }
 
 function Test-MobyAlreadyInstalled {
-    (Get-Service $MobyServiceName -ErrorAction SilentlyContinue) -or (Test-Path -Path $MobyInstallDirectory) -or (Test-Path -Path $MobyDataRootDirectory)
+    (Get-Service $MobyServiceName -ErrorAction SilentlyContinue) -or (Test-Path -Path $MobyInstallDirectory)
 }
 
 function Test-AgentRegistryArgs {
@@ -311,61 +461,75 @@ function Get-ExternalDockerServerOs {
 
 function Get-SecurityDaemon {
     try {
-        # If we create the iotedge archive ourselves, then delete it when we're done
+        # If we create these archives ourselves, then delete them when we're done
+        $deleteMobyEngineArchive = $false
+        $deleteMobyCliArchive = $false
         $deleteEdgeArchive = $false
 
-        $mobyRuntimeArchivePath = "$env:TEMP\iotedge-moby-runtime.zip"
-        $mobyCliArchivePath = "$env:TEMP\iotedge-moby-cli.zip"
-
         if ($ContainerOs -eq 'Windows') {
-            # Get moby runtime
-
-            Write-Host 'Downloading the latest version of Moby runtime...'
             New-Item -Type Directory $MobyInstallDirectory | Out-Null
             Remove-BuiltinWritePermissions $MobyInstallDirectory
-            Invoke-WebRequest `
-                -Uri 'https://aka.ms/iotedge-moby-engine-win-amd64-latest' `
-                -OutFile $mobyRuntimeArchivePath `
-                -UseBasicParsing `
-                -Proxy $Proxy
-            Write-HostGreen 'Downloaded Moby runtime.'
-            Expand-Archive $mobyRuntimeArchivePath $MobyInstallDirectory -Force
+            $mobyEngineArchivePath =
+                Download-File `
+                    -Description 'Moby Engine' `
+                    -Url 'https://aka.ms/iotedge-moby-engine-win-amd64-latest' `
+                    -DownloadFilename 'iotedge-moby-engine.zip' `
+                    -LocalCacheGlob '*moby-engine*.zip' `
+                    -Delete ([ref] $deleteMobyEngineArchive)
+            Expand-Archive $mobyEngineArchivePath $MobyInstallDirectory -Force
 
-            New-Item -Type Directory $MobyDataRootDirectory | Out-Null
+            New-Item -Type Directory $MobyDataRootDirectory -Force | Out-Null
             Remove-BuiltinWritePermissions $MobyDataRootDirectory
 
-            if ($WithMobyCli) {
-                Write-Host 'Downloading the latest version of Moby CLI...'
-                Invoke-WebRequest `
-                    -Uri 'https://aka.ms/iotedge-moby-cli-win-amd64-latest' `
-                    -OutFile $mobyCliArchivePath `
-                    -UseBasicParsing `
-                    -Proxy $Proxy
-                Write-HostGreen 'Downloaded Moby CLI.'
-
+            if (-not ($SkipMobyCli)) {
+                $mobyCliArchivePath =
+                    Download-File `
+                        -Description 'Moby CLI' `
+                        -Url 'https://aka.ms/iotedge-moby-cli-win-amd64-latest' `
+                        -DownloadFilename 'iotedge-moby-cli.zip' `
+                        -LocalCacheGlob '*moby-cli*.zip' `
+                        -Delete ([ref] $deleteMobyCliArchive)
                 Expand-Archive $mobyCliArchivePath $MobyInstallDirectory -Force
             }
         }
 
-        if (-not "$ArchivePath") {
-            $ArchivePath = "$env:TEMP\iotedged-windows.zip"
-            $deleteEdgeArchive = $true
-            Write-Host 'Downloading the latest version of IoT Edge security daemon...'
-            Invoke-WebRequest `
-                -Uri 'https://aka.ms/iotedged-windows-latest' `
-                -OutFile $ArchivePath `
-                -UseBasicParsing `
-                -Proxy $Proxy
-            Write-HostGreen 'Downloaded security daemon.'
+        # Historically the `-ArchivePath` parameter pointed to the zip / directory of iotedged.
+        # This is now better handled through `-OfflineInstallationPath`, but `-ArchivePath` is still allowed
+        # for backward compatibility.
+        if ($ArchivePath -ne '') {
+            $edgeArchivePath = $ArchivePath
+            $deleteEdgeArchive = $false
         }
-        if ((Get-Item $ArchivePath).PSIsContainer) {
-            New-Item -Type Directory $EdgeInstallDirectory | Out-Null
-            Copy-Item "$ArchivePath\*" $EdgeInstallDirectory -Force
+        else {
+            # The -LocalCacheGlob value here *intentionally* doesn't check for .zip extension,
+            # so that an expanded directory of the same name will match
+            $edgeArchivePath =
+                Download-File `
+                    -Description 'IoT Edge security daemon' `
+                    -Url 'https://aka.ms/iotedged-windows-latest' `
+                    -DownloadFilename 'iotedged-windows.zip' `
+                    -LocalCacheGlob '*iotedged-windows*' `
+                    -Delete ([ref] $deleteEdgeArchive)
+        }
+
+        if ((Get-Item $edgeArchivePath).PSIsContainer) {
+            New-Item -Type Directory $EdgeInstallDirectory -Force | Out-Null
+            if ($ExistingConfig) {
+                Copy-Item "$edgeArchivePath\*" $EdgeInstallDirectory -Force -Recurse -Exclude 'config.yaml'
+            }
+            else {
+                Copy-Item "$edgeArchivePath\*" $EdgeInstallDirectory -Force -Recurse
+            }
         }
         else {
             New-Item -Type Directory $EdgeInstallDirectory | Out-Null
-            Expand-Archive $ArchivePath $EdgeInstallDirectory -Force
-            Copy-Item "$EdgeInstallDirectory\iotedged-windows\*" $EdgeInstallDirectory -Force -Recurse
+            Expand-Archive $edgeArchivePath $EdgeInstallDirectory -Force
+            if ($ExistingConfig) {
+                Copy-Item "$EdgeInstallDirectory\iotedged-windows\*" $EdgeInstallDirectory -Force -Recurse -Exclude 'config.yaml'
+            }
+            else {
+                Copy-Item "$EdgeInstallDirectory\iotedged-windows\*" $EdgeInstallDirectory -Force -Recurse
+            }
         }
 
         Remove-BuiltinWritePermissions $EdgeInstallDirectory
@@ -419,11 +583,16 @@ function Get-SecurityDaemon {
         Remove-Item "$EdgeInstallDirectory\iotedged-windows" -Recurse -Force -ErrorAction SilentlyContinue
 
         if ($deleteEdgeArchive) {
-            Remove-Item $ArchivePath -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item $edgeArchivePath -Recurse -Force -ErrorAction SilentlyContinue
         }
 
-        Remove-Item $mobyRuntimeArchivePath -Recurse -Force -ErrorAction SilentlyContinue
-        Remove-Item $mobyCliArchivePath -Recurse -Force -ErrorAction SilentlyContinue
+        if ($deleteMobyEngineArchive) {
+            Remove-Item $mobyEngineArchivePath -Recurse -Force -ErrorAction SilentlyContinue
+        }
+
+        if ($deleteMobyCliArchive) {
+            Remove-Item $mobyCliArchivePath -Recurse -Force -ErrorAction SilentlyContinue
+        }
     }
 }
 
@@ -434,7 +603,17 @@ function Remove-SecurityDaemonResources {
     Remove-Item $logKey -ErrorAction SilentlyContinue -ErrorVariable cmdErr
     Write-Verbose "$(if ($?) { "Deleted registry key '$logKey'" } else { $cmdErr })"
 
-    Remove-Item -Recurse $EdgeInstallDirectory -ErrorAction SilentlyContinue -ErrorVariable cmdErr
+    Write-Host "Deleting install directory '$EdgeInstallDirectory'..."
+    if (-not $DeleteConfig) {
+        Write-Host "Not deleting config.yaml since -DeleteConfig was not specified."
+    }
+
+    if ($DeleteConfig) {
+        Remove-Item -Recurse $EdgeInstallDirectory -ErrorAction SilentlyContinue -ErrorVariable cmdErr
+    }
+    else {
+        Remove-Item -Recurse $EdgeInstallDirectory -Exclude 'config.yaml' -ErrorAction SilentlyContinue -ErrorVariable cmdErr
+    }
     if ($?) {
         Write-Verbose "Deleted install directory '$EdgeInstallDirectory'"
     }
@@ -463,32 +642,37 @@ function Remove-SecurityDaemonResources {
         Write-Verbose "$cmdErr"
     }
 
-    if (Test-Path $MobyDataRootDirectory) {
-        try {
-            Write-Host "Deleting Moby data root directory '$MobyDataRootDirectory'..."
+    if ($DeleteMobyDataRoot) {
+        if (Test-Path $MobyDataRootDirectory) {
+            try {
+                Write-Host "Deleting Moby data root directory '$MobyDataRootDirectory'..."
 
-            # Removing `$MobyDataRootDirectory` is tricky. Windows base images contain files owned by TrustedInstaller, etc
-            # Deleting them is a three-step process:
-            #
-            # 1. Take ownership of all files
-            Invoke-Native "takeown /r /skipsl /f ""$MobyDataRootDirectory"""
+                # Removing `$MobyDataRootDirectory` is tricky. Windows base images contain files owned by TrustedInstaller, etc
+                # Deleting them is a three-step process:
+                #
+                # 1. Take ownership of all files
+                Invoke-Native "takeown /r /skipsl /f ""$MobyDataRootDirectory"""
 
-            # 2. Reset their ACLs so that they inherit from their container
-            Invoke-Native "icacls ""$MobyDataRootDirectory"" /reset /t /l /q /c"
+                # 2. Reset their ACLs so that they inherit from their container
+                Invoke-Native "icacls ""$MobyDataRootDirectory"" /reset /t /l /q /c"
 
-            # 3. Use cmd's `rd` rather than `Remove-Item` since the latter gets tripped up by reparse points, etc.
-            #    Prepend the path with `\\?\` since the layer directories have long names, so the paths usually exceed 260 characters,
-            #    and IoT Core's filesystem doesn't seem to automatically use (or even have) short names
-            Invoke-Native "rd /s /q ""\\?\$MobyDataRootDirectory"""
+                # 3. Use cmd's `rd` rather than `Remove-Item` since the latter gets tripped up by reparse points, etc.
+                #    Prepend the path with `\\?\` since the layer directories have long names, so the paths usually exceed 260 characters,
+                #    and IoT Core's filesystem doesn't seem to automatically use (or even have) short names
+                Invoke-Native "rd /s /q ""\\?\$MobyDataRootDirectory"""
 
-            Write-Verbose "Deleted Moby data root directory '$MobyDataRootDirectory'"
+                Write-Verbose "Deleted Moby data root directory '$MobyDataRootDirectory'"
+            }
+            catch {
+                Write-Verbose "$_"
+                Write-HostRed ("Could not delete Moby data root directory '$MobyDataRootDirectory'. Please reboot " +
+                    'your device and run `Uninstall-SecurityDaemon` again with `-Force`.')
+                $success = $false
+            }
         }
-        catch {
-            Write-Verbose "$_"
-            Write-HostRed ("Could not delete Moby data root directory '$MobyDataRootDirectory'. Please reboot " +
-                'your device and run `Uninstall-SecurityDaemon` again with `-Force`.')
-            $success = $false
-        }
+    }
+    else {
+        Write-Host "Not deleting Moby data root directory '$MobyDataRootDirectory' since -DeleteMobyDataRoot was not specified."
     }
 
     Remove-Item -Recurse $MobyInstallDirectory -ErrorAction SilentlyContinue -ErrorVariable cmdErr
@@ -572,30 +756,41 @@ function Reset-SystemPath {
 
 function Get-VcRuntime {
     if (Test-IotCore) {
-        Write-HostGreen 'Skipped vcruntime download on IoT Core.'
+        Write-HostGreen 'Skipping VC Runtime installation on IoT Core.'
         return
     }
 
+    if (Test-Path 'C:\Windows\System32\vcruntime140.dll') {
+        Write-HostGreen 'Skipping VC Runtime installation because it is already installed.'
+        return
+    }
+
+    $deleteVcRuntimeArchive = $false
+
     try {
-        Write-Host 'Downloading vcruntime...'
-        Invoke-WebRequest `
-            -Uri 'https://download.microsoft.com/download/0/6/4/064F84EA-D1DB-4EAA-9A5C-CC2F0FF6A638/vc_redist.x64.exe' `
-            -OutFile "$env:TEMP\vc_redist.exe" `
-            -UseBasicParsing `
-            -Proxy $Proxy
-        Invoke-Native """$env:TEMP\vc_redist.exe"" /quiet /norestart"
-        Write-HostGreen 'Downloaded vcruntime.'
+        $vcRuntimeArchivePath =
+            Download-File `
+                -Description 'VC Runtime installer' `
+                -Url 'https://download.microsoft.com/download/0/6/4/064F84EA-D1DB-4EAA-9A5C-CC2F0FF6A638/vc_redist.x64.exe' `
+                -DownloadFilename 'vc_redist.x64.exe' `
+                -LocalCacheGlob '*vc_redist*.exe' `
+                -Delete ([ref] $deleteVcRuntimeArchive)
+
+        Invoke-Native """$vcRuntimeArchivePath"" /quiet /norestart"
+        Write-HostGreen 'Installed VC Runtime.'
     }
     catch {
         if ($LASTEXITCODE -eq 1638) {
-            Write-HostGreen 'Skipping vcruntime installation because a newer version is already installed.'
+            Write-HostGreen 'Skipping VC Runtime installation because a newer version is already installed.'
         }
         else {
             throw $_
         }
     }
     finally {
-        Remove-Item "$env:TEMP\vc_redist.exe" -Force -Recurse -ErrorAction SilentlyContinue
+        if ($deleteVcRuntimeArchive) {
+            Remove-Item $vcRuntimeArchivePath -Recurse -Force -ErrorAction SilentlyContinue
+        }
     }
 }
 
@@ -624,6 +819,7 @@ function Install-Services {
 
 function Uninstall-Services {
     if (Get-Service $EdgeServiceName -ErrorAction SilentlyContinue) {
+        Set-Service -StartupType Disabled $EdgeServiceName -ErrorAction SilentlyContinue
         Stop-Service -NoWait -ErrorAction SilentlyContinue -ErrorVariable cmdErr $EdgeServiceName
         if ($?) {
             Start-Sleep -Seconds 7
@@ -638,24 +834,24 @@ function Uninstall-Services {
         }
     }
 
+    Remove-IotEdgeContainers
+
     if (Get-Service $MobyServiceName -ErrorAction SilentlyContinue) {
         Stop-Service -NoWait -ErrorAction SilentlyContinue -ErrorVariable cmdErr $MobyServiceName
         if ($?) {
             Start-Sleep -Seconds 7
-            Write-Verbose 'Stopped the IoT Edge Moby Runtime service'
+            Write-Verbose 'Stopped the IoT Edge Moby Engine service'
         }
         else {
             Write-Verbose "$cmdErr"
         }
 
         if (Invoke-Native "sc.exe delete ""$MobyServiceName""" -ErrorAction SilentlyContinue) {
-            Write-Verbose 'Removed IoT Edge Moby Runtime service subkey from the registry'
+            Write-Verbose 'Removed IoT Edge Moby Engine service subkey from the registry'
         }
     }
 }
 
-# The daemon listens using UDS by default, so these firewall rules are no longer created.
-# However Uninstall-SecurityDaemon still calls this to remove rules created by old installs.
 function Remove-FirewallExceptions {
     Remove-NetFirewallRule -DisplayName 'iotedged allow inbound 15580,15581' -ErrorAction SilentlyContinue -ErrorVariable cmdErr
     Write-Verbose "$(if ($?) { 'Removed firewall exceptions' } else { $cmdErr })"
@@ -763,28 +959,24 @@ function Set-GatewayAddress {
     Write-HostGreen "Configured device with gateway address '$gatewayAddress'."
 }
 
-function Set-MobyRuntimeParameters {
+function Set-MobyEngineParameters {
     $configurationYaml = Get-Content "$EdgeInstallDirectory\config.yaml" -Raw
     $selectionRegex = 'moby_runtime:\s*uri:\s*".*"\s*#?\s*network:\s*".*"'
-    $replacementContentWindows = @(
-        'moby_runtime:',
-        "  uri: '$MobyNamedPipeUrl'",
-        '  network: ''nat''')
-    $replacementContentLinux = @(
-        'moby_runtime:',
-        '  uri: ''npipe://./pipe/docker_engine''',
-        '  network: ''azure-iot-edge''')
-    switch ($ContainerOs) {
+    $mobyUrl = switch ($ContainerOs) {
         'Linux' {
-            ($configurationYaml -replace $selectionRegex, ($replacementContentLinux -join "`n")) | Set-Content "$EdgeInstallDirectory\config.yaml" -Force
-            Write-HostGreen 'Set the Moby runtime network to ''azure-iot-edge''.'
+            $MobyLinuxNamedPipeUrl
         }
 
         'Windows' {
-            ($configurationYaml -replace $selectionRegex, ($replacementContentWindows -join "`n")) | Set-Content "$EdgeInstallDirectory\config.yaml" -Force
-            Write-HostGreen 'Set the Moby runtime network to ''nat''.'
+            $MobyNamedPipeUrl
         }
     }
+    $replacementContent = @(
+        'moby_runtime:',
+        "  uri: '$mobyUrl'",
+        '  network: ''azure-iot-edge''')
+    ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")) | Set-Content "$EdgeInstallDirectory\config.yaml" -Force
+    Write-HostGreen "Configured device with Moby Engine URL '$mobyUrl'."
 }
 
 function Get-AgentRegistry {
@@ -795,23 +987,36 @@ function Get-AgentRegistry {
     return 'index.docker.io'
 }
 
-function Stop-IotEdgeContainers {
+function Remove-IotEdgeContainers {
     $dockerExe = Get-DockerExePath
 
     if (-not (Test-IsDockerRunning 6> $null)) {
         return
     }
 
-    $runningContainersString = Invoke-Native "$dockerExe ps --format ""{{.ID}}""" -Passthru
-    [string[]] $runningContainers = $runningContainersString -split {$_ -eq "`r" -or $_ -eq "`n"} | where {$_.Length -gt 0}
+    $allContainersString = Invoke-Native "$dockerExe ps --all --format ""{{.ID}}""" -Passthru
+    [string[]] $allContainers = $allContainersString -split {$_ -eq "`r" -or $_ -eq "`n"} | where {$_.Length -gt 0}
 
-    foreach ($containerId in $runningContainers) {
-        $inspectString = Invoke-Native "$dockerExe inspect ""$containerId""" -Passthru | ConvertFrom-Json
+    foreach ($containerId in $allContainers) {
+        $inspectString = Invoke-Native "$dockerExe inspect ""$containerId""" -Passthru
         $inspectResult = ($inspectString | ConvertFrom-Json)[0]
 
         if ($inspectResult.Config.Labels.'net.azure-devices.edge.owner' -eq 'Microsoft.Azure.Devices.Edge.Agent') {
-            Invoke-Native "$dockerExe stop ""$containerId"""
-            Write-Verbose "Stopped container $($inspectResult.Name)"
+            if (($inspectResult.Name -eq '/edgeAgent') -or ($inspectResult.Name -eq '/edgeHub')) {
+                Invoke-Native "$dockerExe rm --force ""$containerId"""
+                Write-Verbose "Stopped and deleted container $($inspectResult.Name)"
+
+                # `.Config.Image` contains the user-provided name, but this can be a tag like `foo:latest`
+                # that doesn't necessarily point to the image that has that tag right now.
+                #
+                # So delete the image using its unique identifier, as given by `.Image`, like `sha256:1234abcd...`
+                Invoke-Native "$dockerExe image rm --force ""$($inspectResult.Image)"""
+                Write-Verbose "Deleted image of container $($inspectResult.Name) ($($inspectResult.Config.Image))"
+            }
+            else {
+                Invoke-Native "$dockerExe stop ""$containerId"""
+                Write-Verbose "Stopped container $($inspectResult.Name)"
+            }
         }
     }
 }
@@ -884,6 +1089,29 @@ function Remove-BuiltinWritePermissions([string] $Path) {
         }
     } 
     Set-Acl -Path $Path -AclObject $acl
+}
+
+function Download-File([string] $Description, [string] $Url, [string] $DownloadFilename, [string] $LocalCacheGlob, [ref] $Delete) {
+    if (($OfflineInstallationPath -ne '') -and (Test-Path "$OfflineInstallationPath\$LocalCacheGlob")) {
+        $result = (Get-Item "$OfflineInstallationPath\$LocalCacheGlob" | Select-Object -First 1).FullName
+
+        $Delete.Value = $false
+    }
+    else {
+        Write-Host "Downloading $Description..."
+
+        Invoke-WebRequest `
+            -Uri $Url `
+            -OutFile "$env:TEMP\$DownloadFileName" `
+            -UseBasicParsing `
+            @InvokeWebRequestParameters
+
+        $Delete.Value = $true
+        $result = "$env:TEMP\$DownloadFileName"
+    }
+
+    Write-HostGreen "Using $Description from $result"
+    return $result
 }
 
 Export-ModuleMember -Function Install-SecurityDaemon, Uninstall-SecurityDaemon

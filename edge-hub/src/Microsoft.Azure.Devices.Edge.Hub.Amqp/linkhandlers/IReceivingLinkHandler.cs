@@ -3,5 +3,6 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 {
     public interface IReceivingLinkHandler : ILinkHandler
-    { }
+    {
+    }
 }

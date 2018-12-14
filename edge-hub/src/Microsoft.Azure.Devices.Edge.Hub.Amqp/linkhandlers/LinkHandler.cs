@@ -15,41 +15,34 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 
     public abstract class LinkHandler : ILinkHandler
     {
-        IDeviceListener deviceListener;
+        readonly IConnectionHandler connectionHandler;
 
-        protected LinkHandler(IAmqpLink link, Uri requestUri,
-            IDictionary<string, string> boundVariables, IMessageConverter<AmqpMessage> messageConverter)
+        protected LinkHandler(
+            IIdentity identity,
+            IAmqpLink link,
+            Uri requestUri,
+            IDictionary<string, string> boundVariables,
+            IConnectionHandler connectionHandler,
+            IMessageConverter<AmqpMessage> messageConverter)
         {
-            // TODO: IoT Hub periodically validates that the authorization is still valid in this
-            // class using a timer (except when the concrete sub-class is CbsLinkHandler or EventHubReceiveRedirectLinkHandler.
-            // We need to evaluate whether it makes sense to do that in Edge Hub too. See the implementation in
-            // AmqpGatewayProtocolHead.LinkHandler.IotHubStatusTimerCallback in service code.
-
+            this.Identity = Preconditions.CheckNotNull(identity, nameof(identity));
             this.MessageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
             this.BoundVariables = Preconditions.CheckNotNull(boundVariables, nameof(boundVariables));
             this.Link = Preconditions.CheckNotNull(link, nameof(link));
             this.LinkUri = Preconditions.CheckNotNull(requestUri, nameof(requestUri));
             this.Link.SafeAddClosed(this.OnLinkClosed);
-            this.ConnectionHandler = this.Link.Session.Connection.FindExtension<IConnectionHandler>();
-            this.DeviceId = this.BoundVariables.ContainsKey(Templates.DeviceIdTemplateParameterName) ? this.BoundVariables[Templates.DeviceIdTemplateParameterName] : string.Empty;
-            this.ModuleId = this.BoundVariables.ContainsKey(Templates.ModuleIdTemplateParameterName) ? this.BoundVariables[Templates.ModuleIdTemplateParameterName] : string.Empty;
+            this.connectionHandler = Preconditions.CheckNotNull(connectionHandler, nameof(connectionHandler));
         }
 
-        protected string DeviceId { get; }
+        protected IIdentity Identity { get; }
 
-        protected string ModuleId { get; }
-
-        protected string ClientId => this.DeviceId + (!string.IsNullOrWhiteSpace(this.ModuleId) ? $"/{this.ModuleId}" : string.Empty);
+        protected string ClientId => this.Identity.Id;
 
         protected IMessageConverter<AmqpMessage> MessageConverter { get; }
 
-        protected IDeviceListener DeviceListener => this.deviceListener;
+        protected IDeviceListener DeviceListener { get; private set; }
 
         protected IDictionary<string, string> BoundVariables { get; }
-
-        protected IIdentity Identity => this.deviceListener?.Identity;
-
-        protected IConnectionHandler ConnectionHandler { get; }
 
         public IAmqpLink Link { get; }
 
@@ -61,28 +54,46 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 
         public async Task OpenAsync(TimeSpan timeout)
         {
-            if (!this.Link.IsCbsLink())
+            if (!await this.Authenticate())
             {
-                if (!await this.Authenticate())
-                {
-                    throw new InvalidOperationException($"Unable to open {this.Type} link as connection is not authenticated");
-                }
-
-                this.deviceListener = await this.ConnectionHandler.GetDeviceListener();
+                throw new InvalidOperationException($"Unable to open {this.Type} link as the connection could not be authenticated");
             }
+
+            this.DeviceListener = await this.connectionHandler.GetDeviceListener();
+
             await this.OnOpenAsync(timeout);
-            await this.ConnectionHandler.RegisterLinkHandler(this);
+            await this.connectionHandler.RegisterLinkHandler(this);
             Events.Opened(this);
         }
 
         protected abstract Task OnOpenAsync(TimeSpan timeout);
 
-        protected async Task<bool> Authenticate() => (await this.ConnectionHandler.GetAmqpAuthentication()).IsAuthenticated;
+        protected Task<bool> Authenticate()
+        {
+            IAmqpAuthenticator amqpAuth;
+            IAmqpConnection connection = this.Link.Session.Connection;
+
+            // Check if Principal is IAmqpAuthenticator
+            if (connection.Principal is IAmqpAuthenticator connAuth)
+            {
+                amqpAuth = connAuth;
+            }
+            else if (connection.FindExtension<ICbsNode>() is IAmqpAuthenticator cbsAuth)
+            {
+                amqpAuth = cbsAuth;
+            }
+            else
+            {
+                throw new InvalidOperationException($"Unable to find authentication mechanism for AMQP connection for identity {this.Identity.Id}");
+            }
+
+            return amqpAuth.AuthenticateAsync(this.Identity.Id);
+        }
 
         protected virtual void OnLinkClosed(object sender, EventArgs args)
         {
             Events.Closed(this);
-            this.ConnectionHandler.RemoveLinkHandler(this);
+            this.connectionHandler.RemoveLinkHandler(this);
         }
 
         public async Task CloseAsync(TimeSpan timeout)

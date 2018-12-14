@@ -12,10 +12,7 @@ pub struct Error {
 
 #[derive(Clone, Copy, Debug, Fail)]
 pub enum ErrorKind {
-    #[fail(
-        display = "The Connection String is missing required parameter {}",
-        _0
-    )]
+    #[fail(display = "The Connection String is missing required parameter {}", _0)]
     ConnStringMissingRequiredParameter(&'static str),
 
     #[fail(
