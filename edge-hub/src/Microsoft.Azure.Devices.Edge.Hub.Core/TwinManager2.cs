@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using System;
     using System.Threading.Tasks;
     using System.Threading.Tasks.Dataflow;
+    using System.Transactions;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -26,12 +27,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly AsyncLock reportedPropertiesLock;
         readonly AsyncLock twinLock;
         readonly ActionBlock<IIdentity> actionBlock;
-        readonly IEntityStore<string, TwinInfo> twinStore;
+        readonly IEntityStore<string, TwinInfo2> twinStore;
+        readonly ReportedPropertiesStore reportedPropertiesStore;
+        readonly TwinStore twinEntityStore;
+        readonly CloudSync cloudSync;
 
         public TwinManager2(IConnectionManager connectionManager,
             IMessageConverter<TwinCollection> twinCollectionConverter,
             IMessageConverter<Twin> twinConverter,
-            IEntityStore<string, TwinInfo> twinStore)
+            IEntityStore<string, TwinInfo2> twinStore)
         {
             this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
             this.twinCollectionConverter = Preconditions.CheckNotNull(twinCollectionConverter, nameof(twinCollectionConverter));
@@ -45,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public static ITwinManager CreateTwinManager(
             IConnectionManager connectionManager,
             IMessageConverterProvider messageConverterProvider,
-            IEntityStore<string, TwinInfo> twinStore)
+            IEntityStore<string, TwinInfo2> twinStore)
         {
             Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
             Preconditions.CheckNotNull(messageConverterProvider, nameof(messageConverterProvider));
@@ -58,102 +62,160 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public async Task<IMessage> GetTwinAsync(string id)
         {
-            Option<IMessage> twin = Option.None<IMessage>();
-            try
-            {
-                Option<ICloudProxy> cloudProxy = await this.connectionManager.GetCloudConnection(id);
-                twin = await cloudProxy.Map(
-                    async c =>
-                    {
-                        IMessage t = await c.GetTwinAsync();
-                        await this.AddTwinToStore(this.twinConverter.FromMessage(t), id);
-                        return Option.Some(t);
-                    }).GetOrElse(() => Task.FromResult(Option.None<IMessage>()));
-            }
-            catch (Exception)
-            {
-                // Log exception getting twin from IoThub
-            }
-
-            IMessage result = await twin.Map(t => Task.FromResult(t)).GetOrElse(this.GetTwinFromStore(id));
-            return result;
+            Option<Twin> twinOption = await this.cloudSync.TryGetTwin(id);
+            Twin twin = await twinOption.Map(
+                async t =>
+                {
+                    await this.twinEntityStore.Update(id, t);
+                    return t;
+                })
+                .GetOrElse(this.twinEntityStore.Get(id));
+            return this.twinConverter.ToMessage(twin);
         }
 
         public async Task UpdateDesiredPropertiesAsync(string id, IMessage twinCollection)
         {
-            try
-            {
-                await this.UpdateStoredDesiredProperties(id, this.twinCollectionConverter.FromMessage(twinCollection));
-                Option<IDeviceProxy> deviceProxy = this.connectionManager.GetDeviceConnection(id);
-                await deviceProxy.ForEachAsync(d => d.OnDesiredPropertyUpdates(twinCollection));
-            }
-            catch (Exception)
-            {
-                // Log
-            }
+            TwinCollection patch = this.twinCollectionConverter.FromMessage(twinCollection);
+            await this.twinEntityStore.UpdateDesiredProperties(id, patch);
+            await this.SendPatchToDevice(id, twinCollection);
         }
-
+        
         public async Task UpdateReportedPropertiesAsync(string id, IMessage twinCollection)
         {
-            bool updatedReportedProperties = false;
-            try
+            TwinCollection patch = this.twinCollectionConverter.FromMessage(twinCollection);
+            await this.twinEntityStore.UpdateReportedProperties(id, patch);
+            await this.reportedPropertiesStore.Update(id, patch);            
+            this.reportedPropertiesStore.SyncToCloud(id);
+        }
+
+        Task SendPatchToDevice(string id, IMessage twinCollection)
+        {
+            throw new NotImplementedException();
+        }
+
+        class ReportedPropertiesStore
+        {
+            readonly IEntityStore<string, TwinInfo2> twinStore;
+
+            public async Task Update(string id, TwinCollection patch)
             {
-                Option<ICloudProxy> cloudProxy = await this.connectionManager.GetCloudConnection(id);
-                updatedReportedProperties = await cloudProxy.Map(
-                    async c =>
+                await this.twinStore.PutOrUpdate(
+                    id,
+                    new TwinInfo2(Option.Some(patch)),
+                    twinInfo =>
                     {
-                        try
-                        {
-                            await c.UpdateReportedPropertiesAsync(twinCollection);
-                            return true;
-                        }
-                        catch (Exception)
-                        {
-                            return false;
-                        }
-                    }).GetOrElse(() => Task.FromResult(false));
-            }
-            catch (Exception )
-            {
-                // Log
+                        TwinCollection updatedReportedProperties = twinInfo.ReportedPropertiesPatch
+                            .Map(reportedProperties => new TwinCollection(JsonEx.Merge(reportedProperties, patch, /*treatNullAsDelete*/ false)))
+                            .GetOrElse(() => patch);
+                        return new TwinInfo2(twinInfo.Twin, updatedReportedProperties);
+                    });
             }
 
-            TwinCollection reportedProperties = this.twinCollectionConverter.FromMessage(twinCollection);
-            await this.UpdateReportedPropertiesInStore(id, reportedProperties, updatedReportedProperties);
+            public void SyncToCloud(string id)
+            {
+                
+            }
         }
 
-        async Task UpdateReportedPropertiesInStore(string id, TwinCollection reportedProperties, bool addReportedProperties)
+        class TwinStore
         {
-            var putValue = new TwinInfo(new Twin(new TwinProperties {Reported = reportedProperties}), addReportedProperties ? reportedProperties : null);
+            readonly AsyncLockProvider<string> lockProvider;
+            readonly IEntityStore<string, TwinInfo2> twinStore;
 
-            Twin MergeWithTwin(Twin storedTwinInfo)
+            public async Task<Twin> Get(string id)
             {
-                string mergedJson = JsonEx.Merge(storedTwinInfo.Properties.Reported, reportedProperties, /*treatNullAsDelete*/ true);
-                var mergedReportedProperties = new TwinCollection(mergedJson);
-                storedTwinInfo.Properties.Reported = mergedReportedProperties;
-                return storedTwinInfo;
+                TwinInfo2 twinInfo = await this.twinStore.FindOrPut(id, new TwinInfo2());
+                return twinInfo.Twin;
             }
 
-            TwinInfo Updator(TwinInfo storedTwinInfo)
+            public async Task UpdateReportedProperties(string id, TwinCollection patch)
             {
-                Twin twin = storedTwinInfo.Twin != null ? MergeWithTwin(storedTwinInfo.Twin) : putValue.Twin;
-
-                var twinInfo = new TwinInfo(twin,);
+                await this.twinStore.PutOrUpdate(
+                    id,
+                    new TwinInfo2(new Twin(new TwinProperties { Reported = patch })),
+                    twinInfo =>
+                    {
+                        TwinProperties twinProperties = twinInfo.Twin.Properties ?? new TwinProperties();
+                        TwinCollection reportedProperties = twinProperties.Reported ?? new TwinCollection();
+                        string mergedReportedPropertiesString = JsonEx.Merge(reportedProperties, patch, /* treatNullAsDelete */ true);
+                        twinProperties.Reported = new TwinCollection(mergedReportedPropertiesString);
+                        twinInfo.Twin.Properties = twinProperties;
+                        return twinInfo;
+                    });
             }
-            await this.twinStore.PutOrUpdate(
-                id,
-                putValue,
 
-            );
+            public async Task UpdateDesiredProperties(string id, TwinCollection patch)
+            {
+                await this.twinStore.PutOrUpdate(
+                    id,
+                    new TwinInfo2(new Twin(new TwinProperties { Desired = patch })),
+                    twinInfo =>
+                    {
+                        TwinProperties twinProperties = twinInfo.Twin.Properties ?? new TwinProperties();
+                        TwinCollection desiredProperties = twinProperties.Desired ?? new TwinCollection();
+                        string mergedDesiredPropertiesString = JsonEx.Merge(desiredProperties, patch, /* treatNullAsDelete */ true);
+                        twinProperties.Desired = new TwinCollection(mergedDesiredPropertiesString);
+                        twinInfo.Twin.Properties = twinProperties;
+                        return twinInfo;
+                    });
+            }
+
+            public async Task Update(string id, Twin twin)
+            {
+                await this.twinStore.PutOrUpdate(
+                    id,
+                    new TwinInfo2(twin),
+                    twinInfo => new TwinInfo2(twin, twinInfo.ReportedPropertiesPatch));
+            }
         }
 
-        async Task<IMessage> GetTwinFromStore(string id)
+        class CloudSync
         {
-            TwinInfo twinInfo = await this.twinStore.FindOrPut(id, new TwinInfo(new Twin(), null));
-            return this.twinConverter.ToMessage(twinInfo.Twin);
-        }
+            readonly IConnectionManager connectionManager;
+            readonly IMessageConverter<TwinCollection> twinCollectionConverter;
+            readonly IMessageConverter<Twin> twinConverter;
 
-        Task AddTwinToStore(Twin twin, string id) =>
-            this.twinStore.PutOrUpdate(id, new TwinInfo(twin, null), t => new TwinInfo(twin, t.ReportedPropertiesPatch));
+            public async Task<Option<Twin>> TryGetTwin(string id)
+            {
+                try
+                {
+                    Option<ICloudProxy> cloudProxy = await this.connectionManager.GetCloudConnection(id);
+                    Option<Twin> twin = await cloudProxy.Map(
+                        async cp =>
+                        {
+                            IMessage twinMessage = await cp.GetTwinAsync();
+                            Twin twinValue = this.twinConverter.FromMessage(twinMessage);
+                            return Option.Some(twinValue);
+                        })
+                        .GetOrElse(() => Task.FromResult(Option.None<Twin>()));
+                    return twin;
+                }
+                catch (Exception)
+                {
+                    return Option.None<Twin>();
+                }
+            }
+
+            public async Task<bool> UpdateReportedProperties(string id, TwinCollection patch)
+            {
+                try
+                {
+                    Option<ICloudProxy> cloudProxy = await this.connectionManager.GetCloudConnection(id);
+                    bool result = await cloudProxy.Map(
+                            async cp =>
+                            {
+                                IMessage patchMessage = this.twinCollectionConverter.ToMessage(patch);
+                                await cp.UpdateReportedPropertiesAsync(patchMessage);
+                                return true;
+                            })
+                        .GetOrElse(() => Task.FromResult(false));
+                    return result;
+                }
+                catch (Exception)
+                {
+                    return false;
+                }
+            }
+        }
     }
 }
