@@ -60,7 +60,7 @@ process_args()
 process_args "$@"
 
 if [[ -z ${RELEASE} ]]; then
-    cd "$PROJECT_ROOT" && cross test --all --target "$TOOLCHAIN"
+    cd "$PROJECT_ROOT" && IOTEDGE_HOMEDIR=/tmp cross test --all --target "$TOOLCHAIN"
 else
-    cd "$PROJECT_ROOT" && cross test --all --release --target "$TOOLCHAIN"
+    cd "$PROJECT_ROOT" && IOTEDGE_HOMEDIR=/tmp cross test --all --release --target "$TOOLCHAIN"
 fi

@@ -2,6 +2,7 @@
 passthrough = [
     "BUILD_SOURCEVERSION",
     "VERSION",
+    "IOTEDGE_HOMEDIR",
 ]
 
 [target.armv7-unknown-linux-gnueabihf]
