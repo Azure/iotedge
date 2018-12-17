@@ -3,6 +3,8 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
+    using System.Collections.Concurrent;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
     using System.Threading.Tasks.Dataflow;
     using System.Transactions;
@@ -96,6 +98,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         class ReportedPropertiesStore
         {
             readonly IEntityStore<string, TwinInfo2> twinStore;
+            readonly CloudSync cloudSync;
+            readonly ConcurrentDictionary<string, Task> syncToCloudTasks = new ConcurrentDictionary<string, Task>();
 
             public async Task Update(string id, TwinCollection patch)
             {
@@ -113,7 +117,41 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             public void SyncToCloud(string id)
             {
-                
+                if (!this.syncToCloudTasks.TryGetValue(id, out Task currentTask)
+                    || currentTask == null
+                    || currentTask.IsCompleted)
+                {
+                    this.syncToCloudTasks[id] = this.SyncToCloudInternal(id);
+                }
+            }
+
+            async Task SyncToCloudInternal(string id)
+            {
+                TwinInfo2 twinInfo = await this.twinStore.FindOrPut(id, new TwinInfo2());
+                while (twinInfo.ReportedPropertiesPatch.HasValue)
+                {
+                    // lock
+                    twinInfo = await this.twinStore.Update(
+                        id,
+                        ti => new TwinInfo2(ti.Twin));
+
+                    TwinCollection reportedPropertiesPatch = twinInfo.ReportedPropertiesPatch.Expect(() => new InvalidOperationException("Should have a reported properties patch here"));
+                    bool result = await this.cloudSync.UpdateReportedProperties(id, reportedPropertiesPatch);
+
+                    if (!result)
+                    {
+                        // lock
+                        await this.twinStore.Update(
+                            id,
+                            ti =>
+                            {
+                                TwinCollection patch = ti.ReportedPropertiesPatch
+                                    .Map(rp => new TwinCollection(JsonEx.Merge(reportedPropertiesPatch, rp, /*treatNullAsDelete*/ false)))
+                                    .GetOrElse(reportedPropertiesPatch);
+                                return new TwinInfo2(ti.Twin, patch);
+                            });
+                    }
+                }
             }
         }
 
