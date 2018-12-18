@@ -6,9 +6,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Runtime.InteropServices.ComTypes;
+    using System.Text;
     using System.Threading.Tasks;
     using System.Threading.Tasks.Dataflow;
     using System.Transactions;
+    using JetBrains.Annotations;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -16,6 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Shared;
+    using Newtonsoft.Json.Linq;
 
     public class TwinManager2 : ITwinManager
     {
@@ -34,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly ReportedPropertiesStore reportedPropertiesStore;
         readonly TwinStore twinEntityStore;
         readonly CloudSync cloudSync;
-        readonly ConcurrentDictionary<string, DateTime> twinSyncTime = new ConcurrentDictionary<string, DateTime>(); 
+        readonly ConcurrentDictionary<string, DateTime> twinSyncTime = new ConcurrentDictionary<string, DateTime>();
 
         public TwinManager2(IConnectionManager connectionManager,
             IMessageConverter<TwinCollection> twinCollectionConverter,
@@ -77,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 {
                     string id = client.Id;
                     await this.reportedPropertiesStore.SyncToCloud(id);
-                    await this.GetTwinAndSendDesiredPropertyUpdates(id, twinSyncPeriod);                    
+                    await this.GetTwinAndSendDesiredPropertyUpdates(id, twinSyncPeriod);
                 }
             }
             catch (Exception e)
@@ -107,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     });
             }
         }
-        
+
         public async Task<IMessage> GetTwinAsync(string id)
         {
             Option<Twin> twinOption = await this.cloudSync.GetTwin(id);
@@ -115,6 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 async t =>
                 {
                     await this.twinEntityStore.Update(id, t);
+                    this.twinSyncTime.AddOrUpdate(id, DateTime.UtcNow, (_, __) => DateTime.UtcNow);
                     return t;
                 })
                 .GetOrElse(this.twinEntityStore.Get(id));
@@ -127,12 +131,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             await this.twinEntityStore.UpdateDesiredProperties(id, patch);
             await this.SendPatchToDevice(id, twinCollection);
         }
-        
+
         public async Task UpdateReportedPropertiesAsync(string id, IMessage twinCollection)
         {
             TwinCollection patch = this.twinCollectionConverter.FromMessage(twinCollection);
+            TwinValidator.ValidateReportedProperties(patch);
             await this.twinEntityStore.UpdateReportedProperties(id, patch);
-            await this.reportedPropertiesStore.Update(id, patch);            
+            await this.reportedPropertiesStore.Update(id, patch);
             this.reportedPropertiesStore.InitSyncToCloud(id);
         }
 
@@ -155,8 +160,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         internal class ReportedPropertiesStore
         {
             readonly IEntityStore<string, TwinInfo2> twinStore;
-            readonly CloudSync cloudSync;            
+            readonly CloudSync cloudSync;
             readonly ConcurrentDictionary<string, Task> syncToCloudTasks = new ConcurrentDictionary<string, Task>();
+            readonly AsyncLockProvider<string> lockProvider = new AsyncLockProvider<string>(10);
+            readonly AsyncLock syncTaskLock = new AsyncLock();
 
             public ReportedPropertiesStore(IEntityStore<string, TwinInfo2> twinStore, CloudSync cloudSync)
             {
@@ -166,55 +173,63 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             public async Task Update(string id, TwinCollection patch)
             {
-                await this.twinStore.PutOrUpdate(
-                    id,
-                    new TwinInfo2(Option.Some(patch)),
-                    twinInfo =>
-                    {
-                        TwinCollection updatedReportedProperties = twinInfo.ReportedPropertiesPatch
-                            .Map(reportedProperties => new TwinCollection(JsonEx.Merge(reportedProperties, patch, /*treatNullAsDelete*/ false)))
-                            .GetOrElse(() => patch);
-                        return new TwinInfo2(twinInfo.Twin, updatedReportedProperties);
-                    });
+                using (await this.lockProvider.GetLock(id).LockAsync())
+                {
+                    await this.twinStore.PutOrUpdate(
+                        id,
+                        new TwinInfo2(Option.Some(patch)),
+                        twinInfo =>
+                        {
+                            TwinCollection updatedReportedProperties = twinInfo.ReportedPropertiesPatch
+                                .Map(reportedProperties => new TwinCollection(JsonEx.Merge(reportedProperties, patch, /*treatNullAsDelete*/ false)))
+                                .GetOrElse(() => patch);
+                            return new TwinInfo2(twinInfo.Twin, updatedReportedProperties);
+                        });
+                }
             }
 
-            public void InitSyncToCloud(string id)
+            public async Task InitSyncToCloud(string id)
             {
                 if (!this.syncToCloudTasks.TryGetValue(id, out Task currentTask)
-                    || currentTask == null
                     || currentTask.IsCompleted)
                 {
-                    this.syncToCloudTasks[id] = this.SyncToCloud(id);
+                    using (await this.syncTaskLock.LockAsync())
+                    {
+                        if (!this.syncToCloudTasks.TryGetValue(id, out currentTask)
+                            || currentTask.IsCompleted)
+                        {
+                            this.syncToCloudTasks[id] = this.SyncToCloud(id);                           
+                        }
+                    }
                 }
             }
 
             public async Task SyncToCloud(string id)
             {
-                TwinInfo2 twinInfo = await this.twinStore.FindOrPut(id, new TwinInfo2());
-                while (twinInfo.ReportedPropertiesPatch.HasValue)
-                {
-                    // Lock    
-                    await this.twinStore.Update(
-                        id,
-                        ti => new TwinInfo2(ti.Twin));
-                
-                    TwinCollection reportedPropertiesPatch = twinInfo.ReportedPropertiesPatch.Expect(() => new InvalidOperationException("Should have a reported properties patch here"));
-                    bool result = await this.cloudSync.UpdateReportedProperties(id, reportedPropertiesPatch);
-
-                    if (!result)
+                Option<TwinInfo2> twinInfoOption = await this.twinStore.Get(id);
+                await twinInfoOption.ForEachAsync(
+                    async twinInfo =>
                     {
-                        // Lock
-                        await this.twinStore.Update(
-                            id,
-                            ti =>
+                        if (twinInfo.ReportedPropertiesPatch.HasValue)
+                        {
+                            using (await this.lockProvider.GetLock(id).LockAsync())
                             {
-                                TwinCollection patch = ti.ReportedPropertiesPatch
-                                    .Map(rp => new TwinCollection(JsonEx.Merge(reportedPropertiesPatch, rp, /*treatNullAsDelete*/ false)))
-                                    .GetOrElse(reportedPropertiesPatch);
-                                return new TwinInfo2(ti.Twin, patch);
-                            });                        
-                    }
-                }
+                                twinInfo = await this.twinStore.FindOrPut(id, new TwinInfo2());
+                                await twinInfo.ReportedPropertiesPatch.ForEachAsync(
+                                    async reportedPropertiesPatch =>
+                                    {
+                                        bool result = await this.cloudSync.UpdateReportedProperties(id, reportedPropertiesPatch);
+
+                                        if (result)
+                                        {
+                                            await this.twinStore.Update(
+                                                id,
+                                                ti => new TwinInfo2(ti.Twin));
+                                        }
+                                    });
+                            }
+                        }
+                    });
             }
         }
 
@@ -258,9 +273,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     {
                         TwinProperties twinProperties = twinInfo.Twin.Properties ?? new TwinProperties();
                         TwinCollection desiredProperties = twinProperties.Desired ?? new TwinCollection();
-                        string mergedDesiredPropertiesString = JsonEx.Merge(desiredProperties, patch, /* treatNullAsDelete */ true);
-                        twinProperties.Desired = new TwinCollection(mergedDesiredPropertiesString);
-                        twinInfo.Twin.Properties = twinProperties;
+                        if (desiredProperties.Version + 1 == patch.Version)
+                        {
+                            string mergedDesiredPropertiesString = JsonEx.Merge(desiredProperties, patch, /* treatNullAsDelete */ true);
+                            twinProperties.Desired = new TwinCollection(mergedDesiredPropertiesString);
+                            twinInfo.Twin.Properties = twinProperties;
+                        }
+
                         return twinInfo;
                     });
             }
@@ -270,7 +289,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 await this.twinStore.PutOrUpdate(
                     id,
                     new TwinInfo2(twin),
-                    twinInfo => new TwinInfo2(twin, twinInfo.ReportedPropertiesPatch));
+                    twinInfo =>
+                    {
+                        Twin storedTwin = twinInfo.Twin;
+                        return (storedTwin.Properties?.Desired?.Version < twin.Properties.Desired.Version
+                            && storedTwin.Properties?.Reported?.Version < twin.Properties.Reported.Version)
+                        ? new TwinInfo2(twin, twinInfo.ReportedPropertiesPatch)
+                        : twinInfo;
+                    });
             }
         }
 
@@ -329,6 +355,102 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 catch (Exception)
                 {
                     return false;
+                }
+            }
+        }
+
+        internal class TwinValidator
+        {
+            public static bool ValidateReportedProperties(TwinCollection reportedProperties)
+            {
+                JToken.Parse(reportedProperties.ToJson());
+                return true;
+            }
+
+            static void ValidateTwinProperties(JToken properties, int currentDepth)
+            {
+                foreach (JProperty kvp in ((JObject)properties).Properties())
+                {
+                    ValidatePropertyNameAndLength(kvp.Name);
+
+                    ValidateValueType(kvp.Name, kvp.Value);
+
+                    string s = kvp.Value.ToString();
+                    ValidatePropertyValueLength(kvp.Name, s);
+
+                    if ((kvp.Value is JValue) && (kvp.Value.Type is JTokenType.Integer))
+                    {
+                        ValidateIntegerValue(kvp.Name, (long)kvp.Value);
+                    }
+
+                    if ((kvp.Value != null) && (kvp.Value is JObject))
+                    {
+                        if (currentDepth > TwinPropertyMaxDepth)
+                        {
+                            throw new InvalidOperationException($"Nested depth of twin property exceeds {TwinPropertyMaxDepth}");
+                        }
+
+                        // do validation recursively
+                        ValidateTwinProperties(kvp.Value, currentDepth + 1);
+                    }
+                }
+            }
+
+            static void ValidatePropertyNameAndLength(string name)
+            {
+                if (name != null && Encoding.UTF8.GetByteCount(name) > TwinPropertyValueMaxLength)
+                {
+                    string truncated = name.Substring(0, 10);
+                    throw new InvalidOperationException($"Length of property name {truncated}.. exceeds maximum length of {TwinPropertyValueMaxLength}");
+                }
+
+                // Disabling Possible Null Referece, since name is being tested above.
+                // ReSharper disable once PossibleNullReferenceException
+                for (int index = 0; index < name.Length; index++)
+                {
+                    char ch = name[index];
+                    // $ is reserved for service properties like $metadata, $version etc.
+                    // However, $ is already a reserved character in Mongo, so we need to substitute it with another character like #.
+                    // So we're also reserving # for service side usage.
+                    if (char.IsControl(ch) || ch == '.' || ch == '$' || ch == '#' || char.IsWhiteSpace(ch))
+                    {
+                        throw new InvalidOperationException($"Property name {name} contains invalid character '{ch}'");
+                    }
+                }
+            }
+
+            static void ValidatePropertyValueLength(string name, string value)
+            {
+                int valueByteCount = value != null ? Encoding.UTF8.GetByteCount(value) : 0;
+                if (valueByteCount > TwinPropertyValueMaxLength)
+                {
+                    throw new InvalidOperationException($"Value associated with property name {name} has length {valueByteCount} that exceeds maximum length of {TwinPropertyValueMaxLength}");
+                }
+            }
+
+            [AssertionMethod]
+            static void ValidateIntegerValue(string name, long value)
+            {
+                if (value > TwinPropertyMaxSafeValue || value < TwinPropertyMinSafeValue)
+                {
+                    throw new InvalidOperationException($"Property {name} has an out of bound value. Valid values are between {TwinPropertyMinSafeValue} and {TwinPropertyMaxSafeValue}");
+                }
+            }
+
+            static void ValidateValueType(string property, JToken value)
+            {
+                if (!JsonEx.IsValidToken(value))
+                {
+                    throw new InvalidOperationException($"Property {property} has a value of unsupported type. Valid types are integer, float, string, bool, null and nested object");
+                }
+            }
+
+            static void ValidateTwinCollectionSize(TwinCollection collection)
+            {
+                long size = Encoding.UTF8.GetByteCount(collection.ToJson());
+                if (size > TwinPropertyDocMaxLength)
+                {
+                    throw new InvalidOperationException($"Twin properties size {size} exceeds maximum {TwinPropertyDocMaxLength}");
                 }
             }
         }
