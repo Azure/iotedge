@@ -25,13 +25,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         const long TwinPropertyMinSafeValue = -4503599627370496; // -2^52. taken from IoTHub
         const int TwinPropertyDocMaxLength = 8 * 1024; // 8K bytes. taken from IoTHub
         readonly IMessageConverter<TwinCollection> twinCollectionConverter;
-        readonly IMessageConverter<Twin> twinConverter;
+        readonly IMessageConverter<Shared.Twin> twinConverter;
         readonly IConnectionManager connectionManager;
         readonly AsyncLock reportedPropertiesLock;
         readonly AsyncLock twinLock;
         readonly ActionBlock<IIdentity> actionBlock;
 
-        public TwinManager(IConnectionManager connectionManager, IMessageConverter<TwinCollection> twinCollectionConverter, IMessageConverter<Twin> twinConverter, Option<IEntityStore<string, TwinInfo>> twinStore)
+        public TwinManager(IConnectionManager connectionManager, IMessageConverter<TwinCollection> twinCollectionConverter, IMessageConverter<Shared.Twin> twinConverter, Option<IEntityStore<string, TwinInfo>> twinStore)
         {
             this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
             this.twinCollectionConverter = Preconditions.CheckNotNull(twinCollectionConverter, nameof(twinCollectionConverter));
@@ -461,7 +461,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                                 Desired = new TwinCollection(),
                                 Reported = reported
                             };
-                            var twin = new Twin(twinProperties);
+                            var twin = new Shared.Twin(twinProperties);
                             Events.UpdatedCachedReportedProperties(id, reported.Version, cloudVerified);
                             return new TwinInfo(twin, reported);
                         }
