@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
+    using Nito.AsyncEx;
 
     public class StoringTwinManager : ITwinManager
     {
@@ -210,11 +211,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
             readonly IEntityStore<string, TwinStoreEntity> twinStore;
             readonly CloudSync cloudSync;
             readonly AsyncLockProvider<string> lockProvider = new AsyncLockProvider<string>(10);
+            readonly AsyncAutoResetEvent syncToCloudSignal = new AsyncAutoResetEvent(false);
+            readonly ConcurrentQueue<string> syncToCloudQueue = new ConcurrentQueue<string>();
+            readonly Task syncToCloudTask;
 
             public ReportedPropertiesStore(IEntityStore<string, TwinStoreEntity> twinStore, CloudSync cloudSync)
             {
                 this.twinStore = twinStore;
                 this.cloudSync = cloudSync;
+                this.syncToCloudTask = this.SyncToCloud();
             }
 
             public async Task Update(string id, TwinCollection patch)
@@ -233,6 +238,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                                 .GetOrElse(() => patch);
                             return new TwinStoreEntity(twinInfo.Twin, Option.Maybe(updatedReportedProperties));
                         });
+                }
+            }
+
+            public void InitSyncToCloud(string id)
+            {
+                this.syncToCloudQueue.Enqueue(id);
+                this.syncToCloudSignal.Set();
+            }
+
+            async Task SyncToCloud()
+            {
+                while (true)
+                {
+                    try
+                    {
+                        await this.syncToCloudSignal.WaitAsync();
+                        while (this.syncToCloudQueue.TryDequeue(out string id))
+                        {
+                            await this.SyncToCloud(id);
+                        }                        
+                    }
+                    catch (Exception e)
+                    {
+                        Events.ErrorSyncingReportedPropertiesToCloud(e);
+                    }
                 }
             }
 
@@ -436,7 +466,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                 StoringTwinManagerCreated,
                 DoneSyncingReportedProperties,
                 NoSyncTwinNotStored,
-                UpdatingTwinOnDeviceConnect
+                UpdatingTwinOnDeviceConnect,
+                ErrorSyncingReportedPropertiesToCloud
             }
 
             public static void ErrorInDeviceConnectedCallback(Exception ex)
@@ -582,6 +613,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
             public static void DoneSyncingReportedProperties(string id)
             {
                 Log.LogInformation((int)EventIds.DoneSyncingReportedProperties, $"Done syncing reported properties for {id}");
+            }
+
+            internal static void ErrorSyncingReportedPropertiesToCloud(Exception e)
+            {
+                Log.LogWarning((int)EventIds.ErrorSyncingReportedPropertiesToCloud, e, $"Error in pump to sync reported properties to cloud");
             }
         }
     }
