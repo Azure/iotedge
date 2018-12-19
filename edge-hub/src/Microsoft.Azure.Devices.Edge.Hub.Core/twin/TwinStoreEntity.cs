@@ -10,33 +10,34 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
     public class TwinStoreEntity
     {
         public TwinStoreEntity()
-            : this(new Twin(), Option.None<TwinCollection>())
+            : this(Option.None<Twin>(), Option.None<TwinCollection>())
         {
         }
 
         public TwinStoreEntity(Twin twin)
-            : this(twin, Option.None<TwinCollection>())
+            : this(Option.Maybe(twin), Option.None<TwinCollection>())
         {
         }
 
-        public TwinStoreEntity(Option<TwinCollection> reportedPropertiesPatch)
-            : this(null, reportedPropertiesPatch)
+        public TwinStoreEntity(TwinCollection reportedPropertiesPatch)
+            : this(Option.None<Twin>(), Option.Maybe(reportedPropertiesPatch))
         {
         }
 
         [JsonConstructor]
         public TwinStoreEntity(Twin twin, TwinCollection reportedPropertiesPatch)
-            : this(twin, Option.Maybe(reportedPropertiesPatch))
+            : this(Option.Maybe(twin), Option.Maybe(reportedPropertiesPatch))
         {
         }
 
-        public TwinStoreEntity(Twin twin, Option<TwinCollection> reportedPropertiesPatch)
+        public TwinStoreEntity(Option<Twin> twin, Option<TwinCollection> reportedPropertiesPatch)
         {
-            this.Twin = twin ?? new Twin();
+            this.Twin = twin;
             this.ReportedPropertiesPatch = reportedPropertiesPatch;
         }
 
-        public Twin Twin { get; }
+        [JsonConverter(typeof(OptionConverter<Twin>))]
+        public Option<Twin> Twin { get; }
 
         [JsonConverter(typeof(OptionConverter<TwinCollection>))]
         public Option<TwinCollection> ReportedPropertiesPatch { get; }

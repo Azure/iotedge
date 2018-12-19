@@ -74,35 +74,41 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                 {
                     string id = client.Id;
                     await this.reportedPropertiesStore.SyncToCloud(id);
-                    await this.GetTwinAndSendDesiredPropertyUpdates(id, twinSyncPeriod);
+                    await this.SyncTwinAndSendDesiredPropertyUpdates(id, twinSyncPeriod);
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                Console.WriteLine(e);
-                throw;
             }
         }
 
-        async Task GetTwinAndSendDesiredPropertyUpdates(string id, TimeSpan twinSyncPeriod)
+        async Task SyncTwinAndSendDesiredPropertyUpdates(string id, TimeSpan twinSyncPeriod)
         {
-            if (!this.twinSyncTime.TryGetValue(id, out DateTime syncTime) ||
-                DateTime.UtcNow - syncTime > twinSyncPeriod)
-            {
-                Option<Twin> twinOption = await this.cloudSync.GetTwin(id);
-                await twinOption.ForEachAsync(
-                    async twin =>
+            Option<Twin> storeTwin = await this.twinEntityStore.Get(id);
+            await storeTwin.ForEachAsync(
+                async twin =>
+                {
+                    if (!this.twinSyncTime.TryGetValue(id, out DateTime syncTime) ||
+                        DateTime.UtcNow - syncTime > twinSyncPeriod)
                     {
-                        Twin storeTwin = await this.twinEntityStore.Get(id);
-                        string diffPatch = JsonEx.Diff(storeTwin.Properties.Desired, twin.Properties.Desired);
-                        if (string.IsNullOrWhiteSpace(diffPatch))
-                        {
-                            var patch = new TwinCollection(diffPatch);
-                            IMessage patchMessage = this.twinCollectionConverter.ToMessage(patch);
-                            await this.SendPatchToDevice(id, patchMessage);
-                        }
-                    });
-            }
+                        Option<Twin> twinOption = await this.cloudSync.GetTwin(id);
+                        await twinOption.ForEachAsync(
+                            async cloudTwin =>
+                            {
+                                await this.twinEntityStore.Update(id, cloudTwin);
+                                this.twinSyncTime.AddOrUpdate(id, DateTime.UtcNow, (_, __) => DateTime.UtcNow);
+
+                                string diffPatch = JsonEx.Diff(twin.Properties.Desired, cloudTwin.Properties.Desired);
+                                if (string.IsNullOrWhiteSpace(diffPatch))
+                                {
+                                    var patch = new TwinCollection(diffPatch);
+                                    IMessage patchMessage = this.twinCollectionConverter.ToMessage(patch);
+                                    await this.SendPatchToDevice(id, patchMessage);
+                                }
+                            });
+                    }
+                });
+
         }
 
         public async Task<IMessage> GetTwinAsync(string id)
@@ -115,7 +121,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                         this.twinSyncTime.AddOrUpdate(id, DateTime.UtcNow, (_, __) => DateTime.UtcNow);
                         return t;
                     })
-                .GetOrElse(this.twinEntityStore.Get(id));
+                .GetOrElse(async () =>
+                {
+                    Option<Twin> storedTwin = await this.twinEntityStore.Get(id);
+                    return storedTwin.GetOrElse(() => new Twin());
+                });
             return this.twinConverter.ToMessage(twin);
         }
 
@@ -176,13 +186,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                 {
                     await this.twinStore.PutOrUpdate(
                         id,
-                        new TwinStoreEntity(Option.Some(patch)),
+                        new TwinStoreEntity(patch),
                         twinInfo =>
                         {
                             TwinCollection updatedReportedProperties = twinInfo.ReportedPropertiesPatch
                                 .Map(reportedProperties => new TwinCollection(JsonEx.Merge(reportedProperties, patch, /*treatNullAsDelete*/ false)))
                                 .GetOrElse(() => patch);
-                            return new TwinStoreEntity(twinInfo.Twin, updatedReportedProperties);
+                            return new TwinStoreEntity(twinInfo.Twin, Option.Maybe(updatedReportedProperties));
                         });
                 }
             }
@@ -207,7 +217,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                                         {
                                             await this.twinStore.Update(
                                                 id,
-                                                ti => new TwinStoreEntity(ti.Twin));
+                                                ti => new TwinStoreEntity(ti.Twin, Option.None<TwinCollection>()));
                                         }
                                     });
                             }
@@ -225,43 +235,52 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                 this.twinStore = twinStore;
             }
 
-            public async Task<Twin> Get(string id)
+            public async Task<Option<Twin>> Get(string id)
             {
-                TwinStoreEntity twinInfo = await this.twinStore.FindOrPut(id, new TwinStoreEntity());
-                return twinInfo.Twin;
+                Option<TwinStoreEntity> twinStoreEntity = await this.twinStore.Get(id);
+                return twinStoreEntity.FlatMap(t => t.Twin);
             }
 
             public async Task UpdateReportedProperties(string id, TwinCollection patch)
             {
-                await this.twinStore.PutOrUpdate(
+                await this.twinStore.Update(
                     id,
-                    new TwinStoreEntity(new Twin(new TwinProperties { Reported = patch })),
                     twinInfo =>
                     {
-                        TwinProperties twinProperties = twinInfo.Twin.Properties ?? new TwinProperties();
-                        TwinCollection reportedProperties = twinProperties.Reported ?? new TwinCollection();
-                        string mergedReportedPropertiesString = JsonEx.Merge(reportedProperties, patch, /* treatNullAsDelete */ true);
-                        twinProperties.Reported = new TwinCollection(mergedReportedPropertiesString);
-                        twinInfo.Twin.Properties = twinProperties;
+                        twinInfo.Twin
+                            .ForEach(
+                                twin =>
+                                {
+                                    TwinProperties twinProperties = twin.Properties ?? new TwinProperties();
+                                    TwinCollection reportedProperties = twinProperties.Reported ?? new TwinCollection();
+                                    string mergedReportedPropertiesString = JsonEx.Merge(reportedProperties, patch, /* treatNullAsDelete */ true);
+                                    twinProperties.Reported = new TwinCollection(mergedReportedPropertiesString);
+                                    twin.Properties = twinProperties;
+                                });
                         return twinInfo;
                     });
             }
 
             public async Task UpdateDesiredProperties(string id, TwinCollection patch)
             {
-                await this.twinStore.PutOrUpdate(
+                await this.twinStore.Update(
                     id,
-                    new TwinStoreEntity(new Twin(new TwinProperties { Desired = patch })),
                     twinInfo =>
                     {
-                        TwinProperties twinProperties = twinInfo.Twin.Properties ?? new TwinProperties();
-                        TwinCollection desiredProperties = twinProperties.Desired ?? new TwinCollection();
-                        if (desiredProperties.Version + 1 == patch.Version)
-                        {
-                            string mergedDesiredPropertiesString = JsonEx.Merge(desiredProperties, patch, /* treatNullAsDelete */ true);
-                            twinProperties.Desired = new TwinCollection(mergedDesiredPropertiesString);
-                            twinInfo.Twin.Properties = twinProperties;
-                        }
+                        twinInfo.Twin
+                            .ForEach(
+                                twin =>
+                                {
+                                    TwinProperties twinProperties = twin.Properties ?? new TwinProperties();
+                                    TwinCollection desiredProperties = twinProperties.Desired ?? new TwinCollection();
+                                    if (desiredProperties.Version + 1 == patch.Version)
+                                    {
+                                        string mergedDesiredPropertiesString = JsonEx.Merge(desiredProperties, patch, /* treatNullAsDelete */ true);
+                                        twinProperties.Desired = new TwinCollection(mergedDesiredPropertiesString);
+                                        twin.Properties = twinProperties;
+                                    }
+                                });
+
 
                         return twinInfo;
                     });
@@ -274,11 +293,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                     new TwinStoreEntity(twin),
                     twinInfo =>
                     {
-                        Twin storedTwin = twinInfo.Twin;
-                        return (storedTwin.Properties?.Desired?.Version < twin.Properties.Desired.Version
-                            && storedTwin.Properties?.Reported?.Version < twin.Properties.Reported.Version)
-                            ? new TwinStoreEntity(twin, twinInfo.ReportedPropertiesPatch)
-                            : twinInfo;
+                        return twinInfo.Twin
+                            .Filter(
+                                storedTwin => storedTwin.Properties?.Desired?.Version < twin.Properties.Desired.Version
+                                    && storedTwin.Properties?.Reported?.Version < twin.Properties.Reported.Version)
+                            .Map(_ => new TwinStoreEntity(Option.Maybe(twin), twinInfo.ReportedPropertiesPatch))
+                            .GetOrElse(twinInfo);
                     });
             }
         }
