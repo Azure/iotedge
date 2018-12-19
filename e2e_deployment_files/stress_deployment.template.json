@@ -9,7 +9,7 @@
             "minDockerVersion": "v1.25",
             "loggingOptions": "",
             "registryCredentials": {
-              "jadsa": {
+              "rc1": {
                 "username": "<CR.Username>",
                 "password": "<CR.Password>",
                 "address": "edgebuilds.azurecr.io"
