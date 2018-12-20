@@ -22,6 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
             Preconditions.CheckNotNull(reportedProperties, nameof(reportedProperties));
             JToken reportedPropertiesJToken = JToken.Parse(reportedProperties.ToJson());
             ValidateTwinProperties(reportedPropertiesJToken, 1);
+            ValidateTwinCollectionSize(reportedProperties);
         }
 
         static void ValidateTwinProperties(JToken properties, int currentDepth)
@@ -55,14 +56,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
 
         static void ValidatePropertyNameAndLength(string name)
         {
-            if (name != null && Encoding.UTF8.GetByteCount(name) > TwinPropertyValueMaxLength)
+            if (name == null)
+            {
+                throw new ArgumentNullException(nameof(name));
+            }
+
+            if (Encoding.UTF8.GetByteCount(name) > TwinPropertyValueMaxLength)
             {
                 string truncated = name.Substring(0, 10);
                 throw new InvalidOperationException($"Length of property name {truncated}.. exceeds maximum length of {TwinPropertyValueMaxLength}");
             }
 
-            // Disabling Possible Null Referece, since name is being tested above.
-            // ReSharper disable once PossibleNullReferenceException
             for (int index = 0; index < name.Length; index++)
             {
                 char ch = name[index];
