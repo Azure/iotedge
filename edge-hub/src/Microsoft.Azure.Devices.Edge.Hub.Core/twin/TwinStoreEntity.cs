@@ -24,18 +24,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
         {
         }
 
-        //[JsonConstructor]
-        //public TwinStoreEntity(string twin, string reportedPropertiesPatch)
-        //{
-        //    this.Twin = string.IsNullOrWhiteSpace(twin)
-        //        ? Option.None<Twin>()
-        //        : Option.Some(JsonConvert.DeserializeObject<Twin>(twin));
-
-        //    this.ReportedPropertiesPatch = string.IsNullOrWhiteSpace(reportedPropertiesPatch)
-        //        ? Option.None<TwinCollection>()
-        //        : Option.Some(JsonConvert.DeserializeObject<TwinCollection>(reportedPropertiesPatch));
-        //}
-
         [JsonConstructor]
         public TwinStoreEntity(Twin twin, TwinCollection reportedPropertiesPatch)
         {
