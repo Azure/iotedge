@@ -175,14 +175,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
             this.reportedPropertiesValidator.Validate(patch);
             await this.twinEntityStore.UpdateReportedProperties(id, patch);
             await this.reportedPropertiesStore.Update(id, patch);
-            try
-            {
-                await this.reportedPropertiesStore.SyncToCloud(id);
-            }
-            catch (Exception ex)
-            {
-                Events.ErrorSyncingReportedPropertiesToCloud(id, ex);
-            }
+            this.reportedPropertiesStore.InitSyncToCloud(id);
         }
 
         Task SendPatchToDevice(string id, IMessage twinCollection)
@@ -292,6 +285,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                                             await this.twinStore.Update(
                                                 id,
                                                 t => new TwinStoreEntity(t.Twin, Option.None<TwinCollection>()));
+                                            twinInfo = await this.twinStore.Get(id);
                                         }
                                         else
                                         {
@@ -326,8 +320,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
             public async Task UpdateReportedProperties(string id, TwinCollection patch)
             {
                 Events.UpdatingReportedProperties(id);
-                await this.twinStore.Update(
+                await this.twinStore.PutOrUpdate(
                     id,
+                    new TwinStoreEntity(patch), 
                     twinInfo =>
                     {
                         twinInfo.Twin
@@ -348,7 +343,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
             public async Task UpdateDesiredProperties(string id, TwinCollection patch)
             {
                 Events.UpdatingDesiredProperties(id);
-                await this.twinStore.Update(
+                Option<Twin> storedTwin = await this.Get(id);
+                if(storedTwin.HasValue)
+                {                await this.twinStore.Update(
                     id,
                     twinInfo =>
                     {
@@ -369,6 +366,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
 
                         return twinInfo;
                     });
+                }
+                else
+                {
+                    Events.NoTwinForDesiredPropertiesPatch(id);
+                }
             }
 
             public async Task Update(string id, Twin twin)
@@ -490,7 +492,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                 UpdatedReportedProperties,
                 ErrorUpdatingReportedProperties,
                 ErrorHandlingDeviceConnected,
-                HandlingDeviceConnectedCallback
+                HandlingDeviceConnectedCallback,
+                NoTwinForDesiredPropertiesPatch
             }
 
             public static void ErrorInDeviceConnectedCallback(Exception ex)
@@ -641,6 +644,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
             internal static void ErrorSyncingReportedPropertiesToCloud(Exception e)
             {
                 Log.LogWarning((int)EventIds.ErrorSyncingReportedPropertiesToCloud, e, $"Error in pump to sync reported properties to cloud");
+            }
+
+            public static void NoTwinForDesiredPropertiesPatch(string id)
+            {
+                Log.LogInformation((int)EventIds.NoTwinForDesiredPropertiesPatch, $"Cannot store desired properties patch  for {id} in store as twin was not found");
             }
         }
     }
