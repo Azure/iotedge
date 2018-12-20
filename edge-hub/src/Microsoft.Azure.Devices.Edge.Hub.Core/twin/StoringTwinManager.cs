@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
             this.twinSyncPeriod = twinSyncPeriod;
         }
 
-        public static ITwinManager CreateTwinManager(
+        public static ITwinManager Create(
             IConnectionManager connectionManager,
             IMessageConverterProvider messageConverterProvider,
             IEntityStore<string, TwinStoreEntity> twinStore,
