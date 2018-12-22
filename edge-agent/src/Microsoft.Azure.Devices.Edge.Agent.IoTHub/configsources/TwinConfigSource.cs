@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources
 {
     using System.Threading.Tasks;

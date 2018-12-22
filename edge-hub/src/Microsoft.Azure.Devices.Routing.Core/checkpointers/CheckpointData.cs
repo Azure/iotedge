@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
 {
     using Microsoft.Azure.Devices.Routing.Core.Util;
