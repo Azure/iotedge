@@ -23,8 +23,10 @@ Set-Variable EdgeEventLogName -Value 'iotedged' -Option Constant
 Set-Variable EdgeEventLogInstallDirectory -Value 'C:\ProgramData\iotedge-eventlog' -Option Constant
 Set-Variable EdgeServiceName -Value 'iotedge' -Option Constant
 
-Set-Variable MobyDataRootDirectory -Value 'C:\ProgramData\iotedge-moby-data' -Option Constant
-Set-Variable MobyInstallDirectory -Value 'C:\ProgramData\iotedge-moby' -Option Constant
+Set-Variable MobyDataRootDirectory -Value "$env:ProgramData\iotedge-moby-data" -Option Constant
+Set-Variable MobyStaticDataRootDirectory -Value 'C:\ProgramData\iotedge-moby-data' -Option Constant
+Set-Variable MobyInstallDirectory -Value "$env:ProgramData\iotedge-moby" -Option Constant
+Set-Variable MobyStaticInstallDirectory -Value 'C:\ProgramData\iotedge-moby' -Option Constant
 Set-Variable MobyLinuxNamedPipeUrl -Value 'npipe://./pipe/docker_engine' -Option Constant
 Set-Variable MobyNamedPipeUrl -Value 'npipe://./pipe/iotedge_moby_engine' -Option Constant
 Set-Variable MobyServiceName -Value 'iotedge-moby' -Option Constant
@@ -157,6 +159,12 @@ function Install-SecurityDaemon {
     if (Test-MobyAlreadyInstalled) {
         Write-HostRed
         Write-HostRed 'IoT Edge Moby Engine is already installed. To reinstall, run `Uninstall-SecurityDaemon` first.'
+        return
+    }
+    
+    if (Test-MobyNeedsToBeMoved) {
+        Write-HostRed
+        Write-HostRed 'IoT Edge Moby Engine is installed in an invalid location. To reinstall, run `Uninstall-SecurityDaemon -DeleteMobyDataRoot` first.'
         return
     }
 
@@ -421,6 +429,15 @@ function Test-MobyAlreadyInstalled {
     (Get-Service $MobyServiceName -ErrorAction SilentlyContinue) -or (Test-Path -Path $MobyInstallDirectory)
 }
 
+function Test-MobyNeedsToBeMoved {
+    if ($MobyStaticInstallDirectory -ne $MobyInstallDirectory) {
+        return $(Test-Path -Path $MobyStaticInstallDirectory)
+    }
+    else {
+        return False
+    }
+}
+
 function Test-AgentRegistryArgs {
     $noImageNoCreds = (-not ($AgentImage -or $Username -or $Password))
     $imageNoCreds = ($AgentImage -and -not ($Username -or $Password))
@@ -641,52 +658,58 @@ function Remove-SecurityDaemonResources {
     else {
         Write-Verbose "$cmdErr"
     }
+    
+    $existingMobyRoots = $MobyDataRootDirectory, $MobyStaticDataRootDirectory | ? {test-path $_}
 
     if ($DeleteMobyDataRoot) {
-        if (Test-Path $MobyDataRootDirectory) {
+        foreach ($root in $existingMobyRoots) {
             try {
-                Write-Host "Deleting Moby data root directory '$MobyDataRootDirectory'..."
+                Write-Host "Deleting Moby data root directory '$root'..."
 
                 # Removing `$MobyDataRootDirectory` is tricky. Windows base images contain files owned by TrustedInstaller, etc
                 # Deleting them is a three-step process:
                 #
                 # 1. Take ownership of all files
-                Invoke-Native "takeown /r /skipsl /f ""$MobyDataRootDirectory"""
+                Invoke-Native "takeown /r /skipsl /f ""$root"""
 
                 # 2. Reset their ACLs so that they inherit from their container
-                Invoke-Native "icacls ""$MobyDataRootDirectory"" /reset /t /l /q /c"
+                Invoke-Native "icacls ""$root"" /reset /t /l /q /c"
 
                 # 3. Use cmd's `rd` rather than `Remove-Item` since the latter gets tripped up by reparse points, etc.
                 #    Prepend the path with `\\?\` since the layer directories have long names, so the paths usually exceed 260 characters,
                 #    and IoT Core's filesystem doesn't seem to automatically use (or even have) short names
-                Invoke-Native "rd /s /q ""\\?\$MobyDataRootDirectory"""
+                Invoke-Native "rd /s /q ""\\?\$root"""
 
-                Write-Verbose "Deleted Moby data root directory '$MobyDataRootDirectory'"
+                Write-Verbose "Deleted Moby data root directory '$root'"
             }
             catch {
                 Write-Verbose "$_"
-                Write-HostRed ("Could not delete Moby data root directory '$MobyDataRootDirectory'. Please reboot " +
+                Write-HostRed ("Could not delete Moby data root directory '$root'. Please reboot " +
                     'your device and run `Uninstall-SecurityDaemon` again with `-Force`.')
                 $success = $false
             }
         }
     }
     else {
-        Write-Host "Not deleting Moby data root directory '$MobyDataRootDirectory' since -DeleteMobyDataRoot was not specified."
+        Write-Host "Not deleting Moby data root directory since -DeleteMobyDataRoot was not specified."
     }
+    
+    $existingMobyInstallations = $MobyInstallDirectory, $MobyStaticInstallDirectory | ? {test-path $_}
 
-    Remove-Item -Recurse $MobyInstallDirectory -ErrorAction SilentlyContinue -ErrorVariable cmdErr
-    if ($?) {
-        Write-Verbose "Deleted install directory '$MobyInstallDirectory'"
-    }
-    elseif ($cmdErr.FullyQualifiedErrorId -ne 'PathNotFound,Microsoft.PowerShell.Commands.RemoveItemCommand') {
-        Write-Verbose "$cmdErr"
-        Write-HostRed ("Could not delete install directory '$MobyInstallDirectory'. Please reboot " +
-            'your device and run `Uninstall-SecurityDaemon` again with `-Force`.')
-        $success = $false
-    }
-    else {
-        Write-Verbose "$cmdErr"
+    foreach ($install in $existingMobyInstallations) {
+        Remove-Item -Recurse $install -ErrorAction SilentlyContinue -ErrorVariable cmdErr
+        if ($?) {
+            Write-Verbose "Deleted install directory '$install'"
+        }
+        elseif ($cmdErr.FullyQualifiedErrorId -ne 'PathNotFound,Microsoft.PowerShell.Commands.RemoveItemCommand') {
+            Write-Verbose "$cmdErr"
+            Write-HostRed ("Could not delete install directory '$install'. Please reboot " +
+                'your device and run `Uninstall-SecurityDaemon` again with `-Force`.')
+            $success = $false
+        }
+        else {
+            Write-Verbose "$cmdErr"
+        }
     }
 
     $success
