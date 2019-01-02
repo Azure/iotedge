@@ -23,6 +23,8 @@ Set-Variable EdgeEventLogName -Value 'iotedged' -Option Constant
 Set-Variable EdgeEventLogInstallDirectory -Value 'C:\ProgramData\iotedge-eventlog' -Option Constant
 Set-Variable EdgeServiceName -Value 'iotedge' -Option Constant
 
+Set-Variable EventLogApplicationRegPath -Value 'HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\Application' -Option Constant
+
 Set-Variable MobyDataRootDirectory -Value 'C:\ProgramData\iotedge-moby-data' -Option Constant
 Set-Variable MobyInstallDirectory -Value 'C:\ProgramData\iotedge-moby' -Option Constant
 Set-Variable MobyLinuxNamedPipeUrl -Value 'npipe://./pipe/docker_engine' -Option Constant
@@ -255,7 +257,7 @@ function Install-SecurityDaemon {
 
     # Register services
     Set-SystemPath
-    Add-IotEdgeRegistryKey
+    Add-IotEdgeRegistryValues
     Install-Services
 
     Write-HostGreen
@@ -599,9 +601,12 @@ function Get-SecurityDaemon {
 function Remove-SecurityDaemonResources {
     $success = $true
 
-    $logKey = "HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\Application\$EdgeEventLogName"
-    Remove-Item $logKey -ErrorAction SilentlyContinue -ErrorVariable cmdErr
-    Write-Verbose "$(if ($?) { "Deleted registry key '$logKey'" } else { $cmdErr })"
+    foreach ($keyName in @($EdgeEventLogName, $MobyServiceName))
+    {
+        $logKey = Join-Path $EventLogApplicationRegPath $keyName
+        Remove-Item $logKey -ErrorAction SilentlyContinue -ErrorVariable cmdErr
+        Write-Verbose "$(if ($?) { "Deleted registry key '$logKey'" } else { $cmdErr })"
+    }
 
     Write-Host "Deleting install directory '$EdgeInstallDirectory'..."
     if (-not $DeleteConfig) {
@@ -857,14 +862,18 @@ function Remove-FirewallExceptions {
     Write-Verbose "$(if ($?) { 'Removed firewall exceptions' } else { $cmdErr })"
 }
 
-function Add-IotEdgeRegistryKey {
-    New-Item 'HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\Application' -Name $EdgeEventLogName -Force | Out-Null
-    New-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\Application\$EdgeEventLogName" `
-        -Name 'CustomSource' -Value 1 -PropertyType 'DWord' -Force | Out-Null
-    New-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\Application\$EdgeEventLogName" `
-        -Name 'EventMessageFile' -Value "$EdgeEventLogInstallDirectory\iotedged_eventlog_messages.dll" -PropertyType 'String' -Force | Out-Null
-    New-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\Application\$EdgeEventLogName" `
-        -Name 'TypesSupported' -Value 7 -PropertyType 'DWord' -Force | Out-Null
+function Add-IotEdgeRegistryValues {
+    $regKey = Join-Path $EventLogApplicationRegPath $EdgeEventLogName
+    New-Item $regKey -Force | Out-Null
+    New-ItemProperty $regKey -Name 'CustomSource' -Value 1 -PropertyType 'DWord' -Force | Out-Null
+    New-ItemProperty $regKey -Name 'EventMessageFile' -Value "$EdgeEventLogInstallDirectory\iotedged_eventlog_messages.dll" -PropertyType 'String' -Force | Out-Null
+    New-ItemProperty $regKey -Name 'TypesSupported' -Value 7 -PropertyType 'DWord' -Force | Out-Null
+
+    $regKey = Join-Path $EventLogApplicationRegPath $MobyServiceName
+    New-Item $regKey -Force | Out-Null
+    New-ItemProperty $regKey -Name 'CustomSource' -Value 1 -PropertyType 'DWord' -Force | Out-Null
+    New-ItemProperty $regKey -Name 'EventMessageFile' -Value "$MobyInstallDirectory\dockerd.exe" -PropertyType 'String' -Force | Out-Null
+    New-ItemProperty $regKey -Name 'TypesSupported' -Value 7 -PropertyType 'DWord' -Force | Out-Null
 
     Write-HostGreen 'Added IoT Edge registry key.'
 }
