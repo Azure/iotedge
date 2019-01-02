@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 {
     using System.Security.Cryptography.X509Certificates;

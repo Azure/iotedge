@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Http.Extensions
 {
     using Microsoft.AspNetCore.Server.Kestrel.Core;

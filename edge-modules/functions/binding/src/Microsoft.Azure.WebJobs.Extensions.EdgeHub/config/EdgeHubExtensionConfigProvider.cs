@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Azure.WebJobs.Host.Bindings;

@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
 {
     //
