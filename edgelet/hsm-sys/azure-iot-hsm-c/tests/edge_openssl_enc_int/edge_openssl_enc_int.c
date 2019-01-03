@@ -103,8 +103,8 @@ size_t TEST_CIPHER_SIZE = sizeof(TEST_CIPHER);
 static void test_helper_setup_homedir(void)
 {
     TEST_IOTEDGE_HOMEDIR = hsm_test_util_create_temp_dir(&TEST_IOTEDGE_HOMEDIR_GUID);
-    ASSERT_IS_NOT_NULL_WITH_MSG(TEST_IOTEDGE_HOMEDIR_GUID, "Line:" TOSTRING(__LINE__));
-    ASSERT_IS_NOT_NULL_WITH_MSG(TEST_IOTEDGE_HOMEDIR, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(TEST_IOTEDGE_HOMEDIR_GUID, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(TEST_IOTEDGE_HOMEDIR, "Line:" TOSTRING(__LINE__));
 
     printf("Temp dir created: [%s]\r\n", TEST_IOTEDGE_HOMEDIR);
     hsm_test_util_setenv("IOTEDGE_HOMEDIR", TEST_IOTEDGE_HOMEDIR);
@@ -162,7 +162,7 @@ BEGIN_TEST_SUITE(edge_openssl_enc_tests)
         // arrange
         int status;
         KEY_HANDLE key_handle = create_encryption_key(TEST_KEY, TEST_KEY_SIZE);
-        ASSERT_IS_NOT_NULL_WITH_MSG(key_handle, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(key_handle, "Line:" TOSTRING(__LINE__));
         SIZED_BUFFER id = {TEST_ID_1, TEST_ID_1_SIZE};
         SIZED_BUFFER plaintext = {TEST_STRING, TEST_STRING_SIZE};
         SIZED_BUFFER iv = {TEST_IV, TEST_IV_SIZE};
@@ -171,19 +171,19 @@ BEGIN_TEST_SUITE(edge_openssl_enc_tests)
 
         // act, assert (encrypt)
         status = key_encrypt(key_handle, &id, &plaintext, &iv, &ciphertext_result);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, (TEST_STRING_SIZE + TEST_CIPHERTEXT_HEADER_SIZE), ciphertext_result.size, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(char, TEST_VERSION, ciphertext_result.buffer[0], "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, (TEST_STRING_SIZE + TEST_CIPHERTEXT_HEADER_SIZE), ciphertext_result.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char, TEST_VERSION, ciphertext_result.buffer[0], "Line:" TOSTRING(__LINE__));
         status = memcmp(ciphertext_result.buffer + TEST_TAG_OFFSET, TEST_TAG, TEST_TAG_SIZE);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         status = memcmp(ciphertext_result.buffer + TEST_CIPHERTEXT_OFFSET, TEST_CIPHER, TEST_CIPHER_SIZE);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         // act, assert (decrypt)
         status = key_decrypt(key_handle, &id, &ciphertext_result, &iv, &plaintext_result);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         status = memcmp(plaintext_result.buffer, TEST_STRING, TEST_STRING_SIZE);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         // cleanup
         free(ciphertext_result.buffer);
@@ -196,7 +196,7 @@ BEGIN_TEST_SUITE(edge_openssl_enc_tests)
         // arrange
         int status;
         KEY_HANDLE key_handle = create_encryption_key(TEST_KEY, TEST_KEY_SIZE);
-        ASSERT_IS_NOT_NULL_WITH_MSG(key_handle, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(key_handle, "Line:" TOSTRING(__LINE__));
         SIZED_BUFFER id = {TEST_ID_1, TEST_ID_1_SIZE};
         SIZED_BUFFER id2 = {TEST_ID_2, TEST_ID_2_SIZE};
         SIZED_BUFFER plaintext = {TEST_STRING, TEST_STRING_SIZE};
@@ -204,13 +204,13 @@ BEGIN_TEST_SUITE(edge_openssl_enc_tests)
         SIZED_BUFFER ciphertext_result = {NULL, 0};
         SIZED_BUFFER plaintext_result = {NULL, 0};
         status = key_encrypt(key_handle, &id, &plaintext, &iv, &ciphertext_result);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         // act
         status = key_decrypt(key_handle, &id2, &ciphertext_result, &iv, &plaintext_result);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NULL_WITH_MSG(plaintext_result.buffer, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, plaintext_result.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(plaintext_result.buffer, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, 0, plaintext_result.size, "Line:" TOSTRING(__LINE__));
 
         // cleanup
         free(ciphertext_result.buffer);
@@ -222,22 +222,22 @@ BEGIN_TEST_SUITE(edge_openssl_enc_tests)
         // arrange
         int status;
         KEY_HANDLE key_handle = create_encryption_key(TEST_KEY, TEST_KEY_SIZE);
-        ASSERT_IS_NOT_NULL_WITH_MSG(key_handle, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(key_handle, "Line:" TOSTRING(__LINE__));
         SIZED_BUFFER id = {TEST_ID_1, TEST_ID_1_SIZE};
         SIZED_BUFFER plaintext = {TEST_STRING, TEST_STRING_SIZE};
         SIZED_BUFFER iv = {TEST_IV, TEST_IV_SIZE};
         SIZED_BUFFER ciphertext_result = {NULL, 0};
         SIZED_BUFFER plaintext_result = {NULL, 0};
         status = key_encrypt(key_handle, &id, &plaintext, &iv, &ciphertext_result);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         // corrupt tag bits
         ciphertext_result.buffer[TEST_TAG_OFFSET] ^= 1;
 
         // act
         status = key_decrypt(key_handle, &id, &ciphertext_result, &iv, &plaintext_result);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NULL_WITH_MSG(plaintext_result.buffer, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, plaintext_result.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(plaintext_result.buffer, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, 0, plaintext_result.size, "Line:" TOSTRING(__LINE__));
 
         // cleanup
         free(ciphertext_result.buffer);
@@ -249,22 +249,22 @@ BEGIN_TEST_SUITE(edge_openssl_enc_tests)
         // arrange
         int status;
         KEY_HANDLE key_handle = create_encryption_key(TEST_KEY, TEST_KEY_SIZE);
-        ASSERT_IS_NOT_NULL_WITH_MSG(key_handle, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(key_handle, "Line:" TOSTRING(__LINE__));
         SIZED_BUFFER id = {TEST_ID_1, TEST_ID_1_SIZE};
         SIZED_BUFFER plaintext = {TEST_STRING, TEST_STRING_SIZE};
         SIZED_BUFFER iv = {TEST_IV, TEST_IV_SIZE};
         SIZED_BUFFER ciphertext_result = {NULL, 0};
         SIZED_BUFFER plaintext_result = {NULL, 0};
         status = key_encrypt(key_handle, &id, &plaintext, &iv, &ciphertext_result);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         // corrupt data bit
         ciphertext_result.buffer[TEST_CIPHERTEXT_OFFSET] ^= 1;
 
         // act
         status = key_decrypt(key_handle, &id, &ciphertext_result, &iv, &plaintext_result);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NULL_WITH_MSG(plaintext_result.buffer, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, plaintext_result.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(plaintext_result.buffer, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, 0, plaintext_result.size, "Line:" TOSTRING(__LINE__));
 
         // cleanup
         free(ciphertext_result.buffer);
@@ -276,7 +276,7 @@ BEGIN_TEST_SUITE(edge_openssl_enc_tests)
         // arrange
         int status;
         KEY_HANDLE key_handle = create_encryption_key(TEST_KEY, TEST_KEY_SIZE);
-        ASSERT_IS_NOT_NULL_WITH_MSG(key_handle, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(key_handle, "Line:" TOSTRING(__LINE__));
         SIZED_BUFFER id = {TEST_ID_1, TEST_ID_1_SIZE};
         unsigned char data[] = {'a'};
         size_t data_size = sizeof(data);
@@ -289,8 +289,8 @@ BEGIN_TEST_SUITE(edge_openssl_enc_tests)
         status = key_encrypt(key_handle, &id, &plaintext, &iv, &ciphertext_result);
 
         // assert
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, (TEST_CIPHERTEXT_HEADER_SIZE + data_size), ciphertext_result.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, (TEST_CIPHERTEXT_HEADER_SIZE + data_size), ciphertext_result.size, "Line:" TOSTRING(__LINE__));
 
         // cleanup
         free(ciphertext_result.buffer);
@@ -302,7 +302,7 @@ BEGIN_TEST_SUITE(edge_openssl_enc_tests)
         // arrange
         int status;
         KEY_HANDLE key_handle = create_encryption_key(TEST_KEY, TEST_KEY_SIZE);
-        ASSERT_IS_NOT_NULL_WITH_MSG(key_handle, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(key_handle, "Line:" TOSTRING(__LINE__));
         SIZED_BUFFER id = {TEST_ID_1, TEST_ID_1_SIZE};
         unsigned char data[] = {'a'};
         size_t data_size = sizeof(data);
@@ -311,16 +311,16 @@ BEGIN_TEST_SUITE(edge_openssl_enc_tests)
         SIZED_BUFFER ciphertext_result = {NULL, 0};
         SIZED_BUFFER plaintext_result = {NULL, 0};
         status = key_encrypt(key_handle, &id, &plaintext, &iv, &ciphertext_result);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         // act
         status = key_decrypt(key_handle, &id, &ciphertext_result, &iv, &plaintext_result);
 
         // assert
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, data_size, plaintext_result.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, data_size, plaintext_result.size, "Line:" TOSTRING(__LINE__));
         status = memcmp(data, plaintext_result.buffer, plaintext_result.size);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         // cleanup
         free(plaintext_result.buffer);
@@ -333,11 +333,11 @@ BEGIN_TEST_SUITE(edge_openssl_enc_tests)
         // arrange
         int status;
         KEY_HANDLE key_handle = create_encryption_key(TEST_KEY, TEST_KEY_SIZE);
-        ASSERT_IS_NOT_NULL_WITH_MSG(key_handle, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(key_handle, "Line:" TOSTRING(__LINE__));
         SIZED_BUFFER id = {TEST_ID_1, TEST_ID_1_SIZE};
         size_t data_size = 2048;
         unsigned char *data = malloc(data_size);
-        ASSERT_IS_NOT_NULL_WITH_MSG(data, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(data, "Line:" TOSTRING(__LINE__));
         memset(data, 0xDE, data_size);
         SIZED_BUFFER plaintext = {data, data_size};
         SIZED_BUFFER iv = {TEST_IV, TEST_IV_SIZE};
@@ -348,8 +348,8 @@ BEGIN_TEST_SUITE(edge_openssl_enc_tests)
         status = key_encrypt(key_handle, &id, &plaintext, &iv, &ciphertext_result);
 
         // assert
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, TEST_CIPHERTEXT_HEADER_SIZE + data_size, ciphertext_result.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, TEST_CIPHERTEXT_HEADER_SIZE + data_size, ciphertext_result.size, "Line:" TOSTRING(__LINE__));
 
         // cleanup
         free(ciphertext_result.buffer);
@@ -362,27 +362,27 @@ BEGIN_TEST_SUITE(edge_openssl_enc_tests)
         // arrange
         int status;
         KEY_HANDLE key_handle = create_encryption_key(TEST_KEY, TEST_KEY_SIZE);
-        ASSERT_IS_NOT_NULL_WITH_MSG(key_handle, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(key_handle, "Line:" TOSTRING(__LINE__));
         SIZED_BUFFER id = {TEST_ID_1, TEST_ID_1_SIZE};
         size_t data_size = 2048;
         unsigned char *data = malloc(data_size);
-        ASSERT_IS_NOT_NULL_WITH_MSG(data, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(data, "Line:" TOSTRING(__LINE__));
         memset(data, 0xDE, data_size);
         SIZED_BUFFER plaintext = {data, data_size};
         SIZED_BUFFER iv = {TEST_IV, TEST_IV_SIZE};
         SIZED_BUFFER ciphertext_result = {NULL, 0};
         SIZED_BUFFER plaintext_result = {NULL, 0};
         status = key_encrypt(key_handle, &id, &plaintext, &iv, &ciphertext_result);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         // act
         status = key_decrypt(key_handle, &id, &ciphertext_result, &iv, &plaintext_result);
 
         // assert
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, data_size, plaintext_result.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, data_size, plaintext_result.size, "Line:" TOSTRING(__LINE__));
         status = memcmp(data, plaintext_result.buffer, plaintext_result.size);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         // cleanup
         free(plaintext_result.buffer);
@@ -396,23 +396,23 @@ BEGIN_TEST_SUITE(edge_openssl_enc_tests)
         // arrange
         int status;
         KEY_HANDLE key_handle = create_encryption_key(TEST_KEY, TEST_KEY_SIZE);
-        ASSERT_IS_NOT_NULL_WITH_MSG(key_handle, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(key_handle, "Line:" TOSTRING(__LINE__));
         SIZED_BUFFER id = {TEST_ID_1, TEST_ID_1_SIZE};
         SIZED_BUFFER plaintext = {TEST_STRING, TEST_STRING_SIZE};
         SIZED_BUFFER iv = {TEST_IV_LARGE, TEST_IV_LARGE_SIZE};
         SIZED_BUFFER ciphertext_result = {NULL, 0};
         SIZED_BUFFER plaintext_result = {NULL, 0};
         status = key_encrypt(key_handle, &id, &plaintext, &iv, &ciphertext_result);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         // act
         status = key_decrypt(key_handle, &id, &ciphertext_result, &iv, &plaintext_result);
 
         // assert
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, TEST_STRING_SIZE, plaintext_result.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, TEST_STRING_SIZE, plaintext_result.size, "Line:" TOSTRING(__LINE__));
         status = memcmp(TEST_STRING, plaintext_result.buffer, plaintext_result.size);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         // cleanup
         free(plaintext_result.buffer);
@@ -425,14 +425,14 @@ BEGIN_TEST_SUITE(edge_openssl_enc_tests)
         // arrange
         int status;
         KEY_HANDLE key_handle = create_encryption_key(TEST_KEY, TEST_KEY_SIZE);
-        ASSERT_IS_NOT_NULL_WITH_MSG(key_handle, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(key_handle, "Line:" TOSTRING(__LINE__));
         SIZED_BUFFER id = {TEST_ID_1, TEST_ID_1_SIZE};
         SIZED_BUFFER plaintext = {TEST_STRING, TEST_STRING_SIZE};
         SIZED_BUFFER iv = {TEST_IV_LARGE, TEST_IV_LARGE_SIZE};
         SIZED_BUFFER ciphertext_result = {NULL, 0};
         SIZED_BUFFER plaintext_result = {NULL, 0};
         status = key_encrypt(key_handle, &id, &plaintext, &iv, &ciphertext_result);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         // corrupt one bit in the iv
         iv.buffer[iv.size - 1] ^= 1;
 
@@ -440,9 +440,9 @@ BEGIN_TEST_SUITE(edge_openssl_enc_tests)
         status = key_decrypt(key_handle, &id, &ciphertext_result, &iv, &plaintext_result);
 
         // assert
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NULL_WITH_MSG(plaintext_result.buffer, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, plaintext_result.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(plaintext_result.buffer, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, 0, plaintext_result.size, "Line:" TOSTRING(__LINE__));
 
         // cleanup
         free(ciphertext_result.buffer);
@@ -460,17 +460,17 @@ BEGIN_TEST_SUITE(edge_openssl_enc_tests)
         status = generate_encryption_key(&key1, &key1_size);
 
         // assert 1
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, ENCRYPTION_KEY_SIZE, key1_size, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, ENCRYPTION_KEY_SIZE, key1_size, "Line:" TOSTRING(__LINE__));
 
         // act 2
         status = generate_encryption_key(&key2, &key2_size);
 
         // assert 2
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, ENCRYPTION_KEY_SIZE, key2_size, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, ENCRYPTION_KEY_SIZE, key2_size, "Line:" TOSTRING(__LINE__));
         status = memcmp(key1, key2, ENCRYPTION_KEY_SIZE);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         // cleanup
         free(key1);

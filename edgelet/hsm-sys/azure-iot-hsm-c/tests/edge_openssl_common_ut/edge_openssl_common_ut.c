@@ -148,7 +148,7 @@ BEGIN_TEST_SUITE(edge_openssl_common_ut)
         initialize_openssl();
 
         // assert 1
-        ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
 
         umock_c_reset_all_calls();
 
@@ -156,7 +156,7 @@ BEGIN_TEST_SUITE(edge_openssl_common_ut)
         initialize_openssl();
 
         // assert 2
-        ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
 
         // cleanup
     }
