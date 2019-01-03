@@ -39,18 +39,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             services.AddMvc(options => options.Filters.Add(typeof(ExceptionFilter)));
             services.Configure<MvcOptions>(options => { options.Filters.Add(new RequireHttpsAttribute()); });
             this.Container = this.BuildContainer(services);
-            
+
             return new AutofacServiceProvider(this.Container);
-        }
-
-        IContainer BuildContainer(IServiceCollection services)
-        {
-            var builder = new ContainerBuilder();
-            builder.Populate(services);
-            this.dependencyManager.Register(builder);
-            builder.RegisterInstance<IStartup>(this);
-
-            return builder.Build();
         }
 
         public void Configure(IApplicationBuilder app)
@@ -77,14 +67,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             app.UseAuthenticationMiddleware(iotHubHostname, edgeDeviceId);
 
-            app.Use(async (context, next) =>
-            {
-                // Response header is added to prevent MIME type sniffing 
-                context.Response.Headers.Add("X-Content-Type-Options", "nosniff");
-                await next();
-            });
+            app.Use(
+                async (context, next) =>
+                {
+                    // Response header is added to prevent MIME type sniffing
+                    context.Response.Headers.Add("X-Content-Type-Options", "nosniff");
+                    await next();
+                });
 
             app.UseMvc();
+        }
+
+        IContainer BuildContainer(IServiceCollection services)
+        {
+            var builder = new ContainerBuilder();
+            builder.Populate(services);
+            this.dependencyManager.Register(builder);
+            builder.RegisterInstance<IStartup>(this);
+
+            return builder.Build();
         }
     }
 }

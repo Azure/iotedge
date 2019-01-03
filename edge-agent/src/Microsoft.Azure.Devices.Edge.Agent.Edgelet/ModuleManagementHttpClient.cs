@@ -16,8 +16,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
     public class ModuleManagementHttpClient : IModuleManager, IIdentityManager
     {
         static readonly ITransientErrorDetectionStrategy TransientErrorDetectionStrategy = new ErrorDetectionStrategy();
+
         static readonly RetryStrategy TransientRetryStrategy =
             new ExponentialBackoff(retryCount: 3, minBackoff: TimeSpan.FromSeconds(2), maxBackoff: TimeSpan.FromSeconds(30), deltaBackoff: TimeSpan.FromSeconds(3));
+
         readonly Uri managementUri;
 
         public ModuleManagementHttpClient(Uri managementUri)
@@ -48,14 +50,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.managementUri))
             {
                 var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.managementUri) };
-                Identity identity = await this.Execute(() => edgeletHttpClient.UpdateIdentityAsync(
-                    Constants.EdgeletManagementApiVersion,
-                    name,
-                    new UpdateIdentity
-                    {
-                        GenerationId = generationId,
-                        ManagedBy = managedBy
-                    }),
+                Identity identity = await this.Execute(
+                    () => edgeletHttpClient.UpdateIdentityAsync(
+                        Constants.EdgeletManagementApiVersion,
+                        name,
+                        new UpdateIdentity
+                        {
+                            GenerationId = generationId,
+                            ManagedBy = managedBy
+                        }),
                     $"Update identity for {name} with generation ID {generationId}");
                 return identity;
             }
@@ -169,12 +172,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             }
         }
 
+        static Task<T> ExecuteWithRetry<T>(Func<Task<T>> func, Action<RetryingEventArgs> onRetry)
+        {
+            var transientRetryPolicy = new RetryPolicy(TransientErrorDetectionStrategy, TransientRetryStrategy);
+            transientRetryPolicy.Retrying += (_, args) => onRetry(args);
+            return transientRetryPolicy.ExecuteAsync(func);
+        }
+
         Task Execute(Func<Task> func, string operation) =>
-            this.Execute(async () =>
-            {
-                await func();
-                return 1;
-            }, operation);
+            this.Execute(
+                async () =>
+                {
+                    await func();
+                    return 1;
+                },
+                operation);
 
         async Task<T> Execute<T>(Func<Task<T>> func, string operation)
         {
@@ -190,8 +202,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
                 switch (ex)
                 {
                     case SwaggerException<ErrorResponse> errorResponseException:
-                        throw new EdgeletCommunicationException($"Error calling {operation}: {errorResponseException.Result?.Message ?? string.Empty}", errorResponseException.StatusCode);                        
-                        
+                        throw new EdgeletCommunicationException($"Error calling {operation}: {errorResponseException.Result?.Message ?? string.Empty}", errorResponseException.StatusCode);
+
                     case SwaggerException swaggerException:
                         if (swaggerException.StatusCode < 400)
                         {
@@ -202,29 +214,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
                         {
                             throw new EdgeletCommunicationException($"Error calling {operation}: {swaggerException.Response ?? string.Empty}", swaggerException.StatusCode);
                         }
+
                     default:
                         throw;
                 }
             }
         }
 
-        static Task<T> ExecuteWithRetry<T>(Func<Task<T>> func, Action<RetryingEventArgs> onRetry)
-        {
-            var transientRetryPolicy = new RetryPolicy(TransientErrorDetectionStrategy, TransientRetryStrategy);
-            transientRetryPolicy.Retrying += (_, args) => onRetry(args);
-            return transientRetryPolicy.ExecuteAsync(func);
-        }
-
         class ErrorDetectionStrategy : ITransientErrorDetectionStrategy
         {
             public bool IsTransient(Exception ex) => ex is SwaggerException se
-                && se.StatusCode >= 500;
+                                                     && se.StatusCode >= 500;
         }
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<ModuleManagementHttpClient>();
             const int IdStart = AgentEventIds.ModuleManagementHttpClient;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<ModuleManagementHttpClient>();
 
             enum EventIds
             {

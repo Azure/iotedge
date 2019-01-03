@@ -10,12 +10,12 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Sinks
 
     public class PartialFailureSink<T> : ISink<T>
     {
-        public Exception Exception { get; }
-
         public PartialFailureSink(Exception exception)
         {
             this.Exception = exception;
         }
+
+        public Exception Exception { get; }
 
         public Task<ISinkResult<T>> ProcessAsync(T t, CancellationToken token) =>
             this.ProcessAsync(new[] { t }, token);
@@ -34,6 +34,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Sinks
                 T[] failed = ts.Skip(ts.Count / 2).ToArray();
                 result = new SinkResult<T>(successful, failed, new SendFailureDetails(FailureKind.InternalError, this.Exception));
             }
+
             return Task.FromResult(result);
         }
 

@@ -15,7 +15,7 @@ namespace SimulatedTemperatureSensor
     ///    “pressure”:
     ///  },
     ///  “ambient”:{
-    ///    “temperature”: , 
+    ///    “temperature”: ,
     ///    “humidity”:
     ///  }
     ///  “timeCreated”:”UTC iso format”

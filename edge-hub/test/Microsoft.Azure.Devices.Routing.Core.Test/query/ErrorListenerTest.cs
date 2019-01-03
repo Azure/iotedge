@@ -4,16 +4,17 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
     using System.Linq;
-    using Microsoft.Azure.Devices.Routing.Core.Query;
-    using Microsoft.Azure.Devices.Routing.Core.Query.Errors;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
+    using Microsoft.Azure.Devices.Routing.Core.Query;
+    using Microsoft.Azure.Devices.Routing.Core.Query.Errors;
     using Xunit;
 
     [ExcludeFromCodeCoverage]
     public class ErrorListenerTest : RoutingUnitTestBase
     {
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestOperandError()
         {
             string condition = "3 + '4' = 7";
@@ -28,7 +29,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Equal(ErrorSeverity.Error, error1.Severity);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestArgumentError()
         {
             string condition = "as_number(true) = true";
@@ -43,7 +45,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Equal(ErrorSeverity.Error, error1.Severity);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestInvalidBuiltinError()
         {
             string condition = "nope(true) = true";
@@ -58,7 +61,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Equal(ErrorSeverity.Error, error1.Severity);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestSyntaxErrorMissingParens()
         {
             string condition = "(2 + 22 = 24";
@@ -73,7 +77,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Equal(ErrorSeverity.Error, error1.Severity);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestSyntaxErrorMissingParensFunc()
         {
             string condition = "as_number(\"2\" = 24";
@@ -88,7 +93,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Equal(ErrorSeverity.Error, error1.Severity);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestSyntaxErrorExtraParens()
         {
             string condition = "(2 + 22 )) = 24";
@@ -103,7 +109,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Equal(ErrorSeverity.Error, error1.Severity);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestSyntaxErrorExtraParensFunc()
         {
             string condition = "as_number(\"2\")) = 24";
@@ -118,7 +125,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Equal(ErrorSeverity.Error, error1.Severity);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestSyntaxErrorUnterminatedString()
         {
             string condition = "\"2 = 24";
@@ -133,7 +141,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Equal(ErrorSeverity.Error, error1.Severity);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestSyntaxErrorUnrecognizedSymbol()
         {
             string condition = "3 = @ 3";

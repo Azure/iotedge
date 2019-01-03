@@ -48,6 +48,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.operationTimeout = operationTimeout;
         }
 
+        public Option<ICloudProxy> CloudProxy => this.GetCloudProxy().Filter(cp => cp.IsActive);
+
+        public bool IsActive => this.GetCloudProxy()
+            .Map(cp => cp.IsActive)
+            .GetOrElse(false);
+
+        protected IIdentity Identity { get; }
+
+        protected Action<string, CloudConnectionStatus> ConnectionStatusChangedHandler { get; }
+
+        protected virtual bool CallbacksEnabled { get; } = true;
+
         public static async Task<CloudConnection> Create(
             IIdentity identity,
             Action<string, CloudConnectionStatus> connectionStatusChangedHandler,
@@ -76,17 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             return cloudConnection;
         }
 
-        public Option<ICloudProxy> CloudProxy => this.GetCloudProxy().Filter(cp => cp.IsActive);
-
-        public bool IsActive => this.GetCloudProxy()
-            .Map(cp => cp.IsActive)
-            .GetOrElse(false);
-
         public Task<bool> CloseAsync() => this.GetCloudProxy().Map(cp => cp.CloseAsync()).GetOrElse(Task.FromResult(false));
-
-        protected IIdentity Identity { get; }
-
-        protected Action<string, CloudConnectionStatus> ConnectionStatusChangedHandler { get; }
 
         protected virtual Option<ICloudProxy> GetCloudProxy() => this.cloudProxy;
 
@@ -104,8 +106,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             return proxy;
         }
 
-        protected virtual bool CallbacksEnabled { get; } = true;
-
         async Task<IClient> ConnectToIoTHub(ITokenProvider newTokenProvider)
         {
             Events.AttemptingConnectionWithTransport(this.transportSettingsList, this.Identity);
@@ -114,11 +114,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             client.SetOperationTimeoutInMilliseconds((uint)this.operationTimeout.TotalMilliseconds);
             client.SetConnectionStatusChangedHandler(this.InternalConnectionStatusChangesHandler);
 
-            // TODO: Add support for ProductInfo 
-            //if (!string.IsNullOrWhiteSpace(newCredentials.ProductInfo))
-            //{
-            //    client.SetProductInfo(newCredentials.ProductInfo);
-            //}
+            // TODO: Add support for ProductInfo
+            /*
+            if (!string.IsNullOrWhiteSpace(newCredentials.ProductInfo))
+            {
+                client.SetProductInfo(newCredentials.ProductInfo);
+            }
+            */
 
             await client.OpenAsync();
             Events.CreateDeviceClientSuccess(this.transportSettingsList, this.operationTimeout, this.Identity);
@@ -149,13 +151,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<CloudConnection>();
             const int IdStart = CloudProxyEventIds.CloudConnection;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<CloudConnection>();
 
             enum EventIds
             {
                 AttemptingTransport = IdStart,
                 TransportConnected
+            }
+
+            public static void AttemptingConnectionWithTransport(ITransportSettings[] transportSettings, IIdentity identity)
+            {
+                string transportType = transportSettings.Length == 1
+                    ? TransportName(transportSettings[0].GetTransportType())
+                    : transportSettings.Select(t => TransportName(t.GetTransportType())).Join("/");
+                Log.LogInformation((int)EventIds.AttemptingTransport, $"Attempting to connect to IoT Hub for client {identity.Id} via {transportType}...");
+            }
+
+            public static void CreateDeviceClientSuccess(ITransportSettings[] transportSettings, TimeSpan timeout, IIdentity identity)
+            {
+                string transportType = transportSettings.Length == 1
+                    ? TransportName(transportSettings[0].GetTransportType())
+                    : transportSettings.Select(t => TransportName(t.GetTransportType())).Join("/");
+                Log.LogInformation((int)EventIds.TransportConnected, $"Created cloud proxy for client {identity.Id} via {transportType}, with client operation timeout {timeout.TotalSeconds} seconds.");
             }
 
             static string TransportName(TransportType type)
@@ -173,22 +191,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     default:
                         return type.ToString();
                 }
-            }
-
-            public static void AttemptingConnectionWithTransport(ITransportSettings[] transportSettings, IIdentity identity)
-            {
-                string transportType = transportSettings.Length == 1
-                    ? TransportName(transportSettings[0].GetTransportType())
-                    : transportSettings.Select(t => TransportName(t.GetTransportType())).Join("/");
-                Log.LogInformation((int)EventIds.AttemptingTransport, $"Attempting to connect to IoT Hub for client {identity.Id} via {transportType}...");
-            }
-
-            public static void CreateDeviceClientSuccess(ITransportSettings[] transportSettings, TimeSpan timeout, IIdentity identity)
-            {
-                string transportType = transportSettings.Length == 1
-                    ? TransportName(transportSettings[0].GetTransportType())
-                    : transportSettings.Select(t => TransportName(t.GetTransportType())).Join("/");
-                Log.LogInformation((int)EventIds.TransportConnected, $"Created cloud proxy for client {identity.Id} via {transportType}, with client operation timeout {timeout.TotalSeconds} seconds.");
             }
         }
     }

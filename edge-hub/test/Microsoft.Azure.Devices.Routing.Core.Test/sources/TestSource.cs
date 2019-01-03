@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Routing.Core.Test.sources
+namespace Microsoft.Azure.Devices.Routing.Core.Test.Sources
 {
     using System.Diagnostics.CodeAnalysis;
     using System.Threading;
@@ -13,14 +13,14 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.sources
         readonly AtomicBoolean closed;
         readonly CancellationTokenSource cts;
 
-        public bool Closed => this.closed;
-
         public TestSource(Router router)
             : base(router)
         {
             this.closed = new AtomicBoolean(false);
             this.cts = new CancellationTokenSource();
         }
+
+        public bool Closed => this.closed;
 
         public Task SendAsync(IMessage[] messages) =>
             this.closed ? TaskEx.Done : this.Router.RouteAsync(messages);

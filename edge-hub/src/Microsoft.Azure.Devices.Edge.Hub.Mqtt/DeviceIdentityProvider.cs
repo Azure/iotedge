@@ -115,7 +115,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             // "iotHub1/device1/module1/foo?bar=b1&api-version=2010-01-01&DeviceClientType=customDeviceClient1"
             // "iotHub1/device1?&api-version=2010-01-01&DeviceClientType=customDeviceClient1"
             // "iotHub1/device1/module1?&api-version=2010-01-01&DeviceClientType=customDeviceClient1"
-
             string deviceId;
             string moduleId = string.Empty;
             IDictionary<string, string> queryParameters;
@@ -129,9 +128,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     deviceId = usernameSegments[1].Trim();
                     queryParameters = ParseDeviceClientType(usernameSegments[2].Substring(1).Trim());
                 }
-                // edgeHubHostName/device1/module1/?apiVersion=10-2-3&DeviceClientType=foo
                 else if (usernameSegments.Length == 4)
                 {
+                    // edgeHubHostName/device1/module1/?apiVersion=10-2-3&DeviceClientType=foo
                     deviceId = usernameSegments[1].Trim();
                     moduleId = usernameSegments[2].Trim();
                     queryParameters = ParseDeviceClientType(usernameSegments[3].Substring(1).Trim());
@@ -149,19 +148,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     deviceId = usernameSegments[1].Trim();
                     queryParameters = ParseDeviceClientType(usernameSegments[2].Trim());
                 }
-                // edgeHubHostName/device1/module1/apiVersion=10-2-3&DeviceClientType=foo
                 else if (usernameSegments.Length == 4 && usernameSegments[3].Contains("api-version="))
                 {
+                    // edgeHubHostName/device1/module1/apiVersion=10-2-3&DeviceClientType=foo
                     deviceId = usernameSegments[1].Trim();
                     moduleId = usernameSegments[2].Trim();
                     queryParameters = ParseDeviceClientType(usernameSegments[3].Trim());
                 }
-                // The Azure ML container is using an older client that returns a device client with the following format -
-                // username = edgeHubHostName/deviceId/moduleId/api-version=2017-06-30/DeviceClientType=Microsoft.Azure.Devices.Client/1.5.1-preview-003
-                // Notice how the DeviceClientType parameter is separated by a '/' instead of a '&', giving a usernameSegments.Length of 6 instead of the expected 4
-                // To allow those clients to work, check for that specific api-version, and version.
                 else if (usernameSegments.Length == 6 && username.EndsWith("/api-version=2017-06-30/DeviceClientType=Microsoft.Azure.Devices.Client/1.5.1-preview-003", StringComparison.OrdinalIgnoreCase))
                 {
+                    // The Azure ML container is using an older client that returns a device client with the following format -
+                    // username = edgeHubHostName/deviceId/moduleId/api-version=2017-06-30/DeviceClientType=Microsoft.Azure.Devices.Client/1.5.1-preview-003
+                    // Notice how the DeviceClientType parameter is separated by a '/' instead of a '&', giving a usernameSegments.Length of 6 instead of the expected 4
+                    // To allow those clients to work, check for that specific api-version, and version.
                     deviceId = usernameSegments[1].Trim();
                     moduleId = usernameSegments[2].Trim();
                     queryParameters = new Dictionary<string, string>
@@ -198,7 +197,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         static IDictionary<string, string> ParseDeviceClientType(string queryParameterString)
         {
             // example input: "api-version=version&DeviceClientType=url-escaped-string&other-prop=value&some-other-prop"
-
             var kvsep = new[] { '=' };
 
             Dictionary<string, string> queryParameters = queryParameterString
@@ -214,8 +212,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<DeviceIdentityProvider>();
             const int IdStart = MqttEventIds.SasTokenDeviceIdentityProvider;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<DeviceIdentityProvider>();
 
             enum EventIds
             {
@@ -225,9 +223,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 AuthNotFound,
                 ErrorCreatingIdentity
             }
-
-            static string GetId(string deviceId, string moduleId) =>
-                string.IsNullOrWhiteSpace(moduleId) ? deviceId : $"{deviceId}/{moduleId}";
 
             public static void Success(string clientId, string username)
                 => Log.LogInformation((int)EventIds.CreateSuccess, Invariant($"Successfully generated identity for clientId {clientId} and username {username}"));
@@ -243,6 +238,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
             public static void ErrorCreatingIdentity(Exception ex)
                 => Log.LogError((int)EventIds.ErrorCreatingIdentity, ex, "Error creating client identity");
+
+            static string GetId(string deviceId, string moduleId) =>
+                string.IsNullOrWhiteSpace(moduleId) ? deviceId : $"{deviceId}/{moduleId}";
         }
     }
 }

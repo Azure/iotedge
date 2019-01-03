@@ -10,43 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Json
     [Unit]
     public class OptionConverterTest
     {
-        class TestObject : IEquatable<TestObject>
-        {
-            [JsonConverter(typeof(OptionConverter<string>))]
-            [JsonProperty(PropertyName = "value")]
-            public Option<string> Value { get; }
-
-            [JsonConstructor]
-            public TestObject(string value)
-            {
-                this.Value = Option.Maybe(value);
-            }
-
-            public bool Equals(TestObject other)
-            {
-                if (ReferenceEquals(null, other))
-                {
-                    return false;
-                }
-                return ReferenceEquals(this, other) || this.Value.Equals(other.Value);
-            }
-
-            public override bool Equals(object obj)
-            {
-                if (ReferenceEquals(null, obj))
-                {
-                    return false;
-                }
-                if (ReferenceEquals(this, obj))
-                {
-                    return true;
-                }
-                return obj.GetType() == this.GetType() && this.Equals((TestObject)obj);
-            }
-
-            public override int GetHashCode() => this.Value.GetHashCode();
-        }
-
         [Fact]
         public void TestSerializeWithValue()
         {
@@ -93,6 +56,46 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Json
             var expected = new TestObject(null);
             Assert.Equal(expected, t1);
             Assert.Equal(Option.None<string>(), t1.Value);
+        }
+
+        class TestObject : IEquatable<TestObject>
+        {
+            [JsonConstructor]
+            public TestObject(string value)
+            {
+                this.Value = Option.Maybe(value);
+            }
+
+            [JsonConverter(typeof(OptionConverter<string>))]
+            [JsonProperty(PropertyName = "value")]
+            public Option<string> Value { get; }
+
+            public bool Equals(TestObject other)
+            {
+                if (ReferenceEquals(null, other))
+                {
+                    return false;
+                }
+
+                return ReferenceEquals(this, other) || this.Value.Equals(other.Value);
+            }
+
+            public override bool Equals(object obj)
+            {
+                if (ReferenceEquals(null, obj))
+                {
+                    return false;
+                }
+
+                if (ReferenceEquals(this, obj))
+                {
+                    return true;
+                }
+
+                return obj.GetType() == this.GetType() && this.Equals((TestObject)obj);
+            }
+
+            public override int GetHashCode() => this.Value.GetHashCode();
         }
     }
 }

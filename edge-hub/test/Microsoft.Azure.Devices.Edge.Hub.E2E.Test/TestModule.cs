@@ -46,14 +46,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             return this.moduleClient.SetInputMessageHandlerAsync(input, this.MessageHandler, this.receivedForInput[input]);
         }
 
-        Task<MessageResponse> MessageHandler(Message message, object userContext)
-        {
-            int messageIndex = int.Parse(message.Properties["testId"]);
-            var received = userContext as ISet<int>;
-            received?.Add(messageIndex);
-            return Task.FromResult(MessageResponse.Completed);
-        }
-
         public ISet<int> GetReceivedMessageIndices() => this.receivedForInput["_"];
 
         public ISet<int> GetReceivedMessageIndices(string input) => this.receivedForInput[input];
@@ -68,6 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             {
                 throw new TimeoutException($"Attempted to send {count} messages in {timeout.TotalSeconds} seconds, but was able to send only {sentMessagesCount}");
             }
+
             return sentMessagesCount;
         }
 
@@ -76,6 +69,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         public Task SendMessageAsync(string output, Message message)
         {
             return this.moduleClient.SendEventAsync(output, message);
+        }
+
+        public void SetupReceiveMethodHandler(string methodName = null, MethodCallback callback = null)
+        {
+            this.receivedMethodRequests = new List<MethodRequest>();
+            MethodCallback methodCallback = callback ?? this.DefaultMethodCallback;
+            if (string.IsNullOrWhiteSpace(methodName))
+            {
+                this.moduleClient.SetMethodDefaultHandlerAsync(methodCallback, null);
+            }
+            else
+            {
+                this.moduleClient.SetMethodHandlerAsync(methodName, methodCallback, null);
+            }
+        }
+
+        public Task Disconnect() => this.moduleClient.CloseAsync();
+
+        Task<MessageResponse> MessageHandler(Message message, object userContext)
+        {
+            int messageIndex = int.Parse(message.Properties["testId"]);
+            var received = userContext as ISet<int>;
+            received?.Add(messageIndex);
+            return Task.FromResult(MessageResponse.Completed);
         }
 
         async Task<int> SendMessagesAsync(string output, int startIndex, int count, TimeSpan duration, TimeSpan sleepTime)
@@ -93,20 +110,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             return i - startIndex;
         }
 
-        public void SetupReceiveMethodHandler(string methodName = null, MethodCallback callback = null)
-        {
-            this.receivedMethodRequests = new List<MethodRequest>();
-            MethodCallback methodCallback = callback ?? this.DefaultMethodCallback;
-            if (string.IsNullOrWhiteSpace(methodName))
-            {
-                this.moduleClient.SetMethodDefaultHandlerAsync(methodCallback, null);
-            }
-            else
-            {
-                this.moduleClient.SetMethodHandlerAsync(methodName, methodCallback, null);
-            }
-        }
-
         Task<MethodResponse> DefaultMethodCallback(MethodRequest methodRequest, object context)
         {
             this.receivedMethodRequests.Add(methodRequest);
@@ -122,8 +125,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             message.Properties.Add("Model", "Temperature");
             return message;
         }
-
-        public Task Disconnect() => this.moduleClient.CloseAsync();
 
         class Temperature
         {

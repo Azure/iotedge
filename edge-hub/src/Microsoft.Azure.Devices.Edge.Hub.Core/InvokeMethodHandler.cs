@@ -54,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         }
 
         /// <summary>
-        /// This method is called when a client subscribes to Method invocations. 
+        /// This method is called when a client subscribes to Method invocations.
         /// It processes all the pending method requests for that client (i.e the method requests
         /// that came in before the client subscribed to method invocations and that haven't expired yet)
         /// </summary>
@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         }
 
         /// <summary>
-        /// This method is used to process all pending method requests, but without waiting for the 
+        /// This method is used to process all pending method requests, but without waiting for the
         /// processing to complete
         /// </summary>
         async void ProcessInvokeMethodSubscriptionInternal(string id)
@@ -78,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 // Temporary hack to wait for the subscription call to complete. Without this,
                 // the EdgeHub will invoke the pending method request "too soon", before the layers
                 // in between have been set up correctly. To fix this, changes are needed in ProtocolGateway,
-                // Client SDK, and need to figure out a way to raise events for AMQP Links. 
+                // Client SDK, and need to figure out a way to raise events for AMQP Links.
                 await Task.Delay(TimeSpan.FromSeconds(3));
                 await this.ProcessInvokeMethodsForClient(id);
             }
@@ -105,6 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 return deviceProxy;
             }
+
             return Option.None<IDeviceProxy>();
         }
 
@@ -132,8 +133,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<InvokeMethodHandler>();
             const int IdStart = HubCoreEventIds.InvokeMethodHandler;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<InvokeMethodHandler>();
 
             enum EventIds
             {

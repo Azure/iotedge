@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.GeneratedCode;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json.Linq;
+    using SystemInfo = Microsoft.Azure.Devices.Edge.Agent.Core.SystemInfo;
 
     public class RuntimeInfoProvider<T> : IRuntimeInfoProvider
     {
@@ -27,11 +28,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             return modulesRuntimeInfo;
         }
 
-        public async Task<Core.SystemInfo> GetSystemInfo()
+        public async Task<SystemInfo> GetSystemInfo()
         {
             GeneratedCode.SystemInfo systemInfo = await this.moduleManager.GetSystemInfoAsync();
 
-            return new Core.SystemInfo(systemInfo.OsType, systemInfo.Architecture, systemInfo.Version);
+            return new SystemInfo(systemInfo.OsType, systemInfo.Architecture, systemInfo.Version);
         }
 
         internal static ModuleRuntimeInfo<T> GetModuleRuntimeInfo(ModuleDetails moduleDetails)
@@ -54,10 +55,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             {
                 throw new InvalidOperationException($"Module config is of type {moduleDetails.Config.Settings.GetType()}. Expected type JObject");
             }
+
             var config = jobject.ToObject<T>();
 
-            var moduleRuntimeInfo = new ModuleRuntimeInfo<T>(moduleDetails.Name, moduleDetails.Type, status,
-                moduleDetails.Status.RuntimeStatus.Description, exitCode, startTime, exitTime, config);
+            var moduleRuntimeInfo = new ModuleRuntimeInfo<T>(
+                moduleDetails.Name,
+                moduleDetails.Type,
+                status,
+                moduleDetails.Status.RuntimeStatus.Description,
+                exitCode,
+                startTime,
+                exitTime,
+                config);
             return moduleRuntimeInfo;
         }
     }

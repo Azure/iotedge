@@ -8,7 +8,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.WebJobs;
 
     /// <summary>
     /// Core object to send events to EdgeHub. 
@@ -21,12 +20,15 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
         readonly int batchSize;
 
         const int DefaultBatchSize = 10;
+
         // Max batch size limit from IoTHub
         const int MaxBatchSize = 500;
+
         // Suggested to use 240k instead of 256k to leave padding room for headers.
         const int MaxByteSize = 240 * 1024;
 
         readonly List<Message> list = new List<Message>();
+
         // total size of bytes in list that we'll be sending in this batch. 
         int currentByteSize;
 
@@ -121,6 +123,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
                 this.list.Clear();
                 this.currentByteSize = 0;
             }
+
             return batch;
         }
     }

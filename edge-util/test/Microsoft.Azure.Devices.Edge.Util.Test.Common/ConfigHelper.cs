@@ -46,6 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
             {
                 throw new InvalidOperationException($"Invalid test environment specified: {environmentName}");
             }
+
             return environment;
         }
     }

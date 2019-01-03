@@ -5,14 +5,14 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
 
     public class AnyArgs : IArgs
     {
-        public Type[] Types { get; } = new Type[0];
-
-        public int Arity { get; }
-
         public AnyArgs(int arity)
         {
             this.Arity = arity;
         }
+
+        public Type[] Types { get; } = new Type[0];
+
+        public int Arity { get; }
 
         public bool Match(Type[] args, bool forceCheckQueryValue)
         {

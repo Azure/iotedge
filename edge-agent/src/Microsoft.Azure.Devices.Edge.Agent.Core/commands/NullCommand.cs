@@ -7,11 +7,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
 
     public class NullCommand : ICommand
     {
-        public static NullCommand Instance { get; } = new NullCommand();
-
         NullCommand()
         {
         }
+
+        public static NullCommand Instance { get; } = new NullCommand();
 
         public string Id => string.Empty;
 

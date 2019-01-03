@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
+namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
 {
     using System;
     using System.Collections.Generic;
@@ -7,20 +7,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Commands;
-    using Moq;
-    using Xunit;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Extensions.Logging;
+    using Moq;
+    using Xunit;
     using CommandMethodExpr = System.Linq.Expressions.Expression<System.Func<ICommandFactory, System.Threading.Tasks.Task<ICommand>>>;
     using TestExecutionExpr = System.Func<LoggingCommandFactory, System.Threading.Tasks.Task<ICommand>>;
 
     class FailureCommand : ICommand
     {
-        public static FailureCommand Instance { get; } = new FailureCommand();
-
         FailureCommand()
         {
         }
+
+        public static FailureCommand Instance { get; } = new FailureCommand();
 
         public string Id => this.Show();
 
@@ -38,7 +38,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
         static readonly TestModule TestModule = new TestModule("module", "version", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
         static readonly TestModule UpdateModule = new TestModule("module", "version", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
         static readonly TestCommand WrapTargetCommand = new TestCommand(TestCommandType.TestCreate, TestModule);
-
 
         [Fact]
         [Unit]
@@ -69,7 +68,132 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
             ICommand create = await factory.CreateAsync(new ModuleWithIdentity(TestModule, moduleIdentity.Object), runtimeInfo);
 
             Assert.Equal(create.Show(), nullCmd.Result.Show());
+        }
 
+        [Theory]
+        [Unit]
+        [MemberData(nameof(CreateTestData))]
+        public async Task ExecuteSuccessfulTests(
+            CommandMethodExpr commandMethodBeingTested,
+            Task<ICommand> commandBeingDecorated,
+            TestExecutionExpr testExpr)
+        {
+            var token = new CancellationToken();
+
+            var logFactoryMock = new Mock<ILoggerFactory>();
+            var logMock = new Mock<ILogger<LoggingCommandFactory>>();
+            var factoryMock = new Mock<ICommandFactory>();
+
+            // mock the command factory method being tested,
+            // have the mock return an appropriate command that should be decorated by the LoggingCommandFactory
+            factoryMock.Setup(commandMethodBeingTested)
+                .Returns(commandBeingDecorated);
+            // use this ILogger mock for verification.
+            logFactoryMock.Setup(l => l.CreateLogger(It.IsAny<string>()))
+                .Returns(logMock.Object);
+
+            var factory = new LoggingCommandFactory(factoryMock.Object, logFactoryMock.Object);
+
+            // Execute the test expression
+            ICommand create = await testExpr(factory);
+
+            // attempt to execute the LoggingCommand we received
+            await create.ExecuteAsync(token);
+
+            // Assert decorated command is executed, and command is logged.
+            factoryMock.Verify(commandMethodBeingTested);
+            logMock.Verify(l => l.Log(LogLevel.Information, It.IsAny<EventId>(), It.IsAny<object>(), It.IsAny<Exception>(), It.IsAny<Func<object, Exception, string>>()), Times.Once);
+            logMock.Verify(l => l.Log(LogLevel.Debug, It.IsAny<EventId>(), It.IsAny<object>(), It.IsAny<Exception>(), It.IsAny<Func<object, Exception, string>>()), Times.Once);
+        }
+
+        [Theory]
+        [Unit]
+        [MemberData(nameof(CreateTestData))]
+        public async Task ExecuteFailureTests(
+            CommandMethodExpr commandMethodBeingTested,
+            Task<ICommand> commandBeingDecorated,
+            TestExecutionExpr testExpr)
+        {
+            var token = new CancellationToken();
+
+            var logFactoryMock = new Mock<ILoggerFactory>();
+            var logMock = new Mock<ILogger<LoggingCommandFactory>>();
+            var factoryMock = new Mock<ICommandFactory>();
+
+            factoryMock.Setup(commandMethodBeingTested)
+                .Returns(Task.FromResult<ICommand>(FailureCommand.Instance));
+            logFactoryMock.Setup(l => l.CreateLogger(It.IsAny<string>()))
+                .Returns(logMock.Object);
+
+            var factory = new LoggingCommandFactory(factoryMock.Object, logFactoryMock.Object);
+
+            ICommand create = await testExpr(factory);
+
+            await Assert.ThrowsAsync<ArgumentException>(() => create.ExecuteAsync(token));
+
+            factoryMock.Verify(commandMethodBeingTested);
+            logMock.Verify(l => l.Log(LogLevel.Information, It.IsAny<EventId>(), It.IsAny<object>(), It.IsAny<Exception>(), It.IsAny<Func<object, Exception, string>>()), Times.Once);
+            logMock.Verify(l => l.Log(LogLevel.Error, It.IsAny<EventId>(), It.IsAny<object>(), It.IsAny<Exception>(), It.IsAny<Func<object, Exception, string>>()), Times.Once);
+        }
+
+        [Theory]
+        [Unit]
+        [MemberData(nameof(CreateTestData))]
+        public async Task UndoSuccessTests(
+            CommandMethodExpr commandMethodBeingTested,
+            Task<ICommand> commandBeingDecorated,
+            TestExecutionExpr testExpr)
+        {
+            var token = new CancellationToken();
+
+            var logFactoryMock = new Mock<ILoggerFactory>();
+            var logMock = new Mock<ILogger<LoggingCommandFactory>>();
+            var factoryMock = new Mock<ICommandFactory>();
+
+            factoryMock.Setup(commandMethodBeingTested)
+                .Returns(commandBeingDecorated);
+            logFactoryMock.Setup(l => l.CreateLogger(It.IsAny<string>()))
+                .Returns(logMock.Object);
+
+            var factory = new LoggingCommandFactory(factoryMock.Object, logFactoryMock.Object);
+
+            ICommand create = await testExpr(factory);
+
+            await create.UndoAsync(token);
+
+            factoryMock.Verify(commandMethodBeingTested);
+            logMock.Verify(l => l.Log(LogLevel.Information, It.IsAny<EventId>(), It.IsAny<object>(), It.IsAny<Exception>(), It.IsAny<Func<object, Exception, string>>()), Times.Once);
+            logMock.Verify(l => l.Log(LogLevel.Debug, It.IsAny<EventId>(), It.IsAny<object>(), It.IsAny<Exception>(), It.IsAny<Func<object, Exception, string>>()), Times.Once);
+        }
+
+        [Theory]
+        [Unit]
+        [MemberData(nameof(CreateTestData))]
+        public async Task UndoFailureTests(
+            CommandMethodExpr commandMethodBeingTested,
+            Task<ICommand> commandBeingDecorated,
+            TestExecutionExpr testExpr)
+        {
+            var token = new CancellationToken();
+
+            var logFactoryMock = new Mock<ILoggerFactory>();
+            var logMock = new Mock<ILogger<LoggingCommandFactory>>();
+            var factoryMock = new Mock<ICommandFactory>();
+
+            factoryMock.Setup(commandMethodBeingTested)
+                .Returns(Task.FromResult<ICommand>(FailureCommand.Instance));
+            logFactoryMock.Setup(l => l.CreateLogger(It.IsAny<string>()))
+                .Returns(logMock.Object);
+
+            var factory = new LoggingCommandFactory(factoryMock.Object, logFactoryMock.Object);
+
+            ICommand create = await testExpr(factory);
+
+            await Assert.ThrowsAsync<ArgumentException>(() => create.UndoAsync(token));
+
+            factoryMock.Verify(commandMethodBeingTested);
+            logMock.Verify(l => l.Log(LogLevel.Information, It.IsAny<EventId>(), It.IsAny<object>(), It.IsAny<Exception>(), It.IsAny<Func<object, Exception, string>>()), Times.Once);
+            logMock.Verify(l => l.Log(LogLevel.Error, It.IsAny<EventId>(), It.IsAny<object>(), It.IsAny<Exception>(), It.IsAny<Func<object, Exception, string>>()), Times.Once);
         }
 
         static IEnumerable<object[]> CreateTestData()
@@ -81,7 +205,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
             // CommandMethodBeingTested - factory command under test
             // Command - command object to be mocked.
             // TestExpr - the expression to execute test.
-            (CommandMethodExpr CommandMethodBeingTested, Task<ICommand> Command, TestExecutionExpr TestExpr)[] testInputRecords = {
+            (CommandMethodExpr CommandMethodBeingTested, Task<ICommand> Command, TestExecutionExpr TestExpr)[] testInputRecords =
+            {
                 (
                     f => f.CreateAsync(testModule, runtimeInfo),
                     NullCommandFactory.Instance.CreateAsync(testModule, runtimeInfo),
@@ -121,136 +246,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
             };
 
             return testInputRecords.Select(r => new object[] { r.CommandMethodBeingTested, r.Command, r.TestExpr }).AsEnumerable();
-        }
-
-        [Theory]
-        [Unit]
-        [MemberData(nameof(CreateTestData))]
-        public async Task ExecuteSuccessfulTests(
-            CommandMethodExpr commandMethodBeingTested,
-            Task<ICommand> commandBeingDecorated,
-            TestExecutionExpr testExpr
-        )
-        {
-            var token = new CancellationToken();
-
-            var logFactoryMock = new Mock<ILoggerFactory>();
-            var logMock = new Mock<ILogger<LoggingCommandFactory>>();
-            var factoryMock = new Mock<ICommandFactory>();
-
-            // mock the command factory method being tested,
-            // have the mock return an appropriate command that should be decorated by the LoggingCommandFactory
-            factoryMock.Setup(commandMethodBeingTested)
-                .Returns(commandBeingDecorated);
-            // use this ILogger mock for verification.
-            logFactoryMock.Setup(l => l.CreateLogger(It.IsAny<string>()))
-                .Returns(logMock.Object);
-
-            var factory = new LoggingCommandFactory(factoryMock.Object, logFactoryMock.Object);
-
-            // Execute the test expression
-            ICommand create = await testExpr(factory);
-
-            // attempt to execute the LoggingCommand we received
-            await create.ExecuteAsync(token);
-
-            //Assert decorated command is executed, and command is logged.
-            factoryMock.Verify(commandMethodBeingTested);
-            logMock.Verify(l => l.Log(LogLevel.Information, It.IsAny<EventId>(), It.IsAny<object>(), It.IsAny<Exception>(), It.IsAny<Func<object, Exception, string>>()), Times.Once);
-            logMock.Verify(l => l.Log(LogLevel.Debug, It.IsAny<EventId>(), It.IsAny<object>(), It.IsAny<Exception>(), It.IsAny<Func<object, Exception, string>>()), Times.Once);
-        }
-
-        [Theory]
-        [Unit]
-        [MemberData(nameof(CreateTestData))]
-        public async Task ExecuteFailureTests(
-            CommandMethodExpr commandMethodBeingTested,
-            Task<ICommand> commandBeingDecorated,
-            TestExecutionExpr testExpr
-        )
-        {
-            var token = new CancellationToken();
-
-            var logFactoryMock = new Mock<ILoggerFactory>();
-            var logMock = new Mock<ILogger<LoggingCommandFactory>>();
-            var factoryMock = new Mock<ICommandFactory>();
-
-            factoryMock.Setup(commandMethodBeingTested)
-                .Returns(Task.FromResult<ICommand>(FailureCommand.Instance));
-            logFactoryMock.Setup(l => l.CreateLogger(It.IsAny<string>()))
-                .Returns(logMock.Object);
-
-            var factory = new LoggingCommandFactory(factoryMock.Object, logFactoryMock.Object);
-
-            ICommand create = await testExpr(factory);
-
-            await Assert.ThrowsAsync<ArgumentException>(() => create.ExecuteAsync(token));
-
-            factoryMock.Verify(commandMethodBeingTested);
-            logMock.Verify(l => l.Log(LogLevel.Information, It.IsAny<EventId>(), It.IsAny<object>(), It.IsAny<Exception>(), It.IsAny<Func<object, Exception, string>>()), Times.Once);
-            logMock.Verify(l => l.Log(LogLevel.Error, It.IsAny<EventId>(), It.IsAny<object>(), It.IsAny<Exception>(), It.IsAny<Func<object, Exception, string>>()), Times.Once);
-        }
-
-        [Theory]
-        [Unit]
-        [MemberData(nameof(CreateTestData))]
-        public async Task UndoSuccessTests(
-            CommandMethodExpr commandMethodBeingTested,
-            Task<ICommand> commandBeingDecorated,
-            TestExecutionExpr testExpr
-        )
-        {
-            var token = new CancellationToken();
-
-            var logFactoryMock = new Mock<ILoggerFactory>();
-            var logMock = new Mock<ILogger<LoggingCommandFactory>>();
-            var factoryMock = new Mock<ICommandFactory>();
-
-            factoryMock.Setup(commandMethodBeingTested)
-                .Returns(commandBeingDecorated);
-            logFactoryMock.Setup(l => l.CreateLogger(It.IsAny<string>()))
-                .Returns(logMock.Object);
-
-            var factory = new LoggingCommandFactory(factoryMock.Object, logFactoryMock.Object);
-
-            ICommand create = await testExpr(factory);
-
-            await create.UndoAsync(token);
-
-            factoryMock.Verify(commandMethodBeingTested);
-            logMock.Verify(l => l.Log(LogLevel.Information, It.IsAny<EventId>(), It.IsAny<object>(), It.IsAny<Exception>(), It.IsAny<Func<object, Exception, string>>()), Times.Once);
-            logMock.Verify(l => l.Log(LogLevel.Debug, It.IsAny<EventId>(), It.IsAny<object>(), It.IsAny<Exception>(), It.IsAny<Func<object, Exception, string>>()), Times.Once);
-        }
-
-        [Theory]
-        [Unit]
-        [MemberData(nameof(CreateTestData))]
-        public async Task UndoFailureTests(
-            CommandMethodExpr commandMethodBeingTested,
-            Task<ICommand> commandBeingDecorated,
-            TestExecutionExpr testExpr
-        )
-        {
-            var token = new CancellationToken();
-
-            var logFactoryMock = new Mock<ILoggerFactory>();
-            var logMock = new Mock<ILogger<LoggingCommandFactory>>();
-            var factoryMock = new Mock<ICommandFactory>();
-
-            factoryMock.Setup(commandMethodBeingTested)
-                .Returns(Task.FromResult<ICommand>(FailureCommand.Instance));
-            logFactoryMock.Setup(l => l.CreateLogger(It.IsAny<string>()))
-                .Returns(logMock.Object);
-
-            var factory = new LoggingCommandFactory(factoryMock.Object, logFactoryMock.Object);
-
-            ICommand create = await testExpr(factory);
-
-            await Assert.ThrowsAsync<ArgumentException>(() => create.UndoAsync(token));
-
-            factoryMock.Verify(commandMethodBeingTested);
-            logMock.Verify(l => l.Log(LogLevel.Information, It.IsAny<EventId>(), It.IsAny<object>(), It.IsAny<Exception>(), It.IsAny<Func<object, Exception, string>>()), Times.Once);
-            logMock.Verify(l => l.Log(LogLevel.Error, It.IsAny<EventId>(), It.IsAny<object>(), It.IsAny<Exception>(), It.IsAny<Func<object, Exception, string>>()), Times.Once);
         }
     }
 }

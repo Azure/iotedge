@@ -49,6 +49,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
         }
 
+        protected override bool CallbacksEnabled => this.callbacksEnabled;
+
         public static async Task<ClientTokenCloudConnection> Create(
             ITokenCredentials tokenCredentials,
             Action<string, CloudConnectionStatus> connectionStatusChangedHandler,
@@ -81,11 +83,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         /// This method does the following -
         ///     1. Updates the Identity to be used for the cloud connection
         ///     2. Updates the cloud proxy -
-        ///         i. If there is an existing device client and 
+        ///         i. If there is an existing device client and
         ///             a. If is waiting for an updated token, and the Identity has a token,
         ///                then it uses that to give it to the waiting client authentication method.
         ///             b. If not, then it creates a new cloud proxy (and device client) and closes the existing one
-        ///         ii. Else, if there is no cloud proxy, then opens a device client and creates a cloud proxy. 
+        ///         ii. Else, if there is no cloud proxy, then opens a device client and creates a cloud proxy.
         /// </summary>
         public async Task<ICloudProxy> UpdateTokenAsync(ITokenCredentials newTokenCredentials)
         {
@@ -123,10 +125,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                                         });
                                     return cp;
                                 }
-                                // Else this is a new connection for the same device Id. So open a new connection,
-                                // and if that is successful, close the existing one.
                                 else
                                 {
+                                    // Else this is a new connection for the same device Id. So open a new connection,
+                                    // and if that is successful, close the existing one.
                                     ICloudProxy newCloudProxy = await this.CreateNewCloudProxyAsync(tokenProvider);
                                     await cp.CloseAsync();
                                     return newCloudProxy;
@@ -155,9 +157,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        protected override bool CallbacksEnabled => this.callbacksEnabled;
-
         protected override Option<ICloudProxy> GetCloudProxy() => this.cloudProxy;
+
+        // Checks if the token expires too soon
+        static bool IsTokenUsable(string hostname, string token)
+        {
+            try
+            {
+                return TokenHelper.GetTokenExpiryTimeRemaining(hostname, token) > TokenExpiryBuffer;
+            }
+            catch (Exception e)
+            {
+                Events.ErrorCheckingTokenUsable(e);
+                return false;
+            }
+        }
 
         /// <summary>
         /// If the existing Identity has a usable token, then use it.
@@ -224,20 +238,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        // Checks if the token expires too soon
-        static bool IsTokenUsable(string hostname, string token)
-        {
-            try
-            {
-                return TokenHelper.GetTokenExpiryTimeRemaining(hostname, token) > TokenExpiryBuffer;
-            }
-            catch (Exception e)
-            {
-                Events.ErrorCheckingTokenUsable(e);
-                return false;
-            }
-        }
-
         class ClientTokenBasedTokenProvider : ITokenProvider
         {
             readonly ClientTokenCloudConnection cloudConnection;
@@ -270,8 +270,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<ClientTokenCloudConnection>();
             const int IdStart = CloudProxyEventIds.CloudConnection;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<ClientTokenCloudConnection>();
 
             enum EventIds
             {
@@ -281,6 +281,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 ObtainedNewToken,
                 ErrorRenewingToken,
                 ErrorCheckingTokenUsability
+            }
+
+            public static void ErrorCheckingTokenUsable(Exception ex)
+            {
+                Log.LogDebug((int)EventIds.ErrorCheckingTokenUsability, ex, "Error checking if token is usable.");
+            }
+
+            public static void TokenNotUsable(IIdentity identity, string newToken)
+            {
+                TimeSpan timeRemaining = TokenHelper.GetTokenExpiryTimeRemaining(identity.IotHubHostName, newToken);
+                Log.LogDebug((int)EventIds.ObtainedNewToken, Invariant($"Token received for client {identity.Id} expires in {timeRemaining}, and so is not usable. Getting a fresh token..."));
             }
 
             internal static void GetNewToken(string id)
@@ -317,17 +328,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             internal static void ErrorRenewingToken(Exception ex)
             {
                 Log.LogDebug((int)EventIds.ErrorRenewingToken, ex, "Critical Error trying to renew Token.");
-            }
-
-            public static void ErrorCheckingTokenUsable(Exception ex)
-            {
-                Log.LogDebug((int)EventIds.ErrorCheckingTokenUsability, ex, "Error checking if token is usable.");
-            }
-
-            public static void TokenNotUsable(IIdentity identity, string newToken)
-            {
-                TimeSpan timeRemaining = TokenHelper.GetTokenExpiryTimeRemaining(identity.IotHubHostName, newToken);
-                Log.LogDebug((int)EventIds.ObtainedNewToken, Invariant($"Token received for client {identity.Id} expires in {timeRemaining}, and so is not usable. Getting a fresh token..."));
             }
         }
     }

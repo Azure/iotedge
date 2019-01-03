@@ -8,8 +8,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
     /// <summary>
     /// Store for storing entities in an ordered list - Entities can be retrieved in the same order in which they were saved.
-    /// This can be used for implementing queues. 
-    /// Each saved entity is associated with an offset, which can be used to retrieve the entity. 
+    /// This can be used for implementing queues.
+    /// Each saved entity is associated with an offset, which can be used to retrieve the entity.
     /// </summary>
     public interface ISequentialStore<T> : IDisposable
     {

@@ -14,11 +14,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             byte[] body = Encoding.UTF8.GetBytes(sourceMessage.ToJson());
             return new EdgeMessage.Builder(body)
-                .SetSystemProperties(new Dictionary<string, string>
-                {
-                    [SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString("o"),
-                    [SystemProperties.Version] = sourceMessage.Version.ToString()
-                })
+                .SetSystemProperties(
+                    new Dictionary<string, string>
+                    {
+                        [SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString("o"),
+                        [SystemProperties.Version] = sourceMessage.Version.ToString()
+                    })
                 .Build();
         }
 

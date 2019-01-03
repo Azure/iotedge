@@ -23,19 +23,6 @@ namespace Microsoft.Azure.Devices.Routing.Core
         readonly AsyncLock sync = new AsyncLock();
         readonly string iotHubName;
 
-        public string Id { get; }
-
-        public ISet<Route> Routes
-        {
-            get
-            {
-                ImmutableDictionary<string, Route> snapshot = this.routes;
-                return new HashSet<Route>(snapshot.Values);
-            }
-        }
-
-        public Option<long> Offset => this.dispatcher.Offset;
-
         Router(string id, string iotHubName, Evaluator evaluator, Dispatcher dispatcher)
         {
             this.Id = Preconditions.CheckNotNull(id);
@@ -50,6 +37,19 @@ namespace Microsoft.Azure.Devices.Routing.Core
             this.closed = new AtomicBoolean(false);
             this.cts = new CancellationTokenSource();
         }
+
+        public string Id { get; }
+
+        public ISet<Route> Routes
+        {
+            get
+            {
+                ImmutableDictionary<string, Route> snapshot = this.routes;
+                return new HashSet<Route>(snapshot.Values);
+            }
+        }
+
+        public Option<long> Offset => this.dispatcher.Offset;
 
         public static async Task<Router> CreateAsync(string id, string iotHubName, RouterConfig config, IEndpointExecutorFactory executorFactory)
         {
@@ -72,13 +72,6 @@ namespace Microsoft.Azure.Devices.Routing.Core
             var evaluator = new Evaluator(config);
             Dispatcher dispatcher = await Dispatcher.CreateAsync(id, iotHubName, GetEndpoints(config), executorFactory, checkpointStore);
             return new Router(id, iotHubName, evaluator, dispatcher);
-        }
-
-        static ISet<Endpoint> GetEndpoints(RouterConfig config)
-        {
-            var endpoints = new HashSet<Endpoint>(config.Routes.SelectMany(r => r.Endpoints));
-            config.Fallback.ForEach(f => endpoints.UnionWith(f.Endpoints));
-            return endpoints;
         }
 
         public Task RouteAsync(IMessage message)
@@ -106,15 +99,6 @@ namespace Microsoft.Azure.Devices.Routing.Core
             {
                 await this.RouteInternalAsync(message);
             }
-        }
-
-        Task RouteInternalAsync(IMessage message)
-        {
-            ISet<Endpoint> endpoints = this.evaluator.Evaluate(message);
-
-            Events.MessageEvaluation(this.iotHubName, message, endpoints);
-
-            return this.dispatcher.DispatchAsync(message, endpoints);
         }
 
         public Option<Route> GetRoute(string id)
@@ -171,14 +155,6 @@ namespace Microsoft.Azure.Devices.Routing.Core
             }
         }
 
-        void CheckClosed()
-        {
-            if (this.closed)
-            {
-                throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, "Router {0} is closed.", this));
-            }
-        }
-
         public async Task CloseAsync(CancellationToken token)
         {
             if (!this.closed.GetAndSet(true))
@@ -194,9 +170,10 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
         public void Dispose() => this.Dispose(true);
 
+        public override string ToString() => string.Format(CultureInfo.InvariantCulture, "Router({0})", this.Id);
+
         protected virtual void Dispose(bool disposing)
         {
-            //Debug.Assert(this.closed);
             if (disposing)
             {
                 this.cts.Dispose();
@@ -205,12 +182,34 @@ namespace Microsoft.Azure.Devices.Routing.Core
             }
         }
 
-        public override string ToString() => string.Format(CultureInfo.InvariantCulture, "Router({0})", this.Id);
+        static ISet<Endpoint> GetEndpoints(RouterConfig config)
+        {
+            var endpoints = new HashSet<Endpoint>(config.Routes.SelectMany(r => r.Endpoints));
+            config.Fallback.ForEach(f => endpoints.UnionWith(f.Endpoints));
+            return endpoints;
+        }
+
+        Task RouteInternalAsync(IMessage message)
+        {
+            ISet<Endpoint> endpoints = this.evaluator.Evaluate(message);
+
+            Events.MessageEvaluation(this.iotHubName, message, endpoints);
+
+            return this.dispatcher.DispatchAsync(message, endpoints);
+        }
+
+        void CheckClosed()
+        {
+            if (this.closed)
+            {
+                throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, "Router {0} is closed.", this));
+            }
+        }
 
         static class Events
         {
-            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<Router>();
             const int IdStart = Routing.EventIds.Router;
+            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<Router>();
 
             enum EventIds
             {

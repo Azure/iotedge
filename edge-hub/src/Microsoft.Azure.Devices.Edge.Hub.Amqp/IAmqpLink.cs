@@ -7,28 +7,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     using Microsoft.Azure.Amqp.Framing;
 
     /// <summary>
-    /// This interface contains functionality similar to AmqpLink. 
+    /// This interface contains functionality similar to AmqpLink.
     /// This allows unit testing the components that use it
     /// </summary>
     public interface IAmqpLink
     {
-        void SafeAddClosed(EventHandler handler);
-
         bool IsReceiver { get; }
 
         IAmqpSession Session { get; set; }
 
         AmqpObjectState State { get; }
 
-        bool IsCbsLink();
-
         AmqpLinkSettings Settings { get; }
+
+        void SafeAddClosed(EventHandler handler);
+
+        bool IsCbsLink();
 
         Task CloseAsync(TimeSpan timeout);
     }
 
     /// <summary>
-    /// This interface contains functionality similar to ReceivingAmqpLink. 
+    /// This interface contains functionality similar to ReceivingAmqpLink.
     /// Created mainly for testing purposes
     /// </summary>
     public interface IReceivingAmqpLink : IAmqpLink
@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     }
 
     /// <summary>
-    /// This interface contains functionality similar to SendingAmqpLink. 
+    /// This interface contains functionality similar to SendingAmqpLink.
     /// Created mainly for testing purposes
     /// </summary>
     public interface ISendingAmqpLink : IAmqpLink

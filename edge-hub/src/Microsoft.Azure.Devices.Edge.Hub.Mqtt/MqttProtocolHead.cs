@@ -26,6 +26,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
     public class MqttProtocolHead : IProtocolHead
     {
+        const int MqttsPort = 8883;
+        const int DefaultListenBacklogSize = 200; // connections allowed pending accept
+        const int DefaultParentEventLoopCount = 1;
+        const int DefaultMaxInboundMessageSize = 256 * 1024;
+        const int DefaultThreadCount = 200;
+        const bool AutoRead = false;
+
         readonly ILogger logger = Logger.Factory.CreateLogger<MqttProtocolHead>();
         readonly ISettingsProvider settingsProvider;
         readonly X509Certificate tlsCertificate;
@@ -37,12 +44,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         readonly IByteBufferAllocator byteBufferAllocator;
         readonly bool clientCertAuthAllowed;
 
-        const int MqttsPort = 8883;
-        const int DefaultListenBacklogSize = 200; // connections allowed pending accept
-        const int DefaultParentEventLoopCount = 1;
-        const int DefaultMaxInboundMessageSize = 256 * 1024;
-        const int DefaultThreadCount = 200;
-        const bool AutoRead = false;
         IChannel serverChannel;
         IEventLoopGroup eventLoopGroup;
 
@@ -101,7 +102,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 await (this.eventLoopGroup?.ShutdownGracefullyAsync() ?? TaskEx.Done);
                 // TODO: gracefully shutdown the MultithreadEventLoopGroup in MqttWebSocketListener?
                 // TODO: this.webSocketListenerRegistry.TryUnregister("mqtts")?
-
                 this.logger.LogInformation("Stopped");
             }
             catch (Exception ex)
@@ -150,8 +150,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                             // configure the channel pipeline of the new Channel by adding handlers
                             TlsSettings serverSettings = new ServerTlsSettings(
                                 certificate: this.tlsCertificate,
-                                negotiateClientCertificate: this.clientCertAuthAllowed
-                            );
+                                negotiateClientCertificate: this.clientCertAuthAllowed);
 
                             channel.Pipeline.AddLast(
                                 new TlsHandler(

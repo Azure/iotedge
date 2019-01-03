@@ -92,7 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var sendingLinkHandler = new DeviceBoundLinkHandler(identity, sendingLink, requestUri, boundVariables, connectionHandler, messageConverter);
             var body = new byte[] { 0, 1, 2, 3 };
             IMessage message = new EdgeMessage.Builder(body).Build();
-            var deliveryState = new Mock<DeliveryState>(new AmqpSymbol(""), AmqpConstants.AcceptedOutcome.DescriptorCode);
+            var deliveryState = new Mock<DeliveryState>(new AmqpSymbol(string.Empty), AmqpConstants.AcceptedOutcome.DescriptorCode);
             var delivery = Mock.Of<Delivery>(
                 d => d.State == deliveryState.Object
                     && d.DeliveryTag == new ArraySegment<byte>(Guid.NewGuid().ToByteArray()));

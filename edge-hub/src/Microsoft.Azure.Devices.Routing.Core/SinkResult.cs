@@ -13,18 +13,6 @@ namespace Microsoft.Azure.Devices.Routing.Core
         static readonly ICollection<T> EmptyItems = ImmutableList<T>.Empty;
         static readonly ICollection<InvalidDetails<T>> EmptyInvalidDetailsList = ImmutableList<InvalidDetails<T>>.Empty;
 
-        public static ISinkResult<T> Empty { get; } = new SinkResult<T>(EmptyItems);
-
-        public ICollection<T> Succeeded { get; }
-
-        public ICollection<T> Failed { get; }
-
-        public ICollection<InvalidDetails<T>> InvalidDetailsList { get; }
-
-        public Option<SendFailureDetails> SendFailureDetails { get; }
-
-        public bool IsSuccessful => !this.Failed.Any();
-
         public SinkResult(ICollection<T> succeeded)
             : this(succeeded, EmptyItems, null)
         {
@@ -47,5 +35,17 @@ namespace Microsoft.Azure.Devices.Routing.Core
             this.InvalidDetailsList = Preconditions.CheckNotNull(invalid);
             this.SendFailureDetails = sendFailureDetails == null ? NoSendFailure : Option.Some(sendFailureDetails);
         }
+
+        public static ISinkResult<T> Empty { get; } = new SinkResult<T>(EmptyItems);
+
+        public ICollection<T> Succeeded { get; }
+
+        public ICollection<T> Failed { get; }
+
+        public ICollection<InvalidDetails<T>> InvalidDetailsList { get; }
+
+        public Option<SendFailureDetails> SendFailureDetails { get; }
+
+        public bool IsSuccessful => !this.Failed.Any();
     }
 }

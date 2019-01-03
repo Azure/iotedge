@@ -17,11 +17,11 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Edged
     [Unit]
     public class WorkloadClientTest : IClassFixture<WorkloadFixture>
     {
-        readonly Uri serverUri;
         const string WorkloadApiVersion = "2018-06-28";
         const string ModuleId = "testModule";
         const string ModulegenerationId = "1";
         const string Iv = "7826a0b7e6de4a84bd39c8e69c46d2a6";
+        readonly Uri serverUri;
 
         public WorkloadClientTest(WorkloadFixture workloadFixture)
         {
@@ -32,9 +32,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Edged
         public void InstantiateInvalidArgumentsShouldThrow()
         {
             Assert.Throws<ArgumentNullException>(() => new WorkloadClient(null, WorkloadApiVersion, ModuleId, ModulegenerationId));
-            Assert.Throws<ArgumentException>(() => new WorkloadClient(this.serverUri, "", ModuleId, ModulegenerationId));
-            Assert.Throws<ArgumentException>(() => new WorkloadClient(this.serverUri, WorkloadApiVersion, "", ModulegenerationId));
-            Assert.Throws<ArgumentException>(() => new WorkloadClient(this.serverUri, WorkloadApiVersion, ModuleId, ""));
+            Assert.Throws<ArgumentException>(() => new WorkloadClient(this.serverUri, string.Empty, ModuleId, ModulegenerationId));
+            Assert.Throws<ArgumentException>(() => new WorkloadClient(this.serverUri, WorkloadApiVersion, string.Empty, ModulegenerationId));
+            Assert.Throws<ArgumentException>(() => new WorkloadClient(this.serverUri, WorkloadApiVersion, ModuleId, string.Empty));
         }
 
         [Fact]

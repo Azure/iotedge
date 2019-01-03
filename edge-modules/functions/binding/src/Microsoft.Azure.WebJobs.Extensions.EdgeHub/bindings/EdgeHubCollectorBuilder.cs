@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
 {
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.WebJobs;
 
     class EdgeHubCollectorBuilder : IConverter<EdgeHubAttribute, IAsyncCollector<Message>>
     {

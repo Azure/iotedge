@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service
     {
         [EnumMember(Value = "enabled")]
         Enabled,
+
         [EnumMember(Value = "disabled")]
         Disabled
     }

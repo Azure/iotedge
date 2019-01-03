@@ -8,19 +8,8 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
     public class RouterConfig
     {
-        public ISet<Endpoint> Endpoints { get; }
-
-        public Option<Route> Fallback { get; }
-
-        public ISet<Route> Routes { get; }
-
         public RouterConfig(IEnumerable<Route> routes)
             : this(routes.ToList())
-        {
-        }
-
-        RouterConfig(IList<Route> routesList)
-            : this(routesList.SelectMany(r => r.Endpoints), routesList)
         {
         }
 
@@ -35,5 +24,16 @@ namespace Microsoft.Azure.Devices.Routing.Core
             this.Routes = Preconditions.CheckNotNull(routes).ToImmutableHashSet();
             this.Fallback = Preconditions.CheckNotNull(fallback);
         }
+
+        RouterConfig(IList<Route> routesList)
+            : this(routesList.SelectMany(r => r.Endpoints), routesList)
+        {
+        }
+
+        public ISet<Endpoint> Endpoints { get; }
+
+        public Option<Route> Fallback { get; }
+
+        public ISet<Route> Routes { get; }
     }
 }

@@ -9,11 +9,13 @@ namespace MessagesAnalyzer
     [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy))]
     class ModuleReport
     {
-        public ModuleReport(string moduleId, StatusCode statusCode, long receivedMessagesCount, string statusMessage) : this(moduleId, statusCode, receivedMessagesCount, statusMessage, DateTime.MinValue, new List<MissedMessagesDetails>())
+        public ModuleReport(string moduleId, StatusCode statusCode, long receivedMessagesCount, string statusMessage)
+            : this(moduleId, statusCode, receivedMessagesCount, statusMessage, DateTime.MinValue, new List<MissedMessagesDetails>())
         {
         }
 
-        public ModuleReport(string moduleId, StatusCode statusCode, long receivedMessagesCount, string statusMessage, DateTime lastMessageReceivedAt) : this(moduleId, statusCode, receivedMessagesCount, statusMessage, lastMessageReceivedAt, new List<MissedMessagesDetails>())
+        public ModuleReport(string moduleId, StatusCode statusCode, long receivedMessagesCount, string statusMessage, DateTime lastMessageReceivedAt)
+            : this(moduleId, statusCode, receivedMessagesCount, statusMessage, lastMessageReceivedAt, new List<MissedMessagesDetails>())
         {
         }
 
@@ -37,10 +39,7 @@ namespace MessagesAnalyzer
 
         public DateTime LastMessageReceivedAt { get; }
 
-        public IList<MissedMessagesDetails> MissedMessages
-        {
-            get;
-        }
+        public IList<MissedMessagesDetails> MissedMessages { get; }
 
         public override string ToString()
         {

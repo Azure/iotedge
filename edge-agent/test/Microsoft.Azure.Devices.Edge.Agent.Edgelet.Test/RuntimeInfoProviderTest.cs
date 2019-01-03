@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
     using Moq;
     using Newtonsoft.Json.Linq;
     using Xunit;
-    using EnvVar = Microsoft.Azure.Devices.Edge.Agent.Edgelet.GeneratedCode.EnvVar;
+    using SystemInfo = Microsoft.Azure.Devices.Edge.Agent.Edgelet.GeneratedCode.SystemInfo;
 
     [Unit]
     public class RuntimeInfoProviderTest
@@ -22,10 +22,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         public async Task GetSystemInfoTest()
         {
             // Arrange
-            var systemInfoSample = new GeneratedCode.SystemInfo();
+            var systemInfoSample = new SystemInfo();
             systemInfoSample.OsType = "linux";
             systemInfoSample.Architecture = "x86";
-            
+
             var moduleManager = Mock.Of<IModuleManager>(m => m.GetSystemInfoAsync() == Task.FromResult(systemInfoSample));
             IRuntimeInfoProvider runtimeInfoProvider = new RuntimeInfoProvider<TestConfig>(moduleManager);
 

@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
 {
     using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.KeyVault;
     using Microsoft.Azure.KeyVault.Models;
     using Microsoft.IdentityModel.Clients.ActiveDirectory;
@@ -26,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
             Preconditions.CheckNonWhiteSpace(clientId, nameof(clientId));
             Preconditions.CheckNotNull(clientAssertionCert, nameof(clientAssertionCert));
             this.clientId = clientId;
-            this.clientAssertionCert = clientAssertionCert;            
+            this.clientAssertionCert = clientAssertionCert;
         }
 
         public async Task<string> GetSecret(string secretUrl)
@@ -47,12 +46,19 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
             return secretBundle.Value;
         }
 
+        static IClientAssertionCertificate GetAssertionCert(string clientId, X509Certificate2 clientAssertionCert)
+        {
+            var assertionCert = new ClientAssertionCertificate(clientId, clientAssertionCert);
+            return assertionCert;
+        }
+
         KeyVaultClient GetKeyVaultClient()
         {
             if (!this.keyVaultClient.HasValue)
             {
                 this.keyVaultClient = Option.Some(new KeyVaultClient(new KeyVaultClient.AuthenticationCallback(this.GetAccessToken)));
             }
+
             return this.keyVaultClient.OrDefault();
         }
 
@@ -62,13 +68,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
             {
                 this.assertionCert = Option.Some(GetAssertionCert(this.clientId, this.clientAssertionCert));
             }
-            return this.assertionCert.OrDefault();
-        }                
 
-        static IClientAssertionCertificate GetAssertionCert(string clientId, X509Certificate2 clientAssertionCert)
-        {
-            var assertionCert = new ClientAssertionCertificate(clientId, clientAssertionCert);
-            return assertionCert;
+            return this.assertionCert.OrDefault();
         }
 
         async Task<string> GetAccessToken(string authority, string resource, string scope)

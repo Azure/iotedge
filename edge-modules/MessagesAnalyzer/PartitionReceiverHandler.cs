@@ -10,12 +10,12 @@ namespace MessagesAnalyzer
 
     class PartitionReceiveHandler : IPartitionReceiveHandler
     {
-        static readonly ILogger Log = Logger.Factory.CreateLogger<PartitionReceiveHandler>();
         const string DeviceIdPropertyName = "iothub-connection-device-id";
         const string ModuleIdPropertyName = "iothub-connection-module-id";
         const string SequenceNumberPropertyName = "sequenceNumber";
         const string EnqueuedTimePropertyName = "iothub-enqueuedtime";
         const string BatchIdPropertyName = "batchId";
+        static readonly ILogger Log = Logger.Factory.CreateLogger<PartitionReceiveHandler>();
         readonly string deviceId;
         readonly IList<string> excludedModulesIds;
 
@@ -24,6 +24,8 @@ namespace MessagesAnalyzer
             this.deviceId = deviceId;
             this.excludedModulesIds = excludedModulesIds;
         }
+
+        public int MaxBatchSize { get; set; }
 
         public Task ProcessEventsAsync(IEnumerable<EventData> events)
         {
@@ -41,7 +43,7 @@ namespace MessagesAnalyzer
                         eventData.Properties.TryGetValue(BatchIdPropertyName, out object batchId);
 
                         if (sequence != null && batchId != null)
-                        { 
+                        {
                             DateTime enqueuedtime = DateTime.MinValue.ToUniversalTime();
                             if (eventData.SystemProperties.TryGetValue(EnqueuedTimePropertyName, out object enqueued))
                             {
@@ -72,7 +74,5 @@ namespace MessagesAnalyzer
             Log.LogError(error.StackTrace);
             return Task.CompletedTask;
         }
-
-        public int MaxBatchSize { get; set; }
     }
 }

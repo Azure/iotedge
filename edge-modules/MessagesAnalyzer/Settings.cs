@@ -26,16 +26,14 @@ namespace MessagesAnalyzer
                     .AddEnvironmentVariables()
                     .Build();
 
-                
                 IList<string> excludedModules = configuration.GetSection(ExcludeModulesIdsPropertyName).Get<List<string>>() ?? new List<string>();
 
-                
-                return new Settings(configuration.GetValue<string>(EventHubConnectionStringPropertyValue),
+                return new Settings(
+                    configuration.GetValue<string>(EventHubConnectionStringPropertyValue),
                     configuration.GetValue(DeviceIdPropertyName, DefaultDeviceId),
                     excludedModules,
                     configuration.GetValue(WebhostPortPropertyName, DefaultWebhostPort),
                     configuration.GetValue(ToleranceInMillisecondsPropertyName, DefaultToleranceInMilliseconds));
-
             });
 
         Settings(string eventHubCs, string deviceId, IList<string> excludedModuleIds, string webhostPort, double tolerance)
@@ -55,7 +53,7 @@ namespace MessagesAnalyzer
 
         public string DeviceId { get; }
 
-        public string WebhostPort { get;}
+        public string WebhostPort { get; }
 
         public double ToleranceInMilliseconds { get; }
     }

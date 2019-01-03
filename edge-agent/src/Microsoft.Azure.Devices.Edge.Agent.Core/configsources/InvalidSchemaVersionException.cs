@@ -6,11 +6,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
     [Serializable]
     public class InvalidSchemaVersionException : Exception
     {
-        public InvalidSchemaVersionException(string message) : base(message)
+        public InvalidSchemaVersionException(string message)
+            : base(message)
         {
         }
 
-        public InvalidSchemaVersionException(string message, Exception inner) : base(message, inner)
+        public InvalidSchemaVersionException(string message, Exception inner)
+            : base(message, inner)
         {
         }
     }

@@ -74,8 +74,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<CloudTokenAuthenticator>();
             const int IdStart = CloudProxyEventIds.CloudTokenAuthenticator;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<CloudTokenAuthenticator>();
 
             enum EventIds
             {

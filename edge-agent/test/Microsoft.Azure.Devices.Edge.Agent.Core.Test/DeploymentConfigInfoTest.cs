@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             new TestConfig("microsoft/edgeAgent:1.0"),
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
-        
+
         static readonly IEdgeHubModule TestEdgeHub1 = new TestHubModule(
             "edgeHub",
             "docker",
@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             RestartPolicy.Always,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
-        
+
         static readonly IModule TestModule1 = new TestModule(
             "mod1",
             string.Empty,
@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             RestartPolicy.Always,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
-        
+
         static readonly IModule TestModule2 = new TestModule(
             "mod2",
             string.Empty,
@@ -108,7 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 ["mod1"] = TestModule1
             });
 
-        static readonly DeploymentConfigInfo ConfigInfo1 = new DeploymentConfigInfo(            1,            Config1);
+        static readonly DeploymentConfigInfo ConfigInfo1 = new DeploymentConfigInfo(1, Config1);
         static readonly DeploymentConfigInfo ConfigInfo1_1 = new DeploymentConfigInfo(1, Config1_1);
         static readonly DeploymentConfigInfo ConfigInfo2 = new DeploymentConfigInfo(1, Config2);
         static readonly DeploymentConfigInfo ConfigInfo3 = new DeploymentConfigInfo(2, Config1_1);

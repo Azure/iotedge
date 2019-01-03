@@ -16,7 +16,11 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             bool secondary = false;
             Try<int> result = await Fallback.ExecuteAsync(
                 () => Task.FromResult(1),
-                () => { secondary = true; return Task.FromResult(2); });
+                () =>
+                {
+                    secondary = true;
+                    return Task.FromResult(2);
+                });
             Assert.True(result.Success);
             Assert.Equal(1, result.Value);
             Assert.False(secondary);
@@ -53,9 +57,10 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         [Fact]
         public async Task FallbackThrowsIfPrimaryThrowsFatalException()
         {
-            await Assert.ThrowsAsync<OutOfMemoryException>(() => Fallback.ExecuteAsync(
-                () => throw new OutOfMemoryException(),
-                () => Task.FromResult(2)));
+            await Assert.ThrowsAsync<OutOfMemoryException>(
+                () => Fallback.ExecuteAsync(
+                    () => throw new OutOfMemoryException(),
+                    () => Task.FromResult(2)));
         }
 
         [Fact]
@@ -63,13 +68,29 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         {
             int touched = 0;
             await Fallback.ExecuteAsync(
-                () => { ++touched; return Task.CompletedTask; },
-                () => { ++touched; return Task.CompletedTask; });
+                () =>
+                {
+                    ++touched;
+                    return Task.CompletedTask;
+                },
+                () =>
+                {
+                    ++touched;
+                    return Task.CompletedTask;
+                });
             Assert.Equal(1, touched);
 
             await Fallback.ExecuteAsync(
-                () => { ++touched; throw new Exception(); },
-                () => { ++touched; return Task.CompletedTask; });
+                () =>
+                {
+                    ++touched;
+                    throw new Exception();
+                },
+                () =>
+                {
+                    ++touched;
+                    return Task.CompletedTask;
+                });
             Assert.Equal(3, touched);
 
             Try<bool> result = await Fallback.ExecuteAsync(
@@ -77,9 +98,17 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 () => throw new Exception(),
                 () => throw new Exception(),
                 () => throw new Exception(),
-                () => { ++touched; return Task.CompletedTask; },
+                () =>
+                {
+                    ++touched;
+                    return Task.CompletedTask;
+                },
                 () => throw new Exception(),
-                () => { ++touched; return Task.CompletedTask; });
+                () =>
+                {
+                    ++touched;
+                    return Task.CompletedTask;
+                });
             Assert.True(result.Success);
             Assert.True(result.Value);
             Assert.Equal(4, touched);
@@ -121,6 +150,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             Assert.True(aggregateException.InnerExceptions.Contains(exception3));
         }
 
-        class SecondaryException : Exception { }
+        class SecondaryException : Exception
+        {
+        }
     }
 }

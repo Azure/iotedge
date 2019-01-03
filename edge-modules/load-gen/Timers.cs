@@ -7,34 +7,9 @@ namespace LoadGen
 
     public class Timers : IDisposable
     {
-        private List<TimerTask> timerTasks = new List<TimerTask>();
+        readonly List<TimerTask> timerTasks = new List<TimerTask>();
 
-        #region IDisposable Support
-        private bool disposedValue = false; // To detect redundant calls
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposedValue)
-            {
-                if (disposing)
-                {
-                    foreach (TimerTask task in this.timerTasks)
-                    {
-                        task.Timer.Dispose();
-                    }
-                }
-
-                disposedValue = true;
-            }
-        }
-
-        // This code added to correctly implement the disposable pattern.
-        public void Dispose()
-        {
-            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
-            Dispose(true);
-        }
-        #endregion
+        bool disposedValue = false; // To detect redundant calls
 
         public void Add(TimeSpan interval, double jitterFactor, Action callback)
         {
@@ -57,14 +32,33 @@ namespace LoadGen
                 task.Quit = true;
             }
         }
+
+        // This code added to correctly implement the disposable pattern.
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            this.Dispose(true);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!this.disposedValue)
+            {
+                if (disposing)
+                {
+                    foreach (TimerTask task in this.timerTasks)
+                    {
+                        task.Timer.Dispose();
+                    }
+                }
+
+                this.disposedValue = true;
+            }
+        }
     }
 
     class TimerTask
     {
-        public Action Callback { get; }
-        public Timer Timer { get; }
-        public bool Quit { get; set; }
-
         public TimerTask(TimeSpan interval, double jitterFactor, Action callback)
         {
             this.Callback = callback;
@@ -84,11 +78,17 @@ namespace LoadGen
                 if (this.Quit == false)
                 {
                     this.Timer.Enabled = false;
-                    this.Timer.Interval = TimerTask.ApplyJitter(random, interval, jitterFactor).TotalMilliseconds;
+                    this.Timer.Interval = ApplyJitter(random, interval, jitterFactor).TotalMilliseconds;
                     this.Timer.Enabled = true;
                 }
             };
         }
+
+        public Action Callback { get; }
+
+        public Timer Timer { get; }
+
+        public bool Quit { get; set; }
 
         static TimeSpan ApplyJitter(Random random, TimeSpan interval, double jitterFactor)
         {

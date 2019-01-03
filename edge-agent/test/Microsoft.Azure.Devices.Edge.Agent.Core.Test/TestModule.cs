@@ -4,33 +4,41 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
-    using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
     public class TestConfig : IEquatable<TestConfig>
     {
-        [JsonProperty(Required = Required.Always, PropertyName = "image")]
-        public string Image { get; }
-
         public TestConfig(string image)
         {
             this.Image = Preconditions.CheckNotNull(image, nameof(image));
         }
 
+        [JsonProperty(Required = Required.Always, PropertyName = "image")]
+        public string Image { get; }
+
         public bool Equals(TestConfig other)
         {
             if (ReferenceEquals(null, other))
+            {
                 return false;
+            }
+
             return ReferenceEquals(this, other) || string.Equals(this.Image, other.Image);
         }
 
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(null, obj))
+            {
                 return false;
+            }
+
             if (ReferenceEquals(this, obj))
+            {
                 return true;
+            }
+
             return obj.GetType() == this.GetType() && this.Equals((TestConfig)obj);
         }
 
@@ -39,6 +47,27 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
     public class TestModuleBase<TConfig> : IModule<TConfig>
     {
+        [JsonConstructor]
+        public TestModuleBase(
+            string name,
+            string version,
+            string type,
+            ModuleStatus desiredStatus,
+            TConfig config,
+            RestartPolicy restartPolicy,
+            ConfigurationInfo configuration,
+            IDictionary<string, EnvVal> env)
+        {
+            this.Name = name;
+            this.Version = Preconditions.CheckNotNull(version, nameof(version));
+            this.Type = Preconditions.CheckNotNull(type, nameof(type));
+            this.DesiredStatus = Preconditions.CheckNotNull(desiredStatus, nameof(desiredStatus));
+            this.Config = Preconditions.CheckNotNull(config, nameof(config));
+            this.RestartPolicy = Preconditions.CheckIsDefined(restartPolicy);
+            this.ConfigurationInfo = configuration ?? new ConfigurationInfo();
+            this.Env = env?.ToImmutableDictionary() ?? ImmutableDictionary<string, EnvVal>.Empty;
+        }
+
         [JsonIgnore]
         public string Name { get; set; }
 
@@ -63,20 +92,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [JsonProperty("env")]
         public IDictionary<string, EnvVal> Env { get; }
 
-        [JsonConstructor]
-        public TestModuleBase(string name, string version, string type, ModuleStatus desiredStatus,
-            TConfig config, RestartPolicy restartPolicy, ConfigurationInfo configuration, IDictionary<string, EnvVal> env)
-        {
-            this.Name = name;
-            this.Version = Preconditions.CheckNotNull(version, nameof(version));
-            this.Type = Preconditions.CheckNotNull(type, nameof(type));
-            this.DesiredStatus = Preconditions.CheckNotNull(desiredStatus, nameof(desiredStatus));
-            this.Config = Preconditions.CheckNotNull(config, nameof(config));
-            this.RestartPolicy = Preconditions.CheckIsDefined(restartPolicy);
-            this.ConfigurationInfo = configuration ?? new ConfigurationInfo();
-            this.Env = env?.ToImmutableDictionary() ?? ImmutableDictionary<string, EnvVal>.Empty;
-        }
-
         public override bool Equals(object obj) => this.Equals(obj as TestModuleBase<TConfig>);
 
         public bool Equals(IModule other) => this.Equals(other as TestModuleBase<TConfig>);
@@ -84,15 +99,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public virtual bool Equals(IModule<TConfig> other)
         {
             if (ReferenceEquals(null, other))
+            {
                 return false;
+            }
+
             if (ReferenceEquals(this, other))
+            {
                 return true;
+            }
+
             return string.Equals(this.Name, other.Name) &&
-                string.Equals(this.Version, other.Version) &&
-                string.Equals(this.Type, other.Type) &&
-                this.DesiredStatus == other.DesiredStatus &&
-                this.Config.Equals(other.Config) &&
-                this.RestartPolicy == other.RestartPolicy;
+                   string.Equals(this.Version, other.Version) &&
+                   string.Equals(this.Type, other.Type) &&
+                   this.DesiredStatus == other.DesiredStatus &&
+                   this.Config.Equals(other.Config) &&
+                   this.RestartPolicy == other.RestartPolicy;
         }
 
         public override int GetHashCode()
@@ -102,7 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 // We are ignoring this here because, we only change the name of the module on Creation. This
                 // is needed because the name is not part of the body of Json equivalent to IModule, it is on the key of the json.
                 // ReSharper disable NonReadonlyMemberInGetHashCode
-                int hashCode = (this.Name != null ? this.Name.GetHashCode() : 0);
+                int hashCode = this.Name != null ? this.Name.GetHashCode() : 0;
                 hashCode = (hashCode * 397) ^ (this.Version != null ? this.Version.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ (this.Type != null ? this.Type.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ (int)this.DesiredStatus;
@@ -115,8 +136,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
     public class TestModule : TestModuleBase<TestConfig>
     {
-        public TestModule(string name, string version, string type, ModuleStatus desiredStatus,
-            TestConfig config, RestartPolicy restartPolicy, ConfigurationInfo configuration,
+        public TestModule(
+            string name,
+            string version,
+            string type,
+            ModuleStatus desiredStatus,
+            TestConfig config,
+            RestartPolicy restartPolicy,
+            ConfigurationInfo configuration,
             IDictionary<string, EnvVal> env)
             : base(name, version, type, desiredStatus, config, restartPolicy, configuration, env)
         {
@@ -130,6 +157,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
     public class TestAgentModule : TestModule, IEdgeAgentModule
     {
+        public TestAgentModule(string name, string type, TestConfig config, ConfigurationInfo configuration, IDictionary<string, EnvVal> env)
+            : base(name ?? Constants.EdgeAgentModuleName, string.Empty, type, ModuleStatus.Running, config, RestartPolicy.Always, configuration, env)
+        {
+            this.Version = string.Empty;
+            this.RestartPolicy = RestartPolicy.Always;
+            this.DesiredStatus = ModuleStatus.Running;
+        }
+
         [JsonIgnore]
         public override string Version { get; }
 
@@ -139,30 +174,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [JsonIgnore]
         public override ModuleStatus DesiredStatus { get; }
 
-        public TestAgentModule(string name, string type, TestConfig config, ConfigurationInfo configuration, IDictionary<string, EnvVal> env)
-            : base(name ?? Constants.EdgeAgentModuleName, string.Empty, type, ModuleStatus.Running, config, RestartPolicy.Always, configuration, env)
-        {
-            this.Version = string.Empty;
-            this.RestartPolicy = RestartPolicy.Always;
-            this.DesiredStatus = ModuleStatus.Running;
-        }
-
         public virtual IModule WithRuntimeStatus(ModuleStatus newStatus)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
     }
 
     public class TestHubModule : TestModule, IEdgeHubModule
     {
-        [JsonIgnore]
-        public override string Version { get; }
-
         public TestHubModule(string name, string type, ModuleStatus desiredStatus, TestConfig config, RestartPolicy restartPolicy, ConfigurationInfo configuration, IDictionary<string, EnvVal> env)
             : base(name ?? Constants.EdgeHubModuleName, string.Empty, type, desiredStatus, config, restartPolicy, configuration, env)
         {
             this.Version = string.Empty;
         }
-    }
 
+        [JsonIgnore]
+        public override string Version { get; }
+    }
 }

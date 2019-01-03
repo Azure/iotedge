@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var cloudProxy = Mock.Of<ICloudProxy>(c => c.IsActive && c.OpenAsync() == Task.FromResult(true));
             var connectionManager = Mock.Of<IConnectionManager>(
                 c =>
-                    c.CreateCloudConnectionAsync(It.IsAny<IClientCredentials>()) == Task.FromResult(Try.Success(cloudProxy)));            
+                    c.CreateCloudConnectionAsync(It.IsAny<IClientCredentials>()) == Task.FromResult(Try.Success(cloudProxy)));
 
             string iothubHostName = "iothub1.azure.net";
             string callerProductInfo = "productInfo";

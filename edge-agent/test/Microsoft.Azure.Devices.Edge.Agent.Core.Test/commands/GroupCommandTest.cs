@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
+namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
 {
     using System;
     using System.Collections.Generic;
@@ -14,6 +14,89 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
 
     public class GroupCommandTest
     {
+        [Fact]
+        [Unit]
+        public void CreateThrowsOnNull()
+        {
+            Assert.Throws<ArgumentNullException>(() => new GroupCommand(null));
+        }
+
+        [Theory]
+        [Unit]
+        [MemberData(nameof(CreateTestData))]
+        public async Task TestCreate(
+            Option<TestPlanRecorder> recorder,
+            List<TestRecordType> moduleExecutionList,
+            List<ICommand> commandList)
+        {
+            var g = new GroupCommand(commandList.ToArray());
+
+            var token = new CancellationToken();
+
+            await g.ExecuteAsync(token);
+
+            this.AssertCommands(recorder, commandList, moduleExecutionList);
+        }
+
+        [Theory]
+        [Unit]
+        [MemberData(nameof(CreateTestData))]
+        public async Task TestUndoAsync(
+            Option<TestPlanRecorder> recorder,
+            List<TestRecordType> moduleExecutionList,
+            List<ICommand> commandList)
+        {
+            ICommand g = new GroupCommand(commandList.ToArray());
+
+            var token = new CancellationToken();
+
+            await g.UndoAsync(token);
+
+            this.AssertUndo(recorder, commandList, moduleExecutionList);
+        }
+
+        [Theory]
+        [Unit]
+        [MemberData(nameof(CreateTestData))]
+        public void TestShow(
+            Option<TestPlanRecorder> recorder,
+            List<TestRecordType> moduleExecutionList,
+            List<ICommand> commandList)
+        {
+            ICommand g = new GroupCommand(commandList.ToArray());
+
+            string showString = g.Show();
+
+            foreach (ICommand command in commandList)
+            {
+                Assert.True(showString.Contains(command.Show()));
+            }
+        }
+
+        [Fact]
+        [Unit]
+        public async Task TestGroupCommandCancellation()
+        {
+            // Arrange
+            var cts = new CancellationTokenSource();
+            Mock<ICommand>[] commands =
+            {
+                this.MakeMockCommand("c1"),
+                this.MakeMockCommand("c2", () => cts.Cancel()),
+                this.MakeMockCommand("c3"),
+            };
+            ICommand groupCommand = new GroupCommand(
+                commands.Select(m => m.Object).ToArray());
+
+            // Act
+            await groupCommand.ExecuteAsync(cts.Token);
+
+            // Assert
+            commands[0].Verify(m => m.ExecuteAsync(cts.Token), Times.Once());
+            commands[1].Verify(m => m.ExecuteAsync(cts.Token), Times.Once());
+            commands[2].Verify(m => m.ExecuteAsync(cts.Token), Times.Never());
+        }
+
         static IEnumerable<object[]> CreateTestData()
         {
             var defaultConfigurationInfo = new ConfigurationInfo();
@@ -29,7 +112,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
                 TestCommandType.TestCreate,
                 TestCommandType.TestCreate
             };
-            var tm = new List<TestModule>{
+            var tm = new List<TestModule>
+            {
                 new TestModule("module1", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image1"), RestartPolicy.OnUnhealthy, defaultConfigurationInfo, envVars),
                 new TestModule("module2", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image2"), RestartPolicy.OnUnhealthy, defaultConfigurationInfo, envVars),
                 new TestModule("module3", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image3"), RestartPolicy.OnUnhealthy, defaultConfigurationInfo, envVars),
@@ -67,9 +151,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
                     }
                 ),
                 (
-                recordKeeper3,
-                new List<TestRecordType>(),
-                new List<ICommand>()
+                    recordKeeper3,
+                    new List<TestRecordType>(),
+                    new List<ICommand>()
                 )
             };
             {
@@ -77,23 +161,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
             }
         }
 
-        [Fact]
-        [Unit]
-        public void CreateThrowsOnNull()
-        {
-            Assert.Throws<ArgumentNullException>(() => new GroupCommand(null));
-        }
-
         // Disabling this reSharper Error. commandList is being used on Assert All.
         // ReSharper disable once ParameterOnlyUsedForPreconditionCheck.Local
         void AssertCommands(Option<TestPlanRecorder> recordKeeper, List<ICommand> commandList, List<TestRecordType> recordlist)
         {
-            Assert.All(commandList, command =>
-            {
-                var c = command as TestCommand;
-                Assert.NotNull(c);
-                Assert.True(c.CommandExecuted);
-            });
+            Assert.All(
+                commandList,
+                command =>
+                {
+                    var c = command as TestCommand;
+                    Assert.NotNull(c);
+                    Assert.True(c.CommandExecuted);
+                });
             recordKeeper.ForEach(r => Assert.Equal(recordlist, r.ExecutionList));
         }
 
@@ -101,68 +180,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
         // ReSharper disable once ParameterOnlyUsedForPreconditionCheck.Local
         void AssertUndo(Option<TestPlanRecorder> recordKeeper, List<ICommand> commandList, List<TestRecordType> recordlist)
         {
-            Assert.All(commandList, command =>
-            {
-                var c = command as TestCommand;
-                Assert.NotNull(c);
-                Assert.True(c.CommandUndone);
-            });
+            Assert.All(
+                commandList,
+                command =>
+                {
+                    var c = command as TestCommand;
+                    Assert.NotNull(c);
+                    Assert.True(c.CommandUndone);
+                });
             recordKeeper.ForEach(r => Assert.Equal(recordlist, r.UndoList));
-        }
-
-        [Theory]
-        [Unit]
-        [MemberData(nameof(CreateTestData))]
-        public async Task TestCreate(
-            Option<TestPlanRecorder> recorder,
-            List<TestRecordType> moduleExecutionList,
-            List<ICommand> commandList
-        )
-        {
-            var g = new GroupCommand(commandList.ToArray());
-
-            var token = new CancellationToken();
-
-            await g.ExecuteAsync(token);
-
-            this.AssertCommands(recorder, commandList, moduleExecutionList);
-        }
-
-        [Theory]
-        [Unit]
-        [MemberData(nameof(CreateTestData))]
-        public async Task TestUndoAsync(
-            Option<TestPlanRecorder> recorder,
-            List<TestRecordType> moduleExecutionList,
-            List<ICommand> commandList
-            )
-        {
-            ICommand g = new GroupCommand(commandList.ToArray());
-
-            var token = new CancellationToken();
-
-            await g.UndoAsync(token);
-
-            this.AssertUndo(recorder, commandList, moduleExecutionList);
-        }
-
-        [Theory]
-        [Unit]
-        [MemberData(nameof(CreateTestData))]
-        public void TestShow(
-            Option<TestPlanRecorder> recorder,
-            List<TestRecordType> moduleExecutionList,
-            List<ICommand> commandList
-        )
-        {
-            ICommand g = new GroupCommand(commandList.ToArray());
-
-            string showString = g.Show();
-
-            foreach (ICommand command in commandList)
-            {
-                Assert.True(showString.Contains(command.Show()));
-            }
         }
 
         Mock<ICommand> MakeMockCommand(string id, Action callback = null)
@@ -177,31 +203,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
             command.Setup(c => c.Show())
                 .Returns(id);
             return command;
-        }
-
-        [Fact]
-        [Unit]
-        public async Task TestGroupCommandCancellation()
-        {
-            // Arrange
-            var cts = new CancellationTokenSource();
-            Mock<ICommand>[] commands =
-            {
-                this.MakeMockCommand("c1"),
-                this.MakeMockCommand("c2", () => cts.Cancel()),
-                this.MakeMockCommand("c3"),
-            };
-            ICommand groupCommand = new GroupCommand(
-                commands.Select(m => m.Object).ToArray()
-            );
-
-            // Act
-            await groupCommand.ExecuteAsync(cts.Token);
-
-            // Assert
-            commands[0].Verify(m => m.ExecuteAsync(cts.Token), Times.Once());
-            commands[1].Verify(m => m.ExecuteAsync(cts.Token), Times.Once());
-            commands[2].Verify(m => m.ExecuteAsync(cts.Token), Times.Never());
         }
     }
 }

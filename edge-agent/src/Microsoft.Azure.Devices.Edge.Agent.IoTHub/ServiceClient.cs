@@ -43,10 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                         new Module(this.deviceId, moduleId)
                         {
                             ManagedBy = Constants.ModuleIdentityEdgeManagedByValue
-                        }
-                    )
-                )
-            );
+                        })));
         }
 
         public Task<Module[]> UpdateModules(IEnumerable<Module> modules)

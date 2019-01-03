@@ -471,7 +471,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             // Act
             await Assert.ThrowsAsync<TimeoutException>(() => authenticator.AuthenticateAsync(tokenCredentials));
 
-            // Assert            
+            // Assert
             Mock.Get(underlyingAuthenticator).VerifyAll();
             Mock.Get(underlyingAuthenticator).Verify(u => u.AuthenticateAsync(It.IsAny<IClientCredentials>()), Times.Once);
         }

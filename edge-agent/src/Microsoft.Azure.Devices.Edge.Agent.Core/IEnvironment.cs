@@ -18,5 +18,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         /// <returns>An <see cref="IRuntimeInfo"/> object that contains the runtime information.</returns>
         Task<IRuntimeInfo> GetRuntimeInfoAsync();
-    }    
+    }
 }

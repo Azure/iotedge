@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
         }
 
         public Try(Exception exception)
-        {            
+        {
             this.value = default(T);
             this.Exception = Preconditions.CheckNotNull(exception);
         }
@@ -28,6 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 {
                     ExceptionDispatchInfo.Capture(this.Exception).Throw();
                 }
+
                 return this.value;
             }
         }
@@ -36,11 +37,11 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         public bool Success => this.Exception == null;
 
-        public Option<T> Ok() => this.Success ? Option.Some(this.Value) : Option.None<T>();
-
         public static Try<T> Failure(Exception exception) => new Try<T>(exception);
 
         public static implicit operator Try<T>(T value) => new Try<T>(value);
+
+        public Option<T> Ok() => this.Success ? Option.Some(this.Value) : Option.None<T>();
     }
 
     public static class Try

@@ -12,8 +12,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
     /// </summary>
     public class NullCheckpointStore : ICheckpointStore
     {
-        public static NullCheckpointStore Instance { get; } = new NullCheckpointStore();
-
         readonly Task<CheckpointData> initialCheckpointData;
         readonly Task<IDictionary<string, CheckpointData>> initialCheckpointDataMap;
 
@@ -26,11 +24,15 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
         {
             var data = new CheckpointData(offset);
             this.initialCheckpointData = Task.FromResult(data);
-            this.initialCheckpointDataMap = Task.FromResult(new Dictionary<string, CheckpointData>()
-            {
-                { "NullCheckpoint", data }
-            } as IDictionary<string, CheckpointData>);
+            this.initialCheckpointDataMap = Task.FromResult(
+                new Dictionary<string, CheckpointData>()
+                    {
+                        { "NullCheckpoint", data }
+                    }
+                    as IDictionary<string, CheckpointData>);
         }
+
+        public static NullCheckpointStore Instance { get; } = new NullCheckpointStore();
 
         public Task<CheckpointData> GetCheckpointDataAsync(string id, CancellationToken token)
         {

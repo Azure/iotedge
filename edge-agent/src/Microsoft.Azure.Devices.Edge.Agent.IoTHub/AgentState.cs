@@ -11,9 +11,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
     public class AgentState : IEquatable<AgentState>
     {
-        static readonly DictionaryComparer<string, IModule> StringModuleDictionaryComparer = new DictionaryComparer<string, IModule>();
-
         public static AgentState Empty = new AgentState();
+        static readonly DictionaryComparer<string, IModule> StringModuleDictionaryComparer = new DictionaryComparer<string, IModule>();
 
         [JsonConstructor]
         public AgentState(
@@ -23,8 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             SystemModules systemModules = null,
             IDictionary<string, IModule> modules = null,
             string schemaVersion = "",
-            VersionInfo version = null
-        )
+            VersionInfo version = null)
         {
             this.SchemaVersion = schemaVersion ?? string.Empty;
             this.Version = version ?? VersionInfo.Empty;
@@ -57,6 +55,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         [JsonProperty(PropertyName = "modules")]
         public IImmutableDictionary<string, IModule> Modules { get; }
 
+        public static bool operator ==(AgentState state1, AgentState state2)
+        {
+            return EqualityComparer<AgentState>.Default.Equals(state1, state2);
+        }
+
+        public static bool operator !=(AgentState state1, AgentState state2)
+        {
+            return !(state1 == state2);
+        }
+
         public AgentState Clone() => new AgentState(
             this.LastDesiredVersion,
             this.LastDesiredStatus.Clone(),
@@ -64,20 +72,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             this.SystemModules.Clone(),
             this.Modules.ToImmutableDictionary(),
             this.SchemaVersion,
-            this.Version
-        );
+            this.Version);
 
         public override bool Equals(object obj) => this.Equals(obj as AgentState);
 
         public bool Equals(AgentState other) =>
-                   other != null &&
-                   this.LastDesiredVersion == other.LastDesiredVersion &&
-                   this.SchemaVersion == other.SchemaVersion &&
-                   EqualityComparer<VersionInfo>.Default.Equals(this.Version, other.Version) &&
-                   EqualityComparer<DeploymentStatus>.Default.Equals(this.LastDesiredStatus, other.LastDesiredStatus) &&
-                   EqualityComparer<IRuntimeInfo>.Default.Equals(this.RuntimeInfo, other.RuntimeInfo) &&
-                   this.SystemModules.Equals(other.SystemModules) &&
-                   StringModuleDictionaryComparer.Equals(this.Modules.ToImmutableDictionary(), other.Modules.ToImmutableDictionary());
+            other != null &&
+            this.LastDesiredVersion == other.LastDesiredVersion &&
+            this.SchemaVersion == other.SchemaVersion &&
+            EqualityComparer<VersionInfo>.Default.Equals(this.Version, other.Version) &&
+            EqualityComparer<DeploymentStatus>.Default.Equals(this.LastDesiredStatus, other.LastDesiredStatus) &&
+            EqualityComparer<IRuntimeInfo>.Default.Equals(this.RuntimeInfo, other.RuntimeInfo) &&
+            this.SystemModules.Equals(other.SystemModules) &&
+            StringModuleDictionaryComparer.Equals(this.Modules.ToImmutableDictionary(), other.Modules.ToImmutableDictionary());
 
         public override int GetHashCode()
         {
@@ -90,16 +97,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             hashCode = hashCode * -1521134295 + this.SystemModules.GetHashCode();
             hashCode = hashCode * -1521134295 + StringModuleDictionaryComparer.GetHashCode(this.Modules.ToImmutableDictionary());
             return hashCode;
-        }
-
-        public static bool operator ==(AgentState state1, AgentState state2)
-        {
-            return EqualityComparer<AgentState>.Default.Equals(state1, state2);
-        }
-
-        public static bool operator !=(AgentState state1, AgentState state2)
-        {
-            return !(state1 == state2);
         }
     }
 }

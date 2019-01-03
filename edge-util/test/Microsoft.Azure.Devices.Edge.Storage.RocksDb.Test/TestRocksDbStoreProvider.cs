@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
 {
     using System;
     using System.IO;
-    using Microsoft.Azure.Devices.Edge.Storage.RocksDb;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public class TestRocksDbStoreProvider : IDisposable
@@ -20,6 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
             {
                 Directory.Delete(this.rocksDbFolder);
             }
+
             Directory.CreateDirectory(this.rocksDbFolder);
             this.rocksDbStoreProvider = DbStoreProvider.Create(options, this.rocksDbFolder, new string[0]);
         }

@@ -9,7 +9,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
     {
         readonly Lazy<string> asString;
 
-        public ModuleIdentity(string iotHubHostName,
+        public ModuleIdentity(
+            string iotHubHostName,
             string deviceId,
             string moduleId)
             : base(iotHubHostName)
