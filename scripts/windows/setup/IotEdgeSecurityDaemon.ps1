@@ -434,7 +434,7 @@ function Test-MobyNeedsToBeMoved {
         return $(Test-Path -Path $MobyStaticInstallDirectory)
     }
     else {
-        return False
+        return $false
     }
 }
 
