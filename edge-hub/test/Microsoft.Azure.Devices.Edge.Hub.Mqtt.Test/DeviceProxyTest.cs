@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 {
     using System.Collections.Generic;

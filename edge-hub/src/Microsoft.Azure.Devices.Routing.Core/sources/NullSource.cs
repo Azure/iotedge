@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Routing.Core.Sources
 {
     using System.Threading.Tasks;
