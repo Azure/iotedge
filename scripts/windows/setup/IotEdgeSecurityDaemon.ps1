@@ -662,8 +662,8 @@ function Remove-SecurityDaemonResources {
 	# Check whether we need to clean up after an errant installation into the OS partition on IoT Core
 	if ($env:ProgramData -ne 'C:\ProgramData') {
 		Write-Verbose "Multiple ProgramData directories found"
-		$existingMobyDataRoots = $MobyDataRootDirectory, $MobyStaticDataRootDirectory | ? {test-path $_}
-		$existingMobyInstallations = $MobyInstallDirectory, $MobyStaticInstallDirectory | ? {test-path $_}
+		$existingMobyDataRoots = $MobyDataRootDirectory, $MobyStaticDataRootDirectory 
+		$existingMobyInstallations = $MobyInstallDirectory, $MobyStaticInstallDirectory 
 	}
 	else {
 		$existingMobyDataRoots = $MobyDataRootDirectory
