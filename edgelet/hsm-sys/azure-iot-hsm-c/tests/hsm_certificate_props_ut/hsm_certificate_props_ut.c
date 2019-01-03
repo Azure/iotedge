@@ -759,21 +759,21 @@ BEGIN_TEST_SUITE(hsm_certificate_props_ut)
 
         // invalid handle
         status = set_validity_seconds(NULL, test_validity_value);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 1, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 1, status, "Line:" TOSTRING(__LINE__));
         validity = get_validity_seconds(NULL);
-        ASSERT_ARE_EQUAL_WITH_MSG(uint64_t, 0, validity, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(uint64_t, 0, validity, "Line:" TOSTRING(__LINE__));
 
         // invalid input data
         status = set_validity_seconds(props_handle, 0);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         validity = get_validity_seconds(props_handle);
-        ASSERT_ARE_EQUAL_WITH_MSG(uint64_t, 0, validity, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(uint64_t, 0, validity, "Line:" TOSTRING(__LINE__));
 
         // valid input data
         status = set_validity_seconds(props_handle, test_validity_value);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         validity = get_validity_seconds(props_handle);
-        ASSERT_ARE_EQUAL_WITH_MSG(uint64_t, test_validity_value, validity, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(uint64_t, test_validity_value, validity, "Line:" TOSTRING(__LINE__));
 
         //cleanup
         cert_properties_destroy(props_handle);
@@ -796,35 +796,35 @@ BEGIN_TEST_SUITE(hsm_certificate_props_ut)
 
         // default value
         test_output_string = get_state_name(props_handle);
-        ASSERT_IS_NULL_WITH_MSG(test_output_string, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(test_output_string, "Line:" TOSTRING(__LINE__));
 
         // invalid handle
         status = set_common_name(NULL, test_input_string);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         test_output_string = get_common_name(NULL);
-        ASSERT_IS_NULL_WITH_MSG(test_output_string, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(test_output_string, "Line:" TOSTRING(__LINE__));
 
         // invalid paramters and data
         status = set_common_name(props_handle, NULL);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         status = set_common_name(props_handle, TEST_STRING_65);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         status = set_common_name(props_handle, "");
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         test_output_string = get_common_name(props_handle);
-        ASSERT_IS_NULL_WITH_MSG(test_output_string, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(test_output_string, "Line:" TOSTRING(__LINE__));
 
         // valid input data
         status = set_common_name(props_handle, test_input_string);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         test_output_string = get_common_name(props_handle);
-        ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, test_input_string, test_output_string, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, test_input_string, test_output_string, "Line:" TOSTRING(__LINE__));
 
         // invalid input for get_common_name
         status = set_common_name(props_handle, test_input_string);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         test_output_string = get_common_name(NULL);
-        ASSERT_IS_NULL_WITH_MSG(test_output_string, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(test_output_string, "Line:" TOSTRING(__LINE__));
 
         //cleanup
         cert_properties_destroy(props_handle);
@@ -847,29 +847,29 @@ BEGIN_TEST_SUITE(hsm_certificate_props_ut)
 
         // default value
         test_output_string = get_state_name(props_handle);
-        ASSERT_IS_NULL_WITH_MSG(test_output_string, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(test_output_string, "Line:" TOSTRING(__LINE__));
 
         // invalid handle
         status = set_state_name(NULL, test_input_string);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         test_output_string = get_state_name(NULL);
-        ASSERT_IS_NULL_WITH_MSG(test_output_string, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(test_output_string, "Line:" TOSTRING(__LINE__));
 
         // invalid paramters and data
         status = set_state_name(props_handle, NULL);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         status = set_state_name(props_handle, TEST_STRING_129);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         status = set_state_name(props_handle, "");
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         test_output_string = get_state_name(props_handle);
-        ASSERT_IS_NULL_WITH_MSG(test_output_string, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(test_output_string, "Line:" TOSTRING(__LINE__));
 
         // valid input data
         status = set_state_name(props_handle, test_input_string);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         test_output_string = get_state_name(props_handle);
-        ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, test_input_string, test_output_string, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, test_input_string, test_output_string, "Line:" TOSTRING(__LINE__));
 
         //cleanup
         cert_properties_destroy(props_handle);
@@ -892,29 +892,29 @@ BEGIN_TEST_SUITE(hsm_certificate_props_ut)
 
         // default value
         test_output_string = get_locality(props_handle);
-        ASSERT_IS_NULL_WITH_MSG(test_output_string, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(test_output_string, "Line:" TOSTRING(__LINE__));
 
         // invalid handle
         status = set_locality(NULL, test_input_string);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         test_output_string = get_locality(NULL);
-        ASSERT_IS_NULL_WITH_MSG(test_output_string, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(test_output_string, "Line:" TOSTRING(__LINE__));
 
         // invalid paramters and data
         status = set_locality(props_handle, NULL);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         status = set_locality(props_handle, TEST_STRING_129);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         status = set_locality(props_handle, "");
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         test_output_string = get_locality(props_handle);
-        ASSERT_IS_NULL_WITH_MSG(test_output_string, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(test_output_string, "Line:" TOSTRING(__LINE__));
 
         // valid input data
         status = set_locality(props_handle, test_input_string);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         test_output_string = get_locality(props_handle);
-        ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, test_input_string, test_output_string, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, test_input_string, test_output_string, "Line:" TOSTRING(__LINE__));
 
         //cleanup
         cert_properties_destroy(props_handle);
@@ -937,29 +937,29 @@ BEGIN_TEST_SUITE(hsm_certificate_props_ut)
 
         // default value
         test_output_string = get_organization_name(props_handle);
-        ASSERT_IS_NULL_WITH_MSG(test_output_string, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(test_output_string, "Line:" TOSTRING(__LINE__));
 
         // invalid handle
         status = set_organization_name(NULL, test_input_string);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         test_output_string = get_organization_name(NULL);
-        ASSERT_IS_NULL_WITH_MSG(test_output_string, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(test_output_string, "Line:" TOSTRING(__LINE__));
 
         // invalid paramters and data
         status = set_organization_name(props_handle, NULL);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         status = set_organization_name(props_handle, TEST_STRING_65);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         status = set_organization_name(props_handle, "");
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         test_output_string = get_organization_name(props_handle);
-        ASSERT_IS_NULL_WITH_MSG(test_output_string, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(test_output_string, "Line:" TOSTRING(__LINE__));
 
         // valid input data
         status = set_organization_name(props_handle, test_input_string);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         test_output_string = get_organization_name(props_handle);
-        ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, test_input_string, test_output_string, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, test_input_string, test_output_string, "Line:" TOSTRING(__LINE__));
 
         //cleanup
         cert_properties_destroy(props_handle);
@@ -982,29 +982,29 @@ BEGIN_TEST_SUITE(hsm_certificate_props_ut)
 
         // default value
         test_output_string = get_organization_unit(props_handle);
-        ASSERT_IS_NULL_WITH_MSG(test_output_string, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(test_output_string, "Line:" TOSTRING(__LINE__));
 
         // invalid handle
         status = set_organization_unit(NULL, test_input_string);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         test_output_string = get_organization_unit(NULL);
-        ASSERT_IS_NULL_WITH_MSG(test_output_string, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(test_output_string, "Line:" TOSTRING(__LINE__));
 
         // invalid paramters and data
         status = set_organization_unit(props_handle, NULL);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         status = set_organization_unit(props_handle, TEST_STRING_65);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         status = set_organization_unit(props_handle, "");
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         test_output_string = get_organization_unit(props_handle);
-        ASSERT_IS_NULL_WITH_MSG(test_output_string, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(test_output_string, "Line:" TOSTRING(__LINE__));
 
         // valid input data
         status = set_organization_unit(props_handle, test_input_string);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         test_output_string = get_organization_unit(props_handle);
-        ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, test_input_string, test_output_string, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, test_input_string, test_output_string, "Line:" TOSTRING(__LINE__));
 
         //cleanup
         cert_properties_destroy(props_handle);
@@ -1024,12 +1024,12 @@ BEGIN_TEST_SUITE(hsm_certificate_props_ut)
 
         // act 1, assert
         test_output = get_san_entries(NULL, &num_entries);
-        ASSERT_IS_NULL_WITH_MSG(test_output, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, num_entries, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(test_output, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, 0, num_entries, "Line:" TOSTRING(__LINE__));
 
         // act 2, assert
         test_output = get_san_entries(props_handle, NULL);
-        ASSERT_IS_NULL_WITH_MSG(test_output, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(test_output, "Line:" TOSTRING(__LINE__));
 
         //cleanup
         cert_properties_destroy(props_handle);
@@ -1051,8 +1051,8 @@ BEGIN_TEST_SUITE(hsm_certificate_props_ut)
         test_output = get_san_entries(props_handle, &num_entries);
 
         // assert
-        ASSERT_IS_NULL_WITH_MSG(test_output, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, num_entries, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(test_output, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, 0, num_entries, "Line:" TOSTRING(__LINE__));
 
         //cleanup
         cert_properties_destroy(props_handle);
@@ -1082,11 +1082,11 @@ BEGIN_TEST_SUITE(hsm_certificate_props_ut)
 
         // act 1, assert
         status = set_san_entries(props_handle, san_list_1, san_list_size_1);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         num_entries = 10;
         test_output = get_san_entries(props_handle, &num_entries);
-        ASSERT_IS_NOT_NULL_WITH_MSG(test_output, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, san_list_size_1, num_entries, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(test_output, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, san_list_size_1, num_entries, "Line:" TOSTRING(__LINE__));
         num_matched = 0;
         for (size_t i = 0; i < san_list_size_1; i++)
         {
@@ -1099,15 +1099,15 @@ BEGIN_TEST_SUITE(hsm_certificate_props_ut)
                 }
             }
         }
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, san_list_size_1, num_matched, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, san_list_size_1, num_matched, "Line:" TOSTRING(__LINE__));
 
         // act 2, assert
         status = set_san_entries(props_handle, san_list_2, san_list_size_2);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         num_entries = 10;
         test_output = get_san_entries(props_handle, &num_entries);
-        ASSERT_IS_NOT_NULL_WITH_MSG(test_output, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, san_list_size_2, num_entries, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(test_output, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, san_list_size_2, num_entries, "Line:" TOSTRING(__LINE__));
         num_matched = 0;
         for (size_t i = 0; i < san_list_size_2; i++)
         {
@@ -1120,7 +1120,7 @@ BEGIN_TEST_SUITE(hsm_certificate_props_ut)
                 }
             }
         }
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, san_list_size_2, num_matched, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, san_list_size_2, num_matched, "Line:" TOSTRING(__LINE__));
 
         //cleanup
         cert_properties_destroy(props_handle);
@@ -1164,10 +1164,10 @@ BEGIN_TEST_SUITE(hsm_certificate_props_ut)
             int status = set_san_entries(props_handle, san_list, num_san_entries);
 
             // assert
-            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             test_output = get_san_entries(props_handle, &num_entries);
-            ASSERT_IS_NULL_WITH_MSG(test_output, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, num_entries, "Line:" TOSTRING(__LINE__));
+            ASSERT_IS_NULL(test_output, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(size_t, 0, num_entries, "Line:" TOSTRING(__LINE__));
         }
 
         //cleanup
