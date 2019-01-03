@@ -47,8 +47,8 @@ extern const char* const ENV_TPM_SELECT;
 static void test_helper_setup_homedir(void)
 {
     TEST_IOTEDGE_HOMEDIR = hsm_test_util_create_temp_dir(&TEST_IOTEDGE_HOMEDIR_GUID);
-    ASSERT_IS_NOT_NULL_WITH_MSG(TEST_IOTEDGE_HOMEDIR_GUID, "Line:" TOSTRING(__LINE__));
-    ASSERT_IS_NOT_NULL_WITH_MSG(TEST_IOTEDGE_HOMEDIR, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(TEST_IOTEDGE_HOMEDIR_GUID, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(TEST_IOTEDGE_HOMEDIR, "Line:" TOSTRING(__LINE__));
 
     printf("Temp dir created: [%s]\r\n", TEST_IOTEDGE_HOMEDIR);
     hsm_test_util_setenv("IOTEDGE_HOMEDIR", TEST_IOTEDGE_HOMEDIR);
@@ -70,7 +70,7 @@ static void test_helper_teardown_homedir(void)
 const HSM_CLIENT_TPM_INTERFACE * init_get_if_deinit(void)
 {
     int status;
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
     const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_interface();
     hsm_client_tpm_deinit();
     return interface;
@@ -122,15 +122,15 @@ BEGIN_TEST_SUITE(edge_hsm_sas_auth_int_tests)
                                                "false", "FALSE", "False" };
         int array_size = sizeof(user_says_no)/sizeof(user_says_no[0]);
         int status = hsm_test_util_unsetenv(ENV_TPM_SELECT);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         const HSM_CLIENT_TPM_INTERFACE * no_tpm =  init_get_if_deinit();
         // act
         // assert
         for(int no = 0; no < array_size; no++)
         {
             int status = hsm_test_util_setenv(ENV_TPM_SELECT, user_says_no[no]);
-            ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL_WITH_MSG(const HSM_CLIENT_TPM_INTERFACE *,
+            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(const HSM_CLIENT_TPM_INTERFACE *,
                                       no_tpm, init_get_if_deinit(),
                                       "Line:" TOSTRING(__LINE__));
         }
@@ -147,15 +147,15 @@ BEGIN_TEST_SUITE(edge_hsm_sas_auth_int_tests)
                                                 "plugh" };
         int array_size = sizeof(user_says_yes)/sizeof(user_says_yes[0]);
         int status = hsm_test_util_unsetenv(ENV_TPM_SELECT);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         const HSM_CLIENT_TPM_INTERFACE * no_tpm =  init_get_if_deinit();
         // act
         // assert
         for(int yes = 0; yes < array_size; yes++)
         {
             int status = hsm_test_util_setenv(ENV_TPM_SELECT, user_says_yes[yes]);
-            ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_NOT_EQUAL_WITH_MSG(const HSM_CLIENT_TPM_INTERFACE *,
+            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(const HSM_CLIENT_TPM_INTERFACE *,
                                           no_tpm, init_get_if_deinit(),
                                           "Line:" TOSTRING(__LINE__));
         }

@@ -76,7 +76,7 @@ static TPM_HANDLE my_TSS_CreatePersistentKey(TSS_DEVICE* tpm_device, TPM_HANDLE 
     (void)sess;
     (void)hierarchy;
     (void)inPub;
-    
+
     (*outPub).publicArea.unique.rsa.t.size = g_rsa_size;
     return (TPM_HANDLE)0x1;
 }
@@ -102,7 +102,7 @@ static int my_mallocAndStrcpy_s(char** destination, const char* source)
     return 0;
 }
 
-static int my_perform_sign_with_key( const unsigned char* key, size_t key_len, 
+static int my_perform_sign_with_key( const unsigned char* key, size_t key_len,
                                      const unsigned char* data_to_be_signed, size_t data_to_be_signed_size,
                                      unsigned char** digest, size_t* digest_size)
 {
@@ -223,7 +223,7 @@ BEGIN_TEST_SUITE(hsm_client_tpm_ut)
 
         REGISTER_GLOBAL_MOCK_HOOK(Base64_Encode_Bytes, my_Base64_Encode_Bytes);
         REGISTER_GLOBAL_MOCK_FAIL_RETURN(Base64_Encode_Bytes, NULL);
-        
+
         REGISTER_GLOBAL_MOCK_HOOK(gballoc_malloc, my_gballoc_malloc);
         REGISTER_GLOBAL_MOCK_FAIL_RETURN(gballoc_malloc, NULL);
         REGISTER_GLOBAL_MOCK_HOOK(gballoc_free, my_gballoc_free);
@@ -402,7 +402,7 @@ BEGIN_TEST_SUITE(hsm_client_tpm_ut)
             HSM_CLIENT_HANDLE sec_handle = tpm_if->hsm_client_tpm_create();
 
             //assert
-            ASSERT_IS_NULL_WITH_MSG(sec_handle, tmp_msg);
+            ASSERT_IS_NULL(sec_handle, tmp_msg);
         }
 
         //cleanup
@@ -511,7 +511,7 @@ BEGIN_TEST_SUITE(hsm_client_tpm_ut)
             int import_res = tpm_if->hsm_client_activate_identity_key(sec_handle, TEST_IMPORT_KEY, TEST_KEY_SIZE);
 
             //assert
-            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, import_res, tmp_msg);
+            ASSERT_ARE_NOT_EQUAL(int, 0, import_res, tmp_msg);
         }
         //cleanup
         tpm_if->hsm_client_tpm_destroy(sec_handle);
@@ -607,7 +607,7 @@ BEGIN_TEST_SUITE(hsm_client_tpm_ut)
             int result = tpm_if->hsm_client_get_ek(sec_handle, &key, &key_len);
 
             //assert
-            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, result, tmp_msg);
+            ASSERT_ARE_NOT_EQUAL(int, 0, result, tmp_msg);
         }
         //cleanup
         tpm_if->hsm_client_tpm_destroy(sec_handle);
@@ -708,7 +708,7 @@ BEGIN_TEST_SUITE(hsm_client_tpm_ut)
             int result = tpm_if->hsm_client_get_srk(sec_handle, &key, &key_len);
 
             //assert
-            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, result, tmp_msg);
+            ASSERT_ARE_NOT_EQUAL(int, 0, result, tmp_msg);
         }
 
         //cleanup
@@ -870,7 +870,7 @@ BEGIN_TEST_SUITE(hsm_client_tpm_ut)
             int result = tpm_if->hsm_client_sign_with_identity(NULL, TEST_BUFFER, TEST_BUFFER_SIZE, &key, &key_len);
 
             //assert
-            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, result, tmp_msg);
+            ASSERT_ARE_NOT_EQUAL(int, 0, result, tmp_msg);
         }
 
         //cleanup
@@ -911,7 +911,7 @@ BEGIN_TEST_SUITE(hsm_client_tpm_ut)
 
         //act
         const HSM_CLIENT_TPM_INTERFACE* tpm_if = hsm_client_tpm_device_interface();
-        int result = tpm_if->hsm_client_derive_and_sign_with_identity(NULL, TEST_BUFFER, TEST_BUFFER_SIZE, 
+        int result = tpm_if->hsm_client_derive_and_sign_with_identity(NULL, TEST_BUFFER, TEST_BUFFER_SIZE,
                 IDENTITY_BUFFER, IDENTITY_BUFFER_SIZE, &key, &key_len);
 
         //assert
@@ -932,7 +932,7 @@ BEGIN_TEST_SUITE(hsm_client_tpm_ut)
         umock_c_reset_all_calls();
 
         //act
-        int result = tpm_if->hsm_client_derive_and_sign_with_identity(sec_handle, NULL, TEST_BUFFER_SIZE, 
+        int result = tpm_if->hsm_client_derive_and_sign_with_identity(sec_handle, NULL, TEST_BUFFER_SIZE,
                 IDENTITY_BUFFER, IDENTITY_BUFFER_SIZE, &key, &key_len);
 
         //assert
@@ -954,7 +954,7 @@ BEGIN_TEST_SUITE(hsm_client_tpm_ut)
         umock_c_reset_all_calls();
 
         //act
-        int result = tpm_if->hsm_client_derive_and_sign_with_identity(sec_handle, TEST_BUFFER, 0, 
+        int result = tpm_if->hsm_client_derive_and_sign_with_identity(sec_handle, TEST_BUFFER, 0,
                 IDENTITY_BUFFER, IDENTITY_BUFFER_SIZE, &key, &key_len);
 
         //assert
@@ -976,7 +976,7 @@ BEGIN_TEST_SUITE(hsm_client_tpm_ut)
         umock_c_reset_all_calls();
 
         //act
-        int result = tpm_if->hsm_client_derive_and_sign_with_identity(sec_handle, TEST_BUFFER, TEST_BUFFER_SIZE, 
+        int result = tpm_if->hsm_client_derive_and_sign_with_identity(sec_handle, TEST_BUFFER, TEST_BUFFER_SIZE,
                 NULL, IDENTITY_BUFFER_SIZE, &key, &key_len);
 
         //assert
@@ -1019,7 +1019,7 @@ BEGIN_TEST_SUITE(hsm_client_tpm_ut)
         umock_c_reset_all_calls();
 
         //act
-        int result = tpm_if->hsm_client_derive_and_sign_with_identity(sec_handle, TEST_BUFFER, TEST_BUFFER_SIZE, 
+        int result = tpm_if->hsm_client_derive_and_sign_with_identity(sec_handle, TEST_BUFFER, TEST_BUFFER_SIZE,
                 IDENTITY_BUFFER, IDENTITY_BUFFER_SIZE, NULL, &key_len);
 
         //assert
@@ -1040,7 +1040,7 @@ BEGIN_TEST_SUITE(hsm_client_tpm_ut)
         umock_c_reset_all_calls();
 
         //act
-        int result = tpm_if->hsm_client_derive_and_sign_with_identity(sec_handle, TEST_BUFFER, TEST_BUFFER_SIZE, 
+        int result = tpm_if->hsm_client_derive_and_sign_with_identity(sec_handle, TEST_BUFFER, TEST_BUFFER_SIZE,
                 IDENTITY_BUFFER, IDENTITY_BUFFER_SIZE, &key, NULL);
 
         //assert
@@ -1078,11 +1078,11 @@ BEGIN_TEST_SUITE(hsm_client_tpm_ut)
             sprintf(tmp_msg, "hsm_client_derive_and_sign_with_identity failure in test %zu/%zu", index, count);
 
             //act
-            int result = tpm_if->hsm_client_derive_and_sign_with_identity(NULL, TEST_BUFFER, TEST_BUFFER_SIZE, 
+            int result = tpm_if->hsm_client_derive_and_sign_with_identity(NULL, TEST_BUFFER, TEST_BUFFER_SIZE,
                     IDENTITY_BUFFER, IDENTITY_BUFFER_SIZE, &key, &key_len);
 
             //assert
-            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, result, tmp_msg);
+            ASSERT_ARE_NOT_EQUAL(int, 0, result, tmp_msg);
         }
 
         //cleanup
@@ -1104,7 +1104,7 @@ BEGIN_TEST_SUITE(hsm_client_tpm_ut)
         STRICT_EXPECTED_CALL(perform_sign_with_key(IGNORED_PTR_ARG, IGNORED_NUM_ARG, IGNORED_PTR_ARG, IGNORED_NUM_ARG, IGNORED_PTR_ARG, IGNORED_PTR_ARG));
 
         //act
-        int result = tpm_if->hsm_client_derive_and_sign_with_identity(sec_handle, TEST_BUFFER, TEST_BUFFER_SIZE, 
+        int result = tpm_if->hsm_client_derive_and_sign_with_identity(sec_handle, TEST_BUFFER, TEST_BUFFER_SIZE,
                 IDENTITY_BUFFER, IDENTITY_BUFFER_SIZE, &key, &key_len);
 
         //assert
@@ -1128,7 +1128,7 @@ BEGIN_TEST_SUITE(hsm_client_tpm_ut)
         ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
         // cleanup
     }
-    
+
     TEST_FUNCTION(hsm_client_tpm_free_buffer_frees_something)
     {
         // arrange
