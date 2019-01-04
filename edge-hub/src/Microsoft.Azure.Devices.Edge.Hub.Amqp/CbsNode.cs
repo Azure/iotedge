@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Amqp;
@@ -158,7 +159,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
         internal static (string deviceId, string moduleId) ParseIds(string audience)
         {
-            string audienceUri = audience.StartsWith("amqps://", StringComparison.CurrentCultureIgnoreCase) ? audience : "amqps://" + audience;
+            string decodedAudience = WebUtility.UrlDecode(audience);
+            string audienceUri = decodedAudience.StartsWith("amqps://", StringComparison.CurrentCultureIgnoreCase) ? decodedAudience : "amqps://" + decodedAudience;
 
             foreach (UriPathTemplate template in ResourceTemplates)
             {

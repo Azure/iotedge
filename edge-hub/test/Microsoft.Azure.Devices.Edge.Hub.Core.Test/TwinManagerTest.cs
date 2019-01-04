@@ -1598,5 +1598,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             Assert.Throws<InvalidOperationException>(() => TwinManager.ValidateTwinProperties(JToken.FromObject(reported6)));
         }
+
+        [Theory]
+        [MemberData(nameof(GetTwinKeyData))]
+        public void EncodeTwinKeyTest(string input, string expectedResult)
+        {
+            string result = TwinManager.EncodeTwinKey(input);
+            Assert.Equal(expectedResult, result);
+        }
+
+        static IEnumerable<object[]> GetTwinKeyData()
+        {
+            yield return new object[] { "key1", "key1" };
+
+            yield return new object[] { "123", "123" };
+
+            yield return new object[] { "a.b$c d", "a%2Eb%24c%20d" };
+
+            yield return new object[] { "a.b.c.d", "a%2Eb%2Ec%2Ed" };
+        }
     }
 }

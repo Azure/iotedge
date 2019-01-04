@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 {
     using System;
     using System.Collections.Generic;
+    using System.Net;
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -138,15 +139,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             return amqpClientConnectionsHandler.GetConnectionHandler(identity);
         }
 
-        IIdentity GetIdentity(IDictionary<string, string> boundVariables)
+        internal IIdentity GetIdentity(IDictionary<string, string> boundVariables)
         {
             if (!boundVariables.TryGetValue(Templates.DeviceIdTemplateParameterName, out string deviceId))
             {
                 throw new InvalidOperationException("Link should contain a device Id");
             }
 
+            deviceId = WebUtility.UrlDecode(deviceId);
             return boundVariables.TryGetValue(Templates.ModuleIdTemplateParameterName, out string moduleId)
-                ? this.identityProvider.Create(deviceId, moduleId)
+                ? this.identityProvider.Create(deviceId, WebUtility.UrlDecode(moduleId))
                 : this.identityProvider.Create(deviceId);
         }
     }

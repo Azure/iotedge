@@ -85,6 +85,34 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             Assert.IsType(expectedLinkHandlerType, linkHandler);
         }
 
+        [Theory]
+        [MemberData(nameof(GetIdentityFromBoundVariablesTestData))]
+        public void GetIdentityFromBoundVariablesTest(IDictionary<string, string> boundVariables, string expectedDeviceId, string expectedModuleId)
+        {
+            // Arrange
+            var messageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
+            var twinMessageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
+            var methodMessageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
+            var identityProvider = new IdentityProvider("foo.azure-device.net");
+            var linkHandlerProvider = new LinkHandlerProvider(messageConverter, twinMessageConverter, methodMessageConverter, identityProvider);
+
+            // Act
+            IIdentity identity = linkHandlerProvider.GetIdentity(boundVariables);
+
+            // Assert
+            if (string.IsNullOrEmpty(expectedModuleId))
+            {
+                Assert.IsType<DeviceIdentity>(identity);
+                Assert.Equal(expectedDeviceId, identity.Id);
+            }
+            else
+            {
+                Assert.IsType<ModuleIdentity>(identity);
+                Assert.Equal(expectedDeviceId, ((ModuleIdentity)identity).DeviceId);
+                Assert.Equal(expectedModuleId, ((ModuleIdentity)identity).ModuleId);
+            }
+        }
+
         static IEnumerable<object[]> GetLinkTypeTestData()
         {
             yield return new object[] { "amqps://foo.bar/$cbs", true, LinkType.Cbs, new Dictionary<string, string>() };
@@ -173,6 +201,41 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             yield return new object[] { "amqps://foo.bar/devices/device1/modules/module1/twin", false, typeof(TwinSendingLinkHandler) };
             yield return new object[] { "amqps://foo.bar/devices/device1/twin", true, typeof(TwinReceivingLinkHandler) };
             yield return new object[] { "amqps://foo.bar/devices/device1/modules/module1/twin", true, typeof(TwinReceivingLinkHandler) };
+        }
+
+        static IEnumerable<object[]> GetIdentityFromBoundVariablesTestData()
+        {
+            yield return new object[]
+            {
+                new Dictionary<string, string>
+                {
+                    ["deviceid"] = "d1"
+                },
+                "d1",
+                string.Empty
+            };
+
+            yield return new object[]
+            {
+                new Dictionary<string, string>
+                {
+                    ["deviceid"] = "d1",
+                    ["moduleid"] = "m1"
+                },
+                "d1",
+                "m1"
+            };
+
+            yield return new object[]
+            {
+                new Dictionary<string, string>
+                {
+                    ["deviceid"] = "d%40n.f",
+                    ["moduleid"] = "m%40n.p"
+                },
+                "d@n.f",
+                "m@n.p"
+            };
         }
     }
 }
