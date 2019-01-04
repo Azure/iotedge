@@ -604,6 +604,36 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
+        // TODO: Move to a Twin helper class (along with Twin manager update).
+        internal static string EncodeTwinKey(string key)
+        {
+            Preconditions.CheckNonWhiteSpace(key, nameof(key));
+            var sb = new StringBuilder();
+            foreach (char ch in key)
+            {
+                switch (ch)
+                {
+                    case '.':
+                        sb.Append("%2E");
+                        break;
+
+                    case '$':
+                        sb.Append("%24");
+                        break;
+
+                    case ' ':
+                        sb.Append("%20");
+                        break;
+
+                    default:
+                        sb.Append(ch);
+                        break;
+                }
+            }
+
+            return sb.ToString();
+        }
+
         static class Events
         {
             static readonly ILogger Log = Logger.Factory.CreateLogger<TwinManager>();
