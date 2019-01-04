@@ -312,7 +312,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
                 var connectedDevices = new Dictionary<string, DeviceConnectionStatus>
                 {
-                    [client.Id] = GetDeviceConnectionStatus()
+                    [TwinManager.EncodeTwinKey(client.Id)] = GetDeviceConnectionStatus()
                 };
                 var edgeHubReportedProperties = new ReportedProperties(this.versionInfo, connectedDevices);
                 var twinCollection = new TwinCollection(JsonConvert.SerializeObject(edgeHubReportedProperties));
