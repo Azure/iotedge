@@ -100,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 builder.RegisterModule(new LoggingModule(dockerLoggingDriver, dockerLoggingOptions));
                 Option<string> productInfo = versionInfo != VersionInfo.Empty ? Option.Some(versionInfo.ToString()) : Option.None<string>();
                 Option<UpstreamProtocol> upstreamProtocol = configuration.GetValue<string>(Constants.UpstreamProtocolKey).ToUpstreamProtocol();
-                Option<IWebProxy> proxy = ParseProxy(configuration.GetValue<string>("https_proxy"));
+                Option<IWebProxy> proxy = ParseProxy(configuration.GetValue<string>("https_proxy"), logger);
                 switch (mode.ToLowerInvariant())
                 {
                     case Constants.DockerMode:
@@ -220,7 +220,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             }
         }
 
-        static Option<IWebProxy> ParseProxy(string proxyUri)
+        static Option<IWebProxy> ParseProxy(string proxyUri, ILogger logger)
         {
             if (string.IsNullOrWhiteSpace(proxyUri))
             {
@@ -230,22 +230,40 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             var uri = new Uri(proxyUri);
             if (string.IsNullOrEmpty(uri.UserInfo))
             {
+                // http://proxyserver:1234
+                logger.LogInformation($"Detected proxy {uri}");
                 return Option.Some<IWebProxy>(new WebProxy(uri));
             }
             else
             {
-                string[] parts = uri.UserInfo.Split(':', StringSplitOptions.RemoveEmptyEntries);
+                string[] parts = uri.UserInfo.Split(':');
                 var credentials = new NetworkCredential
                 {
                     UserName = Uri.UnescapeDataString(parts[0])
                 };
-                if (parts.Length > 1)
+
+                if (parts.Length == 1)
                 {
+                    // http://user@proxyserver:1234
+                    logger.LogInformation($"Detected proxy {uri}");
+                }
+                else
+                {
+                    // http://user:password@proxyserver:1234
                     credentials.Password = Uri.UnescapeDataString(parts[1]);
+
+                    // log the proxy URI without the password
+                    int pos = uri.ToString().IndexOf(uri.UserInfo, StringComparison.InvariantCulture);
+                    int end = pos + uri.UserInfo.Length;
+                    int begin = end - parts[1].Length;
+                    logger.LogInformation($"Detected proxy {uri.ToString().Remove(begin, end)}");
                 }
 
-                var proxy = new WebProxy(uri);
-                proxy.Credentials = credentials;
+                var proxy = new WebProxy(uri)
+                {
+                    Credentials = credentials
+                };
+
                 return Option.Some<IWebProxy>(proxy);
             }
         }

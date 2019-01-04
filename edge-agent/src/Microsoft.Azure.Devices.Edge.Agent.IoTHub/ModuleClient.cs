@@ -136,12 +136,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             Option<string> productInfo)
         {
             ITransportSettings[] settings = { TransportMap[upstreamProtocol](proxy) };
-            Events.AttemptingConnection(settings[0].GetTransportType(), proxy);
+            Events.AttemptingConnectionWithTransport(settings[0].GetTransportType());
             Client.ModuleClient deviceClient = await connectionString.Map(cs => Task.FromResult(Client.ModuleClient.CreateFromConnectionString(cs, settings)))
                 .GetOrElse(() => Client.ModuleClient.CreateFromEnvironmentAsync(settings));
             productInfo.ForEach(p => deviceClient.ProductInfo = p);
             await OpenAsync(statusChangedHandler, deviceClient);
-            Events.Connected(settings[0].GetTransportType(), proxy);
+            Events.ConnectedWithTransport(settings[0].GetTransportType());
             return deviceClient;
         }
 
@@ -187,18 +187,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 DeviceClientSetupFailed
             }
 
-            public static void AttemptingConnection(TransportType transport, Option<IWebProxy> proxy)
+            public static void AttemptingConnectionWithTransport(TransportType transport)
             {
-                string proxyMessage = string.Empty;
-                proxy.ForEach(p => proxyMessage = $" and proxy {p.ToString()}");
-                Log.LogInformation((int)EventIds.AttemptingConnect, $"Edge agent attempting to connect to IoT Hub via {transport.ToString()}{proxyMessage}...");
+                Log.LogInformation((int)EventIds.AttemptingConnect, $"Edge agent attempting to connect to IoT Hub via {transport.ToString()}...");
             }
 
-            public static void Connected(TransportType transport, Option<IWebProxy> proxy)
+            public static void ConnectedWithTransport(TransportType transport)
             {
-                string proxyMessage = string.Empty;
-                proxy.ForEach(p => proxyMessage = $" and proxy {p.ToString()}");
-                Log.LogInformation((int)EventIds.Connected, $"Edge agent connected to IoT Hub via {transport.ToString()}{proxyMessage}.");
+                Log.LogInformation((int)EventIds.Connected, $"Edge agent connected to IoT Hub via {transport.ToString()}.");
             }
 
             public static void DeviceClientCreated()
