@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
     using DotNetty.Buffers;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -10,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using IProtocolGatewayMessage = Microsoft.Azure.Devices.ProtocolGateway.Messaging.IMessage;
 
     public class ProtocolGatewayMessageConverter : IMessageConverter<IProtocolGatewayMessage>
-    {        
+    {
         readonly MessageAddressConverter addressConvertor;
         readonly IByteBufferConverter byteBufferConverter;
 
@@ -22,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public IMessage ToMessage(IProtocolGatewayMessage sourceMessage)
         {
-            if(!this.addressConvertor.TryParseProtocolMessagePropsFromAddress(sourceMessage))
+            if (!this.addressConvertor.TryParseProtocolMessagePropsFromAddress(sourceMessage))
             {
                 throw new InvalidOperationException("Topic name could not be matched against any of the configured routes.");
             }
@@ -30,7 +31,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             byte[] payloadBytes = this.byteBufferConverter.ToByteArray(sourceMessage.Payload);
 
             // TODO - What about the other properties (like sequence number, etc)? Ignoring for now, as they are not used anyways.
-
             var systemProperties = new Dictionary<string, string>();
             var properties = new Dictionary<string, string>();
             if (sourceMessage.Properties.TryGetValue(TemplateParameters.DeviceIdTemplateParam, out string deviceIdValue))
@@ -71,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             DateTime createdTimeUtc = DateTime.UtcNow;
             if (message.SystemProperties.TryGetValue(SystemProperties.EnqueuedTime, out string createdTime))
             {
-                createdTimeUtc = DateTime.Parse(createdTime, null, System.Globalization.DateTimeStyles.RoundtripKind);
+                createdTimeUtc = DateTime.Parse(createdTime, null, DateTimeStyles.RoundtripKind);
             }
 
             if (!message.SystemProperties.TryGetValue(SystemProperties.OutboundUri, out string uriTemplateKey))
@@ -85,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 properties.Add(property);
             }
 
-            foreach(KeyValuePair<string, string> systemProperty in message.SystemProperties)
+            foreach (KeyValuePair<string, string> systemProperty in message.SystemProperties)
             {
                 if (SystemProperties.OutgoingSystemPropertiesMap.TryGetValue(systemProperty.Key, out string onWirePropertyName))
                 {

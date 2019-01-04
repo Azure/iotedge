@@ -11,10 +11,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
     /// </summary>
     class StateTransition
     {
-        public State NextState { get; }
-
-        public Func<EndpointExecutorFsm, ICommand, Task> TransitionAction { get; }
-
         public StateTransition(State nextState)
             : this(nextState, NullAction)
         {
@@ -25,6 +21,10 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             this.NextState = nextState;
             this.TransitionAction = transitionAction;
         }
+
+        public State NextState { get; }
+
+        public Func<EndpointExecutorFsm, ICommand, Task> TransitionAction { get; }
 
         public static Task NullAction(EndpointExecutorFsm machine, ICommand command) => TaskEx.Done;
     }

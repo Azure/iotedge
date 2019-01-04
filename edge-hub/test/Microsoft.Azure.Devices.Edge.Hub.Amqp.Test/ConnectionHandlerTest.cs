@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
+    using Constants = Microsoft.Azure.Devices.Edge.Hub.Amqp.Constants;
 
     [Unit]
     public class ConnectionHandlerTest
@@ -48,6 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             {
                 tasks.Add(connectionHandler.GetDeviceListener());
             }
+
             IList<IDeviceListener> deviceListeners = (await Task.WhenAll(tasks)).ToList();
 
             // Assert
@@ -57,11 +59,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             {
                 Assert.Equal(deviceListener, deviceListeners[0]);
             }
+
             Assert.NotNull(deviceProxy);
             Mock.Get(connectionProvider).Verify(c => c.GetDeviceListenerAsync(It.IsAny<IIdentity>()), Times.Once);
             Mock.Get(deviceListener).Verify(d => d.BindDeviceProxy(It.IsAny<IDeviceProxy>()), Times.Once);
         }
-        
+
         [Fact]
         public async Task RegisterC2DMessageSenderTest()
         {
@@ -73,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                 .Callback<IDeviceProxy>(d => deviceProxy = d);
 
             var connectionProvider = Mock.Of<IConnectionProvider>(c => c.GetDeviceListenerAsync(identity) == Task.FromResult(deviceListener));
-            
+
             var connectionHandler = new ClientConnectionHandler(identity, connectionProvider);
 
             IMessage receivedMessage = null;
@@ -167,7 +170,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             Assert.NotNull(receivedMessage);
             Assert.Equal(sentRequest.Data, receivedMessage.Body);
             Assert.Equal(sentRequest.CorrelationId, receivedMessage.SystemProperties[SystemProperties.CorrelationId]);
-            Assert.Equal(sentRequest.Name, receivedMessage.Properties[Amqp.Constants.MessagePropertiesMethodNameKey]);
+            Assert.Equal(sentRequest.Name, receivedMessage.Properties[Constants.MessagePropertiesMethodNameKey]);
         }
 
         [Fact]

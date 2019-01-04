@@ -78,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service
         {
             unchecked
             {
-                int hashCode = (this.Id != null ? this.Id.GetHashCode() : 0);
+                int hashCode = this.Id != null ? this.Id.GetHashCode() : 0;
                 hashCode = (hashCode * 397) ^ (this.DeviceId != null ? this.DeviceId.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ this.ModuleId.GetHashCode();
                 hashCode = (hashCode * 397) ^ (this.Capabilities != null ? this.Capabilities.GetHashCode() : 0);

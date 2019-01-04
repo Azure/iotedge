@@ -27,12 +27,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
         {
         }
 
-        protected override QualityOfService QualityOfService => QualityOfService.AtMostOnce;
-
         public override LinkType Type => LinkType.TwinSending;
 
         public override string CorrelationId =>
             AmqpConnectionUtils.GetCorrelationId(this.Link);
+
+        protected override QualityOfService QualityOfService => QualityOfService.AtMostOnce;
 
         protected override async Task OnOpenAsync(TimeSpan timeout)
         {

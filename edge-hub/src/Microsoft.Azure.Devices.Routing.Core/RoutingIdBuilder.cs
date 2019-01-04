@@ -12,16 +12,9 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
         readonly string cachedId;
 
-        public string IotHubName { get; }
-
-        public long RouterNumber { get; }
-
-        public Option<string> EndpointId { get; }
-
         public RoutingIdBuilder(string iotHubName, long routerNumber)
             : this(iotHubName, routerNumber, Option.None<string>())
         {
-
         }
 
         public RoutingIdBuilder(string iotHubName, long routerNumber, Option<string> endpointId)
@@ -39,6 +32,12 @@ namespace Microsoft.Azure.Devices.Routing.Core
                 this.cachedId = string.Join(Delimiter, this.cachedId, endpointId.OrDefault());
             }
         }
+
+        public string IotHubName { get; }
+
+        public long RouterNumber { get; }
+
+        public Option<string> EndpointId { get; }
 
         public static Option<RoutingIdBuilder> Parse(string id)
         {
@@ -63,6 +62,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
                     {
                         return Option.Some(new RoutingIdBuilder(iotHubName, routerNumber, endpointId));
                     }
+
                     break;
             }
 

@@ -7,7 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service
     using Newtonsoft.Json;
 
     public class ServiceAuthentication : IEquatable<ServiceAuthentication>
-
     {
         public ServiceAuthentication(SymmetricKeyAuthentication symmetricKeyAuthentication)
             : this(ServiceAuthenticationType.SymmetricKey, Preconditions.CheckNotNull(symmetricKeyAuthentication, nameof(symmetricKeyAuthentication)), null)

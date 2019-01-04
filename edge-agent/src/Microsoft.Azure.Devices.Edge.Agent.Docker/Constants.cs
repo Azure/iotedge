@@ -9,6 +9,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         public const int TwinValueMaxSize = 512;
 
-        public const int TwinValueMaxChunks = 100;   // The chunks sequence number is two bytes, which allows 100 chunks [0, 100)
+        public const int TwinValueMaxChunks = 100; // The chunks sequence number is two bytes, which allows 100 chunks [0, 100)
     }
 }

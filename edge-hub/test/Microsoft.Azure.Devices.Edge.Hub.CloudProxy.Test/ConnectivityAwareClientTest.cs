@@ -22,6 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             // Arrange
             int connectionStatusChangedHandlerCount = 0;
+
             void ConnectionStatusChangedHandler(ConnectionStatus status, ConnectionStatusChangeReason reason)
             {
                 Interlocked.Increment(ref connectionStatusChangedHandlerCount);
@@ -57,11 +58,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             // Arrange
             var client = new Mock<IClient>();
-            client.Setup(c => c.SendEventAsync(It.IsAny<Client.Message>())).ThrowsAsync(Activator.CreateInstance(thrownException, "msg str") as Exception);
+            client.Setup(c => c.SendEventAsync(It.IsAny<Message>())).ThrowsAsync(Activator.CreateInstance(thrownException, "msg str") as Exception);
             var deviceConnectivityManager = new Mock<IDeviceConnectivityManager>();
             deviceConnectivityManager.Setup(d => d.CallTimedOut());
             var connectivityAwareClient = new ConnectivityAwareClient(client.Object, deviceConnectivityManager.Object, Mock.Of<IIdentity>(i => i.Id == "d1"));
-            var message = new Client.Message();
+            var message = new Message();
 
             // Act / Assert
             await Assert.ThrowsAsync(expectedException, () => connectivityAwareClient.SendEventAsync(message));
@@ -101,6 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             // Arrange
             var receivedConnectionStatuses = new List<ConnectionStatus>();
             var receivedChangeReasons = new List<ConnectionStatusChangeReason>();
+
             void ConnectionStatusChangedHandler(ConnectionStatus status, ConnectionStatusChangeReason reason)
             {
                 receivedConnectionStatuses.Add(status);
@@ -109,14 +111,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             var deviceConnectivityManager = new DeviceConnectivityManager();
             var client = Mock.Of<IClient>();
-            Mock.Get(client).SetupSequence(c => c.SendEventAsync(It.IsAny<Client.Message>()))
+            Mock.Get(client).SetupSequence(c => c.SendEventAsync(It.IsAny<Message>()))
                 .Returns(Task.CompletedTask)
                 .Throws(new TimeoutException());
             var connectivityAwareClient = new ConnectivityAwareClient(client, deviceConnectivityManager, Mock.Of<IIdentity>(i => i.Id == "d1"));
             connectivityAwareClient.SetConnectionStatusChangedHandler(ConnectionStatusChangedHandler);
 
             // Act
-            await connectivityAwareClient.SendEventAsync(new Client.Message());
+            await connectivityAwareClient.SendEventAsync(new Message());
 
             // Assert
             Assert.Equal(1, receivedConnectionStatuses.Count);
@@ -124,7 +126,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.Equal(ConnectionStatusChangeReason.Connection_Ok, receivedChangeReasons[0]);
 
             // Act
-            await Assert.ThrowsAsync<TimeoutException>(async () => await connectivityAwareClient.SendEventAsync(new Client.Message()));
+            await Assert.ThrowsAsync<TimeoutException>(async () => await connectivityAwareClient.SendEventAsync(new Message()));
 
             // Assert
             Assert.Equal(1, receivedConnectionStatuses.Count);
@@ -168,6 +170,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
         class DeviceConnectivityManager : IDeviceConnectivityManager
         {
+            public event EventHandler DeviceConnected;
+
+            public event EventHandler DeviceDisconnected;
+
             public void CallSucceeded()
             {
             }
@@ -179,10 +185,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             public void InvokeDeviceConnected() => this.DeviceConnected?.Invoke(null, null);
 
             public void InvokeDeviceDisconnected() => this.DeviceDisconnected?.Invoke(null, null);
-
-            public event EventHandler DeviceConnected;
-
-            public event EventHandler DeviceDisconnected;
         }
     }
 }

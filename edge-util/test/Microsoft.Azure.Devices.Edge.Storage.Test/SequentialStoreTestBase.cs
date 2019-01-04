@@ -5,7 +5,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
@@ -13,8 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
     [Integration]
     public abstract class SequentialStoreTestBase
     {
-        protected abstract IEntityStore<byte[], TV> GetEntityStore<TV>(string entityName);
-
         [Fact]
         public async Task CreateTest()
         {
@@ -158,7 +155,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
             long startOffset = defaultHeadOffset.GetOrElse(0);
             ISequentialStore<Item> sequentialStore = await this.GetSequentialStore(entityId, defaultHeadOffset);
 
-            // Try to get the batch, should return empty batch. 
+            // Try to get the batch, should return empty batch.
             List<(long, Item)> batch = (await sequentialStore.GetBatch(startOffset, 10)).ToList();
             Assert.NotNull(batch);
             Assert.Equal(0, batch.Count);
@@ -175,7 +172,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
                 await sequentialStore.RemoveFirst((o, itm) => Task.FromResult(true));
             }
 
-            // Try to get with starting offset <= 4, should return remaining elements - 4 - 9. 
+            // Try to get with starting offset <= 4, should return remaining elements - 4 - 9.
             for (int i = 0; i <= 4; i++)
             {
                 batch = (await sequentialStore.GetBatch(i + startOffset, 10)).ToList();
@@ -184,7 +181,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
                 Assert.Equal(4 + startOffset, batch[0].Item1);
             }
 
-            // Try to get with starting offset between 5 and 9, should return a valid batch. 
+            // Try to get with starting offset between 5 and 9, should return a valid batch.
             for (int i = 5; i < 10; i++)
             {
                 batch = (await sequentialStore.GetBatch(i + startOffset, 10)).ToList();
@@ -202,10 +199,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
             }
         }
 
+        protected abstract IEntityStore<byte[], TV> GetEntityStore<TV>(string entityName);
+
         static IEnumerable<object[]> GetDefaultHeadOffset()
         {
             yield return new object[] { Option.None<long>() };
-            yield return new object[] { Option.Some((long)1500) };
+            yield return new object[] { Option.Some(1500L) };
         }
 
         async Task<ISequentialStore<Item>> GetSequentialStore(string entityName, Option<long> defaultHeadOffset)

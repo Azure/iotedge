@@ -7,7 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     using Microsoft.Azure.Devices.Edge.Util;
 
     /// <summary>
-    /// This class wraps an AmqpConnection, and provides similar functionality. 
+    /// This class wraps an AmqpConnection, and provides similar functionality.
     /// This allows unit testing the components that use it
     /// </summary>
     public class EdgeAmqpConnection : IAmqpConnection
@@ -19,9 +19,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             this.underlyingAmqpConnection = Preconditions.CheckNotNull(amqpConnection, nameof(amqpConnection));
         }
 
-        public T FindExtension<T>() => this.underlyingAmqpConnection.Extensions.Find<T>();
-
         public IPrincipal Principal => this.underlyingAmqpConnection.Principal;
+
+        public T FindExtension<T>() => this.underlyingAmqpConnection.Extensions.Find<T>();
 
         public Task Close() => this.underlyingAmqpConnection.CloseAsync(this.underlyingAmqpConnection.DefaultCloseTimeout);
     }

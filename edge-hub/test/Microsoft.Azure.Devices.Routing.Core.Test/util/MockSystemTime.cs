@@ -9,8 +9,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util
 
     public class MockSystemTime : ISystemTime
     {
-        public DateTime UtcNow { get; set; }
-
         public MockSystemTime()
             : this(DateTime.UtcNow)
         {
@@ -20,6 +18,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util
         {
             this.UtcNow = now;
         }
+
+        public DateTime UtcNow { get; set; }
 
         public void Add(TimeSpan timespan)
         {

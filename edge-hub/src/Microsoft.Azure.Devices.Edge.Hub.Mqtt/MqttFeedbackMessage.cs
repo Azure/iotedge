@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     class MqttFeedbackMessage : IFeedbackMessage
     {
         readonly IMessage message;
+
         public MqttFeedbackMessage(IMessage message, FeedbackStatus status)
         {
             this.message = message;

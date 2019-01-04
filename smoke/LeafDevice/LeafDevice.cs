@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-// ReSharper disable ArrangeThisQualifier
 namespace LeafDevice
 {
     using System;
@@ -13,8 +12,8 @@ namespace LeafDevice
             string deviceId,
             string certificateFileName,
             string edgeHostName,
-            bool useWebSockets) :
-            base(iothubConnectionString, eventhubCompatibleEndpointWithEntityPath, deviceId, certificateFileName, edgeHostName, useWebSockets)
+            bool useWebSockets)
+            : base(iothubConnectionString, eventhubCompatibleEndpointWithEntityPath, deviceId, certificateFileName, edgeHostName, useWebSockets)
         {
         }
 
@@ -24,21 +23,21 @@ namespace LeafDevice
             try
             {
                 await this.InitializeServerCerts();
-                await GetOrCreateDeviceIdentity();
-                await ConnectToEdgeAndSendData();
+                await this.GetOrCreateDeviceIdentity();
+                await this.ConnectToEdgeAndSendData();
                 await this.VerifyDataOnIoTHub();
                 await this.VerifyDirectMethod();
             }
             catch (Exception)
             {
                 Console.WriteLine("** Oops, there was a problem.");
-                KeepDeviceIdentity();
+                this.KeepDeviceIdentity();
                 throw;
             }
             finally
             {
                 // only remove the identity if we created it; if it already existed in IoT Hub then leave it alone
-                await MaybeDeleteDeviceIdentity();
+                await this.MaybeDeleteDeviceIdentity();
             }
         }
     }

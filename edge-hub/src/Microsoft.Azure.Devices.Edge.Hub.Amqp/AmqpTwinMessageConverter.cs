@@ -25,6 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             {
                 amqpMessage.MessageAnnotations.Map["status"] = status;
             }
+
             return amqpMessage;
         }
 

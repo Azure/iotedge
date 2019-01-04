@@ -15,10 +15,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
     {
         readonly ErrorDetectionStrategy detectionStrategy;
 
-        public Exception Exception { get; }
-
-        public override string Type => nameof(FailedEndpoint);
-
         public FailedEndpoint(string id)
             : this(id, new Exception())
         {
@@ -41,6 +37,10 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             this.detectionStrategy = detectionStrategy;
         }
 
+        public Exception Exception { get; }
+
+        public override string Type => nameof(FailedEndpoint);
+
         public override IProcessor CreateProcessor() => new Processor(this);
 
         public override void LogUserMetrics(long messageCount, long latencyInMs)
@@ -51,14 +51,14 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
         {
             readonly FailedEndpoint endpoint;
 
-            public Endpoint Endpoint => this.endpoint;
-
-            public ITransientErrorDetectionStrategy ErrorDetectionStrategy => this.endpoint.detectionStrategy;
-
             public Processor(FailedEndpoint endpoint)
             {
                 this.endpoint = endpoint;
             }
+
+            public Endpoint Endpoint => this.endpoint;
+
+            public ITransientErrorDetectionStrategy ErrorDetectionStrategy => this.endpoint.detectionStrategy;
 
             public Task<ISinkResult<IMessage>> ProcessAsync(IMessage message, CancellationToken token) =>
                 this.ProcessAsync(new[] { message }, token);
@@ -76,7 +76,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
     [ExcludeFromCodeCoverage]
     public class FailedEndpointTest : RoutingUnitTestBase
     {
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task SmokeTest()
         {
             var cts = new CancellationTokenSource();

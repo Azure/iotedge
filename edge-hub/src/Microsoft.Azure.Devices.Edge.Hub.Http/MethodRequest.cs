@@ -2,16 +2,16 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Http
 {
     using System;
+    using System.Text;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
-    using System.Text;
 
     public class MethodRequest
     {
         const int DeviceMethodDefaultResponseTimeoutInSeconds = 30;
         const int DeviceMethodDefaultConnectTimeoutInSeconds = 0;
         byte[] payloadBytes;
-        
+
         public MethodRequest(string methodName, JRaw payload)
             : this(methodName, payload, DeviceMethodDefaultResponseTimeoutInSeconds, DeviceMethodDefaultConnectTimeoutInSeconds)
         {
@@ -31,12 +31,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
 
         [JsonProperty("payload")]
         public JRaw Payload { get; }
-
-        [JsonProperty("responseTimeoutInSeconds")]
-        internal int ResponseTimeoutInSeconds { get; }
-
-        [JsonProperty("connectTimeoutInSeconds")]
-        internal int ConnectTimeoutInSeconds { get; }
 
         [JsonIgnore]
         public TimeSpan ResponseTimeout => TimeSpan.FromSeconds(this.ResponseTimeoutInSeconds);
@@ -58,5 +52,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
                 return this.payloadBytes;
             }
         }
+
+        [JsonProperty("responseTimeoutInSeconds")]
+        internal int ResponseTimeoutInSeconds { get; }
+
+        [JsonProperty("connectTimeoutInSeconds")]
+        internal int ConnectTimeoutInSeconds { get; }
     }
 }

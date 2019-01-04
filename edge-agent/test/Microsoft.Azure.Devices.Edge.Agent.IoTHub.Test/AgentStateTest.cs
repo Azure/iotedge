@@ -10,6 +10,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
     public class AgentStateTest
     {
+        [Theory]
+        [Unit]
+        [MemberData(nameof(GetValidJsonInputs))]
+        public void DeserializeJsonTest(object input, AgentState expected)
+        {
+            // Arrange
+            string json = JsonConvert.SerializeObject(input);
+
+            // Act
+            var state = JsonConvert.DeserializeObject<AgentState>(json);
+
+            // Assert
+            Assert.Equal(expected, state);
+        }
+
         static IEnumerable<object[]> GetValidJsonInputs()
         {
             (object input, AgentState expected)[] inputs =
@@ -27,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     lastDesiredStatus = new
                     {
                         code = 200,
-                        description = ""
+                        description = string.Empty
                     }
                 }, new AgentState(10, DeploymentStatus.Success)),
 
@@ -36,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     lastDesiredStatus = new
                     {
                         code = 200,
-                        description = ""
+                        description = string.Empty
                     }
                 }, new AgentState(0, DeploymentStatus.Success)),
 
@@ -47,27 +62,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     lastDesiredStatus = new
                     {
                         code = 200,
-                        description = ""
+                        description = string.Empty
                     }
                 }, new AgentState(10, DeploymentStatus.Success, schemaVersion: "2.0"))
             };
 
             return inputs.Select(r => new[] { r.input, r.expected });
-        }
-
-        [Theory]
-        [Unit]
-        [MemberData(nameof(GetValidJsonInputs))]
-        public void DeserializeJsonTest(object input, AgentState expected)
-        {
-            // Arrange
-            string json = JsonConvert.SerializeObject(input);
-
-            // Act
-            var state = JsonConvert.DeserializeObject<AgentState>(json);
-
-            // Assert
-            Assert.Equal(expected, state);
         }
     }
 }

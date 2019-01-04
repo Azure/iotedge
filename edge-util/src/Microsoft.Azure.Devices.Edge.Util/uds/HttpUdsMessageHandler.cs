@@ -9,9 +9,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
     using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
 
-    internal class HttpUdsMessageHandler : HttpMessageHandler
+    class HttpUdsMessageHandler : HttpMessageHandler
     {
-        private readonly Uri providerUri;
+        readonly Uri providerUri;
 
         public HttpUdsMessageHandler(Uri providerUri)
         {
@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
             return response;
         }
 
-        private async Task<Socket> GetConnectedSocketAsync()
+        async Task<Socket> GetConnectedSocketAsync()
         {
             var endpoint = new UnixDomainSocketEndPoint(this.providerUri.LocalPath);
             var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
@@ -52,8 +52,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<HttpUdsMessageHandler>();
             const int IdStart = UtilEventsIds.HttpUdsMessageHandler;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<HttpUdsMessageHandler>();
 
             enum EventIds
             {

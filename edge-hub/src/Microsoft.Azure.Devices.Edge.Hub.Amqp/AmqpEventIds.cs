@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 {
     public static class AmqpEventIds
     {
-        const int EventIdStart = 5000;
         public const int SaslPlainAuthenticator = EventIdStart;
         public const int AmqpProtocolHead = EventIdStart + 100;
         public const int CbsLinkHandler = EventIdStart + 200;
@@ -18,5 +17,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         public const int AmqpWebSocketListener = EventIdStart + 800;
         public const int ServerWebSocketTransport = EventIdStart + 900;
         public const int X509PrinciparAuthenticator = EventIdStart + 1000;
+        const int EventIdStart = 5000;
     }
 }

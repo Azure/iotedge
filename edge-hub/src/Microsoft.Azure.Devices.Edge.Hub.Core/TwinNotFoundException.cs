@@ -7,10 +7,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         public TwinNotFoundException(string message)
             : this(message, null)
-        { }
+        {
+        }
 
         public TwinNotFoundException(string message, Exception innerException)
-        : base(message, innerException)
-        { }
+            : base(message, innerException)
+        {
+        }
     }
 }

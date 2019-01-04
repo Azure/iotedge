@@ -111,10 +111,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public void ConvertsTwinMessagesToMqttMessages(Twin twin, string expectedJson)
         {
             EdgeMessage expectedMessage = new EdgeMessage.Builder(expectedJson.ToBody())
-                .SetSystemProperties(new Dictionary<string, string>()
-                {
-                    [SystemProperties.EnqueuedTime] = ""
-                })
+                .SetSystemProperties(
+                    new Dictionary<string, string>()
+                    {
+                        [SystemProperties.EnqueuedTime] = string.Empty
+                    })
                 .Build();
             IMessage actualMessage = new TwinMessageConverter().ToMessage(twin);
             Assert.Equal(expectedMessage.Body, actualMessage.Body);
@@ -139,7 +140,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             IMessage actualMessage = new TwinMessageConverter().ToMessage(new Twin());
             Assert.InRange(
                 DateTime.Parse(actualMessage.SystemProperties[SystemProperties.EnqueuedTime], null, DateTimeStyles.RoundtripKind),
-                DateTime.UtcNow.Subtract(new TimeSpan(0, 1, 0)), DateTime.UtcNow);
+                DateTime.UtcNow.Subtract(new TimeSpan(0, 1, 0)),
+                DateTime.UtcNow);
         }
     }
 }

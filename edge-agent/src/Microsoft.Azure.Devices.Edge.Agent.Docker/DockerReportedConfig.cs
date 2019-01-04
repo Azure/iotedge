@@ -8,15 +8,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
-    using CoreConstants = Core.Constants;
+    using CoreConstants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
 
     [JsonConverter(typeof(DockerReportedConfigJsonConverter))]
     public class DockerReportedConfig : DockerConfig, IEquatable<DockerReportedConfig>
     {
         public static DockerReportedConfig Unknown = new DockerReportedConfig(CoreConstants.Unknown, string.Empty, string.Empty);
-
-        [JsonProperty(PropertyName = "imageHash")]
-        public string ImageHash { get; }
 
         [JsonConstructor]
         public DockerReportedConfig(string image, string createOptions, string imageHash)
@@ -31,6 +28,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             this.ImageHash = imageHash ?? string.Empty;
         }
 
+        [JsonProperty(PropertyName = "imageHash")]
+        public string ImageHash { get; }
+
         public override bool Equals(object obj) => this.Equals(obj as DockerReportedConfig);
 
         public bool Equals(DockerReportedConfig other)
@@ -39,6 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             {
                 return false;
             }
+
             if (ReferenceEquals(this, other))
             {
                 return true;

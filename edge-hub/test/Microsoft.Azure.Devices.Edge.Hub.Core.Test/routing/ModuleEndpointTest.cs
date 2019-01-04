@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
     using Microsoft.Azure.Devices.Routing.Core;
     using Moq;
     using Xunit;
+    using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
     using IRoutingMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
 
     [Unit]
@@ -68,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         {
             Core.IMessageConverter<IRoutingMessage> routingMessageConverter = new RoutingMessageConverter();
             var deviceProxy = new Mock<IDeviceProxy>();
-            deviceProxy.Setup(d => d.SendMessageAsync(It.IsAny<Hub.Core.IMessage>(), It.IsAny<string>())).Returns(Task.CompletedTask);
+            deviceProxy.Setup(d => d.SendMessageAsync(It.IsAny<IMessage>(), It.IsAny<string>())).Returns(Task.CompletedTask);
             deviceProxy.Setup(d => d.IsActive).Returns(true);
             IReadOnlyDictionary<DeviceSubscription, bool> deviceSubscriptions = new ReadOnlyDictionary<DeviceSubscription, bool>(
                 new Dictionary<DeviceSubscription, bool>
@@ -85,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var moduleEndpoint = new ModuleEndpoint($"{moduleId}/{moduleEndpointAddress}", moduleId, moduleEndpointAddress, connectionManager.Object, routingMessageConverter);
 
             IProcessor moduleMessageProcessor = moduleEndpoint.CreateProcessor();
-            ISinkResult<IRoutingMessage> sinkResult = await moduleMessageProcessor.ProcessAsync(routingMessage ,CancellationToken.None);
+            ISinkResult<IRoutingMessage> sinkResult = await moduleMessageProcessor.ProcessAsync(routingMessage, CancellationToken.None);
             Assert.True(sinkResult.Succeeded.Contains(routingMessage));
         }
 
@@ -94,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         {
             Core.IMessageConverter<IRoutingMessage> routingMessageConverter = new RoutingMessageConverter();
             var deviceProxy = new Mock<IDeviceProxy>();
-            deviceProxy.Setup(d => d.SendMessageAsync(It.IsAny<Hub.Core.IMessage>(), It.IsAny<string>())).Returns(Task.CompletedTask);
+            deviceProxy.Setup(d => d.SendMessageAsync(It.IsAny<IMessage>(), It.IsAny<string>())).Returns(Task.CompletedTask);
             deviceProxy.Setup(d => d.IsActive).Returns(false);
             var routingMessage = Mock.Of<IRoutingMessage>();
             string moduleId = "device1/module1";
@@ -143,7 +144,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         {
             Core.IMessageConverter<IRoutingMessage> routingMessageConverter = new RoutingMessageConverter();
             var deviceProxy = new Mock<IDeviceProxy>();
-            deviceProxy.Setup(d => d.SendMessageAsync(It.IsAny<Hub.Core.IMessage>(), It.IsAny<string>())).Returns(Task.CompletedTask);
+            deviceProxy.Setup(d => d.SendMessageAsync(It.IsAny<IMessage>(), It.IsAny<string>())).Returns(Task.CompletedTask);
             deviceProxy.Setup(d => d.IsActive).Returns(true);
             var routingMessage = Mock.Of<IRoutingMessage>();
             string moduleId = "device1/module1";
@@ -169,7 +170,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         {
             Core.IMessageConverter<IRoutingMessage> routingMessageConverter = new RoutingMessageConverter();
             var deviceProxy = new Mock<IDeviceProxy>();
-            deviceProxy.Setup(d => d.SendMessageAsync(It.IsAny<Hub.Core.IMessage>(), It.IsAny<string>())).Returns(Task.CompletedTask);
+            deviceProxy.Setup(d => d.SendMessageAsync(It.IsAny<IMessage>(), It.IsAny<string>())).Returns(Task.CompletedTask);
             deviceProxy.Setup(d => d.IsActive).Returns(true);
             var routingMessage = Mock.Of<IRoutingMessage>();
             string moduleId = "device1/module1";

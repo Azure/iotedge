@@ -356,9 +356,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     {
                         throw;
                     }
+
                     await Task.Delay(TimeSpan.FromSeconds(5));
                 }
             }
+
             return (deviceClient, deviceName);
         }
 
@@ -379,10 +381,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             }
         }
 
-        async Task<(TwinCollection, TwinCollection)> TestTwinUpdate(DeviceClient deviceClient, string deviceName,
-            RegistryManager rm, Twin twinPatch)
+        async Task<(TwinCollection, TwinCollection)> TestTwinUpdate(
+            DeviceClient deviceClient,
+            string deviceName,
+            RegistryManager rm,
+            Twin twinPatch)
         {
             var receivedDesiredProperties = new TwinCollection();
+
             Task DesiredPropertiesUpdateCallback(TwinCollection desiredproperties, object usercontext)
             {
                 receivedDesiredProperties = desiredproperties;

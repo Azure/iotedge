@@ -32,5 +32,5 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             IEndpointExecutor endpointExecutor = new StoringAsyncEndpointExecutor(endpoint, checkpointer, endpointExecutorConfig, this.options, this.messageStore);
             return endpointExecutor;
         }
-    }    
+    }
 }

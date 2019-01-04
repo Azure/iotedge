@@ -39,6 +39,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
                 default:
                     throw new ArgumentOutOfRangeException(nameof(op), op, null);
             }
+
             return result;
         }
 
@@ -77,6 +78,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
                 default:
                     throw new ArgumentOutOfRangeException(nameof(op), op, null);
             }
+
             return result;
         }
 
@@ -115,6 +117,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
                 default:
                     throw new ArgumentOutOfRangeException(nameof(op), op, null);
             }
+
             return result;
         }
 
@@ -153,6 +156,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
                 default:
                     throw new ArgumentOutOfRangeException(nameof(op), op, null);
             }
+
             return result;
         }
 
@@ -178,6 +182,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
                 default:
                     throw new ArgumentOutOfRangeException(nameof(op), op, null);
             }
+
             return result;
         }
 
@@ -201,6 +206,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
                 default:
                     throw new ArgumentOutOfRangeException(nameof(op), op, null);
             }
+
             return result;
         }
 

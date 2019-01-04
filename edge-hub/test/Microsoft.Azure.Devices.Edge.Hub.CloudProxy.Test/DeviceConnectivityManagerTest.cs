@@ -1,17 +1,17 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
-    using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Edge.Hub.Core;
-    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.Azure.Devices.Shared;
-    using Moq;
     using System;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Shared;
+    using Moq;
     using Xunit;
 
     [Unit]
@@ -168,6 +168,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                         catch (TimeoutException)
                         {
                         }
+
                         if (!cts2.IsCancellationRequested)
                         {
                             await Task.Delay(TimeSpan.FromSeconds(1));
@@ -193,7 +194,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             edgeHubUnderlyingClient.Verify(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()), Times.Once);
             Assert.Equal(6, connectedCallbackCount);
             Assert.Equal(3, disconnectedCallbackCount);
-
         }
     }
 }

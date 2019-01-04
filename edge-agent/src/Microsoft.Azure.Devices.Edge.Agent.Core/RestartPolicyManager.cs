@@ -56,6 +56,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             return status;
         }
 
+        public IEnumerable<IRuntimeModule> ApplyRestartPolicy(IEnumerable<IRuntimeModule> modules) =>
+            modules.Where(module => this.ShouldRestart(module));
+
+        internal TimeSpan GetCoolOffPeriod(int restartCount) =>
+            TimeSpan.FromSeconds(Math.Min(this.coolOffTimeUnitInSeconds * Math.Pow(2, restartCount), MaxCoolOffPeriodSecs));
+
         bool ShouldRestart(IRuntimeModule module)
         {
             // we don't really know what status "Unknown" means
@@ -82,18 +88,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
             return false;
         }
-
-        internal TimeSpan GetCoolOffPeriod(int restartCount) =>
-            TimeSpan.FromSeconds(Math.Min(this.coolOffTimeUnitInSeconds * Math.Pow(2, restartCount), MaxCoolOffPeriodSecs));
-
-        public IEnumerable<IRuntimeModule> ApplyRestartPolicy(IEnumerable<IRuntimeModule> modules) =>
-            modules.Where(module => this.ShouldRestart(module));
     }
 
     static class Events
     {
-        static readonly ILogger Log = Logger.Factory.CreateLogger<RestartPolicyManager>();
         const int IdStart = AgentEventIds.RestartManager;
+        static readonly ILogger Log = Logger.Factory.CreateLogger<RestartPolicyManager>();
 
         enum EventIds
         {

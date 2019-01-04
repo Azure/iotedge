@@ -3,13 +3,14 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Checkpointers
 {
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Xunit;
 
     public class NullCheckpointStoreTest : RoutingUnitTestBase
     {
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task SmokeTest()
         {
             var store = new NullCheckpointStore(10L);
@@ -24,7 +25,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Checkpointers
             await store.CloseAsync(CancellationToken.None);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestEmptyConstructor()
         {
             var store = new NullCheckpointStore();

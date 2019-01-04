@@ -20,13 +20,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public IModuleIdentity ModuleIdentity => this.moduleIdentity;
 
         public override bool Equals(object obj) => this.Equals(obj as ModuleWithIdentity);
-        
+
         public virtual bool Equals(IModuleWithIdentity other)
         {
             if (ReferenceEquals(null, other))
+            {
                 return false;
+            }
+
             if (ReferenceEquals(this, other))
+            {
                 return true;
+            }
+
             return this.module.Equals(other.Module) && this.moduleIdentity.Equals(other.ModuleIdentity);
         }
 

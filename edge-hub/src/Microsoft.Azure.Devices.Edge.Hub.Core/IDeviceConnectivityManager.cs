@@ -5,10 +5,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
     public interface IDeviceConnectivityManager
     {
-        void CallSucceeded();
-        void CallTimedOut();
-
         event EventHandler DeviceConnected;
+
         event EventHandler DeviceDisconnected;
+
+        void CallSucceeded();
+
+        void CallTimedOut();
     }
 }

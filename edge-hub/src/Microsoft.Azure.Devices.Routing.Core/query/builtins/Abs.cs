@@ -8,7 +8,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
 
     public class Abs : Builtin
     {
-
         protected override BuiltinExecutor[] Executors => new[]
         {
             new BuiltinExecutor

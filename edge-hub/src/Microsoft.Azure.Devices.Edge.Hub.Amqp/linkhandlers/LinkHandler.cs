@@ -5,7 +5,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Amqp;
-    using Microsoft.Azure.Devices.Edge.Hub.Amqp;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -33,6 +32,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             this.connectionHandler = Preconditions.CheckNotNull(connectionHandler, nameof(connectionHandler));
         }
 
+        public IAmqpLink Link { get; }
+
+        public Uri LinkUri { get; }
+
+        public abstract LinkType Type { get; }
+
+        public virtual string CorrelationId { get; } = Guid.NewGuid().ToString();
+
         protected IIdentity Identity { get; }
 
         protected string ClientId => this.Identity.Id;
@@ -42,14 +49,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
         protected IDeviceListener DeviceListener { get; private set; }
 
         protected IDictionary<string, string> BoundVariables { get; }
-
-        public IAmqpLink Link { get; }
-
-        public Uri LinkUri { get; }
-
-        public abstract LinkType Type { get; }
-
-        public virtual string CorrelationId { get; } = Guid.NewGuid().ToString();
 
         public async Task OpenAsync(TimeSpan timeout)
         {
@@ -63,6 +62,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             await this.OnOpenAsync(timeout);
             await this.connectionHandler.RegisterLinkHandler(this);
             Events.Opened(this);
+        }
+
+        public async Task CloseAsync(TimeSpan timeout)
+        {
+            await this.Link.CloseAsync(timeout);
+            Events.Closed(this);
         }
 
         protected abstract Task OnOpenAsync(TimeSpan timeout);
@@ -95,16 +100,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             this.connectionHandler.RemoveLinkHandler(this);
         }
 
-        public async Task CloseAsync(TimeSpan timeout)
-        {
-            await this.Link.CloseAsync(timeout);
-            Events.Closed(this);
-        }
-
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<LinkHandler>();
             const int IdStart = AmqpEventIds.LinkHandler;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<LinkHandler>();
 
             enum EventIds
             {

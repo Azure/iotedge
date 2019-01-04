@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     {
         public static AmqpException GetAmqpException(Exception ex)
         {
-            // If this exception is an AmqpException with LinkRedirect or NotAllowed errors, return it. 
+            // If this exception is an AmqpException with LinkRedirect or NotAllowed errors, return it.
             if (ex is AmqpException amqpException)
             {
                 if (amqpException.Error.Condition.Equals(AmqpErrorCode.LinkRedirect) || amqpException.Error.Condition.Equals(AmqpErrorCode.NotAllowed))
@@ -47,6 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             {
                 return new EdgeAmqpException("Invalid action performed", ErrorCode.InvalidOperation);
             }
+
             return new EdgeAmqpException("Encountered server error", ErrorCode.ServerError, exception);
         }
 

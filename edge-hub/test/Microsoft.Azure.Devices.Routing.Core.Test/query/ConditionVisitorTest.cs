@@ -8,16 +8,16 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
     using System.Linq.Expressions;
     using Antlr4.Runtime;
     using Antlr4.Runtime.Tree;
-    using Microsoft.Azure.Devices.Routing.Core;
-    using Microsoft.Azure.Devices.Routing.Core.Query;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
+    using Microsoft.Azure.Devices.Routing.Core.Query;
     using Xunit;
 
     [ExcludeFromCodeCoverage]
     public class ConditionVisitorTest : RoutingUnitTestBase
     {
-        [Theory, Unit]
+        [Theory]
+        [Unit]
         [InlineData("100", 100D)]
         [InlineData("0100", 100D)]
         [InlineData("(((3)))", 3D)]
@@ -40,7 +40,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Equal(value, ((ConstantExpression)expression).Value);
         }
 
-        [Theory, Unit]
+        [Theory]
+        [Unit]
         [InlineData("3 + 4", 7)]
         [InlineData("3 + 4 * 5", 23)]
         [InlineData("3 + 4 / 4", 4)]
@@ -64,7 +65,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Equal(expected, rule());
         }
 
-        [Theory, Unit]
+        [Theory]
+        [Unit]
         [InlineData("\"unterminated = 'unterminated'", "Syntax error: unterminated string")]
         [InlineData("@32 = 32", "Syntax error: invalid symbol '@'")]
         [InlineData("32 = [32]", "Syntax error.")]
@@ -90,7 +92,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
 
             ParameterExpression parameter = Expression.Parameter(typeof(IMessage), "message");
 
-            var testRoute = new Route(Guid.NewGuid().ToString(),
+            var testRoute = new Route(
+                Guid.NewGuid().ToString(),
                 "true",
                 nameof(ConditionVisitorTest),
                 TelemetryMessageSource.Instance,

@@ -6,7 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     using Newtonsoft.Json;
     using Newtonsoft.Json.Converters;
 
-    internal class DeviceConnectionStatus
+    class DeviceConnectionStatus
     {
         public DeviceConnectionStatus(ConnectionStatus status, DateTime? lastConnectedTimeUtc, DateTime? lastDisconnectedTimeUtc)
         {
@@ -24,5 +24,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
         [JsonProperty(PropertyName = "lastDisconnectedTimeUtc", NullValueHandling = NullValueHandling.Ignore)]
         public DateTime? LastDisconnectTimeUtc { get; }
-    }      
+    }
 }

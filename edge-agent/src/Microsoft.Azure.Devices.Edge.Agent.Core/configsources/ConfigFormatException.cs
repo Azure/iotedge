@@ -6,11 +6,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
     [Serializable]
     public class ConfigFormatException : Exception
     {
-        public ConfigFormatException(string message) : base(message)
+        public ConfigFormatException(string message)
+            : base(message)
         {
         }
 
-        public ConfigFormatException(string message, Exception inner) : base(message, inner)
+        public ConfigFormatException(string message, Exception inner)
+            : base(message, inner)
         {
         }
     }

@@ -4,14 +4,15 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
     using System;
     using System.Diagnostics.CodeAnalysis;
     using System.Linq.Expressions;
-    using Microsoft.Azure.Devices.Routing.Core.Query;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.Query;
     using Xunit;
 
     [ExcludeFromCodeCoverage]
     public class NullTest : RoutingUnitTestBase
     {
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void SmokeTest()
         {
             BinaryExpression expression = Expression.LessThan(Expression.Add(Expression.Constant(3.0, typeof(double)), Expression.Constant(Null.Instance)), Expression.Constant(4.0));
@@ -19,7 +20,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.True(rule());
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestEquals()
         {
             var d1 = new Null();
@@ -33,7 +35,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Equal(Bool.Undefined, d1 == Bool.False);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestArthimetic()
         {
             var d1 = new Null();
@@ -57,7 +60,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Equal(double.NaN, d1 / d2);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestComparison()
         {
             var d1 = new Null();
@@ -96,7 +100,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Equal(Bool.True, d1 >= d2);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestExpression()
         {
             // Add

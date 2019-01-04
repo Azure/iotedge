@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
     using System.Threading.Tasks;
     using App.Metrics;
     using App.Metrics.Timer;
-    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using RocksDbSharp;
 
@@ -135,9 +134,25 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             return this.IterateBatch(iterator => iterator.SeekToFirst(), batchSize, callback, cancellationToken);
         }
 
+        public void Dispose()
+        {
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                // Don't dispose the Db here as we don't know if the caller
+                // meant to dispose just the ColumnFamilyDbStore or the DB.
+                // this.db?.Dispose();
+            }
+        }
+
         async Task IterateBatch(Action<Iterator> seeker, int batchSize, Func<byte[], byte[], Task> callback, CancellationToken cancellationToken)
         {
-            // Use tailing iterator to prevent creating a snapshot. 
+            // Use tailing iterator to prevent creating a snapshot.
             var readOptions = new ReadOptions();
             readOptions.SetTailing(true);
 
@@ -171,30 +186,14 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
                 RateUnit = TimeUnit.Seconds
             };
 
+            public static IDisposable DbPutLatency(string identity) => Util.Metrics.Latency(GetTags(identity), DbPutLatencyOptions);
+
+            public static IDisposable DbGetLatency(string identity) => Util.Metrics.Latency(GetTags(identity), DbGetLatencyOptions);
+
             static MetricTags GetTags(string id)
             {
                 return new MetricTags("EndpointId", id);
             }
-
-            public static IDisposable DbPutLatency(string identity) => Edge.Util.Metrics.Latency(GetTags(identity), DbPutLatencyOptions);
-
-            public static IDisposable DbGetLatency(string identity) => Edge.Util.Metrics.Latency(GetTags(identity), DbGetLatencyOptions);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                // Don't dispose the Db here as we don't know if the caller
-                // meant to dispose just the ColumnFamilyDbStore or the DB.
-                //this.db?.Dispose();
-            }
-        }
-
-        public void Dispose()
-        {
-            this.Dispose(true);
-            GC.SuppressFinalize(this);
         }
     }
 }

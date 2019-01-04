@@ -29,6 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             {
                 LinuxShutdownHandler.Init(cts, completed, shutdownWaitPeriod, logger);
             }
+
             return (cts, completed, handler);
         }
 
@@ -67,8 +68,6 @@ namespace Microsoft.Azure.Devices.Edge.Util
         /// </summary>
         static class WindowsShutdownHandler
         {
-            [DllImport("Kernel32")]
-            static extern bool SetConsoleCtrlHandler(HandlerRoutine handler, bool add);
             public delegate bool HandlerRoutine(CtrlTypes ctrlType);
 
             public enum CtrlTypes
@@ -86,30 +85,34 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 TimeSpan waitPeriod,
                 ILogger logger)
             {
-                var hr = new HandlerRoutine(type =>
-                {
-                    logger?.LogInformation($"Received signal of type {type}");
-                    if (type == CtrlTypes.CTRL_SHUTDOWN_EVENT)
+                var hr = new HandlerRoutine(
+                    type =>
                     {
-                        logger?.LogInformation("Initiating shutdown");
-                        cts.Cancel();
-                        logger?.LogInformation("Waiting for cleanup to finish");
-                        if (completed.Wait(waitPeriod))
+                        logger?.LogInformation($"Received signal of type {type}");
+                        if (type == CtrlTypes.CTRL_SHUTDOWN_EVENT)
                         {
-                            logger?.LogInformation("Done with cleanup. Shutting down.");
+                            logger?.LogInformation("Initiating shutdown");
+                            cts.Cancel();
+                            logger?.LogInformation("Waiting for cleanup to finish");
+                            if (completed.Wait(waitPeriod))
+                            {
+                                logger?.LogInformation("Done with cleanup. Shutting down.");
+                            }
+                            else
+                            {
+                                logger?.LogInformation("Timed out waiting for cleanup to finish. Shutting down.");
+                            }
                         }
-                        else
-                        {
-                            logger?.LogInformation("Timed out waiting for cleanup to finish. Shutting down.");
-                        }
-                    }
 
-                    return false;
-                });
+                        return false;
+                    });
                 SetConsoleCtrlHandler(hr, true);
                 logger?.LogDebug("Waiting on shutdown handler to trigger");
                 return hr;
             }
+
+            [DllImport("Kernel32")]
+            static extern bool SetConsoleCtrlHandler(HandlerRoutine handler, bool add);
         }
     }
 }

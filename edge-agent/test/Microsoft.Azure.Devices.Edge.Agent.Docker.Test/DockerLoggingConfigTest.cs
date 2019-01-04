@@ -2,9 +2,8 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 {
     using System;
-    using System.Collections.Immutable;
     using System.Collections.Generic;
-    using Microsoft.Azure.Devices.Edge.Agent.Docker;
+    using System.Collections.Immutable;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
@@ -18,8 +17,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         static readonly DockerLoggingConfig Config5 = new DockerLoggingConfig("json-file", new Dictionary<string, string> { { "k1", "v1" }, { "k2", "v2" } });
         static readonly DockerLoggingConfig Config6 = new DockerLoggingConfig("json-file", LoggingConfig1);
         static readonly DockerLoggingConfig Config7 = new DockerLoggingConfig("json-file", LoggingConfig1);
-        static readonly DockerLoggingConfig Config8 = new DockerLoggingConfig("json-file", new Dictionary<string, string> { { "k1", "v1" }});
-        static readonly DockerLoggingConfig Config9 = new DockerLoggingConfig("json-file", new Dictionary<string, string> { { "k1", "v2" }});
+        static readonly DockerLoggingConfig Config8 = new DockerLoggingConfig("json-file", new Dictionary<string, string> { { "k1", "v1" } });
+        static readonly DockerLoggingConfig Config9 = new DockerLoggingConfig("json-file", new Dictionary<string, string> { { "k1", "v2" } });
 
         [Fact]
         [Unit]
@@ -34,7 +33,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         [Unit]
         public void TestEquals()
         {
-
             Assert.False(Config1.Equals(null));
             Assert.True(Config1.Equals((object)Config1));
             Assert.False(Config1.Equals(Config3));

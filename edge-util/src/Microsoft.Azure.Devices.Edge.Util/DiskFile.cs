@@ -7,7 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
     public static class DiskFile
     {
-        static TimeSpan DefaultOperationTimeout = TimeSpan.FromSeconds(60);
+        static readonly TimeSpan DefaultOperationTimeout = TimeSpan.FromSeconds(60);
 
         public static Task<string> ReadAllAsync(string path)
             => ReadAllAsync(path, DefaultOperationTimeout);

@@ -18,5 +18,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
         public IConnectionHandler GetConnectionHandler(IIdentity identity) =>
             this.connectionHandlers.GetOrAdd(identity.Id, i => new ClientConnectionHandler(identity, this.connectionProvider));
-    }    
+    }
 }

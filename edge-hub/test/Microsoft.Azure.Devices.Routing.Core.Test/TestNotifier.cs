@@ -11,11 +11,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         Func<string, Task> changeCallback;
         Func<string, Task> deleteCallback;
 
+        public string IotHubName => "test";
+
         public Task Change(string hubName) => this.changeCallback?.Invoke(hubName) ?? TaskEx.Done;
 
         public Task Delete(string hubName) => this.deleteCallback?.Invoke(hubName) ?? TaskEx.Done;
-
-        public string IotHubName => "test";
 
         public Task SubscribeAsync(string key, Func<string, Task> onChange, Func<string, Task> onDelete, CancellationToken token)
         {

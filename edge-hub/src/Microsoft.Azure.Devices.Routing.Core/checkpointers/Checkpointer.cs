@@ -4,7 +4,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
-    using static System.FormattableString;
     using System.Globalization;
     using System.Linq;
     using System.Threading;
@@ -12,6 +11,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
     using Microsoft.Extensions.Logging;
+    using static System.FormattableString;
 
     public class Checkpointer : ICheckpointer
     {
@@ -20,6 +20,17 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
 
         readonly AtomicBoolean closed;
         readonly ICheckpointStore store;
+
+        Checkpointer(string id, ICheckpointStore store, CheckpointData checkpointData)
+        {
+            this.Id = Preconditions.CheckNotNull(id);
+            this.store = Preconditions.CheckNotNull(store);
+            this.Offset = checkpointData.Offset;
+            this.LastFailedRevivalTime = checkpointData.LastFailedRevivalTime;
+            this.UnhealthySince = checkpointData.UnhealthySince;
+            this.Proposed = checkpointData.Offset;
+            this.closed = new AtomicBoolean(false);
+        }
 
         public string Id { get; }
 
@@ -32,17 +43,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
         public long Proposed { get; private set; }
 
         public bool HasOutstanding => this.Offset < this.Proposed;
-
-        Checkpointer(string id, ICheckpointStore store, CheckpointData checkpointData)
-        {
-            this.Id = Preconditions.CheckNotNull(id);
-            this.store = Preconditions.CheckNotNull(store);
-            this.Offset = checkpointData.Offset;
-            this.LastFailedRevivalTime = checkpointData.LastFailedRevivalTime;
-            this.UnhealthySince = checkpointData.UnhealthySince;
-            this.Proposed = checkpointData.Offset;
-            this.closed = new AtomicBoolean(false);
-        }
 
         public static async Task<Checkpointer> CreateAsync(string id, ICheckpointStore store)
         {
@@ -141,8 +141,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
 
         static class Events
         {
-            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<Checkpointer>();
             const int IdStart = Routing.EventIds.Checkpointer;
+            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<Checkpointer>();
 
             enum EventIds
             {

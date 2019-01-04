@@ -12,28 +12,26 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine;
-    using Microsoft.Azure.Devices.Routing.Core.Test.Checkpointers;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
+    using Microsoft.Azure.Devices.Routing.Core.Test.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.Test.Util;
+    using Microsoft.Azure.Devices.Routing.Core.Util;
     using Moq;
     using Xunit;
 
     [ExcludeFromCodeCoverage]
     public class EndpointExecutorFsmTest : RoutingUnitTestBase
     {
-        static readonly IMessage Message1 = new Message(TelemetryMessageSource.Instance, new byte[] {1, 2, 3, 4}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, 1);
-        static readonly IMessage Message2 = new Message(TelemetryMessageSource.Instance, new byte[] {2, 3, 4, 1}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, 2);
-        static readonly IMessage Message3 = new Message(TelemetryMessageSource.Instance, new byte[] {3, 4, 1, 2}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, 3);
-        static readonly IMessage Message4 = new Message(TelemetryMessageSource.Instance, new byte[] {4, 1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, 4);
+        static readonly IMessage Message1 = new Message(TelemetryMessageSource.Instance, new byte[] { 1, 2, 3, 4 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }, 1);
+        static readonly IMessage Message2 = new Message(TelemetryMessageSource.Instance, new byte[] { 2, 3, 4, 1 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }, 2);
+        static readonly IMessage Message3 = new Message(TelemetryMessageSource.Instance, new byte[] { 3, 4, 1, 2 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }, 3);
+        static readonly IMessage Message4 = new Message(TelemetryMessageSource.Instance, new byte[] { 4, 1, 2, 3 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }, 4);
 
         static readonly RetryStrategy MaxRetryStrategy = new FixedInterval(int.MaxValue, TimeSpan.FromMilliseconds(int.MaxValue));
         static readonly EndpointExecutorConfig MaxConfig = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, MaxRetryStrategy, TimeSpan.FromMinutes(5));
 
-        static IMessage MessageWithOffset(long offset) =>
-            new Message(TelemetryMessageSource.Instance, new byte[] { 1, 2, 3 }, new Dictionary<string, string>(), offset);
-
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestCheckpoint()
         {
             // Test checkpoint
@@ -45,7 +43,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
 
             var machine1 = new EndpointExecutorFsm(endpoint1, checkpointer.Object, MaxConfig);
             await machine1.RunAsync(Commands.SendMessage(Message1, Message2));
-            checkpointer.Verify(c => c.CommitAsync(new [] { Message1, Message2 }, new IMessage[0], Option.None<DateTime>(), Option.None<DateTime>(), It.IsAny<CancellationToken>()), Times.Exactly(1));
+            checkpointer.Verify(c => c.CommitAsync(new[] { Message1, Message2 }, new IMessage[0], Option.None<DateTime>(), Option.None<DateTime>(), It.IsAny<CancellationToken>()), Times.Exactly(1));
             await machine1.CloseAsync();
 
             // Test no checkpoint
@@ -61,7 +59,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             await machine2.CloseAsync();
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestCheckpointAdmit()
         {
             var endpoint = new TestEndpoint("id1");
@@ -88,7 +87,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             }
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestCheckpointDead()
         {
             var endpoint = new FailedEndpoint("id1", new Exception());
@@ -124,7 +124,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             }
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestCheckpointException()
         {
             // Test no throw
@@ -182,7 +183,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             await machine3.CloseAsync();
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestCheckpointPartialFailureToDead()
         {
             var endpoint1 = new PartialFailureEndpoint("id1", new InvalidOperationException("test"));
@@ -206,8 +208,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             }
         }
 
-
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestCheckpointPartialFailureToSuccess()
         {
             var endpoint1 = new PartialFailureEndpoint("id1", new InvalidOperationException("test"));
@@ -229,7 +231,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             }
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestSetEndpoint()
         {
             var endpoint1 = new TestEndpoint("id1");
@@ -266,7 +269,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             }
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestFailingEndpoint()
         {
             var endpoint1 = new FailedEndpoint("id1", new Exception("endpoint failed"));
@@ -304,7 +308,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             }
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestFailingEndpointUpdate()
         {
             var endpoint1 = new FailedEndpoint("id1", new Exception("endpoint failed"));
@@ -346,7 +351,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             }
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestFailingEndpointClose()
         {
             var endpoint1 = new FailedEndpoint("id1", new Exception("endpoint failed"));
@@ -376,7 +382,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             }
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestTimeoutIsFail()
         {
             var endpoint = new StalledEndpoint("id1");
@@ -395,7 +402,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             }
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestDying()
         {
             var endpoint1 = new RevivableEndpoint("id1", new Exception("endpoint failed"));
@@ -450,7 +458,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             }
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestDie()
         {
             var endpoint1 = new FailedEndpoint("id1", new Exception("endpoint failed"));
@@ -487,7 +496,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             }
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestDieToThrow()
         {
             var endpoint1 = new FailedEndpoint("id1", new Exception("endpoint failed"));
@@ -523,7 +533,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             }
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestRetryTimer()
         {
             var endpoint1 = new FailedEndpoint("id1", new Exception("endpoint failed"));
@@ -550,7 +561,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             }
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestReviveToSuccess()
         {
             var endpoint1 = new RevivableEndpoint("id1", new Exception("endpoint failed"));
@@ -606,7 +618,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             }
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestReviveToFail()
         {
             var endpoint1 = new RevivableEndpoint("id1", new Exception("endpoint failed"));
@@ -657,7 +670,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             }
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestToDeadOnNonTransient()
         {
             var endpoint1 = new FailedEndpoint("id1", new Exception("nontransient"));
@@ -680,7 +694,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             }
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestDead()
         {
             var endpoint1 = new FailedEndpoint("id1", new Exception("endpoint failed"));
@@ -724,7 +739,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             await machine.CloseAsync();
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestDeadCheckpointException()
         {
             // Test operation canceled exception - no throw
@@ -741,7 +757,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
                 await machine1.RunAsync(Commands.SendMessage(Message1));
                 await machine1.RunAsync(Commands.Retry);
                 Assert.Equal(State.DeadIdle, machine1.Status.State);
-                checkpointer1.Verify(c => c.CommitAsync(new [] { Message1 }, It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>()), Times.Exactly(1));
+                checkpointer1.Verify(c => c.CommitAsync(new[] { Message1 }, It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>()), Times.Exactly(1));
                 await machine1.CloseAsync();
             }
 
@@ -764,7 +780,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             await machine2.CloseAsync();
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestErrorDetectionStrategy()
         {
             var detectionStrategy = new ErrorDetectionStrategy(ex => ex.GetType() != typeof(InvalidOperationException));
@@ -802,7 +819,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             }
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestDeadStatus()
         {
             var checkpointerStore = new Mock<ICheckpointStore>();
@@ -821,36 +839,36 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             using (var machine = new EndpointExecutorFsm(endpoint, checkpointer, config))
             {
                 // TODO find a way to test this without a delay
-                //await machine.RunAsync(Commands.SendMessage(Message1));
+                // await machine.RunAsync(Commands.SendMessage(Message1));
                 //// checkpoint should have dropped and moved the offset
-                //Assert.Equal(0, endpoint.N); // endpoint should not get the message as it is dead
-                //EndpointExecutorStatus status = machine.Status;
-                //Assert.Equal("endpoint1", status.Id);
-                //Assert.Equal(short.MaxValue, status.RetryAttempts);
-                //Assert.Equal(State.DeadIdle, status.State);
-                //Assert.NotEqual(DateTime.UtcNow, status.LastFailedRevivalTime.GetOrElse(DateTime.MinValue));
-                //Assert.True(DateTime.UtcNow > status.LastFailedRevivalTime.GetOrElse(DateTime.MinValue));
-                //Assert.Equal("checkpoint.id1", status.CheckpointerStatus.Id);
-                //Assert.Equal(1, status.CheckpointerStatus.Offset);
+                // Assert.Equal(0, endpoint.N); // endpoint should not get the message as it is dead
+                // EndpointExecutorStatus status = machine.Status;
+                // Assert.Equal("endpoint1", status.Id);
+                // Assert.Equal(short.MaxValue, status.RetryAttempts);
+                // Assert.Equal(State.DeadIdle, status.State);
+                // Assert.NotEqual(DateTime.UtcNow, status.LastFailedRevivalTime.GetOrElse(DateTime.MinValue));
+                // Assert.True(DateTime.UtcNow > status.LastFailedRevivalTime.GetOrElse(DateTime.MinValue));
+                // Assert.Equal("checkpoint.id1", status.CheckpointerStatus.Id);
+                // Assert.Equal(1, status.CheckpointerStatus.Offset);
 
-                //await Task.Delay(TimeSpan.FromSeconds(5));
-                //await machine.RunAsync(Commands.SendMessage(Message2));
+                // await Task.Delay(TimeSpan.FromSeconds(5));
+                // await machine.RunAsync(Commands.SendMessage(Message2));
 
                 // Check with revival now
-                //Assert.Equal(1, endpoint.N); // endpoint gets the message with revival
-                //status = machine.Status;
-                //Assert.Equal("endpoint1", status.Id);
-                //Assert.Equal(0, status.RetryAttempts);
-                //Assert.Equal(State.Idle, status.State);
-                //Assert.Equal(Checkpointer.DateTimeMinValue, status.LastFailedRevivalTime.GetOrElse(Checkpointer.DateTimeMinValue));
-                //Assert.Equal("checkpoint.id1", status.CheckpointerStatus.Id);
-                //Assert.Equal(2, status.CheckpointerStatus.Offset);
-
+                // Assert.Equal(1, endpoint.N); // endpoint gets the message with revival
+                // status = machine.Status;
+                // Assert.Equal("endpoint1", status.Id);
+                // Assert.Equal(0, status.RetryAttempts);
+                // Assert.Equal(State.Idle, status.State);
+                // Assert.Equal(Checkpointer.DateTimeMinValue, status.LastFailedRevivalTime.GetOrElse(Checkpointer.DateTimeMinValue));
+                // Assert.Equal("checkpoint.id1", status.CheckpointerStatus.Id);
+                // Assert.Equal(2, status.CheckpointerStatus.Offset);
                 await machine.CloseAsync();
             }
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestReliableDeadStatus()
         {
             var checkpointerStore = new Mock<ICheckpointStore>();
@@ -886,13 +904,14 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             }
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestInvalidMessages()
         {
             // Check that all successful and invalid messages are checkpointed
             Checkpointer checkpointer = await Checkpointer.CreateAsync("checkpointer", new NullCheckpointStore(0L));
 
-            var result = new SinkResult<IMessage>(new List<IMessage> { Message2 }, new List<IMessage>(), new List<InvalidDetails<IMessage>> { new InvalidDetails<IMessage>(Message3, FailureKind.MaxMessageSizeExceeded), new InvalidDetails<IMessage>(Message1, FailureKind.MaxMessageSizeExceeded)}, new SendFailureDetails(FailureKind.InternalError, new Exception()));
+            var result = new SinkResult<IMessage>(new List<IMessage> { Message2 }, new List<IMessage>(), new List<InvalidDetails<IMessage>> { new InvalidDetails<IMessage>(Message3, FailureKind.MaxMessageSizeExceeded), new InvalidDetails<IMessage>(Message1, FailureKind.MaxMessageSizeExceeded) }, new SendFailureDetails(FailureKind.InternalError, new Exception()));
             var processor = new Mock<IProcessor>();
             processor.Setup(p => p.ErrorDetectionStrategy).Returns(new ErrorDetectionStrategy(_ => true));
             processor.Setup(p => p.ProcessAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<CancellationToken>())).ReturnsAsync(result);
@@ -907,17 +926,20 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             Assert.Equal(3L, checkpointer.Offset);
         }
 
+        static IMessage MessageWithOffset(long offset) =>
+            new Message(TelemetryMessageSource.Instance, new byte[] { 1, 2, 3 }, new Dictionary<string, string>(), offset);
+
         class InvalidEndpoint : Endpoint
         {
             readonly Func<IProcessor> processorFactory;
-
-            public override string Type => "InvalidEndpoint";
 
             public InvalidEndpoint(string id, Func<IProcessor> processorFactory)
                 : base(id)
             {
                 this.processorFactory = processorFactory;
             }
+
+            public override string Type => "InvalidEndpoint";
 
             public override IProcessor CreateProcessor() => this.processorFactory();
 

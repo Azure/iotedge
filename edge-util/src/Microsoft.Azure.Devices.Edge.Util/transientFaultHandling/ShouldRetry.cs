@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
-using System;
-
 namespace Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling
 {
+    using System;
+
     /// <summary>
     /// Defines a callback delegate that will be invoked whenever a retry condition is encountered.
     /// </summary>
