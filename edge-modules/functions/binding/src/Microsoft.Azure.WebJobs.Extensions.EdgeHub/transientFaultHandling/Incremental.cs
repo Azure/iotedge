@@ -13,7 +13,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
         readonly TimeSpan increment;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="T:Microsoft.Azure.WebJobs.Extensions.EdgeHub.Incremental" /> class. 
+        /// Initializes a new instance of the <see cref="Incremental"/> class.
         /// </summary>
         public Incremental()
             : this(DefaultClientRetryCount, DefaultRetryInterval, DefaultRetryIncrement)
@@ -21,7 +21,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="T:Microsoft.Azure.WebJobs.Extensions.EdgeHub.Incremental" /> class with the specified name and retry settings.
+        /// Initializes a new instance of the <see cref="Incremental"/> class with the specified name and retry settings.
         /// </summary>
         /// <param name="retryCount">The number of retry attempts.</param>
         /// <param name="initialInterval">The initial interval that will apply for the first retry.</param>
@@ -32,7 +32,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="T:Microsoft.Azure.WebJobs.Extensions.EdgeHub.Incremental" /> class with the specified number of retry attempts, time interval, retry strategy, and fast start option. 
+        /// Initializes a new instance of the <see cref="Incremental"/> class with the specified number of retry attempts, time interval, retry strategy, and fast start option.
         /// </summary>
         /// <param name="retryCount">The number of retry attempts.</param>
         /// <param name="initialInterval">The initial interval that will apply for the first retry.</param>
@@ -55,7 +55,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
         /// <returns>The ShouldRetry delegate.</returns>
         public override ShouldRetry GetShouldRetry()
         {
-            return delegate(int currentRetryCount, Exception lastException, out TimeSpan retryInterval)
+            return (int currentRetryCount, Exception lastException, out TimeSpan retryInterval) =>
             {
                 if (currentRetryCount < this.retryCount)
                 {

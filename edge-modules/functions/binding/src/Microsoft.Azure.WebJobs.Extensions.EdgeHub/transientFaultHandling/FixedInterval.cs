@@ -13,7 +13,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
         readonly TimeSpan retryInterval;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="T:Microsoft.Azure.WebJobs.Extensions.EdgeHub.FixedInterval" /> class. 
+        /// Initializes a new instance of the <see cref="FixedInterval"/> class.
         /// </summary>
         public FixedInterval()
             : this(DefaultClientRetryCount)
@@ -21,7 +21,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="T:Microsoft.Azure.WebJobs.Extensions.EdgeHub.FixedInterval" /> class with the specified number of retry attempts. 
+        /// Initializes a new instance of the <see cref="FixedInterval"/> class with the specified number of retry attempts.
         /// </summary>
         /// <param name="retryCount">The number of retry attempts.</param>
         public FixedInterval(int retryCount)
@@ -30,7 +30,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="T:Microsoft.Azure.WebJobs.Extensions.EdgeHub.FixedInterval" /> class with the specified number of retry attempts, time interval, and retry strategy. 
+        /// Initializes a new instance of the <see cref="FixedInterval"/> class with the specified number of retry attempts, time interval, and retry strategy.
         /// </summary>
         /// <param name="retryCount">The number of retry attempts.</param>
         /// <param name="retryInterval">The time interval between retries.</param>
@@ -40,7 +40,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="T:Microsoft.Azure.WebJobs.Extensions.EdgeHub.FixedInterval" /> class with the specified number of retry attempts, time interval, retry strategy, and fast start option. 
+        /// Initializes a new instance of the <see cref="FixedInterval"/> class with the specified number of retry attempts, time interval, retry strategy, and fast start option.
         /// </summary>
         /// <param name="retryCount">The number of retry attempts.</param>
         /// <param name="retryInterval">The time interval between retries.</param>
@@ -62,14 +62,14 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
         {
             if (this.retryCount == 0)
             {
-                return delegate(int currentRetryCount, Exception lastException, out TimeSpan interval)
+                return (int currentRetryCount, Exception lastException, out TimeSpan interval) =>
                 {
                     interval = TimeSpan.Zero;
                     return false;
                 };
             }
 
-            return delegate(int currentRetryCount, Exception lastException, out TimeSpan interval)
+            return (int currentRetryCount, Exception lastException, out TimeSpan interval) =>
             {
                 if (currentRetryCount < this.retryCount)
                 {

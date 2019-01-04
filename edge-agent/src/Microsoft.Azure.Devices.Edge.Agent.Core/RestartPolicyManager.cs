@@ -76,7 +76,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 TimeSpan coolOffPeriod = this.GetCoolOffPeriod(module.RestartCount);
                 TimeSpan elapsedTime = DateTime.UtcNow - module.LastExitTimeUtc;
 
-                bool shouldRestart = elapsedTime > coolOffPeriod;
+                // LastExitTime can be greater thatn UtcNow if the clock is off, so check if the elapsed time is > 0
+                bool shouldRestart = elapsedTime > TimeSpan.Zero ? elapsedTime > coolOffPeriod : true;
                 if (!shouldRestart)
                 {
                     Events.ScheduledModule(module, elapsedTime, coolOffPeriod);

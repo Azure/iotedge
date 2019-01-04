@@ -63,6 +63,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             Assert.True(apply ? count == 1 : count == 0);
         }
 
+        [Unit]
+        [Fact]
+        public void TestApplyRestartPolicyWithWrongUtcTime()
+        {
+            // Arrange
+            var restartPolicy = RestartPolicy.Always;
+            var runtimeStatus = ModuleStatus.Backoff;
+            int restartCount = 5;
+            DateTime lastExitTime = DateTime.UtcNow.Add(TimeSpan.FromHours(1));
+            var manager = new RestartPolicyManager(MaxRestartCount, CoolOffTimeUnitInSeconds);
+            Mock<IRuntimeModule> module = CreateMockRuntimeModule(restartPolicy, runtimeStatus, restartCount, lastExitTime);
+
+            // Act
+            IEnumerable<IRuntimeModule> result = manager.ApplyRestartPolicy(new[] { module.Object });
+
+            // Assert
+            Assert.Equal(1, result.Count());
+        }
+
         [Fact]
         [Unit]
         public void TestApplyRestartPolicyWithUnknownRuntimeStatus()

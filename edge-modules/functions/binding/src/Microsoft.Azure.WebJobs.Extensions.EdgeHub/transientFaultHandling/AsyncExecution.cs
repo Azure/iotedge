@@ -60,7 +60,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
 
             var tcs = new TaskCompletionSource<bool>();
             task.ContinueWith(
-                delegate(Task t)
+                t =>
                 {
                     if (t.IsFaulted)
                     {

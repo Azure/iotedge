@@ -1,9 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
 {
-    //
     // Code ported from http://blogs.msdn.com/b/pfxteam/archive/2012/02/12/10266988.aspx
-    //
     using System;
     using System.Threading;
     using System.Threading.Tasks;

@@ -220,7 +220,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
 
             public static void ErrorParsingToken(IIdentity identity, Exception exception)
             {
-                Log.LogWarning((int)EventIds.ErrorParsingToken, exception, $"Error authenticating token for {identity.Id} because the token could not be parsed");
+                Log.LogInformation((int)EventIds.ErrorParsingToken, $"Error authenticating token for {identity.Id} because the token is expired or could not be parsed");
+                Log.LogDebug((int)EventIds.ErrorParsingToken, exception, $"Error parsing token for {identity.Id}");
             }
         }
     }

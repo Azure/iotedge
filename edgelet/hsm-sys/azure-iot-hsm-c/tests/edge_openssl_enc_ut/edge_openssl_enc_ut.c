@@ -431,13 +431,13 @@ BEGIN_TEST_SUITE(edge_openssl_encryption_unittests)
         // act, assert
         key_size = 10;
         status = generate_encryption_key(NULL, &key_size);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, key_size, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, 0, key_size, "Line:" TOSTRING(__LINE__));
 
         key = (unsigned char*)0x1000;
         status = generate_encryption_key(&key, NULL);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NULL_WITH_MSG(key, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(key, "Line:" TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -461,10 +461,10 @@ BEGIN_TEST_SUITE(edge_openssl_encryption_unittests)
         status = generate_encryption_key(&key, &key_size);
 
         // assert
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NOT_NULL_WITH_MSG(key, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, ENCRYPTION_KEY_SIZE, key_size, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(key, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, ENCRYPTION_KEY_SIZE, key_size, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
 
         // cleanup
         gballoc_free(key);
@@ -501,9 +501,9 @@ BEGIN_TEST_SUITE(edge_openssl_encryption_unittests)
                status = generate_encryption_key(&key, &key_size);
 
                // assert
-               ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-               ASSERT_IS_NULL_WITH_MSG(key, "Line:" TOSTRING(__LINE__));
-               ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, key_size, "Line:" TOSTRING(__LINE__));
+               ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+               ASSERT_IS_NULL(key, "Line:" TOSTRING(__LINE__));
+               ASSERT_ARE_EQUAL(size_t, 0, key_size, "Line:" TOSTRING(__LINE__));
             }
         }
 
@@ -523,16 +523,16 @@ BEGIN_TEST_SUITE(edge_openssl_encryption_unittests)
 
         // act, assert
         key_handle = create_encryption_key(NULL, ENCRYPTION_KEY_SIZE);
-        ASSERT_IS_NULL_WITH_MSG(key_handle, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(key_handle, "Line:" TOSTRING(__LINE__));
 
         key_handle = create_encryption_key(key, 0);
-        ASSERT_IS_NULL_WITH_MSG(key_handle, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(key_handle, "Line:" TOSTRING(__LINE__));
 
         key_handle = create_encryption_key(key, ENCRYPTION_KEY_SIZE - 1);
-        ASSERT_IS_NULL_WITH_MSG(key_handle, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(key_handle, "Line:" TOSTRING(__LINE__));
 
         key_handle = create_encryption_key(key, ENCRYPTION_KEY_SIZE + 1);
-        ASSERT_IS_NULL_WITH_MSG(key_handle, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(key_handle, "Line:" TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -553,8 +553,8 @@ BEGIN_TEST_SUITE(edge_openssl_encryption_unittests)
         key_handle = create_encryption_key(TEST_KEY, ENCRYPTION_KEY_SIZE);
 
         // assert
-        ASSERT_IS_NOT_NULL_WITH_MSG(key_handle, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(key_handle, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
 
         // cleanup
         key_destroy(key_handle);
@@ -586,7 +586,7 @@ BEGIN_TEST_SUITE(edge_openssl_encryption_unittests)
             key_handle = create_encryption_key(TEST_KEY, ENCRYPTION_KEY_SIZE);
 
             // assert
-            ASSERT_IS_NULL_WITH_MSG(key_handle, "Line:" TOSTRING(__LINE__));
+            ASSERT_IS_NULL(key_handle, "Line:" TOSTRING(__LINE__));
         }
 
         //cleanup
@@ -601,7 +601,7 @@ BEGIN_TEST_SUITE(edge_openssl_encryption_unittests)
     {
         // arrange
         KEY_HANDLE key_handle = create_encryption_key(TEST_KEY, ENCRYPTION_KEY_SIZE);
-        ASSERT_IS_NOT_NULL_WITH_MSG(key_handle, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(key_handle, "Line:" TOSTRING(__LINE__));
         umock_c_reset_all_calls();
 
         EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
@@ -611,7 +611,7 @@ BEGIN_TEST_SUITE(edge_openssl_encryption_unittests)
         key_destroy(key_handle);
 
         // assert
-        ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -623,7 +623,7 @@ BEGIN_TEST_SUITE(edge_openssl_encryption_unittests)
     TEST_FUNCTION(key_encrypt_invalid_params)
     {
         KEY_HANDLE key_handle = create_encryption_key(TEST_KEY, ENCRYPTION_KEY_SIZE);
-        ASSERT_IS_NOT_NULL_WITH_MSG(key_handle, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(key_handle, "Line:" TOSTRING(__LINE__));
         SIZED_BUFFER id = {TEST_IDENTITY, TEST_IDENTITY_SIZE};
         SIZED_BUFFER pt = {TEST_PLAINTEXT, TEST_PLAINTEXT_SIZE};
         SIZED_BUFFER iv = {TEST_IV, TEST_IV_SIZE};
@@ -637,69 +637,69 @@ BEGIN_TEST_SUITE(edge_openssl_encryption_unittests)
         // act, assert
         ct.size = 10; ct.buffer = (unsigned char*)0xA000;
         status = key_encrypt(key_handle, NULL, &pt, &iv, &ct);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, ct.size, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NULL_WITH_MSG(ct.buffer, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, 0, ct.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(ct.buffer, "Line:" TOSTRING(__LINE__));
 
         ct.size = 10; ct.buffer = (unsigned char*)0xA000;
         status = key_encrypt(key_handle, &inv1, &pt, &iv, &ct);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, ct.size, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NULL_WITH_MSG(ct.buffer, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, 0, ct.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(ct.buffer, "Line:" TOSTRING(__LINE__));
 
         ct.size = 10; ct.buffer = (unsigned char*)0xA000;
         status = key_encrypt(key_handle, &inv2, &pt, &iv, &ct);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, ct.size, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NULL_WITH_MSG(ct.buffer, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, 0, ct.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(ct.buffer, "Line:" TOSTRING(__LINE__));
 
         ct.size = 10; ct.buffer = (unsigned char*)0xA000;
         status = key_encrypt(key_handle, &id, NULL, &iv, &ct);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, ct.size, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NULL_WITH_MSG(ct.buffer, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, 0, ct.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(ct.buffer, "Line:" TOSTRING(__LINE__));
 
         ct.size = 10; ct.buffer = (unsigned char*)0xA000;
         status = key_encrypt(key_handle, &id, &inv1, &iv, &ct);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, ct.size, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NULL_WITH_MSG(ct.buffer, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, 0, ct.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(ct.buffer, "Line:" TOSTRING(__LINE__));
 
         inv_pt_size.size = 0;
         ct.size = 10; ct.buffer = (unsigned char*)0xA000;
         status = key_encrypt(key_handle, &id, &inv_pt_size, &iv, &ct);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, ct.size, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NULL_WITH_MSG(ct.buffer, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, 0, ct.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(ct.buffer, "Line:" TOSTRING(__LINE__));
 
         inv_pt_size.size = INT_MAX - TEST_CIPHERTEXT_HEADER_SIZE + 1;
         ct.size = 10; ct.buffer = (unsigned char*)0xA000;
         status = key_encrypt(key_handle, &id, &inv_pt_size, &iv, &ct);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, ct.size, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NULL_WITH_MSG(ct.buffer, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, 0, ct.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(ct.buffer, "Line:" TOSTRING(__LINE__));
 
         ct.size = 10; ct.buffer = (unsigned char*)0xA000;
         status = key_encrypt(key_handle, &id, &pt, NULL, &ct);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, ct.size, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NULL_WITH_MSG(ct.buffer, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, 0, ct.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(ct.buffer, "Line:" TOSTRING(__LINE__));
 
         ct.size = 10; ct.buffer = (unsigned char*)0xA000;
         status = key_encrypt(key_handle, &id, &pt, &inv1, &ct);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, ct.size, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NULL_WITH_MSG(ct.buffer, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, 0, ct.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(ct.buffer, "Line:" TOSTRING(__LINE__));
 
         ct.size = 10; ct.buffer = (unsigned char*)0xA000;
         status = key_encrypt(key_handle, &id, &pt, &inv2, &ct);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, ct.size, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NULL_WITH_MSG(ct.buffer, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, 0, ct.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(ct.buffer, "Line:" TOSTRING(__LINE__));
 
         ct.size = 10; ct.buffer = (unsigned char*)0xA000;
         status = key_encrypt(key_handle, &id, &pt, &iv, NULL);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         // cleanup
         key_destroy(key_handle);
@@ -713,7 +713,7 @@ BEGIN_TEST_SUITE(edge_openssl_encryption_unittests)
     {
         // arrange
         KEY_HANDLE key_handle = create_encryption_key(TEST_KEY, ENCRYPTION_KEY_SIZE);
-        ASSERT_IS_NOT_NULL_WITH_MSG(key_handle, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(key_handle, "Line:" TOSTRING(__LINE__));
         SIZED_BUFFER id = {TEST_IDENTITY, TEST_IDENTITY_SIZE};
         SIZED_BUFFER pt = {TEST_PLAINTEXT, TEST_PLAINTEXT_SIZE};
         SIZED_BUFFER iv = {TEST_IV, TEST_IV_SIZE};
@@ -727,10 +727,10 @@ BEGIN_TEST_SUITE(edge_openssl_encryption_unittests)
         status = key_encrypt(key_handle, &id, &pt, &iv, &ct);
 
         // assert
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, TEST_CIPHERTEXT_HEADER_SIZE+TEST_PLAINTEXT_SIZE, ct.size, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NOT_NULL_WITH_MSG(ct.buffer, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, TEST_CIPHERTEXT_HEADER_SIZE+TEST_PLAINTEXT_SIZE, ct.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(ct.buffer, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
 
         // cleanup
         free(ct.buffer);
@@ -747,7 +747,7 @@ BEGIN_TEST_SUITE(edge_openssl_encryption_unittests)
         int test_result = umock_c_negative_tests_init();
         ASSERT_ARE_EQUAL(int, 0, test_result);
         KEY_HANDLE key_handle = create_encryption_key(TEST_KEY, ENCRYPTION_KEY_SIZE);
-        ASSERT_IS_NOT_NULL_WITH_MSG(key_handle, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(key_handle, "Line:" TOSTRING(__LINE__));
         SIZED_BUFFER id = {TEST_IDENTITY, TEST_IDENTITY_SIZE};
         SIZED_BUFFER pt = {TEST_PLAINTEXT, TEST_PLAINTEXT_SIZE};
         SIZED_BUFFER iv = {TEST_IV, TEST_IV_SIZE};
@@ -767,9 +767,9 @@ BEGIN_TEST_SUITE(edge_openssl_encryption_unittests)
                 int status = key_encrypt(key_handle, &id, &pt, &iv, &ct);
 
                 // assert
-                ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-                ASSERT_IS_NULL_WITH_MSG(ct.buffer, "Line:" TOSTRING(__LINE__));
-                ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, ct.size, "Line:" TOSTRING(__LINE__));
+                ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+                ASSERT_IS_NULL(ct.buffer, "Line:" TOSTRING(__LINE__));
+                ASSERT_ARE_EQUAL(size_t, 0, ct.size, "Line:" TOSTRING(__LINE__));
             }
         }
 
@@ -785,7 +785,7 @@ BEGIN_TEST_SUITE(edge_openssl_encryption_unittests)
     TEST_FUNCTION(key_decrypt_invalid_params)
     {
         KEY_HANDLE key_handle = create_encryption_key(TEST_KEY, ENCRYPTION_KEY_SIZE);
-        ASSERT_IS_NOT_NULL_WITH_MSG(key_handle, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(key_handle, "Line:" TOSTRING(__LINE__));
         SIZED_BUFFER id = {TEST_IDENTITY, TEST_IDENTITY_SIZE};
         SIZED_BUFFER ct = {TEST_CIPHERTEXT, TEST_CIPHERTEXT_SIZE};
         SIZED_BUFFER iv = {TEST_IV, TEST_IV_SIZE};
@@ -800,97 +800,97 @@ BEGIN_TEST_SUITE(edge_openssl_encryption_unittests)
         // act, assert
         pt.size = 10; pt.buffer = (unsigned char*)0xA000;
         status = key_decrypt(key_handle, NULL, &ct, &iv, &pt);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, pt.size, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NULL_WITH_MSG(pt.buffer, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, 0, pt.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(pt.buffer, "Line:" TOSTRING(__LINE__));
 
         pt.size = 10; pt.buffer = (unsigned char*)0xA000;
         status = key_decrypt(key_handle, &inv1, &ct, &iv, &pt);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, pt.size, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NULL_WITH_MSG(pt.buffer, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, 0, pt.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(pt.buffer, "Line:" TOSTRING(__LINE__));
 
         pt.size = 10; pt.buffer = (unsigned char*)0xA000;
         status = key_decrypt(key_handle, &inv2, &ct, &iv, &pt);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, pt.size, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NULL_WITH_MSG(pt.buffer, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, 0, pt.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(pt.buffer, "Line:" TOSTRING(__LINE__));
 
         pt.size = 10; pt.buffer = (unsigned char*)0xA000;
         status = key_decrypt(key_handle, &id, NULL, &iv, &pt);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, pt.size, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NULL_WITH_MSG(pt.buffer, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, 0, pt.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(pt.buffer, "Line:" TOSTRING(__LINE__));
 
         pt.size = 10; pt.buffer = (unsigned char*)0xA000;
         status = key_decrypt(key_handle, &id, &inv1, &iv, &pt);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, pt.size, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NULL_WITH_MSG(pt.buffer, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, 0, pt.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(pt.buffer, "Line:" TOSTRING(__LINE__));
 
         inv_ct_size.size = 0;
         pt.size = 10; pt.buffer = (unsigned char*)0xA000;
         status = key_decrypt(key_handle, &id, &inv_ct_size, &iv, &pt);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, pt.size, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NULL_WITH_MSG(pt.buffer, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, 0, pt.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(pt.buffer, "Line:" TOSTRING(__LINE__));
 
         inv_ct_size.size = TEST_CIPHERTEXT_HEADER_SIZE - 1;
         pt.size = 10; pt.buffer = (unsigned char*)0xA000;
         status = key_decrypt(key_handle, &id, &inv_ct_size, &iv, &pt);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, pt.size, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NULL_WITH_MSG(pt.buffer, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, 0, pt.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(pt.buffer, "Line:" TOSTRING(__LINE__));
 
         inv_ct_size.size = TEST_CIPHERTEXT_HEADER_SIZE;
         pt.size = 10; pt.buffer = (unsigned char*)0xA000;
         status = key_decrypt(key_handle, &id, &inv_ct_size, &iv, &pt);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, pt.size, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NULL_WITH_MSG(pt.buffer, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, 0, pt.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(pt.buffer, "Line:" TOSTRING(__LINE__));
 
         inv_ct_size.size = ((size_t)INT_MAX + 1);
         pt.size = 10; pt.buffer = (unsigned char*)0xA000;
         status = key_decrypt(key_handle, &id, &inv_ct_size, &iv, &pt);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, pt.size, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NULL_WITH_MSG(pt.buffer, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, 0, pt.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(pt.buffer, "Line:" TOSTRING(__LINE__));
 
         inv_ct_version.buffer[0] = 0;
         pt.size = 10; pt.buffer = (unsigned char*)0xA000;
         status = key_decrypt(key_handle, &id, &inv_ct_version, &iv, &pt);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, pt.size, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NULL_WITH_MSG(pt.buffer, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, 0, pt.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(pt.buffer, "Line:" TOSTRING(__LINE__));
 
         inv_ct_version.buffer[0] = 2;
         pt.size = 10; pt.buffer = (unsigned char*)0xA000;
         status = key_decrypt(key_handle, &id, &inv_ct_version, &iv, &pt);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, pt.size, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NULL_WITH_MSG(pt.buffer, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, 0, pt.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(pt.buffer, "Line:" TOSTRING(__LINE__));
 
         pt.size = 10; pt.buffer = (unsigned char*)0xA000;
         status = key_decrypt(key_handle, &id, &ct, NULL, &pt);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, pt.size, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NULL_WITH_MSG(pt.buffer, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, 0, pt.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(pt.buffer, "Line:" TOSTRING(__LINE__));
 
         pt.size = 10; pt.buffer = (unsigned char*)0xA000;
         status = key_decrypt(key_handle, &id, &ct, &inv1, &pt);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, pt.size, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NULL_WITH_MSG(pt.buffer, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, 0, pt.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(pt.buffer, "Line:" TOSTRING(__LINE__));
 
         pt.size = 10; pt.buffer = (unsigned char*)0xA000;
         status = key_decrypt(key_handle, &id, &ct, &inv2, &pt);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, pt.size, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NULL_WITH_MSG(pt.buffer, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, 0, pt.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(pt.buffer, "Line:" TOSTRING(__LINE__));
 
         pt.size = 10; pt.buffer = (unsigned char*)0xA000;
         status = key_decrypt(key_handle, &id, &ct, &iv, NULL);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         // cleanup
         key_destroy(key_handle);
@@ -904,7 +904,7 @@ BEGIN_TEST_SUITE(edge_openssl_encryption_unittests)
     {
         // arrange
         KEY_HANDLE key_handle = create_encryption_key(TEST_KEY, ENCRYPTION_KEY_SIZE);
-        ASSERT_IS_NOT_NULL_WITH_MSG(key_handle, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(key_handle, "Line:" TOSTRING(__LINE__));
         SIZED_BUFFER id = {TEST_IDENTITY, TEST_IDENTITY_SIZE};
         SIZED_BUFFER ct = {TEST_CIPHERTEXT, TEST_CIPHERTEXT_SIZE};
         SIZED_BUFFER iv = {TEST_IV, TEST_IV_SIZE};
@@ -918,10 +918,10 @@ BEGIN_TEST_SUITE(edge_openssl_encryption_unittests)
         status = key_decrypt(key_handle, &id, &ct, &iv, &pt);
 
         // assert
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, TEST_CIPHERTEXT_SIZE-TEST_CIPHERTEXT_HEADER_SIZE, pt.size, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NOT_NULL_WITH_MSG(pt.buffer, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, TEST_CIPHERTEXT_SIZE-TEST_CIPHERTEXT_HEADER_SIZE, pt.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(pt.buffer, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
 
         // cleanup
         free(pt.buffer);
@@ -938,7 +938,7 @@ BEGIN_TEST_SUITE(edge_openssl_encryption_unittests)
         int test_result = umock_c_negative_tests_init();
         ASSERT_ARE_EQUAL(int, 0, test_result);
         KEY_HANDLE key_handle = create_encryption_key(TEST_KEY, ENCRYPTION_KEY_SIZE);
-        ASSERT_IS_NOT_NULL_WITH_MSG(key_handle, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(key_handle, "Line:" TOSTRING(__LINE__));
         SIZED_BUFFER id = {TEST_IDENTITY, TEST_IDENTITY_SIZE};
         SIZED_BUFFER ct = {TEST_CIPHERTEXT, TEST_CIPHERTEXT_SIZE};
         SIZED_BUFFER iv = {TEST_IV, TEST_IV_SIZE};
@@ -958,9 +958,9 @@ BEGIN_TEST_SUITE(edge_openssl_encryption_unittests)
                 int status = key_decrypt(key_handle, &id, &ct, &iv, &pt);
 
                 // assert
-                ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-                ASSERT_IS_NULL_WITH_MSG(pt.buffer, "Line:" TOSTRING(__LINE__));
-                ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, pt.size, "Line:" TOSTRING(__LINE__));
+                ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+                ASSERT_IS_NULL(pt.buffer, "Line:" TOSTRING(__LINE__));
+                ASSERT_ARE_EQUAL(size_t, 0, pt.size, "Line:" TOSTRING(__LINE__));
             }
         }
 
@@ -977,7 +977,7 @@ BEGIN_TEST_SUITE(edge_openssl_encryption_unittests)
     {
         // arrange
         KEY_HANDLE key_handle = create_encryption_key(TEST_KEY, ENCRYPTION_KEY_SIZE);
-        ASSERT_IS_NOT_NULL_WITH_MSG(key_handle, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(key_handle, "Line:" TOSTRING(__LINE__));
         unsigned char TBS[] = "data";
         unsigned char *output = (unsigned char*)0x1000;
         size_t output_size = 1234;
@@ -986,9 +986,9 @@ BEGIN_TEST_SUITE(edge_openssl_encryption_unittests)
         int status = key_sign(key_handle, TBS, sizeof(TBS), &output, &output_size);
 
         // arrange
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, output_size, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NULL_WITH_MSG(output, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, 0, output_size, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(output, "Line:" TOSTRING(__LINE__));
 
         //cleanup
         key_destroy(key_handle);
@@ -1002,7 +1002,7 @@ BEGIN_TEST_SUITE(edge_openssl_encryption_unittests)
     {
         // arrange
         KEY_HANDLE key_handle = create_encryption_key(TEST_KEY, ENCRYPTION_KEY_SIZE);
-        ASSERT_IS_NOT_NULL_WITH_MSG(key_handle, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(key_handle, "Line:" TOSTRING(__LINE__));
         unsigned char TBS[] = "data";
         unsigned char *output = (unsigned char*)0x1000;
         size_t output_size = 1234;
@@ -1013,9 +1013,9 @@ BEGIN_TEST_SUITE(edge_openssl_encryption_unittests)
                                          &output, &output_size);
 
         // arrange
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, output_size, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NULL_WITH_MSG(output, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, 0, output_size, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(output, "Line:" TOSTRING(__LINE__));
 
         //cleanup
         key_destroy(key_handle);
