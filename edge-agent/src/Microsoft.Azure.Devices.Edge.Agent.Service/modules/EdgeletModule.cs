@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 {
     using System;
     using System.Collections.Generic;
+    using System.Net;
     using System.Threading.Tasks;
     using Autofac;
     using global::Docker.DotNet.Models;
@@ -30,6 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly Uri workloadUri;
         readonly IEnumerable<AuthConfig> dockerAuthConfig;
         readonly Option<UpstreamProtocol> upstreamProtocol;
+        readonly Option<IWebProxy> proxy;
         readonly Option<string> productInfo;
 
         public EdgeletModule(
@@ -40,6 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             Uri workloadUri,
             IEnumerable<AuthConfig> dockerAuthConfig,
             Option<UpstreamProtocol> upstreamProtocol,
+            Option<IWebProxy> proxy,
             Option<string> productInfo)
         {
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
@@ -49,13 +52,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.workloadUri = Preconditions.CheckNotNull(workloadUri, nameof(workloadUri));
             this.dockerAuthConfig = Preconditions.CheckNotNull(dockerAuthConfig, nameof(dockerAuthConfig));
             this.upstreamProtocol = Preconditions.CheckNotNull(upstreamProtocol, nameof(upstreamProtocol));
+            this.proxy = Preconditions.CheckNotNull(proxy, nameof(proxy));
             this.productInfo = productInfo;
         }
 
         protected override void Load(ContainerBuilder builder)
         {
             // IModuleClientProvider
-            builder.Register(c => new EnvironmentModuleClientProvider(this.upstreamProtocol, this.productInfo))
+            builder.Register(c => new EnvironmentModuleClientProvider(this.upstreamProtocol, this.proxy, this.productInfo))
                 .As<IModuleClientProvider>()
                 .SingleInstance();
 

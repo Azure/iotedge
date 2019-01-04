@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
     using Autofac;
@@ -99,13 +100,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 builder.RegisterModule(new LoggingModule(dockerLoggingDriver, dockerLoggingOptions));
                 Option<string> productInfo = versionInfo != VersionInfo.Empty ? Option.Some(versionInfo.ToString()) : Option.None<string>();
                 Option<UpstreamProtocol> upstreamProtocol = configuration.GetValue<string>(Constants.UpstreamProtocolKey).ToUpstreamProtocol();
+                Option<IWebProxy> proxy = ParseProxy(configuration.GetValue<string>("https_proxy"));
                 switch (mode.ToLowerInvariant())
                 {
                     case Constants.DockerMode:
                         var dockerUri = new Uri(configuration.GetValue<string>("DockerUri"));
                         string deviceConnectionString = configuration.GetValue<string>("DeviceConnectionString");
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath));
-                        builder.RegisterModule(new DockerModule(deviceConnectionString, edgeDeviceHostName, dockerUri, dockerAuthConfig, upstreamProtocol, productInfo));
+                        builder.RegisterModule(new DockerModule(deviceConnectionString, edgeDeviceHostName, dockerUri, dockerAuthConfig, upstreamProtocol, proxy, productInfo));
                         break;
 
                     case Constants.IotedgedMode:
@@ -116,7 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         string moduleId = configuration.GetValue(Constants.ModuleIdVariableName, Constants.EdgeAgentModuleIdentityName);
                         string moduleGenerationId = configuration.GetValue<string>(Constants.EdgeletModuleGenerationIdVariableName);
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), moduleId, Option.Some(moduleGenerationId)));
-                        builder.RegisterModule(new EdgeletModule(iothubHostname, edgeDeviceHostName, deviceId, new Uri(managementUri), new Uri(workloadUri), dockerAuthConfig, upstreamProtocol, productInfo));
+                        builder.RegisterModule(new EdgeletModule(iothubHostname, edgeDeviceHostName, deviceId, new Uri(managementUri), new Uri(workloadUri), dockerAuthConfig, upstreamProtocol, proxy, productInfo));
                         break;
 
                     default:
@@ -215,6 +217,36 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             {
                 logger.LogError(AgentEventIds.Agent, ex, "Error on shutdown");
                 return Task.CompletedTask;
+            }
+        }
+
+        static Option<IWebProxy> ParseProxy(string proxyUri)
+        {
+            if (string.IsNullOrWhiteSpace(proxyUri))
+            {
+                return Option.None<IWebProxy>();
+            }
+
+            var uri = new Uri(proxyUri);
+            if (string.IsNullOrEmpty(uri.UserInfo))
+            {
+                return Option.Some<IWebProxy>(new WebProxy(uri));
+            }
+            else
+            {
+                string[] parts = uri.UserInfo.Split(':', StringSplitOptions.RemoveEmptyEntries);
+                var credentials = new NetworkCredential
+                {
+                    UserName = Uri.UnescapeDataString(parts[0])
+                };
+                if (parts.Length > 1)
+                {
+                    credentials.Password = Uri.UnescapeDataString(parts[1]);
+                }
+
+                var proxy = new WebProxy(uri);
+                proxy.Credentials = credentials;
+                return Option.Some<IWebProxy>(proxy);
             }
         }
 

@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 {
     using System;
     using System.Collections.Generic;
+    using System.Net;
     using System.Threading.Tasks;
     using Autofac;
     using Core;
@@ -23,6 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly Uri dockerHostname;
         readonly IEnumerable<AuthConfig> dockerAuthConfig;
         readonly Option<UpstreamProtocol> upstreamProtocol;
+        readonly Option<IWebProxy> proxy;
         readonly Option<string> productInfo;
 
         public DockerModule(
@@ -31,6 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             Uri dockerHostname,
             IEnumerable<AuthConfig> dockerAuthConfig,
             Option<UpstreamProtocol> upstreamProtocol,
+            Option<IWebProxy> proxy,
             Option<string> productInfo)
         {
             this.edgeDeviceConnectionString = Preconditions.CheckNonWhiteSpace(edgeDeviceConnectionString, nameof(edgeDeviceConnectionString));
@@ -41,6 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.dockerHostname = Preconditions.CheckNotNull(dockerHostname, nameof(dockerHostname));
             this.dockerAuthConfig = Preconditions.CheckNotNull(dockerAuthConfig, nameof(dockerAuthConfig));
             this.upstreamProtocol = Preconditions.CheckNotNull(upstreamProtocol, nameof(upstreamProtocol));
+            this.proxy = Preconditions.CheckNotNull(proxy, nameof(proxy));
             this.productInfo = productInfo;
         }
 
@@ -48,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         {
             // IDeviceClientProvider
             string edgeAgentConnectionString = $"{this.edgeDeviceConnectionString};{Constants.ModuleIdKey}={Constants.EdgeAgentModuleIdentityName}";
-            builder.Register(c => new ModuleClientProvider(edgeAgentConnectionString, this.upstreamProtocol, this.productInfo))
+            builder.Register(c => new ModuleClientProvider(edgeAgentConnectionString, this.upstreamProtocol, this.proxy, this.productInfo))
                 .As<IModuleClientProvider>()
                 .SingleInstance();
 

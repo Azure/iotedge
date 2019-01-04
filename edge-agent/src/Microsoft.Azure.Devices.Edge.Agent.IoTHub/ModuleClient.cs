@@ -3,9 +3,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 {
     using System;
     using System.Collections.Generic;
+    using System.Net;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Exceptions;
+    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
@@ -21,12 +23,32 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         static readonly RetryStrategy TransientRetryStrategy =
             new ExponentialBackoff(int.MaxValue, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
 
-        static readonly IDictionary<UpstreamProtocol, TransportType> UpstreamProtocolTransportTypeMap = new Dictionary<UpstreamProtocol, TransportType>
+        static readonly IDictionary<UpstreamProtocol, Func<Option<IWebProxy>, ITransportSettings>> TransportMap = new Dictionary<UpstreamProtocol, Func<Option<IWebProxy>, ITransportSettings>>
         {
-            [UpstreamProtocol.Amqp] = TransportType.Amqp_Tcp_Only,
-            [UpstreamProtocol.AmqpWs] = TransportType.Amqp_WebSocket_Only,
-            [UpstreamProtocol.Mqtt] = TransportType.Mqtt_Tcp_Only,
-            [UpstreamProtocol.MqttWs] = TransportType.Mqtt_WebSocket_Only
+            [UpstreamProtocol.Amqp] = proxy =>
+            {
+                var settings = new AmqpTransportSettings(TransportType.Amqp_Tcp_Only);
+                proxy.ForEach(p => settings.Proxy = p);
+                return settings;
+            },
+            [UpstreamProtocol.AmqpWs] = proxy =>
+            {
+                var settings = new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only);
+                proxy.ForEach(p => settings.Proxy = p);
+                return settings;
+            },
+            [UpstreamProtocol.Mqtt] = proxy =>
+            {
+                var settings = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
+                proxy.ForEach(p => settings.Proxy = p);
+                return settings;
+            },
+            [UpstreamProtocol.MqttWs] = proxy =>
+            {
+                var settings = new MqttTransportSettings(TransportType.Mqtt_WebSocket_Only);
+                proxy.ForEach(p => settings.Proxy = p);
+                return settings;
+            }
         };
 
         readonly Client.ModuleClient deviceClient;
@@ -41,8 +63,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             Option<UpstreamProtocol> upstreamProtocol,
             ConnectionStatusChangesHandler statusChangedHandler,
             Func<ModuleClient, Task> initialize,
+            Option<IWebProxy> proxy,
             Option<string> productInfo) =>
-            Create(upstreamProtocol, initialize, t => CreateAndOpenDeviceClient(t, connectionString, statusChangedHandler, productInfo));
+            Create(upstreamProtocol, initialize, u => CreateAndOpenDeviceClient(u, connectionString, statusChangedHandler, proxy, productInfo));
 
         public Task SetDesiredPropertyUpdateCallbackAsync(DesiredPropertyUpdateCallback onDesiredPropertyChanged) =>
             this.deviceClient.SetDesiredPropertyUpdateCallbackAsync(onDesiredPropertyChanged, null);
@@ -58,17 +81,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         internal static Task<Client.ModuleClient> CreateDeviceClientForUpstreamProtocol(
             Option<UpstreamProtocol> upstreamProtocol,
-            Func<TransportType, Task<Client.ModuleClient>> deviceClientCreator)
+            Func<UpstreamProtocol, Task<Client.ModuleClient>> deviceClientCreator)
             => upstreamProtocol
-                .Map(u => deviceClientCreator(UpstreamProtocolTransportTypeMap[u]))
+                .Map(deviceClientCreator)
                 .GetOrElse(
                     async () =>
                     {
                         // The device SDK doesn't appear to be falling back to WebSocket from TCP,
                         // so we'll do it explicitly until we can get the SDK sorted out.
                         Try<Client.ModuleClient> result = await Fallback.ExecuteAsync(
-                            () => deviceClientCreator(TransportType.Amqp_Tcp_Only),
-                            () => deviceClientCreator(TransportType.Amqp_WebSocket_Only));
+                            () => deviceClientCreator(UpstreamProtocol.Amqp),
+                            () => deviceClientCreator(UpstreamProtocol.AmqpWs));
                         if (!result.Success)
                         {
                             Events.DeviceConnectionError(result.Exception);
@@ -78,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                         return result.Value;
                     });
 
-        static async Task<IModuleClient> Create(Option<UpstreamProtocol> upstreamProtocol, Func<ModuleClient, Task> initialize, Func<TransportType, Task<Client.ModuleClient>> deviceClientCreator)
+        static async Task<IModuleClient> Create(Option<UpstreamProtocol> upstreamProtocol, Func<ModuleClient, Task> initialize, Func<UpstreamProtocol, Task<Client.ModuleClient>> deviceClientCreator)
         {
             try
             {
@@ -106,17 +129,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         }
 
         static async Task<Client.ModuleClient> CreateAndOpenDeviceClient(
-            TransportType transport,
+            UpstreamProtocol upstreamProtocol,
             Option<string> connectionString,
             ConnectionStatusChangesHandler statusChangedHandler,
+            Option<IWebProxy> proxy,
             Option<string> productInfo)
         {
-            Events.AttemptingConnectionWithTransport(transport);
-            Client.ModuleClient deviceClient = await connectionString.Map(cs => Task.FromResult(Client.ModuleClient.CreateFromConnectionString(cs, transport)))
-                .GetOrElse(() => Client.ModuleClient.CreateFromEnvironmentAsync(transport));
+            ITransportSettings[] settings = { TransportMap[upstreamProtocol](proxy) };
+            Events.AttemptingConnection(settings[0].GetTransportType(), proxy);
+            Client.ModuleClient deviceClient = await connectionString.Map(cs => Task.FromResult(Client.ModuleClient.CreateFromConnectionString(cs, settings)))
+                .GetOrElse(() => Client.ModuleClient.CreateFromEnvironmentAsync(settings));
             productInfo.ForEach(p => deviceClient.ProductInfo = p);
             await OpenAsync(statusChangedHandler, deviceClient);
-            Events.ConnectedWithTransport(transport);
+            Events.Connected(settings[0].GetTransportType(), proxy);
             return deviceClient;
         }
 
@@ -162,14 +187,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 DeviceClientSetupFailed
             }
 
-            public static void AttemptingConnectionWithTransport(TransportType transport)
+            public static void AttemptingConnection(TransportType transport, Option<IWebProxy> proxy)
             {
-                Log.LogInformation((int)EventIds.AttemptingConnect, $"Edge agent attempting to connect to IoT Hub via {transport.ToString()}...");
+                string proxyMessage = string.Empty;
+                proxy.ForEach(p => proxyMessage = $" and proxy {p.ToString()}");
+                Log.LogInformation((int)EventIds.AttemptingConnect, $"Edge agent attempting to connect to IoT Hub via {transport.ToString()}{proxyMessage}...");
             }
 
-            public static void ConnectedWithTransport(TransportType transport)
+            public static void Connected(TransportType transport, Option<IWebProxy> proxy)
             {
-                Log.LogInformation((int)EventIds.Connected, $"Edge agent connected to IoT Hub via {transport.ToString()}.");
+                string proxyMessage = string.Empty;
+                proxy.ForEach(p => proxyMessage = $" and proxy {p.ToString()}");
+                Log.LogInformation((int)EventIds.Connected, $"Edge agent connected to IoT Hub via {transport.ToString()}{proxyMessage}.");
             }
 
             public static void DeviceClientCreated()
