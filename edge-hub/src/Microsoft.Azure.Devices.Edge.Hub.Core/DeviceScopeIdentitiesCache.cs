@@ -184,12 +184,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             using (await this.cacheLock.LockAsync())
             {
+                bool hasValidServiceIdentity = this.serviceIdentityCache.TryGetValue(id, out StoredServiceIdentity existingServiceIdentity)
+                    ? existingServiceIdentity.ServiceIdentity.Filter(s => s.Status == ServiceIdentityStatus.Enabled).HasValue
+                    : false;
                 var storedServiceIdentity = new StoredServiceIdentity(id);
                 this.serviceIdentityCache[id] = storedServiceIdentity;
                 await this.SaveServiceIdentityToStore(id, storedServiceIdentity);
                 Events.NotInScope(id);
-                // Remove device if connected
-                this.ServiceIdentityRemoved?.Invoke(this, id);
+
+                if (hasValidServiceIdentity)
+                {
+                    // Remove device if connected, if service identity existed and then was removed.
+                    this.ServiceIdentityRemoved?.Invoke(this, id);
+                }
             }
         }
 
