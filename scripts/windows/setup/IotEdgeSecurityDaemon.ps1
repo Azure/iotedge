@@ -671,7 +671,7 @@ function Remove-SecurityDaemonResources {
     }
 
     if ($DeleteMobyDataRoot) {
-        foreach ($root in $existingMobyDataRoots | ? {Test-Path $_} ) {
+        foreach ($root in $existingMobyDataRoots | ?{ Test-Path $_ }) {
             try {
                 Write-Host "Deleting Moby data root directory '$root'..."
 
