@@ -254,9 +254,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
                     // log the proxy URI without the password
                     int pos = uri.ToString().IndexOf(uri.UserInfo, StringComparison.InvariantCulture);
-                    int end = pos + uri.UserInfo.Length;
-                    int begin = end - parts[1].Length;
-                    logger.LogInformation($"Detected proxy {uri.ToString().Remove(begin, end)}");
+                    int begin = pos + parts[0].Length;
+                    int count = parts[1].Length + 1;
+                    logger.LogInformation($"Detected proxy {uri.ToString().Remove(begin, count)}");
                 }
 
                 var proxy = new WebProxy(uri)
