@@ -47,6 +47,6 @@ run_command()
 }
 
 mkdir -p $BUILD_DIR
-run_command "cd /$BUILD_DIR_REL && cmake -DCMAKE_SYSROOT=/toolchain//${TOOLCHAIN}/libc -DCMAKE_C_COMPILER=/toolchain/bin//${TOOLCHAIN}-gcc -DCMAKE_CXX_COMPILER=/toolchain/bin//${TOOLCHAIN}-g++ -DCMAKE_SYSTEM_NAME=Linux -DCPACK_RPM_PACKAGE_ARCHITECTURE=aarch64 -DCPACK_PACKAGE_VERSION=\"$RPM_VERSION\" -DCPACK_RPM_PACKAGE_RELEASE=\"$RPM_RELEASE\" -DBUILD_SHARED=On -Drun_unittests=Off -Duse_emulator=Off -DCMAKE_BUILD_TYPE=Release -Duse_default_uuid=On -Duse_http=Off -DCPACK_GENERATOR=RPM /project/hsm-sys/azure-iot-hsm-c/"
+run_command "cd /$BUILD_DIR_REL && cmake -DCMAKE_SYSROOT=/toolchain//${TOOLCHAIN}/libc -DCMAKE_C_COMPILER=/toolchain/bin//${TOOLCHAIN}-gcc -DCMAKE_CXX_COMPILER=/toolchain/bin//${TOOLCHAIN}-g++ -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_VERSION=1 -DCPACK_RPM_PACKAGE_ARCHITECTURE=aarch64 -DCPACK_PACKAGE_VERSION=\"$RPM_VERSION\" -DCPACK_RPM_PACKAGE_RELEASE=\"$RPM_RELEASE\" -DBUILD_SHARED=On -Drun_unittests=Off -Duse_emulator=Off -DCMAKE_BUILD_TYPE=Release -Duse_default_uuid=On -Duse_http=Off -DCPACK_GENERATOR=RPM /project/hsm-sys/azure-iot-hsm-c/"
 
 run_command "cd /$BUILD_DIR_REL && make package"

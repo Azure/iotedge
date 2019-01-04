@@ -124,6 +124,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             audience = "edgehubtest1.azure-devices.net/device/device1/module/mod1";
             // Act/Assert
             Assert.Throws<InvalidOperationException>(() => CbsNode.ParseIds(audience));
+
+            // Arrange
+            audience = "edgehubtest1.azure-devices.net/devices/d%40n.f/modules/m%40n.p";
+            // Act
+            (deviceId, moduleId) = CbsNode.ParseIds(audience);
+            // Assert
+            Assert.Equal("d@n.f", deviceId);
+            Assert.Equal("m@n.p", moduleId);
         }
 
         [Fact]
