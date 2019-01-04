@@ -7,8 +7,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
     public interface IServiceIdentitiesIterator
     {
-        Task<IEnumerable<ServiceIdentity>> GetNext();
-
         bool HasNext { get; }
+
+        Task<IEnumerable<ServiceIdentity>> GetNext();
     }
 }

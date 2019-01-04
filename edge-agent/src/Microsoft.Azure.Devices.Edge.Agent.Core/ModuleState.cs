@@ -6,14 +6,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
     public class ModuleState
     {
-        public int RestartCount { get; }
-        public DateTime LastRestartTimeUtc { get; }
-
         [JsonConstructor]
         public ModuleState(int restartCount, DateTime lastRestartTimeUtc)
         {
             this.RestartCount = restartCount;
             this.LastRestartTimeUtc = lastRestartTimeUtc;
         }
+
+        public int RestartCount { get; }
+
+        public DateTime LastRestartTimeUtc { get; }
     }
 }

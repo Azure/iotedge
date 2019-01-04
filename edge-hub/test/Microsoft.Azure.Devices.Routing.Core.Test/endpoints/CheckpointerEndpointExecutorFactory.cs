@@ -33,6 +33,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
         public Task<IEndpointExecutor> CreateAsync(Endpoint endpoint, ICheckpointer checkpointer, EndpointExecutorConfig endpointExecutorConfig)
         {
             return this.underlying.CreateAsync(endpoint, checkpointer, endpointExecutorConfig);
-        }        
+        }
     }
 }

@@ -3,14 +3,15 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query.Errors
 {
     using System;
     using System.Diagnostics.CodeAnalysis;
-    using Microsoft.Azure.Devices.Routing.Core.Query.Errors;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.Query.Errors;
     using Xunit;
 
     [ExcludeFromCodeCoverage]
     public class CompilationErrorTest : RoutingUnitTestBase
     {
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void SmokeTest()
         {
             var start = new ErrorPosition(2, 2);
@@ -26,7 +27,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query.Errors
             Assert.Throws<ArgumentException>(() => new CompilationError(ErrorSeverity.Error, "message", new ErrorRange(end, start)));
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestEquals()
         {
             var error1 = new CompilationError(ErrorSeverity.Error, "message", new ErrorRange(new ErrorPosition(1, 1), new ErrorPosition(1, 2)));

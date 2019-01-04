@@ -74,6 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 serviceCapabilities.Add(Constants.IotEdgeIdentityCapability);
             }
+
             return serviceCapabilities;
         }
     }

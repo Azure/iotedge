@@ -8,6 +8,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
     public class CombinedDockerConfig
     {
+        public CombinedDockerConfig(string image, CreateContainerParameters createOptions, Option<AuthConfig> authConfig)
+        {
+            this.Image = Preconditions.CheckNonWhiteSpace(image, nameof(image)).Trim();
+            this.CreateOptions = Preconditions.CheckNotNull(createOptions, nameof(createOptions));
+            this.AuthConfig = authConfig;
+        }
+
         [JsonProperty(Required = Required.Always, PropertyName = "image")]
         public string Image { get; }
 
@@ -17,12 +24,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         [JsonProperty(Required = Required.AllowNull, PropertyName = "auth")]
         [JsonConverter(typeof(OptionConverter<AuthConfig>))]
         public Option<AuthConfig> AuthConfig { get; }
-
-        public CombinedDockerConfig(string image, CreateContainerParameters createOptions, Option<AuthConfig> authConfig)
-        {
-            this.Image = Preconditions.CheckNonWhiteSpace(image, nameof(image)).Trim();
-            this.CreateOptions = Preconditions.CheckNotNull(createOptions, nameof(createOptions));
-            this.AuthConfig = authConfig;
-        }
     }
 }

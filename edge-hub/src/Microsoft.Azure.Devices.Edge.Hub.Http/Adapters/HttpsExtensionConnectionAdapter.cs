@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Adapters
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
     using System.IO;
     using System.Linq;
     using System.Net.Security;
@@ -20,10 +21,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Adapters
     // https://github.com/aspnet/HttpAbstractions/issues/808
     public class HttpsExtensionConnectionAdapter : IConnectionAdapter
     {
+        internal const string DisableHandshakeTimeoutSwitch = "Switch.Microsoft.AspNetCore.Server.Kestrel.Https.DisableHandshakeTimeout";
+
         // See http://oid-info.com/get/1.3.6.1.5.5.7.3.1
         // Indicates that a certificate can be used as a SSL server certificate
         const string ServerAuthenticationOid = "1.3.6.1.5.5.7.3.1";
-        internal const string DisableHandshakeTimeoutSwitch = "Switch.Microsoft.AspNetCore.Server.Kestrel.Https.DisableHandshakeTimeout";
         static readonly TimeSpan HandshakeTimeout = TimeSpan.FromSeconds(10);
         static readonly ClosedAdaptedConnection ClosedAdaptedConnectionInstance = new ClosedAdaptedConnection();
         readonly HttpsConnectionAdapterOptions options;
@@ -40,6 +42,45 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Adapters
 
         public Task<IAdaptedConnection> OnConnectionAsync(ConnectionAdapterContext context) =>
             Task.Run(() => this.InnerOnConnectionAsync(context));
+
+        static void EnsureCertificateIsAllowedForServerAuth(X509Certificate2 certificate)
+        {
+            /* If the Extended Key Usage extension is included, then we check that the serverAuth usage is included. (http://oid-info.com/get/1.3.6.1.5.5.7.3.1)
+             * If the Extended Key Usage extension is not included, then we assume the certificate is allowed for all usages.
+             *
+             * See also https://blogs.msdn.microsoft.com/kaushal/2012/02/17/client-certificates-vs-server-certificates/
+             *
+             * From https://tools.ietf.org/html/rfc3280#section-4.2.1.13 "Certificate Extensions: Extended Key Usage"
+             *
+             * If the (Extended Key Usage) extension is present, then the certificate MUST only be used
+             * for one of the purposes indicated.  If multiple purposes are
+             * indicated the application need not recognize all purposes indicated,
+             * as long as the intended purpose is present.  Certificate using
+             * applications MAY require that a particular purpose be indicated in
+             * order for the certificate to be acceptable to that application.
+             */
+
+            bool hasEkuExtension = false;
+
+            foreach (X509EnhancedKeyUsageExtension extension in certificate.Extensions.OfType<X509EnhancedKeyUsageExtension>())
+            {
+                hasEkuExtension = true;
+                foreach (Oid oid in extension.EnhancedKeyUsages)
+                {
+                    if (oid.Value.Equals(ServerAuthenticationOid, StringComparison.Ordinal))
+                    {
+                        return;
+                    }
+                }
+            }
+
+            if (hasEkuExtension)
+            {
+                throw new InvalidOperationException("InvalidServerCertificateEku");
+            }
+        }
+
+        static void ObserveTaskException(Task task) => _ = task.ContinueWith(t => _ = t.Exception, TaskScheduler.Current);
 
         async Task<IAdaptedConnection> InnerOnConnectionAsync(ConnectionAdapterContext context)
         {
@@ -161,69 +202,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Adapters
             return new HttpsAdaptedConnection(sslStream);
         }
 
-        static void EnsureCertificateIsAllowedForServerAuth(X509Certificate2 certificate)
-        {
-            /* If the Extended Key Usage extension is included, then we check that the serverAuth usage is included. (http://oid-info.com/get/1.3.6.1.5.5.7.3.1)
-             * If the Extended Key Usage extension is not included, then we assume the certificate is allowed for all usages.
-             * 
-             * See also https://blogs.msdn.microsoft.com/kaushal/2012/02/17/client-certificates-vs-server-certificates/
-             * 
-             * From https://tools.ietf.org/html/rfc3280#section-4.2.1.13 "Certificate Extensions: Extended Key Usage"
-             * 
-             * If the (Extended Key Usage) extension is present, then the certificate MUST only be used
-             * for one of the purposes indicated.  If multiple purposes are
-             * indicated the application need not recognize all purposes indicated,
-             * as long as the intended purpose is present.  Certificate using
-             * applications MAY require that a particular purpose be indicated in
-             * order for the certificate to be acceptable to that application.
-             */
-
-            bool hasEkuExtension = false;
-
-            foreach (X509EnhancedKeyUsageExtension extension in certificate.Extensions.OfType<X509EnhancedKeyUsageExtension>())
-            {
-                hasEkuExtension = true;
-                foreach (Oid oid in extension.EnhancedKeyUsages)
-                {
-                    if (oid.Value.Equals(ServerAuthenticationOid, StringComparison.Ordinal))
-                    {
-                        return;
-                    }
-                }
-            }
-
-            if (hasEkuExtension)
-            {
-                throw new InvalidOperationException("InvalidServerCertificateEku");
-            }
-        }
-
-        static void ObserveTaskException(Task task) => _ = task.ContinueWith(t => _ = t.Exception, TaskScheduler.Current);
-
-        class HttpsAdaptedConnection : IAdaptedConnection
-        {
-            readonly SslStream sslStream;
-
-            public HttpsAdaptedConnection(SslStream sslStream)
-            {
-                this.sslStream = sslStream;
-            }
-
-            public Stream ConnectionStream => this.sslStream;
-
-            public void Dispose() => this.sslStream.Dispose();
-        }
-
-        class ClosedAdaptedConnection : IAdaptedConnection
-        {
-            public Stream ConnectionStream { get; } = new ClosedStream();
-
-            [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", Justification = "Field does not need to be disposed.")]
-            public void Dispose()
-            {
-            }
-        }
-
         internal class ClosedStream : Stream
         {
             static readonly Task<int> ZeroResultTask = Task.FromResult(result: 0);
@@ -260,10 +238,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Adapters
             public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
         }
 
+        class ClosedAdaptedConnection : IAdaptedConnection
+        {
+            public Stream ConnectionStream { get; } = new ClosedStream();
+
+            [SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", Justification = "Field does not need to be disposed.")]
+            public void Dispose()
+            {
+            }
+        }
+
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<HttpsExtensionConnectionAdapter>();
             const int IdStart = HttpEventIds.HttpsExtensionConnectionAdapter;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<HttpsExtensionConnectionAdapter>();
 
             enum EventIds
             {
@@ -280,6 +268,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Adapters
 
             public static void AuthenticationSuccess() =>
                 Log.LogDebug((int)EventIds.AuthenticationSuccess, "HttpExtensionConnectionAdapter authentication succeeded");
+        }
+
+        class HttpsAdaptedConnection : IAdaptedConnection
+        {
+            readonly SslStream sslStream;
+
+            public HttpsAdaptedConnection(SslStream sslStream)
+            {
+                this.sslStream = sslStream;
+            }
+
+            public Stream ConnectionStream => this.sslStream;
+
+            public void Dispose() => this.sslStream.Dispose();
         }
     }
 }

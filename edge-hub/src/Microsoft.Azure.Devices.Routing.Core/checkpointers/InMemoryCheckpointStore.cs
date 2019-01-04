@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
 
         public Task<IDictionary<string, CheckpointData>> GetAllCheckpointDataAsync(CancellationToken token)
         {
-            return Task.FromResult((IDictionary <string, CheckpointData>)this.checkpointDataMap.ToDictionary(keySelector => keySelector.Key, valueSelector => valueSelector.Value));
+            return Task.FromResult((IDictionary<string, CheckpointData>)this.checkpointDataMap.ToDictionary(keySelector => keySelector.Key, valueSelector => valueSelector.Value));
         }
 
         public Task SetCheckpointDataAsync(string id, CheckpointData checkpointData, CancellationToken token)

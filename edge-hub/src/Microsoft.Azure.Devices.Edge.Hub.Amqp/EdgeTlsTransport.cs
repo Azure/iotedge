@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     {
         readonly IClientCredentialsFactory clientCredentialsProvider;
         readonly IAuthenticator authenticator;
-        private IList<X509Certificate2> remoteCertificateChain;
+        IList<X509Certificate2> remoteCertificateChain;
 
         public EdgeTlsTransport(
             TransportBase innerTransport,
@@ -31,10 +31,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
         protected override X509Principal CreateX509Principal(X509Certificate2 certificate)
         {
-            var principal = new EdgeX509Principal(new X509CertificateIdentity(certificate, true),
-                                                     this.remoteCertificateChain,
-                                                     this.authenticator,
-                                                     this.clientCredentialsProvider);
+            var principal = new EdgeX509Principal(
+                new X509CertificateIdentity(certificate, true),
+                this.remoteCertificateChain,
+                this.authenticator,
+                this.clientCredentialsProvider);
             // release chain elements from here since principal has this
             this.remoteCertificateChain = null;
             return principal;
@@ -42,9 +43,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
         protected override bool ValidateRemoteCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
-            // copy of the chain elements since they are destroyed after this method completes 
-            this.remoteCertificateChain = chain == null ? new List<X509Certificate2>() :
-                                                          chain.ChainElements.Cast<X509ChainElement>().Select(element => element.Certificate).ToList();
+            // copy of the chain elements since they are destroyed after this method completes
+            this.remoteCertificateChain = chain == null ? new List<X509Certificate2>() : chain.ChainElements.Cast<X509ChainElement>().Select(element => element.Certificate).ToList();
             return base.ValidateRemoteCertificate(sender, certificate, chain, sslPolicyErrors);
         }
     }

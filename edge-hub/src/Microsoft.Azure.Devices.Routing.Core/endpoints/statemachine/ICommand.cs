@@ -30,12 +30,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
     {
         readonly TaskCompletionSource<bool> tcs;
 
-        public CommandType Type => CommandType.SendMessage;
-
-        public ICollection<IMessage> Messages { get; }
-
-        public Task Completion => this.tcs.Task;
-
         public SendMessage(ICollection<IMessage> messages)
             : this(messages, new TaskCompletionSource<bool>())
         {
@@ -46,6 +40,12 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             this.Messages = Preconditions.CheckNotNull(messages);
             this.tcs = Preconditions.CheckNotNull(tcs);
         }
+
+        public CommandType Type => CommandType.SendMessage;
+
+        public ICollection<IMessage> Messages { get; }
+
+        public Task Completion => this.tcs.Task;
 
         /// <summary>
         /// Copies send message command and task completion source.
@@ -65,26 +65,26 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
 
     public class UpdateEndpoint : ICommand
     {
-        public CommandType Type => CommandType.UpdateEndpoint;
-
-        public Endpoint Endpoint { get; }
-
         public UpdateEndpoint(Endpoint endpoint)
         {
             this.Endpoint = Preconditions.CheckNotNull(endpoint);
         }
+
+        public CommandType Type => CommandType.UpdateEndpoint;
+
+        public Endpoint Endpoint { get; }
     }
 
     public class Checkpoint : ICommand
     {
-        public CommandType Type => CommandType.Checkpoint;
-
-        public ISinkResult<IMessage> Result { get; }
-
         public Checkpoint(ISinkResult<IMessage> result)
         {
             this.Result = Preconditions.CheckNotNull(result);
         }
+
+        public CommandType Type => CommandType.Checkpoint;
+
+        public ISinkResult<IMessage> Result { get; }
     }
 
     public class Succeed : ICommand
@@ -99,26 +99,26 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
 
     public class Fail : ICommand
     {
-        public CommandType Type => CommandType.Fail;
-
-        public TimeSpan RetryAfter { get; }
-
         public Fail(TimeSpan retryAfter)
         {
             this.RetryAfter = retryAfter;
         }
+
+        public CommandType Type => CommandType.Fail;
+
+        public TimeSpan RetryAfter { get; }
     }
 
     public class Throw : ICommand
     {
-        public CommandType Type => CommandType.Throw;
-
-        public Exception Exception { get; }
-
         public Throw(Exception exception)
         {
             this.Exception = exception;
         }
+
+        public CommandType Type => CommandType.Throw;
+
+        public Exception Exception { get; }
     }
 
     public class Retry : ICommand
@@ -143,6 +143,18 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
 
     public static class Commands
     {
+        public static Succeed Succeed { get; } = new Succeed();
+
+        public static DeadSucceed DeadSucceed { get; } = new DeadSucceed();
+
+        public static Retry Retry { get; } = new Retry();
+
+        public static Revive Revive { get; } = new Revive();
+
+        public static Die Die { get; } = new Die();
+
+        public static Close Close { get; } = new Close();
+
         public static SendMessage SendMessage(params IMessage[] messages) => new SendMessage(messages);
 
         public static UpdateEndpoint UpdateEndpoint(Endpoint endpoint) => new UpdateEndpoint(endpoint);
@@ -152,17 +164,5 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
         public static Throw Throw(Exception exception) => new Throw(exception);
 
         public static Fail Fail(TimeSpan retryAfter) => new Fail(retryAfter);
-
-        public static Succeed Succeed { get; } = new Succeed();
-
-        public static DeadSucceed DeadSucceed { get; } = new DeadSucceed();
-
-        public static Retry Retry { get; }= new Retry();
-
-        public static Revive Revive { get; }= new Revive();
-
-        public static Die Die { get; } = new Die();
-
-        public static Close Close { get; }= new Close();
     }
 }

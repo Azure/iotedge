@@ -23,17 +23,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
         [Fact]
         public void CtorThrowsWhenRequestDelegateIsNull()
         {
-            Assert.Throws<ArgumentNullException>(() =>
-                new WebSocketHandlingMiddleware(null, Mock.Of<IWebSocketListenerRegistry>())
-                );
+            Assert.Throws<ArgumentNullException>(
+                () => new WebSocketHandlingMiddleware(null, Mock.Of<IWebSocketListenerRegistry>()));
         }
 
         [Fact]
         public void CtorThrowsWhenWebSocketListenerRegistryIsNull()
         {
-            Assert.Throws<ArgumentNullException>(() =>
-                new WebSocketHandlingMiddleware(Mock.Of<RequestDelegate>(), null)
-                );
+            Assert.Throws<ArgumentNullException>(
+                () => new WebSocketHandlingMiddleware(Mock.Of<RequestDelegate>(), null));
         }
 
         [Fact]
@@ -115,45 +113,70 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             Assert.Equal((int)HttpStatusCode.BadRequest, httpContext.Response.StatusCode);
         }
 
+        static IWebSocketListenerRegistry ObservingWebSocketListenerRegistry(List<string> correlationIds)
+        {
+            var registry = new Mock<IWebSocketListenerRegistry>();
+            var listener = new Mock<IWebSocketListener>();
+
+            listener.Setup(
+                    wsl => wsl.ProcessWebSocketRequestAsync(
+                        It.IsAny<WebSocket>(),
+                        It.IsAny<Option<EndPoint>>(),
+                        It.IsAny<EndPoint>(),
+                        It.IsAny<string>()))
+                .Returns(Task.CompletedTask)
+                .Callback<WebSocket, Option<EndPoint>, EndPoint, string>((ws, ep1, ep2, id) => correlationIds.Add(id));
+            registry
+                .Setup(wslr => wslr.GetListener(It.IsAny<IList<string>>()))
+                .Returns(Option.Some(listener.Object));
+
+            return registry.Object;
+        }
+
         HttpContext WebSocketRequestContext()
         {
-            return Mock.Of<HttpContext>(ctx =>
-                ctx.WebSockets == Mock.Of<WebSocketManager>(wsm => wsm.IsWebSocketRequest == true)
-                && ctx.Response == Mock.Of<HttpResponse>()
-                && ctx.Features == Mock.Of<IFeatureCollection>(fc =>
-                                                               fc.Get<ITlsConnectionFeatureExtended>() == Mock.Of<ITlsConnectionFeatureExtended>(
-                                                                   f => f.ChainElements == new List<X509Certificate2>()))
-                && ctx.Connection == Mock.Of<ConnectionInfo>(conn => conn.LocalIpAddress == new IPAddress(123)
-                                                             && conn.LocalPort == It.IsAny<int>()
-                                                             && conn.RemoteIpAddress == new IPAddress(123)
-                                                             && conn.RemotePort == It.IsAny<int>()
-                                                             && conn.ClientCertificate == new X509Certificate2()));
+            return Mock.Of<HttpContext>(
+                ctx =>
+                    ctx.WebSockets == Mock.Of<WebSocketManager>(wsm => wsm.IsWebSocketRequest == true)
+                    && ctx.Response == Mock.Of<HttpResponse>()
+                    && ctx.Features == Mock.Of<IFeatureCollection>(
+                        fc =>
+                            fc.Get<ITlsConnectionFeatureExtended>() == Mock.Of<ITlsConnectionFeatureExtended>(
+                                f => f.ChainElements == new List<X509Certificate2>()))
+                    && ctx.Connection == Mock.Of<ConnectionInfo>(
+                        conn => conn.LocalIpAddress == new IPAddress(123)
+                                && conn.LocalPort == It.IsAny<int>()
+                                && conn.RemoteIpAddress == new IPAddress(123)
+                                && conn.RemotePort == It.IsAny<int>()
+                                && conn.ClientCertificate == new X509Certificate2()));
         }
 
         HttpContext NonWebSocketRequestContext()
         {
-            return Mock.Of<HttpContext>(ctx =>
-                ctx.WebSockets == Mock.Of<WebSocketManager>(wsm =>
-                    wsm.IsWebSocketRequest == false));
+            return Mock.Of<HttpContext>(
+                ctx =>
+                    ctx.WebSockets == Mock.Of<WebSocketManager>(
+                        wsm =>
+                            wsm.IsWebSocketRequest == false));
         }
 
         HttpContext ContextWithRequestedSubprotocols(params string[] subprotocols)
         {
-            return Mock.Of<HttpContext>(ctx =>
-                ctx.WebSockets == Mock.Of<WebSocketManager>(
-                    wsm =>
-                        wsm.WebSocketRequestedProtocols == subprotocols
-                        && wsm.IsWebSocketRequest
-                        && wsm.AcceptWebSocketAsync(It.IsAny<string>()) == Task.FromResult(Mock.Of<WebSocket>())
-                    )
-                && ctx.Response == Mock.Of<HttpResponse>()
-                && ctx.Features == Mock.Of<IFeatureCollection>(fc =>
-                                                               fc.Get<ITlsConnectionFeatureExtended>() == Mock.Of<ITlsConnectionFeatureExtended>(
-                                                                   f => f.ChainElements == new List<X509Certificate2>()))
-                && ctx.Connection == Mock.Of<ConnectionInfo>(conn => conn.LocalIpAddress == new IPAddress(123)
-                                                             && conn.LocalPort == It.IsAny<int>()
-                                                             && conn.RemoteIpAddress == new IPAddress(123) && conn.RemotePort == It.IsAny<int>()
-                                                             && conn.ClientCertificate == new X509Certificate2()));
+            return Mock.Of<HttpContext>(
+                ctx =>
+                    ctx.WebSockets == Mock.Of<WebSocketManager>(
+                        wsm =>
+                            wsm.WebSocketRequestedProtocols == subprotocols
+                            && wsm.IsWebSocketRequest
+                            && wsm.AcceptWebSocketAsync(It.IsAny<string>()) == Task.FromResult(Mock.Of<WebSocket>()))
+                    && ctx.Response == Mock.Of<HttpResponse>()
+                    && ctx.Features == Mock.Of<IFeatureCollection>(
+                        fc => fc.Get<ITlsConnectionFeatureExtended>() == Mock.Of<ITlsConnectionFeatureExtended>(f => f.ChainElements == new List<X509Certificate2>()))
+                    && ctx.Connection == Mock.Of<ConnectionInfo>(
+                        conn => conn.LocalIpAddress == new IPAddress(123)
+                                && conn.LocalPort == It.IsAny<int>()
+                                && conn.RemoteIpAddress == new IPAddress(123) && conn.RemotePort == It.IsAny<int>()
+                                && conn.ClientCertificate == new X509Certificate2()));
         }
 
         RequestDelegate ThrowingNextDelegate()
@@ -168,25 +191,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             registry
                 .Setup(wslr => wslr.GetListener(It.IsAny<IList<string>>()))
                 .Throws(new Exception("IWebSocketListenerRegistry.InvokeAsync should not be called"));
-
-            return registry.Object;
-        }
-
-        static IWebSocketListenerRegistry ObservingWebSocketListenerRegistry(List<string> correlationIds)
-        {
-            var registry = new Mock<IWebSocketListenerRegistry>();
-            var listener = new Mock<IWebSocketListener>();
-
-            listener.Setup(wsl => wsl.ProcessWebSocketRequestAsync(
-                    It.IsAny<WebSocket>(),
-                    It.IsAny<Option<EndPoint>>(),
-                    It.IsAny<EndPoint>(),
-                    It.IsAny<string>()))
-                .Returns(Task.CompletedTask)
-                .Callback<WebSocket, Option<EndPoint>, EndPoint, string>((ws, ep1, ep2, id) => correlationIds.Add(id));
-            registry
-                .Setup(wslr => wslr.GetListener(It.IsAny<IList<string>>()))
-                .Returns(Option.Some(listener.Object));
 
             return registry.Object;
         }

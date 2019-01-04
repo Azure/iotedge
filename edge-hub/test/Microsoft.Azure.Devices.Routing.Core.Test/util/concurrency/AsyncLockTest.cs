@@ -4,14 +4,15 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util.Concurrency
     using System.Diagnostics.CodeAnalysis;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
     using Xunit;
 
     [ExcludeFromCodeCoverage]
     public class AsyncLockTest
     {
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestUnlockedPermitsLockSynchronously()
         {
             var mutex = new AsyncLock();
@@ -22,21 +23,23 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util.Concurrency
             Assert.False(lockTask.IsCanceled);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestLockedPreventsLockUntilUnlocked()
         {
             var mutex = new AsyncLock();
             var locked = new TaskCompletionSource<bool>();
             var cont = new TaskCompletionSource<bool>();
 
-            Task t1 = Task.Run(async () =>
-            {
-                using (await mutex.LockAsync())
+            Task t1 = Task.Run(
+                async () =>
                 {
-                    locked.SetResult(true);
-                    await cont.Task;
-                }
-            });
+                    using (await mutex.LockAsync())
+                    {
+                        locked.SetResult(true);
+                        await cont.Task;
+                    }
+                });
             await locked.Task;
 
             Task<Task<AsyncLock.Releaser>> t2Start = Task.Factory.StartNew(async () => await mutex.LockAsync());
@@ -48,28 +51,31 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util.Concurrency
             await t1;
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestDoubleDisposeOnlyPermitsOneTask()
         {
             var mutex = new AsyncLock();
             var t1HasLock = new TaskCompletionSource<bool>();
             var t1Continue = new TaskCompletionSource<bool>();
 
-            await Task.Run(async () =>
-            {
-                AsyncLock.Releaser key = await mutex.LockAsync();
-                key.Dispose();
-                key.Dispose();
-            });
-
-            Task t1 = Task.Run(async () =>
-            {
-                using (await mutex.LockAsync())
+            await Task.Run(
+                async () =>
                 {
-                    t1HasLock.SetResult(true);
-                    await t1Continue.Task;
-                }
-            });
+                    AsyncLock.Releaser key = await mutex.LockAsync();
+                    key.Dispose();
+                    key.Dispose();
+                });
+
+            Task t1 = Task.Run(
+                async () =>
+                {
+                    using (await mutex.LockAsync())
+                    {
+                        t1HasLock.SetResult(true);
+                        await t1Continue.Task;
+                    }
+                });
             await t1HasLock.Task;
 
             Task<Task<AsyncLock.Releaser>> task2Start = Task.Factory.StartNew(async () => await mutex.LockAsync());
@@ -81,7 +87,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util.Concurrency
             await t1;
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestCancellation()
         {
             var mutex = new AsyncLock();
@@ -95,7 +102,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util.Concurrency
             mutex.Dispose();
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestThrowsIfTokenCancelled()
         {
             var mutex = new AsyncLock();

@@ -14,12 +14,15 @@ namespace LoadGen
     using Newtonsoft.Json;
     using Serilog;
     using ExponentialBackoff = Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling.ExponentialBackoff;
+    using ILogger = Microsoft.Extensions.Logging.ILogger;
 
     class Program
     {
         const int RetryCount = 5;
+
         static readonly ITransientErrorDetectionStrategy TimeoutErrorDetectionStrategy =
             new DelegateErrorDetectionStrategy(ex => ex.HasTimeoutException());
+
         static readonly RetryStrategy TransientRetryStrategy =
             new ExponentialBackoff(
                 RetryCount,
@@ -27,11 +30,11 @@ namespace LoadGen
                 TimeSpan.FromSeconds(60),
                 TimeSpan.FromSeconds(4));
 
-        static long MessageIdCounter = 0;
+        static long messageIdCounter = 0;
 
         static async Task Main()
         {
-            Microsoft.Extensions.Logging.ILogger logger = InitLogger().CreateLogger("loadgen");
+            ILogger logger = InitLogger().CreateLogger("loadgen");
             Log.Information($"Starting load run with the following settings:\r\n{Settings.Current.ToString()}");
 
             try
@@ -66,11 +69,9 @@ namespace LoadGen
                         () => GenTwinUpdate(client));
                     timers.Start();
 
-                    (
-                        CancellationTokenSource cts,
+                    (CancellationTokenSource cts,
                         ManualResetEventSlim completed,
-                        Option<object> handler
-                    ) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), logger);
+                        Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), logger);
 
                     Log.Information("Load gen running.");
 
@@ -112,7 +113,7 @@ namespace LoadGen
                 try
                 {
                     var message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageBody)));
-                    sequenceNumber = Interlocked.Increment(ref MessageIdCounter);
+                    sequenceNumber = Interlocked.Increment(ref messageIdCounter);
                     message.Properties.Add("sequenceNumber", sequenceNumber.ToString());
                     message.Properties.Add("batchId", batchId.ToString());
                     await client.SendEventAsync(Settings.Current.OutputName, message).ConfigureAwait(false);
@@ -121,14 +122,13 @@ namespace LoadGen
                 {
                     Log.Error($"Sequence number {sequenceNumber}, BatchId: {batchId.ToString()} {e}");
                 }
-
             }
         }
 
         static async void GenTwinUpdate(ModuleClient client)
         {
             var twin = new TwinCollection();
-            twin["messagesSent"] = MessageIdCounter;
+            twin["messagesSent"] = messageIdCounter;
             await client.UpdateReportedPropertiesAsync(twin).ConfigureAwait(false);
         }
 
@@ -159,6 +159,7 @@ namespace LoadGen
                         return new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
                 }
             }
+
             ITransportSettings[] settings = GetTransportSettings();
 
             ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings).ConfigureAwait(false);

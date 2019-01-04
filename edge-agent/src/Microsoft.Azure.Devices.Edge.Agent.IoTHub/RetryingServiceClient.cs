@@ -36,11 +36,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             this.ExecuteWithRetry(() => this.underlying.UpdateModules(modules), nameof(this.underlying.UpdateModules));
 
         public Task RemoveModules(IEnumerable<string> identities) =>
-            this.ExecuteWithRetry(async () =>
-            {
-                await this.underlying.RemoveModules(identities);
-                return 0;
-            }, nameof(this.underlying.RemoveModules));
+            this.ExecuteWithRetry(
+                async () =>
+                {
+                    await this.underlying.RemoveModules(identities);
+                    return 0;
+                },
+                nameof(this.underlying.RemoveModules));
 
         Task<T> ExecuteWithRetry<T>(Func<Task<T>> func, string action)
         {
@@ -57,13 +59,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 typeof(UnauthorizedException)
             };
 
-            public bool IsTransient(Exception ex) => !(NonTransientExceptions.Contains(ex.GetType()));
+            public bool IsTransient(Exception ex) => !NonTransientExceptions.Contains(ex.GetType());
         }
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<RetryingServiceClient>();
             const int IdStart = AgentEventIds.RetryingServiceClient;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<RetryingServiceClient>();
 
             enum EventIds
             {

@@ -29,7 +29,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 new TestRecordType(TestCommandType.TestCreate, new TestModule("module3", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image3"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars)),
                 new TestRecordType(TestCommandType.TestCreate, new TestModule("module4", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image4"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars)),
                 new TestRecordType(TestCommandType.TestCreate, new TestModule("module5", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image5"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars)),
-
             };
             var commandList = new List<ICommand>
             {
@@ -51,7 +50,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
             var planRunner = new OrderedPlanRunner();
             await planRunner.ExecuteAsync(1, plan1, token);
-            Assert.All(commandList,
+            Assert.All(
+                commandList,
                 command =>
                 {
                     var c = command as TestCommand;
@@ -88,7 +88,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var token = new CancellationToken();
             var planRunner = new OrderedPlanRunner();
             await planRunner.ExecuteAsync(1, plan1, token);
-            Assert.All(commandList,
+            Assert.All(
+                commandList,
                 command =>
                 {
                     var c = command as TestCommand;
@@ -133,34 +134,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             AggregateException ex = await Assert.ThrowsAsync<AggregateException>(async () => await planRunner.ExecuteAsync(1, plan1, token));
 
             Assert.True(ex.InnerExceptions.Count == commandList.Count / 2);
-            Assert.True(commandList.Where(command =>
-            {
-                var c = command as TestCommand;
-                Assert.NotNull(c);
-                return c.CommandExecuted;
-            }).Count() == commandList.Count / 2);
-            Assert.True(commandList.Where(command =>
-            {
-                var c = command as TestCommand;
-                Assert.NotNull(c);
-                return !c.CommandExecuted;
-            }).Count() == commandList.Count / 2);
+            Assert.True(
+                commandList.Where(
+                    command =>
+                    {
+                        var c = command as TestCommand;
+                        Assert.NotNull(c);
+                        return c.CommandExecuted;
+                    }).Count() == commandList.Count / 2);
+            Assert.True(
+                commandList.Where(
+                    command =>
+                    {
+                        var c = command as TestCommand;
+                        Assert.NotNull(c);
+                        return !c.CommandExecuted;
+                    }).Count() == commandList.Count / 2);
 
             factory.Recorder.ForEach(r => Assert.Equal(moduleExecutionList, r.ExecutionList));
-        }
-
-        Mock<ICommand> MakeMockCommand(string id, Action callback = null)
-        {
-            callback = callback ?? (() => { });
-
-            var command = new Mock<ICommand>();
-            command.SetupGet(c => c.Id).Returns(id);
-            command.Setup(c => c.ExecuteAsync(It.IsAny<CancellationToken>()))
-                .Callback(callback)
-                .Returns(Task.CompletedTask);
-            command.Setup(c => c.Show())
-                .Returns(id);
-            return command;
         }
 
         [Fact]
@@ -185,6 +176,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             commands[0].Verify(m => m.ExecuteAsync(cts.Token), Times.Once());
             commands[1].Verify(m => m.ExecuteAsync(cts.Token), Times.Once());
             commands[2].Verify(m => m.ExecuteAsync(cts.Token), Times.Never());
+        }
+
+        Mock<ICommand> MakeMockCommand(string id, Action callback = null)
+        {
+            callback = callback ?? (() => { });
+
+            var command = new Mock<ICommand>();
+            command.SetupGet(c => c.Id).Returns(id);
+            command.Setup(c => c.ExecuteAsync(It.IsAny<CancellationToken>()))
+                .Callback(callback)
+                .Returns(Task.CompletedTask);
+            command.Setup(c => c.Show())
+                .Returns(id);
+            return command;
         }
     }
 }

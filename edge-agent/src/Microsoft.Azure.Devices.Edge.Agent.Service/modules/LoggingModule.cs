@@ -3,8 +3,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 {
     using System.Collections.Generic;
     using Autofac;
-    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
     public class LoggingModule : Module

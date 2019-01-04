@@ -10,15 +10,15 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Errors
     /// </summary>
     public struct ErrorPosition : IComparable<ErrorPosition>
     {
-        public int Line { get; }
-
-        public int Column { get; }
-
         public ErrorPosition(int line, int column)
         {
             this.Line = Preconditions.CheckRange(line, 1);
             this.Column = Preconditions.CheckRange(column, 1);
         }
+
+        public int Line { get; }
+
+        public int Column { get; }
 
         public static bool operator <(ErrorPosition x, ErrorPosition y)
         {
@@ -66,19 +66,13 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Errors
             }
         }
 
-        bool Equals(ErrorPosition other)
-        {
-            bool lines = this.Line == other.Line;
-            bool columns = this.Column == other.Column;
-            return lines && columns;
-        }
-
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(null, obj))
             {
                 return false;
             }
+
             return obj.GetType() == this.GetType() && this.Equals((ErrorPosition)obj);
         }
 
@@ -91,5 +85,12 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Errors
         }
 
         public override string ToString() => string.Format(CultureInfo.InvariantCulture, "{0}:{1}", this.Line, this.Column);
+
+        bool Equals(ErrorPosition other)
+        {
+            bool lines = this.Line == other.Line;
+            bool columns = this.Column == other.Column;
+            return lines && columns;
+        }
     }
 }

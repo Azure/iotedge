@@ -8,7 +8,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     {
         public EdgeAmqpException(string message, ErrorCode errorCode)
             : this(message, errorCode, null)
-        { }
+        {
+        }
 
         public EdgeAmqpException(string message, ErrorCode errorCode, Exception innerException)
             : base(message, innerException)

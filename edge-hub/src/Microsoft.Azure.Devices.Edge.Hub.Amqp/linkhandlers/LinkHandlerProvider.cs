@@ -108,6 +108,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             }
         }
 
+        internal (LinkType LinkType, IDictionary<string, string> BoundVariables) GetLinkType(IAmqpLink link, Uri uri)
+        {
+            foreach ((UriPathTemplate Template, bool IsReceiver) key in this.templatesList.Keys)
+            {
+                if (TryMatchTemplate(uri, key.Template, out IList<KeyValuePair<string, string>> boundVariables) && link.IsReceiver == key.IsReceiver)
+                {
+                    return (this.templatesList[key], boundVariables.ToDictionary());
+                }
+            }
+
+            throw new InvalidOperationException($"Matching template not found for uri {uri}");
+        }
+
+        static bool TryMatchTemplate(Uri uri, UriPathTemplate template, out IList<KeyValuePair<string, string>> boundVariables)
+        {
+            bool success;
+            (success, boundVariables) = template.Match(new Uri(uri.AbsolutePath, UriKind.Relative));
+            return success;
+        }
+
         IConnectionHandler GetConnectionHandler(IAmqpLink link, IIdentity identity)
         {
             var amqpClientConnectionsHandler = link.Session.Connection.FindExtension<IClientConnectionsHandler>();
@@ -130,26 +150,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             return boundVariables.TryGetValue(Templates.ModuleIdTemplateParameterName, out string moduleId)
                 ? this.identityProvider.Create(deviceId, WebUtility.UrlDecode(moduleId))
                 : this.identityProvider.Create(deviceId);
-        }
-
-        internal (LinkType LinkType, IDictionary<string, string> BoundVariables) GetLinkType(IAmqpLink link, Uri uri)
-        {
-            foreach ((UriPathTemplate Template, bool IsReceiver) key in this.templatesList.Keys)
-            {
-                if (TryMatchTemplate(uri, key.Template, out IList<KeyValuePair<string, string>> boundVariables) && link.IsReceiver == key.IsReceiver)
-                {
-                    return (this.templatesList[key], boundVariables.ToDictionary());
-                }
-            }
-
-            throw new InvalidOperationException($"Matching template not found for uri {uri}");
-        }
-
-        static bool TryMatchTemplate(Uri uri, UriPathTemplate template, out IList<KeyValuePair<string, string>> boundVariables)
-        {
-            bool success;
-            (success, boundVariables) = template.Match(new Uri(uri.AbsolutePath, UriKind.Relative));
-            return success;
         }
     }
 }

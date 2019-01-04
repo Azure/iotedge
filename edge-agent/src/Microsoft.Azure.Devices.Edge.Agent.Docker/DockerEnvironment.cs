@@ -26,7 +26,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         readonly DeploymentConfig deploymentConfig;
         readonly IRestartPolicyManager restartManager;
 
-        public DockerEnvironment(IRuntimeInfoProvider moduleStatusProvider,
+        public DockerEnvironment(
+            IRuntimeInfoProvider moduleStatusProvider,
             DeploymentConfig deploymentConfig,
             IEntityStore<string, ModuleState> moduleStateStore,
             IRestartPolicyManager restartManager,
@@ -74,29 +75,54 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 {
                     case Core.Constants.EdgeHubModuleName:
                         module = new EdgeHubDockerRuntimeModule(
-                            dockerModule.DesiredStatus, dockerModule.RestartPolicy, dockerReportedConfig,
-                            (int)dockerRuntimeInfo.ExitCode, dockerRuntimeInfo.Description, dockerRuntimeInfo.StartTime.GetOrElse(DateTime.MinValue),
-                            lastExitTime, moduleState.RestartCount, moduleState.LastRestartTimeUtc,
-                            moduleRuntimeStatus, dockerModule.ConfigurationInfo, dockerModule.Env);
+                            dockerModule.DesiredStatus,
+                            dockerModule.RestartPolicy,
+                            dockerReportedConfig,
+                            (int)dockerRuntimeInfo.ExitCode,
+                            dockerRuntimeInfo.Description,
+                            dockerRuntimeInfo.StartTime.GetOrElse(DateTime.MinValue),
+                            lastExitTime,
+                            moduleState.RestartCount,
+                            moduleState.LastRestartTimeUtc,
+                            moduleRuntimeStatus,
+                            dockerModule.ConfigurationInfo,
+                            dockerModule.Env);
                         break;
 
                     case Core.Constants.EdgeAgentModuleName:
-                        module = new EdgeAgentDockerRuntimeModule(dockerReportedConfig, moduleRuntimeStatus,
-                            (int)dockerRuntimeInfo.ExitCode, dockerRuntimeInfo.Description, dockerRuntimeInfo.StartTime.GetOrElse(DateTime.MinValue),
-                            lastExitTime, dockerModule.ConfigurationInfo, dockerModule.Env);
+                        module = new EdgeAgentDockerRuntimeModule(
+                            dockerReportedConfig,
+                            moduleRuntimeStatus,
+                            (int)dockerRuntimeInfo.ExitCode,
+                            dockerRuntimeInfo.Description,
+                            dockerRuntimeInfo.StartTime.GetOrElse(DateTime.MinValue),
+                            lastExitTime,
+                            dockerModule.ConfigurationInfo,
+                            dockerModule.Env);
                         break;
 
                     default:
                         module = new DockerRuntimeModule(
-                            moduleRuntimeInfo.Name, dockerModule.Version, dockerModule.DesiredStatus, dockerModule.RestartPolicy, dockerReportedConfig,
-                            (int)moduleRuntimeInfo.ExitCode, moduleRuntimeInfo.Description, moduleRuntimeInfo.StartTime.GetOrElse(DateTime.MinValue), lastExitTime,
-                            moduleState.RestartCount, moduleState.LastRestartTimeUtc,
-                            moduleRuntimeStatus, dockerModule.ConfigurationInfo, dockerModule.Env);
+                            moduleRuntimeInfo.Name,
+                            dockerModule.Version,
+                            dockerModule.DesiredStatus,
+                            dockerModule.RestartPolicy,
+                            dockerReportedConfig,
+                            (int)moduleRuntimeInfo.ExitCode,
+                            moduleRuntimeInfo.Description,
+                            moduleRuntimeInfo.StartTime.GetOrElse(DateTime.MinValue),
+                            lastExitTime,
+                            moduleState.RestartCount,
+                            moduleState.LastRestartTimeUtc,
+                            moduleRuntimeStatus,
+                            dockerModule.ConfigurationInfo,
+                            dockerModule.Env);
                         break;
                 }
 
                 modules.Add(module);
             }
+
             return new ModuleSet(modules.ToDictionary(m => m.Name, m => m));
         }
 
@@ -120,8 +146,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<DockerEnvironment>();
             const int IdStart = AgentEventIds.DockerEnvironment;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<DockerEnvironment>();
 
             enum EventIds
             {

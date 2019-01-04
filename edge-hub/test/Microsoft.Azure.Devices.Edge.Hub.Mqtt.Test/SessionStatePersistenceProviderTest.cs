@@ -1,19 +1,53 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 {
+    using System.Collections.Generic;
+    using System.Threading.Tasks;
     using DotNetty.Codecs.Mqtt.Packets;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt.Persistence;
     using Moq;
-    using System.Collections.Generic;
-    using System.Threading.Tasks;
     using Xunit;
     using IProtocolgatewayDeviceIdentity = Microsoft.Azure.Devices.ProtocolGateway.Identity.IDeviceIdentity;
 
     public class SessionStatePersistenceProviderTest
     {
+        public static IEnumerable<object[]> GetSubscriptionTopics()
+        {
+            var theoryData = new List<object[]>();
+
+            theoryData.Add(new object[] { SessionStatePersistenceProvider.TwinSubscriptionTopicPrefix, DeviceSubscription.DesiredPropertyUpdates });
+            theoryData.Add(new object[] { $"{SessionStatePersistenceProvider.TwinSubscriptionTopicPrefix}/somemorestuff", DeviceSubscription.DesiredPropertyUpdates });
+            theoryData.Add(new object[] { $"SomeStartingStuff/{SessionStatePersistenceProvider.TwinSubscriptionTopicPrefix}", DeviceSubscription.Unknown });
+
+            theoryData.Add(new object[] { SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix, DeviceSubscription.Methods });
+            theoryData.Add(new object[] { $"{SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix}/somemorestuff", DeviceSubscription.Methods });
+            theoryData.Add(new object[] { $"SomeStartingStuff/{SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix}", DeviceSubscription.Unknown });
+
+            theoryData.Add(new object[] { SessionStatePersistenceProvider.C2DSubscriptionTopicPrefix, DeviceSubscription.C2D });
+            theoryData.Add(new object[] { $"{SessionStatePersistenceProvider.C2DSubscriptionTopicPrefix}/somemorestuff", DeviceSubscription.Unknown });
+            theoryData.Add(new object[] { $"devices/device1/{SessionStatePersistenceProvider.C2DSubscriptionTopicPrefix}", DeviceSubscription.C2D });
+
+            theoryData.Add(new object[] { SessionStatePersistenceProvider.TwinResponseTopicFilter, DeviceSubscription.TwinResponse });
+            theoryData.Add(new object[] { $"{SessionStatePersistenceProvider.TwinResponseTopicFilter}/somemorestuff", DeviceSubscription.Unknown });
+            theoryData.Add(new object[] { $"devices/device1/{SessionStatePersistenceProvider.TwinResponseTopicFilter}", DeviceSubscription.Unknown });
+
+            theoryData.Add(new object[] { "devices/device1/modules/module1/#", DeviceSubscription.ModuleMessages });
+            theoryData.Add(new object[] { "devices/device1/modules/module1/", DeviceSubscription.Unknown });
+            theoryData.Add(new object[] { "devices/device1/modules//#", DeviceSubscription.Unknown });
+            theoryData.Add(new object[] { "devices/device1/modules/#", DeviceSubscription.Unknown });
+            theoryData.Add(new object[] { "devices//modules/module1/#", DeviceSubscription.Unknown });
+            theoryData.Add(new object[] { "devices/modules/module1/#", DeviceSubscription.Unknown });
+            theoryData.Add(new object[] { "devices/device1/module1/#", DeviceSubscription.Unknown });
+            theoryData.Add(new object[] { "devices/device1/modules/modules/#", DeviceSubscription.ModuleMessages });
+            theoryData.Add(new object[] { "/devices/device1/modules/module1/#", DeviceSubscription.Unknown });
+            theoryData.Add(new object[] { "devices/device1/modules/module1", DeviceSubscription.Unknown });
+
+            return theoryData;
+        }
+
         [Fact]
         [Unit]
         public void TestCreate_ShouldReturn_Session()
@@ -97,40 +131,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 
             Assert.True(setTask.IsCompleted);
             edgeHub.Verify(x => x.AddSubscription("d1", DeviceSubscription.Methods), Times.Once);
-        }
-
-        public static IEnumerable<object[]> GetSubscriptionTopics()
-        {
-            var theoryData = new List<object[]>();
-
-            theoryData.Add(new object[] { SessionStatePersistenceProvider.TwinSubscriptionTopicPrefix, DeviceSubscription.DesiredPropertyUpdates });
-            theoryData.Add(new object[] { $"{SessionStatePersistenceProvider.TwinSubscriptionTopicPrefix}/somemorestuff", DeviceSubscription.DesiredPropertyUpdates });
-            theoryData.Add(new object[] { $"SomeStartingStuff/{SessionStatePersistenceProvider.TwinSubscriptionTopicPrefix}", DeviceSubscription.Unknown });
-
-            theoryData.Add(new object[] { SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix, DeviceSubscription.Methods });
-            theoryData.Add(new object[] { $"{SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix}/somemorestuff", DeviceSubscription.Methods });
-            theoryData.Add(new object[] { $"SomeStartingStuff/{SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix}", DeviceSubscription.Unknown });
-
-            theoryData.Add(new object[] { SessionStatePersistenceProvider.C2DSubscriptionTopicPrefix, DeviceSubscription.C2D });
-            theoryData.Add(new object[] { $"{SessionStatePersistenceProvider.C2DSubscriptionTopicPrefix}/somemorestuff", DeviceSubscription.Unknown });
-            theoryData.Add(new object[] { $"devices/device1/{SessionStatePersistenceProvider.C2DSubscriptionTopicPrefix}", DeviceSubscription.C2D });
-
-            theoryData.Add(new object[] { SessionStatePersistenceProvider.TwinResponseTopicFilter, DeviceSubscription.TwinResponse });
-            theoryData.Add(new object[] { $"{SessionStatePersistenceProvider.TwinResponseTopicFilter}/somemorestuff", DeviceSubscription.Unknown });
-            theoryData.Add(new object[] { $"devices/device1/{SessionStatePersistenceProvider.TwinResponseTopicFilter}", DeviceSubscription.Unknown });
-
-            theoryData.Add(new object[] { "devices/device1/modules/module1/#", DeviceSubscription.ModuleMessages });
-            theoryData.Add(new object[] { "devices/device1/modules/module1/", DeviceSubscription.Unknown });
-            theoryData.Add(new object[] { "devices/device1/modules//#", DeviceSubscription.Unknown });
-            theoryData.Add(new object[] { "devices/device1/modules/#", DeviceSubscription.Unknown });
-            theoryData.Add(new object[] { "devices//modules/module1/#", DeviceSubscription.Unknown });
-            theoryData.Add(new object[] { "devices/modules/module1/#", DeviceSubscription.Unknown });
-            theoryData.Add(new object[] { "devices/device1/module1/#", DeviceSubscription.Unknown });
-            theoryData.Add(new object[] { "devices/device1/modules/modules/#", DeviceSubscription.ModuleMessages });
-            theoryData.Add(new object[] { "/devices/device1/modules/module1/#", DeviceSubscription.Unknown });
-            theoryData.Add(new object[] { "devices/device1/modules/module1", DeviceSubscription.Unknown });
-
-            return theoryData;
         }
 
         [Theory]

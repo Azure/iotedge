@@ -19,8 +19,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     using Microsoft.Extensions.Logging;
 
     /// <summary>
-    /// This class is used to get tokens from the Client on the CBS link. It generates 
-    /// an identity from the received token and authenticates it. 
+    /// This class is used to get tokens from the Client on the CBS link. It generates
+    /// an identity from the received token and authenticates it.
     /// </summary>
     class CbsNode : ICbsNode, IAmqpAuthenticator
     {
@@ -69,6 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                     this.sendingLink = (EdgeSendingAmqpLink)link;
                 }
             }
+
             Events.LinkRegistered(link);
         }
 
@@ -106,80 +107,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             }
         }
 
-        async void OnMessageReceived(AmqpMessage message)
+        public void Dispose()
         {
-            Events.NewTokenReceived();
-            try
-            {
-                await this.HandleTokenUpdate(message);
-            }
-            catch (Exception ex)
-            {
-                Events.ErrorHandlingTokenUpdate(ex);
-            }
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
-        async Task HandleTokenUpdate(AmqpMessage message)
+        protected virtual void Dispose(bool disposing)
         {
-            using (await this.identitySyncLock.LockAsync())
+            if (!this.disposed)
             {
-                try
-                {
-                    (AmqpResponseStatusCode statusCode, string description) = await this.UpdateCbsToken(message);
-                    await this.SendResponseAsync(message, statusCode, description);
-                }
-                catch (Exception e)
-                {
-                    await this.SendResponseAsync(message, AmqpResponseStatusCode.InternalServerError, e.Message);
-                    Events.ErrorUpdatingToken(e);
-                }
+                this.disposed = true;
             }
-        }
-
-        // Note: This method updates this.clientCredentialsMap, and should be invoked only within this.identitySyncLock
-        internal async Task<(AmqpResponseStatusCode, string)> UpdateCbsToken(AmqpMessage message)
-        {
-            IClientCredentials clientCredentials;
-            try
-            {
-                clientCredentials = this.GetClientCredentials(message);
-            }
-            catch (Exception e) when (!ExceptionEx.IsFatal(e))
-            {
-                Events.ErrorGettingIdentity(e);
-                return (AmqpResponseStatusCode.BadRequest, e.Message);
-            }
-
-            if (!this.clientCredentialsMap.TryGetValue(clientCredentials.Identity.Id, out CredentialsInfo credentialsInfo))
-            {
-                this.clientCredentialsMap[clientCredentials.Identity.Id] = new CredentialsInfo(clientCredentials);
-            }
-            else
-            {
-                using (await credentialsInfo.AsyncLock.LockAsync())
-                {
-                    credentialsInfo.ClientCredentials = clientCredentials;
-                }
-                if (credentialsInfo.IsAuthenticated)
-                {
-                    await this.credentialsCache.Add(clientCredentials);
-                    Events.CbsTokenUpdated(clientCredentials.Identity);
-                }
-                else
-                {
-                    Events.CbsTokenNotUpdated(clientCredentials.Identity);
-                }
-            }
-
-            return (AmqpResponseStatusCode.OK, AmqpResponseStatusCode.OK.ToString());
-        }
-
-        internal IClientCredentials GetClientCredentials(AmqpMessage message)
-        {
-            (string token, string audience) = ValidateAndParseMessage(this.iotHubHostName, message);
-            (string deviceId, string moduleId) = ParseIds(audience);
-            IClientCredentials clientCredentials = this.clientCredentialsFactory.GetWithSasToken(deviceId, moduleId, string.Empty, token, true);
-            return clientCredentials;
         }
 
         internal static (string token, string audience) ValidateAndParseMessage(string iotHubHostName, AmqpMessage message)
@@ -218,30 +157,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             }
         }
 
-        Task SendResponseAsync(AmqpMessage requestMessage, AmqpResponseStatusCode statusCode, string statusDescription)
-        {
-            try
-            {
-                AmqpMessage response = GetAmqpResponse(requestMessage, statusCode, statusDescription);
-                return this.sendingLink?.SendMessageAsync(response, this.GetDeliveryTag(), AmqpConstants.NullBinary, AmqpConstants.DefaultTimeout) ?? Task.CompletedTask;
-            }
-            catch (Exception e)
-            {
-                Events.ErrorSendingResponse(e);
-                return Task.CompletedTask;
-            }
-        }
-
-        static AmqpMessage GetAmqpResponse(AmqpMessage requestMessage, AmqpResponseStatusCode statusCode, string statusDescription)
-        {
-            AmqpMessage response = AmqpMessage.Create();
-            response.Properties.CorrelationId = requestMessage.Properties.MessageId;
-            response.ApplicationProperties = new ApplicationProperties();
-            response.ApplicationProperties.Map[CbsConstants.PutToken.StatusCode] = (int)statusCode;
-            response.ApplicationProperties.Map[CbsConstants.PutToken.StatusDescription] = statusDescription;
-            return response;
-        }
-
         internal static (string deviceId, string moduleId) ParseIds(string audience)
         {
             string decodedAudience = WebUtility.UrlDecode(audience);
@@ -264,28 +179,115 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             throw new InvalidOperationException($"Matching template not found for audience {audienceUri}");
         }
 
+        // Note: This method updates this.clientCredentialsMap, and should be invoked only within this.identitySyncLock
+        internal async Task<(AmqpResponseStatusCode, string)> UpdateCbsToken(AmqpMessage message)
+        {
+            IClientCredentials clientCredentials;
+            try
+            {
+                clientCredentials = this.GetClientCredentials(message);
+            }
+            catch (Exception e) when (!ExceptionEx.IsFatal(e))
+            {
+                Events.ErrorGettingIdentity(e);
+                return (AmqpResponseStatusCode.BadRequest, e.Message);
+            }
+
+            if (!this.clientCredentialsMap.TryGetValue(clientCredentials.Identity.Id, out CredentialsInfo credentialsInfo))
+            {
+                this.clientCredentialsMap[clientCredentials.Identity.Id] = new CredentialsInfo(clientCredentials);
+            }
+            else
+            {
+                using (await credentialsInfo.AsyncLock.LockAsync())
+                {
+                    credentialsInfo.ClientCredentials = clientCredentials;
+                }
+
+                if (credentialsInfo.IsAuthenticated)
+                {
+                    await this.credentialsCache.Add(clientCredentials);
+                    Events.CbsTokenUpdated(clientCredentials.Identity);
+                }
+                else
+                {
+                    Events.CbsTokenNotUpdated(clientCredentials.Identity);
+                }
+            }
+
+            return (AmqpResponseStatusCode.OK, AmqpResponseStatusCode.OK.ToString());
+        }
+
+        internal IClientCredentials GetClientCredentials(AmqpMessage message)
+        {
+            (string token, string audience) = ValidateAndParseMessage(this.iotHubHostName, message);
+            (string deviceId, string moduleId) = ParseIds(audience);
+            IClientCredentials clientCredentials = this.clientCredentialsFactory.GetWithSasToken(deviceId, moduleId, string.Empty, token, true);
+            return clientCredentials;
+        }
+
         internal ArraySegment<byte> GetDeliveryTag()
         {
             int deliveryId = Interlocked.Increment(ref this.deliveryCount);
             return new ArraySegment<byte>(BitConverter.GetBytes(deliveryId));
         }
 
-        public void Dispose()
+        static AmqpMessage GetAmqpResponse(AmqpMessage requestMessage, AmqpResponseStatusCode statusCode, string statusDescription)
         {
-            this.Dispose(true);
-            GC.SuppressFinalize(this);
+            AmqpMessage response = AmqpMessage.Create();
+            response.Properties.CorrelationId = requestMessage.Properties.MessageId;
+            response.ApplicationProperties = new ApplicationProperties();
+            response.ApplicationProperties.Map[CbsConstants.PutToken.StatusCode] = (int)statusCode;
+            response.ApplicationProperties.Map[CbsConstants.PutToken.StatusDescription] = statusDescription;
+            return response;
         }
 
-        protected virtual void Dispose(bool disposing)
+        async void OnMessageReceived(AmqpMessage message)
         {
-            if (!this.disposed)
+            Events.NewTokenReceived();
+            try
             {
-                this.disposed = true;
+                await this.HandleTokenUpdate(message);
+            }
+            catch (Exception ex)
+            {
+                Events.ErrorHandlingTokenUpdate(ex);
+            }
+        }
+
+        async Task HandleTokenUpdate(AmqpMessage message)
+        {
+            using (await this.identitySyncLock.LockAsync())
+            {
+                try
+                {
+                    (AmqpResponseStatusCode statusCode, string description) = await this.UpdateCbsToken(message);
+                    await this.SendResponseAsync(message, statusCode, description);
+                }
+                catch (Exception e)
+                {
+                    await this.SendResponseAsync(message, AmqpResponseStatusCode.InternalServerError, e.Message);
+                    Events.ErrorUpdatingToken(e);
+                }
+            }
+        }
+
+        Task SendResponseAsync(AmqpMessage requestMessage, AmqpResponseStatusCode statusCode, string statusDescription)
+        {
+            try
+            {
+                AmqpMessage response = GetAmqpResponse(requestMessage, statusCode, statusDescription);
+                return this.sendingLink?.SendMessageAsync(response, this.GetDeliveryTag(), AmqpConstants.NullBinary, AmqpConstants.DefaultTimeout) ?? Task.CompletedTask;
+            }
+            catch (Exception e)
+            {
+                Events.ErrorSendingResponse(e);
+                return Task.CompletedTask;
             }
         }
 
         /// <summary>
-        /// This type is deliberately mutable because of the use case. 
+        /// This type is deliberately mutable because of the use case.
         /// </summary>
         class CredentialsInfo
         {
@@ -305,8 +307,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<CbsNode>();
             const int IdStart = AmqpEventIds.CbsNode;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<CbsNode>();
 
             enum EventIds
             {

@@ -10,21 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
     [Unit]
     public class MethodRequestTest
     {
-        [Theory]
-        [MemberData(nameof(GetMethodRequestData))]
-        public void DeserializationTest(string input, MethodRequest expectedMethodRequest)
-        {
-            // Act
-            var methodRequest = JsonConvert.DeserializeObject<MethodRequest>(input);
-
-            // Assert
-            Assert.NotNull(methodRequest);
-            Assert.Equal(expectedMethodRequest.MethodName, methodRequest.MethodName);
-            Assert.Equal(expectedMethodRequest.Payload, methodRequest.Payload);
-            Assert.Equal(expectedMethodRequest.ConnectTimeout, methodRequest.ConnectTimeout);
-            Assert.Equal(expectedMethodRequest.ResponseTimeout, methodRequest.ResponseTimeout);
-        }
-
         public static IEnumerable<object[]> GetMethodRequestData()
         {
             yield return new object[]
@@ -74,6 +59,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
                 }",
                 new MethodRequest("command", new JRaw("{\"prop1\":\"value1\"}"), 30, 0)
             };
+        }
+
+        [Theory]
+        [MemberData(nameof(GetMethodRequestData))]
+        public void DeserializationTest(string input, MethodRequest expectedMethodRequest)
+        {
+            // Act
+            var methodRequest = JsonConvert.DeserializeObject<MethodRequest>(input);
+
+            // Assert
+            Assert.NotNull(methodRequest);
+            Assert.Equal(expectedMethodRequest.MethodName, methodRequest.MethodName);
+            Assert.Equal(expectedMethodRequest.Payload, methodRequest.Payload);
+            Assert.Equal(expectedMethodRequest.ConnectTimeout, methodRequest.ConnectTimeout);
+            Assert.Equal(expectedMethodRequest.ResponseTimeout, methodRequest.ResponseTimeout);
         }
     }
 }

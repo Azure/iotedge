@@ -4,7 +4,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using System;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators;
-    using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -16,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     public class AuthenticatorTest
     {
         const string TestIotHub = "iothub1.azure.net";
+
         [Fact]
         [Unit]
         public void AuthenticatorConstructorTest()
@@ -128,9 +128,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var connectionManager = Mock.Of<IConnectionManager>();
             var credentialsCache = Mock.Of<ICredentialsCache>();
             var certificateAuthenticator = Mock.Of<IAuthenticator>();
-            var clientCredentials = Mock.Of<ICertificateCredentials>(c =>
-                c.Identity == Mock.Of<IModuleIdentity>(i => i.DeviceId == "my-device")
-                && c.AuthenticationType == AuthenticationType.X509Cert);
+            var clientCredentials = Mock.Of<ICertificateCredentials>(
+                c =>
+                    c.Identity == Mock.Of<IModuleIdentity>(i => i.DeviceId == "my-device")
+                    && c.AuthenticationType == AuthenticationType.X509Cert);
             var tokenAuthenticator = Mock.Of<IAuthenticator>();
             Mock.Get(credentialsCache).Setup(cc => cc.Add(clientCredentials)).Returns(Task.CompletedTask);
             Mock.Get(certificateAuthenticator).Setup(ca => ca.AuthenticateAsync(clientCredentials)).ReturnsAsync(true);

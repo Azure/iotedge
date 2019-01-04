@@ -13,6 +13,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
 
     public class BodyQuery : Builtin
     {
+        public override bool IsBodyQuery => true;
+
         protected override BuiltinExecutor[] Executors => new[]
         {
             new BuiltinExecutor
@@ -22,8 +24,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
                 ExecutorFunc = Create
             },
         };
-
-        public override bool IsBodyQuery => true;
 
         public override bool IsEnabled(RouteCompilerFlags routeCompilerFlags)
         {
@@ -44,7 +44,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
             if (!JsonPathValidator.IsSupportedJsonPath(queryString, out string errorDetails))
             {
                 throw new ArgumentException(
-                    string.Format(CultureInfo.InvariantCulture,
+                    string.Format(
+                        CultureInfo.InvariantCulture,
                         "Error in $body query. {0}",
                         errorDetails));
             }
@@ -62,8 +63,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
 
                 QueryValue queryValue = message.GetQueryValue(queryString);
 
-                return queryValue.ValueType == QueryValueType.Object ?
-                    QueryValue.Undefined : queryValue;
+                return queryValue.ValueType == QueryValueType.Object ? QueryValue.Undefined : queryValue;
             }
             catch (Exception ex) when (!ex.IsFatal())
             {
@@ -74,8 +74,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
 
         static class Events
         {
-            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<BodyQuery>();
             const int IdStart = Routing.EventIds.BodyQuery;
+            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<BodyQuery>();
 
             enum EventIds
             {

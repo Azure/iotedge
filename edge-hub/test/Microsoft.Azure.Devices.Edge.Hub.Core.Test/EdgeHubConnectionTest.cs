@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using System.Net;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
-    using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Routing;
@@ -95,7 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var edgeHubConnection = new EdgeHubConnection(edgeHubIdentity, twinManager, routeFactory, twinCollectionMessageConverter, twinMessageConverter, versionInfo, deviceScopeIdentitiesCache.Object);
 
             string correlationId = Guid.NewGuid().ToString();
-            var requestPayload = new []
+            var requestPayload = new[]
             {
                 "d1",
                 "d2"

@@ -1,12 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Util.Test
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
-    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
-    using System;
 
     [Unit]
     public class CollectionExTest
@@ -175,7 +174,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             var stringDictionary = new Dictionary<string, string>
             {
                 ["1"] = "Foo",
-                ["2"] = "",
+                ["2"] = string.Empty,
                 ["3"] = "  ",
                 ["4"] = null,
             };

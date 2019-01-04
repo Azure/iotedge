@@ -3,13 +3,19 @@ namespace Microsoft.Azure.Devices.Routing.Core.Util.Concurrency
 {
     using System.Threading;
 
-    public class AtomicReference<T> where T : class
+    public class AtomicReference<T>
+        where T : class
     {
         T val;
 
         public AtomicReference(T value)
         {
             this.val = value;
+        }
+
+        public static implicit operator T(AtomicReference<T> reference)
+        {
+            return reference.Get();
         }
 
         public bool CompareAndSet(T expect, T update)
@@ -25,11 +31,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Util.Concurrency
         public T Get()
         {
             return this.val;
-        }
-
-        public static implicit operator T(AtomicReference<T> reference)
-        {
-            return reference.Get();
         }
     }
 }

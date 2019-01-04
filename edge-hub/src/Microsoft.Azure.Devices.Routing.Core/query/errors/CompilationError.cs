@@ -5,12 +5,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Errors
 
     public class CompilationError
     {
-        public string Message { get; }
-
-        public ErrorSeverity Severity { get; }
-
-        public ErrorRange Location { get; }
-
         public CompilationError(ErrorSeverity severity, string message, ErrorRange location)
         {
             this.Severity = severity;
@@ -18,10 +12,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Errors
             this.Location = Preconditions.CheckNotNull(location);
         }
 
-        protected bool Equals(CompilationError other)
-        {
-            return string.Equals(this.Message, other.Message) && this.Severity == other.Severity && Equals(this.Location, other.Location);
-        }
+        public string Message { get; }
+
+        public ErrorSeverity Severity { get; }
+
+        public ErrorRange Location { get; }
 
         public override bool Equals(object obj)
         {
@@ -29,10 +24,12 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Errors
             {
                 return false;
             }
+
             if (ReferenceEquals(this, obj))
             {
                 return true;
             }
+
             return obj.GetType() == this.GetType() && this.Equals((CompilationError)obj);
         }
 
@@ -47,5 +44,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Errors
             }
         }
 
+        protected bool Equals(CompilationError other)
+        {
+            return string.Equals(this.Message, other.Message) && this.Severity == other.Severity && Equals(this.Location, other.Location);
+        }
     }
 }

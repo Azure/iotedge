@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Sinks
 {
     using System;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.Util;
 
     public class FailedSinkFactory<T> : ISinkFactory<T>

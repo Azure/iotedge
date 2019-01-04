@@ -23,7 +23,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             methodRequestValidator.Validate(request);
         }
 
-
         [Theory]
         [MemberData(nameof(GetInvalidData))]
         public void ValidateInvalidRequestTest(MethodRequest request, Type expectedExceptionType)
@@ -56,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             yield return new object[] { new MethodRequest(null, new JRaw("{\"prop\":\"val\"}"), 30, 30), typeof(ArgumentException) };
 
-            yield return new object[] { new MethodRequest("", new JRaw("{\"prop\":\"val\"}"), 30, 30), typeof(ArgumentException) };
+            yield return new object[] { new MethodRequest(string.Empty, new JRaw("{\"prop\":\"val\"}"), 30, 30), typeof(ArgumentException) };
 
             yield return new object[] { new MethodRequest(new string('1', 102), new JRaw("{\"prop\":\"val\"}"), 30, 30), typeof(ArgumentException) };
 
@@ -72,6 +71,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
         class TestClass
         {
+            public TestClass(string prop1, string prop2, TestClass obj)
+            {
+                this.Prop1 = prop1;
+                this.Prop2 = prop2;
+                this.NestedObj = obj;
+            }
+
             [JsonProperty("prop1")]
             public string Prop1 { get; }
 
@@ -80,13 +86,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             [JsonProperty("obj")]
             public TestClass NestedObj { get; }
-
-            public TestClass(string prop1, string prop2, TestClass obj)
-            {
-                this.Prop1 = prop1;
-                this.Prop2 = prop2;
-                this.NestedObj = obj;
-            }
         }
     }
 }

@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
     public interface ICertificateCredentials : IClientCredentials
     {
         X509Certificate2 ClientCertificate { get; }
+
         IList<X509Certificate2> ClientCertificateChain { get; }
     }
 }

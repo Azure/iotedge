@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public static IEnumerable<object[]> UpstreamProtocolInputs()
         {
             yield return new object[] { null, Option.None<UpstreamProtocol>() };
-            yield return new object[] { "", Option.None<UpstreamProtocol>() };
+            yield return new object[] { string.Empty, Option.None<UpstreamProtocol>() };
             yield return new object[] { "  ", Option.None<UpstreamProtocol>() };
             yield return new object[] { "Amqp", Option.Some(UpstreamProtocol.Amqp) };
             yield return new object[] { "AmqpWs", Option.Some(UpstreamProtocol.AmqpWs) };

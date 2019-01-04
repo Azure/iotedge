@@ -5,25 +5,28 @@ namespace Microsoft.Azure.Devices.Edge.Util
     using System.Collections.Generic;
     using Microsoft.Extensions.Logging;
     using Serilog;
-    using Serilog.Events;
     using Serilog.Core;
+    using Serilog.Events;
 
     public static class Logger
     {
         public const string RuntimeLogLevelEnvKey = "RuntimeLogLevel";
 
-        static readonly  Dictionary<string, LogEventLevel> LogLevelDictionary = new Dictionary<string, LogEventLevel>(StringComparer.OrdinalIgnoreCase)
+        static readonly Dictionary<string, LogEventLevel> LogLevelDictionary = new Dictionary<string, LogEventLevel>(StringComparer.OrdinalIgnoreCase)
         {
-            {"verbose", LogEventLevel.Verbose},
-            {"debug", LogEventLevel.Debug},
-            {"info", LogEventLevel.Information},
-            {"information", LogEventLevel.Information},
-            {"warning", LogEventLevel.Warning},
-            {"error", LogEventLevel.Error},
-            {"fatal", LogEventLevel.Fatal}
+            { "verbose", LogEventLevel.Verbose },
+            { "debug", LogEventLevel.Debug },
+            { "info", LogEventLevel.Information },
+            { "information", LogEventLevel.Information },
+            { "warning", LogEventLevel.Warning },
+            { "error", LogEventLevel.Error },
+            { "fatal", LogEventLevel.Fatal }
         };
 
+        static readonly Lazy<ILoggerFactory> LoggerLazy = new Lazy<ILoggerFactory>(() => GetLoggerFactory(), true);
         static LogEventLevel logLevel = LogEventLevel.Information;
+
+        public static ILoggerFactory Factory => LoggerLazy.Value;
 
         public static void SetLogLevel(string level)
         {
@@ -33,21 +36,16 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         public static LogEventLevel GetLogLevel() => logLevel;
 
-        static readonly Lazy<ILoggerFactory> LoggerLazy = new Lazy<ILoggerFactory>(() => GetLoggerFactory(), true);
-
-        public static ILoggerFactory Factory => LoggerLazy.Value;
-
         static ILoggerFactory GetLoggerFactory()
         {
             var levelSwitch = new LoggingLevelSwitch();
             levelSwitch.MinimumLevel = logLevel;
             Serilog.Core.Logger loggerConfig = new LoggerConfiguration()
-                    .MinimumLevel.ControlledBy(levelSwitch)
-                    .Enrich.FromLogContext()
-                    .WriteTo.Console(
-                        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] - {Message}{NewLine}{Exception}"
-                    )
-                    .CreateLogger();
+                .MinimumLevel.ControlledBy(levelSwitch)
+                .Enrich.FromLogContext()
+                .WriteTo.Console(
+                    outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] - {Message}{NewLine}{Exception}").CreateLogger();
+
             if (levelSwitch.MinimumLevel <= LogEventLevel.Debug)
             {
                 // Overwrite with richer content if less then debug
@@ -55,10 +53,9 @@ namespace Microsoft.Azure.Devices.Edge.Util
                     .MinimumLevel.ControlledBy(levelSwitch)
                     .Enrich.FromLogContext()
                     .WriteTo.Console(
-                        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [{SourceContext:1}] - {Message}{NewLine}{Exception}"
-                    )
-                    .CreateLogger();
+                        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [{SourceContext:1}] - {Message}{NewLine}{Exception}").CreateLogger();
             }
+
             ILoggerFactory factory = new LoggerFactory()
                 .AddSerilog(loggerConfig);
 

@@ -10,9 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         public const uint DefaultAmqpConnectionIdleTimeoutInMilliSeconds = 4 * 60 * 1000;
         public const uint MinimumAmqpHeartbeatSendInterval = 5 * 1000;
         public const uint DefaultAmqpHeartbeatSendInterval = 2 * 60 * 1000;
-        public static readonly AmqpVersion AmqpVersion100 = new AmqpVersion(1, 0, 0);
-
-        public static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(60);
 
         // NOTE: IoT Hub service has this note on this constant:
         // Temporarily accept messages upto 1Mb in size. Reduce to 256 kb after fixing client behavior
@@ -32,7 +29,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         public const string MessageAnnotationsConnectionDeviceId = "iothub-connection-device-id";
         public const string MessageAnnotationsConnectionModuleId = "iothub-connection-module-id";
         public const string WebSocketSubProtocol = "AMQPWSB10";
-        public const string WebSocketListenerName = WebSocketSubProtocol +"-listener";
+        public const string WebSocketListenerName = WebSocketSubProtocol + "-listener";
         public const string ServiceBusCbsSaslMechanismName = "MSSBCBS";
+
+        public static readonly AmqpVersion AmqpVersion100 = new AmqpVersion(1, 0, 0);
+        public static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(60);
     }
 }

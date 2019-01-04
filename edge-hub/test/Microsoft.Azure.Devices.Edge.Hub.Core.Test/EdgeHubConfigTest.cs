@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         [Fact]
         public void ConstructorHappyPath()
         {
-            // Arrange            
+            // Arrange
             IEnumerable<(string Name, string Value, Route route)> routes = Enumerable.Empty<(string Name, string Value, Route route)>();
             var snfConfig = new StoreAndForwardConfiguration(1000);
 

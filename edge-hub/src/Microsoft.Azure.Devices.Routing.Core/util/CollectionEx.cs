@@ -35,6 +35,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Util
                     }
                 }
             }
+
             return Option.None<T>();
         }
     }

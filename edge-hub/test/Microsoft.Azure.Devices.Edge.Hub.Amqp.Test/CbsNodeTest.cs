@@ -64,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             };
             AmqpMessage invalidAmqpMessage2 = AmqpMessage.Create(amqpValue);
             invalidAmqpMessage2.ApplicationProperties.Map[CbsConstants.PutToken.Type] = "azure-devices.net:sastoken";
-            invalidAmqpMessage2.ApplicationProperties.Map[CbsConstants.PutToken.Audience] = "";
+            invalidAmqpMessage2.ApplicationProperties.Map[CbsConstants.PutToken.Audience] = string.Empty;
             invalidAmqpMessage2.ApplicationProperties.Map[CbsConstants.Operation] = CbsConstants.PutToken.OperationValue;
             // Act/Assert
             Assert.Throws<InvalidOperationException>(() => CbsNode.ValidateAndParseMessage(IoTHubHostName, invalidAmqpMessage2));

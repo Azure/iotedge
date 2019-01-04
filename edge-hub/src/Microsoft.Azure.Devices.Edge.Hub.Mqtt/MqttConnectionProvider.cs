@@ -37,6 +37,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             return messagingBridge;
         }
 
+        public void Dispose() => this.Dispose(true);
+
         protected virtual void Dispose(bool disposing)
         {
             if (disposing)
@@ -44,7 +46,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 this.connectionProvider?.Dispose();
             }
         }
-
-        public void Dispose() => this.Dispose(true);
     }
 }

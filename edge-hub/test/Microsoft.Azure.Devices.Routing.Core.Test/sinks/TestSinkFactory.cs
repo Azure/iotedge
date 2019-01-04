@@ -6,8 +6,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Sinks
 
     public class TestSinkFactory<T> : ISinkFactory<T>
     {
-        volatile ImmutableDictionary<string, TestSink<T>> sinks = ImmutableDictionary<string, TestSink<T>>.Empty;
         readonly object sync = new object();
+        volatile ImmutableDictionary<string, TestSink<T>> sinks = ImmutableDictionary<string, TestSink<T>>.Empty;
 
         public Task<ISink<T>> CreateAsync(string hubName)
         {
@@ -20,6 +20,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Sinks
                     this.sinks = this.sinks.Add(hubName, sink);
                 }
             }
+
             return Task.FromResult<ISink<T>>(sink);
         }
     }

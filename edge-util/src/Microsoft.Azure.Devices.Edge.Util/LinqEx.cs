@@ -46,8 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
         /// </summary>
         public static IEnumerable<string> RemoveIntersectionKeys(
             this IEnumerable<string> first,
-            IEnumerable<string> second
-        ) => first.Except(second, StringKeyComparer.DefaultStringKeyComparer);
+            IEnumerable<string> second) => first.Except(second, StringKeyComparer.DefaultStringKeyComparer);
 
         /// <summary>
         /// Compares <paramref name="first"/> and <paramref name="second"/> and returns
@@ -59,9 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
         public static IEnumerable<string> RemoveIntersectionKeys(
             this IEnumerable<string> first,
             IEnumerable<string> second,
-            Func<string, string> keySelector
-        ) => first.Except(second, new StringKeyComparer(keySelector));
-
+            Func<string, string> keySelector) => first.Except(second, new StringKeyComparer(keySelector));
 
         /// <summary>
         /// Converts an IEnumerable<typeparamref name="T"/> into an IEnumerable<(uint, typeparamref name="T")/>.
@@ -81,11 +78,10 @@ namespace Microsoft.Azure.Devices.Edge.Util
         }
     }
 
-    internal class StringKeyComparer : IEqualityComparer<string>
+    class StringKeyComparer : IEqualityComparer<string>
     {
+        internal static readonly StringKeyComparer DefaultStringKeyComparer = new StringKeyComparer(s => s.Split(new[] { '=' }, 2)[0]);
         readonly Func<string, string> keySelector;
-
-        internal readonly static StringKeyComparer DefaultStringKeyComparer = new StringKeyComparer(s => s.Split(new[] { '=' }, 2)[0]);
 
         internal StringKeyComparer(Func<string, string> keySelector)
         {

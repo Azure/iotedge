@@ -99,6 +99,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.Equal(expectedToken, uri.ToString());
         }
 
+        [Theory]
+        [MemberData(nameof(GetErrorDetectionData))]
+        public void ErrorDetectionStrategyTest(Exception ex, bool isTransient)
+        {
+            // Arrange
+            var errorDetectionStrategy = new DeviceScopeApiClient.ErrorDetectionStrategy();
+
+            // Act
+            bool isTransientResponse = errorDetectionStrategy.IsTransient(ex);
+
+            // Assert
+            Assert.Equal(isTransientResponse, isTransient);
+        }
+
         static IEnumerable<object[]> GetErrorDetectionData()
         {
             yield return new object[] { new ArgumentException(), false };
@@ -115,20 +129,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             yield return new object[] { new DeviceScopeApiException("foo", HttpStatusCode.InternalServerError, "bar"), true };
             yield return new object[] { new DeviceScopeApiException("foo", HttpStatusCode.ServiceUnavailable, "bar"), true };
             yield return new object[] { new DeviceScopeApiException("foo", HttpStatusCode.NotImplemented, "bar"), true };
-        }
-
-        [Theory]
-        [MemberData(nameof(GetErrorDetectionData))]
-        public void ErrorDetectionStrategyTest(Exception ex, bool isTransient)
-        {
-            // Arrange
-            var errorDetectionStrategy = new DeviceScopeApiClient.ErrorDetectionStrategy();
-
-            // Act
-            bool isTransientResponse = errorDetectionStrategy.IsTransient(ex);
-
-            // Assert
-            Assert.Equal(isTransientResponse, isTransient);
         }
     }
 }

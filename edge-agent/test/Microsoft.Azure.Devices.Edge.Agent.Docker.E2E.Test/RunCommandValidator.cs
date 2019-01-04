@@ -5,16 +5,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
 
     public class RunCommandValidator : Validator
     {
+        public RunCommandValidator()
+        {
+            this.Type = ValidatorType.RunCommand;
+        }
+
         public string Command { get; set; }
 
         public string Args { get; set; }
 
         public string OutputEquals { get; set; }
-
-        public RunCommandValidator()
-        {
-            this.Type = ValidatorType.RunCommand;
-        }
 
         public override bool Validate()
         {
@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                 }
             };
 
-            string output = "";
+            string output = string.Empty;
             process.OutputDataReceived += (sender, args) => output += args.Data;
             process.Start();
             process.BeginOutputReadLine();

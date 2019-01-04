@@ -11,6 +11,15 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
     public class Route : IEquatable<Route>
     {
+        public Route(string id, string condition, string iotHubName, IMessageSource source, ISet<Endpoint> endpoints)
+        {
+            this.Id = Preconditions.CheckNotNull(id);
+            this.Condition = Preconditions.CheckNotNull(condition);
+            this.IotHubName = Preconditions.CheckNotNull(iotHubName);
+            this.Source = source;
+            this.Endpoints = Preconditions.CheckNotNull(endpoints).ToImmutableHashSet();
+        }
+
         public string Id { get; }
 
         public string Condition { get; }
@@ -20,15 +29,6 @@ namespace Microsoft.Azure.Devices.Routing.Core
         public IMessageSource Source { get; }
 
         public ISet<Endpoint> Endpoints { get; }
-
-        public Route(string id, string condition, string iotHubName, IMessageSource source, ISet<Endpoint> endpoints)
-        {
-            this.Id = Preconditions.CheckNotNull(id);
-            this.Condition = Preconditions.CheckNotNull(condition);
-            this.IotHubName = Preconditions.CheckNotNull(iotHubName);
-            this.Source = source;
-            this.Endpoints = Preconditions.CheckNotNull(endpoints).ToImmutableHashSet();
-        }
 
         public bool Equals(Route other)
         {
@@ -43,9 +43,9 @@ namespace Microsoft.Azure.Devices.Routing.Core
             }
 
             return string.Equals(this.Id, other.Id) &&
-                string.Equals(this.Condition, other.Condition) &&
-                this.Source.Equals(other.Source) &&
-                this.Endpoints.SetEquals(other.Endpoints);
+                   string.Equals(this.Condition, other.Condition) &&
+                   this.Source.Equals(other.Source) &&
+                   this.Endpoints.SetEquals(other.Endpoints);
         }
 
         public override bool Equals(object obj)

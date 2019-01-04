@@ -30,8 +30,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<TwinConfigSource>();
             const int IdStart = AgentEventIds.TwinConfigSource;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<TwinConfigSource>();
 
             enum EventIds
             {

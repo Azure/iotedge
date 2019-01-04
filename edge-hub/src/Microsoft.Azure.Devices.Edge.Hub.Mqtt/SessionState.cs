@@ -15,8 +15,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         readonly ReaderWriterLockSlim updateLock = new ReaderWriterLockSlim();
 
         // set transient to false to get calls from Protocol Gateway when there are changes to the subscription
-        // because IsTransient is always set to false, this property is used to keep if the session was transient 
-        // and it should not be saved to store in that case  
+        // because IsTransient is always set to false, this property is used to keep if the session was transient
+        // and it should not be saved to store in that case
         public SessionState(bool transient)
             : this(false, !transient, new List<MqttSubscription>(), new Dictionary<string, bool>())
         {
@@ -75,8 +75,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             }
         }
 
-        internal void ClearRegistrations() => this.subscriptionRegistrations.Clear();
-
         public bool RemoveSubscription(string topicFilter)
         {
             this.updateLock.EnterWriteLock();
@@ -89,6 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     this.subscriptions.RemoveAt(index);
                     return true;
                 }
+
                 return false;
             }
             finally
@@ -120,6 +119,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             }
         }
 
+        internal void ClearRegistrations() => this.subscriptionRegistrations.Clear();
+
         int FindSubscriptionIndex(string topicFilter)
         {
             for (int i = this.subscriptions.Count - 1; i >= 0; i--)
@@ -130,6 +131,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     return i;
                 }
             }
+
             return -1;
         }
     }
