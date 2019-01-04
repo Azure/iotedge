@@ -869,13 +869,15 @@ function Add-IotEdgeRegistryValues {
     New-ItemProperty $regKey -Name 'EventMessageFile' -Value "$EdgeEventLogInstallDirectory\iotedged_eventlog_messages.dll" -PropertyType 'String' -Force | Out-Null
     New-ItemProperty $regKey -Name 'TypesSupported' -Value 7 -PropertyType 'DWord' -Force | Out-Null
 
-    $regKey = Join-Path $EventLogApplicationRegPath $MobyServiceName
-    New-Item $regKey -Force | Out-Null
-    New-ItemProperty $regKey -Name 'CustomSource' -Value 1 -PropertyType 'DWord' -Force | Out-Null
-    New-ItemProperty $regKey -Name 'EventMessageFile' -Value "$MobyInstallDirectory\dockerd.exe" -PropertyType 'String' -Force | Out-Null
-    New-ItemProperty $regKey -Name 'TypesSupported' -Value 7 -PropertyType 'DWord' -Force | Out-Null
+    if ($ContainerOs -eq 'Windows') {
+        $regKey = Join-Path $EventLogApplicationRegPath $MobyServiceName
+        New-Item $regKey -Force | Out-Null
+        New-ItemProperty $regKey -Name 'CustomSource' -Value 1 -PropertyType 'DWord' -Force | Out-Null
+        New-ItemProperty $regKey -Name 'EventMessageFile' -Value "$MobyInstallDirectory\dockerd.exe" -PropertyType 'String' -Force | Out-Null
+        New-ItemProperty $regKey -Name 'TypesSupported' -Value 7 -PropertyType 'DWord' -Force | Out-Null
+    }
 
-    Write-HostGreen 'Added IoT Edge registry key.'
+    Write-HostGreen 'Added IoT Edge registry values.'
 }
 
 function Set-ProvisioningMode {
