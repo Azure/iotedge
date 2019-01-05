@@ -14,7 +14,7 @@ use futures::{Future, Stream};
 use pid::Pid;
 use serde_json;
 
-use edgelet_utils::ensure_not_empty_with_context;
+use edgelet_utils::{ensure_not_empty_with_context, serialize_ordered};
 
 use error::{Error, ErrorKind, Result};
 
@@ -144,6 +144,7 @@ pub struct ModuleSpec<T> {
     type_: String,
     config: T,
     #[serde(default = "HashMap::new")]
+    #[serde(serialize_with = "serialize_ordered")]
     env: HashMap<String, String>,
 }
 
