@@ -2,7 +2,6 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
 {
-    using System;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -11,25 +10,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
 
     class TwinStore : ITwinStore
     {
-        readonly IEntityStore<string, TwinStoreEntity> twinStore;
+        readonly IEntityStore<string, TwinStoreEntity> twinEntityStore;
 
-        public TwinStore(IEntityStore<string, TwinStoreEntity> twinStore)
+        public TwinStore(IEntityStore<string, TwinStoreEntity> twinEntityStore)
         {
-            this.twinStore = twinStore;
+            this.twinEntityStore = twinEntityStore;
         }
 
         public async Task<Option<Twin>> Get(string id)
         {
-            Option<TwinStoreEntity> twinStoreEntity = await this.twinStore.Get(id);
+            Preconditions.CheckNonWhiteSpace(id, nameof(id));
+            Option<TwinStoreEntity> twinStoreEntity = await this.twinEntityStore.Get(id);
             return twinStoreEntity.FlatMap(t => t.Twin);
         }
 
         public async Task UpdateReportedProperties(string id, TwinCollection patch)
         {
+            Preconditions.CheckNonWhiteSpace(id, nameof(id));
+            Preconditions.CheckNotNull(patch, nameof(patch));
             Events.UpdatingReportedProperties(id);
-            await this.twinStore.PutOrUpdate(
+            await this.twinEntityStore.PutOrUpdate(
                 id,
-                new TwinStoreEntity(patch),
+                new TwinStoreEntity(new Twin { Properties = new TwinProperties { Reported = patch } }),
                 twinInfo =>
                 {
                     twinInfo.Twin
@@ -50,10 +52,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
         public async Task UpdateDesiredProperties(string id, TwinCollection patch)
         {
             Events.UpdatingDesiredProperties(id);
+            Preconditions.CheckNotNull(patch, nameof(patch));
             Option<Twin> storedTwin = await this.Get(id);
             if (storedTwin.HasValue)
             {
-                await this.twinStore.Update(
+                await this.twinEntityStore.Update(
                     id,
                     twinInfo =>
                     {
@@ -70,6 +73,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                                         twin.Properties = twinProperties;
                                         Events.MergedDesiredProperties(id);
                                     }
+                                    else
+                                    {
+                                        Events.DesiredPropertiesVersionMismatch(desiredProperties.Version, patch.Version);
+                                    }
                                 });
 
                         return twinInfo;
@@ -84,7 +91,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
         public async Task Update(string id, Twin twin)
         {
             Events.UpdatingTwin(id);
-            await this.twinStore.PutOrUpdate(
+            Preconditions.CheckNotNull(twin, nameof(twin));
+            await this.twinEntityStore.PutOrUpdate(
                 id,
                 new TwinStoreEntity(twin),
                 twinInfo =>
@@ -93,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                         .Filter(
                             storedTwin => storedTwin.Properties?.Desired?.Version < twin.Properties.Desired.Version
                                 && storedTwin.Properties?.Reported?.Version < twin.Properties.Reported.Version)
-                        .Map(_ => new TwinStoreEntity(Option.Maybe(twin), twinInfo.ReportedPropertiesPatch))
+                        .Map(_ => new TwinStoreEntity(Option.Some(twin), twinInfo.ReportedPropertiesPatch))
                         .GetOrElse(twinInfo);
                 });
             Events.DoneUpdatingTwin(id);
@@ -112,7 +120,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                 DoneUpdatingTwin,
                 UpdatingTwin,
                 UpdatingReportedProperties,
-                NoTwinForDesiredPropertiesPatch
+                NoTwinForDesiredPropertiesPatch,
+                DesiredPropertiesVersionMismatch
             }
 
             public static void UpdatingReportedProperties(string id)
@@ -148,6 +157,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
             public static void NoTwinForDesiredPropertiesPatch(string id)
             {
                 Log.LogInformation((int)EventIds.NoTwinForDesiredPropertiesPatch, $"Cannot store desired properties patch  for {id} in store as twin was not found");
+            }
+
+            public static void DesiredPropertiesVersionMismatch(string id, long desiredPropertiesVersion, long patchVersion)
+            {
+                Log.LogInformation((int)EventIds.DesiredPropertiesVersionMismatch, $"Skipped updating the desired properties for {id} because patch version {patchVersion} cannot be applied on current version {desiredPropertiesVersion}");
             }
         }
     }
