@@ -5,14 +5,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Autofac;
-    using Core;
-    using Docker;
-    using Extensions.Logging;
     using global::Docker.DotNet;
     using global::Docker.DotNet.Models;
-    using IoTHub;
-    using Storage;
-    using Util;
+    using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Docker;
+    using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
+    using Microsoft.Azure.Devices.Edge.Storage;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
 
     public class DockerModule : Module
     {
