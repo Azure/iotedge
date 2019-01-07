@@ -21,4 +21,11 @@ edgelet-utils = { path = "../edgelet-utils" }
 workload = { path = "../workload" }
 
 [dev-dependencies]
+edgelet-hsm = { path = "../edgelet-hsm" }
 edgelet-test-utils = { path = "../edgelet-test-utils" }
+native-tls = "0.2"
+openssl = "0.10"
+tempfile = "3"
+tokio = "0.1"
+tokio-tls = "0.2"
+workload = { path = "../workload" }
