@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 {
     using System;
     using System.Collections.Generic;
+    using System.ComponentModel;
     using System.Net;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
@@ -22,34 +23,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         static readonly RetryStrategy TransientRetryStrategy =
             new ExponentialBackoff(int.MaxValue, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
-
-        static readonly IDictionary<UpstreamProtocol, Func<Option<IWebProxy>, ITransportSettings>> TransportMap = new Dictionary<UpstreamProtocol, Func<Option<IWebProxy>, ITransportSettings>>
-        {
-            [UpstreamProtocol.Amqp] = proxy =>
-            {
-                var settings = new AmqpTransportSettings(TransportType.Amqp_Tcp_Only);
-                proxy.ForEach(p => settings.Proxy = p);
-                return settings;
-            },
-            [UpstreamProtocol.AmqpWs] = proxy =>
-            {
-                var settings = new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only);
-                proxy.ForEach(p => settings.Proxy = p);
-                return settings;
-            },
-            [UpstreamProtocol.Mqtt] = proxy =>
-            {
-                var settings = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
-                proxy.ForEach(p => settings.Proxy = p);
-                return settings;
-            },
-            [UpstreamProtocol.MqttWs] = proxy =>
-            {
-                var settings = new MqttTransportSettings(TransportType.Mqtt_WebSocket_Only);
-                proxy.ForEach(p => settings.Proxy = p);
-                return settings;
-            }
-        };
 
         readonly Client.ModuleClient deviceClient;
 
@@ -128,6 +101,43 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
 
+        static ITransportSettings GetTransportSettings(UpstreamProtocol protocol, Option<IWebProxy> proxy)
+        {
+            switch (protocol)
+            {
+                case UpstreamProtocol.Amqp:
+                {
+                    var settings = new AmqpTransportSettings(TransportType.Amqp_Tcp_Only);
+                    proxy.ForEach(p => settings.Proxy = p);
+                    return settings;
+                }
+
+                case UpstreamProtocol.AmqpWs:
+                {
+                    var settings = new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only);
+                    proxy.ForEach(p => settings.Proxy = p);
+                    return settings;
+                }
+
+                case UpstreamProtocol.Mqtt:
+                {
+                    var settings = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
+                    proxy.ForEach(p => settings.Proxy = p);
+                    return settings;
+                }
+
+                case UpstreamProtocol.MqttWs:
+                {
+                    var settings = new MqttTransportSettings(TransportType.Mqtt_WebSocket_Only);
+                    proxy.ForEach(p => settings.Proxy = p);
+                    return settings;
+                }
+
+                default:
+                    throw new InvalidEnumArgumentException();
+            }
+        }
+
         static async Task<Client.ModuleClient> CreateAndOpenDeviceClient(
             UpstreamProtocol upstreamProtocol,
             Option<string> connectionString,
@@ -135,13 +145,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             Option<IWebProxy> proxy,
             Option<string> productInfo)
         {
-            ITransportSettings[] settings = { TransportMap[upstreamProtocol](proxy) };
-            Events.AttemptingConnectionWithTransport(settings[0].GetTransportType());
-            Client.ModuleClient deviceClient = await connectionString.Map(cs => Task.FromResult(Client.ModuleClient.CreateFromConnectionString(cs, settings)))
-                .GetOrElse(() => Client.ModuleClient.CreateFromEnvironmentAsync(settings));
+            ITransportSettings settings = GetTransportSettings(upstreamProtocol, proxy);
+            Events.AttemptingConnectionWithTransport(settings.GetTransportType());
+            Client.ModuleClient deviceClient = await connectionString
+                .Map(cs => Task.FromResult(Client.ModuleClient.CreateFromConnectionString(cs, new[] { settings })))
+                .GetOrElse(() => Client.ModuleClient.CreateFromEnvironmentAsync(new[] { settings }));
             productInfo.ForEach(p => deviceClient.ProductInfo = p);
             await OpenAsync(statusChangedHandler, deviceClient);
-            Events.ConnectedWithTransport(settings[0].GetTransportType());
+            Events.ConnectedWithTransport(settings.GetTransportType());
             return deviceClient;
         }
 
