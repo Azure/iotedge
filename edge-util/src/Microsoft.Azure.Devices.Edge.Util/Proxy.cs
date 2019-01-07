@@ -40,11 +40,12 @@ namespace Microsoft.Azure.Devices.Edge.Util
                     // http://user:password@proxyserver:1234
                     credentials.Password = Uri.UnescapeDataString(parts[1]);
 
-                    // log the proxy URI without the password
-                    int pos = uri.ToString().IndexOf(uri.UserInfo, StringComparison.InvariantCulture);
-                    int begin = pos + parts[0].Length;
-                    int count = parts[1].Length + 1;
-                    logger.LogInformation($"Detected proxy {uri.ToString().Remove(begin, count)}");
+                    // log the proxy URI but hide the password
+                    string uriStr = uri.ToString();
+                    int user = uriStr.IndexOf(uri.UserInfo, StringComparison.Ordinal);
+                    int password = user + parts[0].Length + 1;
+                    int suffix = password + parts[1].Length;
+                    logger.LogInformation($"Detected proxy {uriStr.Substring(0, password)}****{uriStr.Substring(suffix)}");
                 }
 
                 var proxy = new WebProxy(uri)
