@@ -15,6 +15,7 @@ BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:-$BUILD_REPOSITORY_LOCALPATH/t
 
 # Process script arguments
 TEST_FILTER="$1"
+BUILD_CONFIG="$2"
 
 SUFFIX='Microsoft.Azure*test.csproj'
 ROOTFOLDER=$BUILD_REPOSITORY_LOCALPATH
@@ -38,25 +39,42 @@ if [ ! -d "$BUILD_BINARIESDIRECTORY" ]; then
   exit 1
 fi
 
-echo "Running tests in all test projects with filter: ${TEST_FILTER#--filter }"
+testFilterValue="${TEST_FILTER#--filter }"
+echo "Running tests in all test projects with filter: $testFilterValue"
+
+if [ -z "$BUILD_CONFIG" ]
+then
+  BUILD_CONFIG="CheckInBuild"
+fi
 
 RES=0
+
+# Find all test project dlls
+testProjectDlls = ""
 while read proj; do
-  echo "Running tests for project - $proj"
-  TESTENVIRONMENT=$ENVIRONMENT $DOTNET_ROOT_PATH/dotnet test \
-    $TEST_FILTER \
-    -p:ParallelizeTestCollections=false \
-    --no-build \
-    -v d \
-    --logger "trx;LogFileName=result.trx" \
-    -o "$OUTPUT_FOLDER" \
-    $proj
-  if [ $? -gt 0 ]
-  then
-    RES=1
-    echo "Error running test $proj, RES = $RES"
-  fi
+  fileParentDirectory="$(dirname -- "$proj")"
+  fileName="$(basename -- "$proj")"
+  fileBaseName="${fileName%.*}"
+  
+  currentTestProjectDll="$fileParentDirectory/bin/$BUILD_CONFIG/netcoreapp2.1/$fileBaseName.dll"
+  echo "Try to run test project:$currentTestProjectDll"
+  testProjectDlls="$testProjectDlls $currentTestProjectDll"
 done < <(find $ROOTFOLDER -type f -iname $SUFFIX)
+
+testCommand="dotnet vstest /Logger:trx;LogFileName=result.trx /TestAdapterPath:\"$BUILD_REPOSITORY_LOCALPATH\" /Parallel /InIsolation"
+if [ ! -z "$testFilterValue" ]
+then
+  testCommand+=" /TestCaseFilter:"$testFilterValue""
+fi
+testCommand+="$testProjectDlls"
+
+echo "Run test command:$testCommand"
+$testCommand
+
+if [ $? -gt 0 ]
+then
+  RES=1
+fi
 
 echo "Edge runtime tests result RES = $RES"
 

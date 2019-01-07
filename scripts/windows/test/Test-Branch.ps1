@@ -16,7 +16,9 @@ param (
     [String] $BuildBinariesDirectory = $Env:BUILD_BINARIESDIRECTORY,
 
     [ValidateNotNullOrEmpty()]
-    [String] $Filter
+    [String] $Filter,
+    
+    [String] $BuildConfig
 )
 
 Set-StrictMode -Version "Latest"
@@ -42,11 +44,14 @@ if (-not $BuildBinariesDirectory) {
 
 $TEST_PROJ_PATTERN = "Microsoft.Azure*test.csproj"
 $LOGGER_ARG = "trx;LogFileName=result.trx"
-
 $DOTNET_PATH = [IO.Path]::Combine($AgentWorkFolder, "dotnet", "dotnet.exe")
 
 if (-not (Test-Path $DOTNET_PATH -PathType Leaf)) {
     throw "$DOTNET_PATH not found."
+}
+
+if (-not $BuildConfig) {
+    $BuildConfig = "CheckInBuild"
 }
 
 <#
@@ -61,17 +66,25 @@ else {
 }
 
 Write-Host "Running tests in all test projects with filter '$Filter'."
-$Success = $True
+
+$testProjectsDlls = ""
 foreach ($Project in (Get-ChildItem $BuildRepositoryLocalPath -Include $TEST_PROJ_PATTERN -Recurse)) {
-    Write-Host "Running tests for $Project."
-	Write-Host "Run command: '" + $DOTNET_PATH + "' " + $BaseTestCommand " -o " + $BuildBinariesDirectory + " " + $Project
-    Invoke-Expression "&`"$DOTNET_PATH`" $BaseTestCommand -o $BuildBinariesDirectory $Project"
-
-    $Success = $Success -and $LASTEXITCODE -eq 0
+    $fileBaseName = [System.IO.Path]::GetFileNameWithoutExtension($Project)
+    $parentDirectory = Split-Path -Path $Project
+    $currentTestProjectDll = " $parentDirectory\bin\$BuildConfig\netcoreapp2.1\$fileBaseName.dll"
+    Write-Host "Found test project:$currentTestProjectDll"
+    $testProjectsDlls += $currentTestProjectDll
 }
 
-if (-not $Success) {
-    throw "Failed tests."
+$testCommand = "$DOTNET_PATH vstest /Logger:`"$LOGGER_ARG`" /TestAdapterPath:`"$BuildRepositoryLocalPath`" /Parallel /InIsolation"
+
+if ($Filter) {
+    $testCommand += " /TestCaseFilter:`"$Filter`"" 
 }
+$testCommand += "$testProjectsDlls"
+
+Write-Host "Run test command:$testCommand"
+Invoke-Expression "$testCommand"
+Write-Host "Last exit code=$LASTEXITCODE"
 
 Write-Host "Done!"
