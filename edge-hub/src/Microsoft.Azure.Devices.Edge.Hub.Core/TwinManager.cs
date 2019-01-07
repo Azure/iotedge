@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             var twinManager = new TwinManager(
                 connectionManager,
                 messageConverterProvider.Get<TwinCollection>(),
-                messageConverterProvider.Get<Twin>(),
+                messageConverterProvider.Get<Shared.Twin>(),
                 storeProvider.Match(
                     s => Option.Some(s.GetEntityStore<string, TwinInfo>(Constants.TwinStorePartitionKey)),
                     () => Option.None<IEntityStore<string, TwinInfo>>()));
@@ -131,7 +131,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             using (await this.twinLock.LockAsync())
             {
                 IMessage twinMessage = await cp.GetTwinAsync();
-                Twin cloudTwin = this.twinConverter.FromMessage(twinMessage);
+                Shared.Twin cloudTwin = this.twinConverter.FromMessage(twinMessage);
                 Events.GotTwinFromCloudSuccess(id, cloudTwin.Properties.Desired.Version, cloudTwin.Properties.Reported.Version);
                 var newTwin = new TwinInfo(cloudTwin, null);
                 cached = newTwin;

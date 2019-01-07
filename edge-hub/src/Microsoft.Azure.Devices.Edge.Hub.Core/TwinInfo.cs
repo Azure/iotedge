@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.ReportedPropertiesPatch = reportedPropertiesPatch;
         }
 
-        public Twin Twin { get; }
+        public Shared.Twin Twin { get; }
 
         public TwinCollection ReportedPropertiesPatch { get; }
     }    
