@@ -48,5 +48,11 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             var logger = Mock.Of<ILogger>();
             Assert.Throws<UriFormatException>(() => Proxy.Parse("http://proxyserver:xyz", logger));
         }
+
+        [Fact]
+        public void ParseThrowsOnNullLogger()
+        {
+            Assert.Throws<ArgumentNullException>(() => Proxy.Parse("http://proxyserver:1234", null));
+        }
     }
 }

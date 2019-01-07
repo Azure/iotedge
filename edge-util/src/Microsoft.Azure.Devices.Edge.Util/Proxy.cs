@@ -10,6 +10,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
     {
         public static Option<IWebProxy> Parse(string proxyUri, ILogger logger)
         {
+            Preconditions.CheckNotNull(logger, nameof(logger));
+
             if (string.IsNullOrWhiteSpace(proxyUri))
             {
                 return Option.None<IWebProxy>();
