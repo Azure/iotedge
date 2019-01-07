@@ -75,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                                     }
                                     else
                                     {
-                                        Events.DesiredPropertiesVersionMismatch(desiredProperties.Version, patch.Version);
+                                        Events.DesiredPropertiesVersionMismatch(id, desiredProperties.Version, patch.Version);
                                     }
                                 });
 

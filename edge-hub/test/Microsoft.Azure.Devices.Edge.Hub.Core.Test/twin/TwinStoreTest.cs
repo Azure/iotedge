@@ -181,69 +181,273 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.twin
             IEntityStore<string, TwinStoreEntity> twinEntityStore = GetTwinEntityStore();
             ITwinStore twinStore = new TwinStore(twinEntityStore);
 
-            var rbase = new TwinCollection
+            var dbase = new TwinCollection
             {
                 ["p1"] = "v1",
-                ["p2"] = "v2"
+                ["p2"] = "v2",
+                ["$version"] = 0
             };
 
-            var rpatch1 = new TwinCollection
+            var basetwin = new Twin
+            {
+                Properties = new TwinProperties
+                {
+                    Desired = dbase
+                }
+            };
+
+            var dpatch1 = new TwinCollection
             {
                 ["p1"] = "vp1",
-                ["p3"] = "v3"
+                ["p3"] = "v3",
+                ["$version"] = 1
             };
 
-            var rpatch2 = new TwinCollection
+            var dpatch2 = new TwinCollection
             {
                 ["p1"] = "vp1",
                 ["p3"] = new
                 {
                     p31 = "v31"
-                }
+                },
+                ["$version"] = 2
             };
 
-            var rpatch3 = new TwinCollection
+            var dpatch3 = new TwinCollection
             {
                 ["p2"] = "vp2",
                 ["p3"] = new
                 {
                     p31 = "v32"
+                },
+                ["$version"] = 3
+            };
+
+            var dpatch4 = new TwinCollection
+            {
+                ["p2"] = "vp4",
+                ["p3"] = new
+                {
+                    p31 = "v50"
+                },
+                ["$version"] = 3
+            };
+
+            string id = "d1";
+
+            // Act
+            await twinStore.Update(id, basetwin);
+            
+            // Assert
+            Option<Twin> twin = await twinStore.Get(id);
+            Assert.True(twin.HasValue);
+            Assert.Equal(twin.OrDefault().Properties.Desired.ToJson(), "{\"p1\":\"v1\",\"p2\":\"v2\",\"$version\":0}");
+
+            // Act
+            await twinStore.UpdateDesiredProperties(id, dpatch1);
+
+            // Assert
+            twin = await twinStore.Get(id);
+            Assert.True(twin.HasValue);
+            Assert.Equal(twin.OrDefault().Properties.Desired.ToJson(), "{\"p1\":\"vp1\",\"p2\":\"v2\",\"$version\":1,\"p3\":\"v3\"}");
+
+            // Act
+            await twinStore.UpdateDesiredProperties(id, dpatch2);
+
+            // Assert
+            twin = await twinStore.Get(id);
+            Assert.True(twin.HasValue);
+            Assert.Equal(twin.OrDefault().Properties.Desired.ToJson(), "{\"p1\":\"vp1\",\"p2\":\"v2\",\"$version\":2,\"p3\":{\"p31\":\"v31\"}}");
+
+            // Act
+            await twinStore.UpdateDesiredProperties(id, dpatch3);
+
+            // Assert
+            twin = await twinStore.Get(id);
+            Assert.True(twin.HasValue);
+            Assert.Equal(twin.OrDefault().Properties.Desired.ToJson(), "{\"p1\":\"vp1\",\"p2\":\"vp2\",\"$version\":3,\"p3\":{\"p31\":\"v32\"}}");
+
+            // Act
+            await twinStore.UpdateDesiredProperties(id, dpatch4);
+
+            // Assert
+            twin = await twinStore.Get(id);
+            Assert.True(twin.HasValue);
+            Assert.Equal(twin.OrDefault().Properties.Desired.ToJson(), "{\"p1\":\"vp1\",\"p2\":\"vp2\",\"$version\":3,\"p3\":{\"p31\":\"v32\"}}");
+        }
+
+        [Fact]
+        public async Task UpdatedTest()
+        {
+            // Arrange
+            IEntityStore<string, TwinStoreEntity> twinEntityStore = GetTwinEntityStore();
+            ITwinStore twinStore = new TwinStore(twinEntityStore);
+
+            var dbase = new TwinCollection
+            {
+                ["p1"] = "v1",
+                ["p2"] = "v2",
+                ["$version"] = 0
+            };
+
+            var rbase = new TwinCollection
+            {
+                ["p1"] = "v1",
+                ["p2"] = "v2",
+                ["$version"] = 0
+            };
+
+            var basetwin = new Twin
+            {
+                Properties = new TwinProperties
+                {
+                    Desired = dbase,
+                    Reported = rbase
+                }
+            };
+
+            var desired1 = new TwinCollection
+            {
+                ["p1"] = "vp1",
+                ["p3"] = "v3",
+                ["$version"] = 1
+            };
+
+            var reported1 = new TwinCollection
+            {
+                ["p1"] = "vp1",
+                ["p3"] = "v3",
+                ["$version"] = 1
+            };
+
+            var twin1 = new Twin
+            {
+                Properties = new TwinProperties
+                {
+                    Desired = desired1,
+                    Reported = reported1
+                }
+            };
+
+            var desired2 = new TwinCollection
+            {
+                ["p2"] = "vp2",
+                ["p3"] = "v3",
+                ["$version"] = 2
+            };
+
+            var reported2 = new TwinCollection
+            {
+                ["p1"] = "vp1",
+                ["p2"] = "vp3",
+                ["$version"] = 2
+            };
+
+            var twin2 = new Twin
+            {
+                Properties = new TwinProperties
+                {
+                    Desired = desired2,
+                    Reported = reported2
+                }
+            };
+
+            var desired3 = new TwinCollection
+            {
+                ["p2"] = "v10",
+                ["p3"] = "vp3",
+                ["$version"] = 3
+            };
+
+            var reported3 = new TwinCollection
+            {
+                ["p1"] = "vp1",
+                ["p3"] = "v10",
+                ["$version"] = 3
+            };
+
+            var twin3 = new Twin
+            {
+                Properties = new TwinProperties
+                {
+                    Desired = desired3,
+                    Reported = reported1
+                }
+            };
+
+            var twin4 = new Twin
+            {
+                Properties = new TwinProperties
+                {
+                    Desired = desired2,
+                    Reported = reported3
+                }
+            };
+
+            var twin5 = new Twin
+            {
+                Properties = new TwinProperties
+                {
+                    Desired = desired2,
+                    Reported = reported2
                 }
             };
 
             string id = "d1";
 
             // Act
-            await twinStore.UpdateReportedProperties(id, rbase);
+            await twinStore.Update(id, basetwin);
 
             // Assert
             Option<Twin> twin = await twinStore.Get(id);
             Assert.True(twin.HasValue);
-            Assert.Equal(twin.OrDefault().Properties.Reported.ToJson(), "{\"p1\":\"v1\",\"p2\":\"v2\"}");
+            Assert.Equal(twin.OrDefault().Properties.Desired.ToJson(), "{\"p1\":\"v1\",\"p2\":\"v2\",\"$version\":0}");
+            Assert.Equal(twin.OrDefault().Properties.Reported.ToJson(), "{\"p1\":\"v1\",\"p2\":\"v2\",\"$version\":0}");
 
             // Act
-            await twinStore.UpdateReportedProperties(id, rpatch1);
+            await twinStore.Update(id, twin1);
 
             // Assert
             twin = await twinStore.Get(id);
             Assert.True(twin.HasValue);
-            Assert.Equal(twin.OrDefault().Properties.Reported.ToJson(), "{\"p1\":\"vp1\",\"p2\":\"v2\",\"p3\":\"v3\"}");
+            Assert.Equal(twin.OrDefault().Properties.Desired.ToJson(), "{\"p1\":\"vp1\",\"p3\":\"v3\",\"$version\":1}");
+            Assert.Equal(twin.OrDefault().Properties.Reported.ToJson(), "{\"p1\":\"vp1\",\"p3\":\"v3\",\"$version\":1}");
 
             // Act
-            await twinStore.UpdateReportedProperties(id, rpatch2);
+            await twinStore.Update(id, twin2);
 
             // Assert
             twin = await twinStore.Get(id);
             Assert.True(twin.HasValue);
-            Assert.Equal(twin.OrDefault().Properties.Reported.ToJson(), "{\"p1\":\"vp1\",\"p2\":\"v2\",\"p3\":{\"p31\":\"v31\"}}");
+            Assert.Equal(twin.OrDefault().Properties.Desired.ToJson(), "{\"p2\":\"vp2\",\"p3\":\"v3\",\"$version\":2}");
+            Assert.Equal(twin.OrDefault().Properties.Reported.ToJson(), "{\"p1\":\"vp1\",\"p2\":\"vp3\",\"$version\":2}");
 
             // Act
-            await twinStore.UpdateReportedProperties(id, rpatch3);
+            await twinStore.Update(id, twin3);
 
             // Assert
             twin = await twinStore.Get(id);
             Assert.True(twin.HasValue);
-            Assert.Equal(twin.OrDefault().Properties.Reported.ToJson(), "{\"p1\":\"vp1\",\"p2\":\"vp2\",\"p3\":{\"p31\":\"v32\"}}");
+            Assert.Equal(twin.OrDefault().Properties.Desired.ToJson(), "{\"p2\":\"vp2\",\"p3\":\"v3\",\"$version\":2}");
+            Assert.Equal(twin.OrDefault().Properties.Reported.ToJson(), "{\"p1\":\"vp1\",\"p2\":\"vp3\",\"$version\":2}");
+
+            // Act
+            await twinStore.Update(id, twin4);
+
+            // Assert
+            twin = await twinStore.Get(id);
+            Assert.True(twin.HasValue);
+            Assert.Equal(twin.OrDefault().Properties.Desired.ToJson(), "{\"p2\":\"vp2\",\"p3\":\"v3\",\"$version\":2}");
+            Assert.Equal(twin.OrDefault().Properties.Reported.ToJson(), "{\"p1\":\"vp1\",\"p2\":\"vp3\",\"$version\":2}");
+
+            // Act
+            await twinStore.Update(id, twin5);
+
+            // Assert
+            twin = await twinStore.Get(id);
+            Assert.True(twin.HasValue);
+            Assert.Equal(twin.OrDefault().Properties.Desired.ToJson(), "{\"p2\":\"vp2\",\"p3\":\"v3\",\"$version\":2}");
+            Assert.Equal(twin.OrDefault().Properties.Reported.ToJson(), "{\"p1\":\"vp1\",\"p2\":\"vp3\",\"$version\":2}");
         }
 
         static IEntityStore<string, TwinStoreEntity> GetTwinEntityStore()
