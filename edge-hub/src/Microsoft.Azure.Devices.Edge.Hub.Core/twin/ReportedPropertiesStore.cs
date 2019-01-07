@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
 
     class ReportedPropertiesStore : IReportedPropertiesStore
     {
+        static readonly TimeSpan SleepTime = TimeSpan.FromSeconds(5);
         readonly IEntityStore<string, TwinStoreEntity> twinStore;
         readonly ICloudSync cloudSync;
         readonly AsyncLockProvider<string> lockProvider = new AsyncLockProvider<string>(10);
@@ -68,6 +69,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                 {
                     Events.ErrorSyncingReportedPropertiesToCloud(e);
                 }
+
+                await Task.Delay(SleepTime);
             }
         }
 

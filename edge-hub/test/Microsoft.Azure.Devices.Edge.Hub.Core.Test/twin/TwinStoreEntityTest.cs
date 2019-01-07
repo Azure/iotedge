@@ -4,7 +4,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.twin
 {
     using Microsoft.Azure.Devices.Edge.Hub.Core.Twin;
     using Microsoft.Azure.Devices.Edge.Storage;
-    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Shared;
     using Newtonsoft.Json;
