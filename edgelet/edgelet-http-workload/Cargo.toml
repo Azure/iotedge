@@ -21,8 +21,10 @@ edgelet-utils = { path = "../edgelet-utils" }
 workload = { path = "../workload" }
 
 [dev-dependencies]
-edgelet-hsm = { path = "../edgelet-hsm" }
 edgelet-test-utils = { path = "../edgelet-test-utils" }
+
+[target.'cfg(not(windows))'.dev-dependencies]
+edgelet-hsm = { path = "../edgelet-hsm" }
 native-tls = "0.2"
 openssl = "0.10"
 tempfile = "3"

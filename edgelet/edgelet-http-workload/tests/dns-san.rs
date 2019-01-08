@@ -1,5 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+// We disable this test on Windows in order to avoid having to add a dependency
+// on OpenSSL.
+#![cfg(not(windows))]
+
 #![deny(unused_extern_crates, warnings)]
 // Remove this when clippy stops warning about old-style `allow()`,
 // which can only be silenced by enabling a feature and thus requires nightly
@@ -225,12 +229,6 @@ fn run_echo_client(
     const MESSAGE: &str = "Don't panic";
 
     let mut builder = native_tls::TlsConnector::builder();
-
-    // TODO: Cert validations is being disabled on Windows for now till we can figure out
-    // why the tokio TLS server does not present the entire server certificate
-    // chain to the client.
-    #[cfg(windows)]
-    builder.danger_accept_invalid_certs(true);
 
     // add trust-bundle certs
     let trust_bundle = get_trust_bundle(service);
