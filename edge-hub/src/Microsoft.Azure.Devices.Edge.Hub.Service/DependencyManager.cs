@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 this.iotHubHostname = iotHubConnectionStringBuilder.HostName;
                 this.edgeDeviceId = iotHubConnectionStringBuilder.DeviceId;
                 this.edgeModuleId = iotHubConnectionStringBuilder.ModuleId;
-                this.edgeDeviceHostName = this.configuration.GetValue<string>(Constants.ConfigKey.EdgeDeviceHostName, string.Empty);
+                this.edgeDeviceHostName = this.configuration.GetValue(Constants.ConfigKey.EdgeDeviceHostName, string.Empty);
                 this.connectionString = Option.Some(edgeHubConnectionString);
             }
             else
@@ -123,6 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool closeCloudConnectionOnIdleTimeout = this.configuration.GetValue("CloseCloudConnectionOnIdleTimeout", true);
             int cloudOperationTimeoutSecs = this.configuration.GetValue("CloudOperationTimeoutSecs", 20);
             TimeSpan cloudOperationTimeout = TimeSpan.FromSeconds(cloudOperationTimeoutSecs);
+            string proxy = this.configuration.GetValue("https_proxy", string.Empty);
 
             builder.RegisterModule(
                 new RoutingModule(
@@ -141,7 +142,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     maxConnectedClients,
                     cloudConnectionIdleTimeout,
                     closeCloudConnectionOnIdleTimeout,
-                    cloudOperationTimeout));
+                    cloudOperationTimeout,
+                    proxy));
         }
 
         void RegisterCommonModule(ContainerBuilder builder, bool optimizeForPerformance, (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward)

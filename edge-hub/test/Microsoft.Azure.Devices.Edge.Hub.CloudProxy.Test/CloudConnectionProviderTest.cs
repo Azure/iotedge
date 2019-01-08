@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
     using System;
     using System.Collections.Generic;
+    using System.Net;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
@@ -20,6 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     public class CloudConnectionProviderTest
     {
         const string IotHubHostName = "foo.azure-devices.net";
+        const string ProxyUri = "http://proxyserver:1234";
         const int ConnectionPoolSize = 10;
         static readonly IMessageConverterProvider MessageConverterProvider = Mock.Of<IMessageConverterProvider>();
         static readonly ITokenProvider TokenProvider = Mock.Of<ITokenProvider>();
@@ -33,6 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             {
                 Option.None<UpstreamProtocol>(),
                 20,
+                Option.None<IWebProxy>(),
                 new ITransportSettings[]
                 {
                     new AmqpTransportSettings(TransportType.Amqp_Tcp_Only)
@@ -51,6 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             {
                 Option.Some(UpstreamProtocol.Amqp),
                 30,
+                Option.Some(new WebProxy(ProxyUri) as IWebProxy),
                 new ITransportSettings[]
                 {
                     new AmqpTransportSettings(TransportType.Amqp_Tcp_Only)
@@ -60,7 +64,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                             Pooling = true,
                             MaxPoolSize = 30,
                             ConnectionIdleTimeout = TimeSpan.FromSeconds(5)
-                        }
+                        },
+                        Proxy = new WebProxy(ProxyUri)
                     }
                 }
             };
@@ -69,6 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             {
                 Option.Some(UpstreamProtocol.AmqpWs),
                 50,
+                Option.Some(new WebProxy(ProxyUri) as IWebProxy),
                 new ITransportSettings[]
                 {
                     new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only)
@@ -78,7 +84,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                             Pooling = true,
                             MaxPoolSize = 50,
                             ConnectionIdleTimeout = TimeSpan.FromSeconds(5)
-                        }
+                        },
+                        Proxy = new WebProxy(ProxyUri)
                     }
                 }
             };
@@ -87,9 +94,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             {
                 Option.Some(UpstreamProtocol.Mqtt),
                 60,
+                Option.Some(new WebProxy(ProxyUri) as IWebProxy),
                 new ITransportSettings[]
                 {
                     new MqttTransportSettings(TransportType.Mqtt_Tcp_Only)
+                    {
+                        Proxy = new WebProxy(ProxyUri)
+                    }
                 }
             };
 
@@ -97,9 +108,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             {
                 Option.Some(UpstreamProtocol.MqttWs),
                 80,
+                Option.Some(new WebProxy(ProxyUri) as IWebProxy),
                 new ITransportSettings[]
                 {
                     new MqttTransportSettings(TransportType.Mqtt_WebSocket_Only)
+                    {
+                        Proxy = new WebProxy(ProxyUri)
+                    }
                 }
             };
         }
@@ -120,7 +135,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 EdgeHubIdentity,
                 TimeSpan.FromMinutes(60),
                 true,
-                TimeSpan.FromSeconds(20));
+                TimeSpan.FromSeconds(20),
+                Option.None<IWebProxy>());
             cloudConnectionProvider.BindEdgeHub(edgeHub);
             var deviceIdentity = Mock.Of<IDeviceIdentity>(m => m.Id == "d1");
             string token = TokenHelper.CreateSasToken(IotHubHostName, DateTime.UtcNow.AddMinutes(10));
@@ -161,7 +177,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 EdgeHubIdentity,
                 TimeSpan.FromMinutes(60),
                 true,
-                TimeSpan.FromSeconds(20));
+                TimeSpan.FromSeconds(20),
+                Option.None<IWebProxy>());
             cloudConnectionProvider.BindEdgeHub(edgeHub);
             var deviceIdentity = Mock.Of<IDeviceIdentity>(m => m.Id == "d1");
             string token = TokenHelper.CreateSasToken(IotHubHostName, DateTime.UtcNow.AddMinutes(10));
@@ -198,7 +215,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 EdgeHubIdentity,
                 TimeSpan.FromMinutes(60),
                 true,
-                TimeSpan.FromSeconds(20));
+                TimeSpan.FromSeconds(20),
+                Option.None<IWebProxy>());
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
             // Act
@@ -238,7 +256,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 EdgeHubIdentity,
                 TimeSpan.FromMinutes(60),
                 true,
-                TimeSpan.FromSeconds(20));
+                TimeSpan.FromSeconds(20),
+                Option.None<IWebProxy>());
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
             // Act
@@ -278,7 +297,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 EdgeHubIdentity,
                 TimeSpan.FromMinutes(60),
                 true,
-                TimeSpan.FromSeconds(20));
+                TimeSpan.FromSeconds(20),
+                Option.None<IWebProxy>());
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
             // Act
@@ -293,9 +313,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
         [Theory]
         [MemberData(nameof(UpstreamProtocolTransportSettingsData))]
-        public void GetTransportSettingsTest(Option<UpstreamProtocol> upstreamProtocol, int connectionPoolSize, ITransportSettings[] expectedTransportSettingsList)
+        public void GetTransportSettingsTest(Option<UpstreamProtocol> upstreamProtocol, int connectionPoolSize, Option<IWebProxy> proxy, ITransportSettings[] expectedTransportSettingsList)
         {
-            ITransportSettings[] transportSettingsList = CloudConnectionProvider.GetTransportSettings(upstreamProtocol, connectionPoolSize);
+            ITransportSettings[] transportSettingsList = CloudConnectionProvider.GetTransportSettings(upstreamProtocol, connectionPoolSize, proxy);
 
             Assert.NotNull(transportSettingsList);
             Assert.Equal(expectedTransportSettingsList.Length, transportSettingsList.Length);
@@ -306,9 +326,34 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
                 Assert.Equal(expectedTransportSettings.GetType(), transportSettings.GetType());
                 Assert.Equal(expectedTransportSettings.GetTransportType(), transportSettings.GetTransportType());
-                if (expectedTransportSettings is AmqpTransportSettings)
+                switch (expectedTransportSettings)
                 {
-                    Assert.True(((AmqpTransportSettings)expectedTransportSettings).Equals((AmqpTransportSettings)transportSettings));
+                    case AmqpTransportSettings _:
+                    {
+                        var expected = (AmqpTransportSettings)expectedTransportSettings;
+                        var actual = (AmqpTransportSettings)transportSettings;
+                        Assert.True(expected.Equals(actual)); // AmqpTransportSettings impls Equals, but doesn't override Object.Equals
+
+                        if (proxy == Option.None<IWebProxy>())
+                        {
+                            Assert.Null(actual.Proxy);
+                        }
+                        else
+                        {
+                            Assert.True(actual.Proxy is WebProxy);
+                            Assert.Equal(((WebProxy)expected.Proxy).Address, ((WebProxy)actual.Proxy).Address);
+                        }
+
+                        break;
+                    }
+                    case MqttTransportSettings _:
+                    {
+                        var expected = (MqttTransportSettings)expectedTransportSettings;
+                        var actual = (MqttTransportSettings)transportSettings;
+                        Assert.True(actual.Proxy is WebProxy);
+                        Assert.Equal(((WebProxy)expected.Proxy).Address, ((WebProxy)actual.Proxy).Address);
+                        break;
+                    }
                 }
             }
         }

@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Net;
     using System.Threading.Tasks;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
@@ -20,6 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
     using Microsoft.Azure.Devices.Shared;
+    using Microsoft.Extensions.Logging;
     using IRoutingMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
     using Message = Microsoft.Azure.Devices.Client.Message;
 
@@ -41,6 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly TimeSpan cloudConnectionIdleTimeout;
         readonly bool closeCloudConnectionOnIdleTimeout;
         readonly TimeSpan operationTimeout;
+        readonly string proxy;
 
         public RoutingModule(
             string iotHubName,
@@ -58,7 +61,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             int maxConnectedClients,
             TimeSpan cloudConnectionIdleTimeout,
             bool closeCloudConnectionOnIdleTimeout,
-            TimeSpan operationTimeout)
+            TimeSpan operationTimeout,
+            string proxy)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
@@ -76,6 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.cloudConnectionIdleTimeout = cloudConnectionIdleTimeout;
             this.closeCloudConnectionOnIdleTimeout = closeCloudConnectionOnIdleTimeout;
             this.operationTimeout = operationTimeout;
+            this.proxy = Preconditions.CheckNotNull(proxy, nameof(proxy));
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -171,6 +176,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                     async c =>
                     {
+                        var loggerFactory = c.Resolve<ILoggerFactory>();
+                        var logger = loggerFactory.CreateLogger<RoutingModule>();
+                        Option<IWebProxy> proxy = Proxy.Parse(this.proxy, logger);
+
                         var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
                         var clientProvider = c.Resolve<IClientProvider>();
                         var tokenProvider = c.ResolveNamed<ITokenProvider>("EdgeHubClientAuthTokenProvider");
@@ -190,7 +199,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             edgeHubCredentials.Identity,
                             this.cloudConnectionIdleTimeout,
                             this.closeCloudConnectionOnIdleTimeout,
-                            this.operationTimeout);
+                            this.operationTimeout,
+                            proxy);
                         return cloudConnectionProvider;
                     })
                 .As<Task<ICloudConnectionProvider>>()
