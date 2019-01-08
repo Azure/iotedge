@@ -8,7 +8,7 @@ param (
     [ValidateNotNullOrEmpty()]
     [ValidateScript( {Test-Path $_})]
     [String] $SecurityDaemonInstallScriptPath
-}
+)
 
 Set-StrictMode -Version "Latest"
 $ErrorActionPreference = "Stop"
