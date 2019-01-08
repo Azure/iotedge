@@ -1,5 +1,5 @@
 <#
- # Clean up previous E2E test result before running an E2E test.
+ # Clean up previous E2E test result before running another E2E test.
  #>
 
 #Requires -RunAsAdministrator
@@ -17,7 +17,7 @@ Write-Host "Prune IoT Edge moby docker system"
 try {
   docker -H npipe:////./pipe/iotedge_moby_engine system prune -f
 } catch {
-  # Ignore this error if moby docker system is not installed.
+  # Ignore this error if moby docker is not installed.
 }
 
 Write-Host "Stop docker"
