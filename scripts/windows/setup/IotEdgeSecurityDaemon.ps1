@@ -1030,8 +1030,9 @@ function Remove-IotEdgeContainers {
     foreach ($containerId in $allContainers) {
         $inspectString = Invoke-Native "$dockerExe inspect ""$containerId""" -Passthru
         $inspectResult = ($inspectString | ConvertFrom-Json)[0]
+        $label = $inspectResult.Config.Labels | Get-Member -MemberType NoteProperty -Name 'net.azure-devices.edge.owner' | %{ $inspectResult.Config.Labels | Select-Object -ExpandProperty $_.Name } 
 
-        if ($inspectResult.Config.Labels.'net.azure-devices.edge.owner' -eq 'Microsoft.Azure.Devices.Edge.Agent') {
+        if ($label -eq 'Microsoft.Azure.Devices.Edge.Agent') {
             if (($inspectResult.Name -eq '/edgeAgent') -or ($inspectResult.Name -eq '/edgeHub')) {
                 Invoke-Native "$dockerExe rm --force ""$containerId"""
                 Write-Verbose "Stopped and deleted container $($inspectResult.Name)"
