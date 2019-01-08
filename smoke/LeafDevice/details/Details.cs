@@ -3,8 +3,11 @@ namespace LeafDevice.Details
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
+    using System.Linq;
     using System.Net;
     using System.Runtime.InteropServices;
+    using System.Security.Cryptography;
     using System.Security.Cryptography.X509Certificates;
     using System.Text;
     using System.Threading;
@@ -23,33 +26,114 @@ namespace LeafDevice.Details
     using Message = Microsoft.Azure.Devices.Client.Message;
     using ServiceClientTransportType = Microsoft.Azure.Devices.TransportType;
 
+    public struct DeviceCertificate
+    {
+        public string certificateFilePath;
+        public string certificateKeyFilePath;
+    }
+
     public class Details
     {
         readonly string iothubConnectionString;
         readonly string eventhubCompatibleEndpointWithEntityPath;
         readonly string deviceId;
-        readonly string certificateFileName;
+        readonly string trustedCACertificateFileName;
         readonly string edgeHostName;
         readonly ServiceClientTransportType serviceClientTransportType;
         readonly EventHubClientTransportType eventHubClientTransportType;
         readonly ITransportSettings[] deviceTransportSettings;
-
+        readonly Option<DeviceCertificate> clientCertificate = Option.None<DeviceCertificate>();
+        Option<List<string>> thumbprints = Option.None<List<string>>();
+        AuthenticationType authType = AuthenticationType.None;
         DeviceContext context;
+
+        static IEnumerable<X509Certificate2> GetCertificatesFromPem(IEnumerable<string> rawPemCerts) =>
+            rawPemCerts
+                .Select(c => System.Text.Encoding.UTF8.GetBytes(c))
+                .Select(c => new X509Certificate2(c))
+                .ToList();
+
+        static string GetSha256Thumbprint(X509Certificate2 cert)
+        {
+            Preconditions.CheckNotNull(cert);
+            using (var sha256 = new SHA256Managed())
+            {
+                byte[] hash = sha256.ComputeHash(cert.RawData);
+                return ToHexString(hash);
+            }
+        }
+
+        static string ToHexString(byte[] bytes)
+        {
+            Preconditions.CheckNotNull(bytes);
+            return BitConverter.ToString(bytes).Replace("-", string.Empty);
+        }
 
         protected Details(
             string iothubConnectionString,
             string eventhubCompatibleEndpointWithEntityPath,
             string deviceId,
-            string certificateFileName,
+            string trustedCACertificateFileName,
             string edgeHostName,
-            bool useWebSockets
+            bool useWebSockets,
+            Option<DeviceCertificate> clientCertificate,
+            Option<IList<string>> thumbprintCertificatePaths
         )
         {
             this.iothubConnectionString = iothubConnectionString;
             this.eventhubCompatibleEndpointWithEntityPath = eventhubCompatibleEndpointWithEntityPath;
             this.deviceId = deviceId;
-            this.certificateFileName = certificateFileName;
+            this.trustedCACertificateFileName = trustedCACertificateFileName;
             this.edgeHostName = edgeHostName;
+            this.authType = clientCertificate.Map(
+                clientCred =>
+                {
+                    if (string.IsNullOrWhiteSpace(clientCred.certificateFilePath) || !File.Exists(clientCred.certificateFilePath))
+                    {
+                        throw new ArgumentException($"'{clientCred.certificateFilePath}' is not a path to a certificates file");
+                    }
+                    if (string.IsNullOrWhiteSpace(clientCred.certificateKeyFilePath) || !File.Exists(clientCred.certificateKeyFilePath))
+                    {
+                        throw new ArgumentException($"'{clientCred.certificateKeyFilePath}' is not a path to a certificates key file");
+                    }
+                    var authType = AuthenticationType.CertificateAuthority;
+                    this.thumbprints = thumbprintCertificatePaths.Map(
+                        certificates =>
+                        {
+                            if (certificates.Count != 2)
+                            {
+                                throw new ArgumentException($"Exactly two client thumprint certificates expected");
+                            }
+                            if (string.IsNullOrWhiteSpace(certificates[0]) || !File.Exists(certificates[0]))
+                            {
+                                throw new ArgumentException($"'{certificates[0]}' is not a path to a thumbprint certificate file");
+                            }
+                            if (string.IsNullOrWhiteSpace(certificates[1]) || !File.Exists(certificates[1]))
+                            {
+                                throw new ArgumentException($"'{certificates[1]}' is not a path to a thumbprint certificate file");
+                            }
+
+                            authType = AuthenticationType.SelfSigned;
+                            var rawCerts = new List<string>();
+                            foreach (string dc in certificates)
+                            {
+                                string rawCert;
+                                using (var sr = new StreamReader(dc))
+                                {
+                                    rawCert = sr.ReadToEnd();
+                                }
+                                rawCerts.Add(rawCert);
+                            }
+                            var certs = GetCertificatesFromPem(rawCerts);
+                            var thumbprints = new List<string>();
+                            foreach (X509Certificate2 cert in certs)
+                            {
+                                thumbprints.Add(Details.GetSha256Thumbprint(cert));
+                            }
+                            return thumbprints;
+                        });
+                    return authType;
+                }).GetOrElse(AuthenticationType.Sas);
 
             if (useWebSockets)
             {
@@ -67,7 +151,7 @@ namespace LeafDevice.Details
 
         protected Task InitializeServerCerts()
         {
-            if (string.IsNullOrEmpty(this.certificateFileName))
+            if (string.IsNullOrEmpty(this.trustedCACertificateFileName))
             {
                 return Task.CompletedTask;
             }
@@ -90,7 +174,7 @@ namespace LeafDevice.Details
             return Task.CompletedTask;
         }
 
-        X509Certificate2 GetCertificate() => new X509Certificate2(X509Certificate.CreateFromCertFile(this.certificateFileName));
+        X509Certificate2 GetCertificate() => new X509Certificate2(X509Certificate.CreateFromCertFile(this.trustedCACertificateFileName));
 
         protected async Task ConnectToEdgeAndSendData()
         {
@@ -138,9 +222,18 @@ namespace LeafDevice.Details
 
         async Task CreateDeviceIdentity(RegistryManager rm)
         {
+            var authMechanism = new AuthenticationMechanism() { Type = this.authType };
+            if (this.authType == AuthenticationType.SelfSigned)
+            {
+                authMechanism.X509Thumbprint = this.thumbprints.Map(
+                    thList =>
+                    {
+                        return new X509Thumbprint() { PrimaryThumbprint = thList[0], SecondaryThumbprint = thList[1] };
+                    }).GetOrElse(new X509Thumbprint());
+            }
             var device = new Device(this.deviceId)
             {
-                Authentication = new AuthenticationMechanism() { Type = AuthenticationType.Sas },
+                Authentication = authMechanism,
                 Capabilities = new DeviceCapabilities() { IotEdge = false }
             };
 
