@@ -82,14 +82,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
         public async Task<IMessage> GetTwinAsync(string id)
         {
             Preconditions.CheckNotNull(id, nameof(id));
-            
+
             Option<Twin> twinOption = await this.cloudSync.GetTwin(id);
             Twin twin = await twinOption
                 .Map(
                     async t =>
                     {
                         Events.GotTwinFromCloud(id);
-                        await this.StoreTwinInStore(id, t);                        
+                        await this.StoreTwinInStore(id, t);
                         return t;
                     })
                 .GetOrElse(
@@ -106,7 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
         {
             Preconditions.CheckNotNull(id, nameof(id));
             Preconditions.CheckNotNull(twinCollection, nameof(twinCollection));
-            
+
             TwinCollection patch = this.twinCollectionConverter.FromMessage(twinCollection);
             Events.UpdatingDesiredProperties(id, patch);
 
@@ -172,7 +172,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                 async cloudTwin =>
                 {
                     Events.UpdatingTwinOnDeviceConnect(id);
-                    await this.StoreTwinInStore(id, cloudTwin);                    
+                    await this.StoreTwinInStore(id, cloudTwin);
 
                     string diffPatch = JsonEx.Diff(storeTwin.Properties.Desired, cloudTwin.Properties.Desired);
                     if (string.IsNullOrWhiteSpace(diffPatch))
@@ -186,7 +186,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
 
         async Task HandleDesiredPropertiesUpdates(string id)
         {
-            if (!this.connectionManager.HasActiveSubscription(id, DeviceSubscription.DesiredPropertyUpdates))
+            if (!this.connectionManager.CheckClientSubscription(id, DeviceSubscription.DesiredPropertyUpdates))
             {
                 Events.NoDesiredPropertiesSubscription(id);
             }
@@ -219,23 +219,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
         Task SendPatchToDevice(string id, IMessage twinCollection)
         {
             Events.SendDesiredPropertyUpdates(id);
-            Option<IReadOnlyDictionary<DeviceSubscription, bool>> subscriptionsOption = this.connectionManager.GetSubscriptions(id);
-            return subscriptionsOption.ForEachAsync(
-                subscriptions =>
-                {
-                    if (subscriptions.TryGetValue(DeviceSubscription.DesiredPropertyUpdates, out bool desiredPropertyUpdates) && desiredPropertyUpdates)
-                    {
-                        Events.SendDesiredPropertyUpdates(id);
-                        Option<IDeviceProxy> deviceProxyOption = this.connectionManager.GetDeviceConnection(id);
-                        return deviceProxyOption.ForEachAsync(deviceProxy => deviceProxy.OnDesiredPropertyUpdates(twinCollection));
-                    }
-                    else
-                    {
-                        Events.SendDesiredPropertyUpdates(id);
-                    }
+            bool hasDesiredPropertyUpdatesSubscription = this.connectionManager.CheckClientSubscription(id, DeviceSubscription.DesiredPropertyUpdates);
+            if (hasDesiredPropertyUpdatesSubscription)
+            {
+                Events.SendDesiredPropertyUpdates(id);
+                Option<IDeviceProxy> deviceProxyOption = this.connectionManager.GetDeviceConnection(id);
+                return deviceProxyOption.ForEachAsync(deviceProxy => deviceProxy.OnDesiredPropertyUpdates(twinCollection));
+            }
 
-                    return Task.CompletedTask;
-                });
+            Events.SendDesiredPropertyUpdates(id);
+            return Task.CompletedTask;
         }
 
         async Task StoreTwinInStore(string id, Twin twin)

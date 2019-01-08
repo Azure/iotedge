@@ -161,10 +161,63 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.twin
             Assert.Equal(reported1.ToJson(), receivedTwinPatch2.ToJson());
         }
 
-        //[Fact]
-        //public Task UpdateReportedPropertiesTest()
-        //{
+        [Fact]
+        public Task UpdateDesiredPropertiesTest()
+        {
+            string id = "d1";
 
-        //}
+            var desired1 = new TwinCollection
+            {
+                ["p1"] = "vp1",
+                ["p3"] = "v3",
+                ["$version"] = 1
+            };
+
+            TwinCollection receivedTwinPatch = null;
+            var twinStore = new Mock<ITwinStore>(MockBehavior.Strict);
+            twinStore.Setup(c => c.UpdateDesiredProperties(id, It.IsAny<TwinCollection>()))
+                .Callback<string, TwinCollection>((s, t) => receivedTwinPatch = t)
+                .Returns(Task.CompletedTask);
+
+            twinStore.Setup(c => c.Get(id))
+                .ReturnsAsync(Option.None<Twin>());
+
+            TwinCollection receivedTwinPatch2 = null;
+            var reportedPropertiesStore = new Mock<IReportedPropertiesStore>(MockBehavior.Strict);
+            reportedPropertiesStore.Setup(r => r.InitSyncToCloud(id));
+            reportedPropertiesStore.Setup(r => r.Update(id, It.IsAny<TwinCollection>()))
+                .Callback<string, TwinCollection>((s, t) => receivedTwinPatch2 = t)
+                .Returns(Task.CompletedTask);
+
+            var cloudSync = Mock.Of<ICloudSync>();
+            var twinMessageConverter = new TwinMessageConverter();
+            var connectionManager = Mock.Of<IConnectionManager>();
+            var twinCollectionConverter = new TwinCollectionMessageConverter();
+            var reportedPropertiesValidator = Mock.Of<IValidator<TwinCollection>>();
+
+            var twinManager = new StoringTwinManager(
+                connectionManager,
+                twinCollectionConverter,
+                twinMessageConverter,
+                reportedPropertiesValidator,
+                twinStore.Object,
+                reportedPropertiesStore.Object,
+                cloudSync,
+                TimeSpan.FromMinutes(10));
+
+            IMessage reportedPropertiesMessage = twinCollectionConverter.ToMessage(reported1);
+
+            // Act
+            await twinManager.UpdateReportedPropertiesAsync(id, reportedPropertiesMessage);
+
+            // Assert
+            twinStore.VerifyAll();
+            reportedPropertiesStore.VerifyAll();
+
+            Assert.NotNull(receivedTwinPatch);
+            Assert.NotNull(receivedTwinPatch2);
+            Assert.Equal(reported1.ToJson(), receivedTwinPatch.ToJson());
+            Assert.Equal(reported1.ToJson(), receivedTwinPatch2.ToJson());
+        }
     }
 }
