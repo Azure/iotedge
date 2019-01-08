@@ -3,7 +3,6 @@
 // We disable this test on Windows in order to avoid having to add a dependency
 // on OpenSSL.
 #![cfg(not(windows))]
-
 #![deny(unused_extern_crates, warnings)]
 // Remove this when clippy stops warning about old-style `allow()`,
 // which can only be silenced by enabling a feature and thus requires nightly
