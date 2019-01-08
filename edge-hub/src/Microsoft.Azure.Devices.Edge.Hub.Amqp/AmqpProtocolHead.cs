@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 {
     using System;
@@ -114,6 +113,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             this.SafeCloseExistingConnections();
         }
 
+        public void Dispose()
+        {
+            this.CloseAsync(CancellationToken.None).Wait();
+        }
+
         void OnAcceptTransport(TransportListener transportListener, TransportAsyncCallbackArgs args)
         {
             if (args.Exception != null)
@@ -131,18 +135,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                     (ProtocolHeader)args.UserToken,
                     false,
                     this.amqpSettings.Clone(),
-                    this.connectionSettings.Clone()
-                );
+                    this.connectionSettings.Clone());
 
                 // Open the connection async but don't block waiting on it.
                 this.OpenAmqpConnectionAsync(connection, AmqpConstants.DefaultTimeout)
-                    .ContinueWith(task =>
-                    {
-                        if (task.Exception != null)
+                    .ContinueWith(
+                        task =>
                         {
-                            Events.OpenConnectionError(task.Exception);
-                        }
-                    }, TaskContinuationOptions.OnlyOnFaulted);
+                            if (task.Exception != null)
+                            {
+                                Events.OpenConnectionError(task.Exception);
+                            }
+                        },
+                        TaskContinuationOptions.OnlyOnFaulted);
             }
             catch (Exception ex) when (ex.IsFatal() == false)
             {
@@ -222,15 +227,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             connectionSnapShot.ForEach(conn => conn.SafeClose(new AmqpException(AmqpErrorCode.DetachForced, "Server busy, please retry operation")));
         }
 
-        public void Dispose()
-        {
-            this.CloseAsync(CancellationToken.None).Wait();
-        }
-
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<AmqpProtocolHead>();
             const int IdStart = AmqpEventIds.AmqpProtocolHead;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<AmqpProtocolHead>();
 
             enum EventIds
             {

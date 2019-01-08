@@ -1,15 +1,15 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Routing.Core.Test
 {
     using System;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.Util;
     using Xunit;
 
     public class SinkResultTest : RoutingUnitTestBase
     {
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestConstructor()
         {
             var result1 = new SinkResult<int>(new[] { 1 }, new[] { 2 }, null);

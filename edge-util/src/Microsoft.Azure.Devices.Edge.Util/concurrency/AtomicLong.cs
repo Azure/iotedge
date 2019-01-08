@@ -1,5 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Util.Concurrency
 {
     using System.Threading;
@@ -13,7 +12,12 @@ namespace Microsoft.Azure.Devices.Edge.Util.Concurrency
             this.underlying = value;
         }
 
-        public AtomicLong() : this(0) { }
+        public AtomicLong()
+            : this(0)
+        {
+        }
+
+        public static implicit operator long(AtomicLong value) => value.Get();
 
         public long Get() => this.underlying;
 
@@ -27,7 +31,5 @@ namespace Microsoft.Azure.Devices.Edge.Util.Concurrency
         {
             return Interlocked.CompareExchange(ref this.underlying, result, expected);
         }
-
-        public static implicit operator long(AtomicLong value) => value.Get();
     }
 }

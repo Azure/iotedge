@@ -8,16 +8,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
     using System.Linq;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
-    using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json;
-    using Xunit;
     using Newtonsoft.Json.Linq;
+    using Xunit;
 
     [ExcludeFromCodeCoverage]
     [Unit]
     public class DockerRuntimeModuleTest
     {
+        const string SerializedModule1 = @"{""version"":""version1"",""type"":""docker"",""status"":""running"",""restartPolicy"":""on-unhealthy"",""exitcode"":0,""restartcount"":0,""lastrestarttimeutc"":""0001-01-01T00:00:00Z"",""runtimestatus"":""running"",""settings"":{""image"":""image1:42"",""createOptions"":{""HostConfig"":{""PortBinding"":{""42/tcp"":[{""HostPort"":""42""}],""43/udp"":[{""HostPort"":""43""}]}}}},""configuration"":{""id"":""1""}}";
+        const string SerializedModule2 = @"{""version"":""version1"",""type"":""docker"",""status"":""running"",""restartPolicy"":""on-unhealthy"",""exitcode"":0,""statusdescription"":""Running 1 minute"",""laststarttimeutc"":""2017-08-04T17:52:13.0419502Z"",""lastexittimeutc"":""0001-01-01T00:00:00Z"",""restartcount"":0,""lastrestarttimeutc"":""0001-01-01T00:00:00Z"",""runtimestatus"":""running"",""settings"":{""image"":""image1:42"",""createOptions"":{""HostConfig"":{""PortBinding"":{""42/tcp"":[{""HostPort"":""42""}],""43/udp"":[{""HostPort"":""43""}]}}}},""configuration"":{""id"":""1""}}";
+
         static readonly ConfigurationInfo DefaultConfigurationInfo = null;
         static readonly IDictionary<string, EnvVal> EnvVars = new Dictionary<string, EnvVal>();
         static readonly DockerConfig Config1 = new DockerReportedConfig("image1:42", @"{""HostConfig"": {""PortBinding"": {""42/tcp"": [{""HostPort"": ""42""}], ""43/udp"": [{""HostPort"": ""43""}]}}}", "foo");
@@ -41,10 +43,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         static readonly DockerConfig ValidConfig = new DockerReportedConfig("image1:42", (string)null, "sha256:75");
         static readonly DockerRuntimeModule ValidJsonModule = new DockerRuntimeModule("<module_name>", "<semantic_version_number>", ModuleStatus.Running, RestartPolicy.OnFailure, ValidConfig, 0, "<status description>", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.Parse("2017-08-05T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), 1, DateTime.Parse("2017-08-06T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), ModuleStatus.Running, DefaultConfigurationInfo, EnvVars);
 
-        const string SerializedModule1 = @"{""version"":""version1"",""type"":""docker"",""status"":""running"",""restartPolicy"":""on-unhealthy"",""exitcode"":0,""restartcount"":0,""lastrestarttimeutc"":""0001-01-01T00:00:00Z"",""runtimestatus"":""running"",""settings"":{""image"":""image1:42"",""createOptions"":{""HostConfig"":{""PortBinding"":{""42/tcp"":[{""HostPort"":""42""}],""43/udp"":[{""HostPort"":""43""}]}}}},""configuration"":{""id"":""1""}}";
-        const string SerializedModule2 = @"{""version"":""version1"",""type"":""docker"",""status"":""running"",""restartPolicy"":""on-unhealthy"",""exitcode"":0,""statusdescription"":""Running 1 minute"",""laststarttimeutc"":""2017-08-04T17:52:13.0419502Z"",""lastexittimeutc"":""0001-01-01T00:00:00Z"",""restartcount"":0,""lastrestarttimeutc"":""0001-01-01T00:00:00Z"",""runtimestatus"":""running"",""settings"":{""image"":""image1:42"",""createOptions"":{""HostConfig"":{""PortBinding"":{""42/tcp"":[{""HostPort"":""42""}],""43/udp"":[{""HostPort"":""43""}]}}}},""configuration"":{""id"":""1""}}";
-
-        static readonly JObject TestJsonInputs = JsonConvert.DeserializeObject<JObject>(@"
+        static readonly JObject TestJsonInputs = JsonConvert.DeserializeObject<JObject>(
+            @"
 {
    ""invalidExitCodeJson"":[
       {
@@ -465,51 +465,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
    ],
 }
 ");
-        static IEnumerable<string> GetJsonTestCases(string subset)
-        {
-            var val = (JArray)TestJsonInputs.GetValue(subset);
-            return val.Children().Select(token => token.ToString());
-        }
-
-        static IEnumerable<object[]> GetValidJsonInputs()
-        {
-            return GetJsonTestCases("validJson").Select(s => new object[] { s });
-        }
-
-        static IEnumerable<object[]> GetValidStatusInputs()
-        {
-            return GetJsonTestCases("validStatus").Select(s => new object[] { s });
-        }
-
-        static IEnumerable<object[]> GetInvalidExitCodes()
-        {
-            return GetJsonTestCases("invalidExitCodeJson").Select(s => new object[] { s });
-        }
-
-        static IEnumerable<object[]> GetInvalidStatusDescription()
-        {
-            return GetJsonTestCases("invalidStatusDescription").Select(s => new object[] { s });
-        }
-
-        static IEnumerable<object[]> GetInvalidLastStartTimes()
-        {
-            return GetJsonTestCases("invalidLastStartTime").Select(s => new object[] { s });
-        }
-
-        static IEnumerable<object[]> GetInvalidLastExitTimes()
-        {
-            return GetJsonTestCases("invalidLastExitTime").Select(s => new object[] { s });
-        }
-
-        static IEnumerable<object[]> GetInvalidRestartCounts()
-        {
-            return GetJsonTestCases("invalidRestartCount").Select(s => new object[] { s });
-        }
-
-        static IEnumerable<object[]> GetInvalidLastRestartTimes()
-        {
-            return GetJsonTestCases("invalidLastRestartTime").Select(s => new object[] { s });
-        }
 
         [Fact]
         public void TestConstructor()
@@ -693,6 +648,52 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(m2.StatusDescription, newM2.StatusDescription);
             Assert.Equal(m2.Type, newM2.Type);
             Assert.Equal(m2.Version, newM2.Version);
+        }
+
+        static IEnumerable<string> GetJsonTestCases(string subset)
+        {
+            var val = (JArray)TestJsonInputs.GetValue(subset);
+            return val.Children().Select(token => token.ToString());
+        }
+
+        static IEnumerable<object[]> GetValidJsonInputs()
+        {
+            return GetJsonTestCases("validJson").Select(s => new object[] { s });
+        }
+
+        static IEnumerable<object[]> GetValidStatusInputs()
+        {
+            return GetJsonTestCases("validStatus").Select(s => new object[] { s });
+        }
+
+        static IEnumerable<object[]> GetInvalidExitCodes()
+        {
+            return GetJsonTestCases("invalidExitCodeJson").Select(s => new object[] { s });
+        }
+
+        static IEnumerable<object[]> GetInvalidStatusDescription()
+        {
+            return GetJsonTestCases("invalidStatusDescription").Select(s => new object[] { s });
+        }
+
+        static IEnumerable<object[]> GetInvalidLastStartTimes()
+        {
+            return GetJsonTestCases("invalidLastStartTime").Select(s => new object[] { s });
+        }
+
+        static IEnumerable<object[]> GetInvalidLastExitTimes()
+        {
+            return GetJsonTestCases("invalidLastExitTime").Select(s => new object[] { s });
+        }
+
+        static IEnumerable<object[]> GetInvalidRestartCounts()
+        {
+            return GetJsonTestCases("invalidRestartCount").Select(s => new object[] { s });
+        }
+
+        static IEnumerable<object[]> GetInvalidLastRestartTimes()
+        {
+            return GetJsonTestCases("invalidLastRestartTime").Select(s => new object[] { s });
         }
     }
 }

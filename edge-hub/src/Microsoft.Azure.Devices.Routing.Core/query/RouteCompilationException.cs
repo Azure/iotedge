@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Routing.Core.Query
 {
     using System;
@@ -13,12 +12,12 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
 
     public class RouteCompilationException : Exception
     {
-        public IList<CompilationError> Errors { get; }
-
         public RouteCompilationException(IEnumerable<CompilationError> errors)
         {
             this.Errors = Preconditions.CheckNotNull(errors).ToImmutableList();
         }
+
+        public IList<CompilationError> Errors { get; }
 
         public override string ToString()
         {
@@ -27,7 +26,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
             {
                 sb.AppendLine("Compilation errors:");
                 foreach (string error in this.Errors.Select(
-                    e => string.Format(CultureInfo.InvariantCulture, "StartLine[{0}], StartColumn[{1}], EndLine[{2}], EndColumn[{3}], Severity[{4}], Message: {5}",
+                    e => string.Format(
+                        CultureInfo.InvariantCulture,
+                        "StartLine[{0}], StartColumn[{1}], EndLine[{2}], EndColumn[{3}], Severity[{4}], Message: {5}",
                         e.Location.Start.Line,
                         e.Location.Start.Column,
                         e.Location.End.Line,

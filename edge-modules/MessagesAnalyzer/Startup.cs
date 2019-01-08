@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace MessagesAnalyzer
 {
     using Microsoft.AspNetCore.Builder;
@@ -11,7 +10,7 @@ namespace MessagesAnalyzer
     {
         public Startup(IConfiguration configuration)
         {
-            Configuration = configuration;
+            this.Configuration = configuration;
         }
 
         public IConfiguration Configuration { get; }
@@ -29,7 +28,7 @@ namespace MessagesAnalyzer
             {
                 app.UseDeveloperExceptionPage();
             }
-           
+
             app.UseMvc();
         }
     }

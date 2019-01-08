@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
     using System.Threading.Tasks;
@@ -32,20 +31,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             this.restartPolicyManager = Preconditions.CheckNotNull(restartPolicyManager, nameof(restartPolicyManager));
         }
 
-        public static async Task<DockerEnvironmentProvider> CreateAsync(IRuntimeInfoProvider runtimeInfoProvider, IEntityStore<string, ModuleState> store,
+        public static async Task<DockerEnvironmentProvider> CreateAsync(
+            IRuntimeInfoProvider runtimeInfoProvider,
+            IEntityStore<string, ModuleState> store,
             IRestartPolicyManager restartPolicyManager)
         {
             SystemInfo systemInfo = await Preconditions.CheckNotNull(runtimeInfoProvider, nameof(runtimeInfoProvider)).GetSystemInfo();
             return new DockerEnvironmentProvider(
-                runtimeInfoProvider, store, restartPolicyManager,
-                systemInfo.OperatingSystemType, systemInfo.Architecture,
+                runtimeInfoProvider,
+                store,
+                restartPolicyManager,
+                systemInfo.OperatingSystemType,
+                systemInfo.Architecture,
                 systemInfo.Version);
         }
 
         public IEnvironment Create(DeploymentConfig deploymentConfig) =>
             new DockerEnvironment(
-                this.moduleStatusProvider, deploymentConfig, this.store,
-                this.restartPolicyManager, this.operatingSystemType,
-                this.architecture, this.version);
+                this.moduleStatusProvider,
+                deploymentConfig,
+                this.store,
+                this.restartPolicyManager,
+                this.operatingSystemType,
+                this.architecture,
+                this.version);
     }
 }

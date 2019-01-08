@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 {
     using System;
@@ -8,8 +7,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Xunit;
     using Moq;
+    using Xunit;
 
     public class DefaultTransportSettingsTest
     {
@@ -26,10 +25,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var autheticator = Mock.Of<IAuthenticator>();
 
             Assert.Throws<ArgumentException>(() => new DefaultTransportSettings(null, HostName, Port, tlsCertificate, clientCertsAllowed, autheticator, credentialsProvider));
-            Assert.Throws<ArgumentException>(() => new DefaultTransportSettings("", HostName, Port, tlsCertificate, clientCertsAllowed, autheticator, credentialsProvider));
+            Assert.Throws<ArgumentException>(() => new DefaultTransportSettings(string.Empty, HostName, Port, tlsCertificate, clientCertsAllowed, autheticator, credentialsProvider));
             Assert.Throws<ArgumentException>(() => new DefaultTransportSettings("    ", HostName, Port, tlsCertificate, clientCertsAllowed, autheticator, credentialsProvider));
             Assert.Throws<ArgumentException>(() => new DefaultTransportSettings(Scheme, null, Port, tlsCertificate, clientCertsAllowed, autheticator, credentialsProvider));
-            Assert.Throws<ArgumentException>(() => new DefaultTransportSettings(Scheme, "", Port, tlsCertificate, clientCertsAllowed, autheticator, credentialsProvider));
+            Assert.Throws<ArgumentException>(() => new DefaultTransportSettings(Scheme, string.Empty, Port, tlsCertificate, clientCertsAllowed, autheticator, credentialsProvider));
             Assert.Throws<ArgumentException>(() => new DefaultTransportSettings(Scheme, "   ", Port, tlsCertificate, clientCertsAllowed, autheticator, credentialsProvider));
             Assert.Throws<ArgumentOutOfRangeException>(() => new DefaultTransportSettings(Scheme, HostName, -1, tlsCertificate, clientCertsAllowed, autheticator, credentialsProvider));
             Assert.Throws<ArgumentOutOfRangeException>(() => new DefaultTransportSettings(Scheme, HostName, 70000, tlsCertificate, clientCertsAllowed, autheticator, credentialsProvider));

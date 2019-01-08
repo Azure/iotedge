@@ -1,4 +1,4 @@
-ARG base_tag=2.1.2-runtime-bionic-arm32v7
+ARG base_tag=2.1.6-runtime-bionic-arm32v7
 FROM microsoft/dotnet:${base_tag}
 
 # Add an unprivileged user account for running the module

@@ -1,12 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
-
-using System;
-using System.Globalization;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling
 {
+    using System;
+    using System.Globalization;
+    using System.Threading;
+    using System.Threading.Tasks;
+
     /// <summary>
     /// Provides a wrapper for a non-generic <see cref="T:System.Threading.Tasks.Task" /> and calls into the pipeline
     /// to retry only the generic version of the <see cref="T:System.Threading.Tasks.Task" />.
@@ -30,38 +29,58 @@ namespace Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling
             Task task = taskAction();
             if (task == null)
             {
-                throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, "{0} cannot be null", new object[]
-                {
-                    "taskAction"
-                }), nameof(taskAction));
+                throw new ArgumentException(
+                    string.Format(
+                        CultureInfo.InvariantCulture,
+                        "{0} cannot be null",
+                        new object[]
+                        {
+                            "taskAction"
+                        }),
+                    nameof(taskAction));
             }
+
             if (task.Status == TaskStatus.RanToCompletion)
             {
                 return GetCachedTask();
             }
+
             if (task.Status == TaskStatus.Created)
             {
-                throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, "{0} must be scheduled", new object[]
-                {
-                    "taskAction"
-                }), nameof(taskAction));
+                throw new ArgumentException(
+                    string.Format(
+                        CultureInfo.InvariantCulture,
+                        "{0} must be scheduled",
+                        new object[]
+                        {
+                            "taskAction"
+                        }),
+                    nameof(taskAction));
             }
+
             var tcs = new TaskCompletionSource<bool>();
-            task.ContinueWith(delegate (Task t)
-            {
-                if (t.IsFaulted)
+            task.ContinueWith(
+                t =>
                 {
-                    if (t.Exception != null)
-                        tcs.TrySetException(t.Exception.InnerExceptions);
-                    return;
-                }
-                if (t.IsCanceled)
-                {
-                    tcs.TrySetCanceled();
-                    return;
-                }
-                tcs.TrySetResult(true);
-            }, TaskContinuationOptions.ExecuteSynchronously);
+                    if (t.IsFaulted)
+                    {
+                        if (t.Exception != null)
+                        {
+                            tcs.TrySetException(t.Exception.InnerExceptions);
+                        }
+
+                        return;
+                    }
+
+                    if (t.IsCanceled)
+                    {
+                        tcs.TrySetCanceled();
+                        return;
+                    }
+
+                    tcs.TrySetResult(true);
+                },
+                TaskContinuationOptions.ExecuteSynchronously);
             return tcs.Task;
         }
 
@@ -73,6 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling
                 taskCompletionSource.TrySetResult(true);
                 cachedBoolTask = taskCompletionSource.Task;
             }
+
             return cachedBoolTask;
         }
     }

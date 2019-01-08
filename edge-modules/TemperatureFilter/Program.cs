@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace TemperatureFilter
 {
     using System;
@@ -22,15 +21,23 @@ namespace TemperatureFilter
     class Program
     {
         const int RetryCount = 5;
-        static readonly ITransientErrorDetectionStrategy TimeoutErrorDetectionStrategy = new DelegateErrorDetectionStrategy(ex => ex.HasTimeoutException());
-        static readonly RetryStrategy TransientRetryStrategy =
-            new ExponentialBackoff(RetryCount, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
-
         const string TemperatureThresholdKey = "TemperatureThreshold";
         const int DefaultTemperatureThreshold = 25;
+        static readonly ITransientErrorDetectionStrategy TimeoutErrorDetectionStrategy = new DelegateErrorDetectionStrategy(ex => ex.HasTimeoutException());
+        static readonly RetryStrategy TransientRetryStrategy = new ExponentialBackoff(RetryCount, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
         static int counter;
 
         public static int Main() => MainAsync().Result;
+
+        /// <summary>
+        /// Handles cleanup operations when app is cancelled or unloads
+        /// </summary>
+        public static Task WhenCancelled(CancellationToken cancellationToken)
+        {
+            var tcs = new TaskCompletionSource<bool>();
+            cancellationToken.Register(s => ((TaskCompletionSource<bool>)s).SetResult(true), tcs);
+            return tcs.Task;
+        }
 
         static async Task<int> MainAsync()
         {
@@ -58,8 +65,6 @@ namespace TemperatureFilter
 
             Tuple<ModuleClient, ModuleConfig> userContext = moduleclientAndConfig;
 
-
-
             await moduleclientAndConfig.Item1.SetInputMessageHandlerAsync("input1", PrintAndFilterMessages, userContext).ConfigureAwait(false);
 
             // Wait until the app unloads or is cancelled
@@ -68,16 +73,6 @@ namespace TemperatureFilter
             Console.CancelKeyPress += (sender, cpe) => cts.Cancel();
             WhenCancelled(cts.Token).Wait();
             return 0;
-        }
-
-        /// <summary>
-        /// Handles cleanup operations when app is cancelled or unloads
-        /// </summary>
-        public static Task WhenCancelled(CancellationToken cancellationToken)
-        {
-            var tcs = new TaskCompletionSource<bool>();
-            cancellationToken.Register(s => ((TaskCompletionSource<bool>)s).SetResult(true), tcs);
-            return tcs.Task;
         }
 
         static async Task<Tuple<ModuleClient, ModuleConfig>> InitModuleClient(TransportType transportType)
@@ -94,6 +89,7 @@ namespace TemperatureFilter
                         return new ITransportSettings[] { new AmqpTransportSettings(transportType) };
                 }
             }
+
             ITransportSettings[] settings = GetTransportSettings();
 
             ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings).ConfigureAwait(false);
@@ -120,9 +116,11 @@ namespace TemperatureFilter
             var userContextValues = userContext as Tuple<ModuleClient, ModuleConfig>;
             if (userContextValues == null)
             {
-                throw new InvalidOperationException("UserContext doesn't contain " +
+                throw new InvalidOperationException(
+                    "UserContext doesn't contain " +
                     "expected values");
             }
+
             ModuleClient moduleClient = userContextValues.Item1;
             ModuleConfig moduleModuleConfig = userContextValues.Item2;
 
@@ -136,7 +134,8 @@ namespace TemperatureFilter
             if (messageBody != null
                 && messageBody.Machine.Temperature > moduleModuleConfig.TemperatureThreshold)
             {
-                Console.WriteLine($"Temperature {messageBody.Machine.Temperature} " +
+                Console.WriteLine(
+                    $"Temperature {messageBody.Machine.Temperature} " +
                     $"exceeds threshold {moduleModuleConfig.TemperatureThreshold}");
                 var filteredMessage = new Message(messageBytes);
                 foreach (KeyValuePair<string, string> prop in message.Properties)
@@ -163,9 +162,9 @@ namespace TemperatureFilter
                 int tempThreshold = (int)twin.Properties.Desired[TemperatureThresholdKey];
                 return new ModuleConfig(tempThreshold);
             }
-            // Else try to get it from the environment variables.
             else
             {
+                // Else try to get it from the environment variables.
                 string tempThresholdEnvVar = Environment.GetEnvironmentVariable(TemperatureThresholdKey);
                 if (!string.IsNullOrWhiteSpace(tempThresholdEnvVar) && int.TryParse(tempThresholdEnvVar, out int tempThreshold))
                 {
@@ -189,6 +188,5 @@ namespace TemperatureFilter
 
             public int TemperatureThreshold { get; }
         }
-
     }
 }

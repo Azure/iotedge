@@ -3,14 +3,13 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
 {
     using System;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
     [Unit]
     public class InMemoryStorePartitionTest
-    {       
+    {
         [Fact]
         public async Task GetMultipleOperationsTest()
         {
@@ -26,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
             Task removeTask = Task.Run(async () => await inMemoryStorePartition.Remove("key0".ToBytes()));
             Task putTask = Task.Run(async () => await inMemoryStorePartition.Put("key1".ToBytes(), "newvalue".ToBytes()));
 
-            await Task.WhenAll(removeTask, putTask, getTask);            
+            await Task.WhenAll(removeTask, putTask, getTask);
             Assert.True(getTask.IsCompletedSuccessfully);
             Assert.True(removeTask.IsCompletedSuccessfully);
             Assert.True(putTask.IsCompletedSuccessfully);
@@ -63,22 +62,28 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
             }
 
             int[] counter = { 11 };
-            await inMemoryStorePartition.IterateBatch($"key{counter[0]}".ToBytes(), 20, (key, value) =>
-            {
-                Assert.Equal($"key{counter[0]}", key.FromBytes<string>());
-                Assert.Equal($"val{counter[0]}", value.FromBytes<string>());
-                counter[0]++;
-                return Task.CompletedTask;
-            });
+            await inMemoryStorePartition.IterateBatch(
+                $"key{counter[0]}".ToBytes(),
+                20,
+                (key, value) =>
+                {
+                    Assert.Equal($"key{counter[0]}", key.FromBytes<string>());
+                    Assert.Equal($"val{counter[0]}", value.FromBytes<string>());
+                    counter[0]++;
+                    return Task.CompletedTask;
+                });
 
             counter[0] = 61;
-            await inMemoryStorePartition.IterateBatch($"key{counter[0]}".ToBytes(), 20, (key, value) =>
-            {
-                Assert.Equal($"key{counter[0]}", key.FromBytes<string>());
-                Assert.Equal($"val{counter[0]}", value.FromBytes<string>());
-                counter[0]++;
-                return Task.CompletedTask;
-            });
+            await inMemoryStorePartition.IterateBatch(
+                $"key{counter[0]}".ToBytes(),
+                20,
+                (key, value) =>
+                {
+                    Assert.Equal($"key{counter[0]}", key.FromBytes<string>());
+                    Assert.Equal($"val{counter[0]}", value.FromBytes<string>());
+                    counter[0]++;
+                    return Task.CompletedTask;
+                });
         }
 
         [Fact]
@@ -86,11 +91,13 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         {
             var inMemoryStorePartition = new InMemoryDbStore();
             bool callbackCalled = false;
-            await inMemoryStorePartition.IterateBatch(20, (key, value) =>
-            {
-                callbackCalled = true;
-                return Task.CompletedTask;
-            });
+            await inMemoryStorePartition.IterateBatch(
+                20,
+                (key, value) =>
+                {
+                    callbackCalled = true;
+                    return Task.CompletedTask;
+                });
 
             Assert.False(callbackCalled);
         }
@@ -105,24 +112,23 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
                 await inMemoryStorePartition.Put($"key{i}".ToBytes(), $"val{i}".ToBytes());
             }
 
-            Task iterateBatch = Task.Run(async () =>
-            {
-                await inMemoryStorePartition.IterateBatch(
-                    10,
-                    async (key, value) =>
-                    {
-                        await Task.Delay(TimeSpan.FromMilliseconds(500));
-                    });                
-            });
+            Task iterateBatch = Task.Run(
+                async () =>
+                {
+                    await inMemoryStorePartition.IterateBatch(
+                        10,
+                        async (key, value) => { await Task.Delay(TimeSpan.FromMilliseconds(500)); });
+                });
 
-            Task updateTask = Task.Run(async () =>
-            {
-                await inMemoryStorePartition.Remove("key0".ToBytes());
-                await Task.Delay(TimeSpan.FromMilliseconds(500));
-                await inMemoryStorePartition.Put("key20".ToBytes(), "newValue".ToBytes());
-                await Task.Delay(TimeSpan.FromMilliseconds(500));
-                await inMemoryStorePartition.Remove("key8".ToBytes());
-            });
+            Task updateTask = Task.Run(
+                async () =>
+                {
+                    await inMemoryStorePartition.Remove("key0".ToBytes());
+                    await Task.Delay(TimeSpan.FromMilliseconds(500));
+                    await inMemoryStorePartition.Put("key20".ToBytes(), "newValue".ToBytes());
+                    await Task.Delay(TimeSpan.FromMilliseconds(500));
+                    await inMemoryStorePartition.Remove("key8".ToBytes());
+                });
 
             await Task.WhenAll(updateTask, iterateBatch);
 

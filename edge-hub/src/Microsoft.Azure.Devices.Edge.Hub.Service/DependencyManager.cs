@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
     using System;
@@ -83,6 +82,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             this.RegisterAmqpModule(builder);
             builder.RegisterModule(new HttpModule());
         }
+
+        internal static Option<UpstreamProtocol> GetUpstreamProtocol(IConfigurationRoot configuration) =>
+            Enum.TryParse(configuration.GetValue("UpstreamProtocol", string.Empty), true, out UpstreamProtocol upstreamProtocol)
+                ? Option.Some(upstreamProtocol)
+                : Option.None<UpstreamProtocol>();
 
         void RegisterAmqpModule(ContainerBuilder builder)
         {
@@ -174,11 +178,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     cacheTokens,
                     this.trustBundle));
         }
-
-        internal static Option<UpstreamProtocol> GetUpstreamProtocol(IConfigurationRoot configuration) =>
-            Enum.TryParse(configuration.GetValue("UpstreamProtocol", string.Empty), true, out UpstreamProtocol upstreamProtocol)
-                ? Option.Some(upstreamProtocol)
-                : Option.None<UpstreamProtocol>();
 
         (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) GetStoreAndForwardConfiguration()
         {

@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Routing.Core.Test.Sinks
 {
     using System;
@@ -12,12 +11,12 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Sinks
     {
         static readonly IList<T> Empty = new List<T>();
 
-        public Exception Exception { get; }
-
         public FailedSink(Exception exception)
         {
             this.Exception = exception;
         }
+
+        public Exception Exception { get; }
 
         public Task<ISinkResult<T>> ProcessAsync(T t, CancellationToken token) =>
             this.ProcessAsync(new[] { t }, token);

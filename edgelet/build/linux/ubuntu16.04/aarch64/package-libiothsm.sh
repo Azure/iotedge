@@ -35,7 +35,7 @@ run_command()
 }
 
 mkdir -p $BUILD_DIR
-run_command "cd /target/hsm/build && cmake -DCMAKE_SYSROOT=/toolchain/aarch64-linux-gnu/libc -DCMAKE_C_COMPILER=/toolchain/bin/aarch64-linux-gnu-gcc -DCMAKE_CXX_COMPILER=/toolchain/bin/aarch64-linux-gnu-g++ -DCMAKE_SYSTEM_NAME=Linux -DCPACK_DEBIAN_PACKAGE_ARCHITECTURE=arm64 -DCPACK_PACKAGE_VERSION=\"$VERSION\" -DBUILD_SHARED=On -Drun_unittests=On -Duse_emulator=Off -Duse_http=Off -DCMAKE_BUILD_TYPE=Release -Duse_default_uuid=On /project/hsm-sys/azure-iot-hsm-c/"
+run_command "cd /target/hsm/build && cmake -DCMAKE_SYSROOT=/toolchain/aarch64-linux-gnu/libc -DCMAKE_C_COMPILER=/toolchain/bin/aarch64-linux-gnu-gcc -DCMAKE_CXX_COMPILER=/toolchain/bin/aarch64-linux-gnu-g++ -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_VERSION=1 -DCPACK_DEBIAN_PACKAGE_ARCHITECTURE=arm64 -DCPACK_PACKAGE_VERSION=\"$VERSION\" -DBUILD_SHARED=On -Drun_unittests=On -Duse_emulator=Off -Duse_http=Off -DCMAKE_BUILD_TYPE=Release -Duse_default_uuid=On /project/hsm-sys/azure-iot-hsm-c/"
 
 run_command "cd /target/hsm/build && make package"
 

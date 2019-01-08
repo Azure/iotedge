@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
@@ -12,7 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using Timer = System.Timers.Timer;
 
     public sealed class ConnectionReauthenticator : IDisposable
     {
@@ -44,16 +42,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.deviceScopeIdentitiesCache.ServiceIdentityRemoved += this.HandleServiceIdentityRemove;
         }
 
-        void DeviceConnected(object sender, EventArgs args)
-        {
-            Events.EdgeHubConnectionReestablished();
-            this.deviceScopeIdentitiesCache.InitiateCacheRefresh();
-        }
-
         public void Init()
         {
             Events.StartingReauthTimer(this.timer);
             this.timer.Start();
+        }
+
+        public void Dispose() => this.timer?.Dispose();
+
+        void DeviceConnected(object sender, EventArgs args)
+        {
+            Events.EdgeHubConnectionReestablished();
+            this.deviceScopeIdentitiesCache.InitiateCacheRefresh();
         }
 
         async void ReauthenticateConnections(object sender, ElapsedEventArgs elapsedEventArgs)
@@ -170,8 +170,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<ConnectionReauthenticator>();
             const int IdStart = HubCoreEventIds.PeriodicConnectionAuthenticator;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<ConnectionReauthenticator>();
 
             enum EventIds
             {
@@ -191,11 +191,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             public static void ErrorReauthenticating(Exception ex)
             {
                 Log.LogWarning((int)EventIds.ErrorReauthenticating, ex, "Error re-authenticating connected clients.");
-            }
-
-            internal static void ErrorReauthenticating(string id, Exception ex)
-            {
-                Log.LogWarning((int)EventIds.ErrorReauthenticating, ex, $"Error re-authenticating client {id}, closing the connection.");
             }
 
             public static void ClientCredentialsResult(IIdentity identity, bool result)
@@ -264,8 +259,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 Log.LogInformation((int)EventIds.ServiceIdentityRemoved, $"Unable to re-authenticate {id}, dropping client connection.");
             }
-        }
 
-        public void Dispose() => this.timer?.Dispose();
+            internal static void ErrorReauthenticating(string id, Exception ex)
+            {
+                Log.LogWarning((int)EventIds.ErrorReauthenticating, ex, $"Error re-authenticating client {id}, closing the connection.");
+            }
+        }
     }
 }

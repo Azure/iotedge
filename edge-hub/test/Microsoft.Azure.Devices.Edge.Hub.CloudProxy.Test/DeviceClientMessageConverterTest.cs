@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
     using System;
@@ -65,7 +64,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         [Theory]
         [Unit]
         [MemberData(nameof(GetValidMessagesData))]
-        public void TestValidCases(byte[] messageBytes,
+        public void TestValidCases(
+            byte[] messageBytes,
             IDictionary<string, string> properties,
             IDictionary<string, string> systemProperties)
         {
@@ -101,7 +101,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         [Theory]
         [Unit]
         [MemberData(nameof(GetValidMessagesData))]
-        public void TestValidCasesToMessage(byte[] messageBytes,
+        public void TestValidCasesToMessage(
+            byte[] messageBytes,
             IDictionary<string, string> properties,
             IDictionary<string, string> systemProperties)
         {

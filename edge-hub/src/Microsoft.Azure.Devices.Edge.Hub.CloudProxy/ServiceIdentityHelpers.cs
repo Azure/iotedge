@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System.Collections.Generic;
@@ -75,6 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 serviceCapabilities.Add(Constants.IotEdgeIdentityCapability);
             }
+
             return serviceCapabilities;
         }
     }

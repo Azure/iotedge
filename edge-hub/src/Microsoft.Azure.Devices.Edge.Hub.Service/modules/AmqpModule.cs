@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 {
     using System.Security.Cryptography.X509Certificates;
@@ -44,13 +43,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         protected override void Load(ContainerBuilder builder)
         {
             // ITransportSettings
-            builder.Register(async c =>
-                {
-                    IClientCredentialsFactory clientCredentialsProvider = c.Resolve<IClientCredentialsFactory>();
-                    IAuthenticator authenticator = await c.Resolve<Task<IAuthenticator>>();
-                    ITransportSettings settings = new DefaultTransportSettings(this.scheme, HostName, this.port, this.tlsCertificate, this.clientCertAuthAllowed, authenticator, clientCredentialsProvider);
-                    return settings;
-                })
+            builder.Register(
+                    async c =>
+                    {
+                        IClientCredentialsFactory clientCredentialsProvider = c.Resolve<IClientCredentialsFactory>();
+                        IAuthenticator authenticator = await c.Resolve<Task<IAuthenticator>>();
+                        ITransportSettings settings = new DefaultTransportSettings(this.scheme, HostName, this.port, this.tlsCertificate, this.clientCertAuthAllowed, authenticator, clientCredentialsProvider);
+                        return settings;
+                    })
                 .As<Task<ITransportSettings>>()
                 .SingleInstance();
 
@@ -61,50 +61,50 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 
             // ILinkHandlerProvider
             builder.Register(
-                c =>
-                {
-                    IMessageConverter<AmqpMessage> messageConverter = new AmqpMessageConverter();
-                    IMessageConverter<AmqpMessage> twinMessageConverter = new AmqpTwinMessageConverter();
-                    IMessageConverter<AmqpMessage> directMethodMessageConverter = new AmqpDirectMethodMessageConverter();
-                    var identityProvider = c.Resolve<IIdentityProvider>();
-                    ILinkHandlerProvider linkHandlerProvider = new LinkHandlerProvider(messageConverter, twinMessageConverter, directMethodMessageConverter, identityProvider);
-                    return linkHandlerProvider;
-                })
+                    c =>
+                    {
+                        IMessageConverter<AmqpMessage> messageConverter = new AmqpMessageConverter();
+                        IMessageConverter<AmqpMessage> twinMessageConverter = new AmqpTwinMessageConverter();
+                        IMessageConverter<AmqpMessage> directMethodMessageConverter = new AmqpDirectMethodMessageConverter();
+                        var identityProvider = c.Resolve<IIdentityProvider>();
+                        ILinkHandlerProvider linkHandlerProvider = new LinkHandlerProvider(messageConverter, twinMessageConverter, directMethodMessageConverter, identityProvider);
+                        return linkHandlerProvider;
+                    })
                 .As<ILinkHandlerProvider>()
                 .SingleInstance();
 
             // Task<AmqpProtocolHead>
             builder.Register(
-                async c =>
-                {
-                    var identityFactory = c.Resolve<IClientCredentialsFactory>();
-                    var transportSettingsTask= c.Resolve<Task<ITransportSettings>>();
-                    var transportListenerProvider = c.Resolve<ITransportListenerProvider>();
-                    var linkHandlerProvider = c.Resolve<ILinkHandlerProvider>();
-                    var credentialsCacheTask = c.Resolve<Task<ICredentialsCache>>();
-                    var authenticatorTask = c.Resolve<Task<IAuthenticator>>();
-                    var connectionProviderTask = c.Resolve<Task<IConnectionProvider>>();
-                    ICredentialsCache credentialsCache = await credentialsCacheTask;
-                    IAuthenticator authenticator = await authenticatorTask;
-                    IConnectionProvider connectionProvider = await connectionProviderTask;
-                    ITransportSettings transportSettings = await transportSettingsTask;
-                    var webSocketListenerRegistry = c.Resolve<IWebSocketListenerRegistry>();
-                    AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(
-                        this.iotHubHostName,
-                        authenticator,
-                        identityFactory,
-                        linkHandlerProvider,
-                        connectionProvider,
-                        credentialsCache);
+                    async c =>
+                    {
+                        var identityFactory = c.Resolve<IClientCredentialsFactory>();
+                        var transportSettingsTask = c.Resolve<Task<ITransportSettings>>();
+                        var transportListenerProvider = c.Resolve<ITransportListenerProvider>();
+                        var linkHandlerProvider = c.Resolve<ILinkHandlerProvider>();
+                        var credentialsCacheTask = c.Resolve<Task<ICredentialsCache>>();
+                        var authenticatorTask = c.Resolve<Task<IAuthenticator>>();
+                        var connectionProviderTask = c.Resolve<Task<IConnectionProvider>>();
+                        ICredentialsCache credentialsCache = await credentialsCacheTask;
+                        IAuthenticator authenticator = await authenticatorTask;
+                        IConnectionProvider connectionProvider = await connectionProviderTask;
+                        ITransportSettings transportSettings = await transportSettingsTask;
+                        var webSocketListenerRegistry = c.Resolve<IWebSocketListenerRegistry>();
+                        AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(
+                            this.iotHubHostName,
+                            authenticator,
+                            identityFactory,
+                            linkHandlerProvider,
+                            connectionProvider,
+                            credentialsCache);
 
-                    return new AmqpProtocolHead(
-                        transportSettings,
-                        amqpSettings,
-                        transportListenerProvider,
-                        webSocketListenerRegistry,
-                        authenticator,
-                        identityFactory);
-                })
+                        return new AmqpProtocolHead(
+                            transportSettings,
+                            amqpSettings,
+                            transportListenerProvider,
+                            webSocketListenerRegistry,
+                            authenticator,
+                            identityFactory);
+                    })
                 .As<Task<AmqpProtocolHead>>()
                 .SingleInstance();
 

@@ -1,13 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
 {
     using System;
     using System.Collections.Generic;
     using System.Text;
-    using Microsoft.Azure.Devices.Routing.Core.Query;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
+    using Microsoft.Azure.Devices.Routing.Core.Query;
     using Xunit;
 
     public class BodyQueryI18NTest : RoutingUnitTestBase
@@ -27,16 +26,18 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
                 ""es"": ""Estoy usando %1""
         }}";
 
-        static readonly IMessage Message1 = new Message(TelemetryMessageSource.Instance,
+        static readonly IMessage Message1 = new Message(
+            TelemetryMessageSource.Instance,
             Encoding.UTF8.GetBytes(MessageBody),
             new Dictionary<string, string>(),
             new Dictionary<string, string>()
             {
-                {  SystemProperties.ContentEncoding, "UTF-8" },
-                {  SystemProperties.ContentType, Constants.SystemPropertyValues.ContentType.Json },
+                { SystemProperties.ContentEncoding, "UTF-8" },
+                { SystemProperties.ContentType, Constants.SystemPropertyValues.ContentType.Json },
             });
 
-        [Theory, Unit]
+        [Theory]
+        [Unit]
         [InlineData("$body.Welcome!.he = 'ברוכים הבאים!'")]
         [InlineData("$body.I'mnotusingspaces%1.es = 'Estoy usando %1'")]
         public void BodyQueryI18N_Success(string condition)
@@ -46,7 +47,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Equal(rule(Message1), Bool.True);
         }
 
-        [Theory, Unit]
+        [Theory]
+        [Unit]
         [InlineData("$body.Welcome!.I'mnotusingspaces%1.es = 'Estoy usando %1'")]
         public void BodyQueryI18N_Failure(string condition)
         {
@@ -55,7 +57,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Equal(rule(Message1), Bool.False);
         }
 
-        [Theory, Unit]
+        [Theory]
+        [Unit]
         [InlineData("$body.Welcome!['I'm using spaces %1'] = 'ברוכים הבאים!'")]
         public void BodyQueryI18N_RouteCompilation(string condition)
         {

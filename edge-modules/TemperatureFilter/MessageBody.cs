@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace TemperatureFilter
 {
     using System;
@@ -16,7 +15,7 @@ namespace TemperatureFilter
     ///    “pressure”:
     ///  },
     ///  “ambient”:{
-    ///    “temperature”: , 
+    ///    “temperature”: ,
     ///    “humidity”:
     ///  }
     ///  “timeCreated”:”UTC iso format”

@@ -1,10 +1,8 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Util.Logging
 {
     using System.Diagnostics.Tracing;
     using System.Linq;
-    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
     /// <summary>
@@ -25,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Logging
         }
 
         static string Formatter(EventWrittenEventArgs args) =>
-             args?.Payload != null
+            args?.Payload != null
                 ? string.Join(", ", args.Payload.Select(e => e.ToString()))
                 : "<null>";
 

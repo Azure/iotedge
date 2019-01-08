@@ -1,12 +1,15 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 {
     using System;
+    using System.Collections.Generic;
+    using System.Collections.ObjectModel;
+    using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -15,17 +18,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using Xunit;
-    using System.Linq;
-    using System.Collections.Generic;
-    using System.Collections.ObjectModel;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
 
     [Unit]
     public class TwinManagerTest
     {
-        Option<IEntityStore<string, TwinInfo>> twinStore;
-        IMessageConverter<TwinCollection> twinCollectionMessageConverter;
-        IMessageConverter<Twin> twinMessageConverter;
+        readonly Option<IEntityStore<string, TwinInfo>> twinStore;
+        readonly IMessageConverter<TwinCollection> twinCollectionMessageConverter;
+        readonly IMessageConverter<Twin> twinMessageConverter;
 
         public TwinManagerTest()
         {
@@ -73,7 +72,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             bool storeMiss = false;
 
             // Act
-            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { storeHit = true; return Task.FromResult(t); }, () => { storeMiss = true; return Task.FromResult<TwinInfo>(null); });
+            await twinManager.ExecuteOnTwinStoreResultAsync(
+                deviceId,
+                t =>
+                {
+                    storeHit = true;
+                    return Task.FromResult(t);
+                },
+                () =>
+                {
+                    storeMiss = true;
+                    return Task.FromResult<TwinInfo>(null);
+                });
 
             // Assert
             Assert.Equal(storeHit, false);
@@ -83,7 +93,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             await twinManager.GetTwinAsync(deviceId);
 
             // Assert
-            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { storeHit = true; return Task.FromResult(t); }, () => Task.FromResult<TwinInfo>(null));
+            await twinManager.ExecuteOnTwinStoreResultAsync(
+                deviceId,
+                t =>
+                {
+                    storeHit = true;
+                    return Task.FromResult(t);
+                },
+                () => Task.FromResult<TwinInfo>(null));
             Assert.Equal(storeHit, true);
         }
 
@@ -116,7 +133,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Assert
             Assert.Equal(getTwinCalled, true);
             Assert.Equal(received.Body, twinMessage.Body);
-            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { storeHit = true; return Task.FromResult(t); }, () => Task.FromResult<TwinInfo>(null));
+            await twinManager.ExecuteOnTwinStoreResultAsync(
+                deviceId,
+                t =>
+                {
+                    storeHit = true;
+                    return Task.FromResult(t);
+                },
+                () => Task.FromResult<TwinInfo>(null));
             Assert.Equal(storeHit, true);
         }
 
@@ -188,7 +212,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Act
             await twinManager.UpdateDesiredPropertiesAsync(deviceId, collectionMessage);
             TwinInfo patched = null;
-            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { patched = t; return Task.CompletedTask; }, () => Task.FromResult<TwinInfo>(null));
+            await twinManager.ExecuteOnTwinStoreResultAsync(
+                deviceId,
+                t =>
+                {
+                    patched = t;
+                    return Task.CompletedTask;
+                },
+                () => Task.FromResult<TwinInfo>(null));
 
             // Assert
             Assert.Equal(patched.Twin.Properties.Desired.ToJson(), collection.ToJson());
@@ -232,7 +263,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Act
             await twinManager.UpdateDesiredPropertiesAsync(deviceId, collectionMessage);
             TwinInfo updated = null;
-            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { storeHit = true; updated = t; return Task.FromResult(t); }, () => Task.FromResult<TwinInfo>(null));
+            await twinManager.ExecuteOnTwinStoreResultAsync(
+                deviceId,
+                t =>
+                {
+                    storeHit = true;
+                    updated = t;
+                    return Task.FromResult(t);
+                },
+                () => Task.FromResult<TwinInfo>(null));
 
             // Assert
             Assert.Equal(getTwinCalled, true);
@@ -250,8 +289,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var mockDeviceProxy = new Mock<IDeviceProxy>();
             Option<IDeviceProxy> deviceProxy = Option.Some(mockDeviceProxy.Object);
             mockDeviceProxy.Setup(t => t.OnDesiredPropertyUpdates(It.IsAny<IMessage>()))
-                .Callback<IMessage>((m) =>
-                { received = this.twinCollectionMessageConverter.FromMessage(m); })
+                .Callback<IMessage>((m) => { received = this.twinCollectionMessageConverter.FromMessage(m); })
                 .Returns(Task.CompletedTask);
 
             var connectionManager = new Mock<IConnectionManager>();
@@ -344,7 +382,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             bool storeHit = false;
 
             // Act - find the twin
-            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { storeHit = true; return Task.FromResult(t); }, () => { storeMiss = true; return Task.FromResult<TwinInfo>(null); });
+            await twinManager.ExecuteOnTwinStoreResultAsync(
+                deviceId,
+                t =>
+                {
+                    storeHit = true;
+                    return Task.FromResult(t);
+                },
+                () =>
+                {
+                    storeMiss = true;
+                    return Task.FromResult<TwinInfo>(null);
+                });
 
             // Assert - verify that the twin is not in the store
             Assert.Equal(storeHit, false);
@@ -359,21 +408,41 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Assert - verify that the twin was fetched
             storeMiss = false;
             storeHit = false;
-            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { storeHit = true; return Task.FromResult(t); }, () => { storeMiss = true; return Task.FromResult<TwinInfo>(null); });
+            await twinManager.ExecuteOnTwinStoreResultAsync(
+                deviceId,
+                t =>
+                {
+                    storeHit = true;
+                    return Task.FromResult(t);
+                },
+                () =>
+                {
+                    storeMiss = true;
+                    return Task.FromResult<TwinInfo>(null);
+                });
             Assert.Equal(storeHit, true);
 
             // Assert - verify that the local twin's reported properties updated.
             // verify that the local patch of reported properties was not updated.
             TwinInfo retrieved = null;
-            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { retrieved = t; return Task.FromResult(t); }, () => Task.FromResult<TwinInfo>(null));
+            await twinManager.ExecuteOnTwinStoreResultAsync(
+                deviceId,
+                t =>
+                {
+                    retrieved = t;
+                    return Task.FromResult(t);
+                },
+                () => Task.FromResult<TwinInfo>(null));
             Assert.Equal(storeMiss, false);
-            Assert.True(JToken.DeepEquals(
-                JsonConvert.DeserializeObject<JToken>(retrieved.Twin.Properties.Reported.ToJson()),
-                JsonConvert.DeserializeObject<JToken>(collection.ToJson())));
+            Assert.True(
+                JToken.DeepEquals(
+                    JsonConvert.DeserializeObject<JToken>(retrieved.Twin.Properties.Reported.ToJson()),
+                    JsonConvert.DeserializeObject<JToken>(collection.ToJson())));
 
-            Assert.True(JToken.DeepEquals(
-                JsonConvert.DeserializeObject<JToken>(retrieved.ReportedPropertiesPatch.ToJson()),
-                JsonConvert.DeserializeObject<JToken>((new TwinCollection()).ToJson())));
+            Assert.True(
+                JToken.DeepEquals(
+                    JsonConvert.DeserializeObject<JToken>(retrieved.ReportedPropertiesPatch.ToJson()),
+                    JsonConvert.DeserializeObject<JToken>(new TwinCollection().ToJson())));
         }
 
         [Fact]
@@ -408,7 +477,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             bool storeHit = false;
 
             // Act
-            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { storeHit = true; return Task.FromResult(t); }, () => { storeMiss = true; return Task.FromResult<TwinInfo>(null); });
+            await twinManager.ExecuteOnTwinStoreResultAsync(
+                deviceId,
+                t =>
+                {
+                    storeHit = true;
+                    return Task.FromResult(t);
+                },
+                () =>
+                {
+                    storeMiss = true;
+                    return Task.FromResult<TwinInfo>(null);
+                });
 
             // Assert
             Assert.Equal(storeHit, false);
@@ -417,26 +497,52 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Act
             await twinManager.UpdateReportedPropertiesAsync(deviceId, collectionMessage1);
             TwinInfo cached1 = null;
-            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { storeHit = true; cached1 = t; return Task.FromResult(t); }, () => { storeMiss = true; return Task.FromResult<TwinInfo>(null); });
+            await twinManager.ExecuteOnTwinStoreResultAsync(
+                deviceId,
+                t =>
+                {
+                    storeHit = true;
+                    cached1 = t;
+                    return Task.FromResult(t);
+                },
+                () =>
+                {
+                    storeMiss = true;
+                    return Task.FromResult<TwinInfo>(null);
+                });
 
             // Assert
             Assert.Equal(storeHit, true);
             Assert.Equal(cached1.Twin, null);
-            Assert.True(JToken.DeepEquals(
-                JsonConvert.DeserializeObject<JToken>(cached1.ReportedPropertiesPatch.ToJson()),
-                JsonConvert.DeserializeObject<JToken>(collection1.ToJson())));
+            Assert.True(
+                JToken.DeepEquals(
+                    JsonConvert.DeserializeObject<JToken>(cached1.ReportedPropertiesPatch.ToJson()),
+                    JsonConvert.DeserializeObject<JToken>(collection1.ToJson())));
 
             // Act
             await twinManager.UpdateReportedPropertiesAsync(deviceId, collectionMessage2);
             TwinInfo cached2 = null;
-            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { storeHit = true; cached2 = t; return Task.FromResult(t); }, () => { storeMiss = true; return Task.FromResult<TwinInfo>(null); });
+            await twinManager.ExecuteOnTwinStoreResultAsync(
+                deviceId,
+                t =>
+                {
+                    storeHit = true;
+                    cached2 = t;
+                    return Task.FromResult(t);
+                },
+                () =>
+                {
+                    storeMiss = true;
+                    return Task.FromResult<TwinInfo>(null);
+                });
 
             // Assert
             Assert.Equal(storeHit, true);
             Assert.NotNull(cached2.Twin);
-            Assert.True(JToken.DeepEquals(
-                JsonConvert.DeserializeObject<JToken>(cached2.ReportedPropertiesPatch.ToJson()),
-                JsonConvert.DeserializeObject<JToken>(collection2.ToJson())));
+            Assert.True(
+                JToken.DeepEquals(
+                    JsonConvert.DeserializeObject<JToken>(cached2.ReportedPropertiesPatch.ToJson()),
+                    JsonConvert.DeserializeObject<JToken>(collection2.ToJson())));
         }
 
         [Fact]
@@ -470,7 +576,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             bool storeHit = false;
 
             // Act - check if twin is in the cache
-            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { storeHit = true; return Task.FromResult(t); }, () => { storeMiss = true; return Task.FromResult<TwinInfo>(null); });
+            await twinManager.ExecuteOnTwinStoreResultAsync(
+                deviceId,
+                t =>
+                {
+                    storeHit = true;
+                    return Task.FromResult(t);
+                },
+                () =>
+                {
+                    storeMiss = true;
+                    return Task.FromResult<TwinInfo>(null);
+                });
 
             // Assert - verify that twin is not in the cache
             Assert.Equal(storeHit, false);
@@ -482,7 +599,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Assert - verify that the twin was fetched
             storeMiss = false;
             storeHit = false;
-            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { storeHit = true; return Task.FromResult(t); }, () => { storeMiss = true; return Task.FromResult<TwinInfo>(null); });
+            await twinManager.ExecuteOnTwinStoreResultAsync(
+                deviceId,
+                t =>
+                {
+                    storeHit = true;
+                    return Task.FromResult(t);
+                },
+                () =>
+                {
+                    storeMiss = true;
+                    return Task.FromResult<TwinInfo>(null);
+                });
             Assert.Equal(storeHit, true);
 
             // Arrange - make the cloud offline
@@ -506,13 +634,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             // Assert - verify that the twin's reported properties was updated and that the patch was stored
             TwinInfo retrieved = null;
-            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { retrieved = t; return Task.FromResult(t); }, () => Task.FromResult<TwinInfo>(null));
-            Assert.True(JToken.DeepEquals(
-                JsonConvert.DeserializeObject<JToken>(retrieved.Twin.Properties.Reported.ToJson()),
-                JsonConvert.DeserializeObject<JToken>(merged.ToJson())));
-            Assert.True(JToken.DeepEquals(
-                JsonConvert.DeserializeObject<JToken>(retrieved.ReportedPropertiesPatch.ToJson()),
-                JsonConvert.DeserializeObject<JToken>(patch.ToJson())));
+            await twinManager.ExecuteOnTwinStoreResultAsync(
+                deviceId,
+                t =>
+                {
+                    retrieved = t;
+                    return Task.FromResult(t);
+                },
+                () => Task.FromResult<TwinInfo>(null));
+            Assert.True(
+                JToken.DeepEquals(
+                    JsonConvert.DeserializeObject<JToken>(retrieved.Twin.Properties.Reported.ToJson()),
+                    JsonConvert.DeserializeObject<JToken>(merged.ToJson())));
+            Assert.True(
+                JToken.DeepEquals(
+                    JsonConvert.DeserializeObject<JToken>(retrieved.ReportedPropertiesPatch.ToJson()),
+                    JsonConvert.DeserializeObject<JToken>(patch.ToJson())));
         }
 
         [Fact]
@@ -548,7 +685,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             bool storeHit = false;
 
             // Act - check if twin is in the cache
-            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { storeHit = true; return Task.FromResult(t); }, () => { storeMiss = true; return Task.FromResult<TwinInfo>(null); });
+            await twinManager.ExecuteOnTwinStoreResultAsync(
+                deviceId,
+                t =>
+                {
+                    storeHit = true;
+                    return Task.FromResult(t);
+                },
+                () =>
+                {
+                    storeMiss = true;
+                    return Task.FromResult<TwinInfo>(null);
+                });
 
             // Assert - verify that twin is not in the cache
             Assert.Equal(storeHit, false);
@@ -560,7 +708,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Assert - verify that the twin was fetched
             storeMiss = false;
             storeHit = false;
-            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { storeHit = true; return Task.FromResult(t); }, () => { storeMiss = true; return Task.FromResult<TwinInfo>(null); });
+            await twinManager.ExecuteOnTwinStoreResultAsync(
+                deviceId,
+                t =>
+                {
+                    storeHit = true;
+                    return Task.FromResult(t);
+                },
+                () =>
+                {
+                    storeMiss = true;
+                    return Task.FromResult<TwinInfo>(null);
+                });
             Assert.Equal(storeHit, true);
 
             // Arrange - make the cloud offline
@@ -613,7 +772,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             bool storeHit = false;
 
             // Act - check if twin is in the cache
-            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { storeHit = true; return Task.FromResult(t); }, () => { storeMiss = true; return Task.FromResult<TwinInfo>(null); });
+            await twinManager.ExecuteOnTwinStoreResultAsync(
+                deviceId,
+                t =>
+                {
+                    storeHit = true;
+                    return Task.FromResult(t);
+                },
+                () =>
+                {
+                    storeMiss = true;
+                    return Task.FromResult<TwinInfo>(null);
+                });
 
             // Assert - verify that twin is not in the cache
             Assert.Equal(storeHit, false);
@@ -625,7 +795,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Assert - verify that the twin was fetched
             storeMiss = false;
             storeHit = false;
-            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { storeHit = true; return Task.FromResult(t); }, () => { storeMiss = true; return Task.FromResult<TwinInfo>(null); });
+            await twinManager.ExecuteOnTwinStoreResultAsync(
+                deviceId,
+                t =>
+                {
+                    storeHit = true;
+                    return Task.FromResult(t);
+                },
+                () =>
+                {
+                    storeMiss = true;
+                    return Task.FromResult<TwinInfo>(null);
+                });
             Assert.Equal(storeHit, true);
 
             // Arrange - make the cloud offline
@@ -722,7 +903,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             bool storeMiss = false;
 
             // Act
-            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { storeHit = true; return Task.FromResult(t); }, () => { storeMiss = true; return Task.FromResult<TwinInfo>(null); });
+            await twinManager.ExecuteOnTwinStoreResultAsync(
+                deviceId,
+                t =>
+                {
+                    storeHit = true;
+                    return Task.FromResult(t);
+                },
+                () =>
+                {
+                    storeMiss = true;
+                    return Task.FromResult<TwinInfo>(null);
+                });
 
             // Assert - verify that the twin is not in the store
             Assert.Equal(storeHit, false);
@@ -732,7 +924,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             await twinManager.GetTwinAsync(deviceId);
 
             // Assert - verify that the twin is in the store
-            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { storeHit = true; return Task.FromResult(t); }, () => Task.FromResult<TwinInfo>(null));
+            await twinManager.ExecuteOnTwinStoreResultAsync(
+                deviceId,
+                t =>
+                {
+                    storeHit = true;
+                    return Task.FromResult(t);
+                },
+                () => Task.FromResult<TwinInfo>(null));
             Assert.Equal(storeHit, true);
 
             // Arrange - update reported properties when offline
@@ -750,25 +949,42 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             // Act - find the twin and reported property patch
             TwinInfo cached = null;
-            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { cached = t; return Task.CompletedTask; }, () => Task.CompletedTask);
+            await twinManager.ExecuteOnTwinStoreResultAsync(
+                deviceId,
+                t =>
+                {
+                    cached = t;
+                    return Task.CompletedTask;
+                },
+                () => Task.CompletedTask);
 
             // Assert - verify that the patch and the twin were updated
-            Assert.True(JToken.DeepEquals(
-                JsonConvert.DeserializeObject<JToken>(cached.Twin.Properties.Reported.ToJson()),
-                JsonConvert.DeserializeObject<JToken>(collection.ToJson())));
-            Assert.True(JToken.DeepEquals(
-                JsonConvert.DeserializeObject<JToken>(cached.ReportedPropertiesPatch.ToJson()),
-                JsonConvert.DeserializeObject<JToken>(collection.ToJson())));
+            Assert.True(
+                JToken.DeepEquals(
+                    JsonConvert.DeserializeObject<JToken>(cached.Twin.Properties.Reported.ToJson()),
+                    JsonConvert.DeserializeObject<JToken>(collection.ToJson())));
+            Assert.True(
+                JToken.DeepEquals(
+                    JsonConvert.DeserializeObject<JToken>(cached.ReportedPropertiesPatch.ToJson()),
+                    JsonConvert.DeserializeObject<JToken>(collection.ToJson())));
 
             // Act - get twin so that the local twin gets updated
             await twinManager.GetTwinAsync(deviceId);
 
             // Assert - verify that the twin was updated but patch was not
-            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { cached = t; return Task.CompletedTask; }, () => Task.CompletedTask);
+            await twinManager.ExecuteOnTwinStoreResultAsync(
+                deviceId,
+                t =>
+                {
+                    cached = t;
+                    return Task.CompletedTask;
+                },
+                () => Task.CompletedTask);
 
-            Assert.True(JToken.DeepEquals(
-                JsonConvert.DeserializeObject<JToken>(cached.ReportedPropertiesPatch.ToJson()),
-                JsonConvert.DeserializeObject<JToken>(collection.ToJson())));
+            Assert.True(
+                JToken.DeepEquals(
+                    JsonConvert.DeserializeObject<JToken>(cached.ReportedPropertiesPatch.ToJson()),
+                    JsonConvert.DeserializeObject<JToken>(collection.ToJson())));
         }
 
         [Fact]
@@ -879,7 +1095,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Act - call get twin to cache twin
             IMessage received = await twinManager.GetTwinAsync(deviceId);
             Twin cached = null;
-            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { cached = t.Twin; return Task.FromResult(t); }, () => Task.FromResult<TwinInfo>(null));
+            await twinManager.ExecuteOnTwinStoreResultAsync(
+                deviceId,
+                t =>
+                {
+                    cached = t.Twin;
+                    return Task.FromResult(t);
+                },
+                () => Task.FromResult<TwinInfo>(null));
 
             // Assert - verify version of twin matches what we setup
             Assert.Equal(cached.Version, twin.Version);
@@ -894,7 +1117,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             received = await twinManager.GetTwinAsync(deviceId);
 
             cached = null;
-            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { cached = t.Twin; return Task.FromResult(t); }, () => Task.FromResult<TwinInfo>(null));
+            await twinManager.ExecuteOnTwinStoreResultAsync(
+                deviceId,
+                t =>
+                {
+                    cached = t.Twin;
+                    return Task.FromResult(t);
+                },
+                () => Task.FromResult<TwinInfo>(null));
 
             // Assert - verify version of twin matches original version
             Assert.Equal(cached.Version, 32);
@@ -930,7 +1160,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Act - call get twin to cache twin
             IMessage received = await twinManager.GetTwinAsync(deviceId);
             Twin cached = null;
-            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { cached = t.Twin; return Task.FromResult(t); }, () => Task.FromResult<TwinInfo>(null));
+            await twinManager.ExecuteOnTwinStoreResultAsync(
+                deviceId,
+                t =>
+                {
+                    cached = t.Twin;
+                    return Task.FromResult(t);
+                },
+                () => Task.FromResult<TwinInfo>(null));
 
             // Assert - verify version of twin matches what we setup
             Assert.Equal(cached.Properties.Desired.Version, twin.Properties.Desired.Version);
@@ -945,7 +1182,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             TwinInfo twinInfo = await twinManager.GetTwinInfoWhenCloudOnlineAsync(deviceId, mockCloudProxy.Object, true);
 
             cached = null;
-            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { cached = t.Twin; return Task.FromResult(t); }, () => Task.FromResult<TwinInfo>(null));
+            await twinManager.ExecuteOnTwinStoreResultAsync(
+                deviceId,
+                t =>
+                {
+                    cached = t.Twin;
+                    return Task.FromResult(t);
+                },
+                () => Task.FromResult<TwinInfo>(null));
 
             // Assert - verify version of twin matches new version and device not subsribed
             Assert.Equal(cached.Properties.Desired.Version, 33);
@@ -997,7 +1241,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             await twinManager.GetTwinAsync(deviceId);
 
             Twin cached = null;
-            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { cached = t.Twin; return Task.FromResult(t); }, () => Task.FromResult<TwinInfo>(null));
+            await twinManager.ExecuteOnTwinStoreResultAsync(
+                deviceId,
+                t =>
+                {
+                    cached = t.Twin;
+                    return Task.FromResult(t);
+                },
+                () => Task.FromResult<TwinInfo>(null));
 
             // Assert - verify that twin is cached
             Assert.Equal(cached.Properties.Desired.Version, 32);
@@ -1022,9 +1273,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             await twinManager.UpdateDesiredPropertiesAsync(deviceId, twinCollectionMessage);
 
             // Assert - verify that get twin cached the latest twin and called the desired property update callback
-            Assert.True(JToken.DeepEquals(
-                JsonConvert.DeserializeObject<JToken>(receivedPatch.ToJson()),
-                JsonConvert.DeserializeObject<JToken>(twin.Properties.Desired.ToJson())));
+            Assert.True(
+                JToken.DeepEquals(
+                    JsonConvert.DeserializeObject<JToken>(receivedPatch.ToJson()),
+                    JsonConvert.DeserializeObject<JToken>(twin.Properties.Desired.ToJson())));
         }
 
         [Fact]
@@ -1060,7 +1312,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             await twinManager.UpdateReportedPropertiesAsync(deviceId, reportedMessage);
 
             TwinInfo cached = null;
-            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { cached = t; return Task.FromResult(t); }, () => Task.FromResult<TwinInfo>(null));
+            await twinManager.ExecuteOnTwinStoreResultAsync(
+                deviceId,
+                t =>
+                {
+                    cached = t;
+                    return Task.FromResult(t);
+                },
+                () => Task.FromResult<TwinInfo>(null));
 
             // Assert - verify cloud was called and twin manager has collective patch
             Assert.Equal(callbackReceived, true);
@@ -1078,7 +1337,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             await twinManager.UpdateReportedPropertiesAsync(deviceId, reportedMessage);
 
             cached = null;
-            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { cached = t; return Task.FromResult(t); }, () => Task.FromResult<TwinInfo>(null));
+            await twinManager.ExecuteOnTwinStoreResultAsync(
+                deviceId,
+                t =>
+                {
+                    cached = t;
+                    return Task.FromResult(t);
+                },
+                () => Task.FromResult<TwinInfo>(null));
 
             // Assert - verify that twin manager did not attempt to call cloud because there is already
             // a patch
@@ -1089,11 +1355,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var onlineReported = new TwinCollection();
             callbackReceived = false;
             mockCloudProxy.Setup(t => t.UpdateReportedPropertiesAsync(It.IsAny<IMessage>()))
-                .Callback<IMessage>(m =>
-                {
-                    onlineReported = this.twinCollectionMessageConverter.FromMessage(m);
-                    callbackReceived = true;
-                })
+                .Callback<IMessage>(
+                    m =>
+                    {
+                        onlineReported = this.twinCollectionMessageConverter.FromMessage(m);
+                        callbackReceived = true;
+                    })
                 .Returns(Task.CompletedTask);
 
             var identity = Mock.Of<IIdentity>(i => i.Id == deviceId);
@@ -1107,7 +1374,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             }
 
             cached = null;
-            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { cached = t; return Task.FromResult(t); }, () => Task.FromResult<TwinInfo>(null));
+            await twinManager.ExecuteOnTwinStoreResultAsync(
+                deviceId,
+                t =>
+                {
+                    cached = t;
+                    return Task.FromResult(t);
+                },
+                () => Task.FromResult<TwinInfo>(null));
 
             // Assert - verify that cloud proxy got the collective patch and that the collective patch is cleared
             Assert.Equal(onlineReported.ToJson(), reported.ToJson());
@@ -1130,11 +1404,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             bool callbackReceived = false;
             var mockDeviceProxy = new Mock<IDeviceProxy>();
             mockDeviceProxy.Setup(t => t.OnDesiredPropertyUpdates(It.IsAny<IMessage>()))
-                .Callback<IMessage>(m =>
-                {
-                    receivedPatch = this.twinCollectionMessageConverter.FromMessage(m);
-                    callbackReceived = true;
-                })
+                .Callback<IMessage>(
+                    m =>
+                    {
+                        receivedPatch = this.twinCollectionMessageConverter.FromMessage(m);
+                        callbackReceived = true;
+                    })
                 .Returns(Task.CompletedTask);
             Option<IDeviceProxy> deviceProxy = Option.Some(mockDeviceProxy.Object);
 
@@ -1215,10 +1490,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             bool reportedReceived = false;
             mockCloudProxy.Setup(t => t.UpdateReportedPropertiesAsync(It.IsAny<IMessage>()))
-                .Callback<IMessage>(m =>
-                {
-                    reportedReceived = true;
-                })
+                .Callback<IMessage>(m => { reportedReceived = true; })
                 .Returns(Task.CompletedTask);
 
             var identity = Mock.Of<IIdentity>(i => i.Id == "blah");
@@ -1325,6 +1597,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             };
 
             Assert.Throws<InvalidOperationException>(() => TwinManager.ValidateTwinProperties(JToken.FromObject(reported6)));
+        }
+
+        [Theory]
+        [MemberData(nameof(GetTwinKeyData))]
+        public void EncodeTwinKeyTest(string input, string expectedResult)
+        {
+            string result = TwinManager.EncodeTwinKey(input);
+            Assert.Equal(expectedResult, result);
+        }
+
+        static IEnumerable<object[]> GetTwinKeyData()
+        {
+            yield return new object[] { "key1", "key1" };
+
+            yield return new object[] { "123", "123" };
+
+            yield return new object[] { "a.b$c d", "a%2Eb%24c%20d" };
+
+            yield return new object[] { "a.b.c.d", "a%2Eb%2Ec%2Ed" };
         }
     }
 }

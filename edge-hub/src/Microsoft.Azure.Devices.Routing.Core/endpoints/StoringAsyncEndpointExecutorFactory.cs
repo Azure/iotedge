@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 {
     using System.Threading.Tasks;
@@ -33,5 +32,5 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             IEndpointExecutor endpointExecutor = new StoringAsyncEndpointExecutor(endpoint, checkpointer, endpointExecutorConfig, this.options, this.messageStore);
             return endpointExecutor;
         }
-    }    
+    }
 }

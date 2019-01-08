@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 {
     using System;
@@ -27,7 +26,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             IIdentity identity,
             IReceivingAmqpLink link,
             Uri requestUri,
-            IDictionary<string, string> boundVariables, IConnectionHandler connectionHandler,
+            IDictionary<string, string> boundVariables,
+            IConnectionHandler connectionHandler,
             IMessageConverter<AmqpMessage> messageConverter)
             : base(identity, link, requestUri, boundVariables, connectionHandler, messageConverter)
         {
@@ -35,10 +35,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 
         public override LinkType Type => LinkType.TwinReceiving;
 
-        protected override QualityOfService QualityOfService => QualityOfService.AtMostOnce;
-
         public override string CorrelationId =>
             AmqpConnectionUtils.GetCorrelationId(this.Link);
+
+        protected override QualityOfService QualityOfService => QualityOfService.AtMostOnce;
 
         protected override async Task OnMessageReceived(AmqpMessage amqpMessage)
         {
@@ -99,8 +99,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<TwinReceivingLinkHandler>();
             const int IdStart = AmqpEventIds.TwinReceivingLinkHandler;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<TwinReceivingLinkHandler>();
 
             enum EventIds
             {

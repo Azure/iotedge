@@ -1,9 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 {
     using System;
-    using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
@@ -22,7 +20,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
             // Act
             IModuleIdentity identity = builder.Create(moduleId, generationId, edgeletUri);
-
 
             // Assert
             Assert.Equal(iotHubHostName, identity.IotHubHostname);
@@ -49,7 +46,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             // Act
             IModuleIdentity identity = builder.Create(moduleId, generationId, edgeletUri, authScheme);
 
-
             // Assert
             Assert.Equal(iotHubHostName, identity.IotHubHostname);
             Assert.Equal(gatewayHostName, identity.GatewayHostname);
@@ -67,9 +63,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public void InvalidInputsTest()
         {
             Assert.Throws<ArgumentException>(() => new ModuleIdentityProviderServiceBuilder(null, "1", "gateway"));
-            Assert.Throws<ArgumentException>(() => new ModuleIdentityProviderServiceBuilder("", "1", "gateway"));
+            Assert.Throws<ArgumentException>(() => new ModuleIdentityProviderServiceBuilder(string.Empty, "1", "gateway"));
             Assert.Throws<ArgumentException>(() => new ModuleIdentityProviderServiceBuilder("iothub", null, "gateway"));
-            Assert.Throws<ArgumentException>(() => new ModuleIdentityProviderServiceBuilder("iothub", "", "gateway"));
+            Assert.Throws<ArgumentException>(() => new ModuleIdentityProviderServiceBuilder("iothub", string.Empty, "gateway"));
 
             var builder = new ModuleIdentityProviderServiceBuilder("foo.azure.com", "device1", "gateway");
 

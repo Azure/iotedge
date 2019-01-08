@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace DirectMethodSender
 {
     using System;
@@ -64,6 +63,7 @@ namespace DirectMethodSender
                         return new ITransportSettings[] { new AmqpTransportSettings(transportType) };
                 }
             }
+
             ITransportSettings[] settings = GetTransportSettings();
 
             ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings).ConfigureAwait(false);
@@ -87,7 +87,7 @@ namespace DirectMethodSender
             ModuleClient moduleClient,
             TimeSpan dmDelay,
             string targetDeviceId,
-            string targetModuleId, 
+            string targetModuleId,
             CancellationTokenSource cts)
         {
             while (!cts.Token.IsCancellationRequested)
@@ -99,7 +99,7 @@ namespace DirectMethodSender
 
                 try
                 {
-                    //Ignore Exception. Keep trying. 
+                    // Ignore Exception. Keep trying.
                     MethodResponse response = await moduleClient.InvokeMethodAsync(targetDeviceId, targetModuleId, request);
 
                     if (response.Status == (int)HttpStatusCode.OK)
@@ -111,7 +111,6 @@ namespace DirectMethodSender
                 {
                     Console.WriteLine(e);
                 }
-                
 
                 await Task.Delay(dmDelay, cts.Token).ConfigureAwait(false);
             }

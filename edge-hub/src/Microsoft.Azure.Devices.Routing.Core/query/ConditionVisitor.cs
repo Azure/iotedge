@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Routing.Core.Query
 {
     using System;
@@ -123,7 +122,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
             // the app property takes precedence
             // We must check whether the property first exists as a user property. If it does, return it, else
             // try to get it from the body query or the system properties
-
             string propertyName = context.GetText();
 
             Expression alternative;
@@ -163,61 +161,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
             }
 
             return sysPropertyExpression;
-        }
-
-        Expression GetProperty(Expression propertyBag, Expression property)
-        {
-            return this.GetPropertyOrElse(propertyBag, property, UndefinedExpression, false);
-        }
-
-        Expression GetPropertyOrElse(Expression propertyBag, Expression property, Expression alternative, bool isBodyQuery)
-        {
-            Expression expression;
-
-            if (propertyBag.Type != typeof(Undefined))
-            {
-                MethodInfo method = typeof(IReadOnlyDictionary<string, string>).GetMethod("ContainsKey");
-                MethodCallExpression contains = Expression.Call(propertyBag, method, property);
-                IndexExpression value = Expression.Property(propertyBag, "Item", property);
-
-                // NOTE: Arguments to Expression.Condition need to be of the same type. So we will wrap to QueryValue if it could be a bodyquery
-
-                // Review following cases before making changes here - 
-                // 1. It is an app property with no conflict => Convert to String and return value and alternative
-                // 2. It is a system property with no conflict => Same as case 1. Property bag supplied by caller is sys property
-                // 3. It is a Body query with no conflict => ifFalse Expression will be returned. Type is already QueryValue.
-                // 4. It looks like a body query but is an app property ($body.propertyname) => 
-                //              ifTrue will be evaluated. Just wrap contents to QueryValue so that Expression.Condition does not complain.
-                // 5. Body Query and a conflicting app property => App property wins
-                // 6. Body Query escaped and a conflicting app property => Body Query wins
-
-                Expression ifTrue = isBodyQuery ? Expression.Convert(value, typeof(QueryValue)) : Expression.Convert(value, typeof(string));
-                Expression ifFalse = isBodyQuery ? alternative : Expression.Convert(alternative, typeof(string));
-
-                expression = Expression.Condition(
-                    contains,
-                    ifTrue,
-                    ifFalse);
-            }
-            else
-            {
-                expression = UndefinedExpression;
-            }
-            return expression;
-        }
-
-        Expression GetSysProperty(string propertyName)
-        {
-            // SystemProperty name containing '[' or ']' can reach here if it looked like body query, and was parsed successfully using Condition.g4.
-            // In this case, return Undefined because it is not a supported SystemProperty.
-            if (propertyName.Contains("[") || propertyName.Contains("]"))
-            {
-                return UndefinedExpression;
-            }
-
-            Expression propertyBag = Expression.Property(this.message, "SystemProperties");
-            Expression property = Expression.Constant(propertyName);
-            return this.GetProperty(propertyBag, property);
         }
 
         // Functions
@@ -306,6 +249,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
             {
                 result = UndefinedExpression;
             }
+
             return result;
         }
 
@@ -329,6 +273,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
                 default:
                     throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, "Unrecognized op token: {0}", context.op.Text));
             }
+
             return result;
         }
 
@@ -364,6 +309,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
             {
                 result = UndefinedExpression;
             }
+
             return result;
         }
 
@@ -394,6 +340,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
             {
                 result = UndefinedExpression;
             }
+
             return result;
         }
 
@@ -434,6 +381,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
             {
                 result = UndefinedExpression;
             }
+
             return result;
         }
 
@@ -501,6 +449,61 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
             return result2;
         }
 
+        Expression GetProperty(Expression propertyBag, Expression property)
+        {
+            return this.GetPropertyOrElse(propertyBag, property, UndefinedExpression, false);
+        }
+
+        Expression GetPropertyOrElse(Expression propertyBag, Expression property, Expression alternative, bool isBodyQuery)
+        {
+            Expression expression;
+
+            if (propertyBag.Type != typeof(Undefined))
+            {
+                MethodInfo method = typeof(IReadOnlyDictionary<string, string>).GetMethod("ContainsKey");
+                MethodCallExpression contains = Expression.Call(propertyBag, method, property);
+                IndexExpression value = Expression.Property(propertyBag, "Item", property);
+
+                // NOTE: Arguments to Expression.Condition need to be of the same type. So we will wrap to QueryValue if it could be a bodyquery
+
+                // Review following cases before making changes here -
+                // 1. It is an app property with no conflict => Convert to String and return value and alternative
+                // 2. It is a system property with no conflict => Same as case 1. Property bag supplied by caller is sys property
+                // 3. It is a Body query with no conflict => ifFalse Expression will be returned. Type is already QueryValue.
+                // 4. It looks like a body query but is an app property ($body.propertyname) =>
+                //              ifTrue will be evaluated. Just wrap contents to QueryValue so that Expression.Condition does not complain.
+                // 5. Body Query and a conflicting app property => App property wins
+                // 6. Body Query escaped and a conflicting app property => Body Query wins
+                Expression ifTrue = isBodyQuery ? Expression.Convert(value, typeof(QueryValue)) : Expression.Convert(value, typeof(string));
+                Expression ifFalse = isBodyQuery ? alternative : Expression.Convert(alternative, typeof(string));
+
+                expression = Expression.Condition(
+                    contains,
+                    ifTrue,
+                    ifFalse);
+            }
+            else
+            {
+                expression = UndefinedExpression;
+            }
+
+            return expression;
+        }
+
+        Expression GetSysProperty(string propertyName)
+        {
+            // SystemProperty name containing '[' or ']' can reach here if it looked like body query, and was parsed successfully using Condition.g4.
+            // In this case, return Undefined because it is not a supported SystemProperty.
+            if (propertyName.Contains("[") || propertyName.Contains("]"))
+            {
+                return UndefinedExpression;
+            }
+
+            Expression propertyBag = Expression.Property(this.message, "SystemProperties");
+            Expression property = Expression.Constant(propertyName);
+            return this.GetProperty(propertyBag, property);
+        }
+
         Expression GetBuiltin(string name, IToken token, params Expression[] args)
         {
             IBuiltin builtin;
@@ -518,8 +521,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
         bool TryGetSupportedBuiltin(string name, out IBuiltin builtin)
         {
             return Builtins.TryGetValue(name, out builtin) &&
-                builtin.IsEnabled(this.routeCompilerFlags) &&
-                builtin.IsValidMessageSource(this.route.Source);
+                   builtin.IsEnabled(this.routeCompilerFlags) &&
+                   builtin.IsValidMessageSource(this.route.Source);
         }
 
         bool CheckOperand(IToken token, Type expected, Expression expr)
@@ -532,6 +535,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
             {
                 this.errors.OperandError(token, required, given);
             }
+
             return isValid;
         }
 
@@ -550,6 +554,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
             {
                 right = Expression.Convert(right, typeof(QueryValue));
             }
+
             if (right.Type == typeof(QueryValue) && left.Type != typeof(QueryValue))
             {
                 left = Expression.Convert(left, typeof(QueryValue));
@@ -574,6 +579,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
             {
                 right = Expression.Convert(right, typeof(QueryValue));
             }
+
             if (right.Type == typeof(QueryValue) && left.Type != typeof(QueryValue))
             {
                 left = Expression.Convert(left, typeof(QueryValue));

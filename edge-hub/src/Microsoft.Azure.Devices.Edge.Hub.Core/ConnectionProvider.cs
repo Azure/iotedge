@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System.Threading.Tasks;
@@ -24,6 +23,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             return Task.FromResult(deviceListener);
         }
 
+        public void Dispose() => this.Dispose(true);
+
         protected virtual void Dispose(bool disposing)
         {
             if (disposing)
@@ -31,7 +32,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 this.edgeHub?.Dispose();
             }
         }
-
-        public void Dispose() => this.Dispose(true);
     }
 }

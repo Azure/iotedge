@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
     using System;
@@ -23,6 +22,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Moq;
     using Newtonsoft.Json;
     using Xunit;
+    using IotHubConnectionStringBuilder = Microsoft.Azure.Devices.IotHubConnectionStringBuilder;
+    using Message = Microsoft.Azure.Devices.Client.Message;
 
     [Integration]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
@@ -39,13 +40,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             var messageConverterProvider = new MessageConverterProvider(
                 new Dictionary<Type, IMessageConverter>()
                 {
-                    { typeof(Client.Message), new DeviceClientMessageConverter() },
+                    { typeof(Message), new DeviceClientMessageConverter() },
                     { typeof(Twin), twinMessageConverter },
                     { typeof(TwinCollection), twinCollectionMessageConverter }
                 });
 
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
-            Devices.IotHubConnectionStringBuilder iotHubConnectionStringBuilder = Devices.IotHubConnectionStringBuilder.Create(iotHubConnectionString);
+            IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
             RegistryManager registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
             await registryManager.OpenAsync();
 
@@ -65,7 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 1,
                 new ClientProvider(),
                 Option.None<UpstreamProtocol>(),
-                new ClientTokenProvider(signatureProvider, iothubHostName, edgeDeviceId, TimeSpan.FromMinutes(60)), 
+                new ClientTokenProvider(signatureProvider, iothubHostName, edgeDeviceId, TimeSpan.FromMinutes(60)),
                 Mock.Of<IDeviceScopeIdentitiesCache>(),
                 credentialsCache,
                 edgeHubCredentials.Identity,
@@ -112,8 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     twinCollectionMessageConverter,
                     twinMessageConverter,
                     versionInfo,
-                    new NullDeviceScopeIdentitiesCache()
-                );
+                    new NullDeviceScopeIdentitiesCache());
                 await Task.Delay(TimeSpan.FromMinutes(1));
 
                 // Get and Validate EdgeHubConfig
@@ -167,7 +167,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 Assert.Equal(versionInfo, reportedProperties.VersionInfo);
 
                 // Simulate a module and a downstream device that connects to Edge Hub.
-
                 string moduleId = "module1";
                 string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/{edgeDeviceId}/modules/{moduleId}");
                 string moduleConnectionstring = $"HostName={iothubHostName};DeviceId={edgeDeviceId};ModuleId={moduleId};SharedAccessSignature={sasToken}";

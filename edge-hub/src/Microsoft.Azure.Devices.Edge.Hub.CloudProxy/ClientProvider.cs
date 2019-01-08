@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System;
@@ -27,6 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 DeviceClient deviceClient = DeviceClient.Create(identity.IotHubHostName, authenticationMethod, transportSettings);
                 return new DeviceClientWrapper(deviceClient);
             }
+
             throw new InvalidOperationException($"Invalid client identity type {identity.GetType()}");
         }
 
@@ -46,6 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(connectionString, transportSettings);
                 return new DeviceClientWrapper(deviceClient);
             }
+
             throw new InvalidOperationException($"Invalid client identity type {identity.GetType()}");
         }
 

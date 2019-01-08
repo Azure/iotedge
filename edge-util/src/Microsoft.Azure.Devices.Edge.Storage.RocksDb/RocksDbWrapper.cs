@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 {
     using System;
@@ -10,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
     using RocksDbSharp;
 
     /// <summary>
-    /// Wrapper around RocksDb. This is mainly needed because each ColumnFamilyDbStore contains an instance of this object, 
+    /// Wrapper around RocksDb. This is mainly needed because each ColumnFamilyDbStore contains an instance of this object,
     /// and hence it could get disposed multiple times. This class makes sure the underlying RocksDb instance is disposed only once.
     /// </summary>
     sealed class RocksDbWrapper : IRocksDb
@@ -49,23 +48,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
         public IEnumerable<string> ListColumnFamilies() => ListColumnFamilies(this.dbOptions, this.path);
 
-        static IEnumerable<string> ListColumnFamilies(DbOptions dbOptions, string path)
-        {
-            Preconditions.CheckNonWhiteSpace(path, nameof(path));
-            // ListColumnFamilies will throw if the DB doesn't exist yet, so wrap it in a try catch.
-            IEnumerable<string> columnFamilies = null;
-            try
-            {
-                columnFamilies = RocksDb.ListColumnFamilies(dbOptions, path);
-            }
-            catch
-            {
-                // ignored since ListColumnFamilies will throw if the DB doesn't exist yet.
-            }
-
-            return columnFamilies ?? Enumerable.Empty<string>();
-        }
-
         public ColumnFamilyHandle GetColumnFamily(string columnFamilyName) => this.db.GetColumnFamily(columnFamilyName);
 
         public ColumnFamilyHandle CreateColumnFamily(ColumnFamilyOptions columnFamilyOptions, string entityName) => this.db.CreateColumnFamily(columnFamilyOptions, entityName);
@@ -88,6 +70,23 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             {
                 this.db?.Dispose();
             }
+        }
+
+        static IEnumerable<string> ListColumnFamilies(DbOptions dbOptions, string path)
+        {
+            Preconditions.CheckNonWhiteSpace(path, nameof(path));
+            // ListColumnFamilies will throw if the DB doesn't exist yet, so wrap it in a try catch.
+            IEnumerable<string> columnFamilies = null;
+            try
+            {
+                columnFamilies = RocksDb.ListColumnFamilies(dbOptions, path);
+            }
+            catch
+            {
+                // ignored since ListColumnFamilies will throw if the DB doesn't exist yet.
+            }
+
+            return columnFamilies ?? Enumerable.Empty<string>();
         }
     }
 }

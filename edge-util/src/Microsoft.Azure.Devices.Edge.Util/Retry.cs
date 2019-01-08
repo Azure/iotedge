@@ -1,5 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Util
 {
     using System;
@@ -8,29 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
     public static class Retry
     {
-        static async Task<Option<T>> DoOnce<T>(
-            Func<Task<T>> func,
-            Func<T, bool> isValidValue,
-            Func<Exception, bool> continueOnException)
-        {
-            try
-            {
-                T result = await func();
-                if (isValidValue == null || isValidValue(result))
-                {
-                    return Option.Some(result);
-                }
-            }
-            catch (Exception e)
-            {
-                if (continueOnException == null || !continueOnException(e))
-                {
-                    throw;
-                }
-            }
-            return Option.None<T>();
-        }
-
         public static async Task<T> Do<T>(
             Func<Task<T>> func,
             Func<T, bool> isValidValue,
@@ -52,7 +28,32 @@ namespace Microsoft.Azure.Devices.Edge.Util
                     await Task.Delay(retryInterval, token);
                 }
             }
+
             throw new TaskCanceledException();
+        }
+
+        static async Task<Option<T>> DoOnce<T>(
+            Func<Task<T>> func,
+            Func<T, bool> isValidValue,
+            Func<Exception, bool> continueOnException)
+        {
+            try
+            {
+                T result = await func();
+                if (isValidValue == null || isValidValue(result))
+                {
+                    return Option.Some(result);
+                }
+            }
+            catch (Exception e)
+            {
+                if (continueOnException == null || !continueOnException(e))
+                {
+                    throw;
+                }
+            }
+
+            return Option.None<T>();
         }
     }
 }

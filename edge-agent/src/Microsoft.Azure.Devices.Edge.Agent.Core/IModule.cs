@@ -1,9 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
     using System;
-    using System.Collections;
     using System.Collections.Generic;
     using System.Runtime.Serialization;
     using Newtonsoft.Json;
@@ -55,7 +53,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         /// The "Failed" state indicates that the module exited with a failure exit code
         /// (non-zer0). The module can transition back to "Backoff" from this state
         /// depending on the restart policy in effect.
-        /// 
         /// This state can indicate that the module has experienced an unrecoverable error.
         /// This happens when the MMA has given up on trying to resuscitate the module and user
         /// action is required to update its code/configuration in order for it to work again
@@ -99,7 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         ModuleStatus DesiredStatus { get; }
 
         [JsonProperty(PropertyName = "restartPolicy")]
-        RestartPolicy RestartPolicy { get;  }
+        RestartPolicy RestartPolicy { get; }
 
         [JsonIgnore]
         ConfigurationInfo ConfigurationInfo { get; }
@@ -112,7 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     {
         [JsonProperty(PropertyName = "settings")]
         TConfig Config { get; }
-    }    
+    }
 
     public interface IEdgeHubModule : IModule
     {
@@ -120,5 +117,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
     public interface IEdgeAgentModule : IModule
     {
-    }    
+    }
 }

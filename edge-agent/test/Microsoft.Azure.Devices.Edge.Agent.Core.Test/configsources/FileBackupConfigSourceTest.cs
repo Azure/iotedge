@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
 {
     using System;
@@ -64,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
         {
             var underlying = new Mock<IConfigSource>();
 
-            Assert.Throws<ArgumentException>(() => new FileBackupConfigSource("", underlying.Object, this.GetSerde(), NullEncryptionProvider.Instance));
+            Assert.Throws<ArgumentException>(() => new FileBackupConfigSource(string.Empty, underlying.Object, this.GetSerde(), NullEncryptionProvider.Instance));
             Assert.Throws<ArgumentException>(() => new FileBackupConfigSource(null, underlying.Object, this.GetSerde(), NullEncryptionProvider.Instance));
             Assert.Throws<ArgumentNullException>(() => new FileBackupConfigSource(this.tempFileName, null, this.GetSerde(), NullEncryptionProvider.Instance));
             Assert.Throws<ArgumentNullException>(() => new FileBackupConfigSource(this.tempFileName, underlying.Object, null, NullEncryptionProvider.Instance));
@@ -257,7 +256,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
             ISerde<DeploymentConfigInfo> serde = this.GetSerde();
             var encryptionProvider = new Mock<IEncryptionProvider>();
             encryptionProvider.Setup(ep => ep.EncryptAsync(It.IsAny<string>()))
-                .ThrowsAsync(new IoTEdgedException("failed", 404, "", null, null));
+                .ThrowsAsync(new IoTEdgedException("failed", 404, string.Empty, null, null));
             using (IConfigSource configSource = new FileBackupConfigSource(this.tempFileName, underlying.Object, serde, encryptionProvider.Object))
             {
                 DeploymentConfigInfo config1 = await configSource.GetDeploymentConfigInfoAsync();
@@ -333,7 +332,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
             encryptionProvider.Setup(ep => ep.EncryptAsync(It.IsAny<string>()))
                 .ReturnsAsync(serde.Serialize(ValidConfigInfo1));
             encryptionProvider.Setup(ep => ep.DecryptAsync(It.IsAny<string>()))
-                .ThrowsAsync(new IoTEdgedException("failed", 404, "", null, null));
+                .ThrowsAsync(new IoTEdgedException("failed", 404, string.Empty, null, null));
 
             using (IConfigSource configSource = new FileBackupConfigSource(this.tempFileName, underlying.Object, serde, encryptionProvider.Object))
             {

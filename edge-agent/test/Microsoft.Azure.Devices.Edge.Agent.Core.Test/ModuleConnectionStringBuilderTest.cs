@@ -1,9 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 {
     using System;
-    using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
@@ -53,9 +51,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public void InvalidInputsTest()
         {
             Assert.Throws<ArgumentException>(() => new ModuleConnectionStringBuilder(null, "1"));
-            Assert.Throws<ArgumentException>(() => new ModuleConnectionStringBuilder("", "1"));
+            Assert.Throws<ArgumentException>(() => new ModuleConnectionStringBuilder(string.Empty, "1"));
             Assert.Throws<ArgumentException>(() => new ModuleConnectionStringBuilder("iothub", null));
-            Assert.Throws<ArgumentException>(() => new ModuleConnectionStringBuilder("iothub", ""));
+            Assert.Throws<ArgumentException>(() => new ModuleConnectionStringBuilder("iothub", string.Empty));
 
             var builder = new ModuleConnectionStringBuilder("foo.azure.com", "device1");
             Assert.Throws<ArgumentException>(() => builder.Create(null));

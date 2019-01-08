@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
 {
     using System;
@@ -47,6 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
             {
                 throw new InvalidOperationException($"Invalid test environment specified: {environmentName}");
             }
+
             return environment;
         }
     }

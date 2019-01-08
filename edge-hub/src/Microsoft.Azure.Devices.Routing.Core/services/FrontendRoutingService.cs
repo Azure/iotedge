@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Routing.Core.Services
 {
     using System;
@@ -10,7 +9,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Services
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
     using Microsoft.Extensions.Logging;
@@ -27,10 +25,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Services
         readonly AtomicReference<ImmutableDictionary<string, ISink<IMessage>>> sinks;
         readonly AsyncLock sync = new AsyncLock();
 
-        ImmutableDictionary<string, INotifier> Notifiers => this.notifiers;
-
-        ImmutableDictionary<string, ISink<IMessage>> Sinks => this.sinks;
-
         public FrontendRoutingService(ISinkFactory<IMessage> sinkFactory, INotifierFactory notifierFactory)
         {
             this.sinkFactory = Preconditions.CheckNotNull(sinkFactory, nameof(sinkFactory));
@@ -40,6 +34,10 @@ namespace Microsoft.Azure.Devices.Routing.Core.Services
             this.sinks = new AtomicReference<ImmutableDictionary<string, ISink<IMessage>>>(ImmutableDictionary<string, ISink<IMessage>>.Empty);
             this.notifiers = new AtomicReference<ImmutableDictionary<string, INotifier>>(ImmutableDictionary<string, INotifier>.Empty);
         }
+
+        ImmutableDictionary<string, INotifier> Notifiers => this.notifiers;
+
+        ImmutableDictionary<string, ISink<IMessage>> Sinks => this.sinks;
 
         public Task RouteAsync(string hubName, IMessage message) => this.RouteAsync(hubName, new[] { message });
 
@@ -86,7 +84,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Services
 
         protected virtual void Dispose(bool disposing)
         {
-            //Debug.Assert(this.closed);
             if (disposing)
             {
                 this.cts.Dispose();
@@ -96,6 +93,30 @@ namespace Microsoft.Azure.Devices.Routing.Core.Services
                 {
                     notifier.Dispose();
                 }
+            }
+        }
+
+        static async Task CloseSinkAsync(ISink<IMessage> sink, CancellationToken token)
+        {
+            try
+            {
+                await sink.CloseAsync(token);
+            }
+            catch (Exception ex)
+            {
+                Events.SinkCloseFailed(ex);
+            }
+        }
+
+        static async Task CloseNotifierAsync(INotifier notifier, CancellationToken token)
+        {
+            try
+            {
+                await notifier.CloseAsync(token);
+            }
+            catch (Exception ex)
+            {
+                Events.NotifierCloseFailed(ex);
             }
         }
 
@@ -127,6 +148,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Services
                     }
                 }
             }
+
             return sink;
         }
 
@@ -188,34 +210,10 @@ namespace Microsoft.Azure.Devices.Routing.Core.Services
             }
         }
 
-        static async Task CloseSinkAsync(ISink<IMessage> sink, CancellationToken token)
-        {
-            try
-            {
-                await sink.CloseAsync(token);
-            }
-            catch (Exception ex)
-            {
-                Events.SinkCloseFailed(ex);
-            }
-        }
-
-        static async Task CloseNotifierAsync(INotifier notifier, CancellationToken token)
-        {
-            try
-            {
-                await notifier.CloseAsync(token);
-            }
-            catch (Exception ex)
-            {
-                Events.NotifierCloseFailed(ex);
-            }
-        }
-
         static class Events
         {
-            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<FrontendRoutingService>();
             const int IdStart = Routing.EventIds.FrontendRoutingService;
+            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<FrontendRoutingService>();
 
             enum EventIds
             {

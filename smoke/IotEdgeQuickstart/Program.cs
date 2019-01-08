@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace IotEdgeQuickstart
 {
     using System;
@@ -57,14 +56,10 @@ Defaults:
   --runtime-log-level        debug
   --clean_up_existing_device false
   --proxy                    No proxy is used
-"
-        )]
+")]
     [HelpOption]
     class Program
     {
-        // ReSharper disable once UnusedMember.Local
-        static int Main(string[] args) => CommandLineApplication.ExecuteAsync<Program>(args).Result;
-
         [Option("-a|--bootstrapper-archive <path>", Description = "Path to bootstrapper archive")]
         public string BootstrapperArchivePath { get; } = Environment.GetEnvironmentVariable("bootstrapperArchivePath");
 
@@ -120,13 +115,13 @@ Defaults:
         public string DeploymentFileName { get; } = Environment.GetEnvironmentVariable("deployment");
 
         [Option("--device_ca_cert", Description = "path to the device ca certificate and its chain")]
-        public string DeviceCaCert { get; } = "";
+        public string DeviceCaCert { get; } = string.Empty;
 
         [Option("--device_ca_pk", Description = "path to the device ca private key file")]
-        public string DeviceCaPk { get; } = "";
+        public string DeviceCaPk { get; } = string.Empty;
 
         [Option("--trusted_ca_certs", Description = "path to a file containing all the trusted CA")]
-        public string DeviceCaCerts { get; } = "";
+        public string DeviceCaCerts { get; } = string.Empty;
 
         [Option("--clean_up_existing_device <true/false>", CommandOptionType.SingleValue, Description = "Clean up existing device on success.")]
         public bool CleanUpExistingDeviceOnSuccess { get; } = false;
@@ -136,6 +131,9 @@ Defaults:
 
         [Option("--upstream-protocol <value>", CommandOptionType.SingleValue, Description = "Upstream protocol for IoT Hub connections.")]
         public (bool overrideUpstreamProtocol, UpstreamProtocolType upstreamProtocol) UpstreamProtocol { get; } = (false, UpstreamProtocolType.Amqp);
+
+        // ReSharper disable once UnusedMember.Local
+        static int Main(string[] args) => CommandLineApplication.ExecuteAsync<Program>(args).Result;
 
         // ReSharper disable once UnusedMember.Local
         async Task<int> OnExecuteAsync()
@@ -159,31 +157,30 @@ Defaults:
                 switch (this.BootstrapperType)
                 {
                     case BootstrapperType.Iotedged:
+                        (bool useProxy, string proxyUrl) = this.Proxy;
+                        Option<string> proxy = useProxy
+                            ? Option.Some(proxyUrl)
+                            : Option.Maybe(Environment.GetEnvironmentVariable("https_proxy"));
+
+                        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                         {
-                            (bool useProxy, string proxyUrl) = this.Proxy;
-                            Option<string> proxy = useProxy
-                                ? Option.Some(proxyUrl)
-                                : Option.Maybe(Environment.GetEnvironmentVariable("https_proxy"));
-
-                            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                            {
-                                bootstrapper = new IotedgedWindows(this.BootstrapperArchivePath, credentials, proxy);
-                            }
-                            else
-                            {
-                                (bool useHttp, string hostname) = this.UseHttp;
-                                Option<HttpUris> uris = useHttp
-                                    ? Option.Some(string.IsNullOrEmpty(hostname) ? new HttpUris() : new HttpUris(hostname))
-                                    : Option.None<HttpUris>();
-
-                                (bool overrideUpstreamProtocol, UpstreamProtocolType upstreamProtocol) = this.UpstreamProtocol;
-                                Option<UpstreamProtocolType> upstreamProtocolOption = overrideUpstreamProtocol
-                                    ? Option.Some(upstreamProtocol)
-                                    : Option.None<UpstreamProtocolType>();
-
-                                bootstrapper = new IotedgedLinux(this.BootstrapperArchivePath, credentials, uris, proxy, upstreamProtocolOption);
-                            }
+                            bootstrapper = new IotedgedWindows(this.BootstrapperArchivePath, credentials, proxy);
                         }
+                        else
+                        {
+                            (bool useHttp, string hostname) = this.UseHttp;
+                            Option<HttpUris> uris = useHttp
+                                ? Option.Some(string.IsNullOrEmpty(hostname) ? new HttpUris() : new HttpUris(hostname))
+                                : Option.None<HttpUris>();
+
+                            (bool overrideUpstreamProtocol, UpstreamProtocolType upstreamProtocol) = this.UpstreamProtocol;
+                            Option<UpstreamProtocolType> upstreamProtocolOption = overrideUpstreamProtocol
+                                ? Option.Some(upstreamProtocol)
+                                : Option.None<UpstreamProtocolType>();
+
+                            bootstrapper = new IotedgedLinux(this.BootstrapperArchivePath, credentials, uris, proxy, upstreamProtocolOption);
+                        }
+
                         break;
                     case BootstrapperType.Iotedgectl:
                         bootstrapper = new Iotedgectl(this.BootstrapperArchivePath, credentials);
@@ -193,10 +190,10 @@ Defaults:
                 }
 
                 string connectionString = this.IotHubConnectionString ??
-                    await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
+                                          await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
 
                 string endpoint = this.EventHubCompatibleEndpointWithEntityPath ??
-                    await SecretsHelper.GetSecretFromConfigKey("eventHubConnStrKey");
+                                  await SecretsHelper.GetSecretFromConfigKey("eventHubConnStrKey");
 
                 Option<string> deployment = this.DeploymentFileName != null ? Option.Some(this.DeploymentFileName) : Option.None<string>();
 
@@ -214,7 +211,7 @@ Defaults:
                     this.LeaveRunning,
                     this.NoDeployment,
                     this.NoVerify,
-                    this.VerifyDataFromModule, 
+                    this.VerifyDataFromModule,
                     deployment,
                     this.DeviceCaCert,
                     this.DeviceCaPk,
@@ -240,7 +237,6 @@ Defaults:
             //  key   - based on registry hostname (e.g.,
             //          edgerelease.azurecr.io => edgerelease-azurecr-io)
             //  value - "<user> <password>" (separated by a space)
-
             string key = address.Replace('.', '-');
             string value = await SecretsHelper.GetSecret(key);
             string[] vals = value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -256,9 +252,9 @@ Defaults:
 
     public enum LeaveRunning
     {
-        All,  // don't clean up anything
+        All, // don't clean up anything
         Core, // remove modules/identities except Edge Agent & Hub
-        None  // iotedgectl stop, uninstall, remove device identity
+        None // iotedgectl stop, uninstall, remove device identity
     }
 
     public enum LogLevel

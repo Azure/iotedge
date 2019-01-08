@@ -1,12 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Util.Test
 {
     using System;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Moq;
     using Xunit;
 
     [Unit]
@@ -17,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         {
             // Arrange
             int callbackCalledCount = 0;
+
             Task Callback()
             {
                 Interlocked.Increment(ref callbackCalledCount);
@@ -39,6 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         {
             // Arrange
             int callbackCalledCount = 0;
+
             Task Callback()
             {
                 Interlocked.Increment(ref callbackCalledCount);
@@ -67,6 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         {
             // Arrange
             int callbackCalledCount = 0;
+
             Task Callback()
             {
                 Interlocked.Increment(ref callbackCalledCount);
@@ -76,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             TimeSpan period = TimeSpan.FromSeconds(3);
             var resettableTimer = new ResettableTimer(Callback, period, null);
 
-            // Act            
+            // Act
             resettableTimer.Start();
             await Task.Delay(TimeSpan.FromSeconds(4));
 
@@ -97,7 +98,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
 
             // Assert
             Assert.Equal(2, callbackCalledCount);
-
         }
     }
 }

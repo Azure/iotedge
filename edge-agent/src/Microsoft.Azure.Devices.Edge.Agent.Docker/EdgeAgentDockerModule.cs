@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
     using System.Collections.Generic;
@@ -32,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             unchecked
             {
                 // ReSharper disable once NonReadonlyMemberInGetHashCode
-                int hashCode = (this.Name != null ? this.Name.GetHashCode() : 0);
+                int hashCode = this.Name != null ? this.Name.GetHashCode() : 0;
                 // ReSharper restore NonReadonlyMemberInGetHashCode
                 hashCode = (hashCode * 397) ^ (this.Version != null ? this.Version.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ (this.Type != null ? this.Type.GetHashCode() : 0);

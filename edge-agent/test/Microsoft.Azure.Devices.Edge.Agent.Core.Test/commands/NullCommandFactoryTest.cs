@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
+namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
 {
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Commands;

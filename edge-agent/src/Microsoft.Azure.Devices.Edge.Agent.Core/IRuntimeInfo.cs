@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
     using System;
@@ -16,13 +15,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
     public class UnknownRuntimeInfo : IRuntimeInfo
     {
-        UnknownRuntimeInfo() { }
+        UnknownRuntimeInfo()
+        {
+        }
 
         public static UnknownRuntimeInfo Instance { get; } = new UnknownRuntimeInfo();
 
         public string Type => Constants.Unknown;
 
         public bool Equals(IRuntimeInfo other) =>
-            other != null && object.ReferenceEquals(this, other);
+            other != null && ReferenceEquals(this, other);
     }
 }

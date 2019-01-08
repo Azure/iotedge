@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 {
     using System;
@@ -13,11 +12,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
+    using Constants = Microsoft.Azure.Devices.Edge.Hub.Amqp.Constants;
 
     [Unit]
     public class AmqpSettingsProviderTest
     {
-        [Fact]        
+        [Fact]
         public void TestInvalidInputsForGetDefaultAmqpSettings()
         {
             const string IotHubHostName = "restaurantatendofuniverse.azure-devices.net";
@@ -59,13 +59,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             SaslHandler plainHandler = saslTransportProvider.GetHandler("PLAIN", false);
             Assert.NotNull(plainHandler);
 
-            SaslHandler cbsHandler = saslTransportProvider.GetHandler(Amqp.Constants.ServiceBusCbsSaslMechanismName, false);
+            SaslHandler cbsHandler = saslTransportProvider.GetHandler(Constants.ServiceBusCbsSaslMechanismName, false);
             Assert.NotNull(cbsHandler);
 
             var amqpTransportProvider = settings.GetTransportProvider<AmqpTransportProvider>();
             Assert.NotNull(amqpTransportProvider);
 
-            Assert.Equal(Amqp.Constants.AmqpVersion100, amqpTransportProvider.Versions[0]);
+            Assert.Equal(Constants.AmqpVersion100, amqpTransportProvider.Versions[0]);
         }
     }
 }

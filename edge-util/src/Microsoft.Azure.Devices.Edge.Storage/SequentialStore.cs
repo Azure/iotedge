@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Storage
 {
     using System;
@@ -12,8 +11,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
     /// <summary>
     /// Store for storing entities in an ordered list - Entities can be retrieved in the same order in which they were saved.
-    /// This can be used for implementing queues. 
-    /// Each saved entity is associated with an offset, which can be used to retrieve the entity. 
+    /// This can be used for implementing queues.
+    /// Each saved entity is associated with an offset, which can be used to retrieve the entity.
     /// </summary>
     class SequentialStore<T> : ISequentialStore<T>
     {
@@ -33,12 +32,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         public string EntityName => this.entityStore.EntityName;
 
-        public Task<long> Append(T item) => this.Append(item, CancellationToken.None);
-
-        public Task<bool> RemoveFirst(Func<long, T, Task<bool>> predicate) => this.RemoveFirst(predicate, CancellationToken.None);
-
-        public Task<IEnumerable<(long, T)>> GetBatch(long startingOffset, int batchSize) => this.GetBatch(startingOffset, batchSize, CancellationToken.None);
-
         public static Task<ISequentialStore<T>> Create(IEntityStore<byte[], T> entityStore)
             => Create(entityStore, DefaultHeadOffset);
 
@@ -53,6 +46,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             var sequentialStore = new SequentialStore<T>(entityStore, headOffset, tailOffset);
             return sequentialStore;
         }
+
+        public Task<long> Append(T item) => this.Append(item, CancellationToken.None);
+
+        public Task<bool> RemoveFirst(Func<long, T, Task<bool>> predicate) => this.RemoveFirst(predicate, CancellationToken.None);
+
+        public Task<IEnumerable<(long, T)>> GetBatch(long startingOffset, int batchSize) => this.GetBatch(startingOffset, batchSize, CancellationToken.None);
 
         public async Task<long> Append(T item, CancellationToken cancellationToken)
         {
@@ -70,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         {
             using (await this.headLockObject.LockAsync(cancellationToken))
             {
-                // Tail offset could change here, but not holding a lock for efficiency. 
+                // Tail offset could change here, but not holding a lock for efficiency.
                 if (this.IsEmpty())
                 {
                     return false;
@@ -125,18 +124,18 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             return batch;
         }
 
+        public void Dispose()
+        {
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
         protected virtual void Dispose(bool disposing)
         {
             if (disposing)
             {
                 this.entityStore?.Dispose();
             }
-        }
-
-        public void Dispose()
-        {
-            this.Dispose(true);
-            GC.SuppressFinalize(this);
         }
 
         bool IsEmpty() => this.headOffset > this.tailOffset;

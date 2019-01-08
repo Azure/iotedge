@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System;
@@ -48,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 await this.underlyingModuleClient.OpenAsync();
             }
-            catch(Exception)
+            catch (Exception)
             {
                 this.isActive.Set(false);
                 throw;

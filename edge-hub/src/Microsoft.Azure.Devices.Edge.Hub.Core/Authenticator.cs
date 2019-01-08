@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System.Threading.Tasks;
@@ -63,8 +62,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<Authenticator>();
             const int IdStart = HubCoreEventIds.Authenticator;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<Authenticator>();
 
             enum EventIds
             {

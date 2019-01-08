@@ -1,13 +1,14 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Routing.Core.Test.Util.Concurrency
 {
-    using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
     using Xunit;
 
     public class AtomicBooleanTest
     {
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestDefault()
         {
             var b = new AtomicBoolean();
@@ -19,7 +20,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util.Concurrency
             Assert.Equal(true, b2);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestSet()
         {
             var b = new AtomicBoolean(true);
@@ -30,7 +32,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util.Concurrency
             Assert.Equal(true, b.Get());
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestGetAndSet()
         {
             var b1 = new AtomicBoolean(true);
@@ -39,7 +42,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util.Concurrency
             Assert.Equal(false, b1.Get());
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestCompareAndSet()
         {
             var b1 = new AtomicBoolean(true);

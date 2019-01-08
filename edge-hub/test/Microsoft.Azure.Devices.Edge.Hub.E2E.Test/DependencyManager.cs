@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
     using System;
@@ -8,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using System.Security.Cryptography.X509Certificates;
     using Autofac;
     using DotNetty.Common.Internal.Logging;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
@@ -19,12 +19,50 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Moq;
+    using Constants = Microsoft.Azure.Devices.Edge.Hub.Service.Constants;
 
     class DependencyManager : IDependencyManager
     {
         readonly IConfigurationRoot configuration;
         readonly X509Certificate2 serverCertificate;
         readonly IList<X509Certificate2> trustBundle;
+
+        readonly IList<string> inboundTemplates = new List<string>()
+        {
+            "devices/{deviceId}/messages/events/{params}/",
+            "devices/{deviceId}/messages/events/",
+            "devices/{deviceId}/modules/{moduleId}/messages/events/{params}/",
+            "devices/{deviceId}/modules/{moduleId}/messages/events/",
+            "$iothub/methods/res/{statusCode}/?$rid={correlationId}",
+            "$iothub/methods/res/{statusCode}/?$rid={correlationId}&foo={bar}"
+        };
+
+        readonly IDictionary<string, string> outboundTemplates = new Dictionary<string, string>()
+        {
+            { "C2D", "devices/{deviceId}/messages/devicebound" },
+            { "TwinEndpoint", "$iothub/twin/res/{statusCode}/?$rid={correlationId}" },
+            { "TwinDesiredPropertyUpdate", "$iothub/twin/PATCH/properties/desired/?$version={version}" },
+            { "ModuleEndpoint", "devices/{deviceId}/modules/{moduleId}/inputs/{inputName}" }
+        };
+
+        readonly IDictionary<string, string> routes = new Dictionary<string, string>()
+        {
+            ["r1"] = "FROM /messages/events INTO $upstream",
+            ["r2"] = "FROM /messages/modules/senderA INTO BrokeredEndpoint(\"/modules/receiverA/inputs/input1\")",
+            ["r3"] = "FROM /messages/modules/senderB INTO BrokeredEndpoint(\"/modules/receiverA/inputs/input1\")",
+            ["r4"] = "FROM /messages/modules/sender1 INTO BrokeredEndpoint(\"/modules/receiver1/inputs/input1\")",
+            ["r5"] = "FROM /messages/modules/sender2 INTO BrokeredEndpoint(\"/modules/receiver2/inputs/input1\")",
+            ["r6"] = "FROM /messages/modules/sender3 INTO BrokeredEndpoint(\"/modules/receiver3/inputs/input1\")",
+            ["r7"] = "FROM /messages/modules/sender4 INTO BrokeredEndpoint(\"/modules/receiver4/inputs/input1\")",
+            ["r8"] = "FROM /messages/modules/sender5 INTO BrokeredEndpoint(\"/modules/receiver5/inputs/input1\")",
+            ["r9"] = "FROM /messages/modules/sender6 INTO BrokeredEndpoint(\"/modules/receiver6/inputs/input1\")",
+            ["r10"] = "FROM /messages/modules/sender7 INTO BrokeredEndpoint(\"/modules/receiver7/inputs/input1\")",
+            ["r11"] = "FROM /messages/modules/sender8 INTO BrokeredEndpoint(\"/modules/receiver8/inputs/input1\")",
+            ["r12"] = "FROM /messages/modules/sender9 INTO BrokeredEndpoint(\"/modules/receiver9/inputs/input1\")",
+            ["r13"] = "FROM /messages/modules/sender10 INTO BrokeredEndpoint(\"/modules/receiver10/inputs/input1\")",
+            ["r14"] = "FROM /messages/modules/sender11/outputs/output1 INTO BrokeredEndpoint(\"/modules/receiver11/inputs/input1\")",
+            ["r15"] = "FROM /messages/modules/sender11/outputs/output2 INTO BrokeredEndpoint(\"/modules/receiver11/inputs/input2\")",
+        };
 
         public DependencyManager(IConfigurationRoot configuration, X509Certificate2 serverCertificate, IList<X509Certificate2> trustBundle)
         {
@@ -37,8 +75,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         {
             const int ConnectionPoolSize = 10;
 
-            string edgeHubConnectionString = $"{this.configuration[Service.Constants.ConfigKey.IotHubConnectionString]};ModuleId=$edgeHub";
-            Client.IotHubConnectionStringBuilder iotHubConnectionStringBuilder = Client.IotHubConnectionStringBuilder.Create(edgeHubConnectionString);
+            string edgeHubConnectionString = $"{this.configuration[Constants.ConfigKey.IotHubConnectionString]};ModuleId=$edgeHub";
+            IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeHubConnectionString);
             var topics = new MessageAddressConversionConfiguration(this.inboundTemplates, this.outboundTemplates);
 
             builder.RegisterModule(new LoggingModule());
@@ -100,42 +138,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, this.serverCertificate, false, false, false));
             builder.RegisterModule(new AmqpModule("amqps", 5671, this.serverCertificate, iotHubConnectionStringBuilder.HostName, true));
         }
-
-        readonly IList<string> inboundTemplates = new List<string>()
-            {
-                "devices/{deviceId}/messages/events/{params}/",
-                "devices/{deviceId}/messages/events/",
-                "devices/{deviceId}/modules/{moduleId}/messages/events/{params}/",
-                "devices/{deviceId}/modules/{moduleId}/messages/events/",
-                "$iothub/methods/res/{statusCode}/?$rid={correlationId}",
-                "$iothub/methods/res/{statusCode}/?$rid={correlationId}&foo={bar}"
-            };
-
-        readonly IDictionary<string, string> outboundTemplates = new Dictionary<string, string>()
-            {
-                { "C2D", "devices/{deviceId}/messages/devicebound" },
-                { "TwinEndpoint", "$iothub/twin/res/{statusCode}/?$rid={correlationId}" },
-                { "TwinDesiredPropertyUpdate", "$iothub/twin/PATCH/properties/desired/?$version={version}" },
-                { "ModuleEndpoint", "devices/{deviceId}/modules/{moduleId}/inputs/{inputName}" }
-            };
-
-        readonly IDictionary<string, string> routes = new Dictionary<string, string>()
-        {
-            ["r1"] = "FROM /messages/events INTO $upstream",
-            ["r2"] = "FROM /messages/modules/senderA INTO BrokeredEndpoint(\"/modules/receiverA/inputs/input1\")",
-            ["r3"] = "FROM /messages/modules/senderB INTO BrokeredEndpoint(\"/modules/receiverA/inputs/input1\")",
-            ["r4"] = "FROM /messages/modules/sender1 INTO BrokeredEndpoint(\"/modules/receiver1/inputs/input1\")",
-            ["r5"] = "FROM /messages/modules/sender2 INTO BrokeredEndpoint(\"/modules/receiver2/inputs/input1\")",
-            ["r6"] = "FROM /messages/modules/sender3 INTO BrokeredEndpoint(\"/modules/receiver3/inputs/input1\")",
-            ["r7"] = "FROM /messages/modules/sender4 INTO BrokeredEndpoint(\"/modules/receiver4/inputs/input1\")",
-            ["r8"] = "FROM /messages/modules/sender5 INTO BrokeredEndpoint(\"/modules/receiver5/inputs/input1\")",
-            ["r9"] = "FROM /messages/modules/sender6 INTO BrokeredEndpoint(\"/modules/receiver6/inputs/input1\")",
-            ["r10"] = "FROM /messages/modules/sender7 INTO BrokeredEndpoint(\"/modules/receiver7/inputs/input1\")",
-            ["r11"] = "FROM /messages/modules/sender8 INTO BrokeredEndpoint(\"/modules/receiver8/inputs/input1\")",
-            ["r12"] = "FROM /messages/modules/sender9 INTO BrokeredEndpoint(\"/modules/receiver9/inputs/input1\")",
-            ["r13"] = "FROM /messages/modules/sender10 INTO BrokeredEndpoint(\"/modules/receiver10/inputs/input1\")",
-            ["r14"] = "FROM /messages/modules/sender11/outputs/output1 INTO BrokeredEndpoint(\"/modules/receiver11/inputs/input1\")",
-            ["r15"] = "FROM /messages/modules/sender11/outputs/output2 INTO BrokeredEndpoint(\"/modules/receiver11/inputs/input2\")",
-        };
     }
 }

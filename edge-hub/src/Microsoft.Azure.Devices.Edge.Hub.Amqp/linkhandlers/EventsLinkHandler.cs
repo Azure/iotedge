@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 {
     using System;
@@ -69,20 +68,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             }
         }
 
-        void AddMessageSystemProperties(IMessage message)
-        {
-            if (this.Identity is IDeviceIdentity deviceIdentity)
-            {
-                message.SystemProperties[SystemProperties.ConnectionDeviceId] = deviceIdentity.DeviceId;
-            }
-
-            if (this.Identity is IModuleIdentity moduleIdentity)
-            {
-                message.SystemProperties[SystemProperties.ConnectionDeviceId] = moduleIdentity.DeviceId;
-                message.SystemProperties[SystemProperties.ConnectionModuleId] = moduleIdentity.ModuleId;
-            }
-        }
-
         internal static IList<AmqpMessage> ExpandBatchedMessage(AmqpMessage message)
         {
             var outputMessages = new List<AmqpMessage>();
@@ -105,9 +90,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             return outputMessages;
         }
 
+        void AddMessageSystemProperties(IMessage message)
+        {
+            if (this.Identity is IDeviceIdentity deviceIdentity)
+            {
+                message.SystemProperties[SystemProperties.ConnectionDeviceId] = deviceIdentity.DeviceId;
+            }
+
+            if (this.Identity is IModuleIdentity moduleIdentity)
+            {
+                message.SystemProperties[SystemProperties.ConnectionDeviceId] = moduleIdentity.DeviceId;
+                message.SystemProperties[SystemProperties.ConnectionModuleId] = moduleIdentity.ModuleId;
+            }
+        }
+
         void HandleException(Exception ex, AmqpMessage incoming, IList<AmqpMessage> outgoing)
         {
-            // Get AmqpException 
+            // Get AmqpException
             AmqpException amqpException = AmqpExceptionsHelper.GetAmqpException(ex);
             var rejected = new Rejected { Error = amqpException.Error };
             ((IReceivingAmqpLink)this.Link).DisposeMessage(incoming, rejected, true, true);
@@ -126,8 +125,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<EventsLinkHandler>();
             const int IdStart = AmqpEventIds.EventsLinkHandler;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<EventsLinkHandler>();
 
             enum EventIds
             {

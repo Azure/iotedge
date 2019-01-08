@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Routing.Core.Query.Types
 {
     using System;
@@ -13,15 +12,15 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Types
 
         public static readonly QueryValue Null = new QueryValue(Query.Null.Instance, QueryValueType.Null);
 
-        public QueryValueType ValueType { get; set; }
-
-        public object Value { get; set; }
-
         public QueryValue(object value, QueryValueType valueType)
         {
             this.Value = value;
             this.ValueType = valueType;
         }
+
+        public QueryValueType ValueType { get; set; }
+
+        public object Value { get; set; }
 
         public static QueryValue Create(JValue jsonValue)
         {
@@ -177,7 +176,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Types
             return Undefined;
         }
 
-        // Used for logical operators with Bool e.g. ||) 
+        // Used for logical operators with Bool e.g. ||)
         public static QueryValue operator |(QueryValue x, QueryValue y)
         {
             if (x.ValueType == QueryValueType.Bool && y.ValueType == QueryValueType.Bool)
@@ -193,6 +192,14 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Types
 
         // Used for logical operators with Bool
         public static bool operator false(QueryValue x) => x.ValueType == QueryValueType.Bool && (Bool)x.Value;
+
+        public static bool IsSupportedType(Type t)
+        {
+            return t == typeof(Null) ||
+                   t == typeof(double) ||
+                   t == typeof(string) ||
+                   t == typeof(Bool);
+        }
 
         public int CompareTo(object obj)
         {
@@ -220,8 +227,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Types
             // ReSharper disable once PossibleNullReferenceException
             if (value1.ValueType == QueryValueType.None || value2.ValueType == QueryValueType.None)
             {
-                return ReferenceEquals(value1, value2) ? -1 :
-                    value1.GetHashCode().CompareTo(value2.GetHashCode());
+                return ReferenceEquals(value1, value2) ? -1 : value1.GetHashCode().CompareTo(value2.GetHashCode());
             }
 
             if (value1.ValueType != value2.ValueType)
@@ -253,20 +259,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Types
                 case QueryValueType.Object:
 
                     // We do not support value based comparisons on object. Just return based on reference equals.
-                    return ReferenceEquals(value1.Value, value2.Value) ? 0 :
-                        value1.Value.GetHashCode().CompareTo(value2.Value.GetHashCode());
+                    return ReferenceEquals(value1.Value, value2.Value) ? 0 : value1.Value.GetHashCode().CompareTo(value2.Value.GetHashCode());
 
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-        }
-
-        public static bool IsSupportedType(Type t)
-        {
-            return t == typeof(Null) ||
-                t == typeof(double) ||
-                t == typeof(string) ||
-                t == typeof(Bool);
         }
     }
 }

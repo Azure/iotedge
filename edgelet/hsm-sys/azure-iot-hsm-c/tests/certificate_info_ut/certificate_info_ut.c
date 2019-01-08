@@ -376,8 +376,8 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         //assert
         ASSERT_IS_NOT_NULL(cert_handle);
         ASSERT_IS_NULL(pk);
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, pk_size, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(int, PRIVATE_KEY_UNKNOWN, pk_type, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, 0, pk_size, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, PRIVATE_KEY_UNKNOWN, pk_type, "Line:" TOSTRING(__LINE__));
 
         //cleanup
         certificate_info_destroy(cert_handle);
@@ -395,10 +395,10 @@ BEGIN_TEST_SUITE(certificate_info_ut)
 
         //assert
         ASSERT_IS_NOT_NULL(cert_handle);
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, TEST_PRIVATE_KEY_LEN, pk_size, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, TEST_PRIVATE_KEY_LEN, pk_size, "Line:" TOSTRING(__LINE__));
         int cmp = memcmp(pk, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, cmp, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(int, PRIVATE_KEY_PAYLOAD, pk_type, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, cmp, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, PRIVATE_KEY_PAYLOAD, pk_type, "Line:" TOSTRING(__LINE__));
 
         //cleanup
         certificate_info_destroy(cert_handle);
@@ -416,10 +416,10 @@ BEGIN_TEST_SUITE(certificate_info_ut)
 
         //assert
         ASSERT_IS_NOT_NULL(cert_handle);
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, TEST_PRIVATE_KEY_LEN, pk_size, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, TEST_PRIVATE_KEY_LEN, pk_size, "Line:" TOSTRING(__LINE__));
         int cmp = memcmp(pk, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, cmp, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(int, PRIVATE_KEY_REFERENCE, pk_type, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, cmp, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, PRIVATE_KEY_REFERENCE, pk_type, "Line:" TOSTRING(__LINE__));
 
         //cleanup
         certificate_info_destroy(cert_handle);
@@ -563,7 +563,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
             CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
 
             //assert
-            ASSERT_IS_NULL_WITH_MSG(cert_handle, tmp_msg);
+            ASSERT_IS_NULL(cert_handle, tmp_msg);
         }
 
         //cleanup

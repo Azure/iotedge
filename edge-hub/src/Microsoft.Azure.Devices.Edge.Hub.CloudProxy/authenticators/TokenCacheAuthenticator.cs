@@ -37,7 +37,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
 
             Option<IClientCredentials> validatedCredentials = await this.credentialsCache.Get(tokenCredentials.Identity);
             bool isAuthenticated = await validatedCredentials.Map(
-                    v => Task.FromResult(v is ITokenCredentials validatedTokenCredentials &&
+                    v => Task.FromResult(
+                        v is ITokenCredentials validatedTokenCredentials &&
                         this.IsValid(clientCredentials, validatedTokenCredentials.Token) &&
                         validatedTokenCredentials.Token.Equals(tokenCredentials.Token)))
                 .GetOrElse(Task.FromResult(false));
@@ -78,8 +79,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<TokenCacheAuthenticator>();
             const int IdStart = CloudProxyEventIds.TokenCredentialsAuthenticator;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<TokenCacheAuthenticator>();
 
             enum EventIds
             {

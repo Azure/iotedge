@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Routing.Core.Util
 {
     using System.Collections.Generic;
@@ -36,6 +35,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Util
                     }
                 }
             }
+
             return Option.None<T>();
         }
     }

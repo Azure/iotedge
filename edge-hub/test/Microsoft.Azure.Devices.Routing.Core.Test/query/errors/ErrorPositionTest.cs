@@ -1,16 +1,16 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Routing.Core.Test.Query.Errors
 {
     using System.Diagnostics.CodeAnalysis;
-    using Microsoft.Azure.Devices.Routing.Core.Query.Errors;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.Query.Errors;
     using Xunit;
 
     [ExcludeFromCodeCoverage]
     public class ErrorPositionTest : RoutingUnitTestBase
     {
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestEquals()
         {
             var pos1 = new ErrorPosition(1, 1);
@@ -32,7 +32,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query.Errors
             Assert.NotEqual(pos1.GetHashCode(), pos2.GetHashCode());
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestCompareTo()
         {
             var pos1 = new ErrorPosition(1, 1);

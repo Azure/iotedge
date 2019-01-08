@@ -698,7 +698,7 @@ static void* test_hook_read_file_into_buffer
     size_t test_data_len = strlen(TEST_ISSUER_CERT_DATA);
     size_t test_data_size = test_data_len + 1;
     void *data = test_hook_gballoc_malloc(test_data_size);
-    ASSERT_IS_NOT_NULL_WITH_MSG(data, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(data, "Line:" TOSTRING(__LINE__));
     memset(data, 0, test_data_size);
     memcpy(data, TEST_ISSUER_CERT_DATA, test_data_len);
     if (output_buffer_size) *output_buffer_size = test_data_size;
@@ -1151,7 +1151,7 @@ static char *test_helper_strdup(const char *s)
     size_t len = strlen(s);
     size_t size = len + 1;
     char *result = test_hook_gballoc_malloc(size);
-    ASSERT_IS_NOT_NULL_WITH_MSG(result, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
     memset(result, 0, size);
     strcpy(result, s);
     return result;
@@ -1162,35 +1162,35 @@ void test_helper_generate_rsa_key(int key_len, size_t *index, char *failed_funct
     size_t i = *index;
 
     EXPECTED_CALL(EVP_PKEY_new());
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     EXPECTED_CALL(BN_new());
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     STRICT_EXPECTED_CALL(BN_set_word(TEST_BIGNUM, RSA_F4));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     EXPECTED_CALL(RSA_new());
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     STRICT_EXPECTED_CALL(RSA_generate_key_ex(TEST_RSA, key_len, TEST_BIGNUM, NULL));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     STRICT_EXPECTED_CALL(EVP_PKEY_set1_RSA(TEST_EVP_KEY, TEST_RSA));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     STRICT_EXPECTED_CALL(RSA_free(TEST_RSA));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
     STRICT_EXPECTED_CALL(BN_free(TEST_BIGNUM));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
     *index = i;
@@ -1203,59 +1203,59 @@ void test_helper_generate_ecc_key(bool is_self_signed, size_t *index, char *fail
     if (!is_self_signed)
     {
         STRICT_EXPECTED_CALL(EVP_PKEY_get1_EC_KEY(TEST_ISSUER_PUB_KEY));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
 
         STRICT_EXPECTED_CALL(EC_KEY_get0_group(TEST_EC_PUB_KEY));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
 
         STRICT_EXPECTED_CALL(EC_GROUP_get_curve_name(TEST_PUB_GROUP));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
 
         STRICT_EXPECTED_CALL(OBJ_nid2sn(TEST_CURVE_NAME_ID));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
 
         STRICT_EXPECTED_CALL(EVP_PKEY_bits(TEST_ISSUER_PUB_KEY));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
     }
 
     // generate_ecc_key
     STRICT_EXPECTED_CALL(OBJ_txt2nid(TEST_CURVE_NAME));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
     STRICT_EXPECTED_CALL(EC_KEY_new_by_curve_name(TEST_ECC_GROUP));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     STRICT_EXPECTED_CALL(EC_KEY_set_asn1_flag(TEST_EC_KEY, OPENSSL_EC_NAMED_CURVE));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
     STRICT_EXPECTED_CALL(EC_KEY_generate_key(TEST_EC_KEY));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     EXPECTED_CALL(EVP_PKEY_new());
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     STRICT_EXPECTED_CALL(EVP_PKEY_set1_EC_KEY(TEST_EVP_KEY, TEST_EC_KEY));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     STRICT_EXPECTED_CALL(EC_KEY_free(TEST_EC_KEY));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
     if (!is_self_signed)
     {
         STRICT_EXPECTED_CALL(EC_KEY_free(TEST_EC_PUB_KEY));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
     }
 
@@ -1289,53 +1289,53 @@ static void test_helper_cert_create_with_subject
     umock_c_reset_all_calls();
 
     EXPECTED_CALL(initialize_openssl());
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
     STRICT_EXPECTED_CALL(get_validity_seconds(TEST_CERT_PROPS_HANDLE));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     STRICT_EXPECTED_CALL(get_common_name(TEST_CERT_PROPS_HANDLE));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     STRICT_EXPECTED_CALL(get_certificate_type(TEST_CERT_PROPS_HANDLE)).SetReturn(cert_type);
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     if (!is_self_signed)
     {
         STRICT_EXPECTED_CALL(BIO_new_file(TEST_ISSUER_CERT_FILE, "r"));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
 
         STRICT_EXPECTED_CALL(PEM_read_bio_X509(TEST_BIO, NULL, NULL, NULL)).SetReturn(TEST_ISSUER_X509);
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
 
         STRICT_EXPECTED_CALL(BIO_free_all(TEST_BIO));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
 
         STRICT_EXPECTED_CALL(BIO_new_file(TEST_ISSUER_KEY_FILE, "r"));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
 
         STRICT_EXPECTED_CALL(PEM_read_bio_PrivateKey(TEST_BIO, NULL, NULL, NULL)).SetReturn(TEST_ISSUER_EVP_KEY);
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
 
         STRICT_EXPECTED_CALL(BIO_free_all(TEST_BIO));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
 
         STRICT_EXPECTED_CALL(X509_get_pubkey(TEST_ISSUER_X509)).SetReturn(TEST_ISSUER_PUB_KEY);
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
 
         STRICT_EXPECTED_CALL(EVP_PKEY_base_id(TEST_ISSUER_PUB_KEY)).SetReturn(key_type);
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
     }
 
@@ -1351,134 +1351,134 @@ static void test_helper_cert_create_with_subject
     if (!is_self_signed)
     {
         STRICT_EXPECTED_CALL(EVP_PKEY_free(TEST_ISSUER_PUB_KEY));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
     }
 
     if (test_helper_is_windows())
     {
         STRICT_EXPECTED_CALL(BIO_new_file(TEST_KEY_FILE, "w")).SetReturn(TEST_BIO_WRITE_KEY);
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
     }
     else
     {
         STRICT_EXPECTED_CALL(mocked_OPEN(TEST_KEY_FILE, EXPECTED_CREATE_FLAGS, EXPECTED_MODE_FLAGS)).SetReturn(TEST_WRITE_PRIVATE_KEY_FD);
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
 
         STRICT_EXPECTED_CALL(BIO_new_fd(TEST_WRITE_PRIVATE_KEY_FD, 0)).SetReturn(TEST_BIO_WRITE_KEY);
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
     }
 
     STRICT_EXPECTED_CALL(PEM_write_bio_PrivateKey(TEST_BIO_WRITE_KEY, TEST_EVP_KEY, NULL, NULL, 0, NULL, NULL));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     STRICT_EXPECTED_CALL(BIO_free_all(TEST_BIO_WRITE_KEY));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
     if (!test_helper_is_windows())
     {
         STRICT_EXPECTED_CALL(mocked_CLOSE(TEST_WRITE_PRIVATE_KEY_FD));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
     }
 
     STRICT_EXPECTED_CALL(X509_new());
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     STRICT_EXPECTED_CALL(X509_set_version(TEST_X509, 0x2));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     STRICT_EXPECTED_CALL(X509_get_serialNumber(TEST_X509));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
     STRICT_EXPECTED_CALL(ASN1_INTEGER_set(TEST_ASN1_SERIAL_NUM, TEST_SERIAL_NUMBER));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     STRICT_EXPECTED_CALL(X509_set_pubkey(TEST_X509, TEST_EVP_KEY));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     STRICT_EXPECTED_CALL(mocked_X509_get_notBefore(TEST_X509));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
     STRICT_EXPECTED_CALL(X509_gmtime_adj(&TEST_ASN1_TIME_BEFORE, 0));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     if (!is_self_signed)
     {
         STRICT_EXPECTED_CALL(mocked_X509_get_notAfter(TEST_ISSUER_X509));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
 
         STRICT_EXPECTED_CALL(get_utc_time_from_asn_string(TEST_ASN1_TIME_AFTER.data, VALID_ASN1_TIME_STRING_UTC_LEN));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
     }
 
     STRICT_EXPECTED_CALL(mocked_X509_get_notAfter(TEST_X509));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
     STRICT_EXPECTED_CALL(X509_gmtime_adj(&TEST_ASN1_TIME_AFTER, TEST_UTC_TIME_FROM_ASN1));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     if (cert_type == CERTIFICATE_TYPE_CA)
     {
         STRICT_EXPECTED_CALL(BASIC_CONSTRAINTS_new()).SetReturn(&TEST_CA_BASIC_CONSTRAINTS);
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
 
         STRICT_EXPECTED_CALL(ASN1_INTEGER_new());
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
 
         STRICT_EXPECTED_CALL(ASN1_INTEGER_set(TEST_ASN1_INTEGER, TEST_PATH_LEN_CA));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
 
         STRICT_EXPECTED_CALL(X509_add1_ext_i2d(TEST_X509, NID_basic_constraints, &TEST_CA_BASIC_CONSTRAINTS, 1, X509V3_ADD_DEFAULT));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
 
         STRICT_EXPECTED_CALL(BASIC_CONSTRAINTS_free(&TEST_CA_BASIC_CONSTRAINTS));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
     }
     else
     {
         STRICT_EXPECTED_CALL(BASIC_CONSTRAINTS_new()).SetReturn(&TEST_NON_CA_BASIC_CONSTRAINTS);
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
 
         STRICT_EXPECTED_CALL(X509_add1_ext_i2d(TEST_X509, NID_basic_constraints, &TEST_NON_CA_BASIC_CONSTRAINTS, 0, X509V3_ADD_DEFAULT));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
 
         STRICT_EXPECTED_CALL(BASIC_CONSTRAINTS_free(&TEST_NON_CA_BASIC_CONSTRAINTS));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
     }
 
     if (cert_type == CERTIFICATE_TYPE_CA)
     {
         STRICT_EXPECTED_CALL(mocked_X509V3_EXT_conf_nid(NULL, NULL, NID_key_usage, "critical, digitalSignature, keyCertSign"));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
 
         STRICT_EXPECTED_CALL(X509_add_ext(TEST_X509, TEST_NID_EXTENSION, -1));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
 
         STRICT_EXPECTED_CALL(X509_EXTENSION_free(TEST_NID_EXTENSION));
@@ -1487,22 +1487,22 @@ static void test_helper_cert_create_with_subject
     else if (cert_type == CERTIFICATE_TYPE_CLIENT)
     {
         STRICT_EXPECTED_CALL(mocked_X509V3_EXT_conf_nid(NULL, NULL, NID_key_usage, "critical, nonRepudiation, digitalSignature, keyEncipherment, dataEncipherment"));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
 
         STRICT_EXPECTED_CALL(X509_add_ext(TEST_X509, TEST_NID_EXTENSION, -1));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
 
         STRICT_EXPECTED_CALL(X509_EXTENSION_free(TEST_NID_EXTENSION));
         i++;
 
         STRICT_EXPECTED_CALL(mocked_X509V3_EXT_conf_nid(NULL, NULL, NID_ext_key_usage, "clientAuth"));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
 
         STRICT_EXPECTED_CALL(X509_add_ext(TEST_X509, TEST_NID_EXTENSION, -1));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
 
         STRICT_EXPECTED_CALL(X509_EXTENSION_free(TEST_NID_EXTENSION));
@@ -1511,22 +1511,22 @@ static void test_helper_cert_create_with_subject
     else
     {
         STRICT_EXPECTED_CALL(mocked_X509V3_EXT_conf_nid(NULL, NULL, NID_key_usage, "critical, nonRepudiation, digitalSignature, keyEncipherment, dataEncipherment, keyAgreement"));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
 
         STRICT_EXPECTED_CALL(X509_add_ext(TEST_X509, TEST_NID_EXTENSION, -1));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
 
         STRICT_EXPECTED_CALL(X509_EXTENSION_free(TEST_NID_EXTENSION));
         i++;
 
         STRICT_EXPECTED_CALL(mocked_X509V3_EXT_conf_nid(NULL, NULL, NID_ext_key_usage, "serverAuth"));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
 
         STRICT_EXPECTED_CALL(X509_add_ext(TEST_X509, TEST_NID_EXTENSION, -1));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
 
         STRICT_EXPECTED_CALL(X509_EXTENSION_free(TEST_NID_EXTENSION));
@@ -1539,11 +1539,11 @@ static void test_helper_cert_create_with_subject
     for (size_t san_idx = 0; san_idx < TEST_NUM_SAN_ENTRIES; san_idx++)
     {
         STRICT_EXPECTED_CALL(mocked_X509V3_EXT_conf_nid(NULL, NULL, NID_subject_alt_name, (char*)TEST_SAN_ENTRIES[san_idx]));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
 
         STRICT_EXPECTED_CALL(X509_add_ext(TEST_X509, TEST_NID_EXTENSION, -1));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
 
         STRICT_EXPECTED_CALL(X509_EXTENSION_free(TEST_NID_EXTENSION));
@@ -1556,7 +1556,7 @@ static void test_helper_cert_create_with_subject
         issuer_subject = TEST_X509_SUBJECT_ISSUER_NAME;
 
         STRICT_EXPECTED_CALL(X509_get_subject_name(TEST_ISSUER_X509)).SetReturn(issuer_subject);
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
     }
     else
@@ -1565,128 +1565,128 @@ static void test_helper_cert_create_with_subject
     }
 
     STRICT_EXPECTED_CALL(X509_get_subject_name(TEST_X509));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     const char *country = TEST_PROPS_COUNTRY_NAME_DEFLT;
     if (set_return_subject != NULL) country = set_return_subject->country_name;
     STRICT_EXPECTED_CALL(get_country_name(TEST_CERT_PROPS_HANDLE)).SetReturn(country);
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
     if ((!is_self_signed) && (country == NULL))
     {
         STRICT_EXPECTED_CALL(X509_NAME_get_text_by_NID(issuer_subject, NID_countryName, IGNORED_PTR_ARG, MAX_SUBJECT_VALUE_SIZE));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
     }
 
     if (country != NULL)
     {
         STRICT_EXPECTED_CALL(X509_NAME_add_entry_by_txt(TEST_X509_SUBJECT_NAME, "C", MBSTRING_ASC, IGNORED_PTR_ARG, -1, -1, 0));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
     }
 
     const char *state = TEST_PROPS_STATE_NAME_DEFLT;
     if (set_return_subject != NULL) state = set_return_subject->state_name;
     STRICT_EXPECTED_CALL(get_state_name(TEST_CERT_PROPS_HANDLE)).SetReturn(state);
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
     if ((!is_self_signed) && (state == NULL))
     {
         STRICT_EXPECTED_CALL(X509_NAME_get_text_by_NID(issuer_subject, NID_stateOrProvinceName, IGNORED_PTR_ARG, MAX_SUBJECT_VALUE_SIZE));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
     }
 
     if (state != NULL)
     {
         STRICT_EXPECTED_CALL(X509_NAME_add_entry_by_txt(TEST_X509_SUBJECT_NAME, "ST", MBSTRING_ASC, IGNORED_PTR_ARG, -1, -1, 0));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
     }
 
     const char *locality = TEST_PROPS_LOCALITY_NAME_DEFLT;
     if (set_return_subject != NULL) locality = set_return_subject->locality_name;
     STRICT_EXPECTED_CALL(get_locality(TEST_CERT_PROPS_HANDLE)).SetReturn(locality);
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
     if ((!is_self_signed) && (locality == NULL))
     {
         STRICT_EXPECTED_CALL(X509_NAME_get_text_by_NID(issuer_subject, NID_localityName, IGNORED_PTR_ARG, MAX_SUBJECT_VALUE_SIZE));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
     }
 
     if (locality != NULL)
     {
         STRICT_EXPECTED_CALL(X509_NAME_add_entry_by_txt(TEST_X509_SUBJECT_NAME, "L", MBSTRING_ASC, IGNORED_PTR_ARG, -1, -1, 0));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
     }
 
     const char *organization = TEST_PROPS_ORG_NAME_DEFLT;
     if (set_return_subject != NULL) organization = set_return_subject->organization_name;
     STRICT_EXPECTED_CALL(get_organization_name(TEST_CERT_PROPS_HANDLE)).SetReturn(organization);
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
     if ((!is_self_signed) && (organization == NULL))
     {
         STRICT_EXPECTED_CALL(X509_NAME_get_text_by_NID(issuer_subject, NID_organizationName, IGNORED_PTR_ARG, MAX_SUBJECT_VALUE_SIZE));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
     }
 
     if (organization != NULL)
     {
         STRICT_EXPECTED_CALL(X509_NAME_add_entry_by_txt(TEST_X509_SUBJECT_NAME, "O", MBSTRING_ASC, IGNORED_PTR_ARG, -1, -1, 0));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
     }
 
     const char *organization_unit = TEST_PROPS_ORG_UNIT_NAME_DEFLT;
     if (set_return_subject != NULL) organization_unit = set_return_subject->organization_unit_name;
     STRICT_EXPECTED_CALL(get_organization_unit(TEST_CERT_PROPS_HANDLE)).SetReturn(organization_unit);
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
     if ((!is_self_signed) && (organization_unit == NULL))
     {
         STRICT_EXPECTED_CALL(X509_NAME_get_text_by_NID(issuer_subject, NID_organizationalUnitName, IGNORED_PTR_ARG, MAX_SUBJECT_VALUE_SIZE));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
     }
 
     if (organization_unit != NULL)
     {
         STRICT_EXPECTED_CALL(X509_NAME_add_entry_by_txt(TEST_X509_SUBJECT_NAME, "OU", MBSTRING_ASC, IGNORED_PTR_ARG, -1, -1, 0));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
     }
 
     STRICT_EXPECTED_CALL(X509_NAME_add_entry_by_txt(TEST_X509_SUBJECT_NAME, "CN", MBSTRING_ASC, IGNORED_PTR_ARG, -1, -1, 0));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     STRICT_EXPECTED_CALL(X509_set_issuer_name(TEST_X509, issuer_subject));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     // subject key identifier
     STRICT_EXPECTED_CALL(X509V3_set_ctx(IGNORED_PTR_ARG, NULL, TEST_X509, NULL, NULL, 0));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
     STRICT_EXPECTED_CALL(mocked_X509V3_EXT_conf_nid(NULL, IGNORED_PTR_ARG, NID_subject_key_identifier, "hash"));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
     STRICT_EXPECTED_CALL(X509_add_ext(TEST_X509, TEST_NID_EXTENSION, -1));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
     STRICT_EXPECTED_CALL(X509_EXTENSION_free(TEST_NID_EXTENSION));
@@ -1696,108 +1696,108 @@ static void test_helper_cert_create_with_subject
     if (!is_self_signed)
     {
         STRICT_EXPECTED_CALL(X509V3_set_ctx(IGNORED_PTR_ARG, TEST_ISSUER_X509, TEST_X509, NULL, NULL, 0));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
     }
     else
     {
         STRICT_EXPECTED_CALL(X509V3_set_ctx(IGNORED_PTR_ARG, TEST_X509, TEST_X509, NULL, NULL, 0));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
     }
 
     STRICT_EXPECTED_CALL(mocked_X509V3_EXT_conf_nid(NULL, IGNORED_PTR_ARG, NID_authority_key_identifier, "issuer:always,keyid:always"));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
     STRICT_EXPECTED_CALL(X509_add_ext(TEST_X509, TEST_NID_EXTENSION, -1));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
     STRICT_EXPECTED_CALL(X509_EXTENSION_free(TEST_NID_EXTENSION));
     i++;
 
     EXPECTED_CALL(EVP_sha256());
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
     if (!is_self_signed)
     {
         STRICT_EXPECTED_CALL(X509_sign(TEST_X509, TEST_ISSUER_EVP_KEY, TEST_EVP_SHA256_MD));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
     }
     else
     {
         STRICT_EXPECTED_CALL(X509_sign(TEST_X509, TEST_EVP_KEY, TEST_EVP_SHA256_MD));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
     }
 
     if (test_helper_is_windows())
     {
         STRICT_EXPECTED_CALL(BIO_new_file(TEST_CERT_FILE, "w")).SetReturn(TEST_BIO_WRITE_CERT);
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
     }
     else
     {
         STRICT_EXPECTED_CALL(mocked_OPEN(TEST_CERT_FILE, EXPECTED_CREATE_FLAGS, EXPECTED_MODE_FLAGS)).SetReturn(TEST_WRITE_CERTIFICATE_FD);
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
 
         STRICT_EXPECTED_CALL(BIO_new_fd(TEST_WRITE_CERTIFICATE_FD, 0)).SetReturn(TEST_BIO_WRITE_CERT);
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
     }
 
     STRICT_EXPECTED_CALL(PEM_write_bio_X509(TEST_BIO_WRITE_CERT, TEST_X509));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     if (!is_self_signed)
     {
         STRICT_EXPECTED_CALL(read_file_into_buffer(TEST_ISSUER_CERT_FILE, IGNORED_PTR_ARG));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
 
         int cert_data_size = (int)(strlen(TEST_ISSUER_CERT_DATA)) + 1;
         STRICT_EXPECTED_CALL(BIO_write(TEST_BIO_WRITE_CERT, IGNORED_PTR_ARG, cert_data_size)).SetReturn(cert_data_size);
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
 
         EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
     }
 
     STRICT_EXPECTED_CALL(BIO_free_all(TEST_BIO_WRITE_CERT));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
     if (!test_helper_is_windows())
     {
         STRICT_EXPECTED_CALL(mocked_CLOSE(TEST_WRITE_CERTIFICATE_FD));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
     }
 
     STRICT_EXPECTED_CALL(X509_free(TEST_X509));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
     STRICT_EXPECTED_CALL(EVP_PKEY_free(TEST_EVP_KEY));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
     if (!is_self_signed)
     {
         STRICT_EXPECTED_CALL(X509_free(TEST_ISSUER_X509));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
 
         STRICT_EXPECTED_CALL(EVP_PKEY_free(TEST_ISSUER_EVP_KEY));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
     }
 }
@@ -1828,15 +1828,15 @@ static void test_helper_load_cert_file
     size_t i = *index;
 
     STRICT_EXPECTED_CALL(BIO_new_file(file, "r"));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     STRICT_EXPECTED_CALL(PEM_read_bio_X509(TEST_BIO, NULL, NULL, NULL)).SetReturn(set_return);
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     STRICT_EXPECTED_CALL(BIO_free_all(TEST_BIO));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
     *index = i;
@@ -1854,57 +1854,57 @@ static void test_helper_verify_certificate
     umock_c_reset_all_calls();
 
     EXPECTED_CALL(initialize_openssl());
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
     STRICT_EXPECTED_CALL(read_file_into_cstring(params->cert_file, NULL));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     STRICT_EXPECTED_CALL(read_file_into_cstring(params->issuer_cert_file, NULL));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
     EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
     STRICT_EXPECTED_CALL(X509_STORE_new());
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     EXPECTED_CALL(X509_LOOKUP_file());
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
     STRICT_EXPECTED_CALL(X509_STORE_add_lookup(TEST_X509_STORE, TEST_X509_LOOKUP_METHOD_FILE)).SetReturn(TEST_X509_LOOKUP_LOAD_FILE);
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     STRICT_EXPECTED_CALL(X509_LOOKUP_ctrl(TEST_X509_LOOKUP_LOAD_FILE, IGNORED_NUM_ARG, params->issuer_cert_file, X509_FILETYPE_PEM, NULL));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     EXPECTED_CALL(X509_LOOKUP_hash_dir());
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
     STRICT_EXPECTED_CALL(X509_STORE_add_lookup(TEST_X509_STORE, TEST_X509_LOOKUP_METHOD_HASH)).SetReturn(TEST_X509_LOOKUP_LOAD_HASH);
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     STRICT_EXPECTED_CALL(X509_LOOKUP_ctrl(TEST_X509_LOOKUP_LOAD_HASH, IGNORED_NUM_ARG, NULL, X509_FILETYPE_DEFAULT, NULL));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     test_helper_load_cert_file(TEST_CERT_FILE, TEST_X509, &i, failed_function_list, failed_function_size);
 
     STRICT_EXPECTED_CALL(X509_STORE_CTX_new());
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     unsigned long policy = X509_V_FLAG_X509_STRICT |
@@ -1912,53 +1912,53 @@ static void test_helper_verify_certificate
                            X509_V_FLAG_POLICY_CHECK;
 
     STRICT_EXPECTED_CALL(X509_STORE_set_flags(TEST_X509_STORE, policy));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
     STRICT_EXPECTED_CALL(X509_STORE_CTX_init(TEST_STORE_CTXT, TEST_X509_STORE, TEST_X509, 0));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     ASN1_TIME *asn1_time = (params->force_set_asn1_time != NULL) ? params->force_set_asn1_time : &TEST_ASN1_TIME_AFTER;
     STRICT_EXPECTED_CALL(mocked_X509_get_notAfter(TEST_X509)).SetReturn(asn1_time);
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
     STRICT_EXPECTED_CALL(get_utc_time_from_asn_string(asn1_time->data, VALID_ASN1_TIME_STRING_UTC_LEN));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     int skid_nid_lookup = params->skid_set ? 1 : -1;
     STRICT_EXPECTED_CALL(X509_get_ext_by_NID(TEST_X509, NID_subject_key_identifier, -1)).SetReturn(skid_nid_lookup);
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
     int return_value = (params->force_set_verify_return_value)?1:0;
     STRICT_EXPECTED_CALL(X509_verify_cert(TEST_STORE_CTXT)).SetReturn(return_value);
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
     if(!params->force_set_verify_return_value)
     {
         STRICT_EXPECTED_CALL(X509_STORE_CTX_get_error(TEST_STORE_CTXT));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
 
         STRICT_EXPECTED_CALL(X509_verify_cert_error_string(TEST_ERROR_CODE));
-        ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
     }
 
     STRICT_EXPECTED_CALL(X509_STORE_CTX_free(TEST_STORE_CTXT));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
     STRICT_EXPECTED_CALL(X509_free(TEST_X509));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
     STRICT_EXPECTED_CALL(X509_STORE_free(TEST_X509_STORE));
-    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 }
 
@@ -2250,22 +2250,22 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
 
         // act, assert
         status = generate_pki_cert_and_key(NULL, TEST_SERIAL_NUMBER, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_NON_CA, NULL, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, NULL, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, TEST_CERT_FILE, NULL, TEST_ISSUER_CERT_FILE);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, NULL);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, -1, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -2285,7 +2285,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
 
         // assert
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -2305,7 +2305,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
 
         // assert
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -2325,7 +2325,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
 
         // assert
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -2345,7 +2345,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, 1, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
 
         // assert
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -2368,8 +2368,8 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, 1, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
 
         // assert
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -2401,7 +2401,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
                 int status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, 1, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
 
                 // assert
-                ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+                ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             }
         }
 
@@ -2427,8 +2427,8 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, 0, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
 
         // assert
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -2460,7 +2460,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
                 int status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, 0, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
 
                 // assert
-                ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+                ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             }
         }
 
@@ -2486,8 +2486,8 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, 0, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
 
         // assert
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -2519,7 +2519,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
                 int status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, 0, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
 
                 // assert
-                ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+                ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             }
         }
 
@@ -2545,8 +2545,8 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, 1, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
 
         // assert
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -2578,7 +2578,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
                 int status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, 1, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
 
                 // assert
-                ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+                ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             }
         }
 
@@ -2604,8 +2604,8 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, 0, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
 
         // assert
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -2637,7 +2637,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
                 int status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, 0, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
 
                 // assert
-                ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+                ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             }
         }
 
@@ -2663,8 +2663,8 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, 0, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
 
         // assert
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -2696,7 +2696,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
                 int status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, 0, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
 
                 // assert
-                ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+                ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             }
         }
 
@@ -2716,22 +2716,22 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
 
         // act, assert
         status = generate_pki_cert_and_key_with_props(NULL, TEST_SERIAL_NUMBER, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, TEST_CERT_FILE, &TEST_VALID_KEY_PROPS_RSA);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         status = generate_pki_cert_and_key_with_props(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_NON_CA, NULL, TEST_CERT_FILE, &TEST_VALID_KEY_PROPS_RSA);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         status = generate_pki_cert_and_key_with_props(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, NULL, &TEST_VALID_KEY_PROPS_RSA);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         status = generate_pki_cert_and_key_with_props(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, TEST_CERT_FILE, NULL);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         status = generate_pki_cert_and_key_with_props(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, TEST_CERT_FILE, &INVALID_KEY_PROPS);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         status = generate_pki_cert_and_key_with_props(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, -1, TEST_KEY_FILE, TEST_CERT_FILE, &INVALID_KEY_PROPS);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -2751,7 +2751,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         status = generate_pki_cert_and_key_with_props(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, -1, TEST_KEY_FILE, TEST_CERT_FILE, &TEST_VALID_KEY_PROPS_RSA);
 
         // assert
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -2771,7 +2771,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         status = generate_pki_cert_and_key_with_props(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_CA, TEST_KEY_FILE, TEST_CERT_FILE, &TEST_VALID_KEY_PROPS_RSA);
 
         // assert
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -2791,7 +2791,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         status = generate_pki_cert_and_key_with_props(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_CA, TEST_KEY_FILE, TEST_CERT_FILE, &TEST_VALID_KEY_PROPS_RSA);
 
         // assert
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -2811,7 +2811,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         status = generate_pki_cert_and_key_with_props(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, -1, TEST_KEY_FILE, TEST_CERT_FILE, &TEST_VALID_KEY_PROPS_RSA);
 
         // assert
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -2833,8 +2833,8 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         status = generate_pki_cert_and_key_with_props(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_CA, TEST_KEY_FILE, TEST_CERT_FILE, &TEST_VALID_KEY_PROPS_RSA);
 
         // assert
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -2867,7 +2867,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
                 int status = generate_pki_cert_and_key_with_props(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_CA, TEST_KEY_FILE, TEST_CERT_FILE, &TEST_VALID_KEY_PROPS_RSA);
 
                 // assert
-                ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+                ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             }
         }
 
@@ -2892,8 +2892,8 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         status = generate_pki_cert_and_key_with_props(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, TEST_CERT_FILE, &TEST_VALID_KEY_PROPS_RSA);
 
         // assert
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -2926,7 +2926,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
                 int status = generate_pki_cert_and_key_with_props(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, TEST_CERT_FILE, &TEST_VALID_KEY_PROPS_RSA);
 
                 // assert
-                ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+                ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             }
         }
 
@@ -2951,8 +2951,8 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         status = generate_pki_cert_and_key_with_props(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, TEST_CERT_FILE, &TEST_VALID_KEY_PROPS_RSA);
 
         // assert
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -2985,7 +2985,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
                 int status = generate_pki_cert_and_key_with_props(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, TEST_CERT_FILE, &TEST_VALID_KEY_PROPS_RSA);
 
                 // assert
-                ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+                ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             }
         }
 
@@ -3010,8 +3010,8 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         status = generate_pki_cert_and_key_with_props(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_CA, TEST_KEY_FILE, TEST_CERT_FILE, &TEST_VALID_KEY_PROPS_ECC);
 
         // assert
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -3044,7 +3044,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
                 int status = generate_pki_cert_and_key_with_props(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_CA, TEST_KEY_FILE, TEST_CERT_FILE, &TEST_VALID_KEY_PROPS_ECC);
 
                 // assert
-                ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+                ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             }
         }
 
@@ -3069,8 +3069,8 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         status = generate_pki_cert_and_key_with_props(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, TEST_CERT_FILE, &TEST_VALID_KEY_PROPS_ECC);
 
         // assert
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -3103,7 +3103,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
                 int status = generate_pki_cert_and_key_with_props(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, TEST_CERT_FILE, &TEST_VALID_KEY_PROPS_ECC);
 
                 // assert
-                ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+                ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             }
         }
 
@@ -3128,8 +3128,8 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         status = generate_pki_cert_and_key_with_props(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, TEST_CERT_FILE, &TEST_VALID_KEY_PROPS_ECC);
 
         // assert
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -3162,7 +3162,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
                 int status = generate_pki_cert_and_key_with_props(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, TEST_CERT_FILE, &TEST_VALID_KEY_PROPS_ECC);
 
                 // assert
-                ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+                ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             }
         }
 
@@ -3183,21 +3183,21 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         // act, assert
         verify_status = true;
         status = verify_certificate(NULL, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, &verify_status);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_FALSE_WITH_MSG(verify_status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_FALSE(verify_status, "Line:" TOSTRING(__LINE__));
 
         verify_status = true;
         status = verify_certificate(TEST_CERT_FILE, NULL, TEST_ISSUER_CERT_FILE, &verify_status);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_FALSE_WITH_MSG(verify_status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_FALSE(verify_status, "Line:" TOSTRING(__LINE__));
 
         verify_status = true;
         status = verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, NULL, &verify_status);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_FALSE_WITH_MSG(verify_status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_FALSE(verify_status, "Line:" TOSTRING(__LINE__));
 
         status = verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, NULL);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -3228,9 +3228,9 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         int status = verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, &verify_status);
 
         // assert
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_TRUE_WITH_MSG(verify_status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE(verify_status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -3254,9 +3254,9 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         int status = verify_certificate(TEST_BAD_CHAIN_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, &verify_status);
 
         // assert
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_FALSE_WITH_MSG(verify_status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_FALSE(verify_status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -3287,9 +3287,9 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         int status = verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, &verify_status);
 
         // assert
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_FALSE_WITH_MSG(verify_status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_FALSE(verify_status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -3320,8 +3320,8 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         int status = verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, &verify_status);
 
         // assert
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_FALSE_WITH_MSG(verify_status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_FALSE(verify_status, "Line:" TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -3352,8 +3352,8 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         int status = verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, &verify_status);
 
         // assert
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_FALSE_WITH_MSG(verify_status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_FALSE(verify_status, "Line:" TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -3395,8 +3395,8 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
                 int status = verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, &verify_status);
 
                 // assert
-                ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-                ASSERT_IS_FALSE_WITH_MSG(verify_status, "Line:" TOSTRING(__LINE__));
+                ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+                ASSERT_IS_FALSE(verify_status, "Line:" TOSTRING(__LINE__));
             }
         }
 

@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Storage.Test
 {
     using System;
@@ -109,6 +108,18 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
 
         static IEntityStore<TK, TV> GetEntityStore<TK, TV>(string entityName) => new EntityStore<TK, TV>(new InMemoryDbStore(), entityName);
 
+        public class KeyAuth
+        {
+            [JsonConstructor]
+            public KeyAuth(string key)
+            {
+                this.Key = key;
+            }
+
+            [JsonProperty("key")]
+            public string Key { get; }
+        }
+
         class TestDevice
         {
             [JsonConstructor]
@@ -123,18 +134,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
 
             [JsonProperty("auth")]
             public KeyAuth Auth { get; }
-        }
-
-        public class KeyAuth
-        {
-            [JsonConstructor]
-            public KeyAuth(string key)
-            {
-                this.Key = key;                
-            }
-
-            [JsonProperty("key")]
-            public string Key { get; }
         }
 
         class TestEncryptionProvider : IEncryptionProvider

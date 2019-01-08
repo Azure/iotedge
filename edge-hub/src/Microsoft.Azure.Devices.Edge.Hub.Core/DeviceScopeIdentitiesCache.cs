@@ -24,14 +24,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly Timer refreshCacheTimer;
         readonly TimeSpan refreshRate;
         readonly AsyncAutoResetEvent refreshCacheSignal = new AsyncAutoResetEvent();
-
-        Task refreshCacheTask;
         readonly object refreshCacheLock = new object();
 
-        public event EventHandler<ServiceIdentity> ServiceIdentityUpdated;
-        public event EventHandler<string> ServiceIdentityRemoved;
+        Task refreshCacheTask;
 
-        DeviceScopeIdentitiesCache(IServiceProxy serviceProxy,
+        DeviceScopeIdentitiesCache(
+            IServiceProxy serviceProxy,
             IKeyValueStore<string, string> encryptedStorage,
             IDictionary<string, StoredServiceIdentity> initialCache,
             TimeSpan refreshRate)
@@ -42,6 +40,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.refreshRate = refreshRate;
             this.refreshCacheTimer = new Timer(this.RefreshCache, null, TimeSpan.Zero, refreshRate);
         }
+
+        public event EventHandler<string> ServiceIdentityRemoved;
+
+        public event EventHandler<ServiceIdentity> ServiceIdentityUpdated;
 
         public static async Task<DeviceScopeIdentitiesCache> Create(
             IServiceProxy serviceProxy,
@@ -56,6 +58,83 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             return deviceScopeIdentitiesCache;
         }
 
+        public void InitiateCacheRefresh()
+        {
+            Events.ReceivedRequestToRefreshCache();
+            this.refreshCacheSignal.Set();
+        }
+
+        public async Task RefreshServiceIdentity(string id)
+        {
+            try
+            {
+                Events.RefreshingServiceIdentity(id);
+                Option<ServiceIdentity> serviceIdentity = await this.GetServiceIdentityFromService(id);
+                await serviceIdentity
+                    .Map(s => this.HandleNewServiceIdentity(s))
+                    .GetOrElse(() => this.HandleNoServiceIdentity(id));
+            }
+            catch (Exception e)
+            {
+                Events.ErrorRefreshingCache(e, id);
+            }
+        }
+
+        public async Task RefreshServiceIdentities(IEnumerable<string> ids)
+        {
+            List<string> idList = Preconditions.CheckNotNull(ids, nameof(ids)).ToList();
+            foreach (string id in idList)
+            {
+                await this.RefreshServiceIdentity(id);
+            }
+        }
+
+        public async Task<Option<ServiceIdentity>> GetServiceIdentity(string id, bool refreshIfNotExists = false)
+        {
+            Preconditions.CheckNonWhiteSpace(id, nameof(id));
+            Events.GettingServiceIdentity(id);
+            if (refreshIfNotExists && !this.serviceIdentityCache.ContainsKey(id))
+            {
+                await this.RefreshServiceIdentity(id);
+            }
+
+            return await this.GetServiceIdentityInternal(id);
+        }
+
+        public void Dispose()
+        {
+            this.encryptedStore?.Dispose();
+            this.refreshCacheTimer?.Dispose();
+            this.refreshCacheTask?.Dispose();
+        }
+
+        internal Task<Option<ServiceIdentity>> GetServiceIdentityFromService(string id)
+        {
+            // If it is a module id, it will have the format "deviceId/moduleId"
+            string[] parts = id.Split('/');
+            if (parts.Length == 2)
+            {
+                return this.serviceProxy.GetServiceIdentity(parts[0], parts[1]);
+            }
+            else
+            {
+                return this.serviceProxy.GetServiceIdentity(id);
+            }
+        }
+
+        static async Task<IDictionary<string, StoredServiceIdentity>> ReadCacheFromStore(IKeyValueStore<string, string> encryptedStore)
+        {
+            IDictionary<string, StoredServiceIdentity> cache = new Dictionary<string, StoredServiceIdentity>();
+            await encryptedStore.IterateBatch(
+                int.MaxValue,
+                (key, value) =>
+                {
+                    cache.Add(key, JsonConvert.DeserializeObject<StoredServiceIdentity>(value));
+                    return Task.CompletedTask;
+                });
+            return cache;
+        }
+
         void RefreshCache(object state)
         {
             lock (this.refreshCacheLock)
@@ -66,12 +145,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     this.refreshCacheTask = this.RefreshCache();
                 }
             }
-        }
-
-        public void InitiateCacheRefresh()
-        {
-            Events.ReceivedRequestToRefreshCache();
-            this.refreshCacheSignal.Set();
         }
 
         async Task RefreshCache()
@@ -132,43 +205,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        public async Task RefreshServiceIdentity(string id)
-        {
-            try
-            {
-                Events.RefreshingServiceIdentity(id);
-                Option<ServiceIdentity> serviceIdentity = await this.GetServiceIdentityFromService(id);
-                await serviceIdentity
-                    .Map(s => this.HandleNewServiceIdentity(s))
-                    .GetOrElse(() => this.HandleNoServiceIdentity(id));
-            }
-            catch (Exception e)
-            {
-                Events.ErrorRefreshingCache(e, id);
-            }
-        }
-
-        public async Task RefreshServiceIdentities(IEnumerable<string> ids)
-        {
-            List<string> idList = Preconditions.CheckNotNull(ids, nameof(ids)).ToList();
-            foreach (string id in idList)
-            {
-                await this.RefreshServiceIdentity(id);
-            }
-        }
-
-        public async Task<Option<ServiceIdentity>> GetServiceIdentity(string id, bool refreshIfNotExists = false)
-        {
-            Preconditions.CheckNonWhiteSpace(id, nameof(id));
-            Events.GettingServiceIdentity(id);
-            if (refreshIfNotExists && !this.serviceIdentityCache.ContainsKey(id))
-            {
-                await this.RefreshServiceIdentity(id);
-            }
-
-            return await this.GetServiceIdentityInternal(id);
-        }
-
         async Task<Option<ServiceIdentity>> GetServiceIdentityInternal(string id)
         {
             Preconditions.CheckNonWhiteSpace(id, nameof(id));
@@ -198,9 +234,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             using (await this.cacheLock.LockAsync())
             {
                 bool hasUpdated = this.serviceIdentityCache.TryGetValue(serviceIdentity.Id, out StoredServiceIdentity currentStoredServiceIdentity)
-                    && currentStoredServiceIdentity.ServiceIdentity
-                        .Map(s => !s.Equals(serviceIdentity))
-                        .GetOrElse(false);
+                                  && currentStoredServiceIdentity.ServiceIdentity
+                                      .Map(s => !s.Equals(serviceIdentity))
+                                      .GetOrElse(false);
                 var storedServiceIdentity = new StoredServiceIdentity(serviceIdentity);
                 this.serviceIdentityCache[serviceIdentity.Id] = storedServiceIdentity;
                 await this.SaveServiceIdentityToStore(serviceIdentity.Id, storedServiceIdentity);
@@ -218,40 +254,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             await this.encryptedStore.Put(id, serviceIdentityString);
         }
 
-        static async Task<IDictionary<string, StoredServiceIdentity>> ReadCacheFromStore(IKeyValueStore<string, string> encryptedStore)
-        {
-            IDictionary<string, StoredServiceIdentity> cache = new Dictionary<string, StoredServiceIdentity>();
-            await encryptedStore.IterateBatch(
-                int.MaxValue,
-                (key, value) =>
-                {
-                    cache.Add(key, JsonConvert.DeserializeObject<StoredServiceIdentity>(value));
-                    return Task.CompletedTask;
-                });
-            return cache;
-        }
-
-        internal Task<Option<ServiceIdentity>> GetServiceIdentityFromService(string id)
-        {
-            // If it is a module id, it will have the format "deviceId/moduleId"
-            string[] parts = id.Split('/');
-            if (parts.Length == 2)
-            {
-                return this.serviceProxy.GetServiceIdentity(parts[0], parts[1]);
-            }
-            else
-            {
-                return this.serviceProxy.GetServiceIdentity(id);
-            }
-        }
-
-        public void Dispose()
-        {
-            this.encryptedStore?.Dispose();
-            this.refreshCacheTimer?.Dispose();
-            this.refreshCacheTask?.Dispose();
-        }
-
         internal class StoredServiceIdentity
         {
             public StoredServiceIdentity(ServiceIdentity serviceIdentity)
@@ -261,7 +263,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             public StoredServiceIdentity(string id)
                 : this(Preconditions.CheckNotNull(id, nameof(id)), null, DateTime.UtcNow)
-            { }
+            {
+            }
 
             [JsonConstructor]
             StoredServiceIdentity(string id, ServiceIdentity serviceIdentity, DateTime timestamp)
@@ -284,8 +287,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<IDeviceScopeIdentitiesCache>();
             const int IdStart = HubCoreEventIds.DeviceScopeIdentitiesCache;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<IDeviceScopeIdentitiesCache>();
 
             enum EventIds
             {
@@ -302,9 +305,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 RefreshingServiceIdentity,
                 GettingServiceIdentity
             }
-
-            internal static void InitializingRefreshTask(TimeSpan refreshRate) =>
-                Log.LogDebug((int)EventIds.InitializingRefreshTask, $"Initializing device scope identities cache refresh task to run every {refreshRate.TotalMinutes} minutes.");
 
             public static void Created() =>
                 Log.LogInformation((int)EventIds.Created, "Created device scope identities cache");
@@ -352,6 +352,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             public static void RefreshingServiceIdentity(string id) =>
                 Log.LogDebug((int)EventIds.RefreshingServiceIdentity, $"Refreshing service identity for {id}");
+
+            internal static void InitializingRefreshTask(TimeSpan refreshRate) =>
+                Log.LogDebug((int)EventIds.InitializingRefreshTask, $"Initializing device scope identities cache refresh task to run every {refreshRate.TotalMinutes} minutes.");
         }
     }
 }

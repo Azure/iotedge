@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
     public class ModuleIdentityHelper
@@ -8,7 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         // and vice versa, to make sure the right values are being used.
         // TODO - This will fail if the user adds modules with the same module name as a system module - for example a module called
         // edgeHub. We might have to catch such cases and flag them as error (or handle them in some other way).
-
         public static string GetModuleIdentityName(string moduleName)
         {
             if (moduleName.Equals(Constants.EdgeHubModuleName))
@@ -19,6 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             {
                 return Constants.EdgeAgentModuleIdentityName;
             }
+
             return moduleName;
         }
 
@@ -32,6 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             {
                 return Constants.EdgeAgentModuleName;
             }
+
             return moduleIdentityName;
         }
     }

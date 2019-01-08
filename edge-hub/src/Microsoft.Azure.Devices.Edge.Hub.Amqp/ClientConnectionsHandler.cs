@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 {
     using System.Collections.Concurrent;
@@ -19,5 +18,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
         public IConnectionHandler GetConnectionHandler(IIdentity identity) =>
             this.connectionHandlers.GetOrAdd(identity.Id, i => new ClientConnectionHandler(identity, this.connectionProvider));
-    }    
+    }
 }

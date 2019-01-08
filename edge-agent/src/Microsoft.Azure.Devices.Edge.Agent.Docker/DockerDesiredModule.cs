@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
     using System.Collections.Generic;
@@ -10,25 +9,30 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
     public class DockerDesiredModule : DockerModule
     {
-        [JsonProperty(Required = Required.Always, PropertyName = "status")]
-        public override ModuleStatus DesiredStatus { get; }
-
-        [JsonProperty(
-            PropertyName = "restartPolicy",
-            Required = Required.DisallowNull,
-            DefaultValueHandling = DefaultValueHandling.Populate
-        )]
-        [DefaultValue(Core.Constants.DefaultRestartPolicy)]
-        public override RestartPolicy RestartPolicy { get; }
-
         [JsonConstructor]
-        DockerDesiredModule(string version, ModuleStatus desiredStatus, RestartPolicy restartPolicy, string type,
-            DockerConfig settings, ConfigurationInfo configuration, IDictionary<string, EnvVal> env)
+        DockerDesiredModule(
+            string version,
+            ModuleStatus desiredStatus,
+            RestartPolicy restartPolicy,
+            string type,
+            DockerConfig settings,
+            ConfigurationInfo configuration,
+            IDictionary<string, EnvVal> env)
             : base(string.Empty, version, desiredStatus, restartPolicy, settings, configuration, env)
         {
             Preconditions.CheckArgument(type?.Equals("docker") ?? false);
             this.DesiredStatus = Preconditions.CheckIsDefined(desiredStatus);
             this.RestartPolicy = Preconditions.CheckIsDefined(restartPolicy);
         }
+
+        [JsonProperty(Required = Required.Always, PropertyName = "status")]
+        public override ModuleStatus DesiredStatus { get; }
+
+        [JsonProperty(
+            PropertyName = "restartPolicy",
+            Required = Required.DisallowNull,
+            DefaultValueHandling = DefaultValueHandling.Populate)]
+        [DefaultValue(Core.Constants.DefaultRestartPolicy)]
+        public override RestartPolicy RestartPolicy { get; }
     }
 }

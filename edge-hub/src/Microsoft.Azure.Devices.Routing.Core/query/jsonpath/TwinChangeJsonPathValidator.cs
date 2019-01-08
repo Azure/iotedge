@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Routing.Core.Query.JsonPath
 {
     using System;
@@ -17,12 +16,18 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.JsonPath
 
         static readonly Lazy<string> ErrorMessageFormat = new Lazy<string>(
             () =>
-                string.Format(CultureInfo.InvariantCulture, "{0}{1}.",
+                string.Format(
+                    CultureInfo.InvariantCulture,
+                    "{0}{1}.",
                     "'{0}' is not supported. Supported prefixes: ",
-                    TwinChangeJsonSupportedPrefixes.Select((s) =>
-                    string.Format(CultureInfo.InvariantCulture, "'{0}'", s)).Aggregate(
-                        (s1, s2) => string.Format(CultureInfo.InvariantCulture, "{0}, {1}",
-                            s1, s2))));
+                    TwinChangeJsonSupportedPrefixes.Select(
+                        (s) =>
+                            string.Format(CultureInfo.InvariantCulture, "'{0}'", s)).Aggregate(
+                        (s1, s2) => string.Format(
+                            CultureInfo.InvariantCulture,
+                            "{0}, {1}",
+                            s1,
+                            s2))));
 
         public static bool IsSupportedJsonPath(string jsonPath, out string errorDetails)
         {

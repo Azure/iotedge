@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Util.Test.Uds
 {
     using System;
@@ -112,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Uds
 
             AssertNormalizedValues(expected, actual);
         }
-        
+
         [Fact]
         public void TestDeserializeResponse_InvalidEndOfStream_ShouldThrow()
         {
@@ -275,8 +274,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Uds
         static void AssertNormalizedValues(string expected, string actual)
         {
             // Remove metacharacters before assertion to allow to run on both Windows and Linux; which Linux will return additional carriage return character.
-            string normalizedExpected = Regex.Replace(expected, @"\s", "").ToLower();
-            string normalizedActual = Regex.Replace(actual, @"\s", "").ToLower();
+            string normalizedExpected = Regex.Replace(expected, @"\s", string.Empty).ToLower();
+            string normalizedActual = Regex.Replace(actual, @"\s", string.Empty).ToLower();
             Assert.Equal(normalizedExpected, normalizedActual);
         }
     }

@@ -9,29 +9,26 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
-    using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Azure.Devices.Routing.Core.Test.Endpoints;
     using Microsoft.Azure.Devices.Routing.Core.Util;
-    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Moq;
     using Xunit;
 
     [ExcludeFromCodeCoverage]
     public class DispatcherTest : RoutingUnitTestBase
     {
-        static readonly IMessage Message1 = new Message(TelemetryMessageSource.Instance, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} });
-        static readonly IMessage Message2 = new Message(TelemetryMessageSource.Instance, new byte[] {2, 3, 1}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} });
-        static readonly IMessage Message3 = new Message(TelemetryMessageSource.Instance, new byte[] {3, 1, 2}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} });
+        static readonly IMessage Message1 = new Message(TelemetryMessageSource.Instance, new byte[] { 1, 2, 3 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } });
+        static readonly IMessage Message2 = new Message(TelemetryMessageSource.Instance, new byte[] { 2, 3, 1 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } });
+        static readonly IMessage Message3 = new Message(TelemetryMessageSource.Instance, new byte[] { 3, 1, 2 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } });
 
         static readonly IEndpointExecutorFactory AsyncExecutorFactory = new AsyncEndpointExecutorFactory(TestConstants.DefaultConfig, TestConstants.DefaultOptions);
         static readonly IEndpointExecutorFactory SyncExecutorFactory = new SyncEndpointExecutorFactory(TestConstants.DefaultConfig);
 
-        static IMessage MessageWithOffset(long offset) =>
-             new Message(TelemetryMessageSource.Instance, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, offset);
-
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task SmokeTest()
         {
             var endpoint1 = new TestEndpoint("id1");
@@ -58,13 +55,15 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             Assert.Equal(new List<IMessage>(), endpoint2.Processed);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestConstructor()
         {
             await Assert.ThrowsAsync<ArgumentNullException>(() => Dispatcher.CreateAsync(null, null, null, null));
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestSetEndpoint()
         {
             var endpoint1 = new TestEndpoint("id1");
@@ -103,7 +102,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             Assert.Equal(new List<IMessage> { Message2, Message3 }, endpoint4.Processed);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestRemoveEndpoint()
         {
             var endpoint1 = new TestEndpoint("id1");
@@ -141,11 +141,12 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             }
 
             var expected = new List<IMessage> { Message1, Message1, Message2, Message3, Message2, Message3 };
-            Assert.Equal(new List<IMessage> {Message1, Message1}, endpoint1.Processed);
+            Assert.Equal(new List<IMessage> { Message1, Message1 }, endpoint1.Processed);
             Assert.Equal(expected, endpoint3.Processed);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestReplaceEndpoints()
         {
             var endpoint1 = new TestEndpoint("id1");
@@ -182,7 +183,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             Assert.Equal(expected4, endpoint4.Processed);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestFailedEndpoint()
         {
             var retryStrategy = new FixedInterval(10, TimeSpan.FromSeconds(1));
@@ -211,7 +213,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             }
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestClosedEndpoint()
         {
             var factory1 = new ClosedEndpointExecutorFactory(AsyncExecutorFactory);
@@ -224,7 +227,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             await dispatcher1.CloseAsync(CancellationToken.None);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestShow()
         {
             var endpoint = new TestEndpoint("endpoint1");
@@ -234,7 +238,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             await dispatcher1.CloseAsync(CancellationToken.None);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestOffset()
         {
             var store = new Mock<ICheckpointStore>();
@@ -271,5 +276,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             Assert.Equal(Option.None<long>(), dispatcher2.Offset);
             await dispatcher2.CloseAsync(CancellationToken.None);
         }
+
+        static IMessage MessageWithOffset(long offset) =>
+            new Message(TelemetryMessageSource.Instance, new byte[] { 1, 2, 3 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }, offset);
     }
 }

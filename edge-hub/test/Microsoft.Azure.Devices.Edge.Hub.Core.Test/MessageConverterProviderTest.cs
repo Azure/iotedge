@@ -1,5 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 {
     using System;
@@ -10,19 +9,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     [Unit]
     public class MessageConverterProviderTest
     {
-        class TestMessageConverter : IMessageConverter<int>
-        {
-            public IMessage ToMessage(int sourceMessage)
-            {
-                throw new NotImplementedException();
-            }
-
-            public int FromMessage(IMessage message)
-            {
-                throw new NotImplementedException();
-            }
-        }
-
         [Fact]
         public void ProvidesAConverterForTheGivenType()
         {
@@ -43,6 +29,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var provider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter>());
             var fn = new Func<IMessageConverter<int>>(() => provider.Get<int>());
             Assert.Throws<KeyNotFoundException>(fn);
+        }
+
+        class TestMessageConverter : IMessageConverter<int>
+        {
+            public IMessage ToMessage(int sourceMessage)
+            {
+                throw new NotImplementedException();
+            }
+
+            public int FromMessage(IMessage message)
+            {
+                throw new NotImplementedException();
+            }
         }
     }
 }

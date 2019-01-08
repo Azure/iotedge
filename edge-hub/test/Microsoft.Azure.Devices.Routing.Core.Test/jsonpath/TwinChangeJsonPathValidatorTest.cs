@@ -1,14 +1,14 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Routing.Core.Test.JsonPath
 {
-    using Microsoft.Azure.Devices.Routing.Core.Query.JsonPath;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.Query.JsonPath;
     using Xunit;
 
     public class TwinChangeJsonPathValidatorTest
     {
-        [Theory, Unit]
+        [Theory]
+        [Unit]
         [InlineData("properties.reported.property1")]
         [InlineData("properties.desired.property1")]
         [InlineData("properties.reported.root.level1")]
@@ -19,7 +19,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.JsonPath
             Assert.True(TwinChangeJsonPathValidator.IsSupportedJsonPath(jsonPath, out _));
         }
 
-        [Theory, Unit]
+        [Theory]
+        [Unit]
         [InlineData("")]
         [InlineData("123abc")]
         [InlineData("string with spaces")]
