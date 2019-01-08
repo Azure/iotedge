@@ -1,4 +1,4 @@
-ARG base_tag=2.1.2-runtime-bionic-arm32v7
+ARG base_tag=2.1.6-runtime-bionic-arm32v7
 ARG num_procs=4
 
 FROM arm32v7/buildpack-deps:bionic as builder
