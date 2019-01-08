@@ -134,7 +134,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 }
 
                 default:
+                {
                     throw new InvalidEnumArgumentException();
+                }
             }
         }
 
