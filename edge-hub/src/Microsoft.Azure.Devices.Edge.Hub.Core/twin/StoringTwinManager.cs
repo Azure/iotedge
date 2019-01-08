@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
 {
     using System;
@@ -20,6 +19,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
         readonly IConnectionManager connectionManager;
         readonly IValidator<TwinCollection> reportedPropertiesValidator;
         readonly IReportedPropertiesStore reportedPropertiesStore;
+        readonly AsyncLockProvider<string> twinStoreLock = new AsyncLockProvider<string>(10);
+        readonly AsyncLockProvider<string> reportedPropertiesStoreLock = new AsyncLockProvider<string>(10);
         readonly ITwinStore twinStore;
         readonly ICloudSync cloudSync;
         readonly TimeSpan twinSyncPeriod;
@@ -78,82 +79,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
             return twinManager;
         }
 
-        async void DeviceConnectedCallback()
-        {
-            try
-            {
-                Events.HandlingDeviceConnectedCallback();
-                IEnumerable<IIdentity> connectedClients = this.connectionManager.GetConnectedClients();
-                foreach (IIdentity client in connectedClients)
-                {
-                    string id = client.Id;
-                    try
-                    {
-                        await this.reportedPropertiesStore.SyncToCloud(id);
-                        await this.SyncTwinAndSendDesiredPropertyUpdates(id);
-                    }
-                    catch (Exception e)
-                    {
-                        Events.ErrorHandlingDeviceConnected(e, id);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Events.ErrorInDeviceConnectedCallback(ex);
-            }
-        }
-
-        async Task SyncTwinAndSendDesiredPropertyUpdates(string id)
-        {
-            Option<Twin> storeTwin = await this.twinStore.Get(id);
-            if (!storeTwin.HasValue)
-            {
-                Events.NoSyncTwinNotStored(id);
-            }
-            else
-            {
-                await storeTwin.ForEachAsync(
-                    async twin =>
-                    {
-                        if (!this.twinSyncTime.TryGetValue(id, out DateTime syncTime) ||
-                            DateTime.UtcNow - syncTime > this.twinSyncPeriod)
-                        {
-                            Option<Twin> twinOption = await this.cloudSync.GetTwin(id);
-                            await twinOption.ForEachAsync(
-                                async cloudTwin =>
-                                {
-                                    Events.UpdatingTwinOnDeviceConnect(id);
-                                    await this.twinStore.Update(id, cloudTwin);
-                                    this.twinSyncTime.AddOrUpdate(id, DateTime.UtcNow, (_, __) => DateTime.UtcNow);
-
-                                    string diffPatch = JsonEx.Diff(twin.Properties.Desired, cloudTwin.Properties.Desired);
-                                    if (string.IsNullOrWhiteSpace(diffPatch))
-                                    {
-                                        var patch = new TwinCollection(diffPatch);
-                                        IMessage patchMessage = this.twinCollectionConverter.ToMessage(patch);
-                                        await this.SendPatchToDevice(id, patchMessage);
-                                    }
-                                });
-                        }
-                        else
-                        {
-                            Events.TwinSyncedRecently(id, syncTime, this.twinSyncPeriod);
-                        }
-                    });
-            }
-        }
-
         public async Task<IMessage> GetTwinAsync(string id)
         {
+            Preconditions.CheckNotNull(id, nameof(id));
+            
             Option<Twin> twinOption = await this.cloudSync.GetTwin(id);
             Twin twin = await twinOption
                 .Map(
                     async t =>
                     {
                         Events.GotTwinFromCloud(id);
-                        await this.twinStore.Update(id, t);
-                        this.twinSyncTime.AddOrUpdate(id, DateTime.UtcNow, (_, __) => DateTime.UtcNow);
+                        await this.StoreTwinInStore(id, t);                        
                         return t;
                     })
                 .GetOrElse(
@@ -168,20 +104,116 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
 
         public async Task UpdateDesiredPropertiesAsync(string id, IMessage twinCollection)
         {
-            Events.UpdatingDesiredProperties(id);
+            Preconditions.CheckNotNull(id, nameof(id));
+            Preconditions.CheckNotNull(twinCollection, nameof(twinCollection));
+            
             TwinCollection patch = this.twinCollectionConverter.FromMessage(twinCollection);
-            await this.twinStore.UpdateDesiredProperties(id, patch);
-            await this.SendPatchToDevice(id, twinCollection);
+            Events.UpdatingDesiredProperties(id, patch);
+
+            Option<Twin> storeTwin = await this.twinStore.Get(id);
+            await storeTwin
+                .Filter(t => t.Properties.Desired.Version != patch.Version + 1)
+                .Map(t => this.SyncTwinAndSendDesiredPropertyUpdates(id, t))
+                .GetOrElse(
+                    async () =>
+                    {
+                        await this.twinStore.UpdateDesiredProperties(id, patch);
+                        await this.SendPatchToDevice(id, twinCollection);
+                    });
         }
 
         public async Task UpdateReportedPropertiesAsync(string id, IMessage twinCollection)
         {
+            Preconditions.CheckNotNull(id, nameof(id));
+            Preconditions.CheckNotNull(twinCollection, nameof(twinCollection));
+
             Events.UpdatingReportedProperties(id);
             TwinCollection patch = this.twinCollectionConverter.FromMessage(twinCollection);
             this.reportedPropertiesValidator.Validate(patch);
-            await this.twinStore.UpdateReportedProperties(id, patch);
-            await this.reportedPropertiesStore.Update(id, patch);
+            using (await this.reportedPropertiesStoreLock.GetLock(id).LockAsync())
+            {
+                await this.twinStore.UpdateReportedProperties(id, patch);
+                await this.reportedPropertiesStore.Update(id, patch);
+            }
+
             this.reportedPropertiesStore.InitSyncToCloud(id);
+        }
+
+        async void DeviceConnectedCallback()
+        {
+            try
+            {
+                Events.HandlingDeviceConnectedCallback();
+                IEnumerable<IIdentity> connectedClients = this.connectionManager.GetConnectedClients();
+                foreach (IIdentity client in connectedClients)
+                {
+                    string id = client.Id;
+                    try
+                    {
+                        await this.reportedPropertiesStore.SyncToCloud(id);
+                        await this.HandleDesiredPropertiesUpdates(id);
+                    }
+                    catch (Exception e)
+                    {
+                        Events.ErrorHandlingDeviceConnected(e, id);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Events.ErrorInDeviceConnectedCallback(ex);
+            }
+        }
+
+        async Task SyncTwinAndSendDesiredPropertyUpdates(string id, Twin storeTwin)
+        {
+            Option<Twin> twinOption = await this.cloudSync.GetTwin(id);
+            await twinOption.ForEachAsync(
+                async cloudTwin =>
+                {
+                    Events.UpdatingTwinOnDeviceConnect(id);
+                    await this.StoreTwinInStore(id, cloudTwin);                    
+
+                    string diffPatch = JsonEx.Diff(storeTwin.Properties.Desired, cloudTwin.Properties.Desired);
+                    if (string.IsNullOrWhiteSpace(diffPatch))
+                    {
+                        var patch = new TwinCollection(diffPatch);
+                        IMessage patchMessage = this.twinCollectionConverter.ToMessage(patch);
+                        await this.SendPatchToDevice(id, patchMessage);
+                    }
+                });
+        }
+
+        async Task HandleDesiredPropertiesUpdates(string id)
+        {
+            if (!this.connectionManager.HasActiveSubscription(id, DeviceSubscription.DesiredPropertyUpdates))
+            {
+                Events.NoDesiredPropertiesSubscription(id);
+            }
+            else
+            {
+                Option<Twin> storeTwin = await this.twinStore.Get(id);
+                if (!storeTwin.HasValue)
+                {
+                    Events.NoSyncTwinNotStored(id);
+                }
+                else
+                {
+                    await storeTwin.ForEachAsync(
+                        async twin =>
+                        {
+                            if (!this.twinSyncTime.TryGetValue(id, out DateTime syncTime) ||
+                                DateTime.UtcNow - syncTime > this.twinSyncPeriod)
+                            {
+                                await this.SyncTwinAndSendDesiredPropertyUpdates(id, twin);
+                            }
+                            else
+                            {
+                                Events.TwinSyncedRecently(id, syncTime, this.twinSyncPeriod);
+                            }
+                        });
+                }
+            }
         }
 
         Task SendPatchToDevice(string id, IMessage twinCollection)
@@ -204,6 +236,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
 
                     return Task.CompletedTask;
                 });
+        }
+
+        async Task StoreTwinInStore(string id, Twin twin)
+        {
+            using (await this.twinStoreLock.GetLock(id).LockAsync())
+            {
+                await this.twinStore.Update(id, twin);
+                this.twinSyncTime.AddOrUpdate(id, DateTime.UtcNow, (_, __) => DateTime.UtcNow);
+            }
         }
 
         static class Events
@@ -252,10 +293,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                 Log.LogDebug((int)EventIds.UpdatingReportedProperties, $"Updating reported properties for {id}");
             }
 
-            public static void UpdatingDesiredProperties(string id)
+            public static void UpdatingDesiredProperties(string id, TwinCollection patch)
             {
-                Log.LogDebug((int)EventIds.UpdatingDesiredProperties, $"Updating desired properties for {id}");
-            }            
+                Log.LogDebug((int)EventIds.UpdatingDesiredProperties, $"Received desired property updates for {id} with version {patch.Version}");
+            }
 
             public static void SendDesiredPropertyUpdates(string id)
             {
@@ -285,6 +326,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
             public static void UpdatingTwinOnDeviceConnect(string id)
             {
                 Log.LogDebug((int)EventIds.UpdatingTwinOnDeviceConnect, $"Updated twin for {id} on device connect event");
+            }
+
+            public static void NoDesiredPropertiesSubscription(string id)
+            {
+                Log.LogDebug((int)EventIds.NoSyncTwinNotStored, $"Not syncing twin on device connect for {id} as the client does not subscribe to desired properties updates");
             }
         }
     }

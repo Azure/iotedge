@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.twin
 {
     using System;
@@ -124,7 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.twin
             var rpatch2 = new TwinCollection
             {
                 ["p1"] = "vp1",
-                ["p3"] = new    
+                ["p3"] = new
                 {
                     p31 = "v31"
                 }
@@ -237,7 +236,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.twin
 
             // Act
             await twinStore.Update(id, basetwin);
-            
+
             // Assert
             Option<Twin> twin = await twinStore.Get(id);
             Assert.True(twin.HasValue);
