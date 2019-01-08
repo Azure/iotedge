@@ -10,12 +10,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     public class DockerRuntimeModule : DockerModule, IRuntimeModule<DockerConfig>
     {
         public DockerRuntimeModule(
-            string name, string version, ModuleStatus desiredStatus,
-            RestartPolicy restartPolicy, DockerConfig config, int exitCode,
-            string statusDescription, DateTime lastStartTime,
-            DateTime lastExitTime, int restartCount, DateTime lastRestartTime,
-            ModuleStatus runtimeStatus, ConfigurationInfo configuration, IDictionary<string, EnvVal> env
-        )
+            string name,
+            string version,
+            ModuleStatus desiredStatus,
+            RestartPolicy restartPolicy,
+            DockerConfig config,
+            int exitCode,
+            string statusDescription,
+            DateTime lastStartTime,
+            DateTime lastExitTime,
+            int restartCount,
+            DateTime lastRestartTime,
+            ModuleStatus runtimeStatus,
+            ConfigurationInfo configuration,
+            IDictionary<string, EnvVal> env)
             : base(name, version, desiredStatus, restartPolicy, config, configuration, env)
         {
             this.ExitCode = exitCode;
@@ -29,16 +37,36 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         [JsonConstructor]
         DockerRuntimeModule(
-            string name, string version, string type, ModuleStatus status,
-            RestartPolicy restartPolicy, DockerConfig config, int? exitCode,
-            string statusDescription, DateTime lastStartTimeUtc,
-            DateTime lastExitTimeUtc, int restartCount,
-            DateTime lastRestartTimeUtc, ModuleStatus runtimeStatus,
-            ConfigurationInfo configurationInfo, IDictionary<string, EnvVal> env
-        )
-            : this(name, version, status, restartPolicy, config, exitCode ?? 0,
-                  statusDescription, lastStartTimeUtc, lastExitTimeUtc,
-                  restartCount, lastRestartTimeUtc, runtimeStatus, configurationInfo, env)
+            string name,
+            string version,
+            string type,
+            ModuleStatus status,
+            RestartPolicy restartPolicy,
+            DockerConfig config,
+            int? exitCode,
+            string statusDescription,
+            DateTime lastStartTimeUtc,
+            DateTime lastExitTimeUtc,
+            int restartCount,
+            DateTime lastRestartTimeUtc,
+            ModuleStatus runtimeStatus,
+            ConfigurationInfo configurationInfo,
+            IDictionary<string, EnvVal> env)
+            : this(
+                name,
+                version,
+                status,
+                restartPolicy,
+                config,
+                exitCode ?? 0,
+                statusDescription,
+                lastStartTimeUtc,
+                lastExitTimeUtc,
+                restartCount,
+                lastRestartTimeUtc,
+                runtimeStatus,
+                configurationInfo,
+                env)
         {
             Preconditions.CheckArgument(type?.Equals("docker") ?? false);
         }
@@ -84,13 +112,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 if (other is IRuntimeModule reportedOther)
                 {
                     return this.ExitCode == reportedOther.ExitCode &&
-                        string.Equals(this.StatusDescription, reportedOther.StatusDescription) &&
-                        this.LastStartTimeUtc == reportedOther.LastStartTimeUtc &&
-                        this.LastExitTimeUtc == reportedOther.LastExitTimeUtc &&
-                        this.RestartCount == reportedOther.RestartCount &&
-                        this.LastRestartTimeUtc == reportedOther.LastRestartTimeUtc &&
-                        this.RuntimeStatus == reportedOther.RuntimeStatus;
+                           string.Equals(this.StatusDescription, reportedOther.StatusDescription) &&
+                           this.LastStartTimeUtc == reportedOther.LastStartTimeUtc &&
+                           this.LastExitTimeUtc == reportedOther.LastExitTimeUtc &&
+                           this.RestartCount == reportedOther.RestartCount &&
+                           this.LastRestartTimeUtc == reportedOther.LastRestartTimeUtc &&
+                           this.RuntimeStatus == reportedOther.RuntimeStatus;
                 }
+
                 return true;
             }
         }
@@ -112,9 +141,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         }
 
         public virtual IModule WithRuntimeStatus(ModuleStatus newStatus) => new DockerRuntimeModule(
-                this.Name, this.Version, this.DesiredStatus, this.RestartPolicy,
-                this.Config, this.ExitCode, this.StatusDescription,
-                this.LastStartTimeUtc, this.LastExitTimeUtc, this.RestartCount,
-                this.LastRestartTimeUtc, newStatus, this.ConfigurationInfo, this.Env);
+            this.Name,
+            this.Version,
+            this.DesiredStatus,
+            this.RestartPolicy,
+            this.Config,
+            this.ExitCode,
+            this.StatusDescription,
+            this.LastStartTimeUtc,
+            this.LastExitTimeUtc,
+            this.RestartCount,
+            this.LastRestartTimeUtc,
+            newStatus,
+            this.ConfigurationInfo,
+            this.Env);
     }
 }

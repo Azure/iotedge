@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using Microsoft.Extensions.Logging;
 
     /// <summary>
-    /// This implementation of IClient wraps an underlying IClient, and 
+    /// This implementation of IClient wraps an underlying IClient, and
     /// reports success/failures of the IoTHub calls to IDeviceConnectivityManager.
     /// It also receives connectivity callbacks from IDeviceConnectivityManager
     /// and translates them to the ConnectionStatusChangedHandler.
@@ -34,24 +34,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             this.deviceConnectivityManager.DeviceConnected += this.HandleDeviceConnectedEvent;
             this.deviceConnectivityManager.DeviceDisconnected += this.HandleDeviceDisconnectedEvent;
-        }
-
-        void HandleDeviceConnectedEvent(object sender, EventArgs eventArgs)
-        {
-            if (!this.isConnected.GetAndSet(true))
-            {
-                Events.ChangingStatus(this.isConnected, this.identity);
-                this.connectionStatusChangedHandler?.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
-            }
-        }
-
-        void HandleDeviceDisconnectedEvent(object sender, EventArgs eventArgs)
-        {
-            if (this.isConnected.GetAndSet(false))
-            {
-                Events.ChangingStatus(this.isConnected, this.identity);
-                this.connectionStatusChangedHandler?.Invoke(ConnectionStatus.Disconnected, ConnectionStatusChangeReason.No_Network);
-            }
         }
 
         public bool IsActive => this.underlyingClient.IsActive;
@@ -79,9 +61,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public Task OpenAsync() => this.InvokeFunc(() => this.underlyingClient.OpenAsync(), nameof(this.OpenAsync));
 
-        public Task SendEventAsync(Client.Message message) => this.InvokeFunc(() => this.underlyingClient.SendEventAsync(message), nameof(this.SendEventAsync));
+        public Task SendEventAsync(Message message) => this.InvokeFunc(() => this.underlyingClient.SendEventAsync(message), nameof(this.SendEventAsync));
 
-        public Task SendEventBatchAsync(IEnumerable<Client.Message> messages) =>
+        public Task SendEventBatchAsync(IEnumerable<Message> messages) =>
             this.InvokeFunc(() => this.underlyingClient.SendEventBatchAsync(messages), nameof(this.SendEventBatchAsync));
 
         public void SetConnectionStatusChangedHandler(ConnectionStatusChangesHandler handler)
@@ -91,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         }
 
         // The SDK caches whether DesiredProperty Update callback has been set and returns directly in that case.
-        // So this method is not a good candidate for checking connectivity status. 
+        // So this method is not a good candidate for checking connectivity status.
         public Task SetDesiredPropertyUpdateCallbackAsync(DesiredPropertyUpdateCallback onDesiredPropertyUpdates, object userContext)
             => this.InvokeFunc(() => this.underlyingClient.SetDesiredPropertyUpdateCallbackAsync(onDesiredPropertyUpdates, userContext), nameof(this.SetDesiredPropertyUpdateCallbackAsync), false);
 
@@ -110,19 +92,39 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.underlyingClient?.Dispose();
         }
 
+        void HandleDeviceConnectedEvent(object sender, EventArgs eventArgs)
+        {
+            if (!this.isConnected.GetAndSet(true))
+            {
+                Events.ChangingStatus(this.isConnected, this.identity);
+                this.connectionStatusChangedHandler?.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
+            }
+        }
+
+        void HandleDeviceDisconnectedEvent(object sender, EventArgs eventArgs)
+        {
+            if (this.isConnected.GetAndSet(false))
+            {
+                Events.ChangingStatus(this.isConnected, this.identity);
+                this.connectionStatusChangedHandler?.Invoke(ConnectionStatus.Disconnected, ConnectionStatusChangeReason.No_Network);
+            }
+        }
+
         void InternalConnectionStatusChangedHandler(ConnectionStatus status, ConnectionStatusChangeReason reason)
         {
             Events.ReceivedDeviceSdkCallback(this.identity, status, reason);
             // @TODO: Ignore callback from Device SDK since it seems to be generating a lot of spurious Connected/NotConnected callbacks
-            //if (status == ConnectionStatus.Connected)
-            //{
-            //    this.deviceConnectivityManager.CallSucceeded();
-            //}
-            //else
-            //{
-            //    this.deviceConnectivityManager.CallTimedOut();
-            //}
-            //this.connectionStatusChangedHandler?.Invoke(status, reason);
+            /*
+            if (status == ConnectionStatus.Connected)
+            {
+                this.deviceConnectivityManager.CallSucceeded();
+            }
+            else
+            {
+                this.deviceConnectivityManager.CallTimedOut();
+            }
+            this.connectionStatusChangedHandler?.Invoke(status, reason);
+            */
         }
 
         async Task<T> InvokeFunc<T>(Func<Task<T>> func, string operation, bool useForConnectivityCheck = true)
@@ -177,8 +179,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<ConnectivityAwareClient>();
             const int IdStart = CloudProxyEventIds.ConnectivityAwareClient;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<ConnectivityAwareClient>();
 
             enum EventIds
             {

@@ -28,9 +28,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         [Unit]
         public async Task InvalidInputFails()
         {
-            await Assert.ThrowsAsync<ArgumentException>(() => DiskFile.ReadAllAsync(""));
-            await Assert.ThrowsAsync<ArgumentException>(() => DiskFile.WriteAllAsync("", "test"));
-            await Assert.ThrowsAsync<ArgumentException>(() => DiskFile.WriteAllAsync("temp", ""));
+            await Assert.ThrowsAsync<ArgumentException>(() => DiskFile.ReadAllAsync(string.Empty));
+            await Assert.ThrowsAsync<ArgumentException>(() => DiskFile.WriteAllAsync(string.Empty, "test"));
+            await Assert.ThrowsAsync<ArgumentException>(() => DiskFile.WriteAllAsync("temp", string.Empty));
         }
 
         [Fact]

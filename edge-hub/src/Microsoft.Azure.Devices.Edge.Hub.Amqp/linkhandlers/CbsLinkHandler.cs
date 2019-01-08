@@ -24,6 +24,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 
         public LinkType Type => LinkType.Cbs;
 
+        public string CorrelationId { get; } = Guid.NewGuid().ToString();
+
         public static ILinkHandler Create(IAmqpLink amqpLink, Uri requestUri)
         {
             var cbsNode = amqpLink.Session.Connection.FindExtension<ICbsNode>();
@@ -44,14 +46,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             return Task.CompletedTask;
         }
 
-        public string CorrelationId { get; } = Guid.NewGuid().ToString();
-
         public Task OpenAsync(TimeSpan timeout) => Task.CompletedTask;
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<CbsLinkHandler>();
             const int IdStart = AmqpEventIds.CbsLinkHandler;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<CbsLinkHandler>();
 
             enum EventIds
             {

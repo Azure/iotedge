@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
         /// </summary>
         /// <param name="strings"></param>
         /// <returns></returns>
-        public static string Join(this IEnumerable<string> strings) => strings.Join("");
+        public static string Join(this IEnumerable<string> strings) => strings.Join(string.Empty);
 
         /// <summary>
         /// Adds an extension method to make string.Join more ergonomic

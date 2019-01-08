@@ -5,14 +5,14 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
     public class SendFailureDetails
     {
-        public FailureKind FailureKind { get; }
-
-        public Exception RawException { get; }
-
         public SendFailureDetails(FailureKind failureKind, Exception rawException)
         {
             this.FailureKind = failureKind;
             this.RawException = rawException;
         }
+
+        public FailureKind FailureKind { get; }
+
+        public Exception RawException { get; }
     }
 }

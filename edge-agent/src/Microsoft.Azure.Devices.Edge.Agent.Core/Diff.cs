@@ -8,6 +8,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
     public class Diff
     {
+        public Diff(IList<IModule> updated, IList<string> removed)
+        {
+            this.Updated = Preconditions.CheckNotNull(updated, nameof(updated)).ToImmutableHashSet();
+            this.Removed = Preconditions.CheckNotNull(removed, nameof(removed)).ToImmutableHashSet();
+        }
+
         public static Diff Empty { get; } = new Diff(ImmutableList<IModule>.Empty, ImmutableList<string>.Empty);
 
         public bool IsEmpty => this.Updated.Count == 0 && this.Removed.Count == 0;
@@ -43,18 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         /// </remarks>
         public IImmutableSet<string> Removed { get; }
 
-        public Diff(IList<IModule> updated, IList<string> removed)
-        {
-            this.Updated = Preconditions.CheckNotNull(updated, nameof(updated)).ToImmutableHashSet();
-            this.Removed = Preconditions.CheckNotNull(removed, nameof(removed)).ToImmutableHashSet();
-        }
-
         public static Diff Create(params IModule[] updated) => new Diff(updated.ToList(), ImmutableList<string>.Empty);
-
-        protected bool Equals(Diff other)
-        {
-            return this.Updated.SetEquals(other.Updated) && this.Removed.SetEquals(other.Removed);
-        }
 
         public override bool Equals(object obj)
         {
@@ -74,6 +69,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 hash = this.Removed.Aggregate(hash, (acc, item) => acc * 31 + item.GetHashCode());
                 return hash;
             }
+        }
+
+        protected bool Equals(Diff other)
+        {
+            return this.Updated.SetEquals(other.Updated) && this.Removed.SetEquals(other.Removed);
         }
     }
 }

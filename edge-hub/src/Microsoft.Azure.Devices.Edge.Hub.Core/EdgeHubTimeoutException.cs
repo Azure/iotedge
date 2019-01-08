@@ -7,10 +7,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         public EdgeHubTimeoutException(string message)
             : base(message)
-        { }
+        {
+        }
 
         public EdgeHubTimeoutException(string message, Exception innerException)
             : base(message, innerException)
-        { }
+        {
+        }
     }
 }

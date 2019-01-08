@@ -9,6 +9,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
     public class NullDeviceScopeIdentitiesCache : IDeviceScopeIdentitiesCache
     {
+        public event EventHandler<string> ServiceIdentityRemoved
+        {
+            add { }
+            remove { }
+        }
+
+        public event EventHandler<ServiceIdentity> ServiceIdentityUpdated
+        {
+            add { }
+            remove { }
+        }
+
         public Task<Option<ServiceIdentity>> GetServiceIdentity(string id, bool refreshIfNotExists = false)
             => Task.FromResult(Option.None<ServiceIdentity>());
 
@@ -24,9 +36,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public Task RefreshServiceIdentity(string deviceId) => Task.CompletedTask;
 
         public Task RefreshServiceIdentity(string deviceId, string moduleId) => Task.CompletedTask;
-
-        public event EventHandler<ServiceIdentity> ServiceIdentityUpdated { add { } remove { } }
-
-        public event EventHandler<string> ServiceIdentityRemoved { add { } remove { } }
     }
 }

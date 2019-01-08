@@ -2,9 +2,9 @@
 namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
 {
     using System;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core.Query;
     using Microsoft.Azure.Devices.Routing.Core.Query.Types;
-    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
     public class QueryValueTest
@@ -19,7 +19,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         static readonly QueryValue StringQueryValue = new QueryValue(DefaultRandomString, QueryValueType.String);
         static readonly QueryValue ObjectQueryValue = new QueryValue(DefaultEmptyObject, QueryValueType.Object);
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void QueryValue_Undefined()
         {
             Assert.True(UndefinedQueryValue.CompareTo(QueryValue.Undefined) != 0);
@@ -36,7 +37,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.True(UndefinedQueryValue.CompareTo(new InvalidOperationException()) != 0);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void QueryValue_Null()
         {
             Assert.Equal(NullQueryValue, QueryValue.Null);
@@ -54,7 +56,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.True(NullQueryValue.CompareTo(new InvalidOperationException()) != 0);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void QueryValue_Bool()
         {
             Assert.True(BoolQueryValue.CompareTo(Bool.True) == 0);
@@ -73,7 +76,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.True(BoolQueryValue.CompareTo(new InvalidOperationException()) != 0);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void QueryValue_Double()
         {
             Assert.True(DoubleQueryValue.CompareTo(15.0) < 0);
@@ -94,13 +98,15 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.True(longDoubleQueryValue.CompareTo(123) != 0);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void QueryValue_String()
         {
             string stringToCompare = Guid.NewGuid().ToString();
 
             Assert.True(StringQueryValue.CompareTo(DefaultRandomString) == 0);
-            Assert.Equal(StringQueryValue.CompareTo(stringToCompare),
+            Assert.Equal(
+                StringQueryValue.CompareTo(stringToCompare),
                 string.Compare(DefaultRandomString, stringToCompare, StringComparison.Ordinal));
 
             Assert.True(StringQueryValue.CompareTo(BoolQueryValue) != 0);
@@ -115,14 +121,15 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.True(StringQueryValue.CompareTo(new InvalidOperationException()) != 0);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void QueryValue_Object()
         {
             var objectToCompare = new object();
 
             Assert.True(ObjectQueryValue.CompareTo(ObjectQueryValue) == 0);
             Assert.True(ObjectQueryValue.CompareTo(objectToCompare) != 0);
-            Assert.True(ObjectQueryValue.CompareTo(DefaultEmptyObject) != 0); //Fail because comparison is not on a QueryValue object.
+            Assert.True(ObjectQueryValue.CompareTo(DefaultEmptyObject) != 0); // Fail because comparison is not on a QueryValue object.
 
             Assert.True(ObjectQueryValue.CompareTo(BoolQueryValue) != 0);
             Assert.True(ObjectQueryValue.CompareTo(UndefinedQueryValue) != 0);
@@ -140,7 +147,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.True(ObjectQueryValue.CompareTo(new InvalidOperationException()) != 0);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void QueryValue_None()
         {
             var noneQueryValue = new QueryValue(null, QueryValueType.None);

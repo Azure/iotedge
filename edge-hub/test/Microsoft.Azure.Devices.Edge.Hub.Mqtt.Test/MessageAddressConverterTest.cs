@@ -11,13 +11,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 
     [Unit]
     public class MessageAddressConverterTest
-    {        
-        static readonly string[] DontCareInput = { "" };
+    {
+        static readonly string[] DontCareInput = { string.Empty };
         static readonly IDictionary<string, string> EmptyProperties = new Dictionary<string, string>();
+
         static readonly IDictionary<string, string> DontCareOutput = new Dictionary<string, string>
         {
-            ["DontCare"] = ""
+            ["DontCare"] = string.Empty
         };
+
         static readonly IByteBuffer Payload = new ByteBufferConverter(PooledByteBufferAllocator.Default).ToByteBuffer(new byte[] { 1, 2, 3 });
 
         [Fact]
@@ -25,13 +27,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         {
             var emptyConversionConfig = new MessageAddressConversionConfiguration();
             Assert.Throws(typeof(ArgumentException), () => new MessageAddressConverter(emptyConversionConfig));
-        }
-
-        static Mock<IMessage> CreateMessageWithSystemProps(IDictionary<string, string> props)
-        {
-            var message = new Mock<IMessage>();
-            message.SetupGet(msg => msg.SystemProperties).Returns(props);
-            return message;
         }
 
         [Fact]
@@ -44,12 +39,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             };
             var config = new MessageAddressConversionConfiguration(
                 DontCareInput,
-                testTemplate
-            );
-            Mock<IMessage> message = CreateMessageWithSystemProps(new Dictionary<string, string>()
-            {
-                ["b"] = "123"
-            });
+                testTemplate);
+            Mock<IMessage> message = CreateMessageWithSystemProps(
+                new Dictionary<string, string>()
+                {
+                    ["b"] = "123"
+                });
 
             var converter = new MessageAddressConverter(config);
             bool result = converter.TryBuildProtocolAddressFromEdgeHubMessage("Test", message.Object, EmptyProperties, out address);
@@ -73,12 +68,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             };
             var config = new MessageAddressConversionConfiguration(
                 DontCareInput,
-                testTemplate
-            );
-            Mock<IMessage> message = CreateMessageWithSystemProps(new Dictionary<string, string>()
-            {
-                ["e"] = "123"
-            });
+                testTemplate);
+            Mock<IMessage> message = CreateMessageWithSystemProps(
+                new Dictionary<string, string>()
+                {
+                    ["e"] = "123"
+                });
 
             var converter = new MessageAddressConverter(config);
             bool result = converter.TryBuildProtocolAddressFromEdgeHubMessage("Test2", message.Object, EmptyProperties, out address);
@@ -100,14 +95,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             };
             var config = new MessageAddressConversionConfiguration(
                 DontCareInput,
-                testTemplate
-            );
-            Mock<IMessage> message = CreateMessageWithSystemProps(new Dictionary<string, string>()
-            {
-                ["b"] = "123",
-                ["d"] = "456",
-                ["f"] = "789"
-            });
+                testTemplate);
+            Mock<IMessage> message = CreateMessageWithSystemProps(
+                new Dictionary<string, string>()
+                {
+                    ["b"] = "123",
+                    ["d"] = "456",
+                    ["f"] = "789"
+                });
 
             var converter = new MessageAddressConverter(config);
             bool result = converter.TryBuildProtocolAddressFromEdgeHubMessage("Test", message.Object, EmptyProperties, out address);
@@ -129,12 +124,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             };
             var config = new MessageAddressConversionConfiguration(
                 DontCareInput,
-                testTemplate
-            );
-            Mock<IMessage> message = CreateMessageWithSystemProps(new Dictionary<string, string>()
-            {
-                ["b"] = "123"
-            });
+                testTemplate);
+            Mock<IMessage> message = CreateMessageWithSystemProps(
+                new Dictionary<string, string>()
+                {
+                    ["b"] = "123"
+                });
 
             var converter = new MessageAddressConverter(config);
             bool result = converter.TryBuildProtocolAddressFromEdgeHubMessage("BadTest", message.Object, EmptyProperties, out address);
@@ -153,8 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             };
             var config = new MessageAddressConversionConfiguration(
                 DontCareInput,
-                testTemplate
-            );
+                testTemplate);
             Mock<IMessage> message = CreateMessageWithSystemProps(new Dictionary<string, string>());
 
             var converter = new MessageAddressConverter(config);
@@ -175,12 +169,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             };
             var config = new MessageAddressConversionConfiguration(
                 DontCareInput,
-                testTemplate
-            );
-            Mock<IMessage> message = CreateMessageWithSystemProps(new Dictionary<string, string>()
-            {
-                ["a"] = "123"
-            });
+                testTemplate);
+            Mock<IMessage> message = CreateMessageWithSystemProps(
+                new Dictionary<string, string>()
+                {
+                    ["a"] = "123"
+                });
 
             var converter = new MessageAddressConverter(config);
             bool result = converter.TryBuildProtocolAddressFromEdgeHubMessage("Test", message.Object, EmptyProperties, out address);
@@ -200,13 +194,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             };
             var config = new MessageAddressConversionConfiguration(
                 DontCareInput,
-                testTemplate
-            );
-            Mock<IMessage> message = CreateMessageWithSystemProps(new Dictionary<string, string>()
-            {
-                ["b"] = "123",
-                ["f"] = "789",
-            });
+                testTemplate);
+            Mock<IMessage> message = CreateMessageWithSystemProps(
+                new Dictionary<string, string>()
+                {
+                    ["b"] = "123",
+                    ["f"] = "789",
+                });
 
             var converter = new MessageAddressConverter(config);
             bool result = converter.TryBuildProtocolAddressFromEdgeHubMessage("Test", message.Object, EmptyProperties, out address);
@@ -226,8 +220,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             };
             var config = new MessageAddressConversionConfiguration(
                 DontCareInput,
-                testTemplate
-            );
+                testTemplate);
 
             var systemProperties = new Dictionary<string, string>()
             {
@@ -242,7 +235,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 ["Prop2"] = "Val2",
                 [SystemProperties.OutgoingSystemPropertiesMap[SystemProperties.ConnectionDeviceId]] = "Device1",
                 [SystemProperties.OutgoingSystemPropertiesMap[SystemProperties.ConnectionModuleId]] = "Module1"
-            };            
+            };
 
             Mock<IMessage> message = CreateMessageWithSystemProps(systemProperties);
 
@@ -268,8 +261,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             };
             var config = new MessageAddressConversionConfiguration(
                 DontCareInput,
-                testTemplate
-            );
+                testTemplate);
 
             var systemProperties = new Dictionary<string, string>()
             {
@@ -306,8 +298,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             };
             var config = new MessageAddressConversionConfiguration(
                 DontCareInput,
-                testTemplate
-            );
+                testTemplate);
 
             var systemProperties = new Dictionary<string, string>()
             {
@@ -327,7 +318,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             };
 
             Mock<IMessage> message = CreateMessageWithSystemProps(systemProperties);
-            
+
             var converter = new MessageAddressConverter(config);
             bool result = converter.TryBuildProtocolAddressFromEdgeHubMessage("Test", message.Object, properties, out address);
 
@@ -344,8 +335,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             IList<string> input = new List<string>() { "a/{b}/c/{d}/" };
             var config = new MessageAddressConversionConfiguration(
                 input,
-                DontCareOutput
-            );
+                DontCareOutput);
             var converter = new MessageAddressConverter(config);
 
             string address = "a/bee/c/dee/";
@@ -366,8 +356,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             IList<string> input = new List<string>() { "a/{b}/c/{d}/", "e/{f}/g/{h}/" };
             var config = new MessageAddressConversionConfiguration(
                 input,
-                DontCareOutput
-            );
+                DontCareOutput);
             var converter = new MessageAddressConverter(config);
 
             string address = "a/bee/c/dee/";
@@ -389,8 +378,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             IList<string> input = new List<string>() { "a/{b}/c/{d}/" };
             var config = new MessageAddressConversionConfiguration(
                 input,
-                DontCareOutput
-            );
+                DontCareOutput);
             var converter = new MessageAddressConverter(config);
 
             string address = "a/bee/c/";
@@ -407,8 +395,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             IList<string> input = new List<string>() { "a/{b}/d/", "a/{b}/c/{d}/" };
             var config = new MessageAddressConversionConfiguration(
                 input,
-                DontCareOutput
-            );
+                DontCareOutput);
             var converter = new MessageAddressConverter(config);
 
             string address = "a/bee/c/";
@@ -425,8 +412,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             IList<string> input = new List<string>() { "a/{b}/{c}/d/{params}/" };
             var config = new MessageAddressConversionConfiguration(
                 input,
-                DontCareOutput
-            );
+                DontCareOutput);
             var converter = new MessageAddressConverter(config);
 
             string address = "a/bee/cee/d/p1=v1&p2=v2&$.mid=mv1/";
@@ -448,8 +434,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             IList<string> input = new List<string>() { "a/{b}/c/{params}/", "a/{b}/{c}/d/{params}/" };
             var config = new MessageAddressConversionConfiguration(
                 input,
-                DontCareOutput
-            );
+                DontCareOutput);
             var converter = new MessageAddressConverter(config);
 
             string address = "a/bee/cee/d/p1=v1&p2=v2&$.mid=mv1/";
@@ -459,7 +444,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.True(status);
             Assert.Equal(5, message.Properties.Count);
             Assert.Equal<string>("bee", message.Properties["b"]);
-            Assert.Equal<string>("cee", message.Properties["c"]);            
+            Assert.Equal<string>("cee", message.Properties["c"]);
             Assert.Equal("v1", message.Properties["p1"]);
             Assert.Equal("v2", message.Properties["p2"]);
             Assert.Equal("mv1", message.Properties["$.mid"]);
@@ -471,8 +456,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             IList<string> input = new List<string>() { "a/{b}/c/{params}/" };
             var config = new MessageAddressConversionConfiguration(
                 input,
-                DontCareOutput
-            );
+                DontCareOutput);
             var converter = new MessageAddressConverter(config);
 
             string address = "a/bee/c/";
@@ -489,8 +473,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             IList<string> input = new List<string>() { "a/{b}/d/", "a/{b}/c/{params}" };
             var config = new MessageAddressConversionConfiguration(
                 input,
-                DontCareOutput
-            );
+                DontCareOutput);
             var converter = new MessageAddressConverter(config);
 
             string address = "a/bee/p1=v1&p2=v2";
@@ -507,8 +490,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             IList<string> input = new List<string> { "a/{b}/c/{d}", "a/{b}/c/{d}/" };
             var config = new MessageAddressConversionConfiguration(
                 input,
-                DontCareOutput
-            );
+                DontCareOutput);
             var converter = new MessageAddressConverter(config);
 
             string address = "a/bee/c/dee";
@@ -544,8 +526,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             };
             var config = new MessageAddressConversionConfiguration(
                 input,
-                DontCareOutput
-            );
+                DontCareOutput);
             var converter = new MessageAddressConverter(config);
 
             string address = "a/bee/c/";
@@ -573,6 +554,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.Equal(2, message2.Properties.Count);
             Assert.Equal("bee", message2.Properties["b"]);
             Assert.Equal("dee", message2.Properties["d"]);
+        }
+
+        static Mock<IMessage> CreateMessageWithSystemProps(IDictionary<string, string> props)
+        {
+            var message = new Mock<IMessage>();
+            message.SetupGet(msg => msg.SystemProperties).Returns(props);
+            return message;
         }
     }
 }

@@ -3,14 +3,15 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util
 {
     using System;
     using System.Diagnostics.CodeAnalysis;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.Util;
     using Xunit;
 
     [ExcludeFromCodeCoverage]
     public class PreconditionsTest
     {
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestCheckNotNull()
         {
             Assert.Throws(typeof(ArgumentNullException), () => Preconditions.CheckNotNull<string>(null, "param"));
@@ -27,7 +28,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util
             Assert.Equal("my message", message);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestCheckArgument()
         {
             Assert.Throws(typeof(ArgumentException), () => Preconditions.CheckArgument(false));
@@ -35,7 +37,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util
             Preconditions.CheckArgument(true);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestCheckRange()
         {
             int item = Preconditions.CheckRange(6, 5);

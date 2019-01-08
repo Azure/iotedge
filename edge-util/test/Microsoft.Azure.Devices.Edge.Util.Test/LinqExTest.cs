@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Util.Test
 {
-    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
     public class LinqExTest
@@ -66,20 +66,24 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             };
 
             IEnumerable<string> result1 = seq1.RemoveIntersectionKeys(seq2);
-            Assert.True(result1.SequenceEqual(new[]
-            {
-                "k1=v1",
-                "k4=v4"
-            }));
+            Assert.True(
+                result1.SequenceEqual(
+                    new[]
+                    {
+                        "k1=v1",
+                        "k4=v4"
+                    }));
 
             IEnumerable<string> result2 = seq2.RemoveIntersectionKeys(seq1);
-            Assert.True(result2.SequenceEqual(new[]
-            {
-                "pk1=v1",
-                "pk2=v2",
-                "pk3=v3",
-                "pk4=v4"
-            }));
+            Assert.True(
+                result2.SequenceEqual(
+                    new[]
+                    {
+                        "pk1=v1",
+                        "pk2=v2",
+                        "pk3=v3",
+                        "pk4=v4"
+                    }));
         }
 
         [Fact]
@@ -111,24 +115,28 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             Func<string, string> keySelector = s => s;
 
             IEnumerable<string> result1 = seq1.RemoveIntersectionKeys(seq2, keySelector);
-            Assert.True(result1.SequenceEqual(new[]
-            {
-                "k1=v1",
-                "k2=v2",
-                "k3=v3",
-                "k4=v4"
-            }));
+            Assert.True(
+                result1.SequenceEqual(
+                    new[]
+                    {
+                        "k1=v1",
+                        "k2=v2",
+                        "k3=v3",
+                        "k4=v4"
+                    }));
 
             IEnumerable<string> result2 = seq2.RemoveIntersectionKeys(seq1, keySelector);
-            Assert.True(result2.SequenceEqual(new[]
-            {
-                "pk1=v1",
-                "pk2=v2",
-                "k2=v21",
-                "pk3=v3",
-                "pk4=v4",
-                "k3=v32"
-            }));
+            Assert.True(
+                result2.SequenceEqual(
+                    new[]
+                    {
+                        "pk1=v1",
+                        "pk2=v2",
+                        "k2=v21",
+                        "pk3=v3",
+                        "pk4=v4",
+                        "k3=v32"
+                    }));
         }
 
         [Fact]
@@ -138,9 +146,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             var strings = new List<string> { "zero", "one", "two" };
             var expected = new List<(uint, string)>
             {
-                {  (0, "zero") },
-                {  (1, "one") },
-                {  (2, "two") },
+                { (0, "zero") },
+                { (1, "one") },
+                { (2, "two") },
             };
             Assert.Equal(expected, strings.Enumerate().ToList());
         }

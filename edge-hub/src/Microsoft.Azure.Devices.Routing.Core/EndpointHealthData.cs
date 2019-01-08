@@ -5,14 +5,14 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
     public sealed class EndpointHealthData
     {
-        public string EndpointId { get; }
-
-        public EndpointHealthStatus HealthStatus { get; }
-
         public EndpointHealthData(string endpointId, EndpointHealthStatus healthStatus)
         {
             this.EndpointId = Preconditions.CheckNotNull(endpointId);
             this.HealthStatus = healthStatus;
         }
+
+        public string EndpointId { get; }
+
+        public EndpointHealthStatus HealthStatus { get; }
     }
 }

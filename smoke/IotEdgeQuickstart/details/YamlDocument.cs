@@ -27,6 +27,7 @@ namespace IotEdgeQuickstart.Details
                 {
                     node.Add(key, new Dictionary<object, object>());
                 }
+
                 node = (Dictionary<object, object>)node[key];
             }
 
@@ -35,6 +36,7 @@ namespace IotEdgeQuickstart.Details
             {
                 node.Add(leaf, value);
             }
+
             node[leaf] = value;
         }
 

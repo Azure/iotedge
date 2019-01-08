@@ -117,8 +117,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<DeviceScopeAuthenticator<T>>();
             const int IdStart = HubCoreEventIds.DeviceScopeAuthenticator;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<DeviceScopeAuthenticator<T>>();
 
             enum EventIds
             {

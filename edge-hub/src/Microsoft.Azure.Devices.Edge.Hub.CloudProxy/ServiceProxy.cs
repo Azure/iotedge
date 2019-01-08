@@ -37,36 +37,39 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             Option<ServiceIdentity> serviceIdentityResult =
                 scopeResult
-                    .Map(sc =>
-                    {
-                        if (sc.Devices != null)
+                    .Map(
+                        sc =>
                         {
-                            int count = sc.Devices.Count();
-                            if (count == 1)
+                            if (sc.Devices != null)
                             {
-                                ServiceIdentity serviceIdentity = sc.Devices.First().ToServiceIdentity();
-                                return Option.Some(serviceIdentity);
+                                int count = sc.Devices.Count();
+                                if (count == 1)
+                                {
+                                    ServiceIdentity serviceIdentity = sc.Devices.First().ToServiceIdentity();
+                                    return Option.Some(serviceIdentity);
+                                }
+                                else
+                                {
+                                    Events.UnexpectedResult(count, 1, "devices", deviceId);
+                                }
                             }
                             else
                             {
-                                Events.UnexpectedResult(count, 1, "devices", deviceId);
+                                Events.NullDevicesResult(deviceId);
                             }
-                        }
-                        else
+
+                            return Option.None<ServiceIdentity>();
+                        })
+                    .GetOrElse(
+                        () =>
                         {
-                            Events.NullDevicesResult(deviceId);
-                        }
-                        return Option.None<ServiceIdentity>();
-                    })
-                    .GetOrElse(() =>
-                    {
-                        Events.NullResult(deviceId);
-                        return Option.None<ServiceIdentity>();
-                    });
+                            Events.NullResult(deviceId);
+                            return Option.None<ServiceIdentity>();
+                        });
 
             return serviceIdentityResult;
         }
-        
+
         public async Task<Option<ServiceIdentity>> GetServiceIdentity(string deviceId, string moduleId)
         {
             string id = $"{deviceId}/{moduleId}";
@@ -104,6 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                             {
                                 Events.NullDevicesResult(id);
                             }
+
                             return Option.None<ServiceIdentity>();
                         })
                     .GetOrElse(
@@ -116,65 +120,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             return serviceIdentityResult;
         }
 
-        class ServiceIdentitiesIterator : IServiceIdentitiesIterator
-        {
-            readonly IDeviceScopeApiClient securityScopesApiClient;
-            Option<string> continuationLink = Option.None<string>();
-
-            public ServiceIdentitiesIterator(IDeviceScopeApiClient securityScopesApiClient)
-            {
-                this.securityScopesApiClient = Preconditions.CheckNotNull(securityScopesApiClient, nameof(securityScopesApiClient));
-                this.HasNext = true;
-                Events.IteratorCreated();
-            }
-
-            public async Task<IEnumerable<ServiceIdentity>> GetNext()
-            {
-                if (!this.HasNext)
-                {
-                    return Enumerable.Empty<ServiceIdentity>();
-                }
-
-                var serviceIdentities = new List<ServiceIdentity>();
-                ScopeResult scopeResult = await this.continuationLink.Map(c => this.securityScopesApiClient.GetNext(c))
-                    .GetOrElse(() => this.securityScopesApiClient.GetIdentitiesInScope());
-                if (scopeResult == null)
-                {
-                    Events.NullResult();
-                }
-                else
-                {
-                    Events.ScopeResultReceived(scopeResult);
-                    if (scopeResult.Devices != null)
-                    {
-                        serviceIdentities.AddRange(scopeResult.Devices.Select(d => d.ToServiceIdentity()));
-                    }
-
-                    if (scopeResult.Modules != null)
-                    {
-                        serviceIdentities.AddRange(scopeResult.Modules.Select(m => m.ToServiceIdentity()));
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(scopeResult.ContinuationLink))
-                    {
-                        this.continuationLink = Option.Some(scopeResult.ContinuationLink);
-                        this.HasNext = true;
-                    }
-                    else
-                    {
-                        this.HasNext = false;
-                    }
-                }
-                return serviceIdentities;
-            }
-
-            public bool HasNext { get; private set; }
-        }
-
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<ServiceProxy>();
             const int IdStart = CloudProxyEventIds.ServiceProxy;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<ServiceProxy>();
 
             enum EventIds
             {
@@ -222,6 +171,62 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             public static void BadRequestResult(string id, HttpStatusCode statusCode)
             {
                 Log.LogDebug((int)EventIds.ScopeResultReceived, $"Received scope result for {id} with status code {statusCode} indicating that {id} has been removed from the scope");
+            }
+        }
+
+        class ServiceIdentitiesIterator : IServiceIdentitiesIterator
+        {
+            readonly IDeviceScopeApiClient securityScopesApiClient;
+            Option<string> continuationLink = Option.None<string>();
+
+            public ServiceIdentitiesIterator(IDeviceScopeApiClient securityScopesApiClient)
+            {
+                this.securityScopesApiClient = Preconditions.CheckNotNull(securityScopesApiClient, nameof(securityScopesApiClient));
+                this.HasNext = true;
+                Events.IteratorCreated();
+            }
+
+            public bool HasNext { get; private set; }
+
+            public async Task<IEnumerable<ServiceIdentity>> GetNext()
+            {
+                if (!this.HasNext)
+                {
+                    return Enumerable.Empty<ServiceIdentity>();
+                }
+
+                var serviceIdentities = new List<ServiceIdentity>();
+                ScopeResult scopeResult = await this.continuationLink.Map(c => this.securityScopesApiClient.GetNext(c))
+                    .GetOrElse(() => this.securityScopesApiClient.GetIdentitiesInScope());
+                if (scopeResult == null)
+                {
+                    Events.NullResult();
+                }
+                else
+                {
+                    Events.ScopeResultReceived(scopeResult);
+                    if (scopeResult.Devices != null)
+                    {
+                        serviceIdentities.AddRange(scopeResult.Devices.Select(d => d.ToServiceIdentity()));
+                    }
+
+                    if (scopeResult.Modules != null)
+                    {
+                        serviceIdentities.AddRange(scopeResult.Modules.Select(m => m.ToServiceIdentity()));
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(scopeResult.ContinuationLink))
+                    {
+                        this.continuationLink = Option.Some(scopeResult.ContinuationLink);
+                        this.HasNext = true;
+                    }
+                    else
+                    {
+                        this.HasNext = false;
+                    }
+                }
+
+                return serviceIdentities;
             }
         }
     }

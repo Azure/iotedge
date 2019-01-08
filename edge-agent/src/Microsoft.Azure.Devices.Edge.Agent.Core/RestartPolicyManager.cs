@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     using Microsoft.Extensions.Logging;
 
     public class RestartPolicyManager : IRestartPolicyManager
-    {        
+    {
         const int MaxCoolOffPeriodSecs = 300; // 5 mins
         readonly int maxRestartCount;
         readonly int coolOffTimeUnitInSeconds;
@@ -56,6 +56,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             return status;
         }
 
+        public IEnumerable<IRuntimeModule> ApplyRestartPolicy(IEnumerable<IRuntimeModule> modules) =>
+            modules.Where(module => this.ShouldRestart(module));
+
+        internal TimeSpan GetCoolOffPeriod(int restartCount) =>
+            TimeSpan.FromSeconds(Math.Min(this.coolOffTimeUnitInSeconds * Math.Pow(2, restartCount), MaxCoolOffPeriodSecs));
+
         bool ShouldRestart(IRuntimeModule module)
         {
             // we don't really know what status "Unknown" means
@@ -70,8 +76,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 TimeSpan coolOffPeriod = this.GetCoolOffPeriod(module.RestartCount);
                 TimeSpan elapsedTime = DateTime.UtcNow - module.LastExitTimeUtc;
 
-                bool shouldRestart = elapsedTime > coolOffPeriod;
-                if(!shouldRestart)
+                // LastExitTime can be greater thatn UtcNow if the clock is off, so check if the elapsed time is > 0
+                bool shouldRestart = elapsedTime > TimeSpan.Zero ? elapsedTime > coolOffPeriod : true;
+                if (!shouldRestart)
                 {
                     Events.ScheduledModule(module, elapsedTime, coolOffPeriod);
                 }
@@ -81,18 +88,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
             return false;
         }
-
-        internal TimeSpan GetCoolOffPeriod(int restartCount) =>
-            TimeSpan.FromSeconds(Math.Min(this.coolOffTimeUnitInSeconds * Math.Pow(2, restartCount), MaxCoolOffPeriodSecs));        
-
-        public IEnumerable<IRuntimeModule> ApplyRestartPolicy(IEnumerable<IRuntimeModule> modules) =>
-            modules.Where(module => this.ShouldRestart(module));
     }
 
     static class Events
     {
-        static readonly ILogger Log = Logger.Factory.CreateLogger<RestartPolicyManager>();
         const int IdStart = AgentEventIds.RestartManager;
+        static readonly ILogger Log = Logger.Factory.CreateLogger<RestartPolicyManager>();
 
         enum EventIds
         {
@@ -102,7 +103,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public static void ScheduledModule(IRuntimeModule module, TimeSpan elapsedTime, TimeSpan coolOffPeriod)
         {
             TimeSpan timeLeft = coolOffPeriod - elapsedTime;
-            Log.LogInformation((int)EventIds.ScheduledModule,
+            Log.LogInformation(
+                (int)EventIds.ScheduledModule,
                 $"Module '{module.Name}' scheduled to restart after {coolOffPeriod.Humanize()} ({timeLeft.Humanize()} left).");
         }
     }

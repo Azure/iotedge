@@ -38,7 +38,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly TimeSpan operationTimeout;
         Option<IEdgeHub> edgeHub;
 
-        public CloudConnectionProvider(IMessageConverterProvider messageConverterProvider,
+        public CloudConnectionProvider(
+            IMessageConverterProvider messageConverterProvider,
             int connectionPoolSize,
             IClientProvider clientProvider,
             Option<UpstreamProtocol> upstreamProtocol,
@@ -67,55 +68,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public void BindEdgeHub(IEdgeHub edgeHubInstance)
         {
             this.edgeHub = Option.Some(Preconditions.CheckNotNull(edgeHubInstance, nameof(edgeHubInstance)));
-        }
-
-        internal static ITransportSettings[] GetTransportSettings(Option<UpstreamProtocol> upstreamProtocol, int connectionPoolSize)
-        {
-            return upstreamProtocol
-                .Map(
-                    up =>
-                    {
-                        TransportType transportType = UpstreamProtocolTransportTypeMap[up];
-                        switch (transportType)
-                        {
-                            case TransportType.Amqp_Tcp_Only:
-                            case TransportType.Amqp_WebSocket_Only:
-                                return new ITransportSettings[]
-                                {
-                                    new AmqpTransportSettings(transportType)
-                                    {
-                                        AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings
-                                        {
-                                            Pooling = true,
-                                            MaxPoolSize = (uint)connectionPoolSize,
-                                            ConnectionIdleTimeout = MinAmqpConnectionMuxIdleTimeout
-                                        }
-                                    }
-                                };
-
-                            case TransportType.Mqtt_Tcp_Only:
-                            case TransportType.Mqtt_WebSocket_Only:
-                                return new ITransportSettings[]
-                                {
-                                    new MqttTransportSettings(transportType)
-                                };
-
-                            default:
-                                throw new ArgumentException($"Unsupported transport type {up}");
-                        }
-                    })
-                .GetOrElse(
-                    () => new ITransportSettings[] {
-                            new AmqpTransportSettings(TransportType.Amqp_Tcp_Only)
-                            {
-                                AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings
-                                {
-                                    Pooling = true,
-                                    MaxPoolSize = (uint)connectionPoolSize,
-                                    ConnectionIdleTimeout = MinAmqpConnectionMuxIdleTimeout
-                                }
-                            }
-                        });
         }
 
         public async Task<Try<ICloudConnection>> Connect(IClientCredentials clientCredentials, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
@@ -180,23 +132,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Option<ServiceIdentity> serviceIdentity = (await this.deviceScopeIdentitiesCache.GetServiceIdentity(identity.Id))
                     .Filter(s => s.Status == ServiceIdentityStatus.Enabled);
                 return await serviceIdentity
-                    .Map(async si =>
-                    {
-                        Events.CreatingCloudConnectionOnBehalfOf(identity);
-                        ICloudConnection cc = await CloudConnection.Create(
-                            identity,
-                            connectionStatusChangedHandler,
-                            this.transportSettings,
-                            this.messageConverterProvider,
-                            this.clientProvider,
-                            cloudListener,
-                            this.edgeHubTokenProvider,
-                            this.idleTimeout,
-                            this.closeOnIdleTimeout,
-                            this.operationTimeout);
-                        Events.SuccessCreatingCloudConnection(identity);
-                        return Try.Success(cc);
-                    })
+                    .Map(
+                        async si =>
+                        {
+                            Events.CreatingCloudConnectionOnBehalfOf(identity);
+                            ICloudConnection cc = await CloudConnection.Create(
+                                identity,
+                                connectionStatusChangedHandler,
+                                this.transportSettings,
+                                this.messageConverterProvider,
+                                this.clientProvider,
+                                cloudListener,
+                                this.edgeHubTokenProvider,
+                                this.idleTimeout,
+                                this.closeOnIdleTimeout,
+                                this.operationTimeout);
+                            Events.SuccessCreatingCloudConnection(identity);
+                            return Try.Success(cc);
+                        })
                     .GetOrElse(
                         async () =>
                         {
@@ -214,10 +167,60 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
+        internal static ITransportSettings[] GetTransportSettings(Option<UpstreamProtocol> upstreamProtocol, int connectionPoolSize)
+        {
+            return upstreamProtocol
+                .Map(
+                    up =>
+                    {
+                        TransportType transportType = UpstreamProtocolTransportTypeMap[up];
+                        switch (transportType)
+                        {
+                            case TransportType.Amqp_Tcp_Only:
+                            case TransportType.Amqp_WebSocket_Only:
+                                return new ITransportSettings[]
+                                {
+                                    new AmqpTransportSettings(transportType)
+                                    {
+                                        AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings
+                                        {
+                                            Pooling = true,
+                                            MaxPoolSize = (uint)connectionPoolSize,
+                                            ConnectionIdleTimeout = MinAmqpConnectionMuxIdleTimeout
+                                        }
+                                    }
+                                };
+
+                            case TransportType.Mqtt_Tcp_Only:
+                            case TransportType.Mqtt_WebSocket_Only:
+                                return new ITransportSettings[]
+                                {
+                                    new MqttTransportSettings(transportType)
+                                };
+
+                            default:
+                                throw new ArgumentException($"Unsupported transport type {up}");
+                        }
+                    })
+                .GetOrElse(
+                    () => new ITransportSettings[]
+                    {
+                        new AmqpTransportSettings(TransportType.Amqp_Tcp_Only)
+                        {
+                            AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings
+                            {
+                                Pooling = true,
+                                MaxPoolSize = (uint)connectionPoolSize,
+                                ConnectionIdleTimeout = MinAmqpConnectionMuxIdleTimeout
+                            }
+                        }
+                    });
+        }
+
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<CloudConnection>();
             const int IdStart = CloudProxyEventIds.CloudConnectionProvider;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<CloudConnection>();
 
             enum EventIds
             {

@@ -1,31 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
-using System;
-
 namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
 {
+    using System;
+
     /// <summary>
     /// Contains information that is required for the <see cref="E:Microsoft.Azure.WebJobs.Extensions.EdgeHub.RetryPolicy.Retrying" /> event.
     /// </summary>
     class RetryingEventArgs : EventArgs
     {
-        /// <summary>
-        /// Gets the current retry count.
-        /// </summary>
-        public int CurrentRetryCount
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Gets the exception that caused the retry conditions to occur.
-        /// </summary>
-        public Exception LastException
-        {
-            get;
-            set;
-        }
-
         /// <summary>
         /// Initializes a new instance of the <see cref="T:Microsoft.Azure.WebJobs.Extensions.EdgeHub.RetryingEventArgs" /> class.
         /// </summary>
@@ -37,5 +19,15 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
             this.CurrentRetryCount = currentRetryCount;
             this.LastException = lastException;
         }
+
+        /// <summary>
+        /// Gets the current retry count.
+        /// </summary>
+        public int CurrentRetryCount { get; set; }
+
+        /// <summary>
+        /// Gets the exception that caused the retry conditions to occur.
+        /// </summary>
+        public Exception LastException { get; set; }
     }
 }

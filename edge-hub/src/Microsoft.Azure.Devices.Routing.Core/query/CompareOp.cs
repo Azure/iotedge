@@ -9,5 +9,5 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
         Le,
         Gt,
         Ge
-    };
+    }
 }

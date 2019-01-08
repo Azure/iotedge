@@ -29,38 +29,55 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
             Task task = taskAction();
             if (task == null)
             {
-                throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, "{0} cannot be null", new object[]
-                {
-                    "taskAction"
-                }), nameof(taskAction));
+                throw new ArgumentException(
+                    string.Format(
+                        CultureInfo.InvariantCulture,
+                        "{0} cannot be null",
+                        new object[]
+                        {
+                            "taskAction"
+                        }),
+                    nameof(taskAction));
             }
+
             if (task.Status == TaskStatus.RanToCompletion)
             {
                 return GetCachedTask();
             }
+
             if (task.Status == TaskStatus.Created)
             {
-                throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, "{0} must be scheduled", new object[]
-                {
-                    "taskAction"
-                }), nameof(taskAction));
+                throw new ArgumentException(
+                    string.Format(
+                        CultureInfo.InvariantCulture,
+                        "{0} must be scheduled",
+                        new object[]
+                        {
+                            "taskAction"
+                        }),
+                    nameof(taskAction));
             }
+
             var tcs = new TaskCompletionSource<bool>();
-            task.ContinueWith(delegate (Task t)
-            {
-                if (t.IsFaulted)
+            task.ContinueWith(
+                t =>
                 {
-                    if (t.Exception != null)
-                        tcs.TrySetException(t.Exception.InnerExceptions);
-                    return;
-                }
-                if (t.IsCanceled)
-                {
-                    tcs.TrySetCanceled();
-                    return;
-                }
-                tcs.TrySetResult(true);
-            }, TaskContinuationOptions.ExecuteSynchronously);
+                    if (t.IsFaulted)
+                    {
+                        if (t.Exception != null)
+                            tcs.TrySetException(t.Exception.InnerExceptions);
+                        return;
+                    }
+
+                    if (t.IsCanceled)
+                    {
+                        tcs.TrySetCanceled();
+                        return;
+                    }
+
+                    tcs.TrySetResult(true);
+                },
+                TaskContinuationOptions.ExecuteSynchronously);
             return tcs.Task;
         }
 
@@ -72,6 +89,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
                 taskCompletionSource.TrySetResult(true);
                 cachedBoolTask = taskCompletionSource.Task;
             }
+
             return cachedBoolTask;
         }
     }

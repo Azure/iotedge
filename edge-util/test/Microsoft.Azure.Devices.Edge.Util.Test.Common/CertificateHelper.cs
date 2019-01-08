@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
 {
     using System;
     using System.Collections.Generic;
-    using System.Security.Cryptography;
     using System.Security.Cryptography.X509Certificates;
     using Org.BouncyCastle.Asn1;
     using Org.BouncyCastle.Asn1.X509;
@@ -13,7 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
     using Org.BouncyCastle.Crypto.Prng;
     using Org.BouncyCastle.Math;
     using Org.BouncyCastle.Security;
-    using Org.BouncyCastle.X509;
     using Org.BouncyCastle.X509.Extension;
     using BCX509 = Org.BouncyCastle.X509;
 
@@ -108,22 +106,25 @@ U7JoTvzy0x7VG98T0+y68IcyjsSIPQ==
             None = 0,
             ClientAuth,
             ServerAuth,
-        };
+        }
 
-        public static X509Certificate2 GetCertificate(string thumbprint, 
-            StoreName storeName, 
+        public static X509Certificate2 GetCertificate(
+            string thumbprint,
+            StoreName storeName,
             StoreLocation storeLocation)
         {
             Preconditions.CheckNonWhiteSpace(thumbprint, nameof(thumbprint));
             var store = new X509Store(storeName, storeLocation);
             store.Open(OpenFlags.ReadOnly);
-            X509Certificate2Collection col = store.Certificates.Find(X509FindType.FindByThumbprint, 
-                thumbprint, 
+            X509Certificate2Collection col = store.Certificates.Find(
+                X509FindType.FindByThumbprint,
+                thumbprint,
                 false);
             if (col != null && col.Count > 0)
             {
                 return col[0];
             }
+
             return null;
         }
 
@@ -142,20 +143,22 @@ U7JoTvzy0x7VG98T0+y68IcyjsSIPQ==
         public static (X509Certificate2, AsymmetricCipherKeyPair) GenerateClientert(string subjectName, DateTime notBefore, DateTime notAfter) =>
             GenerateCertificate(subjectName, notBefore, notAfter, null, null, false, null, new List<ExtKeyUsage>() { ExtKeyUsage.ClientAuth });
 
-        public static (X509Certificate2, AsymmetricCipherKeyPair) GenerateCertificate(string subjectName,
-                                                                                      DateTime notBefore,
-                                                                                      DateTime notAfter,
-                                                                                      X509Certificate2 issuer,
-                                                                                      AsymmetricCipherKeyPair issuerKeyPair,
-                                                                                      bool isCA,
-                                                                                      GeneralNames sanEntries,
-                                                                                      IList<ExtKeyUsage> extKeyUsages)
+        public static (X509Certificate2, AsymmetricCipherKeyPair) GenerateCertificate(
+            string subjectName,
+            DateTime notBefore,
+            DateTime notAfter,
+            X509Certificate2 issuer,
+            AsymmetricCipherKeyPair issuerKeyPair,
+            bool isCA,
+            GeneralNames sanEntries,
+            IList<ExtKeyUsage> extKeyUsages)
         {
             if (((issuer == null) && (issuerKeyPair != null)) ||
                 ((issuer != null) && (issuerKeyPair == null)))
             {
                 throw new ArgumentException("Issuer and Issuer key pair must both be null or non null");
             }
+
             var keyGenerator = new RsaKeyPairGenerator();
             var random = new SecureRandom(new CryptoApiRandomGenerator());
             keyGenerator.Init(new KeyGenerationParameters(random, 1024));
@@ -164,7 +167,7 @@ U7JoTvzy0x7VG98T0+y68IcyjsSIPQ==
 
             var certName = new X509Name($"CN={subjectName}");
             BigInteger serialNo = BigInteger.ProbablePrime(120, random);
-            var certGenerator = new X509V3CertificateGenerator();
+            var certGenerator = new BCX509.X509V3CertificateGenerator();
             certGenerator.SetSerialNumber(serialNo);
             certGenerator.SetSubjectDN(certName);
             certGenerator.SetNotAfter(notAfter);
@@ -206,10 +209,11 @@ U7JoTvzy0x7VG98T0+y68IcyjsSIPQ==
                         oids.Add(new DerObjectIdentifier("1.3.6.1.5.5.7.3.1"));
                     }
                 }
+
                 var ext = new ExtendedKeyUsage(oids);
                 certGenerator.AddExtension(X509Extensions.ExtendedKeyUsage, false, ext);
             }
-            
+
             var privateKey = (issuerKeyPair == null) ? keyPair.Private : issuerKeyPair.Private;
             var signatureFactory = new Asn1SignatureFactory("SHA256WITHRSA", privateKey, random);
             BCX509.X509Certificate bcCert = certGenerator.Generate(signatureFactory);
@@ -225,6 +229,7 @@ U7JoTvzy0x7VG98T0+y68IcyjsSIPQ==
             {
                 throw new ArgumentException($"Total entries count is zero. uris:{uris.Count}, dnsNames:{dnsNames.Count}");
             }
+
             GeneralName[] names = new GeneralName[totalCount];
 
             int index = 0;
@@ -232,10 +237,12 @@ U7JoTvzy0x7VG98T0+y68IcyjsSIPQ==
             {
                 names[index++] = new GeneralName(GeneralName.UniformResourceIdentifier, value);
             }
+
             foreach (string value in dnsNames)
             {
                 names[index++] = new GeneralName(GeneralName.DnsName, value);
             }
+
             GeneralNames subjectAltNames = new GeneralNames(names);
 
             return subjectAltNames;

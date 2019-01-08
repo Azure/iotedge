@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 systemProperties.AddIfNonEmpty(SystemProperties.LockToken, lockToken);
             }
 
-            if(sourceMessage.ApplicationProperties != null)
+            if (sourceMessage.ApplicationProperties != null)
             {
                 foreach (KeyValuePair<MapKey, object> property in sourceMessage.ApplicationProperties.Map)
                 {

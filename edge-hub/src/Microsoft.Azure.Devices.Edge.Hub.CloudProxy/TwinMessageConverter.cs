@@ -50,6 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 twin.Version = version;
             }
+
             return twin;
         }
     }

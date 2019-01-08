@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Routing.Core.Test
 {
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.Azure.Devices.Routing.Core;
     using Xunit;
 
     [Unit]

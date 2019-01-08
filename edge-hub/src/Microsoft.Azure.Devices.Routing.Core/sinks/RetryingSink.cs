@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Sinks
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
-    using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.Util;
 
     public class RetryingSink<T> : ISink<T>
@@ -72,6 +71,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Sinks
                         }
                     }
                 }
+
                 rv = new SinkResult<T>(succeeded, failed, invalid, failureDetails);
             }
             catch (OperationCanceledException ex)
@@ -84,6 +84,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Sinks
                 failed.AddRange(messages);
                 rv = new SinkResult<T>(succeeded, failed, invalid, new SendFailureDetails(FailureKind.InternalError, ex));
             }
+
             return rv;
         }
 

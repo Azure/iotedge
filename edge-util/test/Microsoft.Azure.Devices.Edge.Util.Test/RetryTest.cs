@@ -2,10 +2,10 @@
 namespace Microsoft.Azure.Devices.Edge.Util.Test
 {
     using System;
-    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Xunit;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Xunit;
 
     [Unit]
     public class RetryTest
@@ -28,15 +28,14 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         [Fact]
         public async Task RetryThrowsIfFuncNeverReturnsValidResult()
         {
-            Func<Task<string>> func = () => Task.FromResult(String.Empty);
+            Func<Task<string>> func = () => Task.FromResult(string.Empty);
             Func<string, bool> isValid = (val) => val == "Foo";
             TimeSpan retryInterval = TimeSpan.FromMilliseconds(10);
 
             using (var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(200)))
             {
                 await Assert.ThrowsAsync<TaskCanceledException>(
-                    () => Retry.Do(func, isValid, null, retryInterval, cts.Token)
-                );
+                    () => Retry.Do(func, isValid, null, retryInterval, cts.Token));
             }
         }
 
@@ -44,7 +43,11 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         public async Task RetryWithoutValidFuncReturns1stResult()
         {
             int counter = 0;
-            Func<Task<string>> func = () => { ++counter; return Task.FromResult<string>("Foo"); };
+            Func<Task<string>> func = () =>
+            {
+                ++counter;
+                return Task.FromResult<string>("Foo");
+            };
             TimeSpan retryInterval = TimeSpan.FromMilliseconds(2);
 
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5)))
@@ -64,8 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5)))
             {
                 await Assert.ThrowsAsync<InvalidOperationException>(
-                    () => Retry.Do(func, null, null, retryInterval, cts.Token)
-                );
+                    () => Retry.Do(func, null, null, retryInterval, cts.Token));
             }
         }
 
@@ -94,8 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5)))
             {
                 await Assert.ThrowsAsync<InvalidOperationException>(
-                    () => Retry.Do(func, null, continueOnException, retryInterval, cts.Token)
-                );
+                    () => Retry.Do(func, null, continueOnException, retryInterval, cts.Token));
             }
         }
     }

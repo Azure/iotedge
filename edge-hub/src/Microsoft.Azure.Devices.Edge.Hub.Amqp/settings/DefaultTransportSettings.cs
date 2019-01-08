@@ -49,6 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Settings
             {
                 tlsSettings.CertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true;
             }
+
             this.Settings = tlsSettings;
         }
 

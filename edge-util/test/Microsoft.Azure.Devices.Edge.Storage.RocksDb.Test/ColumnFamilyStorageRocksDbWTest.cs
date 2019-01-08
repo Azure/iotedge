@@ -12,11 +12,11 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
         [Fact]
         public void CreateWithNullPathThrowsAsync()
         {
-            //Arrange
+            // Arrange
             ICollection<string> partitions = new List<string>();
 
-            //Act
-            //Assert
+            // Act
+            // Assert
             Assert.Throws<ArgumentException>(() => ColumnFamilyStorageRocksDbWrapper.Create(null, partitions));
 
             partitions.Clear();
@@ -25,9 +25,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
         [Fact]
         public void CreateWithNullPartitionsPathThrowsAsync()
         {
-            //Arrange
-            //Act
-            //Assert
+            // Arrange
+            // Act
+            // Assert
             Assert.Throws<ArgumentNullException>(() => ColumnFamilyStorageRocksDbWrapper.Create("AnyPath", null));
         }
     }

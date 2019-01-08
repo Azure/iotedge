@@ -1,12 +1,12 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Http
 {
+    using System;
+    using System.Net;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.AspNetCore.Mvc.Filters;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using System;
-    using System.Net;
 
     public class ExceptionFilter : IExceptionFilter
     {
@@ -34,8 +34,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<ExceptionFilter>();
             const int IdStart = HttpEventIds.ExceptionFilter;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<ExceptionFilter>();
 
             enum EventIds
             {

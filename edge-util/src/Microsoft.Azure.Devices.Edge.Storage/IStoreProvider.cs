@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 {
     using System;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Util;
 
     /// <summary>
     /// Provides stores that are higher level abstractions over the underlying key/value stores.

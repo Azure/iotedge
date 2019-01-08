@@ -16,17 +16,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
     {
         readonly IConfigSource configSource;
 
-        public CombinedEdgeletConfigProvider(IEnumerable<AuthConfig> authConfigs,
+        public CombinedEdgeletConfigProvider(
+            IEnumerable<AuthConfig> authConfigs,
             IConfigSource configSource)
             : base(authConfigs)
         {
             this.configSource = Preconditions.CheckNotNull(configSource, nameof(configSource));
         }
-
-        static CreateContainerParameters CloneOrCreateParams(CreateContainerParameters createOptions) =>
-            createOptions != null
-            ? JsonConvert.DeserializeObject<CreateContainerParameters>(JsonConvert.SerializeObject(createOptions))
-            : new CreateContainerParameters();
 
         public override CombinedDockerConfig GetCombinedConfig(IModule module, IRuntimeInfo runtimeInfo)
         {
@@ -38,6 +34,31 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             this.InjectNetworkAliases(module, createOptions);
 
             return new CombinedDockerConfig(combinedConfig.Image, createOptions, combinedConfig.AuthConfig);
+        }
+
+        static CreateContainerParameters CloneOrCreateParams(CreateContainerParameters createOptions) =>
+            createOptions != null
+                ? JsonConvert.DeserializeObject<CreateContainerParameters>(JsonConvert.SerializeObject(createOptions))
+                : new CreateContainerParameters();
+
+        static void SetMountOptions(CreateContainerParameters createOptions, Uri uri)
+        {
+            HostConfig hostConfig = createOptions.HostConfig ?? new HostConfig();
+            IList<string> binds = hostConfig.Binds ?? new List<string>();
+            string path = BindPath(uri);
+            binds.Add($"{path}:{path}");
+
+            hostConfig.Binds = binds;
+            createOptions.HostConfig = hostConfig;
+        }
+
+        static string BindPath(Uri uri)
+        {
+            // On Windows we need to bind to the parent folder. We can't bind
+            // directly to the socket file.
+            return RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? Path.GetDirectoryName(uri.LocalPath)
+                : uri.AbsolutePath;
         }
 
         void InjectNetworkAliases(IModule module, CreateContainerParameters createOptions)
@@ -86,26 +107,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             {
                 SetMountOptions(createOptions, managementUri);
             }
-        }
-
-        static void SetMountOptions(CreateContainerParameters createOptions, Uri uri)
-        {
-            HostConfig hostConfig = createOptions.HostConfig ?? new HostConfig();
-            IList<string> binds = hostConfig.Binds ?? new List<string>();
-            string path = BindPath(uri);
-            binds.Add($"{path}:{path}");
-
-            hostConfig.Binds = binds;
-            createOptions.HostConfig = hostConfig;
-        }
-
-        static String BindPath(Uri uri)
-        {
-            // On Windows we need to bind to the parent folder. We can't bind
-            // directly to the socket file.
-            return RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                ? Path.GetDirectoryName(uri.LocalPath)
-                : uri.AbsolutePath;
         }
     }
 }

@@ -17,17 +17,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
     public class TwinConfigSourceModule : Module
     {
-        readonly string backupConfigFilePath;
         const string DockerType = "docker";
+        readonly string backupConfigFilePath;
         readonly IConfiguration configuration;
         readonly VersionInfo versionInfo;
         readonly TimeSpan configRefreshFrequency;
 
-        public TwinConfigSourceModule(string backupConfigFilePath,
+        public TwinConfigSourceModule(
+            string backupConfigFilePath,
             IConfiguration config,
             VersionInfo versionInfo,
-            TimeSpan configRefreshFrequency
-        )
+            TimeSpan configRefreshFrequency)
         {
             this.backupConfigFilePath = Preconditions.CheckNonWhiteSpace(backupConfigFilePath, nameof(backupConfigFilePath));
             this.configuration = Preconditions.CheckNotNull(config, nameof(config));
@@ -39,13 +39,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         {
             // IEdgeAgentConnection
             builder.Register(
-                c =>
-                {
-                    var serde = c.Resolve<ISerde<DeploymentConfig>>();
-                    var deviceClientprovider = c.Resolve<IModuleClientProvider>();
-                    IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(deviceClientprovider, serde, this.configRefreshFrequency);
-                    return edgeAgentConnection;
-                })
+                    c =>
+                    {
+                        var serde = c.Resolve<ISerde<DeploymentConfig>>();
+                        var deviceClientprovider = c.Resolve<IModuleClientProvider>();
+                        IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(deviceClientprovider, serde, this.configRefreshFrequency);
+                        return edgeAgentConnection;
+                    })
                 .As<IEdgeAgentConnection>()
                 .SingleInstance();
 
@@ -101,10 +101,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         return new IoTHubReporter(
                             c.Resolve<IEdgeAgentConnection>(),
                             new TypeSpecificSerDe<AgentState>(deserializerTypesMap),
-                            this.versionInfo
-                        ) as IReporter;
-                    }
-                )
+                            this.versionInfo) as IReporter;
+                    })
                 .As<IReporter>()
                 .SingleInstance();
 

@@ -8,30 +8,30 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.WebJobs;
 
     /// <summary>
-    /// Core object to send events to EdgeHub. 
-    /// Any user parameter that sends EdgeHub events will eventually get bound to this object. 
-    /// This will queue events and send in batches, also keeping under the 256kb edge hub limit per batch. 
+    /// Core object to send events to EdgeHub.
+    /// Any user parameter that sends EdgeHub events will eventually get bound to this object.
+    /// This will queue events and send in batches, also keeping under the 256kb edge hub limit per batch.
     /// </summary>
     public class EdgeHubAsyncCollector : IAsyncCollector<Message>
     {
-        readonly EdgeHubAttribute attribute;
-        readonly int batchSize;
-
-        const int DefaultBatchSize = 10;
         // Max batch size limit from IoTHub
         const int MaxBatchSize = 500;
         // Suggested to use 240k instead of 256k to leave padding room for headers.
         const int MaxByteSize = 240 * 1024;
+        const int DefaultBatchSize = 10;
 
+        readonly EdgeHubAttribute attribute;
+        readonly int batchSize;
         readonly List<Message> list = new List<Message>();
-        // total size of bytes in list that we'll be sending in this batch. 
+
+        // total size of bytes in list that we'll be sending in this batch.
         int currentByteSize;
 
         /// <summary>
-        /// Create a sender around the given client. 
+        /// Initializes a new instance of the <see cref="EdgeHubAsyncCollector"/> class.
+        /// Create a sender around the given client.
         /// </summary>
         /// <param name="attribute">Attributes used by EdgeHub when receiving a message from function.</param>
         public EdgeHubAsyncCollector(EdgeHubAttribute attribute)
@@ -45,7 +45,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
         /// </summary>
         /// <param name="message">The event to add</param>
         /// <param name="cancellationToken">a cancellation token. </param>
-        /// <returns></returns>
+        /// <returns>Task</returns>
         public async Task AddAsync(Message message, CancellationToken cancellationToken = default(CancellationToken))
         {
             byte[] payload = message.GetBytes();
@@ -83,6 +83,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
         /// synchronously flush events that have been queued up via AddAsync.
         /// </summary>
         /// <param name="cancellationToken">a cancellation token</param>
+        /// <returns>Task</returns>
         public async Task FlushAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
             IList<Message> batch = this.TakeSnapshot();
@@ -93,6 +94,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
         /// Send the batch of events.
         /// </summary>
         /// <param name="batch">the set of events to send</param>
+        /// <returns>Task</returns>
         protected virtual async Task SendBatchAsync(IList<Message> batch)
         {
             if (batch == null || batch.Count == 0)
@@ -121,6 +123,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
                 this.list.Clear();
                 this.currentByteSize = 0;
             }
+
             return batch;
         }
     }

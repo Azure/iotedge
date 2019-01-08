@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     /// 1. FindOrPut/PutOrUpdate support
     /// 2. Serialized writes for the same key
     /// 3. Support for generic types for keys and values
-    /// TODO - Since Key/Value types are generic, need to look into the right behavior to handle null values here. 
+    /// TODO - Since Key/Value types are generic, need to look into the right behavior to handle null values here.
     /// </summary>
     public class EntityStore<TK, TV> : IEntityStore<TK, TV>
     {
@@ -163,6 +163,23 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         public Task IterateBatch(int batchSize, Func<TK, TV, Task> callback, CancellationToken cancellationToken)
             => this.IterateBatch(Option.None<TK>(), batchSize, callback, cancellationToken);
 
+        public Task<bool> Contains(TK key, CancellationToken cancellationToken)
+            => this.dbStore.Contains(key.ToBytes(), cancellationToken);
+
+        public void Dispose()
+        {
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                this.dbStore?.Dispose();
+            }
+        }
+
         Task IterateBatch(Option<TK> startKey, int batchSize, Func<TK, TV, Task> callback, CancellationToken cancellationToken)
         {
             Preconditions.CheckRange(batchSize, 1, nameof(batchSize));
@@ -178,23 +195,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             return startKey.Match(
                 k => this.dbStore.IterateBatch(k.ToBytes(), batchSize, DeserializingCallback, cancellationToken),
                 () => this.dbStore.IterateBatch(batchSize, DeserializingCallback, cancellationToken));
-        }
-
-        public Task<bool> Contains(TK key, CancellationToken cancellationToken)
-            => this.dbStore.Contains(key.ToBytes(), cancellationToken);
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                this.dbStore?.Dispose();
-            }
-        }
-
-        public void Dispose()
-        {
-            this.Dispose(true);
-            GC.SuppressFinalize(this);
         }
     }
 }

@@ -103,7 +103,6 @@ namespace IotEdgeQuickstart.Details
         {
             // Windows installation does install + configure in one step. Since we need to connection string
             // to configure and we don't have that information here, we'll do installation in Configure().
-
             return Task.CompletedTask;
         }
 
@@ -130,7 +129,7 @@ namespace IotEdgeQuickstart.Details
                 }
 
                 string args = $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Install-SecurityDaemon -Manual " +
-                    $"-ContainerOs Windows -DeviceConnectionString '{connectionString}' -AgentImage '{image}'";
+                              $"-ContainerOs Windows -DeviceConnectionString '{connectionString}' -AgentImage '{image}'";
 
                 this.proxy.ForEach(proxy => { args += $" -Proxy '{proxy}'"; });
 
@@ -145,7 +144,7 @@ namespace IotEdgeQuickstart.Details
                 {
                     args += $" -Username '{c.User}' -Password (ConvertTo-SecureString '{c.Password}' -AsPlainText -Force)";
                 }
-                
+
                 // note: ignore hostname for now
                 Console.WriteLine($"Run command to configure: {commandForDebug}");
                 string[] result = await Process.RunAsync("powershell", args, cts.Token);
@@ -160,46 +159,6 @@ namespace IotEdgeQuickstart.Details
                 // Explicitly set IOTEDGE_HOST environment variable to current process
                 SetEnvironmentVariable();
             }
-        }
-
-        static void UpdateConfigYamlFile(string deviceCaCert, string deviceCaPk, string trustBundleCerts, LogLevel runtimeLogLevel)
-        {
-            string config = File.ReadAllText(ConfigYamlFile);
-            var doc = new YamlDocument(config);
-            doc.ReplaceOrAdd("agent.env.RuntimeLogLevel", runtimeLogLevel.ToString());
-
-            if (!string.IsNullOrEmpty(deviceCaCert) && !string.IsNullOrEmpty(deviceCaPk) && !string.IsNullOrEmpty(trustBundleCerts))
-            {
-                doc.ReplaceOrAdd("certificates.device_ca_cert", deviceCaCert);
-                doc.ReplaceOrAdd("certificates.device_ca_pk", deviceCaPk);
-                doc.ReplaceOrAdd("certificates.trusted_ca_certs", trustBundleCerts);
-            }
-
-            FileAttributes attr = 0;
-            attr = File.GetAttributes(ConfigYamlFile);
-            File.SetAttributes(ConfigYamlFile, attr & ~FileAttributes.ReadOnly);
-
-            File.WriteAllText(ConfigYamlFile, doc.ToString());
-
-            if (attr != 0)
-            {
-                File.SetAttributes(ConfigYamlFile, attr);
-            }
-        }
-
-        static void SetEnvironmentVariable()
-        {
-            string config = File.ReadAllText(ConfigYamlFile);
-            var managementUriRegex = new Regex(@"connect:\s*management_uri:\s*""*(.*)""*");
-            Match result = managementUriRegex.Match(config);
-
-            if (result.Groups.Count != 2)
-            {
-                throw new Exception("can't find management Uri in config file.");
-            }
-
-            Console.WriteLine($"Explicitly set environment variable [IOTEDGE_HOST={result.Groups[1].Value}]");
-            Environment.SetEnvironmentVariable("IOTEDGE_HOST", result.Groups[1].Value);
         }
 
         public async Task Start()
@@ -280,8 +239,48 @@ namespace IotEdgeQuickstart.Details
 
             return Task.CompletedTask;
         }
-        
+
         public Task Reset() => Task.CompletedTask;
+
+        static void UpdateConfigYamlFile(string deviceCaCert, string deviceCaPk, string trustBundleCerts, LogLevel runtimeLogLevel)
+        {
+            string config = File.ReadAllText(ConfigYamlFile);
+            var doc = new YamlDocument(config);
+            doc.ReplaceOrAdd("agent.env.RuntimeLogLevel", runtimeLogLevel.ToString());
+
+            if (!string.IsNullOrEmpty(deviceCaCert) && !string.IsNullOrEmpty(deviceCaPk) && !string.IsNullOrEmpty(trustBundleCerts))
+            {
+                doc.ReplaceOrAdd("certificates.device_ca_cert", deviceCaCert);
+                doc.ReplaceOrAdd("certificates.device_ca_pk", deviceCaPk);
+                doc.ReplaceOrAdd("certificates.trusted_ca_certs", trustBundleCerts);
+            }
+
+            FileAttributes attr = 0;
+            attr = File.GetAttributes(ConfigYamlFile);
+            File.SetAttributes(ConfigYamlFile, attr & ~FileAttributes.ReadOnly);
+
+            File.WriteAllText(ConfigYamlFile, doc.ToString());
+
+            if (attr != 0)
+            {
+                File.SetAttributes(ConfigYamlFile, attr);
+            }
+        }
+
+        static void SetEnvironmentVariable()
+        {
+            string config = File.ReadAllText(ConfigYamlFile);
+            var managementUriRegex = new Regex(@"connect:\s*management_uri:\s*""*(.*)""*");
+            Match result = managementUriRegex.Match(config);
+
+            if (result.Groups.Count != 2)
+            {
+                throw new Exception("can't find management Uri in config file.");
+            }
+
+            Console.WriteLine($"Explicitly set environment variable [IOTEDGE_HOST={result.Groups[1].Value}]");
+            Environment.SetEnvironmentVariable("IOTEDGE_HOST", result.Groups[1].Value);
+        }
 
         static void WriteToConsole(string header, string[] result)
         {

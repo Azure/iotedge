@@ -5,14 +5,13 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Diagnostics;
-    using static System.FormattableString;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
     using Microsoft.Extensions.Logging;
-    using AsyncLock = Microsoft.Azure.Devices.Routing.Core.Util.Concurrency.AsyncLock;
+    using static System.FormattableString;
 
     public class MasterCheckpointer : ICheckpointer, ICheckpointerFactory
     {
@@ -23,6 +22,17 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
         readonly ICheckpointStore store;
         readonly AtomicReference<ImmutableDictionary<string, ICheckpointer>> childCheckpointers;
         readonly AsyncLock sync;
+
+        MasterCheckpointer(string id, ICheckpointStore store, long offset)
+        {
+            this.Id = Preconditions.CheckNotNull(id);
+            this.store = Preconditions.CheckNotNull(store);
+            this.Offset = offset;
+            this.Proposed = offset;
+            this.closed = new AtomicBoolean(false);
+            this.childCheckpointers = new AtomicReference<ImmutableDictionary<string, ICheckpointer>>(ImmutableDictionary<string, ICheckpointer>.Empty);
+            this.sync = new AsyncLock();
+        }
 
         public string Id { get; }
 
@@ -37,17 +47,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
         public bool HasOutstanding => false;
 
         ImmutableDictionary<string, ICheckpointer> ChildCheckpointers => this.childCheckpointers;
-
-        MasterCheckpointer(string id, ICheckpointStore store, long offset)
-        {
-            this.Id = Preconditions.CheckNotNull(id);
-            this.store = Preconditions.CheckNotNull(store);
-            this.Offset = offset;
-            this.Proposed = offset;
-            this.closed = new AtomicBoolean(false);
-            this.childCheckpointers = new AtomicReference<ImmutableDictionary<string, ICheckpointer>>(ImmutableDictionary<string, ICheckpointer>.Empty);
-            this.sync = new AsyncLock();
-        }
 
         public static async Task<MasterCheckpointer> CreateAsync(string id, ICheckpointStore store)
         {
@@ -95,6 +94,36 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
             using (await this.sync.LockAsync(token))
             {
                 await this.CommitInternalAsync(successful, remaining, token);
+            }
+        }
+
+        public async Task CloseAsync(CancellationToken token)
+        {
+            if (!this.closed.GetAndSet(true))
+            {
+                // Store the cached offset on closed to handle case where stores to the store are
+                // throttled, but a clean shutdown is needed
+                try
+                {
+                    if (this.Offset != Checkpointer.InvalidOffset)
+                    {
+                        await this.store.SetCheckpointDataAsync(this.Id, new CheckpointData(this.Offset), CancellationToken.None);
+                        Events.Close(this);
+                    }
+                }
+                catch (TaskCanceledException)
+                {
+                }
+            }
+        }
+
+        public void Dispose() => this.Dispose(true);
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                this.sync.Dispose();
             }
         }
 
@@ -175,37 +204,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
                     .Where(m => m.Offset < minOffsetRemaining)
                     .Aggregate(this.Offset, (acc, m) => Math.Max(acc, m.Offset));
             }
+
             return offset;
-        }
-
-        public async Task CloseAsync(CancellationToken token)
-        {
-            if (!this.closed.GetAndSet(true))
-            {
-                // Store the cached offset on closed to handle case where stores to the store are
-                // throttled, but a clean shutdown is needed
-                try
-                {
-                    if (this.Offset != Checkpointer.InvalidOffset)
-                    {
-                        await this.store.SetCheckpointDataAsync(this.Id, new CheckpointData(this.Offset), CancellationToken.None);
-                        Events.Close(this);
-                    }
-                }
-                catch (TaskCanceledException)
-                {
-                }
-            }
-        }
-
-        public void Dispose() => this.Dispose(true);
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                this.sync.Dispose();
-            }
         }
 
         async Task AddChild(ICheckpointer checkpointer)
@@ -289,8 +289,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
 
         static class Events
         {
-            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<MasterCheckpointer>();
             const int IdStart = Routing.EventIds.MasterCheckpointer;
+            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<MasterCheckpointer>();
 
             enum EventIds
             {

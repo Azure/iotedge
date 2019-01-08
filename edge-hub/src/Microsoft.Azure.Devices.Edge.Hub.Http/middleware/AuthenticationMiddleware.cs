@@ -74,6 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
             {
                 return LogAndReturnFailure("Id header doesn't contain device Id and module Id as expected.");
             }
+
             string deviceId = clientIdParts[0];
             string moduleId = clientIdParts[1];
 
@@ -90,12 +91,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
                 // Authorization header may be present in the QueryNameValuePairs as per Azure standards,
                 // So check in the query parameters first.
                 List<string> authorizationQueryParameters = context.Request.Query
-                .Where(p => p.Key.Equals(HeaderNames.Authorization, StringComparison.OrdinalIgnoreCase))
-                .SelectMany(p => p.Value)
-                .ToList();
+                    .Where(p => p.Key.Equals(HeaderNames.Authorization, StringComparison.OrdinalIgnoreCase))
+                    .SelectMany(p => p.Value)
+                    .ToList();
 
                 if (!(context.Request.Headers.TryGetValue(HeaderNames.Authorization, out StringValues authorizationHeaderValues)
-                    && authorizationQueryParameters.Count == 0))
+                      && authorizationQueryParameters.Count == 0))
                 {
                     return LogAndReturnFailure("Authorization header missing");
                 }
@@ -163,8 +164,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<AuthenticationMiddleware>();
             const int IdStart = HttpEventIds.AuthenticationMiddleware;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<AuthenticationMiddleware>();
 
             enum EventIds
             {

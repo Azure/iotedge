@@ -6,22 +6,18 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Errors
 
     public class ErrorRange
     {
-        public ErrorPosition Start { get; }
-
-        public ErrorPosition End { get; }
-
         public ErrorRange(ErrorPosition start, ErrorPosition end)
         {
-            Preconditions.CheckArgument(Preconditions.CheckNotNull(start) <= Preconditions.CheckNotNull(end),
+            Preconditions.CheckArgument(
+                Preconditions.CheckNotNull(start) <= Preconditions.CheckNotNull(end),
                 string.Format(CultureInfo.InvariantCulture, "Start postition must be less than or equal to end position. Given: {0} and {1}", start, end));
             this.Start = start;
             this.End = end;
         }
 
-        protected bool Equals(ErrorRange other)
-        {
-            return this.Start.Equals(other.Start) && this.End.Equals(other.End);
-        }
+        public ErrorPosition Start { get; }
+
+        public ErrorPosition End { get; }
 
         public override bool Equals(object obj)
         {
@@ -29,10 +25,12 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Errors
             {
                 return false;
             }
+
             if (ReferenceEquals(this, obj))
             {
                 return true;
             }
+
             return obj.GetType() == this.GetType() && this.Equals((ErrorRange)obj);
         }
 
@@ -44,5 +42,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Errors
             }
         }
 
+        protected bool Equals(ErrorRange other)
+        {
+            return this.Start.Equals(other.Start) && this.End.Equals(other.End);
+        }
     }
 }

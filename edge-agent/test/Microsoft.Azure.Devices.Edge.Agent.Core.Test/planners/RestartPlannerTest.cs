@@ -182,7 +182,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             var planRunner = new OrderedPlanRunner();
             await planRunner.ExecuteAsync(1, addPlan, token);
 
-            //Weak confirmation: no assumed order.
+            // Weak confirmation: no assumed order.
             factory.Recorder.ForEach(recorder => Assert.All(updateExecutionList, r => Assert.True(recorder.ExecutionList.Contains(r))));
             factory.Recorder.ForEach(
                 recorder =>

@@ -32,8 +32,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly Option<UpstreamProtocol> upstreamProtocol;
         readonly Option<string> productInfo;
 
-        public EdgeletModule(string iotHubHostname, string gatewayHostName, string deviceId, Uri managementUri,
-            Uri workloadUri, IEnumerable<AuthConfig> dockerAuthConfig, Option<UpstreamProtocol> upstreamProtocol, Option<string> productInfo)
+        public EdgeletModule(
+            string iotHubHostname,
+            string gatewayHostName,
+            string deviceId,
+            Uri managementUri,
+            Uri workloadUri,
+            IEnumerable<AuthConfig> dockerAuthConfig,
+            Option<UpstreamProtocol> upstreamProtocol,
+            Option<string> productInfo)
         {
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.gatewayHostName = Preconditions.CheckNonWhiteSpace(gatewayHostName, nameof(gatewayHostName));
@@ -66,11 +73,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
             // ICombinedConfigProvider<CombinedDockerConfig>
             builder.Register(
-                async c =>
-                {
-                    IConfigSource configSource = await c.Resolve<Task<IConfigSource>>();
-                    return new CombinedEdgeletConfigProvider(this.dockerAuthConfig, configSource) as ICombinedConfigProvider<CombinedDockerConfig>;
-                })
+                    async c =>
+                    {
+                        IConfigSource configSource = await c.Resolve<Task<IConfigSource>>();
+                        return new CombinedEdgeletConfigProvider(this.dockerAuthConfig, configSource) as ICombinedConfigProvider<CombinedDockerConfig>;
+                    })
                 .As<Task<ICombinedConfigProvider<CombinedDockerConfig>>>()
                 .SingleInstance();
 
@@ -94,16 +101,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
             // Task<IEnvironmentProvider>
             builder.Register(
-                async c =>
-                {
-                    var moduleStateStore = c.Resolve<IEntityStore<string, ModuleState>>();
-                    var restartPolicyManager = c.Resolve<IRestartPolicyManager>();
-                    var runtimeInfoProvider = c.Resolve<IRuntimeInfoProvider>();
-                    IEnvironmentProvider dockerEnvironmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, moduleStateStore, restartPolicyManager);
-                    return dockerEnvironmentProvider;
-                })
-             .As<Task<IEnvironmentProvider>>()
-             .SingleInstance();
+                    async c =>
+                    {
+                        var moduleStateStore = c.Resolve<IEntityStore<string, ModuleState>>();
+                        var restartPolicyManager = c.Resolve<IRestartPolicyManager>();
+                        var runtimeInfoProvider = c.Resolve<IRuntimeInfoProvider>();
+                        IEnvironmentProvider dockerEnvironmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, moduleStateStore, restartPolicyManager);
+                        return dockerEnvironmentProvider;
+                    })
+                .As<Task<IEnvironmentProvider>>()
+                .SingleInstance();
         }
     }
 }

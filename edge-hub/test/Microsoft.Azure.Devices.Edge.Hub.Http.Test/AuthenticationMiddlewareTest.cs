@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
     using Microsoft.AspNetCore.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
-    using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Http.Middleware;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Extensions.Primitives;
@@ -38,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
             Assert.NotNull(result);
             Assert.True(result.success);
-            Assert.Equal("", result.message);
+            Assert.Equal(string.Empty, result.message);
         }
 
         [Fact]
@@ -176,7 +175,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
             Assert.NotNull(result);
             Assert.True(result.success);
-            Assert.Equal("", result.message);
+            Assert.Equal(string.Empty, result.message);
         }
 
         [Fact]
@@ -269,7 +268,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
             Assert.NotNull(result);
             Assert.True(result.success);
-            Assert.Equal("", result.message);
+            Assert.Equal(string.Empty, result.message);
         }
 
         [Fact]
@@ -293,7 +292,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
             Assert.NotNull(result);
             Assert.True(result.success);
-            Assert.Equal("", result.message);
+            Assert.Equal(string.Empty, result.message);
         }
 
         [Fact]
@@ -316,7 +315,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
             Assert.NotNull(result);
             Assert.True(result.success);
-            Assert.Equal("", result.message);
+            Assert.Equal(string.Empty, result.message);
         }
 
         [Fact]
@@ -389,6 +388,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             Assert.Equal("Request header does not contain ModuleId", result.message);
         }
 
-        public class SomeException : Exception { }
+        public class SomeException : Exception
+        {
+        }
     }
 }

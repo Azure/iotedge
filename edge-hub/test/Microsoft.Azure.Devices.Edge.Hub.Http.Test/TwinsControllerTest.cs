@@ -13,7 +13,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
     using Microsoft.AspNetCore.Routing;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
-    using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Http.Controllers;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
@@ -80,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             string command = "showdown";
             string payload = "{ \"prop1\" : \"value1\" }";
 
-            var methodRequest = new MethodRequest( command, new JRaw(payload));
+            var methodRequest = new MethodRequest(command, new JRaw(payload));
             IActionResult actionResult = await testController.InvokeModuleMethodAsync(WebUtility.UrlEncode(toDeviceId), WebUtility.UrlEncode(toModuleId), methodRequest);
 
             Assert.NotNull(actionResult);
@@ -200,24 +199,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             Assert.Equal(objectResult.StatusCode, (int)HttpStatusCode.GatewayTimeout);
         }
 
-        ActionExecutingContext GetActionExecutingContextMock(IIdentity identity)
+        [Unit]
+        [Theory]
+        [MemberData(nameof(GetRawJsonData))]
+        public void GetRawJsonTest(byte[] input, JRaw expectedOutput)
         {
-            var items = new Dictionary<object, object>
-            {
-                { HttpConstants.IdentityKey, identity }
-            };
+            // Act
+            JRaw output = TwinsController.GetRawJson(input);
 
-            var httpContext = Mock.Of<HttpContext>(c => c.Items == items);
-            var actionContext = new ActionContext(httpContext, Mock.Of<RouteData>(), Mock.Of<ActionDescriptor>());
-            var actionExecutingContext = new ActionExecutingContext(actionContext, Mock.Of<IList<IFilterMetadata>>(), Mock.Of<IDictionary<string, object>>(), new object());
-            return actionExecutingContext;
+            // Assert
+            Assert.Equal(expectedOutput, output);
         }
 
         static IEnumerable<object[]> GetRawJsonData()
         {
             yield return new object[] { null, null };
 
-            yield return new object[] { new byte[0], null};
+            yield return new object[] { new byte[0], null };
 
             object obj = new
             {
@@ -231,16 +229,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             yield return new object[] { Encoding.UTF8.GetBytes(json), new JRaw(json) };
         }
 
-        [Unit]
-        [Theory]
-        [MemberData(nameof(GetRawJsonData))]
-        public void GetRawJsonTest(byte[] input, JRaw expectedOutput)
+        ActionExecutingContext GetActionExecutingContextMock(IIdentity identity)
         {
-            // Act
-            JRaw output = TwinsController.GetRawJson(input);
+            var items = new Dictionary<object, object>
+            {
+                { HttpConstants.IdentityKey, identity }
+            };
 
-            // Assert
-            Assert.Equal(expectedOutput, output);
+            var httpContext = Mock.Of<HttpContext>(c => c.Items == items);
+            var actionContext = new ActionContext(httpContext, Mock.Of<RouteData>(), Mock.Of<ActionDescriptor>());
+            var actionExecutingContext = new ActionExecutingContext(actionContext, Mock.Of<IList<IFilterMetadata>>(), Mock.Of<IDictionary<string, object>>(), new object());
+            return actionExecutingContext;
         }
     }
 }

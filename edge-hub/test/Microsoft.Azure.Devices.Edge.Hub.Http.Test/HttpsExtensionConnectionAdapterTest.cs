@@ -2,19 +2,11 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 {
     using System;
-    using System.Threading.Tasks;
-    using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Server.Kestrel.Https;
-    using Microsoft.Azure.Devices.Edge.Hub.Core;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
-    using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Http.Adapters;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using TestCertificateHelper = Microsoft.Azure.Devices.Edge.Util.Test.Common.CertificateHelper;
-    using Microsoft.Extensions.Primitives;
-    using Microsoft.Net.Http.Headers;
-    using Moq;
     using Xunit;
+    using TestCertificateHelper = Microsoft.Azure.Devices.Edge.Util.Test.Common.CertificateHelper;
 
     [Unit]
     public class HttpsExtensionConnectionAdapterTest

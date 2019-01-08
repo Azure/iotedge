@@ -6,11 +6,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
     [Serializable]
     public class ConfigEmptyException : Exception
     {
-        public ConfigEmptyException(string message) : base(message)
+        public ConfigEmptyException(string message)
+            : base(message)
         {
         }
 
-        public ConfigEmptyException(string message, Exception inner) : base(message, inner)
+        public ConfigEmptyException(string message, Exception inner)
+            : base(message, inner)
         {
         }
     }

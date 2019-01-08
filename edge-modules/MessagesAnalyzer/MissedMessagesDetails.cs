@@ -8,17 +8,17 @@ namespace MessagesAnalyzer
     [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy))]
     class MissedMessagesDetails
     {
-        public long MissedMessagesCount { get; }
-
-        public DateTime StartDateTime { get; }
-
-        public DateTime EndDateTime { get; }
-
         public MissedMessagesDetails(long missedMessagesCount, DateTime startDateTime, DateTime endDateTime)
         {
             this.MissedMessagesCount = missedMessagesCount;
             this.StartDateTime = startDateTime;
             this.EndDateTime = endDateTime;
         }
+
+        public long MissedMessagesCount { get; }
+
+        public DateTime StartDateTime { get; }
+
+        public DateTime EndDateTime { get; }
     }
 }

@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Storage.Test
 {
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -12,8 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
     [Integration]
     public abstract class EntityStoreTestBase
     {
-        protected abstract IEntityStore<TK, TV> GetEntityStore<TK, TV>(string entityName);
-
         [Fact]
         [TestPriority(301)]
         public async Task BasicTest()
@@ -26,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
             await entityStore.Put(new Key { Type = "B", Id = 2 }, new Value { Prop1 = "Bar", Prop2 = 20 });
             await entityStore.Put(new Key { Type = "B", Id = 3 }, new Value { Prop1 = "Bar", Prop2 = 30 });
 
-            //act/assert to validate key.
+            // act/assert to validate key.
             Option<(Key key, Value value)> itemRetrieved = await entityStore.GetFirstEntry();
 
             Assert.True(itemRetrieved.HasValue);
@@ -36,7 +33,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
                     Assert.Equal("A", pair.key.Type);
                     Assert.Equal(1, pair.key.Id);
                 });
-
 
             itemRetrieved = await entityStore.GetLastEntry();
             Assert.True(itemRetrieved.HasValue);
@@ -123,15 +119,19 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
             Assert.Equal(getUpdatedValue.OrDefault(), updatedValue);
         }
 
+        protected abstract IEntityStore<TK, TV> GetEntityStore<TK, TV>(string entityName);
+
         public class Key
         {
             public string Type { get; set; }
+
             public int Id { get; set; }
         }
 
         public class Value
         {
             public string Prop1 { get; set; }
+
             public int Prop2 { get; set; }
         }
     }

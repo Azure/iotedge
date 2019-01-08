@@ -13,13 +13,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
     /// object for each device that is connected to the edge hub. The <see cref="IConnectionManager"/>
     /// object is responsible for creating and maintaining instances of <c>IDeviceProxy</c>
     /// for every connecting device.
-    /// 
     /// In the MQTT implementation for example the implementation of this interface uses
     /// the protocol gateway library to interface with MQTT clients by transforming messages
     /// between MQTT packets and <see cref="IMessage"/> objects.
     /// </summary>
     public interface IDeviceProxy
     {
+        bool IsActive { get; }
+
+        IIdentity Identity { get; }
+
         Task CloseAsync(Exception ex);
 
         Task SendC2DMessageAsync(IMessage message);
@@ -31,10 +34,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         Task OnDesiredPropertyUpdates(IMessage desiredProperties);
 
         Task SendTwinUpdate(IMessage twin);
-
-        bool IsActive { get; }
-
-        IIdentity Identity { get; }
 
         void SetInactive();
 

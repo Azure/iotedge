@@ -10,6 +10,32 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Xunit;
 
+    public class StalledEndpointTest : RoutingUnitTestBase
+    {
+        [Fact]
+        [Unit]
+        public void SmokeTest()
+        {
+            var endpoint = new StalledEndpoint("id1");
+            IProcessor processor = endpoint.CreateProcessor();
+
+            Assert.Equal(endpoint, processor.Endpoint);
+            Assert.True(processor.ErrorDetectionStrategy.IsTransient(new Exception()));
+            Assert.Equal(string.Empty, endpoint.IotHubName);
+
+            var cts = new CancellationTokenSource();
+            Task<ISinkResult<IMessage>> result = processor.ProcessAsync(new IMessage[] { }, cts.Token);
+            Assert.False(result.IsCompleted);
+            Assert.False(result.IsCanceled);
+            Assert.False(result.IsFaulted);
+
+            cts.Cancel();
+            Assert.True(result.IsCompleted);
+            Assert.True(result.IsCanceled);
+            Assert.False(result.IsFaulted);
+        }
+    }
+
     class StalledEndpoint : Endpoint
     {
         public StalledEndpoint(string id)
@@ -34,14 +60,14 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
         {
             readonly StalledEndpoint endpoint;
 
-            public Endpoint Endpoint => this.endpoint;
-
-            public ITransientErrorDetectionStrategy ErrorDetectionStrategy => new ErrorDetectionStrategy(_ => true);
-
             public Processor(StalledEndpoint endpoint)
             {
                 this.endpoint = endpoint;
             }
+
+            public Endpoint Endpoint => this.endpoint;
+
+            public ITransientErrorDetectionStrategy ErrorDetectionStrategy => new ErrorDetectionStrategy(_ => true);
 
             public Task<ISinkResult<IMessage>> ProcessAsync(IMessage message, CancellationToken token) =>
                 this.ProcessAsync(new[] { message }, token);
@@ -54,31 +80,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             }
 
             public Task CloseAsync(CancellationToken token) => TaskEx.Done;
-        }
-    }
-
-    public class StalledEndpointTest : RoutingUnitTestBase
-    {
-        [Fact, Unit]
-        public void SmokeTest()
-        {
-            var endpoint = new StalledEndpoint("id1");
-            IProcessor processor = endpoint.CreateProcessor();
-
-            Assert.Equal(endpoint, processor.Endpoint);
-            Assert.True(processor.ErrorDetectionStrategy.IsTransient(new Exception()));
-            Assert.Equal(string.Empty, endpoint.IotHubName);
-
-            var cts = new CancellationTokenSource();
-            Task<ISinkResult<IMessage>> result = processor.ProcessAsync(new IMessage[] { }, cts.Token);
-            Assert.False(result.IsCompleted);
-            Assert.False(result.IsCanceled);
-            Assert.False(result.IsFaulted);
-
-            cts.Cancel();
-            Assert.True(result.IsCompleted);
-            Assert.True(result.IsCanceled);
-            Assert.False(result.IsFaulted);
         }
     }
 }
