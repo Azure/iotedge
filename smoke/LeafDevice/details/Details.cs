@@ -7,7 +7,6 @@ namespace LeafDevice.Details
     using System.Linq;
     using System.Net;
     using System.Runtime.InteropServices;
-    using System.Security.Cryptography;
     using System.Security.Cryptography.X509Certificates;
     using System.Text;
     using System.Threading;
@@ -42,32 +41,11 @@ namespace LeafDevice.Details
         readonly ServiceClientTransportType serviceClientTransportType;
         readonly EventHubClientTransportType eventHubClientTransportType;
         readonly ITransportSettings[] deviceTransportSettings;
-        readonly Option<DeviceCertificate> clientCertificate = Option.None<DeviceCertificate>();
+        Option<X509Certificate2> clientCertificate = Option.None<X509Certificate2>();
+        Option<IEnumerable<X509Certificate2>> clientCertificateChain = Option.None<IEnumerable<X509Certificate2>>();
         Option<List<string>> thumbprints = Option.None<List<string>>();
         AuthenticationType authType = AuthenticationType.None;
         DeviceContext context;
-
-        static IEnumerable<X509Certificate2> GetCertificatesFromPem(IEnumerable<string> rawPemCerts) =>
-            rawPemCerts
-                .Select(c => System.Text.Encoding.UTF8.GetBytes(c))
-                .Select(c => new X509Certificate2(c))
-                .ToList();
-
-        static string GetSha256Thumbprint(X509Certificate2 cert)
-        {
-            Preconditions.CheckNotNull(cert);
-            using (var sha256 = new SHA256Managed())
-            {
-                byte[] hash = sha256.ComputeHash(cert.RawData);
-                return ToHexString(hash);
-            }
-        }
-
-        static string ToHexString(byte[] bytes)
-        {
-            Preconditions.CheckNotNull(bytes);
-            return BitConverter.ToString(bytes).Replace("-", string.Empty);
-        }
 
         protected Details(
             string iothubConnectionString,
@@ -76,7 +54,7 @@ namespace LeafDevice.Details
             string trustedCACertificateFileName,
             string edgeHostName,
             bool useWebSockets,
-            Option<DeviceCertificate> clientCertificate,
+            Option<DeviceCertificate> clientCertificatePaths,
             Option<IList<string>> thumbprintCertificatePaths
         )
         {
@@ -85,17 +63,13 @@ namespace LeafDevice.Details
             this.deviceId = deviceId;
             this.trustedCACertificateFileName = trustedCACertificateFileName;
             this.edgeHostName = edgeHostName;
-            this.authType = clientCertificate.Map(
+            this.authType = clientCertificatePaths.Map(
                 clientCred =>
                 {
-                    if (string.IsNullOrWhiteSpace(clientCred.certificateFilePath) || !File.Exists(clientCred.certificateFilePath))
-                    {
-                        throw new ArgumentException($"'{clientCred.certificateFilePath}' is not a path to a certificates file");
-                    }
-                    if (string.IsNullOrWhiteSpace(clientCred.certificateKeyFilePath) || !File.Exists(clientCred.certificateKeyFilePath))
-                    {
-                        throw new ArgumentException($"'{clientCred.certificateKeyFilePath}' is not a path to a certificates key file");
-                    }
+                    (X509Certificate2 clientCert, IEnumerable<X509Certificate2> clientCertChain) =
+                        CertificateHelper.GetServerCertificateAndChainFromFile(clientCred.certificateFilePath, clientCred.certificateKeyFilePath);
+                    this.clientCertificate = Option.Some(clientCert);
+                    
                     var authType = AuthenticationType.CertificateAuthority;
                     this.thumbprints = thumbprintCertificatePaths.Map(
                         certificates =>
@@ -124,17 +98,22 @@ namespace LeafDevice.Details
                                 }
                                 rawCerts.Add(rawCert);
                             }
-                            var certs = GetCertificatesFromPem(rawCerts);
+                            var certs = CertificateHelper.GetCertificatesFromPem(rawCerts);
                             var thumbprints = new List<string>();
                             foreach (X509Certificate2 cert in certs)
                             {
-                                thumbprints.Add(Details.GetSha256Thumbprint(cert));
+                                thumbprints.Add(cert.Thumbprint.ToUpper());
+                                //thumbprints.Add(CertificateHelper.GetSha256Thumbprint(cert));
                             }
                             return thumbprints;
                         });
+                    if (authType == AuthenticationType.CertificateAuthority)
+                    {
+                        this.clientCertificateChain = Option.Some(clientCertChain);
+                    }
                     return authType;
                 }).GetOrElse(AuthenticationType.Sas);
-
+            
             if (useWebSockets)
             {
                 this.serviceClientTransportType = ServiceClientTransportType.Amqp_WebSocket_Only;
@@ -149,43 +128,80 @@ namespace LeafDevice.Details
             }
         }
 
-        protected Task InitializeServerCerts()
+        public static void InstallCerts(StoreName name, StoreLocation location, IEnumerable<X509Certificate2> certs)
         {
-            if (string.IsNullOrEmpty(this.trustedCACertificateFileName))
+            List<X509Certificate2> certsList = certs.ToList();
+            using (var store = new X509Store(name, location))
             {
-                return Task.CompletedTask;
-            }
-
-            // Since Windows will pop up security warning when add certificate to current user store location;
-            // Therefore we will use CustomCertificateValidator instead.
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                // This will hook up callback on device transport settings to validate with given certificate
-                CustomCertificateValidator.Create(new List<X509Certificate2> { this.GetCertificate() }, this.deviceTransportSettings);
-            }
-            else
-            {
-                var store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
                 store.Open(OpenFlags.ReadWrite);
-                store.Add(this.GetCertificate());
-                store.Close();
+                foreach (X509Certificate2 cert in certsList)
+                {
+                    store.Add(cert);
+                }
+            }
+        }
+
+        static void InstallTrustedCACerts(IEnumerable<X509Certificate2> trustedCertificates)
+        {
+            // Since Windows will pop up security warning when add certificate to current user store location;
+            StoreName name = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? StoreName.CertificateAuthority : StoreName.Root;
+            List<X509Certificate2> certsList = trustedCertificates.ToList();
+            using (var store = new X509Store(name, StoreLocation.CurrentUser))
+            {
+                store.Open(OpenFlags.ReadWrite);
+                foreach (X509Certificate2 cert in certsList)
+                {
+                    store.Add(cert);
+                }
+            }
+        }
+
+        protected Task InitializeTrustedCertsAsync()
+        {
+            if (!string.IsNullOrEmpty(this.trustedCACertificateFileName))
+            {
+                // Since Windows will pop up security warning when add certificate to current user store location;
+                // Therefore we will use CustomCertificateValidator instead.
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    // This will hook up callback on device transport settings to validate with given certificate
+                    CustomCertificateValidator.Create(new List<X509Certificate2> { this.GetCertificate() }, this.deviceTransportSettings);
+                }
+                else
+                {
+                    InstallTrustedCACerts(new List<X509Certificate2>() { this.GetCertificate() });
+                }
             }
 
-            return Task.CompletedTask;
+            return clientCertificateChain.Map(
+                certs =>
+                {
+                    InstallTrustedCACerts(certs);
+                    return Task.CompletedTask;
+                }).GetOrElse(Task.CompletedTask);
         }
 
         X509Certificate2 GetCertificate() => new X509Certificate2(X509Certificate.CreateFromCertFile(this.trustedCACertificateFileName));
 
-        protected async Task ConnectToEdgeAndSendData()
+        protected async Task ConnectToEdgeAndSendDataAsync()
         {
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
-            string leafDeviceConnectionString = $"HostName={builder.HostName};DeviceId={this.deviceId};SharedAccessKey={this.context.Device.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={this.edgeHostName}";
+            DeviceClient deviceClient;
+            if (this.authType == AuthenticationType.Sas)
+            {
+                string leafDeviceConnectionString = $"HostName={builder.HostName};DeviceId={this.deviceId};SharedAccessKey={this.context.Device.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={this.edgeHostName}";
+                deviceClient = DeviceClient.CreateFromConnectionString(leafDeviceConnectionString, this.deviceTransportSettings);
+            }
+            else
+            {
+                var auth = new DeviceAuthenticationWithX509Certificate(this.deviceId, this.clientCertificate.Expect(() => new InvalidOperationException("Missing client certificate")));
+                deviceClient = DeviceClient.Create(builder.HostName, this.edgeHostName, auth, this.deviceTransportSettings);
+            }
 
-            DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(leafDeviceConnectionString, this.deviceTransportSettings);
             this.context.DeviceClientInstance = Option.Some(deviceClient);
             Console.WriteLine("Leaf Device client created.");
 
-            var message = new Message(Encoding.ASCII.GetBytes($"Message from Leaf Device. MsgGUID: {this.context.MessageGuid}"));
+            var message = new Message(Encoding.ASCII.GetBytes($"Message from Leaf Device. Msg GUID: {this.context.MessageGuid}"));
             Console.WriteLine($"Trying to send the message to '{this.edgeHostName}'");
 
             await deviceClient.SendEventAsync(message);
@@ -194,7 +210,7 @@ namespace LeafDevice.Details
             Console.WriteLine("Direct method callback is set.");
         }
 
-        protected async Task GetOrCreateDeviceIdentity()
+        protected async Task GetOrCreateDeviceIdentityAsync()
         {
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(builder.ToString());
@@ -204,6 +220,17 @@ namespace LeafDevice.Details
             if (device != null)
             {
                 Console.WriteLine($"Device '{device.Id}' already registered on IoT hub '{builder.HostName}'");
+
+                if (this.authType == AuthenticationType.SelfSigned)
+                {
+                    // always update the thumbprints before attempting to run any tests to ensure consistency
+                    device.Authentication.X509Thumbprint = this.thumbprints.Map(
+                        thList =>
+                        {
+                            return new X509Thumbprint() { PrimaryThumbprint = thList[0], SecondaryThumbprint = thList[1] };
+                        }).GetOrElse(new X509Thumbprint());
+                    await rm.UpdateDeviceAsync(device);
+                }
 
                 this.context = new DeviceContext
                 {
@@ -216,11 +243,11 @@ namespace LeafDevice.Details
             }
             else
             {
-                await this.CreateDeviceIdentity(rm);
+                await this.CreateDeviceIdentityAsync(rm);
             }
         }
 
-        async Task CreateDeviceIdentity(RegistryManager rm)
+        async Task CreateDeviceIdentityAsync(RegistryManager rm)
         {
             var authMechanism = new AuthenticationMechanism() { Type = this.authType };
             if (this.authType == AuthenticationType.SelfSigned)
@@ -253,7 +280,7 @@ namespace LeafDevice.Details
             };
         }
 
-        protected async Task VerifyDataOnIoTHub()
+        protected async Task VerifyDataOnIoTHubAsync()
         {
             var builder = new EventHubsConnectionStringBuilder(this.eventhubCompatibleEndpointWithEntityPath);
             builder.TransportType = this.eventHubClientTransportType;
@@ -305,7 +332,7 @@ namespace LeafDevice.Details
             return Task.FromResult(new MethodResponse(methodRequest.Data, (int)HttpStatusCode.OK));
         }
 
-        protected async Task VerifyDirectMethod()
+        protected async Task VerifyDirectMethodAsync()
         {
             //User Service SDK to invoke Direct Method on the device.
             ServiceClient serviceClient =

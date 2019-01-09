@@ -76,11 +76,11 @@ namespace LeafDevice
             // This test assumes that there is an edge deployment running as transparent gateway.
             try
             {
-                await this.InitializeServerCerts();
-                await GetOrCreateDeviceIdentity();
-                await ConnectToEdgeAndSendData();
-                await this.VerifyDataOnIoTHub();
-                await this.VerifyDirectMethod();
+                await this.InitializeTrustedCertsAsync();
+                await GetOrCreateDeviceIdentityAsync();
+                await ConnectToEdgeAndSendDataAsync();
+                await this.VerifyDataOnIoTHubAsync();
+                await this.VerifyDirectMethodAsync();
             }
             catch (Exception)
             {

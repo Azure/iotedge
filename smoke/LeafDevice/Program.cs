@@ -2,6 +2,7 @@
 namespace LeafDevice
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
     using McMaster.Extensions.CommandLineUtils;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -44,7 +45,7 @@ Defaults:
         [Option("-e|--eventhub-endpoint <value>", Description = "Event Hub-compatible endpoint for IoT Hub, including EntityPath")]
         public string EventHubCompatibleEndpointWithEntityPath { get; } = Environment.GetEnvironmentVariable("eventhubCompatibleEndpointWithEntityPath");
 
-        [Option("-ct|--certificate <value>", Description = "CA Certificate(s) file to be installed on the machine.")]
+        [Option("-ct|--certificate <value>", Description = "Trust bundle CA Certificate(s) file to be installed on the machine.")]
         public string TrustedCACertificateFileName { get; } = "";
 
         [Option("-d|--device-id", Description = "Leaf device identifier to be registered with IoT Hub")]
@@ -56,22 +57,22 @@ Defaults:
         [Option("--use-web-sockets", CommandOptionType.NoValue, Description = "Use websockets for IoT Hub connections.")]
         public bool UseWebSockets { get; } = false;
 
-        [Option("--leaf-x509-ca-cert-path", Description = "Path to a X.509 leaf certificate file in PEM format to be used for X.509 CA authentication.")]
+        [Option("-cac|--x509-ca-cert-path", Description = "Path to a X.509 leaf certificate file in PEM format to be used for X.509 CA authentication.")]
         public string X509CACertPath { get; } = "";
 
-        [Option("--leaf-x509-ca-key-path", Description = "Path to a X.509 leaf certificate key file in PEM format to be used for X.509 CA authentication.")]
+        [Option("-cak|--x509-ca-key-path", Description = "Path to a X.509 leaf certificate key file in PEM format to be used for X.509 CA authentication.")]
         public string X509CAKeyPath { get; } = "";
 
-        [Option("--leaf-x509-primary-cert-path", Description = "Path to a X.509 leaf certificate file in PEM format. This is needed for thumbprint auth and used as the primary certificate.")]
+        [Option("-ctpc|--x509-primary-cert-path", Description = "Path to a X.509 leaf certificate file in PEM format. This is needed for thumbprint auth and used as the primary certificate.")]
         public string X509PrimaryCertPath { get; } = "";
 
-        [Option("--leaf-x509-primary-key-path", Description = "Path to a X.509 leaf certificate key file in PEM format. This is needed for thumbprint auth and used as the primary certificate's key.")]
+        [Option("-ctpk|--x509-primary-key-path", Description = "Path to a X.509 leaf certificate key file in PEM format. This is needed for thumbprint auth and used as the primary certificate's key.")]
         public string X509PrimaryKeyPath { get; } = "";
 
-        [Option("--leaf-x509-secondary-cert-path", Description = "Path to a X.509 leaf certificate file in PEM format. This is needed for thumbprint auth and used as the secondary certificate.")]
+        [Option("-ctsc|--x509-secondary-cert-path", Description = "Path to a X.509 leaf certificate file in PEM format. This is needed for thumbprint auth and used as the secondary certificate.")]
         public string X509SecondaryCertPath { get; } = "";
 
-        [Option("--leaf-x509-secondary-key-path", Description = "Path to a X.509 leaf certificate key file in PEM format. This is needed for thumbprint auth and used as the secondary certificate's key.")]
+        [Option("-ctsk|--x509-secondary-key-path", Description = "Path to a X.509 leaf certificate key file in PEM format. This is needed for thumbprint auth and used as the secondary certificate's key.")]
         public string X509SecondaryKeyPath { get; } = "";
 
         // ReSharper disable once UnusedMember.Local
@@ -85,44 +86,62 @@ Defaults:
                 string endpoint = this.EventHubCompatibleEndpointWithEntityPath ??
                     await SecretsHelper.GetSecretFromConfigKey("eventHubConnStrKey");
 
-                bool useThumprintAuth = false;
                 if (!string.IsNullOrWhiteSpace(X509PrimaryCertPath) &&
                     !string.IsNullOrWhiteSpace(X509PrimaryKeyPath) &&
                     !string.IsNullOrWhiteSpace(X509SecondaryCertPath) &&
                     !string.IsNullOrWhiteSpace(X509SecondaryKeyPath))
                 {
                     // use thumbprint auth and perform test for both primary and secondary certificates
-                    useThumprintAuth = true;
-                }
-                else if (!string.IsNullOrWhiteSpace(X509CACertPath) && !string.IsNullOrWhiteSpace(X509CAKeyPath))
-                {
-                    // use X.509 CA auth and perform test using CA chained certificates
+                    var thumbprintCerts = new List<string>() { this.X509PrimaryCertPath, this.X509SecondaryCertPath };
+                    var testPrimary = new LeafDevice(
+                        connectionString,
+                        endpoint,
+                        this.DeviceId,
+                        this.TrustedCACertificateFileName,
+                        this.EdgeHostName,
+                        this.UseWebSockets,
+                        this.X509PrimaryCertPath,
+                        this.X509PrimaryKeyPath,
+                        thumbprintCerts);
+                    await testPrimary.RunAsync();
 
-                }
-                else
-                {
-                    // non certificate flow use SAS tokens
-                }
-
-                var testPrimary = new LeafDevice(
-                    connectionString,
-                    endpoint,
-                    this.DeviceId,
-                    this.TrustedCACertificateFileName,
-                    this.EdgeHostName,
-                    this.UseWebSockets);
-                await testPrimary.RunAsync();
-
-                if (useThumprintAuth)
-                {
                     var testSeondary = new LeafDevice(
                         connectionString,
                         endpoint,
                         this.DeviceId,
                         this.TrustedCACertificateFileName,
                         this.EdgeHostName,
-                        this.UseWebSockets);
+                        this.UseWebSockets,
+                        this.X509PrimaryCertPath,
+                        this.X509PrimaryKeyPath,
+                        thumbprintCerts);
                     await testSeondary.RunAsync();
+                }
+                else if (!string.IsNullOrWhiteSpace(X509CACertPath) && !string.IsNullOrWhiteSpace(X509CAKeyPath))
+                {
+                    // use X.509 CA auth and perform test using CA chained certificates
+                    var testCa = new LeafDevice(
+                        connectionString,
+                        endpoint,
+                        this.DeviceId,
+                        this.TrustedCACertificateFileName,
+                        this.EdgeHostName,
+                        this.UseWebSockets,
+                        X509CACertPath,
+                        X509CAKeyPath);
+                    await testCa.RunAsync();
+                }
+                else
+                {
+                    // non certificate flow use SAS tokens
+                    var testSas = new LeafDevice(
+                        connectionString,
+                        endpoint,
+                        this.DeviceId,
+                        this.TrustedCACertificateFileName,
+                        this.EdgeHostName,
+                        this.UseWebSockets);
+                    await testSas.RunAsync();
                 }
             }
             catch (Exception ex)
