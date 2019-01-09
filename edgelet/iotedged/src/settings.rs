@@ -268,6 +268,8 @@ mod tests {
     #[cfg(unix)]
     static GOOD_SETTINGS1: &str = "test/linux/sample_settings1.yaml";
     #[cfg(unix)]
+    static GOOD_SETTINGS2: &str = "test/linux/sample_settings2.yaml";
+    #[cfg(unix)]
     static BAD_SETTINGS: &str = "test/linux/bad_sample_settings.yaml";
     #[cfg(unix)]
     static GOOD_SETTINGS_TG: &str = "test/linux/sample_settings.tg.yaml";
@@ -276,6 +278,8 @@ mod tests {
     static GOOD_SETTINGS: &str = "test/windows/sample_settings.yaml";
     #[cfg(windows)]
     static GOOD_SETTINGS1: &str = "test/windows/sample_settings1.yaml";
+    #[cfg(windows)]
+    static GOOD_SETTINGS2: &str = "test/windows/sample_settings2.yaml";
     #[cfg(windows)]
     static BAD_SETTINGS: &str = "test/windows/bad_sample_settings.yaml";
     #[cfg(windows)]
@@ -361,6 +365,22 @@ mod tests {
             .unwrap()
             .write_all(base64_to_write.as_bytes())
             .unwrap();
+        assert_eq!(settings.diff_with_cached(path).unwrap(), false);
+    }
+
+    #[test]
+    fn diff_with_same_cached_env_var_unordered_returns_false() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let path = tmp_dir.path().join("cache");
+        let settings1 = Settings::<DockerConfig>::new(Some(GOOD_SETTINGS2)).unwrap();
+        let settings_to_write = serde_json::to_string(&settings1).unwrap();
+        let sha_to_write = Sha256::digest_str(&settings_to_write);
+        let base64_to_write = base64::encode(&sha_to_write);
+        FsFile::create(path.clone())
+            .unwrap()
+            .write_all(base64_to_write.as_bytes())
+            .unwrap();
+        let settings = Settings::<DockerConfig>::new(Some(GOOD_SETTINGS)).unwrap();
         assert_eq!(settings.diff_with_cached(path).unwrap(), false);
     }
 
