@@ -10,7 +10,7 @@ namespace MessagesAnalyzer
     {
         public Startup(IConfiguration configuration)
         {
-            Configuration = configuration;
+            this.Configuration = configuration;
         }
 
         public IConfiguration Configuration { get; }
@@ -28,7 +28,7 @@ namespace MessagesAnalyzer
             {
                 app.UseDeveloperExceptionPage();
             }
-           
+
             app.UseMvc();
         }
     }

@@ -34,24 +34,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public const string Operation = "operation";
         public const string SequenceNumber = "sequenceNumber";
 
-        static class OnTheWireSystemPropertyNames
-        {
-            public const string ExpiryTimeUtcOnTheWireName = "$.exp";
-            public const string CorrelationIdOnTheWireName = "$.cid";
-            public const string MessageIdOnTheWireName = "$.mid";
-            public const string ToOnTheWireName = "$.to";
-            public const string UserIdOnTheWireName = "$.uid";
-            public const string AckOnTheWireName = "ack";
-            public const string OutputNameOnTheWireName = "$.on";
-            public const string ConnectionDeviceIdOnTheWireName = "$.cdid";
-            public const string ConnectionModuleIdOnTheWireName = "$.cmid";
-            public const string ContentTypeOnTheWireName = "$.ct";
-            public const string ContentEncodingOnTheWireName = "$.ce";
-            public const string MessageSchemaOnTheWireName = "$.schema";
-            public const string CreationTimeOnTheWireName = "$.ctime";
-            public const string OperationOnTheWireName = "iothub-operation";
-        }
-
         public static readonly Dictionary<string, string> IncomingSystemPropertiesMap = new Dictionary<string, string>
         {
             { OnTheWireSystemPropertyNames.ExpiryTimeUtcOnTheWireName, ExpiryTimeUtc },
@@ -84,5 +66,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             { ConnectionDeviceId, OnTheWireSystemPropertyNames.ConnectionDeviceIdOnTheWireName },
             { ConnectionModuleId, OnTheWireSystemPropertyNames.ConnectionModuleIdOnTheWireName }
         };
+
+        static class OnTheWireSystemPropertyNames
+        {
+            public const string ExpiryTimeUtcOnTheWireName = "$.exp";
+            public const string CorrelationIdOnTheWireName = "$.cid";
+            public const string MessageIdOnTheWireName = "$.mid";
+            public const string ToOnTheWireName = "$.to";
+            public const string UserIdOnTheWireName = "$.uid";
+            public const string AckOnTheWireName = "ack";
+            public const string OutputNameOnTheWireName = "$.on";
+            public const string ConnectionDeviceIdOnTheWireName = "$.cdid";
+            public const string ConnectionModuleIdOnTheWireName = "$.cmid";
+            public const string ContentTypeOnTheWireName = "$.ct";
+            public const string ContentEncodingOnTheWireName = "$.ce";
+            public const string MessageSchemaOnTheWireName = "$.schema";
+            public const string CreationTimeOnTheWireName = "$.ctime";
+            public const string OperationOnTheWireName = "iothub-operation";
+        }
     }
 }

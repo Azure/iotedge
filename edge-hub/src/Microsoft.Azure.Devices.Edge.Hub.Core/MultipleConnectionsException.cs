@@ -6,7 +6,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     public class MultipleConnectionsException : Exception
     {
         public MultipleConnectionsException(string message)
-           : base (message)
-        { }       
+            : base(message)
+        {
+        }
     }
 }

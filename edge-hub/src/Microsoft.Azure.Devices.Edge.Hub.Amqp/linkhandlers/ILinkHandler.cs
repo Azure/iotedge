@@ -10,12 +10,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 
         IAmqpLink Link { get; }
 
-        Task OpenAsync(TimeSpan timeout);
-
-        Task CloseAsync(TimeSpan timeout);
-
         string CorrelationId { get; }
 
         LinkType Type { get; }
+
+        Task OpenAsync(TimeSpan timeout);
+
+        Task CloseAsync(TimeSpan timeout);
     }
 }

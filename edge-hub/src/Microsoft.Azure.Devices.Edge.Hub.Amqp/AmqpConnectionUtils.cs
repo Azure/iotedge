@@ -25,6 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                     return correlationId;
                 }
             }
+
             return string.Empty;
         }
     }

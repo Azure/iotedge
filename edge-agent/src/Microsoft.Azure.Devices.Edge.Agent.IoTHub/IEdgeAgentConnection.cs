@@ -9,9 +9,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
     public interface IEdgeAgentConnection : IDisposable
     {
-        Task<Option<DeploymentConfigInfo>> GetDeploymentConfigInfoAsync();
-
         Option<TwinCollection> ReportedProperties { get; }
+
+        Task<Option<DeploymentConfigInfo>> GetDeploymentConfigInfoAsync();
 
         Task UpdateReportedPropertiesAsync(TwinCollection patch);
     }

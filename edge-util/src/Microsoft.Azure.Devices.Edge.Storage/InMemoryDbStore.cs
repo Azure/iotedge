@@ -75,19 +75,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             await this.IterateBatch(snapshot, i, batchSize, callback, cancellationToken);
         }
 
-        async Task IterateBatch(List<(byte[] key, byte[] value)> snapshot, int index, int batchSize, Func<byte[], byte[], Task> callback, CancellationToken cancellationToken)
-        {
-            if (index >= 0)
-            {
-                for (int i = index; i < index + batchSize && i < snapshot.Count && !cancellationToken.IsCancellationRequested; i++)
-                {
-                    var keyClone = snapshot[i].key.Clone() as byte[];
-                    var valueClone = snapshot[i].value.Clone() as byte[];
-                    await callback(keyClone, valueClone);
-                }
-            }
-        }
-
         public async Task<Option<(byte[] key, byte[] value)>> GetFirstEntry(CancellationToken cancellationToken)
         {
             using (await this.listLock.ReaderLockAsync(cancellationToken))
@@ -133,44 +120,30 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             }
         }
 
+        public void Dispose()
+        {
+            // No-op
+        }
+
+        async Task IterateBatch(List<(byte[] key, byte[] value)> snapshot, int index, int batchSize, Func<byte[], byte[], Task> callback, CancellationToken cancellationToken)
+        {
+            if (index >= 0)
+            {
+                for (int i = index; i < index + batchSize && i < snapshot.Count && !cancellationToken.IsCancellationRequested; i++)
+                {
+                    var keyClone = snapshot[i].key.Clone() as byte[];
+                    var valueClone = snapshot[i].value.Clone() as byte[];
+                    await callback(keyClone, valueClone);
+                }
+            }
+        }
+
         async Task<List<(byte[], byte[])>> GetSnapshot(CancellationToken cancellationToken)
         {
             using (await this.listLock.ReaderLockAsync(cancellationToken))
             {
                 return new List<(byte[], byte[])>(this.keyValues.ItemList);
             }
-        }
-
-        public void Dispose()
-        {
-            // No-op
-        }
-
-        class ItemKeyedCollection : KeyedCollection<byte[], Item>
-        {
-            public ItemKeyedCollection(IEqualityComparer<byte[]> keyEqualityComparer)
-                : base(keyEqualityComparer)
-            {
-            }
-
-            protected override byte[] GetKeyForItem(Item item) => item.Key;
-
-            public IList<(byte[], byte[])> ItemList => this.Items
-                .Select(i => (i.Key, i.Value))
-                .ToList();
-        }
-
-        class Item
-        {
-            public Item(byte[] key, byte[] value)
-            {
-                this.Key = Preconditions.CheckNotNull(key, nameof(key));
-                this.Value = Preconditions.CheckNotNull(value, nameof(value));
-            }
-
-            public byte[] Key { get; }
-
-            public byte[] Value { get; set; }
         }
 
         class ByteArrayComparer : IEqualityComparer<byte[]>
@@ -187,6 +160,33 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
                 return hashCode;
             }
+        }
+
+        class Item
+        {
+            public Item(byte[] key, byte[] value)
+            {
+                this.Key = Preconditions.CheckNotNull(key, nameof(key));
+                this.Value = Preconditions.CheckNotNull(value, nameof(value));
+            }
+
+            public byte[] Key { get; }
+
+            public byte[] Value { get; set; }
+        }
+
+        class ItemKeyedCollection : KeyedCollection<byte[], Item>
+        {
+            public ItemKeyedCollection(IEqualityComparer<byte[]> keyEqualityComparer)
+                : base(keyEqualityComparer)
+            {
+            }
+
+            public IList<(byte[], byte[])> ItemList => this.Items
+                .Select(i => (i.Key, i.Value))
+                .ToList();
+
+            protected override byte[] GetKeyForItem(Item item) => item.Key;
         }
     }
 }

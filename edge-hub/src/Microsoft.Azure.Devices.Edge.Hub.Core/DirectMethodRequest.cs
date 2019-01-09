@@ -7,13 +7,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         public DirectMethodRequest(string id, string name, byte[] data, TimeSpan responseTimeout)
             : this(id, name, data, responseTimeout, TimeSpan.Zero)
-        { }
+        {
+        }
 
         public DirectMethodRequest(string id, string name, byte[] data, TimeSpan responseTimeout, TimeSpan connectTimeout)
         {
             this.Id = id;
             this.Name = name;
-            this.Data = data;            
+            this.Data = data;
             this.ConnectTimeout = connectTimeout;
             this.ResponseTimeout = responseTimeout;
             this.CorrelationId = Guid.NewGuid().ToString();

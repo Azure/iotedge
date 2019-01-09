@@ -8,18 +8,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
     public class EdgeMessage : IMessage
     {
-        public byte[] Body { get; }
-
-        public IDictionary<string, string> Properties { get; }
-
-        public IDictionary<string, string> SystemProperties { get; }
-
         public EdgeMessage(byte[] body, IDictionary<string, string> properties, IDictionary<string, string> systemProperties)
         {
             this.Body = Preconditions.CheckNotNull(body, nameof(body));
             this.Properties = Preconditions.CheckNotNull(properties, nameof(properties));
             this.SystemProperties = Preconditions.CheckNotNull(systemProperties, nameof(systemProperties));
         }
+
+        public byte[] Body { get; }
+
+        public IDictionary<string, string> Properties { get; }
+
+        public IDictionary<string, string> SystemProperties { get; }
 
         public bool Equals(EdgeMessage other)
         {
@@ -34,10 +34,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
 
             return this.Body.SequenceEqual(other.Body) &&
-                this.Properties.Keys.Count == other.Properties.Keys.Count &&
-                this.Properties.Keys.All(key => other.Properties.ContainsKey(key) && Equals(this.Properties[key], other.Properties[key])) &&
-                this.SystemProperties.Keys.Count == other.SystemProperties.Keys.Count &&
-                this.SystemProperties.Keys.All(skey => other.SystemProperties.ContainsKey(skey) && Equals(this.SystemProperties[skey], other.SystemProperties[skey]));
+                   this.Properties.Keys.Count == other.Properties.Keys.Count &&
+                   this.Properties.Keys.All(key => other.Properties.ContainsKey(key) && Equals(this.Properties[key], other.Properties[key])) &&
+                   this.SystemProperties.Keys.Count == other.SystemProperties.Keys.Count &&
+                   this.SystemProperties.Keys.All(skey => other.SystemProperties.ContainsKey(skey) && Equals(this.SystemProperties[skey], other.SystemProperties[skey]));
         }
 
         public override bool Equals(object obj)
@@ -104,7 +104,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
                 return new EdgeMessage(this.body, this.properties, this.systemProperties);
             }
-
         }
     }
 }

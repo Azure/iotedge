@@ -19,13 +19,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     [TestCaseOrderer("Microsoft.Azure.Devices.Edge.Util.Test.PriorityOrderer", "Microsoft.Azure.Devices.Edge.Util.Test")]
     public class Cloud2DeviceTest : IClassFixture<ProtocolHeadFixture>
     {
-        static readonly TimeSpan ClockSkewAdjustment = TimeSpan.FromSeconds(35);
         const string MessagePropertyName = "property1";
         const string DeviceNamePrefix = "E2E_c2d_";
+        static readonly TimeSpan ClockSkewAdjustment = TimeSpan.FromSeconds(35);
 
-        [Theory, TestPriority(101)]
+        [Theory]
+        [TestPriority(101)]
         [InlineData(TransportType.Mqtt_Tcp_Only)]
-        //[InlineData(TransportType.Mqtt_WebSocket_Only)] // Disabled: need a valid server cert for WebSocket to work
+        // [InlineData(TransportType.Mqtt_WebSocket_Only)] // Disabled: need a valid server cert for WebSocket to work
         public async void Receive_C2D_SingleMessage_ShouldSucceed(TransportType transportType)
         {
             // Arrange
@@ -58,7 +59,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             }
         }
 
-        [Fact, TestPriority(102)]
+        [Fact]
+        [TestPriority(102)]
         public async void Receive_C2D_OfflineSingleMessage_ShouldSucceed()
         {
             // Arrange
@@ -82,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 await Task.Delay(TimeSpan.FromSeconds(20));
 
                 // Act
-                //Send message before device is listening
+                // Send message before device is listening
                 Message message = this.CreateMessage(out string payload);
                 await serviceClient.SendAsync(deviceName, message);
 
@@ -98,7 +100,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             }
         }
 
-        [Fact, TestPriority(103)]
+        [Fact]
+        [TestPriority(103)]
         public async void Receive_C2D_SingleMessage_AfterOfflineMessage_ShouldSucceed()
         {
             // Arrange
@@ -122,7 +125,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 await Task.Delay(TimeSpan.FromSeconds(30));
 
                 // Act
-                //Send message before device is listening
+                // Send message before device is listening
                 Message message = this.CreateMessage(out string payload);
                 await serviceClient.SendAsync(deviceName, message);
 
@@ -145,7 +148,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             }
         }
 
-        [Fact, TestPriority(104)]
+        [Fact]
+        [TestPriority(104)]
         public async void Receive_C2D_NotSubscribed_OfflineSingleMessage_ShouldThrow()
         {
             // Arrange
@@ -161,7 +165,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 await serviceClient.OpenAsync();
 
                 // Act
-                //Send message before device is listening
+                // Send message before device is listening
                 Message message = this.CreateMessage(out string payload);
                 await serviceClient.SendAsync(deviceName, message);
 
@@ -236,6 +240,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             {
                 await deviceClient.CloseAsync();
             }
+
             if (serviceClient != null)
             {
                 await serviceClient.CloseAsync();

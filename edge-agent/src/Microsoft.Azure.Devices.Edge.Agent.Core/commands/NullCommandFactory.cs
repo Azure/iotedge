@@ -5,11 +5,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
 
     public class NullCommandFactory : ICommandFactory
     {
-        public static NullCommandFactory Instance { get; } = new NullCommandFactory();
-
         NullCommandFactory()
         {
         }
+
+        public static NullCommandFactory Instance { get; } = new NullCommandFactory();
 
         public Task<ICommand> CreateAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo) => Task.FromResult<ICommand>(NullCommand.Instance);
 

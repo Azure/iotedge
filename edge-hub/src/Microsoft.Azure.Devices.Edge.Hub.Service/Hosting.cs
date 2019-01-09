@@ -7,9 +7,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Autofac;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Server.Kestrel.Https;
+    using Microsoft.Azure.Devices.Edge.Hub.Http.Extensions;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
-    using Microsoft.Azure.Devices.Edge.Hub.Http.Extensions;
 
     public class Hosting
     {
@@ -18,6 +18,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             this.WebHost = webHost;
             this.Container = container;
         }
+
+        public IContainer Container { get; }
+
+        public IWebHost WebHost { get; }
 
         public static Hosting Initialize(
             IConfigurationRoot configuration,
@@ -28,33 +32,34 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             int port = configuration.GetValue("httpSettings:port", 443);
             var certificateMode = clientCertAuthEnabled ? ClientCertificateMode.AllowCertificate : ClientCertificateMode.NoCertificate;
             IWebHostBuilder webHostBuilder = new WebHostBuilder()
-                .UseKestrel(options =>
-                {
-                    options.Listen(!Socket.OSSupportsIPv6 ? IPAddress.Any : IPAddress.IPv6Any, port, listenOptions =>
+                .UseKestrel(
+                    options =>
                     {
-                        listenOptions.UseHttpsExtensions(
-                            new HttpsConnectionAdapterOptions()
+                        options.Listen(
+                            !Socket.OSSupportsIPv6 ? IPAddress.Any : IPAddress.IPv6Any,
+                            port,
+                            listenOptions =>
                             {
-                                ServerCertificate = serverCertificate,
-                                ClientCertificateValidation = (clientCert, chain, policyErrors) => true,
-                                ClientCertificateMode = certificateMode
+                                listenOptions.UseHttpsExtensions(
+                                    new HttpsConnectionAdapterOptions()
+                                    {
+                                        ServerCertificate = serverCertificate,
+                                        ClientCertificateValidation = (clientCert, chain, policyErrors) => true,
+                                        ClientCertificateMode = certificateMode
+                                    });
                             });
-                    });
-                })
+                    })
                 .UseSockets()
-                .ConfigureServices(serviceCollection =>
-                {
-                    serviceCollection.AddSingleton<IConfigurationRoot>(configuration);
-                    serviceCollection.AddSingleton<IDependencyManager>(dependencyManager);
-                })
+                .ConfigureServices(
+                    serviceCollection =>
+                    {
+                        serviceCollection.AddSingleton<IConfigurationRoot>(configuration);
+                        serviceCollection.AddSingleton<IDependencyManager>(dependencyManager);
+                    })
                 .UseStartup<Startup>();
             IWebHost webHost = webHostBuilder.Build();
             IContainer container = webHost.Services.GetService(typeof(IStartup)) is Startup startup ? startup.Container : null;
             return new Hosting(webHost, container);
         }
-
-        public IContainer Container { get; }
-
-        public IWebHost WebHost { get; }
     }
 }

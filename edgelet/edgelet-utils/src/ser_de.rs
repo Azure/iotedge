@@ -1,13 +1,15 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::collections::{BTreeMap, HashMap};
 use std::fmt;
+use std::hash::BuildHasher;
 use std::marker::PhantomData;
 use std::result::Result as StdResult;
 use std::str::FromStr;
 
 use failure::ResultExt;
 use serde::de::{self, Deserialize, DeserializeOwned, Deserializer, MapAccess, Visitor};
-use serde::ser::Serialize;
+use serde::ser::{Serialize, Serializer};
 use serde_json;
 
 use error::{ErrorKind, Result};
@@ -67,6 +69,18 @@ where
         .context(ErrorKind::SerdeClone)?)
 }
 
+pub fn serialize_ordered<S, T>(
+    x: &HashMap<String, String, T>,
+    serializer: S,
+) -> StdResult<S::Ok, S::Error>
+where
+    S: Serializer,
+    T: BuildHasher,
+{
+    let sorted_map: BTreeMap<_, _> = x.into_iter().collect();
+    sorted_map.serialize(serializer)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -92,6 +106,12 @@ mod tests {
     struct Container {
         #[serde(deserialize_with = "string_or_struct")]
         options: Options,
+    }
+
+    #[derive(Debug, Serialize)]
+    struct Setting {
+        #[serde(serialize_with = "serialize_ordered")]
+        map: HashMap<String, String>,
     }
 
     #[test]
@@ -150,5 +170,27 @@ mod tests {
         let c2 = serde_clone(&c1).unwrap();
         assert_eq!(c1.name, c2.name);
         assert_eq!(c1.age, c2.age);
+    }
+
+    #[test]
+    fn serde_serialize_map() {
+        let setting_json = json!({
+            "map": {
+                "a": "val1",
+                "b": "val2",
+                "c": "val3"
+            }
+        })
+        .to_string();
+
+        let mut map = HashMap::new();
+        map.insert("b".to_string(), "val2".to_string());
+        map.insert("a".to_string(), "val1".to_string());
+        map.insert("c".to_string(), "val3".to_string());
+
+        let map_container = Setting { map };
+
+        let s = serde_json::to_string(&map_container).unwrap();
+        assert_eq!(s, setting_json);
     }
 }

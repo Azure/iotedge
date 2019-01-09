@@ -6,7 +6,9 @@ provisioning:
 agent:
   name: "edgeAgent"
   type: "docker"
-  env: {}
+  env:
+    abc: "value1"
+    acd: "value2"
   config:
     image: "microsoft/azureiotedge-agent:1.0"
     auth: {}

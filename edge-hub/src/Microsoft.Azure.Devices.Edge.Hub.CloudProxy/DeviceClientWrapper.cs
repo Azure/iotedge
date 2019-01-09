@@ -51,7 +51,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-
         public Task<Message> ReceiveAsync(TimeSpan receiveMessageTimeout) => this.underlyingDeviceClient.ReceiveAsync(receiveMessageTimeout);
 
         public Task RejectAsync(string messageId) => this.underlyingDeviceClient.RejectAsync(messageId);

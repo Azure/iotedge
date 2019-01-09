@@ -94,7 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         [InlineData(null)]
         public void TestCreateSystemEndpointInvalidCases(string systemEndpoint)
         {
-            Assert.Throws<InvalidOperationException>(() =>this.endpointFactory.CreateSystemEndpoint(systemEndpoint));
+            Assert.Throws<InvalidOperationException>(() => this.endpointFactory.CreateSystemEndpoint(systemEndpoint));
         }
 
         [Theory]

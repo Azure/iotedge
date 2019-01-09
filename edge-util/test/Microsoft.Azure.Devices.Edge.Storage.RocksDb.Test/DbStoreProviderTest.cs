@@ -20,6 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
             {
                 Directory.Delete(this.rocksDbFolder);
             }
+
             Directory.CreateDirectory(this.rocksDbFolder);
         }
 

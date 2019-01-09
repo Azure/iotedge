@@ -71,12 +71,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             return Task.CompletedTask;
         }
 
-        Task OnReceiveLinkClosed()
-        {
-            this.sendMessageProcessor.Complete();
-            return Task.CompletedTask;
-        }
-
         protected abstract Task OnMessageReceived(AmqpMessage amqpMessage);
 
         internal async Task ProcessMessageAsync(AmqpMessage amqpMessage)
@@ -103,10 +97,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             }
         }
 
+        Task OnReceiveLinkClosed()
+        {
+            this.sendMessageProcessor.Complete();
+            return Task.CompletedTask;
+        }
+
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<ReceivingLinkHandler>();
             const int IdStart = AmqpEventIds.ReceivingLinkHandler;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<ReceivingLinkHandler>();
 
             enum EventIds
             {

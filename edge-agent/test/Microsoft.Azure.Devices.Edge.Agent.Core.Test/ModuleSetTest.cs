@@ -26,40 +26,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         static readonly ModuleSet ModuleSet1 = ModuleSet.Create(Module1);
         static readonly ModuleSet ModuleSet2 = ModuleSet.Create(Module5, Module3);
 
-        static class TestApplyDiffSource
-        {
-            public static IEnumerable<object[]> TestData => Data;
-
-            // TODO Add more test cases
-            static readonly IList<object[]> Data = new List<object[]>
-            {
-                new object[]
-                {
-                    ModuleSet.Create(Module1, Module2),
-                    new Diff(new List<IModule> { Module4, Module3 }, new List<string> { "mod2" }),
-                    ModuleSet.Create(Module3, Module4)
-                },
-                new object[]
-                {
-                    ModuleSet.Empty,
-                    Diff.Create(Module2, Module1),
-                    ModuleSet.Create(Module1, Module2)
-                },
-                new object[]
-                {
-                    ModuleSet.Create(Module1, Module2),
-                    new Diff(ImmutableList<IModule>.Empty, new List<string> { "mod2", "mod1" }),
-                    ModuleSet.Empty
-                },
-                new object[]
-                {
-                    ModuleSet2,
-                    Diff.Empty,
-                    ModuleSet2
-                }
-            };
-        }
-
         [Theory]
         [Unit]
         [MemberData(nameof(TestApplyDiffSource.TestData), MemberType = typeof(TestApplyDiffSource))]
@@ -75,50 +41,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             }
         }
 
-        static class DiffTestSet
-        {
-            public static IEnumerable<object[]> TestData => Data;
-
-            static readonly IList<object[]> Data = new List<object[]>
-            {
-                // adding modules
-                new object[]
-                {
-                    ModuleSet.Empty,
-                    ModuleSet.Create(Module1, Module2),
-                    new Diff(new List<IModule> { Module1, Module2 }, new List<string>()),
-                },
-                // removing modules
-                new object[]
-                {
-                    ModuleSet.Create(Module1, Module2),
-                    ModuleSet.Empty,
-                    new Diff(new List<IModule>(), new List<string>(){ "mod1", "mod2" }),
-                },
-                // change a module
-                new object[]
-                {
-                    ModuleSet.Create(Module2, Module1),
-                    ModuleSet.Create(Module4, Module2),
-                    new Diff(new List<IModule>() {Module4 }, new List<string>())
-                },
-                // no changes
-                new object[]
-                {
-                    ModuleSet.Create(Module5, Module3, Module2),
-                    ModuleSet.Create(Module2, Module3, Module5),
-                    Diff.Empty
-                }
-            };
-        }
-
         [Theory]
         [Unit]
         [MemberData(nameof(DiffTestSet.TestData), MemberType = typeof(DiffTestSet))]
-        public void TestDiff(ModuleSet start, ModuleSet end, Diff expected )
+        public void TestDiff(ModuleSet start, ModuleSet end, Diff expected)
         {
             Diff setDifference = end.Diff(start);
-            Assert.Equal(setDifference,expected);
+            Assert.Equal(setDifference, expected);
         }
 
         [Fact]
@@ -136,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             string noConfigImageJson = "{\"Modules\":{\"mod1\":{\"Version\":\"version1\",\"Type\":\"test\",\"Status\":\"Running\",\"Settings\":{},\"RestartPolicy\":\"on-unhealthy\",\"Configuration\":{\"id\":\"1\"}},\"mod2\":{\"Version\":\"version1\",\"Type\":\"test\",\"Status\":\"Running\",\"settings\":{},\"RestartPolicy\":\"on-unhealthy\",\"configuration\":{\"id\":\"1\"}}}}";
             string notATestType = "{\"Modules\":{\"mod1\":{\"Version\":\"version1\",\"Type\":\"not_a_test\",\"Status\":\"Running\",\"Settings\":{},\"RestartPolicy\":\"on-unhealthy\",\"Configuration\":{\"id\":\"1\"}},\"mod2\":{\"Version\":\"version1\",\"Type\":\"test\",\"Status\":\"Running\",\"settings\":{},\"RestartPolicy\":\"on-unhealthy\",\"configuration\":{\"id\":\"1\"}}}}";
 
-            var serializerInputTable = new Dictionary<string, Type>() { { "Test", typeof(TestModule) }};
+            var serializerInputTable = new Dictionary<string, Type>() { { "Test", typeof(TestModule) } };
             var myModuleSetSerde = new ModuleSetSerde(serializerInputTable);
 
             ModuleSet myModuleSet1 = myModuleSetSerde.Deserialize(validJson);
@@ -170,7 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [Unit]
         public void ModuleSetSerialize()
         {
-            var serializerInputTable = new Dictionary<string, Type>() {{"test", typeof(TestModule)}};
+            var serializerInputTable = new Dictionary<string, Type>() { { "test", typeof(TestModule) } };
             var myModuleSetSerde = new ModuleSetSerde(serializerInputTable);
 
             string jsonFromTestModuleSet = myModuleSetSerde.Serialize(ModuleSet1);
@@ -192,5 +121,75 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             Assert.True(module5.Equals(module6));
         }
 
+        static class DiffTestSet
+        {
+            static readonly IList<object[]> Data = new List<object[]>
+            {
+                // adding modules
+                new object[]
+                {
+                    ModuleSet.Empty,
+                    ModuleSet.Create(Module1, Module2),
+                    new Diff(new List<IModule> { Module1, Module2 }, new List<string>()),
+                },
+                // removing modules
+                new object[]
+                {
+                    ModuleSet.Create(Module1, Module2),
+                    ModuleSet.Empty,
+                    new Diff(new List<IModule>(), new List<string>() { "mod1", "mod2" }),
+                },
+                // change a module
+                new object[]
+                {
+                    ModuleSet.Create(Module2, Module1),
+                    ModuleSet.Create(Module4, Module2),
+                    new Diff(new List<IModule>() { Module4 }, new List<string>())
+                },
+                // no changes
+                new object[]
+                {
+                    ModuleSet.Create(Module5, Module3, Module2),
+                    ModuleSet.Create(Module2, Module3, Module5),
+                    Diff.Empty
+                }
+            };
+
+            public static IEnumerable<object[]> TestData => Data;
+        }
+
+        static class TestApplyDiffSource
+        {
+            // TODO Add more test cases
+            static readonly IList<object[]> Data = new List<object[]>
+            {
+                new object[]
+                {
+                    ModuleSet.Create(Module1, Module2),
+                    new Diff(new List<IModule> { Module4, Module3 }, new List<string> { "mod2" }),
+                    ModuleSet.Create(Module3, Module4)
+                },
+                new object[]
+                {
+                    ModuleSet.Empty,
+                    Diff.Create(Module2, Module1),
+                    ModuleSet.Create(Module1, Module2)
+                },
+                new object[]
+                {
+                    ModuleSet.Create(Module1, Module2),
+                    new Diff(ImmutableList<IModule>.Empty, new List<string> { "mod2", "mod1" }),
+                    ModuleSet.Empty
+                },
+                new object[]
+                {
+                    ModuleSet2,
+                    Diff.Empty,
+                    ModuleSet2
+                }
+            };
+
+            public static IEnumerable<object[]> TestData => Data;
+        }
     }
 }

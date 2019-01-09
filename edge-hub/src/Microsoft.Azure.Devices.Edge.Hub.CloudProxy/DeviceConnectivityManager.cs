@@ -1,67 +1,52 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
+    using System;
+    using System.Text;
+    using System.Threading.Tasks;
+    using System.Timers;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using Stateless;
-    using System;
-    using System.Text;
-    using System.Threading.Tasks;
-    using System.Timers;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using static System.FormattableString;
 
     /// <summary>
     /// This class checks for the connectivity of the Edge device and raises
-    /// events if the device is disconnected, or gets re-connected. 
-    /// It does this by relying on success / failure of the various IotHub operations 
+    /// events if the device is disconnected, or gets re-connected.
+    /// It does this by relying on success / failure of the various IotHub operations
     /// performed on behalf of the connected clients and even edge hub.
-    /// If there is no activity, then it makes a dummy IoThub call periodically to check if the 
+    /// If there is no activity, then it makes a dummy IoThub call periodically to check if the
     /// device is connected.
-    /// 
-    /// This class maintains a state machine with the following logic - 
+    ///
+    /// This class maintains a state machine with the following logic -
     /// - If an Iothub call succeeds, the device is in a connected state
-    /// - If a call fails, it goes to the Trying state, and tries to make another Iothub call. 
+    /// - If a call fails, it goes to the Trying state, and tries to make another Iothub call.
     /// - If this call also fails, it goes into the disconnected state (else goes back to connected state)
-    /// - In disconnected state, it tries to connect to IotHub periodically. If a call succeeds, then 
+    /// - In disconnected state, it tries to connect to IotHub periodically. If a call succeeds, then
     /// then it goes back to connected state
     /// </summary>
     public class DeviceConnectivityManager : IDeviceConnectivityManager
     {
-        enum State
-        {
-            Connected,
-            Trying,
-            Disconnected,
-        }
-
-        enum Trigger
-        {
-            CallSucceeded,
-            CallTimedOut
-        }
-
-        State state;
-        ConnectivityChecker connectivityChecker;
         readonly StateMachine<State, Trigger> machine;
         readonly Timer connectedTimer;
         readonly Timer disconnectedTimer;
         readonly IIdentity testClientIdentity;
 
-        public event EventHandler DeviceConnected;
-        public event EventHandler DeviceDisconnected;
+        State state;
+        ConnectivityChecker connectivityChecker;
 
         public DeviceConnectivityManager(
             TimeSpan minConnectivityCheckFrequency,
             TimeSpan disconnectedCheckFrequency,
             IIdentity testClientIdentity)
         {
-            this.testClientIdentity = Preconditions.CheckNotNull(testClientIdentity, nameof(testClientIdentity));            
+            this.testClientIdentity = Preconditions.CheckNotNull(testClientIdentity, nameof(testClientIdentity));
             this.connectedTimer = new Timer(minConnectivityCheckFrequency.TotalMilliseconds);
             this.disconnectedTimer = new Timer(disconnectedCheckFrequency.TotalMilliseconds);
             this.machine = new StateMachine<State, Trigger>(() => this.state, s => this.state = s);
@@ -91,23 +76,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             Events.Created(minConnectivityCheckFrequency, disconnectedCheckFrequency);
         }
 
+        public event EventHandler DeviceConnected;
+
+        public event EventHandler DeviceDisconnected;
+
+        enum State
+        {
+            Connected,
+            Trying,
+            Disconnected,
+        }
+
+        enum Trigger
+        {
+            CallSucceeded,
+            CallTimedOut
+        }
+
         public void SetConnectionManager(IConnectionManager connectionManager)
         {
             this.connectivityChecker = new ConnectivityChecker(connectionManager, this.testClientIdentity);
             this.connectedTimer.Start();
             Events.SetConnectionManager();
-        }
-
-        void ResetDisconnectedTimer()
-        {
-            this.disconnectedTimer.Stop();
-            this.disconnectedTimer.Start();
-        }
-
-        void ResetConnectedTimer()
-        {
-            this.connectedTimer.Stop();
-            this.connectedTimer.Start();
         }
 
         public void CallSucceeded()
@@ -122,9 +112,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.machine.Fire(Trigger.CallTimedOut);
         }
 
+        void ResetDisconnectedTimer()
+        {
+            this.disconnectedTimer.Stop();
+            this.disconnectedTimer.Start();
+        }
+
+        void ResetConnectedTimer()
+        {
+            this.connectedTimer.Stop();
+            this.connectedTimer.Start();
+        }
+
         void OnConnected()
         {
-            Events.OnConnected();            
+            Events.OnConnected();
             this.connectedTimer.Start();
         }
 
@@ -175,6 +177,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             readonly IConnectionManager connectionManager;
             readonly IIdentity testClientIdentity;
             readonly AsyncLock sync = new AsyncLock();
+
             readonly Lazy<IMessage> testMessage = new Lazy<IMessage>(
                 () =>
                 {
@@ -202,8 +205,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<DeviceConnectivityManager>();
             const int IdStart = CloudProxyEventIds.DeviceConnectivityManager;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<DeviceConnectivityManager>();
 
             enum EventIds
             {
@@ -218,16 +221,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 OnConnected,
                 ErrorCallingIotHub,
                 MakingTestIotHubCall
-            }
-
-            internal static void SetConnectionManager()
-            {
-                Log.LogDebug((int)EventIds.SetConnectionManager, Invariant($"ConnectionManager provided"));
-            }
-
-            internal static void Created(TimeSpan connectedCheckFrequency, TimeSpan disconnectedCheckFrequency)
-            {
-                Log.LogDebug((int)EventIds.Created, Invariant($"Created DeviceConnectivityManager with connected check frequency {connectedCheckFrequency} and disconnected check frequency {disconnectedCheckFrequency}"));
             }
 
             public static void OnDisconnectedExit()
@@ -273,6 +266,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             public static void MakingTestIotHubCall()
             {
                 Log.LogDebug((int)EventIds.MakingTestIotHubCall, Invariant($"Calling IotHub to test connectivity"));
+            }
+
+            internal static void SetConnectionManager()
+            {
+                Log.LogDebug((int)EventIds.SetConnectionManager, Invariant($"ConnectionManager provided"));
+            }
+
+            internal static void Created(TimeSpan connectedCheckFrequency, TimeSpan disconnectedCheckFrequency)
+            {
+                Log.LogDebug((int)EventIds.Created, Invariant($"Created DeviceConnectivityManager with connected check frequency {connectedCheckFrequency} and disconnected check frequency {disconnectedCheckFrequency}"));
             }
         }
     }

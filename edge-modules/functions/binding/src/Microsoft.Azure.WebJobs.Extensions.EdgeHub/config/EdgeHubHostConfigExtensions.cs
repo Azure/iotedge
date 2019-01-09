@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub.Config
 {
     using System;
-    using Microsoft.Azure.WebJobs;
 
     /// <summary>
     /// Extension methods for EdgeHub integration

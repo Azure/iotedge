@@ -12,7 +12,12 @@ namespace Microsoft.Azure.Devices.Edge.Util.Concurrency
             this.underlying = value ? 1 : 0;
         }
 
-        public AtomicBoolean() : this(false) { }
+        public AtomicBoolean()
+            : this(false)
+        {
+        }
+
+        public static implicit operator bool(AtomicBoolean value) => value.Get();
 
         public bool Get() => Interlocked.Exchange(ref this.underlying, this.underlying) != 0;
 
@@ -26,7 +31,5 @@ namespace Microsoft.Azure.Devices.Edge.Util.Concurrency
             int r = result ? 1 : 0;
             return Interlocked.CompareExchange(ref this.underlying, r, e) == e;
         }
-
-        public static implicit operator bool(AtomicBoolean value) => value.Get();
     }
 }

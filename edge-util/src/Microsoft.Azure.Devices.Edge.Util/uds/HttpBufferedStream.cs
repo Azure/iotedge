@@ -5,16 +5,30 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
-    
+
     class HttpBufferedStream : Stream
     {
-        private const char CR = '\r';
-        private const char LF = '\n';
-        private BufferedStream innerStream;
+        const char CR = '\r';
+        const char LF = '\n';
+        readonly BufferedStream innerStream;
 
         public HttpBufferedStream(Stream stream)
         {
             this.innerStream = new BufferedStream(stream);
+        }
+
+        public override bool CanRead => this.innerStream.CanRead;
+
+        public override bool CanSeek => this.innerStream.CanSeek;
+
+        public override bool CanWrite => this.innerStream.CanWrite;
+
+        public override long Length => this.innerStream.Length;
+
+        public override long Position
+        {
+            get => this.innerStream.Position;
+            set => this.innerStream.Position = value;
         }
 
         public override void Flush()
@@ -45,7 +59,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
             var builder = new StringBuilder();
             while (true)
             {
-              
                 int length = await this.innerStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)
                     .ConfigureAwait(false);
 
@@ -54,14 +67,14 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
                     throw new IOException("Unexpected end of stream.");
                 }
 
-                if (crFound && (char) buffer[position] == LF)
+                if (crFound && (char)buffer[position] == LF)
                 {
                     builder.Remove(builder.Length - 1, 1);
                     return builder.ToString();
                 }
 
-                builder.Append((char) buffer[position]);
-                crFound = (char) buffer[position] == CR;
+                builder.Append((char)buffer[position]);
+                crFound = (char)buffer[position] == CR;
             }
         }
 
@@ -83,19 +96,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
         public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
             return this.innerStream.WriteAsync(buffer, offset, count, cancellationToken);
-        }
-
-        public override bool CanRead => this.innerStream.CanRead;
-        public override bool CanSeek => this.innerStream.CanSeek;
-
-        public override bool CanWrite => this.innerStream.CanWrite;
-
-        public override long Length => this.innerStream.Length;
-
-        public override long Position
-        {
-            get => this.innerStream.Position;
-            set => this.innerStream.Position = value;
         }
 
         protected override void Dispose(bool disposing)

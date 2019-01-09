@@ -11,12 +11,26 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
     public static class JsonEx
     {
+        static readonly JTokenType[] ValidDiffTypes =
+        {
+            JTokenType.Boolean,
+            JTokenType.Float,
+            JTokenType.Integer,
+            JTokenType.Null,
+            JTokenType.Object,
+            JTokenType.String,
+            JTokenType.Date
+        };
+
+        static readonly string[] MetadataPropertyNames = { "$metadata", "$version" };
+
         public static T Get<T>(this JObject obj, string key)
         {
             if (!obj.TryGetValue(key, StringComparison.OrdinalIgnoreCase, out JToken token))
             {
                 throw new JsonSerializationException($"Could not find {key} in JObject.");
             }
+
             return token.Value<T>();
         }
 
@@ -67,19 +81,9 @@ namespace Microsoft.Azure.Devices.Edge.Util
                     throw new InvalidOperationException($"Property {patchProp.Name} has a value of unsupported type. Valid types are integer, float, string, bool, null and nested object");
                 }
             }
+
             return result;
         }
-
-        static readonly JTokenType[] ValidDiffTypes =
-        {
-            JTokenType.Boolean,
-            JTokenType.Float,
-            JTokenType.Integer,
-            JTokenType.Null,
-            JTokenType.Object,
-            JTokenType.String,
-            JTokenType.Date
-        };
 
         public static bool IsValidToken(JToken token) => ValidDiffTypes.Any(t => t == token.Type);
 
@@ -166,8 +170,6 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return patch;
         }
 
-        static readonly string[] MetadataPropertyNames = { "$metadata", "$version" };
-
         public static JToken StripMetadata(JToken token)
         {
             // get rid of metadata from the token in case it has any because we don't want
@@ -243,6 +245,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 }
             }
 
+            IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
+
             void Validate(string strNum, uint expectedNum)
             {
                 // The zero-th item should have an empty num
@@ -266,8 +270,6 @@ namespace Microsoft.Azure.Devices.Edge.Util
                     }
                 }
             }
-
-            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
         }
     }
 }

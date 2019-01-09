@@ -7,6 +7,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
     public interface IDeviceListener
     {
+        IIdentity Identity { get; }
+
         Task ProcessDeviceMessageAsync(IMessage message);
 
         Task ProcessDeviceMessageBatchAsync(IEnumerable<IMessage> message);
@@ -22,8 +24,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         Task CloseAsync();
 
         Task ProcessMessageFeedbackAsync(string messageId, FeedbackStatus feedbackStatus);
-
-        IIdentity Identity { get; }
 
         Task AddSubscription(DeviceSubscription subscription);
 

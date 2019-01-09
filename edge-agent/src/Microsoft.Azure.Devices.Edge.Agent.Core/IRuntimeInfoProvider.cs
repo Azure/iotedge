@@ -20,8 +20,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
     public class SystemInfo
     {
-        static SystemInfo Empty { get; } = new SystemInfo(string.Empty, string.Empty, string.Empty);
-
         [JsonConstructor]
         public SystemInfo(string operatingSystemType, string architecture, string version)
         {
@@ -35,5 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public string Architecture { get; }
 
         public string Version { get; }
+
+        static SystemInfo Empty { get; } = new SystemInfo(string.Empty, string.Empty, string.Empty);
     }
 }

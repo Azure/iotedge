@@ -72,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         public void TestCheckNonWhiteS()
         {
             Assert.Throws<ArgumentException>(() => Preconditions.CheckNonWhiteSpace("   ", "param1"));
-            Assert.Throws<ArgumentException>(() => Preconditions.CheckNonWhiteSpace("", "param2"));
+            Assert.Throws<ArgumentException>(() => Preconditions.CheckNonWhiteSpace(string.Empty, "param2"));
             Preconditions.CheckNonWhiteSpace("   foo   ", "param3");
             Preconditions.CheckNonWhiteSpace("  b", "param4");
         }

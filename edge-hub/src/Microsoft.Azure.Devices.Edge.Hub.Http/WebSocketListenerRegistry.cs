@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
                     return Option.Some(webSocketListener);
                 }
             }
-            
+
             return Option.None<IWebSocketListener>();
         }
 

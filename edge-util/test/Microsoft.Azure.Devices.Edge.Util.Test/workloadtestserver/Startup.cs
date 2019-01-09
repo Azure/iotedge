@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common.WorkloadTestServer
     {
         public Startup(IConfiguration configuration)
         {
-            Configuration = configuration;
+            this.Configuration = configuration;
         }
 
         public IConfiguration Configuration { get; }

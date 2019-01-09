@@ -90,6 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             {
                 i += value;
             }
+
             Assert.Equal(6, i);
 
             int count = 0;
@@ -98,6 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             {
                 count++;
             }
+
             Assert.Equal(0, count);
 
             Assert.Equal(1, some.ToEnumerable().Count());
@@ -231,19 +233,21 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             int i = 2;
             // ReSharper disable once AccessToModifiedClosure
             // Need to test the side effect
-            await some.ForEachAsync(v =>
-            {
-                i *= v;
-                return Task.CompletedTask;
-            });
+            await some.ForEachAsync(
+                v =>
+                {
+                    i *= v;
+                    return Task.CompletedTask;
+                });
             Assert.Equal(6, i);
 
             i = 2;
-            await none.ForEachAsync(v =>
-            {
-                i *= v;
-                return Task.CompletedTask;
-            });
+            await none.ForEachAsync(
+                v =>
+                {
+                    i *= v;
+                    return Task.CompletedTask;
+                });
             Assert.Equal(2, i);
         }
     }

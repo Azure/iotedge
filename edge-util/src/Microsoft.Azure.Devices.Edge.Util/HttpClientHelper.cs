@@ -8,9 +8,9 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
     public class HttpClientHelper
     {
-        private const string HttpScheme = "http";
-        private const string HttpsScheme = "https";
-        private const string UnixScheme = "unix";
+        const string HttpScheme = "http";
+        const string HttpsScheme = "https";
+        const string UnixScheme = "unix";
 
         public static HttpClient GetHttpClient(Uri serverUri)
         {

@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Serde
     public class DiffSerde : ISerde<Diff>
     {
         readonly IDictionary<string, Type> converters;
-        
+
         public DiffSerde(IDictionary<string, Type> deserializerTypes)
         {
             this.converters = new Dictionary<string, Type>(Preconditions.CheckNotNull(deserializerTypes, nameof(deserializerTypes)), StringComparer.OrdinalIgnoreCase);
@@ -18,7 +18,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Serde
 
         public string Serialize(Diff diff) => throw new NotSupportedException();
 
-        public T Deserialize<T>(string json) where T : Diff => throw new NotSupportedException();
+        public T Deserialize<T>(string json)
+            where T : Diff => throw new NotSupportedException();
 
         public Diff Deserialize(string json)
         {
@@ -28,12 +29,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Serde
         }
     }
 
-
     class DiffJsonConverter : JsonConverter
     {
         readonly IDictionary<string, Type> converters;
 
-        public DiffJsonConverter(IDictionary<string, System.Type> deserializerTypes)
+        public DiffJsonConverter(IDictionary<string, Type> deserializerTypes)
         {
             this.converters = new Dictionary<string, Type>(deserializerTypes, StringComparer.OrdinalIgnoreCase);
         }
@@ -67,6 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Serde
                     {
                         throw new JsonSerializationException($"Could not find right converter given type {converterType.Value<string>()}");
                     }
+
                     IModule module = ModuleSerde.Instance.Deserialize(xtokenFirst.ToString(), serializeType);
                     module.Name = name;
                     updateList.Add(module);

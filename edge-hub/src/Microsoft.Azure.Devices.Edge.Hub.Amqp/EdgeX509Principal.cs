@@ -5,12 +5,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     using System.Collections.Generic;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
-    using static System.FormattableString;
     using Microsoft.Azure.Amqp.X509;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+    using static System.FormattableString;
 
     class EdgeX509Principal : X509Principal, IAmqpAuthenticator
     {
@@ -41,6 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 Events.IdentityParseFailed(id);
                 return false;
             }
+
             IClientCredentials clientCredentials = this.clientCredentialsProvider.GetWithX509Cert(identity.deviceId, identity.moduleId, string.Empty, this.CertificateIdentity.Certificate, this.chainCertificates);
 
             bool result = await this.authenticator.AuthenticateAsync(clientCredentials);
@@ -63,10 +64,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             {
                 return (false, string.Empty, string.Empty);
             }
+
             if (string.IsNullOrWhiteSpace(clientIdParts[0]))
             {
                 return (false, string.Empty, string.Empty);
             }
+
             string deviceId = clientIdParts[0];
             string moduleId = string.Empty;
             if (clientIdParts.Length == 2)
@@ -86,8 +89,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<EdgeX509Principal>();
             const int IdStart = AmqpEventIds.X509PrinciparAuthenticator;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<EdgeX509Principal>();
 
             enum EventIds
             {

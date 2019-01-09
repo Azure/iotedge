@@ -34,6 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                     new PullCommand(this.client, combinedDockerConfig),
                     await CreateCommand.BuildAsync(this.client, dockerModule, module.ModuleIdentity, this.dockerLoggerConfig, this.configSource, module.Module is EdgeHubDockerModule));
             }
+
             return NullCommand.Instance;
         }
 
@@ -45,28 +46,33 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                     new RemoveCommand(this.client, currentDockerModule),
                     await this.CreateAsync(next, runtimeInfo));
             }
+
             return NullCommand.Instance;
         }
 
         public Task<ICommand> RemoveAsync(IModule module) =>
-            Task.FromResult(module is DockerModule
-                ? new RemoveCommand(this.client, (DockerModule)module)
-                : (ICommand)NullCommand.Instance);
+            Task.FromResult(
+                module is DockerModule
+                    ? new RemoveCommand(this.client, (DockerModule)module)
+                    : (ICommand)NullCommand.Instance);
 
         public Task<ICommand> StartAsync(IModule module) =>
-            Task.FromResult(module is DockerModule
-                ? new StartCommand(this.client, (DockerModule)module)
-                : (ICommand)NullCommand.Instance);
+            Task.FromResult(
+                module is DockerModule
+                    ? new StartCommand(this.client, (DockerModule)module)
+                    : (ICommand)NullCommand.Instance);
 
         public Task<ICommand> StopAsync(IModule module) =>
-            Task.FromResult(module is DockerModule
-                ? new StopCommand(this.client, (DockerModule)module)
-                : (ICommand)NullCommand.Instance);
+            Task.FromResult(
+                module is DockerModule
+                    ? new StopCommand(this.client, (DockerModule)module)
+                    : (ICommand)NullCommand.Instance);
 
         public Task<ICommand> RestartAsync(IModule module) =>
-            Task.FromResult(module is DockerRuntimeModule
-                ? new RestartCommand(this.client, (DockerRuntimeModule)module)
-                : (ICommand)NullCommand.Instance);
+            Task.FromResult(
+                module is DockerRuntimeModule
+                    ? new RestartCommand(this.client, (DockerRuntimeModule)module)
+                    : (ICommand)NullCommand.Instance);
 
         public Task<ICommand> WrapAsync(ICommand command) => Task.FromResult(command);
     }

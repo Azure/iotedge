@@ -12,7 +12,15 @@ namespace Microsoft.Azure.Devices.Routing.Core.Util.Concurrency
             this.underlying = value ? 1 : 0;
         }
 
-        public AtomicBoolean() : this(false) { }
+        public AtomicBoolean()
+            : this(false)
+        {
+        }
+
+        public static implicit operator bool(AtomicBoolean value)
+        {
+            return value.Get();
+        }
 
         public bool Get()
         {
@@ -34,11 +42,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Util.Concurrency
             int e = expected ? 1 : 0;
             int r = result ? 1 : 0;
             return Interlocked.CompareExchange(ref this.underlying, r, e) == e;
-        }
-
-        public static implicit operator bool(AtomicBoolean value)
-        {
-            return value.Get();
         }
     }
 }

@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
     using RocksDbSharp;
 
     /// <summary>
-    /// Wrapper around RocksDb. This is mainly needed because each ColumnFamilyDbStore contains an instance of this object, 
+    /// Wrapper around RocksDb. This is mainly needed because each ColumnFamilyDbStore contains an instance of this object,
     /// and hence it could get disposed multiple times. This class makes sure the underlying RocksDb instance is disposed only once.
     ///
     /// Because of an issue where ListColumnFamilies does not return an accurate list of column families on Linux,
@@ -137,7 +137,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
             public void AddColumnFamily(string entityName) => File.AppendAllLines(this.columnFamiliesFilePath, new List<string> { entityName });
 
-            public IEnumerable<string> ListColumnFamilies() => (File.Exists(this.columnFamiliesFilePath)) ? File.ReadAllLines(this.columnFamiliesFilePath).ToList() : new List<string> { DefaultPartitionName };
+            public IEnumerable<string> ListColumnFamilies() => File.Exists(this.columnFamiliesFilePath) ? File.ReadAllLines(this.columnFamiliesFilePath).ToList() : new List<string> { DefaultPartitionName };
         }
     }
 }

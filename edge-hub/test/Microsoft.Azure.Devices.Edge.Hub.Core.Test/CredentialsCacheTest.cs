@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         [Fact]
         public async Task GetFromPersistedCacheTest()
         {
-            // Arrange            
+            // Arrange
             var identity1 = Mock.Of<IIdentity>(i => i.Id == "d1");
             var identity2 = Mock.Of<IIdentity>(i => i.Id == "d2/m2");
             var creds1 = Mock.Of<ITokenCredentials>(c => c.Identity == identity1);

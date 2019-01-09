@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-// ReSharper disable ArrangeThisQualifier
 namespace LeafDevice
 {
     using System;
@@ -16,7 +15,8 @@ namespace LeafDevice
             string deviceId,
             string trustedCACertificateFileName,
             string edgeHostName,
-            bool useWebSockets) :
+            bool useWebSockets)
+            :
             base(iothubConnectionString,
                 eventhubCompatibleEndpointWithEntityPath,
                 deviceId,
@@ -70,28 +70,28 @@ namespace LeafDevice
                 Option.Some(thumprintCertificates))
         {
         }
-        
+
         public async Task RunAsync()
         {
             // This test assumes that there is an edge deployment running as transparent gateway.
             try
             {
                 await this.InitializeTrustedCertsAsync();
-                await GetOrCreateDeviceIdentityAsync();
-                await ConnectToEdgeAndSendDataAsync();
+                await this.GetOrCreateDeviceIdentityAsync();
+                await this.ConnectToEdgeAndSendDataAsync();
                 await this.VerifyDataOnIoTHubAsync();
                 await this.VerifyDirectMethodAsync();
             }
             catch (Exception)
             {
                 Console.WriteLine("** Oops, there was a problem.");
-                KeepDeviceIdentity();
+                this.KeepDeviceIdentity();
                 throw;
             }
             finally
             {
                 // only remove the identity if we created it; if it already existed in IoT Hub then leave it alone
-                await MaybeDeleteDeviceIdentity();
+                await this.MaybeDeleteDeviceIdentity();
             }
         }
     }

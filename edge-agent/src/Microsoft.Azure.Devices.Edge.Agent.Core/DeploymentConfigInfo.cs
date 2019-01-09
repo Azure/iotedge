@@ -33,6 +33,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         [JsonIgnore]
         public Option<Exception> Exception { get; }
 
+        public static bool operator ==(DeploymentConfigInfo left, DeploymentConfigInfo right) => Equals(left, right);
+
+        public static bool operator !=(DeploymentConfigInfo left, DeploymentConfigInfo right) => !Equals(left, right);
+
         public bool Equals(DeploymentConfigInfo other)
         {
             if (other is null)
@@ -46,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             }
 
             return this.Version == other.Version && Equals(this.DeploymentConfig, other.DeploymentConfig)
-                && this.Exception.Equals(other.Exception);
+                                                 && this.Exception.Equals(other.Exception);
         }
 
         public override bool Equals(object obj)
@@ -79,9 +83,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 return hashCode;
             }
         }
-
-        public static bool operator ==(DeploymentConfigInfo left, DeploymentConfigInfo right) => Equals(left, right);
-
-        public static bool operator !=(DeploymentConfigInfo left, DeploymentConfigInfo right) => !Equals(left, right);
     }
 }

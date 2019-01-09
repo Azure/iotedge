@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.PerfCounters
             errorString = string.Empty;
             return true;
         }
+
         public bool LogE2EEventProcessingLatency(string iotHubName, string endpointName, string endpointType, string status, long latencyInMs, out string errorString)
         {
             errorString = string.Empty;

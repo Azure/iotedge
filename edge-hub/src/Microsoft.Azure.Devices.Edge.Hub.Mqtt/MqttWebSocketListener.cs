@@ -106,7 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
                 Events.Established(correlationId);
 
-                await serverChannel.WebSocketClosed.Task; // This will wait until the websocket is closed 
+                await serverChannel.WebSocketClosed.Task; // This will wait until the websocket is closed
             }
             catch (Exception ex) when (!ex.IsFatal())
             {
@@ -117,8 +117,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<MqttWebSocketListener>();
             const int IdStart = MqttEventIds.MqttWebSocketListener;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<MqttWebSocketListener>();
 
             enum EventIds
             {

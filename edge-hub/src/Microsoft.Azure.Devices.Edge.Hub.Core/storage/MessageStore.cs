@@ -17,6 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
     using Newtonsoft.Json;
     using static System.FormattableString;
     using Constants = Microsoft.Azure.Devices.Edge.Hub.Core.Constants;
+    using SystemProperties = Microsoft.Azure.Devices.Edge.Hub.Core.SystemProperties;
 
     /// <summary>
     /// This object is responsible for storing messages for each endpoint.
@@ -32,8 +33,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
         readonly CleanupProcessor messagesCleaner;
         readonly ICheckpointStore checkpointStore;
         readonly IStoreProvider storeProvider;
+        readonly long messageCount = 0;
         TimeSpan timeToLive;
-        long messageCount = 0;
 
         public MessageStore(IStoreProvider storeProvider, ICheckpointStore checkpointStore, TimeSpan timeToLive)
         {
@@ -79,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 throw new InvalidOperationException($"SequentialStore for endpoint {nameof(endpointId)} not found");
             }
 
-            if (!message.SystemProperties.TryGetValue(Core.SystemProperties.EdgeMessageId, out string edgeMessageId))
+            if (!message.SystemProperties.TryGetValue(SystemProperties.EdgeMessageId, out string edgeMessageId))
             {
                 throw new InvalidOperationException("Message does not contain required system property EdgeMessageId");
             }
@@ -89,15 +90,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             // entity store.
             // Note - if we fail to add the message to the sequential store (for some reason), then we will end up not cleaning up the message in the
             // entity store. But that should be rare enough that it might be okay. Also it is better than not being able to forward the message.
-            // Alternative is to add retry logic to the pump, but that is more complicated, and could affect performance.            
+            // Alternative is to add retry logic to the pump, but that is more complicated, and could affect performance.
             // TODO - Need to support transactions for these operations. The underlying storage layers support it.
             using (Metrics.MessageStoreLatency(endpointId))
             {
-                await this.messageEntityStore.PutOrUpdate(edgeMessageId, new MessageWrapper(message), (m) =>
-                {
-                    m.RefCount++;
-                    return m;
-                });
+                await this.messageEntityStore.PutOrUpdate(
+                    edgeMessageId,
+                    new MessageWrapper(message),
+                    (m) =>
+                    {
+                        m.RefCount++;
+                        return m;
+                    });
             }
 
             try
@@ -132,6 +136,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
         public IMessageIterator GetMessageIterator(string endpointId) => this.GetMessageIterator(endpointId, DefaultStartingOffset);
 
+        public void Dispose()
+        {
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
         protected virtual void Dispose(bool disposing)
         {
             if (disposing)
@@ -139,80 +149,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 this.messageEntityStore?.Dispose();
                 this.messagesCleaner?.Dispose();
                 Events.DisposingMessageStore();
-            }
-        }
-
-        public void Dispose()
-        {
-            this.Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        class MessageIterator : IMessageIterator
-        {
-            long startingOffset;
-            readonly IKeyValueStore<string, MessageWrapper> entityStore;
-            readonly ISequentialStore<MessageRef> endpointSequentialStore;
-
-            public MessageIterator(IKeyValueStore<string, MessageWrapper> entityStore,
-                ISequentialStore<MessageRef> endpointSequentialStore,
-                long startingOffset)
-            {
-                this.entityStore = entityStore;
-                this.endpointSequentialStore = endpointSequentialStore;
-                this.startingOffset = startingOffset < 0 ? 0 : startingOffset;
-            }
-
-            public async Task<IEnumerable<IMessage>> GetNext(int batchSize)
-            {
-                Preconditions.CheckRange(batchSize, 1, nameof(batchSize));
-                var messageList = new List<IMessage>();
-
-                try
-                {
-                    Events.GettingNextBatch(this.endpointSequentialStore.EntityName, this.startingOffset, batchSize);
-                    // TODO - Currently, this does not iterate over a snapshot. This should work as the cleanup and reference counting is managed at 
-                    // application level. But need to check if creating a snapshot for iterating is needed.
-                    List<(long offset, MessageRef msgRef)> batch = (await this.endpointSequentialStore.GetBatch(this.startingOffset, batchSize))
-                        .ToList();
-                    if (batch.Count > 0)
-                    {
-                        foreach ((long offset, MessageRef msgRef) item in batch)
-                        {
-                            Option<MessageWrapper> messageWrapper = await this.entityStore.Get(item.msgRef.EdgeMessageId);
-                            if (!messageWrapper.HasValue)
-                            {
-                                Events.MessageNotFound(item.msgRef.EdgeMessageId);
-                            }
-                            else
-                            {
-                                messageWrapper
-                                    .Map(m => this.AddMessageOffset(m.Message, item.offset))
-                                    .ForEach(m => messageList.Add(m));
-                            }
-                        }
-
-                        this.startingOffset = batch[batch.Count - 1].offset + 1;
-                    }
-                    Events.ObtainedNextBatch(this.endpointSequentialStore.EntityName, this.startingOffset, messageList.Count);
-                }
-                catch (Exception e)
-                {
-                    Events.ErrorGettingMessagesBatch(this.endpointSequentialStore.EntityName, e);
-                }
-                return messageList;
-            }
-
-            IMessage AddMessageOffset(IMessage message, long offset)
-            {
-                return new Message(
-                    message.MessageSource,
-                    message.Body,
-                    message.Properties.ToDictionary(),
-                    message.SystemProperties.ToDictionary(),
-                    offset,
-                    message.EnqueuedTime,
-                    message.DequeuedTime);
             }
         }
 
@@ -226,14 +162,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             {
             }
 
-            [JsonConstructor]
-            // Disabling this warning since we use this constructor on Deserialization.
-            // ReSharper disable once UnusedMember.Local
-            MessageWrapper(Message message, DateTime timeStamp, int refCount)
-                : this((IMessage)message, timeStamp, refCount)
-            {
-            }
-
             public MessageWrapper(IMessage message, DateTime timeStamp, int refCount)
             {
                 Preconditions.CheckArgument(timeStamp != default(DateTime));
@@ -242,34 +170,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 this.RefCount = Preconditions.CheckRange(refCount, 0, nameof(refCount));
             }
 
+            [JsonConstructor]
+            // Disabling this warning since we use this constructor on Deserialization.
+            // ReSharper disable once UnusedMember.Local
+            MessageWrapper(Message message, DateTime timeStamp, int refCount)
+                : this((IMessage)message, timeStamp, refCount)
+            {
+            }
+
             public IMessage Message { get; }
 
             public DateTime TimeStamp { get; }
 
             public int RefCount { get; set; }
-        }
-
-        /// <summary>
-        /// Class that stores references to stored messages. This is used for maintaining endpoint queues
-        /// </summary>
-        class MessageRef
-        {
-            public MessageRef(string edgeMessageId)
-                : this(edgeMessageId, DateTime.UtcNow)
-            {
-            }
-
-            [JsonConstructor]
-            public MessageRef(string edgeMessageId, DateTime timeStamp)
-            {
-                Preconditions.CheckArgument(timeStamp != default(DateTime));
-                this.EdgeMessageId = Preconditions.CheckNonWhiteSpace(edgeMessageId, nameof(edgeMessageId));
-                this.TimeStamp = timeStamp;
-            }
-
-            public string EdgeMessageId { get; }
-
-            public DateTime TimeStamp { get; }
         }
 
         class CleanupProcessor : IDisposable
@@ -288,6 +201,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 this.cancellationTokenSource = new CancellationTokenSource();
             }
 
+            public void Dispose()
+            {
+                this.ensureCleanupTaskTimer?.Dispose();
+                this.cancellationTokenSource?.Cancel();
+                // wait for 30 secs for the cleanup task to finish.
+                this.cleanupTask?.Wait(TimeSpan.FromSeconds(30));
+                // Not disposing the cleanup task, in case it is not completed yet.
+            }
+
             void EnsureCleanupTask(object state)
             {
                 if (this.cleanupTask == null || this.cleanupTask.IsCompleted)
@@ -298,10 +220,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             }
 
             /// <summary>
-            /// Messages need to be cleaned up in the following scenarios – 
-            /// 1.	When the message expires (exceeds TTL)
-            /// 2.	When a message has been processed (indicated by the the checkpoint)
-            /// 3.	When there are 0 references to a message in the store from the message queues, 
+            /// Messages need to be cleaned up in the following scenarios –
+            /// 1.When the message expires (exceeds TTL)
+            /// 2.When a message has been processed (indicated by the the checkpoint)
+            /// 3.When there are 0 references to a message in the store from the message queues,
             /// the message itself is deleted from the store (this means the message was successfully delivered to all endpoints).
             /// // TODO - Update cleanup logic to cleanup expired messages from entity store as well.
             /// </summary>
@@ -331,6 +253,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                                 ISequentialStore<MessageRef> sequentialStore = endpointSequentialStore.Value;
                                 Events.CleanupCheckpointState(endpointSequentialStore.Key, checkpointData);
                                 int cleanupEntityStoreCount = 0;
+
                                 async Task<bool> DeleteMessageCallback(long offset, MessageRef messageRef)
                                 {
                                     if (checkpointData.Offset < offset &&
@@ -341,7 +264,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
                                     bool deleteMessage = false;
 
-                                    // Decrement ref count. 
+                                    // Decrement ref count.
                                     await this.messageStore.messageEntityStore.Update(
                                         messageRef.EdgeMessageId,
                                         m =>
@@ -350,10 +273,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                                             {
                                                 m.RefCount--;
                                             }
+
                                             if (m.RefCount == 0)
                                             {
                                                 deleteMessage = true;
                                             }
+
                                             return m;
                                         });
 
@@ -382,6 +307,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                                 Events.ErrorCleaningMessagesForEndpoint(ex, endpointSequentialStore.Key);
                             }
                         }
+
                         await Task.Delay(cleanupTaskSleepTime);
                     }
                 }
@@ -391,49 +317,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                     throw;
                 }
             }
-
-            public void Dispose()
-            {
-                this.ensureCleanupTaskTimer?.Dispose();
-                this.cancellationTokenSource?.Cancel();
-                // wait for 30 secs for the cleanup task to finish.
-                this.cleanupTask?.Wait(TimeSpan.FromSeconds(30));
-                // Not disposing the cleanup task, in case it is not completed yet. 
-            }
-        }
-
-        static class Metrics
-        {
-            static readonly TimerOptions MessageEntityStorePutOrUpdateLatencyOptions = new TimerOptions
-            {
-                Name = "MessageEntityStorePutOrUpdateLatencyMs",
-                MeasurementUnit = Unit.None,
-                DurationUnit = TimeUnit.Milliseconds,
-                RateUnit = TimeUnit.Seconds
-            };
-
-            static readonly TimerOptions SequentialStoreAppendLatencyOptions = new TimerOptions
-            {
-                Name = "SequentialStoreAppendLatencyMs",
-                MeasurementUnit = Unit.None,
-                DurationUnit = TimeUnit.Milliseconds,
-                RateUnit = TimeUnit.Seconds
-            };
-
-            internal static MetricTags GetTags(string id)
-            {
-                return new MetricTags("EndpointId", id);
-            }
-
-            public static IDisposable MessageStoreLatency(string identity) => Edge.Util.Metrics.Latency(GetTags(identity), MessageEntityStorePutOrUpdateLatencyOptions);
-
-            public static IDisposable SequentialStoreLatency(string identity) => Edge.Util.Metrics.Latency(GetTags(identity), SequentialStoreAppendLatencyOptions);
         }
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<MessageStore>();
             const int IdStart = HubCoreEventIds.MessageStore;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<MessageStore>();
 
             enum EventIds
             {
@@ -489,6 +378,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 Log.LogDebug((int)EventIds.CleanupCompleted, Invariant($"Total messages cleaned up from queue for endpoint {endpointId} = {totalQueueMessagesCount}, and total messages cleaned up for message store = {totalStoreMessagesCount}."));
             }
 
+            public static void ErrorGettingMessagesBatch(string entityName, Exception ex)
+            {
+                Log.LogWarning((int)EventIds.ErrorGettingMessagesBatch, ex, $"Error getting next batch for endpoint {entityName}.");
+            }
+
             internal static void TtlUpdated(TimeSpan timeSpan)
             {
                 Log.LogInformation((int)EventIds.TtlUpdated, $"Updated message store TTL to {timeSpan.TotalSeconds} seconds");
@@ -532,10 +426,127 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                     Log.LogDebug((int)EventIds.MessageAdded, Invariant($"Added message {edgeMessageId} to store for {endpointId} at offset {offset} - messageCount = {messageCount}"));
                 }
             }
+        }
 
-            public static void ErrorGettingMessagesBatch(string entityName, Exception ex)
+        class MessageIterator : IMessageIterator
+        {
+            readonly IKeyValueStore<string, MessageWrapper> entityStore;
+            readonly ISequentialStore<MessageRef> endpointSequentialStore;
+            long startingOffset;
+
+            public MessageIterator(
+                IKeyValueStore<string, MessageWrapper> entityStore,
+                ISequentialStore<MessageRef> endpointSequentialStore,
+                long startingOffset)
             {
-                Log.LogWarning((int)EventIds.ErrorGettingMessagesBatch, ex, $"Error getting next batch for endpoint {entityName}.");
+                this.entityStore = entityStore;
+                this.endpointSequentialStore = endpointSequentialStore;
+                this.startingOffset = startingOffset < 0 ? 0 : startingOffset;
+            }
+
+            public async Task<IEnumerable<IMessage>> GetNext(int batchSize)
+            {
+                Preconditions.CheckRange(batchSize, 1, nameof(batchSize));
+                var messageList = new List<IMessage>();
+
+                try
+                {
+                    Events.GettingNextBatch(this.endpointSequentialStore.EntityName, this.startingOffset, batchSize);
+                    // TODO - Currently, this does not iterate over a snapshot. This should work as the cleanup and reference counting is managed at
+                    // application level. But need to check if creating a snapshot for iterating is needed.
+                    List<(long offset, MessageRef msgRef)> batch = (await this.endpointSequentialStore.GetBatch(this.startingOffset, batchSize))
+                        .ToList();
+                    if (batch.Count > 0)
+                    {
+                        foreach ((long offset, MessageRef msgRef) item in batch)
+                        {
+                            Option<MessageWrapper> messageWrapper = await this.entityStore.Get(item.msgRef.EdgeMessageId);
+                            if (!messageWrapper.HasValue)
+                            {
+                                Events.MessageNotFound(item.msgRef.EdgeMessageId);
+                            }
+                            else
+                            {
+                                messageWrapper
+                                    .Map(m => this.AddMessageOffset(m.Message, item.offset))
+                                    .ForEach(m => messageList.Add(m));
+                            }
+                        }
+
+                        this.startingOffset = batch[batch.Count - 1].offset + 1;
+                    }
+
+                    Events.ObtainedNextBatch(this.endpointSequentialStore.EntityName, this.startingOffset, messageList.Count);
+                }
+                catch (Exception e)
+                {
+                    Events.ErrorGettingMessagesBatch(this.endpointSequentialStore.EntityName, e);
+                }
+
+                return messageList;
+            }
+
+            IMessage AddMessageOffset(IMessage message, long offset)
+            {
+                return new Message(
+                    message.MessageSource,
+                    message.Body,
+                    message.Properties.ToDictionary(),
+                    message.SystemProperties.ToDictionary(),
+                    offset,
+                    message.EnqueuedTime,
+                    message.DequeuedTime);
+            }
+        }
+
+        /// <summary>
+        /// Class that stores references to stored messages. This is used for maintaining endpoint queues
+        /// </summary>
+        class MessageRef
+        {
+            public MessageRef(string edgeMessageId)
+                : this(edgeMessageId, DateTime.UtcNow)
+            {
+            }
+
+            [JsonConstructor]
+            public MessageRef(string edgeMessageId, DateTime timeStamp)
+            {
+                Preconditions.CheckArgument(timeStamp != default(DateTime));
+                this.EdgeMessageId = Preconditions.CheckNonWhiteSpace(edgeMessageId, nameof(edgeMessageId));
+                this.TimeStamp = timeStamp;
+            }
+
+            public string EdgeMessageId { get; }
+
+            public DateTime TimeStamp { get; }
+        }
+
+        static class Metrics
+        {
+            static readonly TimerOptions MessageEntityStorePutOrUpdateLatencyOptions = new TimerOptions
+            {
+                Name = "MessageEntityStorePutOrUpdateLatencyMs",
+                MeasurementUnit = Unit.None,
+                DurationUnit = TimeUnit.Milliseconds,
+                RateUnit = TimeUnit.Seconds
+            };
+
+            static readonly TimerOptions SequentialStoreAppendLatencyOptions = new TimerOptions
+            {
+                Name = "SequentialStoreAppendLatencyMs",
+                MeasurementUnit = Unit.None,
+                DurationUnit = TimeUnit.Milliseconds,
+                RateUnit = TimeUnit.Seconds
+            };
+
+            public static IDisposable MessageStoreLatency(string identity) => Util.Metrics.Latency(GetTags(identity), MessageEntityStorePutOrUpdateLatencyOptions);
+
+            public static IDisposable SequentialStoreLatency(string identity) => Util.Metrics.Latency(GetTags(identity), SequentialStoreAppendLatencyOptions);
+
+            internal static MetricTags GetTags(string id)
+            {
+                return new MetricTags("EndpointId", id);
             }
         }
     }

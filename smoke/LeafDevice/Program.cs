@@ -31,14 +31,10 @@ Defaults:
   --device-id               an auto-generated unique identifier
   --certificate             Empty String.
   --edge-hostname           Empty String.
-"
-        )]
+")]
     [HelpOption]
     class Program
     {
-        // ReSharper disable once UnusedMember.Local
-        static int Main(string[] args) => CommandLineApplication.ExecuteAsync<Program>(args).Result;
-
         [Option("-c|--connection-string <value>", Description = "Device connection string (hub-scoped, e.g. iothubowner)")]
         public string DeviceConnectionString { get; } = Environment.GetEnvironmentVariable("iothubConnectionString");
 
@@ -46,34 +42,37 @@ Defaults:
         public string EventHubCompatibleEndpointWithEntityPath { get; } = Environment.GetEnvironmentVariable("eventhubCompatibleEndpointWithEntityPath");
 
         [Option("-ct|--certificate <value>", Description = "Trust bundle CA Certificate(s) file to be installed on the machine.")]
-        public string TrustedCACertificateFileName { get; } = "";
+        public string TrustedCACertificateFileName { get; } = string.Empty;
 
         [Option("-d|--device-id", Description = "Leaf device identifier to be registered with IoT Hub")]
         public string DeviceId { get; } = $"leaf-device--{Guid.NewGuid()}";
 
         [Option("-ed|--edge-hostname", Description = "Leaf device identifier to be registered with IoT Hub")]
-        public string EdgeHostName { get; } = "";
+        public string EdgeHostName { get; } = string.Empty;
 
         [Option("--use-web-sockets", CommandOptionType.NoValue, Description = "Use websockets for IoT Hub connections.")]
         public bool UseWebSockets { get; } = false;
 
         [Option("-cac|--x509-ca-cert-path", Description = "Path to a X.509 leaf certificate file in PEM format to be used for X.509 CA authentication.")]
-        public string X509CACertPath { get; } = "";
+        public string X509CACertPath { get; } = string.Empty;
 
         [Option("-cak|--x509-ca-key-path", Description = "Path to a X.509 leaf certificate key file in PEM format to be used for X.509 CA authentication.")]
-        public string X509CAKeyPath { get; } = "";
+        public string X509CAKeyPath { get; } = string.Empty;
 
         [Option("-ctpc|--x509-primary-cert-path", Description = "Path to a X.509 leaf certificate file in PEM format. This is needed for thumbprint auth and used as the primary certificate.")]
-        public string X509PrimaryCertPath { get; } = "";
+        public string X509PrimaryCertPath { get; } = string.Empty;
 
         [Option("-ctpk|--x509-primary-key-path", Description = "Path to a X.509 leaf certificate key file in PEM format. This is needed for thumbprint auth and used as the primary certificate's key.")]
-        public string X509PrimaryKeyPath { get; } = "";
+        public string X509PrimaryKeyPath { get; } = string.Empty;
 
         [Option("-ctsc|--x509-secondary-cert-path", Description = "Path to a X.509 leaf certificate file in PEM format. This is needed for thumbprint auth and used as the secondary certificate.")]
-        public string X509SecondaryCertPath { get; } = "";
+        public string X509SecondaryCertPath { get; } = string.Empty;
 
         [Option("-ctsk|--x509-secondary-key-path", Description = "Path to a X.509 leaf certificate key file in PEM format. This is needed for thumbprint auth and used as the secondary certificate's key.")]
-        public string X509SecondaryKeyPath { get; } = "";
+        public string X509SecondaryKeyPath { get; } = string.Empty;
+
+        // ReSharper disable once UnusedMember.Local
+        static int Main(string[] args) => CommandLineApplication.ExecuteAsync<Program>(args).Result;
 
         // ReSharper disable once UnusedMember.Local
         async Task<int> OnExecuteAsync()
@@ -81,10 +80,10 @@ Defaults:
             try
             {
                 string connectionString = this.DeviceConnectionString ??
-                    await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
+                                          await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
 
                 string endpoint = this.EventHubCompatibleEndpointWithEntityPath ??
-                    await SecretsHelper.GetSecretFromConfigKey("eventHubConnStrKey");
+                                  await SecretsHelper.GetSecretFromConfigKey("eventHubConnStrKey");
 
                 if (!string.IsNullOrWhiteSpace(X509PrimaryCertPath) &&
                     !string.IsNullOrWhiteSpace(X509PrimaryKeyPath) &&

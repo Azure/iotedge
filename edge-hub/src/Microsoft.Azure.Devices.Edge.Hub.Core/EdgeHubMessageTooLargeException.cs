@@ -7,10 +7,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         public EdgeHubMessageTooLargeException(string message)
             : base(message)
-        { }
+        {
+        }
 
         public EdgeHubMessageTooLargeException(string message, Exception innerException)
             : base(message, innerException)
-        { }
+        {
+        }
     }
 }

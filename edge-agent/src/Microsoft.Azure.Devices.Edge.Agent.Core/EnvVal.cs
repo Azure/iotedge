@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
-    using Newtonsoft.Json;
     using System;
     using System.Collections.Generic;
+    using Newtonsoft.Json;
 
     public class EnvVal : IEquatable<EnvVal>
     {
@@ -21,9 +21,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public bool Equals(EnvVal other)
         {
             if (ReferenceEquals(null, other))
+            {
                 return false;
+            }
+
             if (ReferenceEquals(this, other))
+            {
                 return true;
+            }
+
             return string.Equals(this.Value, other.Value);
         }
 

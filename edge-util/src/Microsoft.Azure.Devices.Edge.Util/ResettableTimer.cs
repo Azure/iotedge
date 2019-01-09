@@ -69,6 +69,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
         }
 
+        public void Dispose() => this.Disable();
+
         Timer CreateTimer()
         {
             var instance = new Timer(this.period.TotalMilliseconds);
@@ -87,7 +89,5 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 this.logger?.LogWarning($"Error in timer callback - {exception}");
             }
         }
-
-        public void Dispose() => this.Disable();
     }
 }

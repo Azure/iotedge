@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     [Unit]
     public class InvokeMethodHandlerTest
     {
-        [Fact]        
+        [Fact]
         public async Task InvokeMethodTest()
         {
             // Arrange
@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Assert
             Assert.NotNull(response);
             Assert.Equal(response.CorrelationId, request.CorrelationId);
-            Assert.Equal(response.HttpStatusCode, HttpStatusCode.OK);            
+            Assert.Equal(response.HttpStatusCode, HttpStatusCode.OK);
             Assert.Null(response.Data);
             Assert.Equal(response.Status, 200);
             Assert.False(response.Exception.HasValue);
@@ -111,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Task<DirectMethodResponse> invokeMethodTask = invokeMethodHandler.InvokeMethod(request);
             await Task.Delay(TimeSpan.FromSeconds(2));
 
-            // Assert            
+            // Assert
             Assert.False(invokeMethodTask.IsCompleted);
 
             // Act
@@ -155,7 +155,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Task<DirectMethodResponse> invokeMethodTask = invokeMethodHandler.InvokeMethod(request);
             await Task.Delay(TimeSpan.FromSeconds(2));
 
-            // Assert            
+            // Assert
             Assert.False(invokeMethodTask.IsCompleted);
 
             // Act

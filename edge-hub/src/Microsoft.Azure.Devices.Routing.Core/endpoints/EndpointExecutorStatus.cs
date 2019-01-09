@@ -3,11 +3,22 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 {
     using System;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine;
+    using Microsoft.Azure.Devices.Routing.Core.Util;
 
     public class EndpointExecutorStatus
     {
+        public EndpointExecutorStatus(string id, State state, int retryAttempts, TimeSpan retryPeriod, Option<DateTime> lastFailedRevivalTime, Option<DateTime> unhealthySince, CheckpointerStatus checkpointerStatus)
+        {
+            this.Id = id;
+            this.State = state;
+            this.RetryAttempts = retryAttempts;
+            this.RetryPeriod = retryPeriod;
+            this.LastFailedRevivalTime = lastFailedRevivalTime;
+            this.UnhealthySince = unhealthySince;
+            this.CheckpointerStatus = checkpointerStatus;
+        }
+
         public string Id { get; }
 
         public State State { get; }
@@ -21,16 +32,5 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
         public Option<DateTime> UnhealthySince { get; }
 
         public CheckpointerStatus CheckpointerStatus { get; }
-
-        public EndpointExecutorStatus(string id, State state, int retryAttempts, TimeSpan retryPeriod, Option<DateTime> lastFailedRevivalTime, Option<DateTime> unhealthySince, CheckpointerStatus checkpointerStatus)
-        {
-            this.Id = id;
-            this.State = state;
-            this.RetryAttempts = retryAttempts;
-            this.RetryPeriod = retryPeriod;
-            this.LastFailedRevivalTime = lastFailedRevivalTime;
-            this.UnhealthySince = unhealthySince;
-            this.CheckpointerStatus = checkpointerStatus;
-        }
     }
 }

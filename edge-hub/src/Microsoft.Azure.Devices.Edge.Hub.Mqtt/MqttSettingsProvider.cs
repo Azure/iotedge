@@ -10,8 +10,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         readonly IConfiguration mqttSettings;
 
         public MqttSettingsProvider(IConfiguration mqttSettings)
-        {            
-            this.mqttSettings = Preconditions.CheckNotNull(mqttSettings, nameof(mqttSettings));            
+        {
+            this.mqttSettings = Preconditions.CheckNotNull(mqttSettings, nameof(mqttSettings));
         }
 
         public bool TryGetSetting(string name, out string value)

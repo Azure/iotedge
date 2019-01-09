@@ -52,14 +52,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.Equal(moduleId, identity.ModuleId);
         }
 
-        static string GetRandomString(int length)
-        {
-            var rand = new Random();
-            const string Chars = "abcdefghijklmnopqrstuvwxyz";
-            return new string(Enumerable.Repeat(Chars, length)
-              .Select(s => s[rand.Next(s.Length)]).ToArray());
-        }
-
         [Fact]
         public void GetSasIdentityTest()
         {
@@ -125,6 +117,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.Equal("device1/module1", identityTry2.Identity.Id);
             Assert.Equal($"{callerProductInfo} customDeviceClient1", identityTry2.ProductInfo);
             Assert.Equal(AuthenticationType.X509Cert, identityTry1.AuthenticationType);
+        }
+
+        static string GetRandomString(int length)
+        {
+            var rand = new Random();
+            const string Chars = "abcdefghijklmnopqrstuvwxyz";
+            return new string(
+                Enumerable.Repeat(Chars, length)
+                    .Select(s => s[rand.Next(s.Length)]).ToArray());
         }
     }
 }
