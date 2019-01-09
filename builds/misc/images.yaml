@@ -11,18 +11,17 @@ jobs:
 ################################################################################
     displayName: Linux
     pool:
+      name: Hosted Ubuntu 1604
       vmImage: 'ubuntu-16.04'
+    variables:
+      NetCorePackageUri: https://download.microsoft.com/download/4/0/9/40920432-3302-47a8-b13c-bbc4848ad114/dotnet-sdk-2.1.302-linux-x64.tar.gz
     steps:
-      - task: Bash@3
-        displayName: Install
-        inputs:
-          filePath: scripts/linux/installPrereqs.sh
-          arguments: -u $(NetCorePackageUriLinux)
-      - task: Bash@3
+      - script: scripts/linux/installPrereqs.sh -u $(NetCorePackageUri)
+        name: install
+        display: Install dependencies
+      - script: scripts/linux/buildBranch.sh -c Release --no-rocksdb-bin
+        name: build
         displayName: Build (release)
-        inputs:
-          filePath: scripts/linux/buildBranch.sh
-          arguments: -c Release --no-rocksdb-bin 
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifacts'
         inputs:
@@ -97,17 +96,15 @@ jobs:
 ################################################################################
     displayName: Windows
     pool: Azure-IoT-Edge-Core
+    variables:
+      NetCorePackageUri: https://download.microsoft.com/download/4/0/9/40920432-3302-47a8-b13c-bbc4848ad114/dotnet-sdk-2.1.302-win-x64.zip
     steps:
-      - task: PowerShell@2
+      - powershell: scripts/windows/setup/Install-Prerequisites.ps1 -DotnetSdkUrl $(NetCorePackageUri) -Dotnet -Nuget
+        name: install
         displayName: Install
-        inputs:
-          filePath: scripts/windows/setup/Install-Prerequisites.ps1
-          arguments: -DotnetSdkUrl $(NetCorePackageUriWindows) -Dotnet -Nuget
-      - task: PowerShell@2
+      -powershell: scripts/windows/build/Publish-Branch.ps1 -Configuration:"Release" -PublishTests:$False -UpdateVersion
+        name: build
         displayName: Build
-        inputs:
-          filePath: scripts/windows/build/Publish-Branch.ps1
-          arguments: -Configuration:"Release" -PublishTests:$False -UpdateVersion
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifacts'
         inputs:
@@ -117,16 +114,10 @@ jobs:
           Write-Host "Get container registry info"
           docker login $(registry.address) -u $(registry.user) -p $(registry.password)
         displayName: Docker Login
-      - task: PowerShell@2
+      - powershell: scripts/windows/build/Publish-DockerImageSuite.ps1 -Registry $(registry.address) -Namespace "microsoft" -Push
         displayName: Publish Docker Images (amd64)
-        inputs:
-          filePath: scripts/windows/build/Publish-DockerImageSuite.ps1
-          arguments: -Registry $(registry.address) -Namespace "microsoft" -Push
-      - task: PowerShell@2
+      - powershell: scripts/windows/build/Publish-DockerImageSuite.ps1 -Registry $(registry.address) -Namespace "microsoft" -Architecture "arm32v7" -Push
         displayName: Publish Docker Images (arm32)
-        inputs:
-          filePath: scripts/windows/build/Publish-DockerImageSuite.ps1
-          arguments: -Registry $(registry.address) -Namespace "microsoft" -Architecture "arm32v7" -Push
       - powershell: docker system prune -a -f
         displayName: Clean Machine
 
@@ -142,18 +133,9 @@ jobs:
     variables:
       tags: "['latest']"
     steps:
-    - task: Bash@3
+    - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-agent/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
       displayName: 'Publish Edge Agent Manifest'
-      inputs:
-        filePath: scripts/linux/buildManifest.sh
-        arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-agent/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
-    - task: Bash@3
+    - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-hub/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
       displayName: 'Publish Edge Hub Manifest'
-      inputs:
-        filePath: scripts/linux/buildManifest.sh
-        arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-hub/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
-    - task: Bash@3
+    - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
       displayName: 'Publish Temperature Sensor Manifest'
-      inputs:
-        filePath: scripts/linux/buildManifest.sh
-        arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
