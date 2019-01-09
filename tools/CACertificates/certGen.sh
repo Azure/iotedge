@@ -277,7 +277,7 @@ function generate_certificate_common()
 ###############################################################################
 function generate_intermediate_ca()
 {
-    root_ca_password="${1}"
+    local root_ca_password="${1}"
     local common_name="Azure_IoT_Hub_Intermediate_Cert_Test_Only"
 
     generate_certificate_common "v3_intermediate_ca" \
