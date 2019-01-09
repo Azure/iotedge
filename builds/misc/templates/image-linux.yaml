@@ -1,6 +1,7 @@
 parameters:
   name: ''
   imageName: ''
+  namespace: 'microsoft'
   project: ''
 
 steps:
@@ -8,9 +9,9 @@ steps:
     displayName: Build Image - ${{ parameters.name }} - amd64
     inputs:
       filePath: scripts/linux/buildImage.sh
-      arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i ${{ parameters.imageName }} -n microsoft -P ${{ parameters.project }}
+      arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i ${{ parameters.imageName }} -n ${{ parameters.namespace }} -P ${{ parameters.project }}
   - task: Bash@3
     displayName: Build Image - ${{ parameters.name }} - arm32
     inputs:
       filePath: scripts/linux/buildImage.sh
-      arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i ${{ parameters.imageName }} -n microsoft -P ${{ parameters.project }} --target-arch armv7l
+      arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i ${{ parameters.imageName }} -n ${{ parameters.namespace }} -P ${{ parameters.project }} --target-arch armv7l
