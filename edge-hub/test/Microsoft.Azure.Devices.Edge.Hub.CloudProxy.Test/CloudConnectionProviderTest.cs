@@ -346,6 +346,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
                         break;
                     }
+
                     case MqttTransportSettings _:
                     {
                         var expected = (MqttTransportSettings)expectedTransportSettings;

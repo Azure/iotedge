@@ -111,14 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         async Task<ScopeResult> GetIdentitiesInScope(Uri uri)
         {
             HttpClient client = null;
-            this.proxy.ForEach(
-                p =>
-                {
-                    client = new HttpClient(new HttpClientHandler()
-                    {
-                        Proxy = p
-                    }, disposeHandler: true);
-                });
+            this.proxy.ForEach(p => { client = new HttpClient(new HttpClientHandler() { Proxy = p }, disposeHandler: true); });
             client = client ?? new HttpClient();
 
             using (var msg = new HttpRequestMessage(HttpMethod.Get, uri))
