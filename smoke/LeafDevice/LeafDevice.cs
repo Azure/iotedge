@@ -4,8 +4,8 @@ namespace LeafDevice
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
+    using global::LeafDevice.Details;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
 
     public class LeafDevice : Details.Details
     {
@@ -17,13 +17,14 @@ namespace LeafDevice
             string edgeHostName,
             bool useWebSockets)
             :
-            base(iothubConnectionString,
+            base(
+                iothubConnectionString,
                 eventhubCompatibleEndpointWithEntityPath,
                 deviceId,
                 trustedCACertificateFileName,
                 edgeHostName,
                 useWebSockets,
-                Option.None<Details.DeviceCertificate>(),
+                Option.None<DeviceCertificate>(),
                 Option.None<IList<string>>())
         {
         }
@@ -37,14 +38,16 @@ namespace LeafDevice
             bool useWebSockets,
             string clientCertificatePath,
             string clientCertificateKeyPath
-            ) :
-            base(iothubConnectionString,
+        )
+            :
+            base(
+                iothubConnectionString,
                 eventhubCompatibleEndpointWithEntityPath,
                 deviceId,
                 trustedCACertificateFileName,
                 edgeHostName,
                 useWebSockets,
-                Option.Some( new Details.DeviceCertificate { certificateFilePath = clientCertificatePath, certificateKeyFilePath = clientCertificateKeyPath } ),
+                Option.Some(new DeviceCertificate { certificateFilePath = clientCertificatePath, certificateKeyFilePath = clientCertificateKeyPath }),
                 Option.None<IList<string>>())
         {
         }
@@ -59,14 +62,16 @@ namespace LeafDevice
             string clientCertificatePath,
             string clientCertificateKeyPath,
             IList<string> thumprintCertificates
-            ) :
-            base(iothubConnectionString,
+        )
+            :
+            base(
+                iothubConnectionString,
                 eventhubCompatibleEndpointWithEntityPath,
                 deviceId,
                 trustedCACertificateFileName,
                 edgeHostName,
                 useWebSockets,
-                Option.Some(new Details.DeviceCertificate { certificateFilePath = clientCertificatePath, certificateKeyFilePath = clientCertificateKeyPath }),
+                Option.Some(new DeviceCertificate { certificateFilePath = clientCertificatePath, certificateKeyFilePath = clientCertificateKeyPath }),
                 Option.Some(thumprintCertificates))
         {
         }

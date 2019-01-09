@@ -43,7 +43,7 @@ namespace LeafDevice.Details
         {
             Debug.WriteLine("CustomCertificateValidator.SetupCertificateValidation()");
 
-            foreach (ITransportSettings transportSetting in this.transportSettings)
+            foreach (var transportSetting in this.transportSettings)
             {
                 switch (transportSetting.GetTransportType())
                 {
@@ -83,7 +83,7 @@ namespace LeafDevice.Details
         {
             Console.WriteLine("CustomCertificateValidator.ValidateCertificate is called.");
             // Terminate on errors other than those caused by a chain failure
-            SslPolicyErrors terminatingErrors = sslPolicyErrors & ~SslPolicyErrors.RemoteCertificateChainErrors;
+            var terminatingErrors = sslPolicyErrors & ~SslPolicyErrors.RemoteCertificateChainErrors;
             if (terminatingErrors != SslPolicyErrors.None)
             {
                 Console.WriteLine("Discovered SSL session errors: {0}", terminatingErrors);
@@ -108,7 +108,7 @@ namespace LeafDevice.Details
 #endif
 
             // Pin the trusted root of the chain to the expected root certificate
-            X509Certificate2 actualRoot = chain.ChainElements[chain.ChainElements.Count - 1].Certificate;
+            var actualRoot = chain.ChainElements[chain.ChainElements.Count - 1].Certificate;
             if (!trustedCertificate.Equals(actualRoot))
             {
                 Console.WriteLine("The certificate chain was not signed by the trusted root certificate.");

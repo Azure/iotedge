@@ -23,10 +23,10 @@ namespace LeafDevice.Details
             var info = new ProcessStartInfo
             {
                 FileName = name,
-                Arguments = args,
+                Arguments = args
             };
 
-            using (ProcessResults result = await ProcessEx.RunAsync(info, token))
+            using (var result = await ProcessEx.RunAsync(info, token))
             {
                 if (result.ExitCode != 0)
                 {
