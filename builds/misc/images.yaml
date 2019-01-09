@@ -112,10 +112,8 @@ jobs:
         inputs:
           PathtoPublish: '$(Build.BinariesDirectory)/publish'
           ArtifactName: 'core-windows'
-      - powershell: |
-          Write-Host "Get container registry info"
-          docker login $(registry.address) -u $(registry.user) -p $(registry.password)
-        displayName: Docker Login
+      - powershell: '"$(registry.password)" | docker login "edgebuilds.azurecr.io" -u "$(registry.user)" --password-stdin'
+        displayName: 'Docker Login'
       - powershell: scripts/windows/build/Publish-DockerImageSuite.ps1 -Registry $(registry.address) -Namespace "microsoft" -Push
         displayName: Publish Docker Images (amd64)
       - powershell: scripts/windows/build/Publish-DockerImageSuite.ps1 -Registry $(registry.address) -Namespace "microsoft" -Architecture "arm32v7" -Push
