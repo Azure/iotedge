@@ -1,6 +1,6 @@
 # Base image for arm32v7 dotnet-runtime container
 FROM mcr.microsoft.com/windows/nanoserver:1809_arm
- 
+
 ENV DOTNET_VERSION 2.1.6
 ENV DOTNET_DOWNLOAD_URL https://dotnetcli.blob.core.windows.net/dotnet/Runtime/$DOTNET_VERSION/dotnet-runtime-${DOTNET_VERSION}-win-arm.zip
  
