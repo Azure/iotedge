@@ -151,7 +151,7 @@ jobs:
           name: FunctionsSample
           imageName: azureiotedge-functions-filter
           project: EdgeHubTriggerCSharp
-          arm: 'false'
+          arm32v7: 'false'
 
       # Direct Method Sender
       - template: templates/image-windows.yaml
