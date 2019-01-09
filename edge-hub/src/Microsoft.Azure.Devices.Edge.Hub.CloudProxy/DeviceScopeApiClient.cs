@@ -113,7 +113,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             HttpClient client = null;
             this.proxy.ForEach(p => { client = new HttpClient(new HttpClientHandler() { Proxy = p }, disposeHandler: true); });
             client = client ?? new HttpClient();
-
+HttpClient client = this.proxy
+    .Map(p => new HttpClient(new HttpClientHandler { Proxy = p }, disposeHandler: true))
+    .GetOrElse(() => new HttpClient());
             using (var msg = new HttpRequestMessage(HttpMethod.Get, uri))
             {
                 string token = await this.edgeHubTokenProvider.GetTokenAsync(Option.None<TimeSpan>());
