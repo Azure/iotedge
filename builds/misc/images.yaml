@@ -18,7 +18,7 @@ jobs:
     steps:
       - script: scripts/linux/installPrereqs.sh -u $(NetCorePackageUri)
         name: install
-        display: Install dependencies
+        displayName: Install dependencies
       - script: scripts/linux/buildBranch.sh -c Release --no-rocksdb-bin
         name: build
         displayName: Build (release)
