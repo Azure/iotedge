@@ -116,10 +116,56 @@ jobs:
           ArtifactName: 'core-windows'
       - powershell: '"$(registry.password)" | docker login "edgebuilds.azurecr.io" -u "$(registry.user)" --password-stdin'
         displayName: 'Docker Login'
-      - powershell: scripts/windows/build/Publish-DockerImageSuite.ps1 -Registry $(registry.address) -Namespace "microsoft" -Push
-        displayName: Publish Docker Images (amd64)
-      - powershell: scripts/windows/build/Publish-DockerImageSuite.ps1 -Registry $(registry.address) -Namespace "microsoft" -Architecture "arm32v7" -Push
-        displayName: Publish Docker Images (arm32)
+
+      # Edge Agent
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Edge Agent
+          imageName: azureiotedge-agent
+          project: Microsoft.Azure.Devices.Edge.Agent.Service
+
+      # Edge Hub
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Edge Hub
+          imageName: azureiotedge-hub
+          project: Microsoft.Azure.Devices.Edge.Hub.Service
+
+      # Simulated Temperature Sensor
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Temperature Sensor
+          imageName: azureiotedge-simulated-temperature-sensor
+          project: SimulatedTemperatureSensor
+
+      # Temperature Filter
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Temperature Filter
+          imageName: azureiotedge-temperature-filter
+          project: TemperatureFilter
+
+      # Functions Sample
+      - template: templates/image-windows.yaml
+        parameters:
+          name: FunctionsSample
+          imageName: azureiotedge-functions-filter
+          project: EdgeHubTriggerCSharp
+
+      # Direct Method Sender
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Direct Method Sender
+          imageName: azureiotedge-direct-method-sender
+          project: DirectMethodSender
+
+      # Direct Method Receiver
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Direct Method Receiver
+          imageName: azureiotedge-direct-method-receiver
+          project: DirectMethodReceiver
+
       - powershell: docker system prune -a -f
         displayName: Clean Machine
 

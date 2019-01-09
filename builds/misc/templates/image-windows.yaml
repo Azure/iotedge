@@ -1,0 +1,10 @@
+parameters:
+  name: ''
+  imageName: ''
+  project: ''
+
+steps:
+  - powershell: scripts/windows/build/Publish-DockerImage.ps1 -Name "${{ parameter.imageName }}" -Project "${{ parameters.project }}" -Version $(Build.BuildNumber) -Registry $(registry.address) -Namespace "microsoft" -Push
+    displayName: Build Image - ${{ parameters.name }} - amd64
+  - powershell: scripts/windows/build/Publish-DockerImage.ps1 -Name "${{ parameter.imageName }}" -Project "${{ parameters.project }}" -Version $(Build.BuildNumber) -Registry $(registry.address) -Namespace "microsoft" -Architecture "arm32v7" -Push
+    displayName: Build Image - ${{ parameters.name }} - arm32
