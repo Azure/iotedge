@@ -146,11 +146,11 @@ jobs:
           project: TemperatureFilter
 
       # Functions Sample
-      - template: templates/image-windows.yaml
-        parameters:
-          name: FunctionsSample
-          imageName: azureiotedge-functions-filter
-          project: EdgeHubTriggerCSharp
+      # - template: templates/image-windows.yaml
+      #   parameters:
+      #     name: FunctionsSample
+      #     imageName: azureiotedge-functions-filter
+      #     project: EdgeHubTriggerCSharp
 
       # Direct Method Sender
       - template: templates/image-windows.yaml
