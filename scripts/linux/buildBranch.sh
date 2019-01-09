@@ -206,7 +206,6 @@ build_solution()
     echo "Building IoT Edge solution"
     $DOTNET_ROOT_PATH/dotnet build \
         -c $CONFIGURATION \
-        -o "$BUILD_BINARIESDIRECTORY" \
         "$ROOT_FOLDER/Microsoft.Azure.Devices.Edge.sln"
     if [ $? -gt 0 ]; then
         RES=1
