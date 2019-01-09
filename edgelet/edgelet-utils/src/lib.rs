@@ -41,7 +41,7 @@ use std::collections::HashMap;
 pub use error::{Error, ErrorKind};
 pub use logging::log_failure;
 pub use macros::ensure_not_empty_with_context;
-pub use ser_de::{serde_clone, string_or_struct};
+pub use ser_de::{serde_clone, serialize_ordered, string_or_struct};
 
 pub fn parse_query(query: &str) -> HashMap<&str, &str> {
     query
