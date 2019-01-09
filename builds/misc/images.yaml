@@ -102,7 +102,7 @@ jobs:
       - powershell: scripts/windows/setup/Install-Prerequisites.ps1 -DotnetSdkUrl $(NetCorePackageUri) -Dotnet -Nuget
         name: install
         displayName: Install
-      -powershell: scripts/windows/build/Publish-Branch.ps1 -Configuration:"Release" -PublishTests:$False -UpdateVersion
+      - powershell: scripts/windows/build/Publish-Branch.ps1 -Configuration:"Release" -PublishTests:$False -UpdateVersion
         name: build
         displayName: Build
       - task: PublishBuildArtifacts@1
