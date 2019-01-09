@@ -179,9 +179,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         var credentialsCacheTask = c.Resolve<Task<ICredentialsCache>>();
                         var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
                         var deviceScopeIdentitiesCacheTask = c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
+                        var proxy = c.Resolve<Option<IWebProxy>>();
                         IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await deviceScopeIdentitiesCacheTask;
                         ICredentialsCache credentialsCache = await credentialsCacheTask;
-                        var proxy = c.Resolve<Option<IWebProxy>>();
                         ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(
                             messageConverterProvider,
                             this.connectionPoolSize,
