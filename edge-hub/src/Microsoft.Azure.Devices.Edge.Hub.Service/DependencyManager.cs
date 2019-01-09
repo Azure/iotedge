@@ -123,7 +123,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool closeCloudConnectionOnIdleTimeout = this.configuration.GetValue("CloseCloudConnectionOnIdleTimeout", true);
             int cloudOperationTimeoutSecs = this.configuration.GetValue("CloudOperationTimeoutSecs", 20);
             TimeSpan cloudOperationTimeout = TimeSpan.FromSeconds(cloudOperationTimeoutSecs);
-            string proxy = this.configuration.GetValue("https_proxy", string.Empty);
 
             builder.RegisterModule(
                 new RoutingModule(
@@ -142,8 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     maxConnectedClients,
                     cloudConnectionIdleTimeout,
                     closeCloudConnectionOnIdleTimeout,
-                    cloudOperationTimeout,
-                    proxy));
+                    cloudOperationTimeout));
         }
 
         void RegisterCommonModule(ContainerBuilder builder, bool optimizeForPerformance, (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward)
@@ -160,6 +158,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             int scopeCacheRefreshRateSecs = this.configuration.GetValue("DeviceScopeCacheRefreshRateSecs", 3600);
             TimeSpan scopeCacheRefreshRate = TimeSpan.FromSeconds(scopeCacheRefreshRateSecs);
+
+            string proxy = this.configuration.GetValue("https_proxy", string.Empty);
 
             // Register modules
             builder.RegisterModule(
@@ -178,7 +178,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     workloadUri,
                     scopeCacheRefreshRate,
                     cacheTokens,
-                    this.trustBundle));
+                    this.trustBundle,
+                    proxy));
         }
 
         (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) GetStoreAndForwardConfiguration()
