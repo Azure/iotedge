@@ -87,7 +87,7 @@ jobs:
       # Direct Method Receiver
       - template: templates/image-linux.yaml
         parameters:
-          name: Direct Method Receive
+          name: Direct Method Receiver
           imageName: azureiotedge-direct-method-receiver
           project: DirectMethodReceiver
 
