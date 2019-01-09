@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.twin
     using System;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Twin;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -162,9 +163,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.twin
         }
 
         [Fact]
-        public Task UpdateDesiredPropertiesTest()
+        public async Task UpdateDesiredPropertiesTest()
         {
             string id = "d1";
+
+            var desired0 = new TwinCollection
+            {
+                ["p0"] = "vp0",
+                ["$version"] = 0
+            };
+
+            var reported0 = new TwinCollection
+            {
+                ["p0"] = "vp0",
+                ["$version"] = 0
+            };
+
+            var twinBase = new Twin
+            {
+                Properties = new TwinProperties
+                {
+                    Reported = reported0,
+                    Desired = desired0
+                }
+            };
 
             var desired1 = new TwinCollection
             {
@@ -180,20 +202,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.twin
                 .Returns(Task.CompletedTask);
 
             twinStore.Setup(c => c.Get(id))
-                .ReturnsAsync(Option.None<Twin>());
+                .ReturnsAsync(Option.Some(twinBase));
 
-            TwinCollection receivedTwinPatch2 = null;
             var reportedPropertiesStore = new Mock<IReportedPropertiesStore>(MockBehavior.Strict);
-            reportedPropertiesStore.Setup(r => r.InitSyncToCloud(id));
-            reportedPropertiesStore.Setup(r => r.Update(id, It.IsAny<TwinCollection>()))
-                .Callback<string, TwinCollection>((s, t) => receivedTwinPatch2 = t)
+
+            IMessage receivedTwinPatchMessage = null;
+            var deviceProxy = new Mock<IDeviceProxy>();
+            deviceProxy.Setup(d => d.OnDesiredPropertyUpdates(It.IsAny<IMessage>()))
+                .Callback<IMessage>(m => receivedTwinPatchMessage = m)
                 .Returns(Task.CompletedTask);
 
             var cloudSync = Mock.Of<ICloudSync>();
-            var twinMessageConverter = new TwinMessageConverter();
-            var connectionManager = Mock.Of<IConnectionManager>();
+            var twinMessageConverter = new TwinMessageConverter();            
             var twinCollectionConverter = new TwinCollectionMessageConverter();
             var reportedPropertiesValidator = Mock.Of<IValidator<TwinCollection>>();
+            var connectionManager = Mock.Of<IConnectionManager>(
+                c =>
+                    c.CheckClientSubscription(id, DeviceSubscription.DesiredPropertyUpdates) == true
+                    && c.GetDeviceConnection(id) == Option.Some(deviceProxy.Object));
 
             var twinManager = new StoringTwinManager(
                 connectionManager,
@@ -205,19 +231,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.twin
                 cloudSync,
                 TimeSpan.FromMinutes(10));
 
-            IMessage reportedPropertiesMessage = twinCollectionConverter.ToMessage(reported1);
+            IMessage desiredPropertiesMessage = twinCollectionConverter.ToMessage(desired1);
 
             // Act
-            await twinManager.UpdateReportedPropertiesAsync(id, reportedPropertiesMessage);
+            await twinManager.UpdateDesiredPropertiesAsync(id, desiredPropertiesMessage);
 
             // Assert
             twinStore.VerifyAll();
             reportedPropertiesStore.VerifyAll();
 
             Assert.NotNull(receivedTwinPatch);
-            Assert.NotNull(receivedTwinPatch2);
-            Assert.Equal(reported1.ToJson(), receivedTwinPatch.ToJson());
-            Assert.Equal(reported1.ToJson(), receivedTwinPatch2.ToJson());
+            Assert.NotNull(receivedTwinPatchMessage);
+            Assert.Equal(desired1.ToJson(), receivedTwinPatch.ToJson());
+            TwinCollection receivedTwinPatch2 = twinCollectionConverter.FromMessage(receivedTwinPatchMessage);
+            Assert.Equal(desired1.ToJson(), receivedTwinPatch2.ToJson());
         }
     }
 }

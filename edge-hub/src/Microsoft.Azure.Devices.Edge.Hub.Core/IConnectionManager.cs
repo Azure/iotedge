@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         Option<IReadOnlyDictionary<DeviceSubscription, bool>> GetSubscriptions(string id);
 
-        bool HasActiveSubscription(string id, DeviceSubscription subscription);
+        bool CheckClientSubscription(string id, DeviceSubscription subscription);
 
         IEnumerable<IIdentity> GetConnectedClients();
     }

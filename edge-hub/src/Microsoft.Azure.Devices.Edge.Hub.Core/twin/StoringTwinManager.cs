@@ -112,7 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
 
             Option<Twin> storeTwin = await this.twinStore.Get(id);
             await storeTwin
-                .Filter(t => t.Properties.Desired.Version != patch.Version + 1)
+                .Filter(t => t.Properties?.Desired?.Version != patch.Version + 1)
                 .Map(t => this.SyncTwinAndSendDesiredPropertyUpdates(id, t))
                 .GetOrElse(
                     async () =>
@@ -186,16 +186,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
 
         async Task HandleDesiredPropertiesUpdates(string id)
         {
-            if (!this.connectionManager.CheckClientSubscription(id, DeviceSubscription.DesiredPropertyUpdates))
-            {
-                Events.NoDesiredPropertiesSubscription(id);
-            }
-            else
-            {
                 Option<Twin> storeTwin = await this.twinStore.Get(id);
-                if (!storeTwin.HasValue)
+                if (!storeTwin.HasValue && !this.connectionManager.CheckClientSubscription(id, DeviceSubscription.DesiredPropertyUpdates))
                 {
-                    Events.NoSyncTwinNotStored(id);
+                    Events.NoTwinUsage(id);
                 }
                 else
                 {
@@ -213,7 +207,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                             }
                         });
                 }
-            }
         }
 
         Task SendPatchToDevice(string id, IMessage twinCollection)
@@ -249,7 +242,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
             {
                 ErrorInDeviceConnectedCallback = IdStart,
                 StoringTwinManagerCreated,
-                NoSyncTwinNotStored,
+                NoTwinUsage,
                 UpdatingTwinOnDeviceConnect,
                 SendDesiredPropertyUpdates,
                 UpdatingDesiredProperties,
@@ -311,19 +304,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                 Log.LogDebug((int)EventIds.TwinSyncedRecently, $"Twin for {id} synced at {syncTime} which is sooner than twin sync period {timeSpan.TotalSeconds} secs, skipping syncing twin");
             }
 
-            public static void NoSyncTwinNotStored(string id)
+            public static void NoTwinUsage(string id)
             {
-                Log.LogDebug((int)EventIds.NoSyncTwinNotStored, $"Not syncing twin on device connect for {id} as the twin does not exist in the store");
+                Log.LogDebug((int)EventIds.NoTwinUsage, $"Not syncing twin on device connect for {id} as the twin does not exist in the store and client does not subscribe to twin change notifications");
             }
 
             public static void UpdatingTwinOnDeviceConnect(string id)
             {
                 Log.LogDebug((int)EventIds.UpdatingTwinOnDeviceConnect, $"Updated twin for {id} on device connect event");
-            }
-
-            public static void NoDesiredPropertiesSubscription(string id)
-            {
-                Log.LogDebug((int)EventIds.NoSyncTwinNotStored, $"Not syncing twin on device connect for {id} as the client does not subscribe to desired properties updates");
             }
         }
     }
