@@ -558,8 +558,9 @@ function Get-SecurityDaemon {
             # non-privileged modules can access it.
             $path = "$EdgeInstallDirectory\$name"
             New-Item $Path -ItemType Directory -Force | Out-Null
+            $sid = New-Object System.Security.Principal.SecurityIdentifier 'S-1-5-11' # NT AUTHORITY\Authenticated Users
             $rule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule(`
-                'NT AUTHORITY\Authenticated Users', 'Modify', 'ObjectInherit', 'InheritOnly', 'Allow')
+                $sid, 'Modify', 'ObjectInherit', 'InheritOnly', 'Allow')
             $acl = Get-Acl -Path $path
             $acl.AddAccessRule($rule)
             Set-Acl -Path $path -AclObject $acl
@@ -1030,8 +1031,9 @@ function Remove-IotEdgeContainers {
     foreach ($containerId in $allContainers) {
         $inspectString = Invoke-Native "$dockerExe inspect ""$containerId""" -Passthru
         $inspectResult = ($inspectString | ConvertFrom-Json)[0]
+        $label = $inspectResult.Config.Labels | Get-Member -MemberType NoteProperty -Name 'net.azure-devices.edge.owner' | %{ $inspectResult.Config.Labels | Select-Object -ExpandProperty $_.Name } 
 
-        if ($inspectResult.Config.Labels.'net.azure-devices.edge.owner' -eq 'Microsoft.Azure.Devices.Edge.Agent') {
+        if ($label -eq 'Microsoft.Azure.Devices.Edge.Agent') {
             if (($inspectResult.Name -eq '/edgeAgent') -or ($inspectResult.Name -eq '/edgeHub')) {
                 Invoke-Native "$dockerExe rm --force ""$containerId"""
                 Write-Verbose "Stopped and deleted container $($inspectResult.Name)"
@@ -1102,19 +1104,22 @@ function Write-HostRed {
 }
 
 function Remove-BuiltinWritePermissions([string] $Path) {
-    $user = 'BUILTIN\Users'
-    Write-Verbose  "Remove $user permission to $Path"
+    $sid = New-Object System.Security.Principal.SecurityIdentifier 'S-1-5-32-545' # BUILTIN\Users
+
+    Write-Verbose  "Remove BUILTIN\Users permission to $Path"
     Invoke-Native "icacls ""$Path"" /inheritance:d"
     
     $acl = Get-Acl -Path $Path
     $write = [System.Security.AccessControl.FileSystemRights]::Write
     foreach ($access in $acl.Access) {
-        if ($access.IdentityReference.Value -eq $user -and
+        $accessSid = $access.IdentityReference.Translate([System.Security.Principal.SecurityIdentifier])
+
+        if ($accessSid -eq $sid -and
             $access.AccessControlType -eq 'Allow' -and
             ($access.FileSystemRights -band $write) -eq $write)
         {
             $rule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule(`
-                $user, 'Write', $access.InheritanceFlags, $access.PropagationFlags, 'Allow')
+                $sid, 'Write', $access.InheritanceFlags, $access.PropagationFlags, 'Allow')
             $acl.RemoveAccessRule($rule) | Out-Null
         }
     } 

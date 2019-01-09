@@ -14,19 +14,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
     public class ModuleClientTest
     {
         [Theory]
-        [InlineData(UpstreamProtocol.AmqpWs, TransportType.Amqp_WebSocket_Only)]
-        [InlineData(UpstreamProtocol.Amqp, TransportType.Amqp_Tcp_Only)]
-        [InlineData(UpstreamProtocol.MqttWs, TransportType.Mqtt_WebSocket_Only)]
-        [InlineData(UpstreamProtocol.Mqtt, TransportType.Mqtt_Tcp_Only)]
+        [InlineData(UpstreamProtocol.AmqpWs)]
+        [InlineData(UpstreamProtocol.Amqp)]
+        [InlineData(UpstreamProtocol.MqttWs)]
+        [InlineData(UpstreamProtocol.Mqtt)]
         [Unit]
-        public async Task CreateForUpstreamProtocolTest(UpstreamProtocol upstreamProtocol, TransportType expectedTransportType)
+        public async Task CreateForUpstreamProtocolTest(UpstreamProtocol upstreamProtocol)
         {
             // Arrange
-            var receivedTransportType = TransportType.Http1;
-
-            Task<Client.ModuleClient> ModuleClientCreator(TransportType transportType)
+            Option<UpstreamProtocol> receivedProtocol = Option.None<UpstreamProtocol>();
+            Task<Client.ModuleClient> ModuleClientCreator(UpstreamProtocol up)
             {
-                receivedTransportType = transportType;
+                receivedProtocol = Option.Some(up);
                 return Task.FromResult((Client.ModuleClient)null);
             }
 
@@ -34,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             await ModuleClient.CreateDeviceClientForUpstreamProtocol(Option.Some(upstreamProtocol), ModuleClientCreator);
 
             // Assert
-            Assert.Equal(expectedTransportType, receivedTransportType);
+            Assert.Equal(Option.Some(upstreamProtocol), receivedProtocol);
         }
 
         [Unit]
@@ -42,12 +41,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         public async Task CreateForNoUpstreamProtocolTest()
         {
             // Arrange
-            var receivedTransportTypes = new List<TransportType>();
-
-            Task<Client.ModuleClient> DeviceClientCreator(TransportType transportType)
+            var receivedProtocols = new List<UpstreamProtocol>();
+            Task<Client.ModuleClient> DeviceClientCreator(UpstreamProtocol up)
             {
-                receivedTransportTypes.Add(transportType);
-                return receivedTransportTypes.Count == 1
+                receivedProtocols.Add(up);
+                return receivedProtocols.Count == 1
                     ? Task.FromException<Client.ModuleClient>(new InvalidOperationException())
                     : Task.FromResult(
                         Client.ModuleClient.Create(
@@ -59,9 +57,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             await ModuleClient.CreateDeviceClientForUpstreamProtocol(Option.None<UpstreamProtocol>(), DeviceClientCreator);
 
             // Assert
-            Assert.Equal(2, receivedTransportTypes.Count);
-            Assert.Equal(TransportType.Amqp_Tcp_Only, receivedTransportTypes[0]);
-            Assert.Equal(TransportType.Amqp_WebSocket_Only, receivedTransportTypes[1]);
+            Assert.Equal(2, receivedProtocols.Count);
+            Assert.Equal(UpstreamProtocol.Amqp, receivedProtocols[0]);
+            Assert.Equal(UpstreamProtocol.AmqpWs, receivedProtocols[1]);
         }
     }
 }
