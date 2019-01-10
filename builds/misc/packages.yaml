@@ -223,7 +223,7 @@ jobs:
         displayName: Set Version
       - powershell: edgelet/build/windows/install.ps1
         displayName: Install Rust
-      - powershell: edgelet/build/windows/build.ps1
+      - powershell: edgelet/build/windows/build.ps1 -Release
         displayName: Build
       - task: CMake@1
         displayName: 'Setup libiothsm'
