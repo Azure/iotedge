@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.twin
                     Desired = desired1,
                     Reported = reported1
                 }
-            };            
+            };
 
             var cloudSync = new Mock<ICloudSync>();
             cloudSync.SetupSequence(c => c.GetTwin(id))
@@ -132,7 +132,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.twin
             reportedPropertiesStore.Setup(r => r.InitSyncToCloud(id));
             reportedPropertiesStore.Setup(r => r.Update(id, It.IsAny<TwinCollection>()))
                 .Callback<string, TwinCollection>((s, t) => receivedTwinPatch2 = t)
-                .Returns(Task.CompletedTask);            
+                .Returns(Task.CompletedTask);
 
             var cloudSync = Mock.Of<ICloudSync>();
             var twinMessageConverter = new TwinMessageConverter();
@@ -218,7 +218,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.twin
                 .Returns(Task.CompletedTask);
 
             var cloudSync = Mock.Of<ICloudSync>();
-            var twinMessageConverter = new TwinMessageConverter();            
+            var twinMessageConverter = new TwinMessageConverter();
             var twinCollectionConverter = new TwinCollectionMessageConverter();
             var reportedPropertiesValidator = Mock.Of<IValidator<TwinCollection>>();
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
@@ -439,7 +439,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.twin
                 .ReturnsAsync(Option.Some(twin2));
             var twinMessageConverter = new TwinMessageConverter();
             var twinCollectionConverter = new TwinCollectionMessageConverter();
-            var reportedPropertiesValidator = Mock.Of<IValidator<TwinCollection>>();            
+            var reportedPropertiesValidator = Mock.Of<IValidator<TwinCollection>>();
 
             var connectionManager = Mock.Of<IConnectionManager>(
                 c =>
@@ -613,7 +613,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.twin
             // Assert
             await Task.Delay(TimeSpan.FromSeconds(3));
             twinStore.VerifyAll();
-            reportedPropertiesStore.VerifyAll();            
+            reportedPropertiesStore.VerifyAll();
             deviceProxy.VerifyAll();
             cloudSync.Verify(c => c.GetTwin(id), Times.AtMostOnce);
 

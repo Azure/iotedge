@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
 {
     using System;
@@ -8,7 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
-    
+
     class CloudSync : ICloudSync
     {
         readonly IConnectionManager connectionManager;

@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
 {
     using System;
@@ -55,27 +54,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
             this.syncToCloudSignal.Set();
         }
 
-        async Task SyncToCloud()
-        {
-            while (true)
-            {
-                try
-                {
-                    await this.syncToCloudSignal.WaitAsync();
-                    while (this.syncToCloudQueue.TryDequeue(out string id))
-                    {
-                        await this.SyncToCloud(id);
-                    }
-                }
-                catch (Exception e)
-                {
-                    Events.ErrorSyncingReportedPropertiesToCloud(e);
-                }
-
-                await Task.Delay(this.syncFrequency);
-            }
-        }
-
         public async Task SyncToCloud(string id)
         {
             Events.SyncingReportedPropertiesToCloud(id);
@@ -114,6 +92,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
             else
             {
                 Events.DoneSyncingReportedProperties(id);
+            }
+        }
+
+        async Task SyncToCloud()
+        {
+            while (true)
+            {
+                try
+                {
+                    await this.syncToCloudSignal.WaitAsync();
+                    while (this.syncToCloudQueue.TryDequeue(out string id))
+                    {
+                        await this.SyncToCloud(id);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Events.ErrorSyncingReportedPropertiesToCloud(e);
+                }
+
+                await Task.Delay(this.syncFrequency);
             }
         }
 

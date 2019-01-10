@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                 cloudSync,
                 deviceConnectivityManager,
                 twinSyncPeriod.GetOrElse(DefaultTwinSyncPeriod));
-                        
+
             return twinManager;
         }
 
@@ -191,27 +191,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
 
         async Task HandleDesiredPropertiesUpdates(string id)
         {
-                Option<Twin> storeTwin = await this.twinStore.Get(id);
-                if (!storeTwin.HasValue && !this.connectionManager.CheckClientSubscription(id, DeviceSubscription.DesiredPropertyUpdates))
-                {
-                    Events.NoTwinUsage(id);
-                }
-                else
-                {
-                    await storeTwin.ForEachAsync(
-                        async twin =>
+            Option<Twin> storeTwin = await this.twinStore.Get(id);
+            if (!storeTwin.HasValue && !this.connectionManager.CheckClientSubscription(id, DeviceSubscription.DesiredPropertyUpdates))
+            {
+                Events.NoTwinUsage(id);
+            }
+            else
+            {
+                await storeTwin.ForEachAsync(
+                    async twin =>
+                    {
+                        if (!this.twinSyncTime.TryGetValue(id, out DateTime syncTime) ||
+                            DateTime.UtcNow - syncTime > this.twinSyncPeriod)
                         {
-                            if (!this.twinSyncTime.TryGetValue(id, out DateTime syncTime) ||
-                                DateTime.UtcNow - syncTime > this.twinSyncPeriod)
-                            {
-                                await this.SyncTwinAndSendDesiredPropertyUpdates(id, twin);
-                            }
-                            else
-                            {
-                                Events.TwinSyncedRecently(id, syncTime, this.twinSyncPeriod);
-                            }
-                        });
-                }
+                            await this.SyncTwinAndSendDesiredPropertyUpdates(id, twin);
+                        }
+                        else
+                        {
+                            Events.TwinSyncedRecently(id, syncTime, this.twinSyncPeriod);
+                        }
+                    });
+            }
         }
 
         Task SendPatchToDevice(string id, IMessage twinCollection)

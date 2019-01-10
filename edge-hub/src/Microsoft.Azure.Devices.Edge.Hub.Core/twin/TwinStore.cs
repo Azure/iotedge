@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
 {
     using System.Threading.Tasks;
@@ -100,7 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                     return twinInfo.Twin
                         .Filter(
                             storedTwin => storedTwin.Properties?.Desired?.Version < twin.Properties.Desired.Version
-                                && storedTwin.Properties?.Reported?.Version < twin.Properties.Reported.Version)
+                                          && storedTwin.Properties?.Reported?.Version < twin.Properties.Reported.Version)
                         .Map(_ => new TwinStoreEntity(Option.Some(twin), twinInfo.ReportedPropertiesPatch))
                         .GetOrElse(twinInfo);
                 });
