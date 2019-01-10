@@ -113,7 +113,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     Option.None<string>(),
                     TimeSpan.FromHours(1),
                     false,
-                    this.trustBundle));
+                    this.trustBundle,
+                    string.Empty));
 
             builder.RegisterModule(
                 new RoutingModule(

@@ -35,6 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly Option<string> workloadUri;
         readonly bool persistTokens;
         readonly IList<X509Certificate2> trustBundle;
+        readonly string proxy;
 
         public CommonModule(
             string productInfo,
@@ -51,7 +52,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             Option<string> workloadUri,
             TimeSpan scopeCacheRefreshRate,
             bool persistTokens,
-            IList<X509Certificate2> trustBundle)
+            IList<X509Certificate2> trustBundle,
+            string proxy)
         {
             this.productInfo = productInfo;
             this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
@@ -68,6 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.workloadUri = workloadUri;
             this.persistTokens = persistTokens;
             this.trustBundle = Preconditions.CheckNotNull(trustBundle, nameof(trustBundle));
+            this.proxy = Preconditions.CheckNotNull(proxy, nameof(proxy));
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -183,6 +186,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .Named<ITokenProvider>("EdgeHubServiceAuthTokenProvider")
                 .SingleInstance();
 
+            builder.Register(
+                    c =>
+                    {
+                        var loggerFactory = c.Resolve<ILoggerFactory>();
+                        var logger = loggerFactory.CreateLogger<RoutingModule>();
+                        return Proxy.Parse(this.proxy, logger);
+                    })
+                .As<Option<IWebProxy>>()
+                .SingleInstance();
+
             // Task<IDeviceScopeIdentitiesCache>
             builder.Register(
                     async c =>
@@ -191,7 +204,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         if (this.authenticationMode == AuthenticationMode.CloudAndScope || this.authenticationMode == AuthenticationMode.Scope)
                         {
                             var edgeHubTokenProvider = c.ResolveNamed<ITokenProvider>("EdgeHubServiceAuthTokenProvider");
-                            IDeviceScopeApiClient securityScopesApiClient = new DeviceScopeApiClient(this.iothubHostName, this.edgeDeviceId, this.edgeHubModuleId, 10, edgeHubTokenProvider);
+                            var proxy = c.Resolve<Option<IWebProxy>>();
+                            IDeviceScopeApiClient securityScopesApiClient = new DeviceScopeApiClient(this.iothubHostName, this.edgeDeviceId, this.edgeHubModuleId, 10, edgeHubTokenProvider, proxy);
                             IServiceProxy serviceProxy = new ServiceProxy(securityScopesApiClient);
                             IKeyValueStore<string, string> encryptedStore = await GetEncryptedStore(c, "DeviceScopeCache");
                             deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceProxy, encryptedStore, this.scopeCacheRefreshRate);
