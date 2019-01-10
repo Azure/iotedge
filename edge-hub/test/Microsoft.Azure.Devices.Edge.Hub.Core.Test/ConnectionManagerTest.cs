@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Net;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Exceptions;
@@ -102,7 +103,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 new ModuleIdentity(IotHubHostName, edgeDeviceId, "$edgeHub"),
                 TimeSpan.FromMinutes(60),
                 true,
-                TimeSpan.FromSeconds(20));
+                TimeSpan.FromSeconds(20),
+                Option.None<IWebProxy>());
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
 
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, GetIdentityProvider());
@@ -208,7 +210,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 edgeHubIdentity,
                 TimeSpan.FromMinutes(60),
                 true,
-                TimeSpan.FromSeconds(20));
+                TimeSpan.FromSeconds(20),
+                Option.None<IWebProxy>());
 
             cloudConnectionProvider.BindEdgeHub(edgeHub.Object);
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsManager, GetIdentityProvider());
@@ -313,7 +316,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 edgeHubIdentity,
                 TimeSpan.FromMinutes(60),
                 true,
-                TimeSpan.FromSeconds(20));
+                TimeSpan.FromSeconds(20),
+                Option.None<IWebProxy>());
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, GetIdentityProvider());
 
@@ -439,7 +443,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 edgeHubIdentity,
                 TimeSpan.FromMinutes(60),
                 true,
-                TimeSpan.FromSeconds(20));
+                TimeSpan.FromSeconds(20),
+                Option.None<IWebProxy>());
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, GetIdentityProvider());
 
@@ -494,7 +499,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 edgeHubIdentity,
                 TimeSpan.FromMinutes(60),
                 true,
-                TimeSpan.FromSeconds(20));
+                TimeSpan.FromSeconds(20),
+                Option.None<IWebProxy>());
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, GetIdentityProvider());
 
@@ -766,7 +772,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 new ModuleIdentity(iotHub, edgeDeviceId, "$edgeHub"),
                 TimeSpan.FromMinutes(60),
                 true,
-                TimeSpan.FromSeconds(20));
+                TimeSpan.FromSeconds(20),
+                Option.None<IWebProxy>());
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, GetIdentityProvider());
 
@@ -820,7 +827,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 new ModuleIdentity(IotHubHostName, edgeDeviceId, "$edgeHub"),
                 TimeSpan.FromMinutes(60),
                 true,
-                TimeSpan.FromSeconds(20));
+                TimeSpan.FromSeconds(20),
+                Option.None<IWebProxy>());
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, GetIdentityProvider());
 
