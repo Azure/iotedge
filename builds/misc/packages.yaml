@@ -219,17 +219,17 @@ jobs:
         inputs:
           SourceFolder: edgelet/target/release
           Contents: |
-          *.exe
-          *.pdb
-          *.dll
+            *.exe
+            *.pdb
+            *.dll
           TargetFolder: '$(build.artifactstagingdirectory)'
       - task: CopyFiles@2
         displayName: 'Copy libiothsm to Artifact Staging'
         inputs:
           SourceFolder: 'edgelet/hsm-sys/azure-iot-hsm-c/build/Release'
           Contents: |
-          *.dll
-          *.pdb
+            *.dll
+            *.pdb
           TargetFolder: '$(build.artifactstagingdirectory)'
       - task: CopyFiles@2
         displayName: 'Copy legal docs to Artifact Staging'
