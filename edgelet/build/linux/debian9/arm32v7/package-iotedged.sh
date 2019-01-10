@@ -42,6 +42,6 @@ rustup target add armv7-unknown-linux-gnueabihf
 rustup component add rust-src
 
 mkdir -p $BUILD_DIR
-COMMAND="cd /project/edgelet && make deb CARGOFLAGS=\"--target armv7-unknown-linux-gnueabihf\" TARGET=target/armv7-unknown-linux-gnueabihf/release DPKGFLAGS=\"-b -us -uc -i --host-arch armhf\""
+COMMAND="cd /project/edgelet && make deb VERSION=${VERSION} CARGOFLAGS=\"--target armv7-unknown-linux-gnueabihf\" TARGET=target/armv7-unknown-linux-gnueabihf/release DPKGFLAGS=\"-b -us -uc -i --host-arch armhf\""
 
 run_command "$COMMAND"
