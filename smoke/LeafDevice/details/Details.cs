@@ -24,12 +24,6 @@ namespace LeafDevice.Details
     using Message = Microsoft.Azure.Devices.Client.Message;
     using ServiceClientTransportType = Microsoft.Azure.Devices.TransportType;
 
-    public struct DeviceCertificate
-    {
-        public string certificateFilePath;
-        public string certificateKeyFilePath;
-    }
-
     public class Details
     {
         readonly string iothubConnectionString;
@@ -64,8 +58,10 @@ namespace LeafDevice.Details
             this.authType = clientCertificatePaths.Map(
                 clientCred =>
                 {
-                    var (clientCert, clientCertChain) =
-                        CertificateHelper.GetServerCertificateAndChainFromFile(clientCred.certificateFilePath, clientCred.certificateKeyFilePath);
+                    X509Certificate2 clientCert;
+                    IEnumerable<X509Certificate2> clientCertChain;
+                    (clientCert, clientCertChain) =
+                        CertificateHelper.GetServerCertificateAndChainFromFile(clientCred.CertificateFilePath, clientCred.PrivateKeyFilePath);
                     this.clientCertificate = Option.Some(clientCert);
 
                     var authType = AuthenticationType.CertificateAuthority;
@@ -96,7 +92,6 @@ namespace LeafDevice.Details
                                 {
                                     rawCert = sr.ReadToEnd();
                                 }
-
                                 rawCerts.Add(rawCert);
                             }
 
@@ -131,19 +126,6 @@ namespace LeafDevice.Details
             }
         }
 
-        public static void InstallCerts(StoreName name, StoreLocation location, IEnumerable<X509Certificate2> certs)
-        {
-            var certsList = certs.ToList();
-            using (var store = new X509Store(name, location))
-            {
-                store.Open(OpenFlags.ReadWrite);
-                foreach (var cert in certsList)
-                {
-                    store.Add(cert);
-                }
-            }
-        }
-
         protected Task InitializeTrustedCertsAsync()
         {
             if (!string.IsNullOrEmpty(this.trustedCACertificateFileName))
@@ -161,12 +143,11 @@ namespace LeafDevice.Details
                 }
             }
 
-            return this.clientCertificateChain.Map(
-                certs =>
-                {
-                    InstallTrustedCACerts(certs);
-                    return Task.CompletedTask;
-                }).GetOrElse(Task.CompletedTask);
+            // for dotnet runtime, in order to provide the entire client certificate chain when
+            // authenticating with a server it is required that these chain CA certificates
+            // are installed as trusted CAs.
+            this.clientCertificateChain.ForEach(certs => InstallTrustedCACerts(certs));
+            return Task.CompletedTask;
         }
 
         protected async Task ConnectToEdgeAndSendDataAsync()
@@ -214,8 +195,7 @@ namespace LeafDevice.Details
                         !thumprints.Contains(device.Authentication.X509Thumbprint.SecondaryThumbprint))
                     {
                         // update the thumbprints before attempting to run any tests to ensure consistency
-                        device.Authentication.X509Thumbprint = this.thumbprints.Map(
-                            thList => { return new X509Thumbprint { PrimaryThumbprint = thList[0], SecondaryThumbprint = thList[1] }; }).GetOrElse(new X509Thumbprint());
+                        device.Authentication.X509Thumbprint = new X509Thumbprint { PrimaryThumbprint = thumprints[0], SecondaryThumbprint = thumprints[1] };
                         await rm.UpdateDeviceAsync(device);
                     }
                 }
@@ -237,8 +217,10 @@ namespace LeafDevice.Details
 
         protected async Task VerifyDataOnIoTHubAsync()
         {
-            var builder = new EventHubsConnectionStringBuilder(this.eventhubCompatibleEndpointWithEntityPath);
-            builder.TransportType = this.eventHubClientTransportType;
+            var builder = new EventHubsConnectionStringBuilder(this.eventhubCompatibleEndpointWithEntityPath)
+            {
+                TransportType = this.eventHubClientTransportType
+            };
 
             Console.WriteLine($"Receiving events from device '{this.context.Device.Id}' on Event Hub '{builder.EntityPath}'");
 

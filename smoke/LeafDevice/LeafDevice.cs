@@ -47,7 +47,7 @@ namespace LeafDevice
                 trustedCACertificateFileName,
                 edgeHostName,
                 useWebSockets,
-                Option.Some(new DeviceCertificate { certificateFilePath = clientCertificatePath, certificateKeyFilePath = clientCertificateKeyPath }),
+                Option.Some(new DeviceCertificate { CertificateFilePath = clientCertificatePath, PrivateKeyFilePath = clientCertificateKeyPath }),
                 Option.None<IList<string>>())
         {
         }
@@ -71,7 +71,7 @@ namespace LeafDevice
                 trustedCACertificateFileName,
                 edgeHostName,
                 useWebSockets,
-                Option.Some(new DeviceCertificate { certificateFilePath = clientCertificatePath, certificateKeyFilePath = clientCertificateKeyPath }),
+                Option.Some(new DeviceCertificate { CertificateFilePath = clientCertificatePath, PrivateKeyFilePath = clientCertificateKeyPath }),
                 Option.Some(thumprintCertificates))
         {
         }

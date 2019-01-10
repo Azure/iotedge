@@ -26,7 +26,7 @@ namespace LeafDevice.Details
                 Arguments = args
             };
 
-            using (var result = await ProcessEx.RunAsync(info, token))
+            using (ProcessResults result = await ProcessEx.RunAsync(info, token))
             {
                 if (result.ExitCode != 0)
                 {

@@ -21,7 +21,7 @@ namespace LeafDevice.Details
         {
             if (events != null)
             {
-                foreach (var @event in events)
+                foreach (EventData @event in events)
                 {
                     if (this.onEventReceived(@event))
                     {

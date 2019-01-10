@@ -92,7 +92,7 @@ Defaults:
                 {
                     // use thumbprint auth and perform test for both primary and secondary certificates
                     var thumbprintCerts = new List<string> { this.X509PrimaryCertPath, this.X509SecondaryCertPath };
-                    var testPrimary = new LeafDevice(
+                    var testPrimaryCertificate = new LeafDevice(
                         connectionString,
                         endpoint,
                         this.DeviceId,
@@ -102,21 +102,22 @@ Defaults:
                         this.X509PrimaryCertPath,
                         this.X509PrimaryKeyPath,
                         thumbprintCerts);
-                    await testPrimary.RunAsync();
+                    await testPrimaryCertificate.RunAsync();
 
-                    var testSeondary = new LeafDevice(
+                    var testSeondaryCertificate = new LeafDevice(
                         connectionString,
                         endpoint,
                         this.DeviceId,
                         this.TrustedCACertificateFileName,
                         this.EdgeHostName,
                         this.UseWebSockets,
-                        this.X509PrimaryCertPath,
-                        this.X509PrimaryKeyPath,
+                        this.X509SecondaryCertPath,
+                        this.X509SecondaryKeyPath,
                         thumbprintCerts);
-                    await testSeondary.RunAsync();
+                    await testSeondaryCertificate.RunAsync();
                 }
-                else if (!string.IsNullOrWhiteSpace(this.X509CACertPath) && !string.IsNullOrWhiteSpace(this.X509CAKeyPath))
+                else if (!string.IsNullOrWhiteSpace(this.X509CACertPath) &&
+                         !string.IsNullOrWhiteSpace(this.X509CAKeyPath))
                 {
                     // use X.509 CA auth and perform test using CA chained certificates
                     var testCa = new LeafDevice(
