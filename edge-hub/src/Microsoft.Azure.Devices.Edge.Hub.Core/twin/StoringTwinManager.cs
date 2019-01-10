@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
 
     public class StoringTwinManager : ITwinManager
     {
-        static readonly TimeSpan DefaultTwinSyncPeriod = TimeSpan.FromMinutes(2);
+        static readonly TimeSpan DefaultMinTwinSyncPeriod = TimeSpan.FromMinutes(2);
         readonly IMessageConverter<TwinCollection> twinCollectionConverter;
         readonly IMessageConverter<Twin> twinConverter;
         readonly IConnectionManager connectionManager;
@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
         readonly AsyncLockProvider<string> reportedPropertiesStoreLock = new AsyncLockProvider<string>(10);
         readonly ITwinStore twinStore;
         readonly ICloudSync cloudSync;
-        readonly TimeSpan twinSyncPeriod;
+        readonly TimeSpan minTwinSyncPeriod;
         readonly ConcurrentDictionary<string, DateTime> twinSyncTime = new ConcurrentDictionary<string, DateTime>();
 
         internal StoringTwinManager(
@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
             IReportedPropertiesStore reportedPropertiesStore,
             ICloudSync cloudSync,
             IDeviceConnectivityManager deviceConnectivityManager,
-            TimeSpan twinSyncPeriod)
+            TimeSpan minTwinSyncPeriod)
         {
             Preconditions.CheckNotNull(twinStore, nameof(twinStore));
             Preconditions.CheckNotNull(deviceConnectivityManager, nameof(deviceConnectivityManager));
@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
             this.twinStore = Preconditions.CheckNotNull(twinStore, nameof(twinStore));
             this.reportedPropertiesStore = Preconditions.CheckNotNull(reportedPropertiesStore, nameof(reportedPropertiesStore));
             this.reportedPropertiesValidator = reportedPropertiesValidator;
-            this.twinSyncPeriod = twinSyncPeriod;
+            this.minTwinSyncPeriod = minTwinSyncPeriod;
 
             deviceConnectivityManager.DeviceConnected += (_, __) => this.DeviceConnectedCallback();
         }
@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
             IEntityStore<string, TwinStoreEntity> entityStore,
             IDeviceConnectivityManager deviceConnectivityManager,
             IValidator<TwinCollection> reportedPropertiesValidator,
-            Option<TimeSpan> twinSyncPeriod,
+            Option<TimeSpan> minTwinSyncPeriod,
             Option<TimeSpan> reportedPropertiesSyncFrequency)
         {
             Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
@@ -79,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                 new ReportedPropertiesStore(entityStore, cloudSync, reportedPropertiesSyncFrequency),
                 cloudSync,
                 deviceConnectivityManager,
-                twinSyncPeriod.GetOrElse(DefaultTwinSyncPeriod));
+                minTwinSyncPeriod.GetOrElse(DefaultMinTwinSyncPeriod));
 
             return twinManager;
         }
@@ -202,13 +202,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                     async twin =>
                     {
                         if (!this.twinSyncTime.TryGetValue(id, out DateTime syncTime) ||
-                            DateTime.UtcNow - syncTime > this.twinSyncPeriod)
+                            DateTime.UtcNow - syncTime > this.minTwinSyncPeriod)
                         {
                             await this.SyncTwinAndSendDesiredPropertyUpdates(id, twin);
                         }
                         else
                         {
-                            Events.TwinSyncedRecently(id, syncTime, this.twinSyncPeriod);
+                            Events.TwinSyncedRecently(id, syncTime, this.minTwinSyncPeriod);
                         }
                     });
             }
