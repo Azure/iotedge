@@ -14,7 +14,6 @@ jobs:
 ################################################################################
     displayName: Ubuntu - amd64
     pool:
-      name: Hosted Ubuntu 1604
       vmImage: 'ubuntu-16.04'
     steps:
       - bash: |
@@ -64,7 +63,6 @@ jobs:
 ################################################################################
     displayName: Ubuntu - arm32v7
     pool:
-      name: Hosted Ubuntu 1604
       vmImage: 'ubuntu-16.04'
     steps:
       - bash: |
@@ -112,7 +110,6 @@ jobs:
 ################################################################################
     displayName: Linux
     pool:
-      name: Hosted Ubuntu 1604
       vmImage: 'ubuntu-16.04'
     strategy:
       matrix:
