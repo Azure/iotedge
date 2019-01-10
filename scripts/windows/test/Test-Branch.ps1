@@ -57,14 +57,6 @@ if (-not $BuildConfig) {
 <#
  # Run tests
  #>
-
-$BaseTestCommand = if ($Filter) {
-    "test --no-build --logger `"$LOGGER_ARG`" --filter `"$Filter`"" 
-}
-else {
-    "test --no-build --logger `"$LOGGER_ARG`""
-}
-
 Write-Host "Running tests in all test projects with filter '$Filter'."
 
 $testProjectsDlls = ""
