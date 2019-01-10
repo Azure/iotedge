@@ -119,33 +119,53 @@ jobs:
         Debian8-amd64:
           arch: amd64
           os: debian8
+          target.iotedged: edgelet/target/release
+          target.libiothsm: edgelet/target/hsm/build
         Debian8-arm32v7:
           arch: arm32v7
           os: debian8
+          target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+          target.libiothsm: edgelet/target/hsm/build
         Debian8-aarch64:
           arch: aarch64
           os: debian8
+          target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+          target.libiothsm: edgelet/target/hsm/build
         Debian9-amd64:
           arch: amd64
           os: debian9
+          target.iotedged: edgelet/target/release
+          target.libiothsm: edgelet/target/hsm/build
         Debian9-arm32v7:
           arch: arm32v7
           os: debian9
+          target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+          target.libiothsm: edgelet/target/hsm/build
         Debian9-aarch64:
           arch: aarch64
           os: debian9
+          target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+          target.libiothsm: edgelet/target/hsm/build
         Centos75-amd64:
           arch: amd64
           os: centos
+          target.iotedged: edgelet/target/release/rpmbuild/RPMS/x86_64
+          target.libiothsm: edgelet/target/hsm/build/amd64
         Centos75-arm32v7:
           arch: arm32v7
           os: centos
+          target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release/rpmbuild/RPMS/armv7hl
+          target.libiothsm: edgelet/target/hsm/build/arm32v7
         Centos75-aarch64:
           arch: aarch64
           os: centos
+          target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release/rpmbuild/RPMS/aarch64
+          target.libiothsm: edgelet/target/hsm/build/aarch64
         Ubuntu1604-aarch64:
           arch: aarch64
           os: ubuntu16.04
+          target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+          target.libiothsm: edgelet/target/hsm/build
     steps:
       - bash: |
           echo "##vso[task.setvariable variable=RUSTUP_HOME;]$VSTS_WORK/rustup"
@@ -168,14 +188,18 @@ jobs:
       - task: CopyFiles@2
         displayName: Copy libiothsm Files to Artifact Staging
         inputs:
-          SourceFolder: edgelet/target/hsm/build
-          Contents: '*.deb'
+          SourceFolder: $(target.libiothsm)
+          Contents: |
+            *.deb
+            *.rpm
           TargetFolder: '$(build.artifactstagingdirectory)'
       - task: CopyFiles@2
         displayName: Copy iotedged Files to Artifact Staging
         inputs:
-          SourceFolder: edgelet/target/release
-          Contents: '*.deb'
+          SourceFolder: $(target.iotedged)
+          Contents: |
+            *.deb
+            *.rpm
           TargetFolder: '$(build.artifactstagingdirectory)'
       - task: PublishBuildArtifacts@1
         displayName: Publish Artifacts
