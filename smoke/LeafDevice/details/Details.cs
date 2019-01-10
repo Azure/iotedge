@@ -209,10 +209,15 @@ namespace LeafDevice.Details
 
                 if (this.authType == AuthenticationType.SelfSigned)
                 {
-                    // always update the thumbprints before attempting to run any tests to ensure consistency
-                    device.Authentication.X509Thumbprint = this.thumbprints.Map(
-                        thList => { return new X509Thumbprint { PrimaryThumbprint = thList[0], SecondaryThumbprint = thList[1] }; }).GetOrElse(new X509Thumbprint());
-                    await rm.UpdateDeviceAsync(device);
+                    var thumprints = this.thumbprints.Expect(() => new InvalidOperationException("Missing thumprints list"));
+                    if (!thumprints.Contains(device.Authentication.X509Thumbprint.PrimaryThumbprint) ||
+                        !thumprints.Contains(device.Authentication.X509Thumbprint.SecondaryThumbprint))
+                    {
+                        // update the thumbprints before attempting to run any tests to ensure consistency
+                        device.Authentication.X509Thumbprint = this.thumbprints.Map(
+                            thList => { return new X509Thumbprint { PrimaryThumbprint = thList[0], SecondaryThumbprint = thList[1] }; }).GetOrElse(new X509Thumbprint());
+                        await rm.UpdateDeviceAsync(device);
+                    }
                 }
 
                 this.context = new DeviceContext
