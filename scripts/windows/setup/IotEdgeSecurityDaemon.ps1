@@ -265,6 +265,9 @@ function Install-SecurityDaemon {
     Set-SystemPath
     Add-IotEdgeRegistryKey
     Install-Services
+    if ($ContainerOs -eq 'Linux') {
+        Add-FirewallExceptions
+    }
 
     Write-HostGreen
     Write-HostGreen 'This device is now provisioned with the IoT Edge runtime.'
@@ -881,6 +884,18 @@ function Uninstall-Services {
             Write-Verbose 'Removed IoT Edge Moby Engine service subkey from the registry'
         }
     }
+}
+
+function Add-FirewallExceptions {
+    New-NetFirewallRule `
+        -DisplayName 'iotedged allow inbound 15580,15581' `
+        -Direction 'Inbound' `
+        -Action 'Allow' `
+        -Protocol 'TCP' `
+        -LocalPort '15580-15581' `
+        -Program "$EdgeInstallDirectory\iotedged.exe" `
+        -InterfaceType 'Any' | Out-Null
+    Write-HostGreen 'Added firewall exceptions for ports used by the IoT Edge service.'
 }
 
 function Remove-FirewallExceptions {
