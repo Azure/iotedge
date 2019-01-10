@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Net;
     using System.Threading.Tasks;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
@@ -20,6 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
     using Microsoft.Azure.Devices.Shared;
+    using Microsoft.Extensions.Logging;
     using IRoutingMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
     using Message = Microsoft.Azure.Devices.Client.Message;
 
@@ -177,6 +179,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         var credentialsCacheTask = c.Resolve<Task<ICredentialsCache>>();
                         var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
                         var deviceScopeIdentitiesCacheTask = c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
+                        var proxy = c.Resolve<Option<IWebProxy>>();
                         IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await deviceScopeIdentitiesCacheTask;
                         ICredentialsCache credentialsCache = await credentialsCacheTask;
                         ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(
@@ -190,7 +193,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             edgeHubCredentials.Identity,
                             this.cloudConnectionIdleTimeout,
                             this.closeCloudConnectionOnIdleTimeout,
-                            this.operationTimeout);
+                            this.operationTimeout,
+                            proxy);
                         return cloudConnectionProvider;
                     })
                 .As<Task<ICloudConnectionProvider>>()

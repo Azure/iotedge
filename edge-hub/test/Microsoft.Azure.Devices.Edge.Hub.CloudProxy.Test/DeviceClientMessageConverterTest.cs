@@ -110,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var inputMessage = new Message(messageBytes);
             IMessage mqttMessage = messageConverter.ToMessage(inputMessage);
 
-            Assert.Equal(inputMessage.GetBytes(), mqttMessage.Body);
+            Assert.Equal(messageBytes, mqttMessage.Body);
         }
 
         [Unit]
@@ -165,7 +165,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             var creationTime = new DateTime(2018, 01, 01, 0, 0, 0, DateTimeKind.Utc);
 
-            var clientMessage = new Message(new byte[] { 1, 2, 3 });
+            var body = new byte[] { 1, 2, 3 };
+            var clientMessage = new Message(body);
             clientMessage.Properties["Foo"] = "Bar";
             clientMessage.Properties["Prop2"] = "Value2";
 
@@ -182,7 +183,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             IMessage message = messageConverter.ToMessage(clientMessage);
 
             Assert.NotNull(message);
-            Assert.Equal(clientMessage.GetBytes(), message.Body);
+            Assert.Equal(body, message.Body);
             Assert.Equal("Bar", message.Properties["Foo"]);
             Assert.Equal("Value2", message.Properties["Prop2"]);
 
