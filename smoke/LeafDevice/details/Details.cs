@@ -40,10 +40,10 @@ namespace LeafDevice.Details
         readonly ServiceClientTransportType serviceClientTransportType;
         readonly EventHubClientTransportType eventHubClientTransportType;
         readonly ITransportSettings[] deviceTransportSettings;
+        readonly AuthenticationType authType = AuthenticationType.None;
         Option<X509Certificate2> clientCertificate = Option.None<X509Certificate2>();
         Option<IEnumerable<X509Certificate2>> clientCertificateChain = Option.None<IEnumerable<X509Certificate2>>();
         Option<List<string>> thumbprints = Option.None<List<string>>();
-        readonly AuthenticationType authType = AuthenticationType.None;
         DeviceContext context;
 
         protected Details(
@@ -359,22 +359,20 @@ namespace LeafDevice.Details
 
         async Task CreateDeviceIdentityAsync(RegistryManager rm)
         {
-            var authMechanism = new AuthenticationMechanism() { Type = this.authType };
+            var authMechanism = new AuthenticationMechanism { Type = this.authType };
             if (this.authType == AuthenticationType.SelfSigned)
             {
                 authMechanism.X509Thumbprint = this.thumbprints.Map(
-                    thList =>
-                    {
-                        return new X509Thumbprint() { PrimaryThumbprint = thList[0], SecondaryThumbprint = thList[1] };
-                    }).GetOrElse(new X509Thumbprint());
+                    thList => { return new X509Thumbprint { PrimaryThumbprint = thList[0], SecondaryThumbprint = thList[1] }; }).GetOrElse(new X509Thumbprint());
             }
+
             var device = new Device(this.deviceId)
             {
                 Authentication = authMechanism,
-                Capabilities = new DeviceCapabilities() { IotEdge = false }
+                Capabilities = new DeviceCapabilities { IotEdge = false }
             };
 
-            IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
+            var builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
             Console.WriteLine($"Registering device '{device.Id}' on IoT hub '{builder.HostName}'");
 
             device = await rm.AddDeviceAsync(device);
