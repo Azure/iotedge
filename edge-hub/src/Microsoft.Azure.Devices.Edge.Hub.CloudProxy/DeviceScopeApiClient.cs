@@ -34,6 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly string moduleId;
         readonly int batchSize;
         readonly ITokenProvider edgeHubTokenProvider;
+        readonly Option<IWebProxy> proxy;
 
         public DeviceScopeApiClient(
             string iotHubHostName,
@@ -41,6 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             string moduleId,
             int batchSize,
             ITokenProvider edgeHubTokenProvider,
+            Option<IWebProxy> proxy,
             RetryStrategy retryStrategy = null)
         {
             Preconditions.CheckNonWhiteSpace(iotHubHostName, nameof(iotHubHostName));
@@ -49,6 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.moduleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.batchSize = Preconditions.CheckRange(batchSize, 0, 1000, nameof(batchSize));
             this.edgeHubTokenProvider = Preconditions.CheckNotNull(edgeHubTokenProvider, nameof(edgeHubTokenProvider));
+            this.proxy = Preconditions.CheckNotNull(proxy, nameof(proxy));
             this.retryStrategy = retryStrategy ?? TransientRetryStrategy;
         }
 
@@ -107,7 +110,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         async Task<ScopeResult> GetIdentitiesInScope(Uri uri)
         {
-            var client = new HttpClient();
+            HttpClient client = this.proxy
+                .Map(p => new HttpClient(new HttpClientHandler { Proxy = p }, disposeHandler: true))
+                .GetOrElse(() => new HttpClient());
             using (var msg = new HttpRequestMessage(HttpMethod.Get, uri))
             {
                 string token = await this.edgeHubTokenProvider.GetTokenAsync(Option.None<TimeSpan>());

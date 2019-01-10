@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
     using System;
     using System.Collections.Generic;
+    using System.Net;
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
@@ -278,7 +279,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 Mock.Of<IIdentity>(i => i.Id == $"{deviceId}/$edgeHub"),
                 TimeSpan.FromMinutes(60),
                 true,
-                TimeSpan.FromSeconds(20));
+                TimeSpan.FromSeconds(20),
+                Option.None<IWebProxy>());
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
             var clientTokenProvider = new ClientTokenProvider(new SharedAccessKeySignatureProvider(sasKey), iotHubHostName, deviceId, TimeSpan.FromHours(1));

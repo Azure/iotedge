@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 this.iotHubHostname = iotHubConnectionStringBuilder.HostName;
                 this.edgeDeviceId = iotHubConnectionStringBuilder.DeviceId;
                 this.edgeModuleId = iotHubConnectionStringBuilder.ModuleId;
-                this.edgeDeviceHostName = this.configuration.GetValue<string>(Constants.ConfigKey.EdgeDeviceHostName, string.Empty);
+                this.edgeDeviceHostName = this.configuration.GetValue(Constants.ConfigKey.EdgeDeviceHostName, string.Empty);
                 this.connectionString = Option.Some(edgeHubConnectionString);
             }
             else
@@ -159,6 +159,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             int scopeCacheRefreshRateSecs = this.configuration.GetValue("DeviceScopeCacheRefreshRateSecs", 3600);
             TimeSpan scopeCacheRefreshRate = TimeSpan.FromSeconds(scopeCacheRefreshRateSecs);
 
+            string proxy = this.configuration.GetValue("https_proxy", string.Empty);
+
             // Register modules
             builder.RegisterModule(
                 new CommonModule(
@@ -176,7 +178,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     workloadUri,
                     scopeCacheRefreshRate,
                     cacheTokens,
-                    this.trustBundle));
+                    this.trustBundle,
+                    proxy));
         }
 
         (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) GetStoreAndForwardConfiguration()
