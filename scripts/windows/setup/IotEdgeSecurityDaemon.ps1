@@ -1017,12 +1017,21 @@ function Set-MobyEngineParameters {
             $MobyNamedPipeUrl
         }
     }
+    $mobyNetwork = switch ($ContainerOs) {
+        'Linux' {
+            'azure-iot-edge'
+        }
+
+        'Windows' {
+            'nat'
+        }
+    }
     $replacementContent = @(
         'moby_runtime:',
         "  uri: '$mobyUrl'",
-        '  network: ''azure-iot-edge''')
+        "  network: '$mobyNetwork'")
     ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")) | Set-Content "$EdgeInstallDirectory\config.yaml" -Force
-    Write-HostGreen "Configured device with Moby Engine URL '$mobyUrl'."
+    Write-HostGreen "Configured device with Moby Engine URL '$mobyUrl' and network '$mobyNetwork'."
 }
 
 function Get-AgentRegistry {
