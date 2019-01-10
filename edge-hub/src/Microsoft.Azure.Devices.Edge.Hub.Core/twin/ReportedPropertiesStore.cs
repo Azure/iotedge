@@ -2,7 +2,8 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
 {
     using System;
-    using System.Collections.Concurrent;
+    using System.Collections.Generic;
+    using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -17,7 +18,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
         readonly ICloudSync cloudSync;
         readonly AsyncLockProvider<string> lockProvider = new AsyncLockProvider<string>(10);
         readonly AsyncAutoResetEvent syncToCloudSignal = new AsyncAutoResetEvent(false);
-        readonly ConcurrentQueue<string> syncToCloudQueue = new ConcurrentQueue<string>();
+        readonly HashSet<string> syncToCloudClients = new HashSet<string>(StringComparer.Ordinal);
+        readonly object syncToCloudSetLock = new object();
         readonly Task syncToCloudTask;
         readonly TimeSpan syncFrequency;
 
@@ -50,7 +52,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
 
         public void InitSyncToCloud(string id)
         {
-            this.syncToCloudQueue.Enqueue(id);
+            lock (this.syncToCloudSetLock)
+            {
+                this.syncToCloudClients.Add(id);
+            }
+
             this.syncToCloudSignal.Set();
         }
 
@@ -72,7 +78,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                                 async reportedPropertiesPatch =>
                                 {
                                     bool result = await this.cloudSync.UpdateReportedProperties(id, reportedPropertiesPatch);
-
                                     if (result)
                                     {
                                         Events.UpdateReportedPropertiesSucceeded(id);
@@ -101,8 +106,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
             {
                 try
                 {
-                    await this.syncToCloudSignal.WaitAsync();
-                    while (this.syncToCloudQueue.TryDequeue(out string id))
+                    // Take a snapshot of clients to process
+                    IEnumerable<string> clientsToProcess;
+                    lock (this.syncToCloudSetLock)
+                    {
+                        clientsToProcess = this.syncToCloudClients.ToList();
+                    }
+
+                    foreach (string id in clientsToProcess)
                     {
                         await this.SyncToCloud(id);
                     }
@@ -112,7 +123,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                     Events.ErrorSyncingReportedPropertiesToCloud(e);
                 }
 
+                // Wait for syncfrequency to avoid looping too fast,
+                // then wait for the signal indicating more work is ready
                 await Task.Delay(this.syncFrequency);
+                await this.syncToCloudSignal.WaitAsync();
             }
         }
 
