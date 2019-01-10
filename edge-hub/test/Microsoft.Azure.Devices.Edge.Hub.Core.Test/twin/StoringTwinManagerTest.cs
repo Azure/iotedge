@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.twin
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Twin;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -64,6 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.twin
             var twinCollectionConverter = Mock.Of<IMessageConverter<TwinCollection>>();
             var reportedPropertiesValidator = Mock.Of<IValidator<TwinCollection>>();
             var reportedPropertiesStore = Mock.Of<IReportedPropertiesStore>();
+            var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
 
             var twinManager = new StoringTwinManager(
                 connectionManager,
@@ -73,6 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.twin
                 twinStore.Object,
                 reportedPropertiesStore,
                 cloudSync.Object,
+                deviceConnectivityManager,
                 TimeSpan.FromMinutes(10));
 
             // Act
@@ -135,7 +138,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.twin
             var twinMessageConverter = new TwinMessageConverter();
             var connectionManager = Mock.Of<IConnectionManager>();
             var twinCollectionConverter = new TwinCollectionMessageConverter();
-            var reportedPropertiesValidator = Mock.Of<IValidator<TwinCollection>>();            
+            var reportedPropertiesValidator = Mock.Of<IValidator<TwinCollection>>();
+            var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
 
             var twinManager = new StoringTwinManager(
                 connectionManager,
@@ -145,6 +149,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.twin
                 twinStore.Object,
                 reportedPropertiesStore.Object,
                 cloudSync,
+                deviceConnectivityManager,
                 TimeSpan.FromMinutes(10));
 
             IMessage reportedPropertiesMessage = twinCollectionConverter.ToMessage(reported1);
@@ -216,9 +221,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.twin
             var twinMessageConverter = new TwinMessageConverter();            
             var twinCollectionConverter = new TwinCollectionMessageConverter();
             var reportedPropertiesValidator = Mock.Of<IValidator<TwinCollection>>();
+            var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
+
             var connectionManager = Mock.Of<IConnectionManager>(
                 c =>
-                    c.CheckClientSubscription(id, DeviceSubscription.DesiredPropertyUpdates) == true
+                    c.CheckClientSubscription(id, DeviceSubscription.DesiredPropertyUpdates)
                     && c.GetDeviceConnection(id) == Option.Some(deviceProxy.Object));
 
             var twinManager = new StoringTwinManager(
@@ -229,6 +236,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.twin
                 twinStore.Object,
                 reportedPropertiesStore.Object,
                 cloudSync,
+                deviceConnectivityManager,
                 TimeSpan.FromMinutes(10));
 
             IMessage desiredPropertiesMessage = twinCollectionConverter.ToMessage(desired1);
@@ -245,6 +253,279 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.twin
             Assert.Equal(desired1.ToJson(), receivedTwinPatch.ToJson());
             TwinCollection receivedTwinPatch2 = twinCollectionConverter.FromMessage(receivedTwinPatchMessage);
             Assert.Equal(desired1.ToJson(), receivedTwinPatch2.ToJson());
+        }
+
+        [Fact]
+        public async Task UpdateDesiredPropertiesWithIncorrectPatchTest()
+        {
+            string id = "d1";
+
+            var desired0 = new TwinCollection
+            {
+                ["p0"] = "vp0",
+                ["$version"] = 0
+            };
+
+            var reported0 = new TwinCollection
+            {
+                ["p0"] = "vp0",
+                ["$version"] = 0
+            };
+
+            var twinBase = new Twin
+            {
+                Properties = new TwinProperties
+                {
+                    Reported = reported0,
+                    Desired = desired0
+                }
+            };
+
+            var desired2 = new TwinCollection
+            {
+                ["p1"] = "vp1",
+                ["p2"] = "v2",
+                ["p3"] = "v3",
+                ["$version"] = 2
+            };
+
+            var reported2 = new TwinCollection
+            {
+                ["p2"] = "vp2",
+                ["$version"] = 2
+            };
+
+            var twin2 = new Twin
+            {
+                Properties = new TwinProperties
+                {
+                    Reported = reported2,
+                    Desired = desired2
+                }
+            };
+
+            var desired2Patch = new TwinCollection
+            {
+                ["p1"] = "vp1",
+                ["$version"] = 2
+            };
+
+            var twinStore = new Mock<ITwinStore>(MockBehavior.Strict);
+            twinStore.Setup(c => c.Get(id))
+                .ReturnsAsync(Option.Some(twinBase));
+
+            Twin storedTwin = null;
+            twinStore.Setup(c => c.Update(id, It.IsAny<Twin>()))
+                .Callback<string, Twin>((s, t) => storedTwin = t)
+                .Returns(Task.CompletedTask);
+
+            var reportedPropertiesStore = new Mock<IReportedPropertiesStore>(MockBehavior.Strict);
+
+            IMessage receivedTwinPatchMessage = null;
+            var deviceProxy = new Mock<IDeviceProxy>();
+            deviceProxy.Setup(d => d.OnDesiredPropertyUpdates(It.IsAny<IMessage>()))
+                .Callback<IMessage>(m => receivedTwinPatchMessage = m)
+                .Returns(Task.CompletedTask);
+
+            var cloudSync = Mock.Of<ICloudSync>(c => c.GetTwin(id) == Task.FromResult(Option.Some(twin2)));
+            var twinMessageConverter = new TwinMessageConverter();
+            var twinCollectionConverter = new TwinCollectionMessageConverter();
+            var reportedPropertiesValidator = Mock.Of<IValidator<TwinCollection>>();
+            var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
+
+            var connectionManager = Mock.Of<IConnectionManager>(
+                c =>
+                    c.CheckClientSubscription(id, DeviceSubscription.DesiredPropertyUpdates)
+                    && c.GetDeviceConnection(id) == Option.Some(deviceProxy.Object));
+
+            var twinManager = new StoringTwinManager(
+                connectionManager,
+                twinCollectionConverter,
+                twinMessageConverter,
+                reportedPropertiesValidator,
+                twinStore.Object,
+                reportedPropertiesStore.Object,
+                cloudSync,
+                deviceConnectivityManager,
+                TimeSpan.FromMinutes(10));
+
+            IMessage desiredPropertiesMessage = twinCollectionConverter.ToMessage(desired2Patch);
+
+            // Act
+            await twinManager.UpdateDesiredPropertiesAsync(id, desiredPropertiesMessage);
+
+            // Assert
+            twinStore.VerifyAll();
+            reportedPropertiesStore.VerifyAll();
+
+            Assert.NotNull(storedTwin);
+            Assert.NotNull(receivedTwinPatchMessage);
+            Assert.Equal(twin2.ToJson(), storedTwin.ToJson());
+            TwinCollection receivedTwinPatch2 = twinCollectionConverter.FromMessage(receivedTwinPatchMessage);
+            Assert.Equal("{\"p0\":null,\"$version\":2,\"p1\":\"vp1\",\"p2\":\"v2\",\"p3\":\"v3\"}", receivedTwinPatch2.ToJson());
+        }
+
+        [Fact]
+        public async Task DeviceConnectionTest()
+        {
+            string id = "d1";
+            var identity = Mock.Of<IIdentity>(i => i.Id == id);
+
+            var desired0 = new TwinCollection
+            {
+                ["p0"] = "vp0",
+                ["$version"] = 0
+            };
+
+            var reported0 = new TwinCollection
+            {
+                ["p0"] = "vp0",
+                ["$version"] = 0
+            };
+
+            var twinBase = new Twin
+            {
+                Properties = new TwinProperties
+                {
+                    Reported = reported0,
+                    Desired = desired0
+                }
+            };
+
+            var desired2 = new TwinCollection
+            {
+                ["p1"] = "vp1",
+                ["p2"] = "v2",
+                ["p3"] = "v3",
+                ["$version"] = 2
+            };
+
+            var reported2 = new TwinCollection
+            {
+                ["p2"] = "vp2",
+                ["$version"] = 2
+            };
+
+            var twin2 = new Twin
+            {
+                Properties = new TwinProperties
+                {
+                    Reported = reported2,
+                    Desired = desired2
+                }
+            };
+
+            var twinStore = new Mock<ITwinStore>(MockBehavior.Strict);
+            twinStore.Setup(c => c.Get(id))
+                .ReturnsAsync(Option.Some(twinBase));
+
+            Twin storedTwin = null;
+            twinStore.Setup(c => c.Update(id, It.IsAny<Twin>()))
+                .Callback<string, Twin>((s, t) => storedTwin = t)
+                .Returns(Task.CompletedTask);
+
+            var reportedPropertiesStore = new Mock<IReportedPropertiesStore>(MockBehavior.Strict);
+            reportedPropertiesStore.Setup(r => r.SyncToCloud(id))
+                .Returns(Task.CompletedTask);
+
+            IMessage receivedTwinPatchMessage = null;
+            var deviceProxy = new Mock<IDeviceProxy>(MockBehavior.Strict);
+            deviceProxy.Setup(d => d.OnDesiredPropertyUpdates(It.IsAny<IMessage>()))
+                .Callback<IMessage>(m => receivedTwinPatchMessage = m)
+                .Returns(Task.CompletedTask);
+
+            var cloudSync = new Mock<ICloudSync>(MockBehavior.Strict);
+            cloudSync.Setup(c => c.GetTwin(id))
+                .ReturnsAsync(Option.Some(twin2));
+            var twinMessageConverter = new TwinMessageConverter();
+            var twinCollectionConverter = new TwinCollectionMessageConverter();
+            var reportedPropertiesValidator = Mock.Of<IValidator<TwinCollection>>();            
+
+            var connectionManager = Mock.Of<IConnectionManager>(
+                c =>
+                    c.CheckClientSubscription(id, DeviceSubscription.DesiredPropertyUpdates)
+                    && c.GetDeviceConnection(id) == Option.Some(deviceProxy.Object)
+                    && c.GetConnectedClients() == new[] { identity });
+
+            var deviceConnectivityManager = new Mock<IDeviceConnectivityManager>();
+
+            var twinManager = new StoringTwinManager(
+                connectionManager,
+                twinCollectionConverter,
+                twinMessageConverter,
+                reportedPropertiesValidator,
+                twinStore.Object,
+                reportedPropertiesStore.Object,
+                cloudSync.Object,
+                deviceConnectivityManager.Object,
+                TimeSpan.FromMinutes(10));
+
+            // Act
+            deviceConnectivityManager.Raise(d => d.DeviceConnected += null, this, new EventArgs());
+
+            // Assert
+            await Task.Delay(TimeSpan.FromSeconds(3));
+            twinStore.VerifyAll();
+            reportedPropertiesStore.VerifyAll();
+            cloudSync.VerifyAll();
+            deviceProxy.VerifyAll();
+            Mock.Get(connectionManager).VerifyAll();
+
+            Assert.NotNull(storedTwin);
+            Assert.NotNull(receivedTwinPatchMessage);
+            Assert.Equal(twin2.ToJson(), storedTwin.ToJson());
+            TwinCollection receivedTwinPatch2 = twinCollectionConverter.FromMessage(receivedTwinPatchMessage);
+            Assert.Equal("{\"p0\":null,\"$version\":2,\"p1\":\"vp1\",\"p2\":\"v2\",\"p3\":\"v3\"}", receivedTwinPatch2.ToJson());
+        }
+
+        [Fact]
+        public async Task DeviceConnectionNoSubscriptionTest()
+        {
+            string id = "d1";
+            var identity = Mock.Of<IIdentity>(i => i.Id == id);
+
+            var twinStore = new Mock<ITwinStore>(MockBehavior.Strict);
+            twinStore.Setup(c => c.Get(id))
+                .ReturnsAsync(Option.None<Twin>());
+
+            var reportedPropertiesStore = new Mock<IReportedPropertiesStore>(MockBehavior.Strict);
+            reportedPropertiesStore.Setup(r => r.SyncToCloud(id))
+                .Returns(Task.CompletedTask);
+
+            var deviceProxy = new Mock<IDeviceProxy>(MockBehavior.Strict);
+            var cloudSync = new Mock<ICloudSync>(MockBehavior.Strict);
+            var twinMessageConverter = new TwinMessageConverter();
+            var twinCollectionConverter = new TwinCollectionMessageConverter();
+            var reportedPropertiesValidator = Mock.Of<IValidator<TwinCollection>>();
+
+            var connectionManager = Mock.Of<IConnectionManager>(
+                c =>
+                    c.CheckClientSubscription(id, DeviceSubscription.DesiredPropertyUpdates) == false
+                    && c.GetConnectedClients() == new[] { identity });
+
+            var deviceConnectivityManager = new Mock<IDeviceConnectivityManager>();
+
+            var twinManager = new StoringTwinManager(
+                connectionManager,
+                twinCollectionConverter,
+                twinMessageConverter,
+                reportedPropertiesValidator,
+                twinStore.Object,
+                reportedPropertiesStore.Object,
+                cloudSync.Object,
+                deviceConnectivityManager.Object,
+                TimeSpan.FromMinutes(10));
+
+            // Act
+            deviceConnectivityManager.Raise(d => d.DeviceConnected += null, this, new EventArgs());
+
+            // Assert
+            await Task.Delay(TimeSpan.FromSeconds(3));
+            twinStore.VerifyAll();
+            reportedPropertiesStore.VerifyAll();
+            Mock.Get(connectionManager).VerifyAll();
+            cloudSync.VerifyAll();
+            deviceProxy.VerifyAll();
         }
     }
 }
