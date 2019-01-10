@@ -38,7 +38,7 @@ run_command()
 }
 
 # Ensure the armv7 toolchain is installed
-rustup target add armv7-unknown-linux-gnueabihf
+rustup target add aarch64-unknown-linux-gnu
 rustup component add rust-src
 
 mkdir -p $BUILD_DIR
