@@ -13,19 +13,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
 
     class ReportedPropertiesStore : IReportedPropertiesStore
     {
-        static readonly TimeSpan SleepTime = TimeSpan.FromSeconds(5);
+        static readonly TimeSpan DefaultSyncFrequency = TimeSpan.FromSeconds(5);
         readonly IEntityStore<string, TwinStoreEntity> twinStore;
         readonly ICloudSync cloudSync;
         readonly AsyncLockProvider<string> lockProvider = new AsyncLockProvider<string>(10);
         readonly AsyncAutoResetEvent syncToCloudSignal = new AsyncAutoResetEvent(false);
         readonly ConcurrentQueue<string> syncToCloudQueue = new ConcurrentQueue<string>();
         readonly Task syncToCloudTask;
+        readonly TimeSpan syncFrequency;
 
-        public ReportedPropertiesStore(IEntityStore<string, TwinStoreEntity> twinStore, ICloudSync cloudSync)
+        public ReportedPropertiesStore(IEntityStore<string, TwinStoreEntity> twinStore, ICloudSync cloudSync, Option<TimeSpan> syncFrequency)
         {
             this.twinStore = twinStore;
             this.cloudSync = cloudSync;
             this.syncToCloudTask = this.SyncToCloud();
+            this.syncFrequency = syncFrequency.GetOrElse(DefaultSyncFrequency);
         }
 
         public async Task Update(string id, TwinCollection patch)
@@ -70,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                     Events.ErrorSyncingReportedPropertiesToCloud(e);
                 }
 
-                await Task.Delay(SleepTime);
+                await Task.Delay(this.syncFrequency);
             }
         }
 

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.twin
 {
@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.twin
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Twin;
     using Microsoft.Azure.Devices.Edge.Storage;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Shared;
     using Moq;
@@ -28,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.twin
                 .Callback<string, TwinCollection>((s, collection) => receivedReportedProperties = collection)
                 .ReturnsAsync(true);
 
-            var reportedPropertiesStore = new ReportedPropertiesStore(rpEntityStore, cloudSync.Object);
+            var reportedPropertiesStore = new ReportedPropertiesStore(rpEntityStore, cloudSync.Object, Option.None<TimeSpan>());
 
             var rbase = new TwinCollection
             {
@@ -58,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.twin
                 .Callback<string, TwinCollection>((s, collection) => receivedReportedProperties.Add(collection))
                 .ReturnsAsync(true);
 
-            var reportedPropertiesStore = new ReportedPropertiesStore(rpEntityStore, cloudSync.Object);
+            var reportedPropertiesStore = new ReportedPropertiesStore(rpEntityStore, cloudSync.Object, Option.None<TimeSpan>());
 
             var rp1 = new TwinCollection
             {

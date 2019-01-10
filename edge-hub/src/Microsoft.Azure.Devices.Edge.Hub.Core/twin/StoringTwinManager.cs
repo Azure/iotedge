@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
 
     public class StoringTwinManager : ITwinManager
     {
+        static readonly TimeSpan DefaultTwinSyncPeriod = TimeSpan.FromMinutes(2);
         readonly IMessageConverter<TwinCollection> twinCollectionConverter;
         readonly IMessageConverter<Twin> twinConverter;
         readonly IConnectionManager connectionManager;
@@ -57,7 +58,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
             IEntityStore<string, TwinStoreEntity> entityStore,
             IDeviceConnectivityManager deviceConnectivityManager,
             IValidator<TwinCollection> reportedPropertiesValidator,
-            TimeSpan twinSyncPeriod)
+            Option<TimeSpan> twinSyncPeriod,
+            Option<TimeSpan> reportedPropertiesSyncFrequency)
         {
             Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
             Preconditions.CheckNotNull(messageConverterProvider, nameof(messageConverterProvider));
@@ -74,10 +76,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                 twinConverter,
                 reportedPropertiesValidator,
                 new TwinStore(entityStore),
-                new ReportedPropertiesStore(entityStore, cloudSync),
+                new ReportedPropertiesStore(entityStore, cloudSync, reportedPropertiesSyncFrequency),
                 cloudSync,
                 deviceConnectivityManager,
-                twinSyncPeriod);
+                twinSyncPeriod.GetOrElse(DefaultTwinSyncPeriod));
                         
             return twinManager;
         }
