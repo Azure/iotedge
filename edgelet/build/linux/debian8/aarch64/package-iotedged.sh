@@ -37,7 +37,7 @@ run_command()
       sh -c "$1"
 }
 
-# Ensure the armv7 toolchain is installed
+# Ensure the aarch64 toolchain is installed
 rustup target add aarch64-unknown-linux-gnu
 rustup component add rust-src
 
