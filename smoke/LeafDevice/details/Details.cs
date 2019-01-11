@@ -127,10 +127,10 @@ namespace LeafDevice.Details
 
         protected async Task GetOrCreateDeviceIdentityAsync()
         {
-            var builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
-            var rm = RegistryManager.CreateFromConnectionString(builder.ToString());
+            IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
+            RegistryManager rm = RegistryManager.CreateFromConnectionString(builder.ToString());
 
-            var device = await rm.GetDeviceAsync(this.deviceId);
+            Device device = await rm.GetDeviceAsync(this.deviceId);
 
             if (device != null)
             {
@@ -138,12 +138,12 @@ namespace LeafDevice.Details
 
                 if (this.authType == AuthenticationType.SelfSigned)
                 {
-                    var thumprints = this.thumbprints.Expect(() => new InvalidOperationException("Missing thumprints list"));
-                    if (!thumprints.Contains(device.Authentication.X509Thumbprint.PrimaryThumbprint) ||
-                        !thumprints.Contains(device.Authentication.X509Thumbprint.SecondaryThumbprint))
+                    var thumbprints = this.thumbprints.Expect(() => new InvalidOperationException("Missing thumprints list"));
+                    if (!thumbprints.Contains(device.Authentication.X509Thumbprint.PrimaryThumbprint) ||
+                        !thumbprints.Contains(device.Authentication.X509Thumbprint.SecondaryThumbprint))
                     {
                         // update the thumbprints before attempting to run any tests to ensure consistency
-                        device.Authentication.X509Thumbprint = new X509Thumbprint { PrimaryThumbprint = thumprints[0], SecondaryThumbprint = thumprints[1] };
+                        device.Authentication.X509Thumbprint = new X509Thumbprint { PrimaryThumbprint = thumbprints[0], SecondaryThumbprint = thumbprints[1] };
                         await rm.UpdateDeviceAsync(device);
                     }
                 }
@@ -172,10 +172,10 @@ namespace LeafDevice.Details
 
             Console.WriteLine($"Receiving events from device '{this.context.Device.Id}' on Event Hub '{builder.EntityPath}'");
 
-            var eventHubClient =
+            EventHubClient eventHubClient =
                 EventHubClient.CreateFromConnectionString(builder.ToString());
 
-            var eventHubReceiver = eventHubClient.CreateReceiver(
+            PartitionReceiver eventHubReceiver = eventHubClient.CreateReceiver(
                 "$Default",
                 EventHubPartitionKeyResolver.ResolveToPartition(
                     this.context.Device.Id,
@@ -214,15 +214,15 @@ namespace LeafDevice.Details
         protected async Task VerifyDirectMethodAsync()
         {
             // User Service SDK to invoke Direct Method on the device.
-            var serviceClient =
+            ServiceClient serviceClient =
                 ServiceClient.CreateFromConnectionString(this.context.IotHubConnectionString, this.serviceClientTransportType);
 
             // Call a direct method
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(300)))
             {
-                var cloudToDeviceMethod = new CloudToDeviceMethod("DirectMethod").SetPayloadJson("{\"TestKey\" : \"TestValue\"}");
+                CloudToDeviceMethod cloudToDeviceMethod = new CloudToDeviceMethod("DirectMethod").SetPayloadJson("{\"TestKey\" : \"TestValue\"}");
 
-                var result = await serviceClient.InvokeDeviceMethodAsync(
+                CloudToDeviceMethodResult result = await serviceClient.InvokeDeviceMethodAsync(
                     this.context.Device.Id,
                     cloudToDeviceMethod,
                     cts.Token);
@@ -251,7 +251,7 @@ namespace LeafDevice.Details
         {
             if (this.context != null)
             {
-                var device = this.context.Device;
+                Device device = this.context.Device;
                 bool remove = this.context.RemoveDevice;
                 this.context.Device = null;
 
