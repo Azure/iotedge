@@ -265,6 +265,9 @@ function Install-SecurityDaemon {
     Set-SystemPath
     Add-IotEdgeRegistryKey
     Install-Services
+    if ($ContainerOs -eq 'Linux') {
+        Add-FirewallExceptions
+    }
 
     Write-HostGreen
     Write-HostGreen 'This device is now provisioned with the IoT Edge runtime.'
@@ -883,6 +886,18 @@ function Uninstall-Services {
     }
 }
 
+function Add-FirewallExceptions {
+    New-NetFirewallRule `
+        -DisplayName 'iotedged allow inbound 15580,15581' `
+        -Direction 'Inbound' `
+        -Action 'Allow' `
+        -Protocol 'TCP' `
+        -LocalPort '15580-15581' `
+        -Program "$EdgeInstallDirectory\iotedged.exe" `
+        -InterfaceType 'Any' | Out-Null
+    Write-HostGreen 'Added firewall exceptions for ports used by the IoT Edge service.'
+}
+
 function Remove-FirewallExceptions {
     Remove-NetFirewallRule -DisplayName 'iotedged allow inbound 15580,15581' -ErrorAction SilentlyContinue -ErrorVariable cmdErr
     Write-Verbose "$(if ($?) { 'Removed firewall exceptions' } else { $cmdErr })"
@@ -1002,12 +1017,21 @@ function Set-MobyEngineParameters {
             $MobyNamedPipeUrl
         }
     }
+    $mobyNetwork = switch ($ContainerOs) {
+        'Linux' {
+            'azure-iot-edge'
+        }
+
+        'Windows' {
+            'nat'
+        }
+    }
     $replacementContent = @(
         'moby_runtime:',
         "  uri: '$mobyUrl'",
-        '  network: ''azure-iot-edge''')
+        "  network: '$mobyNetwork'")
     ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")) | Set-Content "$EdgeInstallDirectory\config.yaml" -Force
-    Write-HostGreen "Configured device with Moby Engine URL '$mobyUrl'."
+    Write-HostGreen "Configured device with Moby Engine URL '$mobyUrl' and network '$mobyNetwork'."
 }
 
 function Get-AgentRegistry {
