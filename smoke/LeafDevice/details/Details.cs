@@ -35,9 +35,9 @@ namespace LeafDevice.Details
         readonly EventHubClientTransportType eventHubClientTransportType;
         readonly ITransportSettings[] deviceTransportSettings;
         readonly AuthenticationType authType = AuthenticationType.None;
-        Option<X509Certificate2> clientCertificate = Option.None<X509Certificate2>();
-        Option<IEnumerable<X509Certificate2>> clientCertificateChain = Option.None<IEnumerable<X509Certificate2>>();
-        Option<List<string>> thumbprints = Option.None<List<string>>();
+        readonly Option<X509Certificate2> clientCertificate;
+        readonly Option<IEnumerable<X509Certificate2>> clientCertificateChain;
+        readonly Option<List<string>> thumbprints;
         DeviceContext context;
 
         protected Details(
@@ -55,62 +55,10 @@ namespace LeafDevice.Details
             this.deviceId = deviceId;
             this.trustedCACertificateFileName = trustedCACertificateFileName;
             this.edgeHostName = edgeHostName;
-            this.authType = clientCertificatePaths.Map(
-                clientCred =>
-                {
-                    X509Certificate2 clientCert;
-                    IEnumerable<X509Certificate2> clientCertChain;
-                    (clientCert, clientCertChain) =
-                        CertificateHelper.GetServerCertificateAndChainFromFile(clientCred.CertificateFilePath, clientCred.PrivateKeyFilePath);
-                    this.clientCertificate = Option.Some(clientCert);
-
-                    var authType = AuthenticationType.CertificateAuthority;
-                    this.thumbprints = thumbprintCertificatePaths.Map(
-                        certificates =>
-                        {
-                            if (certificates.Count != 2)
-                            {
-                                throw new ArgumentException("Exactly two client thumprint certificates expected");
-                            }
-
-                            if (string.IsNullOrWhiteSpace(certificates[0]) || !File.Exists(certificates[0]))
-                            {
-                                throw new ArgumentException($"'{certificates[0]}' is not a path to a thumbprint certificate file");
-                            }
-
-                            if (string.IsNullOrWhiteSpace(certificates[1]) || !File.Exists(certificates[1]))
-                            {
-                                throw new ArgumentException($"'{certificates[1]}' is not a path to a thumbprint certificate file");
-                            }
-
-                            authType = AuthenticationType.SelfSigned;
-                            var rawCerts = new List<string>();
-                            foreach (string dc in certificates)
-                            {
-                                string rawCert;
-                                using (var sr = new StreamReader(dc))
-                                {
-                                    rawCert = sr.ReadToEnd();
-                                }
-                                rawCerts.Add(rawCert);
-                            }
-
-                            var certs = CertificateHelper.GetCertificatesFromPem(rawCerts);
-                            var thumbprints = new List<string>();
-                            foreach (var cert in certs)
-                            {
-                                thumbprints.Add(cert.Thumbprint.ToUpper());
-                            }
-
-                            return thumbprints;
-                        });
-                    if (authType == AuthenticationType.CertificateAuthority)
-                    {
-                        this.clientCertificateChain = Option.Some(clientCertChain);
-                    }
-
-                    return authType;
-                }).GetOrElse(AuthenticationType.Sas);
+            (this.authType,
+                this.clientCertificate,
+                this.clientCertificateChain,
+                this.thumbprints) = this.ObtainAuthDetails(clientCertificatePaths, thumbprintCertificatePaths);
 
             if (useWebSockets)
             {
@@ -336,6 +284,69 @@ namespace LeafDevice.Details
             Console.WriteLine($"Leaf device received direct method call...Payload Received: {methodRequest.DataAsJson}");
             return Task.FromResult(new MethodResponse(methodRequest.Data, (int)HttpStatusCode.OK));
         }
+
+        (AuthenticationType,
+            Option<X509Certificate2>,
+            Option<IEnumerable<X509Certificate2>>,
+            Option<List<string>>) ObtainAuthDetails(
+                Option<DeviceCertificate> clientCertificatePaths,
+                Option<IList<string>> thumbprintCertificatePaths) =>
+            clientCertificatePaths.Map(
+                clientCred =>
+                {
+                    (X509Certificate2 clientCert, IEnumerable<X509Certificate2> clientCertChain) =
+                        CertificateHelper.GetServerCertificateAndChainFromFile(clientCred.CertificateFilePath, clientCred.PrivateKeyFilePath);
+                    var authType = AuthenticationType.CertificateAuthority;
+                    var thumbprintsOpt = thumbprintCertificatePaths.Map(
+                        certificates =>
+                        {
+                            if (certificates.Count != 2)
+                            {
+                                throw new ArgumentException("Exactly two client thumprint certificates expected");
+                            }
+
+                            if (string.IsNullOrWhiteSpace(certificates[0]) || !File.Exists(certificates[0]))
+                            {
+                                throw new ArgumentException($"'{certificates[0]}' is not a path to a thumbprint certificate file");
+                            }
+
+                            if (string.IsNullOrWhiteSpace(certificates[1]) || !File.Exists(certificates[1]))
+                            {
+                                throw new ArgumentException($"'{certificates[1]}' is not a path to a thumbprint certificate file");
+                            }
+
+                            authType = AuthenticationType.SelfSigned;
+                            var rawCerts = new List<string>();
+                            foreach (string dc in certificates)
+                            {
+                                string rawCert;
+                                using (var sr = new StreamReader(dc))
+                                {
+                                    rawCert = sr.ReadToEnd();
+                                }
+
+                                rawCerts.Add(rawCert);
+                            }
+
+                            var certs = CertificateHelper.GetCertificatesFromPem(rawCerts);
+                            var thumbprints = new List<string>();
+                            foreach (var cert in certs)
+                            {
+                                thumbprints.Add(cert.Thumbprint.ToUpper());
+                            }
+
+                            return thumbprints;
+                        });
+
+                    return (authType,
+                        Option.Some(clientCert),
+                        authType == AuthenticationType.CertificateAuthority ? Option.Some(clientCertChain) : Option.None<IEnumerable<X509Certificate2>>(),
+                        thumbprintsOpt);
+                }).GetOrElse(
+                (AuthenticationType.Sas,
+                    Option.None<X509Certificate2>(),
+                    Option.None<IEnumerable<X509Certificate2>>(),
+                    Option.None<List<string>>()));
 
         X509Certificate2 GetTrustedCertificate() => new X509Certificate2(X509Certificate.CreateFromCertFile(this.trustedCACertificateFileName));
 
