@@ -37,11 +37,11 @@ run_command()
       sh -c "$1"
 }
 
-# Ensure the armv7 toolchain is installed
-rustup target add armv7-unknown-linux-gnueabihf
+# Ensure the aarch64 toolchain is installed
+rustup target add aarch64-unknown-linux-gnu
 rustup component add rust-src
 
 mkdir -p $BUILD_DIR
-COMMAND="cd /project/edgelet && make deb8 CARGOFLAGS=\"--target aarch64-unknown-linux-gnu\" TARGET=target/aarch64-unknown-linux-gnu/release DPKGFLAGS=\"-b -us -uc -i --host-arch arm64 --host-type aarch64-linux-gnu --target-type aarch64-linux-gnu\""
+COMMAND="cd /project/edgelet && make deb8 VERSION=${VERSION} CARGOFLAGS=\"--target aarch64-unknown-linux-gnu\" TARGET=target/aarch64-unknown-linux-gnu/release DPKGFLAGS=\"-b -us -uc -i --host-arch arm64 --host-type aarch64-linux-gnu --target-type aarch64-linux-gnu\""
 
 run_command "$COMMAND"
