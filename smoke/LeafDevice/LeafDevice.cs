@@ -16,8 +16,7 @@ namespace LeafDevice
             string trustedCACertificateFileName,
             string edgeHostName,
             bool useWebSockets)
-            :
-            base(
+            : base(
                 iothubConnectionString,
                 eventhubCompatibleEndpointWithEntityPath,
                 deviceId,
@@ -37,10 +36,8 @@ namespace LeafDevice
             string edgeHostName,
             bool useWebSockets,
             string clientCertificatePath,
-            string clientCertificateKeyPath
-        )
-            :
-            base(
+            string clientCertificateKeyPath)
+            : base(
                 iothubConnectionString,
                 eventhubCompatibleEndpointWithEntityPath,
                 deviceId,
@@ -61,10 +58,8 @@ namespace LeafDevice
             bool useWebSockets,
             string clientCertificatePath,
             string clientCertificateKeyPath,
-            IList<string> thumprintCertificates
-        )
-            :
-            base(
+            IList<string> thumprintCertificates)
+            : base(
                 iothubConnectionString,
                 eventhubCompatibleEndpointWithEntityPath,
                 deviceId,
