@@ -1,4 +1,4 @@
-# IoT Edge
+# IoT Edge 
 
 [![Build status](https://msazure.visualstudio.com/One/_apis/build/status/Custom/Azure/IoT/Edge/Core/Azure-IoT-Edge-Core%20CI)](https://msazure.visualstudio.com/One/_build/latest?definitionId=4977)
 
