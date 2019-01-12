@@ -113,30 +113,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
 
             List<ICommand> updateRuntimeCommands = await this.GetUpdateRuntimeCommands(updateDeployed, moduleIdentities, runtimeInfo);
 
-            // create "stop" commands for modules that have been updated/removed
-            IEnumerable<Task<ICommand>> stopTasks = updateDeployed
-                .Concat(removed)
+            // create "stop" commands for modules that have been removed
+            IEnumerable<Task<ICommand>> stopRemovedModulesTasks = removed
                 .Select(m => this.commandFactory.StopAsync(m));
-            IEnumerable<ICommand> stop = await Task.WhenAll(stopTasks);
+            IEnumerable<ICommand> stopRemovedModules = await Task.WhenAll(stopRemovedModulesTasks);
 
             // create "remove" commands for modules that are being deleted in this deployment
-            IEnumerable<Task<ICommand>> removeTasks = removed.Select(m => this.commandFactory.RemoveAsync(m));
-            IEnumerable<ICommand> remove = await Task.WhenAll(removeTasks);
+            IEnumerable<Task<ICommand>> removeRemovedModulesTasks = removed.Select(m => this.commandFactory.RemoveAsync(m));
+            IEnumerable<ICommand> removeRemovedModules = await Task.WhenAll(removeRemovedModulesTasks);
 
-            // remove any saved state we might have for modules that are being removed or
-            // are being updated because of a deployment
-            IEnumerable<Task<ICommand>> removeStateTasks = removed
-                .Concat(updateDeployed)
+            // remove any saved state we might have for modules that are being removed
+            IEnumerable<Task<ICommand>> removeRemovedModulesStateTasks = removed
                 .Select(m => this.commandFactory.WrapAsync(new RemoveFromStoreCommand<ModuleState>(this.store, m.Name)));
-            IEnumerable<ICommand> removeState = await Task.WhenAll(removeStateTasks);
+            IEnumerable<ICommand> removeRemovedModulesState = await Task.WhenAll(removeRemovedModulesStateTasks);
 
-            // create pull, create, update and start commands for added/updated modules
-            IEnumerable<ICommand> addedCommands = await this.ProcessAddedUpdatedModules(
+            // create pull, create, update and start commands for added modules
+            IEnumerable<Task<ICommand>> createAddedModulesTasks = await this.ProcessAddedUpdatedModules(
                 added,
                 moduleIdentities,
                 m => this.commandFactory.CreateAsync(m, runtimeInfo));
+            IEnumerable<ICommand> createAddedModules = await Task.WhenAll(createAddedModulesTasks);
 
-            IEnumerable<ICommand> updatedCommands = await this.ProcessAddedUpdatedModules(
+            // create pull, stop, update, and start commands for updated modules
+            IEnumerable<Task<ICommand>> updateUpdatedModulesTasks = await this.ProcessAddedUpdatedModules(
                 updateDeployed,
                 moduleIdentities,
                 m =>
@@ -147,6 +146,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
                         m,
                         runtimeInfo);
                 });
+            IEnumerable<ICommand> updateUpdatedModules = await Task.WhenAll(updateUpdatedModulesTasks);
+
+            // remove any saved state we might have for modules that are being updated
+            IEnumerable<Task<ICommand>> removeUpdatedModulesStateTasks = updateDeployed
+                .Select(m => this.commandFactory.WrapAsync(new RemoveFromStoreCommand<ModuleState>(this.store, m.Name)));
+            IEnumerable<ICommand> removeUpdatedModulesState = await Task.WhenAll(removeUpdatedModulesStateTasks);
 
             // apply restart policy for modules that are not in the deployment list and aren't running
             IEnumerable<Task<ICommand>> restartTasks = this.ApplyRestartPolicy(updateStateChanged.Where(m => !m.Name.Equals(Constants.EdgeAgentModuleName, StringComparison.OrdinalIgnoreCase)));
@@ -157,11 +162,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             IEnumerable<ICommand> resetHealthStatus = await this.ResetStatsForHealthyModulesAsync(runningGreat);
 
             IList<ICommand> commands = updateRuntimeCommands
-                .Concat(stop)
-                .Concat(remove)
-                .Concat(removeState)
-                .Concat(addedCommands)
-                .Concat(updatedCommands)
+                .Concat(stopRemovedModules)
+                .Concat(removeRemovedModules)
+                .Concat(removeRemovedModulesState)
+                .Concat(createAddedModules)
+                .Concat(updateUpdatedModules)
+                .Concat(removeUpdatedModulesState)
                 .Concat(restart)
                 .Concat(resetHealthStatus)
                 .ToList();
@@ -204,7 +210,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             return restart;
         }
 
-        async Task<IEnumerable<ICommand>> ProcessAddedUpdatedModules(
+        async Task<IEnumerable<Task<ICommand>>> ProcessAddedUpdatedModules(
             IList<IModule> modules,
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities,
             Func<IModuleWithIdentity, Task<ICommand>> createUpdateCommandMaker)
@@ -234,10 +240,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             }
 
             // build GroupCommands from each command set
-            IEnumerable<Task<ICommand>> commands = (await Task.WhenAll(addedTasks))
+            return (await Task.WhenAll(addedTasks))
                 .Select(cmds => this.commandFactory.WrapAsync(new GroupCommand(cmds)));
-
-            return await Task.WhenAll(commands);
         }
 
         async Task<IEnumerable<ICommand>> ResetStatsForHealthyModulesAsync(IEnumerable<IRuntimeModule> modules)

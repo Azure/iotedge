@@ -48,20 +48,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
 
         async Task<Plan> CreatePlan(ModuleSet desired, ModuleSet current, Diff diff, IRuntimeInfo runtimeInfo, IImmutableDictionary<string, IModuleIdentity> moduleIdentities)
         {
-            IEnumerable<Task<ICommand>> stopTasks = current.Modules.Select(m => this.commandFactory.StopAsync(m.Value));
+            IEnumerable<Task<ICommand>> stopTasks = current.Modules
+                .Select(m => this.commandFactory.StopAsync(m.Value));
             IEnumerable<ICommand> stop = await Task.WhenAll(stopTasks);
             IEnumerable<Task<ICommand>> removeTasks = diff.Removed.Select(name => this.commandFactory.RemoveAsync(current.Modules[name]));
             IEnumerable<ICommand> remove = await Task.WhenAll(removeTasks);
-            IEnumerable<Task<ICommand>> startTasks = desired.Modules
-                .Where(m => m.Value.DesiredStatus == ModuleStatus.Running)
-                .Select(m => this.commandFactory.StartAsync(m.Value));
-            IEnumerable<ICommand> start = await Task.WhenAll(startTasks);
 
             // Only update changed modules
             IList<Task<ICommand>> updateTasks = diff.Updated
                 .Select(m => this.CreateOrUpdate(current, m, runtimeInfo, moduleIdentities))
                 .ToList();
             IEnumerable<ICommand> update = await Task.WhenAll(updateTasks);
+
+            IEnumerable<Task<ICommand>> startTasks = desired.Modules
+                .Where(m => m.Value.DesiredStatus == ModuleStatus.Running)
+                .Select(m => this.commandFactory.StartAsync(m.Value));
+            IEnumerable<ICommand> start = await Task.WhenAll(startTasks);
 
             IList<ICommand> commands = stop
                 .Concat(remove)
