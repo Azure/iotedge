@@ -4,6 +4,8 @@ IoT Edge uses the networking capabilities of the Moby runtime to connect to IoT 
 In a basic IoT Edge setup, the default configuration should be sufficient.
 However, if there are additional requirements for firewalls or network topology, it is helpful to understand IoT Edge's network setup and dependencies.
 
+On Windows, all containers are started on the Moby [nat network][3]. The only requirement for IoT Edge is that this nat network has outbound internet connectivity to IoT Hub, a container registry, and optionally the Device Provisioning Service.
+
 # Default Topology
 
 ![IoT Edge network][network]
@@ -16,7 +18,7 @@ This allows an additional form of isolation between the host network, the Edge A
 The Edge Agent attaches to the [default docker network][1] (name and type are `bridge` on Linux, `nat` on Windows).
 Inside a Linux container, this default network device shows up as `docker0` when running `ifconfig`.
 
-The remaining containers, including the Edge Hub, are placed on a [user-defined network][2] named `azure-iot-edge`. Like the default network, this network's type is `bridge` on Linux, `nat` on Windows.
+On Linux, the remaining containers, including the Edge Hub, are placed on a [user-defined network][2] named `azure-iot-edge` . Like the default network, this network's type is `bridge` on Linux, `nat` on Windows.
 
 ## Default Network
 
@@ -40,9 +42,9 @@ Reasons for changing this configuration include:
 
 The usual reason for modifying this configuration is that some other subnet on the network clashes with the default docker subnet.
 
-## User-defined Network
+## User-defined Network (Linux only)
 
-Modules (containers), including the Edge Hub, are started by the Edge Agent and placed on a user-defined network named `azure-iot-edge`.
+On Linux, all modules (containers), including the Edge Hub, are started by the Edge Agent and placed on a user-defined network named `azure-iot-edge`.
 This network is created when the `iotedged` boots for the first time.
 
 The Edge Hub requires outbound internet connectivity to IoT Hub to function properly.
