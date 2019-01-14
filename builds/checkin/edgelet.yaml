@@ -45,10 +45,10 @@ jobs:
         displayName: Install Rust
       - script: 'cargo install --git https://github.com/myagley/cross.git --branch set-path'
         displayName: 'Install cross (fork with docker fix)'
-      - script: 'cross build --toolchain armv7-unknown-linux-gnueabihf'
+      - script: 'cross build --target armv7-unknown-linux-gnueabihf'
         displayName: armv7-unknown-linux-gnueabihf build
         workingDirectory: $(Build.SourcesDirectory)/edgelet
-      - script: 'cross test --toolchain armv7-unknown-linux-gnueabihf'
+      - script: 'cross test --target armv7-unknown-linux-gnueabihf'
         displayName: armv7-unknown-linux-gnueabihf test
         workingDirectory: $(Build.SourcesDirectory)/edgelet
 
