@@ -2,7 +2,10 @@
 namespace LeafDevice
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
+    using global::LeafDevice.Details;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public class LeafDevice : Details.Details
     {
@@ -10,10 +13,61 @@ namespace LeafDevice
             string iothubConnectionString,
             string eventhubCompatibleEndpointWithEntityPath,
             string deviceId,
-            string certificateFileName,
+            string trustedCACertificateFileName,
             string edgeHostName,
             bool useWebSockets)
-            : base(iothubConnectionString, eventhubCompatibleEndpointWithEntityPath, deviceId, certificateFileName, edgeHostName, useWebSockets)
+            : base(
+                iothubConnectionString,
+                eventhubCompatibleEndpointWithEntityPath,
+                deviceId,
+                trustedCACertificateFileName,
+                edgeHostName,
+                useWebSockets,
+                Option.None<DeviceCertificate>(),
+                Option.None<IList<string>>())
+        {
+        }
+
+        public LeafDevice(
+            string iothubConnectionString,
+            string eventhubCompatibleEndpointWithEntityPath,
+            string deviceId,
+            string trustedCACertificateFileName,
+            string edgeHostName,
+            bool useWebSockets,
+            string clientCertificatePath,
+            string clientCertificateKeyPath)
+            : base(
+                iothubConnectionString,
+                eventhubCompatibleEndpointWithEntityPath,
+                deviceId,
+                trustedCACertificateFileName,
+                edgeHostName,
+                useWebSockets,
+                Option.Some(new DeviceCertificate { CertificateFilePath = clientCertificatePath, PrivateKeyFilePath = clientCertificateKeyPath }),
+                Option.None<IList<string>>())
+        {
+        }
+
+        public LeafDevice(
+            string iothubConnectionString,
+            string eventhubCompatibleEndpointWithEntityPath,
+            string deviceId,
+            string trustedCACertificateFileName,
+            string edgeHostName,
+            bool useWebSockets,
+            string clientCertificatePath,
+            string clientCertificateKeyPath,
+            IList<string> thumprintCertificates)
+            : base(
+                iothubConnectionString,
+                eventhubCompatibleEndpointWithEntityPath,
+                deviceId,
+                trustedCACertificateFileName,
+                edgeHostName,
+                useWebSockets,
+                Option.Some(new DeviceCertificate { CertificateFilePath = clientCertificatePath, PrivateKeyFilePath = clientCertificateKeyPath }),
+                Option.Some(thumprintCertificates))
         {
         }
 
@@ -22,11 +76,11 @@ namespace LeafDevice
             // This test assumes that there is an edge deployment running as transparent gateway.
             try
             {
-                await this.InitializeServerCerts();
-                await this.GetOrCreateDeviceIdentity();
-                await this.ConnectToEdgeAndSendData();
-                await this.VerifyDataOnIoTHub();
-                await this.VerifyDirectMethod();
+                await this.InitializeTrustedCertsAsync();
+                await this.GetOrCreateDeviceIdentityAsync();
+                await this.ConnectToEdgeAndSendDataAsync();
+                await this.VerifyDataOnIoTHubAsync();
+                await this.VerifyDirectMethodAsync();
             }
             catch (Exception)
             {
