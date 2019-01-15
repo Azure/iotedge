@@ -457,7 +457,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         var routerTask = c.Resolve<Task<Router>>();
                         var twinManagerTask = c.Resolve<Task<ITwinManager>>();
                         var invokeMethodHandlerTask = c.Resolve<Task<IInvokeMethodHandler>>();
-                        var connectionManagerTask = c.Resolve<Task<IConnectionManager>>();                        
+                        var connectionManagerTask = c.Resolve<Task<IConnectionManager>>();
                         var subscriptionProcessorTask = c.Resolve<Task<ISubscriptionProcessor>>();
                         Router router = await routerTask;
                         ITwinManager twinManager = await twinManagerTask;

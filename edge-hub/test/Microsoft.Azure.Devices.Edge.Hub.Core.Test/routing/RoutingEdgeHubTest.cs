@@ -525,7 +525,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.True(clientMessage3.SystemProperties.ContainsKey(SystemProperties.EdgeMessageId));
         }
 
-
         static async Task<RoutingEdgeHub> GetTestEdgeHub(IConnectionManager connectionManager = null)
         {
             // Arrange

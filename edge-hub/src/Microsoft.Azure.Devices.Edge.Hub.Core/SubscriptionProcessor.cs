@@ -248,7 +248,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             internal static void ProcessingSubscriptions(string id, List<(DeviceSubscription, bool)> subscriptionsList)
             {
-                string subscriptions = String.Join(", ", subscriptionsList.Select(s => $"{s.Item1}"));
+                string subscriptions = string.Join(", ", subscriptionsList.Select(s => $"{s.Item1}"));
                 Log.LogInformation((int)EventIds.ProcessingSubscription, Invariant($"Processing subscriptions {subscriptions} for client {id}."));
             }
         }
