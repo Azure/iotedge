@@ -111,7 +111,6 @@ namespace TemperatureFilter
         /// </summary>
         static async Task<MessageResponse> PrintAndFilterMessages(Message message, object userContext)
         {
-
             try
             {
                 int counterValue = Interlocked.Increment(ref counter);
@@ -123,6 +122,7 @@ namespace TemperatureFilter
                         "UserContext doesn't contain " +
                         "expected values");
                 }
+
                 ModuleClient moduleClient = userContextValues.Item1;
                 ModuleConfig moduleModuleConfig = userContextValues.Item2;
 
