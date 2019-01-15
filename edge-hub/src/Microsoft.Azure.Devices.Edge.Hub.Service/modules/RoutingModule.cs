@@ -436,6 +436,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<Task<IInvokeMethodHandler>>()
                 .SingleInstance();
 
+            // Task<ISubscriptionProcessor>
+            builder.Register(
+                    async c =>
+                    {
+                        var invokeMethodHandlerTask = c.Resolve<Task<IInvokeMethodHandler>>();
+                        var connectionManagerTask = c.Resolve<Task<IConnectionManager>>();
+                        IConnectionManager connectionManager = await connectionManagerTask;
+                        IInvokeMethodHandler invokeMethodHandler = await invokeMethodHandlerTask;
+                        return new SubscriptionProcessor(connectionManager, invokeMethodHandler) as ISubscriptionProcessor;
+                    })
+                .As<Task<ISubscriptionProcessor>>()
+                .SingleInstance();
+
             // Task<IEdgeHub>
             builder.Register(
                     async c =>
@@ -446,10 +459,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         var invokeMethodHandlerTask = c.Resolve<Task<IInvokeMethodHandler>>();
                         var connectionManagerTask = c.Resolve<Task<IConnectionManager>>();
                         var deviceConnectivityManager = c.Resolve<IDeviceConnectivityManager>();
+                        var subscriptionProcessorTask = c.Resolve<Task<ISubscriptionProcessor>>();
                         Router router = await routerTask;
                         ITwinManager twinManager = await twinManagerTask;
                         IConnectionManager connectionManager = await connectionManagerTask;
                         IInvokeMethodHandler invokeMethodHandler = await invokeMethodHandlerTask;
+                        ISubscriptionProcessor subscriptionProcessor = await subscriptionProcessorTask;
                         IEdgeHub hub = new RoutingEdgeHub(
                             router,
                             routingMessageConverter,
@@ -457,7 +472,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             twinManager,
                             this.edgeDeviceId,
                             invokeMethodHandler,
-                            deviceConnectivityManager);
+                            deviceConnectivityManager,
+                            subscriptionProcessor);
                         return hub;
                     })
                 .As<Task<IEdgeHub>>()

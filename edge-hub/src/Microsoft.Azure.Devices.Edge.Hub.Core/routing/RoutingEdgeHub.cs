@@ -30,6 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         readonly ITwinManager twinManager;
         readonly string edgeDeviceId;
         readonly IInvokeMethodHandler invokeMethodHandler;
+        readonly ISubscriptionProcessor subscriptionProcessor;
 
         public RoutingEdgeHub(
             Router router,
@@ -38,7 +39,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             ITwinManager twinManager,
             string edgeDeviceId,
             IInvokeMethodHandler invokeMethodHandler,
-            IDeviceConnectivityManager deviceConnectivityManager)
+            IDeviceConnectivityManager deviceConnectivityManager,
+            ISubscriptionProcessor subscriptionProcessor)
         {
             this.router = Preconditions.CheckNotNull(router, nameof(router));
             this.messageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
@@ -47,6 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
             this.invokeMethodHandler = Preconditions.CheckNotNull(invokeMethodHandler, nameof(invokeMethodHandler));
             deviceConnectivityManager.DeviceConnected += this.DeviceConnected;
+            this.subscriptionProcessor = Preconditions.CheckNotNull(subscriptionProcessor, nameof(subscriptionProcessor));
         }
 
         public Task ProcessDeviceMessage(IIdentity identity, IMessage message)
@@ -64,8 +67,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
         public Task ProcessDeviceMessageBatch(IIdentity identity, IEnumerable<IMessage> messages)
         {
-            Preconditions.CheckNotNull(messages, nameof(messages));
-            IList<IMessage> messagesList = messages as IList<IMessage> ?? messages.ToList();
+            IList<IMessage> messagesList = messages as IList<IMessage>
+                                           ?? Preconditions.CheckNotNull(messages, nameof(messages)).ToList();
             Events.MessagesReceived(identity, messagesList);
             Metrics.MessageCount(identity, messagesList.Count);
 
@@ -122,19 +125,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             return this.twinManager.UpdateDesiredPropertiesAsync(id, twinCollection);
         }
 
-        public async Task AddSubscription(string id, DeviceSubscription deviceSubscription)
+        public Task AddSubscription(string id, DeviceSubscription deviceSubscription)
         {
             Events.AddingSubscription(id, deviceSubscription);
-            this.connectionManager.AddSubscription(id, deviceSubscription);
-            try
-            {
-                Option<ICloudProxy> cloudProxy = await this.connectionManager.GetCloudConnection(id);
-                await this.ProcessSubscription(id, cloudProxy, deviceSubscription, true);
-            }
-            catch (Exception e)
-            {
-                Events.ErrorAddingSubscription(e, id, deviceSubscription);
-            }
+            return this.subscriptionProcessor.AddSubscription(id, deviceSubscription);
+            //try
+            //{
+            //    Option<ICloudProxy> cloudProxy = await this.connectionManager.GetCloudConnection(id);
+            //    await this.ProcessSubscription(id, cloudProxy, deviceSubscription, true);
+            //}
+            //catch (Exception e)
+            //{
+            //    Events.ErrorAddingSubscription(e, id, deviceSubscription);
+            //}
         }
 
         public async Task RemoveSubscription(string id, DeviceSubscription deviceSubscription)
@@ -150,6 +153,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             {
                 Events.ErrorRemovingSubscription(e, id, deviceSubscription);
             }
+        }
+
+        public Task ProcessSubscriptions(string id, IEnumerable<(DeviceSubscription, bool)> subscriptions)
+        {
+            Preconditions.CheckNonWhiteSpace(id, nameof(id));
+            Preconditions.CheckNotNull(subscriptions, nameof(subscriptions));
+            return this.subscriptionProcessor.ProcessSubscriptions(id, subscriptions);
+            //Option<ICloudProxy> cloudProxy = await this.connectionManager.GetCloudConnection(id);
+            //foreach (KeyValuePair<DeviceSubscription, bool> item in subscriptions)
+            //{
+            //    DeviceSubscription deviceSubscription = item.Key;
+            //    bool addSubscription = item.Value;
+            //    if (addSubscription)
+            //    {
+            //        Events.AddingSubscription(id, deviceSubscription);
+            //        this.connectionManager.AddSubscription(id, deviceSubscription);
+            //    }
+            //    else
+            //    {
+            //        Events.RemovingSubscription(id, deviceSubscription);
+            //        this.connectionManager.RemoveSubscription(id, deviceSubscription);
+            //    }
+
+            //    await this.ProcessSubscription(id, cloudProxy, deviceSubscription, addSubscription);
+            //}
         }
 
         public void Dispose()
