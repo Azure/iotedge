@@ -111,40 +111,47 @@ namespace TemperatureFilter
         /// </summary>
         static async Task<MessageResponse> PrintAndFilterMessages(Message message, object userContext)
         {
-            int counterValue = Interlocked.Increment(ref counter);
 
-            var userContextValues = userContext as Tuple<ModuleClient, ModuleConfig>;
-            if (userContextValues == null)
+            try
             {
-                throw new InvalidOperationException(
-                    "UserContext doesn't contain " +
-                    "expected values");
-            }
+                int counterValue = Interlocked.Increment(ref counter);
 
-            ModuleClient moduleClient = userContextValues.Item1;
-            ModuleConfig moduleModuleConfig = userContextValues.Item2;
-
-            byte[] messageBytes = message.GetBytes();
-            string messageString = Encoding.UTF8.GetString(messageBytes);
-            Console.WriteLine($"Received message: {counterValue}, Body: [{messageString}]");
-
-            // Get message body, containing the Temperature data
-            var messageBody = JsonConvert.DeserializeObject<MessageBody>(messageString);
-
-            if (messageBody != null
-                && messageBody.Machine.Temperature > moduleModuleConfig.TemperatureThreshold)
-            {
-                Console.WriteLine(
-                    $"Temperature {messageBody.Machine.Temperature} " +
-                    $"exceeds threshold {moduleModuleConfig.TemperatureThreshold}");
-                var filteredMessage = new Message(messageBytes);
-                foreach (KeyValuePair<string, string> prop in message.Properties)
+                var userContextValues = userContext as Tuple<ModuleClient, ModuleConfig>;
+                if (userContextValues == null)
                 {
-                    filteredMessage.Properties.Add(prop.Key, prop.Value);
+                    throw new InvalidOperationException(
+                        "UserContext doesn't contain " +
+                        "expected values");
                 }
+                ModuleClient moduleClient = userContextValues.Item1;
+                ModuleConfig moduleModuleConfig = userContextValues.Item2;
 
-                filteredMessage.Properties.Add("MessageType", "Alert");
-                await moduleClient.SendEventAsync("alertOutput", filteredMessage).ConfigureAwait(false);
+                byte[] messageBytes = message.GetBytes();
+                string messageString = Encoding.UTF8.GetString(messageBytes);
+                Console.WriteLine($"Received message: {counterValue}, Body: [{messageString}]");
+
+                // Get message body, containing the Temperature data
+                var messageBody = JsonConvert.DeserializeObject<MessageBody>(messageString);
+
+                if (messageBody != null
+                    && messageBody.Machine.Temperature > moduleModuleConfig.TemperatureThreshold)
+                {
+                    Console.WriteLine(
+                        $"Temperature {messageBody.Machine.Temperature} " +
+                        $"exceeds threshold {moduleModuleConfig.TemperatureThreshold}");
+                    var filteredMessage = new Message(messageBytes);
+                    foreach (KeyValuePair<string, string> prop in message.Properties)
+                    {
+                        filteredMessage.Properties.Add(prop.Key, prop.Value);
+                    }
+
+                    filteredMessage.Properties.Add("MessageType", "Alert");
+                    await moduleClient.SendEventAsync("alertOutput", filteredMessage).ConfigureAwait(false);
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Error in PrintAndFilterMessages - {e}");
             }
 
             return MessageResponse.Completed;
