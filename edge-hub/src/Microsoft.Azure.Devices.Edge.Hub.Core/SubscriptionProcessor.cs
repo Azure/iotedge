@@ -57,12 +57,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 if (addSubscription)
                 {
-                    //                    RoutingEdgeHub.Events.AddingSubscription(id, deviceSubscription);
                     this.connectionManager.AddSubscription(id, deviceSubscription);
                 }
                 else
                 {
-                    //                    RoutingEdgeHub.Events.RemovingSubscription(id, deviceSubscription);
                     this.connectionManager.RemoveSubscription(id, deviceSubscription);
                 }
             }
@@ -73,7 +71,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         internal async Task ProcessSubscription(string id, Option<ICloudProxy> cloudProxy, DeviceSubscription deviceSubscription, bool addSubscription)
         {
-            //RoutingEdgeHub.Events.ProcessingSubscription(id, deviceSubscription);
             switch (deviceSubscription)
             {
                 case DeviceSubscription.C2D:

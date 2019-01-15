@@ -129,55 +129,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         {
             Events.AddingSubscription(id, deviceSubscription);
             return this.subscriptionProcessor.AddSubscription(id, deviceSubscription);
-            //try
-            //{
-            //    Option<ICloudProxy> cloudProxy = await this.connectionManager.GetCloudConnection(id);
-            //    await this.ProcessSubscription(id, cloudProxy, deviceSubscription, true);
-            //}
-            //catch (Exception e)
-            //{
-            //    Events.ErrorAddingSubscription(e, id, deviceSubscription);
-            //}
         }
 
-        public async Task RemoveSubscription(string id, DeviceSubscription deviceSubscription)
+        public Task RemoveSubscription(string id, DeviceSubscription deviceSubscription)
         {
             Events.RemovingSubscription(id, deviceSubscription);
-            this.connectionManager.RemoveSubscription(id, deviceSubscription);
-            try
-            {
-                Option<ICloudProxy> cloudProxy = await this.connectionManager.GetCloudConnection(id);
-                await this.ProcessSubscription(id, cloudProxy, deviceSubscription, false);
-            }
-            catch (Exception e)
-            {
-                Events.ErrorRemovingSubscription(e, id, deviceSubscription);
-            }
+            return this.subscriptionProcessor.RemoveSubscription(id, deviceSubscription);
         }
 
         public Task ProcessSubscriptions(string id, IEnumerable<(DeviceSubscription, bool)> subscriptions)
         {
             Preconditions.CheckNonWhiteSpace(id, nameof(id));
-            Preconditions.CheckNotNull(subscriptions, nameof(subscriptions));
-            return this.subscriptionProcessor.ProcessSubscriptions(id, subscriptions);
-            //Option<ICloudProxy> cloudProxy = await this.connectionManager.GetCloudConnection(id);
-            //foreach (KeyValuePair<DeviceSubscription, bool> item in subscriptions)
-            //{
-            //    DeviceSubscription deviceSubscription = item.Key;
-            //    bool addSubscription = item.Value;
-            //    if (addSubscription)
-            //    {
-            //        Events.AddingSubscription(id, deviceSubscription);
-            //        this.connectionManager.AddSubscription(id, deviceSubscription);
-            //    }
-            //    else
-            //    {
-            //        Events.RemovingSubscription(id, deviceSubscription);
-            //        this.connectionManager.RemoveSubscription(id, deviceSubscription);
-            //    }
-
-            //    await this.ProcessSubscription(id, cloudProxy, deviceSubscription, addSubscription);
-            //}
+            return this.subscriptionProcessor.ProcessSubscriptions(id, Preconditions.CheckNotNull(subscriptions, nameof(subscriptions)));
         }
 
         public void Dispose()
