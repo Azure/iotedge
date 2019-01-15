@@ -22,7 +22,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
     using Microsoft.Azure.Devices.Shared;
-    using Microsoft.Extensions.Logging;
     using IRoutingMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
     using Message = Microsoft.Azure.Devices.Client.Message;
 
@@ -442,9 +441,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     {
                         var invokeMethodHandlerTask = c.Resolve<Task<IInvokeMethodHandler>>();
                         var connectionManagerTask = c.Resolve<Task<IConnectionManager>>();
+                        var deviceConnectivityManager = c.Resolve<IDeviceConnectivityManager>();
                         IConnectionManager connectionManager = await connectionManagerTask;
                         IInvokeMethodHandler invokeMethodHandler = await invokeMethodHandlerTask;
-                        return new SubscriptionProcessor(connectionManager, invokeMethodHandler) as ISubscriptionProcessor;
+                        return new SubscriptionProcessor(connectionManager, invokeMethodHandler, deviceConnectivityManager) as ISubscriptionProcessor;
                     })
                 .As<Task<ISubscriptionProcessor>>()
                 .SingleInstance();
@@ -457,8 +457,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         var routerTask = c.Resolve<Task<Router>>();
                         var twinManagerTask = c.Resolve<Task<ITwinManager>>();
                         var invokeMethodHandlerTask = c.Resolve<Task<IInvokeMethodHandler>>();
-                        var connectionManagerTask = c.Resolve<Task<IConnectionManager>>();
-                        var deviceConnectivityManager = c.Resolve<IDeviceConnectivityManager>();
+                        var connectionManagerTask = c.Resolve<Task<IConnectionManager>>();                        
                         var subscriptionProcessorTask = c.Resolve<Task<ISubscriptionProcessor>>();
                         Router router = await routerTask;
                         ITwinManager twinManager = await twinManagerTask;
@@ -472,7 +471,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             twinManager,
                             this.edgeDeviceId,
                             invokeMethodHandler,
-                            deviceConnectivityManager,
                             subscriptionProcessor);
                         return hub;
                     })
