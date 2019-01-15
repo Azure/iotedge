@@ -33,7 +33,7 @@ jobs:
     displayName: Linux arm32v7
     pool:
       vmImage: 'ubuntu-16.04'
-    env:
+    variables:
       IOTEDGE_HOMEDIR: /tmp
     steps:
       - bash: 'echo "##vso[task.setvariable variable=PATH;]$HOME/.cargo/bin:$PATH"'
