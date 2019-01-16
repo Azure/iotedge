@@ -27,8 +27,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
         {
             this.twinStore = twinStore;
             this.cloudSync = cloudSync;
-            this.syncToCloudTask = this.SyncToCloud();
             this.syncFrequency = syncFrequency.GetOrElse(DefaultSyncFrequency);
+            this.syncToCloudTask = this.SyncToCloud();
         }
 
         public async Task Update(string id, TwinCollection patch)
@@ -111,6 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                     lock (this.syncToCloudSetLock)
                     {
                         clientsToProcess = this.syncToCloudClients.ToList();
+                        this.syncToCloudClients.Clear();
                     }
 
                     foreach (string id in clientsToProcess)
