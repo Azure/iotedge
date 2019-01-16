@@ -65,13 +65,13 @@ namespace TemperatureFilter
 
             Tuple<ModuleClient, ModuleConfig> userContext = moduleclientAndConfig;
 
-            await moduleclientAndConfig.Item1.SetInputMessageHandlerAsync("input1", PrintAndFilterMessages, userContext).ConfigureAwait(false);
+            await moduleclientAndConfig.Item1.SetInputMessageHandlerAsync("input1", PrintAndFilterMessages, userContext);
 
             // Wait until the app unloads or is cancelled
             var cts = new CancellationTokenSource();
             AssemblyLoadContext.Default.Unloading += (ctx) => cts.Cancel();
             Console.CancelKeyPress += (sender, cpe) => cts.Cancel();
-            WhenCancelled(cts.Token).Wait();
+            await WhenCancelled(cts.Token);
             return 0;
         }
 
@@ -92,11 +92,11 @@ namespace TemperatureFilter
 
             ITransportSettings[] settings = GetTransportSettings();
 
-            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings).ConfigureAwait(false);
-            await moduleClient.OpenAsync().ConfigureAwait(false);
+            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
+            await moduleClient.OpenAsync();
             Console.WriteLine("TemperatureFilter - Opened module client connection");
 
-            ModuleConfig moduleConfig = await GetConfiguration(moduleClient).ConfigureAwait(false);
+            ModuleConfig moduleConfig = await GetConfiguration(moduleClient);
             Console.WriteLine($"Using TemperatureThreshold value of {moduleConfig.TemperatureThreshold}");
 
             Console.WriteLine("Successfully initialized module client.");
@@ -111,40 +111,47 @@ namespace TemperatureFilter
         /// </summary>
         static async Task<MessageResponse> PrintAndFilterMessages(Message message, object userContext)
         {
-            int counterValue = Interlocked.Increment(ref counter);
-
-            var userContextValues = userContext as Tuple<ModuleClient, ModuleConfig>;
-            if (userContextValues == null)
+            try
             {
-                throw new InvalidOperationException(
-                    "UserContext doesn't contain " +
-                    "expected values");
-            }
+                int counterValue = Interlocked.Increment(ref counter);
 
-            ModuleClient moduleClient = userContextValues.Item1;
-            ModuleConfig moduleModuleConfig = userContextValues.Item2;
-
-            byte[] messageBytes = message.GetBytes();
-            string messageString = Encoding.UTF8.GetString(messageBytes);
-            Console.WriteLine($"Received message: {counterValue}, Body: [{messageString}]");
-
-            // Get message body, containing the Temperature data
-            var messageBody = JsonConvert.DeserializeObject<MessageBody>(messageString);
-
-            if (messageBody != null
-                && messageBody.Machine.Temperature > moduleModuleConfig.TemperatureThreshold)
-            {
-                Console.WriteLine(
-                    $"Temperature {messageBody.Machine.Temperature} " +
-                    $"exceeds threshold {moduleModuleConfig.TemperatureThreshold}");
-                var filteredMessage = new Message(messageBytes);
-                foreach (KeyValuePair<string, string> prop in message.Properties)
+                var userContextValues = userContext as Tuple<ModuleClient, ModuleConfig>;
+                if (userContextValues == null)
                 {
-                    filteredMessage.Properties.Add(prop.Key, prop.Value);
+                    throw new InvalidOperationException(
+                        "UserContext doesn't contain " +
+                        "expected values");
                 }
 
-                filteredMessage.Properties.Add("MessageType", "Alert");
-                await moduleClient.SendEventAsync("alertOutput", filteredMessage).ConfigureAwait(false);
+                ModuleClient moduleClient = userContextValues.Item1;
+                ModuleConfig moduleModuleConfig = userContextValues.Item2;
+
+                byte[] messageBytes = message.GetBytes();
+                string messageString = Encoding.UTF8.GetString(messageBytes);
+                Console.WriteLine($"Received message: {counterValue}, Body: [{messageString}]");
+
+                // Get message body, containing the Temperature data
+                var messageBody = JsonConvert.DeserializeObject<MessageBody>(messageString);
+
+                if (messageBody != null
+                    && messageBody.Machine.Temperature > moduleModuleConfig.TemperatureThreshold)
+                {
+                    Console.WriteLine(
+                        $"Temperature {messageBody.Machine.Temperature} " +
+                        $"exceeds threshold {moduleModuleConfig.TemperatureThreshold}");
+                    var filteredMessage = new Message(messageBytes);
+                    foreach (KeyValuePair<string, string> prop in message.Properties)
+                    {
+                        filteredMessage.Properties.Add(prop.Key, prop.Value);
+                    }
+
+                    filteredMessage.Properties.Add("MessageType", "Alert");
+                    await moduleClient.SendEventAsync("alertOutput", filteredMessage);
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Error in PrintAndFilterMessages - {e}");
             }
 
             return MessageResponse.Completed;
@@ -156,7 +163,7 @@ namespace TemperatureFilter
         static async Task<ModuleConfig> GetConfiguration(ModuleClient moduleClient)
         {
             // First try to get the config from the Module twin
-            Twin twin = await moduleClient.GetTwinAsync().ConfigureAwait(false);
+            Twin twin = await moduleClient.GetTwinAsync();
             if (twin.Properties.Desired.Contains(TemperatureThresholdKey))
             {
                 int tempThreshold = (int)twin.Properties.Desired[TemperatureThresholdKey];
