@@ -63,6 +63,7 @@ const MODULE_PID: i32 = 42;
 
 /// The HSM lib expects this variable to be set with home directory of the daemon.
 const HOMEDIR_KEY: &str = "IOTEDGE_HOMEDIR";
+const COMMON_NAME: &str = "staycalm";
 
 #[derive(Clone, Copy, Debug, Fail)]
 pub enum Error {
@@ -147,7 +148,7 @@ fn generate_server_cert(
 ) -> CertificateResponse {
     let expiration = Utc::now() + Duration::hours(2);
     let sign_request =
-        ServerCertificateRequest::new("staycalm".to_string(), expiration.to_rfc3339());
+        ServerCertificateRequest::new(COMMON_NAME.to_string(), expiration.to_rfc3339());
     let json = serde_json::to_string(&sign_request).unwrap();
 
     let mut req = Request::builder()
@@ -223,7 +224,7 @@ fn run_echo_server(server_cert: Identity, port: u16) -> impl Future<Item = (), E
 fn run_echo_client(
     service: &mut WorkloadService,
     port: u16,
-    module_id: &str,
+    domain_name: &str,
 ) -> impl Future<Item = (), Error = ()> {
     const MESSAGE: &str = "Don't panic";
 
@@ -241,15 +242,15 @@ fn run_echo_client(
     let tls_connector = tokio_tls::TlsConnector::from(builder.build().unwrap());
 
     let addr = format!("127.0.0.1:{}", port).parse().unwrap();
-    let module_id = module_id.to_string();
+    let domain_name = domain_name.to_string();
     TcpStream::connect(&addr)
         .and_then(move |socket| {
-            // the "module_id" passed below is used for TLS verification; the CN
-            // on the cert is different from "module_id" but the connection should
-            // still work because the module ID is added to the server cert as a
+            // the "domain_name" passed below is used for TLS verification; the CN
+            // on the cert *could be* different from "domain_name" but the connection should
+            // still work because the name passed here is added to the server cert as a
             // DNS SAN entry
             tls_connector
-                .connect(&module_id, socket)
+                .connect(&domain_name, socket)
                 .map_err(|err| panic!("TLS client connect error: {:#?}", err))
         })
         .and_then(|socket| io::write_all(socket, MESSAGE.as_bytes()))
@@ -309,12 +310,18 @@ fn dns_san_server() {
     let port = get_unused_tcp_port();
     println!("Test server listening on port {}", port);
     let server = run_echo_server(identity, port);
-
-    // run a test client
-    let client = run_echo_client(&mut service, port, MODULE_ID);
-
     let mut runtime = tokio::runtime::Runtime::new().unwrap();
     runtime.spawn(server);
+
+    // run a test client that uses the module id for TLS domain name
+    let client = run_echo_client(&mut service, port, MODULE_ID);
+    runtime.block_on(client).unwrap();
+
+    // run a test client that uses the CN for TLS domain name
+    // NOTE: Ideally, this should be a separate test, but there's some global
+    // state in the HSM C library that does not get reset between multiple
+    // tests in the same run and causes the test to fail.
+    let client = run_echo_client(&mut service, port, COMMON_NAME);
     runtime.block_on(client).unwrap();
 
     // cleanup
