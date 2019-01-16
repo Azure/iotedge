@@ -46,6 +46,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             var cloudProxyMock = new Mock<ICloudProxy>();
             cloudProxyMock.Setup(c => c.SendMessageAsync(It.IsAny<IMessage>()))
+                .Callback<IMessage>(
+                    msg =>
+                    {
+                        if (msg.Properties.ContainsKey("Delay"))
+                        {
+                            Task.Delay(TimeSpan.FromSeconds(10)).Wait();
+                        }
+                    })
                 .Returns(Task.CompletedTask);
             cloudProxyMock.SetupGet(p => p.IsActive).Returns(true);
 
@@ -56,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var properties = new Dictionary<string, string>()
             {
                 { "Prop1", "Val1" },
-                { "Prop2", "Val2" },
+                { "Prop2", "Val2" }
             };
 
             var device1SystemProperties = new Dictionary<string, string>
@@ -69,8 +77,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 { SystemProperties.DeviceId, device2Id }
             };
 
+            var cancelProperties = new Dictionary<string, string>()
+            {
+                { "Delay", "true" },
+                { "Prop2", "Val2" }
+            };
+
             var message1 = new RoutingMessage(TelemetryMessageSource.Instance, messageBody, properties, device1SystemProperties);
             var message2 = new RoutingMessage(TelemetryMessageSource.Instance, messageBody, properties, device2SystemProperties);
+            var message3 = new RoutingMessage(TelemetryMessageSource.Instance, messageBody, cancelProperties, device1SystemProperties);
 
             Task<Option<ICloudProxy>> GetCloudProxy(string id)
             {
@@ -103,6 +118,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.NotEmpty(resultBatch.Failed);
             Assert.Empty(resultBatch.InvalidDetailsList);
             Assert.True(resultBatch.SendFailureDetails.HasValue);
+
+            ISinkResult<IRoutingMessage> resultBatchCancelled = await cloudMessageProcessor.ProcessAsync(new[] { message1, message2 }, new CancellationToken(true));
+            Assert.NotNull(resultBatchCancelled);
+            Assert.Empty(resultBatchCancelled.Succeeded);
+            Assert.NotEmpty(resultBatchCancelled.Failed);
+            Assert.Empty(resultBatchCancelled.InvalidDetailsList);
+            Assert.True(resultBatchCancelled.SendFailureDetails.HasValue);
+
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            ISinkResult<IRoutingMessage> resultBatchCancelled2 = await cloudMessageProcessor.ProcessAsync(new[] { message1, message3, message1 }, cts.Token);
+            Assert.NotNull(resultBatchCancelled2);
+            Assert.Equal(2, resultBatchCancelled2.Succeeded.Count);
+            Assert.Equal(1, resultBatchCancelled2.Failed.Count);
+            Assert.Empty(resultBatchCancelled2.InvalidDetailsList);
+            Assert.True(resultBatchCancelled2.SendFailureDetails.HasValue);
         }
     }
 }

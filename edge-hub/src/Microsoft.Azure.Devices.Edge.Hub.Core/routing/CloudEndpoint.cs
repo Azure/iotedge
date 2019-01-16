@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using App.Metrics;
@@ -146,10 +147,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     Option.None<SendFailureDetails>();
 
                 Events.ProcessingMessages(routingMessages);
+                int processed = 0;
                 foreach (IRoutingMessage routingMessage in routingMessages)
                 {
                     if (token.IsCancellationRequested)
                     {
+                        Events.CancelledProcessingMessage(routingMessage);
+                        failed.AddRange(routingMessages.Skip(processed));
+                        sendFailureDetails = Option.Some(new SendFailureDetails(FailureKind.Transient, new EdgeHubConnectionException($"Cancelled sending messages to IotHub for device {this.cloudEndpoint.Id}")));
                         break;
                     }
 
@@ -158,6 +163,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     failed.AddRange(res.Failed);
                     invalid.AddRange(res.InvalidDetailsList);
                     sendFailureDetails = res.SendFailureDetails;
+                    processed++;
                 }
 
                 return new SinkResult<IRoutingMessage>(
@@ -204,7 +210,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 RetryingMessages,
                 InvalidMessage,
                 ProcessingMessages,
-                InvalidMessageNoIdentity
+                InvalidMessageNoIdentity,
+                CancelledProcessing
             }
 
             public static void DeviceIdNotFound(IRoutingMessage routingMessage)
@@ -218,6 +225,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             public static void ProcessingMessages(ICollection<IRoutingMessage> routingMessages)
             {
                 Log.LogDebug((int)EventIds.ProcessingMessages, Invariant($"Sending {routingMessages.Count} message(s) upstream."));
+            }
+
+            public static void CancelledProcessingMessage(IRoutingMessage message)
+            {
+                Log.LogDebug((int)EventIds.CancelledProcessing, $"Cancelled sending message {message.Offset}");
             }
 
             public static void InvalidMessageNoIdentity()
