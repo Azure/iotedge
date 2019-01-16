@@ -551,7 +551,7 @@ mod tests {
                 assert_eq!(CertificateType::Server, *props.certificate_type());
                 let san_entries = props.san_entries().unwrap();
                 assert_eq!(1, san_entries.len());
-                assert_eq!("DNS: beeblebrox", san_entries[0]);
+                assert_eq!("DNS:beeblebrox, DNS:marvin", san_entries[0]);
                 assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
                 Ok(TestCert::default()
                     .with_private_key(PrivateKey::Key(KeyBytes::Pem("Betelgeuse".to_string()))))

@@ -314,15 +314,15 @@ fn dns_san_server() {
     runtime.spawn(server);
 
     // run a test client that uses the module id for TLS domain name
-    let client = run_echo_client(&mut service, port, MODULE_ID);
-    runtime.block_on(client).unwrap();
+    let client1 = run_echo_client(&mut service, port, MODULE_ID);
+    runtime.block_on(client1).unwrap();
 
     // run a test client that uses the CN for TLS domain name
     // NOTE: Ideally, this should be a separate test, but there's some global
     // state in the HSM C library that does not get reset between multiple
     // tests in the same run and causes the test to fail.
-    let client = run_echo_client(&mut service, port, COMMON_NAME);
-    runtime.block_on(client).unwrap();
+    let client2 = run_echo_client(&mut service, port, COMMON_NAME);
+    runtime.block_on(client2).unwrap();
 
     // cleanup
     crypto
