@@ -74,8 +74,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<StoringTwinManager>();
             const int IdStart = HubCoreEventIds.TwinManager;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<StoringTwinManager>();
 
             enum EventIds
             {

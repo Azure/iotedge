@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.twin
+namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
 {
     using System;
     using System.Threading.Tasks;

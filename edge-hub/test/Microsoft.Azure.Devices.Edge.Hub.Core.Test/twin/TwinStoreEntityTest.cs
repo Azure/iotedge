@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.twin
+namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
 {
     using Microsoft.Azure.Devices.Edge.Hub.Core.Twin;
     using Microsoft.Azure.Devices.Edge.Storage;
@@ -46,13 +46,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.twin
             reportedProperties["P1"] = "v1";
             var desiredProperties = new TwinCollection();
             desiredProperties["P2"] = "v2";
-            var twin = new Twin(new TwinProperties {Desired = desiredProperties, Reported = reportedProperties});
+            var twin = new Twin(new TwinProperties { Desired = desiredProperties, Reported = reportedProperties });
             var twinStoreEntity = new TwinStoreEntity(twin);
             string json = JsonConvert.SerializeObject(twinStoreEntity);
             var deserializedObject = JsonConvert.DeserializeObject<TwinStoreEntity>(json);
 
             Assert.False(deserializedObject.ReportedPropertiesPatch.HasValue);
-            Assert.True(deserializedObject.Twin.HasValue);            
+            Assert.True(deserializedObject.Twin.HasValue);
             Assert.Equal("v1", (string)deserializedObject.Twin.OrDefault().Properties.Reported["P1"]);
             Assert.Equal("v2", (string)deserializedObject.Twin.OrDefault().Properties.Desired["P2"]);
         }

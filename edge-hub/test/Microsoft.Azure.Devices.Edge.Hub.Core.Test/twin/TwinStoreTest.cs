@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.twin
+namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
 {
     using System;
     using System.Threading.Tasks;
@@ -46,8 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.twin
 
             await twinEntityStore.Put(
                 "d3",
-                new TwinStoreEntity()
-            );
+                new TwinStoreEntity());
 
             await twinEntityStore.Put(
                 "d4",
@@ -75,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.twin
             // Act
             Option<Twin> t1 = await twinStore.Get("d1");
 
-            //Assert
+            // Assert
             Assert.True(t1.HasValue);
             Assert.Equal(t1.OrDefault().Properties.Desired.ToJson(), "{\"dp1\":\"d1\"}");
             Assert.Equal(t1.OrDefault().Properties.Reported.ToJson(), "{\"rp1\":\"r1\"}");
@@ -83,19 +82,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.twin
             // Act
             Option<Twin> t2 = await twinStore.Get("d2");
 
-            //Assert
+            // Assert
             Assert.False(t2.HasValue);
 
             // Act
             Option<Twin> t3 = await twinStore.Get("d3");
 
-            //Assert
+            // Assert
             Assert.False(t3.HasValue);
 
             // Act
             Option<Twin> t4 = await twinStore.Get("d4");
 
-            //Assert
+            // Assert
             Assert.True(t4.HasValue);
             Assert.Equal(t4.OrDefault().Properties.Desired.ToJson(), "{\"dp4\":\"d4\"}");
             Assert.Equal(t4.OrDefault().Properties.Reported.ToJson(), "{\"rp4\":\"r4\"}");

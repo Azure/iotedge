@@ -16,5 +16,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public Shared.Twin Twin { get; }
 
         public TwinCollection ReportedPropertiesPatch { get; }
-    }    
+    }
 }
