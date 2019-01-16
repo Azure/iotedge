@@ -129,7 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 var failed = new List<IRoutingMessage> { routingMessage };
                 var sendFailureDetails = new SendFailureDetails(FailureKind.Transient, new EdgeHubConnectionException("IoT Hub is not connected"));
 
-                return Task.FromResult((ISinkResult<IRoutingMessage>)new SinkResult<IRoutingMessage>(ImmutableList<IRoutingMessage>.Empty, failed, ImmutableList<InvalidDetails<IRoutingMessage>>.Empty, sendFailureDetails));
+                return Task.FromResult((ISinkResult<IRoutingMessage>)new SinkResult<IRoutingMessage>(ImmutableList<IRoutingMessage>.Empty, failed, sendFailureDetails));
             }
 
             async Task<ISinkResult<IRoutingMessage>> ProcessAsync(IRoutingMessage routingMessage, string identity)
