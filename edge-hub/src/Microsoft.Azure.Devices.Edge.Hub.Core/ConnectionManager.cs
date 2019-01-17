@@ -121,6 +121,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     .Map(d => new ReadOnlyDictionary<DeviceSubscription, bool>(d.Subscriptions) as IReadOnlyDictionary<DeviceSubscription, bool>)
                 : Option.None<IReadOnlyDictionary<DeviceSubscription, bool>>();
 
+        public bool CheckClientSubscription(string id, DeviceSubscription subscription) =>
+            this.GetSubscriptions(id)
+                .Filter(s => s.TryGetValue(subscription, out bool isActive) && isActive)
+                .HasValue;
+
         public async Task<Try<ICloudProxy>> CreateCloudConnectionAsync(IClientCredentials credentials)
         {
             Preconditions.CheckNotNull(credentials, nameof(credentials));

@@ -123,6 +123,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool closeCloudConnectionOnIdleTimeout = this.configuration.GetValue("CloseCloudConnectionOnIdleTimeout", true);
             int cloudOperationTimeoutSecs = this.configuration.GetValue("CloudOperationTimeoutSecs", 20);
             TimeSpan cloudOperationTimeout = TimeSpan.FromSeconds(cloudOperationTimeoutSecs);
+            Option<TimeSpan> minTwinSyncPeriod = this.GetConfigurationValueIfExists("MinTwinSyncPeriodSecs")
+                .Map(s => TimeSpan.FromSeconds(s));
+            Option<TimeSpan> reportedPropertiesSyncFrequency = this.GetConfigurationValueIfExists("ReportedPropertiesSyncFrequencySecs")
+                .Map(s => TimeSpan.FromSeconds(s));
+            bool useV1TwinManager = this.GetConfigurationValueIfExists<string>("TwinManagerVersion")
+                .Map(v => v.Equals("v1", StringComparison.OrdinalIgnoreCase))
+                .GetOrElse(false);
 
             builder.RegisterModule(
                 new RoutingModule(
@@ -141,7 +148,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     maxConnectedClients,
                     cloudConnectionIdleTimeout,
                     closeCloudConnectionOnIdleTimeout,
-                    cloudOperationTimeout));
+                    cloudOperationTimeout,
+                    minTwinSyncPeriod,
+                    reportedPropertiesSyncFrequency,
+                    useV1TwinManager));
         }
 
         void RegisterCommonModule(ContainerBuilder builder, bool optimizeForPerformance, (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward)
@@ -217,6 +227,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         {
             var value = this.configuration.GetValue<T>(key);
             return EqualityComparer<T>.Default.Equals(value, default(T)) ? Option.None<T>() : Option.Some(value);
+        }
+
+        Option<long> GetConfigurationValueIfExists(string key)
+        {
+            long value = this.configuration.GetValue(key, long.MinValue);
+            return value == long.MinValue ? Option.None<long>() : Option.Some(value);
         }
     }
 }
