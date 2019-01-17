@@ -3,6 +3,9 @@ pr:
   branches:
     include:
       - master
+  paths:
+    exclude:
+      - edgelet/*
 jobs:
 
 ################################################################################
