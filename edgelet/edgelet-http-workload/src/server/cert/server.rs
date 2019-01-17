@@ -75,7 +75,7 @@ where
                 #[cfg_attr(feature = "cargo-clippy", allow(cast_sign_loss))]
                 let expiration = match expiration {
                     expiration if expiration < 0 || expiration > max_duration => {
-                        return Err(Error::from(ErrorKind::MalformedRequestBody))
+                        return Err(Error::from(ErrorKind::MalformedRequestBody));
                     }
                     expiration => expiration as u64,
                 };
