@@ -22,3 +22,12 @@ workload = { path = "../workload" }
 
 [dev-dependencies]
 edgelet-test-utils = { path = "../edgelet-test-utils" }
+
+[target.'cfg(not(windows))'.dev-dependencies]
+edgelet-hsm = { path = "../edgelet-hsm" }
+native-tls = "0.2"
+openssl = "0.10"
+tempfile = "3"
+tokio = "0.1"
+tokio-tls = "0.2"
+workload = { path = "../workload" }
