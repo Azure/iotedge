@@ -12,8 +12,8 @@ use openssl::pkey::PKey;
 use openssl::x509::X509;
 use url::Url;
 
-use error::{Error, ErrorKind, Result};
-use kube::{Config as KubeConfig, Lookup};
+use crate::error::{Error, ErrorKind, Result};
+use crate::kube::{Config as KubeConfig, Lookup};
 
 pub trait TokenSource {
     type Error: Fail;
@@ -219,9 +219,9 @@ fn file_or_data_string(path: Option<&str>, data: Option<&str>) -> Result<String>
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempdir::TempDir;
     use std::fs::File;
     use std::io::Write;
+    use tempdir::TempDir;
 
     #[test]
     fn test_get_host() {
@@ -236,7 +236,9 @@ mod tests {
         env::set_var(env_key, "service1.contoso.com");
         let host_url_result = get_host().unwrap();
         assert_eq!(server, host_url_result.host_str().unwrap());
-        saved_env.iter().for_each(|value| env::set_var(env_key, value));
+        saved_env
+            .iter()
+            .for_each(|value| env::set_var(env_key, value));
     }
 
     #[test]
@@ -249,10 +251,10 @@ mod tests {
         let b64content = base64::encode(data_content);
 
         {
-        let mut tmp_file = File::create(file_path.clone()).unwrap();
-        tmp_file.write(file_content).expect("write failed");
+            let mut tmp_file = File::create(file_path.clone()).unwrap();
+            tmp_file.write(file_content).expect("write failed");
         }
-        
+
         let data_from_file = file_or_data_bytes(file_path.to_str(), None).unwrap();
         assert_eq!(data_from_file, file_content);
         let data_from_mem = file_or_data_bytes(None, Some(&b64content)).unwrap();
@@ -272,10 +274,12 @@ mod tests {
         let data_content = "data content";
 
         {
-        let mut tmp_file = File::create(file_path.clone()).unwrap();
-        tmp_file.write(file_content.as_bytes()).expect("write failed");
+            let mut tmp_file = File::create(file_path.clone()).unwrap();
+            tmp_file
+                .write(file_content.as_bytes())
+                .expect("write failed");
         }
-        
+
         let data_from_file = file_or_data_string(file_path.to_str(), None).unwrap();
         assert_eq!(data_from_file, file_content);
         let data_from_mem = file_or_data_string(None, Some(data_content)).unwrap();
@@ -285,6 +289,5 @@ mod tests {
         assert!(file_or_data_string(None, None).is_err());
         assert!(file_or_data_string(invalid_path.to_str(), None).is_err());
     }
-
 
 }

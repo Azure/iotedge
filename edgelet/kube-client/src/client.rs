@@ -16,8 +16,8 @@ use k8s_openapi::v1_10::apimachinery::pkg::apis::meta::v1 as api_meta;
 use k8s_openapi::{http, Response as K8sResponse};
 use log::debug;
 
-use config::{Config, TokenSource};
-use error::{Error, ErrorKind};
+use crate::config::{Config, TokenSource};
+use crate::error::{Error, ErrorKind};
 
 pub struct HttpClient<C, B>(HyperClient<C, B>);
 
@@ -253,7 +253,7 @@ where
 mod tests {
 
     use super::*;
-    use config::{Config, TokenSource};
+    use crate::config::{Config, TokenSource};
     use hyper::service::service_fn;
     use hyper::{Body, Error as HyperError, Request, Response, StatusCode};
     use k8s_openapi::v1_10::api::apps::v1 as apps;
@@ -282,12 +282,10 @@ mod tests {
         const NAMESPACE: &str = "custom-namespace";
         let service1 = service_fn(
             move |req: Request<Body>| -> Result<Response<Body>, HyperError> {
-                {
-                    let p = req.uri().path();
-                    assert!(p.contains(NAMESPACE));
-                    let q = req.uri().query().unwrap();
-                    assert!(q.is_empty());
-                }
+                let p = req.uri().path();
+                assert!(p.contains(NAMESPACE));
+                let q = req.uri().query().unwrap();
+                assert!(q.is_empty());
                 req.into_body()
                     .map_err(|_| ())
                     .fold(BytesMut::new(), |mut buf, chunk| {
@@ -318,14 +316,6 @@ mod tests {
             .expect("Expected future to be OK");
     }
 
-    const DELETE_OPTIONS: &str = r###"
-    {
-        "gracePeriodSeconds": 60,
-        "kind": "DeleteOptions",
-        "propagationPolicy": "Foreground"
-    }
-    "###;
-
     #[test]
     fn delete_deployment_success() {
         const NAMESPACE: &str = "custom-namespace";
@@ -337,6 +327,29 @@ mod tests {
             assert!(q.is_empty());
             Ok(Response::new(Body::from(STATUS_SUCCESS)))
         });
+
+        let mut client = make_test_client(service1);
+
+        let fut = client.delete_deployment(NAMESPACE, NAME, None);
+
+        Runtime::new()
+            .unwrap()
+            .block_on(fut)
+            .expect("Expected future to be OK");
+    }
+
+    #[test]
+    fn delete_deployment_with_options() {
+        const NAMESPACE: &str = "custom-namespace";
+        const NAME: &str = "deployment1";
+        const DELETE_OPTIONS: &str = r###"
+    {
+        "gracePeriodSeconds": 60,
+        "kind": "DeleteOptions",
+        "propagationPolicy": "Foreground"
+    }
+    "###;
+
         let service2 = service_fn(|req: Request<Body>| -> Result<Response<Body>, HyperError> {
             let p = req.uri().path();
             assert!(p.contains(NAMESPACE) && p.contains(NAME));
@@ -348,15 +361,6 @@ mod tests {
             );
             Ok(Response::new(Body::from(DEPLOYMENT_JSON)))
         });
-
-        let mut client = make_test_client(service1);
-
-        let fut = client.delete_deployment(NAMESPACE, NAME, None);
-
-        Runtime::new()
-            .unwrap()
-            .block_on(fut)
-            .expect("Expected future to be OK");
 
         let mut client = make_test_client(service2);
 
