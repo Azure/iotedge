@@ -252,7 +252,7 @@ mod tests {
 
         {
             let mut tmp_file = File::create(file_path.clone()).unwrap();
-            tmp_file.write(file_content).expect("write failed");
+            tmp_file.write_all(file_content).expect("write failed");
         }
 
         let data_from_file = file_or_data_bytes(file_path.to_str(), None).unwrap();
@@ -276,7 +276,7 @@ mod tests {
         {
             let mut tmp_file = File::create(file_path.clone()).unwrap();
             tmp_file
-                .write(file_content.as_bytes())
+                .write_all(file_content.as_bytes())
                 .expect("write failed");
         }
 

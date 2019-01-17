@@ -144,10 +144,10 @@ where
         apps::Deployment::delete_apps_v1_namespaced_deployment(
             name,
             namespace,
-            options.map_or(None, |o| o.grace_period_seconds),
+            options.and_then(|o| o.grace_period_seconds),
             None,
             None,
-            options.map_or(None, |o| o.propagation_policy.as_ref().map(|p| p.as_str())),
+            options.and_then(|o| o.propagation_policy.as_ref().map(|p| p.as_str())),
         )
         .map_err(Error::from)
         .map(|req| {
@@ -424,9 +424,8 @@ mod tests {
 
         let deployment: apps::Deployment = serde_json::from_str(DEPLOYMENT_JSON).unwrap();
         let fut = client.create_deployment(NAMESPACE, &deployment);
-        match Runtime::new().unwrap().block_on(fut) {
-            Ok(_) => panic!("expected an error result"),
-            Err(_) => (),
+        if let Ok(r) = Runtime::new().unwrap().block_on(fut) {
+            panic!("expected an error result {:?}", r);
         }
     }
 
