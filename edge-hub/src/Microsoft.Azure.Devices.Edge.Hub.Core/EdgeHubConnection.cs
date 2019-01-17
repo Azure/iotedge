@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly IIdentity edgeHubIdentity;
         readonly ITwinManager twinManager;
         readonly IMessageConverter<TwinCollection> twinCollectionMessageConverter;
-        readonly IMessageConverter<Twin> twinMessageConverter;
+        readonly IMessageConverter<Shared.Twin> twinMessageConverter;
         readonly VersionInfo versionInfo;
         readonly RouteFactory routeFactory;
         readonly AsyncLock edgeHubConfigLock = new AsyncLock();
@@ -40,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             ITwinManager twinManager,
             RouteFactory routeFactory,
             IMessageConverter<TwinCollection> twinCollectionMessageConverter,
-            IMessageConverter<Twin> twinMessageConverter,
+            IMessageConverter<Shared.Twin> twinMessageConverter,
             VersionInfo versionInfo,
             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache)
         {
@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             IConnectionManager connectionManager,
             RouteFactory routeFactory,
             IMessageConverter<TwinCollection> twinCollectionMessageConverter,
-            IMessageConverter<Twin> twinMessageConverter,
+            IMessageConverter<Shared.Twin> twinMessageConverter,
             VersionInfo versionInfo,
             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache)
         {
@@ -198,7 +198,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             try
             {
                 IMessage message = await this.twinManager.GetTwinAsync(this.edgeHubIdentity.Id);
-                Twin twin = this.twinMessageConverter.FromMessage(message);
+                Shared.Twin twin = this.twinMessageConverter.FromMessage(message);
                 this.lastDesiredProperties = Option.Some(twin.Properties.Desired);
                 try
                 {
