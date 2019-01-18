@@ -293,7 +293,7 @@ namespace SimulatedTemperatureSensor
 
             ModuleClient moduleClient = (ModuleClient)userContext;
             TwinCollection patch = new TwinCollection($"{{ \"SendData\":{sendData.ToString().ToLower()}, \"SendInterval\": {messageDelay.TotalSeconds}}}");
-            await moduleClient.UpdateReportedPropertiesAsync(patch); //Just report back last desired property.
+            await moduleClient.UpdateReportedPropertiesAsync(patch); // Just report back last desired property.
         }
 
         static void CancelProgram(CancellationTokenSource cts)
