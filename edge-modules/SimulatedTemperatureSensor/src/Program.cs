@@ -262,6 +262,7 @@ namespace SimulatedTemperatureSensor
                     await moduleClient.SendEventAsync("temperatureOutput", eventMessage);
                     count++;
                 }
+
                 await Task.Delay(messageDelay, cts.Token);
             }
 
@@ -286,6 +287,7 @@ namespace SimulatedTemperatureSensor
                 {
                     Console.WriteLine("Sending data disabled. Change twin configuration to start sending again.");
                 }
+
                 sendData = desiredSendDataValue;
             }
 
