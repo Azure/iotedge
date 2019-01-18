@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
     using System;
@@ -7,16 +6,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util.Test;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
-    [Integration, Stress]
+    [Integration]
+    [Stress]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
     [TestCaseOrderer("Microsoft.Azure.Devices.Edge.Util.Test.PriorityOrderer", "Microsoft.Azure.Devices.Edge.Util.Test")]
     public class StressTest : IClassFixture<ProtocolHeadFixture>
-    {        
+    {
         [TestPriority(301)]
         [Theory]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
@@ -51,15 +50,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 {
                     await rm.CloseAsync();
                 }
+
                 if (sender != null)
                 {
                     await sender.Disconnect();
                 }
+
                 if (receiver != null)
                 {
                     await receiver.Disconnect();
                 }
             }
+
             // wait for the connection to be closed on the Edge side
             await Task.Delay(TimeSpan.FromSeconds(20));
         }
@@ -102,19 +104,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 {
                     await rm.CloseAsync();
                 }
+
                 if (sender1 != null)
                 {
                     await sender1.Disconnect();
                 }
+
                 if (sender2 != null)
                 {
                     await sender2.Disconnect();
                 }
+
                 if (receiver != null)
                 {
                     await receiver.Disconnect();
                 }
             }
+
             // wait for the connection to be closed on the Edge side
             await Task.Delay(TimeSpan.FromSeconds(20));
         }
@@ -159,16 +165,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 {
                     await rm.CloseAsync();
                 }
+
                 if (senders != null)
                 {
                     await Task.WhenAll(senders.Select(s => s.Disconnect()));
                 }
+
                 if (receivers != null)
                 {
                     await Task.WhenAll(receivers.Select(r => r.Disconnect()));
                 }
+
                 await (rm?.CloseAsync() ?? Task.CompletedTask);
             }
+
             // wait for the connection to be closed on the Edge side
             await Task.Delay(TimeSpan.FromSeconds(20));
         }
@@ -211,16 +221,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 {
                     await rm.CloseAsync();
                 }
+
                 if (senders != null)
                 {
                     await Task.WhenAll(senders.Select(s => s.Disconnect()));
                 }
+
                 if (receivers != null)
                 {
                     await Task.WhenAll(receivers.Select(r => r.Disconnect()));
                 }
+
                 await (rm?.CloseAsync() ?? Task.CompletedTask);
             }
+
             // wait for the connection to be closed on the Edge side
             await Task.Delay(TimeSpan.FromSeconds(20));
         }
@@ -234,6 +248,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 TestModule module = await this.GetModule(rm, hostName, deviceId, moduleId, isReceiver, transportSettings);
                 modules.Add(module);
             }
+
             return modules;
         }
 
@@ -245,7 +260,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             {
                 await module.SetupReceiveMessageHandler();
             }
+
             return module;
-        }         
+        }
     }
 }

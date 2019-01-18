@@ -245,16 +245,9 @@ impl HyperExt for Http {
             }
             #[cfg(unix)]
             FD_SCHEME => {
-                let host = match url.host_str() {
-                    Some(host) => host,
-                    None => {
-                        return Err(ErrorKind::InvalidUrlWithReason(
-                            url.to_string(),
-                            InvalidUrlReason::NoHost,
-                        )
-                        .into())
-                    }
-                };
+                let host = url.host_str().ok_or_else(|| {
+                    ErrorKind::InvalidUrlWithReason(url.to_string(), InvalidUrlReason::NoHost)
+                })?;
 
                 // Try to parse the host as an FD number, then as an FD name
                 let socket = host

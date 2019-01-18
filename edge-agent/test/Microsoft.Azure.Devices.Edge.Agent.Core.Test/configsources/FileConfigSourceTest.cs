@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
 {
     using System;
@@ -15,175 +14,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
     public class FileConfigSourceTest
     {
         const string TestType = "test";
-        static readonly IDictionary<string, EnvVal> EnvVars = new Dictionary<string, EnvVal>();
-        static readonly ConfigurationInfo ConfigurationInfo = new ConfigurationInfo();
-        static readonly TestConfig Config1 = new TestConfig("image1");
-        static readonly IModule ValidModule1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ConfigurationInfo, EnvVars);
-        static readonly IEdgeHubModule EdgeHubModule = new TestHubModule("edgeHub", "test", ModuleStatus.Running, new TestConfig("edge-hub:latest"), RestartPolicy.Always, ConfigurationInfo, EnvVars);
-        static readonly IEdgeAgentModule EdgeAgentModule = new TestAgentModule("edgeAgent", "test", new TestConfig("edge-agent"), ConfigurationInfo, null);
-        static readonly IDictionary<string, IModule> Modules1 = new Dictionary<string, IModule> { ["mod1"] = ValidModule1 };
-        static readonly ModuleSet ValidSet1 = new ModuleSet(new Dictionary<string, IModule>(Modules1) { [EdgeHubModule.Name] = EdgeHubModule, [EdgeAgentModule.Name] = EdgeAgentModule });
-
-        static readonly IModule UpdatedModule1 = new TestModule("mod1", "version1", "test", ModuleStatus.Stopped, Config1, RestartPolicy.OnUnhealthy, ConfigurationInfo, EnvVars);
-        static readonly IModule ValidModule2 = new TestModule("mod2", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ConfigurationInfo, EnvVars);
-        static readonly IDictionary<string, IModule> Modules2 = new Dictionary<string, IModule> { ["mod1"] = UpdatedModule1, ["mod2"] = ValidModule2 };
-        static readonly ModuleSet ValidSet2 = new ModuleSet(new Dictionary<string, IModule>(Modules2) { [EdgeHubModule.Name] = EdgeHubModule, [EdgeAgentModule.Name] = EdgeAgentModule });
-
-        static readonly string InvalidJson1 = "{\"This is a terrible string\"}";
-
-        readonly ISerde<DeploymentConfigInfo> serde;
-        readonly IAgentAppSettings agentAppSettings;
-
-        public FileConfigSourceTest()
-        {
-            this.agentAppSettings = new Mock<IAgentAppSettings>().Object;
-
-            var moduleDeserializerTypes = new Dictionary<string, Type>
-            {
-                [TestType] = typeof(TestModule)
-            };
-
-            var edgeAgentDeserializerTypes = new Dictionary<string, Type>
-            {
-                [TestType] = typeof(TestAgentModule)
-            };
-
-            var edgeHubDeserializerTypes = new Dictionary<string, Type>
-            {
-                [TestType] = typeof(TestHubModule)
-            };
-
-            var runtimeInfoDeserializerTypes = new Dictionary<string, Type>
-            {
-                [TestType] = typeof(TestRuntimeInfo)
-            };
-
-            var deserializerTypesMap = new Dictionary<Type, IDictionary<string, Type>>
-            {
-                [typeof(IModule)] = moduleDeserializerTypes,
-                [typeof(IEdgeAgentModule)] = edgeAgentDeserializerTypes,
-                [typeof(IEdgeHubModule)] = edgeHubDeserializerTypes,
-                [typeof(IRuntimeInfo)] = runtimeInfoDeserializerTypes,
-            };
-            this.serde = new TypeSpecificSerDe<DeploymentConfigInfo>(deserializerTypesMap);
-        }
-        
-        [Fact]
-        [Unit]
-        public async void CreateSuccess()
-        {
-            string testDataFile = "TestData_CreateSuccess.json";
-
-            try
-            {
-                File.WriteAllText(testDataFile, ValidJson1);
-
-                using (FileConfigSource configSource = await FileConfigSource.Create(testDataFile, this.agentAppSettings, this.serde))
-                {
-                    Assert.NotNull(configSource);
-                    DeploymentConfigInfo deploymentConfigInfo = await configSource.GetDeploymentConfigInfoAsync();
-                    Assert.NotNull(deploymentConfigInfo);
-                    Assert.NotNull(deploymentConfigInfo.DeploymentConfig);
-                    ModuleSet moduleSet = deploymentConfigInfo.DeploymentConfig.GetModuleSet();
-                    Diff emptyDiff = ValidSet1.Diff(moduleSet);
-                    Assert.True(emptyDiff.IsEmpty);
-                }
-            }
-            finally
-            {
-                File.Delete(testDataFile);
-            }
-        }
-
-        [Fact]
-        [Unit]
-        public async void ChangeFileAndSeeChange()
-        {
-            string testDataFile = "TestData_ChangeFileAndSeeChange.json";
-
-            try
-            {
-                File.WriteAllText(testDataFile, ValidJson1);
-                Diff validDiff1To2 = ValidSet2.Diff(ValidSet1);
-
-                using (FileConfigSource configSource = await FileConfigSource.Create(testDataFile, this.agentAppSettings, this.serde))
-                {
-                    Assert.NotNull(configSource);
-
-                    DeploymentConfigInfo deploymentConfigInfo = await configSource.GetDeploymentConfigInfoAsync();
-                    Assert.NotNull(deploymentConfigInfo);
-                    ModuleSet initialModuleSet = deploymentConfigInfo.DeploymentConfig.GetModuleSet();
-                    Diff emptyDiff = ValidSet1.Diff(initialModuleSet);
-                    Assert.True(emptyDiff.IsEmpty);
-
-                    // Modify the config file by writing new content.
-                    File.WriteAllText(testDataFile, ValidJson2);
-                    await Task.Delay(TimeSpan.FromSeconds(20));
-
-                    DeploymentConfigInfo updatedAgentConfig = await configSource.GetDeploymentConfigInfoAsync();
-                    Assert.NotNull(updatedAgentConfig);
-                    ModuleSet updatedModuleSet = updatedAgentConfig.DeploymentConfig.GetModuleSet();
-                    Diff newDiff = updatedModuleSet.Diff(initialModuleSet);
-                    Assert.False(newDiff.IsEmpty);
-                    Assert.Equal(newDiff, validDiff1To2);
-                }
-            }
-            finally
-            {
-                File.Delete(testDataFile);
-            }
-            
-        }        
-
-        [Fact]
-        [Unit]
-        public async void ChangeFileToInvalidBackToOk()
-        {
-            string testDataFile = "TestData_ChangeFileAndSeeChange.json";
-
-            try
-            {
-                File.WriteAllText(testDataFile, ValidJson1);
-                Diff validDiff1To2 = ValidSet2.Diff(ValidSet1);
-
-                using (FileConfigSource configSource = await FileConfigSource.Create(testDataFile, this.agentAppSettings, this.serde))
-                {
-                    Assert.NotNull(configSource);
-
-                    DeploymentConfigInfo deploymentConfigInfo = await configSource.GetDeploymentConfigInfoAsync();
-                    Assert.NotNull(deploymentConfigInfo);
-                    ModuleSet initialModuleSet = deploymentConfigInfo.DeploymentConfig.GetModuleSet();
-                    Diff emptyDiff = ValidSet1.Diff(initialModuleSet);
-                    Assert.True(emptyDiff.IsEmpty);
-
-                    // Modify the config file by writing new content.
-                    File.WriteAllText(testDataFile, InvalidJson1);
-                    await Task.Delay(TimeSpan.FromSeconds(10));
-
-                    DeploymentConfigInfo updatedAgentConfig = await configSource.GetDeploymentConfigInfoAsync();
-                    Assert.NotNull(updatedAgentConfig);
-                    ModuleSet updatedModuleSet = updatedAgentConfig.DeploymentConfig.GetModuleSet();
-                    Diff newDiff = updatedModuleSet.Diff(initialModuleSet);
-                    Assert.True(newDiff.IsEmpty);
-
-                    // Modify the config file by writing new content.
-                    File.WriteAllText(testDataFile, ValidJson2);
-                    await Task.Delay(TimeSpan.FromSeconds(10));
-
-                    updatedAgentConfig = await configSource.GetDeploymentConfigInfoAsync();
-                    Assert.NotNull(updatedAgentConfig);
-                    updatedModuleSet = updatedAgentConfig.DeploymentConfig.GetModuleSet();
-                    newDiff = updatedModuleSet.Diff(initialModuleSet);
-                    Assert.False(newDiff.IsEmpty);
-                    Assert.Equal(newDiff, validDiff1To2);
-                }
-            }
-            finally
-            {
-                File.Delete(testDataFile);
-            }
-            
-        }
 
         const string ValidJson1 = @"{
                 ""version"": 0,
@@ -296,6 +126,184 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                   }
                 }
             }";
+
+        static readonly IDictionary<string, EnvVal> EnvVars = new Dictionary<string, EnvVal>();
+
+        static readonly ConfigurationInfo ConfigurationInfo = new ConfigurationInfo();
+
+        static readonly TestConfig Config1 = new TestConfig("image1");
+
+        static readonly IModule ValidModule1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ConfigurationInfo, EnvVars);
+
+        static readonly IEdgeHubModule EdgeHubModule = new TestHubModule("edgeHub", "test", ModuleStatus.Running, new TestConfig("edge-hub:latest"), RestartPolicy.Always, ConfigurationInfo, EnvVars);
+
+        static readonly IEdgeAgentModule EdgeAgentModule = new TestAgentModule("edgeAgent", "test", new TestConfig("edge-agent"), ConfigurationInfo, null);
+
+        static readonly IDictionary<string, IModule> Modules1 = new Dictionary<string, IModule> { ["mod1"] = ValidModule1 };
+
+        static readonly ModuleSet ValidSet1 = new ModuleSet(new Dictionary<string, IModule>(Modules1) { [EdgeHubModule.Name] = EdgeHubModule, [EdgeAgentModule.Name] = EdgeAgentModule });
+
+        static readonly IModule UpdatedModule1 = new TestModule("mod1", "version1", "test", ModuleStatus.Stopped, Config1, RestartPolicy.OnUnhealthy, ConfigurationInfo, EnvVars);
+
+        static readonly IModule ValidModule2 = new TestModule("mod2", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ConfigurationInfo, EnvVars);
+
+        static readonly IDictionary<string, IModule> Modules2 = new Dictionary<string, IModule> { ["mod1"] = UpdatedModule1, ["mod2"] = ValidModule2 };
+
+        static readonly ModuleSet ValidSet2 = new ModuleSet(new Dictionary<string, IModule>(Modules2) { [EdgeHubModule.Name] = EdgeHubModule, [EdgeAgentModule.Name] = EdgeAgentModule });
+
+        static readonly string InvalidJson1 = "{\"This is a terrible string\"}";
+
+        readonly ISerde<DeploymentConfigInfo> serde;
+        readonly IAgentAppSettings agentAppSettings;
+
+        public FileConfigSourceTest()
+        {
+            this.agentAppSettings = new Mock<IAgentAppSettings>().Object;
+
+            var moduleDeserializerTypes = new Dictionary<string, Type>
+            {
+                [TestType] = typeof(TestModule)
+            };
+
+            var edgeAgentDeserializerTypes = new Dictionary<string, Type>
+            {
+                [TestType] = typeof(TestAgentModule)
+            };
+
+            var edgeHubDeserializerTypes = new Dictionary<string, Type>
+            {
+                [TestType] = typeof(TestHubModule)
+            };
+
+            var runtimeInfoDeserializerTypes = new Dictionary<string, Type>
+            {
+                [TestType] = typeof(TestRuntimeInfo)
+            };
+
+            var deserializerTypesMap = new Dictionary<Type, IDictionary<string, Type>>
+            {
+                [typeof(IModule)] = moduleDeserializerTypes,
+                [typeof(IEdgeAgentModule)] = edgeAgentDeserializerTypes,
+                [typeof(IEdgeHubModule)] = edgeHubDeserializerTypes,
+                [typeof(IRuntimeInfo)] = runtimeInfoDeserializerTypes,
+            };
+            this.serde = new TypeSpecificSerDe<DeploymentConfigInfo>(deserializerTypesMap);
+        }
+
+        [Fact]
+        [Unit]
+        public async void CreateSuccess()
+        {
+            string testDataFile = "TestData_CreateSuccess.json";
+
+            try
+            {
+                File.WriteAllText(testDataFile, ValidJson1);
+
+                using (FileConfigSource configSource = await FileConfigSource.Create(testDataFile, this.agentAppSettings, this.serde))
+                {
+                    Assert.NotNull(configSource);
+                    DeploymentConfigInfo deploymentConfigInfo = await configSource.GetDeploymentConfigInfoAsync();
+                    Assert.NotNull(deploymentConfigInfo);
+                    Assert.NotNull(deploymentConfigInfo.DeploymentConfig);
+                    ModuleSet moduleSet = deploymentConfigInfo.DeploymentConfig.GetModuleSet();
+                    Diff emptyDiff = ValidSet1.Diff(moduleSet);
+                    Assert.True(emptyDiff.IsEmpty);
+                }
+            }
+            finally
+            {
+                File.Delete(testDataFile);
+            }
+        }
+
+        [Fact]
+        [Unit]
+        public async void ChangeFileAndSeeChange()
+        {
+            string testDataFile = "TestData_ChangeFileAndSeeChange.json";
+
+            try
+            {
+                File.WriteAllText(testDataFile, ValidJson1);
+                Diff validDiff1To2 = ValidSet2.Diff(ValidSet1);
+
+                using (FileConfigSource configSource = await FileConfigSource.Create(testDataFile, this.agentAppSettings, this.serde))
+                {
+                    Assert.NotNull(configSource);
+
+                    DeploymentConfigInfo deploymentConfigInfo = await configSource.GetDeploymentConfigInfoAsync();
+                    Assert.NotNull(deploymentConfigInfo);
+                    ModuleSet initialModuleSet = deploymentConfigInfo.DeploymentConfig.GetModuleSet();
+                    Diff emptyDiff = ValidSet1.Diff(initialModuleSet);
+                    Assert.True(emptyDiff.IsEmpty);
+
+                    // Modify the config file by writing new content.
+                    File.WriteAllText(testDataFile, ValidJson2);
+                    await Task.Delay(TimeSpan.FromSeconds(20));
+
+                    DeploymentConfigInfo updatedAgentConfig = await configSource.GetDeploymentConfigInfoAsync();
+                    Assert.NotNull(updatedAgentConfig);
+                    ModuleSet updatedModuleSet = updatedAgentConfig.DeploymentConfig.GetModuleSet();
+                    Diff newDiff = updatedModuleSet.Diff(initialModuleSet);
+                    Assert.False(newDiff.IsEmpty);
+                    Assert.Equal(newDiff, validDiff1To2);
+                }
+            }
+            finally
+            {
+                File.Delete(testDataFile);
+            }
+        }
+
+        [Fact]
+        [Unit]
+        public async void ChangeFileToInvalidBackToOk()
+        {
+            string testDataFile = "TestData_ChangeFileAndSeeChange.json";
+
+            try
+            {
+                File.WriteAllText(testDataFile, ValidJson1);
+                Diff validDiff1To2 = ValidSet2.Diff(ValidSet1);
+
+                using (FileConfigSource configSource = await FileConfigSource.Create(testDataFile, this.agentAppSettings, this.serde))
+                {
+                    Assert.NotNull(configSource);
+
+                    DeploymentConfigInfo deploymentConfigInfo = await configSource.GetDeploymentConfigInfoAsync();
+                    Assert.NotNull(deploymentConfigInfo);
+                    ModuleSet initialModuleSet = deploymentConfigInfo.DeploymentConfig.GetModuleSet();
+                    Diff emptyDiff = ValidSet1.Diff(initialModuleSet);
+                    Assert.True(emptyDiff.IsEmpty);
+
+                    // Modify the config file by writing new content.
+                    File.WriteAllText(testDataFile, InvalidJson1);
+                    await Task.Delay(TimeSpan.FromSeconds(10));
+
+                    DeploymentConfigInfo updatedAgentConfig = await configSource.GetDeploymentConfigInfoAsync();
+                    Assert.NotNull(updatedAgentConfig);
+                    ModuleSet updatedModuleSet = updatedAgentConfig.DeploymentConfig.GetModuleSet();
+                    Diff newDiff = updatedModuleSet.Diff(initialModuleSet);
+                    Assert.True(newDiff.IsEmpty);
+
+                    // Modify the config file by writing new content.
+                    File.WriteAllText(testDataFile, ValidJson2);
+                    await Task.Delay(TimeSpan.FromSeconds(10));
+
+                    updatedAgentConfig = await configSource.GetDeploymentConfigInfoAsync();
+                    Assert.NotNull(updatedAgentConfig);
+                    updatedModuleSet = updatedAgentConfig.DeploymentConfig.GetModuleSet();
+                    newDiff = updatedModuleSet.Diff(initialModuleSet);
+                    Assert.False(newDiff.IsEmpty);
+                    Assert.Equal(newDiff, validDiff1To2);
+                }
+            }
+            finally
+            {
+                File.Delete(testDataFile);
+            }
+        }
     }
 
     class TestRuntimeInfo : IRuntimeInfo
@@ -307,36 +315,51 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
 
         public string Type { get; }
 
+        public static bool operator ==(TestRuntimeInfo left, TestRuntimeInfo right) => Equals(left, right);
+
+        public static bool operator !=(TestRuntimeInfo left, TestRuntimeInfo right) => !Equals(left, right);
+
         public bool Equals(IRuntimeInfo other) => other is TestRuntimeInfo otherRuntimeInfo
-            && this.Equals(otherRuntimeInfo);
+                                                  && this.Equals(otherRuntimeInfo);
 
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(null, obj))
+            {
                 return false;
+            }
+
             if (ReferenceEquals(this, obj))
+            {
                 return true;
+            }
+
             if (obj.GetType() != this.GetType())
+            {
                 return false;
-            return Equals((TestRuntimeInfo)obj);
+            }
+
+            return this.Equals((TestRuntimeInfo)obj);
         }
 
         public override int GetHashCode()
         {
-            return (this.Type != null ? this.Type.GetHashCode() : 0);
+            return this.Type != null ? this.Type.GetHashCode() : 0;
         }
 
         public bool Equals(TestRuntimeInfo other)
         {
             if (ReferenceEquals(null, other))
+            {
                 return false;
+            }
+
             if (ReferenceEquals(this, other))
+            {
                 return true;
+            }
+
             return string.Equals(this.Type, other.Type);
         }
-
-        public static bool operator ==(TestRuntimeInfo left, TestRuntimeInfo right) => Equals(left, right);
-
-        public static bool operator !=(TestRuntimeInfo left, TestRuntimeInfo right) => !Equals(left, right);
     }
 }

@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.ObjectModel;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -13,13 +13,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
     using Xunit;
 
     [Unit]
-    public class ModuleManagementHttpClientTest : IClassFixture<EdleletFixture>
+    public class ModuleManagementHttpClientTest : IClassFixture<EdgeletFixture>
     {
         readonly Uri serverUrl;
+        EdgeletFixture edgeletFixture;
 
-        public ModuleManagementHttpClientTest(EdleletFixture edleletFixture)
+        public ModuleManagementHttpClientTest(EdgeletFixture edgeletFixture)
         {
-            this.serverUrl = new Uri(edleletFixture.ServiceUrl);
+            this.serverUrl = new Uri(edgeletFixture.ServiceUrl);
+            this.edgeletFixture = edgeletFixture;
         }
 
         [Fact]
@@ -46,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
 
             // Act
             Identity identity4 = await client.UpdateIdentityAsync("Foo", identity1.GenerationId, identity1.ManagedBy);
-            Identity identity5 = await client.UpdateIdentityAsync("Bar", identity2.GenerationId, identity2.ManagedBy);            
+            Identity identity5 = await client.UpdateIdentityAsync("Bar", identity2.GenerationId, identity2.ManagedBy);
             Identity identity6 = await client.UpdateIdentityAsync("External", identity3.GenerationId, identity3.ManagedBy);
 
             // Assert
@@ -74,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             Assert.Equal("Bar", identities[0].ModuleId);
             Assert.Equal("External", identities[1].ModuleId);
             Assert.Equal("Foo", identities[2].ModuleId);
-            Assert.Equal(Constants.ModuleIdentityEdgeManagedByValue, identities[0].ManagedBy);            
+            Assert.Equal(Constants.ModuleIdentityEdgeManagedByValue, identities[0].ManagedBy);
             Assert.Equal("Someone", identities[1].ManagedBy);
             Assert.Equal(Constants.ModuleIdentityEdgeManagedByValue, identities[2].ManagedBy);
 
@@ -102,7 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
                 Type = "Docker",
                 Config = new Config
                 {
-                    Env = new System.Collections.ObjectModel.ObservableCollection<EnvVar> { new EnvVar { Key = "E1", Value = "P1" } },
+                    Env = new ObservableCollection<EnvVar> { new EnvVar { Key = "E1", Value = "P1" } },
                     Settings = "{ \"image\": \"testimage\" }"
                 }
             };

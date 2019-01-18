@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
     using System;
@@ -7,8 +6,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
     public interface IConfigSource : IDisposable
     {
-        Task<DeploymentConfigInfo> GetDeploymentConfigInfoAsync();
-
         IAgentAppSettings AppSettings { get; }
+
+        Task<DeploymentConfigInfo> GetDeploymentConfigInfoAsync();
     }
 }

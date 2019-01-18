@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
 {
     using System;
@@ -21,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
         [Fact]
         public void RocksDbOptionsProviderCreatesDbOptions()
         {
-            //arrange
+            // arrange
             var env32 = new Mock<ISystemEnvironment>();
             env32.SetupGet(s => s.Is32BitProcess)
                             .Returns(() => true);
@@ -33,11 +32,11 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
             var provider32 = new RocksDbOptionsProvider(env32.Object, true);
             var provider64 = new RocksDbOptionsProvider(env64.Object, true);
 
-            //act
+            // act
             DbOptions newOptions32 = provider32.GetDbOptions();
             DbOptions newOptions64 = provider64.GetDbOptions();
 
-            //assert
+            // assert
             Assert.NotNull(newOptions32);
             Assert.NotNull(newOptions64);
         }
@@ -56,11 +55,11 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
             var provider32 = new RocksDbOptionsProvider(env32.Object, true);
             var provider64 = new RocksDbOptionsProvider(env64.Object, true);
 
-            //act
+            // act
             ColumnFamilyOptions newOptions32 = provider32.GetColumnFamilyOptions();
             ColumnFamilyOptions newOptions64 = provider64.GetColumnFamilyOptions();
 
-            //assert
+            // assert
             Assert.NotNull(newOptions32);
             Assert.NotNull(newOptions64);
         }

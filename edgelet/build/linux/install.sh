@@ -26,7 +26,7 @@ function usage()
     echo "options"
     echo " -h,  --help                   Print this help and exit."
     echo " -t,  --toolchain              Toolchain (default: stable)"
-    echo " -p,  --arm-package            Add additional dependencies for armhf packaging"
+    echo " -p,  --package-arm            Add additional dependencies for armhf packaging"
     exit 1;
 }
 

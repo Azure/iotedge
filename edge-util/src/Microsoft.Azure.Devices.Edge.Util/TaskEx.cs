@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Util
 {
     using System;
@@ -177,31 +176,6 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
         }
 
-        static async Task<T> ExecuteUntilCancelled<T>(this Task<T> task, CancellationToken cancellationToken)
-        {            
-            var tcs = new TaskCompletionSource<T>();
-            cancellationToken.Register(
-                () =>
-                {
-                    tcs.SetException(new TaskCanceledException(task));
-                });
-            Task<T> completedTask = await Task.WhenAny(task, tcs.Task);
-            return await completedTask;
-        }
-
-        static async Task ExecuteUntilCancelled(this Task task, CancellationToken cancellationToken)
-        {
-            var tcs = new TaskCompletionSource<int>();
-            cancellationToken.Register(
-                () =>
-                {
-                    tcs.TrySetCanceled();
-                });
-            Task completedTask = await Task.WhenAny(task, tcs.Task);
-            //// Await here to bubble up any exceptions
-            await completedTask;
-        }
-
         public static Task<T> ExecuteUntilCancelled<T>(this Func<T> operation, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(operation, nameof(operation));
@@ -215,7 +189,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             Task task = Task.Run(operation, cancellationToken);
             return task.ExecuteUntilCancelled(cancellationToken);
         }
-        
+
         public static IAsyncResult ToAsyncResult(this Task task, AsyncCallback callback, object state)
         {
             if (task.AsyncState == state)
@@ -273,6 +247,25 @@ namespace Microsoft.Azure.Devices.Edge.Util
             {
                 throw ae.GetBaseException();
             }
+        }
+
+        static async Task<T> ExecuteUntilCancelled<T>(this Task<T> task, CancellationToken cancellationToken)
+        {
+            var tcs = new TaskCompletionSource<T>();
+            cancellationToken.Register(
+                () => { tcs.SetException(new TaskCanceledException(task)); });
+            Task<T> completedTask = await Task.WhenAny(task, tcs.Task);
+            return await completedTask;
+        }
+
+        static async Task ExecuteUntilCancelled(this Task task, CancellationToken cancellationToken)
+        {
+            var tcs = new TaskCompletionSource<int>();
+            cancellationToken.Register(
+                () => { tcs.TrySetCanceled(); });
+            Task completedTask = await Task.WhenAny(task, tcs.Task);
+            //// Await here to bubble up any exceptions
+            await completedTask;
         }
     }
 }

@@ -42,6 +42,6 @@ rustup target add aarch64-unknown-linux-gnu
 rustup component add rust-src
 
 mkdir -p $BUILD_DIR
-COMMAND="cd /project/edgelet && make deb CARGOFLAGS=\"--target aarch64-unknown-linux-gnu\" TARGET=target/aarch64-unknown-linux-gnu/release DPKGFLAGS=\"-b -us -uc -i --host-type aarch64-linux-gnu --target-type aarch64-linux-gnu\""
+COMMAND="cd /project/edgelet && make deb VERSION=${VERSION} CARGOFLAGS=\"--target aarch64-unknown-linux-gnu\" TARGET=target/aarch64-unknown-linux-gnu/release DPKGFLAGS=\"-b -us -uc -i --host-type aarch64-linux-gnu --target-type aarch64-linux-gnu\""
 
 run_command "$COMMAND"

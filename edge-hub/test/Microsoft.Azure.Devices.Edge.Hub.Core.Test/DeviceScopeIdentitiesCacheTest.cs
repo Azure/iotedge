@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 {
     using System;
@@ -49,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         [Fact]
         public async Task RefreshCacheTest()
         {
-            // Arrange            
+            // Arrange
             var store = new EntityStore<string, string>(new InMemoryDbStore(), "cache");
             var serviceAuthentication = new ServiceAuthentication(ServiceAuthenticationType.None);
             Func<ServiceIdentity> si1 = () => new ServiceIdentity("d1", "1234", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
@@ -139,7 +138,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         [Fact]
         public async Task RefreshCacheWithRefreshRequestTest()
         {
-            // Arrange            
+            // Arrange
             var store = new EntityStore<string, string>(new InMemoryDbStore(), "cache");
             var serviceAuthentication = new ServiceAuthentication(ServiceAuthenticationType.None);
             Func<ServiceIdentity> si1 = () => new ServiceIdentity("d1", "1234", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
@@ -280,7 +279,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         [Fact]
         public async Task RefreshServiceIdentityTest_Device()
         {
-            // Arrange            
+            // Arrange
             var store = new EntityStore<string, string>(new InMemoryDbStore(), "cache");
             var serviceAuthenticationNone = new ServiceAuthentication(ServiceAuthenticationType.None);
             var serviceAuthenticationSas = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
@@ -343,7 +342,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         [Fact]
         public async Task RefreshServiceIdentityTest_List()
         {
-            // Arrange            
+            // Arrange
             var store = new EntityStore<string, string>(new InMemoryDbStore(), "cache");
             var serviceAuthenticationNone = new ServiceAuthentication(ServiceAuthenticationType.None);
             var serviceAuthenticationSas = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
@@ -369,6 +368,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(iterator1.Object);
             serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d1"))).ReturnsAsync(Option.Some(si1_updated));
             serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d2"))).ReturnsAsync(Option.None<ServiceIdentity>());
+            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d3"))).ReturnsAsync(Option.None<ServiceIdentity>());
 
             var updatedIdentities = new List<ServiceIdentity>();
             var removedIdentities = new List<string>();
@@ -382,20 +382,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             await Task.Delay(TimeSpan.FromSeconds(3));
             Option<ServiceIdentity> receivedServiceIdentity1 = await deviceScopeIdentitiesCache.GetServiceIdentity("d1");
             Option<ServiceIdentity> receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2");
+            Option<ServiceIdentity> receivedServiceIdentity3 = await deviceScopeIdentitiesCache.GetServiceIdentity("d3");
 
             // Assert
             Assert.True(si1_initial.Equals(receivedServiceIdentity1.OrDefault()));
             Assert.True(si2.Equals(receivedServiceIdentity2.OrDefault()));
+            Assert.False(receivedServiceIdentity3.HasValue);
 
             // Update the identities
-            await deviceScopeIdentitiesCache.RefreshServiceIdentities(new[] { "d1", "d2" });
+            await deviceScopeIdentitiesCache.RefreshServiceIdentities(new[] { "d1", "d2", "d3" });
 
             receivedServiceIdentity1 = await deviceScopeIdentitiesCache.GetServiceIdentity("d1");
             receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2");
+            receivedServiceIdentity3 = await deviceScopeIdentitiesCache.GetServiceIdentity("d3");
 
             // Assert
             Assert.True(si1_updated.Equals(receivedServiceIdentity1.OrDefault()));
             Assert.False(receivedServiceIdentity2.HasValue);
+            Assert.False(receivedServiceIdentity3.HasValue);
             Assert.Equal(1, removedIdentities.Count);
             Assert.Equal("d2", removedIdentities[0]);
             Assert.Equal(1, updatedIdentities.Count);
@@ -405,7 +409,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         [Fact]
         public async Task RefreshServiceIdentityTest_Module()
         {
-            // Arrange            
+            // Arrange
             var store = new EntityStore<string, string>(new InMemoryDbStore(), "cache");
             var serviceAuthenticationNone = new ServiceAuthentication(ServiceAuthenticationType.None);
             var serviceAuthenticationSas = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
@@ -468,7 +472,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         [Fact]
         public async Task GetServiceIdentityTest_Device()
         {
-            // Arrange            
+            // Arrange
             var store = new EntityStore<string, string>(new InMemoryDbStore(), "cache");
             var serviceAuthenticationNone = new ServiceAuthentication(ServiceAuthenticationType.None);
             var serviceAuthenticationSas = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
@@ -533,7 +537,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         [Fact]
         public async Task GetServiceIdentityTest_Module()
         {
-            // Arrange            
+            // Arrange
             var store = new EntityStore<string, string>(new InMemoryDbStore(), "cache");
             var serviceAuthenticationNone = new ServiceAuthentication(ServiceAuthenticationType.None);
             var serviceAuthenticationSas = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));

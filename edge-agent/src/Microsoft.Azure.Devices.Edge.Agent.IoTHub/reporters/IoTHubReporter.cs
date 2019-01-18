@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
 {
     using System;
@@ -22,15 +21,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
 
         readonly IEdgeAgentConnection edgeAgentConnection;
         readonly AsyncLock sync;
-        Option<AgentState> reportedState;
         readonly ISerde<AgentState> agentStateSerde;
         readonly VersionInfo versionInfo;
+        Option<AgentState> reportedState;
 
         public IoTHubReporter(
             IEdgeAgentConnection edgeAgentConnection,
             ISerde<AgentState> agentStateSerde,
-            VersionInfo versionInfo
-        )
+            VersionInfo versionInfo)
         {
             this.edgeAgentConnection = Preconditions.CheckNotNull(edgeAgentConnection, nameof(edgeAgentConnection));
             this.agentStateSerde = Preconditions.CheckNotNull(agentStateSerde, nameof(agentStateSerde));
@@ -38,6 +36,88 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
 
             this.sync = new AsyncLock();
             this.reportedState = Option.None<AgentState>();
+        }
+
+        public async Task ReportAsync(CancellationToken token, ModuleSet moduleSet, IRuntimeInfo runtimeInfo, long version, Option<DeploymentStatus> updatedStatus)
+        {
+            Option<AgentState> agentState = Option.None<AgentState>();
+            using (await this.sync.LockAsync(token))
+            {
+                try
+                {
+                    agentState = await this.GetReportedStateAsync();
+                    // if there is no reported JSON to compare against, then we don't do anything
+                    // because this typically means that we never connected to IoT Hub before and
+                    // we have no connection yet
+                    await agentState.ForEachAsync(
+                        async rs =>
+                        {
+                            AgentState currentState = this.BuildCurrentState(moduleSet, runtimeInfo, version > 0 ? version : rs.LastDesiredVersion, updatedStatus.GetOrElse(rs.LastDesiredStatus));
+                            // diff, prepare patch and report
+                            await this.DiffAndReportAsync(currentState, rs);
+                        });
+                }
+                catch (Exception ex) when (!ex.IsFatal())
+                {
+                    Events.BuildStateFailed(ex);
+
+                    // something failed during the patch generation process; we do best effort
+                    // error reporting by sending a minimal patch with just the error information
+                    JObject patch = JObject.FromObject(
+                        new
+                        {
+                            lastDesiredVersion = agentState.Map(rs => rs.LastDesiredVersion).GetOrElse(0),
+                            lastDesiredStatus = new DeploymentStatus(DeploymentStatusCode.Failed, ex.Message)
+                        });
+
+                    try
+                    {
+                        await this.edgeAgentConnection.UpdateReportedPropertiesAsync(new TwinCollection(patch.ToString()));
+                    }
+                    catch (Exception ex2) when (!ex2.IsFatal())
+                    {
+                        Events.UpdateErrorInfoFailed(ex2);
+                    }
+                }
+            }
+        }
+
+        public async Task ReportShutdown(DeploymentStatus status, CancellationToken token)
+        {
+            using (await this.sync.LockAsync(token))
+            {
+                Preconditions.CheckNotNull(status, nameof(status));
+                Option<AgentState> agentState = await this.GetReportedStateAsync();
+                await agentState.ForEachAsync(state => this.ReportShutdownInternal(state, status));
+            }
+        }
+
+        internal async Task DiffAndReportAsync(AgentState currentState, AgentState agentState)
+        {
+            try
+            {
+                JToken currentJson = JToken.FromObject(currentState);
+                JToken reportedJson = JToken.FromObject(agentState);
+                JObject patch = JsonEx.Diff(reportedJson, currentJson);
+
+                if (patch.HasValues)
+                {
+                    // send reported props
+                    await this.edgeAgentConnection.UpdateReportedPropertiesAsync(new TwinCollection(patch.ToString()));
+
+                    // update our cached copy of reported properties
+                    this.SetReported(currentState);
+
+                    Events.UpdatedReportedProperties();
+                }
+            }
+            catch (Exception e)
+            {
+                Events.UpdateReportedPropertiesFailed(e);
+
+                // Swallow the exception as the device could be offline. The reported properties will get updated
+                // during the next reconcile when we have connectivity.
+            }
         }
 
         async Task<Option<AgentState>> GetReportedStateAsync()
@@ -58,7 +138,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
                 await deletionPatch.ForEachAsync(patch => this.edgeAgentConnection.UpdateReportedPropertiesAsync(patch));
                 return Option.Some(AgentState.Empty);
             }
-
         }
 
         Option<TwinCollection> MakeDeletionPatch(Option<TwinCollection> reportedProperties)
@@ -103,62 +182,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
                 userModules = currentModules.RemoveRange(new[] { Constants.EdgeAgentModuleName, Constants.EdgeHubModuleName }).ToImmutableDictionary();
             }
 
-            var currentState = new AgentState(version, status, runtimeInfo, new SystemModules(edgeAgentModule, edgeHubModule),
-                userModules, CurrentReportedPropertiesSchemaVersion, this.versionInfo);
+            var currentState = new AgentState(
+                version,
+                status,
+                runtimeInfo,
+                new SystemModules(edgeAgentModule, edgeHubModule),
+                userModules,
+                CurrentReportedPropertiesSchemaVersion,
+                this.versionInfo);
             return currentState;
-        }
-
-        public async Task ReportAsync(CancellationToken token, ModuleSet moduleSet, IRuntimeInfo runtimeInfo, long version, Option<DeploymentStatus> updatedStatus)
-        {
-            Option<AgentState> agentState = Option.None<AgentState>();
-            using (await this.sync.LockAsync(token))
-            {
-                try
-                {
-                    agentState = await this.GetReportedStateAsync();
-                    // if there is no reported JSON to compare against, then we don't do anything
-                    // because this typically means that we never connected to IoT Hub before and
-                    // we have no connection yet
-                    await agentState.ForEachAsync(async rs =>
-                    {
-                        AgentState currentState = this.BuildCurrentState(moduleSet, runtimeInfo, version > 0 ? version : rs.LastDesiredVersion, updatedStatus.GetOrElse(rs.LastDesiredStatus));
-                        // diff, prepare patch and report
-                        await this.DiffAndReportAsync(currentState, rs);
-                    });
-
-                }
-                catch (Exception ex) when (!ex.IsFatal())
-                {
-                    Events.BuildStateFailed(ex);
-
-                    // something failed during the patch generation process; we do best effort
-                    // error reporting by sending a minimal patch with just the error information
-                    JObject patch = JObject.FromObject(new
-                    {
-                        lastDesiredVersion = agentState.Map(rs => rs.LastDesiredVersion).GetOrElse(0),
-                        lastDesiredStatus = new DeploymentStatus(DeploymentStatusCode.Failed, ex.Message)
-                    });
-
-                    try
-                    {
-                        await this.edgeAgentConnection.UpdateReportedPropertiesAsync(new TwinCollection(patch.ToString()));
-                    }
-                    catch (Exception ex2) when (!ex2.IsFatal())
-                    {
-                        Events.UpdateErrorInfoFailed(ex2);
-                    }
-                }
-            }
-        }
-
-        public async Task ReportShutdown(DeploymentStatus status, CancellationToken token)
-        {
-            using (await this.sync.LockAsync(token))
-            {
-                Preconditions.CheckNotNull(status, nameof(status));
-                Option<AgentState> agentState = await this.GetReportedStateAsync();
-                await agentState.ForEachAsync(state => this.ReportShutdownInternal(state, status));
-            }
         }
 
         Task ReportShutdownInternal(AgentState agentState, DeploymentStatus status)
@@ -179,56 +211,32 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
                 .Where(m => m.Key != Constants.EdgeAgentModuleName)
                 .Where(m => m.Key != Constants.EdgeHubModuleName)
                 .Where(m => m.Value is IRuntimeModule)
-                .Select(pair =>
-                {
-                    IModule updatedModule = (pair.Value as IRuntimeModule)?.WithRuntimeStatus(ModuleStatus.Unknown) ?? pair.Value;
-                    return new KeyValuePair<string, IModule>(pair.Key, updatedModule);
-                })
+                .Select(
+                    pair =>
+                    {
+                        IModule updatedModule = (pair.Value as IRuntimeModule)?.WithRuntimeStatus(ModuleStatus.Unknown) ?? pair.Value;
+                        return new KeyValuePair<string, IModule>(pair.Key, updatedModule);
+                    })
                 .ToDictionary(x => x.Key, x => x.Value);
 
             var currentState =
                 new AgentState(
-                    agentState.LastDesiredVersion, status, agentState.RuntimeInfo,
+                    agentState.LastDesiredVersion,
+                    status,
+                    agentState.RuntimeInfo,
                     new SystemModules(edgeAgentModule, edgeHubModule),
                     updateUserModules.ToImmutableDictionary(),
-                    agentState.SchemaVersion, this.versionInfo);
+                    agentState.SchemaVersion,
+                    this.versionInfo);
 
             return this.DiffAndReportAsync(currentState, agentState);
-        }
-
-        internal async Task DiffAndReportAsync(AgentState currentState, AgentState agentState)
-        {
-            try
-            {
-                JToken currentJson = JToken.FromObject(currentState);
-                JToken reportedJson = JToken.FromObject(agentState);
-                JObject patch = JsonEx.Diff(reportedJson, currentJson);
-
-                if (patch.HasValues)
-                {
-                    // send reported props
-                    await this.edgeAgentConnection.UpdateReportedPropertiesAsync(new TwinCollection(patch.ToString()));
-
-                    // update our cached copy of reported properties
-                    this.SetReported(currentState);
-
-                    Events.UpdatedReportedProperties();
-                }
-            }
-            catch (Exception e)
-            {
-                Events.UpdateReportedPropertiesFailed(e);
-
-                // Swallow the exception as the device could be offline. The reported properties will get updated
-                // during the next reconcile when we have connectivity.
-            }
         }
     }
 
     static class Events
     {
-        static readonly ILogger Log = Util.Logger.Factory.CreateLogger<IoTHubReporter>();
         const int IdStart = AgentEventIds.IoTHubReporter;
+        static readonly ILogger Log = Logger.Factory.CreateLogger<IoTHubReporter>();
 
         enum EventIds
         {

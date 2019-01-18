@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
@@ -22,6 +21,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     /// </summary>
     public interface IConnectionManager
     {
+        event EventHandler<IIdentity> CloudConnectionEstablished;
+
+        event EventHandler<IIdentity> CloudConnectionLost;
+
+        event EventHandler<IIdentity> DeviceConnected;
+
+        event EventHandler<IIdentity> DeviceDisconnected;
+
         Task AddDeviceConnection(IIdentity identity, IDeviceProxy deviceProxy);
 
         Task RemoveDeviceConnection(string id);
@@ -38,14 +45,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         Option<IReadOnlyDictionary<DeviceSubscription, bool>> GetSubscriptions(string id);
 
+        bool CheckClientSubscription(string id, DeviceSubscription subscription);
+
         IEnumerable<IIdentity> GetConnectedClients();
-
-        event EventHandler<IIdentity> CloudConnectionLost;
-
-        event EventHandler<IIdentity> CloudConnectionEstablished;
-
-        event EventHandler<IIdentity> DeviceConnected;
-
-        event EventHandler<IIdentity> DeviceDisconnected;
     }
 }

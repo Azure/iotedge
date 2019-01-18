@@ -10,12 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
     public class DockerLoggingConfig
     {
-        [JsonProperty(PropertyName = "type")]
-        public string Type { get; }
-
-        [JsonProperty(Required = Required.AllowNull, PropertyName = "config")]
-        public IDictionary<string, string> Config { get; }
-
         public DockerLoggingConfig(string type)
             : this(type, ImmutableDictionary<string, string>.Empty)
         {
@@ -28,19 +22,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             this.Config = Preconditions.CheckNotNull(config, nameof(config));
         }
 
-        public override bool Equals(object obj) => this.Equals(obj as DockerLoggingConfig);
+        [JsonProperty(PropertyName = "type")]
+        public string Type { get; }
 
-        bool ConfigEquals(IDictionary<string, string> config1, IDictionary<string, string> config2) =>
-            config1.Count == config2.Count && !config1.Except(config2).Any();
+        [JsonProperty(Required = Required.AllowNull, PropertyName = "config")]
+        public IDictionary<string, string> Config { get; }
+
+        public override bool Equals(object obj) => this.Equals(obj as DockerLoggingConfig);
 
         public bool Equals(DockerLoggingConfig other)
         {
             if (ReferenceEquals(null, other))
+            {
                 return false;
+            }
+
             if (ReferenceEquals(this, other))
+            {
                 return true;
+            }
+
             return this.ConfigEquals(this.Config, other.Config) &&
-                string.Equals(this.Type, other.Type);
+                   string.Equals(this.Type, other.Type);
         }
 
         public override int GetHashCode()
@@ -52,5 +55,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 return hashCode;
             }
         }
+
+        bool ConfigEquals(IDictionary<string, string> config1, IDictionary<string, string> config2) =>
+            config1.Count == config2.Count && !config1.Except(config2).Any();
     }
 }

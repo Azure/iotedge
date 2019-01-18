@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Util.Edged
 {
     using System;
@@ -8,10 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.Edged.GeneratedCode;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
-    using ErrorResponse = Microsoft.Azure.Devices.Edge.Util.Edged.GeneratedCode.ErrorResponse;
-    using SignRequest = Microsoft.Azure.Devices.Edge.Util.Edged.GeneratedCode.SignRequest;
-    using SignRequestAlgo = Microsoft.Azure.Devices.Edge.Util.Edged.GeneratedCode.SignRequestAlgo;
-    using SignResponse = Microsoft.Azure.Devices.Edge.Util.Edged.GeneratedCode.SignResponse;
 
     public class HttpHsmSignatureProvider : ISignatureProvider
     {
@@ -23,11 +18,12 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
         readonly string generationId;
 
         static readonly ITransientErrorDetectionStrategy TransientErrorDetectionStrategy = new ErrorDetectionStrategy();
+
         static readonly RetryStrategy TransientRetryStrategy =
             new ExponentialBackoff(retryCount: 3, minBackoff: TimeSpan.FromSeconds(2), maxBackoff: TimeSpan.FromSeconds(30), deltaBackoff: TimeSpan.FromSeconds(3));
 
         public HttpHsmSignatureProvider(string moduleId, string generationId, string providerUri, string apiVersion)
-        {            
+        {
             this.providerUri = new Uri(Preconditions.CheckNotNull(providerUri, nameof(providerUri)));
             this.apiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion));
             this.moduleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));

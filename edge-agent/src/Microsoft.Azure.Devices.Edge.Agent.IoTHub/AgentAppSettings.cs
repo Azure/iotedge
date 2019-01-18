@@ -1,14 +1,15 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 {
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Net;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
- 
+    using Microsoft.Extensions.Logging;
+
     public class AgentAppSettings : IAgentAppSettings
     {
         const string EdgeAgentStorageFolder = "edgeAgent";
@@ -18,18 +19,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         public AgentAppSettings(string filePath)
         {
-            var config = new ConfigurationBuilder()
+            IConfigurationRoot config = new ConfigurationBuilder()
                 .AddJsonFile(filePath)
                 .AddEnvironmentVariables()
                 .Build();
 
             this.appSettings = config.Get<AppSettings>();
-            
-            this.ConfigRefreshFrequency = TimeSpan.FromSeconds(Convert.ToInt32(this.appSettings.ConfigRefreshFrequencySecs ?? "3600"));
-            this.DockerRegistryAuthConfigSection = config.GetSection("DockerRegistryAuth");
-            this.StoragePath = this.GetStoragePath(this.appSettings.StorageFolder);
-            this.VersionInfo = VersionInfo.Get(VersionInfoFileName);
-
+            this.Initialize(config);
             this.Validate();
         }
 
@@ -37,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         public string BackupConfigFilePath => this.appSettings.BackupConfigFilePath;
 
-        public TimeSpan ConfigRefreshFrequency { get; }
+        public TimeSpan ConfigRefreshFrequency { get; private set; }
 
         public TimeSpan CoolOffTimeUnit => TimeSpan.FromSeconds(this.appSettings.CoolOffTimeUnitInSeconds);
 
@@ -51,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         public IDictionary<string, string> DockerLoggingOptions => this.appSettings.DockerLoggingOptions ?? new Dictionary<string, string>();
 
-        public IConfigurationSection DockerRegistryAuthConfigSection { get; }
+        public IConfigurationSection DockerRegistryAuthConfigSection { get; private set; }
 
         public string DockerUri => this.appSettings.DockerUri;
 
@@ -77,9 +73,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         public string EdgeModuleVolumePath => this.appSettings.EdgeModuleVolumePath ?? string.Empty;
 
+        public Option<IWebProxy> HttpsProxy { get; private set; }
+
         public TimeSpan IntensiveCareTime => TimeSpan.FromMinutes(this.appSettings.IntensiveCareTimeInMinutes);
 
         public string IoTHubHostName => this.appSettings.IoTEdge_IoTHubHostName;
+
+        public ILogger Logger { get; private set; }
 
         public string ManagementUri => this.appSettings.IoTEdge_ManagementUri;
 
@@ -93,18 +93,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         public string RuntimeLogLevel => this.appSettings.RuntimeLogLevel ?? "info";
 
-        public EdgeRuntimeMode RuntimeMode => string.IsNullOrWhiteSpace(this.appSettings.Mode) ? EdgeRuntimeMode.Docker : (EdgeRuntimeMode) Enum.Parse(typeof(EdgeRuntimeMode), this.appSettings.Mode, true);
+        public EdgeRuntimeMode RuntimeMode => string.IsNullOrWhiteSpace(this.appSettings.Mode) ? EdgeRuntimeMode.Docker : (EdgeRuntimeMode)Enum.Parse(typeof(EdgeRuntimeMode), this.appSettings.Mode, true);
 
-        public string StoragePath { get; }
+        public string StoragePath { get; private set; }
 
-        public Option<UpstreamProtocol> UpstreamProtocol => this.appSettings.UpstreamProtocol.ToUpstreamProtocol();
+        public Option<UpstreamProtocol> UpstreamProtocol { get; private set; }
 
         public bool UsePersistentStorage => this.appSettings.UsePersistentStorage.Equals("false", StringComparison.OrdinalIgnoreCase) ? false : true;
 
-        public VersionInfo VersionInfo { get; }
+        public VersionInfo VersionInfo { get; private set; }
 
         public string WorkloadUri => this.appSettings.IoTEdge_WorkloadUri;
-        
+
         string GetStoragePath(string baseStoragePath)
         {
             if (string.IsNullOrWhiteSpace(baseStoragePath) || !Directory.Exists(baseStoragePath))
@@ -119,6 +119,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
 
             return storagePath;
+        }
+
+        void Initialize(IConfigurationRoot config)
+        {
+            this.SetupLogger();
+
+            this.ConfigRefreshFrequency = TimeSpan.FromSeconds(Convert.ToInt32(this.appSettings.ConfigRefreshFrequencySecs ?? "3600"));
+            this.DockerRegistryAuthConfigSection = config.GetSection("DockerRegistryAuth");
+            this.HttpsProxy = Proxy.Parse(this.appSettings.Https_proxy, this.Logger);
+            this.StoragePath = this.GetStoragePath(this.appSettings.StorageFolder);
+            this.UpstreamProtocol = this.appSettings.UpstreamProtocol.ToUpstreamProtocol();
+            this.VersionInfo = VersionInfo.Get(VersionInfoFileName);
+        }
+
+        void SetupLogger()
+        {
+            Util.Logger.SetLogLevel(this.RuntimeLogLevel);
+            this.Logger = Util.Logger.Factory.CreateLogger("EdgeAgent");
         }
 
         void Validate()
@@ -141,7 +159,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         }
 
         // All these property names should be case-insensitive matched to field name in AppSettings json file or name of environment variable.
-        // Don't remove set method of these properties; it is used when configuration binding
+        // Don't remove set method of these properties; it is used when configuration binding.
         class AppSettings
         {
             public string BackupConfigFilePath { get; set; }
@@ -181,6 +199,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             public string EdgeModuleVolumeName { get; set; }
 
             public string EdgeModuleVolumePath { get; set; }
+
+            public string Https_proxy { get; set; }
 
             public uint IntensiveCareTimeInMinutes { get; set; }
 

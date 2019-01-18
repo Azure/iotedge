@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 {
     using System;
@@ -19,6 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
     public class AgentModule : Module
     {
+        const string DockerType = "docker";
         readonly int maxRestartCount;
         readonly TimeSpan intensiveCareTime;
         readonly TimeSpan coolOffTimeUnit;
@@ -27,7 +27,31 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly Option<Uri> workloadUri;
         readonly string moduleId;
         readonly Option<string> moduleGenerationId;
-        const string DockerType = "docker";
+
+        public AgentModule(int maxRestartCount, TimeSpan intensiveCareTime, TimeSpan coolOffTimeUnit, bool usePersistentStorage, string storagePath)
+            : this(maxRestartCount, intensiveCareTime, coolOffTimeUnit, usePersistentStorage, storagePath, Option.None<Uri>(), Constants.EdgeAgentModuleIdentityName, Option.None<string>())
+        {
+        }
+
+        public AgentModule(
+            int maxRestartCount,
+            TimeSpan intensiveCareTime,
+            TimeSpan coolOffTimeUnit,
+            bool usePersistentStorage,
+            string storagePath,
+            Option<Uri> workloadUri,
+            string moduleId,
+            Option<string> moduleGenerationId)
+        {
+            this.maxRestartCount = maxRestartCount;
+            this.intensiveCareTime = intensiveCareTime;
+            this.coolOffTimeUnit = coolOffTimeUnit;
+            this.usePersistentStorage = usePersistentStorage;
+            this.storagePath = Preconditions.CheckNonWhiteSpace(storagePath, nameof(storagePath));
+            this.workloadUri = workloadUri;
+            this.moduleId = moduleId;
+            this.moduleGenerationId = moduleGenerationId;
+        }
 
         static Dictionary<Type, IDictionary<string, Type>> DeploymentConfigTypeMapping
         {
@@ -64,64 +88,45 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             }
         }
 
-        public AgentModule(int maxRestartCount, TimeSpan intensiveCareTime, TimeSpan coolOffTimeUnit, bool usePersistentStorage, string storagePath)
-            : this(maxRestartCount, intensiveCareTime, coolOffTimeUnit, usePersistentStorage, storagePath, Option.None<Uri>(), Constants.EdgeAgentModuleIdentityName, Option.None<string>())
-        {
-
-        }
-
-        public AgentModule(int maxRestartCount, TimeSpan intensiveCareTime, TimeSpan coolOffTimeUnit,
-            bool usePersistentStorage, string storagePath, Option<Uri> workloadUri, string moduleId, Option<string> moduleGenerationId)
-        {
-            this.maxRestartCount = maxRestartCount;
-            this.intensiveCareTime = intensiveCareTime;
-            this.coolOffTimeUnit = coolOffTimeUnit;
-            this.usePersistentStorage = usePersistentStorage;
-            this.storagePath = Preconditions.CheckNonWhiteSpace(storagePath, nameof(storagePath));
-            this.workloadUri = workloadUri;
-            this.moduleId = moduleId;
-            this.moduleGenerationId = moduleGenerationId;
-        }
-
         protected override void Load(ContainerBuilder builder)
         {
             // ISerde<Diff>
-            builder.Register(c => new DiffSerde(
-                    new Dictionary<string, Type>
-                    {
-                        { DockerType, typeof(DockerModule) }
-                    }
-                ))
+            builder.Register(
+                    c => new DiffSerde(
+                        new Dictionary<string, Type>
+                        {
+                            { DockerType, typeof(DockerModule) }
+                        }))
                 .As<ISerde<Diff>>()
                 .SingleInstance();
 
             // ISerde<ModuleSet>
-            builder.Register(c => new ModuleSetSerde(
-                    new Dictionary<string, Type>
-                    {
-                        { DockerType, typeof(DockerModule) }
-                    }
-                ))
+            builder.Register(
+                    c => new ModuleSetSerde(
+                        new Dictionary<string, Type>
+                        {
+                            { DockerType, typeof(DockerModule) }
+                        }))
                 .As<ISerde<ModuleSet>>()
                 .SingleInstance();
 
             // ISerde<DeploymentConfig>
             builder.Register(
-                c =>
-                {
-                    ISerde<DeploymentConfig> serde = new TypeSpecificSerDe<DeploymentConfig>(DeploymentConfigTypeMapping);
-                    return serde;
-                })
+                    c =>
+                    {
+                        ISerde<DeploymentConfig> serde = new TypeSpecificSerDe<DeploymentConfig>(DeploymentConfigTypeMapping);
+                        return serde;
+                    })
                 .As<ISerde<DeploymentConfig>>()
                 .SingleInstance();
 
             // ISerde<DeploymentConfigInfo>
             builder.Register(
-                c =>
-                {
-                    ISerde<DeploymentConfigInfo> serde = new TypeSpecificSerDe<DeploymentConfigInfo>(DeploymentConfigTypeMapping);
-                    return serde;
-                })
+                    c =>
+                    {
+                        ISerde<DeploymentConfigInfo> serde = new TypeSpecificSerDe<DeploymentConfigInfo>(DeploymentConfigTypeMapping);
+                        return serde;
+                    })
                 .As<ISerde<DeploymentConfigInfo>>()
                 .SingleInstance();
 
@@ -138,34 +143,36 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
             // IDbStore
             builder.Register(
-                c =>
-                {
-                    var loggerFactory = c.Resolve<ILoggerFactory>();
-                    ILogger logger = loggerFactory.CreateLogger(typeof(AgentModule));
-
-                    if (this.usePersistentStorage)
+                    c =>
                     {
-                        // Create partition for mma
-                        var partitionsList = new List<string> { "moduleState", "deploymentConfig" };
-                        try
+                        var loggerFactory = c.Resolve<ILoggerFactory>();
+                        ILogger logger = loggerFactory.CreateLogger(typeof(AgentModule));
+
+                        if (this.usePersistentStorage)
                         {
-                            IDbStoreProvider dbStoreprovider = DbStoreProvider.Create(c.Resolve<IRocksDbOptionsProvider>(),
-                                this.storagePath, partitionsList);
-                            logger.LogInformation($"Created persistent store at {this.storagePath}");
-                            return dbStoreprovider;
+                            // Create partition for mma
+                            var partitionsList = new List<string> { "moduleState", "deploymentConfig" };
+                            try
+                            {
+                                IDbStoreProvider dbStoreprovider = DbStoreProvider.Create(
+                                    c.Resolve<IRocksDbOptionsProvider>(),
+                                    this.storagePath,
+                                    partitionsList);
+                                logger.LogInformation($"Created persistent store at {this.storagePath}");
+                                return dbStoreprovider;
+                            }
+                            catch (Exception ex) when (!ExceptionEx.IsFatal(ex))
+                            {
+                                logger.LogError(ex, "Error creating RocksDB store. Falling back to in-memory store.");
+                                return new InMemoryDbStoreProvider();
+                            }
                         }
-                        catch (Exception ex) when (!ExceptionEx.IsFatal(ex))
+                        else
                         {
-                            logger.LogError(ex, "Error creating RocksDB store. Falling back to in-memory store.");
+                            logger.LogInformation($"Using in-memory store");
                             return new InMemoryDbStoreProvider();
                         }
-                    }
-                    else
-                    {
-                        logger.LogInformation($"Using in-memory store");
-                        return new InMemoryDbStoreProvider();
-                    }
-                })
+                    })
                 .As<IDbStoreProvider>()
                 .SingleInstance();
 
@@ -190,12 +197,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // IPlanner
-            builder.Register(async c => new HealthRestartPlanner(
-                    await c.Resolve<Task<ICommandFactory>>(),
-                    c.Resolve<IEntityStore<string, ModuleState>>(),
-                    this.intensiveCareTime,
-                    c.Resolve<IRestartPolicyManager>()
-                ) as IPlanner)
+            builder.Register(
+                    async c => new HealthRestartPlanner(
+                        await c.Resolve<Task<ICommandFactory>>(),
+                        c.Resolve<IEntityStore<string, ModuleState>>(),
+                        this.intensiveCareTime,
+                        c.Resolve<IRestartPolicyManager>()) as IPlanner)
                 .As<Task<IPlanner>>()
                 .SingleInstance();
 
@@ -228,7 +235,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
             // Task<Agent>
             builder.Register(
-                async c =>
+                    async c =>
                     {
                         var configSource = c.Resolve<Task<IConfigSource>>();
                         var environmentProvider = c.Resolve<Task<IEnvironmentProvider>>();
@@ -250,8 +257,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             deploymentConfigInfoSerde,
                             await encryptionProvider);
                     })
-                    .As<Task<Agent>>()
-                    .SingleInstance();
+                .As<Task<Agent>>()
+                .SingleInstance();
 
             base.Load(builder);
         }

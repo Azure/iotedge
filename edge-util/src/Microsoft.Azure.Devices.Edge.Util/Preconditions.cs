@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Util
 {
     using System;
@@ -12,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
         /// <typeparam name="T"></typeparam>
         /// <param name="reference"></param>
         /// <returns>The reference</returns>
-        public static T CheckNotNull<T>(T reference) => CheckNotNull(reference, "", "");
+        public static T CheckNotNull<T>(T reference) => CheckNotNull(reference, string.Empty, string.Empty);
 
         /// <summary>
         /// Checks that a reference isn't null. Throws ArgumentNullException if null.
@@ -21,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
         /// <param name="reference"></param>
         /// <param name="paramName"></param>
         /// <returns>The reference</returns>
-        public static T CheckNotNull<T>(T reference, string paramName) => CheckNotNull(reference, paramName, "");
+        public static T CheckNotNull<T>(T reference, string paramName) => CheckNotNull(reference, paramName, string.Empty);
 
         /// <summary>
         /// Checks that a reference isn't null. Throws ArgumentNullException if null.
@@ -44,6 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                     throw string.IsNullOrEmpty(message) ? new ArgumentNullException(paramName) : new ArgumentNullException(paramName, message);
                 }
             }
+
             return reference;
         }
 
@@ -76,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 throw new ArgumentException(message, paramName);
             }
         }
-        
+
         /// <summary>
         ///  Checks that an Enum is defined. Throws ArgumentOutOfRangeException is not.
         /// </summary>
@@ -88,11 +88,11 @@ namespace Microsoft.Azure.Devices.Edge.Util
             Type enumType = typeof(T);
             if (!Enum.IsDefined(enumType, status))
             {
-                throw new ArgumentOutOfRangeException(status + " is not a valid value for " + enumType.FullName +  ".");
+                throw new ArgumentOutOfRangeException(status + " is not a valid value for " + enumType.FullName + ".");
             }
+
             return status;
         }
-
 
         /// <summary>
         /// This checks that the item is greater than or equal to the low value.
@@ -101,7 +101,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
         /// <param name="item">Item to check.</param>
         /// <param name="low">Inclusive low value.</param>
         /// <returns></returns>
-        public static T CheckRange<T>(T item, T low) where T : IComparable<T> =>
+        public static T CheckRange<T>(T item, T low)
+            where T : IComparable<T> =>
             CheckRange(item, low, nameof(item));
 
         /// <summary>
@@ -112,8 +113,9 @@ namespace Microsoft.Azure.Devices.Edge.Util
         /// <param name="low">Inclusive low value.</param>
         /// <param name="paramName"></param>
         /// <returns></returns>
-        public static T CheckRange<T>(T item, T low, string paramName) where T : IComparable<T> =>
-            CheckRange(item, low, paramName, "");
+        public static T CheckRange<T>(T item, T low, string paramName)
+            where T : IComparable<T> =>
+            CheckRange(item, low, paramName, string.Empty);
 
         /// <summary>
         /// This checks that the item is greater than or equal to the low value.
@@ -124,12 +126,14 @@ namespace Microsoft.Azure.Devices.Edge.Util
         /// <param name="paramName"></param>
         /// <param name="message"></param>
         /// <returns></returns>
-        public static T CheckRange<T>(T item, T low, string paramName, string message) where T : IComparable<T>
+        public static T CheckRange<T>(T item, T low, string paramName, string message)
+            where T : IComparable<T>
         {
             if (item.CompareTo(low) < 0)
             {
                 throw new ArgumentOutOfRangeException(paramName, item, message);
             }
+
             return item;
         }
 
@@ -142,7 +146,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
         /// <param name="low">Inclusive low value.</param>
         /// <param name="high">Exclusive high value</param>
         /// <returns></returns>
-        public static T CheckRange<T>(T item, T low, T high) where T : IComparable<T> =>
+        public static T CheckRange<T>(T item, T low, T high)
+            where T : IComparable<T> =>
             CheckRange(item, low, high, nameof(item));
 
         /// <summary>
@@ -155,8 +160,9 @@ namespace Microsoft.Azure.Devices.Edge.Util
         /// <param name="high">Exclusive high value</param>
         /// <param name="paramName"></param>
         /// <returns></returns>
-        public static T CheckRange<T>(T item, T low, T high, string paramName) where T : IComparable<T> =>
-            CheckRange(item, low, high, paramName, "");
+        public static T CheckRange<T>(T item, T low, T high, string paramName)
+            where T : IComparable<T> =>
+            CheckRange(item, low, high, paramName, string.Empty);
 
         /// <summary>
         /// This checks that the item is in the range [low, high).
@@ -169,12 +175,14 @@ namespace Microsoft.Azure.Devices.Edge.Util
         /// <param name="paramName"></param>
         /// <param name="message"></param>
         /// <returns></returns>
-        public static T CheckRange<T>(T item, T low, T high, string paramName, string message) where T : IComparable<T>
+        public static T CheckRange<T>(T item, T low, T high, string paramName, string message)
+            where T : IComparable<T>
         {
             if (item.CompareTo(low) < 0 || item.CompareTo(high) >= 0)
             {
                 throw new ArgumentOutOfRangeException(paramName, item, message);
             }
+
             return item;
         }
 
@@ -188,6 +196,5 @@ namespace Microsoft.Azure.Devices.Edge.Util
             CheckArgument(!string.IsNullOrWhiteSpace(value), $"{paramName} is null or whitespace.", paramName);
             return value;
         }
-
     }
 }

@@ -17,17 +17,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         [Fact]
         public void CtorThrowsWhenWebSocketIsNull()
         {
-            Assert.Throws<ArgumentNullException>(() =>
-                new ServerWebSocketChannel(null, Mock.Of<EndPoint>())
-                );
+            Assert.Throws<ArgumentNullException>(
+                () => new ServerWebSocketChannel(null, Mock.Of<EndPoint>()));
         }
 
         [Fact]
         public void CtorThrowsWhenEndpointIsNull()
         {
-            Assert.Throws<ArgumentNullException>(() =>
-                new ServerWebSocketChannel(Mock.Of<WebSocket>(), null)
-                );
+            Assert.Throws<ArgumentNullException>(
+                () => new ServerWebSocketChannel(Mock.Of<WebSocket>(), null));
         }
 
         [Fact]
@@ -41,9 +39,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             await channel.CloseAsync();
 
             Assert.False(channel.Active);
-            Mock.Get(webSocket).Verify(ws =>
-                ws.CloseAsync(WebSocketCloseStatus.NormalClosure, It.IsAny<string>(), It.IsAny<CancellationToken>())
-                );
+            Mock.Get(webSocket).Verify(
+                ws => ws.CloseAsync(WebSocketCloseStatus.NormalClosure, It.IsAny<string>(), It.IsAny<CancellationToken>()));
         }
 
         [Fact]

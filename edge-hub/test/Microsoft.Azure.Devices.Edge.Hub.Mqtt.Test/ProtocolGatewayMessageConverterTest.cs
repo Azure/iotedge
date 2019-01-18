@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 {
     using System;
@@ -12,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt;
     using Moq;
     using Xunit;
+    using Constants = Microsoft.Azure.Devices.Edge.Hub.Mqtt.Constants;
     using IProtocolGatewayMessage = Microsoft.Azure.Devices.ProtocolGateway.Messaging.IMessage;
 
     [Unit]
@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         {
             var outputTemplates = new Dictionary<string, string>
             {
-                ["Dummy"] = ""
+                ["Dummy"] = string.Empty
             };
             var inputTemplates = new List<string>
             {
@@ -34,16 +34,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             };
             var config = new MessageAddressConversionConfiguration(
                 inputTemplates,
-                outputTemplates
-            );
+                outputTemplates);
             var converter = new MessageAddressConverter(config);
             var properties = new Dictionary<string, string>();
             var protocolGatewayMessage = Mock.Of<IProtocolGatewayMessage>(
                 m =>
                     m.Address == @"devices/Device_6/messages/events/%24.cid=Corrid1&%24.mid=MessageId1&Foo=Bar&Prop2=Value2&Prop3=Value3/" &&
                     m.Payload.Equals(Payload) &&
-                    m.Properties == properties
-                );
+                    m.Properties == properties);
 
             var protocolGatewayMessageConverter = new ProtocolGatewayMessageConverter(converter, ByteBufferConverter);
             IMessage message = protocolGatewayMessageConverter.ToMessage(protocolGatewayMessage);
@@ -65,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         {
             var outputTemplates = new Dictionary<string, string>
             {
-                ["Dummy"] = ""
+                ["Dummy"] = string.Empty
             };
             var inputTemplates = new List<string>
             {
@@ -76,16 +74,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             };
             var config = new MessageAddressConversionConfiguration(
                 inputTemplates,
-                outputTemplates
-            );
+                outputTemplates);
             var converter = new MessageAddressConverter(config);
             var properties = new Dictionary<string, string>();
             var protocolGatewayMessage = Mock.Of<IProtocolGatewayMessage>(
                 m =>
                     m.Address == @"devices/Device_6/modules/SensorModule/messages/events/%24.cid=Corrid1&%24.mid=MessageId1&Foo=Bar&Prop2=Value2&Prop3=Value3/" &&
                     m.Payload.Equals(Payload) &&
-                    m.Properties == properties
-                );
+                    m.Properties == properties);
 
             var protocolGatewayMessageConverter = new ProtocolGatewayMessageConverter(converter, ByteBufferConverter);
             IMessage message = protocolGatewayMessageConverter.ToMessage(protocolGatewayMessage);
@@ -108,7 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         {
             var outputTemplates = new Dictionary<string, string>
             {
-                ["Dummy"] = ""
+                ["Dummy"] = string.Empty
             };
             var inputTemplates = new List<string>
             {
@@ -117,8 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             };
             var config = new MessageAddressConversionConfiguration(
                 inputTemplates,
-                outputTemplates
-            );
+                outputTemplates);
             var converter = new MessageAddressConverter(config);
             var properties = new Dictionary<string, string>();
 
@@ -153,8 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 m =>
                     m.Address == address.ToString() &&
                     m.Payload.Equals(Payload) &&
-                    m.Properties == properties
-            );
+                    m.Properties == properties);
 
             var protocolGatewayMessageConverter = new ProtocolGatewayMessageConverter(converter, ByteBufferConverter);
             IMessage message = protocolGatewayMessageConverter.ToMessage(protocolGatewayMessage);
@@ -195,8 +189,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             };
             var config = new MessageAddressConversionConfiguration(
                 inputTemplates,
-                outputTemplates
-            );
+                outputTemplates);
             var converter = new MessageAddressConverter(config);
 
             var properties = new Dictionary<string, string>
@@ -207,11 +200,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             };
 
             var systemProperties = new Dictionary<string, string>
-            {                
-                [SystemProperties.OutboundUri] = Mqtt.Constants.OutboundUriModuleEndpoint,
+            {
+                [SystemProperties.OutboundUri] = Constants.OutboundUriModuleEndpoint,
                 [SystemProperties.LockToken] = Guid.NewGuid().ToString(),
                 [TemplateParameters.DeviceIdTemplateParam] = DeviceId,
-                [Mqtt.Constants.ModuleIdTemplateParameter] = ModuleId,
+                [Constants.ModuleIdTemplateParameter] = ModuleId,
                 [SystemProperties.InputName] = Input,
                 [SystemProperties.OutputName] = "output",
                 [SystemProperties.ContentEncoding] = "utf-8",
@@ -268,8 +261,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             };
             var config = new MessageAddressConversionConfiguration(
                 inputTemplates,
-                outputTemplates
-            );
+                outputTemplates);
             var converter = new MessageAddressConverter(config);
 
             var properties = new Dictionary<string, string>
@@ -283,10 +275,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 
             var systemProperties = new Dictionary<string, string>
             {
-                [SystemProperties.OutboundUri] = Mqtt.Constants.OutboundUriModuleEndpoint,
+                [SystemProperties.OutboundUri] = Constants.OutboundUriModuleEndpoint,
                 [SystemProperties.LockToken] = Guid.NewGuid().ToString(),
                 [TemplateParameters.DeviceIdTemplateParam] = DeviceId,
-                [Mqtt.Constants.ModuleIdTemplateParameter] = ModuleId,
+                [Constants.ModuleIdTemplateParameter] = ModuleId,
                 [SystemProperties.InputName] = Input,
                 [SystemProperties.OutputName] = "output",
                 [SystemProperties.ContentEncoding] = "utf-8",
@@ -309,7 +301,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             var protocolGatewayMessageConverter = new ProtocolGatewayMessageConverter(converter, ByteBufferConverter);
             IProtocolGatewayMessage pgMessage = protocolGatewayMessageConverter.FromMessage(message);
             Assert.NotNull(pgMessage);
-            Assert.Equal(@"devices/Device1/modules/Module1/inputs/input1/Foo=Bar&Prop2=Value2&Prop3=Value3&%24.cdid=fromDevice1&%24.cmid=fromModule1&%24.ce=utf-8&%24.ct=application%2Fjson&%24.schema=schema1&%24.to=foo&%24.uid=user1&%24.cid=1234&%24.mid=m1",
+            Assert.Equal(
+                @"devices/Device1/modules/Module1/inputs/input1/Foo=Bar&Prop2=Value2&Prop3=Value3&%24.cdid=fromDevice1&%24.cmid=fromModule1&%24.ce=utf-8&%24.ct=application%2Fjson&%24.schema=schema1&%24.to=foo&%24.uid=user1&%24.cid=1234&%24.mid=m1",
                 pgMessage.Address);
             Assert.Equal(12, pgMessage.Properties.Count);
             Assert.Equal("Bar", pgMessage.Properties["Foo"]);
@@ -325,6 +318,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.Equal("fromDevice1", pgMessage.Properties["$.cdid"]);
             Assert.Equal("fromModule1", pgMessage.Properties["$.cmid"]);
             Assert.False(pgMessage.Properties.ContainsKey("$.on"));
+        }
+
+        [Fact]
+        public void TestToMessage_NoTopicMatch()
+        {
+            var outputTemplates = new Dictionary<string, string>
+            {
+                ["Dummy"] = string.Empty
+            };
+            var inputTemplates = new List<string>
+            {
+                "devices/{deviceId}/messages/events/{params}/",
+                "devices/{deviceId}/messages/events/"
+            };
+            var config = new MessageAddressConversionConfiguration(
+                inputTemplates,
+                outputTemplates);
+            var converter = new MessageAddressConverter(config);
+            var properties = new Dictionary<string, string>();
+            var protocolGatewayMessage = Mock.Of<IProtocolGatewayMessage>(
+                m =>
+                    m.Address == @"devices/Device_6/messages/eve/%24.cid=Corrid1&%24.mid=MessageId1&Foo=Bar&Prop2=Value2&Prop3=Value3/" &&
+                    m.Payload.Equals(Payload) &&
+                    m.Properties == properties);
+
+            var protocolGatewayMessageConverter = new ProtocolGatewayMessageConverter(converter, ByteBufferConverter);
+            Assert.Throws<InvalidOperationException>(() => protocolGatewayMessageConverter.ToMessage(protocolGatewayMessage));
         }
     }
 }

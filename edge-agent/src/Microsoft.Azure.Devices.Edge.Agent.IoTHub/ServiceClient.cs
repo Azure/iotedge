@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 {
     using System.Collections.Generic;
@@ -44,10 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                         new Module(this.deviceId, moduleId)
                         {
                             ManagedBy = Constants.ModuleIdentityEdgeManagedByValue
-                        }
-                    )
-                )
-            );
+                        })));
         }
 
         public Task<Module[]> UpdateModules(IEnumerable<Module> modules)

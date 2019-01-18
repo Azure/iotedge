@@ -70,13 +70,11 @@ function prepare_filesystem()
     rm -rf ${CERTIFICATE_DIR}/csr
     rm -rf ${CERTIFICATE_DIR}/private
     rm -rf ${CERTIFICATE_DIR}/certs
-    rm -rf ${CERTIFICATE_DIR}/intermediateCerts
     rm -rf ${CERTIFICATE_DIR}/newcerts
 
     mkdir -p ${CERTIFICATE_DIR}/csr
     mkdir -p ${CERTIFICATE_DIR}/private
     mkdir -p ${CERTIFICATE_DIR}/certs
-    mkdir -p ${CERTIFICATE_DIR}/intermediateCerts
     mkdir -p ${CERTIFICATE_DIR}/newcerts
 
     rm -f ${CERTIFICATE_DIR}/index.txt
@@ -279,6 +277,7 @@ function generate_certificate_common()
 ###############################################################################
 function generate_intermediate_ca()
 {
+    local root_ca_password="${1}"
     local common_name="Azure_IoT_Hub_Intermediate_Cert_Test_Only"
 
     generate_certificate_common "v3_intermediate_ca" \
@@ -287,7 +286,7 @@ function generate_intermediate_ca()
                                 ${INTERMEDIATE_CA_PREFIX} \
                                 ${ROOT_CA_PREFIX} \
                                 ${INTERMEDIATE_CA_PASSWORD} \
-                                ${ROOT_CA_PASSWORD}
+                                ${root_ca_password}
 }
 
 ###############################################################################
@@ -298,7 +297,26 @@ function initial_cert_generation()
     check_prerequisites
     prepare_filesystem
     generate_root_ca
-    generate_intermediate_ca
+    generate_intermediate_ca ${ROOT_CA_PASSWORD}
+}
+
+###############################################################################
+# Installs a root CA and private key for all certificate generation
+###############################################################################
+function install_root_ca()
+{
+    local src_root_ca_path="${1}"
+    local src_root_ca_key_path="${2}"
+    local root_ca_password="${3}"
+    local prefix=${ROOT_CA_PREFIX}
+    local dest_cert_file="${CERTIFICATE_DIR}/certs/${prefix}.cert.pem"
+    local dest_key_file="${CERTIFICATE_DIR}/private/${prefix}.key.pem"
+
+    check_prerequisites
+    prepare_filesystem
+    cp ${src_root_ca_path} ${dest_cert_file}
+    cp ${src_root_ca_key_path} ${dest_key_file}
+    generate_intermediate_ca ${root_ca_password}
 }
 
 ###############################################################################
@@ -387,6 +405,8 @@ function generate_edge_device_certificate()
 
 if [ "${1}" == "create_root_and_intermediate" ]; then
     initial_cert_generation
+elif [ "${1}" == "install_root_ca" ]; then
+    install_root_ca "${2}" "${3}" "${4}"
 elif [ "${1}" == "create_verification_certificate" ]; then
     generate_verification_certificate "${2}"
 elif [ "${1}" == "create_device_certificate" ]; then
@@ -397,6 +417,7 @@ elif [ "${1}" == "create_edge_server_certificate" ]; then
     generate_edge_server_certificate "${2}"
 else
     echo "Usage: create_root_and_intermediate                   # Creates a new root and intermediate certificates"
+    echo "       install_root_ca <path to certificate> <path to private key> <private key password>  # Sets up a CA file and creates an intermediate signing certificate. Both key and certificate are expected to be in PEM format"
     echo "       create_verification_certificate <subjectName>  # Creates a verification certificate, signed with <subjectName>"
     echo "       create_device_certificate <subjectName>        # Creates a device certificate, signed with <subjectName>"
     echo "       create_edge_device_certificate <subjectName>   # Creates an edge device certificate, signed with <subjectName>"

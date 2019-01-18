@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 {
     using System;
@@ -26,6 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             {
                 amqpMessage.MessageAnnotations.Map["status"] = status;
             }
+
             return amqpMessage;
         }
 

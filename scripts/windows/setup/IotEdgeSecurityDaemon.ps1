@@ -23,8 +23,11 @@ Set-Variable EdgeEventLogName -Value 'iotedged' -Option Constant
 Set-Variable EdgeEventLogInstallDirectory -Value 'C:\ProgramData\iotedge-eventlog' -Option Constant
 Set-Variable EdgeServiceName -Value 'iotedge' -Option Constant
 
-Set-Variable MobyDataRootDirectory -Value 'C:\ProgramData\iotedge-moby-data' -Option Constant
-Set-Variable MobyInstallDirectory -Value 'C:\ProgramData\iotedge-moby' -Option Constant
+Set-Variable MobyDataRootDirectory -Value "$env:ProgramData\iotedge-moby-data" -Option Constant
+Set-Variable MobyStaticDataRootDirectory -Value 'C:\ProgramData\iotedge-moby-data' -Option Constant
+Set-Variable MobyInstallDirectory -Value "$env:ProgramData\iotedge-moby" -Option Constant
+Set-Variable MobyStaticInstallDirectory -Value 'C:\ProgramData\iotedge-moby' -Option Constant
+Set-Variable MobyLinuxNamedPipeUrl -Value 'npipe://./pipe/docker_engine' -Option Constant
 Set-Variable MobyNamedPipeUrl -Value 'npipe://./pipe/iotedge_moby_engine' -Option Constant
 Set-Variable MobyServiceName -Value 'iotedge-moby' -Option Constant
 
@@ -158,6 +161,12 @@ function Install-SecurityDaemon {
         Write-HostRed 'IoT Edge Moby Engine is already installed. To reinstall, run `Uninstall-SecurityDaemon` first.'
         return
     }
+    
+    if (Test-MobyNeedsToBeMoved) {
+        Write-HostRed
+        Write-HostRed 'IoT Edge Moby Engine is installed in an invalid location. To reinstall, run `Uninstall-SecurityDaemon -DeleteMobyDataRoot` first.'
+        return
+    }
 
     if (-not (Test-AgentRegistryArgs)) {
         return
@@ -256,6 +265,9 @@ function Install-SecurityDaemon {
     Set-SystemPath
     Add-IotEdgeRegistryKey
     Install-Services
+    if ($ContainerOs -eq 'Linux') {
+        Add-FirewallExceptions
+    }
 
     Write-HostGreen
     Write-HostGreen 'This device is now provisioned with the IoT Edge runtime.'
@@ -420,6 +432,15 @@ function Test-MobyAlreadyInstalled {
     (Get-Service $MobyServiceName -ErrorAction SilentlyContinue) -or (Test-Path -Path $MobyInstallDirectory)
 }
 
+function Test-MobyNeedsToBeMoved {
+    if ($MobyStaticInstallDirectory -ne $MobyInstallDirectory) {
+        return $(Test-Path -Path $MobyStaticInstallDirectory)
+    }
+    else {
+        return $false
+    }
+}
+
 function Test-AgentRegistryArgs {
     $noImageNoCreds = (-not ($AgentImage -or $Username -or $Password))
     $imageNoCreds = ($AgentImage -and -not ($Username -or $Password))
@@ -540,8 +561,9 @@ function Get-SecurityDaemon {
             # non-privileged modules can access it.
             $path = "$EdgeInstallDirectory\$name"
             New-Item $Path -ItemType Directory -Force | Out-Null
+            $sid = New-Object System.Security.Principal.SecurityIdentifier 'S-1-5-11' # NT AUTHORITY\Authenticated Users
             $rule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule(`
-                'NT AUTHORITY\Authenticated Users', 'Modify', 'ObjectInherit', 'InheritOnly', 'Allow')
+                $sid, 'Modify', 'ObjectInherit', 'InheritOnly', 'Allow')
             $acl = Get-Acl -Path $path
             $acl.AddAccessRule($rule)
             Set-Acl -Path $path -AclObject $acl
@@ -640,52 +662,65 @@ function Remove-SecurityDaemonResources {
     else {
         Write-Verbose "$cmdErr"
     }
+    
+    # Check whether we need to clean up after an errant installation into the OS partition on IoT Core
+    if ($env:ProgramData -ne 'C:\ProgramData') {
+        Write-Verbose "Multiple ProgramData directories found"
+        $existingMobyDataRoots = $MobyDataRootDirectory, $MobyStaticDataRootDirectory 
+        $existingMobyInstallations = $MobyInstallDirectory, $MobyStaticInstallDirectory 
+    }
+    else {
+        $existingMobyDataRoots = $MobyDataRootDirectory
+        $existingMobyInstallations = $MobyInstallDirectory
+    }
 
     if ($DeleteMobyDataRoot) {
-        if (Test-Path $MobyDataRootDirectory) {
+        foreach ($root in $existingMobyDataRoots | ?{ Test-Path $_ }) {
             try {
-                Write-Host "Deleting Moby data root directory '$MobyDataRootDirectory'..."
+                Write-Host "Deleting Moby data root directory '$root'..."
 
                 # Removing `$MobyDataRootDirectory` is tricky. Windows base images contain files owned by TrustedInstaller, etc
                 # Deleting them is a three-step process:
                 #
                 # 1. Take ownership of all files
-                Invoke-Native "takeown /r /skipsl /f ""$MobyDataRootDirectory"""
+                Invoke-Native "takeown /r /skipsl /f ""$root"""
 
                 # 2. Reset their ACLs so that they inherit from their container
-                Invoke-Native "icacls ""$MobyDataRootDirectory"" /reset /t /l /q /c"
+                Invoke-Native "icacls ""$root"" /reset /t /l /q /c"
 
                 # 3. Use cmd's `rd` rather than `Remove-Item` since the latter gets tripped up by reparse points, etc.
                 #    Prepend the path with `\\?\` since the layer directories have long names, so the paths usually exceed 260 characters,
                 #    and IoT Core's filesystem doesn't seem to automatically use (or even have) short names
-                Invoke-Native "rd /s /q ""\\?\$MobyDataRootDirectory"""
+                Invoke-Native "rd /s /q ""\\?\$root"""
 
-                Write-Verbose "Deleted Moby data root directory '$MobyDataRootDirectory'"
+                Write-Verbose "Deleted Moby data root directory '$root'"
             }
             catch {
                 Write-Verbose "$_"
-                Write-HostRed ("Could not delete Moby data root directory '$MobyDataRootDirectory'. Please reboot " +
+                Write-HostRed ("Could not delete Moby data root directory '$root'. Please reboot " +
                     'your device and run `Uninstall-SecurityDaemon` again with `-Force`.')
                 $success = $false
             }
         }
     }
     else {
-        Write-Host "Not deleting Moby data root directory '$MobyDataRootDirectory' since -DeleteMobyDataRoot was not specified."
+        Write-Host "Not deleting Moby data root directory since -DeleteMobyDataRoot was not specified."
     }
 
-    Remove-Item -Recurse $MobyInstallDirectory -ErrorAction SilentlyContinue -ErrorVariable cmdErr
-    if ($?) {
-        Write-Verbose "Deleted install directory '$MobyInstallDirectory'"
-    }
-    elseif ($cmdErr.FullyQualifiedErrorId -ne 'PathNotFound,Microsoft.PowerShell.Commands.RemoveItemCommand') {
-        Write-Verbose "$cmdErr"
-        Write-HostRed ("Could not delete install directory '$MobyInstallDirectory'. Please reboot " +
-            'your device and run `Uninstall-SecurityDaemon` again with `-Force`.')
-        $success = $false
-    }
-    else {
-        Write-Verbose "$cmdErr"
+    foreach ($install in $existingMobyInstallations) {
+        Remove-Item -Recurse $install -ErrorAction SilentlyContinue -ErrorVariable cmdErr
+        if ($?) {
+            Write-Verbose "Deleted install directory '$install'"
+        }
+        elseif ($cmdErr.FullyQualifiedErrorId -ne 'PathNotFound,Microsoft.PowerShell.Commands.RemoveItemCommand') {
+            Write-Verbose "$cmdErr"
+            Write-HostRed ("Could not delete install directory '$install'. Please reboot " +
+                'your device and run `Uninstall-SecurityDaemon` again with `-Force`.')
+            $success = $false
+        }
+        else {
+            Write-Verbose "$cmdErr"
+        }
     }
 
     $success
@@ -851,6 +886,18 @@ function Uninstall-Services {
     }
 }
 
+function Add-FirewallExceptions {
+    New-NetFirewallRule `
+        -DisplayName 'iotedged allow inbound 15580,15581' `
+        -Direction 'Inbound' `
+        -Action 'Allow' `
+        -Protocol 'TCP' `
+        -LocalPort '15580-15581' `
+        -Program "$EdgeInstallDirectory\iotedged.exe" `
+        -InterfaceType 'Any' | Out-Null
+    Write-HostGreen 'Added firewall exceptions for ports used by the IoT Edge service.'
+}
+
 function Remove-FirewallExceptions {
     Remove-NetFirewallRule -DisplayName 'iotedged allow inbound 15580,15581' -ErrorAction SilentlyContinue -ErrorVariable cmdErr
     Write-Verbose "$(if ($?) { 'Removed firewall exceptions' } else { $cmdErr })"
@@ -961,25 +1008,30 @@ function Set-GatewayAddress {
 function Set-MobyEngineParameters {
     $configurationYaml = Get-Content "$EdgeInstallDirectory\config.yaml" -Raw
     $selectionRegex = 'moby_runtime:\s*uri:\s*".*"\s*#?\s*network:\s*".*"'
-    $replacementContentWindows = @(
-        'moby_runtime:',
-        "  uri: '$MobyNamedPipeUrl'",
-        '  network: ''nat''')
-    $replacementContentLinux = @(
-        'moby_runtime:',
-        '  uri: ''npipe://./pipe/docker_engine''',
-        '  network: ''azure-iot-edge''')
-    switch ($ContainerOs) {
+    $mobyUrl = switch ($ContainerOs) {
         'Linux' {
-            ($configurationYaml -replace $selectionRegex, ($replacementContentLinux -join "`n")) | Set-Content "$EdgeInstallDirectory\config.yaml" -Force
-            Write-HostGreen 'Set the Moby runtime network to ''azure-iot-edge''.'
+            $MobyLinuxNamedPipeUrl
         }
 
         'Windows' {
-            ($configurationYaml -replace $selectionRegex, ($replacementContentWindows -join "`n")) | Set-Content "$EdgeInstallDirectory\config.yaml" -Force
-            Write-HostGreen 'Set the Moby runtime network to ''nat''.'
+            $MobyNamedPipeUrl
         }
     }
+    $mobyNetwork = switch ($ContainerOs) {
+        'Linux' {
+            'azure-iot-edge'
+        }
+
+        'Windows' {
+            'nat'
+        }
+    }
+    $replacementContent = @(
+        'moby_runtime:',
+        "  uri: '$mobyUrl'",
+        "  network: '$mobyNetwork'")
+    ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")) | Set-Content "$EdgeInstallDirectory\config.yaml" -Force
+    Write-HostGreen "Configured device with Moby Engine URL '$mobyUrl' and network '$mobyNetwork'."
 }
 
 function Get-AgentRegistry {
@@ -1003,8 +1055,9 @@ function Remove-IotEdgeContainers {
     foreach ($containerId in $allContainers) {
         $inspectString = Invoke-Native "$dockerExe inspect ""$containerId""" -Passthru
         $inspectResult = ($inspectString | ConvertFrom-Json)[0]
+        $label = $inspectResult.Config.Labels | Get-Member -MemberType NoteProperty -Name 'net.azure-devices.edge.owner' | %{ $inspectResult.Config.Labels | Select-Object -ExpandProperty $_.Name } 
 
-        if ($inspectResult.Config.Labels.'net.azure-devices.edge.owner' -eq 'Microsoft.Azure.Devices.Edge.Agent') {
+        if ($label -eq 'Microsoft.Azure.Devices.Edge.Agent') {
             if (($inspectResult.Name -eq '/edgeAgent') -or ($inspectResult.Name -eq '/edgeHub')) {
                 Invoke-Native "$dockerExe rm --force ""$containerId"""
                 Write-Verbose "Stopped and deleted container $($inspectResult.Name)"
@@ -1075,19 +1128,22 @@ function Write-HostRed {
 }
 
 function Remove-BuiltinWritePermissions([string] $Path) {
-    $user = 'BUILTIN\Users'
-    Write-Verbose  "Remove $user permission to $Path"
+    $sid = New-Object System.Security.Principal.SecurityIdentifier 'S-1-5-32-545' # BUILTIN\Users
+
+    Write-Verbose  "Remove BUILTIN\Users permission to $Path"
     Invoke-Native "icacls ""$Path"" /inheritance:d"
     
     $acl = Get-Acl -Path $Path
     $write = [System.Security.AccessControl.FileSystemRights]::Write
     foreach ($access in $acl.Access) {
-        if ($access.IdentityReference.Value -eq $user -and
+        $accessSid = $access.IdentityReference.Translate([System.Security.Principal.SecurityIdentifier])
+
+        if ($accessSid -eq $sid -and
             $access.AccessControlType -eq 'Allow' -and
             ($access.FileSystemRights -band $write) -eq $write)
         {
             $rule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule(`
-                $user, 'Write', $access.InheritanceFlags, $access.PropagationFlags, 'Allow')
+                $sid, 'Write', $access.InheritanceFlags, $access.PropagationFlags, 'Allow')
             $acl.RemoveAccessRule($rule) | Out-Null
         }
     } 

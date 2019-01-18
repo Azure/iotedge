@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System;
@@ -51,7 +50,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 throw;
             }
         }
-
 
         public Task<Message> ReceiveAsync(TimeSpan receiveMessageTimeout) => this.underlyingDeviceClient.ReceiveAsync(receiveMessageTimeout);
 

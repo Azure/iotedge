@@ -1,16 +1,15 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 {
     using System;
+    using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
+    using System.Linq;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json;
-    using Xunit;
     using Newtonsoft.Json.Linq;
-    using System.Linq;
-    using System.Collections.Generic;
+    using Xunit;
 
     [ExcludeFromCodeCoverage]
     public class TestModuleTest
@@ -34,7 +33,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         static readonly IModule ValidJsonModule = new TestModule("<module_name>", "<semantic_version_number>", "docker", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
         static readonly string serializedModule = "{\"version\":\"version1\",\"type\":\"type1\",\"status\":\"running\",\"settings\":{\"image\":\"image1\"},\"restartPolicy\":\"on-unhealthy\",\"configuration\":{\"id\":\"1\"}}";
 
-        static readonly JObject TestJsonInputs = JsonConvert.DeserializeObject<JObject>(@"
+        static readonly JObject TestJsonInputs = JsonConvert.DeserializeObject<JObject>(
+            @"
 {
   ""validJson"": [
     {
@@ -222,22 +222,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             Assert.False(Config1.Equals(null));
         }
 
-        static IEnumerable<string> GetJsonTestCases(string subset)
-        {
-            var val = (JArray)TestJsonInputs.GetValue(subset);
-            return val.Children().Select(token => token.ToString());
-        }
-
-        static IEnumerable<object[]> GetValidJsonInputs()
-        {
-            return GetJsonTestCases("validJson").Select(s => new object[] { s });
-        }
-
-        static IEnumerable<object[]> GetExceptionJsonInputs()
-        {
-            return GetJsonTestCases("throwsException").Select(s => new object[] { s });
-        }
-
         [Theory]
         [Unit]
         [MemberData(nameof(GetValidJsonInputs))]
@@ -288,6 +272,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             Assert.True(Module8.Equals(myModule));
             Assert.True(moduleFromSerializedModule.Equals(Module8));
             Assert.True(moduleFromSerializedModule.Equals(Module1));
+        }
+
+        static IEnumerable<string> GetJsonTestCases(string subset)
+        {
+            var val = (JArray)TestJsonInputs.GetValue(subset);
+            return val.Children().Select(token => token.ToString());
+        }
+
+        static IEnumerable<object[]> GetValidJsonInputs()
+        {
+            return GetJsonTestCases("validJson").Select(s => new object[] { s });
+        }
+
+        static IEnumerable<object[]> GetExceptionJsonInputs()
+        {
+            return GetJsonTestCases("throwsException").Select(s => new object[] { s });
         }
     }
 }

@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 {
     using System;
@@ -27,10 +26,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             string correlationId = Guid.NewGuid().ToString();
             byte[] data = Encoding.UTF8.GetBytes(collection.ToJson());
             IMessage message = new EdgeMessage.Builder(data)
-                .SetSystemProperties(new Dictionary<string, string>
-                {
-                    [SystemProperties.CorrelationId] = correlationId
-                })
+                .SetSystemProperties(
+                    new Dictionary<string, string>
+                    {
+                        [SystemProperties.CorrelationId] = correlationId
+                    })
                 .Build();
             IMessageConverter<AmqpMessage> messageConverter = new AmqpTwinMessageConverter();
 

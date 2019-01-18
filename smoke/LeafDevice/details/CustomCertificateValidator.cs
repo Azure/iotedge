@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-
-namespace LeafDevice.details
+namespace LeafDevice.Details
 {
     using System;
     using System.Collections.Generic;

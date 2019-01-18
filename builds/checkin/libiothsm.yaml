@@ -3,6 +3,10 @@ pr:
   branches:
     include:
       - master
+  paths:
+    include:
+      - builds/*
+      - edgelet/*
 jobs:
 
 ################################################################################
@@ -12,10 +16,8 @@ jobs:
     pool:
       vmImage: 'ubuntu-16.04'
     steps:
-      - task: Bash@3
+      - bash: edgelet/build/linux/install.sh
         displayName: Install dependencies
-        inputs:
-          filePath: edgelet/build/linux/install.sh
       - task: CMake@1
         displayName: Setup
         inputs:
@@ -35,10 +37,8 @@ jobs:
     pool:
       vmImage: 'vs2017-win2016'
     steps:
-      - task: PowerShell@2
+      - powershell: edgelet/build/windows/install.ps1
         displayName: Install
-        inputs:
-          filePath: edgelet/build/windows/install.ps1
       - task: CMake@1
         displayName: Setup
         inputs:

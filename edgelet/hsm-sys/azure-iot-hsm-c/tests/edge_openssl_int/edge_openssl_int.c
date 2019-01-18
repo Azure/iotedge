@@ -128,8 +128,8 @@ static void test_helper_setup_temp_dir(char **pp_temp_dir, char **pp_temp_dir_gu
 {
     char *temp_dir, *guid;
     temp_dir = hsm_test_util_create_temp_dir(&guid);
-    ASSERT_IS_NOT_NULL_WITH_MSG(guid, "Line:" TOSTRING(__LINE__));
-    ASSERT_IS_NOT_NULL_WITH_MSG(temp_dir, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(guid, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(temp_dir, "Line:" TOSTRING(__LINE__));
     printf("Temp dir created: [%s]\r\n", temp_dir);
     *pp_temp_dir = temp_dir;
     *pp_temp_dir_guid = guid;
@@ -137,13 +137,13 @@ static void test_helper_setup_temp_dir(char **pp_temp_dir, char **pp_temp_dir_gu
 
 static void test_helper_teardown_temp_dir(char **pp_temp_dir, char **pp_temp_dir_guid)
 {
-    ASSERT_IS_NOT_NULL_WITH_MSG(pp_temp_dir, "Line:" TOSTRING(__LINE__));
-    ASSERT_IS_NOT_NULL_WITH_MSG(pp_temp_dir_guid, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(pp_temp_dir, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(pp_temp_dir_guid, "Line:" TOSTRING(__LINE__));
 
     char *temp_dir = *pp_temp_dir;
     char *guid = *pp_temp_dir_guid;
-    ASSERT_IS_NOT_NULL_WITH_MSG(temp_dir, "Line:" TOSTRING(__LINE__));
-    ASSERT_IS_NOT_NULL_WITH_MSG(guid, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(temp_dir, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(guid, "Line:" TOSTRING(__LINE__));
 
     hsm_test_util_delete_dir(guid);
     free(temp_dir);
@@ -156,9 +156,9 @@ static char* prepare_file_path(const char* base_dir, const char* file_name)
 {
     size_t path_size = get_max_file_path_size();
     char *file_path = calloc(path_size, 1);
-    ASSERT_IS_NOT_NULL_WITH_MSG(file_path, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(file_path, "Line:" TOSTRING(__LINE__));
     int status = snprintf(file_path, path_size, "%s%s", base_dir, file_name);
-    ASSERT_IS_TRUE_WITH_MSG(((status > 0) || (status < (int)path_size)), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE(((status > 0) || (status < (int)path_size)), "Line:" TOSTRING(__LINE__));
 
     return file_path;
 }
@@ -180,7 +180,7 @@ static CERT_PROPS_HANDLE test_helper_create_certificate_props
 )
 {
     CERT_PROPS_HANDLE cert_props_handle = cert_properties_create();
-    ASSERT_IS_NOT_NULL_WITH_MSG(cert_props_handle, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(cert_props_handle, "Line:" TOSTRING(__LINE__));
     set_validity_seconds(cert_props_handle, validity);
     set_common_name(cert_props_handle, common_name);
     set_country_name(cert_props_handle, "US");
@@ -212,7 +212,7 @@ static void test_helper_generate_pki_certificate
                                            cert_file,
                                            issuer_private_key_file,
                                            issuer_cert_file);
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
 }
 
 static void test_helper_generate_self_signed
@@ -231,7 +231,7 @@ static void test_helper_generate_self_signed
                                                       private_key_file,
                                                       cert_file,
                                                       key_props);
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
 }
 
 void test_helper_server_chain_validator(const PKI_KEY_PROPS *key_props)
@@ -286,21 +286,21 @@ void test_helper_server_chain_validator(const PKI_KEY_PROPS *key_props)
     // assert
     bool cert_verified = false;
     int status = verify_certificate(TEST_CA_CERT_RSA_FILE_2, TEST_CA_PK_RSA_FILE_2, TEST_CA_CERT_RSA_FILE_1, &cert_verified);
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-    ASSERT_IS_TRUE_WITH_MSG(cert_verified, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE(cert_verified, "Line:" TOSTRING(__LINE__));
     cert_verified = false;
     status = verify_certificate(TEST_SERVER_CERT_RSA_FILE_3, TEST_SERVER_PK_RSA_FILE_3, TEST_CA_CERT_RSA_FILE_2, &cert_verified);
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-    ASSERT_IS_TRUE_WITH_MSG(cert_verified, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE(cert_verified, "Line:" TOSTRING(__LINE__));
     cert_verified = false;
     status = verify_certificate(TEST_SERVER_CERT_RSA_FILE_3, TEST_SERVER_PK_RSA_FILE_3, TEST_SERVER_CERT_RSA_FILE_3, &cert_verified);
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-    ASSERT_IS_TRUE_WITH_MSG(cert_verified, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE(cert_verified, "Line:" TOSTRING(__LINE__));
     cert_verified = false;
     status = verify_certificate(TEST_SERVER_CERT_RSA_FILE_3, TEST_SERVER_PK_RSA_FILE_3, TEST_CA_CERT_RSA_FILE_1, &cert_verified);
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-    ASSERT_IS_FALSE_WITH_MSG(cert_verified, "Line:" TOSTRING(__LINE__));
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, cert_verified, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_FALSE(cert_verified, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL(int, 0, cert_verified, "Line:" TOSTRING(__LINE__));
 
     // cleanup
     delete_file(TEST_SERVER_PK_RSA_FILE_3);
@@ -317,11 +317,11 @@ void test_helper_server_chain_validator(const PKI_KEY_PROPS *key_props)
 static X509* test_helper_load_certificate_file(const char* cert_file_name)
 {
     BIO* cert_file = BIO_new_file(cert_file_name, "r");
-    ASSERT_IS_NOT_NULL_WITH_MSG(cert_file, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(cert_file, "Line:" TOSTRING(__LINE__));
     X509* x509_cert = PEM_read_bio_X509(cert_file, NULL, NULL, NULL);
     // make sure the file is closed before asserting below
     BIO_free_all(cert_file);
-    ASSERT_IS_NOT_NULL_WITH_MSG(x509_cert, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(x509_cert, "Line:" TOSTRING(__LINE__));
     return x509_cert;
 }
 
@@ -347,7 +347,7 @@ static void test_helper_validate_extension
     STACK_OF(X509_EXTENSION) *ext_list = cert_inf->extensions;
 #endif
 
-    ASSERT_IS_TRUE_WITH_MSG((sk_X509_EXTENSION_num(ext_list) > 0), "Found zero extensions");
+    ASSERT_IS_TRUE((sk_X509_EXTENSION_num(ext_list) > 0), "Found zero extensions");
 
     for (int ext_idx=0; ext_idx < sk_X509_EXTENSION_num(ext_list); ext_idx++)
     {
@@ -357,15 +357,15 @@ static void test_helper_validate_extension
         X509_EXTENSION *ext;
 
         ext = sk_X509_EXTENSION_value(ext_list, ext_idx);
-        ASSERT_IS_NOT_NULL_WITH_MSG(ext, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(ext, "Line:" TOSTRING(__LINE__));
 
         obj = X509_EXTENSION_get_object(ext);
-        ASSERT_IS_NOT_NULL_WITH_MSG(obj, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(obj, "Line:" TOSTRING(__LINE__));
 
         memset(output_buffer, 0, MAX_X509_EXT_SIZE);
         sz = i2t_ASN1_OBJECT(output_buffer, MAX_X509_EXT_SIZE, obj);
         // if size is larger use the call twice first to get size and then allocate or increase MAX_X509_EXT_SIZE
-        ASSERT_IS_FALSE_WITH_MSG((sz > MAX_X509_EXT_SIZE), "Unexpected buffer size");
+        ASSERT_IS_FALSE((sz > MAX_X509_EXT_SIZE), "Unexpected buffer size");
 
         if (strcmp(ext_name, output_buffer) == 0)
         {
@@ -375,14 +375,14 @@ static void test_helper_validate_extension
             printf("\r\nTesting Extension Contents: [%s]\r\n", output_buffer);
 
             BIO *mem_bio = BIO_new(BIO_s_mem());
-            ASSERT_IS_NOT_NULL_WITH_MSG(mem_bio, "Line:" TOSTRING(__LINE__));
+            ASSERT_IS_NOT_NULL(mem_bio, "Line:" TOSTRING(__LINE__));
             // print the extension contents into the mem_bio
             X509V3_EXT_print(mem_bio, ext, 0, 0);
             sz = BIO_get_mem_data(mem_bio, &memst);
-            ASSERT_IS_TRUE_WITH_MSG((sz > 0), "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NOT_NULL_WITH_MSG(memst, "Line:" TOSTRING(__LINE__));
+            ASSERT_IS_TRUE((sz > 0), "Line:" TOSTRING(__LINE__));
+            ASSERT_IS_NOT_NULL(memst, "Line:" TOSTRING(__LINE__));
             char *output_str = calloc(sz + 1, 1);
-            ASSERT_IS_NOT_NULL_WITH_MSG(output_str, "Line:" TOSTRING(__LINE__));
+            ASSERT_IS_NOT_NULL(output_str, "Line:" TOSTRING(__LINE__));
             memcpy(output_str, memst, sz);
             printf("\r\n Obtained Extension value from cert. Size:[%ld] Data:[%s]", sz, output_str);
             for (size_t idx = 0; idx < num_expted_vals; idx++)
@@ -402,8 +402,8 @@ static void test_helper_validate_extension
         }
     }
 
-    ASSERT_ARE_EQUAL_WITH_MSG(size_t, expected_num_ext_name_entries, nid_match,  "NID match count failed");
-    ASSERT_ARE_EQUAL_WITH_MSG(size_t, num_expted_vals, match_count,  "Match count failed");
+    ASSERT_ARE_EQUAL(size_t, expected_num_ext_name_entries, nid_match,  "NID match count failed");
+    ASSERT_ARE_EQUAL(size_t, num_expted_vals, match_count,  "Match count failed");
 }
 
 static void test_helper_validate_all_x509_extensions
@@ -422,7 +422,7 @@ static void test_helper_validate_all_x509_extensions
     bool test_path_len = false;
 
     CERTIFICATE_TYPE cert_type = get_certificate_type(handle);
-    ASSERT_ARE_NOT_EQUAL_WITH_MSG(size_t, CERTIFICATE_TYPE_UNKNOWN, cert_type, "Unknown cert type not supported");
+    ASSERT_ARE_NOT_EQUAL(size_t, CERTIFICATE_TYPE_UNKNOWN, cert_type, "Unknown cert type not supported");
 
     // setup common extension expected values such as basic constraints and SAN entries
     idx = 0;
@@ -443,7 +443,7 @@ static void test_helper_validate_all_x509_extensions
         idx = 0;
         expected_key_usage_vals_size = 2;
         expected_key_usage_vals = calloc(expected_key_usage_vals_size, sizeof(SIZED_BUFFER));
-        ASSERT_IS_NOT_NULL_WITH_MSG(expected_key_usage_vals, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(expected_key_usage_vals, "Line:" TOSTRING(__LINE__));
         expected_key_usage_vals[idx++] = TEST_X509_KEY_USAGE_DIG_SIG;
         expected_key_usage_vals[idx++] = TEST_X509_KEY_USAGE_KEY_CERT_SIGN;
 
@@ -456,7 +456,7 @@ static void test_helper_validate_all_x509_extensions
         idx = 0;
         expected_key_usage_vals_size = 4;
         expected_key_usage_vals = calloc(expected_key_usage_vals_size, sizeof(void*));
-        ASSERT_IS_NOT_NULL_WITH_MSG(expected_key_usage_vals, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(expected_key_usage_vals, "Line:" TOSTRING(__LINE__));
         expected_key_usage_vals[idx++] = TEST_X509_KEY_USAGE_DIG_SIG;
         expected_key_usage_vals[idx++] = TEST_X509_KEY_USAGE_NON_REPUDIATION;
         expected_key_usage_vals[idx++] = TEST_X509_KEY_USAGE_KEY_ENCIPHER;
@@ -465,7 +465,7 @@ static void test_helper_validate_all_x509_extensions
         idx = 0;
         expected_ext_key_usage_vals_size = 1;
         expected_ext_key_usage_vals = calloc(expected_ext_key_usage_vals_size, sizeof(void*));
-        ASSERT_IS_NOT_NULL_WITH_MSG(expected_ext_key_usage_vals, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(expected_ext_key_usage_vals, "Line:" TOSTRING(__LINE__));
         expected_ext_key_usage_vals[idx++] = TEST_X509_KEY_EXT_USAGE_CLIENT_AUTH;
     }
     else
@@ -473,7 +473,7 @@ static void test_helper_validate_all_x509_extensions
         idx = 0;
         expected_key_usage_vals_size = 5;
         expected_key_usage_vals = calloc(expected_key_usage_vals_size, sizeof(void*));
-        ASSERT_IS_NOT_NULL_WITH_MSG(expected_key_usage_vals, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(expected_key_usage_vals, "Line:" TOSTRING(__LINE__));
         expected_key_usage_vals[idx++] = TEST_X509_KEY_USAGE_DIG_SIG;
         expected_key_usage_vals[idx++] = TEST_X509_KEY_USAGE_NON_REPUDIATION;
         expected_key_usage_vals[idx++] = TEST_X509_KEY_USAGE_KEY_ENCIPHER;
@@ -483,7 +483,7 @@ static void test_helper_validate_all_x509_extensions
         idx = 0;
         expected_ext_key_usage_vals_size = 1;
         expected_ext_key_usage_vals = calloc(expected_ext_key_usage_vals_size, sizeof(SIZED_BUFFER));
-        ASSERT_IS_NOT_NULL_WITH_MSG(expected_ext_key_usage_vals, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(expected_ext_key_usage_vals, "Line:" TOSTRING(__LINE__));
         expected_ext_key_usage_vals[idx++] = TEST_X509_KEY_EXT_USAGE_SERVER_AUTH;
     }
     X509* cert = test_helper_load_certificate_file(cert_file_path);
@@ -540,13 +540,13 @@ void test_helper_x509_ext_validator(const PKI_KEY_PROPS *key_props)
     const char* server_san_list[] = {"URI:edgetest://server/test1", "DNS:test.contoso.com"};
     const char* client_san_list[] = {"URI:edgetest://client/test2", "email:test@contoso.com"};
     status = set_san_entries(ca_root_handle, ca_san_list, sizeof(ca_san_list)/sizeof(ca_san_list[0]));
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
     status = set_san_entries(int_ca_root_handle, int_ca_san_list, sizeof(int_ca_san_list)/sizeof(int_ca_san_list[0]));
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
     status = set_san_entries(server_root_handle, server_san_list, sizeof(server_san_list)/sizeof(server_san_list[0]));
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
     status = set_san_entries(client_root_handle, client_san_list, sizeof(client_san_list)/sizeof(client_san_list[0]));
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
     // act
     test_helper_generate_self_signed(ca_root_handle,
@@ -762,7 +762,7 @@ BEGIN_TEST_SUITE(edge_openssl_int_tests)
                                                           TEST_SERVER_CERT_RSA_FILE_1,
                                                           &key_props);
         // assert
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
 
         // cleanup
         cert_properties_destroy(cert_props_handle);

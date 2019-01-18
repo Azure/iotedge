@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 {
     using System;
@@ -18,10 +17,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
     public class RuntimeInfoProviderTest
     {
-        static readonly TimeSpan Timeout = TimeSpan.FromSeconds(300);
-        static readonly IDockerClient Client = DockerHelper.Client;
         const string OperatingSystemType = "linux";
         const string Architecture = "x86_x64";
+        static readonly TimeSpan Timeout = TimeSpan.FromSeconds(300);
+        static readonly IDockerClient Client = DockerHelper.Client;
 
         [Integration]
         [Fact]
@@ -61,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         {
             const string Image = "hello-world:latest";
             const string Name = "test-filters";
-            
+
             try
             {
                 using (var cts = new CancellationTokenSource(Timeout))
@@ -71,11 +70,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
                     var loggingConfig = new DockerLoggingConfig("json-file");
                     var config = new DockerConfig(Image);
-                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy, config, null, null);
-                    
+                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy, config, null, null);
+
                     var deploymentConfigModules = new Dictionary<string, IModule> { [Name] = module };
                     var systemModules = new SystemModules(null, null);
-                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", "")), systemModules, deploymentConfigModules));
+                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", string.Empty)), systemModules, deploymentConfigModules));
                     var configSource = new Mock<IConfigSource>();
                     configSource.Setup(cs => cs.AppSettings).Returns(new Mock<IAgentAppSettings>().Object);
                     configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
@@ -129,11 +128,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     string createOptions = @"{""Env"": [ ""k1=v1"", ""k2=v2""]}";
                     var config = new DockerConfig(Image, createOptions);
                     var loggingConfig = new DockerLoggingConfig("json-file");
-                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy, config, null, null);
-                    
+                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy, config, null, null);
+
                     var deploymentConfigModules = new Dictionary<string, IModule> { [Name] = module };
                     var systemModules = new SystemModules(null, null);
-                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", "")), systemModules, deploymentConfigModules));
+                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", string.Empty)), systemModules, deploymentConfigModules));
                     var configSource = new Mock<IConfigSource>();
                     configSource.Setup(cs => cs.AppSettings).Returns(new Mock<IAgentAppSettings>().Object);
                     configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
@@ -168,7 +167,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         public void InspectResponseToModuleTest()
         {
             const string StatusText = "Running for 1 second";
-            DateTime lastStartTime = DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind);
+            var lastStartTime = DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind);
             DateTime lastExitTime = lastStartTime.AddDays(1);
             // Arrange
             string hash = Guid.NewGuid().ToString();
@@ -193,7 +192,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.NotNull(module);
             var dockerModule = module as ModuleRuntimeInfo<DockerReportedConfig>;
             Assert.NotNull(dockerModule);
-            Assert.Equal("", dockerModule.Config.Image);
+            Assert.Equal(string.Empty, dockerModule.Config.Image);
 
             Assert.Equal("sensor", dockerModule.Name);
             Assert.Equal(0, dockerModule.ExitCode);
@@ -213,9 +212,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 Architecture = Architecture
             };
 
-            var dockerClient = Mock.Of<IDockerClient>(dc =>
-                dc.System == Mock.Of<ISystemOperations>(so => so.GetSystemInfoAsync(default(CancellationToken)) == Task.FromResult(systemInfoResponse)));
-            
+            IDockerClient dockerClient = Mock.Of<IDockerClient>(
+                dc =>
+                    dc.System == Mock.Of<ISystemOperations>(so => so.GetSystemInfoAsync(default(CancellationToken)) == Task.FromResult(systemInfoResponse)));
+
             // Act
             RuntimeInfoProvider runtimeInfoProvider = await RuntimeInfoProvider.CreateAsync(dockerClient);
             SystemInfo systemInfo = await runtimeInfoProvider.GetSystemInfo();

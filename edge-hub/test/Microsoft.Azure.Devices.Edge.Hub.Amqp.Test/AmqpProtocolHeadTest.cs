@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 {
     using System;
@@ -28,23 +27,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         [Unit]
         public void TestInvalidConstructorInputs()
         {
+            const bool clientCertsAllowed = true;
             X509Certificate2 tlsCertificate = CertificateHelper.GenerateSelfSignedCert("TestCert");
-            var transportSettings = new DefaultTransportSettings(Scheme, HostName, Port, tlsCertificate);
-            AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(IotHubHostName,  Mock.Of<IAuthenticator>(), Mock.Of<IClientCredentialsFactory>(), Mock.Of<ILinkHandlerProvider>(), Mock.Of<IConnectionProvider>(), new NullCredentialsCache());
+            var transportSettings = new DefaultTransportSettings(Scheme, HostName, Port, tlsCertificate, clientCertsAllowed, Mock.Of<IAuthenticator>(), Mock.Of<IClientCredentialsFactory>());
+            AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(IotHubHostName, Mock.Of<IAuthenticator>(), Mock.Of<IClientCredentialsFactory>(), Mock.Of<ILinkHandlerProvider>(), Mock.Of<IConnectionProvider>(), new NullCredentialsCache());
             var transportListenerProvider = new Mock<ITransportListenerProvider>();
             var webSockerListenerRegistry = new Mock<IWebSocketListenerRegistry>();
 
-            Assert.Throws<ArgumentNullException>(() => new AmqpProtocolHead(null, amqpSettings, transportListenerProvider.Object, webSockerListenerRegistry.Object));
-            Assert.Throws<ArgumentNullException>(() => new AmqpProtocolHead(transportSettings, null, transportListenerProvider.Object, webSockerListenerRegistry.Object));
-            Assert.Throws<ArgumentNullException>(() => new AmqpProtocolHead(transportSettings, amqpSettings, null, webSockerListenerRegistry.Object));
-            Assert.Throws<ArgumentNullException>(() => new AmqpProtocolHead(transportSettings, amqpSettings, transportListenerProvider.Object, null));
-            Assert.NotNull(new AmqpProtocolHead(transportSettings, amqpSettings, transportListenerProvider.Object, webSockerListenerRegistry.Object));
+            Assert.Throws<ArgumentNullException>(() => new AmqpProtocolHead(null, amqpSettings, transportListenerProvider.Object, webSockerListenerRegistry.Object, Mock.Of<IAuthenticator>(), Mock.Of<IClientCredentialsFactory>()));
+            Assert.Throws<ArgumentNullException>(() => new AmqpProtocolHead(transportSettings, null, transportListenerProvider.Object, webSockerListenerRegistry.Object, Mock.Of<IAuthenticator>(), Mock.Of<IClientCredentialsFactory>()));
+            Assert.Throws<ArgumentNullException>(() => new AmqpProtocolHead(transportSettings, amqpSettings, null, webSockerListenerRegistry.Object, Mock.Of<IAuthenticator>(), Mock.Of<IClientCredentialsFactory>()));
+            Assert.Throws<ArgumentNullException>(() => new AmqpProtocolHead(transportSettings, amqpSettings, transportListenerProvider.Object, null, Mock.Of<IAuthenticator>(), Mock.Of<IClientCredentialsFactory>()));
+            Assert.Throws<ArgumentNullException>(() => new AmqpProtocolHead(transportSettings, amqpSettings, transportListenerProvider.Object, webSockerListenerRegistry.Object, null, Mock.Of<IClientCredentialsFactory>()));
+            Assert.Throws<ArgumentNullException>(() => new AmqpProtocolHead(transportSettings, amqpSettings, transportListenerProvider.Object, webSockerListenerRegistry.Object, Mock.Of<IAuthenticator>(), null));
+            Assert.NotNull(new AmqpProtocolHead(transportSettings, amqpSettings, transportListenerProvider.Object, webSockerListenerRegistry.Object, Mock.Of<IAuthenticator>(), Mock.Of<IClientCredentialsFactory>()));
         }
 
         [Fact]
         [Unit]
         public async void TestStartAsyncThrowsIfCreateListenerThrows()
-        {            
+        {
             AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(IotHubHostName, Mock.Of<IAuthenticator>(), Mock.Of<IClientCredentialsFactory>(), Mock.Of<ILinkHandlerProvider>(), Mock.Of<IConnectionProvider>(), new NullCredentialsCache());
 
             var amqpTransportSettings = new Mock<TransportSettings>();
@@ -53,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var transportSettings = new Mock<ITransportSettings>();
             transportSettings.SetupGet(sp => sp.Settings).Returns(amqpTransportSettings.Object);
 
-            var protocolHead = new AmqpProtocolHead(transportSettings.Object, amqpSettings, Mock.Of<ITransportListenerProvider>(), Mock.Of<IWebSocketListenerRegistry>());
+            var protocolHead = new AmqpProtocolHead(transportSettings.Object, amqpSettings, Mock.Of<ITransportListenerProvider>(), Mock.Of<IWebSocketListenerRegistry>(), Mock.Of<IAuthenticator>(), Mock.Of<IClientCredentialsFactory>());
             await Assert.ThrowsAsync<ApplicationException>(() => protocolHead.StartAsync());
         }
 
@@ -70,23 +72,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             transportSettings.SetupGet(sp => sp.Settings).Returns(amqpTransportSettings.Object);
 
             var transportListenerProvider = new Mock<ITransportListenerProvider>();
-            transportListenerProvider.Setup(tlp => tlp.Create(
-                It.Is<IEnumerable<TransportListener>>(listeners => listeners.Contains(tcpTransportListener.Object)),
-                amqpSettings
-            )).Throws(new ApplicationException("No donuts for you"));
+            transportListenerProvider.Setup(
+                tlp => tlp.Create(
+                    It.Is<IEnumerable<TransportListener>>(listeners => listeners.Contains(tcpTransportListener.Object)),
+                    amqpSettings)).Throws(new ApplicationException("No donuts for you"));
 
-            var protocolHead = new AmqpProtocolHead(transportSettings.Object, amqpSettings, transportListenerProvider.Object, Mock.Of<IWebSocketListenerRegistry>());
+            var protocolHead = new AmqpProtocolHead(transportSettings.Object, amqpSettings, transportListenerProvider.Object, Mock.Of<IWebSocketListenerRegistry>(), Mock.Of<IAuthenticator>(), Mock.Of<IClientCredentialsFactory>());
             await Assert.ThrowsAsync<ApplicationException>(() => protocolHead.StartAsync());
         }
-
-        static IEnumerable<object[]> GetThrowingListeners() => new[]
-        {
-            // Causes OpenAsync to throw
-            new[] { new ThrowingTransportListener("AMQP", new ApplicationException("No donuts for you"), null) },
-
-            // Causes Listen to throw
-            new[] { new ThrowingTransportListener("AMQP", null, new ApplicationException("No donuts for you")) }
-        };
 
         [Theory]
         [MemberData(nameof(GetThrowingListeners))]
@@ -102,12 +95,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             transportSettings.SetupGet(sp => sp.Settings).Returns(amqpTransportSettings.Object);
 
             var transportListenerProvider = new Mock<ITransportListenerProvider>();
-            transportListenerProvider.Setup(tlp => tlp.Create(
-                It.Is<IEnumerable<TransportListener>>(listeners => listeners.Contains(tcpTransportListener.Object)),
-                amqpSettings
-            )).Returns(amqpTransportListener);
+            transportListenerProvider.Setup(
+                tlp => tlp.Create(
+                    It.Is<IEnumerable<TransportListener>>(listeners => listeners.Contains(tcpTransportListener.Object)),
+                    amqpSettings)).Returns(amqpTransportListener);
 
-            var protocolHead = new AmqpProtocolHead(transportSettings.Object, amqpSettings, transportListenerProvider.Object, Mock.Of<IWebSocketListenerRegistry>());
+            var protocolHead = new AmqpProtocolHead(transportSettings.Object, amqpSettings, transportListenerProvider.Object, Mock.Of<IWebSocketListenerRegistry>(), Mock.Of<IAuthenticator>(), Mock.Of<IClientCredentialsFactory>());
             await Assert.ThrowsAsync<ApplicationException>(() => protocolHead.StartAsync());
         }
 
@@ -132,12 +125,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                 });
 
             var transportListenerProvider = new Mock<ITransportListenerProvider>();
-            transportListenerProvider.Setup(tlp => tlp.Create(
-                It.Is<IEnumerable<TransportListener>>(listeners => listeners.Contains(tcpTransportListener.Object)),
-                amqpSettings
-            )).Returns(amqpTransportListener);
+            transportListenerProvider.Setup(
+                tlp => tlp.Create(
+                    It.Is<IEnumerable<TransportListener>>(listeners => listeners.Contains(tcpTransportListener.Object)),
+                    amqpSettings)).Returns(amqpTransportListener);
 
-            var protocolHead = new AmqpProtocolHead(transportSettings.Object, amqpSettings, transportListenerProvider.Object, Mock.Of<IWebSocketListenerRegistry>());
+            var protocolHead = new AmqpProtocolHead(transportSettings.Object, amqpSettings, transportListenerProvider.Object, Mock.Of<IWebSocketListenerRegistry>(), Mock.Of<IAuthenticator>(), Mock.Of<IClientCredentialsFactory>());
             await Assert.ThrowsAsync<ApplicationException>(() => protocolHead.StartAsync());
         }
 
@@ -166,12 +159,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                 });
 
             var transportListenerProvider = new Mock<ITransportListenerProvider>();
-            transportListenerProvider.Setup(tlp => tlp.Create(
-                It.Is<IEnumerable<TransportListener>>(listeners => listeners.Contains(tcpTransportListener.Object)),
-                amqpSettings
-            )).Returns(amqpTransportListener);
+            transportListenerProvider.Setup(
+                tlp => tlp.Create(
+                    It.Is<IEnumerable<TransportListener>>(listeners => listeners.Contains(tcpTransportListener.Object)),
+                    amqpSettings)).Returns(amqpTransportListener);
 
-            var protocolHead = new AmqpProtocolHead(transportSettings.Object, amqpSettings, transportListenerProvider.Object, Mock.Of<IWebSocketListenerRegistry>());
+            var protocolHead = new AmqpProtocolHead(transportSettings.Object, amqpSettings, transportListenerProvider.Object, Mock.Of<IWebSocketListenerRegistry>(), Mock.Of<IAuthenticator>(), Mock.Of<IClientCredentialsFactory>());
             await protocolHead.StartAsync();
         }
 
@@ -187,16 +180,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
             TestHelperAmqpConnection amqpConnection = null;
             runtimeProvider.Setup(rp => rp.CreateConnection(tcpTransport.Object, It.IsAny<ProtocolHeader>(), false, It.IsAny<AmqpSettings>(), It.IsAny<AmqpConnectionSettings>()))
-                .Callback((
-                    TransportBase transport,
-                    ProtocolHeader protocolHeader,
-                    bool isInitiator,
-                    AmqpSettings settings,
-                    AmqpConnectionSettings connectionSettings) =>
-                {
-                    amqpConnection = new TestHelperAmqpConnection(transport, protocolHeader, isInitiator, settings, connectionSettings);
-                    amqpConnection.OnOpenInternal = () => throw new OperationCanceledException("No donuts for you");
-                })
+                .Callback(
+                    (
+                        TransportBase transport,
+                        ProtocolHeader protocolHeader,
+                        bool isInitiator,
+                        AmqpSettings settings,
+                        AmqpConnectionSettings connectionSettings) =>
+                    {
+                        amqpConnection = new TestHelperAmqpConnection(transport, protocolHeader, isInitiator, settings, connectionSettings);
+                        amqpConnection.OnOpenInternal = () => throw new OperationCanceledException("No donuts for you");
+                    })
                 .Returns(() => amqpConnection);
 
             var tcpTransportListener = new Mock<TransportListener>("TCP");
@@ -214,12 +208,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                 });
 
             var transportListenerProvider = new Mock<ITransportListenerProvider>();
-            transportListenerProvider.Setup(tlp => tlp.Create(
-                It.Is<IEnumerable<TransportListener>>(listeners => listeners.Contains(tcpTransportListener.Object)),
-                amqpSettings
-            )).Returns(amqpTransportListener);
+            transportListenerProvider.Setup(
+                tlp => tlp.Create(
+                    It.Is<IEnumerable<TransportListener>>(listeners => listeners.Contains(tcpTransportListener.Object)),
+                    amqpSettings)).Returns(amqpTransportListener);
 
-            var protocolHead = new AmqpProtocolHead(transportSettings.Object, amqpSettings, transportListenerProvider.Object, Mock.Of<IWebSocketListenerRegistry>());
+            var protocolHead = new AmqpProtocolHead(transportSettings.Object, amqpSettings, transportListenerProvider.Object, Mock.Of<IWebSocketListenerRegistry>(), Mock.Of<IAuthenticator>(), Mock.Of<IClientCredentialsFactory>());
             await protocolHead.StartAsync();
 
             // check if close on the connection was called
@@ -227,16 +221,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             Assert.True(amqpConnection.WasClosed);
         }
 
+        static IEnumerable<object[]> GetThrowingListeners() => new[]
+        {
+            // Causes OpenAsync to throw
+            new[] { new ThrowingTransportListener("AMQP", new ApplicationException("No donuts for you"), null) },
+
+            // Causes Listen to throw
+            new[] { new ThrowingTransportListener("AMQP", null, new ApplicationException("No donuts for you")) }
+        };
+
         class TestHelperAmqpConnection : AmqpConnection
         {
-            public Action OnOpenInternal { get; set; }
-            public bool WasClosed { get; set; }
-
-            public TestHelperAmqpConnection(TransportBase transport, ProtocolHeader protocolHeader, bool
-                isInitiator, AmqpSettings amqpSettings, AmqpConnectionSettings connectionSettings)
+            public TestHelperAmqpConnection(
+                TransportBase transport,
+                ProtocolHeader protocolHeader,
+                bool
+                    isInitiator,
+                AmqpSettings amqpSettings,
+                AmqpConnectionSettings connectionSettings)
                 : base(transport, protocolHeader, isInitiator, amqpSettings, connectionSettings)
             {
             }
+
+            public Action OnOpenInternal { get; set; }
+
+            public bool WasClosed { get; set; }
 
             protected override bool OpenInternal()
             {

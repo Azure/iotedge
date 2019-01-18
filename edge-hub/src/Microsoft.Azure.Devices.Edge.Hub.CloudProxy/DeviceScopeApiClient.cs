@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System;
@@ -16,20 +15,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     public class DeviceScopeApiClient : IDeviceScopeApiClient
     {
         const int RetryCount = 2;
+
+        const string InScopeIdentitiesUriTemplate = "/devices/{0}/modules/{1}/devicesAndModulesInDeviceScope?deviceCount={2}&continuationToken={3}&api-version={4}";
+
+        const string InScopeTargetIdentityUriFormat = "/devices/{0}/modules/{1}/deviceAndModuleInDeviceScope?targetDeviceId={2}&targetModuleId={3}&api-version={4}";
+
+        const string ApiVersion = "2018-08-30-preview";
+
         static readonly ITransientErrorDetectionStrategy TransientErrorDetectionStrategy = new ErrorDetectionStrategy();
+
         static readonly RetryStrategy TransientRetryStrategy =
             new ExponentialBackoff(RetryCount, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(4));
 
-        const string InScopeIdentitiesUriTemplate = "/devices/{0}/modules/{1}/devicesAndModulesInDeviceScope?deviceCount={2}&continuationToken={3}&api-version={4}";
-        const string InScopeTargetIdentityUriFormat = "/devices/{0}/modules/{1}/deviceAndModuleInDeviceScope?targetDeviceId={2}&targetModuleId={3}&api-version={4}";
-
         readonly RetryStrategy retryStrategy;
+
         readonly Uri iotHubBaseHttpUri;
         readonly string deviceId;
         readonly string moduleId;
         readonly int batchSize;
         readonly ITokenProvider edgeHubTokenProvider;
-        const string ApiVersion = "2018-08-30-preview";
+        readonly Option<IWebProxy> proxy;
 
         public DeviceScopeApiClient(
             string iotHubHostName,
@@ -37,6 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             string moduleId,
             int batchSize,
             ITokenProvider edgeHubTokenProvider,
+            Option<IWebProxy> proxy,
             RetryStrategy retryStrategy = null)
         {
             Preconditions.CheckNonWhiteSpace(iotHubHostName, nameof(iotHubHostName));
@@ -45,6 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.moduleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.batchSize = Preconditions.CheckRange(batchSize, 0, 1000, nameof(batchSize));
             this.edgeHubTokenProvider = Preconditions.CheckNotNull(edgeHubTokenProvider, nameof(edgeHubTokenProvider));
+            this.proxy = Preconditions.CheckNotNull(proxy, nameof(proxy));
             this.retryStrategy = retryStrategy ?? TransientRetryStrategy;
         }
 
@@ -78,6 +85,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             return uri;
         }
 
+        static Task<T> ExecuteWithRetry<T>(Func<Task<T>> func, Action<RetryingEventArgs> onRetry, RetryStrategy retryStrategy)
+        {
+            var transientRetryPolicy = new RetryPolicy(TransientErrorDetectionStrategy, retryStrategy);
+            transientRetryPolicy.Retrying += (_, args) => onRetry(args);
+            return transientRetryPolicy.ExecuteAsync(func);
+        }
+
         async Task<ScopeResult> GetIdentitiesInScopeWithRetry(Uri uri)
         {
             try
@@ -96,7 +110,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         async Task<ScopeResult> GetIdentitiesInScope(Uri uri)
         {
-            var client = new HttpClient();
+            HttpClient client = this.proxy
+                .Map(p => new HttpClient(new HttpClientHandler { Proxy = p }, disposeHandler: true))
+                .GetOrElse(() => new HttpClient());
             using (var msg = new HttpRequestMessage(HttpMethod.Get, uri))
             {
                 string token = await this.edgeHubTokenProvider.GetTokenAsync(Option.None<TimeSpan>());
@@ -115,13 +131,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     throw new DeviceScopeApiException("Error getting device scope result from IoTHub", response.StatusCode, content);
                 }
             }
-        }
-
-        static Task<T> ExecuteWithRetry<T>(Func<Task<T>> func, Action<RetryingEventArgs> onRetry, RetryStrategy retryStrategy)
-        {
-            var transientRetryPolicy = new RetryPolicy(TransientErrorDetectionStrategy, retryStrategy);
-            transientRetryPolicy.Retrying += (_, args) => onRetry(args);
-            return transientRetryPolicy.ExecuteAsync(func);
         }
 
         internal class ErrorDetectionStrategy : ITransientErrorDetectionStrategy
@@ -162,8 +171,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<DeviceScopeApiClient>();
             const int IdStart = CloudProxyEventIds.DeviceScopeApiClient;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<DeviceScopeApiClient>();
 
             enum EventIds
             {

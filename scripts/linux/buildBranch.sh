@@ -21,7 +21,7 @@ SRC_BIN_DIR=$ROOT_FOLDER/bin
 SRC_DOCKER_DIR=$ROOT_FOLDER/docker
 SRC_SCRIPTS_DIR=$ROOT_FOLDER/scripts
 SRC_STRESS_DIR=$ROOT_FOLDER/stress
-SRC_E2E_TEMPLATES_DIR=$ROOT_FOLDER/smoke/IotEdgeQuickstart/e2e_deployment_files
+SRC_E2E_TEMPLATES_DIR=$ROOT_FOLDER/e2e_deployment_files
 FUNCTIONS_SAMPLE_DIR=$ROOT_FOLDER/edge-modules/functions/samples
 VERSIONINFO_FILE_PATH=$BUILD_REPOSITORY_LOCALPATH/versionInfo.json
 
@@ -201,11 +201,25 @@ publish_leafdevice()
         .
 }
 
+build_solution()
+{
+    echo "Building IoT Edge solution"
+    $DOTNET_ROOT_PATH/dotnet build \
+        -c $CONFIGURATION \
+        -o "$BUILD_BINARIESDIRECTORY" \
+        "$ROOT_FOLDER/Microsoft.Azure.Devices.Edge.sln"
+    if [ $? -gt 0 ]; then
+        RES=1
+    fi
+}
+
 process_args "$@"
 
 rm -fr $PUBLISH_FOLDER
 
 update_version_info
+
+build_solution
 
 publish_app "Microsoft.Azure.Devices.Edge.Agent.Service"
 publish_app "Microsoft.Azure.Devices.Edge.Hub.Service"

@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 {
     using System;
     using System.Collections.Generic;
+    using System.Net;
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -108,29 +108,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             }
         }
 
-        IConnectionHandler GetConnectionHandler(IAmqpLink link, IIdentity identity)
-        {
-            var amqpClientConnectionsHandler = link.Session.Connection.FindExtension<IClientConnectionsHandler>();
-            if (amqpClientConnectionsHandler == null)
-            {
-                throw new InvalidOperationException("Expected extension IAmqpClientConnectionsHandler not found on connection");
-            }
-
-            return amqpClientConnectionsHandler.GetConnectionHandler(identity);
-        }
-
-        IIdentity GetIdentity(IDictionary<string, string> boundVariables)
-        {
-            if (!boundVariables.TryGetValue(Templates.DeviceIdTemplateParameterName, out string deviceId))
-            {
-                throw new InvalidOperationException("Link should contain a device Id");
-            }
-
-            return boundVariables.TryGetValue(Templates.ModuleIdTemplateParameterName, out string moduleId)
-                ? this.identityProvider.Create(deviceId, moduleId)
-                : this.identityProvider.Create(deviceId);
-        }
-
         internal (LinkType LinkType, IDictionary<string, string> BoundVariables) GetLinkType(IAmqpLink link, Uri uri)
         {
             foreach ((UriPathTemplate Template, bool IsReceiver) key in this.templatesList.Keys)
@@ -149,6 +126,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             bool success;
             (success, boundVariables) = template.Match(new Uri(uri.AbsolutePath, UriKind.Relative));
             return success;
+        }
+
+        IConnectionHandler GetConnectionHandler(IAmqpLink link, IIdentity identity)
+        {
+            var amqpClientConnectionsHandler = link.Session.Connection.FindExtension<IClientConnectionsHandler>();
+            if (amqpClientConnectionsHandler == null)
+            {
+                throw new InvalidOperationException("Expected extension IAmqpClientConnectionsHandler not found on connection");
+            }
+
+            return amqpClientConnectionsHandler.GetConnectionHandler(identity);
+        }
+
+        internal IIdentity GetIdentity(IDictionary<string, string> boundVariables)
+        {
+            if (!boundVariables.TryGetValue(Templates.DeviceIdTemplateParameterName, out string deviceId))
+            {
+                throw new InvalidOperationException("Link should contain a device Id");
+            }
+
+            deviceId = WebUtility.UrlDecode(deviceId);
+            return boundVariables.TryGetValue(Templates.ModuleIdTemplateParameterName, out string moduleId)
+                ? this.identityProvider.Create(deviceId, WebUtility.UrlDecode(moduleId))
+                : this.identityProvider.Create(deviceId);
         }
     }
 }

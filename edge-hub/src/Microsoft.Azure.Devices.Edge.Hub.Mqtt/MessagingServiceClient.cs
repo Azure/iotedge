@@ -13,7 +13,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Primitives;
     using static System.FormattableString;
-    using IProtocolGatewayMessage = ProtocolGateway.Messaging.IMessage;
+    using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
+    using IProtocolGatewayMessage = Microsoft.Azure.Devices.ProtocolGateway.Messaging.IMessage;
 
     public class MessagingServiceClient : IMessagingServiceClient
     {
@@ -30,6 +31,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             this.byteBufferConverter = Preconditions.CheckNotNull(byteBufferConverter, nameof(byteBufferConverter));
         }
 
+        public int MaxPendingMessages => 100;
+
         public IProtocolGatewayMessage CreateMessage(string address, IByteBuffer payload)
         {
             ProtocolGatewayMessage message = new ProtocolGatewayMessage.Builder(payload, address)
@@ -43,11 +46,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             this.deviceListener.BindDeviceProxy(deviceProxy);
             Events.BindMessageChannel(this.deviceListener.Identity);
         }
-
-        // We are only interested in non-NULL message IDs which are different than TwinLockToken. A twin
-        // message sent out via PG for example will cause a feedback to be generated
-        // with TwinLockToken as message ID which is redundant.
-        static bool IsValidMessageId(string messageId) => messageId != null && messageId != Constants.TwinLockToken;
 
         public Task AbandonAsync(string messageId) => IsValidMessageId(messageId)
             ? this.deviceListener.ProcessMessageFeedbackAsync(messageId, FeedbackStatus.Abandon)
@@ -89,7 +87,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             }
         }
 
-        public int MaxPendingMessages => 100;
+        // We are only interested in non-NULL message IDs which are different than TwinLockToken. A twin
+        // message sent out via PG for example will cause a feedback to be generated
+        // with TwinLockToken as message ID which is redundant.
+        static bool IsValidMessageId(string messageId) => messageId != null && messageId != Constants.TwinLockToken;
+
+        static bool IsTwinAddress(string topicName) => topicName.StartsWith(Constants.TwinPrefix, StringComparison.Ordinal);
+
+        static bool IsMethodResponseAddress(string topicName) => topicName.StartsWith(Constants.MethodPrefix, StringComparison.Ordinal);
+
+        static void EnsureNoSubresource(StringSegment subresource)
+        {
+            if (subresource.Length != 0)
+            {
+                throw new InvalidOperationException($"Further resource specialization is not supported: `{subresource.ToString()}`.");
+            }
+        }
 
         async Task ProcessTwinAsync(IProtocolGatewayMessage protocolGatewayMessage)
         {
@@ -115,7 +128,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     case TwinAddressHelper.Operation.TwinPatchReportedState:
                         EnsureNoSubresource(subresource);
 
-                        Core.IMessage forwardMessage = new EdgeMessage.Builder(this.byteBufferConverter.ToByteArray(protocolGatewayMessage.Payload))
+                        IMessage forwardMessage = new EdgeMessage.Builder(this.byteBufferConverter.ToByteArray(protocolGatewayMessage.Payload))
                             .Build();
                         await this.deviceListener.UpdateReportedPropertiesAsync(forwardMessage, hasCorrelationId ? correlationId.ToString() : string.Empty);
                         Events.UpdateReportedProperties(this.deviceListener.Identity);
@@ -135,7 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         {
             try
             {
-                Core.IMessage coreMessage = this.messageConverter.ToMessage(message);
+                IMessage coreMessage = this.messageConverter.ToMessage(message);
                 this.deviceListener.ProcessMethodResponseAsync(coreMessage);
                 return Task.CompletedTask;
             }
@@ -150,7 +163,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         {
             try
             {
-                Core.IMessage coreMessage = this.messageConverter.ToMessage(message);
+                IMessage coreMessage = this.messageConverter.ToMessage(message);
                 Events.ProcessMessage(this.deviceListener.Identity);
                 return this.deviceListener.ProcessDeviceMessageAsync(coreMessage);
             }
@@ -161,22 +174,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             }
         }
 
-        static bool IsTwinAddress(string topicName) => topicName.StartsWith(Constants.TwinPrefix, StringComparison.Ordinal);
-
-        static bool IsMethodResponseAddress(string topicName) => topicName.StartsWith(Constants.MethodPrefix, StringComparison.Ordinal);
-
-        static void EnsureNoSubresource(StringSegment subresource)
-        {
-            if (subresource.Length != 0)
-            {
-                throw new InvalidOperationException($"Further resource specialization is not supported: `{subresource.ToString()}`.");
-            }
-        }
-
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<MessagingServiceClient>();
             const int IdStart = MqttEventIds.MessagingServiceClient;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<MessagingServiceClient>();
 
             enum EventIds
             {

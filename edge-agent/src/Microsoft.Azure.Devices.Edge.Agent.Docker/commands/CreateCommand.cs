@@ -16,11 +16,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
     {
         readonly CreateContainerParameters createContainerParameters;
         readonly IDockerClient client;
+
         static readonly Dictionary<string, PortBinding> EdgeHubPortBinding = new Dictionary<string, PortBinding>
         {
-            {"8883/tcp", new PortBinding {HostPort="8883" } },
-            {"443/tcp", new PortBinding {HostPort="443" } }
+            { "8883/tcp", new PortBinding { HostPort = "8883" } },
+            { "443/tcp", new PortBinding { HostPort = "443" } }
         };
+
         readonly Lazy<string> id;
 
         public CreateCommand(IDockerClient client, CreateContainerParameters createContainerParameters)
@@ -40,8 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             IModuleIdentity identity,
             DockerLoggingConfig defaultDockerLoggerConfig,
             IConfigSource configSource,
-            bool buildForEdgeHub
-        )
+            bool buildForEdgeHub)
         {
             // Validate parameters
             Preconditions.CheckNotNull(client, nameof(client));
@@ -84,6 +85,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
 
         public Task UndoAsync(CancellationToken token) => TaskEx.Done;
 
+        internal static void InjectPortBindings(CreateContainerParameters createContainerParameters, bool injectForEdgeHub)
+        {
+            if (injectForEdgeHub)
+            {
+                createContainerParameters.HostConfig = createContainerParameters.HostConfig ?? new HostConfig();
+                createContainerParameters.HostConfig.PortBindings = createContainerParameters.HostConfig.PortBindings ?? new Dictionary<string, IList<PortBinding>>();
+
+                foreach (KeyValuePair<string, PortBinding> binding in EdgeHubPortBinding)
+                {
+                    IList<PortBinding> current = createContainerParameters.HostConfig.PortBindings.GetOrElse(binding.Key, () => new List<PortBinding>());
+                    if (!current.Any(p => p.HostPort.Equals(binding.Value.HostPort, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        current.Add(binding.Value);
+                    }
+
+                    createContainerParameters.HostConfig.PortBindings[binding.Key] = current;
+                }
+            }
+        }
+
         static void InjectConfig(CreateContainerParameters createContainerParameters, IModuleIdentity identity, bool injectForEdgeHub, IAgentAppSettings appSettings)
         {
             var envVars = new List<string>();
@@ -112,25 +133,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             InjectEnvVars(createContainerParameters, envVars);
         }
 
-        internal static void InjectPortBindings(CreateContainerParameters createContainerParameters, bool injectForEdgeHub)
-        {
-            if (injectForEdgeHub)
-            {
-                createContainerParameters.HostConfig = createContainerParameters.HostConfig ?? new HostConfig();
-                createContainerParameters.HostConfig.PortBindings = createContainerParameters.HostConfig.PortBindings ?? new Dictionary<string, IList<PortBinding>>();
-
-                foreach (KeyValuePair<string, PortBinding> binding in EdgeHubPortBinding)
-                {
-                    IList<PortBinding> current = createContainerParameters.HostConfig.PortBindings.GetOrElse(binding.Key, () => new List<PortBinding>());
-                    if (!current.Any(p => p.HostPort.Equals(binding.Value.HostPort, StringComparison.OrdinalIgnoreCase)))
-                    {
-                        current.Add(binding.Value);
-                    }
-                    createContainerParameters.HostConfig.PortBindings[binding.Key] = current;
-                }
-            }
-        }
-
         static void InjectLoggerConfig(CreateContainerParameters createContainerParameters, DockerLoggingConfig defaultDockerLoggerConfig, Option<string> sourceLoggingOptions)
         {
             createContainerParameters.HostConfig = createContainerParameters.HostConfig ?? new HostConfig();
@@ -138,8 +140,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             Option<LogConfig> sourceOptions;
             try
             {
-                sourceOptions = sourceLoggingOptions.Filter(l => !string.IsNullOrEmpty(l)).Map(l =>
-                    JsonConvert.DeserializeObject<LogConfig>(l));
+                sourceOptions = sourceLoggingOptions.Filter(l => !string.IsNullOrEmpty(l)).Map(
+                    l =>
+                        JsonConvert.DeserializeObject<LogConfig>(l));
             }
             catch
             {
@@ -148,11 +151,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
 
             if (string.IsNullOrWhiteSpace(createContainerParameters.HostConfig.LogConfig?.Type))
             {
-                createContainerParameters.HostConfig.LogConfig = sourceOptions.GetOrElse(new LogConfig
-                {
-                    Type = defaultDockerLoggerConfig.Type,
-                    Config = defaultDockerLoggerConfig.Config
-                });
+                createContainerParameters.HostConfig.LogConfig = sourceOptions.GetOrElse(
+                    new LogConfig
+                    {
+                        Type = defaultDockerLoggerConfig.Type,
+                        Config = defaultDockerLoggerConfig.Config
+                    });
             }
         }
 
@@ -230,8 +234,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
                 InjectVolume(
                     createContainerParameters,
                     appSettings.EdgeHubVolumeName,
-                    appSettings.EdgeHubVolumePath
-                );
+                    appSettings.EdgeHubVolumePath);
             }
             else
             {
@@ -246,8 +249,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
                 InjectVolume(
                     createContainerParameters,
                     appSettings.EdgeModuleVolumeName,
-                    appSettings.EdgeModuleVolumePath
-                );
+                    appSettings.EdgeModuleVolumePath);
             }
 
             InjectEnvVars(createContainerParameters, varsList);
@@ -262,13 +264,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             {
                 envVars.Add($"{envVar.Key}={envVar.Value.Value}");
             }
+
             InjectEnvVars(createContainerParameters, envVars);
         }
 
         static void InjectEnvVars(
             CreateContainerParameters createContainerParameters,
-            IList<string> varsList
-        )
+            IList<string> varsList)
         {
             createContainerParameters.Env = createContainerParameters.Env?.RemoveIntersectionKeys(varsList).ToList() ?? new List<string>();
             foreach (string envVar in varsList)

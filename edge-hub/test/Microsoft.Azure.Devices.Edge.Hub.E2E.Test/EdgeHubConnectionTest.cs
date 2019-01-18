@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Net;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
@@ -23,6 +23,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Moq;
     using Newtonsoft.Json;
     using Xunit;
+    using IotHubConnectionStringBuilder = Microsoft.Azure.Devices.IotHubConnectionStringBuilder;
+    using Message = Microsoft.Azure.Devices.Client.Message;
 
     [Integration]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
@@ -39,13 +41,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             var messageConverterProvider = new MessageConverterProvider(
                 new Dictionary<Type, IMessageConverter>()
                 {
-                    { typeof(Client.Message), new DeviceClientMessageConverter() },
+                    { typeof(Message), new DeviceClientMessageConverter() },
                     { typeof(Twin), twinMessageConverter },
                     { typeof(TwinCollection), twinCollectionMessageConverter }
                 });
 
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
-            Devices.IotHubConnectionStringBuilder iotHubConnectionStringBuilder = Devices.IotHubConnectionStringBuilder.Create(iotHubConnectionString);
+            IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
             RegistryManager registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
             await registryManager.OpenAsync();
 
@@ -57,19 +59,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             string edgeHubConnectionString = $"{deviceConnStr};ModuleId={EdgeHubModuleId}";
 
             IClientCredentials edgeHubCredentials = identityFactory.GetWithConnectionString(edgeHubConnectionString);
+            string sasKey = ConnectionStringHelper.GetSharedAccessKey(deviceConnStr);
+            var signatureProvider = new SharedAccessKeySignatureProvider(sasKey);
             var credentialsCache = Mock.Of<ICredentialsCache>();
             var cloudConnectionProvider = new CloudConnectionProvider(
                 messageConverterProvider,
                 1,
                 new ClientProvider(),
                 Option.None<UpstreamProtocol>(),
-                Mock.Of<ITokenProvider>(),
+                new ClientTokenProvider(signatureProvider, iothubHostName, edgeDeviceId, TimeSpan.FromMinutes(60)),
                 Mock.Of<IDeviceScopeIdentitiesCache>(),
                 credentialsCache,
                 edgeHubCredentials.Identity,
                 TimeSpan.FromMinutes(60),
                 true,
-                TimeSpan.FromSeconds(20));
+                TimeSpan.FromSeconds(20),
+                Option.None<IWebProxy>());
             var connectionManager = new ConnectionManager(cloudConnectionProvider, Mock.Of<ICredentialsCache>(), identityProvider);
 
             try
@@ -110,8 +115,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     twinCollectionMessageConverter,
                     twinMessageConverter,
                     versionInfo,
-                    new NullDeviceScopeIdentitiesCache()
-                );
+                    new NullDeviceScopeIdentitiesCache());
                 await Task.Delay(TimeSpan.FromMinutes(1));
 
                 // Get and Validate EdgeHubConfig
@@ -165,7 +169,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 Assert.Equal(versionInfo, reportedProperties.VersionInfo);
 
                 // Simulate a module and a downstream device that connects to Edge Hub.
-
                 string moduleId = "module1";
                 string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/{edgeDeviceId}/modules/{moduleId}");
                 string moduleConnectionstring = $"HostName={iothubHostName};DeviceId={edgeDeviceId};ModuleId={moduleId};SharedAccessSignature={sasToken}";

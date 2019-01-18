@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Util.Edged
 {
     using System;
@@ -13,8 +12,10 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
     public class WorkloadClient
     {
         static readonly ITransientErrorDetectionStrategy TransientErrorDetectionStrategy = new ErrorDetectionStrategy();
+
         static readonly RetryStrategy TransientRetryStrategy =
             new ExponentialBackoff(retryCount: 3, minBackoff: TimeSpan.FromSeconds(2), maxBackoff: TimeSpan.FromSeconds(30), deltaBackoff: TimeSpan.FromSeconds(3));
+
         readonly Uri workloadUri;
         readonly string apiVersion;
         readonly string moduleId;
@@ -84,6 +85,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
             }
         }
 
+        static Task<T> ExecuteWithRetry<T>(Func<Task<T>> func, Action<RetryingEventArgs> onRetry)
+        {
+            var transientRetryPolicy = new RetryPolicy(TransientErrorDetectionStrategy, TransientRetryStrategy);
+            transientRetryPolicy.Retrying += (_, args) => onRetry(args);
+            return transientRetryPolicy.ExecuteAsync(func);
+        }
+
         async Task<T> Execute<T>(Func<Task<T>> func, string operation)
         {
             try
@@ -110,29 +118,23 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
                         {
                             throw new WorkloadCommunicationException($"Error calling {operation}: {swaggerException.Response ?? string.Empty}", swaggerException.StatusCode);
                         }
+
                     default:
                         throw;
                 }
             }
         }
 
-        static Task<T> ExecuteWithRetry<T>(Func<Task<T>> func, Action<RetryingEventArgs> onRetry)
-        {
-            var transientRetryPolicy = new RetryPolicy(TransientErrorDetectionStrategy, TransientRetryStrategy);
-            transientRetryPolicy.Retrying += (_, args) => onRetry(args);
-            return transientRetryPolicy.ExecuteAsync(func);
-        }
-
         class ErrorDetectionStrategy : ITransientErrorDetectionStrategy
         {
             public bool IsTransient(Exception ex) => ex is IoTEdgedException se
-                && se.StatusCode >= 500;
+                                                     && se.StatusCode >= 500;
         }
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<WorkloadClient>();
             const int IdStart = UtilEventsIds.EdgeletWorkloadClient;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<WorkloadClient>();
 
             enum EventIds
             {

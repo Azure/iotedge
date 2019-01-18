@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Net;
     using System.Threading.Tasks;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Routing;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Storage;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Twin;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
@@ -21,8 +22,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
     using Microsoft.Azure.Devices.Shared;
-    using IRoutingMessage = Routing.Core.IMessage;
-    using Message = Client.Message;
+    using Microsoft.Extensions.Logging;
+    using IRoutingMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
+    using Message = Microsoft.Azure.Devices.Client.Message;
 
     public class RoutingModule : Module
     {
@@ -42,8 +44,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly TimeSpan cloudConnectionIdleTimeout;
         readonly bool closeCloudConnectionOnIdleTimeout;
         readonly TimeSpan operationTimeout;
+        readonly Option<TimeSpan> minTwinSyncPeriod;
+        readonly Option<TimeSpan> reportedPropertiesSyncFrequency;
+        readonly bool useV1TwinManager;
 
-        public RoutingModule(string iotHubName,
+        public RoutingModule(
+            string iotHubName,
             string edgeDeviceId,
             string edgeModuleId,
             Option<string> connectionString,
@@ -58,7 +64,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             int maxConnectedClients,
             TimeSpan cloudConnectionIdleTimeout,
             bool closeCloudConnectionOnIdleTimeout,
-            TimeSpan operationTimeout)
+            TimeSpan operationTimeout,
+            Option<TimeSpan> minTwinSyncPeriod,
+            Option<TimeSpan> reportedPropertiesSyncFrequency,
+            bool useV1TwinManager)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
@@ -76,6 +85,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.cloudConnectionIdleTimeout = cloudConnectionIdleTimeout;
             this.closeCloudConnectionOnIdleTimeout = closeCloudConnectionOnIdleTimeout;
             this.operationTimeout = operationTimeout;
+            this.minTwinSyncPeriod = minTwinSyncPeriod;
+            this.reportedPropertiesSyncFrequency = reportedPropertiesSyncFrequency;
+            this.useV1TwinManager = useV1TwinManager;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -87,33 +99,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 
             // IRoutingPerfCounter
             builder.Register(
-                c =>
-                {
-                    Routing.PerfCounter = NullRoutingPerfCounter.Instance;
-                    return Routing.PerfCounter;
-                })
+                    c =>
+                    {
+                        Routing.PerfCounter = NullRoutingPerfCounter.Instance;
+                        return Routing.PerfCounter;
+                    })
                 .As<IRoutingPerfCounter>()
                 .AutoActivate()
                 .SingleInstance();
 
             // IRoutingUserAnalyticsLogger
             builder.Register(
-                c =>
-                {
-                    Routing.UserAnalyticsLogger = NullUserAnalyticsLogger.Instance;
-                    return Routing.UserAnalyticsLogger;
-                })
+                    c =>
+                    {
+                        Routing.UserAnalyticsLogger = NullUserAnalyticsLogger.Instance;
+                        return Routing.UserAnalyticsLogger;
+                    })
                 .As<IRoutingUserAnalyticsLogger>()
                 .AutoActivate()
                 .SingleInstance();
 
             // IRoutingUserMetricLogger
             builder.Register(
-                c =>
-                {
-                    Routing.UserMetricLogger = NullRoutingUserMetricLogger.Instance;
-                    return Routing.UserMetricLogger;
-                })
+                    c =>
+                    {
+                        Routing.UserMetricLogger = NullRoutingUserMetricLogger.Instance;
+                        return Routing.UserMetricLogger;
+                    })
                 .As<IRoutingUserMetricLogger>()
                 .AutoActivate()
                 .SingleInstance();
@@ -135,62 +147,66 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 
             // IMessageConverterProvider
             builder.Register(
-                c => new MessageConverterProvider(new Dictionary<Type, IMessageConverter>()
-                {
-                    { typeof(Message), c.Resolve<Core.IMessageConverter<Message>>() },
-                    { typeof(Twin), c.Resolve<Core.IMessageConverter<Twin>>() },
-                    { typeof(TwinCollection), c.Resolve<Core.IMessageConverter<TwinCollection>>() }
-                }))
+                    c => new MessageConverterProvider(
+                        new Dictionary<Type, IMessageConverter>()
+                        {
+                            { typeof(Message), c.Resolve<Core.IMessageConverter<Message>>() },
+                            { typeof(Twin), c.Resolve<Core.IMessageConverter<Twin>>() },
+                            { typeof(TwinCollection), c.Resolve<Core.IMessageConverter<TwinCollection>>() }
+                        }))
                 .As<IMessageConverterProvider>()
                 .SingleInstance();
 
             // IDeviceConnectivityManager
             builder.Register(
-                c =>
-                {
-                    var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
-                    IDeviceConnectivityManager deviceConnectivityManager = new DeviceConnectivityManager(this.connectivityCheckFrequency, TimeSpan.FromMinutes(2), edgeHubCredentials.Identity);
-                    return deviceConnectivityManager;
-                })
+                    c =>
+                    {
+                        var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
+                        IDeviceConnectivityManager deviceConnectivityManager = new DeviceConnectivityManager(this.connectivityCheckFrequency, TimeSpan.FromMinutes(2), edgeHubCredentials.Identity);
+                        return deviceConnectivityManager;
+                    })
                 .As<IDeviceConnectivityManager>()
                 .SingleInstance();
 
             // IDeviceClientProvider
-            builder.Register(c =>
-                {
-                    IClientProvider underlyingClientProvider = new ClientProvider();
-                    IClientProvider connectivityAwareClientProvider = new ConnectivityAwareClientProvider(underlyingClientProvider, c.Resolve<IDeviceConnectivityManager>());
-                    return connectivityAwareClientProvider;
-                })
+            builder.Register(
+                    c =>
+                    {
+                        IClientProvider underlyingClientProvider = new ClientProvider();
+                        IClientProvider connectivityAwareClientProvider = new ConnectivityAwareClientProvider(underlyingClientProvider, c.Resolve<IDeviceConnectivityManager>());
+                        return connectivityAwareClientProvider;
+                    })
                 .As<IClientProvider>()
                 .SingleInstance();
 
             // Task<ICloudConnectionProvider>
             builder.Register(
-                async c =>
-                {
-                    var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
-                    var clientProvider = c.Resolve<IClientProvider>();
-                    var tokenProvider = c.ResolveNamed<ITokenProvider>("EdgeHubClientAuthTokenProvider");
-                    var credentialsCacheTask = c.Resolve<Task<ICredentialsCache>>();
-                    var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
-                    var deviceScopeIdentitiesCacheTask = c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
-                    IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await deviceScopeIdentitiesCacheTask;
-                    ICredentialsCache credentialsCache = await credentialsCacheTask;
-                    ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(
-                        messageConverterProvider,
-                        this.connectionPoolSize,
-                        clientProvider,
-                        this.upstreamProtocol,
-                        tokenProvider,
-                        deviceScopeIdentitiesCache,
-                        credentialsCache,
-                        edgeHubCredentials.Identity,
-                        this.cloudConnectionIdleTimeout,
-                        this.closeCloudConnectionOnIdleTimeout,
-                        this.operationTimeout);
-                    return cloudConnectionProvider;
-                })
+                    async c =>
+                    {
+                        var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
+                        var clientProvider = c.Resolve<IClientProvider>();
+                        var tokenProvider = c.ResolveNamed<ITokenProvider>("EdgeHubClientAuthTokenProvider");
+                        var credentialsCacheTask = c.Resolve<Task<ICredentialsCache>>();
+                        var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
+                        var deviceScopeIdentitiesCacheTask = c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
+                        var proxy = c.Resolve<Option<IWebProxy>>();
+                        IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await deviceScopeIdentitiesCacheTask;
+                        ICredentialsCache credentialsCache = await credentialsCacheTask;
+                        ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(
+                            messageConverterProvider,
+                            this.connectionPoolSize,
+                            clientProvider,
+                            this.upstreamProtocol,
+                            tokenProvider,
+                            deviceScopeIdentitiesCache,
+                            credentialsCache,
+                            edgeHubCredentials.Identity,
+                            this.cloudConnectionIdleTimeout,
+                            this.closeCloudConnectionOnIdleTimeout,
+                            this.operationTimeout,
+                            proxy);
+                        return cloudConnectionProvider;
+                    })
                 .As<Task<ICloudConnectionProvider>>()
                 .SingleInstance();
 
@@ -201,30 +217,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 
             // Task<IConnectionManager>
             builder.Register(
-                async c =>
-                {
-                    var cloudConnectionProviderTask = c.Resolve<Task<ICloudConnectionProvider>>();
-                    var credentialsCacheTask = c.Resolve<Task<ICredentialsCache>>();
-                    var identityProvider = c.Resolve<IIdentityProvider>();
-                    ICloudConnectionProvider cloudConnectionProvider = await cloudConnectionProviderTask;
-                    ICredentialsCache credentialsCache = await credentialsCacheTask;
-                    IConnectionManager connectionManager = new ConnectionManager(
-                        cloudConnectionProvider,
-                        credentialsCache,
-                        identityProvider,
-                        this.maxConnectedClients);
-                    return connectionManager;
-                })
+                    async c =>
+                    {
+                        var cloudConnectionProviderTask = c.Resolve<Task<ICloudConnectionProvider>>();
+                        var credentialsCacheTask = c.Resolve<Task<ICredentialsCache>>();
+                        var identityProvider = c.Resolve<IIdentityProvider>();
+                        ICloudConnectionProvider cloudConnectionProvider = await cloudConnectionProviderTask;
+                        ICredentialsCache credentialsCache = await credentialsCacheTask;
+                        IConnectionManager connectionManager = new ConnectionManager(
+                            cloudConnectionProvider,
+                            credentialsCache,
+                            identityProvider,
+                            this.maxConnectedClients);
+                        return connectionManager;
+                    })
                 .As<Task<IConnectionManager>>()
                 .SingleInstance();
 
             // Task<IEndpointFactory>
-            builder.Register(async c =>
-                {
-                    var messageConverter = c.Resolve<Core.IMessageConverter<IRoutingMessage>>();
-                    IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
-                    return new EndpointFactory(connectionManager, messageConverter, this.edgeDeviceId) as IEndpointFactory;
-                })
+            builder.Register(
+                    async c =>
+                    {
+                        var messageConverter = c.Resolve<Core.IMessageConverter<IRoutingMessage>>();
+                        IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
+                        return new EndpointFactory(connectionManager, messageConverter, this.edgeDeviceId) as IEndpointFactory;
+                    })
                 .As<Task<IEndpointFactory>>()
                 .SingleInstance();
 
@@ -242,13 +259,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             {
                 // EndpointExecutorConfig
                 builder.Register(
-                    c =>
-                    {
-                        RetryStrategy defaultRetryStrategy = new FixedInterval(0, TimeSpan.FromSeconds(1));
-                        TimeSpan defaultRevivePeriod = TimeSpan.FromHours(1);
-                        TimeSpan defaultTimeout = TimeSpan.FromSeconds(60);
-                        return new EndpointExecutorConfig(defaultTimeout, defaultRetryStrategy, defaultRevivePeriod, true);
-                    })
+                        c =>
+                        {
+                            RetryStrategy defaultRetryStrategy = new FixedInterval(0, TimeSpan.FromSeconds(1));
+                            TimeSpan defaultRevivePeriod = TimeSpan.FromHours(1);
+                            TimeSpan defaultTimeout = TimeSpan.FromSeconds(60);
+                            return new EndpointExecutorConfig(defaultTimeout, defaultRetryStrategy, defaultRevivePeriod, true);
+                        })
                     .As<EndpointExecutorConfig>()
                     .SingleInstance();
 
@@ -259,23 +276,34 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 
                 // Task<Router>
                 builder.Register(
-                    async c =>
-                    {
-                        var endpointExecutorFactory = c.Resolve<IEndpointExecutorFactory>();
-                        var routerConfig = c.Resolve<RouterConfig>();
-                        Router router = await Router.CreateAsync(Guid.NewGuid().ToString(), this.iotHubName, routerConfig, endpointExecutorFactory);
-                        return router;
-                    })
+                        async c =>
+                        {
+                            var endpointExecutorFactory = c.Resolve<IEndpointExecutorFactory>();
+                            var routerConfig = c.Resolve<RouterConfig>();
+                            Router router = await Router.CreateAsync(Guid.NewGuid().ToString(), this.iotHubName, routerConfig, endpointExecutorFactory);
+                            return router;
+                        })
                     .As<Task<Router>>()
                     .SingleInstance();
 
                 // Task<ITwinManager>
-                builder.Register(async c =>
-                    {
-                        var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
-                        IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
-                        return TwinManager.CreateTwinManager(connectionManager, messageConverterProvider, Option.None<IStoreProvider>());
-                    })
+                builder.Register(
+                        async c =>
+                        {
+                            if (this.useV1TwinManager)
+                            {
+                                var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
+                                IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
+                                ITwinManager twinManager = new PassThroughTwinManager(connectionManager, messageConverterProvider);
+                                return twinManager;
+                            }
+                            else
+                            {
+                                var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
+                                IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
+                                return TwinManager.CreateTwinManager(connectionManager, messageConverterProvider, Option.None<IStoreProvider>());
+                            }
+                        })
                     .As<Task<ITwinManager>>()
                     .SingleInstance();
             }
@@ -283,106 +311,128 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             {
                 // EndpointExecutorConfig
                 builder.Register(
-                    c =>
-                    {
-                        // Endpoint executor config values -
-                        // ExponentialBackoff - minBackoff = 1s, maxBackoff = 60s, delta (used to add randomness to backoff) - 1s (default)
-                        // Num of retries = int.MaxValue(we want to keep retrying till the message is sent)
-                        // Revive period - period for which the endpoint should be considered dead if it doesn't respond - 1 min (we want to try continuously till the message expires)
-                        // Timeout - time for which we want for the ack from the endpoint = 30s
-                        // TODO - Should the number of retries be tied to the Store and Forward ttl? Not
-                        // doing that right now as that value can be changed at runtime, but these settings
-                        // cannot. Need to make the number of retries dynamically configurable for that.
-
-                        TimeSpan minWait = TimeSpan.FromSeconds(1);
-                        TimeSpan maxWait = TimeSpan.FromSeconds(60);
-                        TimeSpan delta = TimeSpan.FromSeconds(1);
-                        int retries = int.MaxValue;
-                        RetryStrategy retryStrategy = new ExponentialBackoff(retries, minWait, maxWait, delta);
-                        TimeSpan timeout = TimeSpan.FromSeconds(30);
-                        TimeSpan revivePeriod = TimeSpan.FromSeconds(30);
-                        return new EndpointExecutorConfig(timeout, retryStrategy, revivePeriod);
-                    })
+                        c =>
+                        {
+                            // Endpoint executor config values -
+                            // ExponentialBackoff - minBackoff = 1s, maxBackoff = 60s, delta (used to add randomness to backoff) - 1s (default)
+                            // Num of retries = int.MaxValue(we want to keep retrying till the message is sent)
+                            // Revive period - period for which the endpoint should be considered dead if it doesn't respond - 1 min (we want to try continuously till the message expires)
+                            // Timeout - time for which we want for the ack from the endpoint = 30s
+                            // TODO - Should the number of retries be tied to the Store and Forward ttl? Not
+                            // doing that right now as that value can be changed at runtime, but these settings
+                            // cannot. Need to make the number of retries dynamically configurable for that.
+                            TimeSpan minWait = TimeSpan.FromSeconds(1);
+                            TimeSpan maxWait = TimeSpan.FromSeconds(60);
+                            TimeSpan delta = TimeSpan.FromSeconds(1);
+                            int retries = int.MaxValue;
+                            RetryStrategy retryStrategy = new ExponentialBackoff(retries, minWait, maxWait, delta);
+                            TimeSpan timeout = TimeSpan.FromSeconds(30);
+                            TimeSpan revivePeriod = TimeSpan.FromSeconds(30);
+                            return new EndpointExecutorConfig(timeout, retryStrategy, revivePeriod);
+                        })
                     .As<EndpointExecutorConfig>()
                     .SingleInstance();
 
                 // ICheckpointStore
-                builder.Register(c =>
-                    {
-                        var dbStoreProvider = c.Resolve<IDbStoreProvider>();
-                        IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
-                        return CheckpointStore.Create(storeProvider);
-                    })
+                builder.Register(
+                        c =>
+                        {
+                            var dbStoreProvider = c.Resolve<IDbStoreProvider>();
+                            IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
+                            return CheckpointStore.Create(storeProvider);
+                        })
                     .As<ICheckpointStore>()
                     .SingleInstance();
 
                 // IMessageStore
                 builder.Register(
-                   c =>
-                   {
-                       var checkpointStore = c.Resolve<ICheckpointStore>();
-                       var dbStoreProvider = c.Resolve<IDbStoreProvider>();
-                       IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
-                       IMessageStore messageStore = new MessageStore(storeProvider, checkpointStore, TimeSpan.MaxValue);
-                       return messageStore;
-                   })
-                  .As<IMessageStore>()
-                  .SingleInstance();
+                        c =>
+                        {
+                            var checkpointStore = c.Resolve<ICheckpointStore>();
+                            var dbStoreProvider = c.Resolve<IDbStoreProvider>();
+                            IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
+                            IMessageStore messageStore = new MessageStore(storeProvider, checkpointStore, TimeSpan.MaxValue);
+                            return messageStore;
+                        })
+                    .As<IMessageStore>()
+                    .SingleInstance();
 
                 // IEndpointExecutorFactory
                 builder.Register(
-                    c =>
-                    {
-                        var endpointExecutorConfig = c.Resolve<EndpointExecutorConfig>();
-                        var messageStore = c.Resolve<IMessageStore>();
-                        IEndpointExecutorFactory endpointExecutorFactory = new StoringAsyncEndpointExecutorFactory(endpointExecutorConfig, new AsyncEndpointExecutorOptions(10, TimeSpan.FromSeconds(10)), messageStore);
-                        return endpointExecutorFactory;
-                    })
-                   .As<IEndpointExecutorFactory>()
-                   .SingleInstance();
+                        c =>
+                        {
+                            var endpointExecutorConfig = c.Resolve<EndpointExecutorConfig>();
+                            var messageStore = c.Resolve<IMessageStore>();
+                            IEndpointExecutorFactory endpointExecutorFactory = new StoringAsyncEndpointExecutorFactory(endpointExecutorConfig, new AsyncEndpointExecutorOptions(10, TimeSpan.FromSeconds(10)), messageStore);
+                            return endpointExecutorFactory;
+                        })
+                    .As<IEndpointExecutorFactory>()
+                    .SingleInstance();
 
                 // Task<Router>
                 builder.Register(
-                    async c =>
-                    {
-                        var checkpointStore = c.Resolve<ICheckpointStore>();
-                        var routerConfig = c.Resolve<RouterConfig>();
-                        var endpointExecutorFactory = c.Resolve<IEndpointExecutorFactory>();
-                        return await Router.CreateAsync(Guid.NewGuid().ToString(), this.iotHubName, routerConfig, endpointExecutorFactory, checkpointStore);
-                    })
+                        async c =>
+                        {
+                            var checkpointStore = c.Resolve<ICheckpointStore>();
+                            var routerConfig = c.Resolve<RouterConfig>();
+                            var endpointExecutorFactory = c.Resolve<IEndpointExecutorFactory>();
+                            return await Router.CreateAsync(Guid.NewGuid().ToString(), this.iotHubName, routerConfig, endpointExecutorFactory, checkpointStore);
+                        })
                     .As<Task<Router>>()
                     .SingleInstance();
 
                 // Task<ITwinManager>
-                builder.Register(async c =>
-                    {
-                        var dbStoreProvider = c.Resolve<IDbStoreProvider>();
-                        var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
-                        IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
-                        return TwinManager.CreateTwinManager(connectionManager, messageConverterProvider, Option.Some<IStoreProvider>(new StoreProvider(dbStoreProvider)));
-                    })
+                builder.Register(
+                        async c =>
+                        {
+                            if (this.useV1TwinManager)
+                            {
+                                var dbStoreProvider = c.Resolve<IDbStoreProvider>();
+                                var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
+                                IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
+                                return TwinManager.CreateTwinManager(connectionManager, messageConverterProvider, Option.Some<IStoreProvider>(new StoreProvider(dbStoreProvider)));
+                            }
+                            else
+                            {
+                                var storeProvider = c.Resolve<IStoreProvider>();
+                                var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
+                                var deviceConnectivityManager = c.Resolve<IDeviceConnectivityManager>();
+                                IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
+                                IEntityStore<string, TwinStoreEntity> entityStore = storeProvider.GetEntityStore<string, TwinStoreEntity>("EdgeTwin");
+                                ITwinManager twinManager = StoringTwinManager.Create(
+                                    connectionManager,
+                                    messageConverterProvider,
+                                    entityStore,
+                                    deviceConnectivityManager,
+                                    new ReportedPropertiesValidator(),
+                                    this.minTwinSyncPeriod,
+                                    this.reportedPropertiesSyncFrequency);
+                                return twinManager;
+                            }
+                        })
                     .As<Task<ITwinManager>>()
                     .SingleInstance();
             }
 
             // IClientCredentials "EdgeHubCredentials"
             builder.Register(
-                c =>
-                {
-                    var identityFactory = c.Resolve<IClientCredentialsFactory>();
-                    IClientCredentials edgeHubCredentials = this.connectionString.Map(cs => identityFactory.GetWithConnectionString(cs)).GetOrElse(
-                        () => identityFactory.GetWithIotEdged(this.edgeDeviceId, this.edgeModuleId));
-                    return edgeHubCredentials;
-                })
+                    c =>
+                    {
+                        var identityFactory = c.Resolve<IClientCredentialsFactory>();
+                        IClientCredentials edgeHubCredentials = this.connectionString.Map(cs => identityFactory.GetWithConnectionString(cs)).GetOrElse(
+                            () => identityFactory.GetWithIotEdged(this.edgeDeviceId, this.edgeModuleId));
+                        return edgeHubCredentials;
+                    })
                 .Named<IClientCredentials>("EdgeHubCredentials")
                 .SingleInstance();
 
             // Task<IInvokeMethodHandler>
-            builder.Register(async c =>
-                {
-                    IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
-                    return new InvokeMethodHandler(connectionManager) as IInvokeMethodHandler;
-                })
+            builder.Register(
+                    async c =>
+                    {
+                        IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
+                        return new InvokeMethodHandler(connectionManager) as IInvokeMethodHandler;
+                    })
                 .As<Task<IInvokeMethodHandler>>()
                 .SingleInstance();
 
@@ -400,8 +450,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         ITwinManager twinManager = await twinManagerTask;
                         IConnectionManager connectionManager = await connectionManagerTask;
                         IInvokeMethodHandler invokeMethodHandler = await invokeMethodHandlerTask;
-                        IEdgeHub hub = new RoutingEdgeHub(router, routingMessageConverter,
-                            connectionManager, twinManager, this.edgeDeviceId, invokeMethodHandler, deviceConnectivityManager);
+                        IEdgeHub hub = new RoutingEdgeHub(
+                            router,
+                            routingMessageConverter,
+                            connectionManager,
+                            twinManager,
+                            this.edgeDeviceId,
+                            invokeMethodHandler,
+                            deviceConnectivityManager);
                         return hub;
                     })
                 .As<Task<IEdgeHub>>()
@@ -409,64 +465,63 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 
             // Task<ConfigUpdater>
             builder.Register(
-                async c =>
-                {
-                    IMessageStore messageStore = this.isStoreAndForwardEnabled ? c.Resolve<IMessageStore>() : null;
-                    Router router = await c.Resolve<Task<Router>>();
-                    var configUpdater = new ConfigUpdater(router, messageStore);
-                    return configUpdater;
-                })
+                    async c =>
+                    {
+                        IMessageStore messageStore = this.isStoreAndForwardEnabled ? c.Resolve<IMessageStore>() : null;
+                        Router router = await c.Resolve<Task<Router>>();
+                        var configUpdater = new ConfigUpdater(router, messageStore);
+                        return configUpdater;
+                    })
                 .As<Task<ConfigUpdater>>()
                 .SingleInstance();
 
             // Task<IConfigSource>
             builder.Register(
-                async c =>
-                {
-                    RouteFactory routeFactory = await c.Resolve<Task<RouteFactory>>();
-                    if (this.useTwinConfig)
+                    async c =>
                     {
-                        var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
-                        var twinCollectionMessageConverter = c.Resolve<Core.IMessageConverter<TwinCollection>>();
-                        var twinMessageConverter = c.Resolve<Core.IMessageConverter<Twin>>();
-                        var twinManagerTask = c.Resolve<Task<ITwinManager>>();
-                        var edgeHubTask = c.Resolve<Task<IEdgeHub>>();
-                        ITwinManager twinManager = await twinManagerTask;
-                        IEdgeHub edgeHub = await edgeHubTask;
-                        IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
-                        IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
-                        IConfigSource edgeHubConnection = await EdgeHubConnection.Create(
-                            edgeHubCredentials.Identity,
-                            edgeHub,
-                            twinManager,
-                            connectionManager,
-                            routeFactory,
-                            twinCollectionMessageConverter,
-                            twinMessageConverter,
-                            this.versionInfo,
-                            deviceScopeIdentitiesCache
-                        );
-                        return edgeHubConnection;
-                    }
-                    else
-                    {
-                        return new LocalConfigSource(routeFactory, this.routes, this.storeAndForwardConfiguration);
-                    }
-                })
+                        RouteFactory routeFactory = await c.Resolve<Task<RouteFactory>>();
+                        if (this.useTwinConfig)
+                        {
+                            var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
+                            var twinCollectionMessageConverter = c.Resolve<Core.IMessageConverter<TwinCollection>>();
+                            var twinMessageConverter = c.Resolve<Core.IMessageConverter<Twin>>();
+                            var twinManagerTask = c.Resolve<Task<ITwinManager>>();
+                            var edgeHubTask = c.Resolve<Task<IEdgeHub>>();
+                            ITwinManager twinManager = await twinManagerTask;
+                            IEdgeHub edgeHub = await edgeHubTask;
+                            IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
+                            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
+                            IConfigSource edgeHubConnection = await EdgeHubConnection.Create(
+                                edgeHubCredentials.Identity,
+                                edgeHub,
+                                twinManager,
+                                connectionManager,
+                                routeFactory,
+                                twinCollectionMessageConverter,
+                                twinMessageConverter,
+                                this.versionInfo,
+                                deviceScopeIdentitiesCache);
+                            return edgeHubConnection;
+                        }
+                        else
+                        {
+                            return new LocalConfigSource(routeFactory, this.routes, this.storeAndForwardConfiguration);
+                        }
+                    })
                 .As<Task<IConfigSource>>()
                 .SingleInstance();
 
             // Task<IConnectionProvider>
             builder.Register(
-                async c =>
-                {
-                    var connectionManagerTask = c.Resolve<Task<IConnectionManager>>();
-                    var edgeHubTask = c.Resolve<Task<IEdgeHub>>();
-                    IConnectionManager connectionManager = await connectionManagerTask;
-                    IEdgeHub edgeHub = await edgeHubTask;
-                    IConnectionProvider connectionProvider = new ConnectionProvider(connectionManager, edgeHub);
-                    return connectionProvider;
-                })
+                    async c =>
+                    {
+                        var connectionManagerTask = c.Resolve<Task<IConnectionManager>>();
+                        var edgeHubTask = c.Resolve<Task<IEdgeHub>>();
+                        IConnectionManager connectionManager = await connectionManagerTask;
+                        IEdgeHub edgeHub = await edgeHubTask;
+                        IConnectionProvider connectionProvider = new ConnectionProvider(connectionManager, edgeHub);
+                        return connectionProvider;
+                    })
                 .As<Task<IConnectionProvider>>()
                 .SingleInstance();
 

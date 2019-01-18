@@ -1,10 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Util.Concurrency
 {
-    //
     // Code ported from http://blogs.msdn.com/b/pfxteam/archive/2012/02/12/10266988.aspx
-    //
     using System;
     using System.Threading;
     using System.Threading.Tasks;
@@ -30,10 +27,14 @@ namespace Microsoft.Azure.Devices.Edge.Util.Concurrency
         public Task<Releaser> LockAsync(CancellationToken token)
         {
             Task wait = this.semaphore.WaitAsync(token);
-            return wait.Status == TaskStatus.RanToCompletion ? this.releaser :
-                wait.ContinueWith((_, state) => new Releaser((AsyncLock)state),
-                    this, CancellationToken.None,
-                    TaskContinuationOptions.ExecuteSynchronously | TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Default);
+            return wait.Status == TaskStatus.RanToCompletion
+                ? this.releaser
+                : wait.ContinueWith(
+                    (_, state) => new Releaser((AsyncLock)state),
+                    this,
+                    CancellationToken.None,
+                    TaskContinuationOptions.ExecuteSynchronously | TaskContinuationOptions.OnlyOnRanToCompletion,
+                    TaskScheduler.Default);
         }
 
         /// <inheritdoc />

@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
 {
     using System;
@@ -33,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
             var module = new Mock<IModule<DockerConfig>>();
             module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest"));
             module.SetupGet(m => m.Name).Returns(Constants.EdgeAgentModuleName);
-            
+
             var mockAppSetting = new Mock<IAgentAppSettings>();
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
@@ -46,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
                 mockAppSetting.SetupGet(s => s.ManagementUri).Returns("unix:///path/to/mgmt.sock");
             }
 
-            var configSource = Mock.Of<IConfigSource>(s => s.AppSettings == mockAppSetting.Object);
+            IConfigSource configSource = Mock.Of<IConfigSource>(s => s.AppSettings == mockAppSetting.Object);
             ICombinedConfigProvider<CombinedDockerConfig> provider = new CombinedEdgeletConfigProvider(new[] { new AuthConfig() }, configSource);
 
             // Act
@@ -62,7 +61,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
             {
                 Assert.Equal("C:\\path\\to\\workload:C:\\path\\to\\workload", config.CreateOptions.HostConfig.Binds[0]);
                 Assert.Equal("C:\\path\\to\\mgmt:C:\\path\\to\\mgmt", config.CreateOptions.HostConfig.Binds[1]);
-            } else {
+            }
+            else
+            {
                 Assert.Equal("/path/to/workload.sock:/path/to/workload.sock", config.CreateOptions.HostConfig.Binds[0]);
                 Assert.Equal("/path/to/mgmt.sock:/path/to/mgmt.sock", config.CreateOptions.HostConfig.Binds[1]);
             }

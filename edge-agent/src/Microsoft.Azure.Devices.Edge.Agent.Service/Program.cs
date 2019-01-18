@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Service
 {
     using System;
     using System.Collections.Generic;
+    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
     using Autofac;
@@ -17,8 +17,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
     public class Program
     {
-        static readonly TimeSpan ShutdownWaitPeriod = TimeSpan.FromMinutes(1);
         const string ConfigFileName = "appsettings_agent.json";
+        static readonly TimeSpan ShutdownWaitPeriod = TimeSpan.FromMinutes(1);
 
         public static int Main()
         {
@@ -37,9 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
         public static async Task<int> MainAsync(IAgentAppSettings appSettings)
         {
-            // Bring up the logger before anything else so we can log errors ASAP
-            ILogger logger = SetupLogger(appSettings);
-
+            ILogger logger = appSettings.Logger;
             logger.LogInformation("Starting module management agent.");
 
             if (appSettings.VersionInfo != VersionInfo.Empty)
@@ -73,12 +71,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                     case EdgeRuntimeMode.Docker:
                         var dockerUri = new Uri(appSettings.DockerUri);
                         builder.RegisterModule(new AgentModule(appSettings.MaxRestartCount, appSettings.IntensiveCareTime, appSettings.CoolOffTimeUnit, appSettings.UsePersistentStorage, appSettings.StoragePath));
-                        builder.RegisterModule(new DockerModule(appSettings.DeviceConnectionString, appSettings.EdgeDeviceHostName, dockerUri, dockerAuthConfig, appSettings.UpstreamProtocol, productInfo));
+                        builder.RegisterModule(new DockerModule(appSettings.DeviceConnectionString, appSettings.EdgeDeviceHostName, dockerUri, dockerAuthConfig, appSettings.UpstreamProtocol, appSettings.HttpsProxy, productInfo));
                         break;
 
                     case EdgeRuntimeMode.Iotedged:
                         builder.RegisterModule(new AgentModule(appSettings.MaxRestartCount, appSettings.IntensiveCareTime, appSettings.CoolOffTimeUnit, appSettings.UsePersistentStorage, appSettings.StoragePath, Option.Some(new Uri(appSettings.WorkloadUri)), appSettings.ModuleId, Option.Some(appSettings.ModuleGenerationId)));
-                        builder.RegisterModule(new EdgeletModule(appSettings.IoTHubHostName, appSettings.EdgeDeviceHostName, appSettings.DeviceId, new Uri(appSettings.ManagementUri), new Uri(appSettings.WorkloadUri), dockerAuthConfig, appSettings.UpstreamProtocol, productInfo));
+                        builder.RegisterModule(new EdgeletModule(appSettings.IoTHubHostName, appSettings.EdgeDeviceHostName, appSettings.DeviceId, new Uri(appSettings.ManagementUri), new Uri(appSettings.WorkloadUri), dockerAuthConfig, appSettings.UpstreamProtocol, appSettings.HttpsProxy, productInfo));
                         break;
 
                     default:
@@ -155,12 +153,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
             handler.ForEach(h => GC.KeepAlive(h));
             return returnCode;
-        }
-
-        static ILogger SetupLogger(IAgentAppSettings appSettings)
-        {
-            Logger.SetLogLevel(appSettings.RuntimeLogLevel);
-            return Logger.Factory.CreateLogger<Program>();
         }
 
         static Task Cleanup(Option<Agent> agentOption, ILogger logger)

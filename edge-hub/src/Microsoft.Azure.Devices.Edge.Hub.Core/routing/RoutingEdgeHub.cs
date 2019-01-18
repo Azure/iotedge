@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 {
     using System;
@@ -11,16 +10,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using App.Metrics.Timer;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Extensions.Logging;
+    using Serilog.Events;
     using static System.FormattableString;
-    using IIdentity = Microsoft.Azure.Devices.Edge.Hub.Core.Identity.IIdentity;
+    using Constants = Microsoft.Azure.Devices.Edge.Hub.Core.Constants;
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
     using IRoutingMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
+    using SystemProperties = Microsoft.Azure.Devices.Edge.Hub.Core.SystemProperties;
 
     public class RoutingEdgeHub : IEdgeHub
     {
+        const long MaxMessageSize = 256 * 1024; // matches IoTHub
         readonly Router router;
         readonly Core.IMessageConverter<IRoutingMessage> messageConverter;
         readonly IConnectionManager connectionManager;
@@ -28,10 +31,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         readonly string edgeDeviceId;
         readonly IInvokeMethodHandler invokeMethodHandler;
 
-        const long MaxMessageSize = 256 * 1024; // matches IoTHub
-
-        public RoutingEdgeHub(Router router, Core.IMessageConverter<IRoutingMessage> messageConverter,
-            IConnectionManager connectionManager, ITwinManager twinManager, string edgeDeviceId,
+        public RoutingEdgeHub(
+            Router router,
+            Core.IMessageConverter<IRoutingMessage> messageConverter,
+            IConnectionManager connectionManager,
+            ITwinManager twinManager,
+            string edgeDeviceId,
             IInvokeMethodHandler invokeMethodHandler,
             IDeviceConnectivityManager deviceConnectivityManager)
         {
@@ -48,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         {
             Preconditions.CheckNotNull(message, nameof(message));
             Preconditions.CheckNotNull(identity, nameof(identity));
-            Events.MessageReceived(identity);
+            Events.MessageReceived(identity, message);
             Metrics.MessageCount(identity, 1);
             using (Metrics.MessageLatency(identity))
             {
@@ -60,9 +65,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         public Task ProcessDeviceMessageBatch(IIdentity identity, IEnumerable<IMessage> messages)
         {
             Preconditions.CheckNotNull(messages, nameof(messages));
-            Metrics.MessageCount(identity, messages.Count());
+            IList<IMessage> messagesList = messages as IList<IMessage> ?? messages.ToList();
+            Events.MessagesReceived(identity, messagesList);
+            Metrics.MessageCount(identity, messagesList.Count);
 
-            IEnumerable<IRoutingMessage> routingMessages = messages
+            IEnumerable<IRoutingMessage> routingMessages = messagesList
                 .Select(m => this.ProcessMessageInternal(m, true));
             return this.router.RouteAsync(routingMessages);
         }
@@ -101,41 +108,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             }
 
             return deviceProxy.ForEachAsync(d => d.SendC2DMessageAsync(message));
-        }
-
-        static void ValidateMessageSize(IRoutingMessage messageToBeValidated)
-        {
-            long messageSize = messageToBeValidated.Size();
-            if (messageSize > MaxMessageSize)
-            {
-                throw new EdgeHubMessageTooLargeException($"Message size is {messageSize} bytes which is greater than the max size {MaxMessageSize} bytes allowed");
-            }
-        }
-
-        IRoutingMessage ProcessMessageInternal(IMessage message, bool validateSize)
-        {
-            this.AddEdgeSystemProperties(message);
-            IRoutingMessage routingMessage = this.messageConverter.FromMessage(Preconditions.CheckNotNull(message, nameof(message)));
-
-            // Validate message size
-            if (validateSize)
-            {
-                ValidateMessageSize(routingMessage);
-            }
-
-            return routingMessage;
-        }
-
-        internal void AddEdgeSystemProperties(IMessage message)
-        {
-            message.SystemProperties[Core.SystemProperties.EdgeMessageId] = Guid.NewGuid().ToString();
-            if (message.SystemProperties.TryGetValue(Core.SystemProperties.ConnectionDeviceId, out string deviceId))
-            {
-                string edgeHubOriginInterface = deviceId == this.edgeDeviceId
-                    ? Core.Constants.InternalOriginInterface
-                    : Core.Constants.DownstreamOriginInterface;
-                message.SystemProperties[Core.SystemProperties.EdgeHubOriginInterface] = edgeHubOriginInterface;
-            }
         }
 
         public Task<IMessage> GetTwinAsync(string id)
@@ -180,6 +152,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             }
         }
 
+        public void Dispose()
+        {
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                this.router?.Dispose();
+            }
+        }
+
+        internal void AddEdgeSystemProperties(IMessage message)
+        {
+            message.SystemProperties[SystemProperties.EdgeMessageId] = Guid.NewGuid().ToString();
+            if (message.SystemProperties.TryGetValue(SystemProperties.ConnectionDeviceId, out string deviceId))
+            {
+                string edgeHubOriginInterface = deviceId == this.edgeDeviceId
+                    ? Constants.InternalOriginInterface
+                    : Constants.DownstreamOriginInterface;
+                message.SystemProperties[SystemProperties.EdgeHubOriginInterface] = edgeHubOriginInterface;
+            }
+        }
+
         internal async Task ProcessSubscription(string id, Option<ICloudProxy> cloudProxy, DeviceSubscription deviceSubscription, bool addSubscription)
         {
             Events.ProcessingSubscription(id, deviceSubscription);
@@ -190,6 +188,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     {
                         cloudProxy.ForEach(c => c.StartListening());
                     }
+
                     break;
 
                 case DeviceSubscription.DesiredPropertyUpdates:
@@ -206,6 +205,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     {
                         await cloudProxy.ForEachAsync(c => c.RemoveCallMethodAsync());
                     }
+
                     break;
 
                 case DeviceSubscription.ModuleMessages:
@@ -214,6 +214,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     // No Action required
                     break;
             }
+        }
+
+        static void ValidateMessageSize(IRoutingMessage messageToBeValidated)
+        {
+            long messageSize = messageToBeValidated.Size();
+            if (messageSize > MaxMessageSize)
+            {
+                throw new EdgeHubMessageTooLargeException($"Message size is {messageSize} bytes which is greater than the max size {MaxMessageSize} bytes allowed");
+            }
+        }
+
+        IRoutingMessage ProcessMessageInternal(IMessage message, bool validateSize)
+        {
+            this.AddEdgeSystemProperties(message);
+            IRoutingMessage routingMessage = this.messageConverter.FromMessage(Preconditions.CheckNotNull(message, nameof(message)));
+
+            // Validate message size
+            if (validateSize)
+            {
+                ValidateMessageSize(routingMessage);
+            }
+
+            return routingMessage;
         }
 
         async void DeviceConnected(object sender, EventArgs eventArgs)
@@ -255,50 +278,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 });
         }
 
-        protected virtual void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                this.router?.Dispose();
-            }
-        }
-
-        public void Dispose()
-        {
-            this.Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        static class Metrics
-        {
-            static readonly CounterOptions EdgeHubMessageReceivedCountOptions = new CounterOptions
-            {
-                Name = "EdgeHubMessageReceivedCount",
-                MeasurementUnit = Unit.Events,
-                ResetOnReporting = true,
-            };
-            static readonly TimerOptions EdgeHubMessageLatencyOptions = new TimerOptions
-            {
-                Name = "EdgeHubMessageLatencyMs",
-                MeasurementUnit = Unit.None,
-                DurationUnit = TimeUnit.Milliseconds,
-                RateUnit = TimeUnit.Seconds
-            };
-
-            internal static MetricTags GetTags(IIdentity identity)
-            {
-                return new MetricTags("Id", identity.Id);
-            }
-
-            public static void MessageCount(IIdentity identity, long count) => Util.Metrics.CountIncrement(GetTags(identity), EdgeHubMessageReceivedCountOptions, count);
-
-            public static IDisposable MessageLatency(IIdentity identity) => Util.Metrics.Latency(GetTags(identity), EdgeHubMessageLatencyOptions);
-        }
-
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<RoutingEdgeHub>();
             const int IdStart = HubCoreEventIds.RoutingEdgeHub;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<RoutingEdgeHub>();
 
             enum EventIds
             {
@@ -319,26 +302,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             public static void MethodCallReceived(string fromId, string toId, string correlationId)
             {
                 Log.LogDebug((int)EventIds.MethodReceived, Invariant($"Received method invoke call from {fromId} for {toId} with correlation ID {correlationId}"));
-            }
-
-            internal static void MessageReceived(IIdentity identity)
-            {
-                Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received message from {identity.Id}"));
-            }
-
-            internal static void UpdateReportedPropertiesReceived(IIdentity identity)
-            {
-                Log.LogDebug((int)EventIds.ReportedPropertiesUpdateReceived, Invariant($"Reported properties update message received from {identity.Id}"));
-            }
-
-            internal static void GetTwinCallReceived(string id)
-            {
-                Log.LogDebug((int)EventIds.MessageReceived, Invariant($"GetTwin call received from {id ?? string.Empty}"));
-            }
-
-            internal static void UpdateDesiredPropertiesCallReceived(string id)
-            {
-                Log.LogDebug((int)EventIds.DesiredPropertiesUpdateReceived, Invariant($"Desired properties update message received for {id ?? string.Empty}"));
             }
 
             public static void UnableToSendC2DMessageNoDeviceConnection(string id)
@@ -402,6 +365,53 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 Log.LogInformation((int)EventIds.ProcessingSubscription, Invariant($"Processing subscription {deviceSubscription} for client {id}."));
             }
 
+            public static void MessagesReceived(IIdentity identity, IList<IMessage> messages)
+            {
+                if (Logger.GetLogLevel() <= LogEventLevel.Debug)
+                {
+                    string messageIdsString = messages
+                        .Select(m => m.SystemProperties.TryGetValue(Devices.Routing.Core.SystemProperties.MessageId, out string messageId) ? messageId : string.Empty)
+                        .Where(m => !string.IsNullOrWhiteSpace(m))
+                        .Join(", ");
+
+                    if (!string.IsNullOrWhiteSpace(messageIdsString))
+                    {
+                        Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received {messages.Count} message(s) from {identity.Id} with message Id(s) [{messageIdsString}]"));
+                    }
+                    else
+                    {
+                        Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received {messages.Count} message(s) from {identity.Id}"));
+                    }
+                }
+            }
+
+            internal static void MessageReceived(IIdentity identity, IMessage message)
+            {
+                if (message.SystemProperties.TryGetValue(Devices.Routing.Core.SystemProperties.MessageId, out string messageId))
+                {
+                    Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received message from {identity.Id} with message Id {messageId}"));
+                }
+                else
+                {
+                    Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received message from {identity.Id}"));
+                }
+            }
+
+            internal static void UpdateReportedPropertiesReceived(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.ReportedPropertiesUpdateReceived, Invariant($"Reported properties update message received from {identity.Id}"));
+            }
+
+            internal static void GetTwinCallReceived(string id)
+            {
+                Log.LogDebug((int)EventIds.MessageReceived, Invariant($"GetTwin call received from {id ?? string.Empty}"));
+            }
+
+            internal static void UpdateDesiredPropertiesCallReceived(string id)
+            {
+                Log.LogDebug((int)EventIds.DesiredPropertiesUpdateReceived, Invariant($"Desired properties update message received for {id ?? string.Empty}"));
+            }
+
             internal static void DeviceConnectedProcessingSubscriptions()
             {
                 Log.LogInformation((int)EventIds.ProcessingSubscription, Invariant($"Device connected to cloud, processing subscriptions for connected clients."));
@@ -410,6 +420,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             internal static void ErrorProcessingSubscriptions(Exception e)
             {
                 Log.LogWarning((int)EventIds.ProcessingSubscription, e, Invariant($"Error processing subscriptions for connected clients."));
+            }
+        }
+
+        static class Metrics
+        {
+            static readonly CounterOptions EdgeHubMessageReceivedCountOptions = new CounterOptions
+            {
+                Name = "EdgeHubMessageReceivedCount",
+                MeasurementUnit = Unit.Events,
+                ResetOnReporting = true,
+            };
+
+            static readonly TimerOptions EdgeHubMessageLatencyOptions = new TimerOptions
+            {
+                Name = "EdgeHubMessageLatencyMs",
+                MeasurementUnit = Unit.None,
+                DurationUnit = TimeUnit.Milliseconds,
+                RateUnit = TimeUnit.Seconds
+            };
+
+            public static void MessageCount(IIdentity identity, long count) => Util.Metrics.CountIncrement(GetTags(identity), EdgeHubMessageReceivedCountOptions, count);
+
+            public static IDisposable MessageLatency(IIdentity identity) => Util.Metrics.Latency(GetTags(identity), EdgeHubMessageLatencyOptions);
+
+            internal static MetricTags GetTags(IIdentity identity)
+            {
+                return new MetricTags("Id", identity.Id);
             }
         }
     }

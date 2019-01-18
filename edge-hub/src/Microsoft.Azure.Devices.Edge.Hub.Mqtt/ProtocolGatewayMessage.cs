@@ -1,5 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
     using System;
@@ -45,25 +44,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         public uint DeliveryCount { get; }
 
         public ulong SequenceNumber { get; }
-
-        #region IDisposable Support
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!this.isDisposed.GetAndSet(true))
-            {
-                if (disposing)
-                {
-                    this.Payload?.SafeRelease();
-                }
-            }
-        }
-
-        public void Dispose()
-        {
-            this.Dispose(true);
-        }
-        #endregion
 
         public class Builder
         {
@@ -123,5 +103,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 return new ProtocolGatewayMessage(this.payload, this.address, this.properties, this.id, this.createdTimeUtc, this.deliveryCount, this.sequenceNumber);
             }
         }
+
+        #region IDisposable Support
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!this.isDisposed.GetAndSet(true))
+            {
+                if (disposing)
+                {
+                    this.Payload?.SafeRelease();
+                }
+            }
+        }
+
+        public void Dispose()
+        {
+            this.Dispose(true);
+        }
+
+        #endregion
     }
 }

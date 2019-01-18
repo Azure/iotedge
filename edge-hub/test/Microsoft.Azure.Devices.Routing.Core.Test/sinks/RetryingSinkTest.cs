@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Routing.Core.Test.Sinks
 {
     using System;
@@ -16,7 +15,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Sinks
 
     public class RetryingSinkTest
     {
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task SmokeTask()
         {
             var factory = new RetryingSinkFactory<int>(new TestSinkFactory<int>(), RetryPolicy.NoRetry);
@@ -31,7 +31,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Sinks
             await sink.CloseAsync(CancellationToken.None);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestSendCompletes()
         {
             var retryPolicy = new RetryPolicy(new ErrorDetectionStrategy(_ => true), new FixedInterval(3, TimeSpan.FromMilliseconds(10)));
@@ -45,7 +46,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Sinks
             Assert.Equal(new List<int>(items), result.Succeeded);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestFailure()
         {
             var retryPolicy = new RetryPolicy(new ErrorDetectionStrategy(_ => true), new FixedInterval(2, TimeSpan.FromMilliseconds(10)));
@@ -60,7 +62,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Sinks
             Assert.Equal(new List<InvalidDetails<int>>(), result.InvalidDetailsList);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestCancellation()
         {
             var cts = new CancellationTokenSource();
@@ -82,7 +85,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Sinks
             result.SendFailureDetails.ForEach(sfd => Assert.IsType<TaskCanceledException>(sfd.RawException));
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestNonTransient()
         {
             var retryPolicy = new RetryPolicy(new ErrorDetectionStrategy(_ => false), new FixedInterval(int.MaxValue, TimeSpan.FromMilliseconds(10)));
@@ -105,7 +109,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Sinks
             }
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestClose()
         {
             var underlying = new Mock<ISink<int>>();

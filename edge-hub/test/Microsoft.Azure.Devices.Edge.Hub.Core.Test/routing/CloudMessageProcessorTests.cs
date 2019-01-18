@@ -34,18 +34,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             IProcessor cloudMessageProcessor = cloudEndpoint.CreateProcessor();
 
             Assert.Equal(cloudEndpoint, cloudMessageProcessor.Endpoint);
-            Assert.False(cloudMessageProcessor.ErrorDetectionStrategy.IsTransient(new Exception()));            
+            Assert.False(cloudMessageProcessor.ErrorDetectionStrategy.IsTransient(new Exception()));
         }
 
         [Fact]
         [Unit]
         public async Task ProcessAsyncTest()
         {
-            Core.IMessageConverter<IRoutingMessage> routingMessageConverter = new RoutingMessageConverter();            
+            Core.IMessageConverter<IRoutingMessage> routingMessageConverter = new RoutingMessageConverter();
             string cloudEndpointId = Guid.NewGuid().ToString();
 
             var cloudProxyMock = new Mock<ICloudProxy>();
-            cloudProxyMock.Setup(c => c.SendMessageAsync(It.IsAny<IMessage>()))                
+            cloudProxyMock.Setup(c => c.SendMessageAsync(It.IsAny<IMessage>()))
                 .Returns(Task.CompletedTask);
             cloudProxyMock.SetupGet(p => p.IsActive).Returns(true);
 
@@ -74,9 +74,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             Task<Option<ICloudProxy>> GetCloudProxy(string id)
             {
-                return Task.FromResult(id.Equals(device1Id)
-                    ? Option.Some(cloudProxyMock.Object)
-                    : Option.None<ICloudProxy>());
+                return Task.FromResult(
+                    id.Equals(device1Id)
+                        ? Option.Some(cloudProxyMock.Object)
+                        : Option.None<ICloudProxy>());
             }
 
             var cloudEndpoint = new CloudEndpoint(cloudEndpointId, GetCloudProxy, routingMessageConverter);

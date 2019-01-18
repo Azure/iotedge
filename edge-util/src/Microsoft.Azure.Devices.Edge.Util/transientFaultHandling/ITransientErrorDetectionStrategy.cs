@@ -1,9 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
-
-using System;
-
 namespace Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling
 {
+    using System;
+
     /// <summary>
     /// Defines an interface that must be implemented by custom components responsible for detecting specific transient conditions.
     /// </summary>

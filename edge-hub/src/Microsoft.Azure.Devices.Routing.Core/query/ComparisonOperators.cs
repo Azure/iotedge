@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Routing.Core.Query
 {
     using System;
@@ -40,6 +39,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
                 default:
                     throw new ArgumentOutOfRangeException(nameof(op), op, null);
             }
+
             return result;
         }
 
@@ -78,6 +78,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
                 default:
                     throw new ArgumentOutOfRangeException(nameof(op), op, null);
             }
+
             return result;
         }
 
@@ -116,6 +117,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
                 default:
                     throw new ArgumentOutOfRangeException(nameof(op), op, null);
             }
+
             return result;
         }
 
@@ -154,6 +156,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
                 default:
                     throw new ArgumentOutOfRangeException(nameof(op), op, null);
             }
+
             return result;
         }
 
@@ -179,6 +182,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
                 default:
                     throw new ArgumentOutOfRangeException(nameof(op), op, null);
             }
+
             return result;
         }
 
@@ -202,6 +206,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
                 default:
                     throw new ArgumentOutOfRangeException(nameof(op), op, null);
             }
+
             return result;
         }
 

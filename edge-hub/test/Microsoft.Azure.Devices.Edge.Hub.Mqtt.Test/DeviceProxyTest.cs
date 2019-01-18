@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 {
     using System.Collections.Generic;
@@ -11,33 +10,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
     using Microsoft.Azure.Devices.ProtocolGateway.Messaging;
     using Moq;
     using Xunit;
-    using IProtocolGatewayMessage = ProtocolGateway.Messaging.IMessage;
+    using Constants = Microsoft.Azure.Devices.Edge.Hub.Mqtt.Constants;
+    using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
+    using IProtocolGatewayMessage = Microsoft.Azure.Devices.ProtocolGateway.Messaging.IMessage;
 
     [Unit]
     public class DeviceProxyTest
     {
         static readonly IByteBufferConverter ByteBufferConverter = new ByteBufferConverter(PooledByteBufferAllocator.Default);
-
-        class TestDesiredUpdateMessage
-        {
-            public EdgeMessage CoreMessage { get; }
-
-            public ProtocolGatewayMessage PgMessage { get; }
-
-            public TestDesiredUpdateMessage(string desiredJson)
-            {
-                this.CoreMessage = new EdgeMessage.Builder(Encoding.UTF8.GetBytes(desiredJson))
-                    .SetSystemProperties(new Dictionary<string, string>()
-                    {
-                        [SystemProperties.OutboundUri] = Mqtt.Constants.OutboundUriTwinDesiredPropertyUpdate,
-                        [SystemProperties.Version] = 1.ToString()
-                    })
-                    .Build();
-
-                this.PgMessage = new ProtocolGatewayMessage.Builder(ByteBufferConverter.ToByteBuffer(Encoding.UTF8.GetBytes(desiredJson)),
-                    "$iothub/twin/PATCH/properties/desired/?$version=1").Build();
-            }
-        }
 
         [Fact]
         public void OnDesiredPropertyUpdatesSendsAMessageToTheProtocolGateway()
@@ -46,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             var message = new TestDesiredUpdateMessage(Update);
 
             var converter = new Mock<IMessageConverter<IProtocolGatewayMessage>>();
-            converter.Setup(x => x.FromMessage(It.IsAny<Core.IMessage>()))
+            converter.Setup(x => x.FromMessage(It.IsAny<IMessage>()))
                 .Returns(() => message.PgMessage);
 
             var channel = new Mock<IMessagingChannel<IProtocolGatewayMessage>>();
@@ -55,8 +35,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             var deviceProxy = new DeviceProxy(channel.Object, Mock.Of<IIdentity>(), converter.Object, ByteBufferConverter);
             deviceProxy.OnDesiredPropertyUpdates(message.CoreMessage);
 
-            converter.Verify(x => x.FromMessage(It.Is<Core.IMessage>(actualCore => message.CoreMessage.Equals(actualCore))));
+            converter.Verify(x => x.FromMessage(It.Is<IMessage>(actualCore => message.CoreMessage.Equals(actualCore))));
             channel.Verify(x => x.Handle(It.Is<IProtocolGatewayMessage>(actualPg => message.PgMessage.Equals(actualPg))));
+        }
+
+        class TestDesiredUpdateMessage
+        {
+            public TestDesiredUpdateMessage(string desiredJson)
+            {
+                this.CoreMessage = new EdgeMessage.Builder(Encoding.UTF8.GetBytes(desiredJson))
+                    .SetSystemProperties(
+                        new Dictionary<string, string>()
+                        {
+                            [SystemProperties.OutboundUri] = Constants.OutboundUriTwinDesiredPropertyUpdate,
+                            [SystemProperties.Version] = 1.ToString()
+                        })
+                    .Build();
+
+                this.PgMessage = new ProtocolGatewayMessage.Builder(
+                    ByteBufferConverter.ToByteBuffer(Encoding.UTF8.GetBytes(desiredJson)),
+                    "$iothub/twin/PATCH/properties/desired/?$version=1").Build();
+            }
+
+            public EdgeMessage CoreMessage { get; }
+
+            public ProtocolGatewayMessage PgMessage { get; }
         }
     }
 }

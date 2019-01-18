@@ -1,9 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
-
-using System;
-
 namespace Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling
 {
+    using System;
+
     /// <summary>
     /// A retry strategy with back-off parameters for calculating the exponential delay between retries.
     /// Note: this fixes an overflow in the stock ExponentialBackoff in the Transient Fault Handling library

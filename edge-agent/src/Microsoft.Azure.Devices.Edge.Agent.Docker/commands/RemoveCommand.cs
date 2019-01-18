@@ -13,12 +13,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
 
     public class RemoveCommand : ICommand
     {
+        const string LogLinesToPull = "25";
+        const int WaitForLogs = 30000; // ms
         static readonly ILogger Logger = Util.Logger.Factory.CreateLogger<RemoveCommand>();
         readonly IDockerClient client;
         readonly DockerModule module;
-        const string LogLinesToPull = "25";
-        const int WaitForLogs = 30000; //ms
-
         public RemoveCommand(IDockerClient client, DockerModule module)
         {
             this.client = Preconditions.CheckNotNull(client, nameof(client));
@@ -26,6 +25,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
         }
 
         public string Id => $"RemoveCommand({this.module.Name})";
+
+        public async Task ExecuteAsync(CancellationToken token)
+        {
+            var parameters = new ContainerRemoveParameters();
+            long exitCode = await this.GetModuleExitCode();
+            if (exitCode != 0)
+            {
+                await this.TailLogsAsync(exitCode);
+            }
+
+            await this.client.Containers.RemoveContainerAsync(this.module.Name, parameters, token);
+        }
+
+        public Task UndoAsync(CancellationToken token) => TaskEx.Done;
+
+        public string Show() => $"docker rm {this.module.Name}";
 
         async Task<long> GetModuleExitCode()
         {
@@ -59,6 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
                                     Logger.LogError($"Last {LogLinesToPull} log lines from container {this.module.Name}:");
                                     firstLine = false;
                                 }
+
                                 string line = await reader.ReadLineAsync();
                                 Logger.LogError(line);
                             }
@@ -71,20 +87,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
                 Logger.LogError($"Unable to get logs from module {this.module.Name} - {ex.Message}");
             }
         }
-
-        public async Task ExecuteAsync(CancellationToken token)
-        {
-            var parameters = new ContainerRemoveParameters();
-            long exitCode = await this.GetModuleExitCode();
-            if (exitCode != 0)
-            {
-                await this.TailLogsAsync(exitCode);
-            }
-            await this.client.Containers.RemoveContainerAsync(this.module.Name, parameters, token);
-        }
-
-        public Task UndoAsync(CancellationToken token) => TaskEx.Done;
-
-        public string Show() => $"docker rm {this.module.Name}";
     }
 }

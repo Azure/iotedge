@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 {
     using System.Threading.Tasks;
@@ -27,15 +26,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         {
             // Task<IConfigSource>
             builder.Register(
-                async c =>
-                {
-                    var serde = c.Resolve<ISerde<DeploymentConfigInfo>>();
-                    IConfigSource config = await FileConfigSource.Create(
-                        this.configFilename,
-                        this.appSettings,
-                        serde);
-                    return config;
-                })
+                    async c =>
+                    {
+                        var serde = c.Resolve<ISerde<DeploymentConfigInfo>>();
+                        IConfigSource config = await FileConfigSource.Create(
+                            this.configFilename,
+                            this.appSettings,
+                            serde);
+                        return config;
+                    })
                 .As<Task<IConfigSource>>()
                 .SingleInstance();
 

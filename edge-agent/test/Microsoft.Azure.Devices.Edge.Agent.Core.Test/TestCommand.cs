@@ -24,7 +24,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(null, obj))
+            {
                 return false;
+            }
+
             return obj is TestRecordType && this.Equals((TestRecordType)obj);
         }
 
@@ -39,16 +42,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
     public class TestPlanRecorder
     {
-        public List<TestRecordType> ExecutionList { get; }
-        public List<TestRecordType> UndoList { get; }
-        public List<(TestCommandType Type, ICommand Command)> WrappedCommmandList { get; }
-
         public TestPlanRecorder()
         {
             this.ExecutionList = new List<TestRecordType>();
             this.UndoList = new List<TestRecordType>();
             this.WrappedCommmandList = new List<(TestCommandType Type, ICommand Command)>();
         }
+
+        public List<TestRecordType> ExecutionList { get; }
+
+        public List<TestRecordType> UndoList { get; }
+
+        public List<(TestCommandType Type, ICommand Command)> WrappedCommmandList { get; }
 
         public void ModuleExecuted(TestCommandType type, IModule module) => this.ExecutionList.Add(new TestRecordType(type, module));
 
@@ -59,12 +64,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
     public class TestCommandFactory : ICommandFactory
     {
-        public Option<TestPlanRecorder> Recorder { get; }
-
         public TestCommandFactory()
         {
             this.Recorder = Option.Some(new TestPlanRecorder());
         }
+
+        public Option<TestPlanRecorder> Recorder { get; }
 
         public Task<ICommand> CreateAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
         {
@@ -118,12 +123,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
     public class TestCommandFailureFactory : ICommandFactory
     {
-        public Option<TestPlanRecorder> Recorder { get; }
-
         public TestCommandFailureFactory()
         {
             this.Recorder = Option.Some(new TestPlanRecorder());
         }
+
+        public Option<TestPlanRecorder> Recorder { get; }
 
         public Task<ICommand> CreateAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
         {
@@ -171,27 +176,30 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public Task<ICommand> WrapAsync(ICommand command)
         {
             foreach (TestPlanRecorder r in this.Recorder)
+            {
                 r.CommandWrapped(command);
+            }
 
             return Task.FromResult(command);
         }
     }
+
     public class TestCommand : ICommand
     {
+        public bool CommandExecuted;
+        public bool CommandUndone;
         readonly Option<TestPlanRecorder> recorder;
         readonly TestCommandType type;
         readonly IModule module;
         readonly bool throwOnExecute;
-        public bool CommandExecuted;
-        public bool CommandUndone;
 
-        public TestCommand(TestCommandType type, IModule module) :
-            this(type, module, Option.None<TestPlanRecorder>(), false)
+        public TestCommand(TestCommandType type, IModule module)
+            : this(type, module, Option.None<TestPlanRecorder>(), false)
         {
         }
 
-        public TestCommand(TestCommandType type, IModule module, Option<TestPlanRecorder> recorder) :
-            this(type, module, recorder, false)
+        public TestCommand(TestCommandType type, IModule module, Option<TestPlanRecorder> recorder)
+            : this(type, module, recorder, false)
         {
         }
 
@@ -217,7 +225,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             }
 
             foreach (TestPlanRecorder r in this.recorder)
+            {
                 r.ModuleExecuted(this.type, this.module);
+            }
+
             this.CommandExecuted = true;
             return TaskEx.Done;
         }
@@ -225,7 +236,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public Task UndoAsync(CancellationToken token)
         {
             foreach (TestPlanRecorder r in this.recorder)
+            {
                 r.ModuleUndone(this.type, this.module);
+            }
+
             this.CommandUndone = true;
             return TaskEx.Done;
         }

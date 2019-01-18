@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace MessagesAnalyzer
 {
     using System.Collections.Concurrent;
@@ -10,11 +9,14 @@ namespace MessagesAnalyzer
     {
         // maps batchId with moduleId, there can be multiple batches for a module
         readonly ConcurrentDictionary<string, string> batches = new ConcurrentDictionary<string, string>();
+
         // maps batchId with messages
         readonly ConcurrentDictionary<string, IList<MessageDetails>> messages = new ConcurrentDictionary<string, IList<MessageDetails>>();
         readonly IComparer<MessageDetails> comparer = new EventDataComparer();
 
-        MessagesCache() { }
+        MessagesCache()
+        {
+        }
 
         public static MessagesCache Instance { get; } = new MessagesCache();
 

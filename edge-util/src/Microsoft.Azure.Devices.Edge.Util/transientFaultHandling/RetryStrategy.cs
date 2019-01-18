@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling
 {
     using System;
@@ -46,6 +45,15 @@ namespace Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling
         public static readonly bool DefaultFirstFastRetry = true;
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="T:Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling.RetryStrategy" /> class.
+        /// </summary>
+        /// <param name="firstFastRetry">true to immediately retry in the first attempt; otherwise, false. The subsequent retries will remain subject to the configured retry interval.</param>
+        protected RetryStrategy(bool firstFastRetry)
+        {
+            this.FastFirstRetry = firstFastRetry;
+        }
+
+        /// <summary>
         /// Returns a default policy that performs no retries, but invokes the action only once.
         /// </summary>
         public static RetryStrategy NoRetry { get; } = new FixedInterval(0, DefaultRetryInterval);
@@ -72,20 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling
         /// Gets or sets a value indicating whether the first retry attempt will be made immediately,
         /// whereas subsequent retries will remain subject to the retry interval.
         /// </summary>
-        public bool FastFirstRetry
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="T:Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling.RetryStrategy" /> class.
-        /// </summary>
-        /// <param name="firstFastRetry">true to immediately retry in the first attempt; otherwise, false. The subsequent retries will remain subject to the configured retry interval.</param>
-        protected RetryStrategy(bool firstFastRetry)
-        {
-            this.FastFirstRetry = firstFastRetry;
-        }
+        public bool FastFirstRetry { get; set; }
 
         /// <summary>
         /// Returns the corresponding ShouldRetry delegate.

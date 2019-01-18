@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer
 {
     using Microsoft.AspNetCore.Builder;
@@ -12,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer
     {
         public Startup(IConfiguration configuration)
         {
-            Configuration = configuration;
+            this.Configuration = configuration;
         }
 
         public IConfiguration Configuration { get; }

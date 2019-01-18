@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
 {
     using System.Linq;
@@ -29,8 +28,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
         // ReSharper disable once UnusedMember.Local
         static string Runtime(QueryValue[] input)
         {
-            return input.All(s => s?.ValueType == QueryValueType.String && Undefined.IsDefined((string)s.Value)) ?
-                string.Concat(input.Select(_ => _.Value))
+            return input.All(s => s?.ValueType == QueryValueType.String && Undefined.IsDefined((string)s.Value))
+                ? string.Concat(input.Select(_ => _.Value))
                 : Undefined.Instance;
         }
     }

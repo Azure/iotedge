@@ -1,16 +1,14 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Routing.Core.Query
 {
     using System.Diagnostics;
 
     public struct Bool
     {
-        readonly int value;
-
         public static readonly Bool Undefined = new Bool(0);
         public static readonly Bool False = new Bool(-1);
         public static readonly Bool True = new Bool(1);
+        readonly int value;
 
         Bool(int value)
         {
@@ -28,6 +26,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
             {
                 return Undefined;
             }
+
             return x.value == y.value ? True : False;
         }
 
@@ -37,6 +36,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
             {
                 return Undefined;
             }
+
             return x.value != y.value ? True : False;
         }
 
@@ -55,6 +55,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
             {
                 return x.value == -1 ? False : Undefined;
             }
+
             return x.value == -1 || y.value == -1 ? False : True;
         }
 
@@ -68,6 +69,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
             {
                 return x.value == 1 ? True : Undefined;
             }
+
             return x.value == 1 || y.value == 1 ? True : False;
         }
 

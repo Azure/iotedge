@@ -1,20 +1,20 @@
 // Copyright (c) Microsoft. All rights reserved.
-
-namespace Microsoft.Azure.Devices.Routing.Core.Test.query
+namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
 {
     using System;
     using System.Collections.Generic;
     using System.Text;
-    using Microsoft.Azure.Devices.Routing.Core.Query;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
+    using Microsoft.Azure.Devices.Routing.Core.Query;
     using Xunit;
 
     public class TwinChangeIncludesTest : RoutingUnitTestBase
     {
         const string TwinNotificationMessage = "{\"properties\":{\"reported\":{\"WeatherTwin\":{\"Temperature\":50,\"Location\":{\"Street\":\"One Microsoft Way\",\"City\":\"Redmond\",\"State\":\"WA\"}},\"Metadata\":\"metadata\",\"$metadata\":{\"$lastUpdated\":\"2017-02-15T00:42:19.8563501Z\",\"WeatherTwin\":{\"$lastUpdated\":\"2017-02-15T00:42:19.8563501Z\",\"Temperature\":{\"$lastUpdated\":\"2017-02-15T00:42:19.8563501Z\"},\"Location\":{\"$lastUpdated\":\"2017-02-15T00:42:19.8563501Z\",\"Street\":{\"$lastUpdated\":\"2017-02-15T00:42:19.8563501Z\"},\"City\":{\"$lastUpdated\":\"2017-02-15T00:42:19.8563501Z\"},\"State\":{\"$lastUpdated\":\"2017-02-15T00:42:19.8563501Z\"}}},\"Metadata\":{\"$lastUpdated\":\"2017-02-15T00:42:19.8563501Z\"}},\"$version\":4}}}";
 
-        static readonly IMessage Message1 = new Message(TwinChangeEventMessageSource.Instance,
+        static readonly IMessage Message1 = new Message(
+            TwinChangeEventMessageSource.Instance,
             Encoding.UTF8.GetBytes(TwinNotificationMessage),
             new Dictionary<string, string>
             {
@@ -35,7 +35,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.query
                 { SystemProperties.ContentType, Constants.SystemPropertyValues.ContentType.Json },
             });
 
-        [Theory, Unit]
+        [Theory]
+        [Unit]
         [InlineData("twin_change_includes(properties.reported.WeatherTwin)")]
         [InlineData("TWIN_CHANGE_INCLUDES(properties.reported.WeatherTwin)")] // upper case
         [InlineData("Twin_Change_Includes(properties.reported.WeatherTwin)")] // Mixed case
@@ -55,7 +56,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.query
             Assert.Equal(rule(Message1), Bool.True);
         }
 
-        [Theory, Unit]
+        [Theory]
+        [Unit]
         [InlineData("twin_change_includes(properties.desired.WeatherTwin)")]
         [InlineData("twin_change_includes(properties.reported.WeatherTwin.Location.City) AND twin_change_includes(properties.reported.WeatherTwin.Temperature123)")]
         public void TestTwinChangeIncludesFailure(string condition)
@@ -65,7 +67,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.query
             Assert.Equal(rule(Message1), Bool.False);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestTwinChangeIncludes_Debug()
         {
             string condition = "twin_change_includes(properties.reported.WeatherTwin)";
@@ -75,7 +78,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.query
             Assert.Equal(rule(Message1), Bool.True);
         }
 
-        [Theory, Unit]
+        [Theory]
+        [Unit]
         [InlineData("twin_change_includes()")]
         [InlineData("twin_change_includes(      )")]
         [InlineData("twin_change_includes(properties.)")]
@@ -98,7 +102,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.query
             Assert.Throws<RouteCompilationException>(() => RouteCompiler.Instance.Compile(route, RouteCompilerFlags.TwinChangeIncludes));
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestTwinChangeIncludes_NotSupported_RouteCompilerFlag()
         {
             string condition = "twin_change_includes(properties.reported.WeatherTwin)";
@@ -106,7 +111,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.query
             Assert.Throws<RouteCompilationException>(() => RouteCompiler.Instance.Compile(route, RouteCompilerFlags.None));
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestTwinChangeIncludes_NotSupported_MessageSource()
         {
             string condition = "twin_change_includes(properties.reportedWeatherTwin)";
@@ -114,7 +120,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.query
             Assert.Throws<RouteCompilationException>(() => RouteCompiler.Instance.Compile(route, RouteCompilerFlags.TwinChangeIncludes));
         }
 
-        [Theory, Unit]
+        [Theory]
+        [Unit]
         [InlineData("")]
         [InlineData("random message")]
         public void TestTwinChangeIncludes_ValidateMessage(string messageBody)
@@ -123,7 +130,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.query
             var route = new Route("id", condition, "hub", TwinChangeEventMessageSource.Instance, new HashSet<Endpoint>());
             Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route, RouteCompilerFlags.TwinChangeIncludes);
 
-            var invalidMessage = new Message(TwinChangeEventMessageSource.Instance,
+            var invalidMessage = new Message(
+                TwinChangeEventMessageSource.Instance,
                 Encoding.UTF8.GetBytes(messageBody),
                 new Dictionary<string, string>(),
                 new Dictionary<string, string>
@@ -135,14 +143,16 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.query
             Assert.Equal(rule(invalidMessage), Bool.Undefined);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestTwinChangeIncludes_InvalidEncoding()
         {
             string condition = "twin_change_includes(properties.reported.WeatherTwin)";
             var route = new Route("id", condition, "hub", TwinChangeEventMessageSource.Instance, new HashSet<Endpoint>());
             Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route, RouteCompilerFlags.TwinChangeIncludes);
 
-            var invalidMessage = new Message(TwinChangeEventMessageSource.Instance,
+            var invalidMessage = new Message(
+                TwinChangeEventMessageSource.Instance,
                 Encoding.Unicode.GetBytes(TwinNotificationMessage),
                 new Dictionary<string, string>(),
                 new Dictionary<string, string>

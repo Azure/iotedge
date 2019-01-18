@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace IotEdgeQuickstart.Details
 {
     using System;
@@ -20,22 +19,112 @@ namespace IotEdgeQuickstart.Details
 
     public class Details
     {
-        readonly IBootstrapper bootstrapper;
-        readonly Option<RegistryCredentials> credentials;
-        readonly string iothubConnectionString;
-        readonly string eventhubCompatibleEndpointWithEntityPath;
-        readonly ServiceClientTransportType serviceClientTransportType;
-        readonly EventHubClientTransportType eventHubClientTransportType;
-        readonly string imageTag;
-        readonly string deviceId;
-        readonly string hostname;
         public readonly Option<string> DeploymentFileName;
+
+        const string DeployJson = @"
+{
+  ""modulesContent"": {
+    ""$edgeAgent"": {
+      ""properties.desired"": {
+        ""schemaVersion"": ""1.0"",
+        ""runtime"": {
+          ""type"": ""docker"",
+          ""settings"": {
+            ""minDockerVersion"": ""v1.25"",
+            ""loggingOptions"": """"<registry-info>
+          }
+        },
+        ""systemModules"": {
+          ""edgeAgent"": {
+            ""type"": ""docker"",
+            ""settings"": {
+              ""image"": ""<image-edge-agent>"",
+              ""createOptions"": """"
+            }
+          },
+          ""edgeHub"": {
+            ""type"": ""docker"",
+            ""status"": ""running"",
+            ""restartPolicy"": ""always"",
+            ""settings"": {
+              ""image"": ""<image-edge-hub>"",
+              ""createOptions"": ""{\""HostConfig\"":{\""PortBindings\"":{\""8883/tcp\"":[{\""HostPort\"":\""8883\""}],\""443/tcp\"":[{\""HostPort\"":\""443\""}],\""5671/tcp\"":[{\""HostPort\"":\""5671\""}]}}}""
+            },
+		    ""env"": {
+				""OptimizeForPerformance"": {
+					""value"": ""<optimized-for-performance>""
+				}
+			},
+          }
+        },
+        ""modules"": {
+          ""tempSensor"": {
+            ""version"": ""1.0"",
+            ""type"": ""docker"",
+            ""status"": ""running"",
+            ""restartPolicy"": ""always"",
+            ""settings"": {
+              ""image"": ""<image-temp-sensor>"",
+              ""createOptions"": """"
+            }
+          }
+        }
+      }
+    },
+    ""$edgeHub"": {
+      ""properties.desired"": {
+        ""schemaVersion"": ""1.0"",
+        ""routes"": {
+          ""route"": ""FROM /* INTO $upstream""
+        },
+        ""storeAndForwardConfiguration"": {
+          ""timeToLiveSecs"": 7200
+        }
+      }
+    }
+  }
+}
+";
+
+        const string DeployJsonRegistry = @"
+            ,""registryCredentials"": {
+                ""registry"": {
+                    ""address"": ""<registry-address>"",
+                    ""username"": ""<registry-username>"",
+                    ""password"": ""<registry-password>""
+                }
+            }
+";
+
+        readonly IBootstrapper bootstrapper;
+
+        readonly Option<RegistryCredentials> credentials;
+
+        readonly string iothubConnectionString;
+
+        readonly string eventhubCompatibleEndpointWithEntityPath;
+
+        readonly ServiceClientTransportType serviceClientTransportType;
+
+        readonly EventHubClientTransportType eventHubClientTransportType;
+
+        readonly string imageTag;
+
+        readonly string deviceId;
+
+        readonly string hostname;
+
         readonly string deviceCaCert;
+
         readonly string deviceCaPk;
+
         readonly string deviceCaCerts;
+
         readonly bool optimizedForPerformance;
+
         readonly LogLevel runtimeLogLevel;
-        readonly bool cleanUpExistingDeviceOnSuccess; 
+
+        readonly bool cleanUpExistingDeviceOnSuccess;
 
         DeviceContext context;
 
@@ -54,8 +143,7 @@ namespace IotEdgeQuickstart.Details
             string deviceCaCerts,
             bool optimizedForPerformance,
             LogLevel runtimeLogLevel,
-            bool cleanUpExistingDeviceOnSuccess
-            )
+            bool cleanUpExistingDeviceOnSuccess)
         {
             this.bootstrapper = bootstrapper;
             this.credentials = credentials;
@@ -123,28 +211,6 @@ namespace IotEdgeQuickstart.Details
             }
         }
 
-        async Task CreateEdgeDeviceIdentity(RegistryManager rm)
-        {
-            var device = new Device(this.deviceId)
-            {
-                Authentication = new AuthenticationMechanism() { Type = AuthenticationType.Sas },
-                Capabilities = new DeviceCapabilities() { IotEdge = true }
-            };
-
-            IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
-            Console.WriteLine($"Registering device '{device.Id}' on IoT hub '{builder.HostName}'");
-
-            device = await rm.AddDeviceAsync(device);
-
-            this.context = new DeviceContext
-            {
-                Device = device,
-                IotHubConnectionString = this.iothubConnectionString,
-                RegistryManager = rm,
-                RemoveDevice = true
-            };
-        }
-
         protected Task ConfigureBootstrapper()
         {
             IotHubConnectionStringBuilder builder =
@@ -184,7 +250,10 @@ namespace IotEdgeQuickstart.Details
                                 "$edgeAgent",
                                 new CloudToDeviceMethod("ping"),
                                 cts.Token);
-                            if (result.Status == 200) break;
+                            if (result.Status == 200)
+                            {
+                                break;
+                            }
                         }
                         catch (Exception e)
                         {
@@ -235,29 +304,32 @@ namespace IotEdgeQuickstart.Details
                 EventPosition.FromEnd());
 
             var result = new TaskCompletionSource<bool>();
-            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5)))
+            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10)))
             {
                 using (cts.Token.Register(() => result.TrySetCanceled()))
                 {
-                    eventHubReceiver.SetReceiveHandler(new PartitionReceiveHandler(eventData =>
-                    {
-                        eventData.SystemProperties.TryGetValue("iothub-connection-device-id", out object devId);
-                        eventData.SystemProperties.TryGetValue("iothub-connection-module-id", out object modId);
+                    eventHubReceiver.SetReceiveHandler(
+                        new PartitionReceiveHandler(
+                            eventData =>
+                            {
+                                eventData.SystemProperties.TryGetValue("iothub-connection-device-id", out object devId);
+                                eventData.SystemProperties.TryGetValue("iothub-connection-module-id", out object modId);
 
-                        if (devId != null && devId.ToString().Equals(this.context.Device.Id) &&
-                            modId != null && modId.ToString().Equals(moduleId))
-                        {
-                            result.TrySetResult(true);
-                            return true;
-                        }
+                                if (devId != null && devId.ToString().Equals(this.context.Device.Id) &&
+                                    modId != null && modId.ToString().Equals(moduleId))
+                                {
+                                    result.TrySetResult(true);
+                                    return true;
+                                }
 
-                        return false;
-                    }));
+                                return false;
+                            }));
 
                     await result.Task;
                 }
             }
 
+            Console.WriteLine("VerifyDataOnIoTHub completed.");
             await eventHubReceiver.CloseAsync();
             await eventHubClient.CloseAsync();
         }
@@ -281,6 +353,7 @@ namespace IotEdgeQuickstart.Details
                     module.Remove();
                 }
             }
+
             config.ModulesContent["$edgeAgent"]["properties.desired"] = desired;
 
             return this.context.RegistryManager.ApplyConfigurationContentOnDeviceAsync(this.context.Device.Id, config);
@@ -317,6 +390,28 @@ namespace IotEdgeQuickstart.Details
             return Task.CompletedTask;
         }
 
+        async Task CreateEdgeDeviceIdentity(RegistryManager rm)
+        {
+            var device = new Device(this.deviceId)
+            {
+                Authentication = new AuthenticationMechanism() { Type = AuthenticationType.Sas },
+                Capabilities = new DeviceCapabilities() { IotEdge = true }
+            };
+
+            IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
+            Console.WriteLine($"Registering device '{device.Id}' on IoT hub '{builder.HostName}'");
+
+            device = await rm.AddDeviceAsync(device);
+
+            this.context = new DeviceContext
+            {
+                Device = device,
+                IotHubConnectionString = this.iothubConnectionString,
+                RegistryManager = rm,
+                RemoveDevice = true
+            };
+        }
+
         string EdgeAgentImage()
         {
             return this.BuildImageName("azureiotedge-agent");
@@ -349,9 +444,10 @@ namespace IotEdgeQuickstart.Details
                     Console.WriteLine($"Deployment file used: {f}");
                     return JObject.Parse(File.ReadAllText(f)).ToString();
                 },
-                () => {
+                () =>
+                {
                     string deployJsonRegistry = this.credentials.Match(
-                    c =>
+                        c =>
                         {
                             string jsonRegistry = DeployJsonRegistry;
                             jsonRegistry = Regex.Replace(jsonRegistry, "<registry-address>", c.Address);
@@ -359,8 +455,7 @@ namespace IotEdgeQuickstart.Details
                             jsonRegistry = Regex.Replace(jsonRegistry, "<registry-password>", c.Password);
                             return jsonRegistry;
                         },
-                        () => string.Empty
-                    );
+                        () => string.Empty);
 
                     string json = DeployJson;
                     json = Regex.Replace(json, "<image-edge-agent>", edgeAgentImage);
@@ -371,86 +466,8 @@ namespace IotEdgeQuickstart.Details
                     return json;
                 });
 
-            return (deployJson, new [] { edgeAgentImage, edgeHubImage, tempSensorImage });
+            return (deployJson, new[] { edgeAgentImage, edgeHubImage, tempSensorImage });
         }
-
-        // TODO: Remove Env (SSL_CERTIFICATE_PATH and SSL_CERTIFICATE_NAME) from
-        //       modulesContent.$edgeAgent.systemModules.edgeHub.settings.createOptions
-        //       once Azure/iot-edge-v1#632 is fixed and available on mcr.microsoft.com
-        const string DeployJson = @"
-{
-  ""modulesContent"": {
-    ""$edgeAgent"": {
-      ""properties.desired"": {
-        ""schemaVersion"": ""1.0"",
-        ""runtime"": {
-          ""type"": ""docker"",
-          ""settings"": {
-            ""minDockerVersion"": ""v1.25"",
-            ""loggingOptions"": """"<registry-info>
-          }
-        },
-        ""systemModules"": {
-          ""edgeAgent"": {
-            ""type"": ""docker"",
-            ""settings"": {
-              ""image"": ""<image-edge-agent>"",
-              ""createOptions"": """"
-            }
-          },
-          ""edgeHub"": {
-            ""type"": ""docker"",
-            ""status"": ""running"",
-            ""restartPolicy"": ""always"",
-            ""settings"": {
-              ""image"": ""<image-edge-hub>"",
-              ""createOptions"": ""{\""HostConfig\"":{\""PortBindings\"":{\""8883/tcp\"":[{\""HostPort\"":\""8883\""}],\""443/tcp\"":[{\""HostPort\"":\""443\""}]}},\""Env\"":[\""SSL_CERTIFICATE_PATH=/mnt/edgehub\"",\""SSL_CERTIFICATE_NAME=edge-hub-server.cert.pfx\""]}""
-            },
-		    ""env"": {
-				""OptimizeForPerformance"": {
-					""value"": ""<optimized-for-performance>""
-				}
-			},
-          }
-        },
-        ""modules"": {
-          ""tempSensor"": {
-            ""version"": ""1.0"",
-            ""type"": ""docker"",
-            ""status"": ""running"",
-            ""restartPolicy"": ""always"",
-            ""settings"": {
-              ""image"": ""<image-temp-sensor>"",
-              ""createOptions"": """"
-            }
-          }
-        }
-      }
-    },
-    ""$edgeHub"": {
-      ""properties.desired"": {
-        ""schemaVersion"": ""1.0"",
-        ""routes"": {
-          ""route"": ""FROM /* INTO $upstream""
-        },
-        ""storeAndForwardConfiguration"": {
-          ""timeToLiveSecs"": 7200
-        }
-      }
-    }
-  }
-}
-";
-
-        const string DeployJsonRegistry = @"
-            ,""registryCredentials"": {
-                ""registry"": {
-                    ""address"": ""<registry-address>"",
-                    ""username"": ""<registry-username>"",
-                    ""password"": ""<registry-password>""
-                }
-            }
-";
     }
 
     public class DeviceContext

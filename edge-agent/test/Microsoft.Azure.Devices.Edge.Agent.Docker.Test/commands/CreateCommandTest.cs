@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 {
     using System;
@@ -60,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 
                     var modules = new Dictionary<string, IModule> { [Name] = module };
                     var systemModules = new SystemModules(null, null);
-                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", "")), systemModules, modules));
+                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", string.Empty)), systemModules, modules));
                     var configSource = new Mock<IConfigSource>();
                     configSource.Setup(cs => cs.AppSettings).Returns(mockAppSetting.Object);
                     configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
@@ -121,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     var loggingConfig = new DockerLoggingConfig("json-file");
                     var config = new DockerConfig(Image, @"{""HostConfig"": {""PortBindings"": {""42/udp"": [{""HostPort"": ""42""}]}}}");
                     var module = new DockerModule(Name, "1.0", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy, config, null, EnvVars);
-                    
+
                     // Logging options will be derived from application level configuration
                     var modules = new Dictionary<string, IModule> { [Name] = module };
                     var systemModules = new SystemModules(null, null);
@@ -201,7 +200,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 
                     var modules = new Dictionary<string, IModule> { [Name] = module };
                     var systemModules = new SystemModules(null, null);
-                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", "")), systemModules, modules));
+                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", string.Empty)), systemModules, modules));
                     var configSource = new Mock<IConfigSource>();
                     configSource.Setup(cs => cs.AppSettings).Returns(mockAppSetting.Object);
                     configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
@@ -234,7 +233,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     Assert.Equal("testdevice", container.NetworkSettings.Networks.GetOrElse("testnetwork", new EndpointSettings()).Aliases.FirstOrDefault());
 
                     Assert.Equal("testdevice", container.NetworkSettings.Networks.GetOrElse("testnetwork", new EndpointSettings()).Aliases.FirstOrDefault());
-                    //environment variables
+                    // environment variables
                     IDictionary<string, string> envMap = container.Config.Env.ToDictionary('=');
                     Assert.Equal("v1", envMap["k1"]);
                     Assert.Equal("v2", envMap["k2"]);
@@ -323,24 +322,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
             }
         }
 
-        IEdgeAgentModule CreateMockEdgeAgentModule() => new TestAgentModule(
-            Constants.EdgeAgentModuleName,
-            "docker",
-            new TestConfig("EdgeAgentImage"),
-            new ConfigurationInfo(),
-            EnvVars
-        );
-
-        IEdgeHubModule CreateMockEdgeHubModule() => new TestHubModule(
-            Constants.EdgeHubModuleName,
-            "docker",
-            ModuleStatus.Running,
-            new TestConfig("EdgeAgentImage"),
-            global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always,
-            new ConfigurationInfo(),
-            EnvVars
-        );
-
         [Fact]
         [Unit]
         public async Task TestMountEdgeHubVolume()
@@ -369,8 +350,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 
             var systemModules = new SystemModules(
                 this.CreateMockEdgeAgentModule(),
-                this.CreateMockEdgeHubModule()
-            );
+                this.CreateMockEdgeHubModule());
 
             var mockAppSetting = new Mock<IAgentAppSettings>();
             mockAppSetting.SetupGet(s => s.EdgeHubVolumeName).Returns(VolumeName);
@@ -381,8 +361,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                 "1.0",
                 runtimeInfo.Object,
                 systemModules,
-                ImmutableDictionary<string, IModule>.Empty
-            );
+                ImmutableDictionary<string, IModule>.Empty);
             var deploymentConfigInfo = new DeploymentConfigInfo(10, deploymentConfig);
             configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
             configSource.SetupGet(cs => cs.AppSettings).Returns(mockAppSetting.Object);
@@ -397,8 +376,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy,
                     new DockerConfig("image1"),
                     new ConfigurationInfo("1234"),
-                    EnvVars
-                ),
+                    EnvVars),
                 moduleIdentity.Object,
                 new DockerLoggingConfig("json"),
                 configSource.Object,
@@ -438,8 +416,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 
             var systemModules = new SystemModules(
                 this.CreateMockEdgeAgentModule(),
-                this.CreateMockEdgeHubModule()
-            );
+                this.CreateMockEdgeHubModule());
 
             var mockAppSetting = new Mock<IAgentAppSettings>();
             mockAppSetting.SetupGet(s => s.EdgeModuleVolumeName).Returns(VolumeName);
@@ -450,8 +427,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                 "1.0",
                 runtimeInfo.Object,
                 systemModules,
-                ImmutableDictionary<string, IModule>.Empty
-            );
+                ImmutableDictionary<string, IModule>.Empty);
             var deploymentConfigInfo = new DeploymentConfigInfo(10, deploymentConfig);
             configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
             configSource.SetupGet(cs => cs.AppSettings).Returns(mockAppSetting.Object);
@@ -466,8 +442,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy,
                     new DockerConfig("image1"),
                     new ConfigurationInfo("1234"),
-                    EnvVars
-                ),
+                    EnvVars),
                 moduleIdentity.Object,
                 new DockerLoggingConfig("json"),
                 configSource.Object,
@@ -676,7 +651,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 
                     var modules = new Dictionary<string, IModule> { [Name] = module };
                     var systemModules = new SystemModules(null, null);
-                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", "")), systemModules, modules));
+                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", string.Empty)), systemModules, modules));
                     var configSource = new Mock<IConfigSource>();
                     configSource.Setup(cs => cs.AppSettings).Returns(mockAppSetting.Object);
                     configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
@@ -717,5 +692,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                 await DockerHelper.Client.CleanupContainerAsync(Name, Image);
             }
         }
+
+        IEdgeAgentModule CreateMockEdgeAgentModule() => new TestAgentModule(
+            Constants.EdgeAgentModuleName,
+            "docker",
+            new TestConfig("EdgeAgentImage"),
+            new ConfigurationInfo(),
+            EnvVars);
+
+        IEdgeHubModule CreateMockEdgeHubModule() => new TestHubModule(
+            Constants.EdgeHubModuleName,
+            "docker",
+            ModuleStatus.Running,
+            new TestConfig("EdgeAgentImage"),
+            global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always,
+            new ConfigurationInfo(),
+            EnvVars);
     }
 }

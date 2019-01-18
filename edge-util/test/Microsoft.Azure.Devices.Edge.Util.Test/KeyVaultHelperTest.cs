@@ -1,9 +1,8 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Util.Test
 {
-    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
     public class KeyVaultHelperTest

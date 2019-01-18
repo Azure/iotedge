@@ -4,13 +4,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     using System;
     using Microsoft.Azure.Devices.Common.Exceptions;
 
-    public class EdgeHubAmqpException : Exception
+    public class EdgeAmqpException : Exception
     {
-        public EdgeHubAmqpException(string message, ErrorCode errorCode)
+        public EdgeAmqpException(string message, ErrorCode errorCode)
             : this(message, errorCode, null)
-        { }
+        {
+        }
 
-        public EdgeHubAmqpException(string message, ErrorCode errorCode, Exception innerException)
+        public EdgeAmqpException(string message, ErrorCode errorCode, Exception innerException)
             : base(message, innerException)
         {
             this.ErrorCode = errorCode;

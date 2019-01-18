@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace IotEdgeQuickstart.Details
 {
     using System;
@@ -56,7 +55,10 @@ namespace IotEdgeQuickstart.Details
                             $"ps --quiet --filter \"name = {name}\"",
                             cts.Token);
 
-                        if (!string.IsNullOrWhiteSpace(status.FirstOrDefault())) break;
+                        if (!string.IsNullOrWhiteSpace(status.FirstOrDefault()))
+                        {
+                            break;
+                        }
 
                         errorMessage = "Not found";
                     }
@@ -90,8 +92,7 @@ namespace IotEdgeQuickstart.Details
 
             string registryArgs = this.credentials.Match(
                 c => $"--docker-registries {c.Address} {c.User} {c.Password}",
-                () => string.Empty
-            );
+                () => string.Empty);
 
             await Process.RunAsync(
                 "iotedgectl",

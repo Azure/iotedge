@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
 {
     using System;
@@ -17,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
         public ParallelGroupCommand(params ICommand[] group)
         {
             this.commandGroup = Preconditions.CheckNotNull(group, nameof(group));
-            this.id = new Lazy<string>(() => this.commandGroup.Aggregate("", (prev, command) => command.Id + prev));
+            this.id = new Lazy<string>(() => this.commandGroup.Aggregate(string.Empty, (prev, command) => command.Id + prev));
         }
 
         // We use the sum of the IDs of the underlying commands as the id for this group

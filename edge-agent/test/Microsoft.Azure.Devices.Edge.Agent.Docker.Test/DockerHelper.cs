@@ -14,20 +14,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
         public static IDockerClient Client { get; } = LazyClient.Value;
 
-        static IDockerClient GetDockerClient()
-        {
-            // Build the docker host URL.
-            string dockerHostUrl = ConfigHelper.TestConfig["dockerHostUrl"];
-            return new DockerClientConfiguration(new Uri(dockerHostUrl)).CreateClient();
-        }
-
         /// <summary>
         /// Pulls specified image and ensures it is downloaded completely
         /// </summary>
-        /// <param name="client"></param>
-        /// <param name="image"></param>
-        /// <param name="token"></param>
-        /// <returns></returns>
+        /// <param name="client">Docker client</param>
+        /// <param name="image">Image name</param>
+        /// <param name="token">Cancellation token</param>
+        /// <returns>Task</returns>
         public static async Task PullImageAsync(this IDockerClient client, string image, CancellationToken token)
         {
             string[] imageParts = image.Split(':');
@@ -45,10 +38,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         /// <summary>
         /// Removes container and deletes image
         /// </summary>
-        /// <param name="client"></param>
-        /// <param name="name"></param>
-        /// <param name="image"></param>
-        /// <returns></returns>
+        /// <param name="client">Docker client</param>
+        /// <param name="name">Container name</param>
+        /// <param name="image">Image name</param>
+        /// <returns>Task</returns>
         public static async Task CleanupContainerAsync(this IDockerClient client, string name, string image)
         {
             var removeParams = new ContainerRemoveParameters
@@ -70,11 +63,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             try
             {
                 await action();
-            }
-            // ReSharper disable once EmptyGeneralCatchClause
+            } // ReSharper disable once EmptyGeneralCatchClause
             catch (Exception)
             {
             }
+        }
+
+        static IDockerClient GetDockerClient()
+        {
+            // Build the docker host URL.
+            string dockerHostUrl = ConfigHelper.TestConfig["dockerHostUrl"];
+            return new DockerClientConfiguration(new Uri(dockerHostUrl)).CreateClient();
         }
     }
 }

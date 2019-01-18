@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System.Collections.Generic;
@@ -8,8 +7,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
     public interface IServiceIdentitiesIterator
     {
-        Task<IEnumerable<ServiceIdentity>> GetNext();
-
         bool HasNext { get; }
+
+        Task<IEnumerable<ServiceIdentity>> GetNext();
     }
 }

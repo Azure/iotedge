@@ -1,11 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
     using System;
     using System.Collections.Generic;
+    using System.Net;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.Logging;
 
     public interface IAgentAppSettings
     {
@@ -53,9 +54,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         string EdgeModuleVolumePath { get; }
 
+        Option<IWebProxy> HttpsProxy { get; }
+
         TimeSpan IntensiveCareTime { get; }
 
         string IoTHubHostName { get; }
+
+        ILogger Logger { get; }
 
         string ManagementUri { get; }
 

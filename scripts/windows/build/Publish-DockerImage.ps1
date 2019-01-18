@@ -49,7 +49,7 @@ if (-not $BuildBinariesDirectory) {
     $BuildBinariesDirectory = DefaultBuildBinariesDirectory @Params
 }
 
-$SupportedArchs = @("amd64")
+$SupportedArchs = @("amd64", "arm32v7")
 
 $Architecture = $Architecture.ToLower()
 if ($SupportedArchs -notcontains $Architecture) {
@@ -62,7 +62,7 @@ if (-not (Test-Path $ProjectDirectory -PathType "Container" )) {
 }
 
 $Dockerfile = [IO.Path]::Combine($ProjectDirectory, "docker", "windows", $Architecture, "Dockerfile")
-if (-not (Test-Path $ProjectDirectory)) {
+if (-not (Test-Path $Dockerfile)) {
     throw "'$Dockerfile' is not the location of a Dockerfile."
 }
 
@@ -82,7 +82,7 @@ if ($Registry) {
  # Build the image
  #>
 
-$BuildOptions = "--no-cache -t $Tag --file $Dockerfile"
+$BuildOptions = "--no-cache -t $Tag --file $Dockerfile --build-arg base_registry=$Registry"
 if ($BaseTag) {
     $BuildOptions += " --build-arg base_tag=$BaseTag"
 }

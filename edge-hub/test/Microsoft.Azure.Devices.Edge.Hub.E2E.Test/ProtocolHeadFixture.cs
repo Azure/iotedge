@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
     using System;
@@ -17,15 +16,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Microsoft.Azure.Devices.Edge.Hub.Service;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Extensions.Logging;
+    using Constants = Microsoft.Azure.Devices.Edge.Hub.Service.Constants;
 
     public class ProtocolHeadFixture : IDisposable
     {
-        public IProtocolHead ProtocolHead { get; }
-
         public ProtocolHeadFixture()
         {
             this.ProtocolHead = InternalProtocolHeadFixture.Instance.ProtocolHead;
         }
+
+        public IProtocolHead ProtocolHead { get; }
 
         public void Dispose()
         {
@@ -36,11 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             IContainer container;
             IProtocolHead protocolHead;
 
-            public IProtocolHead ProtocolHead => this.protocolHead;
-
-            public static InternalProtocolHeadFixture Instance { get; } = new InternalProtocolHeadFixture();
-
-            private InternalProtocolHeadFixture()
+            InternalProtocolHeadFixture()
             {
                 bool.TryParse(ConfigHelper.TestConfig["Tests_StartEdgeHubService"], out bool shouldStartEdge);
                 if (shouldStartEdge)
@@ -52,6 +48,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             ~InternalProtocolHeadFixture()
             {
                 this.protocolHead?.Dispose();
+            }
+
+            public static InternalProtocolHeadFixture Instance { get; } = new InternalProtocolHeadFixture();
+
+            public IProtocolHead ProtocolHead => this.protocolHead;
+
+            // Device SDK caches the AmqpTransportSettings that are set the first time and ignores
+            // all the settings used thereafter from that process. So set up a dummy connection using the test
+            // AmqpTransportSettings, so that Device SDK caches it and uses it thereafter
+            static async Task ConnectToIotHub(string connectionString)
+            {
+                DeviceClient dc = DeviceClient.CreateFromConnectionString(connectionString, TestSettings.AmqpTransportSettings);
+                await dc.OpenAsync();
+                await dc.CloseAsync();
             }
 
             async Task StartProtocolHead()
@@ -67,8 +77,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 // TODO - After IoTHub supports MQTT, remove this and move to using MQTT for upstream connections
                 await ConnectToIotHub(edgeDeviceConnectionString);
 
-                ConfigHelper.TestConfig[Service.Constants.ConfigKey.IotHubConnectionString] = edgeDeviceConnectionString;
-                Hosting hosting = Hosting.Initialize(ConfigHelper.TestConfig, certificate, new DependencyManager(ConfigHelper.TestConfig, certificate, trustBundle));
+                ConfigHelper.TestConfig[Constants.ConfigKey.IotHubConnectionString] = edgeDeviceConnectionString;
+                Hosting hosting = Hosting.Initialize(ConfigHelper.TestConfig, certificate, new DependencyManager(ConfigHelper.TestConfig, certificate, trustBundle), true);
                 this.container = hosting.Container;
 
                 // CloudConnectionProvider and RoutingEdgeHub have a circular dependency. So set the
@@ -87,16 +97,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 var httpProtocolHead = new HttpProtocolHead(hosting.WebHost);
                 this.protocolHead = new EdgeHubProtocolHead(new List<IProtocolHead> { mqttProtocolHead, amqpProtocolHead, httpProtocolHead }, logger);
                 await this.protocolHead.StartAsync();
-            }
-
-            // Device SDK caches the AmqpTransportSettings that are set the first time and ignores
-            // all the settings used thereafter from that process. So set up a dummy connection using the test
-            // AmqpTransportSettings, so that Device SDK caches it and uses it thereafter
-            static async Task ConnectToIotHub(string connectionString)
-            {
-                DeviceClient dc = DeviceClient.CreateFromConnectionString(connectionString, TestSettings.AmqpTransportSettings);
-                await dc.OpenAsync();
-                await dc.CloseAsync();
             }
         }
     }

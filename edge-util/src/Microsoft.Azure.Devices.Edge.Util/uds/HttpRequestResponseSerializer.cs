@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Util.Uds
 {
     using System;
@@ -12,21 +11,20 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
 
     class HttpRequestResponseSerializer
     {
-        private const char SP = ' ';
-        private const char CR = '\r';
-        private const char LF = '\n';
-        private const char ProtocolVersionSeparator = '/';
-        private const string Protocol = "HTTP";
-        private const char HeaderSeparator = ':';
-        private const string ContentLengthHeaderName = "content-length";
-
+        const char SP = ' ';
+        const char CR = '\r';
+        const char LF = '\n';
+        const char ProtocolVersionSeparator = '/';
+        const string Protocol = "HTTP";
+        const char HeaderSeparator = ':';
+        const string ContentLengthHeaderName = "content-length";
 
         public byte[] SerializeRequest(HttpRequestMessage request)
         {
             Preconditions.CheckNotNull(request, nameof(request));
             Preconditions.CheckNotNull(request.RequestUri, nameof(request.RequestUri));
 
-            PreProcessRequest(request);
+            this.PreProcessRequest(request);
 
             var builder = new StringBuilder();
             // request-line   = method SP request-target SP HTTP-version CRLF
@@ -64,13 +62,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
         {
             var httpResponse = new HttpResponseMessage();
 
-            await SetResponseStatusLine(httpResponse, bufferedStream, cancellationToken).ConfigureAwait(false);
-            await SetHeadersAndContent(httpResponse, bufferedStream, cancellationToken).ConfigureAwait(false);
+            await this.SetResponseStatusLine(httpResponse, bufferedStream, cancellationToken).ConfigureAwait(false);
+            await this.SetHeadersAndContent(httpResponse, bufferedStream, cancellationToken).ConfigureAwait(false);
 
             return httpResponse;
         }
 
-        private async Task SetHeadersAndContent(HttpResponseMessage httpResponse, HttpBufferedStream bufferedStream, CancellationToken cancellationToken)
+        async Task SetHeadersAndContent(HttpResponseMessage httpResponse, HttpBufferedStream bufferedStream, CancellationToken cancellationToken)
         {
             IList<string> headers = new List<string>();
             string line = await bufferedStream.ReadLineAsync(cancellationToken).ConfigureAwait(false);
@@ -107,6 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
                         {
                             throw new HttpRequestException($"Header value is invalid for {headerName}.");
                         }
+
                         await httpResponse.Content.LoadIntoBufferAsync(contentLength).ConfigureAwait(false);
                     }
 
@@ -115,7 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
             }
         }
 
-        private async Task SetResponseStatusLine(HttpResponseMessage httpResponse, HttpBufferedStream bufferedStream, CancellationToken cancellationToken)
+        async Task SetResponseStatusLine(HttpResponseMessage httpResponse, HttpBufferedStream bufferedStream, CancellationToken cancellationToken)
         {
             string statusLine = await bufferedStream.ReadLineAsync(cancellationToken).ConfigureAwait(false);
             if (string.IsNullOrWhiteSpace(statusLine))
@@ -146,7 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
             httpResponse.ReasonPhrase = statusLineParts[2];
         }
 
-        private void PreProcessRequest(HttpRequestMessage request)
+        void PreProcessRequest(HttpRequestMessage request)
         {
             if (string.IsNullOrEmpty(request.Headers.Host))
             {

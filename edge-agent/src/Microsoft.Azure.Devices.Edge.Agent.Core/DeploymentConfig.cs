@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
     using System;
@@ -10,6 +9,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
     public class DeploymentConfig : IEquatable<DeploymentConfig>
     {
+        public static DeploymentConfig Empty = new DeploymentConfig(
+            "1.0",
+            UnknownRuntimeInfo.Instance,
+            new SystemModules(UnknownEdgeAgentModule.Instance, UnknownEdgeHubModule.Instance),
+            ImmutableDictionary<string, IModule>.Empty);
+
         static readonly ReadOnlyDictionaryComparer<string, IModule> ModuleDictionaryComparer = new ReadOnlyDictionaryComparer<string, IModule>();
 
         [JsonConstructor]
@@ -25,20 +30,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             this.Modules = modules?.ToImmutableDictionary() ?? ImmutableDictionary<string, IModule>.Empty;
             this.UpdateModuleNames();
         }
-
-        void UpdateModuleNames()
-        {
-            foreach (KeyValuePair<string, IModule> module in this.Modules)
-            {
-                module.Value.Name = module.Key;
-            }
-        }
-
-        public static DeploymentConfig Empty = new DeploymentConfig(
-            "1.0",
-            UnknownRuntimeInfo.Instance,
-            new SystemModules(UnknownEdgeAgentModule.Instance, UnknownEdgeHubModule.Instance),
-            ImmutableDictionary<string, IModule>.Empty);
 
         [JsonProperty("schemaVersion")]
         public string SchemaVersion { get; }
@@ -70,13 +61,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public bool Equals(DeploymentConfig other)
         {
             if (ReferenceEquals(null, other))
+            {
                 return false;
+            }
+
             if (ReferenceEquals(this, other))
+            {
                 return true;
+            }
+
             return string.Equals(this.SchemaVersion, other.SchemaVersion)
-                && Equals(this.Runtime, other.Runtime)
-                && Equals(this.SystemModules, other.SystemModules)
-                && ModuleDictionaryComparer.Equals(this.Modules, other.Modules);
+                   && Equals(this.Runtime, other.Runtime)
+                   && Equals(this.SystemModules, other.SystemModules)
+                   && ModuleDictionaryComparer.Equals(this.Modules, other.Modules);
         }
 
         public override bool Equals(object obj)
@@ -94,12 +91,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         {
             unchecked
             {
-                int hashCode = (this.SchemaVersion != null ? this.SchemaVersion.GetHashCode() : 0);
+                int hashCode = this.SchemaVersion != null ? this.SchemaVersion.GetHashCode() : 0;
                 hashCode = (hashCode * 397) ^ (this.Runtime != null ? this.Runtime.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ (this.SystemModules != null ? this.SystemModules.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ (this.Modules != null ? this.Modules.GetHashCode() : 0);
                 return hashCode;
             }
         }
-    }    
+
+        void UpdateModuleNames()
+        {
+            foreach (KeyValuePair<string, IModule> module in this.Modules)
+            {
+                module.Value.Name = module.Key;
+            }
+        }
+    }
 }

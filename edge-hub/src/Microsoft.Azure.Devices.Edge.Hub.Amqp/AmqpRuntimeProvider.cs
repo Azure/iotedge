@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 {
     using System;
@@ -26,9 +25,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         readonly string iotHubHostName;
         readonly ICredentialsCache credentialsCache;
 
-        public AmqpRuntimeProvider(ILinkHandlerProvider linkHandlerProvider, bool requireSecureTransport,
-            IClientCredentialsFactory clientCredentialsFactory, IAuthenticator authenticator,
-            string iotHubHostName, IConnectionProvider connectionProvider, ICredentialsCache credentialsCache)
+        public AmqpRuntimeProvider(
+            ILinkHandlerProvider linkHandlerProvider,
+            bool requireSecureTransport,
+            IClientCredentialsFactory clientCredentialsFactory,
+            IAuthenticator authenticator,
+            string iotHubHostName,
+            IConnectionProvider connectionProvider,
+            ICredentialsCache credentialsCache)
         {
             this.linkHandlerProvider = Preconditions.CheckNotNull(linkHandlerProvider, nameof(linkHandlerProvider));
             this.requireSecureTransport = Preconditions.CheckNotNull(requireSecureTransport, nameof(requireSecureTransport));
@@ -59,36 +63,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
             return connection;
         }
-
-        void OnConnectionOpening(object sender, OpenEventArgs e)
-        {
-            var command = (Open)e.Command;
-
-            // 'command.IdleTimeOut' is the Idle time out specified in the client OPEN frame
-            // Server will send heart beats honoring this timeout(every 7/8 of IdleTimeout)
-            if (command.IdleTimeOut == null || command.IdleTimeOut == 0)
-            {
-                command.IdleTimeOut = Constants.DefaultAmqpHeartbeatSendInterval;
-            }
-            else if (command.IdleTimeOut < Constants.MinimumAmqpHeartbeatSendInterval)
-            {
-                throw new EdgeHubConnectionException($"Connection idle timeout specified is less than minimum acceptable value: {Constants.MinimumAmqpHeartbeatSendInterval}");
-            }
-
-            var amqpConnection = (AmqpConnection)sender;
-            // If the AmqpConnection does not use username/password or certs, create a CbsNode for the connection
-            // and add it to the Extensions
-            if (!(amqpConnection.Principal is SaslPrincipal || amqpConnection.Principal is X509Principal))
-            {
-                ICbsNode cbsNode = new CbsNode(this.clientCredentialsFactory, this.iotHubHostName, this.authenticator, this.credentialsCache);
-                amqpConnection.Extensions.Add(cbsNode);
-            }
-
-            IClientConnectionsHandler connectionHandler = new ClientConnectionsHandler(this.connectionProvider);
-            amqpConnection.Extensions.Add(connectionHandler);
-        }
-
-        AmqpSession ISessionFactory.CreateSession(AmqpConnection connection, AmqpSessionSettings settings) => new AmqpSession(connection, settings, this);
 
         AmqpLink ILinkFactory.CreateLink(AmqpSession session, AmqpLinkSettings settings)
         {
@@ -125,7 +99,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 //  amqp[s]:a/b                                 <-- path relative to hostname specified in OPEN
                 //  a/b                                         <-- pre-global addressing style path relative to hostname specified in OPEN
                 //  /a/b                                        <-- same as above
-
                 Uri linkUri;
                 if (!linkAddress.StartsWith(Constants.AmqpsScheme, StringComparison.OrdinalIgnoreCase))
                 {
@@ -152,6 +125,36 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             this.OpenLinkAsync(link, timeout).ToAsyncResult(callback, state);
 
         void ILinkFactory.EndOpenLink(IAsyncResult result) => TaskEx.EndAsyncResult(result);
+
+        AmqpSession ISessionFactory.CreateSession(AmqpConnection connection, AmqpSessionSettings settings) => new AmqpSession(connection, settings, this);
+
+        void OnConnectionOpening(object sender, OpenEventArgs e)
+        {
+            var command = (Open)e.Command;
+
+            // 'command.IdleTimeOut' is the Idle time out specified in the client OPEN frame
+            // Server will send heart beats honoring this timeout(every 7/8 of IdleTimeout)
+            if (command.IdleTimeOut == null || command.IdleTimeOut == 0)
+            {
+                command.IdleTimeOut = Constants.DefaultAmqpHeartbeatSendInterval;
+            }
+            else if (command.IdleTimeOut < Constants.MinimumAmqpHeartbeatSendInterval)
+            {
+                throw new EdgeHubConnectionException($"Connection idle timeout specified is less than minimum acceptable value: {Constants.MinimumAmqpHeartbeatSendInterval}");
+            }
+
+            var amqpConnection = (AmqpConnection)sender;
+            // If the AmqpConnection does not use username/password or certs, create a CbsNode for the connection
+            // and add it to the Extensions
+            if (!(amqpConnection.Principal is SaslPrincipal || amqpConnection.Principal is X509Principal))
+            {
+                ICbsNode cbsNode = new CbsNode(this.clientCredentialsFactory, this.iotHubHostName, this.authenticator, this.credentialsCache);
+                amqpConnection.Extensions.Add(cbsNode);
+            }
+
+            IClientConnectionsHandler connectionHandler = new ClientConnectionsHandler(this.connectionProvider);
+            amqpConnection.Extensions.Add(connectionHandler);
+        }
 
         Task OpenLinkAsync(AmqpLink link, TimeSpan timeout)
         {

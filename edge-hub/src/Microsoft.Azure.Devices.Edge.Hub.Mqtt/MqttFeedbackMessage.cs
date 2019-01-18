@@ -1,5 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
     using System.Collections.Generic;
@@ -8,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     class MqttFeedbackMessage : IFeedbackMessage
     {
         readonly IMessage message;
+
         public MqttFeedbackMessage(IMessage message, FeedbackStatus status)
         {
             this.message = message;

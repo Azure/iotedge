@@ -17,8 +17,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         readonly string edgeDeviceId;
         readonly ConcurrentDictionary<string, Endpoint> cache;
 
-        public EndpointFactory(IConnectionManager connectionManager,
-            Core.IMessageConverter<IRoutingMessage> messageConverter, string edgeDeviceId)
+        public EndpointFactory(
+            IConnectionManager connectionManager,
+            Core.IMessageConverter<IRoutingMessage> messageConverter,
+            string edgeDeviceId)
         {
             this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
             this.messageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
@@ -45,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 throw new InvalidOperationException($"Function endpoint type '{function ?? string.Empty}' not supported.");
             }
 
-            // Parameter string contains endpoint address in this format - /modules/{mid}/inputs/{input}. 
+            // Parameter string contains endpoint address in this format - /modules/{mid}/inputs/{input}.
             parameterString = Preconditions.CheckNonWhiteSpace(parameterString, nameof(parameterString)).Trim();
 
             if (parameterString.StartsWith("/"))

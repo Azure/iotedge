@@ -1,10 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Routing.Core.Query.JsonPath
 {
-    using static System.FormattableString;
     using Antlr4.Runtime;
     using Microsoft.Azure.Devices.Routing.Core.Query.Errors;
+    using static System.FormattableString;
 
     public static class JsonPathValidator
     {

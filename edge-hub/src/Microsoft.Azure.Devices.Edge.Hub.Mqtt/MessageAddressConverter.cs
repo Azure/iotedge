@@ -1,15 +1,14 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
     using Microsoft.Azure.Devices.Client.Common;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.ProtocolGateway;
     using Microsoft.Extensions.Logging;
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
     using static System.FormattableString;
     using IProtocolGatewayMessage = Microsoft.Azure.Devices.ProtocolGateway.Messaging.IMessage;
 
@@ -21,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     /// MQTT protocol head however we transform these names into MQTT topic names. This
     /// class, in conjunction with the <see cref="MessageAddressConversionConfiguration"/>
     /// class, handles this task.
-    /// 
+    ///
     /// See documentation for <see cref="TryBuildProtocolAddressFromEdgeHubMessage"/> and
     /// <see cref="TryParseProtocolMessagePropsFromAddress"/> for additional detail on how
     /// this transformation works.
@@ -63,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             {
                 try
                 {
-                    address = template.Bind(message.SystemProperties);                    
+                    address = template.Bind(message.SystemProperties);
                     if (!string.IsNullOrWhiteSpace(address) && messagePropertiesToSend != null && messagePropertiesToSend.Count > 0)
                     {
                         address = Invariant($"{address.TrimEnd('/')}/{UrlEncodedDictionarySerializer.Serialize(messagePropertiesToSend)}");
@@ -110,8 +109,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
                 foreach (KeyValuePair<string, string> match in matches[0])
                 {
-                    // If the template has a key called "params" then it contains all the properties set by the user on 
-                    // the sent message in query string format. So get the value and parse it. 
+                    // If the template has a key called "params" then it contains all the properties set by the user on
+                    // the sent message in query string format. So get the value and parse it.
                     if (match.Key == "params")
                     {
                         if (!string.IsNullOrWhiteSpace(match.Value))

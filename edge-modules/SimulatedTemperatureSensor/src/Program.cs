@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace SimulatedTemperatureSensor
 {
     using System;
@@ -23,12 +22,19 @@ namespace SimulatedTemperatureSensor
         const int RetryCount = 5;
         const string MessageCountConfigKey = "MessageCount";
         static readonly ITransientErrorDetectionStrategy TimeoutErrorDetectionStrategy = new DelegateErrorDetectionStrategy(ex => ex.HasTimeoutException());
+
         static readonly RetryStrategy TransientRetryStrategy =
             new ExponentialBackoff(RetryCount, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
+
         static readonly Random Rnd = new Random();
         static readonly AtomicBoolean Reset = new AtomicBoolean(false);
+        static readonly Guid BatchId = Guid.NewGuid();
 
-        public enum ControlCommandEnum { Reset = 0, Noop = 1 };
+        public enum ControlCommandEnum
+        {
+            Reset = 0,
+            Noop = 1
+        }
 
         public static int Main() => MainAsync().Result;
 
@@ -56,7 +62,8 @@ namespace SimulatedTemperatureSensor
             };
 
             string messagesToSendString = sendForever ? "unlimited" : messageCount.ToString();
-            Console.WriteLine($"Initializing simulated temperature sensor to send {messagesToSendString} messages, at an interval of {messageDelay.TotalSeconds} seconds.\n"
+            Console.WriteLine(
+                $"Initializing simulated temperature sensor to send {messagesToSendString} messages, at an interval of {messageDelay.TotalSeconds} seconds.\n"
                 + $"To change this, set the environment variable {MessageCountConfigKey} to the number of messages that should be sent (set it to -1 to send unlimited messages).");
 
             TransportType transportType = configuration.GetValue("ClientTransportType", TransportType.Amqp_Tcp_Only);
@@ -99,6 +106,7 @@ namespace SimulatedTemperatureSensor
                         return new ITransportSettings[] { new AmqpTransportSettings(transportType) };
                 }
             }
+
             ITransportSettings[] settings = GetTransportSettings();
 
             ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
@@ -171,10 +179,10 @@ namespace SimulatedTemperatureSensor
         /// Module behavior:
         ///        Sends data periodically (with default frequency of 5 seconds).
         ///        Data trend:
-        ///         -	Machine Temperature regularly rises from 21C to 100C in regularly with jitter
-        ///         -	Machine Pressure correlates with Temperature 1 to 10psi
-        ///         -	Ambient temperature stable around 21C
-        ///         -	Humidity is stable with tiny jitter around 25%
+        ///         - Machine Temperature regularly rises from 21C to 100C in regularly with jitter
+        ///         - Machine Pressure correlates with Temperature 1 to 10psi
+        ///         - Ambient temperature stable around 21C
+        ///         - Humidity is stable with tiny jitter around 25%
         ///                Method for resetting the data stream
         /// </summary>
         static async Task SendEvents(
@@ -196,6 +204,7 @@ namespace SimulatedTemperatureSensor
                     currentTemp = sim.MachineTempMin;
                     Reset.Set(false);
                 }
+
                 if (currentTemp > sim.MachineTempMax)
                 {
                     currentTemp += Rnd.NextDouble() - 0.5; // add value between [-0.5..0.5]
@@ -222,6 +231,8 @@ namespace SimulatedTemperatureSensor
 
                 string dataBuffer = JsonConvert.SerializeObject(tempData);
                 var eventMessage = new Message(Encoding.UTF8.GetBytes(dataBuffer));
+                eventMessage.Properties.Add("sequenceNumber", count.ToString());
+                eventMessage.Properties.Add("batchId", BatchId.ToString());
                 Console.WriteLine($"\t{DateTime.Now.ToLocalTime()}> Sending message: {count}, Body: [{dataBuffer}]");
 
                 await moduleClient.SendEventAsync("temperatureOutput", eventMessage);

@@ -10,10 +10,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
     using Moq;
     using Newtonsoft.Json;
     using Xunit;
-    using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
     using IRoutingMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
     using RoutingMessage = Microsoft.Azure.Devices.Routing.Core.Message;
-    using SystemProperties = Microsoft.Azure.Devices.Edge.Hub.Core.SystemProperties;
 
     public class RoutingMessageConverterTest
     {
@@ -92,7 +90,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var routingMessage1 = new RoutingMessage(TelemetryMessageSource.Instance, messageBytes, properties, systemProperties);
             routingMessages.Add(new object[] { routingMessage1 });
 
-            var routingMessage2 = new RoutingMessage(TwinChangeEventMessageSource.Instance,
+            var routingMessage2 = new RoutingMessage(
+                TwinChangeEventMessageSource.Instance,
                 messageBytes,
                 properties,
                 systemProperties,
@@ -113,39 +112,54 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         {
             var theoryData = new List<object[]>();
 
-            theoryData.Add(new object[] {
-                new Dictionary<string, string>
+            theoryData.Add(
+                new object[]
                 {
-                    [SystemProperties.MessageType] = Constants.TwinChangeNotificationMessageType
-                },
-                TwinChangeEventMessageSource.Instance});
+                    new Dictionary<string, string>
+                    {
+                        [SystemProperties.MessageType] = Constants.TwinChangeNotificationMessageType
+                    },
+                    TwinChangeEventMessageSource.Instance
+                });
 
-            theoryData.Add(new object[] {
-                new Dictionary<string, string>
+            theoryData.Add(
+                new object[]
                 {
-                    [SystemProperties.ConnectionModuleId] = "module1",
-                    [SystemProperties.OutputName] = "output1"
-                },
-                ModuleMessageSource.Create("module1", "output1")});
+                    new Dictionary<string, string>
+                    {
+                        [SystemProperties.ConnectionModuleId] = "module1",
+                        [SystemProperties.OutputName] = "output1"
+                    },
+                    ModuleMessageSource.Create("module1", "output1")
+                });
 
-            theoryData.Add(new object[] {
-                new Dictionary<string, string>
+            theoryData.Add(
+                new object[]
                 {
-                    [SystemProperties.ConnectionModuleId] = "module1",
-                    [SystemProperties.OutputName] = "output1"
-                },
-                ModuleMessageSource.Create("module1", "output1")});
+                    new Dictionary<string, string>
+                    {
+                        [SystemProperties.ConnectionModuleId] = "module1",
+                        [SystemProperties.OutputName] = "output1"
+                    },
+                    ModuleMessageSource.Create("module1", "output1")
+                });
 
-            theoryData.Add(new object[] {
-                new Dictionary<string, string>
+            theoryData.Add(
+                new object[]
                 {
-                    [SystemProperties.ConnectionModuleId] = "module1",
-                },
-                ModuleMessageSource.Create("module1")});
+                    new Dictionary<string, string>
+                    {
+                        [SystemProperties.ConnectionModuleId] = "module1",
+                    },
+                    ModuleMessageSource.Create("module1")
+                });
 
-            theoryData.Add(new object[] {
-                new Dictionary<string, string>(),
-                TelemetryMessageSource.Instance});
+            theoryData.Add(
+                new object[]
+                {
+                    new Dictionary<string, string>(),
+                    TelemetryMessageSource.Instance
+                });
 
             return theoryData;
         }
@@ -155,7 +169,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         [MemberData(nameof(GetInvalidHubMessages))]
         public void TestFromMessageErrorCases(IMessage inputMessage, Type exceptionType)
         {
-            Core.IMessageConverter<IRoutingMessage> messageConverter = new RoutingMessageConverter();
+            IMessageConverter<IRoutingMessage> messageConverter = new RoutingMessageConverter();
             Assert.Throws(exceptionType, () => messageConverter.FromMessage(inputMessage));
         }
 
@@ -164,18 +178,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         [MemberData(nameof(GetInvalidRoutingMessages))]
         public void TestToMessageErrorCases(IRoutingMessage inputMessage, Type exceptionType)
         {
-            Core.IMessageConverter<IRoutingMessage> messageConverter = new RoutingMessageConverter();
+            IMessageConverter<IRoutingMessage> messageConverter = new RoutingMessageConverter();
             Assert.Throws(exceptionType, () => messageConverter.ToMessage(inputMessage));
         }
 
         [Theory]
         [Unit]
         [MemberData(nameof(GetHubMessagesData))]
-        public void TestFromMessageCases(byte[] messageBytes,
+        public void TestFromMessageCases(
+            byte[] messageBytes,
             IDictionary<string, string> properties,
             IDictionary<string, string> systemProperties)
         {
-            Core.IMessageConverter<IRoutingMessage> messageConverter = new RoutingMessageConverter();
+            IMessageConverter<IRoutingMessage> messageConverter = new RoutingMessageConverter();
             IMessage inputMessage = new EdgeMessage(messageBytes, properties, systemProperties);
             IRoutingMessage routingMessage = messageConverter.FromMessage(inputMessage);
 
@@ -202,7 +217,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         [MemberData(nameof(GetRoutingMessages))]
         public void TestToMessageCases(IRoutingMessage routingMessage)
         {
-            Core.IMessageConverter<IRoutingMessage> messageConverter = new RoutingMessageConverter();
+            IMessageConverter<IRoutingMessage> messageConverter = new RoutingMessageConverter();
             IMessage message = messageConverter.ToMessage(routingMessage);
 
             Assert.Equal(routingMessage.Body, message.Body);

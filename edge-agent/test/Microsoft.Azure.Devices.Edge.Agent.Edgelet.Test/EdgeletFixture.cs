@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
 {
     using System;
@@ -7,12 +6,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
     using System.Threading.Tasks;
     using Microsoft.AspNetCore;
     using Microsoft.AspNetCore.Hosting;
-    using Startup = TestServer.Startup;
+    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer;
 
-    public class EdleletFixture : IDisposable
+    public class EdgeletFixture : IDisposable
     {
-        const int DefaultPort = 50002;
         public string ServiceUrl = ServiceHost.Instance.Url;
+        const int DefaultPort = 50002;
+
+        #region IDisposable Support
+
+        // Don't dispose the Server, in case another test thread is using it.
+        public void Dispose()
+        {
+        }
+
+        #endregion
 
         class ServiceHost
         {
@@ -21,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
 
             ServiceHost()
             {
-                this.webHostTask = BuildWebHost(new string[0], DefaultPort).RunAsync(cancellationTokenSource.Token);
+                this.webHostTask = BuildWebHost(new string[0], DefaultPort).RunAsync(this.cancellationTokenSource.Token);
                 this.Url = $"http://localhost:{DefaultPort}";
             }
 
@@ -31,15 +39,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
 
             static IWebHost BuildWebHost(string[] args, int port) =>
                 WebHost.CreateDefaultBuilder(args)
-                .UseUrls($"http://*:{port}")
-                .UseStartup<Startup>()
-                .Build();
+                    .UseUrls($"http://*:{port}")
+                    .UseStartup<Startup>()
+                    .Build();
         }
-
-        #region IDisposable Support
-        // Don't dispose the Server, in case another test thread is using it. 
-        public void Dispose()
-        { }
-        #endregion
     }
 }

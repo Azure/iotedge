@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
     using System;
@@ -7,8 +6,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
     public class ModuleRuntimeInfo
     {
-        public ModuleRuntimeInfo(string name, string type, ModuleStatus moduleStatus, string description,
-            long exitCode, Option<DateTime> startTime, Option<DateTime> exitTime)
+        public ModuleRuntimeInfo(
+            string name,
+            string type,
+            ModuleStatus moduleStatus,
+            string description,
+            long exitCode,
+            Option<DateTime> startTime,
+            Option<DateTime> exitTime)
         {
             this.Name = name;
             this.Type = type;
@@ -36,8 +41,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
     public class ModuleRuntimeInfo<T> : ModuleRuntimeInfo
     {
-        public ModuleRuntimeInfo(string name, string type, ModuleStatus moduleStatus, string description,
-            long exitCode, Option<DateTime> startTime, Option<DateTime> exitTime, T config)
+        public ModuleRuntimeInfo(
+            string name,
+            string type,
+            ModuleStatus moduleStatus,
+            string description,
+            long exitCode,
+            Option<DateTime> startTime,
+            Option<DateTime> exitTime,
+            T config)
             : base(name, type, moduleStatus, description, exitCode, startTime, exitTime)
         {
             this.Config = config;

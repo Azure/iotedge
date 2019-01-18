@@ -1,15 +1,19 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
     using System.Net.WebSockets;
+    using System.Security.Cryptography.X509Certificates;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Amqp.Transport;
+    using Microsoft.Azure.Amqp.X509;
     using Microsoft.Azure.Devices.Common.Exceptions;
+    using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -20,7 +24,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         readonly CancellationTokenSource cancellationTokenSource;
         bool socketAborted;
 
-        public ServerWebSocketTransport(WebSocket webSocket, string localEndpoint, string remoteEndpoint, string correlationId)
+        public ServerWebSocketTransport(
+            WebSocket webSocket,
+            string localEndpoint,
+            string remoteEndpoint,
+            string correlationId)
             : base("serverwebsocket")
         {
             this.webSocket = Preconditions.CheckNotNull(webSocket, nameof(webSocket));
@@ -28,6 +36,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             this.RemoteEndPoint = Preconditions.CheckNotNull(remoteEndpoint, nameof(remoteEndpoint));
             this.correlationId = Preconditions.CheckNonWhiteSpace(correlationId, nameof(correlationId));
             this.cancellationTokenSource = new CancellationTokenSource();
+        }
+
+        public ServerWebSocketTransport(
+            WebSocket webSocket,
+            string localEndpoint,
+            string remoteEndpoint,
+            string correlationId,
+            X509Certificate2 clientCert,
+            IList<X509Certificate2> clientCertChain,
+            IAuthenticator authenticator,
+            IClientCredentialsFactory clientCredentialsProvider)
+            : this(webSocket, localEndpoint, remoteEndpoint, correlationId)
+        {
+            Preconditions.CheckNotNull(authenticator, nameof(authenticator));
+            Preconditions.CheckNotNull(clientCredentialsProvider, nameof(clientCredentialsProvider));
+            Preconditions.CheckNotNull(clientCert, nameof(clientCert));
+            Preconditions.CheckNotNull(clientCertChain, nameof(clientCertChain));
+
+            // we mark this as authenticated but the real authentication will happen when the credentials are
+            // evaluated in EdgeX509Principal.AuthenticateAsyc
+            var x509CertIdentity = new X509CertificateIdentity(clientCert, true);
+            this.Principal = new EdgeX509Principal(x509CertIdentity, clientCertChain, authenticator, clientCredentialsProvider);
         }
 
         public override string LocalEndPoint { get; }
@@ -61,51 +91,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             return true;
         }
 
-        async Task WriteAsyncCore(TransportAsyncCallbackArgs args)
-        {
-            bool succeeded = false;
-            try
-            {
-                if (args.Buffer != null)
-                {
-                    var arraySegment = new ArraySegment<byte>(args.Buffer, args.Offset, args.Count);
-                    await this.webSocket.SendAsync(arraySegment, WebSocketMessageType.Binary, true, this.cancellationTokenSource.Token);
-                }
-                else
-                {
-                    foreach (ByteBuffer byteBuffer in args.ByteBufferList)
-                    {
-                        await this.webSocket.SendAsync(new ArraySegment<byte>(byteBuffer.Buffer, byteBuffer.Offset, byteBuffer.Length),
-                            WebSocketMessageType.Binary, true, this.cancellationTokenSource.Token);
-                    }
-                }
-
-                succeeded = true;
-            }
-            catch (WebSocketException webSocketException)
-            {
-                Events.WriteException(this.correlationId, webSocketException);
-                throw new IOException(webSocketException.Message, webSocketException);
-            }
-            catch (TaskCanceledException taskCanceledException)
-            {
-                Events.WriteException(this.correlationId, taskCanceledException);
-                throw new EdgeHubAmqpException(taskCanceledException.Message, ErrorCode.ServerError, taskCanceledException);
-            }
-            catch (Exception e) when (!e.IsFatal())
-            {
-                Events.WriteException(this.correlationId, e);
-                throw;
-            }
-            finally
-            {
-                if (!succeeded)
-                {
-                    this.Abort();
-                }
-            }
-        }
-
         public override bool ReadAsync(TransportAsyncCallbackArgs args)
         {
             Preconditions.CheckNotNull(args.Buffer, nameof(args.Buffer));
@@ -121,40 +106,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 return false;
             }
 
-            taskResult.ContinueWith(_ =>
-            {
-                this.ReadTaskDone(taskResult, args);
-                args.CompletedCallback(args);
-            }, TaskContinuationOptions.ExecuteSynchronously);
+            taskResult.ContinueWith(
+                _ =>
+                {
+                    this.ReadTaskDone(taskResult, args);
+                    args.CompletedCallback(args);
+                },
+                TaskContinuationOptions.ExecuteSynchronously);
 
             return true;
-        }
-
-        async Task<int> ReadAsyncCore(TransportAsyncCallbackArgs args)
-        {
-            bool succeeded = false;
-            try
-            {
-                WebSocketReceiveResult receiveResult = await this.webSocket.ReceiveAsync(
-                    new ArraySegment<byte>(args.Buffer, args.Offset, args.Count), this.cancellationTokenSource.Token);
-
-                succeeded = true;
-                return receiveResult.Count;
-            }
-            catch (Exception e) when (!e.IsFatal())
-            {
-                Events.ReadException(this.correlationId, e);
-            }
-            finally
-            {
-                if (!succeeded)
-                {
-                    this.Abort();
-                }
-            }
-
-            // returning zero bytes will cause the Amqp layer above to clean up 
-            return 0;
         }
 
         protected override bool OpenInternal()
@@ -172,11 +132,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 Events.TransportClosed(this.correlationId);
 
                 this.CloseInternalAsync(TimeSpan.FromSeconds(30)).ContinueWith(
-                    t =>
-                    {
-                        Events.CloseException(this.correlationId, t.Exception);
-                    }, TaskContinuationOptions.OnlyOnFaulted);
-
+                    t => { Events.CloseException(this.correlationId, t.Exception); },
+                    TaskContinuationOptions.OnlyOnFaulted);
             }
             else
             {
@@ -184,24 +141,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             }
 
             return true;
-        }
-
-        async Task CloseInternalAsync(TimeSpan timeout)
-        {
-            try
-            {
-                using (var tokenSource = new CancellationTokenSource(timeout))
-                {
-                    await this.webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, tokenSource.Token);
-                }
-            }
-            catch (Exception e) when (!e.IsFatal())
-            {
-                Events.CloseException(this.correlationId, e);
-            }
-
-            // Call Abort anyway to ensure that all WebSocket Resources are released 
-            this.Abort();
         }
 
         protected override void AbortInternal()
@@ -220,6 +159,100 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             }
         }
 
+        async Task WriteAsyncCore(TransportAsyncCallbackArgs args)
+        {
+            bool succeeded = false;
+            try
+            {
+                if (args.Buffer != null)
+                {
+                    var arraySegment = new ArraySegment<byte>(args.Buffer, args.Offset, args.Count);
+                    await this.webSocket.SendAsync(arraySegment, WebSocketMessageType.Binary, true, this.cancellationTokenSource.Token);
+                }
+                else
+                {
+                    foreach (ByteBuffer byteBuffer in args.ByteBufferList)
+                    {
+                        await this.webSocket.SendAsync(
+                            new ArraySegment<byte>(byteBuffer.Buffer, byteBuffer.Offset, byteBuffer.Length),
+                            WebSocketMessageType.Binary,
+                            true,
+                            this.cancellationTokenSource.Token);
+                    }
+                }
+
+                succeeded = true;
+            }
+            catch (WebSocketException webSocketException)
+            {
+                Events.WriteException(this.correlationId, webSocketException);
+                throw new IOException(webSocketException.Message, webSocketException);
+            }
+            catch (TaskCanceledException taskCanceledException)
+            {
+                Events.WriteException(this.correlationId, taskCanceledException);
+                throw new EdgeAmqpException(taskCanceledException.Message, ErrorCode.ServerError, taskCanceledException);
+            }
+            catch (Exception e) when (!e.IsFatal())
+            {
+                Events.WriteException(this.correlationId, e);
+                throw;
+            }
+            finally
+            {
+                if (!succeeded)
+                {
+                    this.Abort();
+                }
+            }
+        }
+
+        async Task<int> ReadAsyncCore(TransportAsyncCallbackArgs args)
+        {
+            bool succeeded = false;
+            try
+            {
+                WebSocketReceiveResult receiveResult = await this.webSocket.ReceiveAsync(
+                    new ArraySegment<byte>(args.Buffer, args.Offset, args.Count),
+                    this.cancellationTokenSource.Token);
+
+                succeeded = true;
+                return receiveResult.Count;
+            }
+            catch (Exception e) when (!e.IsFatal())
+            {
+                Events.ReadException(this.correlationId, e);
+            }
+            finally
+            {
+                if (!succeeded)
+                {
+                    this.Abort();
+                }
+            }
+
+            // returning zero bytes will cause the Amqp layer above to clean up
+            return 0;
+        }
+
+        async Task CloseInternalAsync(TimeSpan timeout)
+        {
+            try
+            {
+                using (var tokenSource = new CancellationTokenSource(timeout))
+                {
+                    await this.webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, tokenSource.Token);
+                }
+            }
+            catch (Exception e) when (!e.IsFatal())
+            {
+                Events.CloseException(this.correlationId, e);
+            }
+
+            // Call Abort anyway to ensure that all WebSocket Resources are released
+            this.Abort();
+        }
+
         bool ReadTaskDone(Task<int> taskResult, TransportAsyncCallbackArgs args)
         {
             IAsyncResult result = taskResult;
@@ -235,7 +268,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 args.CompletedSynchronously = result.CompletedSynchronously;
                 return true;
             }
-            else if (taskResult.IsCanceled)  // This should not happen since TaskCanceledException is handled in ReadAsyncCore.
+            else if (taskResult.IsCanceled) // This should not happen since TaskCanceledException is handled in ReadAsyncCore.
             {
                 return true;
             }
@@ -276,7 +309,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 args.CompletedSynchronously = result.CompletedSynchronously;
                 return true;
             }
-            else if (taskResult.IsCanceled)  // This should not happen since TaskCanceledException is handled in WriteAsyncCore.
+            else if (taskResult.IsCanceled) // This should not happen since TaskCanceledException is handled in WriteAsyncCore.
             {
                 return true;
             }
@@ -328,8 +361,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<ServerWebSocketTransport>();
             const int IdStart = AmqpEventIds.ServerWebSocketTransport;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<ServerWebSocketTransport>();
 
             enum EventIds
             {
@@ -356,11 +389,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 Log.LogInformation((int)EventIds.TransportClosed, $"Connection closed CorrelationId {correlationId}");
             }
 
-            internal static void TransportAlreadyClosedOrAborted(string correlationId, string state)
-            {
-                Log.LogInformation((int)EventIds.TransportAlreadyClosedOrAborted, $"Connection already closed or aborted CorrelationId {correlationId} State {state}");
-            }
-
             public static void CloseException(string correlationId, Exception ex)
             {
                 Log.LogWarning((int)EventIds.CloseException, ex, $"Websockets close failed CorrelationId {correlationId}");
@@ -369,6 +397,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             public static void TransportAborted(string correlationId)
             {
                 Log.LogInformation((int)EventIds.TransportAborted, $"Connection aborted CorrelationId {correlationId}");
+            }
+
+            internal static void TransportAlreadyClosedOrAborted(string correlationId, string state)
+            {
+                Log.LogInformation((int)EventIds.TransportAlreadyClosedOrAborted, $"Connection already closed or aborted CorrelationId {correlationId} State {state}");
             }
         }
     }

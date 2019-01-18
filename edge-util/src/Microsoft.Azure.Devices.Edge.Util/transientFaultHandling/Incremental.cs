@@ -1,9 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
-
-using System;
-
 namespace Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling
 {
+    using System;
+
     /// <summary>
     /// A retry strategy with a specified number of retry attempts and an incremental time interval between retries.
     /// </summary>
@@ -14,9 +13,10 @@ namespace Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling
         readonly TimeSpan increment;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="T:Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling.Incremental" /> class. 
+        /// Initializes a new instance of the <see cref="T:Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling.Incremental" /> class.
         /// </summary>
-        public Incremental() : this(DefaultClientRetryCount, DefaultRetryInterval, DefaultRetryIncrement)
+        public Incremental()
+            : this(DefaultClientRetryCount, DefaultRetryInterval, DefaultRetryIncrement)
         {
         }
 
@@ -26,18 +26,20 @@ namespace Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling
         /// <param name="retryCount">The number of retry attempts.</param>
         /// <param name="initialInterval">The initial interval that will apply for the first retry.</param>
         /// <param name="increment">The incremental time value that will be used to calculate the progressive delay between retries.</param>
-        public Incremental(int retryCount, TimeSpan initialInterval, TimeSpan increment) : this(retryCount, initialInterval, increment, DefaultFirstFastRetry)
+        public Incremental(int retryCount, TimeSpan initialInterval, TimeSpan increment)
+            : this(retryCount, initialInterval, increment, DefaultFirstFastRetry)
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="T:Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling.Incremental" /> class with the specified number of retry attempts, time interval, retry strategy, and fast start option. 
+        /// Initializes a new instance of the <see cref="T:Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling.Incremental" /> class with the specified number of retry attempts, time interval, retry strategy, and fast start option.
         /// </summary>
         /// <param name="retryCount">The number of retry attempts.</param>
         /// <param name="initialInterval">The initial interval that will apply for the first retry.</param>
         /// <param name="increment">The incremental time value that will be used to calculate the progressive delay between retries.</param>
         /// <param name="firstFastRetry">true to immediately retry in the first attempt; otherwise, false. The subsequent retries will remain subject to the configured retry interval.</param>
-        public Incremental(int retryCount, TimeSpan initialInterval, TimeSpan increment, bool firstFastRetry) : base(firstFastRetry)
+        public Incremental(int retryCount, TimeSpan initialInterval, TimeSpan increment, bool firstFastRetry)
+            : base(firstFastRetry)
         {
             Guard.ArgumentNotNegativeValue(retryCount, "retryCount");
             Guard.ArgumentNotNegativeValue(initialInterval.Ticks, "initialInterval");
@@ -53,13 +55,14 @@ namespace Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling
         /// <returns>The ShouldRetry delegate.</returns>
         public override ShouldRetry GetShouldRetry()
         {
-            return delegate (int currentRetryCount, Exception lastException, out TimeSpan retryInterval)
+            return (int currentRetryCount, Exception lastException, out TimeSpan retryInterval) =>
             {
                 if (currentRetryCount < this.retryCount)
                 {
                     retryInterval = TimeSpan.FromMilliseconds(this.initialInterval.TotalMilliseconds + this.increment.TotalMilliseconds * currentRetryCount);
                     return true;
                 }
+
                 retryInterval = TimeSpan.Zero;
                 return false;
             };

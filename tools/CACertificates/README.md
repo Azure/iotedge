@@ -45,17 +45,18 @@ First you need to create a CA and an intermediate certificate signer that chains
 ### **Bash**
 * Run `./certGen.sh create_root_and_intermediate`
 
-After the scripts have been executed certificates and keys will be generated in the following directories within the work dir.
+After the scripts have been executed, certificates and keys will be generated in the following directories within the work dir.
 
 ```
 <work_dir>
+  |
   +-- certs   (Contains all the public certificates in various formats and their full certificate chains)
   +-- private (Contains all the private keys in PEM format)
   +-- csr     (Contains all the public CSRs used to generate the certificates)
 ```
 
 ## Step 3 - Proof of Possession
-*Optional - Only perform this step if you're setting up CA Certificates and proof of possession.  For simple device certificates, such as Edge certificates, skip to the next step.*
+*Optional - Only perform this step if you're setting up downstream devices that use CA Certificates to authenticate with IoT Hub.*
 
 Now that you've registered your root CA with Azure IoT Hub, you'll need to prove that you actually own it.
 

@@ -1,10 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
-
-// ReSharper disable ArrangeThisQualifier
 namespace LeafDevice
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
+    using global::LeafDevice.Details;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public class LeafDevice : Details.Details
     {
@@ -12,10 +13,61 @@ namespace LeafDevice
             string iothubConnectionString,
             string eventhubCompatibleEndpointWithEntityPath,
             string deviceId,
-            string certificateFileName,
+            string trustedCACertificateFileName,
             string edgeHostName,
-            bool useWebSockets) :
-            base(iothubConnectionString, eventhubCompatibleEndpointWithEntityPath, deviceId, certificateFileName, edgeHostName, useWebSockets)
+            bool useWebSockets)
+            : base(
+                iothubConnectionString,
+                eventhubCompatibleEndpointWithEntityPath,
+                deviceId,
+                trustedCACertificateFileName,
+                edgeHostName,
+                useWebSockets,
+                Option.None<DeviceCertificate>(),
+                Option.None<IList<string>>())
+        {
+        }
+
+        public LeafDevice(
+            string iothubConnectionString,
+            string eventhubCompatibleEndpointWithEntityPath,
+            string deviceId,
+            string trustedCACertificateFileName,
+            string edgeHostName,
+            bool useWebSockets,
+            string clientCertificatePath,
+            string clientCertificateKeyPath)
+            : base(
+                iothubConnectionString,
+                eventhubCompatibleEndpointWithEntityPath,
+                deviceId,
+                trustedCACertificateFileName,
+                edgeHostName,
+                useWebSockets,
+                Option.Some(new DeviceCertificate { CertificateFilePath = clientCertificatePath, PrivateKeyFilePath = clientCertificateKeyPath }),
+                Option.None<IList<string>>())
+        {
+        }
+
+        public LeafDevice(
+            string iothubConnectionString,
+            string eventhubCompatibleEndpointWithEntityPath,
+            string deviceId,
+            string trustedCACertificateFileName,
+            string edgeHostName,
+            bool useWebSockets,
+            string clientCertificatePath,
+            string clientCertificateKeyPath,
+            IList<string> thumprintCertificates)
+            : base(
+                iothubConnectionString,
+                eventhubCompatibleEndpointWithEntityPath,
+                deviceId,
+                trustedCACertificateFileName,
+                edgeHostName,
+                useWebSockets,
+                Option.Some(new DeviceCertificate { CertificateFilePath = clientCertificatePath, PrivateKeyFilePath = clientCertificateKeyPath }),
+                Option.Some(thumprintCertificates))
         {
         }
 
@@ -24,22 +76,22 @@ namespace LeafDevice
             // This test assumes that there is an edge deployment running as transparent gateway.
             try
             {
-                await this.InitializeServerCerts();
-                await GetOrCreateDeviceIdentity();
-                await ConnectToEdgeAndSendData();
-                await this.VerifyDataOnIoTHub();
-                await this.VerifyDirectMethod();
+                await this.InitializeTrustedCertsAsync();
+                await this.GetOrCreateDeviceIdentityAsync();
+                await this.ConnectToEdgeAndSendDataAsync();
+                await this.VerifyDataOnIoTHubAsync();
+                await this.VerifyDirectMethodAsync();
             }
             catch (Exception)
             {
                 Console.WriteLine("** Oops, there was a problem.");
-                KeepDeviceIdentity();
+                this.KeepDeviceIdentity();
                 throw;
             }
             finally
             {
                 // only remove the identity if we created it; if it already existed in IoT Hub then leave it alone
-                await MaybeDeleteDeviceIdentity();
+                await this.MaybeDeleteDeviceIdentity();
             }
         }
     }

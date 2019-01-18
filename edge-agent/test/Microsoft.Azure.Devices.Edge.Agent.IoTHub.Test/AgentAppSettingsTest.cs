@@ -1,7 +1,9 @@
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 {
     using System;
     using System.IO;
+    using System.Net;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
@@ -28,7 +30,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     ""RuntimeLogLevel"": ""info"",
                     ""StorageFolder"": """ + currentFolder.Replace("\\", "\\\\") + @""",
                     ""UsePersistentStorage"": true,
-                    ""ConfigRefreshFrequencySecs"": ""3600""
+                    ""ConfigRefreshFrequencySecs"": ""3600"",
+                    ""https_proxy"":""http://proxyserver:1234""
                 }";
 
                 File.WriteAllText(testDataFile, appSettingsJson);
@@ -41,6 +44,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 Assert.Equal(20, appSettings.MaxRestartCount);
                 Assert.Equal(TimeSpan.FromMinutes(10), appSettings.IntensiveCareTime);
                 Assert.Equal(Path.Combine(currentFolder, "edgeAgent"), appSettings.StoragePath);
+                Assert.True(appSettings.UsePersistentStorage);
+                Assert.Equal(TimeSpan.FromSeconds(3600), appSettings.ConfigRefreshFrequency);
+                Assert.Equal("http://proxyserver:1234", appSettings.HttpsProxy.Match(p => ((WebProxy)p).Address.OriginalString, () => string.Empty));
                 Assert.NotNull(appSettings.VersionInfo);
             }
             finally
@@ -84,7 +90,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             {
                 File.Delete(testDataFile);
             }
-
         }
 
         [Fact]

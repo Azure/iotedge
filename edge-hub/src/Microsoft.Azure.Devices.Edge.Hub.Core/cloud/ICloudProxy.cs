@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 {
     using System.Collections.Generic;
@@ -10,7 +9,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
     /// connected to the edge hub. Objects implementing this interface essentially
     /// use the IoT Hub Module Client/Device Client to open and maintain a connection to the
     /// module’s counterpart in Azure IoT Hub.
-    /// 
     /// There is exactly one instance of a cloud proxy object for each device that
     /// is connected to the edge hub. The <see cref="IConnectionManager"/>
     /// object is responsible for creating and maintaining instances of <c>ICloudProxy</c>

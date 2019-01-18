@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 {
     using System.Text.RegularExpressions;
@@ -45,7 +44,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 {
                     throw new EdgeHubConnectionException("Should be <deviceId>@<IotHubName> for device scope or <keyName>@root.<IotHubName> for device hub scope");
                 }
-
             }
 
             return (deviceId, moduleId, iotHubName);

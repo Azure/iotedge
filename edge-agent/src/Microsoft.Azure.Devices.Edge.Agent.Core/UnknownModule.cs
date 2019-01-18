@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
     using System.Collections.Generic;
@@ -10,7 +9,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     {
         public virtual string Type => Constants.Unknown;
 
-        public virtual string Name { get => Constants.Unknown; set { } }
+        public virtual string Name
+        {
+            get => Constants.Unknown;
+            set { }
+        }
 
         public virtual string Version => string.Empty;
 
@@ -22,12 +25,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public IDictionary<string, EnvVal> Env { get; } = ImmutableDictionary<string, EnvVal>.Empty;
 
-        public bool Equals(IModule other) => other != null && object.ReferenceEquals(this, other);
+        public bool Equals(IModule other) => other != null && ReferenceEquals(this, other);
     }
 
     public class UnknownEdgeHubModule : UnknownModule, IEdgeHubModule
     {
-        UnknownEdgeHubModule() { }
+        UnknownEdgeHubModule()
+        {
+        }
 
         public static UnknownEdgeHubModule Instance { get; } = new UnknownEdgeHubModule();
 
@@ -39,7 +44,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
     public class UnknownEdgeAgentModule : UnknownModule, IEdgeAgentModule
     {
-        UnknownEdgeAgentModule() { }
+        UnknownEdgeAgentModule()
+        {
+        }
 
         public static UnknownEdgeAgentModule Instance { get; } = new UnknownEdgeAgentModule();
 
@@ -53,6 +60,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public override ModuleStatus DesiredStatus => ModuleStatus.Unknown;
 
         public IModule WithRuntimeStatus(ModuleStatus newStatus) => new UnknownEdgeAgentModule();
-
     }
 }

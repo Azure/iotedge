@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 {
     using System;
@@ -20,9 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         const string DockerType = "docker";
         readonly IAgentAppSettings appSettings;
 
-        public TwinConfigSourceModule(
-            IAgentAppSettings appSettings
-        )
+        public TwinConfigSourceModule(IAgentAppSettings appSettings)
         {
             this.appSettings = Preconditions.CheckNotNull(appSettings, nameof(appSettings));
         }
@@ -93,10 +90,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         return new IoTHubReporter(
                             c.Resolve<IEdgeAgentConnection>(),
                             new TypeSpecificSerDe<AgentState>(deserializerTypesMap),
-                            this.appSettings.VersionInfo
-                        ) as IReporter;
-                    }
-                )
+                            this.appSettings.VersionInfo) as IReporter;
+                    })
                 .As<IReporter>()
                 .SingleInstance();
 

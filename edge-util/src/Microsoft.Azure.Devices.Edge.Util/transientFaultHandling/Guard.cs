@@ -1,14 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
-
-using System;
-using System.Globalization;
-
 namespace Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling
 {
+    using System;
+    using System.Globalization;
+
     /// <summary>
     /// Implements the common guard methods.
     /// </summary>
-    internal static class Guard
+    static class Guard
     {
         /// <summary>
         /// Checks a string argument to ensure that it isn't null or empty.
@@ -21,11 +20,16 @@ namespace Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling
             ArgumentNotNull(argumentValue, argumentName);
             if (argumentValue.Length == 0)
             {
-                throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, "String {0} cannot be empty", new object[]
-                {
-                    argumentName
-                }));
+                throw new ArgumentException(
+                    string.Format(
+                        CultureInfo.CurrentCulture,
+                        "String {0} cannot be empty",
+                        new object[]
+                        {
+                            argumentName
+                        }));
             }
+
             return true;
         }
 
@@ -41,6 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling
             {
                 throw new ArgumentNullException(argumentName);
             }
+
             return true;
         }
 
@@ -53,10 +58,16 @@ namespace Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling
         {
             if (argumentValue < 0)
             {
-                throw new ArgumentOutOfRangeException(argumentName, argumentValue, string.Format(CultureInfo.CurrentCulture, "Argument {0} cannot be negative", new object[]
-                {
-                    argumentName
-                }));
+                throw new ArgumentOutOfRangeException(
+                    argumentName,
+                    argumentValue,
+                    string.Format(
+                        CultureInfo.CurrentCulture,
+                        "Argument {0} cannot be negative",
+                        new object[]
+                        {
+                            argumentName
+                        }));
             }
         }
 
@@ -69,10 +80,16 @@ namespace Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling
         {
             if (argumentValue < 0L)
             {
-                throw new ArgumentOutOfRangeException(argumentName, argumentValue, string.Format(CultureInfo.CurrentCulture, "Argument {0} cannot be negative", new object[]
-                {
-                    argumentName
-                }));
+                throw new ArgumentOutOfRangeException(
+                    argumentName,
+                    argumentValue,
+                    string.Format(
+                        CultureInfo.CurrentCulture,
+                        "Argument {0} cannot be negative",
+                        new object[]
+                        {
+                            argumentName
+                        }));
             }
         }
 
@@ -86,11 +103,17 @@ namespace Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling
         {
             if (argumentValue > ceilingValue)
             {
-                throw new ArgumentOutOfRangeException(argumentName, argumentValue, string.Format(CultureInfo.CurrentCulture, "Argument {0} cannot be greater than baseline value {1}", new object[]
-                {
+                throw new ArgumentOutOfRangeException(
                     argumentName,
-                    ceilingValue
-                }));
+                    argumentValue,
+                    string.Format(
+                        CultureInfo.CurrentCulture,
+                        "Argument {0} cannot be greater than baseline value {1}",
+                        new object[]
+                        {
+                            argumentName,
+                            ceilingValue
+                        }));
             }
         }
     }

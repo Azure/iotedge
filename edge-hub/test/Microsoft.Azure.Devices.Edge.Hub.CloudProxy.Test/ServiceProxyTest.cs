@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
     using System;
@@ -157,7 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1");
 
             // Assert
-            Assert.False(serviceIdentity.HasValue);            
+            Assert.False(serviceIdentity.HasValue);
         }
 
         [Fact]
@@ -206,7 +205,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             // Arrange
             IEnumerable<Device> devices1 = null;
-            IEnumerable<Module> modules1 = new[] { GetModule("d1", "m1") }; ;
+            IEnumerable<Module> modules1 = new[] { GetModule("d1", "m1") };
+
             string continuationToken1 = null;
             var scopeResult1 = new ScopeResult(devices1, modules1, continuationToken1);
             var deviceScopeApiResult = new Mock<IDeviceScopeApiClient>();
@@ -226,7 +226,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             // Arrange
             IEnumerable<Device> devices1 = null;
-            IEnumerable<Module> modules1 = new[] { GetModule("d1", "m1"), GetModule("d1", "m1") }; ;
+            IEnumerable<Module> modules1 = new[] { GetModule("d1", "m1"), GetModule("d1", "m1") };
+
             string continuationToken1 = null;
             var scopeResult1 = new ScopeResult(devices1, modules1, continuationToken1);
             var deviceScopeApiResult = new Mock<IDeviceScopeApiClient>();
@@ -245,7 +246,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             // Arrange
             IEnumerable<Device> devices1 = null;
-            IEnumerable<Module> modules1 = new Module[0]; ;
+            IEnumerable<Module> modules1 = new Module[0];
+
             string continuationToken1 = null;
             var scopeResult1 = new ScopeResult(devices1, modules1, continuationToken1);
             var deviceScopeApiResult = new Mock<IDeviceScopeApiClient>();

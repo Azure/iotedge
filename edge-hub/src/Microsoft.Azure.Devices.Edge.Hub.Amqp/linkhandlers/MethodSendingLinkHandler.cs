@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 {
     using System;
@@ -30,10 +29,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 
         public override LinkType Type => LinkType.MethodSending;
 
-        protected override QualityOfService QualityOfService => QualityOfService.AtMostOnce;
-
         public override string CorrelationId =>
             AmqpConnectionUtils.GetCorrelationId(this.Link);
+
+        protected override QualityOfService QualityOfService => QualityOfService.AtMostOnce;
 
         protected override async Task OnOpenAsync(TimeSpan timeout)
         {

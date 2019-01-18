@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 {
     using System;
     using System.Collections.Generic;
+    using System.Net;
     using System.Threading.Tasks;
     using Autofac;
     using global::Docker.DotNet.Models;
@@ -31,10 +31,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly Uri workloadUri;
         readonly IEnumerable<AuthConfig> dockerAuthConfig;
         readonly Option<UpstreamProtocol> upstreamProtocol;
+        readonly Option<IWebProxy> proxy;
         readonly Option<string> productInfo;
 
-        public EdgeletModule(string iotHubHostname, string gatewayHostName, string deviceId, Uri managementUri,
-            Uri workloadUri, IEnumerable<AuthConfig> dockerAuthConfig, Option<UpstreamProtocol> upstreamProtocol, Option<string> productInfo)
+        public EdgeletModule(
+            string iotHubHostname,
+            string gatewayHostName,
+            string deviceId,
+            Uri managementUri,
+            Uri workloadUri,
+            IEnumerable<AuthConfig> dockerAuthConfig,
+            Option<UpstreamProtocol> upstreamProtocol,
+            Option<IWebProxy> proxy,
+            Option<string> productInfo)
         {
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.gatewayHostName = Preconditions.CheckNonWhiteSpace(gatewayHostName, nameof(gatewayHostName));
@@ -43,13 +52,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.workloadUri = Preconditions.CheckNotNull(workloadUri, nameof(workloadUri));
             this.dockerAuthConfig = Preconditions.CheckNotNull(dockerAuthConfig, nameof(dockerAuthConfig));
             this.upstreamProtocol = Preconditions.CheckNotNull(upstreamProtocol, nameof(upstreamProtocol));
+            this.proxy = Preconditions.CheckNotNull(proxy, nameof(proxy));
             this.productInfo = productInfo;
         }
 
         protected override void Load(ContainerBuilder builder)
         {
             // IModuleClientProvider
-            builder.Register(c => new EnvironmentModuleClientProvider(this.upstreamProtocol, this.productInfo))
+            builder.Register(c => new EnvironmentModuleClientProvider(this.upstreamProtocol, this.proxy, this.productInfo))
                 .As<IModuleClientProvider>()
                 .SingleInstance();
 
@@ -67,11 +77,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
             // ICombinedConfigProvider<CombinedDockerConfig>
             builder.Register(
-                async c =>
-                {
-                    IConfigSource configSource = await c.Resolve<Task<IConfigSource>>();
-                    return new CombinedEdgeletConfigProvider(this.dockerAuthConfig, configSource) as ICombinedConfigProvider<CombinedDockerConfig>;
-                })
+                    async c =>
+                    {
+                        IConfigSource configSource = await c.Resolve<Task<IConfigSource>>();
+                        return new CombinedEdgeletConfigProvider(this.dockerAuthConfig, configSource) as ICombinedConfigProvider<CombinedDockerConfig>;
+                    })
                 .As<Task<ICombinedConfigProvider<CombinedDockerConfig>>>()
                 .SingleInstance();
 
@@ -95,16 +105,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
             // Task<IEnvironmentProvider>
             builder.Register(
-                async c =>
-                {
-                    var moduleStateStore = c.Resolve<IEntityStore<string, ModuleState>>();
-                    var restartPolicyManager = c.Resolve<IRestartPolicyManager>();
-                    var runtimeInfoProvider = c.Resolve<IRuntimeInfoProvider>();
-                    IEnvironmentProvider dockerEnvironmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, moduleStateStore, restartPolicyManager);
-                    return dockerEnvironmentProvider;
-                })
-             .As<Task<IEnvironmentProvider>>()
-             .SingleInstance();
+                    async c =>
+                    {
+                        var moduleStateStore = c.Resolve<IEntityStore<string, ModuleState>>();
+                        var restartPolicyManager = c.Resolve<IRestartPolicyManager>();
+                        var runtimeInfoProvider = c.Resolve<IRuntimeInfoProvider>();
+                        IEnvironmentProvider dockerEnvironmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, moduleStateStore, restartPolicyManager);
+                        return dockerEnvironmentProvider;
+                    })
+                .As<Task<IEnvironmentProvider>>()
+                .SingleInstance();
         }
     }
 }

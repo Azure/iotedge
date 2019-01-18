@@ -8,10 +8,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         public EdgeHubIOException(string message)
             : this(message, null)
-        { }
+        {
+        }
 
         public EdgeHubIOException(string message, Exception innerException)
-        : base(message, innerException)
-        { }
+            : base(message, innerException)
+        {
+        }
     }
 }

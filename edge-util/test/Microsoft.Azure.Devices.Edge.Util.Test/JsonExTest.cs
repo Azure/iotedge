@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Util.Test
 {
     using System.Collections.Generic;
@@ -16,23 +15,25 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         public void TestStripMetadata()
         {
             // Arrange
-            JToken input = JToken.FromObject(new Dictionary<string, object>
-            {
-                { "foo", 10 },
-                { "bar", 20 },
-                { "$metadata", new { baz = 30 } },
-                { "$version", 40 }
-            });
+            JToken input = JToken.FromObject(
+                new Dictionary<string, object>
+                {
+                    { "foo", 10 },
+                    { "bar", 20 },
+                    { "$metadata", new { baz = 30 } },
+                    { "$version", 40 }
+                });
 
             // Act
             JsonEx.StripMetadata(input);
 
             // Assert
-            JToken expected = JToken.FromObject(new
-            {
-                foo = 10,
-                bar = 20
-            });
+            JToken expected = JToken.FromObject(
+                new
+                {
+                    foo = 10,
+                    bar = 20
+                });
 
             Assert.True(JToken.DeepEquals(expected, input));
         }
@@ -41,34 +42,37 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         public void TestStripMetadata2()
         {
             // Arrange
-            JToken input = JToken.FromObject(new Dictionary<string, object>
-            {
-                { "foo", 10 },
-                { "bar", 20 },
-                { "$metadata", new { baz = 30 } },
-                { "$version", 40 },
-                { "dontStripThis", new Dictionary<string, object>
+            JToken input = JToken.FromObject(
+                new Dictionary<string, object>
+                {
+                    { "foo", 10 },
+                    { "bar", 20 },
+                    { "$metadata", new { baz = 30 } },
+                    { "$version", 40 },
                     {
-                        { "$metadata", new { baz = 30 } },
-                        { "$version", 40 }
+                        "dontStripThis", new Dictionary<string, object>
+                        {
+                            { "$metadata", new { baz = 30 } },
+                            { "$version", 40 }
+                        }
                     }
-                }
-            });
+                });
 
             // Act
             JsonEx.StripMetadata(input);
 
             // Assert
-            JToken expected = JToken.FromObject(new
-            {
-                foo = 10,
-                bar = 20,
-                dontStripThis = new Dictionary<string, object>
+            JToken expected = JToken.FromObject(
+                new
                 {
-                    { "$metadata", new { baz = 30 } },
-                    { "$version", 40 }
-                }
-            });
+                    foo = 10,
+                    bar = 20,
+                    dontStripThis = new Dictionary<string, object>
+                    {
+                        { "$metadata", new { baz = 30 } },
+                        { "$version", 40 }
+                    }
+                });
 
             Assert.True(JToken.DeepEquals(expected, input));
         }
@@ -269,7 +273,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             {
                 name = new
                 {
-                    //["level0"] = "nochange", // unchanged
+                    // ["level0"] = "nochange", // unchanged
                     level1 = (Dictionary<string, string>)null, // existing in base. remove property
                     level2 = new
                     {
@@ -353,7 +357,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         public void ChunkedPropertyTest(string field, string input, string expected)
         {
             var obj = JObject.Parse(input);
-            var chunked = obj.ChunkedValue(field, false).Select(t => t.ToString()).Join("");
+            var chunked = obj.ChunkedValue(field, false).Select(t => t.ToString()).Join(string.Empty);
             Assert.Equal(expected, chunked);
         }
 
@@ -363,7 +367,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         public void ChunkedPropertyIgnoreCaseTest(string field, string input, string expected)
         {
             var obj = JObject.Parse(input);
-            var chunked = obj.ChunkedValue(field, true).Select(t => t.ToString()).Join("");
+            var chunked = obj.ChunkedValue(field, true).Select(t => t.ToString()).Join(string.Empty);
             Assert.Equal(expected, chunked);
         }
 

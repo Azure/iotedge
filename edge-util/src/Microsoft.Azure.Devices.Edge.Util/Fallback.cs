@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Util
 {
     using System;
@@ -26,7 +25,13 @@ namespace Microsoft.Azure.Devices.Edge.Util
         public static Task<Try<bool>> ExecuteAsync(params Func<Task>[] options)
         {
             Preconditions.CheckNotNull(options, nameof(options));
-            return ExecuteAsync(options.Select<Func<Task>, Func<Task<bool>>>(o => (async () => { await o(); return true; })).ToArray());
+            return ExecuteAsync(
+                options.Select<Func<Task>, Func<Task<bool>>>(
+                    o => (async () =>
+                    {
+                        await o();
+                        return true;
+                    })).ToArray());
         }
 
         public static async Task<Try<T>> ExecuteAsync<T>(params Func<Task<T>>[] options)
@@ -46,6 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                     exceptions.Add(ex);
                 }
             }
+
             return Try<T>.Failure(new AggregateException(exceptions));
         }
     }

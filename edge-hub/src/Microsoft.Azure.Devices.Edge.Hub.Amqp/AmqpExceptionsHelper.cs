@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     {
         public static AmqpException GetAmqpException(Exception ex)
         {
-            // If this exception is an AmqpException with LinkRedirect or NotAllowed errors, return it. 
+            // If this exception is an AmqpException with LinkRedirect or NotAllowed errors, return it.
             if (ex is AmqpException amqpException)
             {
                 if (amqpException.Error.Condition.Equals(AmqpErrorCode.LinkRedirect) || amqpException.Error.Condition.Equals(AmqpErrorCode.NotAllowed))
@@ -22,35 +22,36 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 }
             }
 
-            // Convert exception to EdgeHubAmqpException
-            // TODO: Make sure EdgeHubAmqpException is thrown from the right places.
-            EdgeHubAmqpException edgeHubAmqpException = GetEdgeHubAmqpException(ex);
+            // Convert exception to EdgeAmqpException
+            // TODO: Make sure EdgeAmqpException is thrown from the right places.
+            EdgeAmqpException edgeHubAmqpException = GetEdgeHubAmqpException(ex);
             Error amqpError = GenerateAmqpError(edgeHubAmqpException);
             return new AmqpException(amqpError);
         }
 
-        static EdgeHubAmqpException GetEdgeHubAmqpException(Exception exception)
+        static EdgeAmqpException GetEdgeHubAmqpException(Exception exception)
         {
-            if (exception is EdgeHubAmqpException edgeHubAmqpException)
+            if (exception is EdgeAmqpException edgeHubAmqpException)
             {
                 return edgeHubAmqpException;
             }
             else if (exception.UnwindAs<UnauthorizedAccessException>() != null)
             {
-                return new EdgeHubAmqpException("Unauthorized access", ErrorCode.IotHubUnauthorizedAccess, exception);
+                return new EdgeAmqpException("Unauthorized access", ErrorCode.IotHubUnauthorizedAccess, exception);
             }
             else if (exception is EdgeHubMessageTooLargeException)
             {
-                return new EdgeHubAmqpException(exception.Message, ErrorCode.MessageTooLarge);
+                return new EdgeAmqpException(exception.Message, ErrorCode.MessageTooLarge);
             }
             else if (exception is InvalidOperationException)
             {
-                return new EdgeHubAmqpException("Invalid action performed", ErrorCode.InvalidOperation);
+                return new EdgeAmqpException("Invalid action performed", ErrorCode.InvalidOperation);
             }
-            return new EdgeHubAmqpException("Encountered server error", ErrorCode.ServerError, exception);
+
+            return new EdgeAmqpException("Encountered server error", ErrorCode.ServerError, exception);
         }
 
-        static Error GenerateAmqpError(EdgeHubAmqpException exception) => new Error
+        static Error GenerateAmqpError(EdgeAmqpException exception) => new Error
         {
             Description = JsonConvert.SerializeObject(exception.Message),
             Condition = AmqpErrorMapper.GetErrorCondition(exception.ErrorCode),

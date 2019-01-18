@@ -6,35 +6,33 @@ However, if there are additional requirements for firewalls or network topology,
 
 On Windows, all containers are started on the Moby [nat network][3]. The only requirement for IoT Edge is that this nat network has outbound internet connectivity to IoT Hub, a container registry, and optionally the Device Provisioning Service.
 
-The remainder of this document discusses the setup on Linux, which provides better isolation, but is more complex.
-
 # Default Topology
 
 ![IoT Edge network][network]
 
-# Bridge Networks
+# Networks
 
-By default, IoT Edge uses two bridge networks for connectivity between containers.
+By default, IoT Edge uses two networks for connectivity between containers.
 This allows an additional form of isolation between the host network, the Edge Agent, and application containers.
 
-The Edge Agent attaches to the [default docker bridge network][1] (named `bridge`).
-This bridge network device shows up as `docker0` when running `ifconfig`.
+The Edge Agent attaches to the [default docker network][1] (name and type are `bridge` on Linux, `nat` on Windows).
+Inside a Linux container, this default network device shows up as `docker0` when running `ifconfig`.
 
-The remaining containers, including the Edge Hub, are placed on a [user-defined bridge network][2] (named `azure-iot-edge`).
+On Linux, the remaining containers, including the Edge Hub, are placed on a [user-defined network][2] named `azure-iot-edge` . Like the default network, this network's type is `bridge` on Linux, `nat` on Windows.
 
-## Default Bridge Network (docker0)
+## Default Network
 
 The Edge Agent is started by `iotedged` and is started without any explicit networking configuration.
-By default, the Moby runtime places all containers without a defined network configuration on the default bridge network (`bridge`).
+By default, the Moby runtime places all containers without a defined network configuration on the default network (named `bridge` on Linux, `nat` on Windows).
 
 The Edge Agent requires outbound internet connectivity to IoT Hub to function properly.
-This means that a route from the default docker bridge subnet to the internet must exist, no firewall rules are setup to block traffic, and IP forwarding is enabled.
-All three of these conditions are met in a standard Docker installation.
+This means that a route from the default docker subnet to the internet must exist, no firewall rules are setup to block traffic, and IP forwarding is enabled.
+All three of these conditions are met in the standard Moby installation.
 
-### Configuring `bridge`
+### Configuring the Default Network
 
-The Docker Engine creates and configures the default bridge network.
-Changing this configuration is done at the Docker Engine level, by modifying the `daemon.json` config file and restarting the Docker Engine.
+The Moby Engine creates and configures the default network.
+Changing this configuration is done at the Moby Engine level, by modifying the `daemon.json` config file and restarting the Moby Engine.
 This file is normally located at `/etc/docker/daemon.json` on Linux.
 
 Reasons for changing this configuration include:
@@ -42,15 +40,15 @@ Reasons for changing this configuration include:
 * Changing the MTU
 * Changing the gateway address
 
-The usual reason for modifying this configuration is that some other subnet on the network clashes with the bridge network subnet.
+The usual reason for modifying this configuration is that some other subnet on the network clashes with the default docker subnet.
 
-## `azure-iot-edge` Network
+## User-defined Network (Linux only)
 
-Modules (containers), including the Edge Hub, are started by the Edge Agent and placed on a user-defined bridge network named `azure-iot-edge`.
+On Linux, all modules (containers), including the Edge Hub, are started by the Edge Agent and placed on a user-defined network named `azure-iot-edge`.
 This network is created when the `iotedged` boots for the first time.
 
 The Edge Hub requires outbound internet connectivity to IoT Hub to function properly.
-This means that a route from the bridge subnet to the internet must exist and no firewall rules are setup to block traffic.
+This means that a route from the `azure-iot-edge` subnet to the internet must exist and no firewall rules are set up to block traffic.
 
 ### Configuring `azure-iot-edge`
 
@@ -62,17 +60,17 @@ moby_runtime:
   network: "azure-iot-edge"
 ```
 
-Any changes to the specific settings of this network must be made out of band, via the Docker Engine.
+Any changes to the specific settings of this network must be made out of band, via the Moby Engine.
 Read the Docker [networking guide][4] for more information.
 
-This network can be configured before starting IoT Edge, as the `iotedged` does a "get or create" operation on the network when booting.
+This network can be configured before starting IoT Edge, as the `iotedged` does a "get or create" operation on the network when starting.
 Pre-configuring a network and updating the network in the `config.yaml` allows complete control over its settings.
 
 # Ports
 
 IoT Edge does not require any inbound ports to be open for proper operation.
 
-IoT Edge does require several ports to be open for outbound connectivity.
+Depending on the scenario, IoT Edge does require several ports to be open for outbound connectivity.
 The following table describes these requirements:
 
 |Protocol | Port | Inbound                         | Outbound  |
@@ -89,7 +87,7 @@ If no downstream devices are to connect to the edge device as a gateway, then al
 
 *The `Edge Agent` and `Edge Hub` require one of ports 5671, 8883, or 443 open for outbound connectivity to IoT Hub.
 The `iotedged` requires outbound connectivity on port 443 to IoT Hub, and optionally to the Device Provisioning Service (DPS), if DPS is used for provisioning.
-The Docker Engine requires outbound connectivity on port 443 to a container registry.
+The Moby Engine requires outbound connectivity on port 443 to a container registry.
 
 # Upstream Protocol
 

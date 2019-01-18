@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace IotEdgeQuickstart.Details
 {
     using System.Threading.Tasks;

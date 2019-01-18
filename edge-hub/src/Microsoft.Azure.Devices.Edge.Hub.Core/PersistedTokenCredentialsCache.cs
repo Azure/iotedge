@@ -38,20 +38,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public async Task<Option<IClientCredentials>> Get(IIdentity identity)
         {
             Option<string> tokenCredentialsDataOption = await this.encryptedStore.Get(identity.Id);
-            return tokenCredentialsDataOption.FlatMap(t =>
-            {
-                Events.Retrieved(identity.Id);
-                try
+            return tokenCredentialsDataOption.FlatMap(
+                t =>
                 {
-                    return Option.Some(ParseTokenCredentialsData(identity, t)
-                        .GetOrElse(() => new TokenCredentials(identity, t, string.Empty, false) as IClientCredentials));
-                }
-                catch (Exception e)
-                {
-                    Events.ErrorGetting(e, identity.Id);
-                    return Option.None<IClientCredentials>();
-                }
-            });
+                    Events.Retrieved(identity.Id);
+                    try
+                    {
+                        return Option.Some(
+                            ParseTokenCredentialsData(identity, t)
+                                .GetOrElse(() => new TokenCredentials(identity, t, string.Empty, false) as IClientCredentials));
+                    }
+                    catch (Exception e)
+                    {
+                        Events.ErrorGetting(e, identity.Id);
+                        return Option.None<IClientCredentials>();
+                    }
+                });
         }
 
         static Option<IClientCredentials> ParseTokenCredentialsData(IIdentity identity, string json)
@@ -69,26 +71,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        class TokenCredentialsData
-        {
-            [JsonConstructor]
-            public TokenCredentialsData(string token, bool isUpdatable)
-            {
-                this.Token = token;
-                this.IsUpdatable = isUpdatable;
-            }
-
-            [JsonProperty("isUpdatable")]
-            public bool IsUpdatable { get; }
-
-            [JsonProperty("token")]
-            public string Token { get; }
-        }
-
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<PersistedTokenCredentialsCache>();
             const int IdStart = HubCoreEventIds.TokenCredentialsStore;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<PersistedTokenCredentialsCache>();
 
             enum EventIds
             {
@@ -123,6 +109,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 Log.LogDebug((int)EventIds.ErrorParsingData, ex, $"Error parsing persisted token credentials data for {id}, treating it as the token string instead.");
             }
+        }
+
+        class TokenCredentialsData
+        {
+            [JsonConstructor]
+            public TokenCredentialsData(string token, bool isUpdatable)
+            {
+                this.Token = token;
+                this.IsUpdatable = isUpdatable;
+            }
+
+            [JsonProperty("isUpdatable")]
+            public bool IsUpdatable { get; }
+
+            [JsonProperty("token")]
+            public string Token { get; }
         }
     }
 }
