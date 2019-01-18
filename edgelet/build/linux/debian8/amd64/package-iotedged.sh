@@ -39,6 +39,6 @@ run_command()
 
 mkdir -p $BUILD_DIR
 
-COMMAND="cd /project/edgelet && make deb8 DPKGFLAGS=\"-b -us -uc -i\""
+COMMAND="cd /project/edgelet && make deb8 VERSION=${VERSION} DPKGFLAGS=\"-b -us -uc -i\""
 
 run_command "$COMMAND"
