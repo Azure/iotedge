@@ -11,6 +11,7 @@ members = [
     "edgelet-iothub",
     "edgelet-test-utils",
     "edgelet-utils",
+    "kube-client",
     "hsm-rs",
     "hsm-sys",
     "hyper-named-pipe",

@@ -11,7 +11,7 @@ use edgelet_core::{
 };
 use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
-use edgelet_utils::ensure_not_empty_with_context;
+use edgelet_utils::{ensure_not_empty_with_context, prepare_dns_san_entries};
 use workload::models::ServerCertificateRequest;
 
 use error::{CertOperation, Error, ErrorKind};
@@ -52,16 +52,18 @@ where
                 Ok((name, genid))
             })
             .map(|(module_id, genid)| {
-                let alias = format!("{}{}server", module_id.to_string(), genid.to_string());
-                req.into_body().concat2().then(|body| {
+                let module_id = module_id.to_string();
+                let alias = format!("{}{}server", module_id, genid.to_string());
+
+                req.into_body().concat2().then(move |body| {
                     let body =
                         body.context(ErrorKind::CertOperation(CertOperation::GetServerCert))?;
-                    Ok((alias, body))
+                    Ok((alias, body, module_id))
                 })
             })
             .into_future()
             .flatten()
-            .and_then(move |(alias, body)| {
+            .and_then(move |(alias, body, module_id)| {
                 let cert_req: ServerCertificateRequest =
                     serde_json::from_slice(&body).context(ErrorKind::MalformedRequestBody)?;
 
@@ -73,7 +75,7 @@ where
                 #[cfg_attr(feature = "cargo-clippy", allow(cast_sign_loss))]
                 let expiration = match expiration {
                     expiration if expiration < 0 || expiration > max_duration => {
-                        return Err(Error::from(ErrorKind::MalformedRequestBody))
+                        return Err(Error::from(ErrorKind::MalformedRequestBody));
                     }
                     expiration => expiration as u64,
                 };
@@ -81,13 +83,20 @@ where
                 let common_name = cert_req.common_name();
                 ensure_not_empty_with_context(common_name, || ErrorKind::MalformedRequestBody)?;
 
+                // add a DNS SAN entry in the server cert that uses the module identifier as
+                // an alternative DNS name; we also need to add the common_name that we are using
+                // as a DNS name since the presence of a DNS name SAN will take precedence over
+                // the common name
+                let sans = vec![prepare_dns_san_entries(&[&module_id, common_name])];
+
                 #[cfg_attr(feature = "cargo-clippy", allow(cast_sign_loss))]
                 let props = CertificateProperties::new(
                     expiration,
                     common_name.to_string(),
                     CertificateType::Server,
                     alias.clone(),
-                );
+                )
+                .with_san_entries(sans);
                 let body = refresh_cert(
                     &hsm,
                     alias,
@@ -540,6 +549,9 @@ mod tests {
                 assert_eq!("marvin", props.common_name());
                 assert_eq!("beeblebroxIserver", props.alias());
                 assert_eq!(CertificateType::Server, *props.certificate_type());
+                let san_entries = props.san_entries().unwrap();
+                assert_eq!(1, san_entries.len());
+                assert_eq!("DNS:beeblebrox, DNS:marvin", san_entries[0]);
                 assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
                 Ok(TestCert::default()
                     .with_private_key(PrivateKey::Key(KeyBytes::Pem("Betelgeuse".to_string()))))
