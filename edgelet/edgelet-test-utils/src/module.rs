@@ -106,7 +106,10 @@ pub struct TestRuntime<E> {
     registry: TestRegistry<E>,
 }
 
-impl<E> TestRuntime<E> where E: Clone + Fail {
+impl<E> TestRuntime<E>
+where
+    E: Clone + Fail,
+{
     pub fn new(module: Result<TestModule<E>, E>) -> Self {
         TestRuntime {
             registry: TestRegistry::new(module.as_ref().err().cloned()),
