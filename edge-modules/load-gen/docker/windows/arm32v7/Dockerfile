@@ -8,5 +8,4 @@ WORKDIR /app
 
 COPY $EXE_DIR/ ./
 
-USER moduleuser
 CMD ["dotnet", "load-gen.dll"]
