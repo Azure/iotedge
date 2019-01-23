@@ -219,12 +219,12 @@ where
     ) -> Result<bool, Error> {
         if let Some(r) = registration_result.as_ref() {
             debug!(
-                "Device Registration Result: device {:?}, hub {:?}, status {}",
+                "Device Registration Result: device {:?}, hub {:?}, status {:?}",
                 r.device_id(),
                 r.assigned_hub(),
                 r.status()
             );
-            Ok(r.status().eq_ignore_ascii_case("assigning"))
+            Ok(r.status().map_or_else(|| false, |status| status.eq_ignore_ascii_case("assigning")))
         } else {
             debug!("Not a device registration response");
             Ok(true)
