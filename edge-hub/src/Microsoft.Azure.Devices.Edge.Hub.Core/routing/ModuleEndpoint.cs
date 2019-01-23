@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.Immutable;
     using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
@@ -121,57 +122,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             {
                 Preconditions.CheckNotNull(routingMessages, nameof(routingMessages));
 
-                // TODO - figure out if we can use cancellation token to cancel send
-                var succeeded = new List<IRoutingMessage>();
-                var failed = new List<IRoutingMessage>();
-                var invalid = new List<InvalidDetails<IRoutingMessage>>();
-                SendFailureDetails sendFailureDetails = null;
-
                 Events.ProcessingMessages(this.moduleEndpoint, routingMessages);
                 Util.Option<IDeviceProxy> deviceProxy = this.GetDeviceProxy();
-                if (!deviceProxy.HasValue)
-                {
-                    failed.AddRange(routingMessages);
-                    sendFailureDetails = new SendFailureDetails(FailureKind.None, new EdgeHubConnectionException($"Target module {this.moduleEndpoint.moduleId} is not connected"));
-                }
-                else
-                {
-                    foreach (IRoutingMessage routingMessage in routingMessages)
-                    {
-                        IMessage message = this.moduleEndpoint.messageConverter.ToMessage(routingMessage);
-                        await deviceProxy.ForEachAsync(
-                            async dp =>
-                            {
-                                try
-                                {
-                                    await dp.SendMessageAsync(message, this.moduleEndpoint.Input);
-                                    succeeded.Add(routingMessage);
-                                }
-                                catch (Exception ex)
-                                {
-                                    if (IsRetryable(ex))
-                                    {
-                                        failed.Add(routingMessage);
-                                    }
-                                    else
-                                    {
-                                        Events.InvalidMessage(ex);
-                                        invalid.Add(new InvalidDetails<IRoutingMessage>(routingMessage, FailureKind.None));
-                                    }
 
-                                    Events.ErrorSendingMessages(this.moduleEndpoint, ex);
-                                }
-                            });
-                    }
+                var result = await deviceProxy.Match<Task<ISinkResult>>(
+                    dp => this.ProcessAsync(routingMessages, dp, token),
+                    () => this.ProcessNoConnection(routingMessages));
 
-                    if (failed.Count > 0)
-                    {
-                        Events.RetryingMessages(failed.Count, this.moduleEndpoint.Id);
-                        sendFailureDetails = new SendFailureDetails(FailureKind.Transient, new EdgeHubIOException($"Error sending message to module {this.moduleEndpoint.moduleId}"));
-                    }
-                }
-
-                return new SinkResult<IRoutingMessage>(succeeded, failed, invalid, sendFailureDetails);
+                return result;
             }
 
             public Task CloseAsync(CancellationToken token)
@@ -181,6 +139,54 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             }
 
             static bool IsRetryable(Exception ex) => ex != null && RetryableExceptions.Contains(ex.GetType());
+
+            Task<ISinkResult> ProcessNoConnection(ICollection<IRoutingMessage> routingMessages)
+            {
+                var failed = new List<IRoutingMessage>();
+                failed.AddRange(routingMessages);
+                var sendFailureDetails = new SendFailureDetails(FailureKind.None, new EdgeHubConnectionException($"Target module {this.moduleEndpoint.moduleId} is not connected"));
+                return Task.FromResult((ISinkResult<IRoutingMessage>)new SinkResult<IRoutingMessage>(ImmutableList<IRoutingMessage>.Empty, failed, sendFailureDetails));
+            }
+
+            async Task<ISinkResult> ProcessAsync(ICollection<IRoutingMessage> routingMessages, IDeviceProxy dp, CancellationToken token)
+            {
+                // TODO - figure out if we can use cancellation token to cancel send
+                var succeeded = new List<IRoutingMessage>();
+                var failed = new List<IRoutingMessage>();
+                var invalid = new List<InvalidDetails<IRoutingMessage>>();
+                SendFailureDetails sendFailureDetails = null;
+                foreach (IRoutingMessage routingMessage in routingMessages)
+                {
+                    IMessage message = this.moduleEndpoint.messageConverter.ToMessage(routingMessage);
+                    try
+                    {
+                        await dp.SendMessageAsync(message, this.moduleEndpoint.Input);
+                        succeeded.Add(routingMessage);
+                    }
+                    catch (Exception ex)
+                    {
+                        if (IsRetryable(ex))
+                        {
+                            failed.Add(routingMessage);
+                        }
+                        else
+                        {
+                            Events.InvalidMessage(ex);
+                            invalid.Add(new InvalidDetails<IRoutingMessage>(routingMessage, FailureKind.None));
+                        }
+
+                        Events.ErrorSendingMessages(this.moduleEndpoint, ex);
+                    }
+                }
+
+                if (failed.Count > 0)
+                {
+                    Events.RetryingMessages(failed.Count, this.moduleEndpoint.Id);
+                    sendFailureDetails = new SendFailureDetails(FailureKind.Transient, new EdgeHubIOException($"Error sending message to module {this.moduleEndpoint.moduleId}"));
+                }
+
+                return new SinkResult<IRoutingMessage>(succeeded, failed, invalid, sendFailureDetails);
+            }
 
             bool IsTransientException(Exception ex) => ex is EdgeHubConnectionException
                                                        || ex is EdgeHubIOException;
