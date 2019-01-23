@@ -1,0 +1,25 @@
+#!/bin/bash
+
+set -euo pipefail
+
+proxy_hostname="$1"
+
+curl -x "http://$proxy_hostname:3128" 'https://packages.microsoft.com/config/ubuntu/18.04/prod.list' > ./microsoft-prod.list
+mv ./microsoft-prod.list /etc/apt/sources.list.d/
+
+curl -x "http://$proxy_hostname:3128" 'https://packages.microsoft.com/keys/microsoft.asc' | gpg --dearmor > microsoft.gpg
+mv ./microsoft.gpg /etc/apt/trusted.gpg.d/
+
+http_proxy="http://$proxy_hostname:3128" https_proxy="http://$proxy_hostname:3128" apt-get update
+http_proxy="http://$proxy_hostname:3128" https_proxy="http://$proxy_hostname:3128" apt-get install -y moby-cli moby-engine
+
+> ~/proxy-env.override.conf cat <<-EOF
+[Service]
+Environment="http_proxy=http://$proxy_hostname:3128"
+Environment="https_proxy=http://$proxy_hostname:3128"
+EOF
+mkdir -p /etc/systemd/system/docker.service.d/
+cp ~/proxy-env.override.conf /etc/systemd/system/docker.service.d/
+
+systemctl daemon-reload
+systemctl restart docker

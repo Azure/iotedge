@@ -2,10 +2,16 @@
 	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
 	"contentVersion": "1.0.0.0",
 	"parameters": {
-		"vms_linux_ssh_public_key": {
+		"vms_ssh_key_encoded": {
 			"type": "string"
 		},
-		"vms_linux_username": {
+		"vms_ssh_public_key": {
+			"type": "string"
+		},
+		"vms_username": {
+			"type": "string"
+		},
+		"vms_windows_password": {
 			"type": "string"
 		},
 		"vms_vnet_name": {
@@ -23,7 +29,9 @@
 		"vsts_runner1_vm_name": {
 			"type": "string"
 		},
-
+		"vsts_runner2_vm_name": {
+			"type": "string"
+		},
 		"vsts_agent_vm_network_interface_name": {
 			"defaultValue": "e2eproxyvstsagent",
 			"type": "string"
@@ -44,6 +52,10 @@
 			"defaultValue": "e2eproxyvstsrunner1",
 			"type": "string"
 		},
+		"vsts_runner2_vm_network_interface_name": {
+			"defaultValue": "e2eproxyvstsrunner2",
+			"type": "string"
+		},
 		"vsts_runner1_vm_nsg_name": {
 			"defaultValue": "e2eproxyvstsrunner1",
 			"type": "string"
@@ -51,9 +63,17 @@
 		"vsts_runner1_vm_size": {
 			"defaultValue": "Standard_D2s_v3",
 			"type": "string"
+		},
+		"vsts_runner2_vm_size": {
+			"defaultValue": "Standard_D2s_v3",
+			"type": "string"
 		}
 	},
-	"variables": {},
+	"variables": {
+		"agent_prep_script_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/agent.sh",
+		"linux_runner_prep_script_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/runner.sh",
+		"windows_runner_prep_script_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/Runner.ps1"
+	},
 	"resources": [{
 		"type": "Microsoft.Network/networkSecurityGroups",
 		"name": "[parameters('vsts_agent_vm_nsg_name')]",
@@ -295,6 +315,29 @@
 			"[resourceId(resourceGroup().name, 'Microsoft.Network/networkSecurityGroups', parameters('vsts_runner1_vm_nsg_name'))]"
 		]
 	}, {
+		"type": "Microsoft.Network/networkInterfaces",
+		"name": "[parameters('vsts_runner2_vm_network_interface_name')]",
+		"apiVersion": "2018-02-01",
+		"location": "[resourceGroup().location]",
+		"properties": {
+			"ipConfigurations": [{
+				"name": "ipconfig1",
+				"properties": {
+					"subnet": {
+						"id": "[resourceId(resourceGroup().name, 'Microsoft.Network/virtualNetworks/subnets', parameters('vms_vnet_name'), parameters('vms_vnet_subnet_name'))]"
+					},
+					"privateIPAllocationMethod": "Dynamic"
+				}
+			}],
+			"networkSecurityGroup": {
+				"id": "[resourceId(resourceGroup().name, 'Microsoft.Network/networkSecurityGroups', parameters('vsts_runner1_vm_nsg_name'))]"
+			},
+			"primary": true
+		},
+		"dependsOn": [
+			"[resourceId(resourceGroup().name, 'Microsoft.Network/networkSecurityGroups', parameters('vsts_runner1_vm_nsg_name'))]"
+		]
+	}, {
 		"type": "Microsoft.Compute/virtualMachines",
 		"name": "[parameters('vsts_agent_vm_name')]",
 		"apiVersion": "2017-12-01",
@@ -302,13 +345,13 @@
 		"properties": {
 			"osProfile": {
 				"computerName": "[parameters('vsts_agent_vm_name')]",
-				"adminUsername": "[parameters('vms_linux_username')]",
+				"adminUsername": "[parameters('vms_username')]",
 				"linuxConfiguration": {
 					"disablePasswordAuthentication": true,
 					"ssh": {
 						"publicKeys": [{
-							"path": "[concat('/home/', parameters('vms_linux_username'), '/.ssh/authorized_keys')]",
-							"keyData": "[parameters('vms_linux_ssh_public_key')]"
+							"path": "[concat('/home/', parameters('vms_username'), '/.ssh/authorized_keys')]",
+							"keyData": "[parameters('vms_ssh_public_key')]"
 						}]
 					}
 				}
@@ -351,13 +394,13 @@
 		"properties": {
 			"osProfile": {
 				"computerName": "[parameters('vsts_runner1_vm_name')]",
-				"adminUsername": "[parameters('vms_linux_username')]",
+				"adminUsername": "[parameters('vms_username')]",
 				"linuxConfiguration": {
 					"disablePasswordAuthentication": true,
 					"ssh": {
 						"publicKeys": [{
-							"path": "[concat('/home/', parameters('vms_linux_username'), '/.ssh/authorized_keys')]",
-							"keyData": "[parameters('vms_linux_ssh_public_key')]"
+							"path": "[concat('/home/', parameters('vms_username'), '/.ssh/authorized_keys')]",
+							"keyData": "[parameters('vms_ssh_public_key')]"
 						}]
 					}
 				}
@@ -392,5 +435,106 @@
 		"dependsOn": [
 			"[resourceId('Microsoft.Network/networkInterfaces', parameters('vsts_runner1_vm_network_interface_name'))]"
 		]
+	}, {
+		"type": "Microsoft.Compute/virtualMachines",
+		"name": "[parameters('vsts_runner2_vm_name')]",
+		"apiVersion": "2017-12-01",
+		"location": "[resourceGroup().location]",
+		"properties": {
+			"osProfile": {
+				"computerName": "[parameters('vsts_runner2_vm_name')]",
+				"adminUsername": "[parameters('vms_username')]",
+				"adminPassword": "[parameters('vms_windows_password')]",
+				"windowsConfiguration": {
+					"enableAutomaticUpdates": true
+				}
+			},
+			"hardwareProfile": {
+				"vmSize": "[parameters('vsts_runner2_vm_size')]"
+			},
+			"storageProfile": {
+				"imageReference": {
+					"publisher": "MicrosoftWindowsServer",
+					"offer": "WindowsServer",
+					"sku": "2019-Datacenter-Core",
+					"version": "latest"
+				},
+				"osDisk": {
+					"osType": "Windows",
+					"createOption": "FromImage",
+					"managedDisk": {
+						"storageAccountType": "Standard_LRS"
+					}
+				},
+				"dataDisks": []
+			},
+			"networkProfile": {
+				"networkInterfaces": [{
+					"id": "[resourceId('Microsoft.Network/networkInterfaces', parameters('vsts_runner2_vm_network_interface_name'))]",
+					"properties": {
+						"primary": true
+					}
+				}]
+			}
+		},
+		"dependsOn": [
+			"[resourceId('Microsoft.Network/networkInterfaces', parameters('vsts_runner2_vm_network_interface_name'))]"
+		]
+	}, {
+		"type": "Microsoft.Compute/virtualMachines/extensions",
+		"name": "[concat(parameters('vsts_agent_vm_name'), '/', 'init-proxy')]",
+		"apiVersion": "2015-06-15",
+		"location": "[resourceGroup().location]",
+		"dependsOn": [
+			"[resourceId('Microsoft.Compute/virtualMachines/', parameters('vsts_agent_vm_name'))]"
+		],
+		"properties": {
+			"publisher": "Microsoft.Azure.Extensions",
+			"type": "CustomScript",
+			"typeHandlerVersion": "2.0",
+			"autoUpgradeMinorVersion": true,
+			"settings": {},
+			"protectedSettings": {
+				"commandToExecute": "[concat('/bin/bash -c \"set -euo pipefail && curl ', variables('agent_prep_script_uri'), ' | sudo bash -s -- ', parameters('vms_username'), ' ', parameters('vms_ssh_key_encoded'), ' ', reference(resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vms_vnet_name'), parameters('vms_vnet_subnet_name')), '2018-08-01').addressPrefix, '\"')]"
+			}
+		}
+	}, {
+		"type": "Microsoft.Compute/virtualMachines/extensions",
+		"name": "[concat(parameters('vsts_runner1_vm_name'), '/', 'init-runner')]",
+		"apiVersion": "2015-06-15",
+		"location": "[resourceGroup().location]",
+		"dependsOn": [
+			"[resourceId('Microsoft.Compute/virtualMachines/', parameters('vsts_runner1_vm_name'))]",
+			"[resourceId('Microsoft.Compute/virtualMachines/extensions/', parameters('vsts_agent_vm_name'), 'init-proxy')]"
+		],
+		"properties": {
+			"publisher": "Microsoft.Azure.Extensions",
+			"type": "CustomScript",
+			"typeHandlerVersion": "2.0",
+			"autoUpgradeMinorVersion": true,
+			"settings": {},
+			"protectedSettings": {
+				"commandToExecute": "[concat('/bin/bash -c \"set -euo pipefail && curl -x ', parameters('vsts_agent_vm_name'), ':3128 ', variables('linux_runner_prep_script_uri'), ' | sudo bash -s -- ', parameters('vsts_agent_vm_name'), '\"')]"
+			}
+		}
+	}, {
+		"type": "Microsoft.Compute/virtualMachines/extensions",
+		"name": "[concat(parameters('vsts_runner2_vm_name'), '/', 'init-runner')]",
+		"apiVersion": "2018-06-01",
+		"location": "[resourceGroup().location]",
+		"dependsOn": [
+			"[resourceId('Microsoft.Compute/virtualMachines/', parameters('vsts_runner2_vm_name'))]",
+			"[resourceId('Microsoft.Compute/virtualMachines/extensions/', parameters('vsts_agent_vm_name'), 'init-proxy')]"
+		],
+		"properties": {
+			"publisher": "Microsoft.Compute",
+			"type": "CustomScriptExtension",
+			"typeHandlerVersion": "1.9",
+			"autoUpgradeMinorVersion": true,
+			"settings": {},
+			"protectedSettings": {
+				"commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -Command \"& { . { Invoke-WebRequest -UseBasicParsing -Proxy http://', parameters('vsts_agent_vm_name'), ':3128 -Uri ', variables('windows_runner_prep_script_uri'), ' } | Invoke-Expression; Initialize-WindowsVM -ProxyHostname ', parameters('vsts_agent_vm_name'), ' -SshPublicKeyBase64 ', base64(parameters('vms_ssh_public_key')), ' }\"')]"
+			}
+		}
 	}]
 }
