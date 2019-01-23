@@ -87,6 +87,11 @@ where
     }
 }
 
+pub enum DpsAuthKind {
+    Tpm (Bytes, Bytes),
+    SymmetricKey (Bytes),
+}
+
 pub struct DpsClient<C, K, A>
 where
     C: ClientImpl,
@@ -96,8 +101,7 @@ where
     client: Arc<RwLock<Client<C, DpsTokenSource<K>>>>,
     scope_id: String,
     registration_id: String,
-    tpm_ek: Bytes,
-    tpm_srk: Bytes,
+    auth: DpsAuthKind,
     key_store: A,
 }
 
@@ -111,16 +115,14 @@ where
         client: Client<C, DpsTokenSource<K>>,
         scope_id: String,
         registration_id: String,
-        tpm_ek: Bytes,
-        tpm_srk: Bytes,
+        auth: DpsAuthKind,
         key_store: A,
     ) -> Result<Self, Error> {
         Ok(DpsClient {
             client: Arc::new(RwLock::new(client)),
             scope_id,
             registration_id,
-            tpm_ek,
-            tpm_srk,
+            auth,
             key_store,
         })
     }
@@ -279,7 +281,7 @@ where
         Box::new(chain)
     }
 
-    fn register_with_auth(
+    fn register_with_tpm_auth(
         client: &Arc<RwLock<Client<C, DpsTokenSource<K>>>>,
         scope_id: String,
         registration_id: String,
@@ -365,20 +367,33 @@ where
         let scope_id_status = self.scope_id.clone();
         let registration_id = self.registration_id.clone();
         let registration_id_status = self.registration_id.clone();
-        let tpm_ek = self.tpm_ek.clone();
-        let tpm_srk = self.tpm_srk.clone();
         info!(
             "Starting DPS registration with scope_id \"{}\", registration_id \"{}\"",
             scope_id, registration_id,
         );
-        let r = Self::register_with_auth(
-            &self.client,
-            scope_id,
-            registration_id,
-            &tpm_ek,
-            &tpm_srk,
-            &self.key_store,
-        )
+
+        let r = match &self.auth {
+            DpsAuthKind::Tpm (ek, srk) => {
+                Self::register_with_tpm_auth(
+                            &self.client,
+                            scope_id,
+                            registration_id,
+                            &ek,
+                            &srk,
+                            &self.key_store,
+                        )
+            },
+            DpsAuthKind::SymmetricKey(key) => {
+                Self::register_with_tpm_auth(
+                            &self.client,
+                            scope_id,
+                            registration_id,
+                            &key,
+                            &key,
+                            &self.key_store,
+                        )
+            },
+        }
         .and_then(
             move |operation_status: Option<RegistrationOperationStatus>| match key_store
                 .get(&KeyIdentity::Device, "primary")
@@ -463,7 +478,7 @@ mod tests {
     use edgelet_core::crypto::{MemoryKey, MemoryKeyStore};
 
     #[test]
-    fn server_register_with_auth_success() {
+    fn server_register_with_tpm_auth_success() {
         let expected_uri = "https://global.azure-devices-provisioning.net/scope/registrations/reg/register?api-version=2017-11-15";
         let handler = move |req: Request<Body>| {
             let (
@@ -507,7 +522,8 @@ mod tests {
             )
             .unwrap(),
         ));
-        let task = DpsClient::register_with_auth(
+
+        let task = DpsClient::register_with_tpm_auth(
             &client,
             "scope".to_string(),
             "reg".to_string(),
@@ -545,12 +561,13 @@ mod tests {
             Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
         )
         .unwrap();
+
+        let auth = DpsAuthKind::Tpm(Bytes::from("ek".to_string().into_bytes()), Bytes::from("srk".to_string().into_bytes()));
         let dps = DpsClient::new(
             client,
             "scope".to_string(),
             "test".to_string(),
-            Bytes::from("ek".to_string().into_bytes()),
-            Bytes::from("srk".to_string().into_bytes()),
+            auth,
             MemoryKeyStore::new(),
         )
         .unwrap();
@@ -571,7 +588,7 @@ mod tests {
     }
 
     #[test]
-    fn server_register_with_auth_gets_404_fails() {
+    fn server_register_with_tpm_auth_gets_404_fails() {
         let handler = |req: Request<Body>| {
             // If authorization header does not have the shared access signature, request one
             let auth = req.headers().get(hyper::header::AUTHORIZATION);
@@ -601,12 +618,13 @@ mod tests {
             Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
         )
         .unwrap();
+
+        let auth = DpsAuthKind::Tpm(Bytes::from("ek".to_string().into_bytes()), Bytes::from("srk".to_string().into_bytes()));
         let dps = DpsClient::new(
             client,
             "scope".to_string(),
             "test".to_string(),
-            Bytes::from("ek".to_string().into_bytes()),
-            Bytes::from("srk".to_string().into_bytes()),
+            auth,
             MemoryKeyStore::new(),
         )
         .unwrap();
