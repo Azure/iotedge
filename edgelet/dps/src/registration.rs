@@ -637,7 +637,7 @@ mod tests {
         let reg_op_status_final = Response::new(
             serde_json::to_string(
                 &RegistrationOperationStatus::new("operation".to_string()).with_registration_state(
-                    DeviceRegistrationResult::new("reg".to_string(), "doesn't matter".to_string()),
+                    DeviceRegistrationResult::new().with_registration_id("reg".to_string()).with_status("doesn't matter".to_string()),
                 ),
             )
             .unwrap()
@@ -684,7 +684,7 @@ mod tests {
         );
         let task = dps_operation.map(|result| {
             match result {
-                Some(r) => assert_eq!(*r.registration_id(), "reg".to_string()),
+                Some(r) => assert_eq!(*r.registration_id().unwrap(), "reg".to_string()),
                 None => panic!("Expected registration id"),
             }
             ()
@@ -753,7 +753,7 @@ mod tests {
             let operation_status: RegistrationOperationStatus =
                 RegistrationOperationStatus::new("operation".to_string());
             let serializable = operation_status.with_registration_state(
-                DeviceRegistrationResult::new("reg".to_string(), "doesn't matter".to_string()),
+                DeviceRegistrationResult::new().with_registration_id("reg".to_string()).with_status("doesn't matter".to_string()),
             );
             future::ok(Response::new(
                 serde_json::to_string(&serializable).unwrap().into(),
@@ -775,7 +775,7 @@ mod tests {
         );
         let task = dps_operation.map(|result| match result {
             Some(op) => {
-                assert_eq!(*op.registration_id(), "reg".to_string());
+                assert_eq!(*op.registration_id().unwrap(), "reg".to_string());
                 ()
             }
             None => panic!("Unexpected"),
@@ -830,7 +830,9 @@ mod tests {
     fn get_device_info_success() {
         assert_eq!(
             get_device_info(
-                &DeviceRegistrationResult::new("reg".to_string(), "assigned".to_string())
+                &DeviceRegistrationResult::new()
+                    .with_registration_id("reg".to_string())
+                    .with_status("assigned".to_string())
                     .with_device_id("device".to_string())
                     .with_assigned_hub("hub".to_string())
             )
