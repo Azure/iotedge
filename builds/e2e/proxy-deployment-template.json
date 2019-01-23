@@ -56,8 +56,8 @@
 			"defaultValue": "e2eproxyvstsrunner2",
 			"type": "string"
 		},
-		"vsts_runner1_vm_nsg_name": {
-			"defaultValue": "e2eproxyvstsrunner1",
+		"vsts_runner_vms_nsg_name": {
+			"defaultValue": "e2eproxyvstsrunners",
 			"type": "string"
 		},
 		"vsts_runner1_vm_size": {
@@ -179,7 +179,7 @@
 		"dependsOn": []
 	}, {
 		"type": "Microsoft.Network/networkSecurityGroups",
-		"name": "[parameters('vsts_runner1_vm_nsg_name')]",
+		"name": "[parameters('vsts_runner_vms_nsg_name')]",
 		"apiVersion": "2018-02-01",
 		"location": "[resourceGroup().location]",
 		"scale": null,
@@ -307,12 +307,12 @@
 				}
 			}],
 			"networkSecurityGroup": {
-				"id": "[resourceId(resourceGroup().name, 'Microsoft.Network/networkSecurityGroups', parameters('vsts_runner1_vm_nsg_name'))]"
+				"id": "[resourceId(resourceGroup().name, 'Microsoft.Network/networkSecurityGroups', parameters('vsts_runner_vms_nsg_name'))]"
 			},
 			"primary": false
 		},
 		"dependsOn": [
-			"[resourceId(resourceGroup().name, 'Microsoft.Network/networkSecurityGroups', parameters('vsts_runner1_vm_nsg_name'))]"
+			"[resourceId(resourceGroup().name, 'Microsoft.Network/networkSecurityGroups', parameters('vsts_runner_vms_nsg_name'))]"
 		]
 	}, {
 		"type": "Microsoft.Network/networkInterfaces",
@@ -330,12 +330,12 @@
 				}
 			}],
 			"networkSecurityGroup": {
-				"id": "[resourceId(resourceGroup().name, 'Microsoft.Network/networkSecurityGroups', parameters('vsts_runner1_vm_nsg_name'))]"
+				"id": "[resourceId(resourceGroup().name, 'Microsoft.Network/networkSecurityGroups', parameters('vsts_runner_vms_nsg_name'))]"
 			},
 			"primary": true
 		},
 		"dependsOn": [
-			"[resourceId(resourceGroup().name, 'Microsoft.Network/networkSecurityGroups', parameters('vsts_runner1_vm_nsg_name'))]"
+			"[resourceId(resourceGroup().name, 'Microsoft.Network/networkSecurityGroups', parameters('vsts_runner_vms_nsg_name'))]"
 		]
 	}, {
 		"type": "Microsoft.Compute/virtualMachines",
