@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub.Config
 {
     using System;
+    using System.IO;
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
@@ -40,7 +41,16 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub.Config
 
         static Message ConvertStringToMessage(string msg) => ConvertBytesToMessage(Encoding.UTF8.GetBytes(msg));
 
-        static byte[] ConvertMessageToBytes(Message msg) => msg.GetBytes();
+        static byte[] ConvertMessageToBytes(Message msg)
+        {
+            using (MemoryStream ms = new MemoryStream())
+            {
+                msg.BodyStream.CopyTo(ms);
+                byte[] bytes = ms.ToArray();
+                msg.BodyStream.Position = 0;
+                return bytes;
+            }
+        }
 
         static string ConvertMessageToString(Message msg) => Encoding.UTF8.GetString(ConvertMessageToBytes(msg));
 
