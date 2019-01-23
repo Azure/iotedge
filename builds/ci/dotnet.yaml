@@ -18,16 +18,11 @@ jobs:
         name: install_test_dependencies
         displayName: 'Install test dependencies'
       - bash: |
-          az login --service-principal --username $KV_SP_USER --tenant $KV_SP_TENANT --password $KV_SP_PASSWORD
-          scripts/linux/downloadAndInstallCert.sh -c IoTEdgeTestCert -v $KV_NAME
-          scripts/linux/downloadAndInstallCert.sh -c IotHubMqttHeadCert -v $KV_NAME -s 'Root'
+          az login --service-principal --username $(kv.sp.user) --tenant $(kv.sp.tenant) --password $(kv.sp.password)
+          scripts/linux/downloadAndInstallCert.sh -c IoTEdgeTestCert -v $(kv.name)
+          scripts/linux/downloadAndInstallCert.sh -c IotHubMqttHeadCert -v $(kv.name) -s 'Root'
         name: install_certs
         displayName: 'Install test certificate'
-        env:
-          KV_NAME: $(kv.name)
-          KV_SP_USER: $(kv.sp.user)
-          KV_SP_PASSWORD: $(kv.sp.password)
-          KV_SP_TENANT: $(kv.sp.tenant)
       - script: scripts/linux/buildBranch.sh -c Release --no-rocksdb-bin
         name: build
         displayName: 'Build'
