@@ -51,7 +51,7 @@ jobs:
     displayName: Windows
     timeoutInMinutes: 120
     pool:
-      name: Azure-IoT-Edge-Core
+      name: $(windows.pool.name)
       demands:
         - azureps
         - Run-CI -equals true
