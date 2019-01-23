@@ -156,8 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                             return this.HandleException(ex, routingMessage);
                         }
                     },
-                    () => this.ProcessNoConnection(identity, routingMessage)
-                );
+                    () => this.ProcessNoConnection(identity, routingMessage));
 
                 return result;
             }

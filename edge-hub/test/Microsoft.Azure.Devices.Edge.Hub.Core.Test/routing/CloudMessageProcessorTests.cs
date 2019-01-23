@@ -178,7 +178,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var cloudEndpoint = new CloudEndpoint(cloudEndpointId, GetCloudProxy, routingMessageConverter);
             IProcessor cloudMessageProcessor = cloudEndpoint.CreateProcessor();
 
-            ISinkResult<IRoutingMessage> result = await cloudMessageProcessor.ProcessAsync(new[] { message1, message2}, CancellationToken.None);
+            ISinkResult<IRoutingMessage> result = await cloudMessageProcessor.ProcessAsync(new[] { message1, message2 }, CancellationToken.None);
             Assert.NotNull(result);
             Assert.Empty(result.Succeeded);
             Assert.Equal(2, result.Failed.Count);
