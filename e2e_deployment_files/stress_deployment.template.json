@@ -108,7 +108,7 @@
             "restartPolicy": "always",
             "env": {
               "BUILD_ID": {
-                "value": "<Build.BuildNumber>"
+                "value": "<Snitch.BuildId>"
               },
               "TEST_DURATION_IN_SECS": {
                 "value": "<Snitch.TestDurationInSecs>"

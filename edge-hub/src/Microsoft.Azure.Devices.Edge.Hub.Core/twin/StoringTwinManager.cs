@@ -50,6 +50,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
             this.minTwinSyncPeriod = minTwinSyncPeriod;
 
             deviceConnectivityManager.DeviceConnected += (_, __) => this.DeviceConnectedCallback();
+
+            Events.Initialized();
         }
 
         public static ITwinManager Create(
@@ -256,7 +258,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                 TwinSyncedRecently,
                 UpdatingReportedProperties,
                 ErrorHandlingDeviceConnected,
-                HandlingDeviceConnectedCallback
+                HandlingDeviceConnectedCallback,
+                Initialized
+            }
+
+            public static void Initialized()
+            {
+                Log.LogInformation((int)EventIds.Initialized, "Initialized storing twin manager");
             }
 
             public static void ErrorInDeviceConnectedCallback(Exception ex)

@@ -40,6 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.reportedPropertiesLock = new AsyncLock();
             this.twinLock = new AsyncLock();
             this.actionBlock = new ActionBlock<IIdentity>(this.ProcessConnectionEstablishedForDevice);
+            Events.Initialized();
         }
 
         internal Option<IEntityStore<string, TwinInfo>> TwinStore { get; }
@@ -676,7 +677,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 OutOfOrderDesiredPropertyPatchReceived,
                 ConnectionEstablishedCallbackException,
                 MissingTwinOnUpdateReported,
-                UpdateReportedPropertiesFailed
+                UpdateReportedPropertiesFailed,
+                Initialized
             }
 
             public static void UpdateReportedToCloudException(string identity, Exception e)
@@ -850,6 +852,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     (int)EventIds.UpdateReportedPropertiesFailed,
                     "Failed to update reported " +
                     $" properties for {id} with error {e.Message}");
+            }
+
+            public static void Initialized()
+            {
+                Log.LogInformation((int)EventIds.Initialized, "Initialized twin manager v1.");
             }
         }
     }
