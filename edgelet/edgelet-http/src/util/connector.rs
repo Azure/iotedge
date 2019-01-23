@@ -122,7 +122,7 @@ impl Connect for UrlConnector {
                 return Box::new(future::err(io::Error::new(
                     io::ErrorKind::Other,
                     format!("Invalid scheme {}", scheme),
-                ))) as Self::Future
+                ))) as Self::Future;
             }
         };
 
