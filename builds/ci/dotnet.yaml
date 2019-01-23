@@ -57,7 +57,9 @@ jobs:
     timeoutInMinutes: 120
     pool:
       name: Azure-IoT-Edge-Core
-      demands: azureps
+      demands:
+        - azureps
+        - Run-CI -eq true
     variables:
       NetCorePackageUri: https://download.microsoft.com/download/4/0/9/40920432-3302-47a8-b13c-bbc4848ad114/dotnet-sdk-2.1.302-win-x64.zip
       PublishTests: '$True'
