@@ -126,7 +126,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 Util.Option<IDeviceProxy> deviceProxy = this.GetDeviceProxy();
 
                 var result = await deviceProxy.Match<Task<ISinkResult>>(
-                    async dp => await this.ProcessAsync(routingMessages, dp, token),
+                    dp => this.ProcessAsync(routingMessages, dp, token),
                     () => this.ProcessNoConnection(routingMessages));
 
                 return result;

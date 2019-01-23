@@ -83,8 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
                 ISinkResult result = await identity.Match(
                     id => this.ProcessAsync(routingMessage, id),
-                    () => this.ProcessNoIdentity(routingMessage)
-                );
+                    () => this.ProcessNoIdentity(routingMessage));
 
                 return result;
             }
