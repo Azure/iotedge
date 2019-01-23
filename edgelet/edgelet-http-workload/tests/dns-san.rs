@@ -135,7 +135,7 @@ fn get_trust_bundle(service: &mut WorkloadService) -> TrustBundleResponse {
         service,
         Request::builder()
             .method("GET")
-            .uri("http://localhost/trust-bundle")
+            .uri("http://localhost/trust-bundle?api-version=2018-06-28")
             .body(Body::empty())
             .unwrap(),
     )
@@ -154,7 +154,7 @@ fn generate_server_cert(
     let mut req = Request::builder()
         .method("POST")
         .uri(format!(
-            "http://localhost/modules/{}/genid/{}/certificate/server",
+            "http://localhost/modules/{}/genid/{}/certificate/server?api-version=2018-06-28",
             module_id, generation_id
         ))
         .header("Content-Type", "application/json")
