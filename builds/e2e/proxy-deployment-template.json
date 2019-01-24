@@ -2,8 +2,17 @@
 	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
 	"contentVersion": "1.0.0.0",
 	"parameters": {
-		"vms_ssh_key_encoded": {
+		"key_vault_name": {
 			"type": "string"
+		},
+		"key_vault_access_objectid": {
+			"type": "string"
+		},
+		"key_vault_secret_name": {
+			"type": "string"
+		},
+		"vms_ssh_key_encoded": {
+			"type": "securestring"
 		},
 		"vms_ssh_public_key": {
 			"type": "string"
@@ -18,6 +27,9 @@
 			"type": "string"
 		},
 		"vms_vnet_subnet_name": {
+			"type": "string"
+		},
+		"vms_vnet_address_prefix": {
 			"type": "string"
 		},
 		"vsts_agent_vm_name": {
@@ -75,6 +87,64 @@
 		"windows_runner_prep_script_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/Runner.ps1"
 	},
 	"resources": [{
+		"type": "Microsoft.Network/virtualNetworks",
+		"name": "[parameters('vms_vnet_name')]",
+		"apiVersion": "2018-10-01",
+		"location": "[resourceGroup().location]",
+		"properties": {
+			"addressSpace": {
+				"addressPrefixes": [
+					"[parameters('vms_vnet_address_prefix')]"
+				]
+			},
+			"subnets": [
+				{
+					"name": "[parameters('vms_vnet_subnet_name')]",
+					"properties": {
+						"addressPrefix": "[parameters('vms_vnet_address_prefix')]"
+					}
+				}
+			]
+		},
+		"dependsOn": []
+	}, {
+		"type": "Microsoft.KeyVault/vaults",
+		"name": "[parameters('key_vault_name')]",
+		"apiVersion": "2018-02-14",
+		"location": "[resourceGroup().location]",
+		"properties": {
+			"sku": {
+				"family": "A",
+				"name": "standard"
+			},
+			"tenantId": "[subscription().tenantId]",
+			"accessPolicies": [
+				{
+					"tenantId": "[subscription().tenantId]",
+					"objectId": "[parameters('key_vault_access_objectid')]",
+					"permissions": {
+						"keys": [ "all" ],
+						"secrets": [ "all" ],
+						"certificates": [ "all" ]
+					}
+				}
+			],
+			"enabledForDeployment": false,
+			"enabledForDiskEncryption": false,
+			"enabledForTemplateDeployment": true
+		},
+		"dependsOn": []
+	}, {
+		"type": "Microsoft.KeyVault/vaults/secrets",
+		"name": "[concat(parameters('key_vault_name'), '/', parameters('key_vault_secret_name'))]",
+		"apiVersion": "2018-02-14",
+		"properties": {
+			"value": "[parameters('windows_vm_password')]"
+		},
+		"dependsOn": [
+			"[concat('Microsoft.KeyVault/vaults', '/', parameters('key_vault_name'))]"
+		]
+	},{
 		"type": "Microsoft.Network/networkSecurityGroups",
 		"name": "[parameters('vsts_agent_vm_nsg_name')]",
 		"apiVersion": "2018-02-01",
