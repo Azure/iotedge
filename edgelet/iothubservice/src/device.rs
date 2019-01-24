@@ -110,10 +110,6 @@ where
                 ModuleOperationReason::EmptyModuleId,
             ))))
         } else {
-            // let urlencodeddid : String = byte_serialize("n@m.et#st".as_bytes()).collect();
-            // //let requrl = format!("/devices/{}/modules/{}", urlencodeddid, module_id);
-            // let url = get_url("/devices/{}/modules/{}", &self.device_id, module_id);
-            // println!("Get module request URL: {}", url);
             let res = self
                 .client
                 .request::<(), Module>(
@@ -600,6 +596,53 @@ mod tests {
 
     #[test]
     fn modules_get_request() {
+        let api_version = "2018-04-10".to_string();
+        let host_name = Url::parse("http://localhost").unwrap();
+        let auth = AuthMechanism::default()
+            .with_type(AuthType::Sas)
+            .with_symmetric_key(
+                SymmetricKey::default()
+                    .with_primary_key("pkey".to_string())
+                    .with_secondary_key("skey".to_string()),
+            );
+        let module = Module::default()
+            .with_device_id("d1".to_string())
+            .with_module_id("m1".to_string())
+            .with_generation_id("g1".to_string())
+            .with_managed_by("iotedge".to_string())
+            .with_authentication(auth.clone());
+        let expected_module = module.clone();
+
+        let handler = move |req: Request<Body>| {
+            assert_eq!(req.method(), &Method::GET);
+            assert_eq!(req.uri().path(), "/devices/d1/modules/m1");
+            assert_eq!(None, req.headers().get(hyper::header::IF_MATCH));
+
+            let mut response = Response::new(serde_json::to_string(&module).unwrap().into());
+            response
+                .headers_mut()
+                .typed_insert(&ContentType(mime::APPLICATION_JSON));
+            Ok(response)
+        };
+        let client = Client::new(handler, Some(NullTokenSource), api_version, host_name).unwrap();
+
+        let device_client = DeviceClient::new(client, "d1".to_string()).unwrap();
+        let task = device_client
+            .get_module_by_id("m1".to_string())
+            .then(|module| {
+                let module = module.unwrap();
+                assert_eq!(expected_module, module);
+                Ok::<_, Error>(())
+            });
+
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
+    }
+
+    #[test]
+    fn modules_get_request_with_encoding() {
         let api_version = "2018-04-10".to_string();
         let host_name = Url::parse("http://localhost").unwrap();
         let auth = AuthMechanism::default()
