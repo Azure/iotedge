@@ -67,7 +67,7 @@ foreach ($testDll in (Get-ChildItem $BuildBinariesDirectory -Include $SUFFIX -Re
     #Write-Host "Found test project:$currentTestProjectDll"
     #$testProjectsDlls += $currentTestProjectDll
     Write-Host "Found test project:$testDll"
-    $testProjectsDlls += $testDll
+    $testProjectsDlls += " $testDll"
 }
 
 $testCommand = "$DOTNET_PATH vstest /Logger:`"$LOGGER_ARG`" /TestAdapterPath:`"$BuildBinariesDirectory`" /Parallel /InIsolation"
