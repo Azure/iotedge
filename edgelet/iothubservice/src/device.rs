@@ -653,8 +653,8 @@ mod tests {
                     .with_secondary_key("skey".to_string()),
             );
         let module = Module::default()
-            .with_device_id("d1".to_string())
-            .with_module_id("m1".to_string())
+            .with_device_id("n@m.et#st".to_string())
+            .with_module_id("$edgeAgent".to_string())
             .with_generation_id("g1".to_string())
             .with_managed_by("iotedge".to_string())
             .with_authentication(auth.clone());
@@ -662,7 +662,7 @@ mod tests {
 
         let handler = move |req: Request<Body>| {
             assert_eq!(req.method(), &Method::GET);
-            assert_eq!(req.uri().path(), "/devices/d1/modules/m1");
+            assert_eq!(req.uri().path(), "/devices/n%40m.et%23st/modules/%24edgeAgent");
             assert_eq!(None, req.headers().get(hyper::header::IF_MATCH));
 
             let mut response = Response::new(serde_json::to_string(&module).unwrap().into());
@@ -673,9 +673,9 @@ mod tests {
         };
         let client = Client::new(handler, Some(NullTokenSource), api_version, host_name).unwrap();
 
-        let device_client = DeviceClient::new(client, "d1".to_string()).unwrap();
+        let device_client = DeviceClient::new(client, "n@m.et#st".to_string()).unwrap();
         let task = device_client
-            .get_module_by_id("m1".to_string())
+            .get_module_by_id("$edgeAgent".to_string())
             .then(|module| {
                 let module = module.unwrap();
                 assert_eq!(expected_module, module);
