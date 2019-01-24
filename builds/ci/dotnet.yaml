@@ -30,10 +30,10 @@ jobs:
           scripts/linux/downloadAndInstallCert.sh -c IotHubMqttHeadCert -v $(kv.name) -s 'Root'
         name: install_certs
         displayName: 'Install test certificate'
-      - script: scripts/linux/buildBranch.sh -c %BUILD_CONFIGURATION% --no-rocksdb-bin
+      - script: scripts/linux/buildBranch.sh -c "$BUILD_CONFIGURATION" --no-rocksdb-bin
         name: build
         displayName: 'Build'
-      - script: sudo -E bash -c './scripts/linux/runTests.sh "--filter %TEST_FILTER%" "%BUILD_CONFIGURATION%"'
+      - script: sudo -E bash -c './scripts/linux/runTests.sh "--filter $TEST_FILTER" "$BUILD_CONFIGURATION"'
         name: test
         displayName: Test
       - task: PublishTestResults@1
