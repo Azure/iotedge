@@ -40,6 +40,9 @@ pub enum ErrorKind {
 
     #[fail(display = "DPS registration failed because the DPS operation is not assigned")]
     RegisterWithAuthUnexpectedlyFailedOperationNotAssigned,
+
+    #[fail(display = "Device symmetric key was malformed")]
+    SymmetricKeyMalformed,
 }
 
 impl Fail for Error {
