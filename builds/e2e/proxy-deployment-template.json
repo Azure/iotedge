@@ -11,8 +11,8 @@
 		"vms_username": {
 			"type": "string"
 		},
-		"vms_windows_password": {
-			"type": "string"
+		"windows_vm_password": {
+			"type": "securestring"
 		},
 		"vms_vnet_name": {
 			"type": "string"
@@ -444,7 +444,7 @@
 			"osProfile": {
 				"computerName": "[parameters('vsts_runner2_vm_name')]",
 				"adminUsername": "[parameters('vms_username')]",
-				"adminPassword": "[parameters('vms_windows_password')]",
+				"adminPassword": "[parameters('windows_vm_password')]",
 				"windowsConfiguration": {
 					"enableAutomaticUpdates": true
 				}
