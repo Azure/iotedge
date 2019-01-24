@@ -79,7 +79,7 @@ jobs:
       - powershell: scripts/windows/build/Publish-Branch.ps1 -PublishTests:$(PublishTests) -UpdateVersion
         name: build
         displayName: Build
-      - powershell: scripts/windows/test/Test-Branch.ps1 -Filter "$env:TEST_FILTER"
+      - powershell: scripts/windows/test/Test-Branch.ps1 -Filter "$env:TEST_FILTER" -BuildConfig "Release"
         name: test
         displayName: Test
         env:
