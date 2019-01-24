@@ -61,11 +61,6 @@ Write-Host "Running tests in all test projects with filter '$Filter' and $BuildC
 
 $testProjectsDlls = ""
 foreach ($testDll in (Get-ChildItem $BuildBinariesDirectory -Include $SUFFIX -Recurse)) {
-    #$fileBaseName = [System.IO.Path]::GetFileNameWithoutExtension($Project)
-    #$parentDirectory = Split-Path -Path $Project
-    #$currentTestProjectDll = " $parentDirectory\bin\$BuildConfig\netcoreapp2.1\$fileBaseName.dll"
-    #Write-Host "Found test project:$currentTestProjectDll"
-    #$testProjectsDlls += $currentTestProjectDll
     Write-Host "Found test project:$testDll"
     $testProjectsDlls += " $testDll"
 }

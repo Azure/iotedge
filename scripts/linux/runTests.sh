@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # This script runs all the .Net Core test projects (*test*.csproj) in the
-# repo by recursing from the repo root.
+# repo by looking up build output from previous build step.
 # This script expects that .Net Core is installed at
 # $AGENT_WORKFOLDER/dotnet and output binaries are at $BUILD_BINARIESDIRECTORY
 
@@ -18,16 +18,8 @@ TEST_FILTER="$1"
 BUILD_CONFIG="$2"
 
 SUFFIX='Microsoft.Azure*test.dll'
-ROOTFOLDER=$BUILD_REPOSITORY_LOCALPATH
-IOTEDGECTL_DIR=$ROOTFOLDER/edge-bootstrap/python
 DOTNET_ROOT_PATH=$AGENT_WORKFOLDER/dotnet
 OUTPUT_FOLDER=$BUILD_BINARIESDIRECTORY
-ENVIRONMENT=${TESTENVIRONMENT:="linux"}
-
-if [ ! -d "$ROOTFOLDER" ]; then
-  echo "Folder $ROOTFOLDER does not exist" 1>&2
-  exit 1
-fi
 
 if [ ! -f "$DOTNET_ROOT_PATH/dotnet" ]; then
   echo "Path $DOTNET_ROOT_PATH/dotnet does not exist" 1>&2
@@ -53,18 +45,11 @@ RES=0
 # Find all test project dlls
 testProjectDlls = ""
 while read testDll; do
-  #fileParentDirectory="$(dirname -- "$proj")"
-  #fileName="$(basename -- "$proj")"
-  #fileBaseName="${fileName%.*}"
-  
-  #currentTestProjectDll="$fileParentDirectory/bin/$BUILD_CONFIG/netcoreapp2.1/$fileBaseName.dll"
-  #echo "Try to run test project:$currentTestProjectDll"
-  #testProjectDlls="$testProjectDlls $currentTestProjectDll"
   echo "Try to run test project:$testDll"
   testProjectDlls="$testProjectDlls $testDll"
-done < <(find $BUILD_BINARIESDIRECTORY -type f -iname $SUFFIX)
+done < <(find $OUTPUT_FOLDER -type f -iname $SUFFIX)
 
-testCommand="dotnet vstest /Logger:trx;LogFileName=result.trx /TestAdapterPath:\"$BUILD_BINARIESDIRECTORY\" /Parallel /InIsolation"
+testCommand="$DOTNET_ROOT_PATH/dotnet vstest /Logger:trx;LogFileName=result.trx /TestAdapterPath:\"$OUTPUT_FOLDER\" /Parallel /InIsolation"
 if [ ! -z "$testFilterValue" ]
 then
   testCommand+=" /TestCaseFilter:"$testFilterValue""

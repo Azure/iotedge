@@ -6,6 +6,7 @@ trigger:
 pr: none
 variables:
   test.filter: "Category=Integration&Category!=Stress"
+  build.configuration: "Release"
 jobs:
   - job: linux
     displayName: Linux
@@ -29,14 +30,12 @@ jobs:
           scripts/linux/downloadAndInstallCert.sh -c IotHubMqttHeadCert -v $(kv.name) -s 'Root'
         name: install_certs
         displayName: 'Install test certificate'
-      - script: scripts/linux/buildBranch.sh -c Release --no-rocksdb-bin
+      - script: scripts/linux/buildBranch.sh -c $build.configuration --no-rocksdb-bin
         name: build
         displayName: 'Build'
-      - script: sudo -E bash -c './scripts/linux/runTests.sh "--filter $TEST_FILTER" "Release"'
+      - script: sudo -E bash -c './scripts/linux/runTests.sh "--filter $test.filter" "$build.configuration"'
         name: test
         displayName: Test
-        env:
-          TEST_FILTER: $(test.filter)
       - task: PublishTestResults@1
         displayName: 'Publish test results'
         inputs:
@@ -75,10 +74,10 @@ jobs:
       - powershell: scripts/windows/setup/Install-Prerequisites.ps1 -DotnetSdkUrl $(NetCorePackageUri)
         name: install_dependencies
         displayName: Install dependencies
-      - powershell: scripts/windows/build/Publish-Branch.ps1 -Configuration:Release -UpdateVersion
+      - powershell: scripts/windows/build/Publish-Branch.ps1 -Configuration:$build.configuration -UpdateVersion
         name: build
         displayName: Build
-      - powershell: scripts/windows/test/Test-Branch.ps1 -Filter "$env:TEST_FILTER" -BuildConfig "Release"
+      - powershell: scripts/windows/test/Test-Branch.ps1 -Filter "$env:TEST_FILTER" -BuildConfig $build.configuration
         name: test
         displayName: Test
         env:
