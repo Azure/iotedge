@@ -42,7 +42,7 @@ if (-not $BuildBinariesDirectory) {
     $BuildBinariesDirectory = DefaultBuildBinariesDirectory $BuildRepositoryLocalPath
 }
 
-$TEST_PROJ_PATTERN = "Microsoft.Azure*test.csproj"
+$SUFFIX = "Microsoft.Azure*test.dll"
 $LOGGER_ARG = "trx;LogFileName=result.trx"
 $DOTNET_PATH = [IO.Path]::Combine($AgentWorkFolder, "dotnet", "dotnet.exe")
 
@@ -57,18 +57,20 @@ if (-not $BuildConfig) {
 <#
  # Run tests
  #>
-Write-Host "Running tests in all test projects with filter '$Filter'."
+Write-Host "Running tests in all test projects with filter '$Filter' and $BuildConfig configuration."
 
 $testProjectsDlls = ""
-foreach ($Project in (Get-ChildItem $BuildRepositoryLocalPath -Include $TEST_PROJ_PATTERN -Recurse)) {
-    $fileBaseName = [System.IO.Path]::GetFileNameWithoutExtension($Project)
-    $parentDirectory = Split-Path -Path $Project
-    $currentTestProjectDll = " $parentDirectory\bin\$BuildConfig\netcoreapp2.1\$fileBaseName.dll"
-    Write-Host "Found test project:$currentTestProjectDll"
-    $testProjectsDlls += $currentTestProjectDll
+foreach ($testDll in (Get-ChildItem $BuildBinariesDirectory -Include $SUFFIX -Recurse)) {
+    #$fileBaseName = [System.IO.Path]::GetFileNameWithoutExtension($Project)
+    #$parentDirectory = Split-Path -Path $Project
+    #$currentTestProjectDll = " $parentDirectory\bin\$BuildConfig\netcoreapp2.1\$fileBaseName.dll"
+    #Write-Host "Found test project:$currentTestProjectDll"
+    #$testProjectsDlls += $currentTestProjectDll
+    Write-Host "Found test project:$testDll"
+    $testProjectsDlls += $testDll
 }
 
-$testCommand = "$DOTNET_PATH vstest /Logger:`"$LOGGER_ARG`" /TestAdapterPath:`"$BuildRepositoryLocalPath`" /Parallel /InIsolation"
+$testCommand = "$DOTNET_PATH vstest /Logger:`"$LOGGER_ARG`" /TestAdapterPath:`"$BuildBinariesDirectory`" /Parallel /InIsolation"
 
 if ($Filter) {
     $testCommand += " /TestCaseFilter:`"$Filter`"" 

@@ -17,7 +17,7 @@ BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:-$BUILD_REPOSITORY_LOCALPATH/t
 TEST_FILTER="$1"
 BUILD_CONFIG="$2"
 
-SUFFIX='Microsoft.Azure*test.csproj'
+SUFFIX='Microsoft.Azure*test.dll'
 ROOTFOLDER=$BUILD_REPOSITORY_LOCALPATH
 IOTEDGECTL_DIR=$ROOTFOLDER/edge-bootstrap/python
 DOTNET_ROOT_PATH=$AGENT_WORKFOLDER/dotnet
@@ -52,17 +52,19 @@ RES=0
 
 # Find all test project dlls
 testProjectDlls = ""
-while read proj; do
-  fileParentDirectory="$(dirname -- "$proj")"
-  fileName="$(basename -- "$proj")"
-  fileBaseName="${fileName%.*}"
+while read testDll; do
+  #fileParentDirectory="$(dirname -- "$proj")"
+  #fileName="$(basename -- "$proj")"
+  #fileBaseName="${fileName%.*}"
   
-  currentTestProjectDll="$fileParentDirectory/bin/$BUILD_CONFIG/netcoreapp2.1/$fileBaseName.dll"
-  echo "Try to run test project:$currentTestProjectDll"
-  testProjectDlls="$testProjectDlls $currentTestProjectDll"
-done < <(find $ROOTFOLDER -type f -iname $SUFFIX)
+  #currentTestProjectDll="$fileParentDirectory/bin/$BUILD_CONFIG/netcoreapp2.1/$fileBaseName.dll"
+  #echo "Try to run test project:$currentTestProjectDll"
+  #testProjectDlls="$testProjectDlls $currentTestProjectDll"
+  echo "Try to run test project:$testDll"
+  testProjectDlls="$testProjectDlls $testDll"
+done < <(find $BUILD_BINARIESDIRECTORY -type f -iname $SUFFIX)
 
-testCommand="dotnet vstest /Logger:trx;LogFileName=result.trx /TestAdapterPath:\"$BUILD_REPOSITORY_LOCALPATH\" /Parallel /InIsolation"
+testCommand="dotnet vstest /Logger:trx;LogFileName=result.trx /TestAdapterPath:\"$BUILD_BINARIESDIRECTORY\" /Parallel /InIsolation"
 if [ ! -z "$testFilterValue" ]
 then
   testCommand+=" /TestCaseFilter:"$testFilterValue""
