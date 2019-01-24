@@ -5,7 +5,7 @@ trigger:
       - master
 pr: none
 variables:
-  test.filter: "Category=E2E&Category!=Stress"
+  test.filter: "Category=Integration&Category!=Stress"
 jobs:
   - job: linux
     displayName: Linux
