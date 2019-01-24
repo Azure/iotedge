@@ -40,12 +40,13 @@ if [ ! -d "$BUILD_BINARIESDIRECTORY" ]; then
 fi
 
 testFilterValue="${TEST_FILTER#--filter }"
-echo "Running tests in all test projects with filter: $testFilterValue"
 
 if [ -z "$BUILD_CONFIG" ]
 then
   BUILD_CONFIG="CheckInBuild"
 fi
+
+echo "Running tests in all test projects with filter: $testFilterValue and $BUILD_CONFIG configuration"
 
 RES=0
 
