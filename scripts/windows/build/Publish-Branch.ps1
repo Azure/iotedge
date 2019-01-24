@@ -113,7 +113,7 @@ Write-Host "`nBuilding all solutions in repo`n"
 
 foreach ($Solution in (Get-ChildItem $BuildRepositoryLocalPath -Include $SLN_PATTERN -Recurse)) {
     Write-Host "Building Solution - $Solution"
-    &$DOTNET_PATH build -c $Configuration -o $BuildBinariesDirectory $Solution |
+    &$DOTNET_PATH build -c $Configuration $Solution |
         Write-Host
     if ($LASTEXITCODE -ne 0) {
         throw "Failed building $Solution."
