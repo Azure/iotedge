@@ -21,7 +21,6 @@ extern crate serde_json;
 extern crate tokio;
 #[cfg(test)]
 extern crate typed_headers;
-#[cfg(test)]
 extern crate url;
 
 extern crate edgelet_http;

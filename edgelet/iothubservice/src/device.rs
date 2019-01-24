@@ -4,6 +4,7 @@ use failure::{Fail, ResultExt};
 use futures::future::{self, Either};
 use futures::Future;
 use hyper::{Method, StatusCode};
+use url::form_urlencoded::byte_serialize;
 
 use edgelet_http::client::{Client, ClientImpl, TokenSource};
 use edgelet_http::error::ErrorKind as HttpErrorKind;
@@ -81,7 +82,7 @@ where
                 .client
                 .request::<Module, Module>(
                     Method::PUT,
-                    &format!("/devices/{}/modules/{}", &self.device_id, module_id),
+                    &format!("/devices/{}/modules/{}", url_encode(&self.device_id), url_encode(&module_id)),
                     None,
                     Some(module),
                     add_if_match,
@@ -109,11 +110,15 @@ where
                 ModuleOperationReason::EmptyModuleId,
             ))))
         } else {
+            // let urlencodeddid : String = byte_serialize("n@m.et#st".as_bytes()).collect();
+            // //let requrl = format!("/devices/{}/modules/{}", urlencodeddid, module_id);
+            // let url = get_url("/devices/{}/modules/{}", &self.device_id, module_id);
+            // println!("Get module request URL: {}", url);
             let res = self
                 .client
                 .request::<(), Module>(
                     Method::GET,
-                    &format!("/devices/{}/modules/{}", &self.device_id, module_id),
+                    &format!("/devices/{}/modules/{}", url_encode(&self.device_id), url_encode(&module_id)),
                     None,
                     None,
                     false,
@@ -148,7 +153,7 @@ where
         self.client
             .request::<(), Vec<Module>>(
                 Method::GET,
-                &format!("/devices/{}/modules", &self.device_id),
+                &format!("/devices/{}/modules", url_encode(&self.device_id)),
                 None,
                 None,
                 false,
@@ -174,7 +179,7 @@ where
                 .client
                 .request::<(), ()>(
                     Method::DELETE,
-                    &format!("/devices/{}/modules/{}", self.device_id, module_id),
+                    &format!("/devices/{}/modules/{}", url_encode(&self.device_id), url_encode(&module_id)),
                     None,
                     None,
                     true,
@@ -198,6 +203,10 @@ where
             device_id: self.device_id.clone(),
         }
     }
+}
+
+fn url_encode(value: &str) -> String {
+    byte_serialize(value.as_bytes()).collect()
 }
 
 #[cfg(test)]
