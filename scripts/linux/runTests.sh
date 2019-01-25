@@ -41,9 +41,9 @@ fi
 echo "Running tests in all test projects with filter: $testFilterValue and $BUILD_CONFIG configuration"
 
 # Find all test project dlls
-testProjectRunSerially = ( "Microsoft.Azure.Devices.Edge.Agent.Docker.Test.dll" )
-testProjectDllsRunSerially = ()
-testProjectDlls = ""
+testProjectRunSerially=( "Microsoft.Azure.Devices.Edge.Agent.Docker.Test.dll" )
+testProjectDllsRunSerially=()
+testProjectDlls=""
 
 while read testDll; do
   echo "Try to run test project:$testDll"

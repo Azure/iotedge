@@ -65,10 +65,10 @@ $testProjectsDlls = ""
 foreach ($testDll in (Get-ChildItem $BuildBinariesDirectory -Include $SUFFIX -Recurse)) {
     Write-Host "Found test project:$testDll"
     
-	if (($testProjectRunSerially | ?{ $testDll.EndsWith("\" + $_) }) -ne $null)
+	if (($testProjectRunSerially | ?{ $testDll.FullName.EndsWith("\$_") }) -ne $null)
 	{
 		Write-Host "Run Serially for $testDll"
-		$testProjectDllsRunSerially += $testDll
+		$testProjectDllsRunSerially += $testDll.FullName
 	}
 	else
 	{
