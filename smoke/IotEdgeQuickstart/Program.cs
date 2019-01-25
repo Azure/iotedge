@@ -132,7 +132,7 @@ Defaults:
         [Option("--upstream-protocol <value>", CommandOptionType.SingleValue, Description = "Upstream protocol for IoT Hub connections.")]
         public (bool overrideUpstreamProtocol, UpstreamProtocolType upstreamProtocol) UpstreamProtocol { get; } = (false, UpstreamProtocolType.Amqp);
 
-        [Option("--offlineInstallationPath <path>", Description = "Packages folder for offline installation")]
+        [Option("--offline-installation-path <path>", Description = "Packages folder for offline installation")]
         public string OfflineInstallationPath { get; } = string.Empty;
 
         // ReSharper disable once UnusedMember.Local
