@@ -75,7 +75,7 @@ do
   fi
 done
 
-testCommand=$testCommandPrefix+$testProjectDlls
+testCommand="$testCommandPrefix$testProjectDlls"
 echo "Run test command:$testCommand"
 $testCommand
 
