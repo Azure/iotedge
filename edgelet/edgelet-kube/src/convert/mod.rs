@@ -11,7 +11,7 @@ pub use self::to_k8s::spec_to_deployment;
 
 pub fn sanitize_dns_value(name: &str) -> Result<String> {
     let name_string = sanitize_dns_label(name);
-    if name_string.len() == 0 {
+    if name_string.is_empty() {
         Err(ErrorKind::InvalidModuleName(name.to_owned()))?
     } else {
         Ok(name_string)

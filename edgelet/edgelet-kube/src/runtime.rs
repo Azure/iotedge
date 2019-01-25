@@ -26,6 +26,24 @@ use std::cell::RefCell;
 //use std::collections::BTreeMap;
 use url::Url;
 
+pub struct DeviceIdentity {
+    pub iot_hub_hostname: String,
+    pub device_id: String,
+    pub edge_hostname: String,
+}
+
+pub struct ProxySettings {
+    pub proxy_image: String,
+    pub proxy_config_path: String,
+    pub proxy_config_volume_name: String,
+}
+
+pub struct ServiceSettings {
+    pub service_account_name: String,
+    pub workload_uri: Url,
+    pub management_uri: Url,
+}
+
 #[derive(Clone)]
 pub struct KubeModuleRuntime<S> {
     client: RefCell<KubeClient<ValueToken, S>>,
@@ -44,64 +62,67 @@ pub struct KubeModuleRuntime<S> {
 impl KubeModuleRuntime<HttpClient<HttpsConnector<HttpConnector>, Body>> {
     pub fn new(
         namespace: String,
-        iot_hub_hostname: String,
-        device_id: String,
-        edge_hostname: String,
-        proxy_image: String,
-        proxy_config_path: String,
-        proxy_config_volume_name: String,
-        service_account_name: String,
-        workload_uri: Url,
-        management_uri: Url,
+        device_identity: DeviceIdentity,
+        proxy_settings: ProxySettings,
+        service_settings: ServiceSettings,
     ) -> Result<Self> {
         ensure_not_empty_with_context(&namespace, || {
             ErrorKind::InvalidRunTimeParameter(String::from("namespace"), namespace.clone())
         })?;
-        ensure_not_empty_with_context(&iot_hub_hostname, || {
+        ensure_not_empty_with_context(&device_identity.iot_hub_hostname, || {
             ErrorKind::InvalidRunTimeParameter(
                 String::from("iot_hub_hostname"),
-                iot_hub_hostname.clone(),
+                device_identity.iot_hub_hostname.clone(),
             )
         })?;
-        ensure_not_empty_with_context(&device_id, || {
-            ErrorKind::InvalidRunTimeParameter(String::from("device_id"), device_id.clone())
+        ensure_not_empty_with_context(&device_identity.device_id, || {
+            ErrorKind::InvalidRunTimeParameter(
+                String::from("device_id"),
+                device_identity.device_id.clone(),
+            )
         })?;
-        ensure_not_empty_with_context(&edge_hostname, || {
-            ErrorKind::InvalidRunTimeParameter(String::from("edge_hostname"), edge_hostname.clone())
+        ensure_not_empty_with_context(&device_identity.edge_hostname, || {
+            ErrorKind::InvalidRunTimeParameter(
+                String::from("edge_hostname"),
+                device_identity.edge_hostname.clone(),
+            )
         })?;
-        ensure_not_empty_with_context(&proxy_image, || {
-            ErrorKind::InvalidRunTimeParameter(String::from("proxy_image"), proxy_image.clone())
+        ensure_not_empty_with_context(&proxy_settings.proxy_image, || {
+            ErrorKind::InvalidRunTimeParameter(
+                String::from("proxy_image"),
+                proxy_settings.proxy_image.clone(),
+            )
         })?;
-        ensure_not_empty_with_context(&proxy_config_path, || {
+        ensure_not_empty_with_context(&proxy_settings.proxy_config_path, || {
             ErrorKind::InvalidRunTimeParameter(
                 String::from("proxy_config_path"),
-                proxy_config_path.clone(),
+                proxy_settings.proxy_config_path.clone(),
             )
         })?;
-        ensure_not_empty_with_context(&proxy_config_volume_name, || {
+        ensure_not_empty_with_context(&proxy_settings.proxy_config_volume_name, || {
             ErrorKind::InvalidRunTimeParameter(
                 String::from("proxy_config_volume_name"),
-                proxy_config_volume_name.clone(),
+                proxy_settings.proxy_config_volume_name.clone(),
             )
         })?;
-        ensure_not_empty_with_context(&service_account_name, || {
+        ensure_not_empty_with_context(&service_settings.service_account_name, || {
             ErrorKind::InvalidRunTimeParameter(
                 String::from("service_account_name"),
-                service_account_name.clone(),
+                service_settings.service_account_name.clone(),
             )
         })?;
         Ok(KubeModuleRuntime {
             client: RefCell::new(KubeClient::new(get_config()?)),
             namespace,
-            iot_hub_hostname,
-            device_id,
-            edge_hostname,
-            proxy_image,
-            proxy_config_path,
-            proxy_config_volume_name,
-            service_account_name,
-            workload_uri,
-            management_uri,
+            iot_hub_hostname: device_identity.iot_hub_hostname,
+            device_id: device_identity.device_id,
+            edge_hostname: device_identity.edge_hostname,
+            proxy_image: proxy_settings.proxy_image,
+            proxy_config_path: proxy_settings.proxy_config_path,
+            proxy_config_volume_name: proxy_settings.proxy_config_volume_name,
+            service_account_name: service_settings.service_account_name,
+            workload_uri: service_settings.workload_uri,
+            management_uri: service_settings.management_uri,
         })
     }
 }
@@ -161,7 +182,7 @@ where
 
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
         Box::new(
-            spec_to_deployment(module)
+            spec_to_deployment(&module)
                 .map_err(Error::from)
                 .map(|_| ())
                 .into_future(),
