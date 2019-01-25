@@ -63,6 +63,18 @@ then
   testCommandPrefix+=" /TestCaseFilter:"$testFilterValue""
 fi
 
+for testDll in ${testProjectDllsRunSerially[@]}
+do
+  testCommand="$testCommandPrefix $testDll"
+  echo "Run test command serially:$testCommand"
+  $testCommand
+  
+  if [ $? -gt 0 ]
+  then
+    exit 1
+  fi
+done
+
 testCommand=$testCommandPrefix+$testProjectDlls
 echo "Run test command:$testCommand"
 $testCommand
@@ -71,17 +83,5 @@ if [ $? -gt 0 ]
 then
   exit 1
 fi
-
-for testDll in ${testProjectDllsRunSerially[@]}
-do
-  testCommand="$testCommandPrefix $testDll"
-  echo "Run test command:$testCommand"
-  $testCommand
-  
-  if [ $? -gt 0 ]
-  then
-    exit 1
-  fi
-done
 
 exit 0

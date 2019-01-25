@@ -82,15 +82,15 @@ if ($Filter) {
     $testCommandPrefix += " /TestCaseFilter:`"$Filter`"" 
 }
 
-$testCommand = $testCommandPrefix + $testProjectsDlls
-Write-Host "Run test command: $testCommand"
-Invoke-Expression "$testCommand"
-
 foreach($testDll in $testProjectDllsRunSerially)
 {
 	$testCommand = "$testCommandPrefix $testDll"
-	Write-Host "Run test command: $testCommand"
+	Write-Host "Run test command serially: $testCommand"
 	Invoke-Expression "$testCommand"
 }
+
+$testCommand = $testCommandPrefix + $testProjectsDlls
+Write-Host "Run test command: $testCommand"
+Invoke-Expression "$testCommand"
 
 Write-Host "Done!"
