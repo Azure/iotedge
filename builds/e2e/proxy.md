@@ -8,8 +8,7 @@ The overall setup includes three VMs:
 
 - A Windows "runner VM" serves the same purpose as the Linux runner, but on Windows.
 
-Follow the steps below to deploy the three VMs and set them up. The steps are in bash and require the Azure CLI (`az`), but there are notes at the bottom about doing the same thing with the Azure PowerShell module (`Az`).
-
+Follow the steps below to deploy the three VMs and set them up. The steps are in bash, but there are notes at the bottom about doing the same thing in PowerShell. In both cases, the Azure CLI `az` is required.
 
 ```sh
 cd ./builds/e2e/
@@ -116,6 +115,7 @@ az group deployment create --resource-group "$resource_group_name" --name 'e2e-p
         }'
 )"
 
+
 # Get the public IP of the agent VM
 vsts_agent_public_ip="$(az network public-ip show --resource-group "$resource_group_name" --name "$vsts_agent_vm_public_ip_name" --query 'ipAddress' --output tsv)"
 
@@ -142,60 +142,49 @@ ssh -ti "$keyfile" "$vms_username@$vsts_agent_public_ip" ssh -i "/home/$vms_user
 
 ## PowerShell notes:
 
-With earlier iterations of this deployment, the steps in PowerShell vs. Bash were nearly identical using the `az` CLI. However, with the introduction of a Key Vault secret for the Windows VM Administrator password, we hit a snag: you can't (currently) reference a Key Vault secret in the `--parameters` argument to `az group deployment create`. You have to use a parameters file, or the PowerShell `Az` module (`Install-Module -Name Az -AllowClobber`). So, using the latter option, here are the steps:
+Variable assignments are the same, except that the variable names should be prefixed with '$', e.g.:
 
 ```PowerShell
-cd .\builds\e2e\
-
+# Name of Azure subscription
 $subscription_name='<>'
-$location='<>'
-$resource_group_name='<>'
-$key_vault_name='<>'
-$key_vault_access_objectid='<>'
-$vms_vnet_name='<>'
+# ...
+```
 
-$vms_username='vsts'
-$vms_vnet_subnet_name='default'
-$vms_vnet_address_prefix='10.0.0.0/24'
-$vsts_agent_vm_public_ip_name='e2eproxy'
-$vsts_agent_vm_name='e2eproxyvstsagent'
-$vsts_runner1_vm_name='e2eproxyvstsrunner1'
-$vsts_runner2_vm_name='e2eproxyrunner2'
-$key_vault_secret_name='windows-vm-admin-password'
+To create a SecureString for the Windows VM administrator password, use the following call:
 
-# Note: If openssl isn't installed, You can replace "$(openssl rand -base64 32)" with:
-#   "$([Convert]::ToBase64String([System.Web.Security.Membership]::GeneratePassword(32, 3).ToCharArray(), 0))"
+```PowerShell
 $windows_vm_password=$(ConvertTo-SecureString "$(openssl rand -base64 32)" -AsPlainText -Force)
+```
 
-# On Windows 1809 or later, install the ssh-agent feature first; see https://docs.microsoft.com/en-us/windows-server/administration/openssh/openssh_install_firstuse
+Note: If openssl isn't installed, You can replace `"$(openssl rand -base64 32)"` with:
+
+```PowerShell
+  "$([Convert]::ToBase64String([System.Web.Security.Membership]::GeneratePassword(32, 3).ToCharArray(), 0))"
+```
+
+The commands to create an SSH key for the VMs are a little different. On Windows 1809 or later, install the ssh-agent feature first; more information [here](https://docs.microsoft.com/en-us/windows-server/administration/openssh/openssh_install_firstuse).
+
+```PowerShell
 $keyfile=$(Join-Path (pwd).Path id_rsa)
 ssh-keygen -t rsa -b 4096 -f "$keyfile" --% -N ""
+```
 
-Connect-AzAccount
-Set-AzContext -Subscription "$subscription_name"
+The command to deploy the VMs is different. It doesn't use jq, and the base64-encoding command is PowerShell-specific:
 
-New-AzResourceGroup -Name "$resource_group_name" -Location "$location"
-
-New-AzResourceGroupDeployment `
-  -Name 'e2eproxy' `
-  -ResourceGroupName "$resource_group_name" `
-  -TemplateFile '.\proxy-deployment-template.json' `
-  -key_vault_name "$key_vault_name" `
-  -key_vault_access_objectid "$key_vault_access_objectid" `
-  -key_vault_secret_name "$key_vault_secret_name" `
-  -vms_ssh_key_encoded "$([System.Convert]::ToBase64String([System.Text.Encoding]::Utf8.GetBytes($(Get-Content "$keyfile" -Raw))))" `
-  -vms_ssh_public_key "$(cat "$keyfile.pub")" `
-  -windows_vm_password $windows_vm_password `
-  -vms_username "$vms_username" `
-  -vms_vnet_name "$vms_vnet_name" `
-  -vms_vnet_subnet_name "$vms_vnet_subnet_name" `
-  -vms_vnet_address_prefix "$vms_vnet_address_prefix" `
-  -vsts_agent_vm_public_ip_name "$vsts_agent_vm_public_ip_name" `
-  -vsts_agent_vm_name "$vsts_agent_vm_name" `
-  -vsts_runner1_vm_name "$vsts_runner1_vm_name" `
-  -vsts_runner2_vm_name "$vsts_runner2_vm_name"
-
-$vsts_agent_public_ip=(Get-AzPublicIpAddress -Name "$vsts_agent_vm_public_ip_name" -ResourceGroupName "$resource_group_name").IpAddress
-
-# ssh commands to verify that the proxy works on both runner VMs...
+```PowerShell
+az group deployment create --resource-group "$resource_group_name" --name 'e2e-proxy' --template-file ./proxy-deployment-template.json --parameters `
+    key_vault_name="$key_vault_name" `
+    key_vault_access_objectid="$key_vault_access_objectid" `
+    key_vault_secret_name="$key_vault_secret_name" `
+    vms_ssh_key_encoded="$([System.Convert]::ToBase64String([System.Text.Encoding]::Utf8.GetBytes($(Get-Content "$keyfile" -Raw))))" `
+    vms_ssh_public_key="$(cat "$keyfile.pub")" `
+    windows_vm_password=$windows_vm_password `
+    vms_username="$vms_username" `
+    vms_vnet_name="$vms_vnet_name" `
+    vms_vnet_subnet_name="$vms_vnet_subnet_name" `
+    vms_vnet_address_prefix="$vms_vnet_address_prefix" `
+    vsts_agent_vm_public_ip_name="$vsts_agent_vm_public_ip_name" `
+    vsts_agent_vm_name="$vsts_agent_vm_name" `
+    vsts_runner1_vm_name="$vsts_runner1_vm_name" `
+    vsts_runner2_vm_name="$vsts_runner2_vm_name"
 ```
