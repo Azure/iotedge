@@ -59,21 +59,38 @@ if (-not $BuildConfig) {
  #>
 Write-Host "Running tests in all test projects with filter '$Filter' and $BuildConfig configuration."
 
+$testProjectRunSerially = @( "Microsoft.Azure.Devices.Edge.Agent.Docker.Test.dll" )
+$testProjectDllsRunSerially = @()
 $testProjectsDlls = ""
 foreach ($testDll in (Get-ChildItem $BuildBinariesDirectory -Include $SUFFIX -Recurse)) {
     Write-Host "Found test project:$testDll"
-    $testProjectsDlls += " $testDll"
+    
+	if (($testProjectRunSerially | ?{ $testDll.EndsWith("\" + $_) }) -ne $null)
+	{
+		Write-Host "Run Serially for $testDll"
+		$testProjectDllsRunSerially += $testDll
+	}
+	else
+	{
+		$testProjectsDlls += " $testDll"
+	}
 }
 
-$testCommand = "$DOTNET_PATH vstest /Logger:`"$LOGGER_ARG`" /TestAdapterPath:`"$BuildBinariesDirectory`" /Parallel /InIsolation"
+$testCommandPrefix = "$DOTNET_PATH vstest /Logger:`"$LOGGER_ARG`" /TestAdapterPath:`"$BuildBinariesDirectory`" /Parallel /InIsolation"
 
 if ($Filter) {
-    $testCommand += " /TestCaseFilter:`"$Filter`"" 
+    $testCommandPrefix += " /TestCaseFilter:`"$Filter`"" 
 }
-$testCommand += "$testProjectsDlls"
 
-Write-Host "Run test command:$testCommand"
+$testCommand = $testCommandPrefix + $testProjectsDlls
+Write-Host "Run test command: $testCommand"
 Invoke-Expression "$testCommand"
-Write-Host "Last exit code=$LASTEXITCODE"
+
+foreach($testDll in $testProjectDllsRunSerially)
+{
+	$testCommand = "$testCommandPrefix $testDll"
+	Write-Host "Run test command: $testCommand"
+	Invoke-Expression "$testCommand"
+}
 
 Write-Host "Done!"

@@ -40,30 +40,48 @@ fi
 
 echo "Running tests in all test projects with filter: $testFilterValue and $BUILD_CONFIG configuration"
 
-RES=0
-
 # Find all test project dlls
+testProjectRunSerially = ( "Microsoft.Azure.Devices.Edge.Agent.Docker.Test.dll" )
+testProjectDllsRunSerially = ()
 testProjectDlls = ""
+
 while read testDll; do
   echo "Try to run test project:$testDll"
-  testProjectDlls="$testProjectDlls $testDll"
+    
+  if (for t in "${testProjectRunSerially[@]}"; do [[ $testDll == */$t ]] && exit 0; done)
+  then
+    echo "Run Serially for $testDll"
+	testProjectDllsRunSerially+=($testDll)
+  else
+    testProjectDlls="$testProjectDlls $testDll"
+  if
 done < <(find $OUTPUT_FOLDER -type f -iname $SUFFIX)
 
-testCommand="$DOTNET_ROOT_PATH/dotnet vstest /Logger:trx;LogFileName=result.trx /TestAdapterPath:\"$OUTPUT_FOLDER\" /Parallel /InIsolation"
+testCommandPrefix="$DOTNET_ROOT_PATH/dotnet vstest /Logger:trx;LogFileName=result.trx /TestAdapterPath:\"$OUTPUT_FOLDER\" /Parallel /InIsolation"
 if [ ! -z "$testFilterValue" ]
 then
-  testCommand+=" /TestCaseFilter:"$testFilterValue""
+  testCommandPrefix+=" /TestCaseFilter:"$testFilterValue""
 fi
-testCommand+="$testProjectDlls"
 
+testCommand=$testCommandPrefix+$testProjectDlls
 echo "Run test command:$testCommand"
 $testCommand
 
 if [ $? -gt 0 ]
 then
-  RES=1
+  exit 1
 fi
 
-echo "Edge runtime tests result RES = $RES"
+for testDll in ${testProjectDllsRunSerially[@]}
+do
+  testCommand="$testCommandPrefix $testDll"
+  echo "Run test command:$testCommand"
+  $testCommand
+  
+  if [ $? -gt 0 ]
+  then
+    exit 1
+  fi
+done
 
-exit $RES
+exit 0
