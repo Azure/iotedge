@@ -668,7 +668,7 @@ mod tests {
 
         let handler = move |req: Request<Body>| {
             assert_eq!(req.method(), &Method::GET);
-            assert_eq!(req.uri().path(), "/devices/n%40m.et%23st/modules/%24edgeAgent");
+            assert_eq!(req.uri().path(), "/devices/n@m.et%23st/modules/$edgeAgent");
             assert_eq!(None, req.headers().get(hyper::header::IF_MATCH));
 
             let mut response = Response::new(serde_json::to_string(&module).unwrap().into());
