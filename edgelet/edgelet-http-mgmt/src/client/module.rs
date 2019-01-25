@@ -181,7 +181,7 @@ impl ModuleRuntime for ModuleClient {
         let start = self
             .client
             .module_api()
-            .start_module(API_VERSION, &id)
+            .start_module(&API_VERSION.to_string(), &id)
             .map_err(|err| {
                 Error::from_mgmt_error(
                     err,
@@ -204,7 +204,7 @@ impl ModuleRuntime for ModuleClient {
         let stop = self
             .client
             .module_api()
-            .stop_module(API_VERSION, &id)
+            .stop_module(&API_VERSION.to_string(), &id)
             .map_err(|err| {
                 Error::from_mgmt_error(
                     err,
@@ -227,7 +227,7 @@ impl ModuleRuntime for ModuleClient {
         let restart = self
             .client
             .module_api()
-            .restart_module(API_VERSION, &id)
+            .restart_module(&API_VERSION.to_string(), &id)
             .map_err(|err| {
                 Error::from_mgmt_error(
                     err,
@@ -252,7 +252,7 @@ impl ModuleRuntime for ModuleClient {
         let modules = self
             .client
             .module_api()
-            .list_modules(API_VERSION)
+            .list_modules(&API_VERSION.to_string())
             .map(|list| {
                 list.modules()
                     .into_iter()
@@ -277,7 +277,7 @@ impl ModuleRuntime for ModuleClient {
         let modules = self
             .client
             .module_api()
-            .list_modules(API_VERSION)
+            .list_modules(&API_VERSION.to_string())
             .map_err(|err| {
                 Error::from_mgmt_error(
                     err,
@@ -306,7 +306,7 @@ impl ModuleRuntime for ModuleClient {
         let result = self
             .client
             .module_api()
-            .module_logs(API_VERSION, &id, options.follow(), tail)
+            .module_logs(&API_VERSION.to_string(), &id, options.follow(), tail)
             .then(|logs| match logs {
                 Ok(logs) => Ok(Logs(id, logs)),
                 Err(err) => Err(Error::from_mgmt_error(
