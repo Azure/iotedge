@@ -51,6 +51,8 @@ pub struct Dps {
     global_endpoint: Url,
     scope_id: String,
     registration_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    symmetric_key: Option<String>,
 }
 
 impl Dps {
@@ -64,6 +66,10 @@ impl Dps {
 
     pub fn registration_id(&self) -> &str {
         &self.registration_id
+    }
+
+    pub fn symmetric_key(&self) ->  Option<&str> {
+        self.symmetric_key.as_ref().map(AsRef::as_ref)
     }
 }
 
