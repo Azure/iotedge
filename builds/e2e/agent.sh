@@ -63,5 +63,5 @@ mv ~/squid.conf /etc/squid/squid.conf
 chown root:root /etc/squid/squid.conf
 chmod 0644 /etc/squid/squid.conf
 
-systemctl stop squid & systemctl kill squid
+systemctl stop squid
 systemctl start squid
