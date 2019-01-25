@@ -51,10 +51,10 @@ while read testDll; do
   if (for t in "${testProjectRunSerially[@]}"; do [[ $testDll == */$t ]] && exit 0; done)
   then
     echo "Run Serially for $testDll"
-	testProjectDllsRunSerially+=($testDll)
+    testProjectDllsRunSerially+=($testDll)
   else
     testProjectDlls="$testProjectDlls $testDll"
-  if
+  fi  
 done < <(find $OUTPUT_FOLDER -type f -iname $SUFFIX)
 
 testCommandPrefix="$DOTNET_ROOT_PATH/dotnet vstest /Logger:trx;LogFileName=result.trx /TestAdapterPath:\"$OUTPUT_FOLDER\" /Parallel /InIsolation"
