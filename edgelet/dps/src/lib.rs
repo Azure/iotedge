@@ -37,6 +37,6 @@ pub mod registration;
 pub use error::{Error, ErrorKind};
 pub use model::{
     DeviceRegistration, DeviceRegistrationResult, RegistrationOperationStatus,
-    TpmRegistrationResult,
+    TpmRegistrationResult, DPS_API_VERSION
 };
 pub use registration::{DpsClient, DpsTokenSource};
