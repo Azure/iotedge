@@ -31,6 +31,12 @@ pub enum ErrorKind {
 
     #[fail(display = "The workload service encountered an error")]
     WorkloadService,
+
+    #[fail(display = "The symmetric key string is malformed")]
+    SymmetricKeyMalformed,
+
+    #[fail(display = "The symmetric key string could not be activated")]
+    ActivateSymmetricKey
 }
 
 impl Error {
