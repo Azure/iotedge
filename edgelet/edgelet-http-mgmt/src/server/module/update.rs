@@ -269,7 +269,7 @@ mod tests {
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
                 assert_eq!(
-                    "Could not update module\n\tcaused by: General error",
+                    "Could not update module \"test-module\"\n\tcaused by: General error",
                     error.message()
                 );
                 Ok(())

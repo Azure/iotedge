@@ -12,36 +12,37 @@ use futures::IntoFuture;
 use hyper::Body;
 
 #[derive(Clone, Debug)]
-pub struct NullRegistry<E: Fail> {
-    phantom: PhantomData<E>,
+pub struct TestRegistry<E> {
+    err: Option<E>,
 }
 
-impl<E: Fail> NullRegistry<E> {
-    pub fn new() -> Self {
-        NullRegistry {
-            phantom: PhantomData,
-        }
+impl<E> TestRegistry<E> {
+    pub fn new(err: Option<E>) -> Self {
+        TestRegistry { err }
     }
 }
 
-impl<E: Fail> Default for NullRegistry<E> {
-    fn default() -> Self {
-        NullRegistry::new()
-    }
-}
-
-impl<E: Fail> ModuleRegistry for NullRegistry<E> {
+impl<E> ModuleRegistry for TestRegistry<E>
+where
+    E: Clone + Fail + Send + Sync,
+{
     type Error = E;
     type PullFuture = FutureResult<(), Self::Error>;
     type RemoveFuture = FutureResult<(), Self::Error>;
     type Config = TestConfig;
 
     fn pull(&self, _config: &Self::Config) -> Self::PullFuture {
-        future::ok(())
+        match self.err {
+            Some(ref e) => future::err(e.clone()),
+            None => future::ok(()),
+        }
     }
 
     fn remove(&self, _name: &str) -> Self::RemoveFuture {
-        future::ok(())
+        match self.err {
+            Some(ref e) => future::err(e.clone()),
+            None => future::ok(()),
+        }
     }
 }
 
@@ -61,7 +62,7 @@ impl TestConfig {
 }
 
 #[derive(Clone, Debug)]
-pub struct TestModule<E: Fail> {
+pub struct TestModule<E> {
     name: String,
     config: TestConfig,
     state: Result<ModuleRuntimeState, E>,
@@ -100,16 +101,19 @@ impl<E: Clone + Fail> Module for TestModule<E> {
 }
 
 #[derive(Clone)]
-pub struct TestRuntime<E: Fail> {
+pub struct TestRuntime<E> {
     module: Result<TestModule<E>, E>,
-    registry: NullRegistry<E>,
+    registry: TestRegistry<E>,
 }
 
-impl<E: Fail> TestRuntime<E> {
+impl<E> TestRuntime<E>
+where
+    E: Clone + Fail,
+{
     pub fn new(module: Result<TestModule<E>, E>) -> Self {
         TestRuntime {
+            registry: TestRegistry::new(module.as_ref().err().cloned()),
             module,
-            registry: NullRegistry::new(),
         }
     }
 }
@@ -151,7 +155,7 @@ impl<E: Clone + Fail> ModuleRuntime for TestRuntime<E> {
     type Error = E;
     type Config = TestConfig;
     type Module = TestModule<E>;
-    type ModuleRegistry = NullRegistry<E>;
+    type ModuleRegistry = TestRegistry<E>;
     type Chunk = String;
     type Logs = EmptyBody<Self::Error>;
 
