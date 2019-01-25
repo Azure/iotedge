@@ -17,13 +17,15 @@ namespace IotEdgeQuickstart.Details
 
         readonly string archivePath;
         readonly Option<RegistryCredentials> credentials;
+        readonly string offlineInstallationPath;
         readonly Option<string> proxy;
         string scriptDir;
 
-        public IotedgedWindows(string archivePath, Option<RegistryCredentials> credentials, Option<string> proxy)
+        public IotedgedWindows(string archivePath, Option<RegistryCredentials> credentials, Option<string> proxy, string offlineInstallationPath)
         {
             this.archivePath = archivePath;
             this.credentials = credentials;
+            this.offlineInstallationPath = offlineInstallationPath;
             this.proxy = proxy;
         }
 
@@ -108,12 +110,17 @@ namespace IotEdgeQuickstart.Details
 
         public async Task Configure(string connectionString, string image, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel)
         {
-            Console.WriteLine($"Installing iotedged from {this.archivePath ?? "default location"}");
             Console.WriteLine($"Setting up iotedged with agent image '{image}'");
 
             using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5)))
             {
-                if (!string.IsNullOrEmpty(this.archivePath))
+                if (!string.IsNullOrEmpty(this.offlineInstallationPath))
+                {
+                    this.scriptDir = File.GetAttributes(this.offlineInstallationPath).HasFlag(FileAttributes.Directory)
+                        ? this.offlineInstallationPath
+                        : new FileInfo(this.offlineInstallationPath).DirectoryName;
+                }
+                else if (!string.IsNullOrEmpty(this.archivePath))
                 {
                     this.scriptDir = File.GetAttributes(this.archivePath).HasFlag(FileAttributes.Directory)
                         ? this.archivePath
@@ -133,7 +140,11 @@ namespace IotEdgeQuickstart.Details
 
                 this.proxy.ForEach(proxy => { args += $" -Proxy '{proxy}'"; });
 
-                if (this.archivePath != null)
+                if (!string.IsNullOrEmpty(this.offlineInstallationPath))
+                {
+                    args += $" -OfflineInstallationPath '{this.offlineInstallationPath}'";
+                }
+                else if (!string.IsNullOrEmpty(this.archivePath))
                 {
                     args += $" -ArchivePath '{this.archivePath}'";
                 }
