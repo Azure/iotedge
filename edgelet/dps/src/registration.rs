@@ -296,9 +296,10 @@ where
     ) -> Box<Future<Item = Option<RegistrationOperationStatus>, Error = Error> + Send> {
         let token_source =
             DpsTokenSource::new(scope_id.to_string(), registration_id.to_string(), symmetric_key.clone());
+        let client_inner = client.clone();
         let registration = DeviceRegistration::new()
             .with_registration_id(registration_id.clone());
-        let _f = client
+        let r = client
             .write()
             .expect("RwLock write failure")
             .clone()
@@ -310,9 +311,66 @@ where
                 Some(registration.clone()),
                 false,
             )
-            .map_err(|err| Error::from(err.context(ErrorKind::GetOperationId)));
+//            .map_err(|err| Error::from(err.context(ErrorKind::GetOperationId)));
+            .then(move |result| {
+                match result {
+                    Ok(_) => Either::B(future::err(Error::from(
+                        ErrorKind::RegisterWithAuthUnexpectedlySucceeded,
+                    ))),
+                    Err(err) => {
+                        // If request is returned with status unauthorized, extract the tpm
+                        // challenge from the payload, generate a signature and re-issue the
+                        // request
+                        let body = if let HttpErrorKind::HttpWithErrorResponse(status, body) =
+                            err.kind()
+                        {
+                            if *status == StatusCode::UNAUTHORIZED {
+                                debug!(
+                                    "Registration unauthorized, checking response for challenge {}",
+                                    status,
+                                );
+                                Some(body.clone())
+                            } else {
+                                debug!("Unexpected registration status, {}", status);
+                                None
+                            }
+                        } else {
+                            debug!("Response error {:?}", err);
+                            None
+                        };
 
-        let r = future::ok(RegistrationOperationStatus::new("oid".to_string()).into());
+                        body.map_or_else(
+                            || {
+                                Either::B(future::err(Error::from(
+                                    err.context(ErrorKind::RegisterWithAuthUnexpectedlyFailed),
+                                )))
+                            },
+                            |_| {
+                                Either::A(Self::get_operation_id(
+                                    &client_inner.clone(),
+                                    scope_id.as_str(),
+                                    registration_id.as_str(),
+                                    &registration,
+                                    symmetric_key.clone(),
+                                ))},
+                            // move |body| match Self::get_tpm_challenge_key(
+                            //     body.as_str(),
+                            //     &mut key_store_inner,
+                            // ) {
+                            //     Ok(key) => Either::A(Self::get_operation_id(
+                            //         &client.clone(),
+                            //         scope_id.as_str(),
+                            //         registration_id.as_str(),
+                            //         &registration,
+                            //         key.clone(),
+                            //     )),
+                            //     Err(err) => Either::B(future::err(err)),
+                         //   },
+                        )
+                    }
+                }
+            });
+        //let r = future::ok(RegistrationOperationStatus::new("oid".to_string()).into());
         Box::new(r)
     }
 
