@@ -22,7 +22,7 @@ use edgelet_http::ErrorKind as HttpErrorKind;
 use error::{Error, ErrorKind};
 use model::{
     DeviceRegistration, DeviceRegistrationResult, RegistrationOperationStatus, TpmAttestation,
-    TpmRegistrationResult,
+    TpmRegistrationResult, SymmetricKeyRegistrationResult,
 };
 
 /// This is the interval at which to poll DPS for registration assignment status
@@ -89,7 +89,7 @@ where
 
 pub enum DpsAuthKind {
     Tpm (Bytes, Bytes),
-    SymmetricKey (Bytes),
+    SymmetricKey,
 }
 
 pub struct DpsClient<C, K, A>
@@ -144,6 +144,13 @@ where
         Ok(key_store
             .get(&KeyIdentity::Device, "primary")
             .context(ErrorKind::GetTpmChallengeKey)?)
+    }
+
+    fn get_symmetric_challenge_key(key_store: &A)-> Result<K, Error> {
+        debug!("Obtaining symmetric authentication key");
+        Ok(key_store
+            .get(&KeyIdentity::Device, "primary")
+            .context(ErrorKind::GetSymmetricChallengeKey)?)
     }
 
     fn get_operation_id(
@@ -281,6 +288,34 @@ where
         Box::new(chain)
     }
 
+    fn register_with_symmetric_key_auth(
+        client: &Arc<RwLock<Client<C, DpsTokenSource<K>>>>,
+        scope_id: String,
+        registration_id: String,
+        symmetric_key: K,
+    ) -> Box<Future<Item = Option<RegistrationOperationStatus>, Error = Error> + Send> {
+        let token_source =
+            DpsTokenSource::new(scope_id.to_string(), registration_id.to_string(), symmetric_key.clone());
+        let registration = DeviceRegistration::new()
+            .with_registration_id(registration_id.clone());
+        let _f = client
+            .write()
+            .expect("RwLock write failure")
+            .clone()
+            .with_token_source(token_source)
+            .request::<DeviceRegistration, SymmetricKeyRegistrationResult>(
+                Method::PUT,
+                &format!("{}/registrations/{}/register", scope_id, registration_id),
+                None,
+                Some(registration.clone()),
+                false,
+            )
+            .map_err(|err| Error::from(err.context(ErrorKind::GetOperationId)));
+
+        let r = future::ok(RegistrationOperationStatus::new("oid".to_string()).into());
+        Box::new(r)
+    }
+
     fn register_with_tpm_auth(
         client: &Arc<RwLock<Client<C, DpsTokenSource<K>>>>,
         scope_id: String,
@@ -383,14 +418,13 @@ where
                             &self.key_store,
                         )
             },
-            DpsAuthKind::SymmetricKey(key) => {
-                Self::register_with_tpm_auth(
+            DpsAuthKind::SymmetricKey => {
+                let key = Self::get_symmetric_challenge_key(&self.key_store).unwrap();
+                Self::register_with_symmetric_key_auth(
                             &self.client,
                             scope_id,
                             registration_id,
-                            &key,
-                            &key,
-                            &self.key_store,
+                            key
                         )
             },
         }
