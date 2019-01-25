@@ -2,7 +2,7 @@
 
 #![deny(unused_extern_crates, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
-#![allow(clippy::stutter, clippy::use_self)]
+#![allow(clippy::stutter, clippy::use_self, clippy::result_map_unwrap_or_else)]
 
 mod constants;
 mod convert;
