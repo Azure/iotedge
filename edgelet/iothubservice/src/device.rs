@@ -4,13 +4,17 @@ use failure::{Fail, ResultExt};
 use futures::future::{self, Either};
 use futures::Future;
 use hyper::{Method, StatusCode};
-use url::form_urlencoded::byte_serialize;
+use percent_encoding::{percent_encode, PATH_SEGMENT_ENCODE_SET};
 
 use edgelet_http::client::{Client, ClientImpl, TokenSource};
 use edgelet_http::error::ErrorKind as HttpErrorKind;
 use edgelet_utils::ensure_not_empty_with_context;
 use error::{Error, ErrorKind, ModuleOperationReason};
 use model::{AuthMechanism, Module};
+
+define_encode_set! {
+    pub IOTHUB_ENCODE_SET = [PATH_SEGMENT_ENCODE_SET] | { '=' }
+}
 
 pub struct DeviceClient<C, T> {
     client: Client<C, T>,
@@ -110,11 +114,13 @@ where
                 ModuleOperationReason::EmptyModuleId,
             ))))
         } else {
+            let url = &format!("/devices/{}/modules/{}", url_encode(&self.device_id), url_encode(&module_id));
+            println!("URL = {}", url);
             let res = self
                 .client
                 .request::<(), Module>(
                     Method::GET,
-                    &format!("/devices/{}/modules/{}", url_encode(&self.device_id), url_encode(&module_id)),
+                    url,
                     None,
                     None,
                     false,
@@ -202,7 +208,7 @@ where
 }
 
 fn url_encode(value: &str) -> String {
-    byte_serialize(value.as_bytes()).collect()
+    percent_encode(value.as_bytes(), IOTHUB_ENCODE_SET).to_string()
 }
 
 #[cfg(test)]
