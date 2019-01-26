@@ -4,9 +4,11 @@ namespace IotEdgeQuickstart.Details
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Text;
     using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
+    using IotEdgeQuickstart.details;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Common;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -20,6 +22,8 @@ namespace IotEdgeQuickstart.Details
     public class Details
     {
         public readonly Option<string> DeploymentFileName;
+
+        public readonly Option<string> TwinTestFileName;
 
         const string DeployJson = @"
 {
@@ -138,6 +142,7 @@ namespace IotEdgeQuickstart.Details
             string deviceId,
             string hostname,
             Option<string> deploymentFileName,
+            Option<string> twinTestFileName,
             string deviceCaCert,
             string deviceCaPk,
             string deviceCaCerts,
@@ -172,6 +177,7 @@ namespace IotEdgeQuickstart.Details
             this.deviceId = deviceId;
             this.hostname = hostname;
             this.DeploymentFileName = deploymentFileName;
+            this.TwinTestFileName = twinTestFileName;
             this.deviceCaCert = deviceCaCert;
             this.deviceCaPk = deviceCaPk;
             this.deviceCaCerts = deviceCaCerts;
@@ -332,6 +338,66 @@ namespace IotEdgeQuickstart.Details
             Console.WriteLine("VerifyDataOnIoTHub completed.");
             await eventHubReceiver.CloseAsync();
             await eventHubClient.CloseAsync();
+        }
+
+        protected async Task VerifyTwinAsync()
+        {
+            if (this.TwinTestFileName.HasValue)
+            {
+                string twinTestJson = JObject.Parse(File.ReadAllText(this.TwinTestFileName.GetOrElse(string.Empty))).ToString();
+
+                var twinTest = JsonConvert.DeserializeObject<TwinTestConfiguration>(twinTestJson);
+
+                Twin currentTwin = await this.context.RegistryManager.GetTwinAsync(this.context.Device.Id, twinTest.ModuleId);
+
+
+                if (twinTest.TwinTest.ContainsKey("desired") && twinTest.TwinTest["desired"].Count > 0)
+                {
+                    
+                    StringBuilder twinpatch = new StringBuilder(@"{ properties: { desired: { ");
+                    foreach (var desiredProperty in twinTest.TwinTest["desired"])
+                    {
+                        twinpatch.Append($@"{desiredProperty.Key} : {desiredProperty.Value},");
+                    }
+
+                    twinpatch.Append(@"} } }");
+
+                    //Build Patch Object.
+                    await this.context.RegistryManager.UpdateTwinAsync(this.context.Device.Id, twinTest.ModuleId, twinpatch.ToString(), currentTwin.ETag);
+                }
+
+                if (twinTest.TwinTest.ContainsKey("expectedReported") && twinTest.TwinTest["expectedReported"].Count > 0)
+                {
+                    using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20)))
+                    {
+                        bool foundAtLeastOne = false;
+                        while (true)
+                        {
+                            await Task.Delay(TimeSpan.FromSeconds(10), cts.Token);
+                            
+                            currentTwin = await this.context.RegistryManager.GetTwinAsync(this.context.Device.Id, twinTest.ModuleId, cts.Token);
+
+                            foreach (KeyValuePair<string, string> expectedReportedProperty in twinTest.TwinTest["expectedReported"])
+                            {
+                                if (currentTwin.Properties.Reported.Contains(expectedReportedProperty.Key))
+                                {
+                                    foundAtLeastOne = true;
+                                    if (currentTwin.Properties.Reported[expectedReportedProperty.Key] != expectedReportedProperty.Value)
+                                    {
+                                        throw new Exception("Failed to find all reported Property or value doesn't match.");
+                                    }
+                                }
+                            }
+
+                            if (foundAtLeastOne)
+                            {
+                                //Success.
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         protected Task RemoveTempSensorFromEdgeDevice()

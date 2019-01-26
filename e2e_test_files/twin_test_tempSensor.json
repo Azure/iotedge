@@ -1,0 +1,11 @@
+{
+    "moduleId" : "tempSensor",
+    "twinTest": {
+        "desired" : {
+            "SendInterval": 42
+        },
+        "expectedReported" : {
+            "SendInterval2": 42
+        }
+    }
+}
