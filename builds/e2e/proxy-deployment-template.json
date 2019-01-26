@@ -584,7 +584,7 @@
 			"autoUpgradeMinorVersion": true,
 			"settings": {},
 			"protectedSettings": {
-				"commandToExecute": "[concat('/bin/bash -c \"set -euo pipefail && curl -x ', parameters('vsts_agent_vm_name'), ':3128 ', variables('linux_runner_prep_script_uri'), ' | sudo bash -s -- ', parameters('vsts_agent_vm_name'), '\"')]"
+				"commandToExecute": "[concat('/bin/bash -c \"set -euo pipefail && curl -x ', parameters('vsts_agent_vm_name'), ':3128 ', variables('linux_runner_prep_script_uri'), ' | sudo bash -s -- ', parameters('vsts_agent_vm_name'), ' ', parameters('vms_username'), '\"')]"
 			}
 		}
 	}, {

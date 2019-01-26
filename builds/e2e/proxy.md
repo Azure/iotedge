@@ -35,14 +35,14 @@ key_vault_access_objectid='<>'
 # Name of the Azure virtual network to which all VMs will attach.
 vms_vnet_name='<>'
 
+# The address prefix (in CIDR notation) of the virtual network/subnet
+vms_vnet_address_prefix='<>'
+
 # Name of the user for the VMs
 vms_username='vsts'
 
 # Name of the subnet within the virtual network
 vms_vnet_subnet_name='default'
-
-# The address prefix (in CIDR notation) of the virtual network/subnet
-vms_vnet_address_prefix='10.0.0.0/24'
 
 # Name of the dynamically-provisioned public IP for the agent VM
 vsts_agent_vm_public_ip_name='e2eproxy'

@@ -3,6 +3,7 @@
 set -euo pipefail
 
 proxy_hostname="$1"
+user="$2"
 
 curl -x "http://$proxy_hostname:3128" 'https://packages.microsoft.com/config/ubuntu/18.04/prod.list' > ./microsoft-prod.list
 mv ./microsoft-prod.list /etc/apt/sources.list.d/
@@ -20,6 +21,12 @@ Environment="https_proxy=http://$proxy_hostname:3128"
 EOF
 mkdir -p /etc/systemd/system/docker.service.d/
 cp ~/proxy-env.override.conf /etc/systemd/system/docker.service.d/
+
+# Make proxy-env.override.conf available in $user's home directory so tests can
+# apply the same proxy settings to the iotedge service
+home=$(eval echo ~$user)
+cp ~/proxy-env.override.conf $home/
+chown -R $user:$user $home/proxy-env.override.conf
 
 systemctl daemon-reload
 systemctl restart docker
