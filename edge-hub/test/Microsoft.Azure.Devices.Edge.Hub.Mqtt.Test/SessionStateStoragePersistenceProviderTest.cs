@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
     using DotNetty.Codecs.Mqtt.Packets;
@@ -43,7 +44,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Task setTask = sessionProvider.SetAsync(identity, sessionState);
 
             Assert.True(setTask.IsCompleted);
-            edgeHub.Verify(x => x.AddSubscription("d1", DeviceSubscription.Methods), Times.Once);
+            IEnumerable<(DeviceSubscription, bool)> list = new List<(DeviceSubscription, bool)>
+            {
+                (DeviceSubscription.Methods, true)
+            };
+            edgeHub.Verify(x => x.ProcessSubscriptions("d1", list), Times.Once);
         }
 
         [Fact]
@@ -58,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Task setTask = sessionProvider.SetAsync(identity, sessionState);
 
             Assert.True(setTask.IsCompleted);
-            edgeHub.Verify(x => x.RemoveSubscription("d1", DeviceSubscription.Methods), Times.Once);
+            edgeHub.Verify(x => x.ProcessSubscription("d1", DeviceSubscription.Methods, false), Times.Once);
         }
 
         [Fact]
@@ -97,7 +102,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 
             ISessionState storedSession = await sessionProvider.GetAsync(identity);
             Assert.NotNull(storedSession);
-            edgeHub.Verify(x => x.AddSubscription("d1", DeviceSubscription.Methods), Times.Once);
+            IEnumerable<(DeviceSubscription, bool)> list = new List<(DeviceSubscription, bool)>
+            {
+                (DeviceSubscription.Methods, true)
+            };
+            edgeHub.Verify(x => x.ProcessSubscriptions("d1", list), Times.Once);
 
             // clean up
             await sessionProvider.DeleteAsync(identity, sessionState);
@@ -116,7 +125,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 
             ISessionState storedSession = await sessionProvider.GetAsync(identity);
             Assert.Null(storedSession);
-            edgeHub.Verify(x => x.AddSubscription("d1", DeviceSubscription.Methods), Times.Once);
+            IEnumerable<(DeviceSubscription, bool)> list = new List<(DeviceSubscription, bool)>
+            {
+                (DeviceSubscription.Methods, true)
+            };
+            edgeHub.Verify(x => x.ProcessSubscriptions("d1", list), Times.Once);
         }
 
         [Fact]
@@ -136,7 +149,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             ISessionState storedSession = await sessionProvider.GetAsync(identity);
             Assert.NotNull(storedSession);
             Assert.Null(storedSession.Subscriptions.SingleOrDefault(p => p.TopicFilter == MethodPostTopicPrefix));
-            edgeHub.Verify(x => x.RemoveSubscription("d1", DeviceSubscription.Methods), Times.Once);
+            IEnumerable<(DeviceSubscription, bool)> list = new List<(DeviceSubscription, bool)>
+            {
+                (DeviceSubscription.Methods, false)
+            };
+            edgeHub.Verify(x => x.ProcessSubscriptions("d1", list), Times.Once);
 
             // clean up
             await sessionProvider.DeleteAsync(identity, sessionState);
@@ -175,9 +192,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             sessionState.RemoveSubscription(SessionStatePersistenceProvider.TwinSubscriptionTopicPrefix);
             await sessionProvider.SetAsync(identity, sessionState);
 
-            edgeHub.Verify(x => x.AddSubscription("d1", DeviceSubscription.Methods), Times.Once);
-            edgeHub.Verify(x => x.AddSubscription("d1", DeviceSubscription.C2D), Times.Once);
-            edgeHub.Verify(x => x.RemoveSubscription("d1", DeviceSubscription.DesiredPropertyUpdates), Times.Once);
+            await Task.Delay(TimeSpan.FromSeconds(20));
+            IEnumerable<(DeviceSubscription, bool)> subscriptions = new List<(DeviceSubscription, bool)>
+            {
+                (DeviceSubscription.Methods, true),
+                (DeviceSubscription.C2D, true),
+                (DeviceSubscription.DesiredPropertyUpdates, false)
+            };
+            edgeHub.Verify(x => x.ProcessSubscriptions("d1", subscriptions), Times.Once);
 
             ISessionState storedSession = await sessionProvider.GetAsync(identity);
             Assert.NotNull(storedSession);
@@ -203,9 +225,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 
             await sessionProvider.SetAsync(identity, sessionState);
 
-            edgeHub.Verify(x => x.AddSubscription("d1", DeviceSubscription.Methods), Times.Exactly(2));
-            edgeHub.Verify(x => x.AddSubscription("d1", DeviceSubscription.C2D), Times.Exactly(2));
-            edgeHub.Verify(x => x.RemoveSubscription("d1", DeviceSubscription.DesiredPropertyUpdates), Times.Exactly(2));
+            edgeHub.Verify(x => x.ProcessSubscriptions("d1", subscriptions), Times.Exactly(2));
 
             storedSession = await sessionProvider.GetAsync(identity);
             Assert.NotNull(storedSession);
@@ -231,9 +251,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 
             await sessionProvider.SetAsync(identity, sessionState);
 
-            edgeHub.Verify(x => x.AddSubscription("d1", DeviceSubscription.Methods), Times.Exactly(3));
-            edgeHub.Verify(x => x.AddSubscription("d1", DeviceSubscription.C2D), Times.Exactly(3));
-            edgeHub.Verify(x => x.RemoveSubscription("d1", DeviceSubscription.DesiredPropertyUpdates), Times.Exactly(3));
+            edgeHub.Verify(x => x.ProcessSubscriptions("d1", subscriptions), Times.Exactly(3));
         }
     }
 }

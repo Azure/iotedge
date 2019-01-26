@@ -185,8 +185,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             IDeviceProxy deviceProxy = new EdgeHubDeviceProxy(edgeHubConnection);
             Task addDeviceConnectionTask = connectionManager.AddDeviceConnection(edgeHubIdentity, deviceProxy);
-            Task desiredPropertyUpdatesSubscriptionTask = edgeHub.AddSubscription(edgeHubIdentity.Id, DeviceSubscription.DesiredPropertyUpdates);
-            Task methodsSubscriptionTask = edgeHub.AddSubscription(edgeHubIdentity.Id, DeviceSubscription.Methods);
+            Task desiredPropertyUpdatesSubscriptionTask = edgeHub.ProcessSubscription(edgeHubIdentity.Id, DeviceSubscription.DesiredPropertyUpdates, true);
+            Task methodsSubscriptionTask = edgeHub.ProcessSubscription(edgeHubIdentity.Id, DeviceSubscription.Methods, true);
             Task clearDeviceConnectionStatusesTask = edgeHubConnection.ClearDeviceConnectionStatuses();
             return Task.WhenAll(addDeviceConnectionTask, desiredPropertyUpdatesSubscriptionTask, methodsSubscriptionTask, clearDeviceConnectionStatusesTask);
         }

@@ -111,14 +111,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         }
 
         public Task AddSubscription(DeviceSubscription subscription)
-            => this.edgeHub.AddSubscription(this.Identity.Id, subscription);
+            => this.edgeHub.ProcessSubscription(this.Identity.Id, subscription, true);
 
         public Task RemoveSubscription(DeviceSubscription subscription)
-            => this.edgeHub.RemoveSubscription(this.Identity.Id, subscription);
+            => this.edgeHub.ProcessSubscription(this.Identity.Id, subscription, false);
 
         public async Task AddDesiredPropertyUpdatesSubscription(string correlationId)
         {
-            await this.edgeHub.AddSubscription(this.Identity.Id, DeviceSubscription.DesiredPropertyUpdates);
+            await this.edgeHub.ProcessSubscription(this.Identity.Id, DeviceSubscription.DesiredPropertyUpdates, true);
             if (!string.IsNullOrWhiteSpace(correlationId))
             {
                 IMessage responseMessage = new EdgeMessage.Builder(new byte[0])
@@ -135,7 +135,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         public async Task RemoveDesiredPropertyUpdatesSubscription(string correlationId)
         {
-            await this.edgeHub.RemoveSubscription(this.Identity.Id, DeviceSubscription.DesiredPropertyUpdates);
+            await this.edgeHub.ProcessSubscription(this.Identity.Id, DeviceSubscription.DesiredPropertyUpdates, false);
             if (!string.IsNullOrWhiteSpace(correlationId))
             {
                 IMessage responseMessage = new EdgeMessage.Builder(new byte[0])

@@ -370,7 +370,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.False(responseTask.IsCompleted);
 
             // Act
-            await routingEdgeHub.AddSubscription(identity.Id, DeviceSubscription.Methods);
+            await routingEdgeHub.ProcessSubscription(identity.Id, DeviceSubscription.Methods, true);
             await Task.Delay(TimeSpan.FromSeconds(5));
 
             // Assert
@@ -455,7 +455,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.False(responseTask.IsCompleted);
 
             // Act
-            await routingEdgeHub.AddSubscription(identity.Id, DeviceSubscription.Methods);
+            await routingEdgeHub.ProcessSubscription(identity.Id, DeviceSubscription.Methods, true);
             await Task.Delay(TimeSpan.FromSeconds(5));
 
             // Assert

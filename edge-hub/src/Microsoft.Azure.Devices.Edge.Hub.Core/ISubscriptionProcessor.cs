@@ -7,9 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
     public interface ISubscriptionProcessor
     {
-        Task AddSubscription(string id, DeviceSubscription deviceSubscription);
-
-        Task RemoveSubscription(string id, DeviceSubscription deviceSubscription);
+        Task ProcessSubscription(string id, DeviceSubscription deviceSubscription, bool addSubscription);
 
         Task ProcessSubscriptions(string id, IEnumerable<(DeviceSubscription, bool)> subscriptions);
     }

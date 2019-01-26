@@ -29,9 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         Task SendC2DMessageAsync(string id, IMessage message);
 
-        Task AddSubscription(string id, DeviceSubscription deviceSubscription);
-
-        Task RemoveSubscription(string id, DeviceSubscription deviceSubscription);
+        Task ProcessSubscription(string id, DeviceSubscription deviceSubscription, bool addSubscription);
 
         Task ProcessSubscriptions(string id, IEnumerable<(DeviceSubscription, bool)> subscriptions);
     }

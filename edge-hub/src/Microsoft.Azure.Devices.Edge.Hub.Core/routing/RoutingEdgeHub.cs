@@ -123,11 +123,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             return this.twinManager.UpdateDesiredPropertiesAsync(id, twinCollection);
         }
 
-        public Task AddSubscription(string id, DeviceSubscription deviceSubscription)
-            => this.subscriptionProcessor.AddSubscription(id, deviceSubscription);
-
-        public Task RemoveSubscription(string id, DeviceSubscription deviceSubscription)
-            => this.subscriptionProcessor.RemoveSubscription(id, deviceSubscription);
+        public Task ProcessSubscription(string id, DeviceSubscription deviceSubscription, bool addSubscription)
+            => this.subscriptionProcessor.ProcessSubscription(id, deviceSubscription, addSubscription);
 
         public Task ProcessSubscriptions(string id, IEnumerable<(DeviceSubscription, bool)> subscriptions)
             => this.subscriptionProcessor.ProcessSubscriptions(id, subscriptions);
