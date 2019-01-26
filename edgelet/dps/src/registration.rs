@@ -22,7 +22,7 @@ use edgelet_http::ErrorKind as HttpErrorKind;
 use error::{Error, ErrorKind};
 use model::{
     DeviceRegistration, DeviceRegistrationResult, RegistrationOperationStatus, TpmAttestation,
-    TpmRegistrationResult, SymmetricKeyRegistrationResult,
+    TpmRegistrationResult,
 };
 
 /// This is the interval at which to poll DPS for registration assignment status
@@ -282,6 +282,7 @@ where
             None,
             |_final_result: Option<DeviceRegistrationResult>,
              result_from_service: Option<DeviceRegistrationResult>| {
+                debug!("{:?}", result_from_service);
                 future::ok::<Option<DeviceRegistrationResult>, Error>(result_from_service)
             },
         );
@@ -296,81 +297,24 @@ where
     ) -> Box<Future<Item = Option<RegistrationOperationStatus>, Error = Error> + Send> {
         let token_source =
             DpsTokenSource::new(scope_id.to_string(), registration_id.to_string(), symmetric_key.clone());
-        let client_inner = client.clone();
         let registration = DeviceRegistration::new()
             .with_registration_id(registration_id.clone());
         let r = client
-            .write()
-            .expect("RwLock write failure")
+            .read()
+            .expect("RwLock read failure")
             .clone()
             .with_token_source(token_source)
-            .request::<DeviceRegistration, SymmetricKeyRegistrationResult>(
+            .request::<DeviceRegistration, RegistrationOperationStatus>(
                 Method::PUT,
                 &format!("{}/registrations/{}/register", scope_id, registration_id),
                 None,
                 Some(registration.clone()),
                 false,
-            )
-//            .map_err(|err| Error::from(err.context(ErrorKind::GetOperationId)));
-            .then(move |result| {
-                match result {
-                    Ok(_) => Either::B(future::err(Error::from(
-                        ErrorKind::RegisterWithAuthUnexpectedlySucceeded,
-                    ))),
-                    Err(err) => {
-                        // If request is returned with status unauthorized, extract the tpm
-                        // challenge from the payload, generate a signature and re-issue the
-                        // request
-                        let body = if let HttpErrorKind::HttpWithErrorResponse(status, body) =
-                            err.kind()
-                        {
-                            if *status == StatusCode::UNAUTHORIZED {
-                                debug!(
-                                    "Registration unauthorized, checking response for challenge {}",
-                                    status,
-                                );
-                                Some(body.clone())
-                            } else {
-                                debug!("Unexpected registration status, {}", status);
-                                None
-                            }
-                        } else {
-                            debug!("Response error {:?}", err);
-                            None
-                        };
-
-                        body.map_or_else(
-                            || {
-                                Either::B(future::err(Error::from(
-                                    err.context(ErrorKind::RegisterWithAuthUnexpectedlyFailed),
-                                )))
-                            },
-                            |_| {
-                                Either::A(Self::get_operation_id(
-                                    &client_inner.clone(),
-                                    scope_id.as_str(),
-                                    registration_id.as_str(),
-                                    &registration,
-                                    symmetric_key.clone(),
-                                ))},
-                            // move |body| match Self::get_tpm_challenge_key(
-                            //     body.as_str(),
-                            //     &mut key_store_inner,
-                            // ) {
-                            //     Ok(key) => Either::A(Self::get_operation_id(
-                            //         &client.clone(),
-                            //         scope_id.as_str(),
-                            //         registration_id.as_str(),
-                            //         &registration,
-                            //         key.clone(),
-                            //     )),
-                            //     Err(err) => Either::B(future::err(err)),
-                         //   },
-                        )
-                    }
-                }
+            ).map_err(|err| Error::from(err.context(ErrorKind::GetOperationStatusForSymmetricKey)))
+            .map(move |operation_status: Option<RegistrationOperationStatus>| {
+                debug!("{:?}", operation_status);
+                operation_status
             });
-        //let r = future::ok(RegistrationOperationStatus::new("oid".to_string()).into());
         Box::new(r)
     }
 

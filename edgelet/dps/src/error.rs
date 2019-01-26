@@ -43,6 +43,9 @@ pub enum ErrorKind {
 
     #[fail(display = "Could not get symmetric challenge key")]
     GetSymmetricChallengeKey,
+
+    #[fail(display = "Could not get symmetric key attestation operation status")]
+    GetOperationStatusForSymmetricKey,
 }
 
 impl Fail for Error {
