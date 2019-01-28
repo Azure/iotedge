@@ -1,7 +1,5 @@
 New-Module -ScriptBlock {
 
-    [Console]::OutputEncoding = New-Object -typename System.Text.ASCIIEncoding
-
     <#
      # Completes initialization of a Windows VM (version 1809 or later) that is
      # installed behind an HTTPS proxy server for end-to-end testing of Azure
