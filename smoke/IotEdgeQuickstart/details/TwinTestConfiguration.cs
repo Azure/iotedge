@@ -1,10 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
-using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace IotEdgeQuickstart.details
+namespace IotEdgeQuickstart.Details
 {
+    using System.Collections.Generic;
     using Newtonsoft.Json;
 
     public class TwinTestConfiguration
@@ -13,6 +10,6 @@ namespace IotEdgeQuickstart.details
         public string ModuleId { get; set; }
 
         [JsonProperty(PropertyName = "twinTest")]
-        public Dictionary<string, Dictionary<string, string>> TwinTest; 
+        public Dictionary<string, Dictionary<string, string>> TwinTest;
     }
 }

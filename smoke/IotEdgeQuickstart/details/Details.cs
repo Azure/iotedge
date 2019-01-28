@@ -8,7 +8,6 @@ namespace IotEdgeQuickstart.Details
     using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
-    using IotEdgeQuickstart.details;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Common;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -350,10 +349,8 @@ namespace IotEdgeQuickstart.Details
 
                 Twin currentTwin = await this.context.RegistryManager.GetTwinAsync(this.context.Device.Id, twinTest.ModuleId);
 
-
                 if (twinTest.TwinTest.ContainsKey("desired") && twinTest.TwinTest["desired"].Count > 0)
                 {
-                    
                     StringBuilder twinpatch = new StringBuilder(@"{ properties: { desired: { ");
                     foreach (var desiredProperty in twinTest.TwinTest["desired"])
                     {
@@ -362,7 +359,7 @@ namespace IotEdgeQuickstart.Details
 
                     twinpatch.Append(@"} } }");
 
-                    //Build Patch Object.
+                    // Build Patch Object.
                     await this.context.RegistryManager.UpdateTwinAsync(this.context.Device.Id, twinTest.ModuleId, twinpatch.ToString(), currentTwin.ETag);
                 }
 
@@ -374,7 +371,7 @@ namespace IotEdgeQuickstart.Details
                         while (true)
                         {
                             await Task.Delay(TimeSpan.FromSeconds(10), cts.Token);
-                            
+
                             currentTwin = await this.context.RegistryManager.GetTwinAsync(this.context.Device.Id, twinTest.ModuleId, cts.Token);
 
                             foreach (KeyValuePair<string, string> expectedReportedProperty in twinTest.TwinTest["expectedReported"])
@@ -391,7 +388,7 @@ namespace IotEdgeQuickstart.Details
 
                             if (foundAtLeastOne)
                             {
-                                //Success.
+                                // Success.
                                 break;
                             }
                         }
