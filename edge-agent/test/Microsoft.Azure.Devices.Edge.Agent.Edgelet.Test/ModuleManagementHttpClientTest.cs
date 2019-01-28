@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             Identity identity1 = await client.CreateIdentityAsync("Foo", Constants.ModuleIdentityEdgeManagedByValue);
             Identity identity2 = await client.CreateIdentityAsync("Bar", Constants.ModuleIdentityEdgeManagedByValue);
             Identity identity3 = await client.CreateIdentityAsync("External", "Someone");
-            Identity identity4 = await client.CreateIdentityAsync("ExternalNoManagedBy", "");
+            Identity identity4 = await client.CreateIdentityAsync("ExternalNoManagedBy", string.Empty);
 
             // Assert
             Assert.NotNull(identity1);
@@ -150,7 +150,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             // Assert
             Assert.NotNull(moduleDetails);
             Assert.Equal("Module1", moduleDetails.Name);
-            //Assert.NotNull(moduleDetails.);
             Assert.Equal("Docker", moduleDetails.Type);
             Assert.NotNull(moduleDetails.ModuleStatus);
             Assert.Equal(ModuleStatus.Unknown, moduleDetails.ModuleStatus);
@@ -217,7 +216,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         [InlineData("2018-06-28", "2018-06-28")]
         [InlineData("2018-06-28", "2018-12-30")]
         [InlineData("2018-12-30", "2018-06-28")]
-        //[InlineData("2018-12-30", "2018-12-30")]
+        [InlineData("2018-12-30", "2018-12-30")]
         public async Task Test_PrepareUpdate_ShouldSucceed(string serverApiVersion, string clientApiVersion)
         {
             // Arrange

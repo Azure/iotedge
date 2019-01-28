@@ -144,8 +144,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             IEnumerable<ICommand> addedCommands = await this.ProcessAddedUpdatedModules(
                 added,
                 moduleIdentities,
-                m => this.commandFactory.CreateAsync(m, runtimeInfo)
-            );
+                m => this.commandFactory.CreateAsync(m, runtimeInfo));
 
             IEnumerable<ICommand> updatedCommands = await this.ProcessAddedUpdatedModules(
                 updateDeployed,
@@ -157,8 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
                         currentModule,
                         m,
                         runtimeInfo);
-                }
-            );
+                });
 
             // apply restart policy for modules that are not in the deployment list and aren't running
             IEnumerable<Task<ICommand>> restartTasks = this.ApplyRestartPolicy(updateStateChanged.Where(m => !m.Name.Equals(Constants.EdgeAgentModuleName, StringComparison.OrdinalIgnoreCase)));

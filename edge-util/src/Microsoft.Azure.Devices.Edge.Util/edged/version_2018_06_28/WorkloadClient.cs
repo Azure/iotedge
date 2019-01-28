@@ -111,6 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2018_06_28
                     {
                         throw new WorkloadCommunicationException($"Error calling {operation}: {swaggerException.Response ?? string.Empty}", swaggerException.StatusCode);
                     }
+
                 default:
                     throw ex;
             }
@@ -118,7 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2018_06_28
 
         SignRequestAlgo GetSignatureAlgorithm(string algorithm)
         {
-            // for now there is only one supported algorithm 
+            // for now there is only one supported algorithm
             return SignRequestAlgo.HMACSHA256;
         }
 

@@ -258,14 +258,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     .Select(d => d.RunningModule)
                     .Concat(removedModules)
                     .Concat(updateStateChangedModules.Select(m => m.RunningModule))
-                    .ToArray<IModule>()
-            );
+                    .ToArray<IModule>());
             ModuleSet desiredModuleSet = ModuleSet.Create(
                 updateDeployModules
                     .Select(d => d.UpdatedModule)
                     .Concat(updateStateChangedModules.Select(m => m.RunningModule))
-                    .ToArray()
-            );
+                    .ToArray());
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(updateDeployModules.Select(d => d.UpdatedModule).ToList());
 
             // build expected execution list
@@ -291,8 +289,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                             {
                                 new TestRecordType(TestCommandType.TestStop, d.RunningModule),
                                 new TestRecordType(TestCommandType.TestStart, d.RunningModule)
-                            })
-                );
+                            }));
 
             // Act
             Plan plan = await planner.PlanAsync(desiredModuleSet, currentModuleSet, RuntimeInfo, moduleIdentities);
@@ -325,14 +322,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     .Select(d => d.RunningModule)
                     .Concat(removedModules)
                     .Concat(updateStateChangedModules.Select(m => m.RunningModule))
-                    .ToArray<IModule>()
-            );
+                    .ToArray<IModule>());
             ModuleSet desiredModuleSet = ModuleSet.Create(
                 updateDeployModules
                     .Select(d => d.UpdatedModule)
                     .Concat(updateStateChangedModules.Select(m => m.RunningModule))
-                    .ToArray()
-            );
+                    .ToArray());
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities = ImmutableDictionary<string, IModuleIdentity>.Empty;
 
             // build expected execution list
@@ -351,8 +346,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                             {
                                 new TestRecordType(TestCommandType.TestStop, d.RunningModule),
                                 new TestRecordType(TestCommandType.TestStart, d.RunningModule)
-                            })
-                );
+                            }));
 
             // Act
             Plan plan = await planner.PlanAsync(desiredModuleSet, currentModuleSet, RuntimeInfo, moduleIdentities);

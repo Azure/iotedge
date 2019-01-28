@@ -68,8 +68,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<WorkloadClient>();
             const int IdStart = UtilEventsIds.EdgeletWorkloadClient;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<WorkloadClient>();
 
             enum EventIds
             {

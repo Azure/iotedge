@@ -72,8 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             var identity = new Identity(
                 Name,
                 Guid.NewGuid().ToString(),
-                Constants.ModuleIdentityEdgeManagedByValue
-            );
+                Constants.ModuleIdentityEdgeManagedByValue);
 
             var identityManager = Mock.Of<IIdentityManager>(
                 m =>

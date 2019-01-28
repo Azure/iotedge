@@ -192,6 +192,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2018_06_28
                     {
                         throw new EdgeletCommunicationException($"Error calling {operation}: {swaggerException.Response ?? string.Empty}", swaggerException.StatusCode);
                     }
+
                 default:
                     throw exception;
             }

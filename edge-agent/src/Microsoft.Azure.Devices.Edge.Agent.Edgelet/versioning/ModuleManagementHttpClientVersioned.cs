@@ -95,8 +95,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<ModuleManagementHttpClient>();
             const int IdStart = AgentEventIds.ModuleManagementHttpClient;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<ModuleManagementHttpClient>();
 
             enum EventIds
             {

@@ -62,11 +62,11 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Edged
         {
             Assert.Throws<ArgumentNullException>(() => new WorkloadClient(null, workloadApiVersion, workloadClientApiVersion, ModuleId, ModulegenerationId));
             Assert.Throws<ArgumentException>(() => new WorkloadClient(this.serverUri, null, workloadClientApiVersion, ModuleId, ModulegenerationId));
-            Assert.Throws<ArgumentException>(() => new WorkloadClient(this.serverUri, "", workloadClientApiVersion, ModuleId, ModulegenerationId));
+            Assert.Throws<ArgumentException>(() => new WorkloadClient(this.serverUri, string.Empty, workloadClientApiVersion, ModuleId, ModulegenerationId));
             Assert.Throws<ArgumentException>(() => new WorkloadClient(this.serverUri, workloadApiVersion, null, ModuleId, ModulegenerationId));
-            Assert.Throws<ArgumentException>(() => new WorkloadClient(this.serverUri, workloadApiVersion, "", ModuleId, ModulegenerationId));
-            Assert.Throws<ArgumentException>(() => new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, "", ModulegenerationId));
-            Assert.Throws<ArgumentException>(() => new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, ModuleId, ""));
+            Assert.Throws<ArgumentException>(() => new WorkloadClient(this.serverUri, workloadApiVersion, string.Empty, ModuleId, ModulegenerationId));
+            Assert.Throws<ArgumentException>(() => new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, string.Empty, ModulegenerationId));
+            Assert.Throws<ArgumentException>(() => new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, ModuleId, string.Empty));
         }
 
         [Theory]

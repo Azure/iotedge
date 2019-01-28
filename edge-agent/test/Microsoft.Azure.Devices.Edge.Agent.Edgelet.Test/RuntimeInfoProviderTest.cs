@@ -58,8 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
                 5,
                 Option.Some(new DateTime(2011, 02, 03, 04, 05, 06)),
                 Option.Some(new DateTime(2011, 02, 03, 05, 06, 07)),
-                new TestConfig(module2Hash)
-            );
+                new TestConfig(module2Hash));
 
             var modules = new List<ModuleRuntimeInfo> { module1, module2 };
             var moduleManager = Mock.Of<IModuleManager>(m => m.GetModules<TestConfig>(It.IsAny<CancellationToken>()) == Task.FromResult(modules.AsEnumerable()));

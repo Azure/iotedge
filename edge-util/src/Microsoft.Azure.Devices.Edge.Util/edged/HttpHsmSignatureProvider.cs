@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
         readonly WorkloadClient workloadClient;
 
         public HttpHsmSignatureProvider(string moduleId, string generationId, string providerUri, string apiVersion, string clientApiVersion)
-        {            
+        {
             Preconditions.CheckNotNull(providerUri, nameof(providerUri));
             Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion));
             Preconditions.CheckNonWhiteSpace(clientApiVersion, nameof(clientApiVersion));
