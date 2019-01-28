@@ -5,6 +5,11 @@ set -euo pipefail
 proxy_hostname="$1"
 user="$2"
 
+# Output the host key so it can be added to the agent's known_hosts file
+echo '#DATA#'
+cat /etc/ssh/ssh_host_rsa_key.pub
+echo '#DATA#'
+
 curl -x "http://$proxy_hostname:3128" 'https://packages.microsoft.com/config/ubuntu/18.04/prod.list' > ./microsoft-prod.list
 mv ./microsoft-prod.list /etc/apt/sources.list.d/
 

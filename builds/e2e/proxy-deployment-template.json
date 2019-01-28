@@ -84,7 +84,8 @@
 	"variables": {
 		"agent_prep_script_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/agent.sh",
 		"linux_runner_prep_script_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/runner.sh",
-		"windows_runner_prep_script_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/Runner.ps1"
+		"windows_runner_prep_script_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/Runner.ps1",
+		"update_agent_known_hosts_script_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/known_hosts.sh"
 	},
 	"resources": [{
 		"type": "Microsoft.Network/virtualNetworks",
@@ -604,6 +605,44 @@
 			"settings": {},
 			"protectedSettings": {
 				"commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -Command \"& { . { Invoke-WebRequest -UseBasicParsing -Proxy http://', parameters('vsts_agent_vm_name'), ':3128 -Uri ', variables('windows_runner_prep_script_uri'), ' } | Invoke-Expression; Initialize-WindowsVM -ProxyHostname ', parameters('vsts_agent_vm_name'), ' -SshPublicKeyBase64 ', base64(parameters('vms_ssh_public_key')), ' }\"')]"
+			}
+		}
+	}, {
+		"type": "Microsoft.Compute/virtualMachines/extensions",
+		"name": "[concat(parameters('vsts_runner1_vm_name'), '/', 'update-agent-known-hosts')]",
+		"apiVersion": "2018-06-01",
+		"location": "[resourceGroup().location]",
+		"dependsOn": [
+			"[resourceId('Microsoft.Compute/virtualMachines/', parameters('vsts_runner1_vm_name'), 'init-runner')]",
+			"[resourceId('Microsoft.Compute/virtualMachines/', parameters('vsts_agent_vm_name'))]"
+		],
+		"properties": {
+			"publisher": "Microsoft.Compute",
+			"type": "CustomScriptExtension",
+			"typeHandlerVersion": "1.9",
+			"autoUpgradeMinorVersion": true,
+			"settings": {},
+			"protectedSettings": {
+				"commandToExecute": "[concat('/bin/bash -c \"set -euo pipefail && curl ', variables('update_agent_known_hosts_script_uri'), ' | sudo bash -s -- ', parameters('vms_username'), ' ', parameters('vsts_runner1_vm_name'), ' ', split(string(reference(resourceId('Microsoft.Compute/virtualMachines/extensions', parameters('vsts_runner1_vm_name'), 'init-runner')).instanceView), '#DATA#')[1] '\"')]"
+			}
+		}
+	}, {
+		"type": "Microsoft.Compute/virtualMachines/extensions",
+		"name": "[concat(parameters('vsts_runner2_vm_name'), '/', 'update-agent-known-hosts')]",
+		"apiVersion": "2018-06-01",
+		"location": "[resourceGroup().location]",
+		"dependsOn": [
+			"[resourceId('Microsoft.Compute/virtualMachines/', parameters('vsts_runner2_vm_name'), 'init-runner')]",
+			"[resourceId('Microsoft.Compute/virtualMachines/', parameters('vsts_agent_vm_name'))]"
+		],
+		"properties": {
+			"publisher": "Microsoft.Compute",
+			"type": "CustomScriptExtension",
+			"typeHandlerVersion": "1.9",
+			"autoUpgradeMinorVersion": true,
+			"settings": {},
+			"protectedSettings": {
+				"commandToExecute": "[concat('/bin/bash -c \"set -euo pipefail && curl ', variables('update_agent_known_hosts_script_uri'), ' | sudo bash -s -- ', parameters('vms_username'), ' ', parameters('vsts_runner2_vm_name'), ' ', split(string(reference(resourceId('Microsoft.Compute/virtualMachines/extensions', parameters('vsts_runner2_vm_name'), 'init-runner')).instanceView), '#DATA#')[1] '\"')]"
 			}
 		}
 	}]

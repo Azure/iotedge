@@ -69,7 +69,7 @@ New-Module -ScriptBlock {
         $sshPublicKey = [System.Text.Encoding]::Utf8.GetString([System.Convert]::FromBase64String($SshPublicKeyBase64))
         $proxyUri = "http://${ProxyHostname}:3128"
         
-        Write-Host "Setting wininet proxy"
+        Write-Host 'Setting wininet proxy'
 
         $proxyModuleFile = ".\$(Split-Path $ProxySettingsModule -Leaf)"
         Get-WebResource $proxyUri $ProxySettingsModule $proxyModuleFile
@@ -80,12 +80,12 @@ New-Module -ScriptBlock {
         Set-TargetResource -IsSingleInstance Yes -EnableManualProxy $true -ProxyServer $proxyUri
         Get-TargetResource -IsSingleInstance Yes | Format-Table # Print the result to the logs
 
-        Write-Host "Setting winhttp proxy"
+        Write-Host 'Setting winhttp proxy'
         
         netsh winhttp set proxy "${ProxyHostname}:3128"
 
         # Install newer version of PowerShell (6.0 or later) so that the -NoProxy option works in Invoke-WebRequest
-        Write-Host "Installing latest pwsh"
+        Write-Host 'Installing latest pwsh'
         
         $zipFile = ".\$(Split-Path $PwshInstallUri -Leaf)"
         Get-WebResource $proxyUri $PwshInstallUri $zipFile
@@ -106,7 +106,7 @@ New-Module -ScriptBlock {
         Import-Module $openSshUtils -Force
         Repair-AuthorizedKeyPermission $authorizedKeys
         
-        Write-Host "Installing sshd"
+        Write-Host 'Installing sshd'
         
         Add-WindowsCapability -Online -Name OpenSSH.Client~~~~0.0.1.0
         Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
@@ -114,17 +114,17 @@ New-Module -ScriptBlock {
         Set-Service -Name ssh-agent -StartupType Automatic
         Set-Service -Name sshd -StartupType Automatic
 
-        Write-Host "Making pwsh the default shell for ssh"
+        Write-Host 'Making pwsh the default shell for ssh'
 
         New-Item 'HKLM:\SOFTWARE\OpenSSH' -Force | New-ItemProperty -Force -Name DefaultShell -Value "$pwshPath"
         
-        Write-Host "Starting sshd"
+        Write-Host 'Starting sshd'
 
         Start-Service ssh-agent
         Start-Service sshd
 
         # Update sshd_config to look in the right place for authorized_keys
-        Write-Host "Updating sshd_config"
+        Write-Host 'Updating sshd_config'
         
         $sshdConfig = "$env:ProgramData\ssh\sshd_config"
         $exists = Start-TestPath $sshdConfig -timeoutSecs 30
@@ -141,10 +141,15 @@ New-Module -ScriptBlock {
         $replaceLine = '#$1'
         (Get-Content "$sshdConfig") -replace "$findLine", "$replaceLine" | Out-File -Encoding Utf8 "$sshdConfig"
 
-        Write-Host "Restarting sshd"
+        Write-Host 'Restarting sshd'
 
         Restart-Service ssh-agent
         Restart-Service sshd
+
+        # Output the host key so it can be added to the agent's known_hosts file
+        Write-Host '#DATA#'
+        Out-File -Encoding Utf8 "$env:ProgramData\ssh\ssh_host_rsa_key.pub"
+        Write-Host '#DATA#'
     }
 
     Export-ModuleMember -Function Initialize-WindowsVM
