@@ -98,7 +98,7 @@ use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_hsm::Crypto;
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
 use edgelet_http::logging::LoggingService;
-use edgelet_http::{ApiVersionService, HyperExt, MaybeProxyClient, UrlExt, API_VERSION};
+use edgelet_http::{HyperExt, MaybeProxyClient, UrlExt, API_VERSION};
 use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
 use edgelet_iothub::{HubIdentityManager, SasTokenSource};
@@ -823,7 +823,7 @@ where
             let service = service.context(ErrorKind::Initialize(
                 InitializeErrorReason::ManagementService,
             ))?;
-            let service = LoggingService::new(label, ApiVersionService::new(service));
+            let service = LoggingService::new(label, service);
             info!("Listening on {} with 1 thread for management API.", url);
             let run = Http::new()
                 .bind_url(url.clone(), service)
@@ -870,7 +870,7 @@ where
             let service = service.context(ErrorKind::Initialize(
                 InitializeErrorReason::WorkloadService,
             ))?;
-            let service = LoggingService::new(label, ApiVersionService::new(service));
+            let service = LoggingService::new(label, service);
             let run = Http::new()
                 .bind_url(url.clone(), service)
                 .map_err(|err| {
