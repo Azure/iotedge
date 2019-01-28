@@ -7,6 +7,7 @@ encoded_key="$2"
 subnet_address_prefix="$3"
 
 # set up SSH private key
+echo "Creating SSH private key for user '$user'"
 
 home="$(eval echo ~$user)"
 mkdir -p "$home/.ssh"
@@ -16,9 +17,12 @@ chmod 700 "$home/.ssh"
 chmod 600 "$home/.ssh/id_rsa"
 
 # install/configure squid
+echo "Installing squid"
 
 apt-get update
 apt-get install -y jq squid
+
+echo "Configuring squid"
 
 > ~/squid.conf cat <<-EOF
 acl localnet src $subnet_address_prefix
