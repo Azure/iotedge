@@ -146,7 +146,7 @@ New-Module -ScriptBlock {
 
         # Output the host key so it can be added to the agent's known_hosts file
         Write-Host '#DATA#'
-        Out-File -Encoding Utf8 "$env:ProgramData\ssh\ssh_host_rsa_key.pub"
+        Get-Content -Encoding Utf8 "$env:ProgramData\ssh\ssh_host_rsa_key.pub"
         Write-Host '#DATA#'
     }
 
