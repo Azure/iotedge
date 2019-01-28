@@ -23,8 +23,7 @@ param (
     [ValidateNotNull()]
     [String] $BuildSourceVersion = $Env:BUILD_SOURCEVERSION,
     
-    [Switch] $UpdateVersion,
-    [Switch] $PublishTests
+    [Switch] $UpdateVersion
 )
 
 Set-StrictMode -Version "Latest"
@@ -205,34 +204,6 @@ Copy-Item $SRC_BIN_DIR $PUB_BIN_DIR -Recurse -Force
 
 Write-Host "Copying $SRC_E2E_TEMPLATES_DIR"
 Copy-Item $SRC_E2E_TEMPLATES_DIR $PUB_E2E_TEMPLATES_DIR -Recurse -Force
-
-<#
- # Publish tests
- #>
-
-if ($PublishTests) {
-    Write-Host "`nPublishing .NET Core Tests`n"
-    foreach ($Project in (Get-ChildItem $BuildRepositoryLocalPath -Include $TEST_CSPROJ_PATTERN -Recurse)) {
-        Write-Host "Publishing - $Project"
-        $ProjectPublishPath = Join-Path $RELEASE_TESTS_FOLDER "target"
-        &$DOTNET_PATH publish -f netcoreapp2.1 -c $Configuration -o $ProjectPublishPath $Project |
-            Write-Host
-        if ($LASTEXITCODE -ne 0) {
-            throw "Failed publishing $Project."
-        }
-
-        $ProjectCopyPath = Join-Path $RELEASE_TESTS_FOLDER $Project.BaseName
-        Write-Host "Copying $Project to $ProjectCopyPath"
-        Copy-Item $Project $ProjectCopyPath -Force
-    }
-
-    Write-Host "Copying $SRC_SCRIPTS_DIR to $TEST_SCRIPTS_DIR"
-    Copy-Item $SRC_SCRIPTS_DIR $TEST_SCRIPTS_DIR -Force -Recurse
-    Copy-Item (Join-Path $BuildRepositoryLocalPath "Nuget.config") $RELEASE_TESTS_FOLDER
-}
-else {
-    Write-Host "`nSkipping publication of .NET Core Tests`n"
-}
 
 <#
  # Publish IoTEdgeQuickstart
