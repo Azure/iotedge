@@ -19,11 +19,6 @@ chmod 600 "$home/.ssh/id_rsa"
 # install/configure squid
 echo "Installing squid"
 
-echo "Contents of '/etc/apt/sources.list':"
-echo '>>>>>>>'
-cat /etc/apt/sources.list
-echo '<<<<<<<'
-
 apt-get update
 apt-get install -y jq squid
 
