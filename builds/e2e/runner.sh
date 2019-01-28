@@ -29,9 +29,9 @@ cp ~/proxy-env.override.conf /etc/systemd/system/docker.service.d/
 
 # Make proxy-env.override.conf available in $user's home directory so tests can
 # apply the same proxy settings to the iotedge service
-home=$(eval echo ~$user)
-cp ~/proxy-env.override.conf $home/
-chown -R $user:$user $home/proxy-env.override.conf
+home="$(eval echo ~$user)"
+cp ~/proxy-env.override.conf "$home/"
+chown -R "$user:$user" "$home/proxy-env.override.conf"
 
 systemctl daemon-reload
 systemctl restart docker

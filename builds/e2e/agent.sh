@@ -8,12 +8,12 @@ subnet_address_prefix="$3"
 
 # set up SSH private key
 
-home=$(eval echo ~$user)
-mkdir -p $home/.ssh
-echo -e "$encoded_key" | base64 -d > $home/.ssh/id_rsa
-chown -R $user:$user $home/.ssh
-chmod 700 $home/.ssh
-chmod 600 $home/.ssh/id_rsa
+home="$(eval echo ~$user)"
+mkdir -p "$home/.ssh"
+echo -e "$encoded_key" | base64 -d > "$home/.ssh/id_rsa"
+chown -R "$user:$user" "$home/.ssh"
+chmod 700 "$home/.ssh"
+chmod 600 "$home/.ssh/id_rsa"
 
 # install/configure squid
 
