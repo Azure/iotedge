@@ -50,7 +50,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 await receiver.OpenAsync();
                 await receiver.SetMethodHandlerAsync("poke", MethodHandler, null);
 
-                await Task.Delay(TimeSpan.FromSeconds(5));
+                // Need longer sleep to ensure receiver is completely initialized
+                await Task.Delay(TimeSpan.FromSeconds(10));
 
                 // Act
                 CloudToDeviceMethodResult cloudToDeviceMethodResult = await sender.InvokeDeviceMethodAsync(
@@ -128,7 +129,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 await receiver.OpenAsync();
                 await receiver.SetMethodHandlerAsync("poke", MethodHandler, null);
 
-                await Task.Delay(TimeSpan.FromSeconds(5));
+                // Need longer sleep to ensure receiver is completely initialized
+                await Task.Delay(TimeSpan.FromSeconds(10));
 
                 // Act
                 CloudToDeviceMethodResult cloudToDeviceMethodResult = await sender.InvokeDeviceMethodAsync(

@@ -164,9 +164,19 @@ where
     pub fn list_pods(
         &mut self,
         namespace: &str,
+        label_selector: Option<&str>,
     ) -> impl Future<Item = api_core::PodList, Error = Error> {
         api_core::Pod::list_core_v1_namespaced_pod(
-            namespace, None, None, None, None, None, None, None, None, None,
+            namespace,
+            None,
+            None,
+            None,
+            label_selector,
+            None,
+            None,
+            None,
+            None,
+            None,
         )
         .map_err(Error::from)
         .map(|req| {
@@ -261,6 +271,7 @@ mod tests {
     use native_tls::TlsConnector;
     use serde_json;
     use tokio::runtime::Runtime;
+    use url::percent_encoding::{utf8_percent_encode, USERINFO_ENCODE_SET};
     use url::Url;
 
     #[derive(Clone)]
@@ -388,6 +399,35 @@ mod tests {
     #[test]
     fn list_pods_success() {
         const NAMESPACE: &str = "custom-namespace";
+        const LABEL_SELECTOR: &str = "x=y";
+        let service = service_fn(|req: Request<Body>| -> Result<Response<Body>, HyperError> {
+            let p = req.uri().path();
+            let q = req.uri().query().unwrap();
+            assert!(p.contains(NAMESPACE));
+            assert!(
+                q.contains(&utf8_percent_encode(LABEL_SELECTOR, USERINFO_ENCODE_SET).to_string())
+            );
+            Ok(Response::new(Body::from(LIST_POD_RESPONSE)))
+        });
+
+        let mut client = make_test_client(service);
+
+        let fut = client
+            .list_pods(NAMESPACE, Some(LABEL_SELECTOR))
+            .map(|pods| {
+                assert!(pods.kind.as_ref().map_or(false, |k| k == "PodList"));
+                assert_eq!(2, pods.items.len());
+            });
+
+        Runtime::new()
+            .unwrap()
+            .block_on(fut)
+            .expect("Expected future to be OK");
+    }
+
+    #[test]
+    fn list_pods_success_no_labels() {
+        const NAMESPACE: &str = "custom-namespace";
         let service = service_fn(|req: Request<Body>| -> Result<Response<Body>, HyperError> {
             let p = req.uri().path();
             let q = req.uri().query().unwrap();
@@ -398,7 +438,7 @@ mod tests {
 
         let mut client = make_test_client(service);
 
-        let fut = client.list_pods(NAMESPACE).map(|pods| {
+        let fut = client.list_pods(NAMESPACE, None).map(|pods| {
             assert!(pods.kind.as_ref().map_or(false, |k| k == "PodList"));
             assert_eq!(2, pods.items.len());
         });
