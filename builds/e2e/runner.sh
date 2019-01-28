@@ -17,7 +17,7 @@ curl -x "http://$proxy_hostname:3128" 'https://packages.microsoft.com/keys/micro
 mv ./microsoft.gpg /etc/apt/trusted.gpg.d/
 
 http_proxy="http://$proxy_hostname:3128" https_proxy="http://$proxy_hostname:3128" apt-get update > /dev/null
-http_proxy="http://$proxy_hostname:3128" https_proxy="http://$proxy_hostname:3128" apt-get install -y moby-cli moby-engine
+http_proxy="http://$proxy_hostname:3128" https_proxy="http://$proxy_hostname:3128" apt-get install -y moby-cli moby-engine > /dev/null
 
 > ~/proxy-env.override.conf cat <<-EOF
 [Service]
