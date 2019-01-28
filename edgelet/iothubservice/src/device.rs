@@ -118,15 +118,19 @@ where
                 ModuleOperationReason::EmptyModuleId,
             ))))
         } else {
-            let url = &format!(
-                "/devices/{}/modules/{}",
-                url_encode(&self.device_id),
-                url_encode(&module_id)
-            );
-            println!("URL = {}", url);
             let res = self
                 .client
-                .request::<(), Module>(Method::GET, url, None, None, false)
+                .request::<(), Module>(
+                    Method::GET,
+                    &format!(
+                        "/devices/{}/modules/{}",
+                        url_encode(&self.device_id),
+                        url_encode(&module_id)
+                    ),
+                    None,
+                    None,
+                    false,
+                )
                 .then(|module| match module {
                     Ok(Some(module)) => Ok(module),
 
