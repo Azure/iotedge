@@ -38,6 +38,35 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         }
 
         [Fact]
+        public void BuildAudienceModule_WithSplChars_Test()
+        {
+            // Arrange
+            string iotHubHostName = "testIotHub.azure-devices.net";
+            string deviceId = "n@m.et#st";
+            string moduleId = "$edgeAgent";
+
+            // Act
+            string audience = SasTokenHelper.BuildAudience(iotHubHostName, deviceId, moduleId);
+
+            // Assert
+            Assert.Equal("testIotHub.azure-devices.net%2Fdevices%2Fn%2540m.et%2523st%2Fmodules%2F%2524edgeAgent", audience);
+        }
+
+        [Fact]
+        public void BuildAudienceDevice_WithSplChars_Test()
+        {
+            // Arrange
+            string iotHubHostName = "testIotHub.azure-devices.net";
+            string deviceId = "n@m.et#st";
+
+            // Act
+            string audience = SasTokenHelper.BuildAudience(iotHubHostName, deviceId);
+
+            // Assert
+            Assert.Equal("testIotHub.azure-devices.net%2Fdevices%2Fn%2540m.et%2523st", audience);
+        }
+
+        [Fact]
         public void BuildExpiresOnTest()
         {
             // Arrange
