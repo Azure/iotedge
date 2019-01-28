@@ -181,7 +181,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                     validated = testConfig.Validator.Validate();
                     if (!validated)
                     {
-                        Thread.Sleep(TimeSpan.FromSeconds(10));
+                        Thread.Sleep(TimeSpan.FromSeconds(5));
                     }
 
                     ++attempts;

@@ -50,6 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 await receiver.OpenAsync();
                 await receiver.SetMethodHandlerAsync("poke", MethodHandler, null);
 
+                // Need longer sleep to ensure receiver is completely initialized
                 await Task.Delay(TimeSpan.FromSeconds(10));
 
                 // Act
@@ -128,6 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 await receiver.OpenAsync();
                 await receiver.SetMethodHandlerAsync("poke", MethodHandler, null);
 
+                // Need longer sleep to ensure receiver is completely initialized
                 await Task.Delay(TimeSpan.FromSeconds(10));
 
                 // Act
