@@ -218,11 +218,13 @@ where
         self,
         key_activator: Self::Hsm,
     ) -> Box<Future<Item = ProvisioningResult, Error = Error> + Send> {
+        let ek = Bytes::from(self.hsm_tpm_ek.as_ref());
+        let srk = Bytes::from(self.hsm_tpm_srk.as_ref());
         let c = DpsClient::new(
             self.client.clone(),
             self.scope_id.clone(),
             self.registration_id.clone(),
-            DpsAuthKind::Tpm(Bytes::from(self.hsm_tpm_ek.as_ref()), Bytes::from(self.hsm_tpm_srk.as_ref())),
+            DpsAuthKind::Tpm {ek, srk},
             key_activator,
         );
 

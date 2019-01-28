@@ -88,7 +88,7 @@ where
 }
 
 pub enum DpsAuthKind {
-    Tpm (Bytes, Bytes),
+    Tpm {ek: Bytes, srk:Bytes},
     SymmetricKey,
 }
 
@@ -409,8 +409,10 @@ where
             scope_id, registration_id,
         );
 
+        let mut use_tpm_auth = false;
         let r = match &self.auth {
-            DpsAuthKind::Tpm (ek, srk) => {
+            DpsAuthKind::Tpm {ek, srk} => {
+                use_tpm_auth = true;
                 Self::register_with_tpm_auth(
                             &self.client,
                             scope_id,
@@ -462,19 +464,20 @@ where
             let s = operation_status.ok_or_else(|| {
                 Error::from(ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned)
             })?;
-            let tpm_result_inner = s.clone();
-            let tpm_result = s.tpm();
-            let r = tpm_result.ok_or_else(|| {
-                Error::from(ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned)
-            })?;
-            let ks = r.authentication_key().ok_or_else(|| {
-                Error::from(ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned)
-            })?;
-            let kb = base64::decode(ks).context(ErrorKind::RegisterWithAuthUnexpectedlyFailed)?;
-            key_store_status
-                .activate_identity_key(KeyIdentity::Device, "primary".to_string(), kb)
-                .context(ErrorKind::RegisterWithAuthUnexpectedlyFailed)?;
-            get_device_info(&tpm_result_inner)
+            if use_tpm_auth {
+                let tpm_result = s.tpm();
+                let r = tpm_result.ok_or_else(|| {
+                    Error::from(ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned)
+                })?;
+                let ks = r.authentication_key().ok_or_else(|| {
+                    Error::from(ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned)
+                })?;
+                let kb = base64::decode(ks).context(ErrorKind::RegisterWithAuthUnexpectedlyFailed)?;
+                key_store_status
+                    .activate_identity_key(KeyIdentity::Device, "primary".to_string(), kb)
+                    .context(ErrorKind::RegisterWithAuthUnexpectedlyFailed)?;
+            }
+            get_device_info(&s)
         });
         Box::new(r)
     }
@@ -598,7 +601,9 @@ mod tests {
         )
         .unwrap();
 
-        let auth = DpsAuthKind::Tpm(Bytes::from("ek".to_string().into_bytes()), Bytes::from("srk".to_string().into_bytes()));
+        let ek = Bytes::from("ek".to_string().into_bytes());
+        let srk = Bytes::from("srk".to_string().into_bytes());
+        let auth = DpsAuthKind::Tpm{ ek, srk };
         let dps = DpsClient::new(
             client,
             "scope".to_string(),
@@ -655,7 +660,9 @@ mod tests {
         )
         .unwrap();
 
-        let auth = DpsAuthKind::Tpm(Bytes::from("ek".to_string().into_bytes()), Bytes::from("srk".to_string().into_bytes()));
+        let ek = Bytes::from("ek".to_string().into_bytes());
+        let srk = Bytes::from("srk".to_string().into_bytes());
+        let auth = DpsAuthKind::Tpm{ ek, srk };
         let dps = DpsClient::new(
             client,
             "scope".to_string(),

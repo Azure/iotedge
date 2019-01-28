@@ -302,7 +302,7 @@ impl Main {
                 match dps.symmetric_key() {
                     Some(key) => {
                         info!("Staring provisioning edge device.");
-                        let (_key_store, provisioning_result, _root_key, _runtime) = dps_symmetric_key_provision(
+                        let (key_store, provisioning_result, root_key, runtime) = dps_symmetric_key_provision(
                             &dps,
                             hyper_client.clone(),
                             dps_path,
@@ -311,23 +311,23 @@ impl Main {
                             key
                         )?;
                         info!("Finished provisioning edge device.");
-                        let _cfg = WorkloadData::new(
+                        let cfg = WorkloadData::new(
                             provisioning_result.hub_name().to_string(),
                             provisioning_result.device_id().to_string(),
                             IOTEDGE_ID_CERT_MAX_DURATION_SECS,
                             IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
                         );
-                        // start_api(
-                        //     &settings,
-                        //     hyper_client,
-                        //     &runtime,
-                        //     &key_store,
-                        //     cfg,
-                        //     root_key,
-                        //     shutdown_signal,
-                        //     &crypto,
-                        //     tokio_runtime,
-                        // )?;
+                        start_api(
+                            &settings,
+                            hyper_client,
+                            &runtime,
+                            &key_store,
+                            cfg,
+                            root_key,
+                            shutdown_signal,
+                            &crypto,
+                            tokio_runtime,
+                        )?;
                     },
                     None =>  {
                         let (key_store, provisioning_result, root_key, runtime) = dps_tpm_provision(
