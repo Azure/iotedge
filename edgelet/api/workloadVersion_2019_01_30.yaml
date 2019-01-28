@@ -3,7 +3,7 @@ schemes:
   - http
 info:
   title: IoT Edge Module Workload API
-  version: '2018-12-30'
+  version: '2019-01-30'
 tags:
   - name: Workload
     x-displayName: Workload

@@ -37,9 +37,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
                 return new Version_2018_06_28.WorkloadClient(workloadUri, supportedVersion, moduleId, moduleGenerationId);
             }
 
-            if (supportedVersion == ApiVersion.Version20181230)
+            if (supportedVersion == ApiVersion.Version20190130)
             {
-                return new Version_2018_12_30.WorkloadClient(workloadUri, supportedVersion, moduleId, moduleGenerationId);
+                return new Version_2019_01_30.WorkloadClient(workloadUri, supportedVersion, moduleId, moduleGenerationId);
             }
 
             return new Version_2018_06_28.WorkloadClient(workloadUri, supportedVersion, moduleId, moduleGenerationId);

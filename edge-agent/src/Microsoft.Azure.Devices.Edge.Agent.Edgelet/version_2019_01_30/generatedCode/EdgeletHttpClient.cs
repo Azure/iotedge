@@ -5,7 +5,7 @@
 //----------------------
 // Note: Code manually changed to replace System.Uri.EscapeDataString with System.Net.WebUtility.UrlEncode
 
-namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2018_12_30.GeneratedCode
+namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30.GeneratedCode
 {
 #pragma warning disable // Disable all warnings
 

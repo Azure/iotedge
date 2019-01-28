@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2018_12_30
+namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30
 {
     using System;
     using System.Collections.Generic;
@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2018_12_30
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning;
-    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2018_12_30.GeneratedCode;
+    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30.GeneratedCode;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Edged;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2018_12_30
     class ModuleManagementHttpClient : ModuleManagementHttpClientVersioned
     {
         public ModuleManagementHttpClient(Uri managementUri)
-            : base(managementUri, ApiVersion.Version20181230, new ErrorDetectionStrategy())
+            : base(managementUri, ApiVersion.Version20190130, new ErrorDetectionStrategy())
         {
         }
 

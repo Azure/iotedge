@@ -36,29 +36,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             Assert.True(versionedClient is Version_2018_06_28.ModuleManagementHttpClient);
 
             serverApiVersion = "2018-06-28";
-            clientApiVersion = "2018-12-30";
+            clientApiVersion = "2019-01-30";
             client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
             versionedClient = client.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
             Assert.True(versionedClient is Version_2018_06_28.ModuleManagementHttpClient);
 
-            serverApiVersion = "2018-12-30";
+            serverApiVersion = "2019-01-30";
             clientApiVersion = "2018-06-28";
             client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
             versionedClient = client.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
             Assert.True(versionedClient is Version_2018_06_28.ModuleManagementHttpClient);
 
-            serverApiVersion = "2018-12-30";
-            clientApiVersion = "2018-12-30";
+            serverApiVersion = "2019-01-30";
+            clientApiVersion = "2019-01-30";
             client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
             versionedClient = client.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
-            Assert.True(versionedClient is Version_2018_12_30.ModuleManagementHttpClient);
+            Assert.True(versionedClient is Version_2019_01_30.ModuleManagementHttpClient);
         }
 
         [Theory]
         [InlineData("2018-06-28", "2018-06-28")]
-        [InlineData("2018-06-28", "2018-12-30")]
-        [InlineData("2018-12-30", "2018-06-28")]
-        [InlineData("2018-12-30", "2018-12-30")]
+        [InlineData("2018-06-28", "2019-01-30")]
+        [InlineData("2019-01-30", "2018-06-28")]
+        [InlineData("2019-01-30", "2019-01-30")]
         public async Task IdentityTest(string serverApiVersion, string clientApiVersion)
         {
             // Arrange
@@ -134,9 +134,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
 
         [Theory]
         [InlineData("2018-06-28", "2018-06-28")]
-        [InlineData("2018-06-28", "2018-12-30")]
-        [InlineData("2018-12-30", "2018-06-28")]
-        [InlineData("2018-12-30", "2018-12-30")]
+        [InlineData("2018-06-28", "2019-01-30")]
+        [InlineData("2019-01-30", "2018-06-28")]
+        [InlineData("2019-01-30", "2019-01-30")]
         public async Task ModulesTest(string serverApiVersion, string clientApiVersion)
         {
             // Arrange
@@ -214,9 +214,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
 
         [Theory]
         [InlineData("2018-06-28", "2018-06-28")]
-        [InlineData("2018-06-28", "2018-12-30")]
-        [InlineData("2018-12-30", "2018-06-28")]
-        [InlineData("2018-12-30", "2018-12-30")]
+        [InlineData("2018-06-28", "2019-01-30")]
+        [InlineData("2019-01-30", "2018-06-28")]
+        [InlineData("2019-01-30", "2019-01-30")]
         public async Task Test_PrepareUpdate_ShouldSucceed(string serverApiVersion, string clientApiVersion)
         {
             // Arrange
