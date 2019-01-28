@@ -16,7 +16,7 @@ mv ./microsoft-prod.list /etc/apt/sources.list.d/
 curl -x "http://$proxy_hostname:3128" 'https://packages.microsoft.com/keys/microsoft.asc' | gpg --dearmor > microsoft.gpg
 mv ./microsoft.gpg /etc/apt/trusted.gpg.d/
 
-http_proxy="http://$proxy_hostname:3128" https_proxy="http://$proxy_hostname:3128" apt-get update
+http_proxy="http://$proxy_hostname:3128" https_proxy="http://$proxy_hostname:3128" apt-get update > /dev/null
 http_proxy="http://$proxy_hostname:3128" https_proxy="http://$proxy_hostname:3128" apt-get install -y moby-cli moby-engine
 
 > ~/proxy-env.override.conf cat <<-EOF
