@@ -15,12 +15,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
     {
         readonly ModuleManagementHttpClientVersioned inner;
 
-        public ModuleManagementHttpClient(Uri managementUri, string edgeletApiVersion, string edgeletClientApiVersion)
+        public ModuleManagementHttpClient(Uri managementUri, string serverSupportedApiVersion, string clientSupportedApiVersion)
         {
             Preconditions.CheckNotNull(managementUri, nameof(managementUri));
-            Preconditions.CheckNonWhiteSpace(edgeletApiVersion, nameof(edgeletApiVersion));
-            Preconditions.CheckNonWhiteSpace(edgeletClientApiVersion, nameof(edgeletClientApiVersion));
-            this.inner = this.GetVersionedModuleManagement(managementUri, edgeletApiVersion, edgeletClientApiVersion);
+            Preconditions.CheckNonWhiteSpace(serverSupportedApiVersion, nameof(serverSupportedApiVersion));
+            Preconditions.CheckNonWhiteSpace(clientSupportedApiVersion, nameof(clientSupportedApiVersion));
+            this.inner = this.GetVersionedModuleManagement(managementUri, serverSupportedApiVersion, clientSupportedApiVersion);
         }
 
         public Task<Identity> CreateIdentityAsync(string name, string managedBy) => this.inner.CreateIdentityAsync(name, managedBy);
@@ -51,9 +51,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         public Task PrepareUpdateAsync(ModuleSpec moduleSpec) => this.inner.PrepareUpdateAsync(moduleSpec);
 
-        internal ModuleManagementHttpClientVersioned GetVersionedModuleManagement(Uri managementUri, string edgeletApiVersion, string edgeletClientApiVersion)
+        internal ModuleManagementHttpClientVersioned GetVersionedModuleManagement(Uri managementUri, string serverSupportedApiVersion, string clientSupportedApiVersion)
         {
-            ApiVersion supportedVersion = this.GetSupportedVersion(edgeletApiVersion, edgeletClientApiVersion);
+            ApiVersion supportedVersion = this.GetSupportedVersion(serverSupportedApiVersion, clientSupportedApiVersion);
             if (supportedVersion == ApiVersion.Version20180628)
             {
                 return new Version_2018_06_28.ModuleManagementHttpClient(managementUri);
@@ -67,10 +67,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             return new Version_2018_06_28.ModuleManagementHttpClient(managementUri);
         }
 
-        ApiVersion GetSupportedVersion(string edgeletApiVersion, string edgeletManagementApiVersion)
+        ApiVersion GetSupportedVersion(string serverSupportedApiVersion, string clientSupportedApiVersion)
         {
-            var serverVersion = (ApiVersion)edgeletApiVersion;
-            var clientVersion = (ApiVersion)edgeletManagementApiVersion;
+            var serverVersion = ApiVersion.ParseVersion(serverSupportedApiVersion);
+            var clientVersion = ApiVersion.ParseVersion(clientSupportedApiVersion);
+
+            if (clientVersion == ApiVersion.VersionUnknown)
+            {
+                throw new InvalidOperationException("Client version is not supported.");
+            }
+
+            if (serverVersion == ApiVersion.VersionUnknown)
+            {
+                return clientVersion;
+            }
 
             return serverVersion.Value < clientVersion.Value ? serverVersion : clientVersion;
         }

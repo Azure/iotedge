@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Util.Edged
 {
-    using System;
     using System.Collections.Generic;
 
     public sealed class ApiVersion
     {
         public static readonly ApiVersion Version20180628 = new ApiVersion(1, "2018-06-28");
         public static readonly ApiVersion Version20190130 = new ApiVersion(2, "2019-01-30");
+        public static readonly ApiVersion VersionUnknown = new ApiVersion(100, "Unknown");
 
         static readonly Dictionary<string, ApiVersion> Instance = new Dictionary<string, ApiVersion>
         {
@@ -25,14 +25,14 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
 
         public int Value { get; }
 
-        public static explicit operator ApiVersion(string str)
+        public static ApiVersion ParseVersion(string str)
         {
             if (Instance.TryGetValue(str, out ApiVersion version))
             {
                 return version;
             }
 
-            throw new InvalidCastException();
+            return VersionUnknown;
         }
     }
 }

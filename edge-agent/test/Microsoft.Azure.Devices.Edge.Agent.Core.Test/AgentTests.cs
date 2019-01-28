@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             encryptionDecryptionProvider.Setup(ep => ep.DecryptAsync(It.IsAny<string>()))
                 .ThrowsAsync(new WorkloadCommunicationException("failed", 404));
 
-            var agent = await Agent.Create(mockConfigSource.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleLifecycleManager.Object, mockEnvironmentProvider.Object, configStore.Object, serde, encryptionDecryptionProvider.Object);
+            Agent agent = await Agent.Create(mockConfigSource.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleLifecycleManager.Object, mockEnvironmentProvider.Object, configStore.Object, serde, encryptionDecryptionProvider.Object);
 
             Assert.NotNull(agent);
             encryptionDecryptionProvider.Verify(ep => ep.DecryptAsync(It.IsAny<string>()), Times.Once);
@@ -93,8 +93,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                     { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"), null) }
                 });
             var deploymentConfigInfo = new DeploymentConfigInfo(0, deploymentConfig);
-            var desiredModuleSet = deploymentConfig.GetModuleSet();
-            var currentModuleSet = desiredModuleSet;
+            ModuleSet desiredModuleSet = deploymentConfig.GetModuleSet();
+            ModuleSet currentModuleSet = desiredModuleSet;
 
             mockEnvironmentProvider.Setup(m => m.Create(It.IsAny<DeploymentConfig>())).Returns(mockEnvironment.Object);
             mockConfigSource.Setup(cs => cs.GetDeploymentConfigInfoAsync())
@@ -247,7 +247,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                     { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"), null) }
                 });
             var deploymentConfigInfo = new DeploymentConfigInfo(0, deploymentConfig);
-            var desiredModuleSet = deploymentConfig.GetModuleSet();
+            ModuleSet desiredModuleSet = deploymentConfig.GetModuleSet();
             mockConfigSource.Setup(cs => cs.GetDeploymentConfigInfoAsync())
                 .ReturnsAsync(deploymentConfigInfo);
             mockEnvironment.Setup(env => env.GetModulesAsync(token))
@@ -294,8 +294,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var desiredModule = new TestModule("desired", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"), null);
             var recordKeeper = Option.Some(new TestPlanRecorder());
             var deploymentConfigInfo = new DeploymentConfigInfo(0, deploymentConfig);
-            var desiredModuleSet = deploymentConfig.GetModuleSet();
-            var currentModuleSet = desiredModuleSet;
+            ModuleSet desiredModuleSet = deploymentConfig.GetModuleSet();
+            ModuleSet currentModuleSet = desiredModuleSet;
 
             var commandList = new List<ICommand>
             {
@@ -351,8 +351,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var runtimeInfo = Mock.Of<IRuntimeInfo>();
             var deploymentConfig = new DeploymentConfig("1.0", runtimeInfo, new SystemModules(null, null), new Dictionary<string, IModule> { ["desired"] = desiredModule });
             var deploymentConfigInfo = new DeploymentConfigInfo(0, deploymentConfig);
-            var desiredSet = deploymentConfig.GetModuleSet();
-            var currentSet = ModuleSet.Create(currentModule);
+            ModuleSet desiredSet = deploymentConfig.GetModuleSet();
+            ModuleSet currentSet = ModuleSet.Create(currentModule);
 
             var mockConfigSource = new Mock<IConfigSource>();
             var mockEnvironment = new Mock<IEnvironment>();

@@ -8,15 +8,15 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
     {
         readonly WorkloadClientVersioned inner;
 
-        public WorkloadClient(Uri serverUri, string edgeletApiVersion, string edgeletClientApiVersion, string moduleId, string moduleGenerationId)
+        public WorkloadClient(Uri serverUri, string serverSupportedApiVersion, string clientSupportedApiVersion, string moduleId, string moduleGenerationId)
         {
             Preconditions.CheckNotNull(serverUri, nameof(serverUri));
-            Preconditions.CheckNonWhiteSpace(edgeletApiVersion, nameof(edgeletApiVersion));
-            Preconditions.CheckNonWhiteSpace(edgeletClientApiVersion, nameof(edgeletClientApiVersion));
+            Preconditions.CheckNonWhiteSpace(serverSupportedApiVersion, nameof(serverSupportedApiVersion));
+            Preconditions.CheckNonWhiteSpace(clientSupportedApiVersion, nameof(clientSupportedApiVersion));
             Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             Preconditions.CheckNonWhiteSpace(moduleGenerationId, nameof(moduleGenerationId));
 
-            this.inner = this.GetVersionedWorkloadClient(serverUri, edgeletApiVersion, edgeletClientApiVersion, moduleId, moduleGenerationId);
+            this.inner = this.GetVersionedWorkloadClient(serverUri, serverSupportedApiVersion, clientSupportedApiVersion, moduleId, moduleGenerationId);
         }
 
         public Task<ServerCertificateResponse> CreateServerCertificateAsync(string hostname, DateTime expiration) => this.inner.CreateServerCertificateAsync(hostname, expiration);
@@ -29,9 +29,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
 
         public Task<string> SignAsync(string keyId, string algorithm, string data) => this.inner.SignAsync(keyId, algorithm, data);
 
-        internal WorkloadClientVersioned GetVersionedWorkloadClient(Uri workloadUri, string edgeletApiVersion, string edgeletClientApiVersion, string moduleId, string moduleGenerationId)
+        internal WorkloadClientVersioned GetVersionedWorkloadClient(Uri workloadUri, string serverSupportedApiVersion, string clientSupportedApiVersion, string moduleId, string moduleGenerationId)
         {
-            ApiVersion supportedVersion = this.GetSupportedVersion(edgeletApiVersion, edgeletClientApiVersion);
+            ApiVersion supportedVersion = this.GetSupportedVersion(serverSupportedApiVersion, clientSupportedApiVersion);
             if (supportedVersion == ApiVersion.Version20180628)
             {
                 return new Version_2018_06_28.WorkloadClient(workloadUri, supportedVersion, moduleId, moduleGenerationId);
@@ -45,10 +45,20 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
             return new Version_2018_06_28.WorkloadClient(workloadUri, supportedVersion, moduleId, moduleGenerationId);
         }
 
-        ApiVersion GetSupportedVersion(string edgeletApiVersion, string edgeletManagementApiVersion)
+        ApiVersion GetSupportedVersion(string serverSupportedApiVersion, string clientSupportedApiVersion)
         {
-            var serverVersion = (ApiVersion)edgeletApiVersion;
-            var clientVersion = (ApiVersion)edgeletManagementApiVersion;
+            var serverVersion = ApiVersion.ParseVersion(serverSupportedApiVersion);
+            var clientVersion = ApiVersion.ParseVersion(clientSupportedApiVersion);
+
+            if (clientVersion == ApiVersion.VersionUnknown)
+            {
+                throw new InvalidOperationException("Client version is not supported.");
+            }
+
+            if (serverVersion == ApiVersion.VersionUnknown)
+            {
+                return clientVersion;
+            }
 
             return serverVersion.Value < clientVersion.Value ? serverVersion : clientVersion;
         }

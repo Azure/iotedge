@@ -52,6 +52,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
             versionedClient = client.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
             Assert.True(versionedClient is Version_2019_01_30.ModuleManagementHttpClient);
+
+            serverApiVersion = "2019-02-30";
+            clientApiVersion = "2019-01-30";
+            client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
+            versionedClient = client.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
+            Assert.True(versionedClient is Version_2019_01_30.ModuleManagementHttpClient);
         }
 
         [Theory]
