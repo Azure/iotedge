@@ -4,6 +4,7 @@ use std::fmt;
 use std::fmt::Display;
 
 use edgelet_core::{ModuleRuntimeErrorReason, RuntimeOperation};
+use edgelet_docker::Error as DockerError;
 use failure::{Backtrace, Context, Fail};
 use kube_client::Error as KubeClientError;
 
@@ -25,6 +26,12 @@ pub enum ErrorKind {
     #[fail(display = "Invalid module name {:?}", _0)]
     InvalidModuleName(String),
 
+    #[fail(display = "Container not found in module, name = {:?}", _0)]
+    ModuleNotFound(String),
+
+    #[fail(display = "Image not found in PodSpec")]
+    ImageNotFound,
+
     #[fail(display = "Invalid Runtime parameter {:?} : {:?}", _0, _1)]
     InvalidRunTimeParameter(String, String),
 
@@ -39,6 +46,9 @@ pub enum ErrorKind {
 
     #[fail(display = "Kubernetes client error")]
     KubeClient,
+
+    #[fail(display = "Docker crate error")]
+    DockerError,
 
     #[fail(display = "{}", _0)]
     NotFound(String),
@@ -93,6 +103,13 @@ impl From<KubeClientError> for Error {
     fn from(error: KubeClientError) -> Self {
         Error {
             inner: error.context(ErrorKind::KubeClient),
+        }
+    }
+}
+impl From<DockerError> for Error {
+    fn from(error: DockerError) -> Self {
+        Error {
+            inner: error.context(ErrorKind::DockerError),
         }
     }
 }

@@ -2,7 +2,7 @@
 
 use std::time::Duration;
 
-//use crate::constants::*;
+use crate::constants::*;
 use crate::convert::pod_to_module;
 use crate::convert::spec_to_deployment;
 use crate::error::{Error, ErrorKind, Result};
@@ -12,7 +12,7 @@ use edgelet_core::{
     SystemInfo,
 };
 use edgelet_docker::DockerConfig;
-use edgelet_utils::ensure_not_empty_with_context;
+use edgelet_utils::{ensure_not_empty_with_context, sanitize_dns_label};
 use failure::Fail;
 use futures::prelude::*;
 use futures::{future, stream, Async, Future, Stream};
@@ -60,6 +60,7 @@ pub struct KubeModuleRuntime<S> {
     service_account_name: String,
     workload_uri: Url,
     management_uri: Url,
+    pod_selector: String,
 }
 
 impl KubeModuleRuntime<HttpClient<HttpsConnector<HttpConnector>, Body>> {
@@ -114,6 +115,14 @@ impl KubeModuleRuntime<HttpClient<HttpsConnector<HttpConnector>, Body>> {
                 service_settings.service_account_name.clone(),
             )
         })?;
+        let pod_selector = format!(
+            "{}={},{}={}",
+            EDGE_DEVICE_LABEL,
+            sanitize_dns_label(&device_identity.device_id),
+            EDGE_HUBNAME_LABEL,
+            sanitize_dns_label(&device_identity.iot_hub_hostname)
+        );
+
         Ok(KubeModuleRuntime {
             client: RefCell::new(KubeClient::new(get_config()?)),
             namespace,
@@ -126,6 +135,7 @@ impl KubeModuleRuntime<HttpClient<HttpsConnector<HttpConnector>, Body>> {
             service_account_name: service_settings.service_account_name,
             workload_uri: service_settings.workload_uri,
             management_uri: service_settings.management_uri,
+            pod_selector,
         })
     }
 }
@@ -220,15 +230,21 @@ where
         let result = self
             .client
             .borrow_mut()
-            .list_pods(&self.namespace)
+            .list_pods(&self.namespace, Some(&self.pod_selector))
             .map_err(Error::from)
-            .map(|pods| {
+            .and_then(|pods| {
                 pods.items
                     .into_iter()
                     .filter_map(|pod| pod_to_module(&pod))
-                    .collect::<Vec<KubeModule>>()
-            })
-            .into_future();
+                    .try_fold(vec![], |mut modules, module_result| {
+                        module_result.map(|module| {
+                            modules.push(module);
+                            modules
+                        })
+                    })
+                    .into_future()
+            });
+
         Box::new(result)
     }
 
