@@ -403,7 +403,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.True(module1.HasReceivedTwinChangeNotification());
         }
 
-        static TimeSpan GetSleepTime(int baseSleepSecs = 10) => TimeSpan.FromSeconds(baseSleepSecs + Rand.Next(0, 10));
+        // Need longer sleep when run tests in parallel
+        static TimeSpan GetSleepTime(int baseSleepSecs = 15) => TimeSpan.FromSeconds(baseSleepSecs + Rand.Next(0, 10));
 
         static async Task<(IEdgeHub, IConnectionManager)> SetupEdgeHub(IEnumerable<string> routes, IoTHub iotHub, string edgeDeviceId)
         {
