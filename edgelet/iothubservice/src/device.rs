@@ -86,7 +86,11 @@ where
                 .client
                 .request::<Module, Module>(
                     Method::PUT,
-                    &format!("/devices/{}/modules/{}", url_encode(&self.device_id), url_encode(&module_id)),
+                    &format!(
+                        "/devices/{}/modules/{}",
+                        url_encode(&self.device_id),
+                        url_encode(&module_id)
+                    ),
                     None,
                     Some(module),
                     add_if_match,
@@ -114,17 +118,15 @@ where
                 ModuleOperationReason::EmptyModuleId,
             ))))
         } else {
-            let url = &format!("/devices/{}/modules/{}", url_encode(&self.device_id), url_encode(&module_id));
+            let url = &format!(
+                "/devices/{}/modules/{}",
+                url_encode(&self.device_id),
+                url_encode(&module_id)
+            );
             println!("URL = {}", url);
             let res = self
                 .client
-                .request::<(), Module>(
-                    Method::GET,
-                    url,
-                    None,
-                    None,
-                    false,
-                )
+                .request::<(), Module>(Method::GET, url, None, None, false)
                 .then(|module| match module {
                     Ok(Some(module)) => Ok(module),
 
@@ -181,7 +183,11 @@ where
                 .client
                 .request::<(), ()>(
                     Method::DELETE,
-                    &format!("/devices/{}/modules/{}", url_encode(&self.device_id), url_encode(&module_id)),
+                    &format!(
+                        "/devices/{}/modules/{}",
+                        url_encode(&self.device_id),
+                        url_encode(&module_id)
+                    ),
                     None,
                     None,
                     true,
