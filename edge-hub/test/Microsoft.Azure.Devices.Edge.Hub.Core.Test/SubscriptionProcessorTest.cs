@@ -141,7 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 });
 
             // Assert
-            await Task.Delay(TimeSpan.FromSeconds(5));
+            await Task.Delay(TimeSpan.FromSeconds(30));
             cloudProxy.VerifyAll();
         }
 
