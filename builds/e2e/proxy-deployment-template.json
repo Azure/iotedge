@@ -609,12 +609,12 @@
 		}
 	}, {
 		"type": "Microsoft.Compute/virtualMachines/extensions",
-		"name": "[concat(parameters('vsts_runner1_vm_name'), '/', 'update-agent-known-hosts')]",
+		"name": "[concat(parameters('vsts_agent_vm_name'), '/', 'update-agent-known-hosts-runner1')]",
 		"apiVersion": "2018-06-01",
 		"location": "[resourceGroup().location]",
 		"dependsOn": [
-			"[resourceId('Microsoft.Compute/virtualMachines/', parameters('vsts_runner1_vm_name'), 'init-runner')]",
-			"[resourceId('Microsoft.Compute/virtualMachines/', parameters('vsts_agent_vm_name'))]"
+			"[resourceId('Microsoft.Compute/virtualMachines/', parameters('vsts_agent_vm_name'))]",
+			"[resourceId('Microsoft.Compute/virtualMachines/extensions', parameters('vsts_runner1_vm_name'), 'init-runner')]"
 		],
 		"properties": {
 			"publisher": "Microsoft.Compute",
@@ -628,12 +628,12 @@
 		}
 	}, {
 		"type": "Microsoft.Compute/virtualMachines/extensions",
-		"name": "[concat(parameters('vsts_runner2_vm_name'), '/', 'update-agent-known-hosts')]",
+		"name": "[concat(parameters('vsts_agent_vm_name'), '/', 'update-agent-known-hosts-runner2')]",
 		"apiVersion": "2018-06-01",
 		"location": "[resourceGroup().location]",
 		"dependsOn": [
-			"[resourceId('Microsoft.Compute/virtualMachines/', parameters('vsts_runner2_vm_name'), 'init-runner')]",
-			"[resourceId('Microsoft.Compute/virtualMachines/', parameters('vsts_agent_vm_name'))]"
+			"[resourceId('Microsoft.Compute/virtualMachines/', parameters('vsts_agent_vm_name'))]",
+			"[resourceId('Microsoft.Compute/virtualMachines/extensions', parameters('vsts_runner2_vm_name'), 'init-runner')]"
 		],
 		"properties": {
 			"publisher": "Microsoft.Compute",
