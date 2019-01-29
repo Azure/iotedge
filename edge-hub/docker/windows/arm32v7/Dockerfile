@@ -14,4 +14,5 @@ EXPOSE 5671/tcp
 EXPOSE 443/tcp
 
 USER edgehubuser
+ENV OptimizeForPerformance false
 CMD ["dotnet", "Microsoft.Azure.Devices.Edge.Hub.Service.dll"]
