@@ -279,6 +279,8 @@ mod tests {
     static BAD_SETTINGS: &str = "test/linux/bad_sample_settings.yaml";
     #[cfg(unix)]
     static GOOD_SETTINGS_TG: &str = "test/linux/sample_settings.tg.yaml";
+    #[cfg(unix)]
+    static GOOD_SETTINGS_DPS_SYM_KEY: &str = "test/linux/sample_settings.dps.sym.yaml";
 
     #[cfg(windows)]
     static GOOD_SETTINGS: &str = "test/windows/sample_settings.yaml";
@@ -290,6 +292,8 @@ mod tests {
     static BAD_SETTINGS: &str = "test/windows/bad_sample_settings.yaml";
     #[cfg(windows)]
     static GOOD_SETTINGS_TG: &str = "test/windows/sample_settings.tg.yaml";
+    #[cfg(windows)]
+    static GOOD_SETTINGS_DPS_SYM_KEY: &str = "test/windows/sample_settings.dps.sym.yaml";
 
     fn unwrap_manual_provisioning(p: &Provisioning) -> String {
         match p {
@@ -357,6 +361,24 @@ mod tests {
                 );
             })
             .expect("certificates not configured");
+    }
+
+    #[test]
+    fn dps_prov_symmetric_key_get_settings() {
+        let settings = Settings::<DockerConfig>::new(Some(GOOD_SETTINGS_DPS_SYM_KEY));
+        println!("{:?}", settings);
+        assert!(settings.is_ok());
+        let s = settings.unwrap();
+        match s.provisioning()  {
+            Provisioning::Dps(ref dps) => {
+                assert_eq!(dps.global_endpoint().scheme(), "scheme");
+                assert_eq!(dps.global_endpoint().host_str().unwrap(), "jibba-jabba.net");
+                assert_eq!(dps.scope_id(), "i got no time for the jibba-jabba");
+                assert_eq!(dps.registration_id(), "register me foo");
+                assert_eq!(dps.symmetric_key().unwrap(), "first name Mr last name T");
+            }
+            _ => assert!(false),
+        };
     }
 
     #[test]
