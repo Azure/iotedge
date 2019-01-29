@@ -376,7 +376,6 @@ namespace IotEdgeQuickstart.Details
                             await Retry.Do(Func, IsValid, null, retryInterval, cts.Token);
                         }
                     }
-
                 });
         }
 
