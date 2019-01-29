@@ -4,7 +4,7 @@ use failure::{Fail, ResultExt};
 use futures::future::{self, Either};
 use futures::Future;
 use hyper::{Method, StatusCode};
-use percent_encoding::{percent_encode, PATH_SEGMENT_ENCODE_SET};
+use percent_encoding::{percent_encode, PercentEncode, PATH_SEGMENT_ENCODE_SET};
 
 use edgelet_http::client::{Client, ClientImpl, TokenSource};
 use edgelet_http::error::ErrorKind as HttpErrorKind;
@@ -217,8 +217,8 @@ where
     }
 }
 
-fn url_encode(value: &str) -> String {
-    percent_encode(value.as_bytes(), IOTHUB_ENCODE_SET).to_string()
+fn url_encode(value: &str) -> PercentEncode<'_, IOTHUB_ENCODE_SET> {
+    percent_encode(value.as_bytes(), IOTHUB_ENCODE_SET)
 }
 
 #[cfg(test)]
