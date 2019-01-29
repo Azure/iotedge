@@ -15,7 +15,7 @@ extern crate hyper;
 extern crate tokio;
 
 use edgelet_http::route::{Builder, Parameters, Router};
-use edgelet_http::{Error as HttpError, HyperExt};
+use edgelet_http::{Error as HttpError, HyperExt, Version};
 use futures::{future, Future};
 use hyper::header::CONTENT_TYPE;
 use hyper::server::conn::Http;
@@ -83,10 +83,10 @@ fn identities_delete(
 
 fn main() {
     let router = router!(
-        get "/" => index,
-        get "/identities" => identities_list,
-        put "/identities/(?P<name>[^/]+)" => identities_update,
-        delete "/identities/(?P<name>[^/]+)" => identities_delete,
+        get    Version2018_06_28, "/" => index,
+        get    Version2018_06_28, "/identities" => identities_list,
+        put    Version2018_06_28, "/identities/(?P<name>[^/]+)" => identities_update,
+        delete Version2018_06_28, "/identities/(?P<name>[^/]+)" => identities_delete,
     );
 
     let addr = "tcp://0.0.0.0:8080".parse().unwrap();
