@@ -12,7 +12,7 @@
   to %localappdata%\Microsoft\MSBuild\(toolversion)\Imports\Microsoft.Common.props\ImportBefore\OpenJDK.props> that defines
   the JDK paths with trailing slashes. otherwise everything works the way it always has
   -->
-    <JavaRuntime>"$(JDKBinPath)java.exe"</JavaRuntime>
+    <JavaRuntime>"$(JDKBinPath)java"</JavaRuntime>
 
   </PropertyGroup>
   <!--
