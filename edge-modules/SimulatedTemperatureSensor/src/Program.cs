@@ -13,6 +13,7 @@ namespace SimulatedTemperatureSensor
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
+    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
     using ExponentialBackoff = Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling.ExponentialBackoff;
@@ -21,6 +22,9 @@ namespace SimulatedTemperatureSensor
     {
         const int RetryCount = 5;
         const string MessageCountConfigKey = "MessageCount";
+        const string SendDataConfigKey = "SendData";
+        const string SendIntervalConfigKey = "SendInterval";
+
         static readonly ITransientErrorDetectionStrategy TimeoutErrorDetectionStrategy = new DelegateErrorDetectionStrategy(ex => ex.HasTimeoutException());
 
         static readonly RetryStrategy TransientRetryStrategy =
@@ -28,6 +32,10 @@ namespace SimulatedTemperatureSensor
 
         static readonly Random Rnd = new Random();
         static readonly AtomicBoolean Reset = new AtomicBoolean(false);
+        static readonly Guid BatchId = Guid.NewGuid();
+
+        static TimeSpan messageDelay;
+        static bool sendData = true;
 
         public enum ControlCommandEnum
         {
@@ -47,7 +55,7 @@ namespace SimulatedTemperatureSensor
                 .AddEnvironmentVariables()
                 .Build();
 
-            TimeSpan messageDelay = configuration.GetValue("MessageDelay", TimeSpan.FromSeconds(5));
+            messageDelay = configuration.GetValue("MessageDelay", TimeSpan.FromSeconds(5));
             int messageCount = configuration.GetValue(MessageCountConfigKey, 500);
             bool sendForever = messageCount < 0;
             var sim = new SimulatorParameters
@@ -80,11 +88,27 @@ namespace SimulatedTemperatureSensor
             ModuleClient moduleClient = await retryPolicy.ExecuteAsync(() => InitModuleClient(transportType));
 
             ModuleClient userContext = moduleClient;
+            Twin currentTwinProperties = await moduleClient.GetTwinAsync();
+            if (currentTwinProperties.Properties.Desired.Contains(SendIntervalConfigKey))
+            {
+                messageDelay = TimeSpan.FromSeconds((int)currentTwinProperties.Properties.Desired[SendIntervalConfigKey]);
+            }
+
+            if (currentTwinProperties.Properties.Desired.Contains(SendDataConfigKey))
+            {
+                sendData = (bool)currentTwinProperties.Properties.Desired[SendDataConfigKey];
+                if (!sendData)
+                {
+                    Console.WriteLine("Sending data disabled. Change twin configuration to start sending again.");
+                }
+            }
+
+            await moduleClient.SetDesiredPropertyUpdateCallbackAsync(OnDesiredPropertiesUpdated, userContext);
             await moduleClient.SetInputMessageHandlerAsync("control", ControlMessageHandle, userContext);
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler)
                 = ShutdownHandler.Init(TimeSpan.FromSeconds(5), null);
-            await SendEvents(moduleClient, messageDelay, sendForever, messageCount, sim, cts);
+            await SendEvents(moduleClient, sendForever, messageCount, sim, cts);
             await cts.Token.WhenCanceled();
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
@@ -186,7 +210,6 @@ namespace SimulatedTemperatureSensor
         /// </summary>
         static async Task SendEvents(
             ModuleClient moduleClient,
-            TimeSpan messageDelay,
             bool sendForever,
             int messageCount,
             SimulatorParameters sim,
@@ -213,34 +236,64 @@ namespace SimulatedTemperatureSensor
                     currentTemp += -0.25 + (Rnd.NextDouble() * 1.5); // add value between [-0.25..1.25] - average +0.5
                 }
 
-                var tempData = new MessageBody
+                if (sendData)
                 {
-                    Machine = new Machine
+                    var tempData = new MessageBody
                     {
-                        Temperature = currentTemp,
-                        Pressure = sim.MachinePressureMin + ((currentTemp - sim.MachineTempMin) * normal),
-                    },
-                    Ambient = new Ambient
-                    {
-                        Temperature = sim.AmbientTemp + Rnd.NextDouble() - 0.5,
-                        Humidity = Rnd.Next(24, 27)
-                    },
-                    TimeCreated = DateTime.UtcNow
-                };
+                        Machine = new Machine
+                        {
+                            Temperature = currentTemp,
+                            Pressure = sim.MachinePressureMin + ((currentTemp - sim.MachineTempMin) * normal),
+                        },
+                        Ambient = new Ambient
+                        {
+                            Temperature = sim.AmbientTemp + Rnd.NextDouble() - 0.5,
+                            Humidity = Rnd.Next(24, 27)
+                        },
+                        TimeCreated = DateTime.UtcNow
+                    };
 
-                string dataBuffer = JsonConvert.SerializeObject(tempData);
-                var eventMessage = new Message(Encoding.UTF8.GetBytes(dataBuffer));
-                Console.WriteLine($"\t{DateTime.Now.ToLocalTime()}> Sending message: {count}, Body: [{dataBuffer}]");
+                    string dataBuffer = JsonConvert.SerializeObject(tempData);
+                    var eventMessage = new Message(Encoding.UTF8.GetBytes(dataBuffer));
+                    eventMessage.Properties.Add("sequenceNumber", count.ToString());
+                    eventMessage.Properties.Add("batchId", BatchId.ToString());
+                    Console.WriteLine($"\t{DateTime.Now.ToLocalTime()}> Sending message: {count}, Body: [{dataBuffer}]");
 
-                await moduleClient.SendEventAsync("temperatureOutput", eventMessage);
+                    await moduleClient.SendEventAsync("temperatureOutput", eventMessage);
+                    count++;
+                }
+
                 await Task.Delay(messageDelay, cts.Token);
-                count++;
             }
 
             if (messageCount < count)
             {
                 Console.WriteLine($"Done sending {messageCount} messages");
             }
+        }
+
+        static async Task OnDesiredPropertiesUpdated(TwinCollection desiredPropertiesPatch, object userContext)
+        {
+            // At this point just update the configure configuration.
+            if (desiredPropertiesPatch.Contains(SendIntervalConfigKey))
+            {
+                messageDelay = TimeSpan.FromSeconds((int)desiredPropertiesPatch[SendIntervalConfigKey]);
+            }
+
+            if (desiredPropertiesPatch.Contains(SendDataConfigKey))
+            {
+                bool desiredSendDataValue = (bool)desiredPropertiesPatch[SendDataConfigKey];
+                if (desiredSendDataValue != sendData && !desiredSendDataValue)
+                {
+                    Console.WriteLine("Sending data disabled. Change twin configuration to start sending again.");
+                }
+
+                sendData = desiredSendDataValue;
+            }
+
+            ModuleClient moduleClient = (ModuleClient)userContext;
+            TwinCollection patch = new TwinCollection($"{{ \"SendData\":{sendData.ToString().ToLower()}, \"SendInterval\": {messageDelay.TotalSeconds}}}");
+            await moduleClient.UpdateReportedPropertiesAsync(patch); // Just report back last desired property.
         }
 
         static void CancelProgram(CancellationTokenSource cts)

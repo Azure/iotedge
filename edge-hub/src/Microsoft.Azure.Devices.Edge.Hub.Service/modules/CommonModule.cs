@@ -33,8 +33,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly string storagePath;
         readonly TimeSpan scopeCacheRefreshRate;
         readonly Option<string> workloadUri;
+        readonly Option<string> workloadApiVersion;
         readonly bool persistTokens;
         readonly IList<X509Certificate2> trustBundle;
+        readonly string proxy;
 
         public CommonModule(
             string productInfo,
@@ -49,9 +51,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             bool usePersistentStorage,
             string storagePath,
             Option<string> workloadUri,
+            Option<string> workloadApiVersion,
             TimeSpan scopeCacheRefreshRate,
             bool persistTokens,
-            IList<X509Certificate2> trustBundle)
+            IList<X509Certificate2> trustBundle,
+            string proxy)
         {
             this.productInfo = productInfo;
             this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
@@ -66,8 +70,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.storagePath = storagePath;
             this.scopeCacheRefreshRate = scopeCacheRefreshRate;
             this.workloadUri = workloadUri;
+            this.workloadApiVersion = workloadApiVersion;
             this.persistTokens = persistTokens;
             this.trustBundle = Preconditions.CheckNotNull(trustBundle, nameof(trustBundle));
+            this.proxy = Preconditions.CheckNotNull(proxy, nameof(proxy));
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -87,7 +93,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                                 {
                                     string edgeHubGenerationId = this.edgeHubGenerationId.Expect(() => new InvalidOperationException("Generation ID missing"));
                                     string workloadUri = this.workloadUri.Expect(() => new InvalidOperationException("workloadUri is missing"));
-                                    return new HttpHsmSignatureProvider(this.edgeHubModuleId, edgeHubGenerationId, workloadUri, Constants.WorkloadApiVersion) as ISignatureProvider;
+                                    string workloadApiVersion = this.workloadApiVersion.Expect(() => new InvalidOperationException("workloadUri version is missing"));
+                                    return new HttpHsmSignatureProvider(this.edgeHubModuleId, edgeHubGenerationId, workloadUri, workloadApiVersion, Constants.WorkloadApiVersion) as ISignatureProvider;
                                 });
                         return signatureProvider;
                     })
@@ -150,6 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                                     var encryptionProvider = await EncryptionProvider.CreateAsync(
                                         this.storagePath,
                                         new Uri(uri),
+                                        this.workloadApiVersion.Expect(() => new InvalidOperationException("Missing workload API version")),
                                         Constants.WorkloadApiVersion,
                                         this.edgeHubModuleId,
                                         this.edgeHubGenerationId.Expect(() => new InvalidOperationException("Missing generation ID")),
@@ -183,6 +191,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .Named<ITokenProvider>("EdgeHubServiceAuthTokenProvider")
                 .SingleInstance();
 
+            builder.Register(
+                    c =>
+                    {
+                        var loggerFactory = c.Resolve<ILoggerFactory>();
+                        var logger = loggerFactory.CreateLogger<RoutingModule>();
+                        return Proxy.Parse(this.proxy, logger);
+                    })
+                .As<Option<IWebProxy>>()
+                .SingleInstance();
+
             // Task<IDeviceScopeIdentitiesCache>
             builder.Register(
                     async c =>
@@ -191,7 +209,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         if (this.authenticationMode == AuthenticationMode.CloudAndScope || this.authenticationMode == AuthenticationMode.Scope)
                         {
                             var edgeHubTokenProvider = c.ResolveNamed<ITokenProvider>("EdgeHubServiceAuthTokenProvider");
-                            IDeviceScopeApiClient securityScopesApiClient = new DeviceScopeApiClient(this.iothubHostName, this.edgeDeviceId, this.edgeHubModuleId, 10, edgeHubTokenProvider);
+                            var proxy = c.Resolve<Option<IWebProxy>>();
+                            IDeviceScopeApiClient securityScopesApiClient = new DeviceScopeApiClient(this.iothubHostName, this.edgeDeviceId, this.edgeHubModuleId, 10, edgeHubTokenProvider, proxy);
                             IServiceProxy serviceProxy = new ServiceProxy(securityScopesApiClient);
                             IKeyValueStore<string, string> encryptedStore = await GetEncryptedStore(c, "DeviceScopeCache");
                             deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceProxy, encryptedStore, this.scopeCacheRefreshRate);
