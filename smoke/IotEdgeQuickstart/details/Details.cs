@@ -346,7 +346,6 @@ namespace IotEdgeQuickstart.Details
                 string twinTestJson = JObject.Parse(File.ReadAllText(this.TwinTestFileName.GetOrElse(string.Empty))).ToString();
 
                 var twinTest = JsonConvert.DeserializeObject<TwinTestConfiguration>(twinTestJson);
-                
 
                 Twin currentTwin = await this.context.RegistryManager.GetTwinAsync(this.context.Device.Id, twinTest.ModuleId);
 
@@ -361,17 +360,15 @@ namespace IotEdgeQuickstart.Details
                 {
                     TimeSpan retryInterval = TimeSpan.FromSeconds(10);
                     bool IsValid(TwinCollection currentTwinReportedProperty) => twinTest.Properties.Reported.Cast<KeyValuePair<string, object>>().All(p => currentTwinReportedProperty.Cast<KeyValuePair<string, object>>().Contains(p));
-                   
 
                     using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(300)))
                     {
                         async Task<TwinCollection> Func()
                         {
-                            //Removing reSharper warning for CTS, Code Block will never exit before the delegate code completes because of using. 
-                            // ReSharper disable AccessToDisposedClosure 
+                            // Removing reSharper warning for CTS, Code Block will never exit before the delegate code completes because of using.
+                            // ReSharper disable AccessToDisposedClosure
                             currentTwin = await this.context.RegistryManager.GetTwinAsync(this.context.Device.Id, twinTest.ModuleId, cts.Token);
                             // ReSharper restore AccessToDisposedClosure
-
                             return await Task.FromResult(currentTwin.Properties.Reported);
                         }
 
