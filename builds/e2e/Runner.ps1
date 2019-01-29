@@ -15,7 +15,6 @@ New-Module -ScriptBlock {
     #requires -RunAsAdministrator
 
     Set-Variable PwshInstallUri -Option Constant -Value 'https://github.com/PowerShell/PowerShell/releases/download/v6.1.1/PowerShell-6.1.1-win-x64.zip'
-    Set-Variable ProxySettingsModule -Option Constant -Value 'https://raw.githubusercontent.com/PowerShell/NetworkingDsc/8a4ae47b835b931d816dbbd5244d59e8fb0ce36b/Modules/NetworkingDsc/DSCResources/MSFT_ProxySettings/MSFT_ProxySettings.psm1'
     Set-Variable OpenSshUtilsManifest -Option Constant -Value 'https://raw.githubusercontent.com/PowerShell/openssh-portable/latestw_all/contrib/win32/openssh/OpenSSHUtils.psd1'
     Set-Variable OpenSshUtilsModule -Option Constant -Value 'https://raw.githubusercontent.com/PowerShell/openssh-portable/latestw_all/contrib/win32/openssh/OpenSSHUtils.psm1'
 
@@ -69,14 +68,15 @@ New-Module -ScriptBlock {
         
         Write-Host 'Setting wininet proxy'
 
-        $proxyModuleFile = ".\$(Split-Path $ProxySettingsModule -Leaf)"
-        Get-WebResource $proxyUri $ProxySettingsModule $proxyModuleFile
-        # The following Import-Module statement will cause a few errors about missing module
-        # dependencies. The missing modules aren't really required for what we're trying to do,
-        # so we won't bother downloading them.
-        Import-Module $proxyModuleFile -Force | Out-Null
-        Set-TargetResource -IsSingleInstance Yes -EnableManualProxy $true -ProxyServer $proxyUri
-        Get-TargetResource -IsSingleInstance Yes | Format-Table # Print the result to the logs
+        Set-PSRepository PSGallery -InstallationPolicy Trusted -Proxy $proxyUri
+        Install-Module NetworkingDsc -MinimumVersion 6.3 -AllowClobber -Force
+        Invoke-DscResource ProxySettings -Method Set -ModuleName NetworkingDsc -Property @{
+            IsSingleInstance = "Yes"
+            EnableManualProxy = $true
+            ProxyServer = $proxyUri
+        }
+        # output settings to log
+        Invoke-DscResource ProxySettings -Method Get -ModuleName NetworkingDsc -Property @{ IsSingleInstance = "Yes" }
 
         Write-Host 'Setting winhttp proxy'
         
