@@ -25,6 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly bool usePersistentStorage;
         readonly string storagePath;
         readonly Option<Uri> workloadUri;
+        readonly Option<string> workloadApiVersion;
         readonly string moduleId;
         readonly Option<string> moduleGenerationId;
 
@@ -49,6 +50,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.usePersistentStorage = usePersistentStorage;
             this.storagePath = Preconditions.CheckNonWhiteSpace(storagePath, nameof(storagePath));
             this.workloadUri = workloadUri;
+            this.moduleId = moduleId;
+            this.moduleGenerationId = moduleGenerationId;
+        }
+
+        public AgentModule(
+            int maxRestartCount,
+            TimeSpan intensiveCareTime,
+            int coolOffTimeUnitInSeconds,
+            bool usePersistentStorage,
+            string storagePath,
+            Option<Uri> workloadUri,
+            Option<string> workloadApiVersion,
+            string moduleId,
+            Option<string> moduleGenerationId)
+        {
+            this.maxRestartCount = maxRestartCount;
+            this.intensiveCareTime = intensiveCareTime;
+            this.coolOffTimeUnitInSeconds = coolOffTimeUnitInSeconds;
+            this.usePersistentStorage = usePersistentStorage;
+            this.storagePath = Preconditions.CheckNonWhiteSpace(storagePath, nameof(storagePath));
+            this.workloadUri = workloadUri;
+            this.workloadApiVersion = workloadApiVersion;
             this.moduleId = moduleId;
             this.moduleGenerationId = moduleGenerationId;
         }
@@ -221,7 +244,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                                 IEncryptionProvider encryptionProvider = await EncryptionProvider.CreateAsync(
                                     this.storagePath,
                                     uri,
-                                    Constants.EdgeletWorkloadApiVersion,
+                                    this.workloadApiVersion.Expect(() => new InvalidOperationException("Missing workload API version")),
+                                    Constants.EdgeletClientApiVersion,
                                     this.moduleId,
                                     this.moduleGenerationId.Expect(() => new InvalidOperationException("Missing generation ID")),
                                     Constants.EdgeletInitializationVectorFileName);

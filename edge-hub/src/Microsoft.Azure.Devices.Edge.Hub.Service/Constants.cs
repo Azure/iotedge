@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         public const string InitializationVectorFileName = "EdgeHubIV";
         public const string TopicNameConversionSectionName = "mqttTopicNameConversion";
         public const string VersionInfoFileName = "versionInfo.json";
-        public const string WorkloadApiVersion = "2018-06-28";
+        public const string WorkloadApiVersion = "2019-01-30";
 
         public static class ConfigKey
         {
@@ -22,6 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             public const string ModuleGenerationId = "IOTEDGE_MODULEGENERATIONID";
             public const string ModuleId = "IOTEDGE_MODULEID";
             public const string WorkloadUri = "IOTEDGE_WORKLOADURI";
+            public const string WorkloadAPiVersion = "IOTEDGE_APIVERSION";
             public const string EdgeHubDevServerCertificateFile = "EdgeHubDevServerCertificateFile";
             public const string EdgeHubDevServerPrivateKeyFile = "EdgeHubDevServerPrivateKeyFile";
             public const string EdgeHubDevTrustBundleFile = "EdgeHubDevTrustBundleFile";
