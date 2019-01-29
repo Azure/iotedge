@@ -116,7 +116,7 @@ jobs:
           ArtifactName: 'core-windows'
       - script: echo $(registry.password)|docker login "edgebuilds.azurecr.io" -u "$(registry.user)" --password-stdin
         displayName: Docker login
-        
+
       # Edge Agent
       - template: templates/image-windows.yaml
         parameters:
