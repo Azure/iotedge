@@ -14,7 +14,6 @@ New-Module -ScriptBlock {
     #requires -Version 5
     #requires -RunAsAdministrator
 
-    Set-Variable PwshInstallUri -Option Constant -Value 'https://github.com/PowerShell/PowerShell/releases/download/v6.1.1/PowerShell-6.1.1-win-x64.zip'
     Set-Variable OpenSshUtilsManifest -Option Constant -Value 'https://raw.githubusercontent.com/PowerShell/openssh-portable/latestw_all/contrib/win32/openssh/OpenSSHUtils.psd1'
     Set-Variable OpenSshUtilsModule -Option Constant -Value 'https://raw.githubusercontent.com/PowerShell/openssh-portable/latestw_all/contrib/win32/openssh/OpenSSHUtils.psm1'
 
@@ -82,14 +81,6 @@ New-Module -ScriptBlock {
         
         netsh winhttp set proxy "${ProxyHostname}:3128"
 
-        # Install newer version of PowerShell (6.0 or later) so that the -NoProxy option works in Invoke-WebRequest
-        Write-Host 'Installing latest pwsh'
-        
-        $zipFile = ".\$(Split-Path $PwshInstallUri -Leaf)"
-        Get-WebResource $proxyUri $PwshInstallUri $zipFile
-        Expand-Archive -Force "$zipFile"
-        $pwshPath = Join-Path (Join-Path (Get-Location) (Get-Item $zipFile).BaseName) "pwsh.exe" -Resolve
-        
         # Add public key so agent can SSH into this runner
         $authorizedKeys = Join-Path ${env:UserProfile} (Join-Path ".ssh" "authorized_keys")
         Write-Host "Adding public key to $authorizedKeys"
@@ -112,9 +103,10 @@ New-Module -ScriptBlock {
         Set-Service -Name ssh-agent -StartupType Automatic
         Set-Service -Name sshd -StartupType Automatic
 
-        Write-Host 'Making pwsh the default shell for ssh'
+        Write-Host 'Making PowerShell the default shell for ssh'
 
-        New-Item 'HKLM:\SOFTWARE\OpenSSH' -Force | New-ItemProperty -Force -Name DefaultShell -Value "$pwshPath"
+        New-Item 'HKLM:\SOFTWARE\OpenSSH' -Force | `
+            New-ItemProperty "DefaultShell" -Force -Value "$env:SystemRoot\system32\WindowsPowerShell\v1.0\powershell.exe"
         
         Write-Host 'Starting sshd'
 
