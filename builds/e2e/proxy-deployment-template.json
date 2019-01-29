@@ -623,7 +623,7 @@
 			"autoUpgradeMinorVersion": true,
 			"settings": {},
 			"protectedSettings": {
-				"commandToExecute": "[concat('/bin/bash -c \"set -euo pipefail && curl ', variables('update_agent_known_hosts_script_uri'), ' | sudo bash -s -- ', parameters('vms_username'), ' ', parameters('vsts_runner1_vm_name'), ' ', split(string(reference(resourceId('Microsoft.Compute/virtualMachines/extensions', parameters('vsts_runner1_vm_name'), 'init-runner')).instanceView), '#DATA#')[1] '\"')]"
+				"commandToExecute": "[concat('/bin/bash -c \"set -euo pipefail && curl ', variables('update_agent_known_hosts_script_uri'), ' | sudo bash -s -- ', parameters('vms_username'), ' ', parameters('vsts_runner1_vm_name'), ' ', split(string(reference(resourceId('Microsoft.Compute/virtualMachines/extensions', parameters('vsts_runner1_vm_name'), 'init-runner')).instanceView), '#DATA#')[1], '\"')]"
 			}
 		}
 	}, {
@@ -642,7 +642,7 @@
 			"autoUpgradeMinorVersion": true,
 			"settings": {},
 			"protectedSettings": {
-				"commandToExecute": "[concat('/bin/bash -c \"set -euo pipefail && curl ', variables('update_agent_known_hosts_script_uri'), ' | sudo bash -s -- ', parameters('vms_username'), ' ', parameters('vsts_runner2_vm_name'), ' ', split(string(reference(resourceId('Microsoft.Compute/virtualMachines/extensions', parameters('vsts_runner2_vm_name'), 'init-runner')).instanceView), '#DATA#')[1] '\"')]"
+				"commandToExecute": "[concat('/bin/bash -c \"set -euo pipefail && curl ', variables('update_agent_known_hosts_script_uri'), ' | sudo bash -s -- ', parameters('vms_username'), ' ', parameters('vsts_runner2_vm_name'), ' ', split(string(reference(resourceId('Microsoft.Compute/virtualMachines/extensions', parameters('vsts_runner2_vm_name'), 'init-runner')).instanceView), '#DATA#')[1], '\"')]"
 			}
 		}
 	}]
