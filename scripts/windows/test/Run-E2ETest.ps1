@@ -3,7 +3,7 @@
         It is used to streamline running E2E tests for Windows.
 
     .DESCRIPTION
-        It is used to warp all related steps to run E2E tests for Windows;
+        It is used to wrap all related steps to run E2E tests for Windows;
         it runs clean up, E2E test of given name, and print logs.
 
         Please ensure that E2E test folder have below folders/files:
