@@ -36,7 +36,7 @@ pub enum ErrorKind {
     SymmetricKeyMalformed,
 
     #[fail(display = "The symmetric key string could not be activated")]
-    ActivateSymmetricKey
+    ActivateSymmetricKey,
 }
 
 impl Error {

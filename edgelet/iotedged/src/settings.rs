@@ -68,7 +68,7 @@ impl Dps {
         &self.registration_id
     }
 
-    pub fn symmetric_key(&self) ->  Option<&str> {
+    pub fn symmetric_key(&self) -> Option<&str> {
         self.symmetric_key.as_ref().map(AsRef::as_ref)
     }
 }
@@ -369,7 +369,7 @@ mod tests {
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
-        match s.provisioning()  {
+        match s.provisioning() {
             Provisioning::Dps(ref dps) => {
                 assert_eq!(dps.global_endpoint().scheme(), "scheme");
                 assert_eq!(dps.global_endpoint().host_str().unwrap(), "jibba-jabba.net");

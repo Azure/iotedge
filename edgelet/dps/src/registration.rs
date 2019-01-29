@@ -88,7 +88,7 @@ where
 }
 
 pub enum DpsAuthKind {
-    Tpm {ek: Bytes, srk:Bytes},
+    Tpm { ek: Bytes, srk: Bytes },
     SymmetricKey,
 }
 
@@ -146,7 +146,7 @@ where
             .context(ErrorKind::GetTpmChallengeKey)?)
     }
 
-    fn get_symmetric_challenge_key(key_store: &A)-> Result<K, Error> {
+    fn get_symmetric_challenge_key(key_store: &A) -> Result<K, Error> {
         debug!("Obtaining symmetric authentication key");
         Ok(key_store
             .get(&KeyIdentity::Device, "primary")
@@ -233,7 +233,8 @@ where
                 r.assigned_hub(),
                 r.status()
             );
-            Ok(r.status().map_or_else(|| false, |status| status.eq_ignore_ascii_case("assigning")))
+            Ok(r.status()
+                .map_or_else(|| false, |status| status.eq_ignore_ascii_case("assigning")))
         } else {
             debug!("Not a device registration response");
             Ok(true)
@@ -301,8 +302,11 @@ where
             .map_err(|err| Error::from(err.context(ErrorKind::GetOperationStatusForSymmetricKey)))
             .into_future()
             .and_then(move |symmetric_key| {
-                let token_source =
-                    DpsTokenSource::new(scope_id.to_string(), registration_id.to_string(), symmetric_key);
+                let token_source = DpsTokenSource::new(
+                    scope_id.to_string(),
+                    registration_id.to_string(),
+                    symmetric_key,
+                );
                 let r = cli
                     .read()
                     .expect("RwLock read failure")
@@ -314,11 +318,16 @@ where
                         None,
                         Some(registration.clone()),
                         false,
-                    ).map_err(|err| Error::from(err.context(ErrorKind::RegisterWithSymmetricChallengeKey)))
-                    .map(move |operation_status: Option<RegistrationOperationStatus>| {
-                        debug!("{:?}", operation_status);
-                        operation_status
-                    });
+                    )
+                    .map_err(|err| {
+                        Error::from(err.context(ErrorKind::RegisterWithSymmetricChallengeKey))
+                    })
+                    .map(
+                        move |operation_status: Option<RegistrationOperationStatus>| {
+                            debug!("{:?}", operation_status);
+                            operation_status
+                        },
+                    );
                 r
             });
         Box::new(f)
@@ -417,25 +426,23 @@ where
 
         let mut use_tpm_auth = false;
         let r = match &self.auth {
-            DpsAuthKind::Tpm {ek, srk} => {
+            DpsAuthKind::Tpm { ek, srk } => {
                 use_tpm_auth = true;
                 Self::register_with_tpm_auth(
-                            &self.client,
-                            scope_id,
-                            registration_id,
-                            &ek,
-                            &srk,
-                            &self.key_store,
-                        )
-            },
-            DpsAuthKind::SymmetricKey => {
-                Self::register_with_symmetric_key_auth(
-                                    &self.client,
-                                    scope_id,
-                                    registration_id,
-                                    &self.key_store,
-                                )
-            },
+                    &self.client,
+                    scope_id,
+                    registration_id,
+                    &ek,
+                    &srk,
+                    &self.key_store,
+                )
+            }
+            DpsAuthKind::SymmetricKey => Self::register_with_symmetric_key_auth(
+                &self.client,
+                scope_id,
+                registration_id,
+                &self.key_store,
+            ),
         }
         .and_then(
             move |operation_status: Option<RegistrationOperationStatus>| match key_store
@@ -477,7 +484,8 @@ where
                 let ks = r.authentication_key().ok_or_else(|| {
                     Error::from(ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned)
                 })?;
-                let kb = base64::decode(ks).context(ErrorKind::RegisterWithAuthUnexpectedlyFailed)?;
+                let kb =
+                    base64::decode(ks).context(ErrorKind::RegisterWithAuthUnexpectedlyFailed)?;
                 key_store_status
                     .activate_identity_key(KeyIdentity::Device, "primary".to_string(), kb)
                     .context(ErrorKind::RegisterWithAuthUnexpectedlyFailed)?;
@@ -513,13 +521,13 @@ mod tests {
 
     use std::sync::Mutex;
 
+    use edgelet_core::crypto::{MemoryKey, MemoryKeyStore};
     use http;
     use hyper::{self, Body, Request, Response, StatusCode};
+    use model::DPS_API_VERSION;
     use serde_json;
     use tokio;
     use url::Url;
-    use model::DPS_API_VERSION;
-    use edgelet_core::crypto::{MemoryKey, MemoryKeyStore};
 
     #[test]
     fn server_register_with_tpm_auth_success() {
@@ -673,7 +681,7 @@ mod tests {
 
         let ek = Bytes::from("ek".to_string().into_bytes());
         let srk = Bytes::from("srk".to_string().into_bytes());
-        let auth = DpsAuthKind::Tpm{ ek, srk };
+        let auth = DpsAuthKind::Tpm { ek, srk };
         let dps = DpsClient::new(
             client,
             "scope".to_string(),
@@ -778,7 +786,7 @@ mod tests {
 
         let ek = Bytes::from("ek".to_string().into_bytes());
         let srk = Bytes::from("srk".to_string().into_bytes());
-        let auth = DpsAuthKind::Tpm{ ek, srk };
+        let auth = DpsAuthKind::Tpm { ek, srk };
         let dps = DpsClient::new(
             client,
             "scope".to_string(),
@@ -810,8 +818,8 @@ mod tests {
             let auth = req.headers().get(hyper::header::AUTHORIZATION);
             match auth {
                 None => {
-                    panic!("Expected a SAS token in the auth header")
-;                }
+                    panic!("Expected a SAS token in the auth header");
+                }
                 Some(_) => {
                     let response = Response::builder()
                         .status(StatusCode::UNAUTHORIZED)
@@ -869,7 +877,9 @@ mod tests {
         let reg_op_status_final = Response::new(
             serde_json::to_string(
                 &RegistrationOperationStatus::new("operation".to_string()).with_registration_state(
-                    DeviceRegistrationResult::new().with_registration_id("reg".to_string()).with_status("doesn't matter".to_string()),
+                    DeviceRegistrationResult::new()
+                        .with_registration_id("reg".to_string())
+                        .with_status("doesn't matter".to_string()),
                 ),
             )
             .unwrap()
@@ -985,7 +995,9 @@ mod tests {
             let operation_status: RegistrationOperationStatus =
                 RegistrationOperationStatus::new("operation".to_string());
             let serializable = operation_status.with_registration_state(
-                DeviceRegistrationResult::new().with_registration_id("reg".to_string()).with_status("doesn't matter".to_string()),
+                DeviceRegistrationResult::new()
+                    .with_registration_id("reg".to_string())
+                    .with_status("doesn't matter".to_string()),
             );
             future::ok(Response::new(
                 serde_json::to_string(&serializable).unwrap().into(),

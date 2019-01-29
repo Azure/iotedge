@@ -36,4 +36,6 @@ pub mod error;
 pub mod provisioning;
 
 pub use error::Error;
-pub use provisioning::{BackupProvisioning, DpsProvisioning, Provision, ProvisioningResult, DpsSymmetricKeyProvisioning};
+pub use provisioning::{
+    BackupProvisioning, DpsProvisioning, DpsSymmetricKeyProvisioning, Provision, ProvisioningResult,
+};

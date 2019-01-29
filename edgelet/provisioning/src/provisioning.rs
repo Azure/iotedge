@@ -224,7 +224,7 @@ where
             self.client.clone(),
             self.scope_id.clone(),
             self.registration_id.clone(),
-            DpsAuthKind::Tpm {ek, srk},
+            DpsAuthKind::Tpm { ek, srk },
             key_activator,
         );
 

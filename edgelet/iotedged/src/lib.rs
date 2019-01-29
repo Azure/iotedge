@@ -86,8 +86,8 @@ use url::Url;
 
 use docker::models::HostConfig;
 use edgelet_core::crypto::{
-    CreateCertificate, Decrypt, DerivedKeyStore, Encrypt, GetTrustBundle, KeyIdentity, KeyStore,
-    MasterEncryptionKey, MemoryKey, MemoryKeyStore, Sign, IOTEDGED_CA_ALIAS, Activate,
+    Activate, CreateCertificate, Decrypt, DerivedKeyStore, Encrypt, GetTrustBundle, KeyIdentity,
+    KeyStore, MasterEncryptionKey, MemoryKey, MemoryKeyStore, Sign, IOTEDGED_CA_ALIAS,
 };
 use edgelet_core::watchdog::Watchdog;
 use edgelet_core::WorkloadConfig;
@@ -106,7 +106,8 @@ use hsm::tpm::Tpm;
 use hsm::ManageTpmKeys;
 use iothubservice::DeviceClient;
 use provisioning::provisioning::{
-    BackupProvisioning, DpsProvisioning, ManualProvisioning, Provision, ProvisioningResult, DpsSymmetricKeyProvisioning,
+    BackupProvisioning, DpsProvisioning, DpsSymmetricKeyProvisioning, ManualProvisioning,
+    Provision, ProvisioningResult,
 };
 
 use settings::{Dps, Manual, Provisioning, Settings, DEFAULT_CONNECTION_STRING};
@@ -302,14 +303,15 @@ impl Main {
                 match dps.symmetric_key() {
                     Some(key) => {
                         info!("Staring provisioning edge device via symmetric key...");
-                        let (key_store, provisioning_result, root_key, runtime) = dps_symmetric_key_provision(
-                            &dps,
-                            hyper_client.clone(),
-                            dps_path,
-                            runtime,
-                            &mut tokio_runtime,
-                            key
-                        )?;
+                        let (key_store, provisioning_result, root_key, runtime) =
+                            dps_symmetric_key_provision(
+                                &dps,
+                                hyper_client.clone(),
+                                dps_path,
+                                runtime,
+                                &mut tokio_runtime,
+                                key,
+                            )?;
                         info!("Finished provisioning edge device.");
                         let cfg = WorkloadData::new(
                             provisioning_result.hub_name().to_string(),
@@ -328,16 +330,17 @@ impl Main {
                             &crypto,
                             tokio_runtime,
                         )?;
-                    },
-                    None =>  {
+                    }
+                    None => {
                         info!("Staring provisioning edge device via TPM...");
-                        let (key_store, provisioning_result, root_key, runtime) = dps_tpm_provision(
-                            &dps,
-                            hyper_client.clone(),
-                            dps_path,
-                            runtime,
-                            &mut tokio_runtime,
-                        )?;
+                        let (key_store, provisioning_result, root_key, runtime) =
+                            dps_tpm_provision(
+                                &dps,
+                                hyper_client.clone(),
+                                dps_path,
+                                runtime,
+                                &mut tokio_runtime,
+                            )?;
                         info!("Finished provisioning edge device.");
                         let cfg = WorkloadData::new(
                             provisioning_result.hub_name().to_string(),
@@ -697,11 +700,12 @@ where
             }
         })
         .and_then(move |(prov_result, runtime)| {
-            let k = memory_hsm
-                .get(&KeyIdentity::Device, "primary")
-                .context(ErrorKind::Initialize(
-                    InitializeErrorReason::DpsProvisioningClient,
-                ))?;
+            let k =
+                memory_hsm
+                    .get(&KeyIdentity::Device, "primary")
+                    .context(ErrorKind::Initialize(
+                        InitializeErrorReason::DpsProvisioningClient,
+                    ))?;
             let derived_key_store = DerivedKeyStore::new(k.clone());
             Ok((derived_key_store, prov_result, k, runtime))
         });

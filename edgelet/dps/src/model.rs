@@ -171,34 +171,34 @@ impl Default for TpmRegistrationResult {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SymmetricKeyRegistrationResult {
-  #[serde(rename = "enrollmentGroupId")]
-  enrollment_group_id: Option<String>
+    #[serde(rename = "enrollmentGroupId")]
+    enrollment_group_id: Option<String>,
 }
 
 impl SymmetricKeyRegistrationResult {
-  /// Registration result returned when using SymmetricKey attestation
-  pub fn new() -> SymmetricKeyRegistrationResult {
-    SymmetricKeyRegistrationResult {
-      enrollment_group_id: None
+    /// Registration result returned when using SymmetricKey attestation
+    pub fn new() -> SymmetricKeyRegistrationResult {
+        SymmetricKeyRegistrationResult {
+            enrollment_group_id: None,
+        }
     }
-  }
 
-  pub fn set_enrollment_group_id(&mut self, enrollment_group_id: String) {
-    self.enrollment_group_id = Some(enrollment_group_id);
-  }
+    pub fn set_enrollment_group_id(&mut self, enrollment_group_id: String) {
+        self.enrollment_group_id = Some(enrollment_group_id);
+    }
 
-  pub fn with_enrollment_group_id(mut self, enrollment_group_id: String) -> Self {
-    self.enrollment_group_id = Some(enrollment_group_id);
-    self
-  }
+    pub fn with_enrollment_group_id(mut self, enrollment_group_id: String) -> Self {
+        self.enrollment_group_id = Some(enrollment_group_id);
+        self
+    }
 
-  pub fn enrollment_group_id(&self) -> Option<&str> {
-    self.enrollment_group_id.as_ref().map(AsRef::as_ref)
-  }
+    pub fn enrollment_group_id(&self) -> Option<&str> {
+        self.enrollment_group_id.as_ref().map(AsRef::as_ref)
+    }
 
-  pub fn reset_enrollment_group_id(&mut self) {
-    self.enrollment_group_id = None;
-  }
+    pub fn reset_enrollment_group_id(&mut self) {
+        self.enrollment_group_id = None;
+    }
 }
 
 /// [`RegistrationOperationStatus`] : Registration operation status.
@@ -323,226 +323,226 @@ pub struct DeviceRegistrationResult {
 }
 
 impl DeviceRegistrationResult {
-  /// Device registration result.
-  pub fn new() -> Self {
-    DeviceRegistrationResult {
-      tpm: None,
-      x509: None,
-      symmetric_key: None,
-      registration_id: None,
-      created_date_time_utc: None,
-      assigned_hub: None,
-      device_id: None,
-      status: None,
-      substatus: None,
-      error_code: None,
-      error_message: None,
-      last_updated_date_time_utc: None,
-      etag: None
+    /// Device registration result.
+    pub fn new() -> Self {
+        DeviceRegistrationResult {
+            tpm: None,
+            x509: None,
+            symmetric_key: None,
+            registration_id: None,
+            created_date_time_utc: None,
+            assigned_hub: None,
+            device_id: None,
+            status: None,
+            substatus: None,
+            error_code: None,
+            error_message: None,
+            last_updated_date_time_utc: None,
+            etag: None,
+        }
     }
-  }
 
-  pub fn set_tpm(&mut self, tpm: TpmRegistrationResult) {
-    self.tpm = Some(tpm);
-  }
+    pub fn set_tpm(&mut self, tpm: TpmRegistrationResult) {
+        self.tpm = Some(tpm);
+    }
 
-  pub fn with_tpm(mut self, tpm: TpmRegistrationResult) -> Self {
-    self.tpm = Some(tpm);
-    self
-  }
+    pub fn with_tpm(mut self, tpm: TpmRegistrationResult) -> Self {
+        self.tpm = Some(tpm);
+        self
+    }
 
-  pub fn tpm(&self) -> Option<&TpmRegistrationResult> {
-    self.tpm.as_ref()
-  }
+    pub fn tpm(&self) -> Option<&TpmRegistrationResult> {
+        self.tpm.as_ref()
+    }
 
-  pub fn reset_tpm(&mut self) {
-    self.tpm = None;
-  }
+    pub fn reset_tpm(&mut self) {
+        self.tpm = None;
+    }
 
-  pub fn set_symmetric_key(&mut self, symmetric_key: SymmetricKeyRegistrationResult) {
-    self.symmetric_key = Some(symmetric_key);
-  }
+    pub fn set_symmetric_key(&mut self, symmetric_key: SymmetricKeyRegistrationResult) {
+        self.symmetric_key = Some(symmetric_key);
+    }
 
-  pub fn with_symmetric_key(mut self, symmetric_key: SymmetricKeyRegistrationResult) -> Self {
-    self.symmetric_key = Some(symmetric_key);
-    self
-  }
+    pub fn with_symmetric_key(mut self, symmetric_key: SymmetricKeyRegistrationResult) -> Self {
+        self.symmetric_key = Some(symmetric_key);
+        self
+    }
 
-  pub fn symmetric_key(&self) -> Option<&SymmetricKeyRegistrationResult> {
-    self.symmetric_key.as_ref()
-  }
+    pub fn symmetric_key(&self) -> Option<&SymmetricKeyRegistrationResult> {
+        self.symmetric_key.as_ref()
+    }
 
-  pub fn reset_symmetric_key(&mut self) {
-    self.symmetric_key = None;
-  }
+    pub fn reset_symmetric_key(&mut self) {
+        self.symmetric_key = None;
+    }
 
-  pub fn set_registration_id(&mut self, registration_id: String) {
-    self.registration_id = Some(registration_id);
-  }
+    pub fn set_registration_id(&mut self, registration_id: String) {
+        self.registration_id = Some(registration_id);
+    }
 
-  pub fn with_registration_id(mut self, registration_id: String) -> Self {
-    self.registration_id = Some(registration_id);
-    self
-  }
+    pub fn with_registration_id(mut self, registration_id: String) -> Self {
+        self.registration_id = Some(registration_id);
+        self
+    }
 
-  pub fn registration_id(&self) -> Option<&str> {
-    self.registration_id.as_ref().map(AsRef::as_ref)
-  }
+    pub fn registration_id(&self) -> Option<&str> {
+        self.registration_id.as_ref().map(AsRef::as_ref)
+    }
 
-  pub fn reset_registration_id(&mut self) {
-    self.registration_id = None;
-  }
+    pub fn reset_registration_id(&mut self) {
+        self.registration_id = None;
+    }
 
-  pub fn set_created_date_time_utc(&mut self, created_date_time_utc: String) {
-    self.created_date_time_utc = Some(created_date_time_utc);
-  }
+    pub fn set_created_date_time_utc(&mut self, created_date_time_utc: String) {
+        self.created_date_time_utc = Some(created_date_time_utc);
+    }
 
-  pub fn with_created_date_time_utc(mut self, created_date_time_utc: String) -> Self {
-    self.created_date_time_utc = Some(created_date_time_utc);
-    self
-  }
+    pub fn with_created_date_time_utc(mut self, created_date_time_utc: String) -> Self {
+        self.created_date_time_utc = Some(created_date_time_utc);
+        self
+    }
 
     pub fn created_date_time_utc(&self) -> Option<&str> {
         self.created_date_time_utc.as_ref().map(AsRef::as_ref)
     }
 
-  pub fn reset_created_date_time_utc(&mut self) {
-    self.created_date_time_utc = None;
-  }
+    pub fn reset_created_date_time_utc(&mut self) {
+        self.created_date_time_utc = None;
+    }
 
-  pub fn set_assigned_hub(&mut self, assigned_hub: String) {
-    self.assigned_hub = Some(assigned_hub);
-  }
+    pub fn set_assigned_hub(&mut self, assigned_hub: String) {
+        self.assigned_hub = Some(assigned_hub);
+    }
 
-  pub fn with_assigned_hub(mut self, assigned_hub: String) -> Self {
-    self.assigned_hub = Some(assigned_hub);
-    self
-  }
+    pub fn with_assigned_hub(mut self, assigned_hub: String) -> Self {
+        self.assigned_hub = Some(assigned_hub);
+        self
+    }
 
-  pub fn assigned_hub(&self) -> Option<&str> {
-    self.assigned_hub.as_ref().map(AsRef::as_ref)
-  }
+    pub fn assigned_hub(&self) -> Option<&str> {
+        self.assigned_hub.as_ref().map(AsRef::as_ref)
+    }
 
-  pub fn reset_assigned_hub(&mut self) {
-    self.assigned_hub = None;
-  }
+    pub fn reset_assigned_hub(&mut self) {
+        self.assigned_hub = None;
+    }
 
-  pub fn set_device_id(&mut self, device_id: String) {
-    self.device_id = Some(device_id);
-  }
+    pub fn set_device_id(&mut self, device_id: String) {
+        self.device_id = Some(device_id);
+    }
 
-  pub fn with_device_id(mut self, device_id: String) -> Self {
-    self.device_id = Some(device_id);
-    self
-  }
+    pub fn with_device_id(mut self, device_id: String) -> Self {
+        self.device_id = Some(device_id);
+        self
+    }
 
-  pub fn device_id(&self) -> Option<&str> {
-    self.device_id.as_ref().map(AsRef::as_ref)
-  }
+    pub fn device_id(&self) -> Option<&str> {
+        self.device_id.as_ref().map(AsRef::as_ref)
+    }
 
-  pub fn reset_device_id(&mut self) {
-    self.device_id = None;
-  }
+    pub fn reset_device_id(&mut self) {
+        self.device_id = None;
+    }
 
-  pub fn set_status(&mut self, status: String) {
-    self.status = Some(status);
-  }
+    pub fn set_status(&mut self, status: String) {
+        self.status = Some(status);
+    }
 
-  pub fn with_status(mut self, status: String) -> Self {
-    self.status = Some(status);
-    self
-  }
+    pub fn with_status(mut self, status: String) -> Self {
+        self.status = Some(status);
+        self
+    }
 
-  pub fn status(&self) -> Option<&str> {
-    self.status.as_ref().map(AsRef::as_ref)
-  }
+    pub fn status(&self) -> Option<&str> {
+        self.status.as_ref().map(AsRef::as_ref)
+    }
 
-  pub fn reset_status(&mut self) {
-    self.status = None;
-  }
+    pub fn reset_status(&mut self) {
+        self.status = None;
+    }
 
-  pub fn set_substatus(&mut self, substatus: String) {
-    self.substatus = Some(substatus);
-  }
+    pub fn set_substatus(&mut self, substatus: String) {
+        self.substatus = Some(substatus);
+    }
 
-  pub fn with_substatus(mut self, substatus: String) -> Self {
-    self.substatus = Some(substatus);
-    self
-  }
+    pub fn with_substatus(mut self, substatus: String) -> Self {
+        self.substatus = Some(substatus);
+        self
+    }
 
-  pub fn substatus(&self) -> Option<&str> {
-    self.substatus.as_ref().map(AsRef::as_ref)
-  }
+    pub fn substatus(&self) -> Option<&str> {
+        self.substatus.as_ref().map(AsRef::as_ref)
+    }
 
-  pub fn reset_substatus(&mut self) {
-    self.substatus = None;
-  }
+    pub fn reset_substatus(&mut self) {
+        self.substatus = None;
+    }
 
-  pub fn set_error_code(&mut self, error_code: i32) {
-    self.error_code = Some(error_code);
-  }
+    pub fn set_error_code(&mut self, error_code: i32) {
+        self.error_code = Some(error_code);
+    }
 
-  pub fn with_error_code(mut self, error_code: i32) -> Self {
-    self.error_code = Some(error_code);
-    self
-  }
+    pub fn with_error_code(mut self, error_code: i32) -> Self {
+        self.error_code = Some(error_code);
+        self
+    }
 
-  pub fn error_code(&self) -> Option<i32> {
-    self.error_code
-  }
+    pub fn error_code(&self) -> Option<i32> {
+        self.error_code
+    }
 
-  pub fn reset_error_code(&mut self) {
-    self.error_code = None;
-  }
+    pub fn reset_error_code(&mut self) {
+        self.error_code = None;
+    }
 
-  pub fn set_error_message(&mut self, error_message: String) {
-    self.error_message = Some(error_message);
-  }
+    pub fn set_error_message(&mut self, error_message: String) {
+        self.error_message = Some(error_message);
+    }
 
-  pub fn with_error_message(mut self, error_message: String) -> Self {
-    self.error_message = Some(error_message);
-    self
-  }
+    pub fn with_error_message(mut self, error_message: String) -> Self {
+        self.error_message = Some(error_message);
+        self
+    }
 
-  pub fn error_message(&self) -> Option<&str> {
-    self.error_message.as_ref().map(AsRef::as_ref)
-  }
+    pub fn error_message(&self) -> Option<&str> {
+        self.error_message.as_ref().map(AsRef::as_ref)
+    }
 
-  pub fn reset_error_message(&mut self) {
-    self.error_message = None;
-  }
+    pub fn reset_error_message(&mut self) {
+        self.error_message = None;
+    }
 
-  pub fn set_last_updated_date_time_utc(&mut self, last_updated_date_time_utc: String) {
-    self.last_updated_date_time_utc = Some(last_updated_date_time_utc);
-  }
+    pub fn set_last_updated_date_time_utc(&mut self, last_updated_date_time_utc: String) {
+        self.last_updated_date_time_utc = Some(last_updated_date_time_utc);
+    }
 
-  pub fn with_last_updated_date_time_utc(mut self, last_updated_date_time_utc: String) -> Self {
-    self.last_updated_date_time_utc = Some(last_updated_date_time_utc);
-    self
-  }
+    pub fn with_last_updated_date_time_utc(mut self, last_updated_date_time_utc: String) -> Self {
+        self.last_updated_date_time_utc = Some(last_updated_date_time_utc);
+        self
+    }
 
-  pub fn last_updated_date_time_utc(&self) -> Option<&str> {
-    self.last_updated_date_time_utc.as_ref().map(AsRef::as_ref)
-  }
+    pub fn last_updated_date_time_utc(&self) -> Option<&str> {
+        self.last_updated_date_time_utc.as_ref().map(AsRef::as_ref)
+    }
 
-  pub fn reset_last_updated_date_time_utc(&mut self) {
-    self.last_updated_date_time_utc = None;
-  }
+    pub fn reset_last_updated_date_time_utc(&mut self) {
+        self.last_updated_date_time_utc = None;
+    }
 
-  pub fn set_etag(&mut self, etag: String) {
-    self.etag = Some(etag);
-  }
+    pub fn set_etag(&mut self, etag: String) {
+        self.etag = Some(etag);
+    }
 
-  pub fn with_etag(mut self, etag: String) -> Self {
-    self.etag = Some(etag);
-    self
-  }
+    pub fn with_etag(mut self, etag: String) -> Self {
+        self.etag = Some(etag);
+        self
+    }
 
-  pub fn etag(&self) -> Option<&str> {
-    self.etag.as_ref().map(AsRef::as_ref)
-  }
+    pub fn etag(&self) -> Option<&str> {
+        self.etag.as_ref().map(AsRef::as_ref)
+    }
 
-  pub fn reset_etag(&mut self) {
-    self.etag = None;
-  }
+    pub fn reset_etag(&mut self) {
+        self.etag = None;
+    }
 }
