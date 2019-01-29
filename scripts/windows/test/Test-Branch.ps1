@@ -16,7 +16,9 @@ param (
     [String] $BuildBinariesDirectory = $Env:BUILD_BINARIESDIRECTORY,
 
     [ValidateNotNullOrEmpty()]
-    [String] $Filter
+    [String] $Filter,
+    
+    [String] $BuildConfig
 )
 
 Set-StrictMode -Version "Latest"
@@ -40,38 +42,55 @@ if (-not $BuildBinariesDirectory) {
     $BuildBinariesDirectory = DefaultBuildBinariesDirectory $BuildRepositoryLocalPath
 }
 
-$TEST_PROJ_PATTERN = "Microsoft.Azure*test.csproj"
+$SUFFIX = "Microsoft.Azure*test.dll"
 $LOGGER_ARG = "trx;LogFileName=result.trx"
-
 $DOTNET_PATH = [IO.Path]::Combine($AgentWorkFolder, "dotnet", "dotnet.exe")
 
 if (-not (Test-Path $DOTNET_PATH -PathType Leaf)) {
     throw "$DOTNET_PATH not found."
 }
 
+if (-not $BuildConfig) {
+    $BuildConfig = "CheckInBuild"
+}
+
 <#
  # Run tests
  #>
+Write-Host "Running tests in all test projects with filter '$Filter' and $BuildConfig configuration."
 
-$BaseTestCommand = if ($Filter) {
-    "test --no-build --logger `"$LOGGER_ARG`" --filter `"$Filter`"" 
-}
-else {
-    "test --no-build --logger `"$LOGGER_ARG`""
+$testProjectRunSerially = @( "Microsoft.Azure.Devices.Edge.Agent.Docker.Test.dll" )
+$testProjectDllsRunSerially = @()
+$testProjectsDlls = ""
+foreach ($testDll in (Get-ChildItem $BuildBinariesDirectory -Include $SUFFIX -Recurse)) {
+    Write-Host "Found test project:$testDll"
+    
+	if (($testProjectRunSerially | ?{ $testDll.FullName.EndsWith("\$_") }) -ne $null)
+	{
+		Write-Host "Run Serially for $testDll"
+		$testProjectDllsRunSerially += $testDll.FullName
+	}
+	else
+	{
+		$testProjectsDlls += " $testDll"
+	}
 }
 
-Write-Host "Running tests in all test projects with filter '$Filter'."
-$Success = $True
-foreach ($Project in (Get-ChildItem $BuildRepositoryLocalPath -Include $TEST_PROJ_PATTERN -Recurse)) {
-    Write-Host "Running tests for $Project."
-	Write-Host "Run command: '" + $DOTNET_PATH + "' " + $BaseTestCommand " -o " + $BuildBinariesDirectory + " " + $Project
-    Invoke-Expression "&`"$DOTNET_PATH`" $BaseTestCommand -o $BuildBinariesDirectory $Project"
+$testCommandPrefix = "$DOTNET_PATH vstest /Logger:`"$LOGGER_ARG`" /TestAdapterPath:`"$BuildBinariesDirectory`" /Parallel /InIsolation"
 
-    $Success = $Success -and $LASTEXITCODE -eq 0
+if ($Filter) {
+    $testCommandPrefix += " /TestCaseFilter:`"$Filter`"" 
 }
 
-if (-not $Success) {
-    throw "Failed tests."
+foreach($testDll in $testProjectDllsRunSerially)
+{
+	$testCommand = "$testCommandPrefix $testDll"
+	Write-Host "Run test command serially: $testCommand"
+	Invoke-Expression "$testCommand"
 }
+
+$testCommand = $testCommandPrefix + $testProjectsDlls
+Write-Host "Run test command: $testCommand"
+Invoke-Expression "$testCommand"
 
 Write-Host "Done!"
