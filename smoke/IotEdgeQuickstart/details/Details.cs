@@ -341,41 +341,43 @@ namespace IotEdgeQuickstart.Details
 
         protected async Task VerifyTwinAsync()
         {
-            if (this.TwinTestFileName.HasValue)
-            {
-                string twinTestJson = JObject.Parse(File.ReadAllText(this.TwinTestFileName.GetOrElse(string.Empty))).ToString();
-
-                var twinTest = JsonConvert.DeserializeObject<TwinTestConfiguration>(twinTestJson);
-
-                Twin currentTwin = await this.context.RegistryManager.GetTwinAsync(this.context.Device.Id, twinTest.ModuleId);
-
-                if (twinTest.Properties?.Desired != null && twinTest.Properties.Desired.Count > 0)
+            await this.TwinTestFileName.ForEachAsync(
+                async fileName =>
                 {
-                    string patch = JsonConvert.SerializeObject(twinTest, Formatting.Indented);
-                    // Build Patch Object.
-                    await this.context.RegistryManager.UpdateTwinAsync(this.context.Device.Id, twinTest.ModuleId, patch, currentTwin.ETag);
-                }
+                    string twinTestJson = File.ReadAllText(fileName);
 
-                if (twinTest.Properties?.Reported != null && twinTest.Properties.Reported.Count > 0)
-                {
-                    TimeSpan retryInterval = TimeSpan.FromSeconds(10);
-                    bool IsValid(TwinCollection currentTwinReportedProperty) => twinTest.Properties.Reported.Cast<KeyValuePair<string, object>>().All(p => currentTwinReportedProperty.Cast<KeyValuePair<string, object>>().Contains(p));
+                    var twinTest = JsonConvert.DeserializeObject<TwinTestConfiguration>(twinTestJson);
 
-                    using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(300)))
+                    Twin currentTwin = await this.context.RegistryManager.GetTwinAsync(this.context.Device.Id, twinTest.ModuleId);
+
+                    if (twinTest.Properties?.Desired?.Count > 0)
                     {
-                        async Task<TwinCollection> Func()
-                        {
-                            // Removing reSharper warning for CTS, Code Block will never exit before the delegate code completes because of using.
-                            // ReSharper disable AccessToDisposedClosure
-                            currentTwin = await this.context.RegistryManager.GetTwinAsync(this.context.Device.Id, twinTest.ModuleId, cts.Token);
-                            // ReSharper restore AccessToDisposedClosure
-                            return await Task.FromResult(currentTwin.Properties.Reported);
-                        }
-
-                        await Retry.Do(Func, IsValid, null, retryInterval, cts.Token);
+                        // Build Patch Object.
+                        string patch = JsonConvert.SerializeObject(twinTest, Formatting.Indented);
+                        await this.context.RegistryManager.UpdateTwinAsync(this.context.Device.Id, twinTest.ModuleId, patch, currentTwin.ETag);
                     }
-                }
-            }
+
+                    if (twinTest.Properties?.Reported?.Count > 0)
+                    {
+                        TimeSpan retryInterval = TimeSpan.FromSeconds(10);
+                        bool IsValid(TwinCollection currentTwinReportedProperty) => twinTest.Properties.Reported.Cast<KeyValuePair<string, object>>().All(p => currentTwinReportedProperty.Cast<KeyValuePair<string, object>>().Contains(p));
+
+                        using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20)))
+                        {
+                            async Task<TwinCollection> Func()
+                            {
+                                // Removing reSharper warning for CTS, Code Block will never exit before the delegate code completes because of using.
+                                // ReSharper disable AccessToDisposedClosure
+                                currentTwin = await this.context.RegistryManager.GetTwinAsync(this.context.Device.Id, twinTest.ModuleId, cts.Token);
+                                // ReSharper restore AccessToDisposedClosure
+                                return await Task.FromResult(currentTwin.Properties.Reported);
+                            }
+
+                            await Retry.Do(Func, IsValid, null, retryInterval, cts.Token);
+                        }
+                    }
+
+                });
         }
 
         protected Task RemoveTempSensorFromEdgeDevice()

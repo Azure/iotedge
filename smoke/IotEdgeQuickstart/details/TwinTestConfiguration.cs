@@ -11,6 +11,6 @@ namespace IotEdgeQuickstart.Details
         public string ModuleId { get; set; }
 
         [JsonProperty(PropertyName = "properties")]
-        public TwinProperties Properties;
+        public TwinProperties Properties { get; set; }
     }
 }
