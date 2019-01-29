@@ -1,7 +1,7 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
-    "title": "JSON schema for Azure IoT Edge Deployment *.template.json files",
+    "title": "JSON schema for Azure IoT Edge Deployment version 1.0",
     "required": [
         "modulesContent"
     ],
@@ -48,9 +48,6 @@
                                         },
                                         "settings": {
                                             "type": "object",
-                                            "required": [
-                                                "loggingOptions"
-                                            ],
                                             "properties": {
                                                 "minDockerVersion": {
                                                     "type": "string",
@@ -79,7 +76,8 @@
                                                                     "type": "string"
                                                                 },
                                                                 "address": {
-                                                                    "type": "string"
+                                                                    "type": "string",
+                                                                    "pattern": "^[^\\s]+$"
                                                                 }
                                                             }
                                                         }
@@ -108,22 +106,7 @@
                                                     "$ref": "#/definitions/moduleType"
                                                 },
                                                 "settings": {
-                                                    "type": "object",
-                                                    "required": [
-                                                        "image",
-                                                        "createOptions"
-                                                    ],
-                                                    "properties": {
-                                                        "image": {
-                                                            "type": "string",
-                                                            "examples": [
-                                                                "mcr.microsoft.com/azureiotedge-agent:1.0"
-                                                            ]
-                                                        },
-                                                        "createOptions": {
-                                                            "$ref": "#/definitions/createOptions"
-                                                        }
-                                                    }
+                                                    "$ref": "#/definitions/moduleSettings"
                                                 },
                                                 "env": {
                                                     "$ref": "#/definitions/env"
@@ -144,22 +127,7 @@
                                                     "$ref": "#/definitions/moduleType"
                                                 },
                                                 "settings": {
-                                                    "type": "object",
-                                                    "required": [
-                                                        "image",
-                                                        "createOptions"
-                                                    ],
-                                                    "properties": {
-                                                        "image": {
-                                                            "type": "string",
-                                                            "examples": [
-                                                                "mcr.microsoft.com/azureiotedge-hub:1.0"
-                                                            ]
-                                                        },
-                                                        "createOptions": {
-                                                            "$ref": "#/definitions/createOptions"
-                                                        }
-                                                    }
+                                                    "$ref": "#/definitions/moduleSettings"
                                                 },
                                                 "env": {
                                                     "$ref": "#/definitions/env"
@@ -172,15 +140,15 @@
                                                 }
                                             }
                                         }
-                                    }
+                                    },
+                                    "additionalProperties": false
                                 },
                                 "modules": {
                                     "type": "object",
                                     "patternProperties": {
-                                        "^[a-zA-Z0-9_.-]*$": {
+                                        "^[a-zA-Z][a-zA-Z0-9_.-]*$": {
                                             "type": "object",
                                             "required": [
-                                                "version",
                                                 "type",
                                                 "status",
                                                 "restartPolicy",
@@ -206,19 +174,7 @@
                                                     "$ref": "#/definitions/env"
                                                 },
                                                 "settings": {
-                                                    "type": "object",
-                                                    "required": [
-                                                        "image",
-                                                        "createOptions"
-                                                    ],
-                                                    "properties": {
-                                                        "image": {
-                                                            "type": "string"
-                                                        },
-                                                        "createOptions": {
-                                                            "$ref": "#/definitions/createOptions"
-                                                        }
-                                                    }
+                                                    "$ref": "#/definitions/moduleSettings"
                                                 }
                                             }
                                         }
@@ -240,8 +196,7 @@
                             "type": "object",
                             "required": [
                                 "schemaVersion",
-                                "routes",
-                                "storeAndForwardConfiguration"
+                                "routes"
                             ],
                             "properties": {
                                 "schemaVersion": {
@@ -257,7 +212,8 @@
                                             "type": "string",
                                             "examples": [
                                                 "FROM /* INTO $upstream"
-                                            ]
+                                            ],
+                                            "pattern": "^(?i)FROM\\s\/.*?(\\s|\\sWHERE\\s.*?\\s)INTO\\s(\\$upstream|BrokeredEndpoint\\(.*?\\))$"
                                         }
                                     }
                                 },
@@ -281,7 +237,7 @@
                 }
             },
             "patternProperties": {
-                "^.+$": {
+                "^[a-zA-Z][a-zA-Z0-9_.-]*$": {
                     "type": "object",
                     "required": [
                         "properties.desired"
@@ -316,20 +272,34 @@
                 "always"
             ]
         },
+        "moduleSettings": {
+            "type": "object",
+            "required": [
+                "image"
+            ],
+            "properties": {
+                "image": {
+                    "type": "string",
+                    "examples": [
+                        "mcr.microsoft.com/azureiotedge-agent:1.0"
+                    ]
+                },
+                "createOptions": {
+                    "$ref": "#/definitions/createOptions"
+                }
+            }
+        },
         "env": {
             "type": "object",
             "patternProperties": {
-                "^.+$": {
+                "^[^\\+#$\\s]+$": {
                     "type": "object",
                     "required": [
                         "value"
                     ],
                     "properties": {
                         "value": {
-                            "type": "string",
-                            "examples": [
-                                "UpstreamProtocol"
-                            ]
+                            "type": "string"
                         }
                     }
                 }
