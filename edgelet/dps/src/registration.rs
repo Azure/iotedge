@@ -293,8 +293,11 @@ where
         client: &Arc<RwLock<Client<C, DpsTokenSource<K>>>>,
         scope_id: String,
         registration_id: String,
-        symmetric_key: K,
+        key_store: &A,
     ) -> Box<Future<Item = Option<RegistrationOperationStatus>, Error = Error> + Send> {
+        let key = Self::get_symmetric_challenge_key(key_store)
+            .map_err(|err| Error::from(err.context(ErrorKind::GetOperationStatusForSymmetricKey)))
+            .unwrap(); //todo check how to remove
         let token_source =
             DpsTokenSource::new(scope_id.to_string(), registration_id.to_string(), symmetric_key.clone());
         let registration = DeviceRegistration::new()
@@ -423,13 +426,12 @@ where
                         )
             },
             DpsAuthKind::SymmetricKey => {
-                let key = Self::get_symmetric_challenge_key(&self.key_store).unwrap();
                 Self::register_with_symmetric_key_auth(
-                            &self.client,
-                            scope_id,
-                            registration_id,
-                            key
-                        )
+                                    &self.client,
+                                    scope_id,
+                                    registration_id,
+                                    &self.key_store,
+                                )
             },
         }
         .and_then(
