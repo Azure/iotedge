@@ -295,30 +295,33 @@ where
         registration_id: String,
         key_store: &A,
     ) -> Box<Future<Item = Option<RegistrationOperationStatus>, Error = Error> + Send> {
-        let symmetric_key = Self::get_symmetric_challenge_key(key_store)
+        let cli = client.clone();
+        let registration = DeviceRegistration::new().with_registration_id(registration_id.clone());
+        let f = Self::get_symmetric_challenge_key(key_store)
             .map_err(|err| Error::from(err.context(ErrorKind::GetOperationStatusForSymmetricKey)))
-            .unwrap(); //todo check how to remove
-        let token_source =
-            DpsTokenSource::new(scope_id.to_string(), registration_id.to_string(), symmetric_key.clone());
-        let registration = DeviceRegistration::new()
-            .with_registration_id(registration_id.clone());
-        let r = client
-            .read()
-            .expect("RwLock read failure")
-            .clone()
-            .with_token_source(token_source)
-            .request::<DeviceRegistration, RegistrationOperationStatus>(
-                Method::PUT,
-                &format!("{}/registrations/{}/register", scope_id, registration_id),
-                None,
-                Some(registration.clone()),
-                false,
-            ).map_err(|err| Error::from(err.context(ErrorKind::RegisterWithSymmetricChallengeKey)))
-            .map(move |operation_status: Option<RegistrationOperationStatus>| {
-                debug!("{:?}", operation_status);
-                operation_status
+            .into_future()
+            .and_then(move |symmetric_key| {
+                let token_source =
+                    DpsTokenSource::new(scope_id.to_string(), registration_id.to_string(), symmetric_key);
+                let r = cli
+                    .read()
+                    .expect("RwLock read failure")
+                    .clone()
+                    .with_token_source(token_source)
+                    .request::<DeviceRegistration, RegistrationOperationStatus>(
+                        Method::PUT,
+                        &format!("{}/registrations/{}/register", scope_id, registration_id),
+                        None,
+                        Some(registration.clone()),
+                        false,
+                    ).map_err(|err| Error::from(err.context(ErrorKind::RegisterWithSymmetricChallengeKey)))
+                    .map(move |operation_status: Option<RegistrationOperationStatus>| {
+                        debug!("{:?}", operation_status);
+                        operation_status
+                    });
+                r
             });
-        Box::new(r)
+        Box::new(f)
     }
 
     fn register_with_tpm_auth(
