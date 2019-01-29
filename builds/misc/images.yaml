@@ -115,7 +115,7 @@ jobs:
           PathtoPublish: '$(Build.BinariesDirectory)/publish'
           ArtifactName: 'core-windows'
       - script: echo $(registry.password)|docker login "edgebuilds.azurecr.io" -u "$(registry.user)" --password-stdin
-        displayName: Docker login
+        displayName: Docker Login
 
       # Edge Agent
       - template: templates/image-windows.yaml
