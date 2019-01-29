@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # This script runs all the .Net Core test projects (*test*.csproj) in the
-# repo by recursing from the repo root.
+# repo by looking up build output from previous build step.
 # This script expects that .Net Core is installed at
 # $AGENT_WORKFOLDER/dotnet and output binaries are at $BUILD_BINARIESDIRECTORY
 
@@ -15,18 +15,11 @@ BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:-$BUILD_REPOSITORY_LOCALPATH/t
 
 # Process script arguments
 TEST_FILTER="$1"
+BUILD_CONFIG="$2"
 
-SUFFIX='Microsoft.Azure*test.csproj'
-ROOTFOLDER=$BUILD_REPOSITORY_LOCALPATH
-IOTEDGECTL_DIR=$ROOTFOLDER/edge-bootstrap/python
+SUFFIX='Microsoft.Azure*test.dll'
 DOTNET_ROOT_PATH=$AGENT_WORKFOLDER/dotnet
 OUTPUT_FOLDER=$BUILD_BINARIESDIRECTORY
-ENVIRONMENT=${TESTENVIRONMENT:="linux"}
-
-if [ ! -d "$ROOTFOLDER" ]; then
-  echo "Folder $ROOTFOLDER does not exist" 1>&2
-  exit 1
-fi
 
 if [ ! -f "$DOTNET_ROOT_PATH/dotnet" ]; then
   echo "Path $DOTNET_ROOT_PATH/dotnet does not exist" 1>&2
@@ -38,26 +31,57 @@ if [ ! -d "$BUILD_BINARIESDIRECTORY" ]; then
   exit 1
 fi
 
-echo "Running tests in all test projects with filter: ${TEST_FILTER#--filter }"
+testFilterValue="${TEST_FILTER#--filter }"
 
-RES=0
-while read proj; do
-  echo "Running tests for project - $proj"
-  TESTENVIRONMENT=$ENVIRONMENT $DOTNET_ROOT_PATH/dotnet test \
-    $TEST_FILTER \
-    -p:ParallelizeTestCollections=false \
-    --no-build \
-    -v d \
-    --logger "trx;LogFileName=result.trx" \
-    -o "$OUTPUT_FOLDER" \
-    $proj
+if [ -z "$BUILD_CONFIG" ]
+then
+  BUILD_CONFIG="CheckInBuild"
+fi
+
+echo "Running tests in all test projects with filter: $testFilterValue and $BUILD_CONFIG configuration"
+
+# Find all test project dlls
+testProjectRunSerially=( "Microsoft.Azure.Devices.Edge.Agent.Docker.Test.dll" )
+testProjectDllsRunSerially=()
+testProjectDlls=""
+
+while read testDll; do
+  echo "Try to run test project:$testDll"
+    
+  if (for t in "${testProjectRunSerially[@]}"; do [[ $testDll == */$t ]] && exit 0; done)
+  then
+    echo "Run Serially for $testDll"
+    testProjectDllsRunSerially+=($testDll)
+  else
+    testProjectDlls="$testProjectDlls $testDll"
+  fi  
+done < <(find $OUTPUT_FOLDER -type f -iname $SUFFIX)
+
+testCommandPrefix="$DOTNET_ROOT_PATH/dotnet vstest /Logger:trx;LogFileName=result.trx /TestAdapterPath:\"$OUTPUT_FOLDER\" /Parallel /InIsolation"
+if [ ! -z "$testFilterValue" ]
+then
+  testCommandPrefix+=" /TestCaseFilter:"$testFilterValue""
+fi
+
+for testDll in ${testProjectDllsRunSerially[@]}
+do
+  testCommand="$testCommandPrefix $testDll"
+  echo "Run test command serially:$testCommand"
+  $testCommand
+  
   if [ $? -gt 0 ]
   then
-    RES=1
-    echo "Error running test $proj, RES = $RES"
+    exit 1
   fi
-done < <(find $ROOTFOLDER -type f -iname $SUFFIX)
+done
 
-echo "Edge runtime tests result RES = $RES"
+testCommand="$testCommandPrefix$testProjectDlls"
+echo "Run test command:$testCommand"
+$testCommand
 
-exit $RES
+if [ $? -gt 0 ]
+then
+  exit 1
+fi
+
+exit 0

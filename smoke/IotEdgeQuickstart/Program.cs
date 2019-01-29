@@ -114,6 +114,9 @@ Defaults:
         [Option("-l|--deployment <filename>", Description = "Deployment json file")]
         public string DeploymentFileName { get; } = Environment.GetEnvironmentVariable("deployment");
 
+        [Option("-tw|--twin_test <filename>", Description = "A file with Json content to set desired property and check reported property in a module.")]
+        public string TwinTestFileName { get; } = null;
+
         [Option("--device_ca_cert", Description = "path to the device ca certificate and its chain")]
         public string DeviceCaCert { get; } = string.Empty;
 
@@ -197,6 +200,8 @@ Defaults:
 
                 Option<string> deployment = this.DeploymentFileName != null ? Option.Some(this.DeploymentFileName) : Option.None<string>();
 
+                Option<string> twinTest = this.TwinTestFileName != null ? Option.Some(this.TwinTestFileName) : Option.None<string>();
+
                 string tag = this.ImageTag ?? "1.0";
 
                 var test = new Quickstart(
@@ -213,6 +218,7 @@ Defaults:
                     this.NoVerify,
                     this.VerifyDataFromModule,
                     deployment,
+                    twinTest,
                     this.DeviceCaCert,
                     this.DeviceCaPk,
                     this.DeviceCaCerts,

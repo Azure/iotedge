@@ -9,7 +9,7 @@
             "minDockerVersion": "v1.25",
             "loggingOptions": "",
             "registryCredentials": {
-              "jadsa": {
+              "rc1": {
                 "username": "<CR.Username>",
                 "password": "<CR.Password>",
                 "address": "edgebuilds.azurecr.io"
@@ -108,7 +108,7 @@
             "restartPolicy": "always",
             "env": {
               "BUILD_ID": {
-                "value": "<Build.BuildNumber>"
+                "value": "<Snitch.BuildId>"
               },
               "TEST_DURATION_IN_SECS": {
                 "value": "<Snitch.TestDurationInSecs>"

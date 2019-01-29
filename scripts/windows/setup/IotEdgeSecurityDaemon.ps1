@@ -265,6 +265,9 @@ function Install-SecurityDaemon {
     Set-SystemPath
     Add-IotEdgeRegistryKey
     Install-Services
+    if ($ContainerOs -eq 'Linux') {
+        Add-FirewallExceptions
+    }
 
     Write-HostGreen
     Write-HostGreen 'This device is now provisioned with the IoT Edge runtime.'
@@ -558,8 +561,9 @@ function Get-SecurityDaemon {
             # non-privileged modules can access it.
             $path = "$EdgeInstallDirectory\$name"
             New-Item $Path -ItemType Directory -Force | Out-Null
+            $sid = New-Object System.Security.Principal.SecurityIdentifier 'S-1-5-11' # NT AUTHORITY\Authenticated Users
             $rule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule(`
-                'NT AUTHORITY\Authenticated Users', 'Modify', 'ObjectInherit', 'InheritOnly', 'Allow')
+                $sid, 'Modify', 'ObjectInherit', 'InheritOnly', 'Allow')
             $acl = Get-Acl -Path $path
             $acl.AddAccessRule($rule)
             Set-Acl -Path $path -AclObject $acl
@@ -882,6 +886,18 @@ function Uninstall-Services {
     }
 }
 
+function Add-FirewallExceptions {
+    New-NetFirewallRule `
+        -DisplayName 'iotedged allow inbound 15580,15581' `
+        -Direction 'Inbound' `
+        -Action 'Allow' `
+        -Protocol 'TCP' `
+        -LocalPort '15580-15581' `
+        -Program "$EdgeInstallDirectory\iotedged.exe" `
+        -InterfaceType 'Any' | Out-Null
+    Write-HostGreen 'Added firewall exceptions for ports used by the IoT Edge service.'
+}
+
 function Remove-FirewallExceptions {
     Remove-NetFirewallRule -DisplayName 'iotedged allow inbound 15580,15581' -ErrorAction SilentlyContinue -ErrorVariable cmdErr
     Write-Verbose "$(if ($?) { 'Removed firewall exceptions' } else { $cmdErr })"
@@ -1001,12 +1017,21 @@ function Set-MobyEngineParameters {
             $MobyNamedPipeUrl
         }
     }
+    $mobyNetwork = switch ($ContainerOs) {
+        'Linux' {
+            'azure-iot-edge'
+        }
+
+        'Windows' {
+            'nat'
+        }
+    }
     $replacementContent = @(
         'moby_runtime:',
         "  uri: '$mobyUrl'",
-        '  network: ''azure-iot-edge''')
+        "  network: '$mobyNetwork'")
     ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")) | Set-Content "$EdgeInstallDirectory\config.yaml" -Force
-    Write-HostGreen "Configured device with Moby Engine URL '$mobyUrl'."
+    Write-HostGreen "Configured device with Moby Engine URL '$mobyUrl' and network '$mobyNetwork'."
 }
 
 function Get-AgentRegistry {
@@ -1103,19 +1128,22 @@ function Write-HostRed {
 }
 
 function Remove-BuiltinWritePermissions([string] $Path) {
-    $user = 'BUILTIN\Users'
-    Write-Verbose  "Remove $user permission to $Path"
+    $sid = New-Object System.Security.Principal.SecurityIdentifier 'S-1-5-32-545' # BUILTIN\Users
+
+    Write-Verbose  "Remove BUILTIN\Users permission to $Path"
     Invoke-Native "icacls ""$Path"" /inheritance:d"
     
     $acl = Get-Acl -Path $Path
     $write = [System.Security.AccessControl.FileSystemRights]::Write
     foreach ($access in $acl.Access) {
-        if ($access.IdentityReference.Value -eq $user -and
+        $accessSid = $access.IdentityReference.Translate([System.Security.Principal.SecurityIdentifier])
+
+        if ($accessSid -eq $sid -and
             $access.AccessControlType -eq 'Allow' -and
             ($access.FileSystemRights -band $write) -eq $write)
         {
             $rule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule(`
-                $user, 'Write', $access.InheritanceFlags, $access.PropagationFlags, 'Allow')
+                $sid, 'Write', $access.InheritanceFlags, $access.PropagationFlags, 'Allow')
             $acl.RemoveAccessRule($rule) | Out-Null
         }
     } 

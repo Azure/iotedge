@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Net;
     using System.Threading.Tasks;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
@@ -13,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Routing;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Storage;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Twin;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
@@ -20,6 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
     using Microsoft.Azure.Devices.Shared;
+    using Microsoft.Extensions.Logging;
     using IRoutingMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
     using Message = Microsoft.Azure.Devices.Client.Message;
 
@@ -41,6 +44,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly TimeSpan cloudConnectionIdleTimeout;
         readonly bool closeCloudConnectionOnIdleTimeout;
         readonly TimeSpan operationTimeout;
+        readonly Option<TimeSpan> minTwinSyncPeriod;
+        readonly Option<TimeSpan> reportedPropertiesSyncFrequency;
+        readonly bool useV1TwinManager;
 
         public RoutingModule(
             string iotHubName,
@@ -58,7 +64,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             int maxConnectedClients,
             TimeSpan cloudConnectionIdleTimeout,
             bool closeCloudConnectionOnIdleTimeout,
-            TimeSpan operationTimeout)
+            TimeSpan operationTimeout,
+            Option<TimeSpan> minTwinSyncPeriod,
+            Option<TimeSpan> reportedPropertiesSyncFrequency,
+            bool useV1TwinManager)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
@@ -76,6 +85,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.cloudConnectionIdleTimeout = cloudConnectionIdleTimeout;
             this.closeCloudConnectionOnIdleTimeout = closeCloudConnectionOnIdleTimeout;
             this.operationTimeout = operationTimeout;
+            this.minTwinSyncPeriod = minTwinSyncPeriod;
+            this.reportedPropertiesSyncFrequency = reportedPropertiesSyncFrequency;
+            this.useV1TwinManager = useV1TwinManager;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -177,6 +189,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         var credentialsCacheTask = c.Resolve<Task<ICredentialsCache>>();
                         var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
                         var deviceScopeIdentitiesCacheTask = c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
+                        var proxy = c.Resolve<Option<IWebProxy>>();
                         IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await deviceScopeIdentitiesCacheTask;
                         ICredentialsCache credentialsCache = await credentialsCacheTask;
                         ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(
@@ -190,7 +203,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             edgeHubCredentials.Identity,
                             this.cloudConnectionIdleTimeout,
                             this.closeCloudConnectionOnIdleTimeout,
-                            this.operationTimeout);
+                            this.operationTimeout,
+                            proxy);
                         return cloudConnectionProvider;
                     })
                 .As<Task<ICloudConnectionProvider>>()
@@ -276,9 +290,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 builder.Register(
                         async c =>
                         {
-                            var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
-                            IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
-                            return TwinManager.CreateTwinManager(connectionManager, messageConverterProvider, Option.None<IStoreProvider>());
+                            if (this.useV1TwinManager)
+                            {
+                                var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
+                                IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
+                                ITwinManager twinManager = new PassThroughTwinManager(connectionManager, messageConverterProvider);
+                                return twinManager;
+                            }
+                            else
+                            {
+                                var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
+                                IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
+                                return TwinManager.CreateTwinManager(connectionManager, messageConverterProvider, Option.None<IStoreProvider>());
+                            }
                         })
                     .As<Task<ITwinManager>>()
                     .SingleInstance();
@@ -361,10 +385,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 builder.Register(
                         async c =>
                         {
-                            var dbStoreProvider = c.Resolve<IDbStoreProvider>();
-                            var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
-                            IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
-                            return TwinManager.CreateTwinManager(connectionManager, messageConverterProvider, Option.Some<IStoreProvider>(new StoreProvider(dbStoreProvider)));
+                            if (this.useV1TwinManager)
+                            {
+                                var dbStoreProvider = c.Resolve<IDbStoreProvider>();
+                                var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
+                                IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
+                                return TwinManager.CreateTwinManager(connectionManager, messageConverterProvider, Option.Some<IStoreProvider>(new StoreProvider(dbStoreProvider)));
+                            }
+                            else
+                            {
+                                var storeProvider = c.Resolve<IStoreProvider>();
+                                var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
+                                var deviceConnectivityManager = c.Resolve<IDeviceConnectivityManager>();
+                                IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
+                                IEntityStore<string, TwinStoreEntity> entityStore = storeProvider.GetEntityStore<string, TwinStoreEntity>("EdgeTwin");
+                                ITwinManager twinManager = StoringTwinManager.Create(
+                                    connectionManager,
+                                    messageConverterProvider,
+                                    entityStore,
+                                    deviceConnectivityManager,
+                                    new ReportedPropertiesValidator(),
+                                    this.minTwinSyncPeriod,
+                                    this.reportedPropertiesSyncFrequency);
+                                return twinManager;
+                            }
                         })
                     .As<Task<ITwinManager>>()
                     .SingleInstance();

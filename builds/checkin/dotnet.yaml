@@ -3,6 +3,9 @@ pr:
   branches:
     include:
       - master
+  paths:
+    exclude:
+      - edgelet/*
 jobs:
 
 ################################################################################
@@ -50,7 +53,7 @@ jobs:
         displayName: Build
         inputs:
           filePath: scripts/windows/build/Publish-Branch.ps1
-          arguments: -Configuration:"$(configuration)" -PublishTests:$True -UpdateVersion
+          arguments: -Configuration:"$(configuration)" -UpdateVersion
       - task: PowerShell@2
         displayName: Test
         inputs:

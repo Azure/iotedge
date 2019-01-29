@@ -99,7 +99,7 @@ mod version;
 pub use self::error::{BindListenerType, Error, ErrorKind, InvalidUrlReason};
 pub use self::util::proxy::MaybeProxyClient;
 pub use self::util::UrlConnector;
-pub use self::version::{ApiVersionService, API_VERSION};
+pub use self::version::{Version, API_VERSION};
 
 use self::pid::PidService;
 use self::util::incoming::Incoming;
@@ -245,16 +245,9 @@ impl HyperExt for Http {
             }
             #[cfg(unix)]
             FD_SCHEME => {
-                let host = match url.host_str() {
-                    Some(host) => host,
-                    None => {
-                        return Err(ErrorKind::InvalidUrlWithReason(
-                            url.to_string(),
-                            InvalidUrlReason::NoHost,
-                        )
-                        .into())
-                    }
-                };
+                let host = url.host_str().ok_or_else(|| {
+                    ErrorKind::InvalidUrlWithReason(url.to_string(), InvalidUrlReason::NoHost)
+                })?;
 
                 // Try to parse the host as an FD number, then as an FD name
                 let socket = host

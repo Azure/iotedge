@@ -1,0 +1,190 @@
+trigger:
+  batch: true
+  branches:
+    include:
+      - master
+pr: none
+jobs:
+
+################################################################################
+  - job: linux
+################################################################################
+    displayName: Linux
+    pool:
+      name: Hosted Ubuntu 1604
+      vmImage: 'ubuntu-16.04'
+    variables:
+      NetCorePackageUri: https://download.microsoft.com/download/4/0/9/40920432-3302-47a8-b13c-bbc4848ad114/dotnet-sdk-2.1.302-linux-x64.tar.gz
+    steps:
+      - script: scripts/linux/installPrereqs.sh -u $(NetCorePackageUri)
+        name: install
+        displayName: Install dependencies
+      - script: scripts/linux/buildBranch.sh -c Release --no-rocksdb-bin
+        name: build
+        displayName: Build (release)
+      - task: PublishBuildArtifacts@1
+        displayName: 'Publish Artifacts'
+        inputs:
+          PathtoPublish: '$(Build.BinariesDirectory)/publish'
+          ArtifactName: 'core-linux'
+
+      # Edge Agent
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Edge Agent
+          imageName: azureiotedge-agent
+          project: Microsoft.Azure.Devices.Edge.Agent.Service
+
+      # Edge Hub
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Edge Hub
+          imageName: azureiotedge-hub
+          project: Microsoft.Azure.Devices.Edge.Hub.Service
+
+      # Simulated Temperature Sensor
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Temperature Sensor
+          imageName: azureiotedge-simulated-temperature-sensor
+          project: SimulatedTemperatureSensor
+
+      # Temperature Filter
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Temperature Filter
+          imageName: azureiotedge-temperature-filter
+          project: TemperatureFilter
+
+      # Load Gen
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Load Gen
+          imageName: azureiotedge-load-gen
+          project: load-gen
+
+      # Messages Analyzer
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Messages Analyzer
+          imageName: azureiotedge-analyzer
+          project: MessagesAnalyzer
+
+      # Functions Sample
+      - template: templates/image-linux.yaml
+        parameters:
+          name: FunctionsSample
+          imageName: azureiotedge-functions-filter
+          project: EdgeHubTriggerCSharp
+
+      # Direct Method Sender
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Direct Method Sender
+          imageName: azureiotedge-direct-method-sender
+          project: DirectMethodSender
+
+      # Direct Method Receiver
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Direct Method Receiver
+          imageName: azureiotedge-direct-method-receiver
+          project: DirectMethodReceiver
+
+################################################################################
+  - job: windows
+################################################################################
+    displayName: Windows
+    pool:
+      name: Azure-IoT-Edge-Core
+      demands:
+        - Build-Image -equals true
+        - win-rs5
+    variables:
+      NetCorePackageUri: https://download.microsoft.com/download/4/0/9/40920432-3302-47a8-b13c-bbc4848ad114/dotnet-sdk-2.1.302-win-x64.zip
+    steps:
+      - powershell: scripts/windows/setup/Install-Prerequisites.ps1 -DotnetSdkUrl $(NetCorePackageUri) -Dotnet -Nuget
+        name: install
+        displayName: Install
+      - powershell: scripts/windows/build/Publish-Branch.ps1 -Configuration:"Release" -PublishTests:$False -UpdateVersion
+        name: build
+        displayName: Build
+      - task: PublishBuildArtifacts@1
+        displayName: 'Publish Artifacts'
+        inputs:
+          PathtoPublish: '$(Build.BinariesDirectory)/publish'
+          ArtifactName: 'core-windows'
+      - script: echo $(registry.password)|docker login "edgebuilds.azurecr.io" -u "$(registry.user)" --password-stdin
+        displayName: Docker Login
+
+      # Edge Agent
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Edge Agent
+          imageName: azureiotedge-agent
+          project: Microsoft.Azure.Devices.Edge.Agent.Service
+
+      # Edge Hub
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Edge Hub
+          imageName: azureiotedge-hub
+          project: Microsoft.Azure.Devices.Edge.Hub.Service
+
+      # Simulated Temperature Sensor
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Temperature Sensor
+          imageName: azureiotedge-simulated-temperature-sensor
+          project: SimulatedTemperatureSensor
+
+      # Temperature Filter
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Temperature Filter
+          imageName: azureiotedge-temperature-filter
+          project: TemperatureFilter
+
+      # Functions Sample
+      - template: templates/image-windows.yaml
+        parameters:
+          name: FunctionsSample
+          imageName: azureiotedge-functions-filter
+          project: EdgeHubTriggerCSharp
+          arm32v7: 'false'
+
+      # Direct Method Sender
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Direct Method Sender
+          imageName: azureiotedge-direct-method-sender
+          project: DirectMethodSender
+
+      # Direct Method Receiver
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Direct Method Receiver
+          imageName: azureiotedge-direct-method-receiver
+          project: DirectMethodReceiver
+
+      - powershell: docker system prune -a -f
+        displayName: Clean Machine
+
+################################################################################
+  - job: manifest
+################################################################################
+    displayName: Manifest
+    pool:
+      vmImage: 'ubuntu-16.04'
+    dependsOn:
+      - linux
+      - windows
+    variables:
+      tags: "['latest']"
+    steps:
+    - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-agent/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
+      displayName: 'Publish Edge Agent Manifest'
+    - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-hub/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
+      displayName: 'Publish Edge Hub Manifest'
+    - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
+      displayName: 'Publish Temperature Sensor Manifest'
