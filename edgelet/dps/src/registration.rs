@@ -295,7 +295,7 @@ where
         registration_id: String,
         key_store: &A,
     ) -> Box<Future<Item = Option<RegistrationOperationStatus>, Error = Error> + Send> {
-        let key = Self::get_symmetric_challenge_key(key_store)
+        let symmetric_key = Self::get_symmetric_challenge_key(key_store)
             .map_err(|err| Error::from(err.context(ErrorKind::GetOperationStatusForSymmetricKey)))
             .unwrap(); //todo check how to remove
         let token_source =
@@ -313,7 +313,7 @@ where
                 None,
                 Some(registration.clone()),
                 false,
-            ).map_err(|err| Error::from(err.context(ErrorKind::GetOperationStatusForSymmetricKey)))
+            ).map_err(|err| Error::from(err.context(ErrorKind::RegisterWithSymmetricChallengeKey)))
             .map(move |operation_status: Option<RegistrationOperationStatus>| {
                 debug!("{:?}", operation_status);
                 operation_status
@@ -515,12 +515,12 @@ mod tests {
     use serde_json;
     use tokio;
     use url::Url;
-
+    use model::DPS_API_VERSION;
     use edgelet_core::crypto::{MemoryKey, MemoryKeyStore};
 
     #[test]
     fn server_register_with_tpm_auth_success() {
-        let expected_uri = "https://global.azure-devices-provisioning.net/scope/registrations/reg/register?api-version=2017-11-15";
+        let expected_uri = "https://global.azure-devices-provisioning.net/scope/registrations/reg/register?api-version=2018-11-01";
         let handler = move |req: Request<Body>| {
             let (
                 http::request::Parts {
@@ -558,7 +558,7 @@ mod tests {
             Client::new(
                 handler,
                 None,
-                "2017-11-15".to_string(),
+                DPS_API_VERSION.to_string(),
                 Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
             )
             .unwrap(),
@@ -587,7 +587,72 @@ mod tests {
     }
 
     #[test]
-    fn server_register_gets_404_fails() {
+    fn server_register_with_sym_key_auth_success() {
+        let expected_uri = "https://global.azure-devices-provisioning.net/scope/registrations/reg/register?api-version=2018-11-01";
+        let handler = move |req: Request<Body>| {
+            let (
+                http::request::Parts {
+                    method,
+                    uri,
+                    headers,
+                    ..
+                },
+                _body,
+            ) = req.into_parts();
+            assert_eq!(uri, expected_uri);
+            assert_eq!(method, Method::PUT);
+            // If authorization header does not have the shared access signature, request one
+            let auth = headers.get(hyper::header::AUTHORIZATION);
+            match auth {
+                None => {
+                    panic!("Expected header");
+                }
+                Some(_) => {
+                    let mut result = RegistrationOperationStatus::new("something".to_string())
+                        .with_status("assigning".to_string());
+                    future::ok(Response::new(
+                        serde_json::to_string(&result).unwrap().into(),
+                    ))
+                }
+            }
+        };
+        let client = Arc::new(RwLock::new(
+            Client::new(
+                handler,
+                None,
+                DPS_API_VERSION.to_string(),
+                Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
+            )
+            .unwrap(),
+        ));
+
+        let mut key_store = MemoryKeyStore::new();
+        key_store
+            .activate_identity_key(KeyIdentity::Device, "primary".to_string(), "some key")
+            .unwrap();
+
+        let task = DpsClient::register_with_symmetric_key_auth(
+            &client,
+            "scope".to_string(),
+            "reg".to_string(),
+            &key_store,
+        )
+        .map(|result| match result {
+            Some(op) => {
+                assert_eq!(op.operation_id(), "something");
+                assert_eq!(op.status().unwrap(), "assigning");
+                ()
+            }
+            None => panic!("Unexpected"),
+        });
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
+    }
+
+    #[test]
+    fn server_register_tpm_auth_gets_404_fails() {
         let handler = |_req: Request<Body>| {
             let response = Response::builder()
                 .status(StatusCode::NOT_FOUND)
@@ -598,7 +663,7 @@ mod tests {
         let client = Client::new(
             handler,
             None,
-            "2017-11-15".to_string(),
+            DPS_API_VERSION.to_string(),
             Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
         )
         .unwrap();
@@ -620,6 +685,52 @@ mod tests {
                 ErrorKind::RegisterWithAuthUnexpectedlyFailed => Ok::<_, Error>(()),
                 _ => panic!(
                     "Wrong error kind. Expected `RegisterWithAuthUnexpectedlyFailed` found {:?}",
+                    err
+                ),
+            },
+        });
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
+    }
+
+    #[test]
+    fn server_register_sym_key_auth_gets_404_fails() {
+        let handler = |_req: Request<Body>| {
+            let response = Response::builder()
+                .status(StatusCode::NOT_FOUND)
+                .body(Body::empty())
+                .expect("could not build hyper::Response");
+            future::ok(response)
+        };
+        let client = Client::new(
+            handler,
+            None,
+            DPS_API_VERSION.to_string(),
+            Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
+        )
+        .unwrap();
+
+        let mut key_store = MemoryKeyStore::new();
+        key_store
+            .activate_identity_key(KeyIdentity::Device, "primary".to_string(), "some key")
+            .unwrap();
+        let auth = DpsAuthKind::SymmetricKey;
+        let dps = DpsClient::new(
+            client,
+            "scope".to_string(),
+            "test".to_string(),
+            auth,
+            key_store,
+        )
+        .unwrap();
+        let task = dps.register().then(|result| match result {
+            Ok(_) => panic!("Excepted err got success"),
+            Err(err) => match err.kind() {
+                ErrorKind::RegisterWithSymmetricChallengeKey => Ok::<_, Error>(()),
+                _ => panic!(
+                    "Wrong error kind. Expected `RegisterWithSymmetricChallengeKey` found {:?}",
                     err
                 ),
             },
@@ -690,6 +801,61 @@ mod tests {
     }
 
     #[test]
+    fn server_register_with_sym_key_auth_gets_401_fails() {
+        let handler = |req: Request<Body>| {
+            // If authorization header does not have the shared access signature, request one
+            let auth = req.headers().get(hyper::header::AUTHORIZATION);
+            match auth {
+                None => {
+                    panic!("Expected a SAS token in the auth header")
+;                }
+                Some(_) => {
+                    let response = Response::builder()
+                        .status(StatusCode::UNAUTHORIZED)
+                        .body(Body::empty())
+                        .expect("could not build hyper::Response");
+                    future::ok(response)
+                }
+            }
+        };
+        let client = Client::new(
+            handler,
+            None,
+            DPS_API_VERSION.to_string(),
+            Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
+        )
+        .unwrap();
+
+        let mut key_store = MemoryKeyStore::new();
+        key_store
+            .activate_identity_key(KeyIdentity::Device, "primary".to_string(), "some key")
+            .unwrap();
+        let auth = DpsAuthKind::SymmetricKey;
+        let dps = DpsClient::new(
+            client,
+            "scope".to_string(),
+            "test".to_string(),
+            auth,
+            key_store,
+        )
+        .unwrap();
+        let task = dps.register().then(|result| match result {
+            Ok(_) => panic!("Excepted err got success"),
+            Err(err) => match err.kind() {
+                ErrorKind::RegisterWithSymmetricChallengeKey => Ok::<_, Error>(()),
+                _ => panic!(
+                    "Wrong error kind. Expected `RegisterWithSymmetricChallengeKey` found {:?}",
+                    err
+                ),
+            },
+        });
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
+    }
+
+    #[test]
     fn get_device_registration_result_success() {
         let reg_op_status_vanilla = Response::new(
             serde_json::to_string(&RegistrationOperationStatus::new("operation".to_string()))
@@ -726,7 +892,7 @@ mod tests {
             Client::new(
                 handler,
                 None,
-                "2017-11-15".to_string(),
+                DPS_API_VERSION.to_string(),
                 Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
             )
             .unwrap()
@@ -772,7 +938,7 @@ mod tests {
             Client::new(
                 handler,
                 None,
-                "2017-11-15".to_string(),
+                DPS_API_VERSION.to_string(),
                 Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
             )
             .unwrap()
@@ -807,7 +973,7 @@ mod tests {
 
     #[test]
     fn get_operation_status_success() {
-        let expected_uri = "https://global.azure-devices-provisioning.net/scope_id/registrations/reg/operations/operation?api-version=2017-11-15";
+        let expected_uri = "https://global.azure-devices-provisioning.net/scope_id/registrations/reg/operations/operation?api-version=2018-11-01";
         let handler = move |req: Request<Body>| {
             let (http::request::Parts { method, uri, .. }, _body) = req.into_parts();
             assert_eq!(uri, expected_uri);
@@ -825,7 +991,7 @@ mod tests {
         let client = Client::new(
             handler,
             None,
-            "2017-11-15".to_string(),
+            DPS_API_VERSION.to_string(),
             Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
         )
         .unwrap();
@@ -862,7 +1028,7 @@ mod tests {
         let client = Client::new(
             handler,
             None,
-            "2017-11-15".to_string(),
+            DPS_API_VERSION.to_string(),
             Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
         )
         .unwrap();

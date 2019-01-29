@@ -44,6 +44,9 @@ pub enum ErrorKind {
     #[fail(display = "Could not get symmetric challenge key")]
     GetSymmetricChallengeKey,
 
+    #[fail(display = "Symmetric key registration failed")]
+    RegisterWithSymmetricChallengeKey,
+
     #[fail(display = "Could not get symmetric key attestation operation status")]
     GetOperationStatusForSymmetricKey,
 }
