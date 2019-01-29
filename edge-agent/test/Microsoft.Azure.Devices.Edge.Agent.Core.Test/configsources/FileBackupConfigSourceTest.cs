@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Edged.GeneratedCode;
+    using Microsoft.Azure.Devices.Edge.Util.Edged;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -256,7 +256,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
             ISerde<DeploymentConfigInfo> serde = this.GetSerde();
             var encryptionProvider = new Mock<IEncryptionProvider>();
             encryptionProvider.Setup(ep => ep.EncryptAsync(It.IsAny<string>()))
-                .ThrowsAsync(new IoTEdgedException("failed", 404, string.Empty, null, null));
+                .ThrowsAsync(new WorkloadCommunicationException("failed", 404));
             using (IConfigSource configSource = new FileBackupConfigSource(this.tempFileName, underlying.Object, serde, encryptionProvider.Object))
             {
                 DeploymentConfigInfo config1 = await configSource.GetDeploymentConfigInfoAsync();
@@ -332,7 +332,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
             encryptionProvider.Setup(ep => ep.EncryptAsync(It.IsAny<string>()))
                 .ReturnsAsync(serde.Serialize(ValidConfigInfo1));
             encryptionProvider.Setup(ep => ep.DecryptAsync(It.IsAny<string>()))
-                .ThrowsAsync(new IoTEdgedException("failed", 404, string.Empty, null, null));
+                .ThrowsAsync(new WorkloadCommunicationException("failed", 404));
 
             using (IConfigSource configSource = new FileBackupConfigSource(this.tempFileName, underlying.Object, serde, encryptionProvider.Object))
             {

@@ -40,11 +40,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         public async Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo)
         {
-            if (current is DockerModule currentDockerModule && next.Module is DockerModule)
+            if (current is DockerModule currentDockerModule && next.Module is DockerModule nextDockerModule)
             {
+                CombinedDockerConfig combinedDockerConfig = this.combinedConfigProvider.GetCombinedConfig(nextDockerModule, runtimeInfo);
                 return new GroupCommand(
+                    new PullCommand(this.client, combinedDockerConfig),
+                    new StopCommand(this.client, currentDockerModule),
                     new RemoveCommand(this.client, currentDockerModule),
-                    await this.CreateAsync(next, runtimeInfo));
+                    await CreateCommand.BuildAsync(this.client, nextDockerModule, next.ModuleIdentity, this.dockerLoggerConfig, this.configSource, next.Module is EdgeHubDockerModule));
             }
 
             return NullCommand.Instance;
