@@ -301,7 +301,7 @@ impl Main {
                 let dps_path = cache_subdir_path.join(EDGE_PROVISIONING_BACKUP_FILENAME);
                 match dps.symmetric_key() {
                     Some(key) => {
-                        info!("Staring provisioning edge device.");
+                        info!("Staring provisioning edge device via symmetric key...");
                         let (key_store, provisioning_result, root_key, runtime) = dps_symmetric_key_provision(
                             &dps,
                             hyper_client.clone(),
@@ -330,6 +330,7 @@ impl Main {
                         )?;
                     },
                     None =>  {
+                        info!("Staring provisioning edge device via TPM...");
                         let (key_store, provisioning_result, root_key, runtime) = dps_tpm_provision(
                             &dps,
                             hyper_client.clone(),
