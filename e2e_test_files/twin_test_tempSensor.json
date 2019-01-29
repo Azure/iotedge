@@ -1,11 +1,14 @@
 {
     "moduleId" : "tempSensor",
-    "twinTest": {
+    "properties" : {
         "desired" : {
-            "SendInterval": 42
+            "SendInterval": 42,
+            "SendData": true,
+            "OtherType" : "test"
         },
-        "expectedReported" : {
-            "SendInterval2": 42
+        "reported" : {
+            "SendInterval": 42,
+            "SendData": true
         }
-    }
+    }    
 }

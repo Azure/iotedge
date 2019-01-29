@@ -4,7 +4,7 @@ namespace IotEdgeQuickstart.Details
     using System;
     using System.Collections.Generic;
     using System.IO;
-    using System.Text;
+    using System.Linq;
     using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
@@ -346,52 +346,36 @@ namespace IotEdgeQuickstart.Details
                 string twinTestJson = JObject.Parse(File.ReadAllText(this.TwinTestFileName.GetOrElse(string.Empty))).ToString();
 
                 var twinTest = JsonConvert.DeserializeObject<TwinTestConfiguration>(twinTestJson);
+                
 
                 Twin currentTwin = await this.context.RegistryManager.GetTwinAsync(this.context.Device.Id, twinTest.ModuleId);
 
-                if (twinTest.TwinTest.ContainsKey("desired") && twinTest.TwinTest["desired"].Count > 0)
+                if (twinTest.Properties?.Desired != null && twinTest.Properties.Desired.Count > 0)
                 {
-                    StringBuilder twinpatch = new StringBuilder(@"{ properties: { desired: { ");
-                    foreach (var desiredProperty in twinTest.TwinTest["desired"])
-                    {
-                        twinpatch.Append($@"{desiredProperty.Key} : {desiredProperty.Value},");
-                    }
-
-                    twinpatch.Append(@"} } }");
-
+                    string patch = JsonConvert.SerializeObject(twinTest, Formatting.Indented);
                     // Build Patch Object.
-                    await this.context.RegistryManager.UpdateTwinAsync(this.context.Device.Id, twinTest.ModuleId, twinpatch.ToString(), currentTwin.ETag);
+                    await this.context.RegistryManager.UpdateTwinAsync(this.context.Device.Id, twinTest.ModuleId, patch, currentTwin.ETag);
                 }
 
-                if (twinTest.TwinTest.ContainsKey("expectedReported") && twinTest.TwinTest["expectedReported"].Count > 0)
+                if (twinTest.Properties?.Reported != null && twinTest.Properties.Reported.Count > 0)
                 {
-                    using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20)))
+                    TimeSpan retryInterval = TimeSpan.FromSeconds(10);
+                    bool IsValid(TwinCollection currentTwinReportedProperty) => twinTest.Properties.Reported.Cast<KeyValuePair<string, object>>().All(p => currentTwinReportedProperty.Cast<KeyValuePair<string, object>>().Contains(p));
+                   
+
+                    using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(300)))
                     {
-                        bool foundAtLeastOne = false;
-                        while (true)
+                        async Task<TwinCollection> Func()
                         {
-                            await Task.Delay(TimeSpan.FromSeconds(10), cts.Token);
-
+                            //Removing reSharper warning for CTS, Code Block will never exit before the delegate code completes because of using. 
+                            // ReSharper disable AccessToDisposedClosure 
                             currentTwin = await this.context.RegistryManager.GetTwinAsync(this.context.Device.Id, twinTest.ModuleId, cts.Token);
+                            // ReSharper restore AccessToDisposedClosure
 
-                            foreach (KeyValuePair<string, string> expectedReportedProperty in twinTest.TwinTest["expectedReported"])
-                            {
-                                if (currentTwin.Properties.Reported.Contains(expectedReportedProperty.Key))
-                                {
-                                    foundAtLeastOne = true;
-                                    if (currentTwin.Properties.Reported[expectedReportedProperty.Key] != expectedReportedProperty.Value)
-                                    {
-                                        throw new Exception("Failed to find all reported Property or value doesn't match.");
-                                    }
-                                }
-                            }
-
-                            if (foundAtLeastOne)
-                            {
-                                // Success.
-                                break;
-                            }
+                            return await Task.FromResult(currentTwin.Properties.Reported);
                         }
+
+                        await Retry.Do(Func, IsValid, null, retryInterval, cts.Token);
                     }
                 }
             }
