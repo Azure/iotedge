@@ -17,10 +17,10 @@
         Path of E2E test folder
 
     .PARAMETER ReleaseLabel
-        Release label, can be uniquely identify the build (e.g <ReleaseName>-<ReleaseAttempt>)
+        Release label, can be uniquely identify the build (e.g <ReleaseName>-<ReleaseAttempt>); which is used as part of Edge device name.
 
     .PARAMETER ReleaseArtifactImageBuildNumber
-        Release artifact image build number; it is used to construct path of docker images, pulling from EdgeBuilds docker registry.
+        Release artifact image build number; it is used to construct path of docker images, pulling from EdgeBuilds docker registry. E.g. 20190101.1.
 
     .PARAMETER Architecture
         Runtime architecture
@@ -43,7 +43,7 @@
         Event hub connection string for receive D2C messages
 
     .EXAMPLE
-        .\Run-E2ETest.ps1 -E2ETestFolder "xxxx" -ReleaseArtifactImageBuildNumber "20190101.1" -ReleaseLabel "Release-1.0.0" -Architecture "x64" -TestName "TempSensor" -ContainerRegistryUsername "EdgeBuilds" -ContainerRegistryPassword "xxxx" -IoTHubConnectionString "xxxx" -EventHubConnectionString "xxxx"
+        .\Run-E2ETest.ps1 -E2ETestFolder "C:\Data\e2etests" -ReleaseLabel "Release-ARM-1" -ReleaseArtifactImageBuildNumber "20190101.1" -Architecture "x64" -TestName "TempSensor" -ContainerRegistryUsername "EdgeBuilds" -ContainerRegistryPassword "xxxx" -IoTHubConnectionString "xxxx" -EventHubConnectionString "xxxx"
 
     .NOTES
         This script is to make running E2E tests easier and centralize E2E test steps in 1 place for reusability.
@@ -55,7 +55,7 @@
 Param (
     [ValidateNotNullOrEmpty()]
     [ValidateScript({(Test-Path $_ -PathType Container)})]
-    [string] $E2ETestFolder = $(Throw "Path of E2ETest folder is required"),
+    [string] $E2ETestFolder = $(Throw "Path of E2ETest folder is missing or invalid"),
 
     [ValidateNotNullOrEmpty()]
     [string] $ReleaseLabel = $(Throw "Release label is required"),
@@ -85,7 +85,7 @@ Param (
 Set-StrictMode -Version "Latest"
 $ErrorActionPreference = "Stop"
 
-Function AppendInstallationOption($testCommand)
+Function AppendInstallationOption([string] $testCommand)
 {
     If (Test-Path (Join-Path $PackagesWorkingFolder "*"))
     {
@@ -95,7 +95,7 @@ Function AppendInstallationOption($testCommand)
     Return $testCommand += " -a `"$IoTEdgedWorkingFolder`""
 }
 
-Function CleanUp()
+Function CleanUp
 {
     WriteHeading "Test Clean Up"
     Write-Host "Do IoT Edge Moby system prune"
@@ -310,7 +310,7 @@ Function ValidateE2ETestParameters
 
 Function WriteHeading
 {
-    param ([String] $heading)
+    param ([string] $heading)
 
     Write-Host -f Cyan $heading
 }
