@@ -2,10 +2,10 @@
 	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
 	"contentVersion": "1.0.0.0",
 	"parameters": {
-		"key_vault_name": {
+		"key_vault_access_objectid": {
 			"type": "string"
 		},
-		"key_vault_access_objectid": {
+		"key_vault_name": {
 			"type": "string"
 		},
 		"key_vault_secret_name": {
@@ -20,16 +20,13 @@
 		"vms_username": {
 			"type": "string"
 		},
-		"windows_vm_password": {
-			"type": "securestring"
+		"vms_vnet_address_prefix": {
+			"type": "string"
 		},
 		"vms_vnet_name": {
 			"type": "string"
 		},
 		"vms_vnet_subnet_name": {
-			"type": "string"
-		},
-		"vms_vnet_address_prefix": {
 			"type": "string"
 		},
 		"vsts_agent_vm_name": {
@@ -43,6 +40,9 @@
 		},
 		"vsts_runner2_vm_name": {
 			"type": "string"
+		},
+		"windows_vm_password": {
+			"type": "securestring"
 		},
 		"vsts_agent_vm_network_interface_name": {
 			"defaultValue": "e2eproxyvstsagent",
@@ -64,20 +64,20 @@
 			"defaultValue": "e2eproxyvstsrunner1",
 			"type": "string"
 		},
-		"vsts_runner2_vm_network_interface_name": {
-			"defaultValue": "e2eproxyvstsrunner2",
-			"type": "string"
-		},
-		"vsts_runner_vms_nsg_name": {
-			"defaultValue": "e2eproxyvstsrunners",
-			"type": "string"
-		},
 		"vsts_runner1_vm_size": {
 			"defaultValue": "Standard_D2s_v3",
 			"type": "string"
 		},
+		"vsts_runner2_vm_network_interface_name": {
+			"defaultValue": "e2eproxyvstsrunner2",
+			"type": "string"
+		},
 		"vsts_runner2_vm_size": {
 			"defaultValue": "Standard_D2s_v3",
+			"type": "string"
+		},
+		"vsts_runner_vms_nsg_name": {
+			"defaultValue": "e2eproxyvstsrunners",
 			"type": "string"
 		}
 	},
