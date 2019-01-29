@@ -16,7 +16,7 @@ fn main() -> Result<()> {
 
     let config = get_config()?;
     let mut client = Client::new(config);
-    let fut = client.list_pods("default").map(|pods| {
+    let fut = client.list_pods("default", None).map(|pods| {
         for p in pods.items {
             println!("{:#?}", p);
         }

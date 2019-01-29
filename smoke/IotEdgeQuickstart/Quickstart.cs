@@ -27,13 +27,14 @@ namespace IotEdgeQuickstart
             bool noVerify,
             string verifyDataFromModule,
             Option<string> deploymentFileName,
+            Option<string> twinTestFileName,
             string deviceCaCert,
             string deviceCaPk,
             string deviceCaCerts,
             bool optimizedForPerformance,
             LogLevel runtimeLogLevel,
             bool cleanUpExistingDeviceOnSuccess)
-            : base(bootstrapper, credentials, iothubConnectionString, eventhubCompatibleEndpointWithEntityPath, upstreamProtocol, imageTag, deviceId, hostname, deploymentFileName, deviceCaCert, deviceCaPk, deviceCaCerts, optimizedForPerformance, runtimeLogLevel, cleanUpExistingDeviceOnSuccess)
+            : base(bootstrapper, credentials, iothubConnectionString, eventhubCompatibleEndpointWithEntityPath, upstreamProtocol, imageTag, deviceId, hostname, deploymentFileName, twinTestFileName, deviceCaCert, deviceCaPk, deviceCaCerts, optimizedForPerformance, runtimeLogLevel, cleanUpExistingDeviceOnSuccess)
         {
             this.leaveRunning = leaveRunning;
             this.noDeployment = noDeployment;
@@ -67,6 +68,7 @@ namespace IotEdgeQuickstart
                         if (!this.noVerify)
                         {
                             await this.VerifyDataOnIoTHub(this.verifyDataFromModule);
+                            await this.VerifyTwinAsync();
                         }
 
                         if (this.leaveRunning == LeaveRunning.Core)
