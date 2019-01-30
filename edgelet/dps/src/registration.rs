@@ -307,7 +307,7 @@ where
                     registration_id.to_string(),
                     symmetric_key,
                 );
-                let r = cli
+                return cli
                     .read()
                     .expect("RwLock read failure")
                     .clone()
@@ -328,7 +328,6 @@ where
                             operation_status
                         },
                     );
-                r
             });
         Box::new(f)
     }

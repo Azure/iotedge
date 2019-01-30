@@ -167,7 +167,7 @@ impl Default for TpmRegistrationResult {
     }
 }
 
-/// [`SymmetricKeyRegistrationResult`] : Registration result returned when using SymmetricKey attestation
+/// [`SymmetricKeyRegistrationResult`] : Registration result returned when using `SymmetricKey` attestation
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SymmetricKeyRegistrationResult {
