@@ -11,7 +11,7 @@
 		"nic_name": {
 			"type": "string"
 		},
-		"nsg_name": {
+		"nsg_resource_id": {
 			"type": "string"
 		},
 		"ssh_public_key": {
@@ -23,10 +23,7 @@
 		"vm_size": {
 			"type": "string"
 		},
-		"vnet_name": {
-			"type": "string"
-		},
-		"vnet_subnet_name": {
+		"vnet_subnet_resource_id": {
 			"type": "string"
 		},
 		"public_ip_addr": {
@@ -62,7 +59,7 @@
 				"name": "ipconfig1",
 				"properties": {
 					"subnet": {
-						"id": "[resourceId(resourceGroup().name, 'Microsoft.Network/virtualNetworks/subnets', parameters('vnet_name'), parameters('vnet_subnet_name'))]"
+						"id": "[parameters('vnet_subnet_resource_id')]"
 					},
 					"privateIPAllocationMethod": "Dynamic",
 					"publicIPAddress": {
@@ -71,12 +68,12 @@
 				}
 			}],
 			"networkSecurityGroup": {
-				"id": "[resourceId(resourceGroup().name, 'Microsoft.Network/networkSecurityGroups', parameters('nsg_name'))]"
+				"id": "[parameters('nsg_resource_id')]"
 			},
 			"primary": false
 		},
 		"dependsOn": [
-			"[resourceId(resourceGroup().name, 'Microsoft.Network/networkSecurityGroups', parameters('nsg_name'))]",
+			"[parameters('nsg_resource_id')]",
 			"[variables('public_ip_addr_resource_id')]"
 		]
 	}, {

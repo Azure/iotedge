@@ -342,8 +342,8 @@
 				"nic_name": {
 					"value": "[parameters('vsts_agent_vm_network_interface_name')]"
 				},
-				"nsg_name": {
-					"value": "[parameters('vsts_agent_vm_nsg_name')]"
+				"nsg_resource_id": {
+					"value": "[resourceId(resourceGroup().name, 'Microsoft.Network/networkSecurityGroups', parameters('vsts_agent_vm_nsg_name'))]"
 				},
 				"ssh_public_key": {
 					"value": "[parameters('vms_ssh_public_key')]"
@@ -354,11 +354,8 @@
 				"vm_size": {
 					"value": "[parameters('vsts_agent_vm_size')]"
 				},
-				"vnet_name": {
-					"value": "[parameters('vms_vnet_name')]"
-				},
-				"vnet_subnet_name": {
-					"value": "[parameters('vms_vnet_subnet_name')]"
+				"vnet_subnet_resource_id": {
+					"value": "[resourceId(resourceGroup().name, 'Microsoft.Network/virtualNetworks/subnets', parameters('vms_vnet_name'), parameters('vms_vnet_subnet_name'))]"
 				},
 				"public_ip_addr": {
 					"value": "[parameters('vsts_agent_vm_public_ip_name')]"
@@ -388,8 +385,8 @@
 				"nic_name": {
 					"value": "[parameters('vsts_runner1_vm_network_interface_name')]"
 				},
-				"nsg_name": {
-					"value": "[parameters('vsts_runner_vms_nsg_name')]"
+				"nsg_resource_id": {
+					"value": "[resourceId(resourceGroup().name, 'Microsoft.Network/networkSecurityGroups', parameters('vsts_runner_vms_nsg_name'))]"
 				},
 				"ssh_public_key": {
 					"value": "[parameters('vms_ssh_public_key')]"
@@ -400,11 +397,8 @@
 				"vm_size": {
 					"value": "[parameters('vsts_runner1_vm_size')]"
 				},
-				"vnet_name": {
-					"value": "[parameters('vms_vnet_name')]"
-				},
-				"vnet_subnet_name": {
-					"value": "[parameters('vms_vnet_subnet_name')]"
+				"vnet_subnet_resource_id": {
+					"value": "[resourceId(resourceGroup().name, 'Microsoft.Network/virtualNetworks/subnets', parameters('vms_vnet_name'), parameters('vms_vnet_subnet_name'))]"
 				}
 			}
 		},
@@ -423,35 +417,32 @@
 				"uri": "[variables('create_windows_vm_template_uri')]"
 			},
 			"parameters": {
-				"extension_command": {
-					"value": "[concat('powershell -ExecutionPolicy Unrestricted -Command \"& { . { Invoke-WebRequest -UseBasicParsing -Proxy http://', parameters('vsts_agent_vm_name'), ':3128 -Uri ', variables('runner2_prep_script_uri'), ' } | Invoke-Expression; Initialize-WindowsVM -ProxyHostname ', parameters('vsts_agent_vm_name'), ' -SshPublicKeyBase64 ', base64(parameters('vms_ssh_public_key')), ' }\"')]"
-				},
-				"ssh_public_key": {
-					"value": "[parameters('vms_ssh_public_key')]"
+				"admin_password": {
+					"value": "[parameters('windows_vm_password')]"
 				},
 				"admin_user": {
 					"value": "[parameters('vms_username')]"
 				},
-				"vnet_name": {
-					"value": "[parameters('vms_vnet_name')]"
-				},
-				"vnet_subnet_name": {
-					"value": "[parameters('vms_vnet_subnet_name')]"
-				},
-				"vm_name": {
-					"value": "[parameters('vsts_runner2_vm_name')]"
+				"extension_command": {
+					"value": "[concat('powershell -ExecutionPolicy Unrestricted -Command \"& { . { Invoke-WebRequest -UseBasicParsing -Proxy http://', parameters('vsts_agent_vm_name'), ':3128 -Uri ', variables('runner2_prep_script_uri'), ' } | Invoke-Expression; Initialize-WindowsVM -ProxyHostname ', parameters('vsts_agent_vm_name'), ' -SshPublicKeyBase64 ', base64(parameters('vms_ssh_public_key')), ' }\"')]"
 				},
 				"nic_name": {
 					"value": "[parameters('vsts_runner2_vm_network_interface_name')]"
 				},
+				"nsg_resource_id": {
+					"value": "[resourceId(resourceGroup().name, 'Microsoft.Network/networkSecurityGroups', parameters('vsts_runner_vms_nsg_name'))]"
+				},
+				"ssh_public_key": {
+					"value": "[parameters('vms_ssh_public_key')]"
+				},
+				"vm_name": {
+					"value": "[parameters('vsts_runner2_vm_name')]"
+				},
 				"vm_size": {
 					"value": "[parameters('vsts_runner2_vm_size')]"
 				},
-				"nsg_name": {
-					"value": "[parameters('vsts_runner_vms_nsg_name')]"
-				},
-				"admin_password": {
-					"value": "[parameters('windows_vm_password')]"
+				"vnet_subnet_resource_id": {
+					"value": "[resourceId(resourceGroup().name, 'Microsoft.Network/virtualNetworks/subnets', parameters('vms_vnet_name'), parameters('vms_vnet_subnet_name'))]"
 				}
 			}
 		},
@@ -467,6 +458,8 @@
 		"properties": {
 			"mode": "Incremental",
 			"template" : {
+				"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+				"contentVersion": "1.0.0.0",
 				"resources": [{
 					"type": "Microsoft.Compute/virtualMachines/extensions",
 					"name": "[concat(parameters('vsts_agent_vm_name'), '/', 'update-agent-known-hosts')]",
@@ -478,7 +471,7 @@
 						"typeHandlerVersion": "2.0",
 						"autoUpgradeMinorVersion": true,
 						"settings": {
-							"commandToExecute": "[concat('/bin/bash -c \"set -euo pipefail && curl ', variables('agent_finalize_script_uri'), ' | sudo bash -s -- ', parameters('vms_username'), ' ', parameters('vsts_runner1_vm_name'), ' ', reference('create_runner1_vm').outputs.hostkey.value), ' ', parameters('vsts_runner2_vm_name'), ' ', reference('create_runner2_vm').outputs.hostkey.value), '\"')]"
+							"commandToExecute": "[concat('/bin/bash -c \"set -euo pipefail && curl ', variables('agent_finalize_script_uri'), ' | sudo bash -s -- ', parameters('vms_username'), ' ', parameters('vsts_runner1_vm_name'), ' ', reference('create_runner1_vm').outputs.hostkey.value, ' ', parameters('vsts_runner2_vm_name'), ' ', reference('create_runner2_vm').outputs.hostkey.value, '\"')]"
 						},
 						"protectedSettings": {}
 					}
