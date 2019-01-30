@@ -111,6 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     false,
                     string.Empty,
                     Option.None<string>(),
+                    Option.None<string>(),
                     TimeSpan.FromHours(1),
                     false,
                     this.trustBundle,

@@ -100,6 +100,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             this.restartManager = Preconditions.CheckNotNull(restartManager, nameof(restartManager));
         }
 
+        public async Task<Plan> CreateShutdownPlanAsync(ModuleSet current)
+        {
+            IEnumerable<Task<ICommand>> stopTasks = current.Modules.Values
+                .Where(c => !c.Name.Equals(Constants.EdgeAgentModuleName, StringComparison.OrdinalIgnoreCase))
+                .Select(m => this.commandFactory.StopAsync(m));
+            ICommand[] stopCommands = await Task.WhenAll(stopTasks);
+            ICommand parallelCommand = new ParallelGroupCommand(stopCommands);
+            Events.ShutdownPlanCreated(stopCommands);
+            return new Plan(new[] { parallelCommand });
+        }
+
         public async Task<Plan> PlanAsync(
             ModuleSet desired,
             ModuleSet current,
@@ -113,9 +124,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
 
             List<ICommand> updateRuntimeCommands = await this.GetUpdateRuntimeCommands(updateDeployed, moduleIdentities, runtimeInfo);
 
-            // create "stop" commands for modules that have been updated/removed
-            IEnumerable<Task<ICommand>> stopTasks = updateDeployed
-                .Concat(removed)
+            // create "stop" commands for modules that have been removed
+            IEnumerable<Task<ICommand>> stopTasks = removed
                 .Select(m => this.commandFactory.StopAsync(m));
             IEnumerable<ICommand> stop = await Task.WhenAll(stopTasks);
 
@@ -168,17 +178,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
 
             Events.PlanCreated(commands);
             return new Plan(commands);
-        }
-
-        public async Task<Plan> CreateShutdownPlanAsync(ModuleSet current)
-        {
-            IEnumerable<Task<ICommand>> stopTasks = current.Modules.Values
-                .Where(c => !c.Name.Equals(Constants.EdgeAgentModuleName, StringComparison.OrdinalIgnoreCase))
-                .Select(m => this.commandFactory.StopAsync(m));
-            ICommand[] stopCommands = await Task.WhenAll(stopTasks);
-            ICommand parallelCommand = new ParallelGroupCommand(stopCommands);
-            Events.ShutdownPlanCreated(stopCommands);
-            return new Plan(new[] { parallelCommand });
         }
 
         IEnumerable<Task<ICommand>> ApplyRestartPolicy(IEnumerable<IRuntimeModule> modules)
