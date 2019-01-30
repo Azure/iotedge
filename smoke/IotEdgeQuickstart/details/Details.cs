@@ -4,6 +4,7 @@ namespace IotEdgeQuickstart.Details
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
@@ -20,6 +21,8 @@ namespace IotEdgeQuickstart.Details
     public class Details
     {
         public readonly Option<string> DeploymentFileName;
+
+        public readonly Option<string> TwinTestFileName;
 
         const string DeployJson = @"
 {
@@ -138,6 +141,7 @@ namespace IotEdgeQuickstart.Details
             string deviceId,
             string hostname,
             Option<string> deploymentFileName,
+            Option<string> twinTestFileName,
             string deviceCaCert,
             string deviceCaPk,
             string deviceCaCerts,
@@ -172,6 +176,7 @@ namespace IotEdgeQuickstart.Details
             this.deviceId = deviceId;
             this.hostname = hostname;
             this.DeploymentFileName = deploymentFileName;
+            this.TwinTestFileName = twinTestFileName;
             this.deviceCaCert = deviceCaCert;
             this.deviceCaPk = deviceCaPk;
             this.deviceCaCerts = deviceCaCerts;
@@ -332,6 +337,46 @@ namespace IotEdgeQuickstart.Details
             Console.WriteLine("VerifyDataOnIoTHub completed.");
             await eventHubReceiver.CloseAsync();
             await eventHubClient.CloseAsync();
+        }
+
+        protected async Task VerifyTwinAsync()
+        {
+            await this.TwinTestFileName.ForEachAsync(
+                async fileName =>
+                {
+                    string twinTestJson = File.ReadAllText(fileName);
+
+                    var twinTest = JsonConvert.DeserializeObject<TwinTestConfiguration>(twinTestJson);
+
+                    Twin currentTwin = await this.context.RegistryManager.GetTwinAsync(this.context.Device.Id, twinTest.ModuleId);
+
+                    if (twinTest.Properties?.Desired?.Count > 0)
+                    {
+                        // Build Patch Object.
+                        string patch = JsonConvert.SerializeObject(twinTest, Formatting.Indented);
+                        await this.context.RegistryManager.UpdateTwinAsync(this.context.Device.Id, twinTest.ModuleId, patch, currentTwin.ETag);
+                    }
+
+                    if (twinTest.Properties?.Reported?.Count > 0)
+                    {
+                        TimeSpan retryInterval = TimeSpan.FromSeconds(10);
+                        bool IsValid(TwinCollection currentTwinReportedProperty) => twinTest.Properties.Reported.Cast<KeyValuePair<string, object>>().All(p => currentTwinReportedProperty.Cast<KeyValuePair<string, object>>().Contains(p));
+
+                        using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20)))
+                        {
+                            async Task<TwinCollection> Func()
+                            {
+                                // Removing reSharper warning for CTS, Code Block will never exit before the delegate code completes because of using.
+                                // ReSharper disable AccessToDisposedClosure
+                                currentTwin = await this.context.RegistryManager.GetTwinAsync(this.context.Device.Id, twinTest.ModuleId, cts.Token);
+                                // ReSharper restore AccessToDisposedClosure
+                                return await Task.FromResult(currentTwin.Properties.Reported);
+                            }
+
+                            await Retry.Do(Func, IsValid, null, retryInterval, cts.Token);
+                        }
+                    }
+                });
         }
 
         protected Task RemoveTempSensorFromEdgeDevice()

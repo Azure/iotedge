@@ -75,9 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string NetworkIdKey = "NetworkId";
 
-        public const string EdgeletWorkloadApiVersion = "2018-06-28";
-
-        public const string EdgeletManagementApiVersion = "2018-06-28";
+        public const string EdgeletClientApiVersion = "2019-01-30";
 
         public const string EdgeletInitializationVectorFileName = "IOTEDGE_BACKUP_IV";
 
