@@ -1,11 +1,14 @@
 <#
     .SYNOPSIS
-        It is used to streamline running E2E tests for Windows.
+        Powershell utility to streamline running E2E tests for Windows.
 
     .DESCRIPTION
         It is used to wrap all related steps to run E2E tests for Windows;
         it runs clean up, E2E test of given name, and print logs.
-
+    
+        To get details about parameters, please run "Get-Help .\Run-E2ETest.ps1 -Parameter *"
+        To find out what E2E tests are supported, just run "Get-Help .\Run-E2ETest.ps1 -Parameter TestName"
+        
         Please ensure that E2E test folder have below folders/files:
         - artifacts\core-windows: artifact from Image build.
         - artifacts\iotedged-windows: artifact from edgelet build.
@@ -28,7 +31,7 @@
 
     .PARAMETER TestName
         Name of E2E test to be run
-        Note: Valid values are: "TempSensor", "TempFilter".
+        Note: Valid values are: "TempSensor", "TempFilter", "QuickstartCerts", "TransparentGateway".
 
     .PARAMETER ContainerRegistryUserName
         Username of container registry
@@ -66,7 +69,7 @@ Param (
     [ValidateSet("x64", "arm32v7")]
     [string] $Architecture = $(Throw "Architecture is required"),
 
-    [ValidateSet("TempSensor", "TempFilter")]
+    [ValidateSet("TempSensor", "TempFilter", "QuickstartCerts", "TransparentGateway")]
     [string] $TestName = $(Throw "Test name is required"),
 
     [ValidateNotNullOrEmpty()]
@@ -97,7 +100,7 @@ Function AppendInstallationOption([string] $testCommand)
 
 Function CleanUp
 {
-    WriteHeading "Test Clean Up"
+    PrintHighlightedMessage "Test Clean Up"
     Write-Host "Do IoT Edge Moby system prune"
 
     Try 
@@ -133,26 +136,14 @@ Function GetImageArchitectureLabel
 
 Function InitializeWorkingFolder
 {
-    Write-Host "Prepare $TestWorkingFolder for test run"
+    PrintHighlightedMessage "Prepare $TestWorkingFolder for test run"
     Remove-Item $TestWorkingFolder -Force -Recurse -ErrorAction SilentlyContinue
 }
 
 Function PrepareTestFromArtifacts
 {
-    Write-Host "Copy files to $TestWorkingFolder"
+    PrintHighlightedMessage "Copy files to $TestWorkingFolder"
     Copy-Item $IoTEdgeQuickstartArtifactFolder -Destination $QuickstartWorkingFolder -Recurse -Force
-
-    If ($TestName -eq "TempFilter")
-    {
-        $ImageArchitectureLabel = $(GetImageArchitectureLabel)
-        Copy-Item $ModuleToModuleDeploymentArtifactsFilePath -Destination $ModuleToModuleDeploymentWorkingFilePath -Force
-        (Get-Content $ModuleToModuleDeploymentWorkingFilePath).replace('<Architecture>',$ImageArchitectureLabel) | Set-Content $ModuleToModuleDeploymentWorkingFilePath
-        (Get-Content $ModuleToModuleDeploymentWorkingFilePath).replace('<OptimizeForPerformance>','true') | Set-Content $ModuleToModuleDeploymentWorkingFilePath
-        (Get-Content $ModuleToModuleDeploymentWorkingFilePath).replace('<Build.BuildNumber>',$ReleaseArtifactImageBuildNumber) | Set-Content $ModuleToModuleDeploymentWorkingFilePath
-        (Get-Content $ModuleToModuleDeploymentWorkingFilePath).replace('<CR.Username>',$ContainerRegistryUsername) | Set-Content $ModuleToModuleDeploymentWorkingFilePath
-        (Get-Content $ModuleToModuleDeploymentWorkingFilePath).replace('<CR.Password>',$ContainerRegistryPassword) | Set-Content $ModuleToModuleDeploymentWorkingFilePath
-        (Get-Content $ModuleToModuleDeploymentWorkingFilePath).replace('-linux-','-windows-') | Set-Content $ModuleToModuleDeploymentWorkingFilePath
-    }
 
     If (Test-Path $PackagesArtifactFolder -PathType Container)
     {
@@ -168,11 +159,38 @@ Function PrepareTestFromArtifacts
     {
         Throw "Package and iotedged artifact folder doesn't exist"
     }
+
+    If (($TestName -eq "QuickstartCerts") -Or ($TestName -eq "TransparentGateway"))
+    {
+        Copy-Item $LeafDeviceArtifactFolder -Destination $LeafDeviceWorkingFolder -Recurse -Force
+    }
+
+    If ($TestName -eq "TempFilter")
+    {
+        $ImageArchitectureLabel = $(GetImageArchitectureLabel)
+        Copy-Item $ModuleToModuleDeploymentArtifactsFilePath -Destination $ModuleToModuleDeploymentWorkingFilePath -Force
+        (Get-Content $ModuleToModuleDeploymentWorkingFilePath).replace('<Architecture>',$ImageArchitectureLabel) | Set-Content $ModuleToModuleDeploymentWorkingFilePath
+        (Get-Content $ModuleToModuleDeploymentWorkingFilePath).replace('<OptimizeForPerformance>','true') | Set-Content $ModuleToModuleDeploymentWorkingFilePath
+        (Get-Content $ModuleToModuleDeploymentWorkingFilePath).replace('<Build.BuildNumber>',$ReleaseArtifactImageBuildNumber) | Set-Content $ModuleToModuleDeploymentWorkingFilePath
+        (Get-Content $ModuleToModuleDeploymentWorkingFilePath).replace('<CR.Username>',$ContainerRegistryUsername) | Set-Content $ModuleToModuleDeploymentWorkingFilePath
+        (Get-Content $ModuleToModuleDeploymentWorkingFilePath).replace('<CR.Password>',$ContainerRegistryPassword) | Set-Content $ModuleToModuleDeploymentWorkingFilePath
+        (Get-Content $ModuleToModuleDeploymentWorkingFilePath).replace('-linux-','-windows-') | Set-Content $ModuleToModuleDeploymentWorkingFilePath
+    }
 }
 
 Function PrintLogs
 {
-    Param ([Datetime] $testStartTime)
+    Param (
+        [Datetime] $testStartTime,
+        [int] $testExitCode
+        )
+
+    PrintHighlightedMessage "Test completed at $(Get-Date)"
+
+    If ($testExitCode -eq 0)
+    {
+        Return
+    }
 
     # Need to use Get-WinEvent, since Get-EventLog is not supported in Windows IoT Core ARM
     Get-WinEvent -ea SilentlyContinue `
@@ -204,7 +222,8 @@ Function PrintLogs
         Write-Host "Exception caught when output Edge Hub logs"
     }
 
-    if ($TestName -eq "TempSensor")
+    if (($TestName -eq "TempSensor") -Or `
+        ($TestName -eq "TempFilter"))
     {
         Try
         {
@@ -216,16 +235,67 @@ Function PrintLogs
             Write-Host "Exception caught when output Temp Sensor logs"
         }
     }
+
+    if ($TestName -eq "TempFilter")
+    {
+        Try {
+            Write-Host "TEMP FILTER LOGS"
+    I       nvoke-Expression "$dockerCmd logs tempFilter"
+        }
+        Catch
+        {
+            Write-Host "Cannot output Temp Filter logs"
+        }
+    }
+}
+
+Function RunQuickstartCertsTest
+{
+    PrintHighlightedMessage "Run Quickstart Certs test"
+    TestSetup
+
+    $testStartAt = Get-Date
+    $deviceId = "e2e-${ReleaseLabel}-Windows-QuickstartCerts"
+    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt"
+
+    $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
+        -d `"$deviceId`" ``
+        -c `"$IoTHubConnectionString`" ``
+        -e `"doesNotNeed`" ``
+        -n `"$env:computername`" ``
+        -r `"edgebuilds.azurecr.io`" ``
+        -u `"$ContainerRegistryUsername`" ``
+        -p `"$ContainerRegistryPassword`" --optimize_for_performance true ``
+        -t `"${ReleaseArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
+        --leave-running=Core ``
+        --no-verify"
+    $testCommand = AppendInstallationOption($testCommand)
+    Invoke-Expression $testCommand
+
+    $caCertPath = (Get-ChildItem C:\ProgramData\iotedge\hsm\certs\edge_owner_ca*.pem | Select -First 1).FullName
+    Write-Host "CA certificate path=$caCertPath"
+
+    Write-Host "Run LeafDevice"
+    &$LeafDeviceExeTestPath `
+        -d "${deviceId}-leaf" `
+        -c "$IoTHubConnectionString" `
+        -e "$EventHubConnectionString" `
+        -ct "$caCertPath" `
+        -ed "$env:computername"
+    $testExitCode = $lastExitCode
+    
+    PrintLogs $testStartAt, $testExitCode
+    exit $testExitCode
 }
 
 Function RunTempFilterTest
 {
-    WriteHeading "Run TempFilter test"
+    PrintHighlightedMessage "Run TempFilter test"
     TestSetup
 
     $testStartAt = Get-Date
     $deviceId = "e2e-${ReleaseLabel}-Windows-tempFilter"
-    Write-Host "Run quickstart test with -d ""$deviceId"" and deployment file $ModuleToModuleDeploymentWorkingFilePath."
+    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" and deployment file $ModuleToModuleDeploymentWorkingFilePath started at $testStartAt"
     
     $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
             -d `"$deviceId`" ``
@@ -237,21 +307,21 @@ Function RunTempFilterTest
             -t `"${ReleaseArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             -l `"$ModuleToModuleDeploymentWorkingFilePath`""
     $testCommand = AppendInstallationOption($testCommand)
-
     Invoke-Expression $testCommand
     $testExitCode = $lastExitCode
-    PrintLogs($testStartAt)
-    exit $testExitCode    
+
+    PrintLogs $testStartAt, $testExitCode
+    exit $testExitCode
 }
 
 Function RunTempSensorTest
 {
-    WriteHeading "Run TempSensor test"
+    PrintHighlightedMessage "Run TempSensor test"
     TestSetup
 
     $testStartAt = Get-Date
     $deviceId = "e2e-${ReleaseLabel}-Windows-tempSensor"
-    Write-Host "Run quickstart test with -d ""$deviceId""."
+    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt."
 
     $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
         -d `"$deviceId`" ``
@@ -262,19 +332,60 @@ Function RunTempSensorTest
         -p `"$ContainerRegistryPassword`" --optimize_for_performance true ``
         -t `"${ReleaseArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`""
     $testCommand = AppendInstallationOption($testCommand)
-
     Invoke-Expression $testCommand
     $testExitCode = $lastExitCode
-    PrintLogs($testStartAt)
-    exit $testExitCode    
+
+    PrintLogs $testStartAt, $testExitCode
+    exit $testExitCode
+}
+
+Function RunTransparentGatewayTest
+{
+    PrintHighlightedMessage "Run Transparent Gateway test"
+    TestSetup
+
+    $testStartAt = Get-Date
+    $deviceId = "e2e-${ReleaseLabel}-Windows-QuickstartCerts"
+    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt."
+
+    $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
+        -d `"$deviceId`" ``
+        -c `"$IoTHubConnectionString`" ``
+        -e `"doesNotNeed`" ``
+        -n `"$env:computername`" ``
+        -r `"edgebuilds.azurecr.io`" ``
+        -u `"$ContainerRegistryUsername`" ``
+        -p `"$ContainerRegistryPassword`" --optimize_for_performance true ``
+        -t `"${ReleaseArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
+        --leave-running=Core ``
+        --no-verify ``
+        --device_ca_cert `"$DeviceCACertificatePath`" ``
+        --device_ca_pk `"$DeviceCAPrimaryKeyPath`" ``
+        --trusted_ca_certs `"$TrustedCACertificatePath`""
+    $testCommand = AppendInstallationOption($testCommand)
+    Invoke-Expression $testCommand
+
+    Write-Host "Run LeafDevice"
+    &$LeafDeviceExeTestPath `
+        -d "${deviceId}-leaf" `
+        -c "$IoTHubConnectionString" `
+        -e "$EventHubConnectionString" `
+        -ct "$TrustedCACertificatePath" `
+        -ed "$env:computername"
+    $testExitCode = $lastExitCode
+    
+    PrintLogs $testStartAt, $testExitCode
+    exit $testExitCode
 }
 
 Function RunTest
 {
     Switch ($TestName)
     {
+        "QuickstartCerts" { RunQuickstartCertsTest; break }
         "TempSensor" { RunTempSensorTest; break }
         "TempFilter" { RunTempFilterTest; break }
+        "TransparentGateway" { RunTransparentGatewayTest; break }
 		default { Throw "$TestName test is not supported." }
     }
 }
@@ -288,12 +399,33 @@ Function TestSetup
 
 Function ValidateE2ETestParameters
 {
-    WriteHeading "Validate E2E test parameters"
+    PrintHighlightedMessage "Validate E2E test parameters"
+
+    If (-Not((Test-Path (Join-Path $IoTEdgedArtifactFolder "*")) -Or (Test-Path (Join-Path $PackagesArtifactFolder "*"))))
+    {
+        Throw "Either $IoTEdgedArtifactFolder or $PackagesArtifactFolder should exist"
+    }
 
     $validatingItems = @(
         (Join-Path $IoTEdgeQuickstartArtifactFolder "*"),
-        (Join-Path $LeafDeviceArtifactFolder "*"),
         $InstallationScriptPath)
+
+    If ($TestName -eq "QuickstartCerts")
+    {
+        $validatingItems += (Join-Path $LeafDeviceArtifactFolder "*")
+    }
+
+    If ($TestName -eq "TempFilter")
+    {
+        $validatingItems += $ModuleToModuleDeploymentArtifactsFilePath
+    }
+
+    If ($TestName -eq "TransparentGateway")
+    {
+        $validatingItems += $DeviceCACertificatePath
+        $validatingItems += $DeviceCAPrimaryKeyPath
+        $validatingItems += $TrustedCACertificatePath
+    }
 
     $validatingItems | ForEach-Object {
         If (-Not (Test-Path $_))
@@ -301,14 +433,9 @@ Function ValidateE2ETestParameters
             Throw "$_ is not found or it is empty"
         }
     }
-
-    If (-Not((Test-Path (Join-Path $IoTEdgedArtifactFolder "*")) -Or (Test-Path (Join-Path $PackagesArtifactFolder "*"))))
-    {
-        Throw "Either $IoTEdgedArtifactFolder or $PackagesArtifactFolder should exist"
-    }
 }
 
-Function WriteHeading
+Function PrintHighlightedMessage
 {
     param ([string] $heading)
 
@@ -328,10 +455,17 @@ $ModuleToModuleDeploymentArtifactsFilePath = Join-Path $DeploymentFilesFolder $M
 
 $TestWorkingFolder = Join-Path $E2ETestFolder "working"
 $QuickstartWorkingFolder = (Join-Path $TestWorkingFolder "quickstart")
+$LeafDeviceWorkingFolder = (Join-Path $TestWorkingFolder "leafdevice")
 $IoTEdgedWorkingFolder = (Join-Path $TestWorkingFolder "iotedged")
 $PackagesWorkingFolder = (Join-Path $TestWorkingFolder "packages")
 $IoTEdgeQuickstartExeTestPath = (Join-Path $QuickstartWorkingFolder "IotEdgeQuickstart.exe")
+$LeafDeviceExeTestPath = (Join-Path $LeafDeviceWorkingFolder "LeafDevice.exe")
 $ModuleToModuleDeploymentWorkingFilePath = Join-Path $QuickstartWorkingFolder $ModuleToModuleDeploymentFilename
 
+$DeviceCACertificatePath = (Join-Path $E2ETestFolder "certs\new-edge-device-full-chain.cert.pem")
+$DeviceCAPrimaryKeyPath = (Join-Path $E2ETestFolder "certs\private\new-edge-device.key.pem")
+$TrustedCACertificatePath = (Join-Path $E2ETestFolder "certs\azure-iot-test-only.root.ca.cert.pem")
+
 ValidateE2ETestParameters
+&$InstallationScriptPath
 RunTest
