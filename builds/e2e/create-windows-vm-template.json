@@ -125,7 +125,7 @@
         ]
     }, {
         "type": "Microsoft.Compute/virtualMachines/extensions",
-        "name": "[concat(parameters('vm_name'), '/', 'init-runner')]",
+        "name": "[concat(parameters('vm_name'), '/', 'setup')]",
         "apiVersion": "2018-06-01",
         "location": "[resourceGroup().location]",
         "properties": {

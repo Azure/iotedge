@@ -462,7 +462,7 @@
 				"contentVersion": "1.0.0.0",
 				"resources": [{
 					"type": "Microsoft.Compute/virtualMachines/extensions",
-					"name": "[concat(parameters('vsts_agent_vm_name'), '/', 'update-agent-known-hosts')]",
+					"name": "[concat(parameters('vsts_agent_vm_name'), '/', 'update-known-hosts')]",
 					"apiVersion": "2018-10-01",
 					"location": "[resourceGroup().location]",
 					"properties": {
