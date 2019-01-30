@@ -2,161 +2,65 @@
 namespace Microsoft.Azure.Devices.Edge.Util.Edged
 {
     using System;
-    using System.Net.Http;
-    using System.Text;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Util.Edged.GeneratedCode;
-    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
-    using Microsoft.Extensions.Logging;
 
     public class WorkloadClient
     {
-        static readonly ITransientErrorDetectionStrategy TransientErrorDetectionStrategy = new ErrorDetectionStrategy();
+        readonly WorkloadClientVersioned inner;
 
-        static readonly RetryStrategy TransientRetryStrategy =
-            new ExponentialBackoff(retryCount: 3, minBackoff: TimeSpan.FromSeconds(2), maxBackoff: TimeSpan.FromSeconds(30), deltaBackoff: TimeSpan.FromSeconds(3));
-
-        readonly Uri workloadUri;
-        readonly string apiVersion;
-        readonly string moduleId;
-        readonly string moduleGenerationId;
-
-        public WorkloadClient(Uri serverUri, string apiVersion, string moduleId, string moduleGenerationId)
+        public WorkloadClient(Uri serverUri, string serverSupportedApiVersion, string clientSupportedApiVersion, string moduleId, string moduleGenerationId)
         {
-            this.workloadUri = Preconditions.CheckNotNull(serverUri, nameof(serverUri));
-            this.apiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion));
-            this.moduleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
-            this.moduleGenerationId = Preconditions.CheckNonWhiteSpace(moduleGenerationId, nameof(moduleGenerationId));
+            Preconditions.CheckNotNull(serverUri, nameof(serverUri));
+            Preconditions.CheckNonWhiteSpace(serverSupportedApiVersion, nameof(serverSupportedApiVersion));
+            Preconditions.CheckNonWhiteSpace(clientSupportedApiVersion, nameof(clientSupportedApiVersion));
+            Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
+            Preconditions.CheckNonWhiteSpace(moduleGenerationId, nameof(moduleGenerationId));
+
+            this.inner = this.GetVersionedWorkloadClient(serverUri, serverSupportedApiVersion, clientSupportedApiVersion, moduleId, moduleGenerationId);
         }
 
-        public async Task<CertificateResponse> CreateServerCertificateAsync(string hostname, DateTime expiration)
-        {
-            var request = new ServerCertificateRequest
-            {
-                CommonName = hostname,
-                Expiration = expiration
-            };
+        public Task<ServerCertificateResponse> CreateServerCertificateAsync(string hostname, DateTime expiration) => this.inner.CreateServerCertificateAsync(hostname, expiration);
 
-            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.workloadUri))
+        public Task<string> GetTrustBundleAsync() => this.inner.GetTrustBundleAsync();
+
+        public Task<string> EncryptAsync(string initializationVector, string plainText) => this.inner.EncryptAsync(initializationVector, plainText);
+
+        public Task<string> DecryptAsync(string initializationVector, string encryptedText) => this.inner.DecryptAsync(initializationVector, encryptedText);
+
+        public Task<string> SignAsync(string keyId, string algorithm, string data) => this.inner.SignAsync(keyId, algorithm, data);
+
+        internal WorkloadClientVersioned GetVersionedWorkloadClient(Uri workloadUri, string serverSupportedApiVersion, string clientSupportedApiVersion, string moduleId, string moduleGenerationId)
+        {
+            ApiVersion supportedVersion = this.GetSupportedVersion(serverSupportedApiVersion, clientSupportedApiVersion);
+            if (supportedVersion == ApiVersion.Version20180628)
             {
-                var edgeletHttpClient = new HttpWorkloadClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.workloadUri) };
-                CertificateResponse result = await this.Execute(() => edgeletHttpClient.CreateServerCertificateAsync(this.apiVersion, this.moduleId, this.moduleGenerationId, request), "CreateServerCertificateAsync");
-                return result;
+                return new Version_2018_06_28.WorkloadClient(workloadUri, supportedVersion, moduleId, moduleGenerationId);
             }
+
+            if (supportedVersion == ApiVersion.Version20190130)
+            {
+                return new Version_2019_01_30.WorkloadClient(workloadUri, supportedVersion, moduleId, moduleGenerationId);
+            }
+
+            return new Version_2018_06_28.WorkloadClient(workloadUri, supportedVersion, moduleId, moduleGenerationId);
         }
 
-        public async Task<TrustBundleResponse> GetTrustBundleAsync()
+        ApiVersion GetSupportedVersion(string serverSupportedApiVersion, string clientSupportedApiVersion)
         {
-            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.workloadUri))
+            var serverVersion = ApiVersion.ParseVersion(serverSupportedApiVersion);
+            var clientVersion = ApiVersion.ParseVersion(clientSupportedApiVersion);
+
+            if (clientVersion == ApiVersion.VersionUnknown)
             {
-                var edgeletHttpClient = new HttpWorkloadClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.workloadUri) };
-                TrustBundleResponse result = await this.Execute(() => edgeletHttpClient.TrustBundleAsync(this.apiVersion), "TrustBundleAsync");
-                return result;
-            }
-        }
-
-        public async Task<string> EncryptAsync(string initializationVector, string plainText)
-        {
-            var request = new EncryptRequest
-            {
-                Plaintext = Encoding.UTF8.GetBytes(plainText),
-                InitializationVector = Encoding.UTF8.GetBytes(initializationVector)
-            };
-            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.workloadUri))
-            {
-                var edgeletHttpClient = new HttpWorkloadClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.workloadUri) };
-                EncryptResponse result = await this.Execute(() => edgeletHttpClient.EncryptAsync(this.apiVersion, this.moduleId, this.moduleGenerationId, request), "Encrypt");
-                return Convert.ToBase64String(result.Ciphertext);
-            }
-        }
-
-        public async Task<string> DecryptAsync(string initializationVector, string encryptedText)
-        {
-            var request = new DecryptRequest
-            {
-                Ciphertext = Convert.FromBase64String(encryptedText),
-                InitializationVector = Encoding.UTF8.GetBytes(initializationVector)
-            };
-            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.workloadUri))
-            {
-                var edgeletHttpClient = new HttpWorkloadClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.workloadUri) };
-                DecryptResponse result = await this.Execute(() => edgeletHttpClient.DecryptAsync(this.apiVersion, this.moduleId, this.moduleGenerationId, request), "Decrypt");
-                return Encoding.UTF8.GetString(result.Plaintext);
-            }
-        }
-
-        static Task<T> ExecuteWithRetry<T>(Func<Task<T>> func, Action<RetryingEventArgs> onRetry)
-        {
-            var transientRetryPolicy = new RetryPolicy(TransientErrorDetectionStrategy, TransientRetryStrategy);
-            transientRetryPolicy.Retrying += (_, args) => onRetry(args);
-            return transientRetryPolicy.ExecuteAsync(func);
-        }
-
-        async Task<T> Execute<T>(Func<Task<T>> func, string operation)
-        {
-            try
-            {
-                Events.ExecutingOperation(operation, this.workloadUri.ToString());
-                T result = await ExecuteWithRetry(func, r => Events.RetryingOperation(operation, this.workloadUri.ToString(), r));
-                Events.SuccessfullyExecutedOperation(operation, this.workloadUri.ToString());
-                return result;
-            }
-            catch (Exception ex)
-            {
-                switch (ex)
-                {
-                    case IoTEdgedException<ErrorResponse> errorResponseException:
-                        throw new WorkloadCommunicationException($"Error calling {operation}: {errorResponseException.Result?.Message ?? string.Empty}", errorResponseException.StatusCode);
-
-                    case IoTEdgedException swaggerException:
-                        if (swaggerException.StatusCode < 400)
-                        {
-                            Events.SuccessfullyExecutedOperation(operation, this.workloadUri.ToString());
-                            return default(T);
-                        }
-                        else
-                        {
-                            throw new WorkloadCommunicationException($"Error calling {operation}: {swaggerException.Response ?? string.Empty}", swaggerException.StatusCode);
-                        }
-
-                    default:
-                        throw;
-                }
-            }
-        }
-
-        class ErrorDetectionStrategy : ITransientErrorDetectionStrategy
-        {
-            public bool IsTransient(Exception ex) => ex is IoTEdgedException se
-                                                     && se.StatusCode >= 500;
-        }
-
-        static class Events
-        {
-            const int IdStart = UtilEventsIds.EdgeletWorkloadClient;
-            static readonly ILogger Log = Logger.Factory.CreateLogger<WorkloadClient>();
-
-            enum EventIds
-            {
-                ExecutingOperation = IdStart,
-                SuccessfullyExecutedOperation,
-                RetryingOperation
+                throw new InvalidOperationException("Client version is not supported.");
             }
 
-            internal static void RetryingOperation(string operation, string url, RetryingEventArgs r)
+            if (serverVersion == ApiVersion.VersionUnknown)
             {
-                Log.LogDebug((int)EventIds.RetryingOperation, $"Retrying Http call to {url} to {operation} because of error {r.LastException.Message}, retry count = {r.CurrentRetryCount}");
+                return clientVersion;
             }
 
-            internal static void ExecutingOperation(string operation, string url)
-            {
-                Log.LogDebug((int)EventIds.ExecutingOperation, $"Making a Http call to {url} to {operation}");
-            }
-
-            internal static void SuccessfullyExecutedOperation(string operation, string url)
-            {
-                Log.LogDebug((int)EventIds.SuccessfullyExecutedOperation, $"Received a valid Http response from {url} for {operation}");
-            }
+            return serverVersion.Value < clientVersion.Value ? serverVersion : clientVersion;
         }
     }
 }

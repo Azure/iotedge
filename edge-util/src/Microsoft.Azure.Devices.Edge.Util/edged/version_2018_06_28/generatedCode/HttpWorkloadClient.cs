@@ -6,7 +6,7 @@
 //----------------------
 // Note: Code manually changed to replace System.Uri.EscapeDataString with System.Net.WebUtility.UrlEncode
 
-namespace Microsoft.Azure.Devices.Edge.Util.Edged.GeneratedCode
+namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2018_06_28.GeneratedCode
 {
 #pragma warning disable // Disable all warnings
 
