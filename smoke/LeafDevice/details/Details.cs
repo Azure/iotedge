@@ -72,6 +72,15 @@ namespace LeafDevice.Details
                 this.eventHubClientTransportType = EventHubClientTransportType.Amqp;
                 this.deviceTransportSettings = new ITransportSettings[] { new MqttTransportSettings(DeviceClientTransportType.Mqtt_Tcp_Only) };
             }
+
+            Console.WriteLine(
+                $"Leaf Device Client: \n"
+                + $"\t[authType={this.authType}] \n"
+                + $"\t[clientCertificate subject name={this.clientCertificate.Match(c => c.SubjectName.ToString(), () => string.Empty)}] \n"
+                + $"\t[clientCertificateChain count={this.clientCertificateChain.Match(c => c.Count(), () => 0)}] \n"
+                + $"\t[service client transport type={this.serviceClientTransportType}]\n"
+                + $"\t[event hub client transport type={this.eventHubClientTransportType}]\n"
+                + $"\t[device transport type={this.deviceTransportSettings.First().GetTransportType()}]");
         }
 
         protected Task InitializeTrustedCertsAsync()
@@ -82,11 +91,12 @@ namespace LeafDevice.Details
                 // Therefore we will use CustomCertificateValidator instead.
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
-                    // This will hook up callback on device transport settings to validate with given certificate
+                    Console.WriteLine("Hook up callback on device transport settings to validate with given certificate");
                     CustomCertificateValidator.Create(new List<X509Certificate2> { this.GetTrustedCertificate() }, this.deviceTransportSettings);
                 }
                 else
                 {
+                    Console.WriteLine("Install trusted CA certificates");
                     InstallTrustedCACerts(new List<X509Certificate2> { this.GetTrustedCertificate() });
                 }
             }
@@ -105,6 +115,7 @@ namespace LeafDevice.Details
             if (this.authType == AuthenticationType.Sas)
             {
                 string leafDeviceConnectionString = $"HostName={builder.HostName};DeviceId={this.deviceId};SharedAccessKey={this.context.Device.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={this.edgeHostName}";
+                Console.WriteLine($"Leaf device connection string:{leafDeviceConnectionString}");
                 deviceClient = DeviceClient.CreateFromConnectionString(leafDeviceConnectionString, this.deviceTransportSettings);
             }
             else
@@ -118,7 +129,7 @@ namespace LeafDevice.Details
 
             var message = new Message(Encoding.ASCII.GetBytes($"Message from Leaf Device. Msg GUID: {this.context.MessageGuid}"));
             Console.WriteLine($"Trying to send the message to '{this.edgeHostName}'");
-
+            await deviceClient.OpenAsync();
             await deviceClient.SendEventAsync(message);
             Console.WriteLine("Message Sent.");
             await deviceClient.SetMethodHandlerAsync("DirectMethod", DirectMethod, null).ConfigureAwait(false);

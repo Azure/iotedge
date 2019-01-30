@@ -223,7 +223,7 @@ namespace IotEdgeQuickstart.Details
                     if (iotedgeService.Status != ServiceControllerStatus.Stopped)
                     {
                         iotedgeService.Stop();
-                        iotedgeService.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromMinutes(2));
+                        iotedgeService.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromMinutes(5));
                         iotedgeService.Refresh();
 
                         if (iotedgeService.Status != ServiceControllerStatus.Stopped)
