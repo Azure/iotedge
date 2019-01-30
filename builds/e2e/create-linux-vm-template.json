@@ -135,7 +135,7 @@
 			"typeHandlerVersion": "2.0",
 			"autoUpgradeMinorVersion": true,
 			"settings": {
-				"commandToExecute": "[parameters('command_to_execute')]"
+				"commandToExecute": "[parameters('extension_command')]"
 			},
 			"protectedSettings": {}
 		},
