@@ -284,7 +284,7 @@ Function RunQuickstartCertsTest
         -ed "$env:computername"
     $testExitCode = $lastExitCode
     
-    PrintLogs $testStartAt, $testExitCode
+    PrintLogs $testStartAt $testExitCode
     exit $testExitCode
 }
 
@@ -310,7 +310,7 @@ Function RunTempFilterTest
     Invoke-Expression $testCommand
     $testExitCode = $lastExitCode
 
-    PrintLogs $testStartAt, $testExitCode
+    PrintLogs $testStartAt $testExitCode
     exit $testExitCode
 }
 
@@ -335,7 +335,7 @@ Function RunTempSensorTest
     Invoke-Expression $testCommand
     $testExitCode = $lastExitCode
 
-    PrintLogs $testStartAt, $testExitCode
+    PrintLogs $testStartAt $testExitCode
     exit $testExitCode
 }
 
@@ -374,7 +374,7 @@ Function RunTransparentGatewayTest
         -ed "$env:computername"
     $testExitCode = $lastExitCode
     
-    PrintLogs $testStartAt, $testExitCode
+    PrintLogs $testStartAt $testExitCode
     exit $testExitCode
 }
 
