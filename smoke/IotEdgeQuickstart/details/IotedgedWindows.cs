@@ -14,7 +14,7 @@ namespace IotEdgeQuickstart.Details
     class IotedgedWindows : IBootstrapper
     {
         const string ConfigYamlFile = @"C:\ProgramData\iotedge\config.yaml";
-        
+
         readonly string archivePath;
         readonly Option<RegistryCredentials> credentials;
         readonly TimeSpan iotEdgeServiceOperationWaitTime = TimeSpan.FromMinutes(5);
