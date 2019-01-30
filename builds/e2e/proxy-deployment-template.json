@@ -342,8 +342,8 @@
 				"nic_name": {
 					"value": "[parameters('vsts_agent_vm_network_interface_name')]"
 				},
-				"nsg_resource_id": {
-					"value": "[resourceId(resourceGroup().name, 'Microsoft.Network/networkSecurityGroups', parameters('vsts_agent_vm_nsg_name'))]"
+				"nsg_id": {
+					"value": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('vsts_agent_vm_nsg_name'))]"
 				},
 				"ssh_public_key": {
 					"value": "[parameters('vms_ssh_public_key')]"
@@ -354,8 +354,8 @@
 				"vm_size": {
 					"value": "[parameters('vsts_agent_vm_size')]"
 				},
-				"vnet_subnet_resource_id": {
-					"value": "[resourceId(resourceGroup().name, 'Microsoft.Network/virtualNetworks/subnets', parameters('vms_vnet_name'), parameters('vms_vnet_subnet_name'))]"
+				"vnet_subnet_id": {
+					"value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vms_vnet_name'), parameters('vms_vnet_subnet_name'))]"
 				},
 				"public_ip_addr": {
 					"value": "[parameters('vsts_agent_vm_public_ip_name')]"
@@ -385,8 +385,8 @@
 				"nic_name": {
 					"value": "[parameters('vsts_runner1_vm_network_interface_name')]"
 				},
-				"nsg_resource_id": {
-					"value": "[resourceId(resourceGroup().name, 'Microsoft.Network/networkSecurityGroups', parameters('vsts_runner_vms_nsg_name'))]"
+				"nsg_id": {
+					"value": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('vsts_runner_vms_nsg_name'))]"
 				},
 				"ssh_public_key": {
 					"value": "[parameters('vms_ssh_public_key')]"
@@ -397,8 +397,8 @@
 				"vm_size": {
 					"value": "[parameters('vsts_runner1_vm_size')]"
 				},
-				"vnet_subnet_resource_id": {
-					"value": "[resourceId(resourceGroup().name, 'Microsoft.Network/virtualNetworks/subnets', parameters('vms_vnet_name'), parameters('vms_vnet_subnet_name'))]"
+				"vnet_subnet_id": {
+					"value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vms_vnet_name'), parameters('vms_vnet_subnet_name'))]"
 				}
 			}
 		},
@@ -429,8 +429,8 @@
 				"nic_name": {
 					"value": "[parameters('vsts_runner2_vm_network_interface_name')]"
 				},
-				"nsg_resource_id": {
-					"value": "[resourceId(resourceGroup().name, 'Microsoft.Network/networkSecurityGroups', parameters('vsts_runner_vms_nsg_name'))]"
+				"nsg_id": {
+					"value": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('vsts_runner_vms_nsg_name'))]"
 				},
 				"ssh_public_key": {
 					"value": "[parameters('vms_ssh_public_key')]"
@@ -441,8 +441,8 @@
 				"vm_size": {
 					"value": "[parameters('vsts_runner2_vm_size')]"
 				},
-				"vnet_subnet_resource_id": {
-					"value": "[resourceId(resourceGroup().name, 'Microsoft.Network/virtualNetworks/subnets', parameters('vms_vnet_name'), parameters('vms_vnet_subnet_name'))]"
+				"vnet_subnet_id": {
+					"value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vms_vnet_name'), parameters('vms_vnet_subnet_name'))]"
 				}
 			}
 		},
