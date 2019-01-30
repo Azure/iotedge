@@ -14,9 +14,10 @@ namespace IotEdgeQuickstart.Details
     class IotedgedWindows : IBootstrapper
     {
         const string ConfigYamlFile = @"C:\ProgramData\iotedge\config.yaml";
-
+        
         readonly string archivePath;
         readonly Option<RegistryCredentials> credentials;
+        readonly TimeSpan iotEdgeServiceOperationWaitTime = TimeSpan.FromMinutes(5);
         readonly string offlineInstallationPath;
         readonly Option<string> proxy;
         string scriptDir;
@@ -185,7 +186,7 @@ namespace IotEdgeQuickstart.Details
                 if (iotedgeService.Status != ServiceControllerStatus.Running)
                 {
                     iotedgeService.Start();
-                    iotedgeService.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromMinutes(2));
+                    iotedgeService.WaitForStatus(ServiceControllerStatus.Running, this.iotEdgeServiceOperationWaitTime);
                     iotedgeService.Refresh();
 
                     if (iotedgeService.Status != ServiceControllerStatus.Running)
@@ -223,7 +224,7 @@ namespace IotEdgeQuickstart.Details
                     if (iotedgeService.Status != ServiceControllerStatus.Stopped)
                     {
                         iotedgeService.Stop();
-                        iotedgeService.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromMinutes(5));
+                        iotedgeService.WaitForStatus(ServiceControllerStatus.Stopped, this.iotEdgeServiceOperationWaitTime);
                         iotedgeService.Refresh();
 
                         if (iotedgeService.Status != ServiceControllerStatus.Stopped)

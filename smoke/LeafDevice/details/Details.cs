@@ -115,7 +115,6 @@ namespace LeafDevice.Details
             if (this.authType == AuthenticationType.Sas)
             {
                 string leafDeviceConnectionString = $"HostName={builder.HostName};DeviceId={this.deviceId};SharedAccessKey={this.context.Device.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={this.edgeHostName}";
-                Console.WriteLine($"Leaf device connection string:{leafDeviceConnectionString}");
                 deviceClient = DeviceClient.CreateFromConnectionString(leafDeviceConnectionString, this.deviceTransportSettings);
             }
             else
@@ -129,7 +128,7 @@ namespace LeafDevice.Details
 
             var message = new Message(Encoding.ASCII.GetBytes($"Message from Leaf Device. Msg GUID: {this.context.MessageGuid}"));
             Console.WriteLine($"Trying to send the message to '{this.edgeHostName}'");
-            await deviceClient.OpenAsync();
+
             await deviceClient.SendEventAsync(message);
             Console.WriteLine("Message Sent.");
             await deviceClient.SetMethodHandlerAsync("DirectMethod", DirectMethod, null).ConfigureAwait(false);
