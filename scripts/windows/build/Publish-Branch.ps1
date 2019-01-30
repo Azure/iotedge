@@ -74,6 +74,8 @@ $SRC_BIN_DIR = Join-Path $BuildRepositoryLocalPath "bin"
 $PUB_BIN_DIR = Join-Path $PUBLISH_FOLDER "bin"
 $SRC_E2E_TEMPLATES_DIR = Join-Path $BuildRepositoryLocalPath "e2e_deployment_files"
 $PUB_E2E_TEMPLATES_DIR = Join-Path $PUBLISH_FOLDER "e2e_deployment_files"
+$SRC_E2E_TEST_FILES_DIR = Join-Path $BuildRepositoryLocalPath "e2e_test_files"
+$PUB_E2E_TEST_FILES_DIR = Join-Path $PUBLISH_FOLDER "e2e_test_files"
 $TEST_SCRIPTS_DIR = Join-Path $RELEASE_TESTS_FOLDER "scripts"
 
 if (-not (Test-Path $DOTNET_PATH -PathType Leaf)) {
@@ -204,6 +206,9 @@ Copy-Item $SRC_BIN_DIR $PUB_BIN_DIR -Recurse -Force
 
 Write-Host "Copying $SRC_E2E_TEMPLATES_DIR"
 Copy-Item $SRC_E2E_TEMPLATES_DIR $PUB_E2E_TEMPLATES_DIR -Recurse -Force
+
+Write-Host "Copying $SRC_E2E_TEST_FILES_DIR"
+Copy-Item $SRC_E2E_TEST_FILES_DIR $PUB_E2E_TEST_FILES_DIR -Recurse -Force
 
 <#
  # Publish IoTEdgeQuickstart
