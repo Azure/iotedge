@@ -38,7 +38,9 @@
 		}
 	},
 	"variables": {
-		"public_ip_addr_resource_id": "[if(equals(parameters('ip_addr_name'), '!'), json('null'), resourceId('Microsoft.Network/publicIPAddresses', parameters('ip_addr_name')))]"
+        "ip_addr_id": {
+            "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('ip_addr_name'))]"
+        }
 	},
 	"resources": [{
 		"condition": "[not(equals(parameters('ip_addr_name'), '!'))]",
@@ -68,9 +70,7 @@
 						"id": "[parameters('vnet_subnet_id')]"
 					},
 					"privateIPAllocationMethod": "Dynamic",
-					"publicIPAddress": {
-						"id": "[variables('public_ip_addr_resource_id')]"
-					}
+                    "publicIPAddress": "[if(equals(parameters('ip_addr_name'), '!'), json('null'), variables('ip_addr_id'))]"
 				}
 			}],
 			"networkSecurityGroup": {
@@ -79,7 +79,7 @@
 			"primary": true
 		},
 		"dependsOn": [
-			"[variables('public_ip_addr_resource_id')]"
+			"[parameters('ip_addr_name')]"
 		]
 	}, {
 		"type": "Microsoft.Compute/virtualMachines",
