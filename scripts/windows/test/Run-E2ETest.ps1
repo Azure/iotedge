@@ -464,7 +464,7 @@ Function RunTransparentGatewayTest
     TestSetup
 
     $testStartAt = Get-Date
-    $deviceId = "e2e-${ReleaseLabel}-Windows-QuickstartCerts"
+    $deviceId = "e2e-${ReleaseLabel}-Windows-TransGW"
     PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt."
 
     $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
