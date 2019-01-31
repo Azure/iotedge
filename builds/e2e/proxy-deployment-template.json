@@ -357,7 +357,7 @@
 				"vnet_subnet_id": {
 					"value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vms_vnet_name'), parameters('vms_vnet_subnet_name'))]"
 				},
-				"public_ip_addr": {
+				"ip_addr_name": {
 					"value": "[parameters('vsts_agent_vm_public_ip_name')]"
 				}
 			}

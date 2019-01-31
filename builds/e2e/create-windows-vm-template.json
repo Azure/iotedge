@@ -29,18 +29,21 @@
 		"vnet_subnet_id": {
 			"type": "string"
 		},
-		"public_ip_addr": {
-			"defaultValue": "",
+		"ip_addr_name": {
+			"defaultValue": "!",
+			"metadata": {
+				"description": "The name of the Public IP Address resource to create. The default value is the string '!', which is an invalid Public IP Address name and signals that a Public IP Address resource will NOT be created."
+			},
 			"type": "string"
 		}
 	},
 	"variables": {
-		"public_ip_addr_resource_id": "[if(empty(parameters('public_ip_addr')), json('null'), resourceId('Microsoft.Network/publicIPAddresses', parameters('public_ip_addr')))]"
+		"public_ip_addr_resource_id": "[if(equals(parameters('ip_addr_name'), '!'), json('null'), resourceId('Microsoft.Network/publicIPAddresses', parameters('ip_addr_name')))]"
 	},
 	"resources": [{
-		"condition": "[not(empty(parameters('public_ip_addr')))]",
+		"condition": "[not(equals(parameters('ip_addr_name'), '!'))]",
 		"type": "Microsoft.Network/publicIPAddresses",
-		"name": "[parameters('public_ip_addr')]",
+		"name": "[parameters('ip_addr_name')]",
 		"apiVersion": "2018-02-01",
 		"sku": {
 			"name": "Basic",
