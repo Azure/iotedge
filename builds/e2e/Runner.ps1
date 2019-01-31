@@ -74,6 +74,7 @@ New-Module -ScriptBlock {
         Invoke-DscResource ProxySettings -Method Set -ModuleName NetworkingDsc -Property @{
             IsSingleInstance = "Yes"
             EnableManualProxy = $true
+            ProxyServerBypassLocal = $true
             ProxyServer = $proxyUri
         }
         # output settings to log
