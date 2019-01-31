@@ -187,22 +187,22 @@ Function PrepareTestFromArtifacts
         {
             "DirectMethodAmqp"
             {
-                Write-Host "Copy deployment file from $DirectMethodModuleToModuleDeploymentArtifactsFilePath"
-                Copy-Item $DirectMethodModuleToModuleDeploymentArtifactsFilePath -Destination $DeploymentWorkingFilePath -Force
+                Write-Host "Copy deployment file from $DirectMethodModuleToModuleDeploymentArtifactFilePath"
+                Copy-Item $DirectMethodModuleToModuleDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
                 (Get-Content $DeploymentWorkingFilePath).replace('<UpstreamProtocol>','Amqp') | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<ClientTransportType>','Amqp_Tcp_Only') | Set-Content $DeploymentWorkingFilePath
             }
             "DirectMethodMqtt"
             {
-                Write-Host "Copy deployment file from $DirectMethodModuleToModuleDeploymentArtifactsFilePath"
-                Copy-Item $DirectMethodModuleToModuleDeploymentArtifactsFilePath -Destination $DeploymentWorkingFilePath -Force
+                Write-Host "Copy deployment file from $DirectMethodModuleToModuleDeploymentArtifactFilePath"
+                Copy-Item $DirectMethodModuleToModuleDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
                 (Get-Content $DeploymentWorkingFilePath).replace('<UpstreamProtocol>','Mqtt') | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<ClientTransportType>','Mqtt_Tcp_Only') | Set-Content $DeploymentWorkingFilePath
             }
             "TempFilter"
             {
-                Write-Host "Copy deployment file from $ModuleToModuleDeploymentArtifactsFilePath"
-                Copy-Item $ModuleToModuleDeploymentArtifactsFilePath -Destination $DeploymentWorkingFilePath -Force
+                Write-Host "Copy deployment file from $ModuleToModuleDeploymentArtifactFilePath"
+                Copy-Item $ModuleToModuleDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
             }
         }
 
@@ -449,7 +449,8 @@ Function RunTempSensorTest
         -r `"edgebuilds.azurecr.io`" ``
         -u `"$ContainerRegistryUsername`" ``
         -p `"$ContainerRegistryPassword`" --optimize_for_performance true ``
-        -t `"${ReleaseArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`""
+        -t `"${ReleaseArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
+        -tw `"$TwinTestFileArtifactFilePath`""
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
     $testExitCode = $lastExitCode
@@ -537,6 +538,11 @@ Function ValidateE2ETestParameters
         (Join-Path $IoTEdgeQuickstartArtifactFolder "*"),
         $InstallationScriptPath)
 
+    If (($TestName -eq "DirectMethodAmqp") -Or ($TestName -eq "DirectMethodMqtt"))
+    {
+        $validatingItems += $DirectMethodModuleToModuleDeploymentArtifactFilePath
+    }
+
     If (($TestName -eq "QuickstartCerts") -Or ($TestName -eq "TransparentGateway"))
     {
         $validatingItems += (Join-Path $LeafDeviceArtifactFolder "*")
@@ -544,12 +550,12 @@ Function ValidateE2ETestParameters
 
     If ($TestName -eq "TempFilter")
     {
-        $validatingItems += $ModuleToModuleDeploymentArtifactsFilePath
+        $validatingItems += $ModuleToModuleDeploymentArtifactFilePath
     }
 
-    If (($TestName -eq "DirectMethodAmqp") -Or ($TestName -eq "DirectMethodMqtt"))
+    If ($TestName -eq "TempSensor")
     {
-        $validatingItems += $DirectMethodModuleToModuleDeploymentArtifactsFilePath
+        $validatingItems += $TwinTestFileArtifactFilePath
     }
 
     If ($TestName -eq "TransparentGateway")
@@ -579,14 +585,17 @@ $E2ETestFolder = (Resolve-Path $E2ETestFolder).Path
 $InstallationScriptPath = Join-Path $E2ETestFolder "artifacts\core-windows\scripts\windows\setup\IotEdgeSecurityDaemon.ps1"
 $ModuleToModuleDeploymentFilename = "module_to_module_deployment.template.json"
 $DirectMethodModuleToModuleDeploymentFilename = "dm_module_to_module_deployment.json"
+$TwinTestFilename = "twin_test_tempSensor.json"
 
 $IoTEdgeQuickstartArtifactFolder = Join-Path $E2ETestFolder "artifacts\core-windows\IoTEdgeQuickstart\$Architecture"
 $LeafDeviceArtifactFolder = Join-Path $E2ETestFolder "artifacts\core-windows\LeafDevice\$Architecture"
 $IoTEdgedArtifactFolder = Join-Path $E2ETestFolder "artifacts\iotedged-windows"
 $PackagesArtifactFolder = Join-Path $E2ETestFolder "artifacts\packages"
 $DeploymentFilesFolder = Join-Path $E2ETestFolder "artifacts\core-windows\e2e_deployment_files"
-$ModuleToModuleDeploymentArtifactsFilePath = Join-Path $DeploymentFilesFolder $ModuleToModuleDeploymentFilename
-$DirectMethodModuleToModuleDeploymentArtifactsFilePath = Join-Path $DeploymentFilesFolder $DirectMethodModuleToModuleDeploymentFilename
+$TestFileFolder = Join-Path $E2ETestFolder "artifacts\core-windows\e2e_test_files"
+$ModuleToModuleDeploymentArtifactFilePath = Join-Path $DeploymentFilesFolder $ModuleToModuleDeploymentFilename
+$TwinTestFileArtifactFilePath = Join-Path $TestFileFolder $TwinTestFilename
+$DirectMethodModuleToModuleDeploymentArtifactFilePath = Join-Path $DeploymentFilesFolder $DirectMethodModuleToModuleDeploymentFilename
 
 $TestWorkingFolder = Join-Path $E2ETestFolder "working"
 $QuickstartWorkingFolder = (Join-Path $TestWorkingFolder "quickstart")

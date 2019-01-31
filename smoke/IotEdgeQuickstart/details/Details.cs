@@ -344,6 +344,7 @@ namespace IotEdgeQuickstart.Details
             await this.TwinTestFileName.ForEachAsync(
                 async fileName =>
                 {
+                    Console.WriteLine($"VerifyTwinAsync for {fileName} started.");
                     string twinTestJson = File.ReadAllText(fileName);
 
                     var twinTest = JsonConvert.DeserializeObject<TwinTestConfiguration>(twinTestJson);
@@ -376,6 +377,8 @@ namespace IotEdgeQuickstart.Details
                             await Retry.Do(Func, IsValid, null, retryInterval, cts.Token);
                         }
                     }
+
+                    Console.WriteLine($"VerifyTwinAsync for {fileName} completed.");
                 });
         }
 
