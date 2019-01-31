@@ -120,7 +120,7 @@ Function CleanUp
 Function GetArchitecture
 {
     $processorArchitecture = $ENV:PROCESSOR_ARCHITECTURE
-    $Is64Bit = [Environment]::Is64BitOperatingSystem
+    $Is64Bit = if ((Get-CimInstance -ClassName win32_operatingsystem).OSArchitecture.StartsWith("64")) { $True } Else { $False }
     
     If ($processorArchitecture.StartsWith("AMD") -And $Is64Bit)
     {
