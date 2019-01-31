@@ -222,6 +222,8 @@ jobs:
         inputs:
           workingDirectory: 'edgelet/hsm-sys/azure-iot-hsm-c/build'
           cmakeArgs: '--build . --config Release'
+      - powershell: edgelet/build/windows/package.ps1
+        displayName: Package
       - task: CopyFiles@2
         displayName: 'Copy iotedged to Artifact Staging'
         inputs:
@@ -248,6 +250,12 @@ jobs:
         displayName: 'Copy config to Artifact Staging'
         inputs:
           SourceFolder: edgelet/contrib/config/windows
+          TargetFolder: '$(build.artifactstagingdirectory)'
+      - task: CopyFiles@2
+        displayName: 'Copy package to Artifact Staging'
+        inputs:
+          SourceFolder: .
+          Contents: *.cab
           TargetFolder: '$(build.artifactstagingdirectory)'
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifact: iotedged-windows'
