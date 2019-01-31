@@ -471,7 +471,7 @@
 						"typeHandlerVersion": "2.0",
 						"autoUpgradeMinorVersion": true,
 						"settings": {
-							"commandToExecute": "[concat('/bin/bash -c \"set -euo pipefail && curl ', variables('agent_finalize_script_uri'), ' | sudo bash -s -- ', parameters('vms_username'), ' ', parameters('vsts_runner1_vm_name'), ' ', reference('create_runner1_vm').outputs.hostkey.value, ' ', parameters('vsts_runner2_vm_name'), ' ', reference('create_runner2_vm').outputs.hostkey.value, '\"')]"
+							"commandToExecute": "[concat('/bin/bash -c \"set -euo pipefail && curl ', variables('agent_finalize_script_uri'), ' | sudo bash -s -- ', parameters('vms_username'), ' ', parameters('vsts_runner1_vm_name'), ' ', reference('create_runner1_vm').outputs.hostkey.value[0], ' ', parameters('vsts_runner2_vm_name'), ' ', reference('create_runner2_vm').outputs.hostkey.value[0], '\"')]"
 						},
 						"protectedSettings": {}
 					}

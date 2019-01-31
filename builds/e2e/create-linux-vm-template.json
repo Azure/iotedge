@@ -145,8 +145,8 @@
 	}],
 	"outputs": {
 		"hostkey": {
-			"value": "[split(string(reference(resourceId('Microsoft.Compute/virtualMachines/extensions', parameters('vm_name'), 'setup')).instanceView.statuses[0].message), '#DATA#')[1]]",
-			"type": "string"
+			"type": "array",
+			"value": "[take(skip(split(string(reference(resourceId('Microsoft.Compute/virtualMachines/extensions', parameters('vm_name'), 'setup')).instanceView.statuses[0].message), '#DATA#'), 1), 1)]"
 		}
 	}
 }
