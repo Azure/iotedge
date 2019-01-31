@@ -63,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Task setTask = sessionProvider.SetAsync(identity, sessionState);
 
             Assert.True(setTask.IsCompleted);
-            edgeHub.Verify(x => x.ProcessSubscription("d1", DeviceSubscription.Methods, false), Times.Once);
+            edgeHub.Verify(x => x.RemoveSubscription("d1", DeviceSubscription.Methods), Times.Once);
         }
 
         [Fact]

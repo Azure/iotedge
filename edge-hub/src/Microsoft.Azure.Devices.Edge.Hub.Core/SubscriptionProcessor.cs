@@ -48,20 +48,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             deviceConnectivityManager.DeviceConnected += this.DeviceConnected;
         }
 
-        public Task ProcessSubscription(string id, DeviceSubscription deviceSubscription, bool addSubscription)
+        public Task AddSubscription(string id, DeviceSubscription deviceSubscription)
         {
-            if (addSubscription)
-            {
-                Events.AddingSubscription(id, deviceSubscription);
-                this.connectionManager.AddSubscription(id, deviceSubscription);
-            }
-            else
-            {
-                Events.RemovingSubscription(id, deviceSubscription);
-                this.connectionManager.RemoveSubscription(id, deviceSubscription);
-            }
+            Events.AddingSubscription(id, deviceSubscription);
+            this.connectionManager.AddSubscription(id, deviceSubscription);
+            this.AddToPendingSubscriptions(id, new List<(DeviceSubscription, bool)> { (deviceSubscription, true) });
+            return Task.CompletedTask;
+        }
 
-            this.AddToPendingSubscriptions(id, new List<(DeviceSubscription, bool)> { (deviceSubscription, addSubscription) });
+        public Task RemoveSubscription(string id, DeviceSubscription deviceSubscription)
+        {
+            Events.RemovingSubscription(id, deviceSubscription);
+            this.connectionManager.RemoveSubscription(id, deviceSubscription);
+            this.AddToPendingSubscriptions(id, new List<(DeviceSubscription, bool)> { (deviceSubscription, false) });
             return Task.CompletedTask;
         }
 

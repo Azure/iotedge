@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             SubscriptionProcessor subscriptionProcessor = GetSubscriptionProcessor(connectionManager);
 
             // Act
-            await subscriptionProcessor.ProcessSubscription(id, DeviceSubscription.C2D, true);
+            await subscriptionProcessor.AddSubscription(id, DeviceSubscription.C2D);
 
             // Assert
             await Task.Delay(TimeSpan.FromSeconds(5));
@@ -50,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             subscriptionProcessor = GetSubscriptionProcessor(connectionManager);
 
             // Act
-            await subscriptionProcessor.ProcessSubscription(id, DeviceSubscription.C2D, false);
+            await subscriptionProcessor.RemoveSubscription(id, DeviceSubscription.C2D);
 
             // Assert
             await Task.Delay(TimeSpan.FromSeconds(5));
@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             SubscriptionProcessor subscriptionProcessor = GetSubscriptionProcessor(connectionManager);
 
             // Act
-            await subscriptionProcessor.ProcessSubscription(id, DeviceSubscription.DesiredPropertyUpdates, true);
+            await subscriptionProcessor.AddSubscription(id, DeviceSubscription.DesiredPropertyUpdates);
 
             // Assert
             await Task.Delay(TimeSpan.FromSeconds(5));
@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             subscriptionProcessor = GetSubscriptionProcessor(connectionManager);
 
             // Act
-            await subscriptionProcessor.ProcessSubscription(id, DeviceSubscription.DesiredPropertyUpdates, false);
+            await subscriptionProcessor.RemoveSubscription(id, DeviceSubscription.DesiredPropertyUpdates);
 
             // Assert
             await Task.Delay(TimeSpan.FromSeconds(5));
@@ -98,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             SubscriptionProcessor subscriptionProcessor = GetSubscriptionProcessor(connectionManager);
 
             // Act
-            await subscriptionProcessor.ProcessSubscription(id, DeviceSubscription.Methods, true);
+            await subscriptionProcessor.AddSubscription(id, DeviceSubscription.Methods);
 
             // Assert
             await Task.Delay(TimeSpan.FromSeconds(5));
@@ -110,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             subscriptionProcessor = GetSubscriptionProcessor(connectionManager);
 
             // Act
-            await subscriptionProcessor.ProcessSubscription(id, DeviceSubscription.Methods, false);
+            await subscriptionProcessor.RemoveSubscription(id, DeviceSubscription.Methods);
 
             // Assert
             await Task.Delay(TimeSpan.FromSeconds(5));
@@ -165,10 +165,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             SubscriptionProcessor subscriptionProcessor = GetSubscriptionProcessor(connectionManager.Object);
 
             // Act
-            await subscriptionProcessor.ProcessSubscription(id, DeviceSubscription.C2D, true);
-            await subscriptionProcessor.ProcessSubscription(id, DeviceSubscription.DesiredPropertyUpdates, true);
-            await subscriptionProcessor.ProcessSubscription(id, DeviceSubscription.Methods, true);
-            await subscriptionProcessor.ProcessSubscription(id, DeviceSubscription.TwinResponse, true);
+            await subscriptionProcessor.AddSubscription(id, DeviceSubscription.C2D);
+            await subscriptionProcessor.AddSubscription(id, DeviceSubscription.DesiredPropertyUpdates);
+            await subscriptionProcessor.AddSubscription(id, DeviceSubscription.Methods);
+            await subscriptionProcessor.AddSubscription(id, DeviceSubscription.TwinResponse);
 
             // Assert
             await Task.Delay(TimeSpan.FromSeconds(5));
@@ -186,9 +186,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             SubscriptionProcessor subscriptionProcessor = GetSubscriptionProcessor(connectionManager);
 
             // Act
-            await subscriptionProcessor.ProcessSubscription(id, DeviceSubscription.ModuleMessages, true);
-            await subscriptionProcessor.ProcessSubscription(id, DeviceSubscription.TwinResponse, true);
-            await subscriptionProcessor.ProcessSubscription(id, DeviceSubscription.Unknown, true);
+            await subscriptionProcessor.AddSubscription(id, DeviceSubscription.ModuleMessages);
+            await subscriptionProcessor.AddSubscription(id, DeviceSubscription.TwinResponse);
+            await subscriptionProcessor.AddSubscription(id, DeviceSubscription.Unknown);
 
             // Assert
             await Task.Delay(TimeSpan.FromSeconds(5));
@@ -199,9 +199,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             subscriptionProcessor = GetSubscriptionProcessor(connectionManager);
 
             // Act
-            await subscriptionProcessor.ProcessSubscription(id, DeviceSubscription.ModuleMessages, false);
-            await subscriptionProcessor.ProcessSubscription(id, DeviceSubscription.TwinResponse, false);
-            await subscriptionProcessor.ProcessSubscription(id, DeviceSubscription.Unknown, false);
+            await subscriptionProcessor.RemoveSubscription(id, DeviceSubscription.ModuleMessages);
+            await subscriptionProcessor.RemoveSubscription(id, DeviceSubscription.TwinResponse);
+            await subscriptionProcessor.RemoveSubscription(id, DeviceSubscription.Unknown);
 
             // Assert
             await Task.Delay(TimeSpan.FromSeconds(5));
@@ -223,7 +223,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var subscriptionProcessor = GetSubscriptionProcessor(connectionManager.Object);
 
             // Act
-            await subscriptionProcessor.ProcessSubscription(deviceId, DeviceSubscription.Methods, true);
+            await subscriptionProcessor.AddSubscription(deviceId, DeviceSubscription.Methods);
 
             // Assert
             await Task.Delay(TimeSpan.FromSeconds(5));
@@ -246,7 +246,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var subscriptionProcessor = GetSubscriptionProcessor(connectionManager.Object);
 
             // Act
-            await subscriptionProcessor.ProcessSubscription(deviceId, DeviceSubscription.Methods, true);
+            await subscriptionProcessor.AddSubscription(deviceId, DeviceSubscription.Methods);
 
             // Assert
             await Task.Delay(TimeSpan.FromSeconds(5));
@@ -269,7 +269,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var subscriptionProcessor = GetSubscriptionProcessor(connectionManager.Object);
 
             // Act
-            await subscriptionProcessor.ProcessSubscription(deviceId, DeviceSubscription.Methods, true);
+            await subscriptionProcessor.AddSubscription(deviceId, DeviceSubscription.Methods);
 
             // Assert
             await Task.Delay(TimeSpan.FromSeconds(5));
@@ -292,7 +292,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var subscriptionProcessor = GetSubscriptionProcessor(connectionManager.Object);
 
             // Act
-            await subscriptionProcessor.ProcessSubscription(deviceId, DeviceSubscription.Methods, true);
+            await subscriptionProcessor.AddSubscription(deviceId, DeviceSubscription.Methods);
 
             // Assert
             await Task.Delay(TimeSpan.FromSeconds(5));
