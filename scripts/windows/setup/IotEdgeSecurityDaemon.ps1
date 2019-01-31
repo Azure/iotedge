@@ -526,7 +526,7 @@ function Get-SecurityDaemon {
             $edgeArchivePath =
                 Download-File `
                     -Description 'IoT Edge security daemon' `
-                    -Url 'https://aka.ms/iotedged-windows-rc' `
+                    -Url 'https://aka.ms/iotedged-windows-latest' `
                     -DownloadFilename 'iotedged-windows.zip' `
                     -LocalCacheGlob '*iotedged-windows*' `
                     -Delete ([ref] $deleteEdgeArchive)
