@@ -67,8 +67,9 @@ New-Module -ScriptBlock {
         
         Write-Host 'Setting wininet proxy'
 
+        Register-PSRepository -Default -Proxy "$proxyUri"
         Set-PSRepository PSGallery -InstallationPolicy Trusted -Proxy $proxyUri
-        Install-Module NetworkingDsc -MinimumVersion 6.3 -AllowClobber -Force
+        Install-Module NetworkingDsc -MinimumVersion 6.3 -AllowClobber -Force -Proxy $proxyUri
         Invoke-DscResource ProxySettings -Method Set -ModuleName NetworkingDsc -Property @{
             IsSingleInstance = "Yes"
             EnableManualProxy = $true
