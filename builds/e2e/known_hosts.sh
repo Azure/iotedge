@@ -22,8 +22,8 @@ host_key_pair=( )
 ipaddr="$(getent hosts $1 | awk '{ print $1 }')"
 
 cat <<-EOF >> "$home/.ssh/known_hosts"
-$1, $ipaddr, $2
-$1.$suffix, $2
+$1,$ipaddr $2
+$1.$suffix $2
 EOF
 
 fi
