@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 {
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Commands;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands;
     using Microsoft.Azure.Devices.Edge.Util;
 
@@ -29,10 +30,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
                     this.combinedConfigProvider.GetCombinedConfig(module.Module, runtimeInfo)) as ICommand);
 
         public Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo) =>
-            this.UpdateAsync(next, runtimeInfo, false);
+            this.UpdateAsync(Option.Some(current), next, runtimeInfo, false);
 
         public Task<ICommand> UpdateEdgeAgentAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo) =>
-            this.UpdateAsync(module, runtimeInfo, true);
+            this.UpdateAsync(Option.None<IModule>(), module, runtimeInfo, true);
 
         public Task<ICommand> RemoveAsync(IModule module) => Task.FromResult(new RemoveCommand(this.moduleManager, module) as ICommand);
 
@@ -44,14 +45,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         public Task<ICommand> WrapAsync(ICommand command) => Task.FromResult(command);
 
-        Task<ICommand> UpdateAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo, bool start) =>
-            Task.FromResult(
+        async Task<ICommand> UpdateAsync(Option<IModule> current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo, bool start)
+        {
+            T config = this.combinedConfigProvider.GetCombinedConfig(next.Module, runtimeInfo);
+            return new GroupCommand(
+                new PrepareUpdateCommand(this.moduleManager, next.Module, config),
+                await current.Match(c => this.StopAsync(c), () => Task.FromResult<ICommand>(NullCommand.Instance)),
                 CreateOrUpdateCommand.BuildUpdate(
                     this.moduleManager,
-                    module.Module,
-                    module.ModuleIdentity,
+                    next.Module,
+                    next.ModuleIdentity,
                     this.configSource,
-                    this.combinedConfigProvider.GetCombinedConfig(module.Module, runtimeInfo),
+                    config,
                     start) as ICommand);
+        }
     }
 }

@@ -75,8 +75,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         break;
 
                     case EdgeRuntimeMode.Iotedged:
-                        builder.RegisterModule(new AgentModule(appSettings.MaxRestartCount, appSettings.IntensiveCareTime, appSettings.CoolOffTimeUnit, appSettings.UsePersistentStorage, appSettings.StoragePath, Option.Some(new Uri(appSettings.WorkloadUri)), appSettings.ModuleId, Option.Some(appSettings.ModuleGenerationId)));
-                        builder.RegisterModule(new EdgeletModule(appSettings.IoTHubHostName, appSettings.EdgeDeviceHostName, appSettings.DeviceId, new Uri(appSettings.ManagementUri), new Uri(appSettings.WorkloadUri), dockerAuthConfig, appSettings.UpstreamProtocol, appSettings.HttpsProxy, productInfo));
+                        builder.RegisterModule(new AgentModule(appSettings.MaxRestartCount, appSettings.IntensiveCareTime, appSettings.CoolOffTimeUnit, appSettings.UsePersistentStorage, appSettings.StoragePath, Option.Some(new Uri(appSettings.WorkloadUri)), Option.Some(appSettings.ApiVersion), appSettings.ModuleId, Option.Some(appSettings.ModuleGenerationId)));
+                        builder.RegisterModule(new EdgeletModule(appSettings.IoTHubHostName, appSettings.EdgeDeviceHostName, appSettings.DeviceId, new Uri(appSettings.ManagementUri), new Uri(appSettings.WorkloadUri), appSettings.ApiVersion, dockerAuthConfig, appSettings.UpstreamProtocol, appSettings.HttpsProxy, productInfo));
                         break;
 
                     default:

@@ -4,12 +4,17 @@ use failure::{Fail, ResultExt};
 use futures::future::{self, Either};
 use futures::Future;
 use hyper::{Method, StatusCode};
+use percent_encoding::{percent_encode, PercentEncode, PATH_SEGMENT_ENCODE_SET};
 
 use edgelet_http::client::{Client, ClientImpl, TokenSource};
 use edgelet_http::error::ErrorKind as HttpErrorKind;
 use edgelet_utils::ensure_not_empty_with_context;
 use error::{Error, ErrorKind, ModuleOperationReason};
 use model::{AuthMechanism, Module};
+
+define_encode_set! {
+    pub IOTHUB_ENCODE_SET = [PATH_SEGMENT_ENCODE_SET] | { '=' }
+}
 
 pub struct DeviceClient<C, T> {
     client: Client<C, T>,
@@ -81,7 +86,11 @@ where
                 .client
                 .request::<Module, Module>(
                     Method::PUT,
-                    &format!("/devices/{}/modules/{}", &self.device_id, module_id),
+                    &format!(
+                        "/devices/{}/modules/{}",
+                        url_encode(&self.device_id),
+                        url_encode(&module_id)
+                    ),
                     None,
                     Some(module),
                     add_if_match,
@@ -113,7 +122,11 @@ where
                 .client
                 .request::<(), Module>(
                     Method::GET,
-                    &format!("/devices/{}/modules/{}", &self.device_id, module_id),
+                    &format!(
+                        "/devices/{}/modules/{}",
+                        url_encode(&self.device_id),
+                        url_encode(&module_id)
+                    ),
                     None,
                     None,
                     false,
@@ -148,7 +161,7 @@ where
         self.client
             .request::<(), Vec<Module>>(
                 Method::GET,
-                &format!("/devices/{}/modules", &self.device_id),
+                &format!("/devices/{}/modules", url_encode(&self.device_id)),
                 None,
                 None,
                 false,
@@ -174,7 +187,11 @@ where
                 .client
                 .request::<(), ()>(
                     Method::DELETE,
-                    &format!("/devices/{}/modules/{}", self.device_id, module_id),
+                    &format!(
+                        "/devices/{}/modules/{}",
+                        url_encode(&self.device_id),
+                        url_encode(&module_id)
+                    ),
                     None,
                     None,
                     true,
@@ -198,6 +215,10 @@ where
             device_id: self.device_id.clone(),
         }
     }
+}
+
+fn url_encode(value: &str) -> PercentEncode<'_, IOTHUB_ENCODE_SET> {
+    percent_encode(value.as_bytes(), IOTHUB_ENCODE_SET)
 }
 
 #[cfg(test)]
@@ -624,6 +645,53 @@ mod tests {
         let device_client = DeviceClient::new(client, "d1".to_string()).unwrap();
         let task = device_client
             .get_module_by_id("m1".to_string())
+            .then(|module| {
+                let module = module.unwrap();
+                assert_eq!(expected_module, module);
+                Ok::<_, Error>(())
+            });
+
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
+    }
+
+    #[test]
+    fn modules_get_request_with_encoding() {
+        let api_version = "2018-04-10".to_string();
+        let host_name = Url::parse("http://localhost").unwrap();
+        let auth = AuthMechanism::default()
+            .with_type(AuthType::Sas)
+            .with_symmetric_key(
+                SymmetricKey::default()
+                    .with_primary_key("pkey".to_string())
+                    .with_secondary_key("skey".to_string()),
+            );
+        let module = Module::default()
+            .with_device_id("n@m.et#st".to_string())
+            .with_module_id("$edgeAgent".to_string())
+            .with_generation_id("g1".to_string())
+            .with_managed_by("iotedge".to_string())
+            .with_authentication(auth.clone());
+        let expected_module = module.clone();
+
+        let handler = move |req: Request<Body>| {
+            assert_eq!(req.method(), &Method::GET);
+            assert_eq!(req.uri().path(), "/devices/n@m.et%23st/modules/$edgeAgent");
+            assert_eq!(None, req.headers().get(hyper::header::IF_MATCH));
+
+            let mut response = Response::new(serde_json::to_string(&module).unwrap().into());
+            response
+                .headers_mut()
+                .typed_insert(&ContentType(mime::APPLICATION_JSON));
+            Ok(response)
+        };
+        let client = Client::new(handler, Some(NullTokenSource), api_version, host_name).unwrap();
+
+        let device_client = DeviceClient::new(client, "n@m.et#st".to_string()).unwrap();
+        let task = device_client
+            .get_module_by_id("$edgeAgent".to_string())
             .then(|module| {
                 let module = module.unwrap();
                 assert_eq!(expected_module, module);
