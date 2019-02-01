@@ -41,19 +41,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             bool usePersistentStorage,
             string storagePath,
             Option<Uri> workloadUri,
-            string moduleId,
-            Option<string> moduleGenerationId)
-            : this(maxRestartCount, intensiveCareTime, coolOffTimeUnit, usePersistentStorage, storagePath, workloadUri, Option.None<string>(), moduleId, moduleGenerationId)
-        {
-        }
-
-        public AgentModule(
-            int maxRestartCount,
-            TimeSpan intensiveCareTime,
-            TimeSpan coolOffTimeUnit,
-            bool usePersistentStorage,
-            string storagePath,
-            Option<Uri> workloadUri,
             Option<string> workloadApiVersion,
             string moduleId,
             Option<string> moduleGenerationId)

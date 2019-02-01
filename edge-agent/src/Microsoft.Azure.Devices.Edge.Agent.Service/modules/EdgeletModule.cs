@@ -54,8 +54,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.workloadUri = Preconditions.CheckNotNull(workloadUri, nameof(workloadUri));
             this.apiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion));
             this.dockerAuthConfig = Preconditions.CheckNotNull(dockerAuthConfig, nameof(dockerAuthConfig));
-            this.upstreamProtocol = Preconditions.CheckNotNull(upstreamProtocol, nameof(upstreamProtocol));
-            this.proxy = Preconditions.CheckNotNull(proxy, nameof(proxy));
+            this.upstreamProtocol = upstreamProtocol;
+            this.proxy = proxy;
             this.productInfo = productInfo;
         }
 
