@@ -1,13 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-// We are using a nightly clippy during CI which doesn't like code that maps
-// a result followed by an unwrap_or/unwrap_or_else. It wants us to use the
-// map_or_else combinator instead. This is a nighly only API however. So till
-// one of the following happens, we allow this lint:
-//  * map_or_else gets stabilized
-//  * our CI switches to stable clippy
-#![allow(result_map_unwrap_or_else)]
-
 use std::env;
 use std::fs;
 use std::path::Path;
@@ -155,20 +147,19 @@ pub fn get_config() -> Result<Config<ValueToken>> {
     // try to get in-cluster config and if that fails
     // try to load config file from home folder and if that
     // fails, well, then we're out of luck
-    Config::<ValueToken>::in_cluster_config()
-        .map(|val| {
+    match Config::<ValueToken>::in_cluster_config() {
+        Ok(val) => {
             info!("Using in-cluster config");
             Ok(val)
-        })
-        .unwrap_or_else(|_| {
-            dirs::home_dir()
-                .ok_or_else(|| Error::from(ErrorKind::MissingKubeConfig))
-                .and_then(|mut home_dir| {
-                    info!("Attempting to use config from ~/.kube/config file.");
-                    home_dir.push(".kube/config");
-                    Config::<ValueToken>::from_config_file(home_dir)
-                })
-        })
+        }
+        Err(_) => dirs::home_dir()
+            .ok_or_else(|| Error::from(ErrorKind::MissingKubeConfig))
+            .and_then(|mut home_dir| {
+                info!("Attempting to use config from ~/.kube/config file.");
+                home_dir.push(".kube/config");
+                Config::<ValueToken>::from_config_file(home_dir)
+            }),
+    }
 }
 
 fn get_host() -> Result<Url> {

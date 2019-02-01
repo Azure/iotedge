@@ -1,13 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-// We are using a nightly clippy during CI which doesn't like code that maps
-// a result followed by an unwrap_or/unwrap_or_else. It wants us to use the
-// map_or_else combinator instead. This is a nighly only API however. So till
-// one of the following happens, we allow this lint:
-//  * map_or_else gets stabilized
-//  * our CI switches to stable clippy
-#![allow(result_map_unwrap_or_else)]
-
 use bytes::BytesMut;
 use futures::future::{self, Either};
 use futures::prelude::*;
@@ -80,24 +72,32 @@ where
         namespace: &str,
         config_map: &api_core::ConfigMap,
     ) -> impl Future<Item = api_core::ConfigMap, Error = Error> {
-        api_core::ConfigMap::create_core_v1_namespaced_config_map(namespace, config_map, None)
-            .map_err(Error::from)
-            .map(|req| {
-                let fut = self.request(req).and_then(|response| match response {
-                    api_core::CreateCoreV1NamespacedConfigMapResponse::Ok(config_map)
-                    | api_core::CreateCoreV1NamespacedConfigMapResponse::Created(config_map)
-                    | api_core::CreateCoreV1NamespacedConfigMapResponse::Accepted(config_map) => {
-                        Ok(config_map)
-                    }
-                    err => {
-                        debug!("Create config map failed with {:#?}", err);
-                        Err(Error::from(ErrorKind::Response))
-                    }
+        let result =
+            api_core::ConfigMap::create_core_v1_namespaced_config_map(namespace, config_map, None)
+                .map_err(Error::from)
+                .map(|req| {
+                    let fut =
+                        self.request(req).and_then(|response| match response {
+                            api_core::CreateCoreV1NamespacedConfigMapResponse::Ok(config_map)
+                            | api_core::CreateCoreV1NamespacedConfigMapResponse::Created(
+                                config_map,
+                            )
+                            | api_core::CreateCoreV1NamespacedConfigMapResponse::Accepted(
+                                config_map,
+                            ) => Ok(config_map),
+                            err => {
+                                debug!("Create config map failed with {:#?}", err);
+                                Err(Error::from(ErrorKind::Response))
+                            }
+                        });
+
+                    Either::A(fut)
                 });
 
-                Either::A(fut)
-            })
-            .unwrap_or_else(|err| Either::B(future::err(err)))
+        match result {
+            Ok(fut) => fut,
+            Err(err) => Either::B(future::err(err)),
+        }
     }
 
     pub fn delete_config_map(
@@ -105,7 +105,7 @@ where
         namespace: &str,
         name: &str,
     ) -> impl Future<Item = (), Error = Error> {
-        api_core::ConfigMap::delete_core_v1_namespaced_config_map(
+        let result = api_core::ConfigMap::delete_core_v1_namespaced_config_map(
             name, namespace, None, None, None, None,
         )
         .map_err(Error::from)
@@ -117,8 +117,12 @@ where
             });
 
             Either::A(fut)
-        })
-        .unwrap_or_else(|err| Either::B(future::err(err)))
+        });
+
+        match result {
+            Ok(fut) => fut,
+            Err(err) => Either::B(future::err(err)),
+        }
     }
 
     pub fn create_deployment(
@@ -126,21 +130,26 @@ where
         namespace: &str,
         deployment: &apps::Deployment,
     ) -> impl Future<Item = apps::Deployment, Error = Error> {
-        apps::Deployment::create_apps_v1_namespaced_deployment(namespace, &deployment, None)
-            .map_err(Error::from)
-            .map(|req| {
-                let fut = self.request(req).and_then(|response| match response {
-                    apps::CreateAppsV1NamespacedDeploymentResponse::Accepted(deployment)
-                    | apps::CreateAppsV1NamespacedDeploymentResponse::Created(deployment)
-                    | apps::CreateAppsV1NamespacedDeploymentResponse::Ok(deployment) => {
-                        Ok(deployment)
-                    }
-                    _ => Err(Error::from(ErrorKind::Response)),
+        let result =
+            apps::Deployment::create_apps_v1_namespaced_deployment(namespace, &deployment, None)
+                .map_err(Error::from)
+                .map(|req| {
+                    let fut = self.request(req).and_then(|response| match response {
+                        apps::CreateAppsV1NamespacedDeploymentResponse::Accepted(deployment)
+                        | apps::CreateAppsV1NamespacedDeploymentResponse::Created(deployment)
+                        | apps::CreateAppsV1NamespacedDeploymentResponse::Ok(deployment) => {
+                            Ok(deployment)
+                        }
+                        _ => Err(Error::from(ErrorKind::Response)),
+                    });
+
+                    Either::A(fut)
                 });
 
-                Either::A(fut)
-            })
-            .unwrap_or_else(|err| Either::B(future::err(err)))
+        match result {
+            Ok(fut) => fut,
+            Err(err) => Either::B(future::err(err)),
+        }
     }
 
     pub fn delete_deployment(
@@ -149,7 +158,7 @@ where
         name: &str,
         options: Option<&api_meta::DeleteOptions>,
     ) -> impl Future<Item = (()), Error = Error> {
-        apps::Deployment::delete_apps_v1_namespaced_deployment(
+        let result = apps::Deployment::delete_apps_v1_namespaced_deployment(
             name,
             namespace,
             options.and_then(|o| o.grace_period_seconds),
@@ -165,8 +174,12 @@ where
                 _ => Err(Error::from(ErrorKind::Response)),
             });
             Either::A(fut)
-        })
-        .unwrap_or_else(|err| Either::B(future::err(err)))
+        });
+
+        match result {
+            Ok(fut) => fut,
+            Err(err) => Either::B(future::err(err)),
+        }
     }
 
     pub fn list_pods(
@@ -174,7 +187,7 @@ where
         namespace: &str,
         label_selector: Option<&str>,
     ) -> impl Future<Item = api_core::PodList, Error = Error> {
-        api_core::Pod::list_core_v1_namespaced_pod(
+        let result = api_core::Pod::list_core_v1_namespaced_pod(
             namespace,
             None,
             None,
@@ -194,8 +207,12 @@ where
             });
 
             Either::A(fut)
-        })
-        .unwrap_or_else(|err| Either::B(future::err(err)))
+        });
+
+        match result {
+            Ok(fut) => fut,
+            Err(err) => Either::B(future::err(err)),
+        }
     }
 
     fn request<R: K8sResponse>(
@@ -227,7 +244,8 @@ where
         &mut self,
         mut req: http::Request<Vec<u8>>,
     ) -> impl Future<Item = http::Response<Body>, Error = Error> {
-        self.config
+        let result = self
+            .config
             .host()
             .join(self.config.api_path())
             .and_then(|base_url| {
@@ -257,8 +275,12 @@ where
                         .map_err(Into::into)
                         .map(|res| res.map(From::from)),
                 )
-            })
-            .unwrap_or_else(|err| Either::B(future::err(err)))
+            });
+
+        match result {
+            Ok(fut) => fut,
+            Err(err) => Either::B(future::err(err)),
+        }
     }
 }
 
