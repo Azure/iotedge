@@ -8,7 +8,7 @@ The overall setup includes three VMs:
 
 - A Windows "runner VM" serves the same purpose as the Linux runner, but on Windows.
 
-Follow the steps below to deploy the three VMs and set them up. The steps are in bash, but there are notes at the bottom about doing the same thing in PowerShell. In both cases, the Azure CLI `az` is required.
+Follow the steps below to deploy the three VMs and set them up. The steps are in bash, but there are notes at the bottom about doing the same thing in PowerShell. In both cases, the Azure CLI `az` is required. If the deployment completes successfully, that means the environment is set up, the agent can reach the runners via SSH, and the runners can't reach the internet without the proxy.
 
 ```sh
 cd ./builds/e2e/
@@ -83,62 +83,38 @@ az group create -l "$location" -n "$resource_group_name"
 # Deploy the VMs
 az group deployment create --resource-group "$resource_group_name" --name 'e2e-proxy' --template-file ./proxy-deployment-template.json --parameters "$(
     jq -n \
-        --arg key_vault_name "$key_vault_name" \
         --arg key_vault_access_objectid "$key_vault_access_objectid" \
+        --arg key_vault_name "$key_vault_name" \
         --arg key_vault_secret_name "$key_vault_secret_name" \
         --arg vms_ssh_key_encoded "$(base64 -w 0 $keyfile)" \
         --arg vms_ssh_public_key "$(cat $keyfile.pub)" \
-        --arg windows_vm_password "$windows_vm_password" \
         --arg vms_username "$vms_username" \
+        --arg vms_vnet_address_prefix "$vms_vnet_address_prefix" \
         --arg vms_vnet_name "$vms_vnet_name" \
         --arg vms_vnet_subnet_name "$vms_vnet_subnet_name" \
-        --arg vms_vnet_address_prefix "$vms_vnet_address_prefix" \
-        --arg vsts_agent_vm_public_ip_name "$vsts_agent_vm_public_ip_name" \
         --arg vsts_agent_vm_name "$vsts_agent_vm_name" \
+        --arg vsts_agent_vm_public_ip_name "$vsts_agent_vm_public_ip_name" \
         --arg vsts_runner1_vm_name "$vsts_runner1_vm_name" \
         --arg vsts_runner2_vm_name "$vsts_runner2_vm_name" \
+        --arg windows_vm_password "$windows_vm_password" \
         '{
-            "key_vault_name": { "value" : $key_vault_name },
             "key_vault_access_objectid": { "value": $key_vault_access_objectid },
+            "key_vault_name": { "value" : $key_vault_name },
             "key_vault_secret_name": { "value": $key_vault_secret_name },
             "vms_ssh_key_encoded": { "value": $vms_ssh_key_encoded },
             "vms_ssh_public_key": { "value": $vms_ssh_public_key },
-            "windows_vm_password": { "value": $windows_vm_password },
             "vms_username": { "value": $vms_username },
+            "vms_vnet_address_prefix": { "value": $vms_vnet_address_prefix },
             "vms_vnet_name": { "value": $vms_vnet_name },
             "vms_vnet_subnet_name": { "value": $vms_vnet_subnet_name },
-            "vms_vnet_address_prefix": { "value": $vms_vnet_address_prefix },
-            "vsts_agent_vm_public_ip_name": { "value": $vsts_agent_vm_public_ip_name },
             "vsts_agent_vm_name": { "value": $vsts_agent_vm_name },
+            "vsts_agent_vm_public_ip_name": { "value": $vsts_agent_vm_public_ip_name },
             "vsts_runner1_vm_name": { "value": $vsts_runner1_vm_name },
-            "vsts_runner2_vm_name": { "value": $vsts_runner2_vm_name }
+            "vsts_runner2_vm_name": { "value": $vsts_runner2_vm_name },
+            "windows_vm_password": { "value": $windows_vm_password }
         }'
 )"
 
-
-# Get the public IP of the agent VM
-vsts_agent_public_ip="$(az network public-ip show --resource-group "$resource_group_name" --name "$vsts_agent_vm_public_ip_name" --query 'ipAddress' --output tsv)"
-
-
-# Verify Linux proxy works (should succeed)
-ssh -ti "$keyfile" "$vms_username@$vsts_agent_public_ip" ssh -i "/home/$vms_username/.ssh/id_rsa" "$vms_username@$vsts_runner1_vm_name" curl -x "http://${vsts_agent_vm_name}:3128" -L 'http://www.microsoft.com'
-ssh -ti "$keyfile" "$vms_username@$vsts_agent_public_ip" ssh -i "/home/$vms_username/.ssh/id_rsa" "$vms_username@$vsts_runner1_vm_name" curl -x "http://${vsts_agent_vm_name}:3128" -L 'https://www.microsoft.com'
-
-
-# Verify Linux proxy is required (should time out after 5s)
-ssh -ti "$keyfile" "$vms_username@$vsts_agent_public_ip" ssh -i "/home/$vms_username/.ssh/id_rsa" "$vms_username@$vsts_runner1_vm_name" timeout 5 curl -L 'http://www.microsoft.com'
-ssh -ti "$keyfile" "$vms_username@$vsts_agent_public_ip" ssh -i "/home/$vms_username/.ssh/id_rsa" "$vms_username@$vsts_runner1_vm_name" timeout 5 curl -L 'https://www.microsoft.com'
-
-
-# Verify Windows proxy works (should succeed)
-ssh -ti "$keyfile" "$vms_username@$vsts_agent_public_ip" ssh -ti "/home/$vms_username/.ssh/id_rsa" "$vms_username@$vsts_runner2_vm_name" iwr -useb -proxy "http://${vsts_agent_vm_name}:3128" 'http://www.microsoft.com'
-ssh -ti "$keyfile" "$vms_username@$vsts_agent_public_ip" ssh -ti "/home/$vms_username/.ssh/id_rsa" "$vms_username@$vsts_runner2_vm_name" iwr -useb -proxy "http://${vsts_agent_vm_name}:3128" 'https://www.microsoft.com'
-
-
-# Verify Windows proxy is required (should time out after 5s)
-ssh -ti "$keyfile" "$vms_username@$vsts_agent_public_ip" ssh -i "/home/$vms_username/.ssh/id_rsa" "$vms_username@$vsts_runner2_vm_name" iwr -useb -noproxy -timeoutsec 5 'http://www.microsoft.com'
-ssh -ti "$keyfile" "$vms_username@$vsts_agent_public_ip" ssh -i "/home/$vms_username/.ssh/id_rsa" "$vms_username@$vsts_runner2_vm_name" iwr -useb -noproxy -timeoutsec 5 'https://www.microsoft.com'
-```
 
 ## PowerShell notes:
 
@@ -173,18 +149,18 @@ The command to deploy the VMs is different. It doesn't use jq, and the base64-en
 
 ```PowerShell
 az group deployment create --resource-group "$resource_group_name" --name 'e2e-proxy' --template-file ./proxy-deployment-template.json --parameters `
-    key_vault_name="$key_vault_name" `
     key_vault_access_objectid="$key_vault_access_objectid" `
+    key_vault_name="$key_vault_name" `
     key_vault_secret_name="$key_vault_secret_name" `
     vms_ssh_key_encoded="$([System.Convert]::ToBase64String([System.Text.Encoding]::Utf8.GetBytes($(Get-Content "$keyfile" -Raw))))" `
     vms_ssh_public_key="$(cat "$keyfile.pub")" `
-    windows_vm_password=$windows_vm_password `
     vms_username="$vms_username" `
+    vms_vnet_address_prefix="$vms_vnet_address_prefix" `
     vms_vnet_name="$vms_vnet_name" `
     vms_vnet_subnet_name="$vms_vnet_subnet_name" `
-    vms_vnet_address_prefix="$vms_vnet_address_prefix" `
-    vsts_agent_vm_public_ip_name="$vsts_agent_vm_public_ip_name" `
     vsts_agent_vm_name="$vsts_agent_vm_name" `
+    vsts_agent_vm_public_ip_name="$vsts_agent_vm_public_ip_name" `
     vsts_runner1_vm_name="$vsts_runner1_vm_name" `
-    vsts_runner2_vm_name="$vsts_runner2_vm_name"
+    vsts_runner2_vm_name="$vsts_runner2_vm_name" `
+    windows_vm_password=$windows_vm_password
 ```
