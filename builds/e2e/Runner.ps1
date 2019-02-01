@@ -109,7 +109,7 @@ New-Module -ScriptBlock {
         Write-Host 'Making PowerShell the default shell for ssh'
 
         New-Item 'HKLM:\SOFTWARE\OpenSSH' -Force | `
-            New-ItemProperty "DefaultShell" -Force -Value "$env:SystemRoot\system32\WindowsPowerShell\v1.0\powershell.exe"
+            New-ItemProperty -Name "DefaultShell" -Force -Value "$env:SystemRoot\system32\WindowsPowerShell\v1.0\powershell.exe"
         
         Write-Host 'Starting sshd'
 
