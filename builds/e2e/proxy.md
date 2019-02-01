@@ -44,9 +44,6 @@ vms_username='vsts'
 # Name of the subnet within the virtual network
 vms_vnet_subnet_name='default'
 
-# Name of the dynamically-provisioned public IP for the agent VM
-vsts_agent_vm_public_ip_name='e2eproxy'
-
 # Names of the agent and runner VMs. Used to resolve them via DNS for the tests.
 vsts_agent_vm_name='e2eproxyvstsagent'
 vsts_runner1_vm_name='e2eproxyvstsrunner1'
@@ -93,7 +90,6 @@ az group deployment create --resource-group "$resource_group_name" --name 'e2e-p
         --arg vms_vnet_name "$vms_vnet_name" \
         --arg vms_vnet_subnet_name "$vms_vnet_subnet_name" \
         --arg vsts_agent_vm_name "$vsts_agent_vm_name" \
-        --arg vsts_agent_vm_public_ip_name "$vsts_agent_vm_public_ip_name" \
         --arg vsts_runner1_vm_name "$vsts_runner1_vm_name" \
         --arg vsts_runner2_vm_name "$vsts_runner2_vm_name" \
         --arg windows_vm_password "$windows_vm_password" \
@@ -108,7 +104,6 @@ az group deployment create --resource-group "$resource_group_name" --name 'e2e-p
             "vms_vnet_name": { "value": $vms_vnet_name },
             "vms_vnet_subnet_name": { "value": $vms_vnet_subnet_name },
             "vsts_agent_vm_name": { "value": $vsts_agent_vm_name },
-            "vsts_agent_vm_public_ip_name": { "value": $vsts_agent_vm_public_ip_name },
             "vsts_runner1_vm_name": { "value": $vsts_runner1_vm_name },
             "vsts_runner2_vm_name": { "value": $vsts_runner2_vm_name },
             "windows_vm_password": { "value": $windows_vm_password }
@@ -126,13 +121,7 @@ $subscription_name='<>'
 # ...
 ```
 
-To create a SecureString for the Windows VM administrator password, use the following call:
-
-```PowerShell
-$windows_vm_password=$(ConvertTo-SecureString "$(openssl rand -base64 32)" -AsPlainText -Force)
-```
-
-Note: If openssl isn't installed, You can replace `"$(openssl rand -base64 32)"` with:
+To create the Windows VM administrator password without openssl, use the following call:
 
 ```PowerShell
   "$([Convert]::ToBase64String([System.Web.Security.Membership]::GeneratePassword(32, 3).ToCharArray(), 0))"
@@ -159,7 +148,6 @@ az group deployment create --resource-group "$resource_group_name" --name 'e2e-p
     vms_vnet_name="$vms_vnet_name" `
     vms_vnet_subnet_name="$vms_vnet_subnet_name" `
     vsts_agent_vm_name="$vsts_agent_vm_name" `
-    vsts_agent_vm_public_ip_name="$vsts_agent_vm_public_ip_name" `
     vsts_runner1_vm_name="$vsts_runner1_vm_name" `
     vsts_runner2_vm_name="$vsts_runner2_vm_name" `
     windows_vm_password=$windows_vm_password

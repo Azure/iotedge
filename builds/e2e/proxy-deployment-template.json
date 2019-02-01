@@ -32,9 +32,6 @@
 		"vsts_agent_vm_name": {
 			"type": "string"
 		},
-		"vsts_agent_vm_public_ip_name": {
-			"type": "string"
-		},
 		"vsts_runner1_vm_name": {
 			"type": "string"
 		},
@@ -357,9 +354,6 @@
 				},
 				"vnet_subnet_id": {
 					"value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vms_vnet_name'), parameters('vms_vnet_subnet_name'))]"
-				},
-				"ip_addr_name": {
-					"value": "[parameters('vsts_agent_vm_public_ip_name')]"
 				}
 			}
 		},
