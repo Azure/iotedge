@@ -342,7 +342,18 @@ pub fn get_proxy_uri(https_proxy: Option<String>) -> Result<Option<Uri>, Error> 
             let proxy = s.parse::<Uri>().context(ErrorKind::Initialize(
                 InitializeErrorReason::InvalidProxyUri,
             ))?;
-            info!("Detected HTTPS proxy server {}", proxy.to_string());
+
+            // Mask the password in the proxy URI before logging it
+            let mut sanitized_proxy = Url::parse(&proxy.to_string()).context(
+                ErrorKind::Initialize(InitializeErrorReason::InvalidProxyUri),
+            )?;
+            if sanitized_proxy.password().is_some() {
+                sanitized_proxy
+                    .set_password(Some("******"))
+                    .map_err(|()| ErrorKind::Initialize(InitializeErrorReason::InvalidProxyUri))?;
+            }
+            info!("Detected HTTPS proxy server {}", sanitized_proxy);
+
             Some(proxy)
         }
     };
@@ -1053,7 +1064,7 @@ mod tests {
     fn get_proxy_uri_recognizes_https_proxy() {
         // Use existing "https_proxy" env var if it's set, otherwise invent one
         let proxy_val = env::var("https_proxy")
-            .unwrap_or_else(|_| "abc".to_string())
+            .unwrap_or_else(|_| "https://example.com".to_string())
             .parse::<Uri>()
             .unwrap()
             .to_string();
