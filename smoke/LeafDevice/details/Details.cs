@@ -31,6 +31,7 @@ namespace LeafDevice.Details
         readonly string deviceId;
         readonly string trustedCACertificateFileName;
         readonly string edgeHostName;
+        readonly string edgeDeviceId;
         readonly ServiceClientTransportType serviceClientTransportType;
         readonly EventHubClientTransportType eventHubClientTransportType;
         readonly ITransportSettings[] deviceTransportSettings;
@@ -46,6 +47,7 @@ namespace LeafDevice.Details
             string deviceId,
             string trustedCACertificateFileName,
             string edgeHostName,
+            string edgeDeviceId,
             bool useWebSockets,
             Option<DeviceCertificate> clientCertificatePaths,
             Option<IList<string>> thumbprintCertificatePaths)
@@ -55,6 +57,7 @@ namespace LeafDevice.Details
             this.deviceId = deviceId;
             this.trustedCACertificateFileName = trustedCACertificateFileName;
             this.edgeHostName = edgeHostName;
+            this.edgeDeviceId = edgeDeviceId;
             (this.authType,
                 this.clientCertificate,
                 this.clientCertificateChain,
@@ -130,6 +133,13 @@ namespace LeafDevice.Details
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(builder.ToString());
 
+            Device edgeDevice = await rm.GetDeviceAsync(this.edgeDeviceId);
+            if (edgeDevice == null)
+            {
+               throw new Exception("Edge device is not found in IoT Hub");
+            }
+            Console.WriteLine($"Found Edge Device '{edgeDevice.Id}' registered in IoT hub with scope '{edgeDevice.Scope}'");
+
             Device device = await rm.GetDeviceAsync(this.deviceId);
 
             if (device != null)
@@ -144,9 +154,10 @@ namespace LeafDevice.Details
                     {
                         // update the thumbprints before attempting to run any tests to ensure consistency
                         device.Authentication.X509Thumbprint = new X509Thumbprint { PrimaryThumbprint = thumbprints[0], SecondaryThumbprint = thumbprints[1] };
-                        await rm.UpdateDeviceAsync(device);
                     }
                 }
+                device.Scope = edgeDevice.Scope;
+                await rm.UpdateDeviceAsync(device);
 
                 this.context = new DeviceContext
                 {
@@ -159,7 +170,7 @@ namespace LeafDevice.Details
             }
             else
             {
-                await this.CreateDeviceIdentityAsync(rm);
+                await this.CreateDeviceIdentityAsync(rm, edgeDevice.Scope);
             }
         }
 
@@ -350,7 +361,7 @@ namespace LeafDevice.Details
 
         X509Certificate2 GetTrustedCertificate() => new X509Certificate2(X509Certificate.CreateFromCertFile(this.trustedCACertificateFileName));
 
-        async Task CreateDeviceIdentityAsync(RegistryManager rm)
+        async Task CreateDeviceIdentityAsync(RegistryManager rm, string scope)
         {
             var authMechanism = new AuthenticationMechanism { Type = this.authType };
             if (this.authType == AuthenticationType.SelfSigned)
@@ -362,7 +373,8 @@ namespace LeafDevice.Details
             var device = new Device(this.deviceId)
             {
                 Authentication = authMechanism,
-                Capabilities = new DeviceCapabilities { IotEdge = false }
+                Capabilities = new DeviceCapabilities { IotEdge = false },
+                Scope = scope,
             };
 
             var builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);

@@ -15,6 +15,7 @@ namespace LeafDevice
             string deviceId,
             string trustedCACertificateFileName,
             string edgeHostName,
+            string edgeDeviceId,
             bool useWebSockets)
             : base(
                 iothubConnectionString,
@@ -22,6 +23,7 @@ namespace LeafDevice
                 deviceId,
                 trustedCACertificateFileName,
                 edgeHostName,
+                edgeDeviceId,
                 useWebSockets,
                 Option.None<DeviceCertificate>(),
                 Option.None<IList<string>>())
@@ -34,6 +36,7 @@ namespace LeafDevice
             string deviceId,
             string trustedCACertificateFileName,
             string edgeHostName,
+            string edgeDeviceId,
             bool useWebSockets,
             string clientCertificatePath,
             string clientCertificateKeyPath)
@@ -43,6 +46,7 @@ namespace LeafDevice
                 deviceId,
                 trustedCACertificateFileName,
                 edgeHostName,
+                edgeDeviceId,
                 useWebSockets,
                 Option.Some(new DeviceCertificate { CertificateFilePath = clientCertificatePath, PrivateKeyFilePath = clientCertificateKeyPath }),
                 Option.None<IList<string>>())
@@ -55,6 +59,7 @@ namespace LeafDevice
             string deviceId,
             string trustedCACertificateFileName,
             string edgeHostName,
+            string edgeDeviceId,
             bool useWebSockets,
             string clientCertificatePath,
             string clientCertificateKeyPath,
@@ -65,6 +70,7 @@ namespace LeafDevice
                 deviceId,
                 trustedCACertificateFileName,
                 edgeHostName,
+                edgeDeviceId,
                 useWebSockets,
                 Option.Some(new DeviceCertificate { CertificateFilePath = clientCertificatePath, PrivateKeyFilePath = clientCertificateKeyPath }),
                 Option.Some(thumprintCertificates))

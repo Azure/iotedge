@@ -47,8 +47,11 @@ Defaults:
         [Option("-d|--device-id", Description = "Leaf device identifier to be registered with IoT Hub")]
         public string DeviceId { get; } = $"leaf-device--{Guid.NewGuid()}";
 
-        [Option("-ed|--edge-hostname", Description = "Leaf device identifier to be registered with IoT Hub")]
+        [Option("-ed|--edge-hostname", Description = "Hostname of the Edge device that acts as a gateway to the leaf device")]
         public string EdgeHostName { get; } = string.Empty;
+
+        [Option("-ed-id|--edge-device-id", Description = "Device Id of the Edge device that acts as a gateway to the leaf device")]
+        public string EdgeGatewayDeviceId { get; } = string.Empty;
 
         [Option("--use-web-sockets", CommandOptionType.NoValue, Description = "Use websockets for IoT Hub connections.")]
         public bool UseWebSockets { get; } = false;
@@ -98,6 +101,7 @@ Defaults:
                         this.DeviceId,
                         this.TrustedCACertificateFileName,
                         this.EdgeHostName,
+                        this.EdgeGatewayDeviceId,
                         this.UseWebSockets,
                         this.X509PrimaryCertPath,
                         this.X509PrimaryKeyPath,
@@ -110,6 +114,7 @@ Defaults:
                         this.DeviceId,
                         this.TrustedCACertificateFileName,
                         this.EdgeHostName,
+                        this.EdgeGatewayDeviceId,
                         this.UseWebSockets,
                         this.X509SecondaryCertPath,
                         this.X509SecondaryKeyPath,
@@ -126,6 +131,7 @@ Defaults:
                         this.DeviceId,
                         this.TrustedCACertificateFileName,
                         this.EdgeHostName,
+                        this.EdgeGatewayDeviceId,
                         this.UseWebSockets,
                         this.X509CACertPath,
                         this.X509CAKeyPath);
@@ -140,6 +146,7 @@ Defaults:
                         this.DeviceId,
                         this.TrustedCACertificateFileName,
                         this.EdgeHostName,
+                        this.EdgeGatewayDeviceId,
                         this.UseWebSockets);
                     await testSas.RunAsync();
                 }
