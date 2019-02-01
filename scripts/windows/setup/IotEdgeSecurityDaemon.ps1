@@ -138,8 +138,11 @@ function Install-SecurityDaemon {
         #     Install-SecurityDaemon -InvokeWebRequestParameters @{ '-Proxy' = 'http://localhost:8888'; '-ProxyCredential' = (Get-Credential).GetNetworkCredential() }
         [HashTable] $InvokeWebRequestParameters,
 
-        # Don't install the Moby CLI (docker.exe) to $MobyInstallDirectory. Only takes effect for -ContainerOs 'Windows'
-        [Switch] $SkipMobyCli
+        # Don't install the Moby CLI (docker.exe) to $MobyInstallDirectory. Only takes effect for -ContainerOs 'Windows'.
+        [Switch] $SkipMobyCli,
+
+        # Do not reboot even if needed.
+        [Switch] $NoReboot
     )
 
     $ErrorActionPreference = 'Stop'
@@ -245,7 +248,8 @@ function Install-SecurityDaemon {
     }
 
     # Download
-    Get-SecurityDaemon
+    $restartNeeded = $false
+    Get-SecurityDaemon -RestartNeeded ([ref]$restartNeeded)
     Get-VcRuntime
 
     # config.yaml
@@ -268,7 +272,7 @@ function Install-SecurityDaemon {
 
     # Register services
     Set-SystemPath
-    Install-Services
+    Install-Services # TODO do not start the service when reboot is needed
     if ($ContainerOs -eq 'Linux') {
         Add-FirewallExceptions
     }
@@ -282,6 +286,13 @@ function Install-SecurityDaemon {
     Write-HostGreen '    Select TimeCreated, Message |'
     Write-HostGreen '    Sort-Object @{Expression=''TimeCreated'';Descending=$false} |'
     Write-HostGreen '    Format-Table -AutoSize -Wrap'
+
+    if ($restartNeeded) {
+        Write-HostRed "Reboot required."
+        if (-not $NoReboot) {
+            Restart-Computer
+        }
+    }
 }
 
 <#
@@ -331,7 +342,10 @@ function Uninstall-SecurityDaemon {
         [Switch] $DeleteMobyDataRoot,
 
         # Forces the uninstallation in case the previous install was only partially successful.
-        [Switch] $Force
+        [Switch] $Force,
+
+        # Do not reboot even if needed.
+        [Switch] $NoReboot
     )
 
     $ErrorActionPreference = 'Stop'
@@ -347,7 +361,8 @@ function Uninstall-SecurityDaemon {
 
     $ContainerOs = Get-ContainerOs
 
-    Uninstall-Services
+    $restartNeeded = $false
+    Uninstall-Services -RestartNeeded ([ref]$restartNeeded)
     $success = Remove-SecurityDaemonResources
     Reset-SystemPath
 
@@ -358,6 +373,10 @@ function Uninstall-SecurityDaemon {
 
     if ($success) {
         Write-HostGreen 'Successfully uninstalled IoT Edge.'
+    }
+
+    if ($restartNeeded) {
+        Write-Host "rebooting..."
     }
 }
 
@@ -516,13 +535,12 @@ function Uninstall-Package([string]$Name, [ref]$RestartNeeded)
         }
 }
 
-function Get-SecurityDaemon {
+function Get-SecurityDaemon([ref]$RestartNeeded) {
     try {
         # If we create these archives ourselves, then delete them when we're done
         $deleteMobyEngineArchive = $false
         $deleteMobyCliArchive = $false
         $deleteEdgeArchive = $false
-        $restartNeeded = $false
 
         if ($ContainerOs -eq 'Windows') {
             $mobyEngineArchivePath = Download-File `
@@ -532,7 +550,7 @@ function Get-SecurityDaemon {
                 -LocalCacheGlob 'microsoft-azure-iotedge-moby-engine.cab' `
                 -Delete ([ref] $deleteMobyEngineArchive)
             
-            Install-Package -Path $mobyEngineArchivePath -RestartNeeded ([ref]$restartNeeded)
+            Install-Package -Path $mobyEngineArchivePath -RestartNeeded $RestartNeeded
 
             if (-not ($SkipMobyCli)) {
                 $mobyCliArchivePath = Download-File `
@@ -541,7 +559,7 @@ function Get-SecurityDaemon {
                     -DownloadFilename 'microsoft-azure-iotedge-moby-cli.cab' `
                     -LocalCacheGlob 'microsoft-azure-iotedge-moby-cli.cab' `
                     -Delete ([ref] $deleteMobyCliArchive)
-                Install-Package -Path $mobyCliArchivePath -RestartNeeded ([ref]$restartNeeded)
+                Install-Package -Path $mobyCliArchivePath -RestartNeeded $RestartNeeded
             }
         }
 
@@ -551,7 +569,7 @@ function Get-SecurityDaemon {
             -DownloadFilename 'microsoft-azure-iotedge.cab' `
             -LocalCacheGlob 'microsoft-azure-iotedge.cab' `
             -Delete ([ref] $deleteEdgeArchive)
-        Install-Package -Path $edgeArchivePath -RestartNeeded ([ref]$restartNeeded)
+        Install-Package -Path $edgeArchivePath -RestartNeeded $RestartNeeded
         Stop-Service $EdgeServiceName -ErrorAction SilentlyContinue
 
         foreach ($name in 'mgmt', 'workload') {
@@ -567,11 +585,6 @@ function Get-SecurityDaemon {
             $acl = Get-Acl -Path $path
             $acl.AddAccessRule($rule)
             Set-Acl -Path $path -AclObject $acl
-        }
-
-        if ($restartNeeded) {
-            # TODO automated
-            Write-Host "Restart is needed"
         }
     }
     finally {
@@ -832,8 +845,7 @@ function Install-Services {
     Write-HostGreen 'Initialized the IoT Edge service.'
 }
 
-function Uninstall-Services {
-    $restartNeeded = $false
+function Uninstall-Services([ref]$RestartNeeded) {
     if (Test-LegacyInstaller) {
         if (Get-Service $EdgeServiceName -ErrorAction SilentlyContinue) {
             Set-Service -StartupType Disabled $EdgeServiceName -ErrorAction SilentlyContinue
@@ -852,7 +864,7 @@ function Uninstall-Services {
         }
     }
     else {
-        Uninstall-Package -Name "microsoft-azure-iotedge" -RestartNeeded ([ref]$restartNeeded)
+        Uninstall-Package -Name "microsoft-azure-iotedge" -RestartNeeded $RestartNeeded
     }
 
     Remove-IotEdgeContainers
@@ -874,13 +886,8 @@ function Uninstall-Services {
         }
     }
     else {
-        Uninstall-Package -Name "microsoft-azure-iotedge-moby-engine" -RestartNeeded ([ref]$restartNeeded)
-        Uninstall-Package -Name "microsoft-azure-iotedge-moby-cli" -RestartNeeded ([ref]$restartNeeded)
-    }
-
-    if ($restartNeeded) {
-        # TODO automated
-        Write-Host "Restart is needed"
+        Uninstall-Package -Name "microsoft-azure-iotedge-moby-engine" -RestartNeeded $RestartNeeded
+        Uninstall-Package -Name "microsoft-azure-iotedge-moby-cli" -RestartNeeded $RestartNeeded
     }
 }
 
