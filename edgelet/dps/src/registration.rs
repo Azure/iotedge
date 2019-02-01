@@ -519,7 +519,6 @@ mod tests {
             Some(op) => {
                 assert_eq!(op.operation_id(), "something");
                 assert_eq!(op.status().unwrap(), "assigning");
-                ()
             }
             None => panic!("Unexpected"),
         });
@@ -682,12 +681,9 @@ mod tests {
             key,
             3,
         );
-        let task = dps_operation.map(|result| {
-            match result {
-                Some(r) => assert_eq!(*r.registration_id(), "reg".to_string()),
-                None => panic!("Expected registration id"),
-            }
-            ()
+        let task = dps_operation.map(|result| match result {
+            Some(r) => assert_eq!(*r.registration_id(), "reg".to_string()),
+            None => panic!("Expected registration id"),
         });
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
@@ -728,12 +724,9 @@ mod tests {
             key,
             3,
         );
-        let task = dps_operation.map(|result| {
-            match result {
-                Some(_) => panic!("Shouldn't have passed because every attempt failed"),
-                None => assert_eq!(true, true),
-            }
-            ()
+        let task = dps_operation.map(|result| match result {
+            Some(_) => panic!("Shouldn't have passed because every attempt failed"),
+            None => assert_eq!(true, true),
         });
 
         tokio::runtime::current_thread::Runtime::new()
@@ -776,7 +769,6 @@ mod tests {
         let task = dps_operation.map(|result| match result {
             Some(op) => {
                 assert_eq!(*op.registration_id(), "reg".to_string());
-                ()
             }
             None => panic!("Unexpected"),
         });
