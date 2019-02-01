@@ -82,12 +82,13 @@
 		}
 	},
 	"variables": {
+		"agent_prep1_script_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/agent.sh",
+		"agent_prep2_script_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/known_hosts.sh",
 		"create_linux_vm_template_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/create-linux-vm-template.json",
 		"create_windows_vm_template_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/create-windows-vm-template.json",
-		"agent_prep_script_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/agent.sh",
+		"finalize_agent_template_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/finalize-agent-template.json",
 		"runner1_prep_script_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/runner.sh",
-		"runner2_prep_script_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/Runner.ps1",
-		"agent_finalize_script_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/known_hosts.sh"
+		"runner2_prep_script_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/Runner.ps1"
 	},
 	"resources": [{
 		"type": "Microsoft.KeyVault/vaults",
@@ -337,7 +338,7 @@
 					"value": "[parameters('vms_username')]"
 				},
 				"extension_command": {
-					"value": "[concat('/bin/bash -c \"set -euo pipefail && curl ', variables('agent_prep_script_uri'), ' | sudo bash -s -- ', parameters('vms_username'), ' ', parameters('vms_ssh_key_encoded'), ' ', reference(resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vms_vnet_name'), parameters('vms_vnet_subnet_name')), '2018-08-01').addressPrefix, '\"')]"
+					"value": "[concat('/bin/bash -c \"set -euo pipefail && curl ', variables('agent_prep1_script_uri'), ' | sudo bash -s -- ', parameters('vms_username'), ' ', parameters('vms_ssh_key_encoded'), ' ', reference(resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vms_vnet_name'), parameters('vms_vnet_subnet_name')), '2018-08-01').addressPrefix, '\"')]"
 				},
 				"nic_name": {
 					"value": "[parameters('vsts_agent_vm_network_interface_name')]"
@@ -453,29 +454,20 @@
 		]
 	}, {
 		"type": "Microsoft.Resources/deployments",
-		"name": "finalize_proxy_deployment",
+		"name": "finalize_agent_deployment",
 		"apiVersion": "2018-05-01",
 		"properties": {
 			"mode": "Incremental",
-			"template" : {
-				"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
-				"contentVersion": "1.0.0.0",
-				"resources": [{
-					"type": "Microsoft.Compute/virtualMachines/extensions",
-					"name": "[concat(parameters('vsts_agent_vm_name'), '/', 'update-known-hosts')]",
-					"apiVersion": "2018-10-01",
-					"location": "[resourceGroup().location]",
-					"properties": {
-						"publisher": "Microsoft.Azure.Extensions",
-						"type": "CustomScript",
-						"typeHandlerVersion": "2.0",
-						"autoUpgradeMinorVersion": true,
-						"settings": {
-							"commandToExecute": "[concat('/bin/bash -c \"set -euo pipefail && curl ', variables('agent_finalize_script_uri'), ' | sudo bash -s -- ', parameters('vms_username'), ' ', parameters('vsts_runner1_vm_name'), ' ', trim(reference('create_runner1_vm').outputs.hostkey.value[0]), ' ', parameters('vsts_runner2_vm_name'), ' ', trim(reference('create_runner2_vm').outputs.hostkey.value[0]), '\"')]"
+			"templateLink": {
+				"uri": "[variables('finalize_agent_template_uri')]"
+			},
+			"parameters": {
+				"extension_command": { 
+					"value": "[concat('/bin/bash -c \"set -euo pipefail && curl ', variables('agent_prep2_script_uri'), ' | sudo bash -s -- ', parameters('vms_username'), ' ', parameters('vsts_runner1_vm_name'), ' ', trim(reference('create_runner1_vm').outputs.hostkey.value[0]), ' ', parameters('vsts_runner2_vm_name'), ' ', trim(reference('create_runner2_vm').outputs.hostkey.value[0]), '\"')]"
 						},
-						"protectedSettings": {}
+				"vm_name": {
+					"value": "[parameters('vsts_agent_vm_name')]"
 					}
-				}]
 			}
 		},
 		"dependsOn": [
