@@ -50,7 +50,7 @@ Defaults:
         [Option("-ed|--edge-hostname", Description = "Hostname of the Edge device that acts as a gateway to the leaf device")]
         public string EdgeHostName { get; } = string.Empty;
 
-        [Option("-ed-id|--edge-device-id", Description = "Device Id of the Edge device that acts as a gateway to the leaf device")]
+        [Option("-ed-id|--edge-device-id", Description = "Device Id of the Edge device that acts as a gateway to the leaf device. If not provided, the leaf device will not be in the Edge device's scope")]
         public string EdgeGatewayDeviceId { get; } = string.Empty;
 
         [Option("--use-web-sockets", CommandOptionType.NoValue, Description = "Use websockets for IoT Hub connections.")]
