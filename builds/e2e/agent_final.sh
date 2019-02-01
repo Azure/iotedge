@@ -53,14 +53,15 @@ for host in "${hosts[@]}"; do
         ssh "$user@$host" timeout 5 curl -L 'http://www.microsoft.com' && exit 1 || :
         ssh "$user@$host" timeout 5 curl -L 'https://www.microsoft.com' && exit 1 || :
     else  # Windows
-        # Verify Windows runner VM can use the proxy (should succeed)
+        # Verify runner can use the proxy (should succeed)
         # When Invoke-WebRequest is invoked over SSH and -Proxy argument is added, we get an error back ("Access is
         # denied" 0x5 occurred while reading the console output buffer). Avoid this by wrapping the command in try.
         # Using 'ssh -t' also avoids the problem, but unfortunately swallows the return value.
         ssh "$user@$host" "try { Invoke-WebRequest -UseBasicParsing -Proxy 'http://$agent_name:3128' 'http://www.microsoft.com' } catch {}"
         ssh "$user@$host" "try { Invoke-WebRequest -UseBasicParsing -Proxy 'http://$agent_name:3128' 'https://www.microsoft.com' } catch {}"
 
-        # Verify Windows runner VM can't skirt the proxy (should time out after 5s)
+        # Verify runner can't skirt the proxy (should time out after 5s)
         ssh "$user@$host" "Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 'http://www.microsoft.com'" && exit 1 || :
         ssh "$user@$host" "Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 'https://www.microsoft.com'" && exit 1 || :
     fi
+done
