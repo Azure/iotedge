@@ -9,7 +9,6 @@
  */
 
 use std::borrow::Borrow;
-use std::borrow::Cow;
 use std::sync::Arc;
 
 use futures;
@@ -18,7 +17,6 @@ use hyper;
 use serde_json;
 use typed_headers::{self, http, mime, HeaderMapExt};
 
-use super::super::utils::UserAgent;
 use super::{configuration, Error};
 
 pub struct ContainerApiClient<C: hyper::client::connect::Connect> {

@@ -366,7 +366,7 @@ impl ModuleRuntime for DockerModuleRuntime {
 
         #[cfg_attr(
             feature = "cargo-clippy",
-            allow(cast_possible_truncation, cast_sign_loss)
+            allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)
         )]
         Box::new(
             self.client

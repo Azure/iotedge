@@ -79,7 +79,7 @@ mod impl_unix {
         assert!(mem::size_of::<u32>() <= mem::size_of::<usize>());
         assert!(ucred_size <= u32::max_value() as usize);
 
-        #[cfg_attr(feature = "cargo-clippy", allow(cast_possible_truncation))]
+        #[cfg_attr(feature = "cargo-clippy", allow(clippy::cast_possible_truncation))]
         let mut ucred_size = ucred_size as u32;
 
         let ret = unsafe {

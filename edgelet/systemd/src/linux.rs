@@ -38,7 +38,11 @@ pub fn listener(num: usize) -> Result<Socket, Error> {
     let sockets = listen_fds(false, LISTEN_FDS_START)?;
     #[cfg_attr(
         feature = "cargo-clippy",
-        allow(cast_possible_truncation, cast_possible_wrap, cast_sign_loss)
+        allow(
+            clippy::cast_possible_truncation,
+            clippy::cast_possible_wrap,
+            clippy::cast_sign_loss
+        )
     )]
     let socket = *sockets.get(num).ok_or_else(|| {
         Error::from(ErrorKind::SocketNotFound(SocketLookupType::Fd(
