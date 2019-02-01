@@ -302,7 +302,14 @@ pub struct DeviceRegistrationResult {
     /// Enrollment status.
     #[serde(rename = "status", skip_serializing_if = "Option::is_none")]
     status: Option<String>,
-    /// Substatus for 'Assigned' devices. Possible values include - 'initialAssignment': Device has been assigned to an IoT hub for the first time, 'deviceDataMigrated': Device has been assigned to a different IoT hub and its device data was migrated from the previously assigned IoT hub. Device data was removed from the previously assigned IoT hub, 'deviceDataReset':  Device has been assigned to a different IoT hub and its device data was populated from the initial state stored in the enrollment. Device data was removed from the previously assigned IoT hub.
+    /// Substatus for 'Assigned' devices. Possible values include -
+    /// 'initialAssignment':  Device has been assigned to an IoT hub for the first time,
+    /// 'deviceDataMigrated': Device has been assigned to a different IoT hub and its
+    ///                       device data was migrated from the previously assigned IoT hub.
+    ///                       Device data was removed from the previously assigned IoT hub,
+    /// 'deviceDataReset':    Device has been assigned to a different IoT hub and its device
+    ///                       data was populated from the initial state stored in the enrollment.
+    ///                       Device data was removed from the previously assigned IoT hub.
     #[serde(rename = "substatus", skip_serializing_if = "Option::is_none")]
     substatus: Option<String>,
     /// Error code.

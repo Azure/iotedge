@@ -300,11 +300,35 @@ impl Main {
             }
             Provisioning::Dps(dps) => {
                 let dps_path = cache_subdir_path.join(EDGE_PROVISIONING_BACKUP_FILENAME);
+
+                macro_rules! start_edgelet {
+                    ($key_store:ident, $provisioning_result:ident, $root_key:ident, $runtime:ident) => {{
+                        info!("Finished provisioning edge device.");
+
+                        let cfg = WorkloadData::new(
+                            $provisioning_result.hub_name().to_string(),
+                            $provisioning_result.device_id().to_string(),
+                            IOTEDGE_ID_CERT_MAX_DURATION_SECS,
+                            IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
+                        );
+                        start_api(
+                            &settings,
+                            hyper_client,
+                            &$runtime,
+                            &$key_store,
+                            cfg,
+                            $root_key,
+                            shutdown_signal,
+                            &crypto,
+                            tokio_runtime,
+                        )?;
+                    }};
+                }
+
                 match dps.symmetric_key() {
                     Some(key) => {
                         info!("Staring provisioning edge device via symmetric key...");
-                        let (key_store, provisioning_result, root_key, runtime) =
-                            dps_symmetric_key_provision(
+                        let (key_store, provisioning_result, root_key, runtime) = dps_symmetric_key_provision(
                                 &dps,
                                 hyper_client.clone(),
                                 dps_path,
@@ -312,54 +336,19 @@ impl Main {
                                 &mut tokio_runtime,
                                 key,
                             )?;
-                        info!("Finished provisioning edge device.");
-                        let cfg = WorkloadData::new(
-                            provisioning_result.hub_name().to_string(),
-                            provisioning_result.device_id().to_string(),
-                            IOTEDGE_ID_CERT_MAX_DURATION_SECS,
-                            IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
-                        );
-                        start_api(
-                            &settings,
-                            hyper_client,
-                            &runtime,
-                            &key_store,
-                            cfg,
-                            root_key,
-                            shutdown_signal,
-                            &crypto,
-                            tokio_runtime,
-                        )?;
-                    }
+                        start_edgelet!(key_store, provisioning_result, root_key, runtime);
+                    },
                     None => {
                         info!("Staring provisioning edge device via TPM...");
-                        let (key_store, provisioning_result, root_key, runtime) =
-                            dps_tpm_provision(
+                        let (key_store, provisioning_result, root_key, runtime) = dps_tpm_provision(
                                 &dps,
                                 hyper_client.clone(),
                                 dps_path,
                                 runtime,
                                 &mut tokio_runtime,
                             )?;
-                        info!("Finished provisioning edge device.");
-                        let cfg = WorkloadData::new(
-                            provisioning_result.hub_name().to_string(),
-                            provisioning_result.device_id().to_string(),
-                            IOTEDGE_ID_CERT_MAX_DURATION_SECS,
-                            IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
-                        );
-                        start_api(
-                            &settings,
-                            hyper_client,
-                            &runtime,
-                            &key_store,
-                            cfg,
-                            root_key,
-                            shutdown_signal,
-                            &crypto,
-                            tokio_runtime,
-                        )?;
-                    }
+                        start_edgelet!(key_store, provisioning_result, root_key, runtime);
+                    },
                 };
             }
         };
