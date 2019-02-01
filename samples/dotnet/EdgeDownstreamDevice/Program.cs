@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.EdgeSamples.EdgeDownstreamDevice
+namespace Microsoft.Azure.Devices.Edge.Samples.EdgeDownstreamDevice
 {
     using System;
     using System.Globalization;
