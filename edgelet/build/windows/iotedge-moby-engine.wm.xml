@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='utf-8' standalone='yes'?>
+<identity
+  xmlns="urn:Microsoft.CompPlat/ManifestSchema.v1.00"
+  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  name="IoTEdge-Moby-Engine"
+  namespace="Azure"
+  owner="Microsoft"
+  >
+  <files>
+    <file source="$(_REPO_ROOT)\dockerd.exe" destinationDir="$(runtime.programFiles)\iotedge-moby" />
+  </files>
+  <regKeys>
+    <regKey keyName="$(hklm.system)\CurrentControlSet\Services\EventLog\Application\iotedge-moby">
+      <regValue name="CustomSource" value="1" type="REG_DWORD" />
+      <regValue name="EventMessageFile" value="$(runtime.programFiles)\iotedge-moby\dockerd.exe" type="REG_SZ" />
+      <regValue name="TypesSupported" value="7" type="REG_DWORD" />
+    </regKey>
+  </regKeys>
+  <service
+    description="Moby Engine"
+    displayName="Moby Engine"
+    errorControl="normal"
+    imagePath="$(runtime.programFiles)\iotedge-moby\dockerd.exe -H npipe:////./pipe/iotedge_moby_engine --exec-opt isolation=process --run-service --data-root $(runtime.programData)\iotedge-moby"
+    name="iotedge-moby"
+    objectName="LocalSystem"
+    sidType="unrestricted"
+    start="auto"
+    startAfterInstall="none"
+    type="win32OwnProcess"
+    />
+</identity>

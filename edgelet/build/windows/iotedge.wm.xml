@@ -8,8 +8,6 @@
   owner="Microsoft"
   >
   <files>
-    <file source="$(_REPO_ROOT)\docker.exe" destinationDir="$(runtime.programFiles)\iotedge-moby" />
-    <file source="$(_REPO_ROOT)\dockerd.exe" destinationDir="$(runtime.programFiles)\iotedge-moby" />
     <file source="$(_REPO_ROOT)\edgelet\contrib\config\windows\config.yaml" destinationDir="$(runtime.programFiles)\iotedge" />
     <file source="$(_REPO_ROOT)\edgelet\target\release\iotedge.exe" destinationDir="$(runtime.programFiles)\iotedge" />
     <file source="$(_REPO_ROOT)\edgelet\target\release\iotedged.exe" destinationDir="$(runtime.programFiles)\iotedge" />
@@ -33,7 +31,7 @@
     description="Azure IoT Edge Daemon"
     displayName="Azure IoT Edge Daemon"
     errorControl="normal"
-    imagePath="$(runtime.programFiles)\iotedge\iotedged.exe -c c:\programdata\iotedge\config.yaml"
+    imagePath="$(runtime.programFiles)\iotedge\iotedged.exe -c $(runtime.programData)\iotedge\config.yaml"
     name="iotedge"
     objectName="LocalSystem"
     sidType="unrestricted"
@@ -49,17 +47,4 @@
       </actions>
     </failureActions>
   </service>
-  <!-- requiredPrivileges="SeChangeNotifyPrivilege,SeCreateGlobalPrivilege" -->
-  <service
-    description="Moby Engine"
-    displayName="Moby Engine"
-    errorControl="normal"
-    imagePath="$(runtime.programFiles)\iotedge-moby\dockerd.exe -H npipe:////./pipe/iotedge_moby_engine --exec-opt isolation=process --run-service --data-root c:\programdata\iotedge-moby"
-    name="iotedge-moby"
-    objectName="LocalSystem"
-    sidType="unrestricted"
-    start="auto"
-    startAfterInstall="none"
-    type="win32OwnProcess"
-    />
 </identity>
