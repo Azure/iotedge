@@ -1,28 +1,21 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-extern crate base64;
-extern crate bytes;
-extern crate dirs;
-extern crate failure;
-extern crate futures;
-extern crate hyper;
-extern crate hyper_tls;
-pub extern crate k8s_openapi;
-extern crate log;
-extern crate native_tls;
-extern crate openssl;
-extern crate serde;
+#![deny(unused_extern_crates, warnings)]
+// Remove this when clippy stops warning about old-style `allow()`,
+// which can only be silenced by enabling a feature and thus requires nightly
+//
+// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
+#![allow(renamed_and_removed_lints)]
+#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
+#![cfg_attr(feature = "cargo-clippy", allow(
+    doc_markdown, // clippy want the "IoT" of "IoT Hub" in a code fence
+    shadow_unrelated,
+    stutter,
+    use_self,
+))]
+
 #[macro_use]
 extern crate serde_derive;
-#[cfg(test)]
-extern crate serde_json;
-extern crate serde_yaml;
-#[cfg(test)]
-extern crate tempdir;
-#[cfg(test)]
-extern crate tokio;
-
-extern crate url;
 
 pub mod client;
 pub mod config;
