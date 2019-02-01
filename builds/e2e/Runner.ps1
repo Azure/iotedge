@@ -140,9 +140,9 @@ New-Module -ScriptBlock {
         Restart-Service sshd
 
         # Output the host key so it can be added to the agent's known_hosts file
-        Write-Host '#DATA#'
-        Get-Content -Encoding Utf8 "$env:ProgramData\ssh\ssh_host_rsa_key.pub"
-        Write-Host '#DATA#'
+        Write-Host -NoNewline '#DATA#'
+        Get-Content -Encoding Utf8 "$env:ProgramData\ssh\ssh_host_rsa_key.pub" | ForEach-Object { Write-Host -NoNewline $_.Split()[0,1] }
+        Write-Host -NoNewline '#DATA#'
     }
 
     Export-ModuleMember -Function Initialize-WindowsVM

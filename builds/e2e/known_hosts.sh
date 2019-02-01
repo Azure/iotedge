@@ -16,7 +16,7 @@ for val in "${@:2}"; do
 host_key_pair=( "${host_key_pair[@]}" "$val" )
 if [ ${#host_key_pair[@]} -eq 2 ]; then
 
-set -- ${host_key_pair[@]}
+set -- "${host_key_pair[@]}"
 host_key_pair=( )
 
 ipaddr="$(getent hosts $1 | awk '{ print $1 }')"

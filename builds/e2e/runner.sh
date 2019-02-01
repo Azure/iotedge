@@ -32,6 +32,6 @@ systemctl daemon-reload
 systemctl restart docker
 
 # Output the host key so it can be added to the agent's known_hosts file
-echo '#DATA#'
-cat /etc/ssh/ssh_host_rsa_key.pub
-echo '#DATA#'
+echo -n '#DATA#'
+cat /etc/ssh/ssh_host_rsa_key.pub | awk '{ printf "%s %s", $1, $2 }'
+echo -n '#DATA#'
