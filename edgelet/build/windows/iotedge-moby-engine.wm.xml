@@ -21,7 +21,7 @@
     description="Moby Engine"
     displayName="Moby Engine"
     errorControl="normal"
-    imagePath="$(runtime.programFiles)\iotedge-moby\dockerd.exe -H npipe:////./pipe/iotedge_moby_engine --exec-opt isolation=process --run-service --data-root $(runtime.programData)\iotedge-moby"
+    imagePath="$(runtime.programFiles)\iotedge-moby\dockerd.exe -H npipe:////./pipe/iotedge_moby_engine --exec-opt isolation=process --run-service --data-root $(runtime.programData)\iotedge-moby --exec-root $(runtime.programData)\iotedge-moby\\exec-root"
     name="iotedge-moby"
     objectName="LocalSystem"
     sidType="unrestricted"

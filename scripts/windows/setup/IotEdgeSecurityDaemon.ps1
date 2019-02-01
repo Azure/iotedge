@@ -142,7 +142,13 @@ function Install-SecurityDaemon {
         [Switch] $SkipMobyCli,
 
         # Do not reboot even if needed.
-        [Switch] $NoReboot
+        [Switch] $NoRestart,
+
+        # Update only.
+        [Switch] $Update,
+
+        # Finalize installation, IoTCore only.
+        [Switch] $Finalize
     )
 
     $ErrorActionPreference = 'Stop'
@@ -156,26 +162,30 @@ function Install-SecurityDaemon {
         $InvokeWebRequestParameters['-Proxy'] = $Proxy
     }
 
-    if (Test-EdgeAlreadyInstalled) {
-        Write-HostRed
-        Write-HostRed 'IoT Edge is already installed. To reinstall, run `Uninstall-SecurityDaemon` first.'
-        return
+    if ((-not $Update) -and (-not $Finalize)) {
+        if (Test-EdgeAlreadyInstalled) {
+            Write-HostRed
+            Write-HostRed 'IoT Edge is already installed. To reinstall, run `Uninstall-SecurityDaemon` first.'
+            return
+        }
+
+        if (Test-MobyAlreadyInstalled) {
+            Write-HostRed
+            Write-HostRed 'IoT Edge Moby Engine is already installed. To reinstall, run `Uninstall-SecurityDaemon` first.'
+            return
+        }
+        
+        if (Test-MobyNeedsToBeMoved -or Test-LegacyInstaller) {
+            Write-HostRed
+            Write-HostRed 'IoT Edge is installed in an invalid location. To reinstall, run `Uninstall-SecurityDaemon -DeleteMobyDataRoot` first.'
+            return
+        }
     }
 
-    if (Test-MobyAlreadyInstalled) {
-        Write-HostRed
-        Write-HostRed 'IoT Edge Moby Engine is already installed. To reinstall, run `Uninstall-SecurityDaemon` first.'
-        return
-    }
-    
-    if (Test-MobyNeedsToBeMoved -or Test-LegacyInstaller) {
-        Write-HostRed
-        Write-HostRed 'IoT Edge is installed in an invalid location. To reinstall, run `Uninstall-SecurityDaemon -DeleteMobyDataRoot` first.'
-        return
-    }
-
-    if (-not (Test-AgentRegistryArgs)) {
-        return
+    if (-not $Update) {
+        if (-not (Test-AgentRegistryArgs)) {
+            return
+        }
     }
 
     $currentWindowsBuild = Get-WindowsBuild
@@ -232,60 +242,74 @@ function Install-SecurityDaemon {
             [System.Net.ServicePointManager]::SecurityProtocol -bor [System.Net.SecurityProtocolType]::Tls12
     }
 
-    if ($ExistingConfig -and (-not (Test-Path "$EdgeInstallDirectory\config.yaml"))) {
+    $configPath = Join-Path -Path $EdgeDataDirectory -ChildPath "config.yaml"
+    if ($ExistingConfig -and (-not (Test-Path $configPath))) {
         Write-HostRed
-        Write-HostRed "$EdgeInstallDirectory\config.yaml was not found."
+        Write-HostRed "$configPath was not found."
         return
     }
 
-    if ((-not $ExistingConfig) -and (Test-Path "$EdgeInstallDirectory\config.yaml")) {
-        Write-HostRed
-        Write-HostRed "$EdgeInstallDirectory\config.yaml already exists."
-        Write-HostRed (
-            'Delete it using `Uninstall-SecurityDaemon -Force -DeleteConfig` and then re-run `Install-SecurityDaemon`, ' +
-            'or run `Install-SecurityDaemon -ExistingConfig` to use the existing config.yaml')
-        return
-    }
-
-    # Download
-    $restartNeeded = $false
-    Get-SecurityDaemon -RestartNeeded ([ref]$restartNeeded)
-    Get-VcRuntime
-
-    # config.yaml
-    if ($ExistingConfig) {
-        Write-HostGreen 'Using existing config.yaml'
-    }
-    else {
-        Write-Host 'Generating config.yaml...'
-
-        Copy-Item -Path (Join-Path $EdgeInstallDirectory "config.yaml") -Destination $EdgeDataDirectory
-
-        Set-ProvisioningMode
-        Set-AgentImage
-        Set-Hostname
-        if ($ContainerOs -eq 'Linux') {
-            Set-GatewayAddress
+    if (-not $Update) {
+        if ((-not $ExistingConfig) -and (Test-Path $configPath)) {
+            Write-HostRed
+            Write-HostRed "$configPath already exists."
+            Write-HostRed (
+                'Delete it using `Uninstall-SecurityDaemon -Force -DeleteConfig` and then re-run `Install-SecurityDaemon`, ' +
+                'or run `Install-SecurityDaemon -ExistingConfig` to use the existing config.yaml')
+            return
         }
-        Set-MobyEngineParameters
     }
 
-    # Register services
-    Set-SystemPath
-    Install-Services -RestartNeeded $restartNeeded
-    if ($ContainerOs -eq 'Linux') {
-        Add-FirewallExceptions
+    $restartNeeded = $false
+    if (-not $Finalize) {
+        # Download
+        Get-SecurityDaemon -RestartNeeded ([ref]$restartNeeded)
     }
 
-    Write-HostGreen
-    Write-HostGreen 'This device is now provisioned with the IoT Edge runtime.'
-    Write-HostGreen 'Check the status of the IoT Edge service with `Get-Service iotedge`'
-    Write-HostGreen 'List running modules with `iotedge list`'
-    Write-HostGreen 'Display logs from the last five minutes in chronological order with'
-    Write-HostGreen '    Get-WinEvent -ea SilentlyContinue -FilterHashtable @{ProviderName=''iotedged'';LogName=''application'';StartTime=[datetime]::Now.AddMinutes(-5)} |'
-    Write-HostGreen '    Select TimeCreated, Message |'
-    Write-HostGreen '    Sort-Object @{Expression=''TimeCreated'';Descending=$false} |'
-    Write-HostGreen '    Format-Table -AutoSize -Wrap'
+    if (-not $Update) {
+        Get-VcRuntime
+
+        # config.yaml
+        if ($ExistingConfig) {
+            Write-HostGreen 'Using existing config.yaml'
+        }
+        else {
+            Write-Host 'Generating config.yaml...'
+
+            if (-not (Test-Path $EdgeDataDirectory)) {
+                mkdir $EdgeDataDirectory
+            }
+            Copy-Item -Path (Join-Path -Path $EdgeInstallDirectory -ChildPath "config.yaml") -Destination $configPath
+
+            Set-ProvisioningMode
+            Set-AgentImage
+            Set-Hostname
+            if ($ContainerOs -eq 'Linux') {
+                Set-GatewayAddress
+            }
+            else {
+                Set-CorrectProgramData
+            }
+            Set-MobyEngineParameters
+        }
+
+        # Register services
+        Set-SystemPath
+        Install-Services -RestartNeeded $restartNeeded
+        if ($ContainerOs -eq 'Linux') {
+            Add-FirewallExceptions
+        }
+
+        Write-HostGreen
+        Write-HostGreen 'This device is now provisioned with the IoT Edge runtime.'
+        Write-HostGreen 'Check the status of the IoT Edge service with `Get-Service iotedge`'
+        Write-HostGreen 'List running modules with `iotedge list`'
+        Write-HostGreen 'Display logs from the last five minutes in chronological order with'
+        Write-HostGreen '    Get-WinEvent -ea SilentlyContinue -FilterHashtable @{ProviderName=''iotedged'';LogName=''application'';StartTime=[datetime]::Now.AddMinutes(-5)} |'
+        Write-HostGreen '    Select TimeCreated, Message |'
+        Write-HostGreen '    Sort-Object @{Expression=''TimeCreated'';Descending=$false} |'
+        Write-HostGreen '    Format-Table -AutoSize -Wrap'
+    }
 
     if ($restartNeeded) {
         Write-HostRed "Reboot required."
@@ -345,11 +369,17 @@ function Uninstall-SecurityDaemon {
         [Switch] $Force,
 
         # Do not reboot even if needed.
-        [Switch] $NoReboot
+        [Switch] $NoRestart
     )
 
     $ErrorActionPreference = 'Stop'
     Set-StrictMode -Version 5
+
+    if ((Test-IoTCore) -and (-not (Test-LegacyInstaller))) {
+        Write-HostRed "Uninstall-SecurityDaemon is only supported on IoTCore to uninstall legacy installation. " `
+            "For new installations, please use Install-SecurityDaemon -Update directly to update."
+        return
+    }
 
     if (-not $Force -and -not ((Test-EdgeAlreadyInstalled) -or (Test-MobyAlreadyInstalled))) {
         Write-HostRed
@@ -376,8 +406,19 @@ function Uninstall-SecurityDaemon {
     }
 
     if ($restartNeeded) {
-        Write-Host "rebooting..."
+        Write-HostRed "Reboot required."
+        Write-Host "You might need to rerun Uninstall-SecurityDaemon after reboot to finish the cleanup."
+        if (-not $NoReboot) {
+            Restart-Computer
+        }
     }
+}
+
+function Get-SecurityDaemonLog {
+    Get-WinEvent -ea SilentlyContinue -FilterHashtable @{ProviderName='iotedged';LogName='application';StartTime=[datetime]::Now.AddMinutes(-5)} |
+        Select TimeCreated, Message |
+        Sort-Object @{Expression='TimeCreated';Descending=$false} |
+        Format-Table -AutoSize -Wrap
 }
 
 function Test-IsDockerRunning {
@@ -455,9 +496,7 @@ function Test-EdgeAlreadyInstalled {
 
 function Test-MobyAlreadyInstalled {
     return (Get-Service $MobyServiceName -ErrorAction SilentlyContinue) -or 
-        (Test-Path -Path $MobyInstallDirectory) -or 
-        (Test-Path -Path $LegacyMobyInstallDirectory) -or
-        (Test-Path -Path $LegacyMobyStaticInstallDirectory)
+        (Test-Path -Path $MobyInstallDirectory)
 }
 
 function Test-MobyNeedsToBeMoved {
@@ -514,14 +553,22 @@ function Get-ExternalDockerServerOs {
 
 function Install-Package([string]$Path, [ref]$RestartNeeded)
 {
-    $result = Add-WindowsPackage -Online -PackagePath $Path -NoRestart
-    if ($result.RestartNeeded) {
-        $RestartNeeded.Value = $true
+    if (Test-IotCore) {
+        Invoke-Native "ApplyUpdate -stage $Path"
+    }
+    else {
+        $result = Add-WindowsPackage -Online -PackagePath $Path -NoRestart
+        if ($result.RestartNeeded) {
+            $RestartNeeded.Value = $true
+        }
     }
 }
 
 function Uninstall-Package([string]$Name, [ref]$RestartNeeded)
 {
+    if (Test-IotCore) {
+        return
+    }
     Get-WindowsPackage -Online | 
         Where-Object { $_.PackageName -like "$Name~*"} | 
         Remove-WindowsPackage -Online -NoRestart | 
@@ -583,6 +630,10 @@ function Get-SecurityDaemon([ref]$RestartNeeded) {
             $acl.AddAccessRule($rule)
             Set-Acl -Path $path -AclObject $acl
         }
+
+        if (Test-IotCore) {
+            Invoke-Native "ApplyUpdate -commit"
+        }
     }
     finally {
         if ($deleteEdgeArchive) {
@@ -599,6 +650,33 @@ function Get-SecurityDaemon([ref]$RestartNeeded) {
     }
 }
 
+Function Remove-SecurityDaemonDirectory([string]$Path)
+{
+    Write-Host "Deleting data directory '$Path'..."
+    if (-not $DeleteConfig) {
+        Write-Host "Not deleting config.yaml since -DeleteConfig was not specified."
+    }
+
+    if ($DeleteConfig) {
+        Remove-Item -Recurse $Path -ErrorAction SilentlyContinue -ErrorVariable cmdErr
+    }
+    else {
+        Remove-Item -Recurse $Path -Exclude 'config.yaml' -ErrorAction SilentlyContinue -ErrorVariable cmdErr
+    }
+    if ($?) {
+        Write-Verbose "Deleted data directory '$Path'"
+    }
+    elseif ($cmdErr.FullyQualifiedErrorId -ne 'PathNotFound,Microsoft.PowerShell.Commands.RemoveItemCommand') {
+        Write-Verbose "$cmdErr"
+        Write-HostRed ("Could not delete directory '$Path'. Please reboot " +
+            'your device and run `Uninstall-SecurityDaemon` again with `-Force`.')
+        $success = $false
+    }
+    else {
+        Write-Verbose "$cmdErr"
+    }
+}
+
 function Remove-SecurityDaemonResources {
     $success = $true
 
@@ -609,28 +687,12 @@ function Remove-SecurityDaemonResources {
         $removeDir = $EdgeDataDirectory
     }
 
-    Write-Host "Deleting install directory '$removeDir'..."
-    if (-not $DeleteConfig) {
-        Write-Host "Not deleting config.yaml since -DeleteConfig was not specified."
-    }
-
-    if ($DeleteConfig) {
-        Remove-Item -Recurse $removeDir -ErrorAction SilentlyContinue -ErrorVariable cmdErr
-    }
-    else {
-        Remove-Item -Recurse $removeDir -Exclude 'config.yaml' -ErrorAction SilentlyContinue -ErrorVariable cmdErr
-    }
-    if ($?) {
-        Write-Verbose "Deleted install directory '$removeDir'"
-    }
-    elseif ($cmdErr.FullyQualifiedErrorId -ne 'PathNotFound,Microsoft.PowerShell.Commands.RemoveItemCommand') {
-        Write-Verbose "$cmdErr"
-        Write-HostRed ("Could not delete directory '$removeDir'. Please reboot " +
-            'your device and run `Uninstall-SecurityDaemon` again with `-Force`.')
-        $success = $false
-    }
-    else {
-        Write-Verbose "$cmdErr"
+    Remove-SecurityDaemonDirectory $LegacyEdgeInstallDirectory
+    Remove-SecurityDaemonDirectory $EdgeDataDirectory
+    $oldConfig = Join-Path -Path $LegacyEdgeInstallDirectory -ChildPath "config.yaml"
+    if (Test-Path $oldConfig) {
+        mkdir $EdgeDataDirectory
+        Move-Item -Path $oldConfig -Destination $EdgeDataDirectory
     }
 
     if (Test-LegacyInstaller) {
@@ -806,13 +868,12 @@ function Get-VcRuntime {
     $deleteVcRuntimeArchive = $false
 
     try {
-        $vcRuntimeArchivePath =
-            Download-File `
-                -Description 'VC Runtime installer' `
-                -Url 'https://download.microsoft.com/download/0/6/4/064F84EA-D1DB-4EAA-9A5C-CC2F0FF6A638/vc_redist.x64.exe' `
-                -DownloadFilename 'vc_redist.x64.exe' `
-                -LocalCacheGlob '*vc_redist*.exe' `
-                -Delete ([ref] $deleteVcRuntimeArchive)
+        $vcRuntimeArchivePath = Download-File `
+            -Description 'VC Runtime installer' `
+            -Url 'https://download.microsoft.com/download/0/6/4/064F84EA-D1DB-4EAA-9A5C-CC2F0FF6A638/vc_redist.x64.exe' `
+            -DownloadFilename 'vc_redist.x64.exe' `
+            -LocalCacheGlob '*vc_redist*.exe' `
+            -Delete ([ref] $deleteVcRuntimeArchive)
 
         Invoke-Native """$vcRuntimeArchivePath"" /quiet /norestart"
         Write-HostGreen 'Installed VC Runtime.'
@@ -834,7 +895,9 @@ function Get-VcRuntime {
 
 function Install-Services([bool]$RestartNeeded) {
     if ($ContainerOs -eq 'Linux') {
-        # TODO remove edge depends on moby, switch to com.docker.service
+        Remove-ItemProperty 
+            -Path "HKLM:\SYSTEM\CurrentControlSet\Services\$EdgeServiceName" 
+            -Name "DependOnService"
     }
 
     if (-not $RestartNeeded) {
@@ -845,48 +908,48 @@ function Install-Services([bool]$RestartNeeded) {
 }
 
 function Uninstall-Services([ref]$RestartNeeded) {
-    if (Test-LegacyInstaller) {
-        if (Get-Service $EdgeServiceName -ErrorAction SilentlyContinue) {
-            Set-Service -StartupType Disabled $EdgeServiceName -ErrorAction SilentlyContinue
-            Stop-Service -NoWait -ErrorAction SilentlyContinue -ErrorVariable cmdErr $EdgeServiceName
-            if ($?) {
-                Start-Sleep -Seconds 7
-                Write-Verbose 'Stopped the IoT Edge service'
-            }
-            else {
-                Write-Verbose "$cmdErr"
-            }
+    if (Get-Service $EdgeServiceName -ErrorAction SilentlyContinue) {
+        Set-Service -StartupType Disabled $EdgeServiceName -ErrorAction SilentlyContinue
+        Stop-Service -NoWait -ErrorAction SilentlyContinue -ErrorVariable cmdErr $EdgeServiceName
+        if ($?) {
+            Start-Sleep -Seconds 7
+            Write-Verbose 'Stopped the IoT Edge service'
+        }
+        else {
+            Write-Verbose "$cmdErr"
+        }
 
+        if (Test-LegacyInstaller) {
             if (Invoke-Native "sc.exe delete ""$EdgeServiceName""" -ErrorAction SilentlyContinue) {
                 Write-Verbose 'Removed IoT Edge service subkey from the registry'
             }
         }
-    }
-    else {
-        Uninstall-Package -Name "microsoft-azure-iotedge" -RestartNeeded $RestartNeeded
+        else {
+            Uninstall-Package -Name "microsoft-azure-iotedge" -RestartNeeded $RestartNeeded
+        }
     }
 
     Remove-IotEdgeContainers
 
-    if (Test-LegacyInstaller) {
-        if (Get-Service $MobyServiceName -ErrorAction SilentlyContinue) {
-            Stop-Service -NoWait -ErrorAction SilentlyContinue -ErrorVariable cmdErr $MobyServiceName
-            if ($?) {
-                Start-Sleep -Seconds 7
-                Write-Verbose 'Stopped the IoT Edge Moby Engine service'
-            }
-            else {
-                Write-Verbose "$cmdErr"
-            }
+    if (Get-Service $MobyServiceName -ErrorAction SilentlyContinue) {
+        Stop-Service -NoWait -ErrorAction SilentlyContinue -ErrorVariable cmdErr $MobyServiceName
+        if ($?) {
+            Start-Sleep -Seconds 7
+            Write-Verbose 'Stopped the IoT Edge Moby Engine service'
+        }
+        else {
+            Write-Verbose "$cmdErr"
+        }
 
+        if (Test-LegacyInstaller) {
             if (Invoke-Native "sc.exe delete ""$MobyServiceName""" -ErrorAction SilentlyContinue) {
                 Write-Verbose 'Removed IoT Edge Moby Engine service subkey from the registry'
             }
         }
-    }
-    else {
-        Uninstall-Package -Name "microsoft-azure-iotedge-moby-engine" -RestartNeeded $RestartNeeded
-        Uninstall-Package -Name "microsoft-azure-iotedge-moby-cli" -RestartNeeded $RestartNeeded
+        else {
+            Uninstall-Package -Name "microsoft-azure-iotedge-moby-engine" -RestartNeeded $RestartNeeded
+            Uninstall-Package -Name "microsoft-azure-iotedge-moby-cli" -RestartNeeded $RestartNeeded
+        }
     }
 }
 
@@ -1000,6 +1063,25 @@ function Set-GatewayAddress {
     Write-HostGreen "Configured device with gateway address '$gatewayAddress'."
 }
 
+function Set-CorrectProgramData {
+    $yamlPath = (Join-Path -Path $EdgeDataDirectory -ChildPath "config.yaml")
+    $configurationYaml = Get-Content $yamlPath -Raw
+
+    $selectionRegex = '%PROGRAMDATA%'
+    $replacementContent = $env:ProgramData -replace '\\', '/'
+    $configurationYaml = $configurationYaml -replace $selectionRegex, $replacementContent
+
+    $env:IOTEDGE_HOST = "unix:///$replacementContent/iotedge/mgmt/sock"
+    Set-MachineEnvironmentVariable 'IOTEDGE_HOST' $env:IOTEDGE_HOST
+
+    $selectionRegex = '%PROGRAMDATAB%'
+    $replacementContent = $env:ProgramData -replace '\\', '\\'
+    $configurationYaml = $configurationYaml -replace $selectionRegex, $replacementContent
+
+    $configurationYaml | Set-Content $yamlPath -Force
+    Write-HostGreen "Configured ProgramData directory."
+}
+
 function Set-MobyEngineParameters {
     $yamlPath = (Join-Path -Path $EdgeDataDirectory -ChildPath "config.yaml")
     $configurationYaml = Get-Content $yamlPath -Raw
@@ -1042,6 +1124,10 @@ function Remove-IotEdgeContainers {
     $dockerExe = Get-DockerExePath
 
     if (-not (Test-IsDockerRunning 6> $null)) {
+        return
+    }
+
+    if (-not (Get-Command "docker.exe" -ErrorAction SilentlyContinue)) {
         return
     }
 
@@ -1169,5 +1255,5 @@ function Download-File([string] $Description, [string] $Url, [string] $DownloadF
     return $result
 }
 
-Export-ModuleMember -Function Install-SecurityDaemon, Uninstall-SecurityDaemon
+Export-ModuleMember -Function Install-SecurityDaemon, Uninstall-SecurityDaemon, Get-SecurityDaemonLog
 }
