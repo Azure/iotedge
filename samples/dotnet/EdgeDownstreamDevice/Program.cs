@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Client.Samples
+namespace Microsoft.Azure.Devices.EdgeSamples.EdgeDownstreamDevice
 {
     using System;
     using System.Globalization;
@@ -7,10 +7,11 @@ namespace Microsoft.Azure.Devices.Client.Samples
     using System.Security.Cryptography.X509Certificates;
     using System.Text;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client;
 
     class Program
     {
-        const int TEMPERATURE_THRESHOLD = 30;
+        const int TemperatureThreshold = 30;
 
         // 1) Obtain the connection string for your downstream device and to it
         //    append it with this string: GatewayHostName=<edge device hostname>;
@@ -23,7 +24,7 @@ namespace Microsoft.Azure.Devices.Client.Samples
         // Either set the DEVICE_CONNECTION_STRING environment variable with this connection string
         // or set it in the Properties/launchSettings.json.
         static readonly string DeviceConnectionString = Environment.GetEnvironmentVariable("DEVICE_CONNECTION_STRING");
-        static int MESSAGE_COUNT = 10;
+        static int messageCount = 10;
 
         /// <summary>
         /// First install any CA certificate provided by the user to connect to the Edge device.
@@ -42,12 +43,12 @@ namespace Microsoft.Azure.Devices.Client.Samples
                 string messageCountEnv = Environment.GetEnvironmentVariable("MESSAGE_COUNT");
                 if (!string.IsNullOrWhiteSpace(messageCountEnv))
                 {
-                    MESSAGE_COUNT = int.Parse(messageCountEnv, NumberStyles.None, new CultureInfo("en-US"));
+                    messageCount = int.Parse(messageCountEnv, NumberStyles.None, new CultureInfo("en-US"));
                 }
             }
             catch (Exception)
             {
-                Console.WriteLine("Invalid number of messages in env variable DEVICE_MESSAGE_COUNT. MESSAGE_COUNT set to {0}\n", MESSAGE_COUNT);
+                Console.WriteLine("Invalid number of messages in env variable DEVICE_MESSAGE_COUNT. MESSAGE_COUNT set to {0}\n", messageCount);
             }
 
             Console.WriteLine("Creating device client from connection string\n");
@@ -59,7 +60,7 @@ namespace Microsoft.Azure.Devices.Client.Samples
             }
             else
             {
-                SendEvents(deviceClient, MESSAGE_COUNT).Wait();
+                SendEvents(deviceClient, messageCount).Wait();
             }
 
             Console.WriteLine("Exiting!\n");
@@ -108,7 +109,6 @@ namespace Microsoft.Azure.Devices.Client.Samples
         /// </summary>
         static async Task SendEvents(DeviceClient deviceClient, int messageCount)
         {
-            string dataBuffer;
             Random rnd = new Random();
             Console.WriteLine("Edge downstream device attempting to send {0} messages to Edge Hub...\n", messageCount);
 
@@ -116,9 +116,9 @@ namespace Microsoft.Azure.Devices.Client.Samples
             {
                 float temperature = rnd.Next(20, 35);
                 float humidity = rnd.Next(60, 80);
-                dataBuffer = string.Format(new CultureInfo("en-US"), "{{MyFirstDownstreamDevice \"messageId\":{0},\"temperature\":{1},\"humidity\":{2}}}", count, temperature, humidity);
+                string dataBuffer = string.Format(new CultureInfo("en-US"), "{{MyFirstDownstreamDevice \"messageId\":{0},\"temperature\":{1},\"humidity\":{2}}}", count, temperature, humidity);
                 Message eventMessage = new Message(Encoding.UTF8.GetBytes(dataBuffer));
-                eventMessage.Properties.Add("temperatureAlert", (temperature > TEMPERATURE_THRESHOLD) ? "true" : "false");
+                eventMessage.Properties.Add("temperatureAlert", (temperature > TemperatureThreshold) ? "true" : "false");
                 Console.WriteLine("\t{0}> Sending message: {1}, Data: [{2}]", DateTime.Now.ToLocalTime(), count, dataBuffer);
 
                 await deviceClient.SendEventAsync(eventMessage).ConfigureAwait(false);
