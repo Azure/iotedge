@@ -82,7 +82,7 @@ New-Module -ScriptBlock {
 
         Write-Host 'Setting winhttp proxy'
         
-        netsh winhttp set proxy "${ProxyHostname}:3128"
+        netsh winhttp set proxy "${ProxyHostname}:3128" "<local>"
 
         # Add public key so agent can SSH into this runner
         $authorizedKeys = Join-Path ${env:UserProfile} (Join-Path ".ssh" "authorized_keys")
