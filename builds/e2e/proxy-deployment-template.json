@@ -463,7 +463,7 @@
 			},
 			"parameters": {
 				"extension_command": { 
-					"value": "[concat('/bin/bash -c \"set -euo pipefail && curl ', variables('agent_prep2_script_uri'), ' | sudo bash -s -- ', parameters('vms_username'), ' ', parameters('vsts_runner1_vm_name'), ' ', trim(reference('create_runner1_vm').outputs.hostkey.value[0]), ' ', parameters('vsts_runner2_vm_name'), ' ', trim(reference('create_runner2_vm').outputs.hostkey.value[0]), '\"')]"
+					"value": "[concat('/bin/bash -c \"set -euo pipefail && curl ', variables('agent_prep2_script_uri'), ' | sudo bash -s -- ', parameters('vms_username'), ' ', parameters('vsts_runner1_vm_name'), ' ''', trim(reference('create_runner1_vm').outputs.hostkey.value[0]), ''' ', parameters('vsts_runner2_vm_name'), ' ''', trim(reference('create_runner2_vm').outputs.hostkey.value[0]), '''\"')]"
 						},
 				"vm_name": {
 					"value": "[parameters('vsts_agent_vm_name')]"
