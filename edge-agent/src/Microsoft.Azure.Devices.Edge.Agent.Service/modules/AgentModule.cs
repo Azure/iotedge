@@ -30,28 +30,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly Option<string> moduleGenerationId;
 
         public AgentModule(int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds, bool usePersistentStorage, string storagePath)
-            : this(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.None<Uri>(), Constants.EdgeAgentModuleIdentityName, Option.None<string>())
+            : this(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.None<Uri>(), Option.None<string>(), Constants.EdgeAgentModuleIdentityName, Option.None<string>())
         {
-        }
-
-        public AgentModule(
-            int maxRestartCount,
-            TimeSpan intensiveCareTime,
-            int coolOffTimeUnitInSeconds,
-            bool usePersistentStorage,
-            string storagePath,
-            Option<Uri> workloadUri,
-            string moduleId,
-            Option<string> moduleGenerationId)
-        {
-            this.maxRestartCount = maxRestartCount;
-            this.intensiveCareTime = intensiveCareTime;
-            this.coolOffTimeUnitInSeconds = coolOffTimeUnitInSeconds;
-            this.usePersistentStorage = usePersistentStorage;
-            this.storagePath = Preconditions.CheckNonWhiteSpace(storagePath, nameof(storagePath));
-            this.workloadUri = workloadUri;
-            this.moduleId = moduleId;
-            this.moduleGenerationId = moduleGenerationId;
         }
 
         public AgentModule(

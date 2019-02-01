@@ -57,7 +57,7 @@
                 "value": "<LoadGen.MessageFrequency>"
               },
               "transportType": {
-                "value": "<LoadGen.TransportType>"
+                "value": "<LoadGen1.TransportType>"
               }
             },
             "settings": {
@@ -75,7 +75,7 @@
                 "value": "<LoadGen.MessageFrequency>"
               },
               "transportType": {
-                "value": "<LoadGen.TransportType>"
+                "value": "<LoadGen2.TransportType>"
               }
             },
             "settings": {
@@ -93,7 +93,25 @@
                 "value": "<LoadGen.MessageFrequency>"
               },
               "transportType": {
-                "value": "<LoadGen.TransportType>"
+                "value": "<LoadGen3.TransportType>"
+              }
+            },
+            "settings": {
+              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-amd64",
+              "createOptions": ""
+            }
+          },
+          "loadGen4": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "messageFrequency": {
+                "value": "<LoadGen.MessageFrequency>"
+              },
+              "transportType": {
+                "value": "<LoadGen4.TransportType>"
               }
             },
             "settings": {
@@ -179,7 +197,8 @@
         "routes": {
           "upstreamLoadGen1": "FROM /messages/modules/loadGen1/outputs/output1 INTO $upstream",
           "upstreamLoadGen2": "FROM /messages/modules/loadGen2/outputs/output1 INTO $upstream",
-          "upstreamLoadGen3": "FROM /messages/modules/loadGen3/outputs/output1 INTO $upstream"
+          "upstreamLoadGen3": "FROM /messages/modules/loadGen3/outputs/output1 INTO $upstream",
+          "upstreamLoadGen4": "FROM /messages/modules/loadGen4/outputs/output1 INTO $upstream"
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 86400
