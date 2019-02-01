@@ -44,6 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             string apiVersion,
             IEnumerable<AuthConfig> dockerAuthConfig,
             Option<UpstreamProtocol> upstreamProtocol,
+            Option<IWebProxy> proxy,
             Option<string> productInfo)
         {
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
@@ -53,10 +54,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.workloadUri = Preconditions.CheckNotNull(workloadUri, nameof(workloadUri));
             this.apiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion));
             this.dockerAuthConfig = Preconditions.CheckNotNull(dockerAuthConfig, nameof(dockerAuthConfig));
-            this.upstreamProtocol = Preconditions.CheckNotNull(upstreamProtocol, nameof(upstreamProtocol));
-            this.proxy = Preconditions.CheckNotNull(this.proxy, nameof(this.proxy));
+            this.upstreamProtocol = upstreamProtocol;
+            this.proxy = proxy;
             this.productInfo = productInfo;
-            this.apiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion));
         }
 
         protected override void Load(ContainerBuilder builder)
