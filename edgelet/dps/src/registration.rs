@@ -307,12 +307,8 @@ where
                     registration_id.to_string(),
                     symmetric_key,
                 );
-                let cli = cli
-                    .read()
-                    .expect("RwLock read failure")
-                    .clone();
-                cli
-                    .with_token_source(token_source)
+                let cli = cli.read().expect("RwLock read failure").clone();
+                cli.with_token_source(token_source)
                     .request::<DeviceRegistration, RegistrationOperationStatus>(
                         Method::PUT,
                         &format!("{}/registrations/{}/register", scope_id, registration_id),
