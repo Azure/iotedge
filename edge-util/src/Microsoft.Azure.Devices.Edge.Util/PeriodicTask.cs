@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
         readonly Timer checkTimer;
         readonly CancellationTokenSource cts = new CancellationTokenSource();
 
-        Task currentRuner;
+        Task currentTask;
 
         public PeriodicTask(
             Func<CancellationToken, Task> work,
@@ -29,12 +29,12 @@ namespace Microsoft.Azure.Devices.Edge.Util
             Preconditions.CheckArgument(frequency > TimeSpan.Zero, "Frequency should be > 0");
             Preconditions.CheckArgument(startAfter >= TimeSpan.Zero, "startAfter should be >= 0");
 
-            this.work = Preconditions.CheckNotNull(work);
+            this.work = Preconditions.CheckNotNull(work, "work");
             this.frequency = frequency;
             this.startAfter = startAfter;
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
             this.operationName = Preconditions.CheckNonWhiteSpace(operationName, nameof(operationName));
-            this.currentRuner = this.DoWork();
+            this.currentTask = this.DoWork();
             this.checkTimer = new Timer(this.EnsureWork, null, frequency, startAfter);
             this.logger.LogInformation($"Started operation {this.operationName}");
         }
@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             TimeSpan startAfter,
             ILogger logger,
             string operationName)
-            : this(_ => work(), frequency, startAfter, logger, operationName)
+            : this(_ => Preconditions.CheckNotNull(work, "work")(), frequency, startAfter, logger, operationName)
         {
         }
 
@@ -54,17 +54,20 @@ namespace Microsoft.Azure.Devices.Edge.Util
             this.checkTimer?.Dispose();
             this.cts?.Cancel();
             this.cts?.Dispose();
-            this.currentRuner?.Dispose();
+            // Do not dispose the task here in case it hasn't completed. 
         }
 
+        /// <summary>
+        /// The current task should never complete, but in case it does, this makes sure it is started again.
+        /// </summary>
         void EnsureWork(object state)
         {
             lock (this.stateLock)
             {
-                if (this.currentRuner == null || this.currentRuner.IsCompleted)
+                if (this.currentTask == null || this.currentTask.IsCompleted)
                 {
                     this.logger.LogInformation($"Periodic operation {this.operationName}, is not running. Attempting to start again...");
-                    this.currentRuner = this.DoWork();
+                    this.currentTask = this.DoWork();
                     this.logger.LogInformation($"Started operation {this.operationName}");
                 }
             }
