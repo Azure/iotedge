@@ -1,5 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+// We are using a nightly clippy during CI which doesn't like code that maps
+// a result followed by an unwrap_or/unwrap_or_else. It wants us to use the
+// map_or_else combinator instead. This is a nighly only API however. So till
+// one of the following happens, we allow this lint:
+//  * map_or_else gets stabilized
+//  * our CI switches to stable clippy
+#![allow(result_map_unwrap_or_else)]
+
 use std::env;
 use std::fs;
 use std::path::Path;

@@ -22,5 +22,6 @@ fn main() -> Result<()> {
         }
     });
 
-    Ok(Runtime::new()?.block_on(fut)?)
+    Runtime::new()?.block_on(fut)?;
+    Ok(())
 }

@@ -1,5 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+// We are using a nightly clippy during CI which doesn't like code that maps
+// a result followed by an unwrap_or/unwrap_or_else. It wants us to use the
+// map_or_else combinator instead. This is a nighly only API however. So till
+// one of the following happens, we allow this lint:
+//  * map_or_else gets stabilized
+//  * our CI switches to stable clippy
+#![allow(result_map_unwrap_or_else)]
+
 use bytes::BytesMut;
 use futures::future::{self, Either};
 use futures::prelude::*;
@@ -223,12 +231,7 @@ where
             .host()
             .join(self.config.api_path())
             .and_then(|base_url| {
-                base_url.join(
-                    req.uri()
-                        .path_and_query()
-                        .map(|pq| pq.as_str())
-                        .unwrap_or(""),
-                )
+                base_url.join(req.uri().path_and_query().map_or("", |pq| pq.as_str()))
             })
             .map_err(Error::from)
             .and_then(|url| url.as_ref().parse().map_err(Error::from))
