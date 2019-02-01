@@ -366,7 +366,6 @@ namespace IotEdgeQuickstart.Details
 
         protected async Task VerifyTwinAsync()
         {
-            Console.WriteLine("Verifying twin.");
             await this.TwinTestFileName.ForEachAsync(
                 async fileName =>
                 {
