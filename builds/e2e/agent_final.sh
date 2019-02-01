@@ -1,5 +1,5 @@
 #!/bin/bash
-# usage: ./known_hosts.sh <user> <hostname> <hostkey> [<hostname> <hostkey>]...
+# usage: ./agent_final.sh <user> <hostname> <hostkey> [<hostname> <hostkey>]...
 
 set -euo pipefail
 

@@ -83,7 +83,7 @@
 	},
 	"variables": {
 		"agent_prep1_script_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/agent.sh",
-		"agent_prep2_script_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/known_hosts.sh",
+		"agent_prep2_script_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/agent_final.sh",
 		"create_linux_vm_template_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/create-linux-vm-template.json",
 		"create_windows_vm_template_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/create-windows-vm-template.json",
 		"finalize_agent_template_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/finalize-agent-template.json",
