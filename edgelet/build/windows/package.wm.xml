@@ -8,23 +8,23 @@
   owner="Microsoft"
   >
   <files>
-    <file source="$(_REPO_ROOT)\docker.exe" destinationDir="$(runtime.programData)\iotedge-moby" />
-    <file source="$(_REPO_ROOT)\dockerd.exe" destinationDir="$(runtime.programData)\iotedge-moby" />
-    <file source="$(_REPO_ROOT)\edgelet\contrib\config\windows\config.yaml" destinationDir="$(runtime.programData)\iotedge" />
-    <file source="$(_REPO_ROOT)\edgelet\target\release\iotedge.exe" destinationDir="$(runtime.programData)\iotedge" />
-    <file source="$(_REPO_ROOT)\edgelet\target\release\iotedged.exe" destinationDir="$(runtime.programData)\iotedge" />
-    <file source="$(_REPO_ROOT)\edgelet\target\release\iotedged.pdb" destinationDir="$(runtime.programData)\iotedge" />
-    <file source="$(_REPO_ROOT)\edgelet\target\release\iotedged_eventlog_messages.dll" destinationDir="$(runtime.programData)\iotedge-eventlog" />
-    <file source="$(_REPO_ROOT)\edgelet\hsm-sys\azure-iot-hsm-c\build\Release\iothsm.dll" destinationDir="$(runtime.programData)\iotedge" />
-    <file source="$(_REPO_ROOT)\edgelet\hsm-sys\azure-iot-hsm-c\build\Release\libeay32.dll" destinationDir="$(runtime.programData)\iotedge" />
-    <file source="$(_REPO_ROOT)\edgelet\contrib\docs\LICENSE" destinationDir="$(runtime.programData)\iotedge\LICENSE" />
-    <file source="$(_REPO_ROOT)\edgelet\contrib\docs\ThirdPartyNotices" destinationDir="$(runtime.programData)\iotedge\LICENSE" />
-    <file source="$(_REPO_ROOT)\edgelet\contrib\docs\trademark" destinationDir="$(runtime.programData)\iotedge\LICENSE" />
+    <file source="$(_REPO_ROOT)\docker.exe" destinationDir="$(runtime.programFiles)\iotedge-moby" />
+    <file source="$(_REPO_ROOT)\dockerd.exe" destinationDir="$(runtime.programFiles)\iotedge-moby" />
+    <file source="$(_REPO_ROOT)\edgelet\contrib\config\windows\config.yaml" destinationDir="$(runtime.programFiles)\iotedge" />
+    <file source="$(_REPO_ROOT)\edgelet\target\release\iotedge.exe" destinationDir="$(runtime.programFiles)\iotedge" />
+    <file source="$(_REPO_ROOT)\edgelet\target\release\iotedged.exe" destinationDir="$(runtime.programFiles)\iotedge" />
+    <file source="$(_REPO_ROOT)\edgelet\target\release\iotedged.pdb" destinationDir="$(runtime.programFiles)\iotedge" />
+    <file source="$(_REPO_ROOT)\edgelet\target\release\iotedged_eventlog_messages.dll" destinationDir="$(runtime.programFiles)\iotedge" />
+    <file source="$(_REPO_ROOT)\edgelet\hsm-sys\azure-iot-hsm-c\build\Release\iothsm.dll" destinationDir="$(runtime.programFiles)\iotedge" />
+    <file source="$(_REPO_ROOT)\edgelet\hsm-sys\azure-iot-hsm-c\build\Release\libeay32.dll" destinationDir="$(runtime.programFiles)\iotedge" />
+    <file source="$(_REPO_ROOT)\edgelet\contrib\docs\LICENSE" destinationDir="$(runtime.programFiles)\iotedge\LICENSE" />
+    <file source="$(_REPO_ROOT)\edgelet\contrib\docs\ThirdPartyNotices" destinationDir="$(runtime.programFiles)\iotedge\LICENSE" />
+    <file source="$(_REPO_ROOT)\edgelet\contrib\docs\trademark" destinationDir="$(runtime.programFiles)\iotedge\LICENSE" />
   </files>
   <regKeys>
     <regKey keyName="$(hklm.system)\CurrentControlSet\Services\EventLog\Application\iotedged">
       <regValue name="CustomSource" value="1" type="REG_DWORD" />
-      <regValue name="EventMessageFile" value="c:\programdata\iotedge-eventlog\iotedged_eventlog_messages.dll" type="REG_SZ" />
+      <regValue name="EventMessageFile" value="$(runtime.programFiles)\iotedge\iotedged_eventlog_messages.dll" type="REG_SZ" />
       <regValue name="TypesSupported" value="7" type="REG_DWORD" />
     </regKey>
   </regKeys>
@@ -33,10 +33,9 @@
     description="Azure IoT Edge Daemon"
     displayName="Azure IoT Edge Daemon"
     errorControl="normal"
-    imagePath="c:\programdata\iotedge\iotedged.exe -c c:\programdata\iotedge-data\config.yaml"
+    imagePath="$(runtime.programFiles)\iotedge\iotedged.exe -c c:\programdata\iotedge\config.yaml"
     name="iotedge"
     objectName="LocalSystem"
-    requiredPrivileges="SeChangeNotifyPrivilege,SeCreateGlobalPrivilege"
     sidType="unrestricted"
     start="auto"
     startAfterInstall="none"
@@ -50,14 +49,14 @@
       </actions>
     </failureActions>
   </service>
+  <!-- requiredPrivileges="SeChangeNotifyPrivilege,SeCreateGlobalPrivilege" -->
   <service
     description="Moby Engine"
     displayName="Moby Engine"
     errorControl="normal"
-    imagePath="c:\programdata\iotedge-moby\dockerd.exe -H npipe:////./pipe/iotedge_moby_engine --exec-opt isolation=process --run-service --data-root c:\programdata\iotedge-moby-data"
+    imagePath="$(runtime.programFiles)\iotedge-moby\dockerd.exe -H npipe:////./pipe/iotedge_moby_engine --exec-opt isolation=process --run-service --data-root c:\programdata\iotedge-moby"
     name="iotedge-moby"
     objectName="LocalSystem"
-    requiredPrivileges="SeChangeNotifyPrivilege,SeCreateGlobalPrivilege"
     sidType="unrestricted"
     start="auto"
     startAfterInstall="none"
