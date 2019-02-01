@@ -20,11 +20,14 @@ for val in "${@:2}"; do
 
         set -- "${host_key_pair[@]}"
         host_key_pair=( )
-
         hosts=( "${hosts[@]}" "$1" )
+        ipaddr="$(getent hosts "$1" | awk '{ print $1 }')"
 
-        ipaddr="$(getent hosts $1 | awk '{ print $1 }')"
+        # Remove pre-existing entries for this host
+        ssh-keygen -R "$1"
+        ssh-keygen -R "$1.$suffix"
 
+        # Append host key to known_hosts
         cat <<-EOF >> "$home/.ssh/known_hosts"
 $1,$ipaddr $2
 $1.$suffix $2
@@ -45,6 +48,8 @@ for host in "${hosts[@]}"; do
     # Linux or Windows
     ssh "$user@$host" uname
     if [ $? -eq 0 ]; then  # Linux
+        echo "Testing Linux runner '$host'"
+
         # Verify runner can use the proxy
         ssh "$user@$host" curl -x "http://$agent_name:3128" -L 'http://www.microsoft.com'
         ssh "$user@$host" curl -x "http://$agent_name:3128" -L 'https://www.microsoft.com'
@@ -52,7 +57,11 @@ for host in "${hosts[@]}"; do
         # Verify runner can't skirt the proxy (should time out after 5s)
         ssh "$user@$host" timeout 5 curl -L 'http://www.microsoft.com' && exit 1 || :
         ssh "$user@$host" timeout 5 curl -L 'https://www.microsoft.com' && exit 1 || :
+
+        echo "Linux runner verified."
     else  # Windows
+        echo "Testing Windows runner '$host'"
+
         # Verify runner can use the proxy (should succeed)
         # When Invoke-WebRequest is invoked over SSH and -Proxy argument is added, we get an error back ("Access is
         # denied" 0x5 occurred while reading the console output buffer). Avoid this by wrapping the command in try.
@@ -63,5 +72,7 @@ for host in "${hosts[@]}"; do
         # Verify runner can't skirt the proxy (should time out after 5s)
         ssh "$user@$host" "Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 'http://www.microsoft.com'" && exit 1 || :
         ssh "$user@$host" "Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 'https://www.microsoft.com'" && exit 1 || :
+
+        echo "Windows runner verified."
     fi
 done
