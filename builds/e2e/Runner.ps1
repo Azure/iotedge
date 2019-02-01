@@ -14,8 +14,8 @@ New-Module -ScriptBlock {
     #requires -Version 5
     #requires -RunAsAdministrator
 
-    Set-Variable OpenSshUtilsManifest -Option Constant -Value 'https://raw.githubusercontent.com/PowerShell/openssh-portable/5bea3a3759eb9d49bb3ad9e968be96026bb45839/contrib/win32/openssh/OpenSSHUtils.psd1'
-    Set-Variable OpenSshUtilsModule -Option Constant -Value 'https://raw.githubusercontent.com/PowerShell/openssh-portable/fdd54b6334f4198f085574e2eaf341e2b16d5530/contrib/win32/openssh/OpenSSHUtils.psm1'
+    Set-Variable OpenSshUtilsManifest -Option Constant -Value 'https://raw.githubusercontent.com/PowerShell/openssh-portable/68ad673db4bf971b5c087cef19bb32953fd9db75/contrib/win32/openssh/OpenSSHUtils.psd1'
+    Set-Variable OpenSshUtilsModule -Option Constant -Value 'https://raw.githubusercontent.com/PowerShell/openssh-portable/68ad673db4bf971b5c087cef19bb32953fd9db75/contrib/win32/openssh/OpenSSHUtils.psm1'
 
     function Get-WebResource {
         param (
