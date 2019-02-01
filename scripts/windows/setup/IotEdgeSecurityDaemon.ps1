@@ -272,7 +272,7 @@ function Install-SecurityDaemon {
 
     # Register services
     Set-SystemPath
-    Install-Services # TODO do not start the service when reboot is needed
+    Install-Services -RestartNeeded $restartNeeded
     if ($ContainerOs -eq 'Linux') {
         Add-FirewallExceptions
     }
@@ -514,8 +514,6 @@ function Get-ExternalDockerServerOs {
 
 function Install-Package([string]$Path, [ref]$RestartNeeded)
 {
-    # TODO handle restart request
-    #Invoke-Native -Command "dism /online /add-package /packagepath:$Path"
     $result = Add-WindowsPackage -Online -PackagePath $Path -NoRestart
     if ($result.RestartNeeded) {
         $RestartNeeded.Value = $true
@@ -524,7 +522,6 @@ function Install-Package([string]$Path, [ref]$RestartNeeded)
 
 function Uninstall-Package([string]$Name, [ref]$RestartNeeded)
 {
-    # TODO detect or recommend reboot, or expose a switch to uninstall-iotedge
     Get-WindowsPackage -Online | 
         Where-Object { $_.PackageName -like "$Name~*"} | 
         Remove-WindowsPackage -Online -NoRestart | 
@@ -835,12 +832,14 @@ function Get-VcRuntime {
     }
 }
 
-function Install-Services {
+function Install-Services([bool]$RestartNeeded) {
     if ($ContainerOs -eq 'Linux') {
         # TODO remove edge depends on moby, switch to com.docker.service
     }
 
-    Start-Service $EdgeServiceName
+    if (-not $RestartNeeded) {
+        Start-Service $EdgeServiceName
+    }
 
     Write-HostGreen 'Initialized the IoT Edge service.'
 }
