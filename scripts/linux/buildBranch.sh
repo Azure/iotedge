@@ -201,7 +201,7 @@ build_solution()
     $DOTNET_ROOT_PATH/dotnet build \
         -c $CONFIGURATION \
         -o "$BUILD_BINARIESDIRECTORY" \
-        "$ROOT_FOLDER/samples/dotnet/Microsoft.Azure.Devices.EdgeSamples.sln"
+        "$ROOT_FOLDER/samples/dotnet/Microsoft.Azure.Devices.Edge.Samples.sln"
     if [ $? -gt 0 ]; then
         RES=1
     fi

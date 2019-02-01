@@ -118,7 +118,7 @@ if ($LASTEXITCODE -ne 0) {
     throw "Failed building IoT Edge solution."
 }
 
-$IoTEdgeSamplesSolutionPath = Join-Path $BuildRepositoryLocalPath "samples\dotnet\Microsoft.Azure.Devices.EdgeSamples.sln"
+$IoTEdgeSamplesSolutionPath = Join-Path $BuildRepositoryLocalPath "samples\dotnet\Microsoft.Azure.Devices.Edge.Samples.sln"
 Write-Host "`nBuilding IoT Edge Samples solution [$IoTEdgeSamplesSolutionPath]`n"
 &$DOTNET_PATH build -c $Configuration -o $BuildBinariesDirectory $IoTEdgeSamplesSolutionPath |
         Write-Host
