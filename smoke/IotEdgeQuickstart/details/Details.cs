@@ -318,6 +318,10 @@ namespace IotEdgeQuickstart.Details
         protected async Task VerifyDataOnIoTHub(string moduleId)
         {
             Console.WriteLine($"Verifying data on IoTHub from {moduleId}");
+
+            // First Verify if module is already running.
+            await this.bootstrapper.VerifyModuleIsRunning(moduleId);
+
             var builder = new EventHubsConnectionStringBuilder(this.eventhubCompatibleEndpointWithEntityPath);
             builder.TransportType = this.eventHubClientTransportType;
 
