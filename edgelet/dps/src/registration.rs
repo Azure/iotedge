@@ -307,10 +307,11 @@ where
                     registration_id.to_string(),
                     symmetric_key,
                 );
-                return cli
+                let cli = cli
                     .read()
                     .expect("RwLock read failure")
-                    .clone()
+                    .clone();
+                cli
                     .with_token_source(token_source)
                     .request::<DeviceRegistration, RegistrationOperationStatus>(
                         Method::PUT,
@@ -327,7 +328,7 @@ where
                             debug!("{:?}", operation_status);
                             operation_status
                         },
-                    );
+                    )
             });
         Box::new(f)
     }
