@@ -2,8 +2,8 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 {
     using System;
+    using System.Threading;
     using System.Threading.Tasks;
-    using System.Timers;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
@@ -26,7 +26,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         readonly ISerde<DeploymentConfig> desiredPropertiesSerDe;
         readonly Task initTask;
         readonly RetryStrategy retryStrategy;
-        readonly Timer refreshTimer;
+        readonly CancellationTokenSource refreshTaskCts;
+        readonly Task refreshTask;
 
         Option<IModuleClient> deviceClient;
         TwinCollection desiredProperties;
@@ -64,8 +65,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             this.reportedProperties = Option.None<TwinCollection>();
             this.deviceClient = Option.None<IModuleClient>();
             this.retryStrategy = Preconditions.CheckNotNull(retryStrategy, nameof(retryStrategy));
-            this.refreshTimer = new Timer(refreshConfigFrequency.TotalMilliseconds);
-            this.refreshTimer.Elapsed += (_, __) => this.RefreshTimerElapsed();
+            this.refreshTaskCts = new CancellationTokenSource();
+            this.refreshTask = this.RefreshTwinPeriodically(refreshConfigFrequency, refreshConfigFrequency, this.refreshTaskCts.Token);
             this.initTask = this.CreateAndInitDeviceClient(Preconditions.CheckNotNull(moduleClientProvider, nameof(moduleClientProvider)));
 
             Events.TwinRefreshInit(refreshConfigFrequency);
@@ -82,7 +83,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         public void Dispose()
         {
             this.deviceClient.ForEach(d => d.Dispose());
-            this.refreshTimer?.Dispose();
+            this.refreshTaskCts.Cancel();
+            this.refreshTask.Dispose();
         }
 
         public async Task UpdateReportedPropertiesAsync(TwinCollection patch)
@@ -111,14 +113,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
 
-        async void RefreshTimerElapsed() => await this.RefreshTwinAsync();
-
-        void ResetRefreshTimer()
+        async Task RefreshTwinPeriodically(TimeSpan runFrequency, TimeSpan startAfter, CancellationToken cts)
         {
-            this.refreshTimer.Stop();
-            this.refreshTimer.Start();
-        }
+            await Task.Delay(startAfter, cts);
+            while (!cts.IsCancellationRequested)
+            {
+                try
+                {
+                    Events.BeginningPeriodicTwinRefresh();
+                    await this.RefreshTwinAsync();
+                    Events.DonePeriodicTwinRefresh();
+                }
+                catch (Exception e)
+                {
+                    Events.ErrorPeriodicTwinRefresh(e);
+                }
 
+                await Task.Delay(runFrequency, cts);
+            }
+        }
+        
         async Task CreateAndInitDeviceClient(IModuleClientProvider moduleClientProvider)
         {
             using (await this.twinLock.LockAsync())
@@ -193,7 +207,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 this.reportedProperties = Option.Some(twin.Properties.Reported);
                 await this.UpdateDeploymentConfig();
                 Events.TwinRefreshSuccess();
-                this.ResetRefreshTimer();
             }
             catch (Exception ex) when (!ex.IsFatal())
             {
@@ -211,7 +224,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 this.desiredProperties = new TwinCollection(mergedJson);
                 await this.UpdateDeploymentConfig();
                 Events.DesiredPropertiesPatchApplied();
-                this.ResetRefreshTimer();
             }
             catch (Exception ex) when (!ex.IsFatal())
             {
@@ -288,7 +300,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 RetryingGetTwin,
                 MismatchedSchemaVersion,
                 TwinRefreshInit,
-                TwinRefreshStart
+                TwinRefreshStart,
+                BeginningPeriodicTwinRefresh,
+                DonePeriodicTwinRefresh,
+                ErrorPeriodicTwinRefresh
             }
 
             public static void DesiredPropertiesPatchFailed(Exception exception)
@@ -361,6 +376,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             internal static void RetryingGetTwin(RetryingEventArgs args)
             {
                 Log.LogDebug((int)EventIds.RetryingGetTwin, $"Edge agent is retrying GetTwinAsync. Attempt #{args.CurrentRetryCount}. Last error: {args.LastException?.Message}");
+            }
+
+            public static void BeginningPeriodicTwinRefresh()
+            {
+                Log.LogInformation((int)EventIds.BeginningPeriodicTwinRefresh, "Beginning periodic refresh of deployment config from twin...");
+            }
+
+            public static void DonePeriodicTwinRefresh()
+            {
+                Log.LogDebug((int)EventIds.DonePeriodicTwinRefresh, "Done periodic refresh of deployment config from twin");
+            }
+
+            public static void ErrorPeriodicTwinRefresh(Exception ex)
+            {
+                Log.LogWarning((int)EventIds.ErrorPeriodicTwinRefresh, ex, "Error in periodic refresh of deployment config from twin");
             }
         }
     }
