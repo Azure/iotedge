@@ -154,21 +154,6 @@
 		"properties": {
 			"provisioningState": "Succeeded",
 			"securityRules": [{
-				"name": "ssh",
-				"properties": {
-					"provisioningState": "Succeeded",
-					"protocol": "Tcp",
-					"sourceAddressPrefix": "*",
-					"sourceAddressPrefixes": [],
-					"sourcePortRange": "*",
-					"destinationAddressPrefix": "*",
-					"destinationAddressPrefixes": [],
-					"destinationPortRange": "22",
-					"direction": "Inbound",
-					"access": "Allow",
-					"priority": 200
-				}
-			}, {
 				"name": "AllowVnetInBound",
 				"properties": {
 					"provisioningState": "Succeeded",
