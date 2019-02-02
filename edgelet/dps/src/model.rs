@@ -201,6 +201,12 @@ impl SymmetricKeyRegistrationResult {
     }
 }
 
+impl Default for SymmetricKeyRegistrationResult {
+    fn default() -> Self {
+        SymmetricKeyRegistrationResult::new()
+    }
+}
+
 /// [`RegistrationOperationStatus`] : Registration operation status.
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -551,5 +557,11 @@ impl DeviceRegistrationResult {
 
     pub fn reset_etag(&mut self) {
         self.etag = None;
+    }
+}
+
+impl Default for DeviceRegistrationResult {
+    fn default() -> Self {
+        DeviceRegistrationResult::new()
     }
 }
