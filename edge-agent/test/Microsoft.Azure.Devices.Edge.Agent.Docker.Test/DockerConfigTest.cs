@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
         static readonly DockerConfig Config10 = new DockerConfig("image1:42", @"{""Env"": [""k11=v11"", ""k22=v22""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}]}}}");
         static readonly DockerConfig Config11 = new DockerConfig("image1:42", @"{""Env"": [""k33=v33"", ""k44=v44""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}]}}}");
-        static readonly DockerConfig Config12 = new DockerConfig("image1:42", "");
+        static readonly DockerConfig Config12 = new DockerConfig("image1:42", string.Empty);
         static readonly DockerConfig Config13 = new DockerConfig("image1:42", "{}");
         static readonly DockerConfig Config14 = new DockerConfig("image1:42", "null");
         static readonly DockerConfig Config15 = new DockerConfig("image1:42", "  ");
