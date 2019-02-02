@@ -124,7 +124,8 @@ $subscription_name='<>'
 To create the Windows VM administrator password without openssl, use the following call:
 
 ```PowerShell
-  "$([Convert]::ToBase64String([System.Web.Security.Membership]::GeneratePassword(32, 3).ToCharArray(), 0))"
+Add-Type -AssemblyName System.Web
+$windows_vm_password=$([Convert]::ToBase64String([System.Web.Security.Membership]::GeneratePassword(32, 3).ToCharArray(), 0))
 ```
 
 The commands to create an SSH key for the VMs are a little different. On Windows 1809 or later, install the ssh-agent feature first; more information [here](https://docs.microsoft.com/en-us/windows-server/administration/openssh/openssh_install_firstuse).
