@@ -47,17 +47,17 @@ agent_name=$(hostname)
 
 for host in "${hosts[@]}"; do
     # Linux or Windows
-    ssh "$user@$host" uname
+    ssh -i "$home/.ssh/known_hosts" "$user@$host" uname
     if [ $? -eq 0 ]; then  # Linux
         echo "Testing Linux runner '$host'"
 
         # Verify runner can use the proxy
-        ssh "$user@$host" curl -x "http://$agent_name:3128" -L 'http://www.microsoft.com'
-        ssh "$user@$host" curl -x "http://$agent_name:3128" -L 'https://www.microsoft.com'
+        ssh -i "$home/.ssh/known_hosts" "$user@$host" curl -x "http://$agent_name:3128" -L 'http://www.microsoft.com'
+        ssh -i "$home/.ssh/known_hosts" "$user@$host" curl -x "http://$agent_name:3128" -L 'https://www.microsoft.com'
 
         # Verify runner can't skirt the proxy (should time out after 5s)
-        ssh "$user@$host" timeout 5 curl -L 'http://www.microsoft.com' && exit 1 || :
-        ssh "$user@$host" timeout 5 curl -L 'https://www.microsoft.com' && exit 1 || :
+        ssh -i "$home/.ssh/known_hosts" "$user@$host" timeout 5 curl -L 'http://www.microsoft.com' && exit 1 || :
+        ssh -i "$home/.ssh/known_hosts" "$user@$host" timeout 5 curl -L 'https://www.microsoft.com' && exit 1 || :
 
         echo "Linux runner verified."
     else  # Windows
@@ -67,12 +67,12 @@ for host in "${hosts[@]}"; do
         # When Invoke-WebRequest is invoked over SSH and -Proxy argument is added, we get an error back ("Access is
         # denied" 0x5 occurred while reading the console output buffer). Avoid this by wrapping the command in try.
         # Using 'ssh -t' also avoids the problem, but unfortunately swallows the return value.
-        ssh "$user@$host" "try { Invoke-WebRequest -UseBasicParsing -Proxy 'http://$agent_name:3128' 'http://www.microsoft.com' } catch {}"
-        ssh "$user@$host" "try { Invoke-WebRequest -UseBasicParsing -Proxy 'http://$agent_name:3128' 'https://www.microsoft.com' } catch {}"
+        ssh -i "$home/.ssh/known_hosts" "$user@$host" "try { Invoke-WebRequest -UseBasicParsing -Proxy 'http://$agent_name:3128' 'http://www.microsoft.com' } catch {}"
+        ssh -i "$home/.ssh/known_hosts" "$user@$host" "try { Invoke-WebRequest -UseBasicParsing -Proxy 'http://$agent_name:3128' 'https://www.microsoft.com' } catch {}"
 
         # Verify runner can't skirt the proxy (should time out after 5s)
-        ssh "$user@$host" "Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 'http://www.microsoft.com'" && exit 1 || :
-        ssh "$user@$host" "Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 'https://www.microsoft.com'" && exit 1 || :
+        ssh -i "$home/.ssh/known_hosts" "$user@$host" "Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 'http://www.microsoft.com'" && exit 1 || :
+        ssh -i "$home/.ssh/known_hosts" "$user@$host" "Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 'https://www.microsoft.com'" && exit 1 || :
 
         echo "Windows runner verified."
     fi
