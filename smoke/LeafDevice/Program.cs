@@ -88,6 +88,15 @@ Defaults:
                 string endpoint = this.EventHubCompatibleEndpointWithEntityPath ??
                                   await SecretsHelper.GetSecretFromConfigKey("eventHubConnStrKey");
 
+                var testBuilder = new LeafDevice.Builder(
+                    connectionString,
+                    endpoint,
+                    this.DeviceId,
+                    this.TrustedCACertificateFileName,
+                    this.EdgeHostName,
+                    this.EdgeGatewayDeviceId,
+                    this.UseWebSockets);
+
                 if (!string.IsNullOrWhiteSpace(this.X509PrimaryCertPath) &&
                     !string.IsNullOrWhiteSpace(this.X509PrimaryKeyPath) &&
                     !string.IsNullOrWhiteSpace(this.X509SecondaryCertPath) &&
@@ -95,59 +104,39 @@ Defaults:
                 {
                     // use thumbprint auth and perform test for both primary and secondary certificates
                     var thumbprintCerts = new List<string> { this.X509PrimaryCertPath, this.X509SecondaryCertPath };
-                    var testPrimaryCertificate = new LeafDevice(
-                        connectionString,
-                        endpoint,
-                        this.DeviceId,
-                        this.TrustedCACertificateFileName,
-                        this.EdgeHostName,
-                        this.EdgeGatewayDeviceId,
-                        this.UseWebSockets,
+                    testBuilder.SetX509ThumbprintAuthProperties(
                         this.X509PrimaryCertPath,
                         this.X509PrimaryKeyPath,
-                        thumbprintCerts);
-                    await testPrimaryCertificate.RunAsync();
-
-                    var testSeondaryCertificate = new LeafDevice(
-                        connectionString,
-                        endpoint,
-                        this.DeviceId,
-                        this.TrustedCACertificateFileName,
-                        this.EdgeHostName,
-                        this.EdgeGatewayDeviceId,
-                        this.UseWebSockets,
                         this.X509SecondaryCertPath,
                         this.X509SecondaryKeyPath,
-                        thumbprintCerts);
+                        true);
+                    LeafDevice testPrimaryCertificate = testBuilder.Build();
+                    await testPrimaryCertificate.RunAsync();
+
+                    testBuilder.SetX509ThumbprintAuthProperties(
+                        this.X509PrimaryCertPath,
+                        this.X509PrimaryKeyPath,
+                        this.X509SecondaryCertPath,
+                        this.X509SecondaryKeyPath,
+                        false);
+                    LeafDevice testSeondaryCertificate = testBuilder.Build();
                     await testSeondaryCertificate.RunAsync();
                 }
                 else if (!string.IsNullOrWhiteSpace(this.X509CACertPath) &&
                          !string.IsNullOrWhiteSpace(this.X509CAKeyPath))
                 {
                     // use X.509 CA auth and perform test using CA chained certificates
-                    var testCa = new LeafDevice(
-                        connectionString,
-                        endpoint,
-                        this.DeviceId,
-                        this.TrustedCACertificateFileName,
-                        this.EdgeHostName,
-                        this.EdgeGatewayDeviceId,
-                        this.UseWebSockets,
+                    testBuilder.SetX509CAAuthProperties(
                         this.X509CACertPath,
                         this.X509CAKeyPath);
+                    LeafDevice testCa = testBuilder.Build();
                     await testCa.RunAsync();
                 }
                 else
                 {
+                    testBuilder.Build();
                     // non certificate flow use SAS tokens
-                    var testSas = new LeafDevice(
-                        connectionString,
-                        endpoint,
-                        this.DeviceId,
-                        this.TrustedCACertificateFileName,
-                        this.EdgeHostName,
-                        this.EdgeGatewayDeviceId,
-                        this.UseWebSockets);
+                    LeafDevice testSas = testBuilder.Build();
                     await testSas.RunAsync();
                 }
             }

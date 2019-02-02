@@ -9,37 +9,107 @@ namespace LeafDevice
 
     public class LeafDevice : Details.Details
     {
-        public LeafDevice(
-            string iothubConnectionString,
-            string eventhubCompatibleEndpointWithEntityPath,
-            string deviceId,
-            string trustedCACertificateFileName,
-            string edgeHostName,
-            string edgeDeviceId,
-            bool useWebSockets)
-            : base(
-                iothubConnectionString,
-                eventhubCompatibleEndpointWithEntityPath,
-                deviceId,
-                trustedCACertificateFileName,
-                edgeHostName,
-                edgeDeviceId,
-                useWebSockets,
-                Option.None<DeviceCertificate>(),
-                Option.None<IList<string>>())
+        public class Builder
         {
+            readonly string iothubConnectionString;
+            readonly string eventhubCompatibleEndpointWithEntityPath;
+            readonly string deviceId;
+            readonly string trustedCACertificateFileName;
+            readonly string edgeHostName;
+            readonly string edgeDeviceId;
+            readonly bool useWebSockets;
+            bool usePrimaryThumbprintClientCert;
+            Option<string> x509CACertPath;
+            Option<string> x509CAKeyPath;
+            Option<IList<string>> thumbprintCerts;
+
+            public Builder(
+                string iothubConnectionString,
+                string eventhubCompatibleEndpointWithEntityPath,
+                string deviceId,
+                string trustedCACertificateFileName,
+                string edgeHostName,
+                string edgeDeviceId,
+                bool useWebSockets)
+            {
+                this.iothubConnectionString = Preconditions.CheckNotNull(iothubConnectionString);
+                this.eventhubCompatibleEndpointWithEntityPath = Preconditions.CheckNotNull(eventhubCompatibleEndpointWithEntityPath);
+                this.deviceId = Preconditions.CheckNotNull(deviceId);
+                this.trustedCACertificateFileName = Preconditions.CheckNotNull(trustedCACertificateFileName);
+                this.edgeHostName = Preconditions.CheckNotNull(edgeHostName);
+                this.edgeDeviceId = Preconditions.CheckNotNull(edgeDeviceId);
+                this.useWebSockets = useWebSockets;
+                this.usePrimaryThumbprintClientCert = false;
+            }
+
+            public Builder SetX509CAAuthProperties(string clientCertificatePath, string clientCertificateKeyPath)
+            {
+                this.x509CACertPath = Option.Some(Preconditions.CheckNotNull(clientCertificatePath));
+                this.x509CAKeyPath = Option.Some(Preconditions.CheckNotNull(clientCertificateKeyPath));
+                this.thumbprintCerts = Option.None<IList<string>>();
+                return this;
+            }
+
+            public Builder SetX509ThumbprintAuthProperties(
+                string primaryClientCertificatePath,
+                string primaryClientCertificateKeyPath,
+                string secondaryClientCertificatePath,
+                string secondaryClientCertificateKeyPath,
+                bool usePrimaryForAuthentication)
+            {
+                this.usePrimaryThumbprintClientCert = usePrimaryForAuthentication;
+                IList<string> thumbprintCerts = new List<string>();
+                if (this.usePrimaryThumbprintClientCert)
+                {
+                    this.x509CACertPath = Option.Some(Preconditions.CheckNotNull(primaryClientCertificatePath));
+                    this.x509CAKeyPath = Option.Some(Preconditions.CheckNotNull(primaryClientCertificateKeyPath));
+                    thumbprintCerts.Add(primaryClientCertificatePath);
+                    thumbprintCerts.Add(Preconditions.CheckNotNull(secondaryClientCertificatePath));
+                }
+                else
+                {
+                    this.x509CACertPath = Option.Some(Preconditions.CheckNotNull(secondaryClientCertificatePath));
+                    this.x509CAKeyPath = Option.Some(Preconditions.CheckNotNull(secondaryClientCertificateKeyPath));
+                    thumbprintCerts.Add(Preconditions.CheckNotNull(primaryClientCertificatePath));
+                    thumbprintCerts.Add(secondaryClientCertificatePath);
+                }
+                this.thumbprintCerts = Option.Some(thumbprintCerts);
+                return this;
+            }
+
+            public LeafDevice Build()
+            {
+                Option<DeviceCertificate> deviceCert = this.x509CACertPath.Map(cert =>
+                {
+                    return new DeviceCertificate
+                    {
+                        CertificateFilePath = cert,
+                        PrivateKeyFilePath = this.x509CAKeyPath.Expect(() => new InvalidOperationException("Expected key file path"))
+                    };
+                });
+                return new LeafDevice(
+                    this.iothubConnectionString,
+                    this.eventhubCompatibleEndpointWithEntityPath,
+                    this.deviceId,
+                    this.trustedCACertificateFileName,
+                    this.edgeHostName,
+                    this.edgeDeviceId,
+                    this.useWebSockets,
+                    deviceCert,
+                    this.thumbprintCerts);
+            }
         }
 
-        public LeafDevice(
-            string iothubConnectionString,
-            string eventhubCompatibleEndpointWithEntityPath,
-            string deviceId,
-            string trustedCACertificateFileName,
-            string edgeHostName,
-            string edgeDeviceId,
-            bool useWebSockets,
-            string clientCertificatePath,
-            string clientCertificateKeyPath)
+          LeafDevice(
+                string iothubConnectionString,
+                string eventhubCompatibleEndpointWithEntityPath,
+                string deviceId,
+                string trustedCACertificateFileName,
+                string edgeHostName,
+                string edgeDeviceId,
+                bool useWebSockets,
+                Option<DeviceCertificate> deviceCertificate,
+                Option<IList<string>> thumprintCertificates)
             : base(
                 iothubConnectionString,
                 eventhubCompatibleEndpointWithEntityPath,
@@ -48,32 +118,8 @@ namespace LeafDevice
                 edgeHostName,
                 edgeDeviceId,
                 useWebSockets,
-                Option.Some(new DeviceCertificate { CertificateFilePath = clientCertificatePath, PrivateKeyFilePath = clientCertificateKeyPath }),
-                Option.None<IList<string>>())
-        {
-        }
-
-        public LeafDevice(
-            string iothubConnectionString,
-            string eventhubCompatibleEndpointWithEntityPath,
-            string deviceId,
-            string trustedCACertificateFileName,
-            string edgeHostName,
-            string edgeDeviceId,
-            bool useWebSockets,
-            string clientCertificatePath,
-            string clientCertificateKeyPath,
-            IList<string> thumprintCertificates)
-            : base(
-                iothubConnectionString,
-                eventhubCompatibleEndpointWithEntityPath,
-                deviceId,
-                trustedCACertificateFileName,
-                edgeHostName,
-                edgeDeviceId,
-                useWebSockets,
-                Option.Some(new DeviceCertificate { CertificateFilePath = clientCertificatePath, PrivateKeyFilePath = clientCertificateKeyPath }),
-                Option.Some(thumprintCertificates))
+                deviceCertificate,
+                thumprintCertificates)
         {
         }
 
