@@ -9,6 +9,53 @@ namespace LeafDevice
 
     public class LeafDevice : Details.Details
     {
+        LeafDevice(
+            string iothubConnectionString,
+            string eventhubCompatibleEndpointWithEntityPath,
+            string deviceId,
+            string trustedCACertificateFileName,
+            string edgeHostName,
+            string edgeDeviceId,
+            bool useWebSockets,
+            Option<DeviceCertificate> deviceCertificate,
+            Option<IList<string>> thumprintCertificates)
+            : base(
+                iothubConnectionString,
+                eventhubCompatibleEndpointWithEntityPath,
+                deviceId,
+                trustedCACertificateFileName,
+                edgeHostName,
+                edgeDeviceId,
+                useWebSockets,
+                deviceCertificate,
+                thumprintCertificates)
+        {
+        }
+
+        public async Task RunAsync()
+        {
+            // This test assumes that there is an edge deployment running as transparent gateway.
+            try
+            {
+                await this.InitializeTrustedCertsAsync();
+                await this.GetOrCreateDeviceIdentityAsync();
+                await this.ConnectToEdgeAndSendDataAsync();
+                await this.VerifyDataOnIoTHubAsync();
+                await this.VerifyDirectMethodAsync();
+            }
+            catch (Exception)
+            {
+                Console.WriteLine("** Oops, there was a problem.");
+                this.KeepDeviceIdentity();
+                throw;
+            }
+            finally
+            {
+                // only remove the identity if we created it; if it already existed in IoT Hub then leave it alone
+                await this.MaybeDeleteDeviceIdentity();
+            }
+        }
+
         public class Builder
         {
             readonly string iothubConnectionString;
@@ -73,20 +120,22 @@ namespace LeafDevice
                     thumbprintCerts.Add(Preconditions.CheckNotNull(primaryClientCertificatePath));
                     thumbprintCerts.Add(secondaryClientCertificatePath);
                 }
+
                 this.thumbprintCerts = Option.Some(thumbprintCerts);
                 return this;
             }
 
             public LeafDevice Build()
             {
-                Option<DeviceCertificate> deviceCert = this.x509CACertPath.Map(cert =>
-                {
-                    return new DeviceCertificate
+                Option<DeviceCertificate> deviceCert = this.x509CACertPath.Map(
+                    cert =>
                     {
-                        CertificateFilePath = cert,
-                        PrivateKeyFilePath = this.x509CAKeyPath.Expect(() => new InvalidOperationException("Expected key file path"))
-                    };
-                });
+                        return new DeviceCertificate
+                        {
+                            CertificateFilePath = cert,
+                            PrivateKeyFilePath = this.x509CAKeyPath.Expect(() => new InvalidOperationException("Expected key file path"))
+                        };
+                    });
                 return new LeafDevice(
                     this.iothubConnectionString,
                     this.eventhubCompatibleEndpointWithEntityPath,
@@ -97,53 +146,6 @@ namespace LeafDevice
                     this.useWebSockets,
                     deviceCert,
                     this.thumbprintCerts);
-            }
-        }
-
-          LeafDevice(
-                string iothubConnectionString,
-                string eventhubCompatibleEndpointWithEntityPath,
-                string deviceId,
-                string trustedCACertificateFileName,
-                string edgeHostName,
-                string edgeDeviceId,
-                bool useWebSockets,
-                Option<DeviceCertificate> deviceCertificate,
-                Option<IList<string>> thumprintCertificates)
-            : base(
-                iothubConnectionString,
-                eventhubCompatibleEndpointWithEntityPath,
-                deviceId,
-                trustedCACertificateFileName,
-                edgeHostName,
-                edgeDeviceId,
-                useWebSockets,
-                deviceCertificate,
-                thumprintCertificates)
-        {
-        }
-
-        public async Task RunAsync()
-        {
-            // This test assumes that there is an edge deployment running as transparent gateway.
-            try
-            {
-                await this.InitializeTrustedCertsAsync();
-                await this.GetOrCreateDeviceIdentityAsync();
-                await this.ConnectToEdgeAndSendDataAsync();
-                await this.VerifyDataOnIoTHubAsync();
-                await this.VerifyDirectMethodAsync();
-            }
-            catch (Exception)
-            {
-                Console.WriteLine("** Oops, there was a problem.");
-                this.KeepDeviceIdentity();
-                throw;
-            }
-            finally
-            {
-                // only remove the identity if we created it; if it already existed in IoT Hub then leave it alone
-                await this.MaybeDeleteDeviceIdentity();
             }
         }
     }

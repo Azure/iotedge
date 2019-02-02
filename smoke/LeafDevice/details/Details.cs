@@ -61,6 +61,7 @@ namespace LeafDevice.Details
             {
                 this.edgeDeviceId = Option.Some(edgeDeviceId);
             }
+
             (this.authType,
                 this.clientCertificate,
                 this.clientCertificateChain,
@@ -131,24 +132,13 @@ namespace LeafDevice.Details
             Console.WriteLine("Direct method callback is set.");
         }
 
-        async Task<Option<string>> GetScopeIfExitsAsync(RegistryManager rm, string deviceId)
-        {
-            Device edgeDevice = await rm.GetDeviceAsync(deviceId);
-            if (edgeDevice == null)
-            {
-                return Option.None<string>();
-            }
-            Console.WriteLine($"Found Edge Device '{edgeDevice.Id}' registered in IoT hub with scope '{edgeDevice.Scope}'");
-            return Option.Some(edgeDevice.Scope);
-        }
-
         protected async Task GetOrCreateDeviceIdentityAsync()
         {
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(builder.ToString());
 
             var edgeScope = Option.None<string>();
-            this.edgeDeviceId.ForEach(async (id) => edgeScope = await GetScopeIfExitsAsync(rm, id));
+            this.edgeDeviceId.ForEach(async (id) => edgeScope = await this.GetScopeIfExitsAsync(rm, id));
 
             Device device = await rm.GetDeviceAsync(this.deviceId);
             if (device != null)
@@ -165,6 +155,7 @@ namespace LeafDevice.Details
                         device.Authentication.X509Thumbprint = new X509Thumbprint { PrimaryThumbprint = thumbprints[0], SecondaryThumbprint = thumbprints[1] };
                     }
                 }
+
                 edgeScope.ForEach(s => device.Scope = s);
                 await rm.UpdateDeviceAsync(device);
 
@@ -303,6 +294,18 @@ namespace LeafDevice.Details
         {
             Console.WriteLine($"Leaf device received direct method call...Payload Received: {methodRequest.DataAsJson}");
             return Task.FromResult(new MethodResponse(methodRequest.Data, (int)HttpStatusCode.OK));
+        }
+
+        async Task<Option<string>> GetScopeIfExitsAsync(RegistryManager rm, string deviceId)
+        {
+            Device edgeDevice = await rm.GetDeviceAsync(deviceId);
+            if (edgeDevice == null)
+            {
+                return Option.None<string>();
+            }
+
+            Console.WriteLine($"Found Edge Device '{edgeDevice.Id}' registered in IoT hub with scope '{edgeDevice.Scope}'");
+            return Option.Some(edgeDevice.Scope);
         }
 
         (AuthenticationType,
