@@ -8,6 +8,8 @@ if (-not (Test-Path -Path docker.exe))
     Invoke-WebRequest https://master.dockerproject.org/windows/x86_64/docker.exe -out docker.exe
 }
 
+Write-Host ("Source version '{0}'" -f $env:VERSION)
+
 # VERSION is either 1.0.7~dev or 1.0.7
 $splitVersion = $env:VERSION -split "~"
 if ($splitVersion.Length -eq 1) {
@@ -23,7 +25,7 @@ else {
     $version = "0.{0}.{1}.{2}" -f $first, $third, $splitSecond[-1]
 }
 
-Write-Host "Using version $version"
+Write-Host "Using version '$version'"
 
 Function New-Package([string]$Name)
 {
