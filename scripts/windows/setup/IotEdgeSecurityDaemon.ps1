@@ -299,17 +299,17 @@ function Install-SecurityDaemon {
         if ($ContainerOs -eq 'Linux') {
             Add-FirewallExceptions
         }
-
-        Write-HostGreen
-        Write-HostGreen 'This device is now provisioned with the IoT Edge runtime.'
-        Write-HostGreen 'Check the status of the IoT Edge service with `Get-Service iotedge`'
-        Write-HostGreen 'List running modules with `iotedge list`'
-        Write-HostGreen 'Display logs from the last five minutes in chronological order with'
-        Write-HostGreen '    Get-WinEvent -ea SilentlyContinue -FilterHashtable @{ProviderName=''iotedged'';LogName=''application'';StartTime=[datetime]::Now.AddMinutes(-5)} |'
-        Write-HostGreen '    Select TimeCreated, Message |'
-        Write-HostGreen '    Sort-Object @{Expression=''TimeCreated'';Descending=$false} |'
-        Write-HostGreen '    Format-Table -AutoSize -Wrap'
+    } else {
+        if (-not $restartNeeded) {
+            Start-Service $EdgeServiceName
+        }
     }
+
+    Write-HostGreen
+    Write-HostGreen 'This device is now provisioned with the IoT Edge runtime.'
+    Write-HostGreen 'Check the status of the IoT Edge service with `Get-Service iotedge`'
+    Write-HostGreen 'List running modules with `iotedge list`'
+    Write-HostGreen 'Display logs from the last five minutes in chronological order with `Get-SecurityDaemonLog`'
 
     if ($restartNeeded) {
         Write-HostRed "Reboot required."
@@ -1156,6 +1156,15 @@ function Remove-IotEdgeContainers {
                 Write-Verbose "Stopped container $($inspectResult.Name)"
             }
         }
+        elseif ($DeleteMobyDataRoot) {
+            Invoke-Native "$dockerExe stop ""$containerId"""
+        }
+    }
+
+    if ($DeleteMobyDataRoot) {
+        Invoke-Native "$dockerExe container prune -f"
+        Invoke-Native "$dockerExe image prune -f -a"
+        Invoke-Native "$dockerExe system prune -f -a"
     }
 }
 
