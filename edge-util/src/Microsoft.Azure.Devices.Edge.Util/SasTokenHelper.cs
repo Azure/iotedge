@@ -42,10 +42,18 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return Convert.ToString(seconds, CultureInfo.InvariantCulture);
         }
 
+        /// <summary>
+        /// Builds the audience from iothub deviceId and moduleId.
+        /// Note that deviceId and moduleId need to be double encoded.
+        /// </summary>
         public static string BuildAudience(string iotHub, string deviceId, string moduleId) =>
-            WebUtility.UrlEncode(Invariant($"{iotHub}/devices/{deviceId}/modules/{moduleId}"));
+            WebUtility.UrlEncode(Invariant($"{iotHub}/devices/{WebUtility.UrlEncode(deviceId)}/modules/{WebUtility.UrlEncode(moduleId)}"));
 
+        /// <summary>
+        /// Builds the audience from iothub and deviceId.
+        /// Note that deviceId and moduleId need to be double encoded.
+        /// </summary>
         public static string BuildAudience(string iotHub, string deviceId) =>
-            WebUtility.UrlEncode(Invariant($"{iotHub}/devices/{deviceId}"));
+            WebUtility.UrlEncode(Invariant($"{iotHub}/devices/{WebUtility.UrlEncode(deviceId)}"));
     }
 }

@@ -48,6 +48,11 @@ jobs:
           PathtoPublish: '$(Build.BinariesDirectory)/publish/e2e_deployment_files'
           ArtifactName: 'core-linux/e2e_deployment_files'
       - task: PublishBuildArtifacts@1
+        displayName: 'Publish Artifact: e2e test files'
+        inputs:
+          PathtoPublish: '$(Build.BinariesDirectory)/publish/e2e_test_files'
+          ArtifactName: 'core-linux/e2e_test_files'
+      - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifact: IotEdgeQuickStart'
         inputs:
           PathtoPublish: '$(Build.BinariesDirectory)/publish/IotEdgeQuickstart.linux-x64.tar.gz'
