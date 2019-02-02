@@ -19,10 +19,10 @@
             "type": "CustomScript",
             "typeHandlerVersion": "2.0",
             "autoUpgradeMinorVersion": true,
-            "settings": {
+            "settings": {},
+            "protectedSettings": {
                 "commandToExecute": "[parameters('extension_command')]"
-            },
-            "protectedSettings": {}
+            }
         }
     }]
 }

@@ -136,10 +136,10 @@
 			"type": "CustomScriptExtension",
 			"typeHandlerVersion": "1.9",
 			"autoUpgradeMinorVersion": true,
-			"settings": {
+			"settings": {},
+			"protectedSettings": {
 				"commandToExecute": "[parameters('extension_command')]"
-			},
-			"protectedSettings": {}
+			}
 		},
 		"dependsOn": [
 			"[resourceId('Microsoft.Compute/virtualMachines/', parameters('vm_name'))]"
