@@ -35,7 +35,7 @@ pub struct PipeStream {
 
 impl PipeStream {
     pub fn connect<P: AsRef<Path>>(path: P, timeout: Option<Duration>) -> io::Result<Self> {
-        #[allow(cast_possible_truncation)]
+        #[allow(clippy::cast_possible_truncation)]
         let timeout = timeout.map_or(PIPE_WAIT_TIMEOUT_MS, |t| {
             match t.as_secs() + u64::from(t.subsec_millis()) {
                 t if t > u64::from(u32::max_value()) => u32::max_value(),
