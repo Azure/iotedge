@@ -24,8 +24,8 @@ for val in "${@:2}"; do
         ipaddr="$(getent hosts "$1" | awk '{ print $1 }')"
 
         # Remove pre-existing entries for this host
-        ssh-keygen -R "$1"
-        ssh-keygen -R "$1.$suffix"
+        ssh-keygen -R "$1" -f "$home/.ssh/known_hosts"
+        ssh-keygen -R "$1.$suffix" -f "$home/.ssh/known_hosts"
 
         # Append host key to known_hosts
         cat <<-EOF >> "$home/.ssh/known_hosts"
