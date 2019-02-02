@@ -203,11 +203,11 @@ jobs:
       vmImage: 'vs2017-win2016'
     steps:
       - powershell: |
-          $base_version = Get-Content -Path "$($Build.SourcesDirectory)\edgelet\version.txt"
-          $version = "$base_version$($Build.BuildNumber)"
+          $base_version = Get-Content -Path "$(Build.SourcesDirectory)\edgelet\version.txt"
+          $version = "$base_version$(Build.BuildNumber)"
           Write-Host ("##vso[task.setvariable variable=VERSION;]$version")
           Write-Host ("##vso[task.setvariable variable=NO_VALGRIND;]true")
-          Write-Host "Setting version: '$base_version' '$($Build.BuildNumber)' '$version'"
+          Write-Host "Setting version: '$base_version' '$(Build.BuildNumber)' '$version'"
         displayName: Set Version
       - powershell: edgelet/build/windows/install.ps1
         displayName: Install Rust
