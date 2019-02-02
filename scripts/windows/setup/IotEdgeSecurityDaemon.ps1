@@ -544,7 +544,7 @@ function Get-SecurityDaemon {
             }
         }
         else {
-            New-Item -Type Directory $EdgeInstallDirectory | Out-Null
+            New-Item -Type Directory $EdgeInstallDirectory -Force | Out-Null
             Expand-Archive $edgeArchivePath $EdgeInstallDirectory -Force
             if ($ExistingConfig) {
                 Copy-Item "$EdgeInstallDirectory\iotedged-windows\*" $EdgeInstallDirectory -Force -Recurse -Exclude 'config.yaml'
