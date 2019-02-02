@@ -31,6 +31,7 @@ fn make_url(path: &str) -> Uri {
     Uri::new(&format!("npipe:{}", path.replace("\\", "/")), "/").unwrap()
 }
 
+#[allow(clippy::needless_pass_by_value)]
 fn get_handler(_req: Request<Body>) -> impl Future<Item = Response<Body>, Error = io::Error> {
     future::ok(Response::new(Body::default()))
 }
@@ -55,6 +56,7 @@ fn get() {
 
 const GET_RESPONSE: &str = "The answer is 42";
 
+#[allow(clippy::needless_pass_by_value)]
 fn get_with_body_handler(
     _req: Request<Body>,
 ) -> impl Future<Item = Response<Body>, Error = io::Error> {

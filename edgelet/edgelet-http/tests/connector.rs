@@ -123,6 +123,7 @@ fn make_url(path: &str) -> String {
 }
 
 #[cfg(windows)]
+#[allow(clippy::needless_pass_by_value)]
 fn pipe_get_handler(_req: Request<Body>) -> impl Future<Item = Response<Body>, Error = io::Error> {
     let response = Response::builder()
         .header(hyper::header::CONTENT_TYPE, "text/plain; charset=utf-8")
