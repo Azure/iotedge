@@ -255,7 +255,8 @@ jobs:
         displayName: 'Copy package to Artifact Staging'
         inputs:
           SourceFolder: .
-          Contents: *.cab
+          Contents: |
+            *.cab
           TargetFolder: '$(build.artifactstagingdirectory)'
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifact: iotedged-windows'
