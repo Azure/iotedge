@@ -1,8 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 {
+    using System;
+    using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
     using System.Linq;
+    using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json;
     using Xunit;
@@ -123,6 +126,52 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             var json = JsonConvert.SerializeObject(config);
             var expected = "{\"image\":\"image1:42\",\"createOptions\":\"{\\\"Env\\\":[\\\"k1=v1\\\",\\\"k2=v2\\\",\\\"k3=v3\\\"],\\\"HostConfig\\\":{\\\"PortBindings\\\":{\\\"43/udp\\\":[{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostP\",\"createOptions01\":\"ort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"}],\\\"42/tcp\\\":[{\\\"HostPort\\\":\\\"42\\\"}]}}}\"}";
             Assert.Equal(expected, json);
+        }
+
+        [Theory]
+        [InlineData(null, null, typeof(ArgumentException))]
+        [InlineData("", null, typeof(ArgumentException))]
+        [InlineData("  ", null, typeof(ArgumentException))]
+        [InlineData("mcr.ms.com/ea:t1:t2", null, typeof(ArgumentException))]
+        [InlineData("ea:t1:t2", null, typeof(ArgumentException))]
+        [InlineData("ea:t1", "ea:t1", null)]
+        [InlineData(" ea:t1 ", "ea:t1", null)]
+        [InlineData("mcr.ms.com/ea:t1", "mcr.ms.com/ea:t1", null)]
+        [InlineData("mcr.ms.com/ea", "mcr.ms.com/ea:latest", null)]
+        [InlineData(" ubuntu ", "ubuntu:latest", null)]
+        public void TestValidateAndGetImage(string image, string result, Type expectedException)
+        {
+            if (expectedException != null)
+            {
+                Assert.Throws(expectedException, () => DockerConfig.ValidateAndGetImage(image));
+            }
+            else
+            {
+                string updatedImage = DockerConfig.ValidateAndGetImage(image);
+                Assert.Equal(result, updatedImage);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetTestGetCreateOptionsData))]
+        public void TestGetCreateOptions(string createOptions, CreateContainerParameters expectedCreateOptions)
+        {
+            CreateContainerParameters createContainerParameters = DockerConfig.GetCreateOptions(createOptions);
+
+            Assert.NotNull(createContainerParameters);
+            Assert.True(DockerConfig.CompareCreateOptions(expectedCreateOptions, createContainerParameters));
+        }
+
+        static IEnumerable<object[]> GetTestGetCreateOptionsData()
+        {
+            yield return new object[] { null, new CreateContainerParameters() };
+
+            yield return new object[] { " ", new CreateContainerParameters() };
+
+            yield return new object[] { "null", new CreateContainerParameters() };
+
+            string createOptions = @"{""HostConfig"": {""PortBindings"": {""42/udp"": [{""HostPort"": ""42""}]}}}";
+            yield return new object[] { createOptions, JsonConvert.DeserializeObject<CreateContainerParameters>(createOptions) };
         }
     }
 }
