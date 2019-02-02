@@ -2,7 +2,7 @@
 
 #![deny(unused_extern_crates, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
-#![allow(clippy::stutter, clippy::use_self, clippy::new_ret_no_self)]
+#![allow(clippy::stutter, clippy::use_self)]
 
 mod constants;
 mod convert;

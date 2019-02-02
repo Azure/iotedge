@@ -33,8 +33,6 @@ pub struct WorkloadService {
 }
 
 impl WorkloadService {
-    // clippy bug: https://github.com/rust-lang-nursery/rust-clippy/issues/3220
-    #[allow(clippy::new_ret_no_self)]
     pub fn new<K, H, M, W>(
         key_store: &K,
         hsm: H,
