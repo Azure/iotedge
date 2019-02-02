@@ -60,13 +60,11 @@ for host in "${hosts[@]}"; do
         echo "Testing Windows runner '$host'"
 
         # Verify runner can use the proxy (should succeed)
-        # **When Invoke-WebRequest is called through SSH with the -Proxy
-        #   argument, it throws ("Access is denied" 0x5 occurred while reading
-        #   the console output buffer). Avoid this by wrapping the command in
-        #   try/catch. Using 'ssh -t' also avoids the problem, but unfortunately
-        #   swallows the return value.
-        ssh -i "$id_rsa" "$user@$host" "try { Invoke-WebRequest -UseBasicParsing -Proxy 'http://$agent_name:3128' 'http://www.microsoft.com' } catch {}"
-        ssh -i "$id_rsa" "$user@$host" "try { Invoke-WebRequest -UseBasicParsing -Proxy 'http://$agent_name:3128' 'https://www.microsoft.com' } catch {}"
+        # **SSH terminal doesn't like the progress bar that Invoke-WebRequest
+        #   tries to display, so use $ProgressPreference='SilentlyContinue' to
+        #   supress it.
+        ssh -i "$id_rsa" "$user@$host" "\$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -UseBasicParsing -Proxy 'http://$agent_name:3128' 'http://www.microsoft.com'"
+        ssh -i "$id_rsa" "$user@$host" "\$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -UseBasicParsing -Proxy 'http://$agent_name:3128' 'https://www.microsoft.com'"
 
         # Verify runner can't skirt the proxy (should time out after 5s)
         ssh -i "$id_rsa" "$user@$host" "Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 'http://www.microsoft.com'" && exit 1 || :
