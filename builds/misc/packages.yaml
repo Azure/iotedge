@@ -205,7 +205,7 @@ jobs:
       - powershell: |
           $base_version = Get-Content -Path "$(Build.SourcesDirectory)\edgelet\version.txt"
           $version = "$base_version$(Build.BuildNumber)"
-          $version2 = ("{0}{1}" -f $base_version, $Build.BuildNumber)
+          $version2 = ("{0}{1}" -f $base_version, $(Build.BuildNumber))
           Write-Host ("##vso[task.setvariable variable=VERSION;]$version")
           Write-Host ("##vso[task.setvariable variable=NO_VALGRIND;]true")
           Write-Host "Setting version: '$base_version' '$(Build.BuildNumber)' '$version' '$version2'"
