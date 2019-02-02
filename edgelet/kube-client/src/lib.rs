@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 #![deny(unused_extern_crates, warnings)]
-#![cfg_attr(feature = "cargo-clippy", deny(clippy::all, clippy::pedantic))]
-#![cfg_attr(feature = "cargo-clippy", allow(
+#![deny(clippy::all, clippy::pedantic)]
+#![allow(
     clippy::doc_markdown, // clippy want the "IoT" of "IoT Hub" in a code fence
     clippy::shadow_unrelated,
     clippy::stutter,
     clippy::use_self,
-))]
+)]
 
 #[macro_use]
 extern crate serde_derive;

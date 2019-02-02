@@ -2,8 +2,8 @@
 
 #![cfg(windows)]
 #![deny(unused_extern_crates, warnings)]
-#![cfg_attr(feature = "cargo-clippy", deny(clippy::all, clippy::pedantic))]
-#![cfg_attr(feature = "cargo-clippy", allow(clippy::use_self))]
+#![deny(clippy::all, clippy::pedantic)]
+#![allow(clippy::use_self)]
 
 extern crate futures;
 extern crate mio_named_pipes;
@@ -35,7 +35,7 @@ pub struct PipeStream {
 
 impl PipeStream {
     pub fn connect<P: AsRef<Path>>(path: P, timeout: Option<Duration>) -> io::Result<Self> {
-        #[cfg_attr(feature = "cargo-clippy", allow(cast_possible_truncation))]
+        #[allow(cast_possible_truncation)]
         let timeout = timeout.map_or(PIPE_WAIT_TIMEOUT_MS, |t| {
             match t.as_secs() + u64::from(t.subsec_millis()) {
                 t if t > u64::from(u32::max_value()) => u32::max_value(),

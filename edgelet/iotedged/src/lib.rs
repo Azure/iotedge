@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 #![deny(unused_extern_crates, warnings)]
-#![cfg_attr(feature = "cargo-clippy", deny(clippy::all, clippy::pedantic))]
-#![cfg_attr(feature = "cargo-clippy", allow(
+#![deny(clippy::all, clippy::pedantic)]
+#![allow(
     clippy::doc_markdown, // clippy want the "IoT" of "IoT Hub" in a code fence
     clippy::shadow_unrelated,
     clippy::stutter,
     clippy::use_self,
-))]
+)]
 
 extern crate base64;
 #[macro_use]
@@ -410,7 +410,7 @@ where
     } else {
         info!("No change to configuration file detected.");
 
-        #[cfg_attr(feature = "cargo-clippy", allow(clippy::single_match_else))]
+        #[allow(clippy::single_match_else)]
         match prepare_workload_ca(crypto) {
             Ok(()) => info!("Obtaining workload CA succeeded."),
             Err(_) => {
@@ -486,7 +486,7 @@ where
     Ok(())
 }
 
-#[cfg_attr(feature = "cargo-clippy", allow(clippy::too_many_arguments))]
+#[allow(clippy::too_many_arguments)]
 fn start_api<HC, K, F, C, W>(
     settings: &Settings<DockerConfig>,
     hyper_client: HC,

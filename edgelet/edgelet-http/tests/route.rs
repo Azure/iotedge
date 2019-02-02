@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 #![deny(unused_extern_crates, warnings)]
-#![cfg_attr(feature = "cargo-clippy", deny(clippy::all, clippy::pedantic))]
+#![deny(clippy::all, clippy::pedantic)]
 
 extern crate edgelet_http;
 extern crate futures;
@@ -15,7 +15,7 @@ use edgelet_http::route::{Builder, Parameters, RegexRoutesBuilder, Router};
 use edgelet_http::Error as HttpError;
 use edgelet_http::Version;
 
-#[cfg_attr(feature = "cargo-clippy", allow(clippy::needless_pass_by_value))]
+#[allow(clippy::needless_pass_by_value)]
 fn route1(
     _req: Request<Body>,
     params: Parameters,
@@ -37,7 +37,7 @@ fn route1(
     Box::new(future::ok(response))
 }
 
-#[cfg_attr(feature = "cargo-clippy", allow(clippy::needless_pass_by_value))]
+#[allow(clippy::needless_pass_by_value)]
 fn route2(
     _req: Request<Body>,
     params: Parameters,

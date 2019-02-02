@@ -1,6 +1,6 @@
 #![cfg(target_os = "linux")]
 #![deny(unused_extern_crates, warnings)]
-#![cfg_attr(feature = "cargo-clippy", deny(clippy::all, clippy::pedantic))]
+#![deny(clippy::all, clippy::pedantic)]
 
 // These tests are sensitive to the number of FDs open in the current process.
 // Specifically, the tests require that fd 3 be available to be bound to a socket

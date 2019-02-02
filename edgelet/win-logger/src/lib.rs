@@ -2,8 +2,8 @@
 
 #![cfg(windows)]
 #![deny(unused_extern_crates, warnings)]
-#![cfg_attr(feature = "cargo-clippy", deny(clippy::all, clippy::pedantic))]
-#![cfg_attr(feature = "cargo-clippy", allow(clippy::stutter, clippy::use_self))]
+#![deny(clippy::all, clippy::pedantic)]
+#![allow(clippy::stutter, clippy::use_self)]
 
 extern crate edgelet_utils;
 extern crate failure;

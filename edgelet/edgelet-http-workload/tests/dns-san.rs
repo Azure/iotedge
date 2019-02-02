@@ -4,7 +4,7 @@
 // on OpenSSL.
 #![cfg(not(windows))]
 #![deny(unused_extern_crates, warnings)]
-#![cfg_attr(feature = "cargo-clippy", deny(clippy::all, clippy::pedantic))]
+#![deny(clippy::all, clippy::pedantic)]
 
 extern crate chrono;
 extern crate edgelet_core;

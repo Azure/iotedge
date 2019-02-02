@@ -8,11 +8,11 @@
 //! Intitial version created through bindgen <https://docs.rs/bindgen/>
 
 #![deny(unused_extern_crates, warnings)]
-#![cfg_attr(feature = "cargo-clippy", deny(clippy::all, clippy::pedantic))]
-#![cfg_attr(feature = "cargo-clippy", allow(
+#![deny(clippy::all, clippy::pedantic)]
+#![allow(
     clippy::doc_markdown, // bindgen-generated docs
     clippy::use_self, // bindgen-generated signatures
-))]
+)]
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals)]
 
 use std::os::raw::{c_char, c_int, c_uchar, c_void};

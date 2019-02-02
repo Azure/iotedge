@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 #![deny(unused_extern_crates, warnings)]
-#![cfg_attr(feature = "cargo-clippy", deny(clippy::all, clippy::pedantic))]
+#![deny(clippy::all, clippy::pedantic)]
 //Skip ARM(cross-compile) until I figure out how to run ctest on this.
 #![cfg(not(any(target_arch = "arm", target_arch = "aarch64")))]
 

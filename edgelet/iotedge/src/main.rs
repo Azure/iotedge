@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 #![deny(unused_extern_crates, warnings)]
-#![cfg_attr(feature = "cargo-clippy", deny(clippy::all, clippy::pedantic))]
+#![deny(clippy::all, clippy::pedantic)]
 
 #[macro_use]
 extern crate clap;

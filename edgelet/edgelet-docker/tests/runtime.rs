@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 #![deny(unused_extern_crates, warnings)]
-#![cfg_attr(feature = "cargo-clippy", deny(clippy::all, clippy::pedantic))]
+#![deny(clippy::all, clippy::pedantic)]
 
 #[cfg(unix)]
 extern crate base64;
@@ -52,7 +52,7 @@ const INVALID_IMAGE_NAME: &str = "invalidname:latest";
 const INVALID_IMAGE_HOST: &str = "invalidhost.com/nginx:latest";
 
 #[cfg(unix)]
-#[cfg_attr(feature = "cargo-clippy", allow(clippy::needless_pass_by_value))]
+#[allow(clippy::needless_pass_by_value)]
 fn invalid_image_name_pull_handler(
     req: Request<Body>,
 ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
@@ -148,7 +148,7 @@ fn image_pull_with_invalid_image_name_fails() {
 }
 
 #[cfg(unix)]
-#[cfg_attr(feature = "cargo-clippy", allow(clippy::needless_pass_by_value))]
+#[allow(clippy::needless_pass_by_value)]
 fn invalid_image_host_pull_handler(
     req: Request<Body>,
 ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
@@ -246,7 +246,7 @@ fn image_pull_with_invalid_image_host_fails() {
 }
 
 #[cfg(unix)]
-#[cfg_attr(feature = "cargo-clippy", allow(clippy::needless_pass_by_value))]
+#[allow(clippy::needless_pass_by_value)]
 fn image_pull_with_invalid_creds_handler(
     req: Request<Body>,
 ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
@@ -356,7 +356,7 @@ fn image_pull_with_invalid_creds_fails() {
 }
 
 #[cfg(unix)]
-#[cfg_attr(feature = "cargo-clippy", allow(clippy::needless_pass_by_value))]
+#[allow(clippy::needless_pass_by_value)]
 fn image_pull_handler(
     req: Request<Body>,
 ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
@@ -422,7 +422,7 @@ fn image_pull_succeeds() {
 }
 
 #[cfg(unix)]
-#[cfg_attr(feature = "cargo-clippy", allow(clippy::needless_pass_by_value))]
+#[allow(clippy::needless_pass_by_value)]
 fn image_pull_with_creds_handler(
     req: Request<Body>,
 ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
@@ -502,7 +502,7 @@ fn image_pull_with_creds_succeeds() {
     runtime.block_on(task).unwrap();
 }
 
-#[cfg_attr(feature = "cargo-clippy", allow(clippy::needless_pass_by_value))]
+#[allow(clippy::needless_pass_by_value)]
 fn image_remove_handler(
     req: Request<Body>,
 ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
@@ -688,7 +688,7 @@ fn container_create_succeeds() {
     runtime.block_on(task).unwrap();
 }
 
-#[cfg_attr(feature = "cargo-clippy", allow(clippy::needless_pass_by_value))]
+#[allow(clippy::needless_pass_by_value)]
 fn container_start_handler(
     req: Request<Body>,
 ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
@@ -715,7 +715,7 @@ fn container_start_succeeds() {
     runtime.block_on(task).unwrap();
 }
 
-#[cfg_attr(feature = "cargo-clippy", allow(clippy::needless_pass_by_value))]
+#[allow(clippy::needless_pass_by_value)]
 fn container_stop_handler(
     req: Request<Body>,
 ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
@@ -742,7 +742,7 @@ fn container_stop_succeeds() {
     runtime.block_on(task).unwrap();
 }
 
-#[cfg_attr(feature = "cargo-clippy", allow(clippy::needless_pass_by_value))]
+#[allow(clippy::needless_pass_by_value)]
 fn container_stop_with_timeout_handler(
     req: Request<Body>,
 ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
@@ -770,7 +770,7 @@ fn container_stop_with_timeout_succeeds() {
     runtime.block_on(task).unwrap();
 }
 
-#[cfg_attr(feature = "cargo-clippy", allow(clippy::needless_pass_by_value))]
+#[allow(clippy::needless_pass_by_value)]
 fn container_remove_handler(
     req: Request<Body>,
 ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
@@ -797,7 +797,7 @@ fn container_remove_succeeds() {
     runtime.block_on(task).unwrap();
 }
 
-#[cfg_attr(feature = "cargo-clippy", allow(clippy::needless_pass_by_value))]
+#[allow(clippy::needless_pass_by_value)]
 fn container_list_handler(
     req: Request<Body>,
 ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
@@ -935,7 +935,7 @@ fn container_list_succeeds() {
     }
 }
 
-#[cfg_attr(feature = "cargo-clippy", allow(clippy::needless_pass_by_value))]
+#[allow(clippy::needless_pass_by_value)]
 fn container_logs_handler(
     req: Request<Body>,
 ) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {

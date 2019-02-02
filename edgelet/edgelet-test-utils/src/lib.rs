@@ -1,15 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 #![deny(unused_extern_crates, warnings)]
-#![cfg_attr(feature = "cargo-clippy", deny(clippy::all, clippy::pedantic))]
-#![cfg_attr(
-    feature = "cargo-clippy",
-    allow(
-        clippy::default_trait_access,
-        clippy::similar_names,
-        clippy::stutter,
-        clippy::use_self
-    )
+#![deny(clippy::all, clippy::pedantic)]
+#![allow(
+    clippy::default_trait_access,
+    clippy::similar_names,
+    clippy::stutter,
+    clippy::use_self
 )]
 
 extern crate chrono;
