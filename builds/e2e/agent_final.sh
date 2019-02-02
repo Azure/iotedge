@@ -43,8 +43,8 @@ agent_name=$(hostname)
 
 for host in "${hosts[@]}"; do
     # Linux or Windows
-    ssh -i "$id_rsa" "$user@$host" uname
-    if [ $? -eq 0 ]; then  # Linux
+    ssh -i "$id_rsa" "$user@$host" uname && os='linux' || os='windows'
+    if [ "$os" == 'linux' ]; then
         echo "Testing Linux runner '$host'"
 
         # Verify runner can use the proxy
@@ -56,13 +56,15 @@ for host in "${hosts[@]}"; do
         ssh -i "$id_rsa" "$user@$host" timeout 5 curl -L 'https://www.microsoft.com' && exit 1 || :
 
         echo "Linux runner verified."
-    else  # Windows
+    else  # windows
         echo "Testing Windows runner '$host'"
 
         # Verify runner can use the proxy (should succeed)
-        # When Invoke-WebRequest is invoked over SSH and -Proxy argument is added, we get an error back ("Access is
-        # denied" 0x5 occurred while reading the console output buffer). Avoid this by wrapping the command in try.
-        # Using 'ssh -t' also avoids the problem, but unfortunately swallows the return value.
+        # **When Invoke-WebRequest is called through SSH with the -Proxy
+        #   argument, it throws ("Access is denied" 0x5 occurred while reading
+        #   the console output buffer). Avoid this by wrapping the command in
+        #   try/catch. Using 'ssh -t' also avoids the problem, but unfortunately
+        #   swallows the return value.
         ssh -i "$id_rsa" "$user@$host" "try { Invoke-WebRequest -UseBasicParsing -Proxy 'http://$agent_name:3128' 'http://www.microsoft.com' } catch {}"
         ssh -i "$id_rsa" "$user@$host" "try { Invoke-WebRequest -UseBasicParsing -Proxy 'http://$agent_name:3128' 'https://www.microsoft.com' } catch {}"
 
