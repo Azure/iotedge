@@ -13,6 +13,7 @@ suffix="$(grep -Po '^search \K.*' /etc/resolv.conf)"
 
 mkdir -p "$home/.ssh"
 chown "$user:$user" "$home/.ssh"
+touch "$home/.ssh/known_hosts"
 
 for val in "${@:2}"; do
     host_key_pair=( "${host_key_pair[@]}" "$val" )
