@@ -223,7 +223,7 @@ jobs:
           workingDirectory: 'edgelet/hsm-sys/azure-iot-hsm-c/build'
           cmakeArgs: '--build . --config Release'
       - powershell: edgelet/build/windows/package.ps1
-        displayName: Package
+        displayName: Package iotedged, iotedge, libiothsm and docker/dockerd
       - task: CopyFiles@2
         displayName: 'Copy iotedged to Artifact Staging'
         inputs:
