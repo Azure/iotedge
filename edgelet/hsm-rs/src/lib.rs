@@ -3,11 +3,11 @@
 #![deny(unused_extern_crates, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
-        clippy::cyclomatic_complexity,
-        clippy::similar_names,
-        clippy::shadow_unrelated,
-        clippy::stutter,
-        clippy::use_self
+    clippy::cyclomatic_complexity,
+    clippy::similar_names,
+    clippy::shadow_unrelated,
+    clippy::stutter,
+    clippy::use_self
 )]
 
 extern crate chrono;
