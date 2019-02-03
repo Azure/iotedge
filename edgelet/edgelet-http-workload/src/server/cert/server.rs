@@ -11,7 +11,7 @@ use edgelet_core::{
 };
 use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
-use edgelet_utils::{ensure_not_empty_with_context, prepare_dns_san_entries};
+use edgelet_utils::{ensure_not_empty_with_context, prepare_dns_san_entries, append_dns_san_entries};
 use workload::models::ServerCertificateRequest;
 
 use error::{CertOperation, Error, ErrorKind};
@@ -87,7 +87,7 @@ where
                 // an alternative DNS name; we also need to add the common_name that we are using
                 // as a DNS name since the presence of a DNS name SAN will take precedence over
                 // the common name
-                let sans = vec![prepare_dns_san_entries(&[&module_id, common_name])];
+                let sans = vec![append_dns_san_entries(&prepare_dns_san_entries(&[&module_id]), &[common_name])];
 
                 #[cfg_attr(feature = "cargo-clippy", allow(cast_sign_loss))]
                 let props = CertificateProperties::new(
@@ -546,12 +546,12 @@ mod tests {
     fn succeeds_key() {
         let handler = ServerCertHandler::new(
             TestHsm::default().with_on_create(|props| {
-                assert_eq!("marvin", props.common_name());
-                assert_eq!("beeblebroxIserver", props.alias());
+                assert_eq!("2020marvin", props.common_name());
+                assert_eq!("$beeblebroxIserver", props.alias());
                 assert_eq!(CertificateType::Server, *props.certificate_type());
                 let san_entries = props.san_entries().unwrap();
                 assert_eq!(1, san_entries.len());
-                assert_eq!("DNS:beeblebrox, DNS:marvin", san_entries[0]);
+                assert_eq!("DNS:2020marvin, DNS:beeblebrox", san_entries[0]);
                 assert!(MAX_DURATION_SEC >= *props.validity_in_secs());
                 Ok(TestCert::default()
                     .with_private_key(PrivateKey::Key(KeyBytes::Pem("Betelgeuse".to_string()))))
@@ -560,17 +560,17 @@ mod tests {
         );
 
         let cert_req = ServerCertificateRequest::new(
-            "marvin".to_string(),
+            "2020marvin".to_string(),
             (Utc::now() + Duration::hours(1)).to_rfc3339(),
         );
 
         let request =
-            Request::get("http://localhost/modules/beeblebrox/genid/I/certificate/server")
+            Request::get("http://localhost/modules/$beeblebrox/genid/I/certificate/server")
                 .body(serde_json::to_string(&cert_req).unwrap().into())
                 .unwrap();
 
         let params = Parameters::with_captures(vec![
-            (Some("name".to_string()), "beeblebrox".to_string()),
+            (Some("name".to_string()), "$beeblebrox".to_string()),
             (Some("genid".to_string()), "I".to_string()),
         ]);
         let response = handler.handle(request, params).wait().unwrap();
