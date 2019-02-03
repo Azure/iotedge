@@ -234,7 +234,7 @@ mod tests {
         assert_eq!(
             format!("DNS:{}", expected_name),
             prepare_dns_san_entries(&[name])
-         );
+        );
 
         // 63 letters for the name and 4 more for the literal "DNS:"
         assert_eq!(63 + 4, prepare_dns_san_entries(&[name]).len());
@@ -255,7 +255,9 @@ mod tests {
 
         // test appending host name to sanitized label
         let sanitized_labels = prepare_dns_san_entries(&["1edgehub", "2edgy"]);
-        assert_eq!("DNS:2019host, DNS:2020host, DNS:edgehub, DNS:edgy",
-                  append_dns_san_entries(&sanitized_labels, &["2019host", "   ", "2020host"]));
+        assert_eq!(
+            "DNS:2019host, DNS:2020host, DNS:edgehub, DNS:edgy",
+            append_dns_san_entries(&sanitized_labels, &["2019host", "   ", "2020host"])
+        );
     }
 }
