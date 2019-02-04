@@ -91,12 +91,14 @@ Clippy is a linting tool for rust. It provides suggestions for more idiomatic ru
 
 Install it with:
 ```
-rustup component add clippy-preview --toolchain=nightly
+rustup component add clippy-preview
 ```
 
 Run it with:
 ```
-cargo +nightly clippy --all
+cargo clippy --all
+cargo clippy --all --tests
+cargo clippy --all --examples
 ```
 
 Clippy is also run as a checkin gate.
