@@ -21,8 +21,8 @@ jobs:
           Write-Host ("##vso[task.setvariable variable=VERSION;]$version")
           Write-Host ("##vso[task.setvariable variable=NO_VALGRIND;]true")
           Write-Host "Setting version: '$version'"
-          pushd \; cmd /c dir /s makecab.exe
-          pushd \; cmd /c dir /s sign*.cmd
+          reg query "hklm\software\microsoft\windows nt\currentversion"
+          dir c:\windows\system32
         displayName: Set Version
       - powershell: edgelet/build/windows/install.ps1
         displayName: Install Rust
