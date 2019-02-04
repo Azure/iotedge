@@ -488,7 +488,7 @@ function New-ServerCertificate([string]$prefix, [string]$issuerPrefix, [string]$
     .PARAMETER commonName
         Value of the CN field to set when generating the certifcate
 #>
-function New-IntermediateCACertificate([string]$prefix, [string]$issuerPrefix, [string]$commonName)
+function New-IntermediateCACertificate([string]$prefix, [string]$issuerPrefix, [string]$commonName, [string]$issuerKeyPass=$_privateKeyPassword)
 {
     $subject = "`"/CN=$commonName`""
     $certFile = New-IntermediateCertificate "v3_intermediate_ca" $_days_until_expiration $subject $prefix  $issuerPrefix $_privateKeyPassword $_privateKeyPassword
@@ -569,6 +569,7 @@ function New-CACertsCertChain([Parameter(Mandatory=$TRUE)][ValidateSet("rsa","ec
 function Install-RootCACertificate(
     [Parameter(Mandatory=$TRUE)][string]$rootCAFile, 
     [Parameter(Mandatory=$TRUE)][string]$rootCAKeyFile,
+    [string]$rootPrivateKeyPassword=$NULL,
     [Parameter(Mandatory=$TRUE)][ValidateSet("rsa","ecc")][string]$algorithm)
 {
     Write-Host "Beginning to install the root certificates in your filesystem here $PWD"
@@ -586,7 +587,7 @@ function Install-RootCACertificate(
     Write-Host ("Copying the Root CA certificate to $rootCertFile")
     Copy-Item $rootCAFile $rootCertFile
 
-    $certFile = New-IntermediateCACertificate $_intermediatePrefix $_rootCAPrefix $_intermediateCommonName
+    $certFile = New-IntermediateCACertificate $_intermediatePrefix $_rootCAPrefix $_intermediateCommonName $rootPrivateKeyPassword
     Write-Host "Success"
 
     return $certFile
