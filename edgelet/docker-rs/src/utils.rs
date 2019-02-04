@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use serde::Deserialize;
 use serde_json;
 use std::borrow::Cow;
 use std::str::FromStr;

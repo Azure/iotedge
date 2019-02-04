@@ -255,7 +255,7 @@ impl ModuleRuntime for ModuleClient {
             .list_modules(&API_VERSION.to_string())
             .map(|list| {
                 list.modules()
-                    .into_iter()
+                    .iter()
                     .cloned()
                     .map(|m| {
                         let type_ = m.type_().clone();
