@@ -259,8 +259,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         static class Events
         {
-            public static readonly ILogger Log = Logger.Factory.CreateLogger<EdgeAgentConnection>();
             const int IdStart = AgentEventIds.EdgeAgentConnection;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<EdgeAgentConnection>();
 
             enum EventIds
             {
@@ -277,10 +277,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 RetryingGetTwin,
                 MismatchedSchemaVersion,
                 TwinRefreshInit,
-                TwinRefreshStart,
-                BeginningPeriodicTwinRefresh,
-                DonePeriodicTwinRefresh,
-                ErrorPeriodicTwinRefresh
+                TwinRefreshStart
             }
 
             public static void DesiredPropertiesPatchFailed(Exception exception)
@@ -298,21 +295,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 Log.LogWarning(
                     (int)EventIds.MismatchedSchemaVersion,
                     $"Desired properties schema version {receivedVersion} does not match expected schema version {expectedVersion}. Some settings may not be supported.");
-            }
-
-            public static void BeginningPeriodicTwinRefresh()
-            {
-                Log.LogInformation((int)EventIds.BeginningPeriodicTwinRefresh, "Beginning periodic refresh of deployment config from twin...");
-            }
-
-            public static void DonePeriodicTwinRefresh()
-            {
-                Log.LogDebug((int)EventIds.DonePeriodicTwinRefresh, "Done periodic refresh of deployment config from twin");
-            }
-
-            public static void ErrorPeriodicTwinRefresh(Exception ex)
-            {
-                Log.LogWarning((int)EventIds.ErrorPeriodicTwinRefresh, ex, "Error in periodic refresh of deployment config from twin");
             }
 
             internal static void DesiredPropertiesUpdated()
