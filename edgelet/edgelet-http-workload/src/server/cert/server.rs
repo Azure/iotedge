@@ -74,7 +74,7 @@ where
                     max_duration,
                     ErrorKind::MalformedRequestBody,
                 )?;
-                #[cfg_attr(feature = "cargo-clippy", allow(cast_sign_loss))]
+                #[allow(clippy::cast_sign_loss)]
                 let expiration = match expiration {
                     expiration if expiration < 0 || expiration > max_duration => {
                         return Err(Error::from(ErrorKind::MalformedRequestBody));
@@ -94,7 +94,7 @@ where
                     &[common_name],
                 )];
 
-                #[cfg_attr(feature = "cargo-clippy", allow(cast_sign_loss))]
+                #[allow(clippy::cast_sign_loss)]
                 let props = CertificateProperties::new(
                     expiration,
                     common_name.to_string(),
@@ -175,7 +175,7 @@ mod tests {
     }
 
     impl Default for TestWorkloadConfig {
-        #[cfg_attr(feature = "cargo-clippy", allow(cast_possible_wrap, cast_sign_loss))]
+        #[allow(clippy::cast_possible_wrap, clippy::cast_sign_loss)]
         fn default() -> Self {
             assert!(MAX_DURATION_SEC < (i64::max_value() as u64));
 

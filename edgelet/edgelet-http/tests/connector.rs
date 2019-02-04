@@ -1,12 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 #![deny(unused_extern_crates, warnings)]
-// Remove this when clippy stops warning about old-style `allow()`,
-// which can only be silenced by enabling a feature and thus requires nightly
-//
-// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
-#![allow(renamed_and_removed_lints)]
-#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
+#![deny(clippy::all, clippy::pedantic)]
 
 extern crate edgelet_http;
 extern crate edgelet_test_utils;
@@ -128,6 +123,7 @@ fn make_url(path: &str) -> String {
 }
 
 #[cfg(windows)]
+#[allow(clippy::needless_pass_by_value)]
 fn pipe_get_handler(_req: Request<Body>) -> impl Future<Item = Response<Body>, Error = io::Error> {
     let response = Response::builder()
         .header(hyper::header::CONTENT_TYPE, "text/plain; charset=utf-8")
