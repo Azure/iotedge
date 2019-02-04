@@ -25,20 +25,28 @@ jobs:
           adksetup.exe /quiet
           sleep 60
           write-host "take 1"
-          pushd \; pwd; cmd /c dir /s makecat.exe
-          pushd \; pwd; cmd /c dir /s sign*.cmd
+          pushd c:\; pwd; cmd /c dir /s makecat.exe
+          pushd c:\; pwd; cmd /c dir /s sign*.cmd
+          dir "C:\Program Files (x86)\Windows Kits\10\bin\x64\makecat.exe"
+          dir "hklm:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{3dec9467-d9ad-42df-8e84-888057bac8f1}"
           sleep 60
           write-host "take 2"
-          pushd \; pwd; cmd /c dir /s makecat.exe
-          pushd \; pwd; cmd /c dir /s sign*.cmd
+          pushd c:\; pwd; cmd /c dir /s makecat.exe
+          pushd c:\; pwd; cmd /c dir /s sign*.cmd
+          dir "C:\Program Files (x86)\Windows Kits\10\bin\x64\makecat.exe"
+          dir "hklm:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{3dec9467-d9ad-42df-8e84-888057bac8f1}"
           sleep 60
           write-host "take 3"
-          pushd \; pwd; cmd /c dir /s makecat.exe
-          pushd \; pwd; cmd /c dir /s sign*.cmd
+          pushd c:\; pwd; cmd /c dir /s makecat.exe
+          pushd c:\; pwd; cmd /c dir /s sign*.cmd
+          dir "C:\Program Files (x86)\Windows Kits\10\bin\x64\makecat.exe"
+          dir "hklm:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{3dec9467-d9ad-42df-8e84-888057bac8f1}"
           sleep 60
           write-host "take 4"
-          pushd \; pwd; cmd /c dir /s makecat.exe
-          pushd \; pwd; cmd /c dir /s sign*.cmd
+          pushd c:\; pwd; cmd /c dir /s makecat.exe
+          pushd c:\; pwd; cmd /c dir /s sign*.cmd
+          dir "C:\Program Files (x86)\Windows Kits\10\bin\x64\makecat.exe"
+          dir "hklm:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{3dec9467-d9ad-42df-8e84-888057bac8f1}"
         displayName: Set Version
       - powershell: edgelet/build/windows/install.ps1
         displayName: Install Rust
