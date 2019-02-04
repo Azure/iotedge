@@ -20,10 +20,11 @@ jobs:
           $version = ("{0}{1}" -f $base_version, $(Build.BuildNumber))
           Write-Host ("##vso[task.setvariable variable=VERSION;]$version")
           Write-Host "Setting version: '$version'"
-          $path = "$env:PATH;C:\Program Files (x86)\Windows Kits\10\bin\x64"
+          $path = "$env:PATH;C:\Program Files (x86)\Windows Kits\10\bin\x64;C:\Program Files (x86)\Windows Kits\10\tools\bin\i386"
           Write-Host ("##vso[task.setvariable variable=PATH;]$path")
           Write-Host "Setting PATH: '$path'"
           Write-Host ("##vso[task.setvariable variable=NO_VALGRIND;]true")
+          dir "C:\Program Files (x86)\Windows Kits\10\tools\bin\i386\sign.cmd"
         displayName: Set Version
       - powershell: edgelet/build/windows/install.ps1
         displayName: Install Rust
