@@ -15,11 +15,6 @@ To install or update the compiler:
 rustup update stable
 ```
 
-The tooling also requires the nightly compiler:
-```
-rustup update nightly
-```
-
 ### Additional Dependencies
 
 #### Linux
@@ -70,12 +65,19 @@ cargo test --all
 ### Additional Tools
 Rust has a few tools that help in day to day development.
 
+Note: on older installations of Rust, these components may not be available.  You will need to update rustup, and reinstall the stable toolchain:
+```
+rustup self update
+rustup uninstall stable
+rustup install stable
+```
+
 #### Cargo Fmt
 Cargo supports a formatting tool to automatically format the source code.
 
 Install it with:
 ```
-rustup component add rustfmt-preview
+rustup component add rustfmt
 ```
 
 Run it with:
@@ -93,11 +95,6 @@ Install it with:
 ```
 rustup component add clippy
 ```
-if Clippy doesn't install (the toolchain does not contain component `clippy`), try:
-```
-rustup component add clippy-preview
-```
-
 
 Run it with:
 ```

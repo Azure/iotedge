@@ -1,8 +1,7 @@
 #!/bin/bash
 
 ###############################################################################
-# This script runs cargo clippy on your project. This script installs the
-# nightly toolchain as it is a dependency of clippy.
+# This script runs cargo clippy on your project. 
 ###############################################################################
 
 set -e
@@ -73,6 +72,6 @@ else
     echo "Installing $TOOLCHAIN toolchain"
     $RUSTUP install "$TOOLCHAIN"
     echo "Installing clippy..."
-    $RUSTUP component add clippy-preview "--toolchain=$TOOLCHAIN"
+    $RUSTUP component add clippy "--toolchain=$TOOLCHAIN"
     run_clippy
 fi
