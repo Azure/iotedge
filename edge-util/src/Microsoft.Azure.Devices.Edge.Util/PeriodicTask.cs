@@ -29,13 +29,13 @@ namespace Microsoft.Azure.Devices.Edge.Util
             Preconditions.CheckArgument(frequency > TimeSpan.Zero, "Frequency should be > 0");
             Preconditions.CheckArgument(startAfter >= TimeSpan.Zero, "startAfter should be >= 0");
 
-            this.work = Preconditions.CheckNotNull(work, "work");
+            this.work = Preconditions.CheckNotNull(work, nameof(work));
             this.frequency = frequency;
             this.startAfter = startAfter;
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
             this.operationName = Preconditions.CheckNonWhiteSpace(operationName, nameof(operationName));
             this.currentTask = this.DoWork();
-            this.checkTimer = new Timer(this.EnsureWork, null, frequency, startAfter);
+            this.checkTimer = new Timer(this.EnsureWork, null, startAfter, frequency);
             this.logger.LogInformation($"Started operation {this.operationName}");
         }
 
@@ -45,16 +45,18 @@ namespace Microsoft.Azure.Devices.Edge.Util
             TimeSpan startAfter,
             ILogger logger,
             string operationName)
-            : this(_ => Preconditions.CheckNotNull(work, "work")(), frequency, startAfter, logger, operationName)
+            : this(_ => Preconditions.CheckNotNull(work, nameof(work))(), frequency, startAfter, logger, operationName)
         {
         }
 
+        /// <summary>
+        /// Do not dispose the task here in case it hasn't completed.
+        /// </summary>
         public void Dispose()
         {
             this.checkTimer?.Dispose();
             this.cts?.Cancel();
             this.cts?.Dispose();
-            // Do not dispose the task here in case it hasn't completed. 
         }
 
         /// <summary>

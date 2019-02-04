@@ -16,16 +16,10 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         public async Task TestPeriodicTaskTest()
         {
             // Arrange
-            DateTime dt = DateTime.UtcNow;
             int counter = 0;
             Func<Task> work = async () =>
             {
                 counter++;
-                if (counter == 4)
-                {
-                    TimeSpan ts = DateTime.UtcNow - dt;
-                }                
-
                 await Task.Delay(TimeSpan.FromSeconds(2));
                 if (counter % 3 == 0)
                 {
@@ -38,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             var logger = Mock.Of<ILogger>();
 
             // Act
-            using (var periodicTask = new PeriodicTask(work, frequency, startAfter, logger, "test op"))
+            using (new PeriodicTask(work, frequency, startAfter, logger, "test op"))
             {
                 // Assert
                 await Task.Delay(TimeSpan.FromSeconds(4));
@@ -61,11 +55,11 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             bool taskCancelled = false;
             Func<CancellationToken, Task> work = async cts =>
             {
-                counter++;                
+                counter++;
 
                 try
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(3), cts);                    
+                    await Task.Delay(TimeSpan.FromSeconds(3), cts);
                 }
                 catch (TaskCanceledException)
                 {
@@ -84,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             var logger = Mock.Of<ILogger>();
 
             // Act
-            using (var periodicTask = new PeriodicTask(work, frequency, startAfter, logger, "test op"))
+            using (new PeriodicTask(work, frequency, startAfter, logger, "test op"))
             {
                 // Assert
                 await Task.Delay(TimeSpan.FromSeconds(4));
