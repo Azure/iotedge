@@ -19,12 +19,16 @@ jobs:
           $base_version = Get-Content -Path "$(Build.SourcesDirectory)\edgelet\version.txt"
           $version = ("{0}{1}" -f $base_version, $(Build.BuildNumber))
           Write-Host ("##vso[task.setvariable variable=VERSION;]$version")
-          Write-Host "Setting version: '$version'"
+          Write-Host "Setting VERSION: '$version'"
           $path = "$env:PATH;C:\Program Files (x86)\Windows Kits\10\bin\x64;C:\Program Files (x86)\Windows Kits\10\tools\bin\i386"
           Write-Host ("##vso[task.setvariable variable=PATH;]$path")
           Write-Host "Setting PATH: '$path'"
+          $signtool_oem_sign='/a /s my /i "Windows OEM Intermediate 2017 (TEST ONLY)" /n "Windows OEM Test Cert 2017 (TEST ONLY)" /fd SHA256'
+          Write-Host ("##vso[task.setvariable variable=SIGNTOOL_OEM_SIGN;]$signtool_oem_sign")
+          Write-Host ("##vso[task.setvariable variable=SIGN_MODE;]Test")
+          Write-Host ("##vso[task.setvariable variable=SIGN_OEM;]1")
+          Write-Host ("##vso[task.setvariable variable=SIGN_WITH_TIMESTAMP;]0")
           Write-Host ("##vso[task.setvariable variable=NO_VALGRIND;]true")
-          dir "C:\Program Files (x86)\Windows Kits\10\tools\bin\i386\sign.cmd"
         displayName: Set Version
       - powershell: edgelet/build/windows/install.ps1
         displayName: Install Rust

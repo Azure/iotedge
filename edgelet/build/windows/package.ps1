@@ -1,12 +1,6 @@
 # TODO replace with MS released docker
-if (-not (Test-Path -Path dockerd.exe))
-{
-    Invoke-WebRequest https://master.dockerproject.org/windows/x86_64/dockerd.exe -out dockerd.exe
-}
-if (-not (Test-Path -Path docker.exe))
-{
-    Invoke-WebRequest https://master.dockerproject.org/windows/x86_64/docker.exe -out docker.exe
-}
+$docker_cli_uri = "https://master.dockerproject.org/windows/x86_64/docker.exe"
+$docker_engine_uri = "https://master.dockerproject.org/windows/x86_64/dockerd.exe"
 
 Write-Host ("Source version '{0}'" -f $env:VERSION)
 
@@ -36,5 +30,15 @@ Function New-Package([string]$Name)
 }
 
 New-Package -Name "iotedge"
+
+if (-not (Test-Path -Path docker.exe))
+{
+    Invoke-WebRequest $docker_cli_uri -out docker.exe
+}
 New-Package -Name "iotedge-moby-cli"
+
+if (-not (Test-Path -Path dockerd.exe))
+{
+    Invoke-WebRequest $docker_engine_uri -out dockerd.exe
+}
 New-Package -Name "iotedge-moby-engine"
