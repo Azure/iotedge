@@ -77,7 +77,7 @@ where
     S: Serializer,
     T: BuildHasher,
 {
-    let sorted_map: BTreeMap<_, _> = x.into_iter().collect();
+    let sorted_map: BTreeMap<_, _> = x.iter().collect();
     sorted_map.serialize(serializer)
 }
 

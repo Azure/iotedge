@@ -503,7 +503,7 @@ mod tests {
     fn validate_ensure() {
         check_value(&15, || Ok(ensure!(15, 15 > 10)));
 
-        #[cfg_attr(feature = "cargo-clippy", allow(eq_op))]
+        #[allow(clippy::eq_op)]
         check_error(
             |err| {
                 mem::discriminant(err.kind())
@@ -517,7 +517,7 @@ mod tests {
     fn validate_fensure() {
         check_fvalue(&15, || Box::new(future::ok(fensure!(15, 15 > 10))));
 
-        #[cfg_attr(feature = "cargo-clippy", allow(eq_op))]
+        #[allow(clippy::eq_op)]
         check_ferror(
             |err| {
                 mem::discriminant(err.kind())
