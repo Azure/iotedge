@@ -35,7 +35,6 @@ mod logging;
 pub mod macros;
 mod ser_de;
 
-use std::cmp;
 use std::collections::HashMap;
 
 pub use error::{Error, ErrorKind};
@@ -70,25 +69,54 @@ pub fn prepare_cert_uri_module(hub_name: &str, device_id: &str, module_id: &str)
     )
 }
 
+const ALLOWED_CHAR_DNS: char = '-';
+const DNS_MAX_SIZE: usize = 63;
+
+/// The name returned from here must conform to following rules (as per RFC 1035):
+///  - length must be <= 63 characters
+///  - must be all lower case alphanumeric characters or '-'
+///  - must start with an alphabet
+///  - must end with an alphanumeric character
+pub fn sanitize_dns_label(name: &str) -> String {
+    name.trim_start_matches(|c: char| !c.is_ascii_alphabetic())
+        .trim_end_matches(|c: char| !c.is_ascii_alphanumeric())
+        .to_lowercase()
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric() || c == &ALLOWED_CHAR_DNS)
+        .take(DNS_MAX_SIZE)
+        .collect::<String>()
+}
+
 pub fn prepare_dns_san_entries(names: &[&str]) -> String {
     names
         .iter()
-        .map(|name| {
-            // The name returned from here must conform to following rules (as per RFC 1035):
-            //  - length must be <= 63 characters
-            //  - must be all lower case alphanumeric characters or '-'
-            //  - must start with an alphabet
-            //  - must end with an alphanumeric character
-            let name = name
-                .to_lowercase()
-                .trim_start_matches(|c| !char::is_ascii_lowercase(&c))
-                .trim_end_matches(|c| !char::is_alphanumeric(c))
-                .replace(|c| !(char::is_alphanumeric(c) || c == '-'), "");
-
-            format!("DNS:{}", &name[0..cmp::min(name.len(), 63)])
+        .filter_map(|name| {
+            let dns = sanitize_dns_label(name);
+            if dns.is_empty() {
+                None
+            } else {
+                Some(format!("DNS:{}", dns))
+            }
         })
         .collect::<Vec<String>>()
         .join(", ")
+}
+
+pub fn append_dns_san_entries(sans: &str, names: &[&str]) -> String {
+    let mut dns_sans = names
+        .iter()
+        .filter_map(|name| {
+            if name.trim().is_empty() {
+                None
+            } else {
+                Some(format!("DNS:{}", name.to_lowercase()))
+            }
+        })
+        .collect::<Vec<String>>()
+        .join(", ");
+    dns_sans.push_str(", ");
+    dns_sans.push_str(sans);
+    dns_sans
 }
 
 #[cfg(test)]
@@ -152,10 +180,42 @@ mod tests {
     }
 
     #[test]
+    fn dns_label() {
+        assert_eq!(
+            "abcdefg-hijklmnop-qrs-tuv-wxyz",
+            sanitize_dns_label(" -abcdefg-hijklmnop-qrs-tuv-wxyz- ")
+        );
+        assert!('\u{4eac}'.is_alphanumeric());
+        assert_eq!(
+            "abcdefg-hijklmnop-qrs-tuv-wxyz",
+            sanitize_dns_label("\u{4eac}ABCDEFG-\u{4eac}HIJKLMNOP-QRS-TUV-WXYZ\u{4eac}")
+        );
+        assert_eq!(String::default(), sanitize_dns_label("--------------"));
+        assert_eq!("a", sanitize_dns_label("a"));
+        assert_eq!("a-1", sanitize_dns_label("a -  1"));
+        assert_eq!("edgehub", sanitize_dns_label("$edgeHub"));
+        let expected_name = "a23456789-123456789-123456789-123456789-123456789-123456789-123";
+        assert_eq!(expected_name.len(), DNS_MAX_SIZE);
+        assert_eq!(
+            expected_name,
+            sanitize_dns_label("a23456789-123456789-123456789-123456789-123456789-123456789-1234")
+        );
+
+        assert_eq!(
+            expected_name,
+            sanitize_dns_label("$a23456789-123456789-123456789-123456789-123456789-123456789-1234")
+        );
+    }
+
+    #[test]
     fn dns_san() {
         assert_eq!("DNS:edgehub", prepare_dns_san_entries(&["edgehub"]));
         assert_eq!("DNS:edgehub", prepare_dns_san_entries(&["EDGEhub"]));
         assert_eq!("DNS:edgehub", prepare_dns_san_entries(&["$$$Edgehub"]));
+        assert_eq!(
+            "DNS:edgehub",
+            prepare_dns_san_entries(&["\u{4eac}Edge\u{4eac}hub\u{4eac}"])
+        );
         assert_eq!(
             "DNS:edgehub",
             prepare_dns_san_entries(&["$$$Edgehub###$$$"])
@@ -186,6 +246,18 @@ mod tests {
         assert_eq!(
             "DNS:edgehub, DNS:edgy, DNS:moo",
             prepare_dns_san_entries(&["edgehub", "edgy", "moo"])
+        );
+        // test skipping invalid entries
+        assert_eq!(
+            "DNS:edgehub, DNS:moo",
+            prepare_dns_san_entries(&[" -edgehub -", "-----", "- moo- "])
+        );
+
+        // test appending host name to sanitized label
+        let sanitized_labels = prepare_dns_san_entries(&["1edgehub", "2edgy"]);
+        assert_eq!(
+            "DNS:2019host, DNS:2020host, DNS:edgehub, DNS:edgy",
+            append_dns_san_entries(&sanitized_labels, &["2019host", "   ", "2020host"])
         );
     }
 }
