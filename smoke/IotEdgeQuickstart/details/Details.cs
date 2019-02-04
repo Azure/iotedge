@@ -185,14 +185,27 @@ namespace IotEdgeQuickstart.Details
             this.cleanUpExistingDeviceOnSuccess = cleanUpExistingDeviceOnSuccess;
         }
 
-        protected Task VerifyEdgeIsNotAlreadyActive() => this.bootstrapper.VerifyNotActive();
+        protected Task VerifyEdgeIsNotAlreadyActive()
+        {
+            Console.WriteLine("Verifying if edge is not already active.");
+            return this.bootstrapper.VerifyNotActive();
+        }
 
-        protected Task VerifyBootstrapperDependencies() => this.bootstrapper.VerifyDependenciesAreInstalled();
+        protected Task VerifyBootstrapperDependencies()
+        {
+            Console.WriteLine("Verifying bootstrapper dependencies.");
+            return this.bootstrapper.VerifyDependenciesAreInstalled();
+        }
 
-        protected Task InstallBootstrapper() => this.bootstrapper.Install();
+        protected Task InstallBootstrapper()
+        {
+            Console.WriteLine("Installing bootstrapper.");
+            return this.bootstrapper.Install();
+        }
 
         protected async Task GetOrCreateEdgeDeviceIdentity()
         {
+            Console.WriteLine("Getting or Creating device Identity.");
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(builder.ToString());
 
@@ -218,6 +231,7 @@ namespace IotEdgeQuickstart.Details
 
         protected Task ConfigureBootstrapper()
         {
+            Console.WriteLine("Configuring bootstrapper.");
             IotHubConnectionStringBuilder builder =
                 IotHubConnectionStringBuilder.Create(this.context.IotHubConnectionString);
 
@@ -229,12 +243,21 @@ namespace IotEdgeQuickstart.Details
             return this.bootstrapper.Configure(connectionString, this.EdgeAgentImage(), this.hostname, this.deviceCaCert, this.deviceCaPk, this.deviceCaCerts, this.runtimeLogLevel);
         }
 
-        protected Task StartBootstrapper() => this.bootstrapper.Start();
+        protected Task StartBootstrapper()
+        {
+            Console.WriteLine("Starting bootstrapper.");
+            return this.bootstrapper.Start();
+        }
 
-        protected Task VerifyEdgeAgentIsRunning() => this.bootstrapper.VerifyModuleIsRunning("edgeAgent");
+        protected Task VerifyEdgeAgentIsRunning()
+        {
+            Console.WriteLine("Verifying if edge Agent is running.");
+            return this.bootstrapper.VerifyModuleIsRunning("edgeAgent");
+        }
 
         protected async Task VerifyEdgeAgentIsConnectedToIotHub()
         {
+            Console.WriteLine("Verifying if edge is connected to IoThub");
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(300)))
             {
                 Exception savedException = null;
@@ -279,6 +302,7 @@ namespace IotEdgeQuickstart.Details
 
         protected Task DeployToEdgeDevice()
         {
+            Console.WriteLine("Deploying edge device.");
             (string deployJson, string[] modules) = this.DeploymentJson();
 
             Console.WriteLine($"Sending configuration to device '{this.context.Device.Id}' with modules:");
@@ -293,6 +317,11 @@ namespace IotEdgeQuickstart.Details
 
         protected async Task VerifyDataOnIoTHub(string moduleId)
         {
+            Console.WriteLine($"Verifying data on IoTHub from {moduleId}");
+
+            // First Verify if module is already running.
+            await this.bootstrapper.VerifyModuleIsRunning(moduleId);
+
             var builder = new EventHubsConnectionStringBuilder(this.eventhubCompatibleEndpointWithEntityPath);
             builder.TransportType = this.eventHubClientTransportType;
 
@@ -344,6 +373,7 @@ namespace IotEdgeQuickstart.Details
             await this.TwinTestFileName.ForEachAsync(
                 async fileName =>
                 {
+                    Console.WriteLine($"VerifyTwinAsync for {fileName} started.");
                     string twinTestJson = File.ReadAllText(fileName);
 
                     var twinTest = JsonConvert.DeserializeObject<TwinTestConfiguration>(twinTestJson);
@@ -376,11 +406,14 @@ namespace IotEdgeQuickstart.Details
                             await Retry.Do(Func, IsValid, null, retryInterval, cts.Token);
                         }
                     }
+
+                    Console.WriteLine($"VerifyTwinAsync for {fileName} completed.");
                 });
         }
 
         protected Task RemoveTempSensorFromEdgeDevice()
         {
+            Console.WriteLine("Removing tempSensor from edge device.");
             (string deployJson, string[] _) = this.DeploymentJson();
 
             var config = JsonConvert.DeserializeObject<ConfigurationContent>(deployJson);
@@ -404,9 +437,17 @@ namespace IotEdgeQuickstart.Details
             return this.context.RegistryManager.ApplyConfigurationContentOnDeviceAsync(this.context.Device.Id, config);
         }
 
-        protected Task StopBootstrapper() => this.bootstrapper.Stop();
+        protected Task StopBootstrapper()
+        {
+            Console.WriteLine("Stopping bootstrapper.");
+            return this.bootstrapper.Stop();
+        }
 
-        protected Task ResetBootstrapper() => this.bootstrapper.Reset();
+        protected Task ResetBootstrapper()
+        {
+            Console.WriteLine("Resetting bootstrapper.");
+            return this.bootstrapper.Reset();
+        }
 
         protected void KeepEdgeDeviceIdentity()
         {
