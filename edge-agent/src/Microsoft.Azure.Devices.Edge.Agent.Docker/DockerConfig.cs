@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         public DockerConfig(string image, CreateContainerParameters createOptions)
         {
-            this.Image = Preconditions.CheckNotNull(image, nameof(image));
+            this.Image = image;
             this.createOptions = Preconditions.CheckNotNull(createOptions, nameof(createOptions));
         }
 

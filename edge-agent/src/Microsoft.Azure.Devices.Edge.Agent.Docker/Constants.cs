@@ -3,6 +3,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
     static class Constants
     {
+        public const string UnknownImage = "unknown";
+
         public const string DefaultTag = "latest";
 
         public const string DefaultRegistryAddress = "https://index.docker.io/v1/";
