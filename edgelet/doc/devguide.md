@@ -91,8 +91,13 @@ Clippy is a linting tool for rust. It provides suggestions for more idiomatic ru
 
 Install it with:
 ```
+rustup component add clippy
+```
+if Clippy doesn't install (the toolchain does not contain component `clippy`), try:
+```
 rustup component add clippy-preview
 ```
+
 
 Run it with:
 ```
