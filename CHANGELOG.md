@@ -1,3 +1,9 @@
+# 1.0.6.1 (2019-02-04)
+
+## iotedged
+### Bug Fixes
+* Reverts name sanitization of the common name on generated certificates ([078bda7](https://github.com/Azure/iotedge/commit/078bda7b86b55e8017077b8e2490dede1f8703dc))
+
 # 1.0.6 (2019-01-31)
 * Stability and reliability fixes
 
