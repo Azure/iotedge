@@ -551,6 +551,47 @@ function New-CACertsCertChain([Parameter(Mandatory=$TRUE)][ValidateSet("rsa","ec
     return $certFile
 }
 
+<#
+    .SYNOPSIS
+        Install a root CA certificate and use this to generate the intermediate 
+        certificate and the rest of the chain
+    .DESCRIPTION
+        Install a root CA certificate using the supplied certificate and key files 
+        in the PEM format.
+    .PARAMETER rootCAFile
+
+    .PARAMETER rootCAKeyFile
+    
+    .PARAMETER algorithm
+        ECC or RSA algorith used in the creation of the root certificate. 
+        This will be used for all resulting certificates.
+#>
+function Install-RootCACertificate(
+    [Parameter(Mandatory=$TRUE)][string]$rootCAFile, 
+    [Parameter(Mandatory=$TRUE)][string]$rootCAKeyFile,
+    [Parameter(Mandatory=$TRUE)][ValidateSet("rsa","ecc")][string]$algorithm)
+{
+    Write-Host "Beginning to install the root certificates in your filesystem here $PWD"
+    Test-CACertsPrerequisites($FALSE)
+    PrepareFilesystem
+
+    # Store the algorithm we're using in a file so later stages always use the same one (without forcing user to keep passing it around)
+    Set-Content $algorithmUsedFile $algorithm
+
+    $rootKeyFile = Get-KeyPathForPrefix($_rootCAPrefix)
+    Write-Host ("Copying the Root CA private key to $rootKeyFile")
+    Copy-Item $rootCAKeyFile $rootKeyFile
+
+    $rootCertFile = Get-CertPathForPrefix($_rootCAPrefix)
+    Write-Host ("Copying the Root CA certificate to $rootCertFile")
+    Copy-Item $rootCAFile $rootCertFile
+
+    $certFile = New-IntermediateCACertificate $_intermediatePrefix $_rootCAPrefix $_intermediateCommonName
+    Write-Host "Success"
+
+    return $certFile
+}
+
 # Get-CACertsCertUseEdge retrieves the algorithm (RSA vs ECC) that was specified during New-CACertsCertChain
 function Get-CACertsCertUseRsa()
 {
