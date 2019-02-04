@@ -21,30 +21,6 @@ jobs:
           Write-Host ("##vso[task.setvariable variable=VERSION;]$version")
           Write-Host ("##vso[task.setvariable variable=NO_VALGRIND;]true")
           Write-Host "Setting version: '$version'"
-          invoke-webrequest "https://go.microsoft.com/fwlink/?linkid=2026036" -OutFile $env:SystemRoot\adksetup.exe
-          adksetup.exe /quiet
-          sleep 60
-          write-host "take 1"
-          pushd c:\; pwd; cmd /c dir /s makecat.exe
-          pushd c:\; pwd; cmd /c dir /s sign*.cmd
-          dir "C:\Program Files (x86)\Windows Kits\10\bin\x64\makecat.exe"
-          dir "hklm:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{3dec9467-d9ad-42df-8e84-888057bac8f1}"
-          sleep 60
-          write-host "take 2"
-          pushd c:\; pwd; cmd /c dir /s makecat.exe
-          pushd c:\; pwd; cmd /c dir /s sign*.cmd
-          dir "C:\Program Files (x86)\Windows Kits\10\bin\x64\makecat.exe"
-          dir "hklm:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{3dec9467-d9ad-42df-8e84-888057bac8f1}"
-          sleep 60
-          write-host "take 3"
-          pushd c:\; pwd; cmd /c dir /s makecat.exe
-          pushd c:\; pwd; cmd /c dir /s sign*.cmd
-          dir "C:\Program Files (x86)\Windows Kits\10\bin\x64\makecat.exe"
-          dir "hklm:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{3dec9467-d9ad-42df-8e84-888057bac8f1}"
-          sleep 60
-          write-host "take 4"
-          pushd c:\; pwd; cmd /c dir /s makecat.exe
-          pushd c:\; pwd; cmd /c dir /s sign*.cmd
           dir "C:\Program Files (x86)\Windows Kits\10\bin\x64\makecat.exe"
           dir "hklm:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{3dec9467-d9ad-42df-8e84-888057bac8f1}"
         displayName: Set Version
