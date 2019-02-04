@@ -91,23 +91,6 @@ pub fn prepare_dns_san_entries(names: &[&str]) -> String {
         .join(", ")
 }
 
-pub fn append_dns_san_entries(sans: &str, names: &[&str]) -> String {
-    let mut dns_sans = names
-        .iter()
-        .filter_map(|name| {
-            if name.trim().is_empty() {
-                None
-            } else {
-                Some(format!("DNS:{}", name.to_lowercase()))
-            }
-        })
-        .collect::<Vec<String>>()
-        .join(", ");
-    dns_sans.push_str(", ");
-    dns_sans.push_str(sans);
-    dns_sans
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -203,19 +186,6 @@ mod tests {
         assert_eq!(
             "DNS:edgehub, DNS:edgy, DNS:moo",
             prepare_dns_san_entries(&["edgehub", "edgy", "moo"])
-        );
-
-        // test skipping invalid entries
-        assert_eq!(
-            "DNS:edgehub, DNS:moo",
-            prepare_dns_san_entries(&[" -edgehub -", "-----", "- moo- "])
-        );
-
-        // test appending host name to sanitized label
-        let sanitized_labels = prepare_dns_san_entries(&["1edgehub", "2edgy"]);
-        assert_eq!(
-            "DNS:2019host, DNS:2020host, DNS:edgehub, DNS:edgy",
-            append_dns_san_entries(&sanitized_labels, &["2019host", "   ", "2020host"])
         );
     }
 }
