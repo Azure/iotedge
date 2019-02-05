@@ -1,9 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-extern crate env_logger;
-extern crate futures;
-extern crate kube_client;
-extern crate tokio;
+#![deny(unused_extern_crates, warnings)]
+#![deny(clippy::all, clippy::pedantic)]
 
 use futures::prelude::*;
 
@@ -22,5 +20,6 @@ fn main() -> Result<()> {
         }
     });
 
-    Ok(Runtime::new()?.block_on(fut)?)
+    Runtime::new()?.block_on(fut)?;
+    Ok(())
 }
