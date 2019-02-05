@@ -320,33 +320,30 @@ impl Main {
                     }};
                 }
 
-                match dps.symmetric_key() {
-                    Some(key) => {
-                        info!("Staring provisioning edge device via symmetric key...");
-                        let (key_store, provisioning_result, root_key, runtime) =
-                            dps_symmetric_key_provision(
-                                &dps,
-                                hyper_client.clone(),
-                                dps_path,
-                                runtime,
-                                &mut tokio_runtime,
-                                key,
-                            )?;
-                        start_edgelet!(key_store, provisioning_result, root_key, runtime);
-                    }
-                    None => {
-                        info!("Staring provisioning edge device via TPM...");
-                        let (key_store, provisioning_result, root_key, runtime) =
-                            dps_tpm_provision(
-                                &dps,
-                                hyper_client.clone(),
-                                dps_path,
-                                runtime,
-                                &mut tokio_runtime,
-                            )?;
-                        start_edgelet!(key_store, provisioning_result, root_key, runtime);
-                    }
-                };
+                if let Some(key) = dps.symmetric_key() {
+                    info!("Staring provisioning edge device via symmetric key...");
+                    let (key_store, provisioning_result, root_key, runtime) =
+                        dps_symmetric_key_provision(
+                            &dps,
+                            hyper_client.clone(),
+                            &dps_path,
+                            runtime,
+                            &mut tokio_runtime,
+                            key,
+                        )?;
+                    start_edgelet!(key_store, provisioning_result, root_key, runtime);
+                } else {
+                    info!("Staring provisioning edge device via TPM...");
+                    let (key_store, provisioning_result, root_key, runtime) =
+                        dps_tpm_provision(
+                            &dps,
+                            hyper_client.clone(),
+                            dps_path,
+                            runtime,
+                            &mut tokio_runtime,
+                        )?;
+                    start_edgelet!(key_store, provisioning_result, root_key, runtime);
+                }
             }
         };
 
@@ -645,7 +642,7 @@ fn manual_provision(
 fn dps_symmetric_key_provision<HC, M>(
     provisioning: &Dps,
     hyper_client: HC,
-    _backup_path: PathBuf,
+    _backup_path: &PathBuf,
     runtime: M,
     tokio_runtime: &mut tokio::runtime::Runtime,
     key: &str,
