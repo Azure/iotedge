@@ -109,7 +109,7 @@ function Install-SecurityDaemon {
         # Proxy URI used for all Invoke-WebRequest calls. To specify other proxy-related options like -ProxyCredential, see -InvokeWebRequestParameters
         [Uri] $Proxy,
 
-        # If set to a directory, the installer prefers to use iotedged zip, Moby Engine zip, Moby CLI zip and VC Runtime MSI files from inside this directory
+        # If set to a directory path, the installer prefers to use IoTEdge CAB, Moby Engine CAB, Moby CLI CAB and VC Runtime MSI files from inside this directory
         # over downloading them from the internet. Thus placing all four files in this directory can be used to have a completely offline install,
         # or a specific subset can be placed to override the online versions of those specific components.
         [String] $OfflineInstallationPath,
@@ -141,8 +141,8 @@ function Install-SecurityDaemon {
         # Don't install the Moby CLI (docker.exe) to $MobyInstallDirectory. Only takes effect for -ContainerOs 'Windows'.
         [Switch] $SkipMobyCli,
 
-        # Do not reboot even if needed.
-        [Switch] $NoRestart,
+        # Restart if needed without prompting.
+        [Switch] $RestartIfNeeded,
 
         # Finalize installation, IoTCore only.
         [Switch] $Finalize
@@ -213,7 +213,7 @@ function Install-SecurityDaemon {
     $restartNeeded = $false
     if (-not $Finalize) {
         # Download
-        Get-SecurityDaemon -RestartNeeded ([ref]$restartNeeded)
+        Get-SecurityDaemon -RestartNeeded ([ref] $restartNeeded)
     }
 
     Get-VcRuntime
@@ -244,7 +244,7 @@ function Install-SecurityDaemon {
 
     # Register services
     Set-SystemPath
-    Install-Services -RestartNeeded $restartNeeded
+    Start-IoTEdgeService -RestartNeeded $restartNeeded
     if ($ContainerOs -eq 'Linux') {
         Add-FirewallExceptions
     }
@@ -253,9 +253,7 @@ function Install-SecurityDaemon {
 
     if ($restartNeeded) {
         Write-HostRed "Reboot required."
-        if (-not $NoRestart) {
-            Restart-Computer
-        }
+        Restart-Computer -Confirm:(-not $RestartIfNeeded)
     }
 }
 
@@ -302,7 +300,7 @@ function Update-SecurityDaemon {
         # Proxy URI used for all Invoke-WebRequest calls. To specify other proxy-related options like -ProxyCredential, see -InvokeWebRequestParameters
         [Uri] $Proxy,
 
-        # If set to a directory, the installer prefers to use iotedged zip, Moby Engine zip, Moby CLI zip and VC Runtime MSI files from inside this directory
+        # If set to a directory path, the installer prefers to use IoTEdge CAB, Moby Engine CAB, Moby CLI CAB and VC Runtime MSI files from inside this directory
         # over downloading them from the internet. Thus placing all four files in this directory can be used to have a completely offline install,
         # or a specific subset can be placed to override the online versions of those specific components.
         [String] $OfflineInstallationPath,
@@ -319,8 +317,8 @@ function Update-SecurityDaemon {
         # Don't install the Moby CLI (docker.exe) to $MobyInstallDirectory. Only takes effect for -ContainerOs 'Windows'.
         [Switch] $SkipMobyCli,
 
-        # Do not reboot even if needed.
-        [Switch] $NoRestart
+        # Restart if needed without prompting.
+        [Switch] $RestartIfNeeded
     )
 
     $ErrorActionPreference = 'Stop'
@@ -346,7 +344,7 @@ function Update-SecurityDaemon {
 
     $restartNeeded = $false
     # Download
-    Get-SecurityDaemon -RestartNeeded ([ref]$restartNeeded)
+    Get-SecurityDaemon -RestartNeeded ([ref] $restartNeeded)
     if (-not $restartNeeded) {
         try {
             Start-Service $EdgeServiceName
@@ -361,9 +359,7 @@ function Update-SecurityDaemon {
 
     if ($restartNeeded) {
         Write-HostRed "Reboot required."
-        if (-not $NoRestart) {
-            Restart-Computer
-        }
+        Restart-Computer -Confirm:(-not $RestartIfNeeded)
     }
 }
 
@@ -416,8 +412,8 @@ function Uninstall-SecurityDaemon {
         # Forces the uninstallation in case the previous install was only partially successful.
         [Switch] $Force,
 
-        # Do not reboot even if needed.
-        [Switch] $NoRestart
+        # Restart if needed without prompting.
+        [Switch] $RestartIfNeeded
     )
 
     $ErrorActionPreference = 'Stop'
@@ -440,7 +436,7 @@ function Uninstall-SecurityDaemon {
     $ContainerOs = Get-ContainerOs
 
     $restartNeeded = $false
-    Uninstall-Services -RestartNeeded ([ref]$restartNeeded)
+    Uninstall-Services -RestartNeeded ([ref] $restartNeeded)
     $success = Remove-SecurityDaemonResources
     Reset-SystemPath
 
@@ -456,20 +452,18 @@ function Uninstall-SecurityDaemon {
     if ($restartNeeded) {
         Write-HostRed "Reboot required."
         Write-Host "You might need to rerun Uninstall-SecurityDaemon after reboot to finish the cleanup."
-        if (-not $NoRestart) {
-            Restart-Computer
-        }
+        Restart-Computer -Confirm:(-not $RestartIfNeeded)
     }
 }
 
-function Get-SecurityDaemonLog {
-    Get-WinEvent -ea SilentlyContinue -FilterHashtable @{ProviderName='iotedged';LogName='application';StartTime=[datetime]::Now.AddMinutes(-5)} |
+function Get-SecurityDaemonLog([DateTime] $StartTime = [datetime]::Now.AddMinutes(-5)) {
+    Get-WinEvent -ea SilentlyContinue -FilterHashtable @{ProviderName='iotedged';LogName='application';StartTime=$StartTime} |
         Select TimeCreated, Message |
         Sort-Object @{Expression='TimeCreated';Descending=$false} |
         Format-Table -AutoSize -Wrap
 }
 
-function Setup-Environment([string]$ContainerOs) {
+function Setup-Environment([string] $ContainerOs) {
     $currentWindowsBuild = Get-WindowsBuild
     $preRequisitesMet = switch ($ContainerOs) {
         'Linux' {
@@ -665,7 +659,7 @@ function Get-ExternalDockerServerOs {
     }
 }
 
-function Install-Package([string]$Path, [ref]$RestartNeeded)
+function Install-Package([string] $Path, [ref] $RestartNeeded)
 {
     if (Test-IotCore) {
         Invoke-Native "ApplyUpdate -stage $Path"
@@ -678,7 +672,7 @@ function Install-Package([string]$Path, [ref]$RestartNeeded)
     }
 }
 
-function Uninstall-Package([string]$Name, [ref]$RestartNeeded)
+function Uninstall-Package([string] $Name, [ref] $RestartNeeded)
 {
     if (Test-IotCore) {
         return
@@ -693,7 +687,7 @@ function Uninstall-Package([string]$Name, [ref]$RestartNeeded)
         }
 }
 
-function Get-SecurityDaemon([ref]$RestartNeeded) {
+function Get-SecurityDaemon([ref] $RestartNeeded) {
     try {
         # If we create these archives ourselves, then delete them when we're done
         $deleteMobyEngineArchive = $false
@@ -748,6 +742,7 @@ function Get-SecurityDaemon([ref]$RestartNeeded) {
         if (Test-IotCore) {
             Write-Host "Committing changes, this will cause a reboot on success. If this is the first time installation, run Install-SecurityDaemon -Finalize after the reboot completes."
             Invoke-Native "ApplyUpdate -commit" -DoNotThrow
+            # TODO figure out how to disable automatic reboot
             # On success, this should reboot
             Start-Sleep -Seconds 10
             throw "Unable to install packages, please reboot."
@@ -768,7 +763,7 @@ function Get-SecurityDaemon([ref]$RestartNeeded) {
     }
 }
 
-Function Remove-SecurityDaemonDirectory([string]$Path)
+Function Remove-SecurityDaemonDirectory([string] $Path)
 {
     Write-Host "Deleting data directory '$Path'..."
     if (-not $DeleteConfig) {
@@ -812,7 +807,7 @@ function Remove-SecurityDaemonResources {
         (-not $DeleteConfig) -and
         (Test-Path $oldConfig)) {
         if (-not (Test-Path $EdgeDataDirectory)) {
-            mkdir $EdgeDataDirectory 
+            New-Item -Type Directory -Path $EdgeDataDirectory
         }
         Move-Item -Path $oldConfig -Destination $EdgeDataDirectory
     }
@@ -931,7 +926,8 @@ function Get-SystemPath {
 function Set-SystemPath {
     $systemPath = Get-SystemPath
 
-    $needsModification = ($systemPath -notcontains $EdgeInstallDirectory) -or (($ContainerOs -eq 'Windows') -and ($systemPath -notcontains $MobyInstallDirectory));
+    $needsModification = ($systemPath -notcontains $EdgeInstallDirectory) -or 
+        (($ContainerOs -eq 'Windows') -and ($systemPath -notcontains $MobyInstallDirectory))
     if (-not $needsModification) {
         Write-HostGreen 'System PATH does not require an update.'
         return
@@ -1015,7 +1011,7 @@ function Get-VcRuntime {
     }
 }
 
-function Install-Services([bool]$RestartNeeded) {
+function Start-IoTEdgeService([bool] $RestartNeeded) {
     if ($ContainerOs -eq 'Linux') {
         Remove-ItemProperty 
             -Path "HKLM:\SYSTEM\CurrentControlSet\Services\$EdgeServiceName" 
@@ -1029,7 +1025,7 @@ function Install-Services([bool]$RestartNeeded) {
     Write-HostGreen 'Initialized the IoT Edge service.'
 }
 
-function Uninstall-Services([ref]$RestartNeeded) {
+function Uninstall-Services([ref] $RestartNeeded) {
     if (Get-Service $EdgeServiceName -ErrorAction SilentlyContinue) {
         Set-Service -StartupType Disabled $EdgeServiceName -ErrorAction SilentlyContinue
         Stop-Service -NoWait -ErrorAction SilentlyContinue -ErrorVariable cmdErr $EdgeServiceName
@@ -1092,146 +1088,173 @@ function Remove-FirewallExceptions {
     Write-Verbose "$(if ($?) { 'Removed firewall exceptions' } else { $cmdErr })"
 }
 
-function Set-ProvisioningMode {
+function Update-ConfigYaml([ScriptBlock] $UpdateFunc)
+{
     $yamlPath = (Join-Path -Path $EdgeDataDirectory -ChildPath "config.yaml")
     $configurationYaml = Get-Content $yamlPath -Raw
-    if (($Manual) -or ($DeviceConnectionString)) {
-        $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"'
-        $replacementContent = @(
-            'provisioning:',
-            '  source: ''manual''',
-            "  device_connection_string: '$DeviceConnectionString'")
-        ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")) | Set-Content $yamlPath -Force
-        Write-HostGreen 'Configured device for manual provisioning.'
-    }
-    else {
-        $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*global_endpoint:\s*".*"\s*#?\s*scope_id:\s*".*"\s*#?\s*registration_id:\s".*"'
-        $replacementContent = @(
-            'provisioning:',
-            '  source: ''dps''',
-            '  global_endpoint: ''https://global.azure-devices-provisioning.net''',
-            "  scope_id: '$ScopeId'",
-            "  registration_id: '$RegistrationId'")
-        $configurationYaml = $configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")
+    $configurationYaml = $UpdateFunc.Invoke($configurationYaml)
+    $configurationYaml | Set-Content $yamlPath -Force
+}
 
-        $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"'
-        $replacementContent = ''
-        ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")) | Set-Content $yamlPath -Force
+function Set-ProvisioningMode {
+    Update-ConfigYaml({
+        param($configurationYaml)
+    
+        if (($Manual) -or ($DeviceConnectionString)) {
+            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"'
+            $replacementContent = @(
+                'provisioning:',
+                '  source: ''manual''',
+                "  device_connection_string: '$DeviceConnectionString'")
+            $configurationYaml = ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n"))
+            Write-HostGreen 'Configured device for manual provisioning.'
+            return $configurationYaml
+        }
+        else {
+            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*global_endpoint:\s*".*"\s*#?\s*scope_id:\s*".*"\s*#?\s*registration_id:\s".*"'
+            $replacementContent = @(
+                'provisioning:',
+                '  source: ''dps''',
+                '  global_endpoint: ''https://global.azure-devices-provisioning.net''',
+                "  scope_id: '$ScopeId'",
+                "  registration_id: '$RegistrationId'")
+            $configurationYaml = $configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")
 
-        New-Item "HKLM:\SYSTEM\CurrentControlSet\Services\$EdgeServiceName" -Force | Out-Null
-        New-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\$EdgeServiceName" `
-            -Name 'Environment' -Value 'IOTEDGE_USE_TPM_DEVICE=ON' -PropertyType 'MultiString' -Force | Out-Null
+            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"'
+            $replacementContent = ''
+            $configurationYaml = ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n"))
 
-        Write-HostGreen 'Configured device for DPS provisioning.'
-    }
+            New-Item "HKLM:\SYSTEM\CurrentControlSet\Services\$EdgeServiceName" -Force | Out-Null
+            New-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\$EdgeServiceName" `
+                -Name 'Environment' -Value 'IOTEDGE_USE_TPM_DEVICE=ON' -PropertyType 'MultiString' -Force | Out-Null
+
+            Write-HostGreen 'Configured device for DPS provisioning.'
+            return $configurationYaml
+        }
+    })
 }
 
 function Set-AgentImage {
     if ($AgentImage) {
-        $yamlPath = (Join-Path -Path $EdgeDataDirectory -ChildPath "config.yaml")
-        $configurationYaml = Get-Content $yamlPath -Raw
-        $selectionRegex = 'image:\s*".*"'
-        $replacementContent = "image: '$AgentImage'"
-        if ($Username -and $Password) {
-            $configurationYaml = $configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")
-            $selectionRegex = 'auth:\s*\{\s*\}'
-            $agentRegistry = Get-AgentRegistry
-            $cred = New-Object System.Management.Automation.PSCredential ($Username, $Password)
-            $replacementContent = @(
-                'auth:',
-                "      serveraddress: '$agentRegistry'",
-                "      username: '$Username'",
-                "      password: '$($cred.GetNetworkCredential().Password)'")
-        }
-        ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")) | Set-Content $yamlPath -Force
-        Write-HostGreen "Configured device with agent image '$AgentImage'."
+        Update-ConfigYaml({
+            param($configurationYaml)
+
+            $selectionRegex = 'image:\s*".*"'
+            $replacementContent = "image: '$AgentImage'"
+            if ($Username -and $Password) {
+                $configurationYaml = $configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")
+                $selectionRegex = 'auth:\s*\{\s*\}'
+                $agentRegistry = Get-AgentRegistry
+                $cred = New-Object System.Management.Automation.PSCredential ($Username, $Password)
+                $replacementContent = @(
+                    'auth:',
+                    "      serveraddress: '$agentRegistry'",
+                    "      username: '$Username'",
+                    "      password: '$($cred.GetNetworkCredential().Password)'")
+            }
+            $configurationYaml = ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n"))
+            Write-HostGreen "Configured device with agent image '$AgentImage'."
+            return $configurationYaml
+        })
     }
 }
 
 function Set-Hostname {
-    $yamlPath = (Join-Path -Path $EdgeDataDirectory -ChildPath "config.yaml")
-    $configurationYaml = Get-Content $yamlPath -Raw
-    $hostname = [System.Net.Dns]::GetHostName()
-    $selectionRegex = 'hostname:\s*".*"'
-    $replacementContent = "hostname: '$hostname'"
-    ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")) | Set-Content $yamlPath -Force
-    Write-HostGreen "Configured device with hostname '$hostname'."
+    Update-ConfigYaml({
+        param($configurationYaml)
+    
+        $hostname = [System.Net.Dns]::GetHostName()
+        $selectionRegex = 'hostname:\s*".*"'
+        $replacementContent = "hostname: '$hostname'"
+        $configurationYaml = ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n"))
+        Write-HostGreen "Configured device with hostname '$hostname'."
+        return $configurationYaml
+    })
+}
+
+function Set-ConfigUri([string] $Section, [string] $ManagementUri, [string] $WorkloadUri) {
+    Update-ConfigYaml({
+        param($configurationYaml)
+
+        $selectionRegex = ('{0}:\s*management_uri:\s*".*"\s*workload_uri:\s*".*"' -f $Section)
+        $replacementContent = @(
+            ('{0}:' -f $Section),
+            "  management_uri: '$ManagementUri'",
+            "  workload_uri: '$WorkloadUri'")
+        $configurationYaml = $configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")
+        return $configurationYaml
+    })
+}
+
+function Set-ListenConnectUri([string] $ManagementUri, [string] $WorkloadUri) {
+    Set-ConfigUri -Section "connect" -ManagementUri $ManagementUri -WorkloadUri $WorkloadUri
+    Set-ConfigUri -Section "listen" -ManagementUri $ManagementUri -WorkloadUri $WorkloadUri
+
+    Set-MachineEnvironmentVariable 'IOTEDGE_HOST' $ManagementUri
+    $env:IOTEDGE_HOST = $ManagementUri
 }
 
 function Set-GatewayAddress {
-    $yamlPath = (Join-Path -Path $EdgeDataDirectory -ChildPath "config.yaml")
-    $configurationYaml = Get-Content $yamlPath -Raw
     $gatewayAddress = (Get-NetIpAddress |
             Where-Object {$_.InterfaceAlias -like '*vEthernet (DockerNAT)*' -and $_.AddressFamily -eq 'IPv4'}).IPAddress
 
-    $selectionRegex = 'connect:\s*management_uri:\s*".*"\s*workload_uri:\s*".*"'
-    $replacementContent = @(
-        'connect:',
-        "  management_uri: 'http://${gatewayAddress}:15580'",
-        "  workload_uri: 'http://${gatewayAddress}:15581'")
-    $configurationYaml = $configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")
+    Set-ListenConnectUri `
+        -ManagementUri "http://${gatewayAddress}:15580" `
+        -WorkloadUri "http://${gatewayAddress}:15581"
 
-    $selectionRegex = 'listen:\s*management_uri:\s*".*"\s*workload_uri:\s*".*"'
-    $replacementContent = @(
-        'listen:',
-        "  management_uri: 'http://${gatewayAddress}:15580'",
-        "  workload_uri: 'http://${gatewayAddress}:15581'")
-    $configurationYaml = $configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")
-
-    Set-MachineEnvironmentVariable 'IOTEDGE_HOST' "http://${gatewayAddress}:15580"
-    $env:IOTEDGE_HOST = "http://${gatewayAddress}:15580"
-
-    $configurationYaml | Set-Content $yamlPath -Force
     Write-HostGreen "Configured device with gateway address '$gatewayAddress'."
 }
 
 function Set-CorrectProgramData {
-    $yamlPath = (Join-Path -Path $EdgeDataDirectory -ChildPath "config.yaml")
-    $configurationYaml = Get-Content $yamlPath -Raw
+    $forwardProgramData = $env:ProgramData -replace '\\', '/'
 
-    $selectionRegex = '%PROGRAMDATA%'
-    $replacementContent = $env:ProgramData -replace '\\', '/'
-    $configurationYaml = $configurationYaml -replace $selectionRegex, $replacementContent
+    Set-ListenConnectUri `
+        -ManagementUri ("unix:///{0}/iotedge/mgmt/sock" -f $forwardProgramData) `
+        -WorkloadUri ("unix:///{0}/iotedge/workload/sock" -f $forwardProgramData)
 
-    $env:IOTEDGE_HOST = "unix:///$replacementContent/iotedge/mgmt/sock"
-    Set-MachineEnvironmentVariable 'IOTEDGE_HOST' $env:IOTEDGE_HOST
+    Update-ConfigYaml({
+        param($configurationYaml)
 
-    $selectionRegex = '%PROGRAMDATAB%'
-    $replacementContent = $env:ProgramData -replace '\\', '\\'
-    $configurationYaml = $configurationYaml -replace $selectionRegex, $replacementContent
+        $selectionRegex = 'homedir:\s".*"'
+        $replacementContent = ('homedir: "{0}"' -f ($env:ProgramData -replace '\\', '\\'))
+        $configurationYaml = $configurationYaml -replace $selectionRegex, $replacementContent
 
-    $configurationYaml | Set-Content $yamlPath -Force
-    Write-HostGreen "Configured ProgramData directory."
+        Write-HostGreen "Configured ProgramData directory."
+        return $configurationYaml
+    })
 }
 
 function Set-MobyEngineParameters {
-    $yamlPath = (Join-Path -Path $EdgeDataDirectory -ChildPath "config.yaml")
-    $configurationYaml = Get-Content $yamlPath -Raw
-    $selectionRegex = 'moby_runtime:\s*uri:\s*".*"\s*#?\s*network:\s*".*"'
-    $mobyUrl = switch ($ContainerOs) {
-        'Linux' {
-            $MobyLinuxNamedPipeUrl
-        }
+    Update-ConfigYaml({
+        param($configurationYaml)
+    
+        $selectionRegex = 'moby_runtime:\s*uri:\s*".*"\s*#?\s*network:\s*".*"'
+        $mobyUrl = switch ($ContainerOs) {
+            'Linux' {
+                $MobyLinuxNamedPipeUrl
+            }
 
-        'Windows' {
-            $MobyNamedPipeUrl
+            'Windows' {
+                $MobyNamedPipeUrl
+            }
         }
-    }
-    $mobyNetwork = switch ($ContainerOs) {
-        'Linux' {
-            'azure-iot-edge'
-        }
+        $mobyNetwork = switch ($ContainerOs) {
+            'Linux' {
+                'azure-iot-edge'
+            }
 
-        'Windows' {
-            'nat'
+            'Windows' {
+                'nat'
+            }
         }
-    }
-    $replacementContent = @(
-        'moby_runtime:',
-        "  uri: '$mobyUrl'",
-        "  network: '$mobyNetwork'")
-    ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")) | Set-Content $yamlPath -Force
-    Write-HostGreen "Configured device with Moby Engine URL '$mobyUrl' and network '$mobyNetwork'."
+        $replacementContent = @(
+            'moby_runtime:',
+            "  uri: '$mobyUrl'",
+            "  network: '$mobyNetwork'")
+        $configurationYaml = ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")) | Set-Content $yamlPath -Force
+        Write-HostGreen "Configured device with Moby Engine URL '$mobyUrl' and network '$mobyNetwork'."
+        return $configurationYaml
+    })
 }
 
 function Get-AgentRegistry {
@@ -1261,7 +1284,8 @@ function Remove-IotEdgeContainers {
         $inspectResult = ($inspectString | ConvertFrom-Json)[0]
         $label = $inspectResult.Config.Labels | Get-Member -MemberType NoteProperty -Name 'net.azure-devices.edge.owner' | %{ $inspectResult.Config.Labels | Select-Object -ExpandProperty $_.Name } 
 
-        if ($label -eq 'Microsoft.Azure.Devices.Edge.Agent') {
+        if (($label -eq 'Microsoft.Azure.Devices.Edge.Agent') -or
+            $DeleteMobyDataRoot) {
             if (($inspectResult.Name -eq '/edgeAgent') -or ($inspectResult.Name -eq '/edgeHub')) {
                 Invoke-Native "$dockerExe rm --force ""$containerId""" -Backoff
                 Write-Verbose "Stopped and deleted container $($inspectResult.Name)"
@@ -1277,9 +1301,6 @@ function Remove-IotEdgeContainers {
                 Invoke-Native "$dockerExe stop ""$containerId"""
                 Write-Verbose "Stopped container $($inspectResult.Name)"
             }
-        }
-        elseif ($DeleteMobyDataRoot) {
-            Invoke-Native "$dockerExe stop ""$containerId"""
         }
     }
 
@@ -1325,7 +1346,13 @@ function Invoke-Native {
     process {
         Write-Verbose "Executing native Windows command '$Command'..."
         $sleep = 1
-        for ($i=0; $i -lt 5; $i++) {
+        for ($i = 0; $i -lt 5; $i++) {
+            if ($i -ne 0) {
+                Start-Sleep -Seconds $sleep
+                $sleep *= 2
+                Write-Verbose "Retrying..."
+            }
+
             $out = cmd /c "($Command) 2>&1" 2>&1 | Out-String
             Write-Verbose $out
             Write-Verbose "Exit code: $LASTEXITCODE"
@@ -1333,13 +1360,9 @@ function Invoke-Native {
             if (($LASTEXITCODE -eq 0) -or (-not $Backoff)) {
                 break
             }
-
-            Start-Sleep -Seconds $sleep
-            $sleep *= 2
-            Write-Verbose "Retrying..."
         }
 
-        if ($LASTEXITCODE -and (-not $DoNotThrow)) {
+        if (($LASTEXITCODE -ne 0) -and (-not $DoNotThrow)) {
             throw $out
         }
         elseif ($Passthru) {

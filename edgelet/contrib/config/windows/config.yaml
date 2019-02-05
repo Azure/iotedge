@@ -114,8 +114,8 @@ hostname: "<ADD HOSTNAME HERE>"
 ###############################################################################
 
 connect:
-  management_uri: "unix:///%PROGRAMDATA%/iotedge/mgmt/sock"
-  workload_uri: "unix:///%PROGRAMDATA%/iotedge/workload/sock"
+  management_uri: "unix:///C:/ProgramData/iotedge/mgmt/sock"
+  workload_uri: "unix:///C:/ProgramData/iotedge/workload/sock"
 
 ###############################################################################
 # Listen settings
@@ -140,8 +140,8 @@ connect:
 ###############################################################################
 
 listen:
-  management_uri: "unix:///%PROGRAMDATA%/iotedge/mgmt/sock"
-  workload_uri: "unix:///%PROGRAMDATA%/iotedge/workload/sock"
+  management_uri: "unix:///C:/ProgramData/iotedge/mgmt/sock"
+  workload_uri: "unix:///C:/ProgramData/iotedge/workload/sock"
 
 ###############################################################################
 # Home Directory
@@ -151,7 +151,7 @@ listen:
 #
 ###############################################################################
 
-homedir: "%PROGRAMDATAB%\\iotedge"
+homedir: "C:\\ProgramData\\iotedge"
 
 ###############################################################################
 # Moby Container Runtime settings
