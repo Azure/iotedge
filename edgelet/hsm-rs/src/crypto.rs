@@ -1137,7 +1137,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(feature = "cargo-clippy", allow(let_unit_value))]
+    #[allow(clippy::let_unit_value)]
     fn hsm_success() {
         let hsm_crypto = fake_good_hsm_crypto();
 

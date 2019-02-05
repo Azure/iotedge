@@ -1,18 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 #![deny(unused_extern_crates, warnings)]
-// Remove this when clippy stops warning about old-style `allow()`,
-// which can only be silenced by enabling a feature and thus requires nightly
-//
-// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
-#![allow(renamed_and_removed_lints)]
-#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
-#![cfg_attr(feature = "cargo-clippy", allow(
-    doc_markdown, // clippy want the "IoT" of "IoT Hub" in a code fence
-    shadow_unrelated,
-    stutter,
-    use_self,
-))]
+#![deny(clippy::all, clippy::pedantic)]
+#![allow(
+    clippy::doc_markdown, // clippy want the "IoT" of "IoT Hub" in a code fence
+    clippy::shadow_unrelated,
+    clippy::stutter,
+    clippy::use_self,
+)]
 
 extern crate base64;
 #[macro_use]
@@ -415,7 +410,7 @@ where
     } else {
         info!("No change to configuration file detected.");
 
-        #[cfg_attr(feature = "cargo-clippy", allow(single_match_else))]
+        #[allow(clippy::single_match_else)]
         match prepare_workload_ca(crypto) {
             Ok(()) => info!("Obtaining workload CA succeeded."),
             Err(_) => {
@@ -491,7 +486,7 @@ where
     Ok(())
 }
 
-#[cfg_attr(feature = "cargo-clippy", allow(too_many_arguments))]
+#[allow(clippy::too_many_arguments)]
 fn start_api<HC, K, F, C, W>(
     settings: &Settings<DockerConfig>,
     hyper_client: HC,
