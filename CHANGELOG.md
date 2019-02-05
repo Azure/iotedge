@@ -1,4 +1,10 @@
-# 1.0.6 (2019-01-17)
+# 1.0.6.1 (2019-02-04)
+
+## iotedged
+### Bug Fixes
+* Reverts name sanitization of the common name on generated certificates ([078bda7](https://github.com/Azure/iotedge/commit/078bda7b86b55e8017077b8e2490dede1f8703dc))
+
+# 1.0.6 (2019-01-31)
 * Stability and reliability fixes
 
 ## Edge Agent
@@ -19,6 +25,7 @@
 * Use HTTPS proxy on Linux and Windows ([eb75f34](https://github.com/Azure/iotedge/commit/eb75f346e19a21953c46f6cc0c2a4c77115d13e9))
 * Allow modules on Edge devices with no device scope to connect to Edge Hub ([761254f](https://github.com/Azure/iotedge/commit/761254fa948d95d6de022c6b3c3e5c8e77594679))
 * Handle clients with special characters ([82ce72e](https://github.com/Azure/iotedge/commit/82ce72e49a20bdd4feec417c2f7c021af8fc55c4))
+* Fix potential for dropped messages when device is rebooted ([88fd5ab](https://github.com/Azure/iotedge/commit/88fd5abc2a817d32adda1338685c0f1f9e1ff744))
 
 ## iotedged
 ### Bug Fixes
