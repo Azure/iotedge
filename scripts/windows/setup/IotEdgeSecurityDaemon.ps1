@@ -800,8 +800,12 @@ function Remove-SecurityDaemonResources {
     Remove-SecurityDaemonDirectory $LegacyEdgeInstallDirectory
     Remove-SecurityDaemonDirectory $EdgeDataDirectory
     $oldConfig = Join-Path -Path $LegacyEdgeInstallDirectory -ChildPath "config.yaml"
-    if (Test-Path $oldConfig) {
-        mkdir $EdgeDataDirectory
+    if (($LegacyEdgeInstallDirectory -ne $EdgeDataDirectory) -and
+        (-not $DeleteConfig) -and
+        (Test-Path $oldConfig)) {
+        if (-not (Test-Path $EdgeDataDirectory)) {
+            mkdir $EdgeDataDirectory 
+        }
         Move-Item -Path $oldConfig -Destination $EdgeDataDirectory
     }
 
@@ -1376,6 +1380,6 @@ function Download-File([string] $Description, [string] $Url, [string] $DownloadF
     return $result
 }
 
-New-Alias -Name Stage-SecurityDaemon -Value Update-SecurityDaemon
-Export-ModuleMember -Function Install-SecurityDaemon, Uninstall-SecurityDaemon, Get-SecurityDaemonLog, Update-SecurityDaemon, Stage-SecurityDaemon
+New-Alias -Name Deploy-SecurityDaemon -Value Update-SecurityDaemon
+Export-ModuleMember -Function Install-SecurityDaemon, Uninstall-SecurityDaemon, Get-SecurityDaemonLog, Update-SecurityDaemon -Alias Deploy-SecurityDaemon
 }
