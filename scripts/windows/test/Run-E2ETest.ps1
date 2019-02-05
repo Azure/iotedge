@@ -310,33 +310,33 @@ Function PrintLogs
 Function RunAllTests
 {
     $TestName = "DirectMethodAmqp"
-    $lastExitCode = RunDirectMethodAmqpTest
+    $lastTestExitCode = RunDirectMethodAmqpTest
     
     $TestName = "DirectMethodMqtt"
     $testExitCode = RunDirectMethodMqttTest
-    $lastExitCode = If ($testExitCode > 0) { $testExitCode } Else { $lastExitCode }
+    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
     
     $TestName = "QuickstartCerts"
     $testExitCode = RunQuickstartCertsTest
-    $lastExitCode = If ($testExitCode > 0) { $testExitCode } Else { $lastExitCode }
+    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
     
     $TestName = "TempFilter"
     $testExitCode = RunTempFilterTest
-    $lastExitCode = If ($testExitCode > 0) { $testExitCode } Else { $lastExitCode }
+    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "TempFilterFunctions"
     $testExitCode = RunTempFilterFunctionsTest
-    $lastExitCode = If ($testExitCode > 0) { $testExitCode } Else { $lastExitCode }
+    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
     
     $TestName = "TempSensor"
     $testExitCode = RunTempSensorTest
-    $lastExitCode = If ($testExitCode > 0) { $testExitCode } Else { $lastExitCode }
+    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
     
     $TestName = "TransparentGateway"
     $testExitCode = RunTransparentGatewayTest
-    $lastExitCode = If ($testExitCode > 0) { $testExitCode } Else { $lastExitCode }
+    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
     
-    Return $lastExitCode
+    Return $lastTestExitCode
 }
 
 Function RunDirectMethodAmqpTest
@@ -359,7 +359,7 @@ Function RunDirectMethodAmqpTest
             -l `"$DeploymentWorkingFilePath`""
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
-    $testExitCode = $lastExitCode
+    $testExitCode = $LastExitCode
 
     PrintLogs $testStartAt $testExitCode
     Return $testExitCode
@@ -385,7 +385,7 @@ Function RunDirectMethodMqttTest
             -l `"$DeploymentWorkingFilePath`""
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
-    $testExitCode = $lastExitCode
+    $testExitCode = $LastExitCode
 
     PrintLogs $testStartAt $testExitCode
     Return $testExitCode
@@ -424,7 +424,7 @@ Function RunQuickstartCertsTest
         -e "$EventHubConnectionString" `
         -ct "$caCertPath" `
         -ed "$env:computername" | Out-Host
-    $testExitCode = $lastExitCode
+    $testExitCode = $LastExitCode
     
     PrintLogs $testStartAt $testExitCode
     Return $testExitCode
@@ -450,7 +450,7 @@ Function RunTempFilterTest
             -l `"$DeploymentWorkingFilePath`""
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
-    $testExitCode = $lastExitCode
+    $testExitCode = $LastExitCode
 
     PrintLogs $testStartAt $testExitCode
     Return $testExitCode
@@ -458,6 +458,12 @@ Function RunTempFilterTest
 
 Function RunTempFilterFunctionsTest
 {
+    if ($Architecture -eq "arm32v7")
+    {
+        PrintHighlightedMessage "Temp Filter Functions test is not supported on $Architecture"
+        Return 0
+    }
+
     PrintHighlightedMessage "Run TempFilterFunctions test for $Architecture"
     TestSetup
 
@@ -476,7 +482,7 @@ Function RunTempFilterFunctionsTest
             -l `"$DeploymentWorkingFilePath`""
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
-    $testExitCode = $lastExitCode
+    $testExitCode = $LastExitCode
 
     PrintLogs $testStartAt $testExitCode
     Return $testExitCode
@@ -502,7 +508,7 @@ Function RunTempSensorTest
         -tw `"$TwinTestFileArtifactFilePath`""
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
-    $testExitCode = $lastExitCode
+    $testExitCode = $LastExitCode
 
     PrintLogs $testStartAt $testExitCode
     Return $testExitCode
@@ -541,7 +547,7 @@ Function RunTransparentGatewayTest
         -e "$EventHubConnectionString" `
         -ct "$TrustedCACertificatePath" `
         -ed "$env:computername" | Out-Host
-    $testExitCode = $lastExitCode
+    $testExitCode = $LastExitCode
     
     PrintLogs $testStartAt $testExitCode
     Return $testExitCode
@@ -563,14 +569,14 @@ Function RunTest
         "TransparentGateway" { $testExitCode = RunTransparentGatewayTest; break }
 		default { Throw "$TestName test is not supported." }
     }
-    
-    Exit $testExitCode
+
+    Exit $testExitCode -gt 0
 }
 
 Function TestSetup
 {
     ValidateE2ETestParameters
-    CleanUp
+    CleanUp | Out-Host
     InitializeWorkingFolder
     PrepareTestFromArtifacts
 }
