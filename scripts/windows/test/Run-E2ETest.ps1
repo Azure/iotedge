@@ -458,6 +458,12 @@ Function RunTempFilterTest
 
 Function RunTempFilterFunctionsTest
 {
+    if ($Architecture -eq "arm32v7")
+    {
+        PrintHighlightedMessage "Temp Filter Functions test doesn't support to run on $Architecture"
+        Return 0
+    }
+
     PrintHighlightedMessage "Run TempFilterFunctions test for $Architecture"
     TestSetup
 
