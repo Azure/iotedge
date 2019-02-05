@@ -182,11 +182,13 @@ function Test-CACertNotInstalledAlready([bool]$printMsg=$true)
 function Test-CACertsPrerequisites([bool]$printMsg=$true)
 {
     Test-CACertNotInstalledAlready($printMsg)
+    $openssl_ext = $PSVersionTable.Platform == "Win32NT" ? ".exe" : ""
+    $openssl_exe_name = "openssl" + $openssl_ext
     if ($TRUE -eq $printMsg)
     {
-        Write-Host ("Testing if openssl.exe is set in PATH...")
+        Write-Host ("Testing if $openssl_exe_name executable is set in PATH...")
     }
-    if ($NULL -eq (Get-Command "openssl.exe" -ErrorAction SilentlyContinue))
+    if ($NULL -eq (Get-Command $openssl_exe_name -ErrorAction SilentlyContinue))
     {
         throw ("Openssl is unavailable. Please install openssl and set it in the PATH before proceeding.")
     }
@@ -553,21 +555,21 @@ function New-CACertsCertChain([Parameter(Mandatory=$TRUE)][ValidateSet("rsa","ec
 
 <#
     .SYNOPSIS
-        Install a root CA certificate and use this to generate the intermediate 
+        Install a root CA certificate and use this to generate the intermediate
         certificate and the rest of the chain
     .DESCRIPTION
-        Install a root CA certificate using the supplied certificate and key files 
+        Install a root CA certificate using the supplied certificate and key files
         in the PEM format.
     .PARAMETER rootCAFile
 
     .PARAMETER rootCAKeyFile
-    
+
     .PARAMETER algorithm
-        ECC or RSA algorith used in the creation of the root certificate. 
+        ECC or RSA algorith used in the creation of the root certificate.
         This will be used for all resulting certificates.
 #>
 function Install-RootCACertificate(
-    [Parameter(Mandatory=$TRUE)][string]$rootCAFile, 
+    [Parameter(Mandatory=$TRUE)][string]$rootCAFile,
     [Parameter(Mandatory=$TRUE)][string]$rootCAKeyFile,
     [string]$rootPrivateKeyPassword=$NULL,
     [Parameter(Mandatory=$TRUE)][ValidateSet("rsa","ecc")][string]$algorithm)
