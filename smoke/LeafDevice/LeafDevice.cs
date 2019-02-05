@@ -18,7 +18,7 @@ namespace LeafDevice
             string edgeDeviceId,
             bool useWebSockets,
             Option<DeviceCertificate> deviceCertificate,
-            Option<IList<string>> thumprintCertificates)
+            Option<IList<string>> thumbprintCertificates)
             : base(
                 iothubConnectionString,
                 eventhubCompatibleEndpointWithEntityPath,
@@ -28,7 +28,7 @@ namespace LeafDevice
                 edgeDeviceId,
                 useWebSockets,
                 deviceCertificate,
-                thumprintCertificates)
+                thumbprintCertificates)
         {
         }
 

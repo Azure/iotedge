@@ -157,7 +157,7 @@ namespace LeafDevice.Details
 
                 if (this.authType == AuthenticationType.SelfSigned)
                 {
-                    var thumbprints = this.thumbprints.Expect(() => new InvalidOperationException("Missing thumprints list"));
+                    var thumbprints = this.thumbprints.Expect(() => new InvalidOperationException("Missing thumbprints list"));
                     if (!thumbprints.Contains(device.Authentication.X509Thumbprint.PrimaryThumbprint) ||
                         !thumbprints.Contains(device.Authentication.X509Thumbprint.SecondaryThumbprint))
                     {
@@ -335,7 +335,7 @@ namespace LeafDevice.Details
                         {
                             if (certificates.Count != 2)
                             {
-                                throw new ArgumentException("Exactly two client thumprint certificates expected");
+                                throw new ArgumentException("Exactly two client thumbprint certificates expected");
                             }
 
                             if (string.IsNullOrWhiteSpace(certificates[0]) || !File.Exists(certificates[0]))
