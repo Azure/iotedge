@@ -28,6 +28,7 @@ jobs:
           Write-Host ("##vso[task.setvariable variable=SIGN_MODE;]Test")
           Write-Host ("##vso[task.setvariable variable=SIGN_OEM;]1")
           Write-Host ("##vso[task.setvariable variable=SIGN_WITH_TIMESTAMP;]0")
+          Write-Host ("##vso[task.setvariable variable=WSKCONTENTROOT;]C:\Program Files (x86)\Windows Kits\10")
           Write-Host ("##vso[task.setvariable variable=NO_VALGRIND;]true")
         displayName: Set Version
       - powershell: cmd /c installoemcerts.cmd
