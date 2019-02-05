@@ -647,7 +647,6 @@ mod tests {
             Some(op) => {
                 assert_eq!(op.operation_id(), "something");
                 assert_eq!(op.status().unwrap(), "assigning");
-                ()
             }
             None => panic!("Unexpected"),
         });
