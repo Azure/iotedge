@@ -144,9 +144,6 @@ function Install-SecurityDaemon {
         # Do not reboot even if needed.
         [Switch] $NoRestart,
 
-        # Update only.
-        [Switch] $Update,
-
         # Finalize installation, IoTCore only.
         [Switch] $Finalize
     )
@@ -162,7 +159,20 @@ function Install-SecurityDaemon {
         $InvokeWebRequestParameters['-Proxy'] = $Proxy
     }
 
-    if (-not $Finalize) {
+    if ($Finalize) {
+        if (-not (Test-EdgeAlreadyInstalled)) {
+            Write-HostRed
+            Write-HostRed 'IoT Edge is not yet installed. To install, run `Deploy-SecurityDaemon` first.'
+            return
+        }
+
+        if (-not (Test-MobyAlreadyInstalled)) {
+            Write-HostRed
+            Write-HostRed 'IoT Edge Moby Engine is not yet installed. To install, run `Deploy-SecurityDaemon` first.'
+            return
+        }
+    }
+    else {
         if (Test-EdgeAlreadyInstalled) {
             Write-HostRed
             Write-HostRed 'IoT Edge is already installed. To reinstall, run `Uninstall-SecurityDaemon` first.'
@@ -172,12 +182,6 @@ function Install-SecurityDaemon {
         if (Test-MobyAlreadyInstalled) {
             Write-HostRed
             Write-HostRed 'IoT Edge Moby Engine is already installed. To reinstall, run `Uninstall-SecurityDaemon` first.'
-            return
-        }
-        
-        if (Test-MobyNeedsToBeMoved -or Test-LegacyInstaller) {
-            Write-HostRed
-            Write-HostRed 'IoT Edge is installed in an invalid location. To reinstall, run `Uninstall-SecurityDaemon -DeleteMobyDataRoot` first.'
             return
         }
     }
@@ -197,15 +201,13 @@ function Install-SecurityDaemon {
         return
     }
 
-    if (-not $Update) {
-        if ((-not $ExistingConfig) -and (Test-Path $configPath)) {
-            Write-HostRed
-            Write-HostRed "$configPath already exists."
-            Write-HostRed (
-                'Delete it using `Uninstall-SecurityDaemon -Force -DeleteConfig` and then re-run `Install-SecurityDaemon`, ' +
-                'or run `Install-SecurityDaemon -ExistingConfig` to use the existing config.yaml')
-            return
-        }
+    if ((-not $ExistingConfig) -and (Test-Path $configPath)) {
+        Write-HostRed
+        Write-HostRed "$configPath already exists."
+        Write-HostRed (
+            'Delete it using `Uninstall-SecurityDaemon -Force -DeleteConfig` and then re-run `Install-SecurityDaemon`, ' +
+            'or run `Install-SecurityDaemon -ExistingConfig` to use the existing config.yaml')
+        return
     }
 
     $restartNeeded = $false
@@ -214,50 +216,44 @@ function Install-SecurityDaemon {
         Get-SecurityDaemon -RestartNeeded ([ref]$restartNeeded)
     }
 
-    if (-not $Update) {
-        Get-VcRuntime
+    Get-VcRuntime
 
-        # config.yaml
-        if ($ExistingConfig) {
-            Write-HostGreen 'Using existing config.yaml'
+    # config.yaml
+    if ($ExistingConfig) {
+        Write-HostGreen 'Using existing config.yaml'
+    }
+    else {
+        Write-Host 'Generating config.yaml...'
+
+        if (-not (Test-Path $EdgeDataDirectory)) {
+            mkdir $EdgeDataDirectory
+        }
+        Copy-Item -Path (Join-Path -Path $EdgeInstallDirectory -ChildPath "config.yaml") -Destination $configPath
+
+        Set-ProvisioningMode
+        Set-AgentImage
+        Set-Hostname
+        if ($ContainerOs -eq 'Linux') {
+            Set-GatewayAddress
         }
         else {
-            Write-Host 'Generating config.yaml...'
-
-            if (-not (Test-Path $EdgeDataDirectory)) {
-                mkdir $EdgeDataDirectory
-            }
-            Copy-Item -Path (Join-Path -Path $EdgeInstallDirectory -ChildPath "config.yaml") -Destination $configPath
-
-            Set-ProvisioningMode
-            Set-AgentImage
-            Set-Hostname
-            if ($ContainerOs -eq 'Linux') {
-                Set-GatewayAddress
-            }
-            else {
-                Set-CorrectProgramData
-            }
-            Set-MobyEngineParameters
+            Set-CorrectProgramData
         }
+        Set-MobyEngineParameters
+    }
 
-        # Register services
-        Set-SystemPath
-        Install-Services -RestartNeeded $restartNeeded
-        if ($ContainerOs -eq 'Linux') {
-            Add-FirewallExceptions
-        }
-    } else {
-        if (-not $restartNeeded) {
-            Start-Service $EdgeServiceName
-        }
+    # Register services
+    Set-SystemPath
+    Install-Services -RestartNeeded $restartNeeded
+    if ($ContainerOs -eq 'Linux') {
+        Add-FirewallExceptions
     }
 
     Write-LogInformation
 
     if ($restartNeeded) {
         Write-HostRed "Reboot required."
-        if (-not $NoReboot) {
+        if (-not $NoRestart) {
             Restart-Computer
         }
     }
@@ -338,6 +334,12 @@ function Update-SecurityDaemon {
         $InvokeWebRequestParameters['-Proxy'] = $Proxy
     }
 
+    if (Test-MobyNeedsToBeMoved -or Test-LegacyInstaller) {
+        Write-HostRed
+        Write-HostRed 'IoT Edge is installed in an invalid location. To reinstall, run `Uninstall-SecurityDaemon -DeleteMobyDataRoot` first.'
+        return
+    }
+
     if (-not (Setup-Environment $ContainerOs)) {
         return
     }
@@ -346,14 +348,20 @@ function Update-SecurityDaemon {
     # Download
     Get-SecurityDaemon -RestartNeeded ([ref]$restartNeeded)
     if (-not $restartNeeded) {
-        Start-Service $EdgeServiceName
+        try {
+            Start-Service $EdgeServiceName
+        }
+        catch {
+            throw "Failed to start Security Daemon, make sure to initialize config file by running Install-SecurityDaemon -Finalize."
+        }
+        
     }
 
     Write-LogInformation
 
     if ($restartNeeded) {
         Write-HostRed "Reboot required."
-        if (-not $NoReboot) {
+        if (-not $NoRestart) {
             Restart-Computer
         }
     }
@@ -448,7 +456,7 @@ function Uninstall-SecurityDaemon {
     if ($restartNeeded) {
         Write-HostRed "Reboot required."
         Write-Host "You might need to rerun Uninstall-SecurityDaemon after reboot to finish the cleanup."
-        if (-not $NoReboot) {
+        if (-not $NoRestart) {
             Restart-Computer
         }
     }
@@ -1255,14 +1263,14 @@ function Remove-IotEdgeContainers {
 
         if ($label -eq 'Microsoft.Azure.Devices.Edge.Agent') {
             if (($inspectResult.Name -eq '/edgeAgent') -or ($inspectResult.Name -eq '/edgeHub')) {
-                Invoke-Native "$dockerExe rm --force ""$containerId"""
+                Invoke-Native "$dockerExe rm --force ""$containerId""" -Backoff
                 Write-Verbose "Stopped and deleted container $($inspectResult.Name)"
 
                 # `.Config.Image` contains the user-provided name, but this can be a tag like `foo:latest`
                 # that doesn't necessarily point to the image that has that tag right now.
                 #
                 # So delete the image using its unique identifier, as given by `.Image`, like `sha256:1234abcd...`
-                Invoke-Native "$dockerExe image rm --force ""$($inspectResult.Image)"""
+                Invoke-Native "$dockerExe image rm --force ""$($inspectResult.Image)""" -Backoff
                 Write-Verbose "Deleted image of container $($inspectResult.Name) ($($inspectResult.Config.Image))"
             }
             else {
@@ -1276,9 +1284,14 @@ function Remove-IotEdgeContainers {
     }
 
     if ($DeleteMobyDataRoot) {
-        Invoke-Native "$dockerExe container prune -f"
-        Invoke-Native "$dockerExe image prune -f -a"
-        Invoke-Native "$dockerExe system prune -f -a"
+        try {
+            Invoke-Native "$dockerExe container prune -f"
+            Invoke-Native "$dockerExe image prune -f -a"
+            Invoke-Native "$dockerExe system prune -f -a"
+        }
+        catch {
+            # Best effort
+        }
     }
 }
 
@@ -1304,14 +1317,27 @@ function Invoke-Native {
 
         [Switch] $Passthru,
 
-        [Switch] $DoNotThrow
+        [Switch] $DoNotThrow,
+
+        [Switch] $Backoff
     )
 
     process {
         Write-Verbose "Executing native Windows command '$Command'..."
-        $out = cmd /c "($Command) 2>&1" 2>&1 | Out-String
-        Write-Verbose $out
-        Write-Verbose "Exit code: $LASTEXITCODE"
+        $sleep = 1
+        for ($i=0; $i -lt 5; $i++) {
+            $out = cmd /c "($Command) 2>&1" 2>&1 | Out-String
+            Write-Verbose $out
+            Write-Verbose "Exit code: $LASTEXITCODE"
+
+            if (($LASTEXITCODE -eq 0) -or (-not $Backoff)) {
+                break
+            }
+
+            Start-Sleep -Seconds $sleep
+            $sleep *= 2
+            Write-Verbose "Retrying..."
+        }
 
         if ($LASTEXITCODE -and (-not $DoNotThrow)) {
             throw $out
@@ -1380,6 +1406,6 @@ function Download-File([string] $Description, [string] $Url, [string] $DownloadF
     return $result
 }
 
-New-Alias -Name Deploy-SecurityDaemon -Value Update-SecurityDaemon
+New-Alias -Name Deploy-SecurityDaemon -Value Update-SecurityDaemon -Force
 Export-ModuleMember -Function Install-SecurityDaemon, Uninstall-SecurityDaemon, Get-SecurityDaemonLog, Update-SecurityDaemon -Alias Deploy-SecurityDaemon
 }
