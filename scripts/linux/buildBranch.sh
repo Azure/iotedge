@@ -15,13 +15,13 @@ AGENT_WORKFOLDER=${AGENT_WORKFOLDER:-/usr/share}
 BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../..}
 BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:-$BUILD_REPOSITORY_LOCALPATH/target}
 PUBLISH_FOLDER=$BUILD_BINARIESDIRECTORY/publish
-RELEASE_TESTS_FOLDER=$BUILD_BINARIESDIRECTORY/release-tests
 ROOT_FOLDER=$BUILD_REPOSITORY_LOCALPATH
 SRC_BIN_DIR=$ROOT_FOLDER/bin
 SRC_DOCKER_DIR=$ROOT_FOLDER/docker
 SRC_SCRIPTS_DIR=$ROOT_FOLDER/scripts
 SRC_STRESS_DIR=$ROOT_FOLDER/stress
 SRC_E2E_TEMPLATES_DIR=$ROOT_FOLDER/e2e_deployment_files
+SRC_E2E_TEST_FILES_DIR=$ROOT_FOLDER/e2e_test_files
 FUNCTIONS_SAMPLE_DIR=$ROOT_FOLDER/edge-modules/functions/samples
 VERSIONINFO_FILE_PATH=$BUILD_REPOSITORY_LOCALPATH/versionInfo.json
 
@@ -34,7 +34,6 @@ usage()
     echo "options"
     echo " -c, --config         Product binary configuration: Debug [default] or Release"
     echo " --no-rocksdb-bin     Do not copy the RocksDB binaries into the project's output folders"
-    echo " --publish-tests      Publish test binaries and scripts to $RELEASE_TESTS_FOLDER"
     exit 1;
 }
 
@@ -57,7 +56,6 @@ process_args()
                 "-h" | "--help" ) usage;;
                 "-c" | "--config" ) save_next_arg=1;;
                 "--no-rocksdb-bin" ) MSBUILD_OPTIONS="-p:RocksDbAsPackage=false";;
-                "--publish-tests" ) PUBLISH_TESTS=1;;
                 * ) usage;;
             esac
         fi
@@ -85,10 +83,6 @@ process_args()
 
     if [ -z "$CONFIGURATION" ]; then
         CONFIGURATION="Debug"
-    fi
-
-    if [ -z "$PUBLISH_TESTS" ]; then
-        PUBLISH_TESTS=0
     fi
 
     if [ -z "$BUILD_SOURCEVERSION" ]; then
@@ -154,15 +148,6 @@ publish_lib()
     publish_project library "$name" netstandard2.0 $CONFIGURATION "$PUBLISH_FOLDER/$name"
 }
 
-publish_tests()
-{
-    local name="$1"
-    publish_project tests "$name" $DOTNET_RUNTIME Debug "$RELEASE_TESTS_FOLDER/target"
-
-    mkdir -p "$RELEASE_TESTS_FOLDER/$proj_name"
-    publish_files "$proj" "$RELEASE_TESTS_FOLDER/$proj_name"
-}
-
 publish_quickstart()
 {
     local rid="$1"
@@ -211,6 +196,15 @@ build_solution()
     if [ $? -gt 0 ]; then
         RES=1
     fi
+    
+    echo "Building IoT Edge Samples solution"
+    $DOTNET_ROOT_PATH/dotnet build \
+        -c $CONFIGURATION \
+        -o "$BUILD_BINARIESDIRECTORY" \
+        "$ROOT_FOLDER/samples/dotnet/Microsoft.Azure.Devices.Edge.Samples.sln"
+    if [ $? -gt 0 ]; then
+        RES=1
+    fi
 }
 
 process_args "$@"
@@ -238,15 +232,7 @@ publish_files $SRC_SCRIPTS_DIR $PUBLISH_FOLDER
 publish_files $SRC_BIN_DIR $PUBLISH_FOLDER
 publish_files $SRC_STRESS_DIR $PUBLISH_FOLDER
 publish_files $SRC_E2E_TEMPLATES_DIR $PUBLISH_FOLDER
-
-if [ $PUBLISH_TESTS -eq 1 ]; then
-    while read proj; do
-        publish_tests $(basename "$proj" .csproj)
-    done < <(find $ROOT_FOLDER -type f -name '*Test.csproj')
-
-    publish_files $SRC_SCRIPTS_DIR $RELEASE_TESTS_FOLDER
-    publish_files "$ROOT_FOLDER/nuget.config" $RELEASE_TESTS_FOLDER
-fi
+publish_files $SRC_E2E_TEST_FILES_DIR $PUBLISH_FOLDER
 
 publish_quickstart linux-arm
 publish_quickstart linux-x64

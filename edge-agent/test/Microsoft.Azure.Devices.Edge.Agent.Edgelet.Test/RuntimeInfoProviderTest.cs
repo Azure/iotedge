@@ -3,17 +3,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
 {
     using System;
     using System.Collections.Generic;
-    using System.Collections.ObjectModel;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.GeneratedCode;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
-    using Newtonsoft.Json.Linq;
     using Xunit;
-    using SystemInfo = Microsoft.Azure.Devices.Edge.Agent.Edgelet.GeneratedCode.SystemInfo;
 
     [Unit]
     public class RuntimeInfoProviderTest
@@ -22,20 +19,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         public async Task GetSystemInfoTest()
         {
             // Arrange
-            var systemInfoSample = new SystemInfo();
-            systemInfoSample.OsType = "linux";
-            systemInfoSample.Architecture = "x86";
+            var systemInfoSample = new SystemInfo("linux", "x86", "1");
 
             var moduleManager = Mock.Of<IModuleManager>(m => m.GetSystemInfoAsync() == Task.FromResult(systemInfoSample));
             IRuntimeInfoProvider runtimeInfoProvider = new RuntimeInfoProvider<TestConfig>(moduleManager);
 
             // Act
-            Core.SystemInfo systemInfo = await runtimeInfoProvider.GetSystemInfo();
+            SystemInfo systemInfo = await runtimeInfoProvider.GetSystemInfo();
 
             // Assert
             Assert.NotNull(systemInfo);
             Assert.Equal("linux", systemInfo.OperatingSystemType);
             Assert.Equal("x86", systemInfo.Architecture);
+            Assert.Equal("1", systemInfo.Version);
         }
 
         [Fact]
@@ -43,45 +39,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         {
             // Arrange
             string module1Hash = Guid.NewGuid().ToString();
-            var module1 = new ModuleDetails
-            {
-                Id = Guid.NewGuid().ToString(),
-                Name = "module1",
-                Status = new Status
-                {
-                    StartTime = new DateTime(2010, 01, 02, 03, 04, 05),
-                    RuntimeStatus = new RuntimeStatus { Status = "Running", Description = "running" },
-                    ExitStatus = null
-                },
-                Type = "docker",
-                Config = new Config
-                {
-                    Env = new ObservableCollection<EnvVar>(new List<EnvVar> { new EnvVar { Key = "k1", Value = "v1" } }),
-                    Settings = JObject.FromObject(new TestConfig(module1Hash))
-                }
-            };
+            var module1 = new ModuleRuntimeInfo<TestConfig>(
+                "module1",
+                "docker",
+                ModuleStatus.Running,
+                "running",
+                0,
+                Option.Some(new DateTime(2010, 01, 02, 03, 04, 05)),
+                Option.None<DateTime>(),
+                new TestConfig(module1Hash));
 
             string module2Hash = Guid.NewGuid().ToString();
-            var module2 = new ModuleDetails
-            {
-                Id = Guid.NewGuid().ToString(),
-                Name = "module2",
-                Status = new Status
-                {
-                    StartTime = new DateTime(2011, 02, 03, 04, 05, 06),
-                    RuntimeStatus = new RuntimeStatus { Status = "Stopped", Description = "stopped" },
-                    ExitStatus = new ExitStatus { ExitTime = new DateTime(2011, 02, 03, 05, 06, 07), StatusCode = "5" }
-                },
-                Type = "docker",
-                Config = new Config
-                {
-                    Env = new ObservableCollection<EnvVar>(new List<EnvVar> { new EnvVar { Key = "k2", Value = "v2" } }),
-                    Settings = JObject.FromObject(new TestConfig(module2Hash))
-                }
-            };
+            var module2 = new ModuleRuntimeInfo<TestConfig>(
+                "module2",
+                "docker",
+                ModuleStatus.Stopped,
+                "stopped",
+                5,
+                Option.Some(new DateTime(2011, 02, 03, 04, 05, 06)),
+                Option.Some(new DateTime(2011, 02, 03, 05, 06, 07)),
+                new TestConfig(module2Hash));
 
-            var modules = new List<ModuleDetails> { module1, module2 };
-            var moduleManager = Mock.Of<IModuleManager>(m => m.GetModules(It.IsAny<CancellationToken>()) == Task.FromResult(modules.AsEnumerable()));
+            var modules = new List<ModuleRuntimeInfo> { module1, module2 };
+            var moduleManager = Mock.Of<IModuleManager>(m => m.GetModules<TestConfig>(It.IsAny<CancellationToken>()) == Task.FromResult(modules.AsEnumerable()));
             IRuntimeInfoProvider runtimeInfoProvider = new RuntimeInfoProvider<TestConfig>(moduleManager);
 
             // Act

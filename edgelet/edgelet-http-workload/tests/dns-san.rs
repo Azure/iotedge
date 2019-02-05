@@ -4,12 +4,7 @@
 // on OpenSSL.
 #![cfg(not(windows))]
 #![deny(unused_extern_crates, warnings)]
-// Remove this when clippy stops warning about old-style `allow()`,
-// which can only be silenced by enabling a feature and thus requires nightly
-//
-// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
-#![allow(renamed_and_removed_lints)]
-#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
+#![deny(clippy::all, clippy::pedantic)]
 
 extern crate chrono;
 extern crate edgelet_core;
@@ -135,7 +130,7 @@ fn get_trust_bundle(service: &mut WorkloadService) -> TrustBundleResponse {
         service,
         Request::builder()
             .method("GET")
-            .uri("http://localhost/trust-bundle")
+            .uri("http://localhost/trust-bundle?api-version=2018-06-28")
             .body(Body::empty())
             .unwrap(),
     )
@@ -154,7 +149,7 @@ fn generate_server_cert(
     let mut req = Request::builder()
         .method("POST")
         .uri(format!(
-            "http://localhost/modules/{}/genid/{}/certificate/server",
+            "http://localhost/modules/{}/genid/{}/certificate/server?api-version=2018-06-28",
             module_id, generation_id
         ))
         .header("Content-Type", "application/json")

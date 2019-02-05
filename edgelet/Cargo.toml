@@ -9,6 +9,7 @@ members = [
     "edgelet-http-mgmt",
     "edgelet-http-workload",
     "edgelet-iothub",
+    "edgelet-kube",
     "edgelet-test-utils",
     "edgelet-utils",
     "kube-client",

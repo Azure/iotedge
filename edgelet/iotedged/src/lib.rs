@@ -1,18 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 #![deny(unused_extern_crates, warnings)]
-// Remove this when clippy stops warning about old-style `allow()`,
-// which can only be silenced by enabling a feature and thus requires nightly
-//
-// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
-#![allow(renamed_and_removed_lints)]
-#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
-#![cfg_attr(feature = "cargo-clippy", allow(
-    doc_markdown, // clippy want the "IoT" of "IoT Hub" in a code fence
-    shadow_unrelated,
-    stutter,
-    use_self,
-))]
+#![deny(clippy::all, clippy::pedantic)]
+#![allow(
+    clippy::doc_markdown, // clippy want the "IoT" of "IoT Hub" in a code fence
+    clippy::shadow_unrelated,
+    clippy::stutter,
+    clippy::use_self,
+)]
 
 extern crate base64;
 #[macro_use]
@@ -98,7 +93,7 @@ use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_hsm::Crypto;
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
 use edgelet_http::logging::LoggingService;
-use edgelet_http::{ApiVersionService, HyperExt, MaybeProxyClient, UrlExt, API_VERSION};
+use edgelet_http::{HyperExt, MaybeProxyClient, UrlExt, API_VERSION};
 use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
 use edgelet_iothub::{HubIdentityManager, SasTokenSource};
@@ -342,7 +337,18 @@ pub fn get_proxy_uri(https_proxy: Option<String>) -> Result<Option<Uri>, Error> 
             let proxy = s.parse::<Uri>().context(ErrorKind::Initialize(
                 InitializeErrorReason::InvalidProxyUri,
             ))?;
-            info!("Detected HTTPS proxy server {}", proxy.to_string());
+
+            // Mask the password in the proxy URI before logging it
+            let mut sanitized_proxy = Url::parse(&proxy.to_string()).context(
+                ErrorKind::Initialize(InitializeErrorReason::InvalidProxyUri),
+            )?;
+            if sanitized_proxy.password().is_some() {
+                sanitized_proxy
+                    .set_password(Some("******"))
+                    .map_err(|()| ErrorKind::Initialize(InitializeErrorReason::InvalidProxyUri))?;
+            }
+            info!("Detected HTTPS proxy server {}", sanitized_proxy);
+
             Some(proxy)
         }
     };
@@ -404,7 +410,7 @@ where
     } else {
         info!("No change to configuration file detected.");
 
-        #[cfg_attr(feature = "cargo-clippy", allow(single_match_else))]
+        #[allow(clippy::single_match_else)]
         match prepare_workload_ca(crypto) {
             Ok(()) => info!("Obtaining workload CA succeeded."),
             Err(_) => {
@@ -480,7 +486,7 @@ where
     Ok(())
 }
 
-#[cfg_attr(feature = "cargo-clippy", allow(too_many_arguments))]
+#[allow(clippy::too_many_arguments)]
 fn start_api<HC, K, F, C, W>(
     settings: &Settings<DockerConfig>,
     hyper_client: HC,
@@ -823,7 +829,7 @@ where
             let service = service.context(ErrorKind::Initialize(
                 InitializeErrorReason::ManagementService,
             ))?;
-            let service = LoggingService::new(label, ApiVersionService::new(service));
+            let service = LoggingService::new(label, service);
             info!("Listening on {} with 1 thread for management API.", url);
             let run = Http::new()
                 .bind_url(url.clone(), service)
@@ -870,7 +876,7 @@ where
             let service = service.context(ErrorKind::Initialize(
                 InitializeErrorReason::WorkloadService,
             ))?;
-            let service = LoggingService::new(label, ApiVersionService::new(service));
+            let service = LoggingService::new(label, service);
             let run = Http::new()
                 .bind_url(url.clone(), service)
                 .map_err(|err| {
@@ -1053,7 +1059,7 @@ mod tests {
     fn get_proxy_uri_recognizes_https_proxy() {
         // Use existing "https_proxy" env var if it's set, otherwise invent one
         let proxy_val = env::var("https_proxy")
-            .unwrap_or_else(|_| "abc".to_string())
+            .unwrap_or_else(|_| "https://example.com".to_string())
             .parse::<Uri>()
             .unwrap()
             .to_string();

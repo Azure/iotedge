@@ -24,6 +24,7 @@ use self::decrypt::DecryptHandler;
 use self::encrypt::EncryptHandler;
 use self::sign::SignHandler;
 use self::trust_bundle::TrustBundleHandler;
+use edgelet_http::Version;
 use error::{Error, ErrorKind};
 
 #[derive(Clone)]
@@ -32,8 +33,6 @@ pub struct WorkloadService {
 }
 
 impl WorkloadService {
-    // clippy bug: https://github.com/rust-lang-nursery/rust-clippy/issues/3220
-    #[cfg_attr(feature = "cargo-clippy", allow(new_ret_no_self))]
     pub fn new<K, H, M, W>(
         key_store: &K,
         hsm: H,
@@ -49,14 +48,14 @@ impl WorkloadService {
         W: WorkloadConfig + Clone + Send + Sync + 'static,
     {
         let router = router!(
-            get    "/modules" => Authorization::new(ListModules::new(runtime.clone()), Policy::Anonymous, runtime.clone()),
-            post   "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/sign" => Authorization::new(SignHandler::new(key_store.clone()), Policy::Caller, runtime.clone()),
-            post   "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/decrypt" => Authorization::new(DecryptHandler::new(hsm.clone()), Policy::Caller, runtime.clone()),
-            post   "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/encrypt" => Authorization::new(EncryptHandler::new(hsm.clone()), Policy::Caller, runtime.clone()),
-            post   "/modules/(?P<name>[^/]+)/certificate/identity" => Authorization::new(IdentityCertHandler::new(hsm.clone(), config.clone()), Policy::Caller, runtime.clone()),
-            post   "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/certificate/server" => Authorization::new(ServerCertHandler::new(hsm.clone(), config), Policy::Caller, runtime.clone()),
+            get   Version2018_06_28,   "/modules" => Authorization::new(ListModules::new(runtime.clone()), Policy::Anonymous, runtime.clone()),
+            post  Version2018_06_28,   "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/sign" => Authorization::new(SignHandler::new(key_store.clone()), Policy::Caller, runtime.clone()),
+            post  Version2018_06_28,   "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/decrypt" => Authorization::new(DecryptHandler::new(hsm.clone()), Policy::Caller, runtime.clone()),
+            post  Version2018_06_28,   "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/encrypt" => Authorization::new(EncryptHandler::new(hsm.clone()), Policy::Caller, runtime.clone()),
+            post  Version2018_06_28,   "/modules/(?P<name>[^/]+)/certificate/identity" => Authorization::new(IdentityCertHandler::new(hsm.clone(), config.clone()), Policy::Caller, runtime.clone()),
+            post  Version2018_06_28,   "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/certificate/server" => Authorization::new(ServerCertHandler::new(hsm.clone(), config), Policy::Caller, runtime.clone()),
 
-            get    "/trust-bundle" => Authorization::new(TrustBundleHandler::new(hsm), Policy::Anonymous, runtime.clone()),
+            get   Version2018_06_28,   "/trust-bundle" => Authorization::new(TrustBundleHandler::new(hsm), Policy::Anonymous, runtime.clone()),
         );
 
         router.new_service().then(|inner| {

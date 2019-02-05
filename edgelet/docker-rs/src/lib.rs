@@ -8,7 +8,7 @@
     unused_imports,
     unused_mut
 )]
-#![cfg_attr(feature = "cargo-clippy", allow(clippy, clippy_pedantic))]
+#![allow(clippy::all, clippy::pedantic)]
 
 #[macro_use]
 extern crate serde_derive;

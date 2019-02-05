@@ -496,6 +496,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "edgelet-kube"
+version = "0.1.0"
+dependencies = [
+ "docker 0.1.0",
+ "edgelet-core 0.1.0",
+ "edgelet-docker 0.1.0",
+ "edgelet-utils 0.1.0",
+ "failure 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "futures 0.1.24 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.12.17 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper-tls 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "k8s-openapi 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "kube-client 0.1.0",
+ "log 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 1.0.17 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 1.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "edgelet-test-utils"
 version = "0.1.0"
 dependencies = [
@@ -886,6 +905,7 @@ dependencies = [
  "futures 0.1.24 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.12.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper-tls 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "percent-encoding 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.84 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.43 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.17 (registry+https://github.com/rust-lang/crates.io-index)",

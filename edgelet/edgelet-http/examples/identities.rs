@@ -1,12 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 #![deny(unused_extern_crates, warnings)]
-// Remove this when clippy stops warning about old-style `allow()`,
-// which can only be silenced by enabling a feature and thus requires nightly
-//
-// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
-#![allow(renamed_and_removed_lints)]
-#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
+#![deny(clippy::all, clippy::pedantic)]
 
 #[macro_use]
 extern crate edgelet_http;
@@ -15,13 +10,13 @@ extern crate hyper;
 extern crate tokio;
 
 use edgelet_http::route::{Builder, Parameters, Router};
-use edgelet_http::{Error as HttpError, HyperExt};
+use edgelet_http::{Error as HttpError, HyperExt, Version};
 use futures::{future, Future};
 use hyper::header::CONTENT_TYPE;
 use hyper::server::conn::Http;
 use hyper::{Body, Request, Response, StatusCode};
 
-#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
+#[allow(clippy::needless_pass_by_value)]
 fn index(
     _req: Request<Body>,
     _params: Parameters,
@@ -34,7 +29,7 @@ fn index(
     Box::new(future::ok(response))
 }
 
-#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
+#[allow(clippy::needless_pass_by_value)]
 fn identities_list(
     _req: Request<Body>,
     _params: Parameters,
@@ -47,7 +42,7 @@ fn identities_list(
     Box::new(future::ok(response))
 }
 
-#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
+#[allow(clippy::needless_pass_by_value)]
 fn identities_update(
     _req: Request<Body>,
     params: Parameters,
@@ -69,7 +64,7 @@ fn identities_update(
     Box::new(future::ok(response))
 }
 
-#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
+#[allow(clippy::needless_pass_by_value)]
 fn identities_delete(
     _req: Request<Body>,
     _params: Parameters,
@@ -83,10 +78,10 @@ fn identities_delete(
 
 fn main() {
     let router = router!(
-        get "/" => index,
-        get "/identities" => identities_list,
-        put "/identities/(?P<name>[^/]+)" => identities_update,
-        delete "/identities/(?P<name>[^/]+)" => identities_delete,
+        get    Version2018_06_28, "/" => index,
+        get    Version2018_06_28, "/identities" => identities_list,
+        put    Version2018_06_28, "/identities/(?P<name>[^/]+)" => identities_update,
+        delete Version2018_06_28, "/identities/(?P<name>[^/]+)" => identities_delete,
     );
 
     let addr = "tcp://0.0.0.0:8080".parse().unwrap();

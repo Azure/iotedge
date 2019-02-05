@@ -183,11 +183,7 @@ where
 {
     runtime
         .list()
-        .map(move |m| {
-            m.into_iter()
-                .filter_map(move |m| if m.name() == name { Some(m) } else { None })
-                .next()
-        })
+        .map(move |m| m.into_iter().find(move |m| m.name() == name))
         .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime)))
 }
 

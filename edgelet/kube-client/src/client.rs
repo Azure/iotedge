@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use bytes::BytesMut;
-use futures::future::{self, Either};
+use futures::future;
 use futures::prelude::*;
 use hyper::body::Payload;
 use hyper::client::connect::Connect;
@@ -75,7 +75,7 @@ where
         api_core::ConfigMap::create_core_v1_namespaced_config_map(namespace, config_map, None)
             .map_err(Error::from)
             .map(|req| {
-                let fut = self.request(req).and_then(|response| match response {
+                self.request(req).and_then(|response| match response {
                     api_core::CreateCoreV1NamespacedConfigMapResponse::Ok(config_map)
                     | api_core::CreateCoreV1NamespacedConfigMapResponse::Created(config_map)
                     | api_core::CreateCoreV1NamespacedConfigMapResponse::Accepted(config_map) => {
@@ -85,11 +85,10 @@ where
                         debug!("Create config map failed with {:#?}", err);
                         Err(Error::from(ErrorKind::Response))
                     }
-                });
-
-                Either::A(fut)
+                })
             })
-            .unwrap_or_else(|err| Either::B(future::err(err)))
+            .into_future()
+            .flatten()
     }
 
     pub fn delete_config_map(
@@ -102,15 +101,14 @@ where
         )
         .map_err(Error::from)
         .map(|req| {
-            let fut = self.request(req).and_then(|response| match response {
+            self.request(req).and_then(|response| match response {
                 api_core::DeleteCoreV1NamespacedConfigMapResponse::OkStatus(_)
                 | api_core::DeleteCoreV1NamespacedConfigMapResponse::OkValue(_) => Ok(()),
                 _ => Err(Error::from(ErrorKind::Response)),
-            });
-
-            Either::A(fut)
+            })
         })
-        .unwrap_or_else(|err| Either::B(future::err(err)))
+        .into_future()
+        .flatten()
     }
 
     pub fn create_deployment(
@@ -121,18 +119,17 @@ where
         apps::Deployment::create_apps_v1_namespaced_deployment(namespace, &deployment, None)
             .map_err(Error::from)
             .map(|req| {
-                let fut = self.request(req).and_then(|response| match response {
+                self.request(req).and_then(|response| match response {
                     apps::CreateAppsV1NamespacedDeploymentResponse::Accepted(deployment)
                     | apps::CreateAppsV1NamespacedDeploymentResponse::Created(deployment)
                     | apps::CreateAppsV1NamespacedDeploymentResponse::Ok(deployment) => {
                         Ok(deployment)
                     }
                     _ => Err(Error::from(ErrorKind::Response)),
-                });
-
-                Either::A(fut)
+                })
             })
-            .unwrap_or_else(|err| Either::B(future::err(err)))
+            .into_future()
+            .flatten()
     }
 
     pub fn delete_deployment(
@@ -151,33 +148,42 @@ where
         )
         .map_err(Error::from)
         .map(|req| {
-            let fut = self.request(req).and_then(|response| match response {
+            self.request(req).and_then(|response| match response {
                 apps::DeleteAppsV1NamespacedDeploymentResponse::OkStatus(_)
                 | apps::DeleteAppsV1NamespacedDeploymentResponse::OkValue(_) => Ok(()),
                 _ => Err(Error::from(ErrorKind::Response)),
-            });
-            Either::A(fut)
+            })
         })
-        .unwrap_or_else(|err| Either::B(future::err(err)))
+        .into_future()
+        .flatten()
     }
 
     pub fn list_pods(
         &mut self,
         namespace: &str,
+        label_selector: Option<&str>,
     ) -> impl Future<Item = api_core::PodList, Error = Error> {
         api_core::Pod::list_core_v1_namespaced_pod(
-            namespace, None, None, None, None, None, None, None, None, None,
+            namespace,
+            None,
+            None,
+            None,
+            label_selector,
+            None,
+            None,
+            None,
+            None,
+            None,
         )
         .map_err(Error::from)
         .map(|req| {
-            let fut = self.request(req).and_then(|response| match response {
+            self.request(req).and_then(|response| match response {
                 api_core::ListCoreV1NamespacedPodResponse::Ok(pod_list) => Ok(pod_list),
                 _ => Err(Error::from(ErrorKind::Response)),
-            });
-
-            Either::A(fut)
+            })
         })
-        .unwrap_or_else(|err| Either::B(future::err(err)))
+        .into_future()
+        .flatten()
     }
 
     fn request<R: K8sResponse>(
@@ -213,12 +219,7 @@ where
             .host()
             .join(self.config.api_path())
             .and_then(|base_url| {
-                base_url.join(
-                    req.uri()
-                        .path_and_query()
-                        .map(|pq| pq.as_str())
-                        .unwrap_or(""),
-                )
+                base_url.join(req.uri().path_and_query().map_or("", |pq| pq.as_str()))
             })
             .map_err(Error::from)
             .and_then(|url| url.as_ref().parse().map_err(Error::from))
@@ -238,14 +239,13 @@ where
             .map(|req| {
                 // NOTE: The req.map call below converts from Request<Vec<u8>> into a
                 // Request<Body>. The res.map call converts from S::ResBody to Body.
-                Either::A(
-                    self.client
-                        .call(req.map(From::from))
-                        .map_err(Into::into)
-                        .map(|res| res.map(From::from)),
-                )
+                self.client
+                    .call(req.map(From::from))
+                    .map_err(Into::into)
+                    .map(|res| res.map(From::from))
             })
-            .unwrap_or_else(|err| Either::B(future::err(err)))
+            .into_future()
+            .flatten()
     }
 }
 
@@ -261,6 +261,7 @@ mod tests {
     use native_tls::TlsConnector;
     use serde_json;
     use tokio::runtime::Runtime;
+    use url::percent_encoding::{utf8_percent_encode, USERINFO_ENCODE_SET};
     use url::Url;
 
     #[derive(Clone)]
@@ -388,6 +389,35 @@ mod tests {
     #[test]
     fn list_pods_success() {
         const NAMESPACE: &str = "custom-namespace";
+        const LABEL_SELECTOR: &str = "x=y";
+        let service = service_fn(|req: Request<Body>| -> Result<Response<Body>, HyperError> {
+            let p = req.uri().path();
+            let q = req.uri().query().unwrap();
+            assert!(p.contains(NAMESPACE));
+            assert!(
+                q.contains(&utf8_percent_encode(LABEL_SELECTOR, USERINFO_ENCODE_SET).to_string())
+            );
+            Ok(Response::new(Body::from(LIST_POD_RESPONSE)))
+        });
+
+        let mut client = make_test_client(service);
+
+        let fut = client
+            .list_pods(NAMESPACE, Some(LABEL_SELECTOR))
+            .map(|pods| {
+                assert!(pods.kind.as_ref().map_or(false, |k| k == "PodList"));
+                assert_eq!(2, pods.items.len());
+            });
+
+        Runtime::new()
+            .unwrap()
+            .block_on(fut)
+            .expect("Expected future to be OK");
+    }
+
+    #[test]
+    fn list_pods_success_no_labels() {
+        const NAMESPACE: &str = "custom-namespace";
         let service = service_fn(|req: Request<Body>| -> Result<Response<Body>, HyperError> {
             let p = req.uri().path();
             let q = req.uri().query().unwrap();
@@ -398,7 +428,7 @@ mod tests {
 
         let mut client = make_test_client(service);
 
-        let fut = client.list_pods(NAMESPACE).map(|pods| {
+        let fut = client.list_pods(NAMESPACE, None).map(|pods| {
             assert!(pods.kind.as_ref().map_or(false, |k| k == "PodList"));
             assert_eq!(2, pods.items.len());
         });

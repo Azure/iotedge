@@ -1,9 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-extern crate env_logger;
-extern crate futures;
-extern crate kube_client;
-extern crate tokio;
+#![deny(unused_extern_crates, warnings)]
+#![deny(clippy::all, clippy::pedantic)]
 
 use futures::prelude::*;
 
@@ -16,11 +14,12 @@ fn main() -> Result<()> {
 
     let config = get_config()?;
     let mut client = Client::new(config);
-    let fut = client.list_pods("default").map(|pods| {
+    let fut = client.list_pods("default", None).map(|pods| {
         for p in pods.items {
             println!("{:#?}", p);
         }
     });
 
-    Ok(Runtime::new()?.block_on(fut)?)
+    Runtime::new()?.block_on(fut)?;
+    Ok(())
 }

@@ -29,6 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly string gatewayHostName;
         readonly Uri managementUri;
         readonly Uri workloadUri;
+        readonly string apiVersion;
         readonly IEnumerable<AuthConfig> dockerAuthConfig;
         readonly Option<UpstreamProtocol> upstreamProtocol;
         readonly Option<IWebProxy> proxy;
@@ -40,6 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             string deviceId,
             Uri managementUri,
             Uri workloadUri,
+            string apiVersion,
             IEnumerable<AuthConfig> dockerAuthConfig,
             Option<UpstreamProtocol> upstreamProtocol,
             Option<IWebProxy> proxy,
@@ -50,9 +52,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.managementUri = Preconditions.CheckNotNull(managementUri, nameof(managementUri));
             this.workloadUri = Preconditions.CheckNotNull(workloadUri, nameof(workloadUri));
+            this.apiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion));
             this.dockerAuthConfig = Preconditions.CheckNotNull(dockerAuthConfig, nameof(dockerAuthConfig));
-            this.upstreamProtocol = Preconditions.CheckNotNull(upstreamProtocol, nameof(upstreamProtocol));
-            this.proxy = Preconditions.CheckNotNull(proxy, nameof(proxy));
+            this.upstreamProtocol = upstreamProtocol;
+            this.proxy = proxy;
             this.productInfo = productInfo;
         }
 
@@ -64,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // IModuleManager
-            builder.Register(c => new ModuleManagementHttpClient(this.managementUri))
+            builder.Register(c => new ModuleManagementHttpClient(this.managementUri, this.apiVersion, Constants.EdgeletClientApiVersion))
                 .As<IModuleManager>()
                 .As<IIdentityManager>()
                 .SingleInstance();
