@@ -21,6 +21,8 @@ else {
 
 Write-Host "Using version '$version'"
 
+cmd /c installoemcerts.cmd
+
 Function New-Package([string]$Name)
 {
     $pkggen = "${Env:ProgramFiles(x86)}\Windows Kits\10\tools\bin\i386\pkggen.exe"

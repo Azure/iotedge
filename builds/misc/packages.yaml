@@ -31,8 +31,6 @@ jobs:
           Write-Host ("##vso[task.setvariable variable=WSKCONTENTROOT;]C:\Program Files (x86)\Windows Kits\10")
           Write-Host ("##vso[task.setvariable variable=NO_VALGRIND;]true")
         displayName: Set Version
-      - powershell: cmd /c installoemcerts.cmd
-        displayName: Install OEM certificates
       - powershell: edgelet/build/windows/install.ps1
         displayName: Install Rust
       - powershell: edgelet/build/windows/build.ps1 -Release
@@ -49,33 +47,6 @@ jobs:
           cmakeArgs: '--build . --config Release'
       - powershell: edgelet/build/windows/package.ps1
         displayName: Package iotedged, iotedge, libiothsm and docker/dockerd
-      - task: CopyFiles@2
-        displayName: 'Copy iotedged to Artifact Staging'
-        inputs:
-          SourceFolder: edgelet/target/release
-          Contents: |
-            *.exe
-            *.pdb
-            *.dll
-          TargetFolder: '$(build.artifactstagingdirectory)'
-      - task: CopyFiles@2
-        displayName: 'Copy libiothsm to Artifact Staging'
-        inputs:
-          SourceFolder: 'edgelet/hsm-sys/azure-iot-hsm-c/build/Release'
-          Contents: |
-            *.dll
-            *.pdb
-          TargetFolder: '$(build.artifactstagingdirectory)'
-      - task: CopyFiles@2
-        displayName: 'Copy legal docs to Artifact Staging'
-        inputs:
-          SourceFolder: edgelet/contrib/docs
-          TargetFolder: '$(build.artifactstagingdirectory)/LICENSE'
-      - task: CopyFiles@2
-        displayName: 'Copy config to Artifact Staging'
-        inputs:
-          SourceFolder: edgelet/contrib/config/windows
-          TargetFolder: '$(build.artifactstagingdirectory)'
       - task: CopyFiles@2
         displayName: 'Copy package to Artifact Staging'
         inputs:
