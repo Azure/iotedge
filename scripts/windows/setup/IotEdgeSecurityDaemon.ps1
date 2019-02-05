@@ -162,7 +162,7 @@ function Install-SecurityDaemon {
         $InvokeWebRequestParameters['-Proxy'] = $Proxy
     }
 
-    if ((-not $Update) -and (-not $Finalize)) {
+    if (-not $Finalize) {
         if (Test-EdgeAlreadyInstalled) {
             Write-HostRed
             Write-HostRed 'IoT Edge is already installed. To reinstall, run `Uninstall-SecurityDaemon` first.'
@@ -182,64 +182,12 @@ function Install-SecurityDaemon {
         }
     }
 
-    if (-not $Update) {
-        if (-not (Test-AgentRegistryArgs)) {
-            return
-        }
-    }
-
-    $currentWindowsBuild = Get-WindowsBuild
-    $preRequisitesMet = switch ($ContainerOs) {
-        'Linux' {
-            if ($currentWindowsBuild -lt $MinBuildForLinuxContainers) {
-                Write-HostRed "The container host is on unsupported build version $currentWindowsBuild."
-                Write-HostRed "Please use a container host running build $MinBuildForLinuxContainers or newer for running Linux containers."
-                $false
-            }
-            elseif (-not (Test-IsDockerRunning)) {
-                $false
-            }
-            else {
-                $true
-            }
-        }
-
-        'Windows' {
-            if ($SupportedBuildsForWindowsContainers -notcontains $currentWindowsBuild) {
-                Write-HostRed "The container host is on unsupported build version $currentWindowsBuild."
-                Write-HostRed 'Please use a container host running one of the following build versions for running Windows containers:'
-                foreach ($version in $SupportedBuildsForWindowsContainers) {
-                    Write-HostRed "$version"
-                }
-
-                $false
-            }
-            else {
-                $true
-            }
-        }
-    }
-    if ($preRequisitesMet) {
-        Write-HostGreen "The container host is on supported build version $currentWindowsBuild."
-        Set-ContainerOs
-    }
-    else {
-        Write-HostRed
-        Write-HostRed ('The prerequisites for installation of the IoT Edge Security daemon are not met. ' +
-            'Please fix all known issues before rerunning this script.')
+    if (-not (Test-AgentRegistryArgs)) {
         return
     }
 
-    if (-not (Test-IotCore)) {
-        # `Invoke-WebRequest` may not use TLS 1.2 by default, depending on the specific release of Windows 10.
-        # This will be a problem if the release is downloaded from github.com since it only provides TLS 1.2.
-        # So enable TLS 1.2 in `[System.Net.ServicePointManager]::SecurityProtocol`, which enables it (in the current PS session)
-        # for `Invoke-WebRequest` and everything else that uses `System.Net.HttpWebRequest`
-        #
-        # This is not needed on IoT Core since its `Invoke-WebRequest` supports TLS 1.2 by default. It *can't* be done
-        # for IoT Core anyway because the `System.Net.ServicePointManager` type doesn't exist in its version of dotnet.
-        [System.Net.ServicePointManager]::SecurityProtocol =
-            [System.Net.ServicePointManager]::SecurityProtocol -bor [System.Net.SecurityProtocolType]::Tls12
+    if (-not (Setup-Environment $ContainerOs)) {
+        return
     }
 
     $configPath = Join-Path -Path $EdgeDataDirectory -ChildPath "config.yaml"
@@ -305,11 +253,103 @@ function Install-SecurityDaemon {
         }
     }
 
-    Write-HostGreen
-    Write-HostGreen 'This device is now provisioned with the IoT Edge runtime.'
-    Write-HostGreen 'Check the status of the IoT Edge service with `Get-Service iotedge`'
-    Write-HostGreen 'List running modules with `iotedge list`'
-    Write-HostGreen 'Display logs from the last five minutes in chronological order with `Get-SecurityDaemonLog`'
+    Write-LogInformation
+
+    if ($restartNeeded) {
+        Write-HostRed "Reboot required."
+        if (-not $NoReboot) {
+            Restart-Computer
+        }
+    }
+}
+
+<#
+.SYNOPSIS
+
+Updates the IoT Edge Security Daemon and its dependencies.
+
+
+.INPUTS
+
+None
+
+
+.OUTPUTS
+
+None
+
+
+.EXAMPLE
+
+PS> Update-SecurityDaemon
+
+
+.EXAMPLE
+
+PS> Update-SecurityDaemon -OfflineInstallationPath c:\data
+
+
+.EXAMPLE
+
+PS> Update-SecurityDaemon -SkipMobyCli
+#>
+function Update-SecurityDaemon {
+    [CmdletBinding()]
+    param (
+        # The base OS of all the containers that will be run on this device via the security daemon.
+        #
+        # If set to Linux, a separate installation of Docker for Windows is expected.
+        #
+        # If set to Windows, the Moby Engine will be installed automatically. This will not affect any existing installation of Docker for Windows.
+        [ContainerOs] $ContainerOs = 'Windows',
+
+        # Proxy URI used for all Invoke-WebRequest calls. To specify other proxy-related options like -ProxyCredential, see -InvokeWebRequestParameters
+        [Uri] $Proxy,
+
+        # If set to a directory, the installer prefers to use iotedged zip, Moby Engine zip, Moby CLI zip and VC Runtime MSI files from inside this directory
+        # over downloading them from the internet. Thus placing all four files in this directory can be used to have a completely offline install,
+        # or a specific subset can be placed to override the online versions of those specific components.
+        [String] $OfflineInstallationPath,
+
+        # Splatted into every Invoke-WebRequest invocation. Can be used to set extra options.
+        #
+        # If -Proxy is also specified, it overrides the `-Proxy` key set in this hashtable, if any.
+        #
+        # Example:
+        #
+        #     Install-SecurityDaemon -InvokeWebRequestParameters @{ '-Proxy' = 'http://localhost:8888'; '-ProxyCredential' = (Get-Credential).GetNetworkCredential() }
+        [HashTable] $InvokeWebRequestParameters,
+
+        # Don't install the Moby CLI (docker.exe) to $MobyInstallDirectory. Only takes effect for -ContainerOs 'Windows'.
+        [Switch] $SkipMobyCli,
+
+        # Do not reboot even if needed.
+        [Switch] $NoRestart
+    )
+
+    $ErrorActionPreference = 'Stop'
+    Set-StrictMode -Version 5
+
+    if ($InvokeWebRequestParameters -eq $null) {
+        $InvokeWebRequestParameters = @{}
+    }
+
+    if ($Proxy -ne $null) {
+        $InvokeWebRequestParameters['-Proxy'] = $Proxy
+    }
+
+    if (-not (Setup-Environment $ContainerOs)) {
+        return
+    }
+
+    $restartNeeded = $false
+    # Download
+    Get-SecurityDaemon -RestartNeeded ([ref]$restartNeeded)
+    if (-not $restartNeeded) {
+        Start-Service $EdgeServiceName
+    }
+
+    Write-LogInformation
 
     if ($restartNeeded) {
         Write-HostRed "Reboot required."
@@ -419,6 +459,72 @@ function Get-SecurityDaemonLog {
         Select TimeCreated, Message |
         Sort-Object @{Expression='TimeCreated';Descending=$false} |
         Format-Table -AutoSize -Wrap
+}
+
+function Setup-Environment([string]$ContainerOs) {
+    $currentWindowsBuild = Get-WindowsBuild
+    $preRequisitesMet = switch ($ContainerOs) {
+        'Linux' {
+            if ($currentWindowsBuild -lt $MinBuildForLinuxContainers) {
+                Write-HostRed "The container host is on unsupported build version $currentWindowsBuild."
+                Write-HostRed "Please use a container host running build $MinBuildForLinuxContainers or newer for running Linux containers."
+                $false
+            }
+            elseif (-not (Test-IsDockerRunning)) {
+                $false
+            }
+            else {
+                $true
+            }
+        }
+
+        'Windows' {
+            if ($SupportedBuildsForWindowsContainers -notcontains $currentWindowsBuild) {
+                Write-HostRed "The container host is on unsupported build version $currentWindowsBuild."
+                Write-HostRed 'Please use a container host running one of the following build versions for running Windows containers:'
+                foreach ($version in $SupportedBuildsForWindowsContainers) {
+                    Write-HostRed "$version"
+                }
+
+                $false
+            }
+            else {
+                $true
+            }
+        }
+    }
+    if ($preRequisitesMet) {
+        Write-HostGreen "The container host is on supported build version $currentWindowsBuild."
+        Set-ContainerOs
+    }
+    else {
+        Write-HostRed
+        Write-HostRed ('The prerequisites for installation of the IoT Edge Security daemon are not met. ' +
+            'Please fix all known issues before rerunning this script.')
+        return $false
+    }
+
+    if (-not (Test-IotCore)) {
+        # `Invoke-WebRequest` may not use TLS 1.2 by default, depending on the specific release of Windows 10.
+        # This will be a problem if the release is downloaded from github.com since it only provides TLS 1.2.
+        # So enable TLS 1.2 in `[System.Net.ServicePointManager]::SecurityProtocol`, which enables it (in the current PS session)
+        # for `Invoke-WebRequest` and everything else that uses `System.Net.HttpWebRequest`
+        #
+        # This is not needed on IoT Core since its `Invoke-WebRequest` supports TLS 1.2 by default. It *can't* be done
+        # for IoT Core anyway because the `System.Net.ServicePointManager` type doesn't exist in its version of dotnet.
+        [System.Net.ServicePointManager]::SecurityProtocol =
+            [System.Net.ServicePointManager]::SecurityProtocol -bor [System.Net.SecurityProtocolType]::Tls12
+    }
+
+    return $true
+}
+
+function Write-LogInformation {
+    Write-HostGreen
+    Write-HostGreen 'This device is now provisioned with the IoT Edge runtime.'
+    Write-HostGreen 'Check the status of the IoT Edge service with `Get-Service iotedge`'
+    Write-HostGreen 'List running modules with `iotedge list`'
+    Write-HostGreen 'Display logs from the last five minutes in chronological order with `Get-SecurityDaemonLog`'
 }
 
 function Test-IsDockerRunning {
@@ -632,7 +738,11 @@ function Get-SecurityDaemon([ref]$RestartNeeded) {
         }
 
         if (Test-IotCore) {
-            Invoke-Native "ApplyUpdate -commit"
+            Write-Host "Committing changes, this will cause a reboot on success. If this is the first time installation, run Install-SecurityDaemon -Finalize after the reboot completes."
+            Invoke-Native "ApplyUpdate -commit" -DoNotThrow
+            # On success, this should reboot
+            Start-Sleep -Seconds 10
+            throw "Unable to install packages, please reboot."
         }
     }
     finally {
@@ -1188,7 +1298,9 @@ function Invoke-Native {
         [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
         [String] $Command,
 
-        [Switch] $Passthru
+        [Switch] $Passthru,
+
+        [Switch] $DoNotThrow
     )
 
     process {
@@ -1197,7 +1309,7 @@ function Invoke-Native {
         Write-Verbose $out
         Write-Verbose "Exit code: $LASTEXITCODE"
 
-        if ($LASTEXITCODE) {
+        if ($LASTEXITCODE -and (-not $DoNotThrow)) {
             throw $out
         }
         elseif ($Passthru) {
@@ -1264,5 +1376,6 @@ function Download-File([string] $Description, [string] $Url, [string] $DownloadF
     return $result
 }
 
-Export-ModuleMember -Function Install-SecurityDaemon, Uninstall-SecurityDaemon, Get-SecurityDaemonLog
+New-Alias -Name Stage-SecurityDaemon -Value Update-SecurityDaemon
+Export-ModuleMember -Function Install-SecurityDaemon, Uninstall-SecurityDaemon, Get-SecurityDaemonLog, Update-SecurityDaemon, Stage-SecurityDaemon
 }

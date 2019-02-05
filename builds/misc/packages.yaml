@@ -9,6 +9,193 @@ variables:
 jobs:
 
 ################################################################################
+  - job: ubuntu_amd64
+################################################################################
+    displayName: Ubuntu - amd64
+    pool:
+      vmImage: 'ubuntu-16.04'
+    steps:
+      - bash: 'echo "##vso[task.setvariable variable=PATH;]$HOME/.cargo/bin:$PATH"'
+        displayName: Modify path
+      - bash: |
+          BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
+          VERSION="$BASE_VERSION$BUILD_BUILDNUMBER"
+          echo "##vso[task.setvariable variable=VERSION;]$VERSION"
+        displayName: Set Version
+      - script: edgelet/build/linux/install.sh
+        displayName: Install Rust
+      - task: CMake@1
+        displayName: Setup libiothsm
+        inputs:
+          workingDirectory: 'edgelet/hsm-sys/azure-iot-hsm-c/build'
+          cmakeArgs: '-DBUILD_SHARED=ON -Drun_unittests=ON -Duse_emulator=OFF -DCMAKE_BUILD_TYPE=Release -DCPACK_PACKAGE_VERSION=$(VERSION) -DCPACK_DEBIAN_PACKAGE_RELEASE=$(REVISION)  ..'
+      - script: make package 
+        displayName: 'Make iothsm package'
+        workingDirectory: 'edgelet/hsm-sys/azure-iot-hsm-c/build'
+      - script: make deb DPKGFLAGS="-b -us -uc -i"
+        workingDirectory: edgelet
+        displayName: Edgelet Package
+      - task: CopyFiles@2
+        displayName: Copy libiothsm-std to Artifact Staging
+        inputs:
+          SourceFolder: 'edgelet/hsm-sys/azure-iot-hsm-c/build'
+          Contents: '*.deb'
+          TargetFolder: '$(build.artifactstagingdirectory)'
+      - task: CopyFiles@2
+        displayName: Copy Files to Artifact Staging
+        inputs:
+          SourceFolder: edgelet/target/release
+          Contents: '*.deb'
+          TargetFolder: '$(build.artifactstagingdirectory)'
+      - task: PublishBuildArtifacts@1
+        displayName: Publish Artifacts
+        inputs:
+          PathtoPublish: '$(build.artifactstagingdirectory)'
+          ArtifactName: 'iotedged-ubuntu-amd64'
+        condition: succeededOrFailed()
+
+################################################################################
+  - job: ubuntu_arm32v7
+################################################################################
+    displayName: Ubuntu - arm32v7
+    pool:
+      vmImage: 'ubuntu-16.04'
+    steps:
+      - bash: 'echo "##vso[task.setvariable variable=PATH;]$HOME/.cargo/bin:$PATH"'
+        displayName: Modify path
+      - bash: |
+          BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
+          VERSION="$BASE_VERSION$BUILD_BUILDNUMBER"
+          echo "##vso[task.setvariable variable=VERSION;]$VERSION"
+        displayName: Set Version
+      - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
+        displayName: 'Docker Login'
+      - script: edgelet/build/linux/install.sh --package-arm
+        displayName: Install Rust
+      - bash: 'cargo install --git https://github.com/myagley/cross.git --branch set-path'
+        displayName: 'Install cross (fork with docker fix)'
+      - bash: 'make deb CARGO=cross CARGOFLAGS="--target armv7-unknown-linux-gnueabihf" TARGET=target/armv7-unknown-linux-gnueabihf/release DPKGFLAGS="-b -us -uc -i --host-arch armhf"'
+        workingDirectory: edgelet
+        displayName: 'Edgelet package (armhf)'
+      - script: edgelet/build/linux/debian/arm32v7/package-libiothsm.sh 
+        displayName: libhsm
+      - task: CopyFiles@2
+        displayName: 'Copy Files to Artifact Staging'
+        inputs:
+          SourceFolder: 'edgelet/target/armv7-unknown-linux-gnueabihf/release'
+          Contents: '*.deb'
+          TargetFolder: '$(build.artifactstagingdirectory)'
+      - task: CopyFiles@2
+        displayName: 'Copy Files to Artifact Staging'
+        inputs:
+          SourceFolder: edgelet/target/hsm/build
+          Contents: '*.deb'
+          TargetFolder: '$(build.artifactstagingdirectory)'
+      - task: PublishBuildArtifacts@1
+        displayName: 'Publish Artifacts'
+        inputs:
+          PathtoPublish: '$(build.artifactstagingdirectory)'
+          ArtifactName: 'iotedged-ubuntu-armhf'
+        condition: succeededOrFailed()
+
+################################################################################
+  - job: linux
+################################################################################
+    displayName: Linux
+    pool:
+      vmImage: 'ubuntu-16.04'
+    strategy:
+      matrix:
+        Debian8-amd64:
+          arch: amd64
+          os: debian8
+          target.iotedged: edgelet/target/release
+          target.libiothsm: edgelet/target/hsm/build
+        Debian8-arm32v7:
+          arch: arm32v7
+          os: debian8
+          target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+          target.libiothsm: edgelet/target/hsm/build
+        Debian8-aarch64:
+          arch: aarch64
+          os: debian8
+          target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+          target.libiothsm: edgelet/target/hsm/build
+        Debian9-amd64:
+          arch: amd64
+          os: debian9
+          target.iotedged: edgelet/target/release
+          target.libiothsm: edgelet/target/hsm/build
+        Debian9-arm32v7:
+          arch: arm32v7
+          os: debian9
+          target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+          target.libiothsm: edgelet/target/hsm/build
+        Debian9-aarch64:
+          arch: aarch64
+          os: debian9
+          target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+          target.libiothsm: edgelet/target/hsm/build
+        Centos75-amd64:
+          arch: amd64
+          os: centos
+          target.iotedged: edgelet/target/release/rpmbuild/RPMS/x86_64
+          target.libiothsm: edgelet/target/hsm/build/amd64
+        Centos75-arm32v7:
+          arch: arm32v7
+          os: centos
+          target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release/rpmbuild/RPMS/armv7hl
+          target.libiothsm: edgelet/target/hsm/build/arm32v7
+        Centos75-aarch64:
+          arch: aarch64
+          os: centos
+          target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release/rpmbuild/RPMS/aarch64
+          target.libiothsm: edgelet/target/hsm/build/aarch64
+        Ubuntu1604-aarch64:
+          arch: aarch64
+          os: ubuntu16.04
+          target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+          target.libiothsm: edgelet/target/hsm/build
+    steps:
+      - bash: 'echo "##vso[task.setvariable variable=PATH;]$HOME/.cargo/bin:$PATH"'
+        displayName: Modify path
+      - bash: |
+          BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
+          VERSION="$BASE_VERSION$BUILD_BUILDNUMBER"
+          echo "##vso[task.setvariable variable=VERSION;]$VERSION"
+        displayName: Set Version
+      - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
+        displayName: 'Docker Login'
+      - script: edgelet/build/linux/install.sh
+        displayName: Install Rust
+      - script: edgelet/build/linux/$(os)/$(arch)/package-libiothsm.sh
+        displayName: libiothsm package
+      - script: edgelet/build/linux/$(os)/$(arch)/package-iotedged.sh
+        displayName: iotedged package
+      - task: CopyFiles@2
+        displayName: Copy libiothsm Files to Artifact Staging
+        inputs:
+          SourceFolder: $(target.libiothsm)
+          Contents: |
+            *.deb
+            *.rpm
+          TargetFolder: '$(build.artifactstagingdirectory)'
+      - task: CopyFiles@2
+        displayName: Copy iotedged Files to Artifact Staging
+        inputs:
+          SourceFolder: $(target.iotedged)
+          Contents: |
+            *.deb
+            *.rpm
+          TargetFolder: '$(build.artifactstagingdirectory)'
+      - task: PublishBuildArtifacts@1
+        displayName: Publish Artifacts
+        inputs:
+          PathtoPublish: '$(build.artifactstagingdirectory)'
+          ArtifactName: 'iotedged-$(os)-$(arch)'
+        condition: succeededOrFailed()
+
+################################################################################
   - job: windows_amd64
 ################################################################################
     displayName: Windows amd64
