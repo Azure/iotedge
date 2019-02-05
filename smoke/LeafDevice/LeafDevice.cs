@@ -1,13 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace LeafDevice
+namespace LeafDeviceTest
 {
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
-    using global::LeafDevice.Details;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public class LeafDevice : Details.Details
+    public class LeafDevice : Details
     {
         LeafDevice(
             string iothubConnectionString,
@@ -56,7 +55,7 @@ namespace LeafDevice
             }
         }
 
-        public class Builder
+        public class LeafDeviceBuilder
         {
             readonly string iothubConnectionString;
             readonly string eventhubCompatibleEndpointWithEntityPath;
@@ -70,7 +69,7 @@ namespace LeafDevice
             Option<string> x509CAKeyPath;
             Option<IList<string>> thumbprintCerts;
 
-            public Builder(
+            public LeafDeviceBuilder(
                 string iothubConnectionString,
                 string eventhubCompatibleEndpointWithEntityPath,
                 string deviceId,
@@ -89,7 +88,7 @@ namespace LeafDevice
                 this.usePrimaryThumbprintClientCert = false;
             }
 
-            public Builder SetX509CAAuthProperties(string clientCertificatePath, string clientCertificateKeyPath)
+            public LeafDeviceBuilder SetX509CAAuthProperties(string clientCertificatePath, string clientCertificateKeyPath)
             {
                 this.x509CACertPath = Option.Some(Preconditions.CheckNotNull(clientCertificatePath));
                 this.x509CAKeyPath = Option.Some(Preconditions.CheckNotNull(clientCertificateKeyPath));
@@ -97,7 +96,7 @@ namespace LeafDevice
                 return this;
             }
 
-            public Builder SetX509ThumbprintAuthProperties(
+            public LeafDeviceBuilder SetX509ThumbprintAuthProperties(
                 string primaryClientCertificatePath,
                 string primaryClientCertificateKeyPath,
                 string secondaryClientCertificatePath,

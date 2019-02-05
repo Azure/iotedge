@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace LeafDevice
+namespace LeafDeviceTest
 {
     using System;
     using System.Collections.Generic;
@@ -88,7 +88,7 @@ Defaults:
                 string endpoint = this.EventHubCompatibleEndpointWithEntityPath ??
                                   await SecretsHelper.GetSecretFromConfigKey("eventHubConnStrKey");
 
-                var builder = new LeafDevice.Builder(
+                var builder = new LeafDevice.LeafDeviceBuilder(
                     connectionString,
                     endpoint,
                     this.DeviceId,
