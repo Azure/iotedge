@@ -30,8 +30,6 @@ pub struct ManagementService {
 }
 
 impl ManagementService {
-    // clippy bug: https://github.com/rust-lang-nursery/rust-clippy/issues/3220
-    #[cfg_attr(feature = "cargo-clippy", allow(new_ret_no_self))]
     pub fn new<M, I>(runtime: &M, identity: &I) -> impl Future<Item = Self, Error = Error>
     where
         M: 'static + ModuleRuntime + Clone + Send + Sync,

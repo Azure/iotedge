@@ -9,16 +9,13 @@
  */
 
 use std::borrow::Borrow;
-use std::borrow::Cow;
 use std::sync::Arc;
 
-use futures;
 use futures::{Future, Stream};
 use hyper;
 use serde_json;
 use typed_headers::{self, http, mime, HeaderMapExt};
 
-use super::super::utils::UserAgent;
 use super::{configuration, Error};
 
 pub struct SystemApiClient<C: hyper::client::connect::Connect> {
