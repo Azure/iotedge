@@ -88,7 +88,7 @@ Defaults:
                 string endpoint = this.EventHubCompatibleEndpointWithEntityPath ??
                                   await SecretsHelper.GetSecretFromConfigKey("eventHubConnStrKey");
 
-                var testBuilder = new LeafDevice.Builder(
+                var builder = new LeafDevice.Builder(
                     connectionString,
                     endpoint,
                     this.DeviceId,
@@ -104,39 +104,39 @@ Defaults:
                 {
                     // use thumbprint auth and perform test for both primary and secondary certificates
                     var thumbprintCerts = new List<string> { this.X509PrimaryCertPath, this.X509SecondaryCertPath };
-                    testBuilder.SetX509ThumbprintAuthProperties(
+                    builder.SetX509ThumbprintAuthProperties(
                         this.X509PrimaryCertPath,
                         this.X509PrimaryKeyPath,
                         this.X509SecondaryCertPath,
                         this.X509SecondaryKeyPath,
                         true);
-                    LeafDevice testPrimaryCertificate = testBuilder.Build();
+                    LeafDevice testPrimaryCertificate = builder.Build();
                     await testPrimaryCertificate.RunAsync();
 
-                    testBuilder.SetX509ThumbprintAuthProperties(
+                    builder.SetX509ThumbprintAuthProperties(
                         this.X509PrimaryCertPath,
                         this.X509PrimaryKeyPath,
                         this.X509SecondaryCertPath,
                         this.X509SecondaryKeyPath,
                         false);
-                    LeafDevice testSeondaryCertificate = testBuilder.Build();
+                    LeafDevice testSeondaryCertificate = builder.Build();
                     await testSeondaryCertificate.RunAsync();
                 }
                 else if (!string.IsNullOrWhiteSpace(this.X509CACertPath) &&
                          !string.IsNullOrWhiteSpace(this.X509CAKeyPath))
                 {
                     // use X.509 CA auth and perform test using CA chained certificates
-                    testBuilder.SetX509CAAuthProperties(
+                    builder.SetX509CAAuthProperties(
                         this.X509CACertPath,
                         this.X509CAKeyPath);
-                    LeafDevice testCa = testBuilder.Build();
+                    LeafDevice testCa = builder.Build();
                     await testCa.RunAsync();
                 }
                 else
                 {
-                    testBuilder.Build();
+                    builder.Build();
                     // non certificate flow use SAS tokens
-                    LeafDevice testSas = testBuilder.Build();
+                    LeafDevice testSas = builder.Build();
                     await testSas.RunAsync();
                 }
             }

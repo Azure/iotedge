@@ -3,6 +3,7 @@ namespace LeafDevice.Details
 {
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
     using System.IO;
     using System.Linq;
     using System.Net;
@@ -65,7 +66,7 @@ namespace LeafDevice.Details
             (this.authType,
                 this.clientCertificate,
                 this.clientCertificateChain,
-                this.thumbprints) = this.ObtainAuthDetails(clientCertificatePaths, thumbprintCertificatePaths);
+                this.thumbprints) = ObtainAuthDetails(clientCertificatePaths, thumbprintCertificatePaths);
 
             if (useWebSockets)
             {
@@ -148,7 +149,7 @@ namespace LeafDevice.Details
             RegistryManager rm = RegistryManager.CreateFromConnectionString(builder.ToString());
 
             var edgeScope = Option.None<string>();
-            this.edgeDeviceId.ForEach(async (id) => edgeScope = await this.GetScopeIfExitsAsync(rm, id));
+            this.edgeDeviceId.ForEach(async (id) => edgeScope = await GetScopeIfExitsAsync(rm, id));
 
             Device device = await rm.GetDeviceAsync(this.deviceId);
             if (device != null)
@@ -214,8 +215,8 @@ namespace LeafDevice.Details
                             {
                                 eventData.SystemProperties.TryGetValue("iothub-connection-device-id", out var devId);
 
-                                if (devId != null && devId.ToString().Equals(this.context.Device.Id)
-                                                  && Encoding.UTF8.GetString(eventData.Body).Contains(this.context.MessageGuid))
+                                if (devId != null && devId.ToString().Equals(this.context.Device.Id, StringComparison.Ordinal)
+                                                  && Encoding.UTF8.GetString(eventData.Body).Contains(this.context.MessageGuid, StringComparison.Ordinal))
                                 {
                                     result.TrySetResult(true);
                                     return true;
@@ -253,7 +254,7 @@ namespace LeafDevice.Details
                     throw new Exception("Could not invoke Direct Method on Device.");
                 }
 
-                if (!result.GetPayloadAsJson().Equals("{\"TestKey\":\"TestValue\"}"))
+                if (!result.GetPayloadAsJson().Equals("{\"TestKey\":\"TestValue\"}", StringComparison.Ordinal))
                 {
                     throw new Exception($"Payload doesn't match with Sent Payload. Received payload: {result.GetPayloadAsJson()}. Expected: {{\"TestKey\":\"TestValue\"}}");
                 }
@@ -306,7 +307,7 @@ namespace LeafDevice.Details
             return Task.FromResult(new MethodResponse(methodRequest.Data, (int)HttpStatusCode.OK));
         }
 
-        async Task<Option<string>> GetScopeIfExitsAsync(RegistryManager rm, string deviceId)
+        static async Task<Option<string>> GetScopeIfExitsAsync(RegistryManager rm, string deviceId)
         {
             Device edgeDevice = await rm.GetDeviceAsync(deviceId);
             if (edgeDevice == null)
@@ -318,7 +319,7 @@ namespace LeafDevice.Details
             return Option.Some(edgeDevice.Scope);
         }
 
-        (AuthenticationType,
+        static (AuthenticationType,
             Option<X509Certificate2>,
             Option<IEnumerable<X509Certificate2>>,
             Option<List<string>>) ObtainAuthDetails(
@@ -365,7 +366,7 @@ namespace LeafDevice.Details
                             var thumbprints = new List<string>();
                             foreach (var cert in certs)
                             {
-                                thumbprints.Add(cert.Thumbprint.ToUpper());
+                                thumbprints.Add(cert.Thumbprint.ToUpper(CultureInfo.InvariantCulture));
                             }
 
                             return thumbprints;
