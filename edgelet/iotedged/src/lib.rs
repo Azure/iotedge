@@ -334,14 +334,13 @@ impl Main {
                     start_edgelet!(key_store, provisioning_result, root_key, runtime);
                 } else {
                     info!("Staring provisioning edge device via TPM...");
-                    let (key_store, provisioning_result, root_key, runtime) =
-                        dps_tpm_provision(
-                            &dps,
-                            hyper_client.clone(),
-                            dps_path,
-                            runtime,
-                            &mut tokio_runtime,
-                        )?;
+                    let (key_store, provisioning_result, root_key, runtime) = dps_tpm_provision(
+                        &dps,
+                        hyper_client.clone(),
+                        dps_path,
+                        runtime,
+                        &mut tokio_runtime,
+                    )?;
                     start_edgelet!(key_store, provisioning_result, root_key, runtime);
                 }
             }
