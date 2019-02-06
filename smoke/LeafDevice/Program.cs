@@ -83,10 +83,10 @@ Defaults:
             try
             {
                 string connectionString = this.DeviceConnectionString ??
-                                          await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
+                                          await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey").ConfigureAwait(false);
 
                 string endpoint = this.EventHubCompatibleEndpointWithEntityPath ??
-                                  await SecretsHelper.GetSecretFromConfigKey("eventHubConnStrKey");
+                                  await SecretsHelper.GetSecretFromConfigKey("eventHubConnStrKey").ConfigureAwait(false);
 
                 var builder = new LeafDevice.LeafDeviceBuilder(
                     connectionString,
@@ -111,7 +111,7 @@ Defaults:
                         this.X509SecondaryKeyPath,
                         true);
                     LeafDevice testPrimaryCertificate = builder.Build();
-                    await testPrimaryCertificate.RunAsync();
+                    await testPrimaryCertificate.RunAsync().ConfigureAwait(false);
 
                     builder.SetX509ThumbprintAuthProperties(
                         this.X509PrimaryCertPath,
@@ -120,7 +120,7 @@ Defaults:
                         this.X509SecondaryKeyPath,
                         false);
                     LeafDevice testSeondaryCertificate = builder.Build();
-                    await testSeondaryCertificate.RunAsync();
+                    await testSeondaryCertificate.RunAsync().ConfigureAwait(false);
                 }
                 else if (!string.IsNullOrWhiteSpace(this.X509CACertPath) &&
                          !string.IsNullOrWhiteSpace(this.X509CAKeyPath))
@@ -130,14 +130,14 @@ Defaults:
                         this.X509CACertPath,
                         this.X509CAKeyPath);
                     LeafDevice testCa = builder.Build();
-                    await testCa.RunAsync();
+                    await testCa.RunAsync().ConfigureAwait(false);
                 }
                 else
                 {
                     builder.Build();
                     // non certificate flow use SAS tokens
                     LeafDevice testSas = builder.Build();
-                    await testSas.RunAsync();
+                    await testSas.RunAsync().ConfigureAwait(false);
                 }
             }
             catch (Exception ex)

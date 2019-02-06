@@ -6,7 +6,7 @@ namespace LeafDeviceTest
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public class LeafDevice : Details
+    internal class LeafDevice : Details
     {
         LeafDevice(
             string iothubConnectionString,
@@ -36,11 +36,11 @@ namespace LeafDeviceTest
             // This test assumes that there is an edge deployment running as transparent gateway.
             try
             {
-                await this.InitializeTrustedCertsAsync();
-                await this.GetOrCreateDeviceIdentityAsync();
-                await this.ConnectToEdgeAndSendDataAsync();
-                await this.VerifyDataOnIoTHubAsync();
-                await this.VerifyDirectMethodAsync();
+                await this.InitializeTrustedCertsAsync().ConfigureAwait(false);
+                await this.GetOrCreateDeviceIdentityAsync().ConfigureAwait(false);
+                await this.ConnectToEdgeAndSendDataAsync().ConfigureAwait(false);
+                await this.VerifyDataOnIoTHubAsync().ConfigureAwait(false);
+                await this.VerifyDirectMethodAsync().ConfigureAwait(false);
             }
             catch (Exception)
             {
@@ -51,7 +51,7 @@ namespace LeafDeviceTest
             finally
             {
                 // only remove the identity if we created it; if it already existed in IoT Hub then leave it alone
-                await this.MaybeDeleteDeviceIdentity();
+                await this.MaybeDeleteDeviceIdentity().ConfigureAwait(false);
             }
         }
 

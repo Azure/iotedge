@@ -137,7 +137,7 @@ namespace LeafDeviceTest
             var message = new Message(Encoding.ASCII.GetBytes($"Message from Leaf Device. Msg GUID: {this.context.MessageGuid}"));
             Console.WriteLine($"Trying to send the message to '{this.edgeHostName}'");
 
-            await deviceClient.SendEventAsync(message);
+            await deviceClient.SendEventAsync(message).ConfigureAwait(false);
             Console.WriteLine("Message Sent.");
             await deviceClient.SetMethodHandlerAsync("DirectMethod", DirectMethod, null).ConfigureAwait(false);
             Console.WriteLine("Direct method callback is set.");
@@ -149,9 +149,9 @@ namespace LeafDeviceTest
             RegistryManager rm = RegistryManager.CreateFromConnectionString(builder.ToString());
 
             var edgeScope = Option.None<string>();
-            this.edgeDeviceId.ForEach(async (id) => edgeScope = await GetScopeIfExitsAsync(rm, id));
+            this.edgeDeviceId.ForEach(async (id) => edgeScope = await GetScopeIfExitsAsync(rm, id).ConfigureAwait(false));
 
-            Device device = await rm.GetDeviceAsync(this.deviceId);
+            Device device = await rm.GetDeviceAsync(this.deviceId).ConfigureAwait(false);
             if (device != null)
             {
                 Console.WriteLine($"Device '{device.Id}' already registered on IoT hub '{builder.HostName}'");
@@ -168,7 +168,7 @@ namespace LeafDeviceTest
                 }
 
                 edgeScope.ForEach(s => device.Scope = s);
-                await rm.UpdateDeviceAsync(device);
+                await rm.UpdateDeviceAsync(device).ConfigureAwait(false);
 
                 this.context = new DeviceContext
                 {
@@ -181,7 +181,7 @@ namespace LeafDeviceTest
             }
             else
             {
-                await this.CreateDeviceIdentityAsync(rm, edgeScope);
+                await this.CreateDeviceIdentityAsync(rm, edgeScope).ConfigureAwait(false);
             }
         }
 
@@ -201,7 +201,7 @@ namespace LeafDeviceTest
                 "$Default",
                 EventHubPartitionKeyResolver.ResolveToPartition(
                     this.context.Device.Id,
-                    (await eventHubClient.GetRuntimeInformationAsync()).PartitionCount),
+                    (await eventHubClient.GetRuntimeInformationAsync().ConfigureAwait(false)).PartitionCount),
                 EventPosition.FromEnqueuedTime(DateTime.Now.AddMinutes(-5)));
 
             var result = new TaskCompletionSource<bool>();
@@ -225,12 +225,12 @@ namespace LeafDeviceTest
                                 return false;
                             }));
 
-                    await result.Task;
+                    await result.Task.ConfigureAwait(false);
                 }
             }
 
-            await eventHubReceiver.CloseAsync();
-            await eventHubClient.CloseAsync();
+            await eventHubReceiver.CloseAsync().ConfigureAwait(false);
+            await eventHubClient.CloseAsync().ConfigureAwait(false);
         }
 
         protected async Task VerifyDirectMethodAsync()
@@ -247,7 +247,7 @@ namespace LeafDeviceTest
                 CloudToDeviceMethodResult result = await serviceClient.InvokeDeviceMethodAsync(
                     this.context.Device.Id,
                     cloudToDeviceMethod,
-                    cts.Token);
+                    cts.Token).ConfigureAwait(false);
 
                 if (result.Status != 200)
                 {
@@ -309,7 +309,7 @@ namespace LeafDeviceTest
 
         static async Task<Option<string>> GetScopeIfExitsAsync(RegistryManager rm, string deviceId)
         {
-            Device edgeDevice = await rm.GetDeviceAsync(deviceId);
+            Device edgeDevice = await rm.GetDeviceAsync(deviceId).ConfigureAwait(false);
             if (edgeDevice == null)
             {
                 return Option.None<string>();
@@ -403,7 +403,7 @@ namespace LeafDeviceTest
             var builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
             Console.WriteLine($"Registering device '{device.Id}' on IoT hub '{builder.HostName}'");
 
-            device = await rm.AddDeviceAsync(device);
+            device = await rm.AddDeviceAsync(device).ConfigureAwait(false);
 
             this.context = new DeviceContext
             {
