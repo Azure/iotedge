@@ -25,6 +25,7 @@ extern crate url;
 extern crate edgelet_core;
 extern crate edgelet_http;
 
+pub mod dps;
 pub mod error;
 mod model;
 pub mod registration;
@@ -35,3 +36,5 @@ pub use model::{
     TpmRegistrationResult,
 };
 pub use registration::{DpsClient, DpsTokenSource};
+
+pub const DPS_API_VERSION: &str = "2018-11-01";
