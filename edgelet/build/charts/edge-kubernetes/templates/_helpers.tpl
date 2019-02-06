@@ -76,12 +76,12 @@ auths:
 Parse the device ID from connection string.
 */}}
 {{- define "edge-kubernetes.deviceid" -}}
-{{- regexFind "DeviceId=[^;]+" .Values.deviceConnectionString | regexFind "=.+" | substr 1 -1 -}}
+{{- regexFind "DeviceId=[^;]+" .Values.deviceConnectionString | regexFind "=.+" | substr 1 -1 | lower -}}
 {{- end -}}
 
 {{/*
 Parse the host name from connection string.
 */}}
 {{- define "edge-kubernetes.hostname" -}}
-{{- regexFind "HostName=[^;]+" .Values.deviceConnectionString | regexFind "=.+" | substr 1 -1 -}}
+{{- regexFind "HostName=[^;]+" .Values.deviceConnectionString | regexFind "=.+" | substr 1 -1 | lower -}}
 {{- end -}}
