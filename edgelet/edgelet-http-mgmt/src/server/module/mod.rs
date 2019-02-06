@@ -45,7 +45,7 @@ where
     let name = spec.name().to_string();
     let type_ = spec.type_().to_string();
     let env = spec.config().env().map_or_else(HashMap::new, |vars| {
-        vars.into_iter()
+        vars.iter()
             .map(|var| (var.key().clone(), var.value().clone()))
             .collect()
     });

@@ -23,6 +23,7 @@ url = "1.7"
 url_serde = "0.2"
 
 hsm = { path = "../hsm-rs"}
+dps = { path = "../dps" }
 docker = { path = "../docker-rs" }
 edgelet-core = { path = "../edgelet-core" }
 edgelet-docker = { path = "../edgelet-docker" }
