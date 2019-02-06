@@ -145,7 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             edgeHub.Setup(e => e.ProcessSubscriptions("d1", It.IsAny<IEnumerable<(DeviceSubscription, bool)>>()))
                 .Callback<string, IEnumerable<(DeviceSubscription, bool)>>((d, s) => receivedSubscriptions = s.ToList())
                 .Returns(Task.CompletedTask);
-                
+
             var identity = Mock.Of<IProtocolgatewayDeviceIdentity>(i => i.Id == "d1");
             var sessionProvider = new SessionStateStoragePersistenceProvider(edgeHub.Object, this.entityStore);
             var sessionState = new SessionState(false);
@@ -196,11 +196,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             List<(DeviceSubscription, bool)> receivedSubscriptions = null;
             var edgeHub = new Mock<IEdgeHub>();
             edgeHub.Setup(e => e.ProcessSubscriptions("d1", It.IsAny<IEnumerable<(DeviceSubscription, bool)>>()))
-                .Callback<string, IEnumerable<(DeviceSubscription, bool)>>((d, s) =>
-                {
-                    callbackCount++;
-                    receivedSubscriptions = s.ToList();
-                })
+                .Callback<string, IEnumerable<(DeviceSubscription, bool)>>(
+                    (d, s) =>
+                    {
+                        callbackCount++;
+                        receivedSubscriptions = s.ToList();
+                    })
                 .Returns(Task.CompletedTask);
 
             var identity = Mock.Of<IProtocolgatewayDeviceIdentity>(i => i.Id == "d1");
@@ -218,7 +219,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             var expectedSubscriptions = new List<(DeviceSubscription, bool)>
             {
                 (DeviceSubscription.C2D, true),
-                (DeviceSubscription.Methods, true),                
+                (DeviceSubscription.Methods, true),
                 (DeviceSubscription.DesiredPropertyUpdates, false)
             };
             Assert.NotNull(receivedSubscriptions);
