@@ -175,7 +175,8 @@ function Install-SecurityDaemon {
     else {
         if (Test-EdgeAlreadyInstalled) {
             Write-HostRed
-            Write-HostRed 'IoT Edge is already installed. To reinstall, run `Uninstall-SecurityDaemon` first.'
+            Write-HostRed ('IoT Edge is already installed. To reinstall, run `Uninstall-SecurityDaemon` first. ' +
+                'Alternatively, if you want to finalize the installation on IoTCore, run `Install-SecurityDaemon -Finalize`.')
             return
         }
 
@@ -420,8 +421,8 @@ function Uninstall-SecurityDaemon {
     Set-StrictMode -Version 5
 
     if ((Test-IoTCore) -and (-not (Test-LegacyInstaller))) {
-        Write-HostRed "Uninstall-SecurityDaemon is only supported on IoTCore to uninstall legacy installation. " `
-            "For new installations, please use Install-SecurityDaemon -Update directly to update."
+        Write-HostRed ("Uninstall-SecurityDaemon is only supported on IoTCore to uninstall legacy installation. " +
+            "For new installations, please use Update-SecurityDaemon directly to update.")
         return
     }
 
@@ -451,7 +452,7 @@ function Uninstall-SecurityDaemon {
 
     if ($restartNeeded) {
         Write-HostRed "Reboot required."
-        Write-Host "You might need to rerun Uninstall-SecurityDaemon after reboot to finish the cleanup."
+        Write-Host "You might need to rerun Uninstall-SecurityDaemon after the reboot to finish the cleanup."
         Restart-Computer -Confirm:(-not $RestartIfNeeded)
     }
 }
@@ -694,6 +695,10 @@ function Get-SecurityDaemon([ref] $RestartNeeded) {
         $deleteMobyCliArchive = $false
         $deleteEdgeArchive = $false
 
+        if (Test-IotCore) {
+            Invoke-Native "ApplyUpdate -clear"
+        }
+
         if ($ContainerOs -eq 'Windows') {
             $mobyEngineArchivePath = Download-File `
                 -Description 'Moby Engine' `
@@ -740,12 +745,16 @@ function Get-SecurityDaemon([ref] $RestartNeeded) {
         }
 
         if (Test-IotCore) {
-            Write-Host "Committing changes, this will cause a reboot on success. If this is the first time installation, run Install-SecurityDaemon -Finalize after the reboot completes."
-            Invoke-Native "ApplyUpdate -commit" -DoNotThrow
-            # TODO figure out how to disable automatic reboot
-            # On success, this should reboot
-            Start-Sleep -Seconds 10
-            throw "Unable to install packages, please reboot."
+            Write-Host ("Committing changes, this will cause a reboot on success. " + 
+                "If this is the first time installation, run Install-SecurityDaemon -Finalize after the reboot completes.")
+            $output = Invoke-Native "ApplyUpdate -commit" -DoNotThrow -Passthru
+            # On success, this should reboot, we currently cannot block that
+            if ($LASTEXITCODE -ne 0) {
+                throw "Failed to deploy, consider rebooting. Please refer to the following for more information: `n$output"
+            }
+            Start-Sleep -Seconds 120
+            $output = Invoke-Native "ApplyUpdate -status" -DoNotThrow -Passthru
+            throw "Failed to deploy. Please refer to the following for more information: `n$output"
         }
     }
     finally {
@@ -793,14 +802,9 @@ Function Remove-SecurityDaemonDirectory([string] $Path)
 function Remove-SecurityDaemonResources {
     $success = $true
 
-    if (Test-LegacyInstaller) {
-        $removeDir = $LegacyEdgeInstallDirectory
+    if ($LegacyEdgeInstallDirectory -ne $EdgeDataDirectory) {
+        Remove-SecurityDaemonDirectory $LegacyEdgeInstallDirectory
     }
-    else {
-        $removeDir = $EdgeDataDirectory
-    }
-
-    Remove-SecurityDaemonDirectory $LegacyEdgeInstallDirectory
     Remove-SecurityDaemonDirectory $EdgeDataDirectory
     $oldConfig = Join-Path -Path $LegacyEdgeInstallDirectory -ChildPath "config.yaml"
     if (($LegacyEdgeInstallDirectory -ne $EdgeDataDirectory) -and
@@ -1265,23 +1269,18 @@ function Get-AgentRegistry {
     return 'index.docker.io'
 }
 
-function Remove-IotEdgeContainers {
-    $dockerExe = Get-DockerExePath
-
-    if (-not (Test-IsDockerRunning 6> $null)) {
-        return
-    }
-
-    if (-not (Get-Command "docker.exe" -ErrorAction SilentlyContinue)) {
-        return
-    }
-
+function Stop-EdgeContainer([string] $Name = $null) {
     $allContainersString = Invoke-Native "$dockerExe ps --all --format ""{{.ID}}""" -Passthru
     [string[]] $allContainers = $allContainersString -split {$_ -eq "`r" -or $_ -eq "`n"} | where {$_.Length -gt 0}
 
     foreach ($containerId in $allContainers) {
         $inspectString = Invoke-Native "$dockerExe inspect ""$containerId""" -Passthru
         $inspectResult = ($inspectString | ConvertFrom-Json)[0]
+
+        if (($Name -ne $null) -and ($inspectResult.Name -ne $Name)) {
+            continue
+        }
+
         $label = $inspectResult.Config.Labels | Get-Member -MemberType NoteProperty -Name 'net.azure-devices.edge.owner' | %{ $inspectResult.Config.Labels | Select-Object -ExpandProperty $_.Name } 
 
         if (($label -eq 'Microsoft.Azure.Devices.Edge.Agent') -or
@@ -1303,6 +1302,22 @@ function Remove-IotEdgeContainers {
             }
         }
     }
+}
+
+function Remove-IotEdgeContainers {
+    $dockerExe = Get-DockerExePath
+
+    if (-not (Test-IsDockerRunning 6> $null)) {
+        return
+    }
+
+    if (-not (Get-Command "docker.exe" -ErrorAction SilentlyContinue)) {
+        return
+    }
+
+    # Need to stop Agent first so it does not restart other containers
+    Stop-EdgeContainer -Name "/edgeAgent"
+    Stop-EdgeContainer
 
     if ($DeleteMobyDataRoot) {
         try {
@@ -1363,10 +1378,10 @@ function Invoke-Native {
         }
 
         if (($LASTEXITCODE -ne 0) -and (-not $DoNotThrow)) {
-            throw $out
+            throw ("Failed to execute '{0}': `n{1}" -f $Command, $out)
         }
         elseif ($Passthru) {
-            $out
+            return $out
         }
     }
 }
@@ -1430,5 +1445,7 @@ function Download-File([string] $Description, [string] $Url, [string] $DownloadF
 }
 
 New-Alias -Name Deploy-SecurityDaemon -Value Update-SecurityDaemon -Force
-Export-ModuleMember -Function Install-SecurityDaemon, Uninstall-SecurityDaemon, Get-SecurityDaemonLog, Update-SecurityDaemon -Alias Deploy-SecurityDaemon
+Export-ModuleMember `
+    -Function Install-SecurityDaemon, Uninstall-SecurityDaemon, Get-SecurityDaemonLog, Update-SecurityDaemon `
+    -Alias Deploy-SecurityDaemon
 }
