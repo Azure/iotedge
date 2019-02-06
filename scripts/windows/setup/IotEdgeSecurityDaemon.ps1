@@ -699,29 +699,26 @@ function Get-SecurityDaemon([ref] $RestartNeeded) {
             Invoke-Native "ApplyUpdate -clear"
         }
 
-        if ($ContainerOs -eq 'Windows') {
-            $mobyEngineArchivePath = Download-File `
-                -Description 'Moby Engine' `
-                -Url 'https://aka.ms/iotedge-moby-engine-win-amd64-latest-cab' `
-                -DownloadFilename 'microsoft-azure-iotedge-moby-engine.cab' `
-                -LocalCacheGlob 'microsoft-azure-iotedge-moby-engine.cab' `
-                -Delete ([ref] $deleteMobyEngineArchive)
-            
-            Install-Package -Path $mobyEngineArchivePath -RestartNeeded $RestartNeeded
+        $mobyEngineArchivePath = Download-File `
+            -Description 'Moby Engine' `
+            -Url 'https://aka.ms/iotedge-moby-engine-win-amd64-latest-cab' `
+            -DownloadFilename 'microsoft-azure-iotedge-moby-engine.cab' `
+            -LocalCacheGlob 'microsoft-azure-iotedge-moby-engine.cab' `
+            -Delete ([ref] $deleteMobyEngineArchive)
+        Install-Package -Path $mobyEngineArchivePath -RestartNeeded $RestartNeeded
 
-            if (-not ($SkipMobyCli)) {
-                $mobyCliArchivePath = Download-File `
-                    -Description 'Moby CLI' `
-                    -Url 'https://aka.ms/iotedge-moby-cli-win-amd64-latest-cab' `
-                    -DownloadFilename 'microsoft-azure-iotedge-moby-cli.cab' `
-                    -LocalCacheGlob 'microsoft-azure-iotedge-moby-cli.cab' `
-                    -Delete ([ref] $deleteMobyCliArchive)
-                Install-Package -Path $mobyCliArchivePath -RestartNeeded $RestartNeeded
-            }
+        if (-not ($SkipMobyCli)) {
+            $mobyCliArchivePath = Download-File `
+                -Description 'Moby CLI' `
+                -Url 'https://aka.ms/iotedge-moby-cli-win-amd64-latest-cab' `
+                -DownloadFilename 'microsoft-azure-iotedge-moby-cli.cab' `
+                -LocalCacheGlob 'microsoft-azure-iotedge-moby-cli.cab' `
+                -Delete ([ref] $deleteMobyCliArchive)
+            Install-Package -Path $mobyCliArchivePath -RestartNeeded $RestartNeeded
         }
 
         $edgeArchivePath = Download-File `
-            -Description 'IoT Edge security daemon' `
+            -Description 'IoT Edge Security Daemon' `
             -Url 'https://aka.ms/iotedged-windows-latest-cab' `
             -DownloadFilename 'microsoft-azure-iotedge.cab' `
             -LocalCacheGlob 'microsoft-azure-iotedge.cab' `
@@ -743,19 +740,6 @@ function Get-SecurityDaemon([ref] $RestartNeeded) {
             $acl.AddAccessRule($rule)
             Set-Acl -Path $path -AclObject $acl
         }
-
-        if (Test-IotCore) {
-            Write-Host ("Committing changes, this will cause a reboot on success. " + 
-                "If this is the first time installation, run Install-SecurityDaemon -Finalize after the reboot completes.")
-            $output = Invoke-Native "ApplyUpdate -commit" -DoNotThrow -Passthru
-            # On success, this should reboot, we currently cannot block that
-            if ($LASTEXITCODE -ne 0) {
-                throw "Failed to deploy, consider rebooting. Please refer to the following for more information: `n$output"
-            }
-            Start-Sleep -Seconds 120
-            $output = Invoke-Native "ApplyUpdate -status" -DoNotThrow -Passthru
-            throw "Failed to deploy. Please refer to the following for more information: `n$output"
-        }
     }
     finally {
         if ($deleteEdgeArchive) {
@@ -769,6 +753,19 @@ function Get-SecurityDaemon([ref] $RestartNeeded) {
         if ($deleteMobyCliArchive) {
             Remove-Item $mobyCliArchivePath -Recurse -Force -ErrorAction SilentlyContinue
         }
+    }
+
+    if (Test-IotCore) {
+        Write-Host ("Committing changes, this will cause a reboot on success. " + 
+            "If this is the first time installation, run Install-SecurityDaemon -Finalize after the reboot completes.")
+        $output = Invoke-Native "ApplyUpdate -commit" -DoNotThrow -Passthru
+        # On success, this should reboot, we currently cannot block that
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to deploy, consider rebooting. Please refer to the following for more information: `n$output"
+        }
+        Start-Sleep -Seconds 120
+        $output = Invoke-Native "ApplyUpdate -status" -DoNotThrow -Passthru
+        throw "Failed to deploy. Please refer to the following for more information: `n$output"
     }
 }
 
@@ -1016,12 +1013,6 @@ function Get-VcRuntime {
 }
 
 function Start-IoTEdgeService([bool] $RestartNeeded) {
-    if ($ContainerOs -eq 'Linux') {
-        Remove-ItemProperty 
-            -Path "HKLM:\SYSTEM\CurrentControlSet\Services\$EdgeServiceName" 
-            -Name "DependOnService"
-    }
-
     if (-not $RestartNeeded) {
         Start-Service $EdgeServiceName
     }
