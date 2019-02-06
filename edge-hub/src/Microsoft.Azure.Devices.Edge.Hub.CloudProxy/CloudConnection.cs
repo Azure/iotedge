@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.closeOnIdleTimeout = closeOnIdleTimeout;
             this.cloudProxy = Option.None<ICloudProxy>();
             this.operationTimeout = operationTimeout;
-            this.productInfo = Preconditions.CheckNonWhiteSpace(productInfo, nameof(productInfo));
+            this.productInfo = Preconditions.CheckNotNull(productInfo, nameof(productInfo));
         }
 
         public Option<ICloudProxy> CloudProxy => this.GetCloudProxy().Filter(cp => cp.IsActive);
@@ -118,7 +118,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             client.SetOperationTimeoutInMilliseconds((uint)this.operationTimeout.TotalMilliseconds);
             client.SetConnectionStatusChangedHandler(this.InternalConnectionStatusChangesHandler);
-            client.SetProductInfo(this.productInfo);
+            if (!string.IsNullOrWhiteSpace(this.productInfo))
+            {
+                client.SetProductInfo(this.productInfo);
+            }
 
             await client.OpenAsync();
             Events.CreateDeviceClientSuccess(this.transportSettingsList, this.operationTimeout, this.Identity);
