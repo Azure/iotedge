@@ -63,7 +63,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Task setTask = sessionProvider.SetAsync(identity, sessionState);
 
             Assert.True(setTask.IsCompleted);
-            edgeHub.Verify(x => x.RemoveSubscription("d1", DeviceSubscription.Methods), Times.Once);
+            var subscriptions = new List<(DeviceSubscription, bool)>
+            {
+                (DeviceSubscription.Methods, false)
+            };
+            edgeHub.Verify(x => x.ProcessSubscriptions("d1", subscriptions), Times.Once);
         }
 
         [Fact]
@@ -136,12 +140,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         [Unit]
         public async Task TestSetAsync_RemovedSubscription_ShouldUpdateStore()
         {
+            List<(DeviceSubscription, bool)> receivedSubscriptions = null;
             var edgeHub = new Mock<IEdgeHub>();
+            edgeHub.Setup(e => e.ProcessSubscriptions("d1", It.IsAny<IEnumerable<(DeviceSubscription, bool)>>()))
+                .Callback<string, IEnumerable<(DeviceSubscription, bool)>>((d, s) => receivedSubscriptions = s.ToList())
+                .Returns(Task.CompletedTask);
+                
             var identity = Mock.Of<IProtocolgatewayDeviceIdentity>(i => i.Id == "d1");
             var sessionProvider = new SessionStateStoragePersistenceProvider(edgeHub.Object, this.entityStore);
             var sessionState = new SessionState(false);
             sessionState.AddOrUpdateSubscription(MethodPostTopicPrefix, QualityOfService.AtLeastOnce);
             await sessionProvider.SetAsync(identity, sessionState);
+
+            Assert.NotNull(receivedSubscriptions);
+            Assert.Equal(1, receivedSubscriptions.Count);
+            Assert.True(receivedSubscriptions[0].Item2);
+            Assert.Equal(receivedSubscriptions[0].Item1, DeviceSubscription.Methods);
 
             sessionState.RemoveSubscription(MethodPostTopicPrefix);
             await sessionProvider.SetAsync(identity, sessionState);
@@ -149,11 +163,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             ISessionState storedSession = await sessionProvider.GetAsync(identity);
             Assert.NotNull(storedSession);
             Assert.Null(storedSession.Subscriptions.SingleOrDefault(p => p.TopicFilter == MethodPostTopicPrefix));
-            IEnumerable<(DeviceSubscription, bool)> list = new List<(DeviceSubscription, bool)>
-            {
-                (DeviceSubscription.Methods, false)
-            };
-            edgeHub.Verify(x => x.ProcessSubscriptions("d1", list), Times.Once);
+            Assert.NotNull(receivedSubscriptions);
+            Assert.Equal(1, receivedSubscriptions.Count);
+            Assert.False(receivedSubscriptions[0].Item2);
+            Assert.Equal(receivedSubscriptions[0].Item1, DeviceSubscription.Methods);
 
             // clean up
             await sessionProvider.DeleteAsync(identity, sessionState);
@@ -179,7 +192,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         [Unit]
         public async Task TestPersistence()
         {
+            int callbackCount = 0;
+            List<(DeviceSubscription, bool)> receivedSubscriptions = null;
             var edgeHub = new Mock<IEdgeHub>();
+            edgeHub.Setup(e => e.ProcessSubscriptions("d1", It.IsAny<IEnumerable<(DeviceSubscription, bool)>>()))
+                .Callback<string, IEnumerable<(DeviceSubscription, bool)>>((d, s) =>
+                {
+                    callbackCount++;
+                    receivedSubscriptions = s.ToList();
+                })
+                .Returns(Task.CompletedTask);
 
             var identity = Mock.Of<IProtocolgatewayDeviceIdentity>(i => i.Id == "d1");
             var sessionProvider = new SessionStateStoragePersistenceProvider(edgeHub.Object, this.entityStore);
@@ -192,14 +214,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             sessionState.RemoveSubscription(SessionStatePersistenceProvider.TwinSubscriptionTopicPrefix);
             await sessionProvider.SetAsync(identity, sessionState);
 
-            await Task.Delay(TimeSpan.FromSeconds(20));
-            IEnumerable<(DeviceSubscription, bool)> subscriptions = new List<(DeviceSubscription, bool)>
+            await Task.Delay(TimeSpan.FromSeconds(2));
+            var expectedSubscriptions = new List<(DeviceSubscription, bool)>
             {
-                (DeviceSubscription.Methods, true),
                 (DeviceSubscription.C2D, true),
+                (DeviceSubscription.Methods, true),                
                 (DeviceSubscription.DesiredPropertyUpdates, false)
             };
-            edgeHub.Verify(x => x.ProcessSubscriptions("d1", subscriptions), Times.Once);
+            Assert.NotNull(receivedSubscriptions);
+            Assert.Equal(1, callbackCount);
+            Assert.Equal(receivedSubscriptions, expectedSubscriptions);
 
             ISessionState storedSession = await sessionProvider.GetAsync(identity);
             Assert.NotNull(storedSession);
@@ -224,8 +248,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.True(DateTime.UtcNow - methodSubscription.CreationTime < TimeSpan.FromMinutes(2));
 
             await sessionProvider.SetAsync(identity, sessionState);
-
-            edgeHub.Verify(x => x.ProcessSubscriptions("d1", subscriptions), Times.Exactly(2));
+            await Task.Delay(TimeSpan.FromSeconds(2));
+            Assert.NotNull(receivedSubscriptions);
+            Assert.Equal(2, callbackCount);
+            Assert.Equal(receivedSubscriptions, expectedSubscriptions);
 
             storedSession = await sessionProvider.GetAsync(identity);
             Assert.NotNull(storedSession);
@@ -250,8 +276,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.True(DateTime.UtcNow - methodSubscription.CreationTime < TimeSpan.FromMinutes(2));
 
             await sessionProvider.SetAsync(identity, sessionState);
-
-            edgeHub.Verify(x => x.ProcessSubscriptions("d1", subscriptions), Times.Exactly(3));
+            await Task.Delay(TimeSpan.FromSeconds(2));
+            Assert.NotNull(receivedSubscriptions);
+            Assert.Equal(3, callbackCount);
+            Assert.Equal(receivedSubscriptions, expectedSubscriptions);
         }
     }
 }

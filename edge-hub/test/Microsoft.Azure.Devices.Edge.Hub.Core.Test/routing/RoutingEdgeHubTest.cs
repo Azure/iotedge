@@ -269,6 +269,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             IInvokeMethodHandler invokeMethodHandler = new InvokeMethodHandler(connectionManager);
 
+            var subscriptionProcessor = new SubscriptionProcessor(connectionManager, invokeMethodHandler, Mock.Of<IDeviceConnectivityManager>());
+
             // RoutingEdgeHub
             var routingEdgeHub = new RoutingEdgeHub(
                 router,
@@ -277,7 +279,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 twinManager,
                 "testEdgeDevice",
                 invokeMethodHandler,
-                Mock.Of<ISubscriptionProcessor>());
+                subscriptionProcessor);
 
             var deviceMessageHandler = new DeviceMessageHandler(identity, routingEdgeHub, connectionManager);
             var methodRequest = new DirectMethodRequest("device1/module1", "shutdown", null, TimeSpan.FromSeconds(2), TimeSpan.FromMilliseconds(10));
@@ -423,6 +425,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var connectionManager = new ConnectionManager(cloudConnectionProvider.Object, Mock.Of<ICredentialsCache>(), new IdentityProvider("myIotHub"));
 
             IInvokeMethodHandler invokeMethodHandler = new InvokeMethodHandler(connectionManager);
+            var subscriptionProcessor = new SubscriptionProcessor(connectionManager, invokeMethodHandler, Mock.Of<IDeviceConnectivityManager>());
 
             // RoutingEdgeHub
             var routingEdgeHub = new RoutingEdgeHub(
@@ -432,7 +435,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 twinManager,
                 "testEdgeDevice",
                 invokeMethodHandler,
-                Mock.Of<ISubscriptionProcessor>());
+                subscriptionProcessor);
 
             var deviceMessageHandler = new DeviceMessageHandler(identity, routingEdgeHub, connectionManager);
             var underlyingDeviceProxy = new Mock<IDeviceProxy>();
