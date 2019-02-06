@@ -520,10 +520,10 @@ mod tests {
     use edgelet_core::crypto::{MemoryKey, MemoryKeyStore};
     use http;
     use hyper::{self, Body, Request, Response, StatusCode};
-    use DPS_API_VERSION;
     use serde_json;
     use tokio;
     use url::Url;
+    use DPS_API_VERSION;
 
     #[test]
     fn server_register_with_tpm_auth_success() {

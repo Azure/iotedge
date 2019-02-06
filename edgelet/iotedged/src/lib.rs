@@ -13,8 +13,8 @@ extern crate base64;
 #[macro_use]
 extern crate clap;
 extern crate config;
-extern crate dps;
 extern crate docker;
+extern crate dps;
 extern crate edgelet_core;
 extern crate edgelet_docker;
 extern crate edgelet_hsm;
@@ -80,8 +80,8 @@ use hyper::Uri;
 use sha2::{Digest, Sha256};
 use url::Url;
 
-use dps::DPS_API_VERSION;
 use docker::models::HostConfig;
+use dps::DPS_API_VERSION;
 use edgelet_core::crypto::{
     Activate, CreateCertificate, Decrypt, DerivedKeyStore, Encrypt, GetTrustBundle, KeyIdentity,
     KeyStore, MasterEncryptionKey, MemoryKey, MemoryKeyStore, Sign, IOTEDGED_CA_ALIAS,
