@@ -374,7 +374,7 @@ mod tests {
                 assert_eq!(dps.global_endpoint().scheme(), "scheme");
                 assert_eq!(dps.global_endpoint().host_str().unwrap(), "jibba-jabba.net");
                 assert_eq!(dps.scope_id(), "i got no time for the jibba-jabba");
-                assert_eq!(dps.registration_id(), "register me foo");
+                assert_eq!(dps.registration_id(), "register me fool");
                 assert_eq!(dps.symmetric_key().unwrap(), "first name Mr last name T");
             }
             _ => assert!(false),

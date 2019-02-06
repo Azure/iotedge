@@ -4,7 +4,7 @@ provisioning:
   source: "dps"
   global_endpoint: "scheme://jibba-jabba.net"
   scope_id: "i got no time for the jibba-jabba"
-  registration_id: "register me foo"
+  registration_id: "register me fool"
   symmetric_key: "first name Mr last name T"
 
 agent:
