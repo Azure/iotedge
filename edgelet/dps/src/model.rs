@@ -17,8 +17,6 @@ use std::default::Default;
 #[allow(unused_imports)]
 use serde_json::Value;
 
-pub const DPS_API_VERSION: &str = "2018-11-01";
-
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DeviceRegistration {
     #[serde(rename = "registrationId", skip_serializing_if = "Option::is_none")]

@@ -520,14 +520,14 @@ mod tests {
     use edgelet_core::crypto::{MemoryKey, MemoryKeyStore};
     use http;
     use hyper::{self, Body, Request, Response, StatusCode};
-    use model::DPS_API_VERSION;
+    use DPS_API_VERSION;
     use serde_json;
     use tokio;
     use url::Url;
 
     #[test]
     fn server_register_with_tpm_auth_success() {
-        let expected_uri = "https://global.azure-devices-provisioning.net/scope/registrations/reg/register?api-version=2018-11-01";
+        let expected_uri = format!("https://global.azure-devices-provisioning.net/scope/registrations/reg/register?api-version={}", DPS_API_VERSION);
         let handler = move |req: Request<Body>| {
             let (
                 http::request::Parts {
@@ -538,7 +538,7 @@ mod tests {
                 },
                 _body,
             ) = req.into_parts();
-            assert_eq!(uri, expected_uri);
+            assert_eq!(uri, expected_uri.as_str());
             assert_eq!(method, Method::PUT);
             // If authorization header does not have the shared access signature, request one
             let auth = headers.get(hyper::header::AUTHORIZATION);
@@ -773,7 +773,7 @@ mod tests {
         let client = Client::new(
             handler,
             None,
-            "2017-11-15".to_string(),
+            DPS_API_VERSION.to_string(),
             Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
         )
         .unwrap();

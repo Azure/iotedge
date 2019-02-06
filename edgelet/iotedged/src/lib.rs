@@ -13,6 +13,7 @@ extern crate base64;
 #[macro_use]
 extern crate clap;
 extern crate config;
+extern crate dps;
 extern crate docker;
 extern crate edgelet_core;
 extern crate edgelet_docker;
@@ -79,6 +80,7 @@ use hyper::Uri;
 use sha2::{Digest, Sha256};
 use url::Url;
 
+use dps::DPS_API_VERSION;
 use docker::models::HostConfig;
 use edgelet_core::crypto::{
     Activate, CreateCertificate, Decrypt, DerivedKeyStore, Encrypt, GetTrustBundle, KeyIdentity,
@@ -662,7 +664,7 @@ where
         provisioning.global_endpoint().clone(),
         provisioning.scope_id().to_string(),
         provisioning.registration_id().to_string(),
-        "2018-11-01".to_string(),
+        DPS_API_VERSION.to_string(),
     )
     .context(ErrorKind::Initialize(
         InitializeErrorReason::DpsProvisioningClient,
