@@ -5,7 +5,7 @@ default_ca = CA_default
 
 [ CA_default ]
 # Directory and file locations.
-dir               = .
+dir               = $ENV::CERTIFICATE_OUTPUT_DIR
 certs             = $dir/certs
 crl_dir           = $dir/crl
 new_certs_dir     = $dir/newcerts
@@ -83,14 +83,14 @@ emailAddress_default            =
 [ v3_ca ]
 # Extensions for a typical CA.
 subjectKeyIdentifier = hash
-authorityKeyIdentifier = keyid:always,issuer
+authorityKeyIdentifier = keyid:always,issuer:always
 basicConstraints = critical, CA:true
 keyUsage = critical, digitalSignature, cRLSign, keyCertSign
 
 [ v3_intermediate_ca ]
 # Extensions for a typical intermediate CA.
 subjectKeyIdentifier = hash
-authorityKeyIdentifier = keyid:always,issuer
+authorityKeyIdentifier = keyid:always,issuer:always
 basicConstraints = critical, CA:true
 keyUsage = critical, digitalSignature, cRLSign, keyCertSign
 
@@ -100,7 +100,7 @@ basicConstraints = CA:FALSE
 nsCertType = client, email
 nsComment = "OpenSSL Generated Client Certificate"
 subjectKeyIdentifier = hash
-authorityKeyIdentifier = keyid,issuer
+authorityKeyIdentifier = keyid:always,issuer:always
 keyUsage = critical, nonRepudiation, digitalSignature, keyEncipherment
 extendedKeyUsage = clientAuth, emailProtection
 
@@ -110,7 +110,7 @@ basicConstraints = CA:FALSE
 nsCertType = server
 nsComment = "OpenSSL Generated Server Certificate"
 subjectKeyIdentifier = hash
-authorityKeyIdentifier = keyid,issuer:always
+authorityKeyIdentifier = keyid:always,issuer:always
 keyUsage = critical, digitalSignature, keyEncipherment
 extendedKeyUsage = serverAuth
 
