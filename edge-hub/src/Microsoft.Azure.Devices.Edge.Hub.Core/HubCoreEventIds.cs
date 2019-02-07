@@ -18,6 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public const int DeviceScopeIdentitiesCache = EventIdStart + 1200;
         public const int PeriodicConnectionAuthenticator = EventIdStart + 1300;
         public const int DeviceScopeAuthenticator = EventIdStart + 1400;
+        public const int SubscriptionProcessor = EventIdStart + 1500;
         const int EventIdStart = 1000;
     }
 }
