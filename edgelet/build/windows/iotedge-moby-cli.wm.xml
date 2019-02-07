@@ -8,6 +8,8 @@
   owner="Microsoft"
   >
   <files>
-    <file source="$(_REPO_ROOT)\docker.exe" destinationDir="$(runtime.programFiles)\iotedge-moby" />
+    <file source="$(_REPO_ROOT)\moby-cli\docker.exe" destinationDir="$(runtime.programFiles)\iotedge-moby" />
+    <file source="$(_REPO_ROOT)\moby-cli\LICENSE" destinationDir="$(runtime.programFiles)\iotedge-moby\legal-cli" />
+    <file source="$(_REPO_ROOT)\moby-cli\ThirdPartyNotices" destinationDir="$(runtime.programFiles)\iotedge-moby\legal-cli" />
   </files>
 </identity>

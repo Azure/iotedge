@@ -1,8 +1,23 @@
-# TODO replace with MS released docker
-$docker_cli_uri = "https://master.dockerproject.org/windows/x86_64/docker.exe"
-$docker_engine_uri = "https://master.dockerproject.org/windows/x86_64/dockerd.exe"
+$docker_cli_uri = "https://github.com/Azure/azure-iotedge/releases/download/1.0.5/moby-cli_3.0.2.zip"
+$docker_cli_version = "3.0.2.0"
+$docker_engine_uri = "https://conteng.blob.core.windows.net/mby/moby-engine_3.0.3.zip"
+$docker_engine_version = "3.0.3.0"
 
-Write-Host ("Source version '{0}'" -f $env:VERSION)
+cmd /c installoemcerts.cmd
+
+Function New-Package([string] $Name, [string] $Version)
+{
+    $pkggen = "${Env:ProgramFiles(x86)}\Windows Kits\10\tools\bin\i386\pkggen.exe"
+    $manifest = "edgelet\build\windows\$Name.wm.xml"
+    $cwd = "."
+    Invoke-Expression "& '$pkggen' $manifest /universalbsp /variables:'_REPO_ROOT=..\..\..'  /cpu:amd64 /version:$Version"
+}
+
+#
+# IoTEdge
+#
+
+Write-Host ("IoTEdge source version '{0}'" -f $env:VERSION)
 
 # VERSION is either 1.0.7~dev or 1.0.7
 $splitVersion = $env:VERSION -split "~"
@@ -19,28 +34,21 @@ else {
     $version = "0.{0}.{1}.{2}" -f $first, $third, $splitSecond[-1]
 }
 
-Write-Host "Using version '$version'"
+Write-Host "IoTEdge using version '$version'"
+New-Package -Name "iotedge" -Version $version
 
-cmd /c installoemcerts.cmd
+#
+# Moby CLI
+#
 
-Function New-Package([string]$Name)
-{
-    $pkggen = "${Env:ProgramFiles(x86)}\Windows Kits\10\tools\bin\i386\pkggen.exe"
-    $manifest = "edgelet\build\windows\$Name.wm.xml"
-    $cwd = "."
-    Invoke-Expression "& '$pkggen' $manifest /universalbsp /variables:'_REPO_ROOT=..\..\..'  /cpu:amd64 /version:$version"
-}
+Invoke-WebRequest $docker_cli_uri -out "moby-cli.zip"
+Expand-Archive -Path "moby-cli.zip" -DestinationPath "moby-cli"
+New-Package -Name "iotedge-moby-cli" -Version $docker_cli_version
 
-New-Package -Name "iotedge"
+#
+# Moby Engine
+#
 
-if (-not (Test-Path -Path docker.exe))
-{
-    Invoke-WebRequest $docker_cli_uri -out docker.exe
-}
-New-Package -Name "iotedge-moby-cli"
-
-if (-not (Test-Path -Path dockerd.exe))
-{
-    Invoke-WebRequest $docker_engine_uri -out dockerd.exe
-}
-New-Package -Name "iotedge-moby-engine"
+Invoke-WebRequest $docker_engine_uri -out "moby-engine.zip"
+Expand-Archive -Path "moby-engine.zip" -DestinationPath "moby-engine"
+New-Package -Name "iotedge-moby-engine" -Version $docker_engine_version

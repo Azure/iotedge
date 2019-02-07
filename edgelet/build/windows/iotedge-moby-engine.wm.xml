@@ -8,7 +8,9 @@
   owner="Microsoft"
   >
   <files>
-    <file source="$(_REPO_ROOT)\dockerd.exe" destinationDir="$(runtime.programFiles)\iotedge-moby" />
+    <file source="$(_REPO_ROOT)\moby-engine\dockerd.exe" destinationDir="$(runtime.programFiles)\iotedge-moby" />
+    <file source="$(_REPO_ROOT)\moby-engine\LICENSE" destinationDir="$(runtime.programFiles)\iotedge-moby\legal-engine" />
+    <file source="$(_REPO_ROOT)\moby-engine\ThirdPartyNotices" destinationDir="$(runtime.programFiles)\iotedge-moby\legal-engine" />
   </files>
   <regKeys>
     <regKey keyName="$(hklm.system)\CurrentControlSet\Services\EventLog\Application\iotedge-moby">
