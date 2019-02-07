@@ -385,7 +385,7 @@ mod tests {
     use crate::constants;
     use crate::convert::to_k8s::auth_to_image_pull_secret;
     use crate::convert::to_k8s::{Auth, AuthEntry};
-    use crate::runtime::{DeviceIdentity, KubeRuntimeData, ProxySettings, ServiceSettings};
+    use crate::runtime::KubeRuntimeData;
     use docker::models::AuthConfig;
     use docker::models::ContainerCreateBody;
     use docker::models::HostConfig;
@@ -402,25 +402,43 @@ mod tests {
     struct KubeRuntimeTest {
         use_pvc: bool,
         namespace: String,
-        device_identity: DeviceIdentity,
-        proxy_settings: ProxySettings,
-        service_settings: ServiceSettings,
+        iot_hub_hostname: String,
+        device_id: String,
+        edge_hostname: String,
+        proxy_image: String,
+        proxy_config_path: String,
+        proxy_config_map_name: String,
+        service_account_name: String,
+        workload_uri: Url,
+        management_uri: Url,
     }
 
     impl KubeRuntimeTest {
         pub fn new(
             use_pvc: bool,
             namespace: String,
-            device_identity: DeviceIdentity,
-            proxy_settings: ProxySettings,
-            service_settings: ServiceSettings,
+            iot_hub_hostname: String,
+            device_id: String,
+            edge_hostname: String,
+            proxy_image: String,
+            proxy_config_path: String,
+            proxy_config_map_name: String,
+            service_account_name: String,
+            workload_uri: Url,
+            management_uri: Url,
         ) -> KubeRuntimeTest {
             KubeRuntimeTest {
                 use_pvc,
                 namespace,
-                device_identity,
-                proxy_settings,
-                service_settings,
+                iot_hub_hostname,
+                device_id,
+                edge_hostname,
+                proxy_image,
+                proxy_config_path,
+                proxy_config_map_name,
+                service_account_name,
+                workload_uri,
+                management_uri,
             }
         }
     }
@@ -433,31 +451,31 @@ mod tests {
             self.use_pvc
         }
         fn iot_hub_hostname(&self) -> &str {
-            &self.device_identity.iot_hub_hostname
+            &self.iot_hub_hostname
         }
         fn device_id(&self) -> &str {
-            &self.device_identity.device_id
+            &self.device_id
         }
         fn edge_hostname(&self) -> &str {
-            &self.device_identity.edge_hostname
+            &self.edge_hostname
         }
         fn proxy_image(&self) -> &str {
-            &self.proxy_settings.proxy_image
+            &self.proxy_image
         }
         fn proxy_config_path(&self) -> &str {
-            &self.proxy_settings.proxy_config_path
+            &self.proxy_config_path
         }
         fn proxy_config_map_name(&self) -> &str {
-            &self.proxy_settings.proxy_config_map_name
+            &self.proxy_config_map_name
         }
         fn service_account_name(&self) -> &str {
-            &self.service_settings.service_account_name
+            &self.service_account_name
         }
         fn workload_uri(&self) -> &Url {
-            &self.service_settings.workload_uri
+            &self.workload_uri
         }
         fn management_uri(&self) -> &Url {
-            &self.service_settings.management_uri
+            &self.management_uri
         }
     }
 
@@ -539,21 +557,15 @@ mod tests {
         let runtime = KubeRuntimeTest::new(
             true,
             String::from("default1"),
-            DeviceIdentity::new(
-                String::from("iotHub"),
-                String::from("device1"),
-                String::from("$edgeAgent"),
-            ),
-            ProxySettings::new(
-                String::from("proxy:latest"),
-                String::from("/etc/traefik"),
-                String::from("device1-iotedged-proxy-config"),
-            ),
-            ServiceSettings::new(
-                String::from("iotedge"),
-                Url::parse("http://localhost:35000").unwrap(),
-                Url::parse("http://localhost:35001").unwrap(),
-            ),
+            String::from("iotHub"),
+            String::from("device1"),
+            String::from("$edgeAgent"),
+            String::from("proxy:latest"),
+            String::from("/etc/traefik"),
+            String::from("device1-iotedged-proxy-config"),
+            String::from("iotedge"),
+            Url::parse("http://localhost:35000").unwrap(),
+            Url::parse("http://localhost:35001").unwrap(),
         );
         let module_config = create_module_spec();
 

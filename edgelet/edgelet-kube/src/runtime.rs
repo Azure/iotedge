@@ -23,72 +23,7 @@ use hyper::service::Service;
 use hyper::{Body, Chunk as HyperChunk};
 use hyper_tls::HttpsConnector;
 use kube_client::{get_config, Client as KubeClient, HttpClient, ValueToken};
-
-//use std::collections::BTreeMap;
 use url::Url;
-
-#[derive(Clone)]
-pub struct DeviceIdentity {
-    pub iot_hub_hostname: String,
-    pub device_id: String,
-    pub edge_hostname: String,
-}
-
-impl DeviceIdentity {
-    pub fn new(
-        iot_hub_hostname: String,
-        device_id: String,
-        edge_hostname: String,
-    ) -> DeviceIdentity {
-        DeviceIdentity {
-            iot_hub_hostname,
-            device_id,
-            edge_hostname,
-        }
-    }
-}
-
-#[derive(Clone)]
-pub struct ProxySettings {
-    pub proxy_image: String,
-    pub proxy_config_path: String,
-    pub proxy_config_map_name: String,
-}
-
-impl ProxySettings {
-    pub fn new(
-        proxy_image: String,
-        proxy_config_path: String,
-        proxy_config_map_name: String,
-    ) -> ProxySettings {
-        ProxySettings {
-            proxy_image,
-            proxy_config_path,
-            proxy_config_map_name,
-        }
-    }
-}
-
-#[derive(Clone)]
-pub struct ServiceSettings {
-    pub service_account_name: String,
-    pub workload_uri: Url,
-    pub management_uri: Url,
-}
-
-impl ServiceSettings {
-    pub fn new(
-        service_account_name: String,
-        workload_uri: Url,
-        management_uri: Url,
-    ) -> ServiceSettings {
-        ServiceSettings {
-            service_account_name,
-            workload_uri,
-            management_uri,
-        }
-    }
-}
 
 #[derive(Clone)]
 pub struct KubeModuleRuntime<S> {
@@ -161,76 +96,73 @@ impl KubeModuleRuntime<HttpClient<HttpsConnector<HttpConnector>, Body>> {
     pub fn new(
         namespace: String,
         use_pvc: bool,
-        device_identity: DeviceIdentity,
-        proxy_settings: ProxySettings,
-        service_settings: ServiceSettings,
+        iot_hub_hostname: String,
+        device_id: String,
+        edge_hostname: String,
+        proxy_image: String,
+        proxy_config_path: String,
+        proxy_config_map_name: String,
+        service_account_name: String,
+        workload_uri: Url,
+        management_uri: Url,
     ) -> Result<Self> {
         ensure_not_empty_with_context(&namespace, || {
             ErrorKind::InvalidRunTimeParameter(String::from("namespace"), namespace.clone())
         })?;
-        ensure_not_empty_with_context(&device_identity.iot_hub_hostname, || {
+        ensure_not_empty_with_context(&iot_hub_hostname, || {
             ErrorKind::InvalidRunTimeParameter(
                 String::from("iot_hub_hostname"),
-                device_identity.iot_hub_hostname.clone(),
+                iot_hub_hostname.clone(),
             )
         })?;
-        ensure_not_empty_with_context(&device_identity.device_id, || {
-            ErrorKind::InvalidRunTimeParameter(
-                String::from("device_id"),
-                device_identity.device_id.clone(),
-            )
+        ensure_not_empty_with_context(&device_id, || {
+            ErrorKind::InvalidRunTimeParameter(String::from("device_id"), device_id.clone())
         })?;
-        ensure_not_empty_with_context(&device_identity.edge_hostname, || {
-            ErrorKind::InvalidRunTimeParameter(
-                String::from("edge_hostname"),
-                device_identity.edge_hostname.clone(),
-            )
+        ensure_not_empty_with_context(&edge_hostname, || {
+            ErrorKind::InvalidRunTimeParameter(String::from("edge_hostname"), edge_hostname.clone())
         })?;
-        ensure_not_empty_with_context(&proxy_settings.proxy_image, || {
-            ErrorKind::InvalidRunTimeParameter(
-                String::from("proxy_image"),
-                proxy_settings.proxy_image.clone(),
-            )
+        ensure_not_empty_with_context(&proxy_image, || {
+            ErrorKind::InvalidRunTimeParameter(String::from("proxy_image"), proxy_image.clone())
         })?;
-        ensure_not_empty_with_context(&proxy_settings.proxy_config_path, || {
+        ensure_not_empty_with_context(&proxy_config_path, || {
             ErrorKind::InvalidRunTimeParameter(
                 String::from("proxy_config_path"),
-                proxy_settings.proxy_config_path.clone(),
+                proxy_config_path.clone(),
             )
         })?;
-        ensure_not_empty_with_context(&proxy_settings.proxy_config_map_name, || {
+        ensure_not_empty_with_context(&proxy_config_map_name, || {
             ErrorKind::InvalidRunTimeParameter(
                 String::from("proxy_config_map_name"),
-                proxy_settings.proxy_config_map_name.clone(),
+                proxy_config_map_name.clone(),
             )
         })?;
-        ensure_not_empty_with_context(&service_settings.service_account_name, || {
+        ensure_not_empty_with_context(&service_account_name, || {
             ErrorKind::InvalidRunTimeParameter(
                 String::from("service_account_name"),
-                service_settings.service_account_name.clone(),
+                service_account_name.clone(),
             )
         })?;
         let device_hub_selector = format!(
             "{}={},{}={}",
             EDGE_DEVICE_LABEL,
-            sanitize_dns_label(&device_identity.device_id),
+            sanitize_dns_label(&device_id),
             EDGE_HUBNAME_LABEL,
-            sanitize_dns_label(&device_identity.iot_hub_hostname)
+            sanitize_dns_label(&iot_hub_hostname)
         );
 
         Ok(KubeModuleRuntime {
             client: Arc::new(Mutex::new(RefCell::new(KubeClient::new(get_config()?)))),
             namespace,
             use_pvc,
-            iot_hub_hostname: device_identity.iot_hub_hostname,
-            device_id: device_identity.device_id,
-            edge_hostname: device_identity.edge_hostname,
-            proxy_image: proxy_settings.proxy_image,
-            proxy_config_path: proxy_settings.proxy_config_path,
-            proxy_config_map_name: proxy_settings.proxy_config_map_name,
-            service_account_name: service_settings.service_account_name,
-            workload_uri: service_settings.workload_uri,
-            management_uri: service_settings.management_uri,
+            iot_hub_hostname,
+            device_id,
+            edge_hostname,
+            proxy_image,
+            proxy_config_path,
+            proxy_config_map_name,
+            service_account_name,
+            workload_uri,
+            management_uri,
             device_hub_selector,
         })
     }
@@ -545,106 +477,134 @@ mod tests {
     #[test]
     fn runtime_new() {
         let namespace = String::from("my-namespace");
-        let device_id = DeviceIdentity {
-            iot_hub_hostname: String::from("iothostname"),
-            device_id: String::from("my_device_id"),
-            edge_hostname: String::from("edge-hostname"),
-        };
-        let proxy_info = ProxySettings {
-            proxy_image: String::from("proxy-image"),
-            proxy_config_path: String::from("proxy-confg-path"),
-            proxy_config_map_name: String::from("config-volume"),
-        };
-        let service_info = ServiceSettings {
-            service_account_name: String::from("iotedge"),
-            workload_uri: Url::from_str("http://localhost:35000").unwrap(),
-            management_uri: Url::from_str("http://localhost:35001").unwrap(),
-        };
+        let iot_hub_hostname = String::from("iothostname");
+        let device_id = String::from("my_device_id");
+        let edge_hostname = String::from("edge-hostname");
+        let proxy_image = String::from("proxy-image");
+        let proxy_config_path = String::from("proxy-confg-path");
+        let proxy_config_map_name = String::from("config-volume");
+        let service_account_name = String::from("iotedge");
+        let workload_uri = Url::from_str("http://localhost:35000").unwrap();
+        let management_uri = Url::from_str("http://localhost:35001").unwrap();
 
         let result = KubeModuleRuntime::new(
             String::default(),
             true,
+            iot_hub_hostname.clone(),
             device_id.clone(),
-            proxy_info.clone(),
-            service_info.clone(),
+            edge_hostname.clone(),
+            proxy_image.clone(),
+            proxy_config_path.clone(),
+            proxy_config_map_name.clone(),
+            service_account_name.clone(),
+            workload_uri.clone(),
+            management_uri.clone(),
         );
 
         assert!(result.is_err());
 
-        let mut device_erred = device_id.clone();
-        device_erred.iot_hub_hostname = String::default();
         let result = KubeModuleRuntime::new(
             namespace.clone(),
             true,
-            device_erred,
-            proxy_info.clone(),
-            service_info.clone(),
-        );
-        assert!(result.is_err());
-
-        let mut device_erred = device_id.clone();
-        device_erred.device_id = String::default();
-        let result = KubeModuleRuntime::new(
-            namespace.clone(),
-            true,
-            device_erred,
-            proxy_info.clone(),
-            service_info.clone(),
-        );
-        assert!(result.is_err());
-
-        let mut device_erred = device_id.clone();
-        device_erred.edge_hostname = String::default();
-        let result = KubeModuleRuntime::new(
-            namespace.clone(),
-            true,
-            device_erred,
-            proxy_info.clone(),
-            service_info.clone(),
-        );
-        assert!(result.is_err());
-
-        let mut proxy_erred = proxy_info.clone();
-        proxy_erred.proxy_image = String::default();
-        let result = KubeModuleRuntime::new(
-            namespace.clone(),
-            true,
+            String::default(),
             device_id.clone(),
-            proxy_erred,
-            service_info.clone(),
+            edge_hostname.clone(),
+            proxy_image.clone(),
+            proxy_config_path.clone(),
+            proxy_config_map_name.clone(),
+            service_account_name.clone(),
+            workload_uri.clone(),
+            management_uri.clone(),
         );
         assert!(result.is_err());
 
-        let mut proxy_erred = proxy_info.clone();
-        proxy_erred.proxy_config_path = String::default();
         let result = KubeModuleRuntime::new(
             namespace.clone(),
             true,
-            device_id.clone(),
-            proxy_erred,
-            service_info.clone(),
+            iot_hub_hostname.clone(),
+            String::default(),
+            edge_hostname.clone(),
+            proxy_image.clone(),
+            proxy_config_path.clone(),
+            proxy_config_map_name.clone(),
+            service_account_name.clone(),
+            workload_uri.clone(),
+            management_uri.clone(),
         );
         assert!(result.is_err());
 
-        let mut proxy_erred = proxy_info.clone();
-        proxy_erred.proxy_config_map_name = String::default();
         let result = KubeModuleRuntime::new(
             namespace.clone(),
             true,
+            iot_hub_hostname.clone(),
             device_id.clone(),
-            proxy_erred,
-            service_info.clone(),
+            String::default(),
+            proxy_image.clone(),
+            proxy_config_path.clone(),
+            proxy_config_map_name.clone(),
+            service_account_name.clone(),
+            workload_uri.clone(),
+            management_uri.clone(),
         );
         assert!(result.is_err());
 
-        let mut service_erred = service_info.clone();
-        service_erred.service_account_name = String::default();
         let result = KubeModuleRuntime::new(
             namespace.clone(),
             true,
+            iot_hub_hostname.clone(),
             device_id.clone(),
-            proxy_info.clone(),
-            service_erred,
+            edge_hostname.clone(),
+            String::default(),
+            proxy_config_path.clone(),
+            proxy_config_map_name.clone(),
+            service_account_name.clone(),
+            workload_uri.clone(),
+            management_uri.clone(),
+        );
+        assert!(result.is_err());
+
+        let result = KubeModuleRuntime::new(
+            namespace.clone(),
+            true,
+            iot_hub_hostname.clone(),
+            device_id.clone(),
+            edge_hostname.clone(),
+            proxy_image.clone(),
+            String::default(),
+            proxy_config_map_name.clone(),
+            service_account_name.clone(),
+            workload_uri.clone(),
+            management_uri.clone(),
+        );
+        assert!(result.is_err());
+
+        let result = KubeModuleRuntime::new(
+            namespace.clone(),
+            true,
+            iot_hub_hostname.clone(),
+            device_id.clone(),
+            edge_hostname.clone(),
+            proxy_image.clone(),
+            proxy_config_path.clone(),
+            String::default(),
+            service_account_name.clone(),
+            workload_uri.clone(),
+            management_uri.clone(),
+        );
+        assert!(result.is_err());
+
+        let result = KubeModuleRuntime::new(
+            namespace.clone(),
+            true,
+            iot_hub_hostname.clone(),
+            device_id.clone(),
+            edge_hostname.clone(),
+            proxy_image.clone(),
+            proxy_config_path.clone(),
+            proxy_config_map_name.clone(),
+            String::default(),
+            workload_uri.clone(),
+            management_uri.clone(),
         );
         assert!(result.is_err());
     }
