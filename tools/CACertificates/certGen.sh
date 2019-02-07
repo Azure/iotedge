@@ -28,7 +28,7 @@ ROOT_CA_PREFIX="azure-iot-test-only.root.ca"
 ROOT_CA_PASSWORD=${ROOT_CA_PASSWORD:="1234"}
 INTERMEDIATE_CA_PREFIX="azure-iot-test-only.intermediate"
 INTERMEDIATE_CA_PASSWORD="1234"
-export TESTDIR=${CERTIFICATE_DIR}
+export CERTIFICATE_OUTPUT_DIR=${CERTIFICATE_DIR}
 
 ###############################################################################
 # Disclaimer print
