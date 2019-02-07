@@ -58,14 +58,13 @@ function Invoke-External()
     param (
         [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
         [String] $Command,
-
         [Switch] $Passthru
     )
 
     process {
         $output = $null
         Write-Verbose "Executing: $Command"
-        cmd /c "$Command 2>&1" 2>&1 | Tee-Object -Variable "output" | Write-Verbose
+        Invoke-Expression $Command | Tee-Object -Variable "output" | Write-Verbose
         Write-Verbose "Exit code: $LASTEXITCODE"
 
         if ($LASTEXITCODE) {
@@ -182,7 +181,11 @@ function Test-CACertNotInstalledAlready([bool]$printMsg=$true)
 function Test-CACertsPrerequisites([bool]$printMsg=$true)
 {
     Test-CACertNotInstalledAlready($printMsg)
-    $openssl_ext = $PSVersionTable.Platform == "Win32NT" ? ".exe" : ""
+    $openssl_ext = ""
+    if ($env:OS -eq "Windows_NT")
+    {
+        $openssl_ext = ".exe"
+    }
     $openssl_exe_name = "openssl" + $openssl_ext
     if ($TRUE -eq $printMsg)
     {
@@ -190,7 +193,7 @@ function Test-CACertsPrerequisites([bool]$printMsg=$true)
     }
     if ($NULL -eq (Get-Command $openssl_exe_name -ErrorAction SilentlyContinue))
     {
-        throw ("Openssl is unavailable. Please install openssl and set it in the PATH before proceeding.")
+        throw ("$openssl_exe_name is unavailable. Please install $openssl_exe_name and set it in the PATH before proceeding.")
     }
     if ($TRUE -eq $printMsg)
     {
@@ -223,11 +226,11 @@ function PrepareFilesystem()
     Remove-Item -Path $_basePath/intermediateCerts -ErrorAction Ignore
     Remove-Item -Path $_basePath/newcerts -Recurse -ErrorAction Ignore
 
-    mkdir -Path $_basePath/csr
-    mkdir -Path $_basePath/private
-    mkdir -Path $_basePath/certs
-    mkdir -Path $_basePath/intermediateCerts
-    mkdir -Path $_basePath/newcerts
+    New-Item -ItemType directory -Path $_basePath/csr
+    New-Item -ItemType directory -Path $_basePath/private
+    New-Item -ItemType directory -Path $_basePath/certs
+    New-Item -ItemType directory -Path $_basePath/intermediateCerts
+    New-Item -ItemType directory -Path $_basePath/newcerts
 
     Remove-Item -Path $_basePath/index.txt -ErrorAction Ignore
     New-Item $_basePath/index.txt -ItemType file
@@ -490,10 +493,10 @@ function New-ServerCertificate([string]$prefix, [string]$issuerPrefix, [string]$
     .PARAMETER commonName
         Value of the CN field to set when generating the certifcate
 #>
-function New-IntermediateCACertificate([string]$prefix, [string]$issuerPrefix, [string]$commonName, [string]$issuerKeyPass=$_privateKeyPassword)
+function New-IntermediateCACertificate([string]$prefix, [string]$issuerPrefix, [string]$commonName, [string]$issuerKeyPass)
 {
     $subject = "`"/CN=$commonName`""
-    $certFile = New-IntermediateCertificate "v3_intermediate_ca" $_days_until_expiration $subject $prefix  $issuerPrefix $_privateKeyPassword $_privateKeyPassword
+    $certFile = New-IntermediateCertificate "v3_intermediate_ca" $_days_until_expiration $subject $prefix $issuerPrefix $_privateKeyPassword $issuerKeyPass
     Write-Warning ("Generating certificate CN={0} which is for prototyping, NOT PRODUCTION.  It has a hard-coded password and will expire in {1} days." -f $commonName, $_days_until_expiration)
     return $certFile
 }
@@ -547,7 +550,7 @@ function New-CACertsCertChain([Parameter(Mandatory=$TRUE)][ValidateSet("rsa","ec
     Set-Content $algorithmUsedFile $algorithm
 
     New-RootCACertificate
-    $certFile = New-IntermediateCACertificate $_intermediatePrefix $_rootCAPrefix $_intermediateCommonName
+    $certFile = New-IntermediateCACertificate $_intermediatePrefix $_rootCAPrefix $_intermediateCommonName $_privateKeyPassword
     Write-Host "Success"
 
     return $certFile
@@ -569,10 +572,10 @@ function New-CACertsCertChain([Parameter(Mandatory=$TRUE)][ValidateSet("rsa","ec
         This will be used for all resulting certificates.
 #>
 function Install-RootCACertificate(
-    [Parameter(Mandatory=$TRUE)][string]$rootCAFile,
-    [Parameter(Mandatory=$TRUE)][string]$rootCAKeyFile,
-    [string]$rootPrivateKeyPassword=$NULL,
-    [Parameter(Mandatory=$TRUE)][ValidateSet("rsa","ecc")][string]$algorithm)
+    [Parameter(Position=0,Mandatory=$TRUE)][string]$rootCAFile,
+    [Parameter(Position=1,Mandatory=$TRUE)][string]$rootCAKeyFile,
+    [Parameter(Position=2,Mandatory=$TRUE)][ValidateSet("rsa","ecc")][string]$algorithm,
+    [Parameter(Position=3)][string]$rootPrivateKeyPassword=$_privateKeyPassword)
 {
     Write-Host "Beginning to install the root certificates in your filesystem here $PWD"
     Test-CACertsPrerequisites($FALSE)
@@ -687,7 +690,7 @@ function New-CACertsDevice([Parameter(Mandatory=$TRUE)][string]$deviceName, [str
         # client certificate where the hostname is used as the common name
         # which essentially results in "loop" for validation purposes.
         $deviceName += ".ca"
-        $certFile = New-IntermediateCACertificate $devicePrefix $issuerPrefix $deviceName
+        $certFile = New-IntermediateCACertificate $devicePrefix $issuerPrefix $deviceName $_privateKeyPassword
     }
     else
     {
