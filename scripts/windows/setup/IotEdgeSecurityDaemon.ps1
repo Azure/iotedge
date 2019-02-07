@@ -18,6 +18,10 @@ Set-Variable SupportedBuildsForWindowsContainers -Value @($Windows1809)
 
 Set-Variable DockerServiceName -Value 'com.docker.service' -Option Constant
 
+Set-Variable EdgePackage -Value "microsoft-azure-iotedge" -Option Constant
+Set-Variable MobyPackage -Value "microsoft-azure-iotedge-moby-engine" -Option Constant
+Set-Variable MobyCliPackage -Value "microsoft-azure-iotedge-moby-cli" -Option Constant
+
 Set-Variable EdgeInstallDirectory -Value "$env:ProgramFiles\iotedge" -Option Constant
 Set-Variable EdgeDataDirectory -Value "$env:ProgramData\iotedge" -Option Constant
 Set-Variable EdgeServiceName -Value 'iotedge' -Option Constant
@@ -333,7 +337,8 @@ function Update-SecurityDaemon {
         $InvokeWebRequestParameters['-Proxy'] = $Proxy
     }
 
-    if (Test-MobyNeedsToBeMoved -or Test-LegacyInstaller) {
+    if ((Test-MobyNeedsToBeMoved) -or 
+        (((Test-MobyAlreadyInstalled) -or (Test-EdgeAlreadyInstalled)) -and (Test-LegacyInstaller))) {
         Write-HostRed
         Write-HostRed 'IoT Edge is installed in an invalid location. To reinstall, run `Uninstall-SecurityDaemon -DeleteMobyDataRoot` first.'
         return
@@ -420,7 +425,9 @@ function Uninstall-SecurityDaemon {
     $ErrorActionPreference = 'Stop'
     Set-StrictMode -Version 5
 
-    if ((Test-IoTCore) -and (-not (Test-LegacyInstaller))) {
+    $legacyInstaller = Test-LegacyInstaller
+
+    if ((Test-IoTCore) -and (-not $legacyInstaller)) {
         Write-HostRed ("Uninstall-SecurityDaemon is only supported on IoTCore to uninstall legacy installation. " +
             "For new installations, please use Update-SecurityDaemon directly to update.")
         return
@@ -437,8 +444,8 @@ function Uninstall-SecurityDaemon {
     $ContainerOs = Get-ContainerOs
 
     $restartNeeded = $false
-    Uninstall-Services -RestartNeeded ([ref] $restartNeeded)
-    $success = Remove-SecurityDaemonResources
+    Uninstall-Services -RestartNeeded ([ref] $restartNeeded) -LegacyInstaller $legacyInstaller
+    $success = Remove-SecurityDaemonResources -LegacyInstaller $legacyInstaller
     Reset-SystemPath
 
     Remove-MachineEnvironmentVariable 'IOTEDGE_HOST'
@@ -618,8 +625,14 @@ function Test-MobyNeedsToBeMoved {
 }
 
 function Test-LegacyInstaller {
-    return (Test-Path -Path $LegacyMobyDataRootDirectory) -or
+    $legacyMobyData = (Test-Path -Path $LegacyMobyDataRootDirectory) -or
         (Test-Path -Path $LegacyMobyStaticDataRootDirectory)
+    if ($legacyMobyData) {
+        return $true
+    }
+
+    $newPackage = Get-Package $EdgePackage
+    return -not ([bool]$newPackage)
 }
 
 function Test-AgentRegistryArgs {
@@ -660,8 +673,7 @@ function Get-ExternalDockerServerOs {
     }
 }
 
-function Install-Package([string] $Path, [ref] $RestartNeeded)
-{
+function Install-Package([string] $Path, [ref] $RestartNeeded) {
     if (Test-IotCore) {
         Invoke-Native "ApplyUpdate -stage $Path"
     }
@@ -673,8 +685,7 @@ function Install-Package([string] $Path, [ref] $RestartNeeded)
     }
 }
 
-function Uninstall-Package([string] $Name, [ref] $RestartNeeded)
-{
+function Uninstall-Package([string] $Name, [ref] $RestartNeeded) {
     if (Test-IotCore) {
         return
     }
@@ -686,6 +697,17 @@ function Uninstall-Package([string] $Name, [ref] $RestartNeeded)
                 $RestartNeeded.Value = $true
             }
         }
+}
+
+function Get-Package([string] $Name) {
+    if (Test-IotCore) {
+        return Invoke-Native "ApplyUpdate -getinstalledpackages" -Passthru |
+            Where-Object { $_ -like "*INFO: $Name,*"}
+    }
+    else {
+        return Get-WindowsPackage -Online | 
+            Where-Object { $_.PackageName -like "$Name~*"}
+    }
 }
 
 function Get-SecurityDaemon([ref] $RestartNeeded) {
@@ -796,7 +818,27 @@ Function Remove-SecurityDaemonDirectory([string] $Path)
     }
 }
 
-function Remove-SecurityDaemonResources {
+function Delete-Directory([string] $Path) {
+    if (-not (Test-Path $Path)) {
+        return
+    }
+
+    # Removing `$MobyDataRootDirectory` is tricky. Windows base images contain files owned by TrustedInstaller, etc
+    # Deleting them is a three-step process:
+    #
+    # 1. Take ownership of all files
+    Invoke-Native "takeown /r /skipsl /f ""$Path"""
+
+    # 2. Reset their ACLs so that they inherit from their container
+    Invoke-Native "icacls ""$Path"" /reset /t /l /q /c"
+
+    # 3. Use cmd's `rd` rather than `Remove-Item` since the latter gets tripped up by reparse points, etc.
+    #    Prepend the path with `\\?\` since the layer directories have long names, so the paths usually exceed 260 characters,
+    #    and IoT Core's filesystem doesn't seem to automatically use (or even have) short names
+    Invoke-Native "rd /s /q ""\\?\$Path"""
+}
+
+function Remove-SecurityDaemonResources([bool] $LegacyInstaller) {
     $success = $true
 
     if ($LegacyEdgeInstallDirectory -ne $EdgeDataDirectory) {
@@ -813,7 +855,7 @@ function Remove-SecurityDaemonResources {
         Move-Item -Path $oldConfig -Destination $EdgeDataDirectory
     }
 
-    if (Test-LegacyInstaller) {
+    if (Test-Path $LegacyEdgeEventLogInstallDirectory) {
         Remove-Item -Recurse $LegacyEdgeEventLogInstallDirectory -ErrorAction SilentlyContinue -ErrorVariable cmdErr
         if ($?) {
             Write-Verbose "Deleted install directory '$LegacyEdgeEventLogInstallDirectory'"
@@ -821,7 +863,7 @@ function Remove-SecurityDaemonResources {
         elseif ($cmdErr.FullyQualifiedErrorId -ne 'PathNotFound,Microsoft.PowerShell.Commands.RemoveItemCommand') {
             Write-Verbose "$cmdErr"
             Write-Warning "Could not delete '$LegacyEdgeEventLogInstallDirectory'."
-            Write-Warning 'If you''re reinstalling or updating IoT Edge, then this is safe to ignore.'
+            Write-Warning "If you are reinstalling or updating IoT Edge, then this is safe to ignore."
             Write-Warning ('Otherwise, please close Event Viewer, or any PowerShell windows where you ran Get-WinEvent, ' +
                 'then run `Uninstall-SecurityDaemon` again with `-Force`.')
         }
@@ -830,7 +872,7 @@ function Remove-SecurityDaemonResources {
         }
     }
     
-    if (Test-LegacyInstaller) {
+    if ($LegacyInstaller) {
         # Check whether we need to clean up after an errant installation into the OS partition on IoT Core
         if ($env:ProgramData -ne 'C:\ProgramData') {
             Write-Verbose "Multiple ProgramData directories found"
@@ -851,21 +893,7 @@ function Remove-SecurityDaemonResources {
         foreach ($root in $existingMobyDataRoots | ?{ Test-Path $_ }) {
             try {
                 Write-Host "Deleting Moby data root directory '$root'..."
-
-                # Removing `$MobyDataRootDirectory` is tricky. Windows base images contain files owned by TrustedInstaller, etc
-                # Deleting them is a three-step process:
-                #
-                # 1. Take ownership of all files
-                Invoke-Native "takeown /r /skipsl /f ""$root"""
-
-                # 2. Reset their ACLs so that they inherit from their container
-                Invoke-Native "icacls ""$root"" /reset /t /l /q /c"
-
-                # 3. Use cmd's `rd` rather than `Remove-Item` since the latter gets tripped up by reparse points, etc.
-                #    Prepend the path with `\\?\` since the layer directories have long names, so the paths usually exceed 260 characters,
-                #    and IoT Core's filesystem doesn't seem to automatically use (or even have) short names
-                Invoke-Native "rd /s /q ""\\?\$root"""
-
+                Delete-Directory $root
                 Write-Verbose "Deleted Moby data root directory '$root'"
             }
             catch {
@@ -881,18 +909,16 @@ function Remove-SecurityDaemonResources {
     }
 
     foreach ($install in $existingMobyInstallations) {
-        Remove-Item -Recurse $install -ErrorAction SilentlyContinue -ErrorVariable cmdErr
-        if ($?) {
+        try {
+            Write-Host "Deleting install directory '$install'..."
+            Delete-Directory $install
             Write-Verbose "Deleted install directory '$install'"
         }
-        elseif ($cmdErr.FullyQualifiedErrorId -ne 'PathNotFound,Microsoft.PowerShell.Commands.RemoveItemCommand') {
-            Write-Verbose "$cmdErr"
+        catch {
+            Write-Verbose $_
             Write-HostRed ("Could not delete install directory '$install'. Please reboot " +
                 'your device and run `Uninstall-SecurityDaemon` again with `-Force`.')
             $success = $false
-        }
-        else {
-            Write-Verbose "$cmdErr"
         }
     }
 
@@ -910,14 +936,20 @@ function Set-MachineEnvironmentVariable([string] $Name, [string] $Value) {
     # Equivalent to `[System.Environment]::SetEnvironmentVariable($Name, $Value, [System.EnvironmentVariableTarget]::Machine)`
     # but IoT Core doesn't have this overload
 
-    Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment' -Name $Name -Value $Value
+    Set-ItemProperty `
+        -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment' `
+        -Name $Name `
+        -Value $Value
 }
 
 function Remove-MachineEnvironmentVariable([string] $Name) {
     # Equivalent to `[System.Environment]::SetEnvironmentVariable($Name, $null, [System.EnvironmentVariableTarget]::Machine)`
     # but IoT Core doesn't have this overload
 
-    Remove-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment' -Name $Name -ErrorAction SilentlyContinue
+    Remove-ItemProperty `
+        -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment' `
+        -Name $Name `
+        -ErrorAction SilentlyContinue
 }
 
 function Get-SystemPath {
@@ -1020,7 +1052,7 @@ function Start-IoTEdgeService([bool] $RestartNeeded) {
     Write-HostGreen 'Initialized the IoT Edge service.'
 }
 
-function Uninstall-Services([ref] $RestartNeeded) {
+function Uninstall-Services([ref] $RestartNeeded, [bool] $LegacyInstaller) {
     if (Get-Service $EdgeServiceName -ErrorAction SilentlyContinue) {
         Set-Service -StartupType Disabled $EdgeServiceName -ErrorAction SilentlyContinue
         Stop-Service -NoWait -ErrorAction SilentlyContinue -ErrorVariable cmdErr $EdgeServiceName
@@ -1032,13 +1064,13 @@ function Uninstall-Services([ref] $RestartNeeded) {
             Write-Verbose "$cmdErr"
         }
 
-        if (Test-LegacyInstaller) {
+        if ($LegacyInstaller) {
             if (Invoke-Native "sc.exe delete ""$EdgeServiceName""" -ErrorAction SilentlyContinue) {
                 Write-Verbose 'Removed IoT Edge service subkey from the registry'
             }
         }
         else {
-            Uninstall-Package -Name "microsoft-azure-iotedge" -RestartNeeded $RestartNeeded
+            Uninstall-Package -Name $EdgePackage -RestartNeeded $RestartNeeded
         }
     }
 
@@ -1054,14 +1086,14 @@ function Uninstall-Services([ref] $RestartNeeded) {
             Write-Verbose "$cmdErr"
         }
 
-        if (Test-LegacyInstaller) {
+        if ($LegacyInstaller) {
             if (Invoke-Native "sc.exe delete ""$MobyServiceName""" -ErrorAction SilentlyContinue) {
                 Write-Verbose 'Removed IoT Edge Moby Engine service subkey from the registry'
             }
         }
         else {
-            Uninstall-Package -Name "microsoft-azure-iotedge-moby-engine" -RestartNeeded $RestartNeeded
-            Uninstall-Package -Name "microsoft-azure-iotedge-moby-cli" -RestartNeeded $RestartNeeded
+            Uninstall-Package -Name $MobyPackage -RestartNeeded $RestartNeeded
+            Uninstall-Package -Name $MobyCliPackage -RestartNeeded $RestartNeeded
         }
     }
 }
@@ -1095,7 +1127,7 @@ function Set-ProvisioningMode {
     Update-ConfigYaml({
         param($configurationYaml)
     
-        if (($Manual) -or ($DeviceConnectionString)) {
+        if ($Manual -or $DeviceConnectionString) {
             $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"'
             $replacementContent = @(
                 'provisioning:',
