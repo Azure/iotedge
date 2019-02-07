@@ -22,6 +22,7 @@ SRC_SCRIPTS_DIR=$ROOT_FOLDER/scripts
 SRC_STRESS_DIR=$ROOT_FOLDER/stress
 SRC_E2E_TEMPLATES_DIR=$ROOT_FOLDER/e2e_deployment_files
 SRC_E2E_TEST_FILES_DIR=$ROOT_FOLDER/e2e_test_files
+SRC_CERT_TOOLS_DIR=$ROOT_FOLDER/tools/CACertificates
 FUNCTIONS_SAMPLE_DIR=$ROOT_FOLDER/edge-modules/functions/samples
 VERSIONINFO_FILE_PATH=$BUILD_REPOSITORY_LOCALPATH/versionInfo.json
 
@@ -196,7 +197,7 @@ build_solution()
     if [ $? -gt 0 ]; then
         RES=1
     fi
-    
+
     echo "Building IoT Edge Samples solution"
     $DOTNET_ROOT_PATH/dotnet build \
         -c $CONFIGURATION \
@@ -233,6 +234,7 @@ publish_files $SRC_BIN_DIR $PUBLISH_FOLDER
 publish_files $SRC_STRESS_DIR $PUBLISH_FOLDER
 publish_files $SRC_E2E_TEMPLATES_DIR $PUBLISH_FOLDER
 publish_files $SRC_E2E_TEST_FILES_DIR $PUBLISH_FOLDER
+publish_files $SRC_CERT_TOOLS_DIR $PUBLISH_FOLDER
 
 publish_quickstart linux-arm
 publish_quickstart linux-x64
