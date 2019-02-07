@@ -25,10 +25,10 @@ OPENSSL_CONFIG_FILE="${CERTIFICATE_DIR}/openssl_root_ca.cnf"
 # env variable DEFAULT_VALIDITY_DAYS and set the duration in units of days
 DEFAULT_VALIDITY_DAYS=${DEFAULT_VALIDITY_DAYS:=30}
 ROOT_CA_PREFIX="azure-iot-test-only.root.ca"
-ROOT_CA_PASSWORD="1234"
+ROOT_CA_PASSWORD=${ROOT_CA_PASSWORD:="1234"}
 INTERMEDIATE_CA_PREFIX="azure-iot-test-only.intermediate"
-INTERMEDIATE_CA_PASSWORD=${ROOT_CA_PASSWORD}
-
+INTERMEDIATE_CA_PASSWORD="1234"
+export CERTIFICATE_OUTPUT_DIR=${CERTIFICATE_DIR}
 
 ###############################################################################
 # Disclaimer print
@@ -221,7 +221,8 @@ function generate_certificate_common()
             -keyfile ${issuer_key_file} -keyform PEM \
             ${issuer_key_passwd_command} \
             -in ${csr_file} \
-            -out ${cert_file}
+            -out ${cert_file} \
+            -outdir ${CERTIFICATE_DIR}/newcerts
     [ $? -eq 0 ] || exit $?
     chmod 444 ${cert_file}
     [ $? -eq 0 ] || exit $?
