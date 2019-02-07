@@ -15,4 +15,5 @@ EXPOSE 443/tcp
 
 USER edgehubuser
 ENV OptimizeForPerformance false
+ENV MqttEventsProcessorThreadCount 1
 CMD ["dotnet", "Microsoft.Azure.Devices.Edge.Hub.Service.dll"]
