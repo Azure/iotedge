@@ -1,4 +1,5 @@
-﻿function Set-SecretFile([Parameter(Mandatory=$true)] [string]$SecretName,
+﻿## Copyright (c) Microsoft. All rights reserved.
+function Set-SecretFile([Parameter(Mandatory=$true)] [string]$SecretName,
 						[Parameter(Mandatory=$true)] [string]$SecretFilePath)
 {
     if (-not (Test-Path $SecretFilePath -PathType Leaf))

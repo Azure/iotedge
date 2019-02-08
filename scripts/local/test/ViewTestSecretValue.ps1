@@ -1,4 +1,6 @@
-﻿Param([Parameter(Mandatory=$true)] [string]$SecretName,
+﻿## Copyright (c) Microsoft. All rights reserved.
+
+Param([Parameter(Mandatory=$true)] [string]$SecretName,
       [string]$OutputFilePath=$NULL)
 
 . .\Login.ps1
