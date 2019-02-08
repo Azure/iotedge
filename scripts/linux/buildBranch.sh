@@ -214,6 +214,26 @@ rm -fr $PUBLISH_FOLDER
 
 update_version_info
 
+(
+    set -euo pipefail
+
+    export VERSION="$(cat "$VERSIONINFO_FILE_PATH" | jq '.version' -r)"
+
+    mkdir -p $PUBLISH_FOLDER/azureiotedge-diagnostics/
+    cp -R $ROOT_FOLDER/edgelet/iotedge-diagnostics/docker $PUBLISH_FOLDER/azureiotedge-diagnostics/docker
+
+    cd edgelet
+
+    cross build -p iotedge-diagnostics --release --target x86_64-unknown-linux-musl
+    cp $ROOT_FOLDER/edgelet/target/x86_64-unknown-linux-musl/release/iotedge-diagnostics $PUBLISH_FOLDER/azureiotedge-diagnostics/docker/linux/amd64/
+
+    cross build -p iotedge-diagnostics --release --target armv7-unknown-linux-musleabihf
+    cp $ROOT_FOLDER/edgelet/target/armv7-unknown-linux-musleabihf/release/iotedge-diagnostics $PUBLISH_FOLDER/azureiotedge-diagnostics/docker/linux/arm32v7/
+)
+if [ $? -ne 0 ]; then
+    exit 1
+fi
+
 build_solution
 
 publish_app "Microsoft.Azure.Devices.Edge.Agent.Service"

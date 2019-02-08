@@ -12,9 +12,9 @@
 extern crate base64;
 #[macro_use]
 extern crate clap;
-extern crate config;
 extern crate docker;
 extern crate dps;
+extern crate edgelet_config;
 extern crate edgelet_core;
 extern crate edgelet_docker;
 extern crate edgelet_hsm;
@@ -34,17 +34,13 @@ extern crate iothubservice;
 #[macro_use]
 extern crate log;
 extern crate provisioning;
-extern crate serde;
-extern crate sha2;
-#[macro_use]
-extern crate serde_derive;
 extern crate serde_json;
+extern crate sha2;
 #[cfg(test)]
 extern crate tempdir;
 extern crate tokio;
 extern crate tokio_signal;
 extern crate url;
-extern crate url_serde;
 #[cfg(target_os = "windows")]
 #[macro_use]
 extern crate windows_service;
@@ -54,7 +50,6 @@ extern crate win_logger;
 pub mod app;
 mod error;
 pub mod logging;
-pub mod settings;
 pub mod signal;
 pub mod workload;
 
@@ -82,6 +77,7 @@ use url::Url;
 
 use docker::models::HostConfig;
 use dps::DPS_API_VERSION;
+use edgelet_config::{Dps, Manual, Provisioning, Settings, DEFAULT_CONNECTION_STRING};
 use edgelet_core::crypto::{
     Activate, CreateCertificate, Decrypt, DerivedKeyStore, Encrypt, GetTrustBundle, KeyIdentity,
     KeyStore, MasterEncryptionKey, MemoryKey, MemoryKeyStore, Sign, IOTEDGED_CA_ALIAS,
@@ -107,7 +103,6 @@ use provisioning::provisioning::{
     Provision, ProvisioningResult,
 };
 
-use settings::{Dps, Manual, Provisioning, Settings, DEFAULT_CONNECTION_STRING};
 use workload::WorkloadData;
 
 pub use self::error::{Error, ErrorKind, InitializeErrorReason};
@@ -429,7 +424,7 @@ where
     info!("Detecting if configuration file has changed...");
     let path = subdir_path.join(filename);
     let mut reconfig_reqd = false;
-    let diff = settings.diff_with_cached(path)?;
+    let diff = settings.diff_with_cached(&path);
     if diff {
         info!("Change to configuration file detected.");
         reconfig_reqd = true;
@@ -613,9 +608,13 @@ fn manual_provision(
     provisioning: &Manual,
     tokio_runtime: &mut tokio::runtime::Runtime,
 ) -> Result<(DerivedKeyStore<MemoryKey>, ProvisioningResult, MemoryKey), Error> {
-    let manual = ManualProvisioning::new(provisioning.device_connection_string()).context(
-        ErrorKind::Initialize(InitializeErrorReason::ManualProvisioningClient),
-    )?;
+    let (key, device_id, hub) =
+        provisioning
+            .parse_device_connection_string()
+            .context(ErrorKind::Initialize(
+                InitializeErrorReason::ManualProvisioningClient,
+            ))?;
+    let manual = ManualProvisioning::new(key, device_id, hub);
     let memory_hsm = MemoryKeyStore::new();
     let provision = manual
         .provision(memory_hsm.clone())
@@ -989,6 +988,7 @@ where
 mod tests {
     use std::fmt;
     use std::io::Read;
+    use std::path::Path;
 
     use tempdir::TempDir;
 
@@ -1000,14 +1000,14 @@ mod tests {
     use super::*;
 
     #[cfg(unix)]
-    static SETTINGS: &str = "test/linux/sample_settings.yaml";
+    static SETTINGS: &str = "../edgelet-config/test/linux/sample_settings.yaml";
     #[cfg(unix)]
-    static SETTINGS1: &str = "test/linux/sample_settings1.yaml";
+    static SETTINGS1: &str = "../edgelet-config/test/linux/sample_settings1.yaml";
 
     #[cfg(windows)]
-    static SETTINGS: &str = "test/windows/sample_settings.yaml";
+    static SETTINGS: &str = "../edgelet-config/test/windows/sample_settings.yaml";
     #[cfg(windows)]
-    static SETTINGS1: &str = "test/windows/sample_settings1.yaml";
+    static SETTINGS1: &str = "../edgelet-config/test/windows/sample_settings1.yaml";
 
     #[derive(Clone, Copy, Debug, Fail)]
     pub struct Error;
@@ -1017,12 +1017,6 @@ mod tests {
             write!(f, "Error")
         }
     }
-
-    // impl From<Error> for super::Error {
-    //     fn from(_error: Error) -> Self {
-    //         super::Error::from(ErrorKind::Var)
-    //     }
-    // }
 
     struct TestCrypto {}
 
@@ -1069,7 +1063,7 @@ mod tests {
     #[test]
     fn settings_first_time_creates_backup() {
         let tmp_dir = TempDir::new("blah").unwrap();
-        let settings = Settings::<DockerConfig>::new(Some(SETTINGS)).unwrap();
+        let settings = Settings::<DockerConfig>::new(Some(Path::new(SETTINGS))).unwrap();
         let config = TestConfig::new("microsoft/test-image".to_string());
         let state = ModuleRuntimeState::default();
         let module: TestModule<Error> =
@@ -1101,7 +1095,7 @@ mod tests {
     #[test]
     fn settings_change_creates_new_backup() {
         let tmp_dir = TempDir::new("blah").unwrap();
-        let settings = Settings::<DockerConfig>::new(Some(SETTINGS)).unwrap();
+        let settings = Settings::<DockerConfig>::new(Some(Path::new(SETTINGS))).unwrap();
         let config = TestConfig::new("microsoft/test-image".to_string());
         let state = ModuleRuntimeState::default();
         let module: TestModule<Error> =
@@ -1124,7 +1118,7 @@ mod tests {
             .read_to_string(&mut written)
             .unwrap();
 
-        let settings1 = Settings::<DockerConfig>::new(Some(SETTINGS1)).unwrap();
+        let settings1 = Settings::<DockerConfig>::new(Some(Path::new(SETTINGS1))).unwrap();
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
         check_settings_state(
             tmp_dir.path().to_path_buf(),

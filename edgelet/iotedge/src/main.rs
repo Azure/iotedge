@@ -12,8 +12,8 @@ extern crate iotedge;
 extern crate tokio;
 extern crate url;
 
+use std::ffi::OsStr;
 use std::io;
-use std::io::Write;
 use std::process;
 
 use clap::{App, AppSettings, Arg, SubCommand};
@@ -32,16 +32,16 @@ const MGMT_URI: &str = "unix:///C:/ProgramData/iotedge/mgmt/sock";
 
 fn main() {
     if let Err(ref error) = run() {
-        let stderr = &mut io::stderr();
-        let errmsg = "Error writing to stderr";
-
         let mut fail: &Fail = error;
-        writeln!(stderr, "{}", error.to_string()).unwrap_or_else(|_| panic!(errmsg));
-        while let Some(cause) = fail.cause() {
-            writeln!(stderr, "\tcaused by: {}", cause.to_string())
-                .unwrap_or_else(|_| panic!(errmsg));
-            fail = cause;
+
+        eprintln!("{}", error.to_string());
+
+        for cause in fail.iter_causes() {
+            eprintln!("\tcaused by: {}", cause);
         }
+
+        eprintln!();
+
         process::exit(1);
     }
 }
@@ -63,6 +63,18 @@ fn run() -> Result<(), Error> {
                 .global(true)
                 .env("IOTEDGE_HOST")
                 .default_value(default_uri),
+        )
+        .subcommand(
+            SubCommand::with_name("check")
+                .about("Check for common config and deployment issues")
+                .arg(
+                    Arg::with_name("config-file")
+                        .short("c")
+                        .long("config-file")
+                        .value_name("FILE")
+                        .help("Sets daemon configuration file")
+                        .takes_value(true),
+                ),
         )
         .subcommand(SubCommand::with_name("list").about("List modules"))
         .subcommand(
@@ -115,6 +127,31 @@ fn run() -> Result<(), Error> {
     let mut tokio_runtime = tokio::runtime::Runtime::new().context(ErrorKind::InitializeTokio)?;
 
     match matches.subcommand() {
+        ("check", Some(args)) => {
+            // TODO: Fetch from some https://aka.ms/latest_iotedge_stable URL, once that exists
+            let expected_iotedged_version = "1.0.6".to_string();
+            let expected_edge_agent_version = "1.0.6".to_string();
+            let expected_edge_hub_version = "1.0.6".to_string();
+
+            tokio_runtime.block_on(
+                Check::new(
+                    args.value_of_os("config-file")
+                        .unwrap_or_else(|| {
+                            OsStr::new(if cfg!(windows) {
+                                r"C:\ProgramData\iotedge\config.yaml"
+                            } else {
+                                "/etc/iotedge/config.yaml"
+                            })
+                        })
+                        .to_os_string()
+                        .into(),
+                    expected_iotedged_version,
+                    expected_edge_agent_version,
+                    expected_edge_hub_version,
+                )
+                .execute(),
+            )
+        }
         ("list", Some(_args)) => tokio_runtime.block_on(List::new(runtime, io::stdout()).execute()),
         ("restart", Some(args)) => tokio_runtime.block_on(
             Restart::new(

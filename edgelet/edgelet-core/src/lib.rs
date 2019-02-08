@@ -54,7 +54,7 @@ lazy_static! {
         .map(|version| option_env!("BUILD_SOURCEVERSION")
             .map(|sha| format!("{} ({})", version, sha))
             .unwrap_or_else(|| version.to_string()))
-        .unwrap_or_else(|| env!("CARGO_PKG_VERSION").to_string());
+        .unwrap_or_else(|| include_str!("../../version.txt").to_string());
 }
 
 pub fn version() -> &'static str {

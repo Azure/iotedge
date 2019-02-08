@@ -10,10 +10,13 @@ pub struct Error {
     inner: Context<ErrorKind>,
 }
 
-#[derive(Clone, Copy, Debug, Fail)]
+#[derive(Clone, Debug, Fail)]
 pub enum ErrorKind {
     #[fail(display = "Invalid value for --host parameter")]
     BadHostParameter,
+
+    #[fail(display = "One or more diagnostics failed")]
+    Diagnostics,
 
     #[fail(display = "Missing --host parameter")]
     MissingHostParameter,
