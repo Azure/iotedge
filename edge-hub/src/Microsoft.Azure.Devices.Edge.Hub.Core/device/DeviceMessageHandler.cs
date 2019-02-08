@@ -110,9 +110,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             }
         }
 
-        public Task AddSubscription(DeviceSubscription subscription) => this.edgeHub.AddSubscription(this.Identity.Id, subscription);
+        public Task AddSubscription(DeviceSubscription subscription)
+            => this.edgeHub.AddSubscription(this.Identity.Id, subscription);
 
-        public Task RemoveSubscription(DeviceSubscription subscription) => this.edgeHub.RemoveSubscription(this.Identity.Id, subscription);
+        public Task RemoveSubscription(DeviceSubscription subscription)
+            => this.edgeHub.RemoveSubscription(this.Identity.Id, subscription);
 
         public async Task AddDesiredPropertyUpdatesSubscription(string correlationId)
         {

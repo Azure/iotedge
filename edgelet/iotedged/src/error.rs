@@ -16,18 +16,24 @@ pub struct Error {
 
 #[derive(Clone, Debug, Fail, PartialEq)]
 pub enum ErrorKind {
+    #[fail(display = "The symmetric key string could not be activated")]
+    ActivateSymmetricKey,
+
     #[fail(display = "The daemon could not start up successfully: {}", _0)]
     Initialize(InitializeErrorReason),
 
     #[fail(display = "The management service encountered an error")]
     ManagementService,
 
-    #[fail(display = "The watchdog encountered an error")]
-    Watchdog,
+    #[fail(display = "The symmetric key string is malformed")]
+    SymmetricKeyMalformed,
 
     #[cfg(windows)]
     #[fail(display = "The daemon encountered an error while updating its Windows Service state")]
     UpdateWindowsServiceState,
+
+    #[fail(display = "The watchdog encountered an error")]
+    Watchdog,
 
     #[fail(display = "The workload service encountered an error")]
     WorkloadService,

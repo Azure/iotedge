@@ -71,7 +71,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Task setTask = sessionProvider.SetAsync(identity, sessionState);
 
             Assert.True(setTask.IsCompleted);
-            edgeHub.Verify(x => x.AddSubscription("d1", DeviceSubscription.Methods), Times.Once);
+            IEnumerable<(DeviceSubscription, bool)> list = new List<(DeviceSubscription, bool)> { (DeviceSubscription.Methods, true) };
+            edgeHub.Verify(x => x.ProcessSubscriptions("d1", list), Times.Once);
         }
 
         [Fact]
@@ -86,7 +87,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Task setTask = sessionProvider.SetAsync(identity, sessionState);
 
             Assert.True(setTask.IsCompleted);
-            edgeHub.Verify(x => x.RemoveSubscription("d1", DeviceSubscription.Methods), Times.Once);
+            IEnumerable<(DeviceSubscription, bool)> list = new List<(DeviceSubscription, bool)> { (DeviceSubscription.Methods, false) };
+            edgeHub.Verify(x => x.ProcessSubscriptions("d1", list), Times.Once);
         }
 
         [Fact]
@@ -130,7 +132,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Task setTask = sessionProvider.SetAsync(identity, sessionState);
 
             Assert.True(setTask.IsCompleted);
-            edgeHub.Verify(x => x.AddSubscription("d1", DeviceSubscription.Methods), Times.Once);
+            IEnumerable<(DeviceSubscription, bool)> list = new List<(DeviceSubscription, bool)>
+            {
+                (DeviceSubscription.Methods, true),
+                (DeviceSubscription.TwinResponse, true)
+            };
+            edgeHub.Verify(x => x.ProcessSubscriptions("d1", list), Times.Once);
         }
 
         [Theory]
