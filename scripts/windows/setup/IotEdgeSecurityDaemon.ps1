@@ -759,21 +759,17 @@ function Test-AgentRegistryArgs {
 function Get-ContainerOs {
     $yamlPath = (Join-Path -Path $EdgeDataDirectory -ChildPath "config.yaml")
     if (-not (Test-Path $yamlPath)) {
-        Write-Host "Windows"
         return "Windows"
     }
     $configurationYaml = Get-Content $yamlPath -Raw
     if (-not ($configurationYaml -match "moby_runtime:\s*uri:\s*'([^']+)'")) {
-        Write-Host "Windows"
         return "Windows"
     }
 
     if ($Matches[1] -eq $MobyLinuxNamedPipeUrl) {
-        Write-Host "Linux"
         return "Linux"
     }
 
-    Write-Host "Windows"
     return "Windows"
 }
 
